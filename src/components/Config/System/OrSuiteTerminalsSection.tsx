@@ -22,8 +22,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
-import { locationService } from '../../../services';
-import { mockOrSuiteTerminalService } from '../../../services/intraopDashboard/mockOrSuiteTerminalService';
+import { locationService, orSuiteTerminalService } from '@/services';
+
 import type { OrSuiteTerminal, NewOrSuiteTerminal } from '../../../services/intraopDashboard/IOrSuiteTerminalService';
 import type { Location } from '../../../services/locations/ILocationService';
 
@@ -84,21 +84,21 @@ const OrSuiteTerminalsSection: React.FC = () => {
   const [showInactive, setShowInactive] = useState(false);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: OrSuiteTerminal } | null>(null);
 
-  const refresh = () => { mockOrSuiteTerminalService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
+  const refresh = () => { orSuiteTerminalService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
 
   const visible = entries.filter(e => showInactive || e.status === 'Active');
 
   const handleSave = async (draft: Draft) => {
-    if (modal?.mode === 'edit' && modal.entry) await mockOrSuiteTerminalService.update(modal.entry.id, draft);
-    else await mockOrSuiteTerminalService.add(draft);
+    if (modal?.mode === 'edit' && modal.entry) await orSuiteTerminalService.update(modal.entry.id, draft);
+    else await orSuiteTerminalService.add(draft);
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: OrSuiteTerminal) => {
-    if (e.status === 'Active') await mockOrSuiteTerminalService.deactivate(e.id);
-    else await mockOrSuiteTerminalService.update(e.id, { status: 'Active' });
+    if (e.status === 'Active') await orSuiteTerminalService.deactivate(e.id);
+    else await orSuiteTerminalService.update(e.id, { status: 'Active' });
     refresh();
   };
 

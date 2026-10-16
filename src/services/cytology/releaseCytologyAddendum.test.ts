@@ -1,11 +1,21 @@
 // src/services/cytology/releaseCytologyAddendum.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Batch 534: no release delay in this test (releaseReport is tested on its own).
+vi.mock('@/services/reportRelease/releaseThroughDelay', () => ({
+  releaseThroughDelay: vi.fn(async (event: any) => {
+    const m = await import('@/services/reports/publishReportReleasedEvent');
+    return { published: await m.publishReportReleasedEvent(event) };
+  }),
+}));
+
 vi.mock('./mockCytologySignOutRecordService', () => ({
-  mockCytologySignOutRecordService: { getBySpecimenId: vi.fn(), create: vi.fn() },
+  mockCytologySignOutRecordService: { getBySpecimenId: vi.fn(), getByCaseId: vi.fn(), create: vi.fn() },
 }));
 vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: vi.fn() } }));
-vi.mock('./generateCytologyReportPdfSnapshot', () => ({ generateCytologyReportPdfSnapshot: vi.fn().mockResolvedValue({ pdfBase64: 'PDF' }) }));
+vi.mock('./generateCytologyCaseReportPdf', () => ({ generateCytologyCaseReportPdfSnapshot: vi.fn().mockResolvedValue({ pdfBase64: 'CASE-PDF' }) }));
+// Batch 532: the case is released (finalized), so a revision reissues the case report.
+vi.mock('../cases/CaseRouter', () => ({ caseRouter: { getCase: vi.fn() } }));
 vi.mock('../reports/publishReportReleasedEvent', () => ({
   publishReportReleasedEvent: vi.fn().mockResolvedValue({}),
 }));
@@ -15,7 +25,8 @@ vi.mock('../facilities/mockFacilityService', () => ({
 
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
+import { generateCytologyCaseReportPdfSnapshot } from './generateCytologyCaseReportPdf';
+import { caseRouter } from '../cases/CaseRouter';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import { releaseCytologyAddendum } from './releaseCytologyAddendum';
@@ -42,6 +53,11 @@ beforeEach(() => {
   vi.mocked(mockCytologySignOutRecordService.create).mockReset();
   vi.mocked(mockCytologySignOutRecordService.create).mockResolvedValue({ ok: true, data: { id: 'cyto-signout-2' } } as any);
   vi.mocked(publishReportReleasedEvent).mockClear();
+  vi.mocked(caseRouter.getCase).mockReset();
+  vi.mocked(caseRouter.getCase).mockResolvedValue({ id: 'CASE-1', accession: { fullAccession: 'S26-0001' }, status: 'finalized', specimens: [{ id: 'SP-1', label: 'A' }] } as any);
+  vi.mocked(mockCytologySignOutRecordService.getByCaseId).mockReset();
+  vi.mocked(mockCytologySignOutRecordService.getByCaseId).mockResolvedValue({ ok: true, data: [priorRecord(), { ...priorRecord(), id: 'cyto-signout-2', signedAt: '2026-10-12T00:00:00.000Z' }] } as any);
+  vi.mocked(generateCytologyCaseReportPdfSnapshot).mockClear();
   vi.mocked(mockFacilityService.getById).mockReset();
   vi.mocked(mockFacilityService.getById).mockResolvedValue({ ok: false, error: 'not found' } as any);
 });
@@ -174,11 +190,23 @@ describe('releaseCytologyAddendum', () => {
       expect(created.reportContent.revision).toEqual({ kind: 'addendum', reason: REASON });
     });
 
-    it('without a caller-supplied generatePdf, the event builds the addendum record\'s own PDF', async () => {
-      await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, REASON);
+    it('Batch 532: without a caller-supplied generatePdf, the event carries the whole case report (the addendum included)', async () => {
+      const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, REASON);
+      expect(result.published).toBe(true);
       const call = vi.mocked(publishReportReleasedEvent).mock.calls[0][0] as any;
-      await expect(call.generatePdf()).resolves.toEqual({ pdfBase64: 'PDF' });
-      expect((vi.mocked(generateCytologyReportPdfSnapshot).mock.calls[0][0] as any).revision.kind).toBe('addendum');
+      expect(call.reportType).toBe('ADDENDUM');
+      await expect(call.generatePdf()).resolves.toEqual({ pdfBase64: 'CASE-PDF' });
+      const report = vi.mocked(generateCytologyCaseReportPdfSnapshot).mock.calls[0][0] as any;
+      expect(report.accessionNumber).toBe('S26-0001');
+      expect(report.specimens.map((s: any) => s.record?.id)).toEqual(['cyto-signout-2']);
+    });
+
+    it('Batch 532: while the case is still open nothing is published; the record goes out in the case report at release', async () => {
+      vi.mocked(caseRouter.getCase).mockResolvedValue({ id: 'CASE-1', status: 'in-progress', specimens: [] } as any);
+      const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, REASON);
+      expect(result.ok).toBe(true);
+      expect(result.published).toBe(false);
+      expect(publishReportReleasedEvent).not.toHaveBeenCalled();
     });
   });
 });

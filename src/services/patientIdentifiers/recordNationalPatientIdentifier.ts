@@ -22,7 +22,6 @@ import type { NationalPatientIdentifier } from '@/types/patient/NationalPatientI
 import { normalizeNationalIdentifier, verifyNationalIdentifier, type CheckDigitResult } from './checkDigits';
 import { updateCaseWithRetry, type CaseWriteResult } from '../cases/caseWrite';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface RecordNationalIdentifierDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
   getCase: (caseId: string) => Promise<{ id: string; patient: Patient; version?: number } | null | undefined>;

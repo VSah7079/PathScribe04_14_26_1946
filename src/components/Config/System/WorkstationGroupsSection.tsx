@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { workstationGroupService, actionGroupService } from '../../../services';
-import { mockActionRegistryService } from '../../../services/actionRegistry/mockActionRegistryService';
+import { workstationGroupService, actionGroupService, actionRegistryService } from '@/services';
+
 import type { WorkstationGroup, WorkstationDiscipline, QcEnforcementMode } from '../../../services/workstationGroups/IWorkstationGroupService';
 import { duplicateWorkstationGroup } from '@/services/duplication/duplicateEntities';
 import { WORKSTATION_DISCIPLINES, FUNCTIONAL_AREAS_BY_DISCIPLINE } from '../../../services/workstationGroups/IWorkstationGroupService';
@@ -11,6 +11,8 @@ import type { ActionGroup } from '../../../services/actionGroups/IActionGroupSer
 import type { SystemAction } from '../../../services/actionRegistry/IActionRegistryService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const QC_MODE_OPTIONS: QcEnforcementMode[] = ['Enforced', 'Auto-Resolve', 'Hybrid'];
 
@@ -88,7 +90,7 @@ const WorkstationGroupModal: React.FC<WorkstationGroupModalProps> = ({ mode, wor
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('workstationGroupsSection.modal.nameLabel')} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('workstationGroupsSection.modal.nameLabel')} className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
               value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('workstationGroupsSection.modal.namePlaceholder')} />
             {errors.name && <span className="ps-conf-error-text">{errors.name}</span>}
           </div>
@@ -151,14 +153,14 @@ const WorkstationGroupModal: React.FC<WorkstationGroupModalProps> = ({ mode, wor
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('workstationGroupsSection.modal.dedicatedPageRouteLabel')}</label>
-            <input className="ps-conf-input" value={draft.dedicatedPageRoute ?? ''} onChange={e => set('dedicatedPageRoute', e.target.value || undefined)}
+            <input aria-label={t('workstationGroupsSection.modal.dedicatedPageRouteLabel')} className="ps-conf-input" value={draft.dedicatedPageRoute ?? ''} onChange={e => set('dedicatedPageRoute', e.target.value || undefined)}
               placeholder={t('workstationGroupsSection.modal.dedicatedPageRoutePlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('common.active')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('common.active'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -188,7 +190,7 @@ const WorkstationGroupsSection: React.FC = () => {
     workstationGroupService.getAll().then(res => { if (res.ok) setGroups(res.data); setLoading(false); });
     getActivePerformingLabs().then(setLabs);
     actionGroupService.getAll().then(res => { if (res.ok) setActionGroups(res.data.filter(g => g.status === 'Active')); });
-    setAllActions(mockActionRegistryService.getActions());
+    setAllActions(actionRegistryService.getActions());
   }, []);
 
   const labName = (id: string) => labs.find(l => l.id === id)?.name ?? id;
@@ -212,7 +214,7 @@ const WorkstationGroupsSection: React.FC = () => {
     if (res.ok) setGroups(prev => prev.map(x => x.id === g.id ? res.data : x));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('workstationGroupsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('workstationGroupsSection.loading')} />;
 
   const headers = [
     t('workstationGroupsSection.table.headers.name'),

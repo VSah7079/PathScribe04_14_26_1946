@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Batch 503 (PS-474): Inter is self-hosted (@fontsource/inter, imported in main.tsx), not loaded
+   from Google Fonts: hospital networks may block it, it sends every user's address to Google,
+   and the Content-Security-Policy allows styles and fonts from PathScribe itself only. */
 
 /* Global button reset — prevents UA styles overriding ps-close-btn and other custom buttons */
 button {

@@ -154,3 +154,19 @@ Before, anyone who could open Configuration could change this; now each change i
 *See [services/README.md](../README.md) for how this folder fits the
 whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+Batch 553 (PS-539 phase 2d; `SITE_AGENT_API.md` §3): a rule's `printDestination` is a **site agent printer** (`{ agentPrinter: { siteId, destinationId }, displayName? }`) or a printer address.
+- **`printDestinationRules.ts` (new, pure, tested):**
+  - the edit draft (a new destination is an agent printer);
+  - the problems, and the list text;
+  - the audit text, which always names the printer's id and site;
+  - which printer to pick when the site has only one;
+  - which site applies: the facility on a facility-tier rule; the jobs' own lab for Redirect (`redirectSites`, `redirectSiteAllowed`);
+  - the message for a refused save.
+- **`mockPrintRoutingRuleService.ts`** refuses:
+  - an unusable destination;
+  - another site's agent printer on a facility-tier rule (`routingRuleDestinationProblem`);
+  - a site's printer without `config:print-routing:manage` at that site.
+- **Tests:** `printDestinationRules.test.ts`, `mockPrintRoutingRuleService.test.ts`.

@@ -44,7 +44,8 @@ export interface IPrintQueueService {
    *  already in memory right before the real Mode 1/2/3 delivery
    *  attempt that IS audit-logged via markPrinted/markFailed), never a
    *  real, independent user-facing action of its own. */
-  persistRenderedPdf(id: string, pdfBase64: string): Promise<ServiceResult<PrintJob>>;
+  /** Batch 538: with the release's report document id and SHA-256, when it has one. */
+  persistRenderedPdf(id: string, pdfBase64: string, document?: { id?: string; sha256?: string }): Promise<ServiceResult<PrintJob>>;
 
   /** Real, per PS-279 §2.2.3 — real business rule enforced here, in
    *  the one place: only a real QUEUED/PRINTING/FAILED job can be held

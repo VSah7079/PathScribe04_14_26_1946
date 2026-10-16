@@ -132,13 +132,15 @@ cited here was never written, PS-40).
   Configuration → System → Session Security
   (`components/Config/System/SessionSecuritySection.tsx`); per-facility
   override on Facility Configuration's edit modal, AI & Performance tab
-  (`Facility.idleTimeoutMinutesOverride`, `components/ClientDictionary/ClientEditorModal.tsx`).
+  (`Facility.idleTimeoutMinutesOverride`, `components/FacilityDictionary/FacilityEditorModal.tsx`).
   No equivalent admin UI exists yet for session-supersede — there's
   nothing to configure, it's always-on browser-native behavior.
 - Consumed by `hooks/useIdleTimeout.ts` (idle-timeout) and
   `hooks/useSessionSupersedeDetection.ts` (session-supersede) — the files
   that actually own their respective detection logic; this folder is
   purely the underlying resolution/storage logic each hook builds on.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the facility editor is `components/FacilityDictionary/FacilityEditorModal.tsx` (`ClientEditorModal.tsx` no longer exists); `PRIORITY_FIXES.md`, cited above, is no longer in the repo.*
 
 ## Batch 428: Configuration permissions
 

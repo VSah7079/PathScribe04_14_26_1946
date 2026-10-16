@@ -85,6 +85,29 @@ Someone whose staff assignment is limited to some facilities can therefore expor
 
 `exportQaReport` now records each export in the audit log as `DOCUMENT_EXPORTED` (document `qa-<report>`, filename, rows, facility), like every other export. Before, only the permission check was audited. Tested in `qaExport.test.ts`.
 
+## Batch 544: single-facility QA exports (PS-539)
+
+`qaScopeRows.ts` (new, pure) decides which rows of a QA report belong to the scope picked (Pete, Oct 13, 2026: one facility, not only "all facilities"):
+- `inQaScope` / `scopeQaRows`: a row is placed by its own facility, else by its case's ordering facility (organisation: by the case only). A row whose facility can't be told is shown only enterprise-wide.
+- `qaRowFacilityIds`: the facilities offered in the picker.
+- `qaScopeFacilityOptions`: those facilities, always including the one in force.
+- `defaultQaScope`: someone assigned to one facility opens on it.
+- `qaExportFilename`.
+- `scopeLabel` (moved from `components/QualityAssurance/qaReportUtils.ts`, re-exported there).
+
+Used through `hooks/useQaCaseScope.ts`. The export's capability context is still `qaScopeContext(scope)` (`qaExport.ts`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `qaExport.ts`: an organisation scope is still checked as "all facilities" (PS-610, open since Batch 544).
+  - Checking it against the organisation's facilities was built, and then taken out after the independent review.
+  - The reason: an organisation scope's rows are chosen by the case's origin hospital (the legacy map in `organisationService.ts`), but the facility tree places some of those cases' ordering facilities outside the organisation. A check against the tree could therefore pass an export holding rows from facilities the person isn't assigned to.
+  - It waits for the Organisation-to-Facility migration, which gives one definition of an organisation's facilities.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `runQaExport.ts` (new): a QA export through the app's export service, with its kind (from the capability), title, the tab's filters and the facility it is checked for. `components/QualityAssurance/qaReportUtils.ts` (`exportQaReportRows`, now with a `parameters` argument) uses it. Test: `runQaExport.test.ts`.

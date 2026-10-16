@@ -5,7 +5,6 @@ import { signOutCytologyCaseDeps } from '../cytology/signOutCytologyCaseDeps';
 import { mockCytologySignOutRecordService } from '../cytology/mockCytologySignOutRecordService';
 import { mockCytologyReviewRecordService } from '../cytology/mockCytologyReviewRecordService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const d = signOutCytologyCaseDeps;
 export const submitCytologyRevisionToRegistryDeps: CytologyRevisionRegistryDeps = {
   getRegistrySettings: d.getRegistrySettings,

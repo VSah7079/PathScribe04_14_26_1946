@@ -12,7 +12,7 @@ kiosk/device-identity substitute for one.
 
 - **`ExternalConsultViewPage.tsx`** — resolves the URL token
   (`consultTokenService.resolve()`), then fetches the case directly via
-  `mockCaseService.getCase()` — **deliberately not** `caseRouter.getCase()`,
+  `caseService.getCase()` (from `@/services`) — **deliberately not** `caseRouter.getCase()`,
   since `caseRouter`'s own `resolveCaseAccess()` enforces PathScribe's
   internal session/tenant model, which has no concept of an external,
   token-bearing guest. A valid, Active, unexpired `ConsultToken` is this
@@ -25,6 +25,8 @@ kiosk/device-identity substitute for one.
   `consultTokenService.submitOpinion()`. Records exactly one real access
   event per page view (`recordAccess()`), separate from the validity
   check itself.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the page calls `caseService.getCase()` from `@/services`, not `mockCaseService` (`ExternalConsultViewPage.tsx:35,92`; changed in Batch 363).*
 
 ## Deliberate scope cuts
 
@@ -46,3 +48,21 @@ kiosk/device-identity substitute for one.
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 522 (PS-290)
+
+- **The token is read from after `#`** (`hooks/useConsultLinkToken.ts`), or from the path for older links. It is then removed from the address bar, and the page sends no Referer.
+- **The page reads no case itself.** `consultTokenService.openConsult` returns only what the link covers (`ConsultCaseView`). The slide filtering moved to the service.
+- **Opinions go with the token.**
+  - A link revoked meanwhile refuses them, with a translated reason.
+  - Once a signed opinion is in, the form is replaced by a note.
+- **Dates** use the reader's locale (`formatDateTime`).
+- **Route:** `/consult`, plus `/consult/:token` for links issued before Batch 522.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

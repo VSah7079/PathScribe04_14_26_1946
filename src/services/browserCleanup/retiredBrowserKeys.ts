@@ -11,6 +11,9 @@
 //   • pathscribe_pool_access_requested, pathscribe_ped_requested,
 //     pathscribe_orch_requested: "access already requested" markers, kept per
 //     computer. The badges now come from the person's own access requests.
+//   • pathscribe_mock_fppe_assignments: the retired legacy FPPE assignment
+//     store (Batch 515, PS-124). FPPE assignments live in the QA supervision
+//     service; nothing reads this copy any more.
 //
 // Settings that moved to a per-person or lab-wide service are NOT listed here:
 // their services read the old value once and carry it over.
@@ -20,6 +23,7 @@ export const RETIRED_BROWSER_KEYS: readonly string[] = [
   'pathscribe_pool_access_requested',
   'pathscribe_ped_requested',
   'pathscribe_orch_requested',
+  'pathscribe_mock_fppe_assignments',
 ];
 
 export const RETIRED_BROWSER_KEY_PREFIXES: readonly string[] = [

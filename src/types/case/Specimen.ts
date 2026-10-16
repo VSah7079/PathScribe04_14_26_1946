@@ -1032,8 +1032,11 @@ export type EmbeddingDiscrepancyReason =
 export type CassetteReprintReason = 'Wax Buildup' | 'Faded Barcode' | 'Mechanical Jam' | 'Other';
 
 /**
- * LIS synchronisation status — only meaningful for LIS mode (S26-) cases.
+ * LIS sync state: whether PathScribe has changed this specimen since the LIS
+ * sent it. Not the LIS's own status for the case (that is the case's workflow
+ * status). Batch 512 renamed it from SpecimenLisStatus / `lisStatus`.
  *
+ * (unset)        — received from LIS, no local changes; same as lis_owned
  * lis_owned      — received from LIS, no local changes (no badge shown)
  * pending_sync   — added or edited in PathScribe, not yet transmitted to LIS
  * sync_sent      — transmitted to LIS, awaiting ACK
@@ -1041,7 +1044,7 @@ export type CassetteReprintReason = 'Wax Buildup' | 'Faded Barcode' | 'Mechanica
  * local_only     — Orchestration (O26-) case; specimen transmitted as part of
  *                  outbound result message at finalisation — no separate sync
  */
-export type SpecimenLisStatus =
+export type SpecimenLisSyncState =
   | 'lis_owned'
   | 'pending_sync'
   | 'sync_sent'
@@ -1412,13 +1415,14 @@ export interface Specimen {
   /** Whether this specimen is active (not deleted/retired) */
   active?: boolean;
   /**
-   * LIS synchronisation status.
-   * Undefined or 'lis_owned' = normal LIS specimen, no badge.
-   * Set to 'pending_sync' when PathScribe adds or edits a specimen on an S26- case.
-   * Set to 'local_only' for O26- orchestration cases (no LIS sync required).
-   * Updated to 'sync_sent' / 'sync_rejected' by the LIS write-back service.
+   * LIS sync state (Batch 512: renamed from `lisStatus`, which read like the
+   * LIS's own status). Unset or 'lis_owned' = normal LIS specimen, no badge.
+   * 'pending_sync' once PathScribe adds or edits it on an S26- case
+   * (services/specimens/resolveSpecimenLisSyncState.ts); 'local_only' for O26-
+   * orchestration cases; 'sync_sent' / 'sync_rejected' from the LIS write-back,
+   * which the interface engine will provide (not built in the front end).
    */
-  lisStatus?: SpecimenLisStatus;
+  lisSyncState?: SpecimenLisSyncState;
   /** Real feature, per direct follow-up: "does disposal queue include
    *  container id so specimens can be disposed?" Same real shape as
    *  HistologyBlock.disposedAt/disposedBy — a specimen's own wet

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 542 — automated tests for PS-539",
+    "description": "vitest run in the PathScribe workspace at Batch 542 (package version 0.9.0). Mapped files: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts, src/services/deploymentReadiness/phase2cContracts.guard.test.ts, src/services/exports/asyncExportContract.test.ts. 12 of 12 mapped tests passed; the ones mapped to each Test are listed in its comment. Full vitest run: 9385 passed, 0 failed, 32 skipped in 1110 test files (the only failing file is firestore.rules.test.ts, which needs the Firebase emulator). Requirements: PS-602 tests PS-539. Run started 2026-10-13T06:47:34-07:00, finished 2026-10-13T07:02:38-07:00."
+  },
+  "tests": [
+    {
+      "testKey": "PS-602",
+      "start": "2026-10-13T06:47:34-07:00",
+      "finish": "2026-10-13T07:02:38-07:00",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts › DEPLOYMENT_READINESS_REVIEW.md › cites real code\nPASSED: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts › DEPLOYMENT_READINESS_REVIEW.md › every file it names exists (by path, or by its tail under the repo)\nPASSED: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts › DEPLOYMENT_READINESS_REVIEW.md › records the decisions Pete owes (phase 2b) and the findings\nPASSED: src/services/deploymentReadiness/phase2cContracts.guard.test.ts › MESSAGE_BUS_API.md (decision D1) › every file it cites exists\nPASSED: src/services/deploymentReadiness/phase2cContracts.guard.test.ts › MESSAGE_BUS_API.md (decision D1) › has a job for every server job the readiness review lists (§7)\nPASSED: src/services/deploymentReadiness/phase2cContracts.guard.test.ts › MESSAGE_BUS_API.md (decision D1) › keeps the contract tests Pete asked for (one suite, every implementation)\nPASSED: src/services/deploymentReadiness/phase2cContracts.guard.test.ts › ASYNC_EXPORT_API.md (decision D7) › every file it cites exists\nPASSED: src/services/deploymentReadiness/phase2cContracts.guard.test.ts › ASYNC_EXPORT_API.md (decision D7) › every export capability in the catalog has an export kind, and every kind is a catalog capability\nPASSED: src/services/exports/asyncExportContract.test.ts › asyncExportContract › each kind is named after its capability (domain:object:export → domain.object)\nPASSED: src/services/exports/asyncExportContract.test.ts › asyncExportContract › statuses only move forward; finished states are final\nPASSED: src/services/exports/asyncExportContract.test.ts › asyncExportContract › a file is kept 7 days by default, at least 1 and at most 30\nPASSED: src/services/exports/asyncExportContract.test.ts › asyncExportContract › only the requester downloads, only when ready and not expired"
+    }
+  ]
+}

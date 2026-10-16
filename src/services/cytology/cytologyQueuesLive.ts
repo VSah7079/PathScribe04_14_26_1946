@@ -11,15 +11,27 @@
 import type { Case } from '@/types/case/Case';
 import type { ServiceResult } from '../types';
 import { resolveSpecimenEntryMatchesCategory } from '../specimenDictionary/resolveSpecimenEntryMatchesCategory';
+import { caseVersionOf } from '../cases/caseWrite';
 import { resolveCytologyQcPoolMembership } from './resolveCytologyQcPoolMembership';
 import {
-  awaitingPathologistReview, cytologyReviewTrayState, isOwnPrimaryScreen, takeCytologyReviewProblem,
-  type CaseStaffContext, type CytologyReviewTrayState,
+  awaitingPathologistReview, cytologyReviewTrayState, firstQualifyingSpecimenPerCase, isOwnPrimaryScreen,
+  takeCytologyReviewProblem, type CaseStaffContext, type CytologyReviewTrayState,
 } from './cytologyQueues';
 
 export interface GynSpecimenRef { caseData: Case; specimenId: string }
 
-/** Each accessible case's GYN cytology specimen. */
+/**
+ * Every accessible case's GYN cytology specimens — one ref per specimen,
+ * not one per case.
+ *
+ * Batch 483 (PS-359 tracker follow-up — "Cytology: multi-specimen bug"):
+ * this used to `break` after the case's FIRST GYN specimen, so a case
+ * whose SECOND GYN specimen was the one actually QC-flagged, or awaiting
+ * pathologist review, never appeared in either queue at all — the first,
+ * unflagged specimen silently stood in for the whole case. Callers now see
+ * every specimen and decide which one(s) qualify themselves
+ * (`firstQualifyingSpecimenPerCase` keeps the tiles at one row per case).
+ */
 async function gynSpecimens(): Promise<GynSpecimenRef[]> {
   const { caseRouter } = await import('../cases/CaseRouter');
   const { mockSpecimenDictionaryService } = await import('../specimenDictionary/mockSpecimenDictionaryService');
@@ -30,7 +42,7 @@ async function gynSpecimens(): Promise<GynSpecimenRef[]> {
   for (const c of casesRes.data as Case[]) {
     for (const sp of (c.specimens ?? []) as Array<{ id: string; specimenDictionaryEntryId?: string }>) {
       const entry = sp.specimenDictionaryEntryId ? dictById.get(sp.specimenDictionaryEntryId) : undefined;
-      if (resolveSpecimenEntryMatchesCategory(entry, ['GYN_CYTOLOGY'])) { out.push({ caseData: c, specimenId: sp.id }); break; }
+      if (resolveSpecimenEntryMatchesCategory(entry, ['GYN_CYTOLOGY'])) out.push({ caseData: c, specimenId: sp.id });
     }
   }
   return out;
@@ -60,30 +72,38 @@ export interface QcRescreenRef extends GynSpecimenRef {
   ownPrimaryScreen: boolean;
 }
 
-/** Every QC-flagged GYN specimen waiting for a rescreen, the viewer's own primary screens marked. */
+/**
+ * Every QC-flagged GYN specimen waiting for a rescreen, the viewer's own
+ * primary screens marked. Batch 483: checks every GYN specimen on each
+ * case (not just the first), then keeps one row per case.
+ */
 export async function loadQcRescreenQueue(viewerId: string): Promise<QcRescreenRef[]> {
-  const out: QcRescreenRef[] = [];
+  const matches: QcRescreenRef[] = [];
   for (const ref of await gynSpecimens()) {
     const sp = (ref.caseData.specimens ?? []).find(s => s.id === ref.specimenId) as { cytologyScreening?: { qcFlag?: Parameters<typeof resolveCytologyQcPoolMembership>[0] } } | undefined;
     const qcFlag = sp?.cytologyScreening?.qcFlag;
     if (!qcFlag) continue;
     const reviews = await reviewsFor(ref.specimenId);
-    if (resolveCytologyQcPoolMembership(qcFlag, reviews)) out.push({ ...ref, ownPrimaryScreen: isOwnPrimaryScreen(reviews, viewerId) });
+    if (resolveCytologyQcPoolMembership(qcFlag, reviews)) matches.push({ ...ref, ownPrimaryScreen: isOwnPrimaryScreen(reviews, viewerId) });
   }
-  return out;
+  return firstQualifyingSpecimenPerCase(matches);
 }
 
-/** Positive GYN cases waiting for a pathologist: the open ones and the viewer's own. */
+/**
+ * Positive GYN cases waiting for a pathologist: the open ones and the
+ * viewer's own. Batch 483: checks every GYN specimen on each case (not
+ * just the first), then keeps one row per case.
+ */
 export async function loadCytologyReviewTray(viewerId: string): Promise<Array<GynSpecimenRef & { state: Exclude<CytologyReviewTrayState, 'hidden'> }>> {
-  const out: Array<GynSpecimenRef & { state: Exclude<CytologyReviewTrayState, 'hidden'> }> = [];
+  const matches: Array<GynSpecimenRef & { state: Exclude<CytologyReviewTrayState, 'hidden'> }> = [];
   const isCytotech = await cytotechLookup();
   for (const ref of await gynSpecimens()) {
     const reviews = await reviewsFor(ref.specimenId);
     if (!awaitingPathologistReview(reviews, ref.caseData.status)) continue;
     const state = cytologyReviewTrayState(ref.caseData.participants, viewerId, staffContext(ref.caseData, isCytotech));
-    if (state !== 'hidden') out.push({ ...ref, state });
+    if (state !== 'hidden') matches.push({ ...ref, state });
   }
-  return out;
+  return firstQualifyingSpecimenPerCase(matches);
 }
 
 /**
@@ -101,13 +121,19 @@ export async function takeCytologyReview(caseId: string): Promise<ServiceResult<
   if (!caseData) return { ok: false, error: 'NOT_FOUND' };
   const me = readSessionProfile();
   const viewerId = me?.id ?? 'unknown';
-  const ref = (await gynSpecimens()).find(r => r.caseData.id === caseId);
-  const awaiting = !!ref && awaitingPathologistReview(await reviewsFor(ref.specimenId), caseData.status);
+  // Batch 483: a case can carry more than one GYN specimen; pick whichever
+  // one is actually awaiting pathologist review, not just the case's first.
+  const refsWithAwaiting = await Promise.all(
+    (await gynSpecimens()).filter(r => r.caseData.id === caseId)
+      .map(async r => ({ ref: r, awaiting: awaitingPathologistReview(await reviewsFor(r.specimenId), caseData.status) })),
+  );
+  const chosen = refsWithAwaiting.find(x => x.awaiting) ?? refsWithAwaiting[0];
+  const awaiting = chosen?.awaiting ?? false;
   const ctx = staffContext(caseData, await cytotechLookup());
   const problem = takeCytologyReviewProblem(caseData.participants, viewerId, awaiting, ctx);
   if (problem) return { ok: false, error: problem };
   if (cytologyReviewTrayState(caseData.participants, viewerId, ctx) === 'open') {
-    await caseRouter.updateCase(caseId, syncPrimaryAssignee(caseData, viewerId, viewerId, me?.name, ctx.isCytotech), caseData.version);
+    await caseRouter.updateCase(caseId, syncPrimaryAssignee(caseData, viewerId, viewerId, me?.name, ctx.isCytotech), caseVersionOf(caseData));
     mockAuditService.logEvent({ type: 'user', event: 'CYTOLOGY_REVIEW_TAKEN', detail: 'Pathologist took a positive GYN cytology case for review from the Cytology Review tray.', user: viewerId, caseId, confidence: null }).catch(() => {});
   }
   return { ok: true, data: undefined };

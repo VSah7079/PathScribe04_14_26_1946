@@ -17,6 +17,7 @@
  */
 
 import { readLabSetting, saveLabSetting } from '../labSettings/labSettingsStore';
+import { dataStorage } from '../browserData/dataStorage';
 
 export type BiometricCadence =
   | 'never'          // enrol once, biometric prompt valid indefinitely
@@ -83,13 +84,13 @@ export async function saveBiometricPolicy(policy: BiometricPolicy): Promise<bool
 
 function loadCredentials(): BiometricCredential[] {
   try {
-    const raw = localStorage.getItem(CREDENTIALS_KEY);
+    const raw = dataStorage.getItem(CREDENTIALS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveCredentials(creds: BiometricCredential[]): void {
-  localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(creds));
+  dataStorage.setItem(CREDENTIALS_KEY, JSON.stringify(creds));
 }
 
 export function getCredentialForUser(userId: string): BiometricCredential | null {
@@ -205,7 +206,7 @@ export function shouldShowBiometricWizard(userId: string): boolean {
   const cred = getCredentialForUser(userId);
   if (cred) return false;              // already enrolled
   try {
-    const raw = localStorage.getItem(WIZARD_KEY);
+    const raw = dataStorage.getItem(WIZARD_KEY);
     const dismissed: Record<string, number> = raw ? JSON.parse(raw) : {};
     return (dismissed[userId] ?? 0) < 3; // re-prompt until dismissed 3 times
   } catch { return true; }
@@ -213,9 +214,9 @@ export function shouldShowBiometricWizard(userId: string): boolean {
 
 export function dismissBiometricWizard(userId: string): void {
   try {
-    const raw = localStorage.getItem(WIZARD_KEY);
+    const raw = dataStorage.getItem(WIZARD_KEY);
     const dismissed: Record<string, number> = raw ? JSON.parse(raw) : {};
     dismissed[userId] = (dismissed[userId] ?? 0) + 1;
-    localStorage.setItem(WIZARD_KEY, JSON.stringify(dismissed));
+    dataStorage.setItem(WIZARD_KEY, JSON.stringify(dismissed));
   } catch { /* */ }
 }

@@ -174,7 +174,7 @@ class CaseRouter implements ICaseService {
       // (services/supportAccess/). Imported here, not at the top, to keep
       // those services (which read the role and staff services) out of this
       // module's load order.
-      if (isCrossTenantSupportAccess(session, c as any, enterpriseFacilities)) {
+      if (session && isCrossTenantSupportAccess(session, c as any, enterpriseFacilities)) { // false for no session anyway
         const gate = await supportGate();
         const allowed = await gate.gateCaseOpen(sessionAgent(session), c as any, enterpriseFacilities, 'open', gate.supportAccessService);
         if (!allowed.allowed) {

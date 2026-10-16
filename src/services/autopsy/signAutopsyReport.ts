@@ -58,7 +58,6 @@ import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { countersignService, qaSupervisionAssignmentService, userService } from '@/services';
 import { FPPE_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaSupervisionAssignmentService';
 import { resolveResidentCountersignRequired } from '@/services/cases/resolveResidentCountersignRequired';
-import { publishReportReleasedEvent } from '@/services/reports/publishReportReleasedEvent';
 import { canFinalizeCase, getSessionUser, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl';
 import { resolveFinalizeAuthorityContext } from '@/services/auth/resolveFinalizeAuthorityContext';
 import { resolveForensicSignOutAuthority } from './resolveForensicSignOutAuthority';
@@ -363,14 +362,17 @@ export async function signAutopsyReport(
   // milestone, matching this file's own header comment on why PAD
   // never changes CaseStatus); FAD as FINAL (the case's own real
   // terminal event).
-  await publishReportReleasedEvent({
+  // Batch 534 (Pete: every report output follows the release delay). Recall reopens from Batch 535.
+  const { releaseThroughDelay } = await import('../reportRelease/releaseThroughDelay');
+  await releaseThroughDelay({
     caseId,
     reportType: tier === 'PAD' ? 'PRELIMINARY' : 'FINAL',
     releasedAt: new Date().toISOString(),
     releasedBy: { id: signingUser.id, name: signingUser.name },
-    performingFacilityId: (caseData as any)?.order?.facilityId,
+    performingFacilityId: caseData.order?.facilityId,
     generatePdf,
-  });
+  }, { kind: 'autopsy', releasedBy: { userId: signingUser.id, userName: signingUser.name }, subject: { previousStatus: caseData.status ?? 'in-progress' } });
+  // Batch 535: previousStatus is the case status before this signature (Recall puts it back for a FAD). Batch 534 stored the tier here by mistake.
 
   return { ok: true, outcome: 'signed' };
 }

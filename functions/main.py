@@ -64,6 +64,20 @@
 #                       # Batch 392, optional: the wording around the report in that language;
 #                       # any label missing is English (DEFAULT_LABELS). caseHeader.dob arrives
 #                       # already written in the report's locale.
+#     "watermarkText": str,     # Batch 498, optional: drawn diagonally on every page (the report
+#                               # is signed out but held in the release buffer). Absent otherwise.
+#     "revision": {"type": "amendment"|"addendum"|"correction", "revisionCount": int,
+#                  "originalSignOutAt": str|null, "latestRevisionAt": str},
+#                               # Batch 498, optional: the report has released revisions (PS-283
+#                               # §4.2.2). Dates arrive already written in the report's locale.
+#     "documentVersion": int,   # Batch 498, optional: the case record version, printed in the footer
+#                               # reference next to the accession barcode (PS-283 §4.2.3).
+#     "template": "cytology",   # Batch 539, optional: a cytology report; the whole body is then the
+#                               # cytology request in cytology_report.py, and the rest of this list
+#                               # doesn't apply.
+#     "preAnalyticDisclaimerText": str,
+#                               # Batch 498, optional: the administrative-override disclaimer for a
+#                               # case whose collection/receipt time was entered by override.
 #   }
 #
 # Response:
@@ -88,6 +102,9 @@ import re
 from io import BytesIO
 
 from firebase_functions import https_fn, options
+
+import report_delivery  # Batch 520 (PS-280): fax and file-drop delivery
+import cytology_report  # Batch 539 (PS-539 D2): the cytology report template
 from firebase_functions.options import set_global_options
 # Real, per direct guidance (the real receiving end for PathScribe's real
 # outbound interface dispatch — receive_interface_message below): this
@@ -105,6 +122,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.graphics.barcode.code128 import Code128
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.fonts import addMapping
@@ -694,6 +712,14 @@ DEFAULT_LABELS = {
     'workupAddendum': 'Addendum',
     # Batch 463: a map that couldn't be drawn as an image is never left out silently.
     'figureNotDrawn': 'Map notice: the map could not be drawn as an image. What it shows:',
+    # Batch 498 (PS-283): revision status and the footer document reference.
+    'revisionAmendment': 'AMENDED REPORT',
+    'revisionAddendum': 'REPORT WITH ADDENDUM',
+    'revisionCorrection': 'CORRECTED REPORT',
+    'revisionDatesWithOriginal': 'Originally signed out {{original}} · Revised {{latest}}',
+    'revisionDatesLatestOnly': 'Revised {{latest}}',
+    'documentReference': 'Document {{accession}} · record version {{version}}',
+    'documentReferenceNoVersion': 'Document {{accession}}',
 }
 _current_labels = contextvars.ContextVar('report_labels', default=DEFAULT_LABELS)
 
@@ -709,6 +735,135 @@ def report_labels(payload: dict) -> dict:
 
 def fill_label(template: str, name: str) -> str:
     return template.replace('{{name}}', name)
+
+
+def fill_placeholders(template: str, values: dict) -> str:
+    """Batch 498: fill {{key}} placeholders (labels with more than {{name}})."""
+    out = template
+    for k, v in values.items():
+        out = out.replace('{{%s}}' % k, '' if v is None else str(v))
+    return out
+
+
+# ── Batch 498 (PS-283, PS-333): watermark, revision status, footer reference,
+#    pre-analytic disclaimer. The app sent all four before this batch; this
+#    renderer ignored them, so a PDF made during the release buffer had no
+#    watermark and an amended report's PDF didn't say it was amended. The
+#    same rules apply to the in-app render (ReportPreviewRenderer.tsx) and
+#    must carry over when rendering moves to the API server.
+
+_REVISION_LABEL = {'amendment': 'revisionAmendment', 'addendum': 'revisionAddendum', 'correction': 'revisionCorrection'}
+
+
+def revision_lines(payload: dict, labels: dict) -> list[str]:
+    """The revision banner's two lines ([] when the report has no released revision)."""
+    rev = payload.get('revision') or {}
+    key = _REVISION_LABEL.get(rev.get('type') or '')
+    if not key or not rev.get('latestRevisionAt'):
+        return []
+    if rev.get('originalSignOutAt'):
+        dates = fill_placeholders(labels['revisionDatesWithOriginal'], {'original': rev['originalSignOutAt'], 'latest': rev['latestRevisionAt']})
+    else:
+        dates = fill_placeholders(labels['revisionDatesLatestOnly'], {'latest': rev['latestRevisionAt']})
+    return [labels[key], dates]
+
+
+def document_reference_text(payload: dict, labels: dict) -> str:
+    """The footer's readable reference ('' without an accession)."""
+    accession = ((payload.get('caseHeader') or {}).get('accession') or '').strip()
+    if not accession:
+        return ''
+    version = payload.get('documentVersion')
+    if isinstance(version, int) and not isinstance(version, bool):
+        return fill_placeholders(labels['documentReference'], {'accession': accession, 'version': version})
+    return fill_placeholders(labels['documentReferenceNoVersion'], {'accession': accession})
+
+
+def disclaimer_text(payload: dict) -> str:
+    text = payload.get('preAnalyticDisclaimerText')
+    return text.strip() if isinstance(text, str) else ''
+
+
+def watermark_text(payload: dict) -> str:
+    text = payload.get('watermarkText')
+    return text.strip() if isinstance(text, str) else ''
+
+
+def _revision_banner_flows(payload: dict, labels: dict) -> list:
+    from xml.sax.saxutils import escape
+    lines = revision_lines(payload, labels)
+    if not lines:
+        return []
+    flag_style = ParagraphStyle('rp-revision-flag', parent=_styles['RPLabel'], fontName=_font(True), fontSize=10, textColor=colors.HexColor('#92400e'))
+    dates_style = ParagraphStyle('rp-revision-dates', parent=_styles['RPLabel'], fontSize=9, textColor=colors.black)
+    box = Table([[Paragraph(escape(lines[0]), flag_style)], [Paragraph(escape(lines[1]), dates_style)]], colWidths=[170 * mm])
+    box.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#b45309')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fff7ed')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    return [Spacer(1, 6), box, Spacer(1, 6)]
+
+
+def _disclaimer_flows(payload: dict) -> list:
+    from xml.sax.saxutils import escape
+    text = disclaimer_text(payload)
+    if not text:
+        return []
+    style = ParagraphStyle('rp-disclaimer', parent=_styles['RPLabel'], fontSize=9, textColor=colors.black, leading=12)
+    box = Table([[Paragraph(escape(text), style)]], colWidths=[170 * mm])
+    box.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#64748b')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f1f5f9')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    return [Spacer(1, 6), box, Spacer(1, 6)]
+
+
+def _page_decorator(payload: dict, labels: dict):
+    """Draws the watermark (every page, under the text) and the footer
+    reference (every page: accession barcode, document reference, and the
+    revision flag when the report has been revised)."""
+    mark = watermark_text(payload)
+    reference = document_reference_text(payload, labels)
+    accession = ((payload.get('caseHeader') or {}).get('accession') or '').strip()
+    rev = revision_lines(payload, labels)
+    footer_text = '  ·  '.join(x for x in [rev[0] if rev else '', reference] if x)
+    fonts = _current_fonts.get()
+
+    def on_page(canvas, doc):
+        width, height = doc.pagesize
+        canvas.saveState()
+        if mark:
+            # Sized so the rotated line stays inside the page width.
+            size = 30
+            while size > 10 and canvas.stringWidth(mark, fonts[1], size) > width * 0.9:
+                size -= 1
+            canvas.setFont(fonts[1], size)
+            canvas.setFillColor(colors.Color(0.86, 0.15, 0.15, alpha=0.16))
+            for frac in (0.28, 0.55, 0.82):
+                canvas.saveState()
+                canvas.translate(width / 2, height * frac)
+                canvas.rotate(32)
+                canvas.drawCentredString(0, 0, mark)
+                canvas.restoreState()
+        if accession:
+            x = doc.leftMargin
+            try:
+                barcode = Code128(accession, barHeight=7 * mm, barWidth=0.28 * mm, humanReadable=False)
+                barcode.drawOn(canvas, x - barcode.lquiet, 8 * mm)
+                x += barcode.width - barcode.lquiet + 4 * mm
+            except Exception:  # noqa: BLE001 — an accession the barcode can't encode keeps the readable reference
+                pass
+            if footer_text:
+                canvas.setFont(fonts[0], 7.5)
+                canvas.setFillColor(colors.HexColor('#334155'))
+                canvas.drawString(x, 10.5 * mm, footer_text)
+        canvas.restoreState()
+
+    return on_page
 
 
 def case_header_rows(header: dict, labels: dict) -> list:
@@ -880,6 +1035,11 @@ def _build_report_pdf(payload: dict) -> bytes:
         flows.append(Spacer(1, 4))
         flows.append(Paragraph(caption, _styles['RPCaption']))
 
+    # Batch 498 (PS-283 §4.2.2): revision status in the report's header area.
+    flows += _revision_banner_flows(payload, labels)
+    # Batch 498: the pre-analytic override disclaimer, before the body.
+    flows += _disclaimer_flows(payload)
+
     flows.append(Spacer(1, 12))
 
     scope, sections_by_id = resolve_scope_and_sections(payload)
@@ -921,7 +1081,9 @@ def _build_report_pdf(payload: dict) -> bytes:
     flows.append(Spacer(1, 16))
     flows.append(Paragraph(labels['confidential'], _styles['RPCaption']))
 
-    doc.build(flows)
+    # Batch 498: watermark and footer reference on every page.
+    decorate = _page_decorator(payload, labels)
+    doc.build(flows, onFirstPage=decorate, onLaterPages=decorate)
     return buf.getvalue()
 
 
@@ -967,6 +1129,15 @@ def _build_report_text(payload: dict) -> str:
         lines.append('')
         lines.append(caption)
 
+    # Batch 498: the same revision status and disclaimer as the PDF.
+    revision = revision_lines(payload, labels)
+    if revision:
+        lines.append('')
+        lines += revision
+    if disclaimer_text(payload):
+        lines.append('')
+        lines.append(disclaimer_text(payload))
+
     lines.append('')
 
     scope, sections_by_id = resolve_scope_and_sections(payload)
@@ -1004,6 +1175,9 @@ def _build_report_text(payload: dict) -> str:
 
     lines.append('')
     lines.append(labels['confidential'])
+    reference = document_reference_text(payload, labels)
+    if reference:
+        lines.append(reference)
 
     return '\n'.join(lines)
 
@@ -1035,6 +1209,22 @@ def render_report(req: https_fn.Request) -> https_fn.Response:
     # field): missing/undefined defaults to 'pdf', so every existing
     # real caller of this function is completely unaffected.
     output_format = payload.get('outputFormat', 'pdf')
+
+    # Batch 539 (PS-539 D2): the cytology report template (cytology_report.py).
+    if payload.get('template') == 'cytology':
+        if output_format != 'pdf':
+            return https_fn.Response('The cytology template makes PDF only', status=400)
+        problem = cytology_report.validate_cytology_payload(payload)
+        if problem:
+            return https_fn.Response(f'Invalid cytology report: {problem}', status=400)
+        try:
+            pdf_bytes = cytology_report.build_cytology_pdf(payload)
+        except Exception as e:  # noqa: BLE001 — a clean 500, no stack trace
+            return https_fn.Response(f'Report generation failed: {e}', status=500)
+        return https_fn.Response(pdf_bytes, status=200, headers={
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': 'inline; filename="cytology-report.pdf"',
+        })
 
     if output_format == 'text':
         try:
@@ -1082,7 +1272,9 @@ def render_report(req: https_fn.Request) -> https_fn.Response:
 #     "queueEntryId": str,  # the real DLQ queue entry id this dispatch came from
 #     "transactionType": "A08" | "A40" | "A47" | "ORU_R01" | "LIS_SYNC" | "ORDER_CREATED"
 #                        | "REGISTRY_REPORT" | "CANCER_REGISTRY_REPORT" | "PRINT_JOB"
-#                        | "CRITICAL_ALERT" | "WSI_SCAN_MANIFEST",
+#                        | "CRITICAL_ALERT" | "WSI_SCAN_MANIFEST"
+#                        | "ACCESSION_EVENT" | "REFERRAL_MANIFEST" | "MOLECULAR_ORDER"
+#                        | "REPORT_DELIVERY",
 #     "dispatchedAt": str,  # real ISO timestamp of this dispatch attempt
 #     "payload": { ... },   # the real, actual payload — Adt08DemographicUpdatePayload /
 #                           # Adt40MergePatientPayload / Adt47ChangeIdentifierPayload /
@@ -1106,7 +1298,11 @@ def render_report(req: https_fn.Request) -> https_fn.Response:
 #
 # Response: application/json.
 #   Success: {"ok": true, "id": str}  — the real Firestore document id.
+#     Batch 520: a REPORT_DELIVERY success also carries "delivery":
+#     {"status": "SUBMITTED" | "DELIVERED", "detail": str, ...}.
 #   Validation failure: {"ok": false, "error": str}, HTTP 422.
+#   Batch 520, REPORT_DELIVERY only: not set up on this server, HTTP 503;
+#     the gateway or folder refused or couldn't be reached, HTTP 502.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Batch 434: every InterfaceTransactionType the browser sends
@@ -1115,10 +1311,16 @@ def render_report(req: https_fn.Request) -> https_fn.Response:
 # jobs and critical alerts were refused here with 422; WSI_SCAN_MANIFEST is new.
 # interfaceTransactions.guard.test.ts (frontend) keeps the two lists, and
 # docs/architecture/INTERFACE_TRANSACTIONS.md, in step.
+# Batch 518 (PS-122): ACCESSION_EVENT, REFERRAL_MANIFEST and MOLECULAR_ORDER,
+# the three outbound queues that store their message and are now sent from
+# the frontend's Audit Log → Interfaces → Outbound view.
 _VALID_TRANSACTION_TYPES = {
     'A08', 'A40', 'A47', 'ORU_R01', 'LIS_SYNC', 'ORDER_CREATED',
     'REGISTRY_REPORT', 'CANCER_REGISTRY_REPORT', 'PRINT_JOB', 'CRITICAL_ALERT',
-    'WSI_SCAN_MANIFEST',
+    'WSI_SCAN_MANIFEST', 'ACCESSION_EVENT', 'REFERRAL_MANIFEST', 'MOLECULAR_ORDER',
+    # Batch 520 (PS-280): a signed report PDF to fax or drop as a file; this
+    # receiver delivers it (report_delivery.py) and answers with the outcome.
+    'REPORT_DELIVERY',
 }
 
 
@@ -1158,7 +1360,13 @@ def validate_envelope(body: dict) -> str | None:
         return 'payload must be a real JSON object, not a string/array/primitive.'
     if transaction_type == 'WSI_SCAN_MANIFEST':
         return validate_wsi_scan_manifest(body['payload'])
+    if transaction_type == 'REPORT_DELIVERY':
+        return report_delivery.validate_report_delivery(body['payload'])
     return None
+
+
+def _json_response(body: dict, status: int) -> https_fn.Response:
+    return https_fn.Response(json.dumps(body), status=status, headers={'Content-Type': 'application/json'})
 
 
 @https_fn.on_request(
@@ -1189,6 +1397,20 @@ def receive_interface_message(req: https_fn.Request) -> https_fn.Response:
             headers={'Content-Type': 'application/json'},
         )
 
+    # Batch 520 (PS-280): a report delivery is carried out here, before it is
+    # recorded, so the record says what happened. Not set up on this server:
+    # 503; set up and it failed (gateway refused, folder unreachable): 502.
+    # Either way PathScribe marks its queue entry FAILED with this reason.
+    delivery = None
+    if body['transactionType'] == 'REPORT_DELIVERY':
+        try:
+            delivery = report_delivery.deliver(body['payload'])
+        except report_delivery.DeliveryNotConfigured as e:
+            return _json_response({'ok': False, 'error': str(e)}, 503)
+        except report_delivery.DeliveryFailed as e:
+            return _json_response({'ok': False, 'error': str(e)}, 502)
+        body = {**body, 'payload': report_delivery.stored_copy(body['payload']), 'delivery': delivery}
+
     try:
         db = firestore.client()
         doc_ref = db.collection('received_interface_messages').document()
@@ -1208,8 +1430,4 @@ def receive_interface_message(req: https_fn.Request) -> https_fn.Response:
             headers={'Content-Type': 'application/json'},
         )
 
-    return https_fn.Response(
-        json.dumps({'ok': True, 'id': doc_ref.id}),
-        status=200,
-        headers={'Content-Type': 'application/json'},
-    )
+    return _json_response({'ok': True, 'id': doc_ref.id, **({'delivery': delivery} if delivery else {})}, 200)

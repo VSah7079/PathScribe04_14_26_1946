@@ -7,12 +7,12 @@ import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getFacilityDateParts, getFacilityMidnightUtc } from '@/utils/facilityTime';
 import ResourcesModal from './WorklistPage/ResourcesModal';
-import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
+
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 
 // ── Types & Data ─────────────────────────────────────────────────────────────
 // Components import ONLY from services/index.ts — never directly from mock/firestore files.
-// Two exceptions below (mockPatientIndexService, listOrganisations) — neither
+// Two exceptions below (patientIndexService, listOrganisations) — neither
 // is exported through services/index.ts today; PatientMatchReviewSection.tsx
 // itself already imports them directly the same way, so this matches a real,
 // existing precedent rather than introducing a new one.
@@ -22,33 +22,39 @@ import type { ManagementReview } from '../services/deficiencies/IDeficiencyServi
 import type { IntraoperativeEntry } from '../types/intraop/IntraoperativeEntry';
 import type { QaActivityRecord } from '../types/quality/QaActivityRecord';
 import type { CountersignRecord } from '../types/case/CountersignRecord';
-import type { FppeAssignment } from '../types/case/FppeAssignment';
+import type { QaSupervisionAssignment } from '../types/quality/QaSupervisionAssignment';
+import { onlyFppeAssignments } from '@/services/quality/fppeAssignmentForm';
 import type { MasterPatientRecord } from '../services/patients/IPatientIndexService';
 import type { InterfaceException } from '../services/interfaceExceptions/IInterfaceExceptionService';
 import InterfaceExceptionReviewModal from '../components/Audit/InterfaceExceptionReviewModal';
 import BreakGlassRebindModal from '../components/Audit/BreakGlassRebindModal';
-import {
-  auditService, specimenDeficiencyService, deficiencyTypeService,
-  intraoperativeService, qaActivityRecordService, countersignService,
-  fppeAssignmentService, managementReviewService, interfaceExceptionService,
-} from '../services';
-import { mockPatientIndexService } from '../services/patients/mockPatientIndexService';
+import { auditService, specimenDeficiencyService, deficiencyTypeService, intraoperativeService, qaActivityRecordService, countersignService, qaSupervisionAssignmentService, managementReviewService, interfaceExceptionService, actionRegistryService, patientIndexService, FROZEN_FINAL_ACTIVITY_TYPE_ID } from '@/services';
+
 import { listOrganisations } from '../services/organisation/organisationService';
-import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '../services/quality/mockQaActivityTypeService';
+
 import { formatAuditTimestamp, parseStoredUtc } from '../utils/formatDate';
 import { downloadCSV, buildMetaHeader } from '../utils/csvExport';
 import BillingLogsSection from './BillingLogsSection';
 import OutboundDlqSection from './OutboundDlqSection';
+import { financialAuditViewFromParams } from '@/services/auditlog/auditLogLinks';
 import OutboundInterfaceDlqSection from './OutboundInterfaceDlqSection';
 import OutboundDispatchTrailSection from './OutboundDispatchTrailSection';
+import InterfaceEnginesSection from './InterfaceEnginesSection';
+import { EngineStatusLine } from '@/components/Interfaces/EngineStatusLine';
 import PrintQueueDashboardSection from './PrintQueueDashboardSection';
 import CriticalAlertAuditSection from './CriticalAlertAuditSection';
+import ConsultLinksAuditSection from './ConsultLinksAuditSection';
 import SupportReferenceChip from '../components/Support/SupportReferenceChip';
 import SupportReferenceLookup from '../components/Support/SupportReferenceLookup';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { beginExport } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
+import { csvQuoted } from '@/utils/csv';
+import { runExport } from '@/services/exports/runExport';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import ServerJobsSection from './ServerJobsSection';
 
-type ActiveTab = 'audit' | 'errors' | 'interfaces' | 'quality' | 'financial' | 'criticalAlerts';
+type ActiveTab = 'audit' | 'errors' | 'interfaces' | 'quality' | 'financial' | 'criticalAlerts' | 'consultLinks' | 'serverJobs';
 
 // ── Quality Assurance groups ─────────────────────────────────────────────────
 // Every tabbed item group from the Quality Assurance working queue
@@ -184,30 +190,38 @@ function getDateThreshold(range: string, timezone: string): Date | null {
   return null;
 }
 
-async function exportAuditCSV(rows: AuditLog[], requestedBy: string, filters: Record<string, string>) {
+async function exportAuditCSV(rows: AuditLog[], requestedBy: string, filters: Record<string, string>, parameters: Record<string, unknown>) {
   // PS-282 + PS-357 (Batch 437): checked (audit:audit-log:export) and audited.
   const filename = `pathscribe-audit-log-${new Date().toISOString().slice(0,10)}.csv`;
-  if (!(await beginExport('audit-log', { filename, rowCount: rows.length }))) return;
-  const esc = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const meta = buildMetaHeader('Audit Log', requestedBy, filters, rows.length);
-  const data = [
-    ['ID', 'Timestamp', 'Type', 'Event', 'Detail', 'Actioned By', 'Accession No.', 'AI Confidence'].join(','),
-    ...rows.map(r => [r.id, r.timestamp, r.type, r.event, r.detail, r.user, r.caseId ?? '', r.confidence ?? ''].map(esc).join(','))
-  ];
-  downloadCSV(meta + data.join('\n'), filename);
+  // Batch 550: through the export service. The API server builds it from `parameters` (the typed filters and the
+  // facility's time zone); the demo builds it here, with the labelled `filters` in the file's header as before.
+  await runExport('audit.audit-log', filename, parameters, async () => {
+    if (!(await beginExport('audit-log', { filename, rowCount: rows.length }))) return;
+    const esc = csvQuoted; // Batch 543 (F8): quoted, and formula cells neutralized
+    const meta = buildMetaHeader('Audit Log', requestedBy, filters, rows.length);
+    const data = [
+      ['ID', 'Timestamp', 'Type', 'Event', 'Detail', 'Actioned By', 'Accession No.', 'AI Confidence'].join(','),
+      ...rows.map(r => [r.id, r.timestamp, r.type, r.event, r.detail, r.user, r.caseId ?? '', r.confidence ?? ''].map(esc).join(','))
+    ];
+    downloadCSV(meta + data.join('\n'), filename);
+  });
 }
 
-async function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Record<string, string>) {
+async function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Record<string, string>, parameters: Record<string, unknown>) {
   // PS-282 + PS-357 (Batch 437): checked (audit:error-log:export) and audited.
   const filename = `pathscribe-error-log-${new Date().toISOString().slice(0,10)}.csv`;
-  if (!(await beginExport('error-log', { filename, rowCount: rows.length }))) return;
-  const esc = (v: string | number | boolean | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const meta = buildMetaHeader('Error Log', requestedBy, filters, rows.length);
-  const data = [
-    ['ID', 'Timestamp', 'Severity', 'Code', 'Message', 'Source', 'Accession No.', 'Resolved'].join(','),
-    ...rows.map(r => [r.id, r.timestamp, r.severity, r.code, r.message, r.source, r.caseId ?? '', r.resolved].map(esc).join(','))
-  ];
-  downloadCSV(meta + data.join('\n'), filename);
+  // Batch 550: through the export service. The API server builds it from `parameters` (the typed filters and the
+  // facility's time zone); the demo builds it here, with the labelled `filters` in the file's header as before.
+  await runExport('audit.error-log', filename, parameters, async () => {
+    if (!(await beginExport('error-log', { filename, rowCount: rows.length }))) return;
+    const esc = csvQuoted; // Batch 543 (F8): quoted, and formula cells neutralized
+    const meta = buildMetaHeader('Error Log', requestedBy, filters, rows.length);
+    const data = [
+      ['ID', 'Timestamp', 'Severity', 'Code', 'Message', 'Source', 'Accession No.', 'Resolved'].join(','),
+      ...rows.map(r => [r.id, r.timestamp, r.severity, r.code, r.message, r.source, r.caseId ?? '', r.resolved].map(esc).join(','))
+    ];
+    downloadCSV(meta + data.join('\n'), filename);
+  });
 }
 
 // Real, per direct request: "reduce the search bar in the audit log so
@@ -217,17 +231,21 @@ async function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Re
 // posture (sourcePatientIdentifier/targetPatientIdentifier only —
 // never a raw name, MRN, or DOB — matching exactly what the real,
 // on-screen table already shows, never anything more).
-async function exportInterfaceCSV(rows: InterfaceException[], requestedBy: string, filters: Record<string, string>) {
+async function exportInterfaceCSV(rows: InterfaceException[], requestedBy: string, filters: Record<string, string>, parameters: Record<string, unknown>) {
   // PS-282 + PS-357 (Batch 437): checked (audit:interface-log:export) and audited.
   const filename = `pathscribe-interface-log-${new Date().toISOString().slice(0,10)}.csv`;
-  if (!(await beginExport('interface-log', { filename, rowCount: rows.length }))) return;
-  const esc = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const meta = buildMetaHeader('Interface Log', requestedBy, filters, rows.length);
-  const data = [
-    ['ID', 'Timestamp', 'Event Type', 'Reason', 'Source Patient', 'Target Patient', 'Status'].join(','),
-    ...rows.map(r => [r.id, r.createdAt, r.eventType, r.reason, r.sourcePatientIdentifier ?? '', r.targetPatientIdentifier ?? '', r.status].map(esc).join(','))
-  ];
-  downloadCSV(meta + data.join('\n'), filename);
+  // Batch 550: through the export service. The API server builds it from `parameters` (the typed filters and the
+  // facility's time zone); the demo builds it here, with the labelled `filters` in the file's header as before.
+  await runExport('audit.interface-log', filename, parameters, async () => {
+    if (!(await beginExport('interface-log', { filename, rowCount: rows.length }))) return;
+    const esc = csvQuoted; // Batch 543 (F8): quoted, and formula cells neutralized
+    const meta = buildMetaHeader('Interface Log', requestedBy, filters, rows.length);
+    const data = [
+      ['ID', 'Timestamp', 'Event Type', 'Reason', 'Source Patient', 'Target Patient', 'Status'].join(','),
+      ...rows.map(r => [r.id, r.createdAt, r.eventType, r.reason, r.sourcePatientIdentifier ?? '', r.targetPatientIdentifier ?? '', r.status].map(esc).join(','))
+    ];
+    downloadCSV(meta + data.join('\n'), filename);
+  });
 }
 
 // Same compliance-notice/meta-header convention as the other two exports
@@ -241,19 +259,23 @@ async function exportInterfaceCSV(rows: InterfaceException[], requestedBy: strin
 // document on its own — the notice/filter/requester header makes clear
 // what it is and how it was scoped, the same way the audit/error
 // exports already do.
-async function exportQualityCSV(rows: QualityRecord[], requestedBy: string, filters: Record<string, string>) {
+async function exportQualityCSV(rows: QualityRecord[], requestedBy: string, filters: Record<string, string>, parameters: Record<string, unknown>) {
   // PS-282 + PS-357 (Batch 437): checked (audit:qa-log:export) and audited.
   const filename = `pathscribe-quality-assurance-log-${new Date().toISOString().slice(0,10)}.csv`;
-  if (!(await beginExport('qa-log', { filename, rowCount: rows.length }))) return;
-  const esc = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const meta = buildMetaHeader('Quality Assurance Log', requestedBy, filters, rows.length);
-  const data = [
-    ['ID', 'Group', 'Date', 'Case', 'Specimen', 'Detail', 'Status', 'User'].join(','),
-    ...rows.map(r => [
-      r.id, GROUP_LABELS[r.group], r.date, r.caseId ?? '', r.specimen ?? '', r.detail, r.statusLabel, r.user ?? '',
-    ].map(esc).join(','))
-  ];
-  downloadCSV(meta + data.join('\n'), filename);
+  // Batch 550: through the export service. The API server builds it from `parameters` (the typed filters and the
+  // facility's time zone); the demo builds it here, with the labelled `filters` in the file's header as before.
+  await runExport('audit.qa-log', filename, parameters, async () => {
+    if (!(await beginExport('qa-log', { filename, rowCount: rows.length }))) return;
+    const esc = csvQuoted; // Batch 543 (F8): quoted, and formula cells neutralized
+    const meta = buildMetaHeader('Quality Assurance Log', requestedBy, filters, rows.length);
+    const data = [
+      ['ID', 'Group', 'Date', 'Case', 'Specimen', 'Detail', 'Status', 'User'].join(','),
+      ...rows.map(r => [
+        r.id, GROUP_LABELS[r.group], r.date, r.caseId ?? '', r.specimen ?? '', r.detail, r.statusLabel, r.user ?? '',
+      ].map(esc).join(','))
+    ];
+    downloadCSV(meta + data.join('\n'), filename);
+  });
 }
 
 // UNIQUE_USERS is derived from loaded data — see useMemo below
@@ -329,14 +351,19 @@ const AuditLogPage: React.FC = () => {
   const [intraopEntries,      setIntraopEntries]      = useState<IntraoperativeEntry[]>([]);
   const [reconciliationLogs,  setReconciliationLogs]  = useState<QaActivityRecord[]>([]);
   const [countersignLogs,     setCountersignLogs]     = useState<CountersignRecord[]>([]);
-  const [fppeLogs,            setFppeLogs]            = useState<FppeAssignment[]>([]);
+  const [fppeLogs,            setFppeLogs]            = useState<QaSupervisionAssignment[]>([]);
   const [driftLogs,           setDriftLogs]           = useState<AuditLog[]>([]);
   const [patientMatchLogs,    setPatientMatchLogs]    = useState<MasterPatientRecord[]>([]);
   const [managementReviews,   setManagementReviews]   = useState<ManagementReview[]>([]);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
   const [activeTab,       setActiveTab]       = useState<ActiveTab>('audit');
+  const caps = useCapabilities();
+  // Batch 551: a Server jobs link opened by someone without jobs:server-job:view lands on the Audit tab, not a blank page.
+  useEffect(() => {
+    if (activeTab === 'serverJobs' && !caps.loading && !caps.has('jobs:server-job:view')) setActiveTab('audit');
+  }, [activeTab, caps]);
   const [financialSubTab, setFinancialSubTab] = useState<'billing_logs' | 'outbound_dlq'>('billing_logs');
-  const [interfacesSubTab, setInterfacesSubTab] = useState<'exceptions' | 'outbound_dlq' | 'outbound_dispatches' | 'print_queue'>('exceptions');
+  const [interfacesSubTab, setInterfacesSubTab] = useState<'exceptions' | 'outbound_dlq' | 'outbound_dispatches' | 'print_queue' | 'engines'>('exceptions');
   const [searchParams] = useSearchParams();
 
   // Real feature, per direct confirmation: a high-priority message
@@ -352,8 +379,8 @@ const AuditLogPage: React.FC = () => {
   // "Retry Dispatch" below and any future real Audit-context action.
   // Same one-line pattern every other page already uses.
   useEffect(() => {
-    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.AUDIT);
-    return () => { mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.AUDIT);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
   }, []);
 
   // (?tab=interfaces), not a pill within errors — the old
@@ -369,7 +396,12 @@ const AuditLogPage: React.FC = () => {
     else if (tabParam === 'errors') setActiveTab('errors');
     else if (tabParam === 'quality') setActiveTab('quality');
     else if (tabParam === 'financial') setActiveTab('financial');
+    // Batch 499: ?view= picks the Financial tab's view (the QA page's Failed Dispatches tile opens the Outbound DLQ).
+    const financialView = financialAuditViewFromParams(searchParams);
+    if (financialView) setFinancialSubTab(financialView);
     else if (tabParam === 'criticalAlerts') setActiveTab('criticalAlerts');
+    else if (tabParam === 'consultLinks') setActiveTab('consultLinks');
+    else if (tabParam === 'serverJobs') setActiveTab('serverJobs');
     // Real feature, per direct follow-up: "how would I see a report
     // that shows all the tracking events for a case?" — same real
     // deep-link pattern immediately above, extended with a ?search=
@@ -459,20 +491,21 @@ const AuditLogPage: React.FC = () => {
     intraoperativeService.getAll().then(r => { if (r.ok) setIntraopEntries(r.data); });
     qaActivityRecordService.getAll().then(r => { if (r.ok) setReconciliationLogs(r.data.filter(rec => rec.activityTypeId === FROZEN_FINAL_ACTIVITY_TYPE_ID)); });
     countersignService.getAll().then(r => { if (r.ok) setCountersignLogs(r.data); });
-    fppeAssignmentService.getAll().then(r => { if (r.ok) setFppeLogs(r.data); });
+    // Batch 515 (PS-124): FPPE assignments now live in the QA supervision service.
+    qaSupervisionAssignmentService.getAll().then(r => { if (r.ok) setFppeLogs(onlyFppeAssignments(r.data)); });
     managementReviewService.getAll().then(r => { if (r.ok) setManagementReviews(r.data); });
     // Drift reuses the same real audit-log-backed source
     // DriftCorrectionTab.tsx itself reads from — no dedicated service
     // exists for this, by design (see that file's own header comment).
     auditService.getAuditLogs({ search: 'Drift' }).then(r => {
-      if (r.ok) setDriftLogs(r.data.filter(l => (Object.keys(GROUP_STATUS_OPTIONS.drift.reduce((a, o) => ({ ...a, [o.value]: 1 }), {} as Record<string, 1>))).includes(l.event)));
+      if (r.ok) setDriftLogs(r.data.filter(l => (Object.keys(GROUP_STATUS_OPTIONS.drift.reduce<Record<string, number>>((a, o) => ({ ...a, [o.value]: 1 }), {}))).includes(l.event)));
     });
     // Patient Match Review's own service is org-scoped with no
     // cross-org getAll (see PatientMatchReviewSection.tsx) — aggregate
     // across every organisation for the same complete-record purpose
     // this whole tab exists for.
     listOrganisations().then(async orgs => {
-      const perOrg = await Promise.all(orgs.map(o => mockPatientIndexService.listPendingReview(o.id)));
+      const perOrg = await Promise.all(orgs.map(o => patientIndexService.listPendingReview(o.id)));
       setPatientMatchLogs(perOrg.flat());
     });
     return () => clearTimeout(loadTimer);
@@ -610,12 +643,12 @@ const AuditLogPage: React.FC = () => {
       }));
       case 'fppe': return fppeLogs.map(a => ({
         id: a.id, group: 'fppe' as const, date: a.completedAt ?? a.startedAt,
-        detail: `${a.provisionalUserName} (${t('auditLog.qualityTab.proctorParenthetical', { name: a.proctorUserName })}) — ${t('auditLog.qualityTab.casesReviewed', { count: a.casesReviewedCount })}`,
+        detail: `${a.superviseeUserName} (${t('auditLog.qualityTab.proctorParenthetical', { name: a.supervisorUserName })}) — ${t('auditLog.qualityTab.casesReviewed', { count: a.casesReviewedCount })}`,
         statusValue: a.status,
         statusLabel: a.status === 'completed' ? 'Completed' : 'Active',
         statusLabelKey: a.status === 'completed' ? 'auditLog.statusLabels.completed' : 'auditLog.statusLabels.active',
         statusTone: a.status === 'completed' ? 'resolved' as const : 'pending' as const,
-        user: a.provisionalUserName,
+        user: a.superviseeUserName,
       }));
       case 'drift': return driftLogs.map(l => ({
         id: l.id, group: 'drift' as const, date: l.timestamp, caseId: l.caseId ?? undefined,
@@ -677,7 +710,7 @@ const AuditLogPage: React.FC = () => {
   const quickLinks = {
     protocols:  [{ title: 'CAP Cancer Protocols', url: 'https://www.cap.org/protocols-and-guidelines' }, { title: 'WHO Classification', url: 'https://www.who.int/publications' }],
     references: [{ title: 'PathologyOutlines', url: 'https://www.pathologyoutlines.com' }, { title: 'UpToDate', url: 'https://www.uptodate.com' }],
-    systems:    [{ title: 'Hospital LIS', url: '#' }, { title: 'Lab Management', url: '#' }],
+    systems:    [{ title: t('searchPage.resourceLinks.hospitalLis'), url: '#' }, { title: t('searchPage.resourceLinks.labManagement'), url: '#' }],
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -708,7 +741,8 @@ const AuditLogPage: React.FC = () => {
               )}
             </div>
             <div className="ps-auditlog-tabswitch">
-              {(['audit', 'errors', 'interfaces', 'quality', 'financial', 'criticalAlerts'] as const).map(tab => (
+              {/* Batch 551: Server jobs only for those who may see them (jobs:server-job:view). */}
+              {([...(['audit', 'errors', 'interfaces', 'quality', 'financial', 'criticalAlerts', 'consultLinks'] as const), ...(caps.has('jobs:server-job:view') ? (['serverJobs'] as const) : [])]).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -778,9 +812,9 @@ const AuditLogPage: React.FC = () => {
                 </select>
                 {dateRange === 'custom' && (
                   <>
-                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="ps-auditlog-select ps-auditlog-select--date" />
+                    <input aria-label={t('a11y.fields.dateFrom')} type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="ps-auditlog-select ps-auditlog-select--date" />
                     <span className="ps-auditlog-date-to">{t('auditLog.shared.dateToSeparator')}</span>
-                    <input type="date" value={dateTo}   onChange={e => setDateTo(e.target.value)}   className="ps-auditlog-select ps-auditlog-select--date" />
+                    <input aria-label={t('a11y.fields.dateTo')} type="date" value={dateTo}   onChange={e => setDateTo(e.target.value)}   className="ps-auditlog-select ps-auditlog-select--date" />
                   </>
                 )}
                 {/* Text search */}
@@ -797,7 +831,8 @@ const AuditLogPage: React.FC = () => {
                 <CapabilityButton capability="audit:audit-log:export" onClick={() => { void exportAuditCSV(
                     filteredAuditLogs,
                     requestedByLabel,
-                    { 'Type': typeFilter, 'Patient Management Only': patientManagementOnly ? 'Yes' : 'No', 'User': userFilter, 'Date Range': dateRange === 'custom' ? `${dateFrom} to ${dateTo}` : dateRange, 'Search': searchQuery }
+                    { 'Type': typeFilter, 'Patient Management Only': patientManagementOnly ? 'Yes' : 'No', 'User': userFilter, 'Date Range': dateRange === 'custom' ? `${dateFrom} to ${dateTo}` : dateRange, 'Search': searchQuery },
+                    { type: typeFilter, patientManagementOnly, user: userFilter, dateRange, dateFrom, dateTo, search: searchQuery, timeZone: config.facilityTimezone },
                   ); }} className="ps-auditlog-export-btn">
                   {t('auditLog.shared.exportCsv')}
                 </CapabilityButton>
@@ -824,7 +859,7 @@ const AuditLogPage: React.FC = () => {
                         <div className="ps-auditlog-cell-event">{log.event}<SupportReferenceChip kind="auditEntry" recordId={log.id} /></div>
                         <div className="ps-auditlog-cell-detail" data-phi="true">{log.detail}</div>
                         <div className="ps-auditlog-cell-user">{log.user}</div>
-                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => void openCasePage(log.caseId, 'synoptic')}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
+                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" {...pressable(() => { if (log.caseId) void openCasePage(log.caseId, 'synoptic'); })}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
                       </div>
                     );
                   })}
@@ -868,7 +903,8 @@ const AuditLogPage: React.FC = () => {
                 <CapabilityButton capability="audit:error-log:export" onClick={() => { void exportErrorCSV(
                     filteredErrorLogs,
                     requestedByLabel,
-                    { 'Severity': errorSeverity, 'Status': errorResolved, 'Search': errorSearch }
+                    { 'Severity': errorSeverity, 'Status': errorResolved, 'Search': errorSearch },
+                    { severity: errorSeverity, status: errorResolved, search: errorSearch },
                   ); }} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
                   {t('auditLog.shared.exportCsv')}
                 </CapabilityButton>
@@ -895,7 +931,7 @@ const AuditLogPage: React.FC = () => {
                         <div className="ps-auditlog-cell-code">{log.code}<SupportReferenceChip kind="errorEntry" recordId={log.id} /></div>
                         <div className="ps-auditlog-cell-detail" data-phi="true">{log.message}</div>
                         <div className="ps-auditlog-cell-user">{log.source}</div>
-                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => void openCasePage(log.caseId, 'synoptic')}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
+                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" {...pressable(() => { if (log.caseId) void openCasePage(log.caseId, 'synoptic'); })}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
                         <div className="ps-auditlog-cell-status">
                           <span
                             className={`ps-auditlog-status-badge ${log.resolved ? 'ps-auditlog-status-badge--resolved' : 'ps-auditlog-status-badge--open'}`}
@@ -928,6 +964,8 @@ const AuditLogPage: React.FC = () => {
               real, distinct domain, not one flavor of general error. */}
           {activeTab === 'interfaces' && (
             <>
+              {/* Batch 554: the engines' status at a glance; one click opens Engines. */}
+              <EngineStatusLine enabled={caps.has('interface:engine-status:view') && interfacesSubTab !== 'engines'} onOpen={() => setInterfacesSubTab('engines')} />
               <div className="ps-auditlog-tabswitch ps-auditlog-tabswitch--spaced">
                 {([
                   { key: 'exceptions' as const, labelKey: 'auditLog.interfacesTab.subTabExceptions' },
@@ -935,6 +973,8 @@ const AuditLogPage: React.FC = () => {
                   // PS-86: the trail of what was sent (not a failure queue).
                   { key: 'outbound_dispatches' as const, labelKey: 'auditLog.interfacesTab.subTabOutboundDispatches' },
                   { key: 'print_queue' as const, labelKey: 'auditLog.interfacesTab.subTabPrintQueue' },
+                  // Batch 554: interface monitoring, with its capability.
+                  ...(caps.has('interface:engine-status:view') ? [{ key: 'engines' as const, labelKey: 'auditLog.interfacesTab.subTabEngines' }] : []),
                 ]).map(sub => (
                   <button
                     key={sub.key}
@@ -948,6 +988,7 @@ const AuditLogPage: React.FC = () => {
               {interfacesSubTab === 'outbound_dlq' && <OutboundInterfaceDlqSection />}
               {interfacesSubTab === 'outbound_dispatches' && <OutboundDispatchTrailSection />}
               {interfacesSubTab === 'print_queue' && <PrintQueueDashboardSection />}
+              {interfacesSubTab === 'engines' && caps.has('interface:engine-status:view') && <InterfaceEnginesSection onOpenOutbound={() => setInterfacesSubTab('outbound_dlq')} />}
               {interfacesSubTab === 'exceptions' && (
             <>
               {/* Filters — real counts on every pill, per direct
@@ -983,7 +1024,8 @@ const AuditLogPage: React.FC = () => {
                 <CapabilityButton capability="audit:interface-log:export" onClick={() => { void exportInterfaceCSV(
                     filteredInterfaceExceptions,
                     requestedByLabel,
-                    { 'Status': interfaceStatus, 'Search': interfaceSearch }
+                    { 'Status': interfaceStatus, 'Search': interfaceSearch },
+                    { status: interfaceStatus, search: interfaceSearch },
                   ); }} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
                   {t('auditLog.shared.exportCsv')}
                 </CapabilityButton>
@@ -1106,9 +1148,9 @@ const AuditLogPage: React.FC = () => {
                 </select>
                 {qualityDateRange === 'custom' && (
                   <>
-                    <input type="date" value={qualityDateFrom} onChange={e => setQualityDateFrom(e.target.value)} className="ps-auditlog-select ps-auditlog-select--date" />
+                    <input aria-label={t('a11y.fields.dateFrom')} type="date" value={qualityDateFrom} onChange={e => setQualityDateFrom(e.target.value)} className="ps-auditlog-select ps-auditlog-select--date" />
                     <span className="ps-auditlog-date-to">{t('auditLog.shared.dateToSeparator')}</span>
-                    <input type="date" value={qualityDateTo}   onChange={e => setQualityDateTo(e.target.value)}   className="ps-auditlog-select ps-auditlog-select--date" />
+                    <input aria-label={t('a11y.fields.dateTo')} type="date" value={qualityDateTo}   onChange={e => setQualityDateTo(e.target.value)}   className="ps-auditlog-select ps-auditlog-select--date" />
                   </>
                 )}
                 {/* Text search */}
@@ -1131,6 +1173,7 @@ const AuditLogPage: React.FC = () => {
                       'Date Range': qualityDateRange === 'custom' ? `${qualityDateFrom} to ${qualityDateTo}` : qualityDateRange,
                       'Search': qualitySearch,
                     },
+                    { group: qualityGroup, status: qualityStatus, user: qualityUser, dateRange: qualityDateRange, dateFrom: qualityDateFrom, dateTo: qualityDateTo, search: qualitySearch, timeZone: config.facilityTimezone },
                   ); }} className="ps-auditlog-export-btn">
                   {t('auditLog.shared.exportCsv')}
                 </CapabilityButton>
@@ -1151,7 +1194,7 @@ const AuditLogPage: React.FC = () => {
                   ) : filteredQualityLogs.map((r) => (
                     <div key={r.id} className="ps-auditlog-row ps-auditlog-row--quality">
                       <div className="ps-auditlog-cell-time">{formatAuditTimestamp(r.date)}</div>
-                      <div>{r.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => void openCasePage(r.caseId, 'synoptic')}>{r.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
+                      <div>{r.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" {...pressable(() => { if (r.caseId) void openCasePage(r.caseId, 'synoptic'); })}>{r.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
                       <div>{r.specimen ?? <span className="ps-auditlog-case-dash">—</span>}</div>
                       <div className="ps-auditlog-cell-detail" data-phi="true">{r.detail}</div>
                       <div>
@@ -1198,6 +1241,11 @@ const AuditLogPage: React.FC = () => {
               (the "financial" tab's own pattern) rather than a
               QaGroup-normalized row in the "quality" tab's table. */}
           {activeTab === 'criticalAlerts' && <CriticalAlertAuditSection />}
+          {/* Batch 522 (PS-290): every outside consult link, with Revoke. */}
+          {activeTab === 'consultLinks' && <ConsultLinksAuditSection />}
+
+          {/* Batch 551 (PS-539 phase 2d): the API server's background jobs. */}
+          {activeTab === 'serverJobs' && caps.has('jobs:server-job:view') && <ServerJobsSection onOpenInterfaces={sub => { setInterfacesSubTab(sub); setActiveTab('interfaces'); }} />}
         </main>
 
         {/* Footer */}

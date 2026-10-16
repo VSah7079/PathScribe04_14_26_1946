@@ -32,7 +32,7 @@ import { getLabelSizePreset } from '@/types/labels/LabelSizePreset';
 import ForeignIdFields from './ForeignIdFields';
 import CassetteColorControl from './CassetteColorControl';
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
-import { DECANT_TYPE_LABEL } from '@/types/case/Material';
+import { DECANT_TYPE_LABEL, type Decant } from '@/types/case/Material';
 
 const BLOCK_STATUSES = ['Pending', 'Grossed', 'Embedded', 'Exhausted', 'Lost', 'Damaged'] as const;
 // Real, persisted enum values (block.status) stay as data — only the
@@ -302,7 +302,7 @@ interface DecantRow {
   specimenId: string;
   specimenLabel: string;
   specimenDescription: string;
-  decant: any;
+  decant: Decant;
 }
 
 interface Props {
@@ -644,14 +644,14 @@ const RestainControl: React.FC<{
       {isUnstained && (
         <>
           <label className="ps-conf-label ps-blockstain-small-label">{t('blockStainEditorModal.restainControl.stainFieldLabel')}</label>
-          <select className="ps-conf-select ps-blockstain-restain-select" value={stainName} onChange={e => setStainName(e.target.value)}>
+          <select aria-label={t('blockStainEditorModal.restainControl.stainFieldLabel')} className="ps-conf-select ps-blockstain-restain-select" value={stainName} onChange={e => setStainName(e.target.value)}>
             <option value="">{t('blockStainEditorModal.selectPlaceholder')}</option>
             {stainTypes.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
           </select>
         </>
       )}
       <label className="ps-conf-label ps-blockstain-small-label">{t('blockStainEditorModal.restainControl.reasonFieldLabel')}</label>
-      <select className="ps-conf-select" value={reasonChoice} onChange={e => setReasonChoice(e.target.value)}>
+      <select aria-label={t('blockStainEditorModal.restainControl.reasonFieldLabel')} className="ps-conf-select" value={reasonChoice} onChange={e => setReasonChoice(e.target.value)}>
         {RESTAIN_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
       </select>
       {reasonChoice === 'Other' && (
@@ -967,13 +967,13 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                         is never hidden: both real counts (grossed vs.
                         observed) are stored and MaterialTreePanel.tsx
                         renders the real comparison directly. */}
-                    {embedCountPrompt?.blockId === block.id && (
+                    {embedCountPrompt && embedCountPrompt.blockId === block.id && (
                       <div className="ps-blockstain-embed-prompt">
                         <div className="ps-blockstain-embed-prompt-text">
                           {t('blockStainEditorModal.embedCountPrompt.question', { count: block.pieceCount })}
                         </div>
                         <div className="ps-blockstain-embed-prompt-row">
-                          <input
+                          <input aria-label={t('a11y.fields.observedCount')}
                             type="number" min={0} className="ps-conf-input ps-blockstain-embed-count-input"
                             value={embedCountPrompt.observedCount}
                             onChange={e => setEmbedCountPrompt({ blockId: block.id, observedCount: e.target.value })}
@@ -1128,7 +1128,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                 )}
                 <div className="ps-conf-form-field ps-blockstain-field-spaced">
                   <label className="ps-conf-label">{t('blockStainEditorModal.blockCommentsLabel')}</label>
-                  {(block.comments ?? []).map(c => (
+                  {(block.comments ?? []).map((c: MaterialComment) => (
                     <div key={c.id} className="ps-blockstain-comment-row">
                       <Trans i18nKey="blockStainEditorModal.commentMeta" values={{ author: c.authorName, when: formatDateTime(c.createdAt, i18n.language) }} components={{ author: <strong className="ps-blockstain-comment-author" /> }} />
                       <div className="ps-blockstain-comment-text">{c.text}</div>

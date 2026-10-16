@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real feature, per direct follow-up: outbound material scan tracking
 // needs to know WHERE the scan physically happened. Deliberately a
-// per-device/per-browser setting (localStorage), not part of any
+// per-device/per-browser setting (utils/workstationSettings.ts), not part of any
 // Case or user record — the real, physical terminal/scanner sitting
 // at "Grossing Station 3" stays configured as that station regardless
 // of which tech logs in and works there during a given shift. A tech
@@ -33,17 +33,18 @@
 // single login just because stationId is still null.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { getWorkstationSetting, setWorkstationSetting } from '@/utils/workstationSettings';
 import { useState, useCallback, useEffect } from 'react';
 
 const STORAGE_KEY = 'pathscribe_current_scan_station_id';
 const PROMPTED_KEY = 'pathscribe_scan_station_prompted';
 
 function readStored(): string | null {
-  try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  return getWorkstationSetting(STORAGE_KEY);
 }
 
 function readPrompted(): boolean {
-  try { return localStorage.getItem(PROMPTED_KEY) === '1'; } catch { return false; }
+  return getWorkstationSetting(PROMPTED_KEY) === '1';
 }
 
 const subscribers = new Set<(id: string | null) => void>();
@@ -72,10 +73,7 @@ export function useCurrentScanStation() {
   }, []);
 
   const setStationId = useCallback((id: string | null) => {
-    try {
-      if (id) localStorage.setItem(STORAGE_KEY, id);
-      else localStorage.removeItem(STORAGE_KEY);
-    } catch { /* localStorage unavailable — fail silently, same posture as mockStorage.ts */ }
+    setWorkstationSetting(STORAGE_KEY, id || null);
     subscribers.forEach(fn => fn(id));
   }, []);
 
@@ -83,7 +81,7 @@ export function useCurrentScanStation() {
    *  sticky, and deliberately separate from whether a station was
    *  actually picked (a genuine "skip" is still sticky). */
   const markPrompted = useCallback(() => {
-    try { localStorage.setItem(PROMPTED_KEY, '1'); } catch {}
+    setWorkstationSetting(PROMPTED_KEY, '1');
     promptedSubscribers.forEach(fn => fn(true));
   }, []);
 

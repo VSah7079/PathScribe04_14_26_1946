@@ -20,17 +20,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
-import { mockFacilityService } from '@/services/facilities/mockFacilityService';
+
 import { resolveUnionOfEnabledIdentifierFormatIds } from '@/services/facilities/IFacilityService';
 import { IDENTIFIER_FORMAT_LIBRARY } from '@/types/systemConfig';
 import type { IdentifierFormat } from '@/types/systemConfig';
+import { facilityService } from '@/services';
 
 export function useEnabledIdentifierFormats(): IdentifierFormat[] {
   const [formats, setFormats] = useState<IdentifierFormat[]>(IDENTIFIER_FORMAT_LIBRARY);
 
   useEffect(() => {
     let cancelled = false;
-    mockFacilityService.getAll().then(res => {
+    facilityService.getAll().then(res => {
       if (cancelled || !res.ok) return;
       const enabledIds = resolveUnionOfEnabledIdentifierFormatIds(res.data);
       if (enabledIds.length === 0) {

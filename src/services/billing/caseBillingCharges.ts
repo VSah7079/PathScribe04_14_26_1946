@@ -29,7 +29,6 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { correctServiceCharge } from './correctServiceCharge';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CaseBillingChargeDeps {
   enforce: (capability: string, context: { caseId?: string | null; facilityId?: string | null }) => Promise<{ allowed: boolean }>;

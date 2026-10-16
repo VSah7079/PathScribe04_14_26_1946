@@ -2,7 +2,8 @@
 
 Local caching of in-progress, unsaved user work — Phase 2 of the
 Inactivity Timeout & Draft Recovery feature (full spec in
-`PRIORITY_FIXES.md` #13). Generic and reusable, keyed by an arbitrary
+`PRIORITY_FIXES.md` #13, since retired on Aug 19, 2026; its open items
+became Jira PS-57 to PS-71). Generic and reusable, keyed by an arbitrary
 entity id (a caseId, in the current real usage), not tied to any one
 page's data shape.
 
@@ -22,8 +23,9 @@ it.
   typed (`saveDraft<T>(...)`) rather than the interface itself being
   generic, keeping it simple to import/reference.
 - **`mockDraftCacheService.ts`** — localStorage-backed implementation
-  (`pathscribe_drafts` key — added to `DemoResetTab.tsx`'s `CASE_KEYS`,
-  see `PRIORITY_FIXES.md` #17). Drafts older than `RETENTION_DAYS` (7,
+  (`pathscribe_drafts` key — in `CASE_KEYS` in
+  `services/demoReset/demoReset.ts`, where the reset lists moved from
+  `DemoResetTab.tsx` in Batch 370). Drafts older than `RETENTION_DAYS` (7,
   matching the original spec's default) are silently dropped on next
   read. **Security note, stated in this file's own header:** callers are
   responsible for excluding sensitive fields from whatever payload they
@@ -70,6 +72,8 @@ it.
   (patient demographics are read-only LIS/EHR master data; restoring a
   stale cached copy over freshly-fetched current data would be a
   correctness bug, not just a privacy one).
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `PRIORITY_FIXES.md` is retired, and the reset key list now lives in `services/demoReset/demoReset.ts`.*
+
 - **Restore is local-only — no auto-persist to the server.** The
   consuming page marks itself dirty via its own existing mechanism on
   restore, so the user's normal Save Draft review is the real

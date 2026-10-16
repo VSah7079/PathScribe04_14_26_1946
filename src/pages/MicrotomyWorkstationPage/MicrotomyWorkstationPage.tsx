@@ -305,7 +305,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
             <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('microtomyWorkstation.removeReason.title')}</div></div>
             <div className="ps-batch-modal-body">
               <p>{t('microtomyWorkstation.removeReason.body')}</p>
-              <select className="ps-microtomy-field-select" defaultValue="" onChange={e => { if (e.target.value && microtomyCancelMissing(e.target.value, microtomyRequirements).length === 0) w.confirmPendingRemoval(e.target.value as typeof MICROTOMY_CANCEL_REASONS[number]); }}>
+              <select aria-label={t('microtomyWorkstation.removeReason.title')} className="ps-microtomy-field-select" defaultValue="" onChange={e => { if (e.target.value && microtomyCancelMissing(e.target.value, microtomyRequirements).length === 0) w.confirmPendingRemoval(e.target.value as typeof MICROTOMY_CANCEL_REASONS[number]); }}>
                 <option value="" disabled>{t('microtomyWorkstation.removeReason.select')}</option>
                 {MICROTOMY_CANCEL_REASONS.map(r => <option key={r} value={r}>{t(`microtomyWorkstation.reasons.${MICROTOMY_REASON_KEYS[r]}`)}</option>)}
               </select>

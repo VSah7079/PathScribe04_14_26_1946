@@ -33,6 +33,8 @@ export const DOCUMENT_OUTPUT_EVENTS: Record<DocumentOutputAction, string> = {
   render:          'DOCUMENT_RENDERED',
   print:           'DOCUMENT_PRINTED',
   reprint:         'DOCUMENT_REPRINTED',
+  // Batch 497: nothing produces this any more (the preview window was
+  // retired); kept so earlier audit entries still read as prints.
   'preview-print': 'DOCUMENT_PREVIEW_PRINTED',
   export:          'DOCUMENT_EXPORTED',
   fax:             'DOCUMENT_FAXED',

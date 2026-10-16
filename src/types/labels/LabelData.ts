@@ -209,7 +209,7 @@ export interface SecondaryLabelData {
  *  scan-detection logic checks for; a label built any other way
  *  would produce an unrecognized barcode a real scan would silently
  *  ignore. */
-export function barcodePayloadForStation(data: StationLabelData): string {
+export function barcodePayloadForStation(data: Pick<StationLabelData, 'barcodeCode'>): string {
   return `STATION:${data.barcodeCode}`;
 }
 

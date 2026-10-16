@@ -94,12 +94,12 @@ sequence. Two real, separate things live here:
 
 ## Honest, deliberate scope cuts (this Epic)
 
-- No true WebSocket/SSE real-time push — this app has no backend
-  infrastructure for that (same real, disclosed posture as
-  `pages/OrSuiteDashboardPage.tsx`). `pages/FacilityOpsDashboard/FacilityOpsDashboardPage.tsx`
-  polls on a real interval instead, **plus** a real "Offline / Stale
-  Data" badge whenever the last poll failed or has gone stale — the
-  one real gap `OrSuiteDashboardPage.tsx` itself still has.
+- No real-time push — `pages/FacilityOpsDashboard/FacilityOpsDashboardPage.tsx`
+  polls on a real interval (20 s) instead, **plus** a real "Offline / Stale
+  Data" badge whenever the last poll failed or has gone stale. It does
+  not use `services/liveUpdates/` (the SignalR live-update client that
+  `pages/OrSuiteDashboardPage.tsx` has used since Batch 342, with its own
+  `LiveStatusBadge`).
 - No fabricated SLA/target-duration numbers anywhere a real source
   doesn't exist for one (Embedding/Microtomy/Staining/Send-Out
   batches) — see each summary function's own header above.
@@ -108,6 +108,8 @@ sequence. Two real, separate things live here:
 - `deviceToken` on `DisplayProfile` is informational only — this
   environment cannot verify or enforce a binding to real physical
   hardware.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the OR Suite board is no longer polling-only without a status badge; it uses the live-update service (Batch 342). This dashboard still polls.*
 
 ## Real, closed gap (direct follow-up): the recorded `deviceToken` is now consulted at bind time
 

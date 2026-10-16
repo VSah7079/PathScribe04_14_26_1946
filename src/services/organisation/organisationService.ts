@@ -92,7 +92,8 @@ export interface Site {
   defaultLocale:           string;
   defaultWorkflowMode:     WorkflowMode;
   codingSystems:           CodingSystem[];   // ordered list — first is default tab
-  secureEmailGateway?:     'Paubox' | 'Virtru' | 'Zix';
+  // Batch 517 (PS-143): secureEmailGateway removed. Nothing ever read it; each
+  // lab's gateways now live in services/secureMessaging (per tenant, with agreements).
   /** Real, per direct guidance's own detailed jurisdictional research
    *  (resolveBillingDateOfService.ts) - a real, explicit override for
    *  which real date this site's own charges use as billing date of
@@ -143,7 +144,6 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         defaultLocale: 'en-US',
         defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
-        secureEmailGateway: 'Paubox',
       },
     ],
     labs: [
@@ -248,7 +248,6 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         defaultLocale: 'en-US',
         defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
-        secureEmailGateway: 'Paubox',
       },
     ],
     labs: [
@@ -288,7 +287,6 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         defaultLocale: 'en-US',
         defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
-        secureEmailGateway: 'Paubox',
       },
     ],
     labs: [

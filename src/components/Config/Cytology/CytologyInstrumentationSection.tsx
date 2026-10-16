@@ -37,13 +37,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockCytologyInstrumentationService } from '../../../services/cytology/mockCytologyInstrumentationService';
-import { mockFacilityCytologyInstrumentationOverrideService } from '../../../services/cytology/mockFacilityCytologyInstrumentationOverrideService';
-import { mockFacilityService } from '../../../services/facilities/mockFacilityService';
+
 import type { CytologyInstrumentationModality } from '../../../services/cytology/ICytologyInstrumentationService';
 import type { FacilityCytologyInstrumentationOverride } from '../../../services/cytology/IFacilityCytologyInstrumentationOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { cytologyInstrumentationService, facilityCytologyInstrumentationOverrideService, facilityService } from '@/services';
 
 const MODALITY_LABEL_KEY: Record<CytologyInstrumentationModality, string> = {
   wsi: 'cytologyInstrumentationSection.modality.wsi',
@@ -64,11 +63,11 @@ const CytologyInstrumentationSection: React.FC = () => {
   useReportConfigDirty(draft !== saved || addingFacility !== null);
 
   const refresh = () => {
-    mockCytologyInstrumentationService.get().then(r => { if (r.ok) { setDraft(r.data.modality); setSaved(r.data.modality); } });
-    mockFacilityService.getAll().then(async r => {
+    cytologyInstrumentationService.get().then(r => { if (r.ok) { setDraft(r.data.modality); setSaved(r.data.modality); } });
+    facilityService.getAll().then(async r => {
       if (!r.ok) return;
       setFacilities(r.data);
-      const overrides = await Promise.all(r.data.map(f => mockFacilityCytologyInstrumentationOverrideService.getForFacility(f.id)));
+      const overrides = await Promise.all(r.data.map(f => facilityCytologyInstrumentationOverrideService.getForFacility(f.id)));
       setFacilityOverrides(overrides.filter((o): o is { ok: true; data: FacilityCytologyInstrumentationOverride } => o.ok && !!o.data).map(o => o.data));
     });
   };
@@ -77,7 +76,7 @@ const CytologyInstrumentationSection: React.FC = () => {
 
   const save = async () => {
     setSaving(true);
-    await mockCytologyInstrumentationService.update({ modality: draft });
+    await cytologyInstrumentationService.update({ modality: draft });
     setSaving(false);
     refresh();
   };
@@ -95,7 +94,7 @@ const CytologyInstrumentationSection: React.FC = () => {
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">{t('cytologyInstrumentationSection.modalityCardTitle')}</div>
         <div className="ps-conf-row-actions">
-          <select className="ps-conf-select" value={draft} onChange={e => setDraft(e.target.value as CytologyInstrumentationModality)}>
+          <select aria-label={t('cytologyInstrumentationSection.modalityCardTitle')} className="ps-conf-select" value={draft} onChange={e => setDraft(e.target.value as CytologyInstrumentationModality)}>
             {MODALITIES.map(id => (<option key={id} value={id}>{t(MODALITY_LABEL_KEY[id])}</option>))}
           </select>
           <button className="ps-conf-btn-primary" onClick={save} disabled={saving}>{t('common.save')}</button>
@@ -116,7 +115,7 @@ const CytologyInstrumentationSection: React.FC = () => {
           <div key={o.id} className="ps-cytqc__row">
             <span className="ps-cytqc__row-name">{facilityName(o.facilityId)}</span>
             <span className="ps-cytqc__row-summary">{o.overrides.modality ? t(MODALITY_LABEL_KEY[o.overrides.modality]) : ''}</span>
-            <button className="ps-cytqc__btn" onClick={async () => { await mockFacilityCytologyInstrumentationOverrideService.remove(o.facilityId); refresh(); }}>{t('common.remove')}</button>
+            <button className="ps-cytqc__btn" onClick={async () => { await facilityCytologyInstrumentationOverrideService.remove(o.facilityId); refresh(); }}>{t('common.remove')}</button>
           </div>
         ))}
         {facilityOverrides.length === 0 && !addingFacility && (
@@ -125,15 +124,15 @@ const CytologyInstrumentationSection: React.FC = () => {
 
         {addingFacility && (
           <div className="ps-cytqc__add-row">
-            <select value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}
+            <select aria-label={t('a11y.fields.facility')} value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}
               className="ps-conf-select ps-cytqc__add-select">
               {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
-            <select className="ps-conf-select" value={addingFacility.modality} onChange={e => setAddingFacility({ ...addingFacility, modality: e.target.value as CytologyInstrumentationModality })}>
+            <select aria-label={t('a11y.fields.modality')} className="ps-conf-select" value={addingFacility.modality} onChange={e => setAddingFacility({ ...addingFacility, modality: e.target.value as CytologyInstrumentationModality })}>
               {MODALITIES.map(id => (<option key={id} value={id}>{t(MODALITY_LABEL_KEY[id])}</option>))}
             </select>
             <button className="ps-cytqc__btn" onClick={async () => {
-              await mockFacilityCytologyInstrumentationOverrideService.create(addingFacility.facilityId, { modality: addingFacility.modality });
+              await facilityCytologyInstrumentationOverrideService.create(addingFacility.facilityId, { modality: addingFacility.modality });
               setAddingFacility(null); refresh();
             }}>{t('common.save')}</button>
             <button className="ps-cytqc__btn" onClick={() => setAddingFacility(null)}>{t('common.cancel')}</button>

@@ -14,7 +14,11 @@ const K = new Uint32Array([
 ]);
 
 export function sha256Hex(message: string): string {
-  const bytes = new TextEncoder().encode(message);
+  return sha256HexBytes(new TextEncoder().encode(message));
+}
+
+/** Batch 538: SHA-256 of raw bytes (a report PDF), the same digest `sha256sum file.pdf` prints. */
+export function sha256HexBytes(bytes: Uint8Array): string {
   const bitLen = bytes.length * 8;
   const padded = new Uint8Array(((bytes.length + 9 + 63) >> 6) << 6);
   padded.set(bytes);

@@ -25,6 +25,7 @@ import { modifierDictionaryService } from '@/services';
 import type { ModifierTableVersion } from '@/services/billing/ModifierTableVersion';
 import { parseModifierUploadRows, modifierUploadTemplateRows, MODIFIER_UPLOAD_TEMPLATE_FILENAME, type CptModifierEntry } from '@/services/billing/cptModifierDictionary';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Batch 452: dates in the user's language (was a hard-coded 'en-US').
 const formatDate = (iso: string, language: string) => formatLocaleDate(iso, language);
@@ -44,11 +45,11 @@ const EntryModal: React.FC<{ entry: CptModifierEntry; onSave: (e: CptModifierEnt
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('modifierDictionarySection.entryModal.codeLabel')}</label>
-            <input className="ps-conf-input" value={entry.code} disabled />
+            <input aria-label={t('modifierDictionarySection.entryModal.codeLabel')} className="ps-conf-input" value={entry.code} disabled />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('modifierDictionarySection.entryModal.descriptionLabel')}</label>
-            <input className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)} autoFocus />
+            <input aria-label={t('modifierDictionarySection.entryModal.descriptionLabel')} className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)} autoFocus />
           </div>
           <p className="ps-billing-reason-hint">
             {t('modifierDictionarySection.entryModal.disclosure')}
@@ -187,7 +188,7 @@ const ModifierDictionarySection: React.FC = () => {
     downloadCsv(MODIFIER_UPLOAD_TEMPLATE_FILENAME, toCsv(modifierUploadTemplateRows()));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('modifierDictionarySection.loading')}</div>;
+  if (loading) return <LoadingState label={t('modifierDictionarySection.loading')} />;
 
   return (
     <div>
@@ -295,11 +296,11 @@ const ModifierDictionarySection: React.FC = () => {
               <div className="ps-conf-form-row">
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('modifierDictionarySection.uploadModal.versionLabel')}</label>
-                  <input className="ps-conf-input" value={uploadLabel} onChange={e => setUploadLabel(e.target.value)} />
+                  <input aria-label={t('modifierDictionarySection.uploadModal.versionLabel')} className="ps-conf-input" value={uploadLabel} onChange={e => setUploadLabel(e.target.value)} />
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('modifierDictionarySection.uploadModal.effectiveFrom')}</label>
-                  <input className="ps-conf-input" type="date" value={uploadEffectiveDate} onChange={e => setUploadEffectiveDate(e.target.value)} />
+                  <input aria-label={t('modifierDictionarySection.uploadModal.effectiveFrom')} className="ps-conf-input" type="date" value={uploadEffectiveDate} onChange={e => setUploadEffectiveDate(e.target.value)} />
                 </div>
               </div>
               <div className="ps-conf-table-wrap">

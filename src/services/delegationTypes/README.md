@@ -39,6 +39,12 @@ Case delegation type dictionary (Peer Review, Second Opinion, Subspecialty Refer
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 491 — `'TUMOR_BOARD'` seed deactivated (PS-359 follow-up)
+
+`mockDelegationTypeService.ts`'s `'TUMOR_BOARD'` seed entry is now `active: false` (`DelegateModal.tsx` already calls `getActive()`, so it drops out of that modal's list with no further change needed there). Deactivated, not deleted — `isSystem: true` blocks deletion here anyway, and historical `DelegationRequest` records may still reference this id. The real path for a tumor board submission is `services/tumorBoard/` (`FlagForMdtModal.tsx` → `mockTumorBoardService.ts`), which models a board queue instead of forcing this type's generic person/pool recipient — the exact mismatch `services/tumorBoard/README.md` disclosed since that module's first batch.
+
+Also corrected this file's own seed-data comment: it claimed the seed "mirrors `DEFAULT_DELEGATION_TYPES` from `constants/delegationTypes.ts`" — no such file or constant exists in this repo (verify-don't-trust). This array is the mock's own, sole copy of the seed data.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -25,6 +25,7 @@ import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { duplicateProcessingProtocol } from '@/services/duplication/duplicateEntities';
 import { recordExport } from '@/services';
+import { switchable } from '@/utils/a11y/pressable';
 
 type Draft = Omit<Protocol, 'id' | 'version' | 'updatedBy' | 'updatedAt'>;
 
@@ -507,7 +508,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
 
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('protocolDictionarySection.modal.nameLabel')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={draft.name} onChange={e => { set('name', e.target.value); if (nameError) setNameError(null); }} placeholder={t('protocolDictionarySection.modal.namePlaceholder')} />
+              <input aria-label={t('protocolDictionarySection.modal.nameLabel')} className="ps-conf-input" value={draft.name} onChange={e => { set('name', e.target.value); if (nameError) setNameError(null); }} placeholder={t('protocolDictionarySection.modal.namePlaceholder')} />
               {nameError && <div className="ps-body-modal-error">{nameError}</div>}
             </div>
             <div className="ps-conf-form-field">
@@ -522,7 +523,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('protocolDictionarySection.modal.statusLabel')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.active, () => set('active', !draft.active), t('protocolDictionarySection.modal.statusLabel'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
                 <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -530,14 +531,14 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('protocolDictionarySection.modal.descriptionLabel')}</label>
-              <textarea className="ps-conf-input ps-conf-textarea" value={draft.description} onChange={e => set('description', e.target.value)}
+              <textarea aria-label={t('protocolDictionarySection.modal.descriptionLabel')} className="ps-conf-input ps-conf-textarea" value={draft.description} onChange={e => set('description', e.target.value)}
                 placeholder={t('protocolDictionarySection.modal.descriptionPlaceholder')} />
             </div>
 
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('protocolDictionarySection.modal.requiresTriageLabel')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('requiresTriage', !draft.requiresTriage)} className={`ps-conf-toggle-track ${draft.requiresTriage ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.requiresTriage, () => set('requiresTriage', !draft.requiresTriage), t('protocolDictionarySection.modal.requiresTriageLabel'))} className={`ps-conf-toggle-track ${draft.requiresTriage ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
                 <span className={`ps-conf-toggle-label ${draft.requiresTriage ? 'ps-conf-toggle-label--active' : ''}`}>{draft.requiresTriage ? t('protocolDictionarySection.modal.triageRequired') : t('protocolDictionarySection.modal.triageNotRequired')}</span>
@@ -590,7 +591,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
                         own pathway-driven generation actually creates. */}
                     <div className="ps-conf-form-field">
                       <label className="ps-conf-label">{t('protocolDictionarySection.modal.materialKindLabel')}</label>
-                      <select className="ps-conf-select" value={pathway.materialKind}
+                      <select aria-label={t('protocolDictionarySection.modal.materialKindLabel')} className="ps-conf-select" value={pathway.materialKind}
                         onChange={e => {
                           const materialKind = e.target.value as ProtocolPathway['materialKind'];
                           // Real, defensive pairing with the
@@ -610,7 +611,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
                     </div>
                     <div className="ps-conf-form-field">
                       <label className="ps-conf-label">{t('protocolDictionarySection.modal.fixativeLabel')}</label>
-                      <select className="ps-conf-input" value={pathway.fixativeType} onChange={e => updatePathway(pIdx, { fixativeType: e.target.value })}>
+                      <select aria-label={t('protocolDictionarySection.modal.fixativeLabel')} className="ps-conf-input" value={pathway.fixativeType} onChange={e => updatePathway(pIdx, { fixativeType: e.target.value })}>
                         {/* Real, per direct correction ("why is processingFormat
                             free text when they are all known commodities?" /
                             "fixativeType has the same underlying problem") —
@@ -632,7 +633,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
                     </div>
                     <div className="ps-conf-form-field">
                       <label className="ps-conf-label">{t('protocolDictionarySection.modal.processingFormatLabel')}</label>
-                      <select className="ps-conf-input" value={pathway.processingFormat} onChange={e => updatePathway(pIdx, { processingFormat: e.target.value })}>
+                      <select aria-label={t('protocolDictionarySection.modal.processingFormatLabel')} className="ps-conf-input" value={pathway.processingFormat} onChange={e => updatePathway(pIdx, { processingFormat: e.target.value })}>
                         {!processingFormats.some(p => p.name === pathway.processingFormat) && pathway.processingFormat && (
                           <option value={pathway.processingFormat}>{t('protocolDictionarySection.modal.notInDictionaryOption', { value: pathway.processingFormat })}</option>
                         )}
@@ -644,7 +645,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
                     <div className="ps-conf-form-field ps-protocol-decal-field">
                       <label className="ps-conf-label">{t('protocolDictionarySection.modal.requiresDecalLabel')}</label>
                       <div className="ps-conf-toggle-row">
-                        <div onClick={() => updatePathway(pIdx, { requiresDecal: !pathway.requiresDecal })}
+                        <div {...switchable(pathway.requiresDecal ?? false, () => updatePathway(pIdx, { requiresDecal: !pathway.requiresDecal }), t('protocolDictionarySection.modal.requiresDecalLabel'))}
                           className={`ps-conf-toggle-track ${pathway.requiresDecal ? 'ps-conf-toggle-track--active' : ''}`}>
                           <div className="ps-conf-toggle-thumb" />
                         </div>
@@ -681,7 +682,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
                         value was already entered. */}
                     <div className="ps-conf-form-field">
                       <label className="ps-conf-label">{t('protocolDictionarySection.modal.defaultPieceCountLabel')}</label>
-                      <input className="ps-conf-input" type="number" min="1"
+                      <input aria-label={t('protocolDictionarySection.modal.defaultPieceCountLabel')} className="ps-conf-input" type="number" min="1"
                         disabled={pathway.materialKind === 'decant'}
                         value={pathway.defaultPieceCount ?? ''}
                         placeholder={pathway.materialKind === 'decant' ? t('protocolDictionarySection.modal.defaultPieceCountPlaceholderBlockOnly') : t('protocolDictionarySection.modal.defaultPieceCountPlaceholderUnset')}
@@ -694,18 +695,18 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
                       <div className="ps-conf-form-row">
                         <div className="ps-conf-form-field">
                           <label className="ps-conf-label">{t('protocolDictionarySection.modal.stepActionLabel', { number: tIdx + 1 })}</label>
-                          <input className="ps-conf-input" value={task.action} onChange={e => updateTask(pIdx, tIdx, { action: e.target.value })}
+                          <input aria-label={t('protocolDictionarySection.modal.stepActionLabel', { number: tIdx + 1 })} className="ps-conf-input" value={task.action} onChange={e => updateTask(pIdx, tIdx, { action: e.target.value })}
                             placeholder={t('protocolDictionarySection.modal.stepActionPlaceholder')} />
                         </div>
                         <div className="ps-conf-form-field ps-protocol-slidecount-field">
                           <label className="ps-conf-label">{t('protocolDictionarySection.modal.slidesLabel')}</label>
-                          <input className="ps-conf-input" type="number" min="0" value={task.slideCount ?? ''}
+                          <input aria-label={t('protocolDictionarySection.modal.slidesLabel')} className="ps-conf-input" type="number" min="0" value={task.slideCount ?? ''}
                             onChange={e => updateTask(pIdx, tIdx, { slideCount: e.target.value ? Number(e.target.value) : undefined })} />
                         </div>
                         <div className="ps-conf-form-field ps-protocol-hold-field">
                           <label className="ps-conf-label">{t('protocolDictionarySection.modal.holdLabel')}</label>
                           <div className="ps-conf-toggle-row">
-                            <div onClick={() => updateTask(pIdx, tIdx, { isHold: !task.isHold })}
+                            <div {...switchable(task.isHold ?? false, () => updateTask(pIdx, tIdx, { isHold: !task.isHold }), t('protocolDictionarySection.modal.holdLabel'))}
                               className={`ps-conf-toggle-track ${task.isHold ? 'ps-conf-toggle-track--active' : ''}`}>
                               <div className="ps-conf-toggle-thumb" />
                             </div>
@@ -909,7 +910,7 @@ const ProtocolDictionarySection: React.FC = () => {
           render a pointless single-option dropdown. */}
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('protocolDictionarySection.labFilter.allLabs')}</option>
             <option value="Global">{t('protocolDictionarySection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

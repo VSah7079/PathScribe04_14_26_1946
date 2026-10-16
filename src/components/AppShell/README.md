@@ -2,18 +2,16 @@
 
 ## Files
 
-- **`AppShell.tsx`** (1542 lines, the largest single-file folder in
+- **`AppShell.tsx`** (~1,860 lines, the largest single-file folder in
   components/) — Global layout shell wrapping all authenticated pages:
   logo/home nav, breadcrumb slot, Enhancement Request button, user
-  initials badge, Quick Links, logout, `<Outlet />`. Owns
-  `INTERNAL_USERS` — the real internal user/messaging directory (17
-  entries, `u2`–`u17`), **not currently exported**. **See
-  `RequestReview/README.md`** — this is the real directory that
-  `RequestReviewModal.tsx`'s separately-maintained `REVIEWERS` list was
-  supposed to mirror but has drifted from, with 2 real ID collisions
-  (`u3`, `u4` mean different people in each list). Not fixed here — needs
-  your input on whether `RequestReviewModal.tsx`'s reviewer pool is meant
-  to be the same directory or a deliberately separate one.
+  initials badge, Quick Links, logout, the messages drawer, `<Outlet />`.
+  It no longer owns a user directory: the old `INTERNAL_USERS` list is
+  gone (Batch 385 — the drawer loads recipients with
+  `messageService.listRecipients()`), and `RequestReviewModal.tsx` builds
+  its reviewer list from `userService` (see `RequestReview/README.md`).
+  *(Corrected in the Batch 496 README audit (Oct 9, 2026): was "1542
+  lines" and "owns `INTERNAL_USERS`" with an open ID-collision question.)*
 
   **Real, per direct UI-review follow-up ("Fix the root" — background
   inconsistency across pages): the root `<div className="ps-app-root"
@@ -167,7 +165,7 @@ A message's **config link** (`IMessageService` `configLink`) comes from stored m
 
 - **`AppShell.tsx`:** the recipient list is no longer in the file: the drawer loads it with `messageService.listRecipients()` and searches with `searchRecipients` / `findRecipientByName`. The Secure email window's send is `messageService.sendSecureEmail`, not a timer in the component.
 - **Permissions:** Send, Secure email and Reply need `message:internal:send` / `message:secure-email:send` (greyed out with a reason; the service checks again). A refused or failed send now keeps the draft and shows why (before, the draft was cleared either way).
-- **Still in this file:** the drawer's own state handling (the file is 1,700+ lines) and the session storage for the open drawer.
+- **Still in this file:** the drawer's own state handling (the file is 1,700+ lines) and the session storage for the open drawer. *(Since Batch 431 the drawer flags go through `utils/uiPreferences.ts` (`setSessionFlag`), and `AppShell.tsx` is no longer on the deployment baseline — checked in the Batch 496 README audit.)*
 
 ## Batch 431
 
@@ -187,3 +185,51 @@ Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which address
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
+
+## Batch 502 (PS-472)
+
+The page `<Outlet />` sits inside `RouteErrorBoundary` (components/ErrorBoundary/): a page that crashes shows a recovery screen while the nav bar, drawers and messaging keep working. It clears when the address changes.
+
+## Batch 505 (PS-475)
+
+The User Guide and Admin Guide items in the About menu load the guide PDFs when the menu opens (`hooks/useGuideAssets.ts`). Until they arrive the two items are disabled and `aria-busy` (`.ps-about-menu-item:disabled` in `pathscribe.css`). Checked in a browser: the guide chunk is fetched only after the menu opens.
+
+## Batch 511 (PS-478): full strict type-checking
+
+The message drawer's "open case" click checks the message still names a case before opening it. No visible change.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. The breadcrumb's "Home" was always English; it is now translated.
+
+## Batch 517 — SecureEmailModal moved out (PS-143)
+
+`SecureEmailModal` now lives in `components/SecureEmail/SecureEmailModal.tsx`; AppShell imports it.
+- It sends through the lab's gateways, with gateway branding instead of a fixed NHSMail.
+- Patient data can go only through a gateway with an agreement in force.
+
+`messagingRequirements.test.tsx` imports it from the new place and adds 3 gateway tests.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 534
+
+`AppShell.tsx` starts the background release of held reports (`useReleaseBackgroundWork`), next to the delivery retries.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 567 (WCAG 2.1 AA, 4.1.2)
+
+- `MessageListPanel` (now exported, for its tests): a message row holds buttons (delete, restore), so it is no longer a button. The sender's name is the button that opens the message (editing: ticks it, with `aria-pressed`), described by the subject; clicking elsewhere on the row still opens it (`clickableContainer`). Keyboard focus inside a row shows its actions, as hover does, in its own state, so the pointer leaving the row doesn't remove a button that has focus. The delete icon has a name. Tests: `messageListRow.test.tsx`.
+
+## Batch 569 (WCAG 2.1 AA, 2.4.3)
+
+- `MessageListPanel`: when a message's own Delete, Restore or Delete-forever, pressed from the keyboard, removes it, focus goes to the next message's sender (the one before when it was last; the list when none is left), not to the page. A mouse click leaves focus alone; a delete that didn't happen (cancelled, refused) never moves focus later, and focus is never pulled from where the user has moved on to. Tests: `messageListRow.test.tsx`.
+
+## Batch 570
+
+- `MessageListPanel`: the focus move after a delete now comes from `hooks/useFocusAfterRemoval.ts` (shared with the saved-search chips); it also follows a screen reader's click in Firefox, and moves focus only from the page or the pressed button.

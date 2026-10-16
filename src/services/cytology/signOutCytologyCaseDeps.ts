@@ -20,6 +20,8 @@ import { sendEmail } from '../communications/notificationService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { mockCytologyReviewRecordService } from './mockCytologyReviewRecordService';
 import { mockCytologyQcCaseAssignmentService } from '../cytologyQc/mockCytologyQcCaseAssignmentService';
+import { mockCytologyQcRuleService } from '../cytologyQc/mockCytologyQcRuleService';
+import { mockCytologyQcSamplingStateService } from '../cytologyQc/mockCytologyQcSamplingStateService';
 import { mockCytologyQcSettingsService } from './mockCytologyQcSettingsService';
 import { mockFacilityCytologyQcOverrideService } from './mockFacilityCytologyQcOverrideService';
 import { mockStaffCytologyQcOverrideService } from './mockStaffCytologyQcOverrideService';
@@ -35,8 +37,10 @@ import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterface
 import { mockScreeningRegistryConfigService } from '../screeningRegistry/mockScreeningRegistryConfigService';
 import { mockCytologyComplianceFeaturesService } from './mockCytologyComplianceFeaturesService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const signOutCytologyCaseDeps: CytologySignOutDeps = {
+  // Batch 519 (PS-273): the review's synoptic template, from the Synoptic Library (loaded on first use, so the
+  // services barrel doesn't pull in the template service).
+  getSynopticTemplate: id => import('./cytologyTemplateLibraryDeps').then(m => m.cytologyTemplateLibraryDeps.getTemplate(id)),
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   signatureGate: signatureGate as any,
   getSessionUser,
@@ -44,6 +48,12 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
   getActiveSupervisionAssignment: (activityTypeId, userId, subspecialtyId) =>
     mockQaSupervisionAssignmentService.getActiveAssignmentForUser(activityTypeId, userId, subspecialtyId).then(r => (r.ok ? r.data : null)),
   releaseForCountersign: input => mockCountersignService.release(input as any),
+  // Batch 485: the real per-specimen completion path (signOutCytologyCase.ts's own doc comment has the full reasoning).
+  countersign: {
+    getForSpecimen: (caseId, specimenId) => mockCountersignService.getForSpecimen(caseId, specimenId),
+    countersign: input => mockCountersignService.countersign(input),
+    getAll: () => mockCountersignService.getAll(),
+  },
   // PS-71 (Batch 458): saves carry the version the change was built from.
   getCase: caseId => caseRouter.getCase(caseId),
   updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
@@ -57,6 +67,11 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
   sendGate: registryId => registrySendGateCheck('screening', registryId),
   getAllReviews: () => mockCytologyReviewRecordService.getAll() as any,
   createQcAssignment: assignment => mockCytologyQcCaseAssignmentService.create(assignment) as any,
+  // Batch 501: one open QC assignment per specimen; the QC Rules engine and its sampling counters.
+  getQcAssignmentsForCase: caseId => mockCytologyQcCaseAssignmentService.getByCaseId(caseId) as any,
+  applyQcTrigger: (id, changes) => mockCytologyQcCaseAssignmentService.applyAdditionalTrigger(id, changes) as any,
+  getActiveQcRules: () => mockCytologyQcRuleService.getActive() as any,
+  qcSamplingStates: mockCytologyQcSamplingStateService,
   getQcSettings: async (facilityId, userId) => {
     const [enterprise, facility, staff] = await Promise.all([
       mockCytologyQcSettingsService.get(),
@@ -71,7 +86,16 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
   getCaseSignOutRecords: caseId => mockCytologySignOutRecordService.getByCaseId(caseId) as any,
   createSignOutRecord: input => mockCytologySignOutRecordService.create(input as any) as any,
   publishReportReleased: event => publishReportReleasedEvent(event),
+  // Batch 534: every cytology report output follows the laboratory's release delay.
+  releaseReport: async (event, hold) => (await import('../reportRelease/releaseThroughDelay')).releaseThroughDelay(event, hold),
   generatePdfSnapshot: reportContent => generateCytologyReportPdfSnapshot(reportContent),
+  // Batch 532: the consolidated case report.
+  generateCaseReportPdfSnapshot: async (caseData, records) => {
+    const [{ resolveCytologyCaseReport }, { generateCytologyCaseReportPdfSnapshot }] = await Promise.all([
+      import('./resolveCytologyCaseReport'), import('./generateCytologyCaseReportPdf'),
+    ]);
+    return generateCytologyCaseReportPdfSnapshot(resolveCytologyCaseReport(caseData, records));
+  },
   getRegistrySettings: async facilityId => {
     const [enterprise, facility] = await Promise.all([
       mockRegistrySettingsService.get(),
@@ -95,4 +119,10 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
   getHistologyCorrelationRule: facilityId => getEffectiveHistologyCorrelationRule(facilityId),
   now: () => new Date(),
   newId: () => crypto.randomUUID(),
+};
+
+/** Batch 533: urgent preliminary reports (releaseCytologyPreliminary.ts), on the same services as sign-out. */
+export const cytologyPreliminaryDeps: import('./releaseCytologyPreliminary').CytologyPreliminaryDeps = {
+  ...signOutCytologyCaseDeps,
+  renderPdfSnapshot: content => generateCytologyReportPdfSnapshot(content),
 };

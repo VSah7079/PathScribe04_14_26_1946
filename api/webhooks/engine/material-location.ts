@@ -11,7 +11,6 @@
 
 import { getAdminFirestore } from './_lib/firebaseAdmin';
 import { verifyEngineAuth } from './_lib/verifyEngineAuth';
-import { claimMessageId } from './_lib/idempotency';
 import { applyEngineCaseUpdate } from './_lib/applyEngineCaseUpdate';
 import { logIntegrationError } from './_lib/logIntegrationError';
 import { applyMaterialLocation } from '../../../src/services/hl7/materialLocationMutation';
@@ -70,11 +69,6 @@ export default async function handler(request: Request): Promise<Response> {
   const payload = body;
 
   try {
-    const { alreadyProcessed } = await claimMessageId(payload.messageId, EVENT_TYPE);
-    if (alreadyProcessed) {
-      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
-    }
-
     const caseId = payload.internalCaseId ?? payload.accessionNumber;
 
     let targetDescription: string | undefined;
@@ -95,8 +89,14 @@ export default async function handler(request: Request): Promise<Response> {
       return mutation.result.level === 'matrix'
         ? { field: 'matrixBlocks', matrixBlocks: mutation.result.matrixBlocks }
         : { field: 'specimens', specimens: mutation.result.specimens };
-    });
+    }, { messageId: payload.messageId, eventType: EVENT_TYPE });
 
+    // Batch 545 (F10): the messageId is claimed inside the update's own
+    // transaction, so a not-found or a crash leaves no claim and the engine's
+    // redelivery is applied once the case exists.
+    if (result.outcome === 'already-processed') {
+      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
+    }
     if (result.outcome === 'case-not-found') {
       return new Response(JSON.stringify({ error: `No case found for '${caseId}'.` }), { status: 404 });
     }

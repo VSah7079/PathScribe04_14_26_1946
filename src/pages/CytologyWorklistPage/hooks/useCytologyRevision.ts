@@ -9,8 +9,6 @@
 // findings and report context are built in resolveCytologyRevisionInputs.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { submitCytologyRevisionToRegistry } from '@/services/screeningRegistry/submitCytologyRevisionToRegistry';
-import { submitCytologyRevisionToRegistryDeps } from '@/services/screeningRegistry/submitCytologyRevisionToRegistryDeps';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
@@ -29,7 +27,7 @@ import type { CytologyRevisionMode } from '../components/CytologyRevisionActions
 interface Args {
   caseData: any;
   specimen: any;
-  specimenId: string | undefined;
+  specimenId: string | null | undefined;
   /** The review the signed-out report was built from. */
   signedReview: CytologyReviewRecord | undefined;
   categories: CytologyCategoryEntry[];
@@ -71,22 +69,20 @@ export function useCytologyRevision({ caseData, specimen, specimenId, signedRevi
       const ctx = resolveCytologyReleaseContext(caseData, specimen);
       const releasingUser = { id: user.id, name: user.name, isPathologist };
       const result = mode === 'correction'
-        ? await releaseCytologyCorrection(caseData.id, specimenId, buildCorrectedFindings(draft, categories), categories, ctx.patient, ctx.order, ctx.specimen, releasingUser, reason)
-        : await releaseCytologyAddendum(caseData.id, specimenId, addendumText, releasingUser, reason, ctx.order.facilityId);
+        ? await releaseCytologyCorrection(caseData.id, specimenId, buildCorrectedFindings(draft, categories), categories, ctx.patient, ctx.order, ctx.specimen, releasingUser, reason, undefined, { isGynCytology, categories })
+        : await releaseCytologyAddendum(caseData.id, specimenId, addendumText, releasingUser, reason, ctx.order.facilityId, undefined, { isGynCytology, categories });
 
       if (result.ok === false) {
         signatureGate.release(caseData.id);
-        toast.error(t(result.notPermitted ? 'cytologyRevision.toasts.notPermitted' : 'cytologyRevision.toasts.failed'));
+        toast.error(t(result.notPermitted ? 'cytologyRevision.toasts.notPermitted' : result.inReleaseDelay ? 'cytologyRevision.toasts.inReleaseDelay' : 'cytologyRevision.toasts.failed'));
         return;
       }
       if (mode === 'correction' && 'review' in result && result.review) {
         await updateSpecimen({ finalDiagnosis: { ...resolveCytologyFinalDiagnosisSnapshot(result.review), selectedBy: user.id, selectedByName: user.name, selectedAt: new Date().toISOString() } });
       }
       await signatureGate.commit(caseData.id, 'signed', { kind: 'cytology-sign-out', id: result.signOutRecordId });
-      // Batch 419 (SRS v2.1 FR-008.4): the registry gets the new version (CORRECTION / AMENDMENT). The release stands whatever it says.
-      if (result.signOutRecordId) {
-        await submitCytologyRevisionToRegistry({ caseData, signOutRecordId: result.signOutRecordId, kind: mode, isGynCytology, categories }, submitCytologyRevisionToRegistryDeps).catch(() => undefined);
-      }
+      // Batch 419 (SRS v2.1 FR-008.4): the registry gets the new version (CORRECTION / AMENDMENT).
+      // Batch 534: it goes with the reissued report (publishCytologyRevision), when the release delay ends.
       toast.success(t(mode === 'correction' ? 'cytologyRevision.toasts.correctionReleased' : 'cytologyRevision.toasts.addendumReleased'));
       setMode(null);
       await reload();

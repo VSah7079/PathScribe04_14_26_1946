@@ -17,14 +17,25 @@ folder is Phase 1: the foundational vocabulary every later phase (the
 cytologist worklist, screening UI, QC rescreening, reports) will
 reference.
 
-**Real, per direct guidance: any configuration for this module lives as
-a new subtab under the existing System configuration screen** —
-`components/Config/System/CytologyCategoriesSection.tsx`, registered in
-`components/Config/System/index.tsx` under the existing "Clinical
-Lookups" group, alongside `Protocol Dictionary`/`Subspecialties`/
-`Departments`. Not a new, separate configuration surface — same
-interface/mock pattern every other admin dictionary in this app already
-follows (`participationTypes/`, `governingBodies/`, etc.).
+**Today the folder holds the whole Cytology & Cervical Screening
+module** (around 350 files: screening and review records, the worklist,
+QC selection, sign-out, HPV, registries, QA reports and more — see the
+phase and batch sections below), not only the Phase 1 dictionary.
+
+**Configuration lives on its own Configuration → Cytology tab**
+(`components/Config/Cytology/index.tsx`, Phase 75), which gathers the
+category dictionary (`components/Config/System/CytologyCategoriesSection.tsx`),
+non-GYN categories, nomenclature, screening strategy, routing, registry,
+QC settings, compliance features, workload cap, instrumentation, the SNOMED
+histology severity mapping and cyto-histologic correlation. Only the QC
+assignment rules (`CytologyQcRulesSection.tsx`, `services/cytologyQc/`) stay
+under System → Lab Materials & Workflows. Same interface/mock pattern every other
+admin dictionary in this app follows (`participationTypes/`,
+`governingBodies/`, etc.).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): configuration
+moved from System → Clinical Lookups to the Cytology tab in Phase 75;
+the folder is no longer Phase 1 only.*
 
 ## What's real here
 
@@ -162,7 +173,7 @@ Checked this app's own real, established precedent before building: `IFacilityPr
   phase doesn't touch it)
 - The full QA reporting suite
 
-Each is real, separate, sequenced work, not built here.
+Each is real, separate, sequenced work, not built here. *(Since closed: most of this list was built in later phases — the cytologist worklist (Phases 9, 14), workload caps (34–36), QC rescreening (18), the 5-year lookback (58), HPV (21–25), screening registries (39–47), cyto-histologic correlation (63–67) and the QA report suite (49–73) — checked in the Batch 496 README audit.)*
 
 ## Phase 7 (Sep 2026) — non-GYN cytology worklist routing, real two-tier settings cascade
 
@@ -266,7 +277,7 @@ Direct guidance supplied the real, standard CLIA '88 § 493.1274 / CAP-mandated 
 
 22 new tests: 11 for the algorithm (one per real criterion, plus multi-trigger and all-false cases), 6 for the data-driven prior-Pap resolver (lookback boundaries, multiple prior reviews), 5 for the pending-QC combiner.
 
-**Real, honest limitation, not wired into the UI**: `CytologyScreeningPage.tsx`'s own `isFlaggedForQc` stays hardcoded `false` — not because the algorithm doesn't exist now (it does), but because seven of its eight real inputs have no data capture yet (the same, already-deferred "LMP + patient history dictionary" scope), and even the one input this app CAN derive — prior abnormal Pap — needs a real "find this patient's other cases across the system" lookup that doesn't exist as a single service call yet. Wiring a misleading, always-empty lookup would be worse than leaving the honest placeholder in place.
+**Real, honest limitation, not wired into the UI**: `CytologyScreeningPage.tsx`'s own `isFlaggedForQc` stays hardcoded `false` — not because the algorithm doesn't exist now (it does), but because seven of its eight real inputs have no data capture yet (the same, already-deferred "LMP + patient history dictionary" scope), and even the one input this app CAN derive — prior abnormal Pap — needs a real "find this patient's other cases across the system" lookup that doesn't exist as a single service call yet. Wiring a misleading, always-empty lookup would be worse than leaving the honest placeholder in place. *(Since closed: the high-risk system was wired in Phases 53–57, and `CytologyScreeningPage.tsx` now passes `isFlaggedForQc: !!currentQcFlag` to the sign-out gate — checked in the Batch 496 README audit.)*
 
 ## Phase 14 (Sep 2026) — the real, three-tile worklist, and a real QC pool
 
@@ -309,7 +320,7 @@ This cascaded through every real, dependent piece: `ICytologyReviewRecordService
 - Real, searchable type-to-filter pick lists (`SingleSearchSelect`/`MultiSearchSelect`) replace the native `<select multiple>` listbox — with real dictionary sections running to ~30 entries, an always-visible listbox doesn't scale; typing narrows to a short, real match list instead.
 - General Categorization's own field label now notes "(dictionary-driven)" directly, addressing the real "is that dictionary driven?" question rather than leaving it ambiguous.
 - The QC panel gained a real "Remove Flag" action — a manually-set flag (PS-165's own honest interim mechanism) can now be genuinely un-flagged, not just added.
-- A real, minimal HPV Testing widget over the existing `hpvCoTestOrdered`/`hpvResult` fields, and a real LMP date field (`Patient.lastMenstrualPeriod`, new) — both real and working now; the full six-category clinical-history dictionary itself stays separate, deferred work, not attempted here.
+- A real, minimal HPV Testing widget over the existing `hpvCoTestOrdered`/`hpvResult` fields, and a real LMP date field (`Patient.lastMenstrualPeriod`, new) — both real and working now; the full six-category clinical-history dictionary itself stays separate, deferred work, not attempted here. *(Since closed: the Structured Clinical History Dictionary, Phase 76, `services/clinicalHistory/` — checked in the Batch 496 README audit.)*
 - Review History now shows each review's real, complete content — every selection and its own comment, not a one-line summary — and marks the real `primary_screen` review "INITIAL REVIEW"; every other role is labeled by its own real name (never a generic "secondary").
 
 27 real assertions updated or added across `CytologyReviewRecord.test.ts`, `mockCytologyReviewRecordService.test.ts`, `cloneCytologyReviewAsDraft.test.ts`, `resolveCytologyFinalDiagnosisSnapshot.test.ts`, `classifyCytologyAgreement.test.ts`, `resolveCytologySignOutGate.test.ts`, plus 8 new tests for `resolveCytologyReviewerRole`. Full suite clean.
@@ -400,7 +411,7 @@ Direct guidance laid out a real, sequenced international roadmap: US/CA, then UK
 
 16 new tests across the HPV/High-Risk bridge resolver and the report-content genotype formatting. Full suite clean: 222/225 files, 2354/2363 tests, 0 failures.
 
-**Real, explicitly deferred to later phases**: primary HPV-first triage queues, self-collection vs. clinician-collection requisition routing, non-Bethesda nomenclature systems (UK/RCPath Dyskaryosis grading, Germany's München IIIb, France's SFCC), and country-specific centralized registry feeds (Australia's NCSR, UK/Scotland's Call 18, Netherlands' BPM, Ireland's CervicalCheck) — each is its own real, substantial body of work, sequenced per direct guidance's own roadmap, not attempted here.
+**Real, explicitly deferred to later phases**: primary HPV-first triage queues, self-collection vs. clinician-collection requisition routing, non-Bethesda nomenclature systems (UK/RCPath Dyskaryosis grading, Germany's München IIIb, France's SFCC), and country-specific centralized registry feeds (Australia's NCSR, UK/Scotland's Call 18, Netherlands' BPM, Ireland's CervicalCheck) — each is its own real, substantial body of work, sequenced per direct guidance's own roadmap, not attempted here. *(Since closed: all built in later phases — HPV-first triage (23), self-collection routing (26), BSCC/RCPath, München III and SFCC (22, 29, 74), and the NCSR, CSMS, CervicalCheck and PALGA registry feeds (39–47) — checked in the Batch 496 README audit.)*
 
 ## Phase 22 (Sep 2026) — international roadmap, Phase 2 (UK/EU): the real, multi-nomenclature dictionary
 
@@ -503,7 +514,7 @@ Direct guidance: proceed to South Korea. Checked what was already covered, per t
 
 23 new tests across the registry settings cascade, the payload builder, and the queue service. Full suite clean: 231/234 files, 2422/2431 tests, 0 failures.
 
-**Real, explicitly deferred**: MBS-equivalent order metadata beyond `hpvOrderReason`; KNCSP's own real universal-invitation/participation-tracking data (distinct from the per-case result reporting built here); and, as already noted, the UK/Ireland/Netherlands registries this same generic foundation is now ready to extend to, once each is researched with the same rigor BSCC/RCPath and KNCSP/KCCR received.
+**Real, explicitly deferred**: MBS-equivalent order metadata beyond `hpvOrderReason`; KNCSP's own real universal-invitation/participation-tracking data (distinct from the per-case result reporting built here); and, as already noted, the UK/Ireland/Netherlands registries this same generic foundation is now ready to extend to, once each is researched with the same rigor BSCC/RCPath and KNCSP/KCCR received. *(Since closed: UK (CSMS), Ireland (CervicalCheck) and the Netherlands (PALGA) were built in Phases 39–43; `screeningRegistry/screeningRegistryDefinitions.ts` lists 12 programmes — checked in the Batch 496 README audit.)*
 
 ## Phase 28 (Sep 2026) — three real fixes from actual, direct use of the screening page
 
@@ -546,7 +557,7 @@ Direct guidance: proceed to Dutch PALGA. Real research first surfaced something 
 
 14 new tests: the mapping's own correctness (including a real, structural sweep — every value 0-9 checked to never produce ASC-H) and the validation rules. Full suite clean: 235/238 files, 2448/2457 tests, 0 failures.
 
-**Real, explicitly deferred** (per direct guidance's own full 5-section specification — sections 1, 2, and 4 are the real, structural foundation just built; sections 3 and 5 are real, substantial, separate pieces): the real UI (a genuine 6-axis drop-down matrix entry screen, distinct from every other nomenclature's dictionary-driven picker); wiring `cisoeAScore`-aware reflex/threshold triggers (colposcopy referral, HPV genotype recommendation) into the existing triage architecture; and the real HL7/FHIR OBX-level dispatch extension to carry the individual component scores alongside the translated Bethesda conclusion.
+**Real, explicitly deferred** (per direct guidance's own full 5-section specification — sections 1, 2, and 4 are the real, structural foundation just built; sections 3 and 5 are real, substantial, separate pieces): the real UI (a genuine 6-axis drop-down matrix entry screen, distinct from every other nomenclature's dictionary-driven picker); wiring `cisoeAScore`-aware reflex/threshold triggers (colposcopy referral, HPV genotype recommendation) into the existing triage architecture; and the real HL7/FHIR OBX-level dispatch extension to carry the individual component scores alongside the translated Bethesda conclusion. *(Since closed: the CISOE-A entry UI in Phase 33, the OBX extension in Phase 37 and the reflex triggers in Phase 38 — checked in the Batch 496 README audit.)*
 
 ## Phase 31 (Sep 2026) — Germany, Part 2: the real, structural age-stratified screening protocol
 
@@ -631,7 +642,7 @@ Scope narrowed deliberately to a real, sequenced Phase 1 (ledger + capacity math
 
 23 new tests across the review-mode default, the SCU weight table, the core capacity math (including the real first-of-the-day edge case), and the two-tier cap-settings cascade. Full suite clean: 243/246 files, 2489/2498 tests, 0 failures.
 
-**Real, explicitly deferred to Phase 2, per direct agreement**: automated reassignment queue routing when a user hits capacity, and retroactive weight adjustment (an FOV-assisted pass escalating mid-review into a full manual rescreen) — both real, cross-cutting integrations with the pool/worklist routing system, deliberately kept out of Phase 1 so the ledger and capacity math could be proven correct first.
+**Real, explicitly deferred to Phase 2, per direct agreement**: automated reassignment queue routing when a user hits capacity, and retroactive weight adjustment (an FOV-assisted pass escalating mid-review into a full manual rescreen) — both real, cross-cutting integrations with the pool/worklist routing system, deliberately kept out of Phase 1 so the ledger and capacity math could be proven correct first. *(Since closed: Phase 36 — checked in the Batch 496 README audit.)*
 
 ## Phase 35 (Sep 2026) — the real, three-tier workload cap cascade
 
@@ -696,7 +707,7 @@ Given the real, genuine depth in each (CSMS's own action codes; CervicalCheck's 
 
 7 new tests across the action-code resolver and the registry payload extension. Full suite clean: 247/250 files, 2513/2522 tests, 0 failures.
 
-**Real, still open, per direct agreement**: Ireland (CervicalCheck), Netherlands (PALGA registry dispatch specifically — the nomenclature/CISOE-A side is already built), and Australia (NCSR) remain to be built, each with its own real depth already researched above.
+**Real, still open, per direct agreement**: Ireland (CervicalCheck), Netherlands (PALGA registry dispatch specifically — the nomenclature/CISOE-A side is already built), and Australia (NCSR) remain to be built, each with its own real depth already researched above. *(Since closed: Ireland in Phase 42, the Netherlands in Phase 43, Australia in Phase 44 — checked in the Batch 496 README audit.)*
 
 ## Phase 40 (Sep 2026) — CSMS H code + the real, honest S mechanism
 
@@ -744,7 +755,7 @@ A real bug caught and fixed while adding the two new facilities: broken apostrop
 
 1 new test confirming Ireland's payload carries no registry extension, matching Korea's own real precedent. Full suite clean: 247/250 files, 2517/2526 tests, 0 failures.
 
-**Real, still open**: the Netherlands (PALGA registry dispatch itself — the CISOE-A nomenclature side is already built) and Australia (NCSR) remain from the original four-country research.
+**Real, still open**: the Netherlands (PALGA registry dispatch itself — the CISOE-A nomenclature side is already built) and Australia (NCSR) remain from the original four-country research. *(Since closed: Phases 43 and 44 — checked in the Batch 496 README audit.)*
 
 ## Phase 43 (Sep 2026) — PS-180, Part 3: the Netherlands (PALGA) built
 
@@ -756,7 +767,7 @@ That real distinction pointed directly at what PALGA actually needs beyond the u
 
 3 new tests: the real score flowing through correctly, and the real "no placeholder without real data" guarantee. Full suite clean: 247/250 files, 2519/2528 tests, 0 failures.
 
-**Real, still open**: Australia (NCSR) is the last of the original four-country research still to be built.
+**Real, still open**: Australia (NCSR) is the last of the original four-country research still to be built. *(Since closed: Phase 44 — checked in the Batch 496 README audit.)*
 
 ## Phase 44 (Sep 2026) — PS-180, Part 4: Australia (NCSR) built — the last of the four original registries
 
@@ -764,7 +775,7 @@ Direct guidance: proceed to Australia, continuing PS-180. Real research found NC
 
 Real, direct confirmation this maps cleanly onto Bethesda with no genuine ambiguity: Bethesda's own "ASC-" (Atypical Squamous Cells) categories are themselves the real, uncertain tier by definition — ASC-US ("of undetermined significance"), ASC-H ("cannot exclude HSIL") — mapping directly onto NCSR's own "possible X" vs. confirmed "X" distinction (S2 vs. S3, S4 vs. S5), not an invented correspondence.
 
-**Scope**: `CytologyRegistryId` gained `'ncsr_australia'`. `resolveNcsrSquamousResultCode.ts` — honestly scoped to the real squamous axis only (LOINC 19762-4); NCSR's own separate Endocervical Result Codes axis (LOINC 19765-7, for glandular findings) is real, distinct, and not built here — a genuine glandular finding correctly returns `undefined`, never a silently-wrong squamous code. `NcsrRegistryExtension` added to the same open union already established for CSMS and PALGA.
+**Scope**: `CytologyRegistryId` gained `'ncsr_australia'`. `resolveNcsrSquamousResultCode.ts` — honestly scoped to the real squamous axis only (LOINC 19762-4); NCSR's own separate Endocervical Result Codes axis (LOINC 19765-7, for glandular findings) is real, distinct, and not built here — a genuine glandular finding correctly returns `undefined`, never a silently-wrong squamous code. *(Since closed: Phase 77, `resolveNcsrGlandularResultCode.ts` — checked in the Batch 496 README audit.)* `NcsrRegistryExtension` added to the same open union already established for CSMS and PALGA.
 
 A real, small architectural fix needed along the way: this mapping needs the raw `primaryInterpretationId` and real adequacy status, which `CytologyReportContent` never carries (only human-readable display text). Rather than string-match on that text, the real, existing `isUnsatisfactoryAdequacy` check (from `classifyCytologyAgreement.ts`, previously unexported and file-local) was exported and reused directly — the same "reuse existing, real architecture" discipline as every other phase.
 
@@ -829,7 +840,7 @@ Direct guidance supplied a real, comprehensive 14-report QA specification across
 
 **Explicitly not done this phase**: UI wiring. All six are real, tested resolver functions with no rendering surface yet — the same gap Phase 48 fixed for the three original reports (aggregate cards + a real detail table) needs to happen for these six too, likely as new tabs/sections within the Cytology QA pillar rather than cramming six more report cards into the existing view. Real, separate, next step.
 
-**Still open from the original 14, per direct guidance's own tiering**: CYT-QA-03 (5-year retrospective lookback), CYT-QA-04 (cyto-histologic correlation, depends on surgical pathology's own diagnosis data), US-QA-02, UK-QA-01, EU-QA-01 (each needs a specific data-source confirmation not yet done) — and MOL-QA-01, MOL-QA-02, MOL-QA-04, APAC-QA-01, which need genuinely new data capture infrastructure (reagent lots, instrument IDs, external proficiency-testing data) that doesn't exist anywhere in this app today. **US-QA-02, UK-QA-01, and EU-QA-01's resolver logic closed in Phase 68 below.**
+**Still open from the original 14, per direct guidance's own tiering**: CYT-QA-03 (5-year retrospective lookback), CYT-QA-04 (cyto-histologic correlation, depends on surgical pathology's own diagnosis data), US-QA-02, UK-QA-01, EU-QA-01 (each needs a specific data-source confirmation not yet done) — and MOL-QA-01, MOL-QA-02, MOL-QA-04, APAC-QA-01, which need genuinely new data capture infrastructure (reagent lots, instrument IDs, external proficiency-testing data) that doesn't exist anywhere in this app today. **US-QA-02, UK-QA-01, and EU-QA-01's resolver logic closed in Phase 68 below.** *(Since closed: CYT-QA-03 in Phase 58, CYT-QA-04 in Phases 63–67, MOL-QA-01/02/04 in Phases 70–71, APAC-QA-01 in Phase 73 — checked in the Batch 496 README audit.)*
 
 ## Phase 50 (Sep 2026) — all seven QA reports wired into the UI, each its own tile
 
@@ -877,7 +888,7 @@ Direct guidance: build the real data capture for the seven high-risk criteria de
 
 4 new tests for the assembly resolver. Full suite clean: 257/260 files, 2582/2591 tests, 0 failures.
 
-**Real, still open**: the five criteria with no data source remain genuinely unbuilt — this phase closes the "system is orphaned" gap, not the "five fields have nowhere to come from" one. Cross-case matching by MPI-linked identity, not just direct `patient.id`, remains a real, separate follow-on.
+**Real, still open**: the five criteria with no data source remain genuinely unbuilt — this phase closes the "system is orphaned" gap, not the "five fields have nowhere to come from" one. *(Since closed: all eight criteria are data-driven since Phase 57 — checked in the Batch 496 README audit.)* Cross-case matching by MPI-linked identity, not just direct `patient.id`, remains a real, separate follow-on.
 
 ## Phase 54 (Sep 2026) — real correction to the immunocompromised design: HL7 encounter diagnosis codes, not manual accessioning entry
 
@@ -989,7 +1000,7 @@ Direct instruction: "Continue to the comparison displays." Closes the real gap e
 
 **The real complication, found before building anything**: the three existing QA reports (`resolveCytologyQaReports.ts`) all pair by two *fixed* roles on the same specimen (e.g. `primary_screen` vs. `pathologist_review`) via `resolveCytologyQaComparisonPairs.ts`. Peer review can't use that same pairing function, because the "original" side of the comparison is whichever real review a human actually selected as Final Diagnosis at sign-out (`CytologyFinalDiagnosisSnapshot.reviewRecordId`) — genuinely any role, not one fixed one. `resolveCytologyPeerReviewComparisonPairs.ts` is the real, separate pairing layer this needed: it resolves the specimen's own Final Diagnosis review (whatever role it is) against its real peer review, producing the exact same `CytologyQaComparisonPair` shape the existing aggregate resolver already consumes — so `resolveCytologyQaAggregateReport.ts` itself needed zero changes. 6 tests, including the specific case a fixed-role pairing couldn't have handled (a `pathologist_review` Final Diagnosis paired correctly, not just `primary_screen`).
 
-**`resolveCytologyPostSignOutPeerReviewCorrelationReport.ts`** — a thin wrapper combining the new pairing function with the existing aggregate resolver, matching the exact shape of the three reports it sits alongside.
+**`resolveCytologyPostSignOutPeerReviewCorrelationReport.ts`** — a thin wrapper combining the new pairing function with the existing aggregate resolver, matching the exact shape of the three reports it sits alongside. *(Now a function in `resolveCytologyQaReports.ts`, not its own file — checked in the Batch 496 README audit.)*
 
 **Wired through the full, established backend-ready path**: a new `getPostSignOutPeerReviewCorrelationReport` method on `ICytologyQaReportService`/`mockCytologyQaReportService.ts` (the real specimen-to-final-diagnosis references built from already-fetched case data, scoped the same way every other report already is), and a new "Post-Sign-Out Peer Review" tile in `CytologyQaTab.tsx` — the eighth report tile, following PS-204/PS-205's own established pattern exactly.
 
@@ -1009,7 +1020,7 @@ Direct follow-up, after investigating infrastructure needs for the still-open QA
 
 No new tests — this phase is pure wiring reusing already-tested logic (`resolveCytologyCategorySetConcordance.ts`, `allCytologyInterpretationIds`) at new real call sites, the same established pattern this module already follows for UI-wiring phases atop already-tested logic. Full suite unaffected: 268/271 files, 2656/2665 tests, 0 failures.
 
-**Real, honest remaining scope**: this closes the specific gap direct guidance asked about — cytology secondary-screening events now genuinely feed the existing CAPA/audit framework. It does not yet build CYT-QA-04 (cyto-histologic correlation) or the rest of EU-QA-01's own columns, both of which remain real, separate, larger pieces of work with their own distinct infrastructure needs, discussed but not begun here.
+**Real, honest remaining scope**: this closes the specific gap direct guidance asked about — cytology secondary-screening events now genuinely feed the existing CAPA/audit framework. It does not yet build CYT-QA-04 (cyto-histologic correlation) or the rest of EU-QA-01's own columns, both of which remain real, separate, larger pieces of work with their own distinct infrastructure needs, discussed but not begun here. *(Since closed: CYT-QA-04 was built in Phases 63–67; EU-QA-01's buildable columns in Phases 68–69 — checked in the Batch 496 README audit.)*
 
 ## Phase 63 (Sep 2026) — CYT-QA-04, part 1: candidate detection, the honestly-automatable half
 
@@ -1037,7 +1048,7 @@ Direct, important correction to Phase 63's own investigation: "Surgical Patholog
 
 10 new tests. Full suite clean: 272/275 files, 2678/2687 tests, 0 failures.
 
-**Real, still open, and now more precisely scoped than before**: the actual comparison logic is now real, tested, and ready — but three real pieces remain before CYT-QA-04's own report can run on live data: (1) a real settings layer for the SNOMED-severity mapping table itself (currently a pure function parameter, no persistence or admin UI yet) — **closed in Phase 65 below**; (2) wiring the recording UI so a reviewer confirming a Phase 63 candidate actually pulls the histology specimen's real `coding.snomed` and runs it through this phase's own resolvers, rather than only free-text entry; (3) the aggregate report resolver itself (Correlation_Rate_%, PPV_HSIL) querying the resulting `QaActivityRecord` entries, matching this module's own established report-wrapper pattern.
+**Real, still open, and now more precisely scoped than before**: the actual comparison logic is now real, tested, and ready — but three real pieces remain before CYT-QA-04's own report can run on live data: (1) a real settings layer for the SNOMED-severity mapping table itself (currently a pure function parameter, no persistence or admin UI yet) — **closed in Phase 65 below**; (2) wiring the recording UI so a reviewer confirming a Phase 63 candidate actually pulls the histology specimen's real `coding.snomed` and runs it through this phase's own resolvers, rather than only free-text entry; (3) the aggregate report resolver itself (Correlation_Rate_%, PPV_HSIL) querying the resulting `QaActivityRecord` entries, matching this module's own established report-wrapper pattern. *(Since closed: (2) in Phase 66, (3) in Phase 67 — checked in the Batch 496 README audit.)*
 
 ## Phase 65 (Sep 2026) — CYT-QA-04, part 3: the real settings layer for the SNOMED-severity mapping
 
@@ -1055,7 +1066,7 @@ Direct instruction: "Implement a real settings layer for the mapping table." A r
 
 6 new tests. Full suite clean: 273/276 files, 2684/2693 tests, 0 failures.
 
-**Real, still open**: (1) wiring the recording UI so a reviewer confirming a Phase 63 candidate pulls the histology specimen's real `coding.snomed`, fetches this phase's own real mapping via `getAll()`, and runs both through Phase 64's resolvers — **closed in Phase 66 below**; (2) the aggregate report resolver itself (Correlation_Rate_%, PPV_HSIL) querying the resulting `QaActivityRecord` entries.
+**Real, still open**: (1) wiring the recording UI so a reviewer confirming a Phase 63 candidate pulls the histology specimen's real `coding.snomed`, fetches this phase's own real mapping via `getAll()`, and runs both through Phase 64's resolvers — **closed in Phase 66 below**; (2) the aggregate report resolver itself (Correlation_Rate_%, PPV_HSIL) querying the resulting `QaActivityRecord` entries. *(Since closed: Phase 67 — checked in the Batch 496 README audit.)*
 
 ## Phase 66 (Sep 2026) — CYT-QA-04, part 4: the real recording UI, closing the loop from candidate to recorded correlation
 
@@ -1224,7 +1235,7 @@ Direct upload: a full "Structured Clinical History Dictionary & Accessioning Int
 
 **A real, live bug found and fixed along the way, unrelated to the spec itself**: direct follow-up on required-field UI polish surfaced that `AccessionPage.tsx`'s own `hasUnsavedProgress()` — the check driving the shared unsaved-changes warning — was a manually-maintained field list that had silently drifted out of sync with this exact feature: LMP, hormonal status, prior HPV result, and every structured clinical-history entry were missing from it entirely. An accessioner who filled in only those fields could have navigated away or closed the tab with zero warning, silently losing real, entered clinical data. Fixed directly. The same manually-maintained-list pattern was confirmed to exist in at least two other places (`SynopticReportPage.tsx`, `MicroscopicEntryPanel.tsx`) — not audited as part of this fix, and named directly in a new Jira ticket (below) as a reason a centralized field registry could make this class of bug structurally harder to reintroduce.
 
-**Two Jira tickets filed, not built** — direct follow-up ("are there other required fields... is there any admin control over them?") found that every required field on the Accession page (patient name, DOB, facility, provider, specimen description) is a hardcoded, inline check with zero admin configurability, the same real situation as the new dictionary's own `required` flags. Ticket 1: a new "Required Fields" System tab, a real field registry per page, real enforcement replacing the hardcoded checks — explicitly naming the dirty-flag interaction above as something that ticket must investigate. Ticket 2, explicitly separated per direct instruction: a Facility-level override cascade, deliberately out of scope for Ticket 1, following the same two-tier pattern already proven six times over in Phase 75 above.
+**Two Jira tickets filed, not built** — direct follow-up ("are there other required fields... is there any admin control over them?") found that every required field on the Accession page (patient name, DOB, facility, provider, specimen description) is a hardcoded, inline check with zero admin configurability, the same real situation as the new dictionary's own `required` flags. Ticket 1: a new "Required Fields" System tab, a real field registry per page, real enforcement replacing the hardcoded checks — explicitly naming the dirty-flag interaction above as something that ticket must investigate. Ticket 2, explicitly separated per direct instruction: a Facility-level override cascade, deliberately out of scope for Ticket 1, following the same two-tier pattern already proven six times over in Phase 75 above. *(Since closed in part: Ticket 1 is built — Configuration → System → Field Requirements, `services/fieldRequirements/`, covering the Accession page and twelve others; no facility-level override was found — checked in the Batch 496 README audit.)*
 
 Full suite clean across the arc: 320/323 files, 3044/3053 tests, 0 failures.
 
@@ -1654,7 +1665,7 @@ Moved out of `pages/CytologyWorklistPage/CytologyScreeningPage.tsx` (see that fo
   - Opens the specimen asked for, else the first not yet signed out, else the first.
 - `signOutCytologyCase.ts`:
   - Takes `cytologySpecimenIds`. It finalizes the case only when every one of them has a sign-out record, and returns `caseFinalized` and `specimensRemaining`.
-  - The report, registry dispatch and QA side effects stay per specimen, as before.
+  - The report, registry dispatch and QA side effects stay per specimen, as before. *(Since Batch 532 the report, the result message and the registry go out once per case, when it closes: see Batch 532 below. QA side effects stay per specimen.)*
   - Its dependencies gain `getCaseSignOutRecords`.
 - `cytologyCaseFinalization.ts` (new):
   - `resolveCytologyCaseFinalization` works out which specimens are still to sign out.
@@ -1811,7 +1822,7 @@ Pete (Oct 2): "The QC worklist is essentially an unassigned worklist. Whomever i
 - **Bug fixed in `signOutCytologyCase.ts`.** Three sign-out steps (ROSE discrepancy link, post-sign-out peer-review flag, correlation candidates) each saved the whole specimen list built from the case as loaded, so the last write erased the others. An HSIL sign-out with a later biopsy lost its targeted peer-review flag and never entered the peer-review pool. Each step now builds on the specimens the previous step saved. Regression tests in `signOutCytologyCase.test.ts` fail without the fix.
 - **Bug fixed in `cytologyCaseActions.ts` (`resolveHistologyCorrelations`):** the histology diagnosis label came from the first matching mapping entry, not the one that set the rank (a case coded CIN 1 and CIN 3 got rank 4 but was labelled "CIN 1").
 - New tests: final diagnosis authority per condition (PS-207, `cytologyFinalDiagnosisAuthority.test.ts`); sign-out peer-review flag and correlation candidates (PS-214, PS-156); HPV order reason never changes triage (PS-179, `cytologyHpvOrderReasonTriage.test.ts`); registry 'none' dispatches nothing (PS-179); facility workload-cap tier on save (PS-188, `cytologyWorkspaceDeps.test.ts`); partial QC-rate overrides (PS-157); secondary-screening QA records and no CAPA (PS-151, PS-217, `gynCytologySecondaryScreeningQa.test.ts`); QA report scope and peer-review correlation report contents (PS-216, PS-217, `mockCytologyQaReportService.scope.test.ts`); correlation codes pooled across specimens and dismissal flag (PS-221); pathologist's own findings as Final Diagnosis (PS-152).
-- **Open (PS-152), superseded in Batch 459:** nothing compared a case's stored Final Diagnosis with its primary screen; the "Primary vs Final Diagnosis" QA report now does. **Open (PS-156, for Pete):** the 180-day correlation window starts at sign-out, not collection; a biopsy that arrives after sign-out is never picked up.
+- **Open (PS-152), superseded in Batch 459:** nothing compared a case's stored Final Diagnosis with its primary screen; the "Primary vs Final Diagnosis" QA report now does. **Open (PS-156, for Pete):** the 180-day correlation window starts at sign-out, not collection; a biopsy that arrives after sign-out is never picked up. *(Since closed: Batch 452 — the window is configurable and anchored on collection by default (`cytologyHistologyCorrelationWindow.ts`), with Batch 453 backfilling older sign-outs — checked in the Batch 496 README audit.)*
 
 ## Batch 451 — screen-level test evidence for Priority 2 tickets
 
@@ -1890,6 +1901,196 @@ PS-152's last open point (Pete: "That Final Diagnosis is what is used in discord
 
 Both apply the change to the codes as saved, so a save in between isn't overwritten. Also removed a stray duplicate doc comment above `CytologyDecantNotSaved`. See `services/billing/README.md` (Batch 460) for the User and Admin Guide.
 
+## Batch 483 — multi-specimen fix, per-specimen countersign fix, and closing the CYT-QA-03 report gap (PS-359 tracker follow-up)
+
+**Multi-specimen bug, fixed.** A case with more than one cytology/FNA specimen only ever had its first matching specimen considered by the QC/Rescreen queue (`cytologyQueuesLive.ts`'s `gynSpecimens()`), the GYN pathologist-review tray, and the worklist row builder (`cytologyWorklist.ts`'s old `cytologySpecimenOf`) — a second specimen's QC flag or review requirement could silently never surface. `cytologySpecimenOf` is replaced by `cytologySpecimensOf` (plural) plus `aggregateCytologySpecimenFacts` (OR-across-specimens, one row per case still); `gynSpecimens()` no longer stops at the first match; a new `firstQualifyingSpecimenPerCase` (`cytologyQueues.ts`) dedupes queue refs to one per case without discarding the others that still need attention; `takeCytologyReview` checks every one of a case's GYN refs for the one actually awaiting review.
+
+**Per-specimen countersign data loss, fixed.** See `services/cases/README.md`'s own Batch 483 entry — `CountersignRecord.specimenId` is the fix; `signOutCytologyCase.ts` now passes the specimen being signed out through to `releaseForCountersign`. **Not fixed, and disclosed:** there is still no real UI/service path for an attending to explicitly complete a cytology specimen's countersign — a separate, deeper gap (a true per-specimen case-status lifecycle), left for a future batch. *(Since closed: Batch 485 below — `signOutCytologyCase.ts` completes the specimen's own record via `countersign()` — checked in the Batch 496 README audit.)*
+
+**CYT-QA-03 vs CYT-QA-04 report asymmetry, fixed.** CYT-QA-03 (5-Year Retrospective Lookback, Phase 58/60 above) had its trigger/outcome data (`Specimen.retrospectiveReviewFlag`) but, unlike CYT-QA-04 (Phases 63-67), never got an aggregate report. New `resolveCytologyFiveYearRetrospectiveLookbackReport.ts` (rows + total/pending/completed counts, completion rate, corrective-action rate, per-outcome tally) and `ICytologyQaReportService.getFiveYearRetrospectiveLookbackReport` (mock implementation scans `caseById` for specimens with the flag set, same pattern `getUnscreenedBacklogReport` above already uses). Shown on Quality Assurance → Cytology as the "5-Year Retrospective Lookback" tile (view-only, no export — the majority convention for this tab's tiles).
+
+## Batch 485 — completing a cytology specimen's own countersign, and confirming the CT-trainee gate already exists (PS-359 tracker follow-up)
+
+Closes the "deeper gap" Batch 483 disclosed: no real UI/service path for an attending to actually complete a cytology specimen's countersign. Full reasoning and the service-layer change (`ICountersignService.countersign()`/`.reject()` gaining `specimenId`, new `getForSpecimen()`) is in `services/cases/README.md`'s own Batch 485 entry; this entry covers the `signOutCytologyCase.ts` side.
+
+**`signOutCytologyCase.ts`:** when a specimen being signed out has its own pending `CountersignRecord` (released earlier by a resident, or by a new cytotechnologist under an active competency-assessment assignment — `resolveResidentCountersignRequired.ts`'s `cytotech_competency` reason, Batch 480), completing that sign-out now closes the real record via `countersignService.countersign()`, scoped to this specimen — never a sibling specimen's own, separate one. `Case.status` no longer stays stuck at `'pending-countersign'` once nothing on the case is genuinely still pending: it reverts to `'in-progress'` when this was the last pending specimen and the case isn't otherwise fully signed out (which still finalizes as before).
+
+**Re-verified before building, per CLAUDE.md's "verify, don't trust":** direct research surfaced a detailed real-world CT-sign-out specification (jurisdiction-specific advanced-CT exceptions, a CT-trainee-vs-qualified-CT distinction) and asked whether PathScribe's RBAC needs a new `CYTOTECHNOLOGIST_TRAINEE` role. Re-reading the actual code first found this already built, in the same status-driven shape the research itself recommends: `resolveCytologySignOutGate.ts` already has the jurisdiction/credential-gated advanced-CT exception (`resolveAdvancedCytologySignOutJurisdictionPolicy.ts` + `resolveHasAdvancedSignOutCertification.ts`), and `resolveResidentCountersignRequired.ts` already intercepts a new/unqualified cytotechnologist the same way it intercepts an FPPE resident — by an active supervision assignment (`CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID`), not by a role id. No new role or RBAC layer was built this batch; there was nothing missing to build there.
+
+Full suite and type-check: see `src/i18n/README.md`'s own Batch 485 entry for exact counts.
+
+## Batch 504
+
+- `resolveAgeFromDateOfBirth.ts` delegates to `utils/ageFromDateOfBirth.ts`. It parsed a date of birth as UTC midnight and read it back in the device's time zone, so in the Americas a patient moved into the next age band a day early. Its test hid the bug: its "today" was a UTC-midnight date too, so the two errors cancelled. The test now uses a local date.
+- The five-year retrospective look-back and the prior-abnormal-Pap window use UTC arithmetic.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 501 — QC at sign-out (layered model)
+
+`signOutCytologyCase.ts` step 6 now runs: peer-review selection (passive flag, unchanged), then the ROSE discrepancy, then the QC Rules engine. ROSE and a matching rule create or upgrade ONE open QC assignment per specimen (`cytologyQc/resolveQcAssignmentUpsert.ts`), recording every selection reason, the peer-review flag included. Peer review moved ahead of ROSE so ROSE can record the flag. New optional deps: `getQcAssignmentsForCase`, `applyQcTrigger`, `getActiveQcRules`, `qcSamplingStates` (wired in `signOutCytologyCaseDeps.ts`; absent, the rules step is skipped). See `cytologyQc/README.md`.
+
+## Batch 511 (PS-478): full strict type-checking
+
+- **Bug fixed, `cytologyWorklist.ts`:** an empty preferred specimen id made the worklist row lose its representative specimen (`'' ?? fallback` never falls back).
+- `cytologyQueuesLive` sends the case version like every other write. `signOutCytologyCase` accepts missing provider credentials, which both functions it passes them to already handle. `mockCytologyQaReportService` types its report input lists.
+
+## Batch 512
+
+`describeQcOverrideRates.ts`: what the QC settings screen shows for a facility or staff override row. A rate the override doesn't set shows as inherited: with the enterprise value on a facility row, or just "inherited" on a staff row, whose value depends on the facility. Before, it showed "undefined%". The screen itself always saves both rates, so this only shows for overrides created another way (an import or the API). Test: `describeQcOverrideRates.test.ts`.
+
+## Batch 519 (PS-273): cytology templates from the Synoptic Library
+
+- **One template model.** `types/cytology/SynopticTemplate.ts` is now aliases for the shared `EditorTemplate` model, which gained Cytology's properties (narrative phrase and sentence, clinical tier, `standard`, label keys).
+- **`cytologySynopticTemplateRegistry.ts`** reads the Synoptic Library:
+  - the picker offers published Non-GYN cytology protocols by name (`cytologySynopticChoices`);
+  - a review's template resolves by id whatever its status now, so a retired version still reads correctly (`cytologyProtocolsToLoad`: published, archived, deprecated);
+  - the voice/keyboard shortcuts open the current published version of each PathScribe template (`currentVersionOf`, following New Version lineage);
+  - the five bundled templates are the fallback until the library is read.
+  - `refreshCytologySynopticTemplates` (screens, on open) and `ensureCytologySynopticTemplate` (sign-out) fill the cache the synchronous checks read. Deps: `cytologyTemplateLibraryDeps.ts`.
+- **`signOutCytologyCase.ts`:** reads the review's template (new optional dep `getSynopticTemplate`) and works out the translation check itself, so a template the screen hadn't loaded can't skip it.
+- **`compileCytologySynopticNarrative.ts`:** a free-text answer is recognised by the question's type (every question now has an `options` list).
+- Tests: `cytologySynopticTemplateRegistry.test.ts` (new), one new `signOutCytologyCase` case; four test files' fixtures go through `normalizeSynopticTemplate`.
+
+## Batch 523
+
+`cytologyClinicalMismatch.ts` (new): the clinical-pathologic mismatch check before a cytology specimen is signed out. It runs on the pathologist track only, once per specimen (PS-145, decision 15).
+
+## Batch 527 (PS-486): a lean first load
+
+The PDF engine (jsPDF and its two embedded fonts, about 0.36 MB compressed) now loads only when a report PDF is built: `dispatchCytologyCaseInstances`, `dispatchCytologyAmendedCaseInstance` and the in-page fallback in `generateCytologyReportPdfInWorker` import it when they run. Before, it was part of the first download.
+
+## Batch 530 (PS-554)
+
+`cytologyClinicalMismatch.ts` takes `clinicalMismatchService.atSignOut` and returns an assessment: only a high-risk mismatch comes back; the specimen's Specimen Dictionary entry picks the rule.
+
+## Batch 531
+
+- `cytologyClinicalMismatch.ts`: `cytologyWorkspaceMismatchInput` — what the workspace checks in the background (pathologist track, a final diagnosis, not signed out).
+- `dispatchCytologyCaseInstances.ts`: a correction or addendum record is never sent as FINAL (bug: signing out a later specimen re-sent it, because its queue entry wasn't FINAL).
+- Planned (Pete, Oct 12; Batches 532–533): one consolidated case report released when the case closes; registry per sample at closure; early close lists unsigned specimens as not reported; corrections reissue the whole case report; an urgent per-specimen preliminary. *(Built in Batch 532 below, except the preliminary: Batch 533.)*
+
+## Batch 532 — one case report per accession (Pete, Oct 12, 2026)
+
+Pete: an accession is one clinical order, so the clinician gets one report. Each specimen is still screened, reviewed and signed on its own (its own record and electronic signature); nothing is published until the case closes, and then once for the whole accession.
+
+**When it is published**
+- `signOutCytologyCase.ts`: a specimen's sign-out records and signs it, and publishes nothing while other cytology specimens on the case are unsigned (`published: false`). The last one publishes the case report as FINAL (`publishReportReleased`), and sends every sample to the registry together, in case order, each with the review it was signed on (Pete: "per sample, sent together").
+- A case finalized early (`cytologyCaseFinalization.ts`) is released at that moment (`releaseFinalizedCytologyCase`): FINAL, with each unsigned specimen listed as **not reported** and the reason (Pete), and each signed sample sent to the registry. Before Batch 532 an early finalization published nothing. A specimen signed afterwards adds itself to the released report as an ADDENDUM, and only that sample goes to the registry.
+- Corrections and addenda (`releaseCytologyCorrection.ts`, `releaseCytologyAddendum.ts`, through `publishCytologyRevision.ts`) reissue the **whole** case report (Pete), naming the specimen that changed. Before the case closes they publish nothing (`published: false`): the new record is simply part of the case report at release. `useCytologyRevision` submits to the registry only when it was published.
+
+**What is published**
+- `resolveCytologyCaseReport.ts` (new, pure): every cytology specimen on the case in case order, each with its newest record (a correction or addendum supersedes the sign-out), or "not reported" with the early-finalization reason. Type: `types/cytology/CytologyCaseReport.ts`.
+- `generateCytologyCaseReportPdf.ts` (new): one specimen reported → that specimen's own signed report, unchanged; otherwise a first page listing every specimen and its status (`generateCytologyCaseCoverPdf` in `generateCytologyReportPdf.ts`, labels `cytologyPdf.case*` in five languages), then each reported specimen's own signed pages, joined with pdf-lib, with stable metadata (newest signing time, never the clock).
+- `buildCytologyCaseOruR01Payload.ts` (new, pure): **one** ORU^R01 per accession (`scope: 'case'`): a result per specimen (reported with its narrative, or not reported with the reason), the case PDF, and for a correction or addendum `changed` (the specimen, its new record, and for a correction what it read before).
+- `cytologyCaseReportMessage.ts` (new): builds that message (held, with the reason, when nothing is signed or the PDF can't be built); `cytologyCaseIsReleased` (finalized, closed, or finalized early).
+- `dispatchCytologyCaseInstances.ts` sends the FINAL once per case, after release; a FINAL already queued for the case (including per-specimen ones sent before Batch 532) stops a second. `dispatchCytologyAmendedCaseInstance.ts` sends CORRECTED or ADDENDUM for the whole case, only after release. Shared: `sendCaseMessage`. The queue entry carries `scope: 'case'`, and the outbound-queue retry rebuilds the case message (`interfaceDispatch/outboundQueueAdapters.ts`).
+- Print, fax and file-drop delivery use the case report (`delivery/reportDeliveryDeps.ts`); before, they rebuilt the newest record on the case, which could be another specimen's.
+- `cytologyCaseReportForPrint.ts` (new): the Cytology Workspace's **Print case report** button (shown once a multi-specimen case is released).
+
+**Fixed alongside:** the embedded print font (WinAnsi) couldn't show characters outside Latin-1, so the em dash in "Cytology Report — GYN Cervical Screening" (and the new case title) printed as a blank, as would curly quotes from dictionary text. `toWinAnsiText` (`documentRendering/registerEmbeddedPrintFont.ts`) now maps them to their WinAnsi byte in the cytology report and in continuation-page headers. Korean (Pretendard) is unaffected.
+
+**Not changed:** QA side effects (peer review, QC, correlation, the mismatch check) stay per specimen. Urgent per-specimen preliminaries are Batch 533.
+
+Tests: `cytologyCaseReport.test.ts` (new, 16), `signOutCytologyCase.test.ts` (+7), `dispatchCytologyCaseInstances.test.ts` and `dispatchCytologyAmendedCaseInstance.test.ts` (rewritten for the case model), `releaseCytologyCorrection.test.ts` and `releaseCytologyAddendum.test.ts` (case report, and nothing before release), `registerEmbeddedPrintFont.test.ts` (+2), `outboundQueueAdapters.test.ts` (+1).
+
+## Batch 533 — urgent per-specimen preliminary (Pete, Oct 12, 2026)
+
+Since Batch 532 nothing on a cytology case is published until the case closes. Pete: an urgent finding on one specimen goes out "as a preliminary". Who may send one, and whether it needs the signature, are both "configurable" (Pete).
+
+- `releaseCytologyPreliminary.ts` (new):
+  - checks `cytology:preliminary:release`; no built-in role starts with it, so each laboratory grants it in the Role Dictionary;
+  - needs a quick-pick reason (`cytologyPreliminaryReasons.ts`: critical finding, clinician request, urgent clinical management); a note is optional;
+  - the specimen must have a chosen final diagnosis and not be signed out, and the case report must not be released (`cytologyPreliminaryBlock`);
+  - asks for the electronic signature (new signing action `cytology-preliminary`) when the laboratory requires it (`preliminarySignatureRequired`);
+  - keeps the release on the case (`Case.cytologyPreliminaryReleases`, type `types/cytology/CytologyPreliminaryRelease.ts`: the content as sent, written once), audits `CYTOLOGY_PRELIMINARY_RELEASED`, and publishes PRELIMINARY, priority Urgent, source CYTOLOGY, with its own PDF.
+- **Signature setting:** `cytologyComplianceFeatures.ts` gains `preliminarySignature`, set like the other two (enterprise, optional per facility). Automatic means required in every jurisdiction (`CYTOLOGY_FEATURES_ON_EVERYWHERE`, `cytologyComplianceSettingKey`). The Configuration section is now "Country and laboratory rules", and Config Search finds the setting ("preliminary", "signature").
+- **PDF:** `generateCytologyReportPdf.ts` prints "PRELIMINARY REPORT", "This is not the final report…", the reason in the report's language and the note, and "Preliminary released by" in place of "Signed by" (`cytologyPdf.preliminary*`).
+- **Result message:** `dispatchCytologyPreliminary.ts` + `buildCytologyPreliminaryOruR01Payload.ts` (new): one message per preliminary (`scope: 'preliminary'`, `resultState: 'PRELIMINARY'`, Urgent), never deduplicated. A PDF that can't be built marks it failed to retry. `publishReportReleasedEvent` routes a cytology PRELIMINARY there, and the outbound-queue retry rebuilds it from the case.
+- **Content:** `cytologyCaseActions.cytologyReviewReportContent` (new, shared with the print preview) builds the report from the chosen review.
+- **Not sent to a screening registry.** The specimen still signs out as usual, and the case report (FINAL) supersedes the preliminary.
+- **Not yet behind the release delay:** neither is any output but a surgical FINAL. Pete (Oct 12): every report output follows the delay, apart from a resend after a failed output, with the same STAT bypass for all. That is Batch 534.
+
+Tests: `releaseCytologyPreliminary.test.ts` (10), `dispatchCytologyPreliminary.test.ts` (6), `generateCytologyReportPdf.test.ts` (+2), `cytologyComplianceFeatures.test.ts` (+1, 3 updated), `cytologyPreliminary.test.tsx` (6, page), `authorization.test.ts`, `publishReportReleasedEvent.test.ts` (+1), `outboundQueueAdapters.test.ts` (+1).
+
+## Batch 534 — through the release delay (Pete, Oct 12, 2026)
+
+- **Every cytology output waits out the laboratory's release delay**, and the person who released it can recall it until then:
+  - the case report at the last sign-out;
+  - a specimen added after an early finalization;
+  - the early finalization itself;
+  - corrections and addenda;
+  - urgent preliminaries.
+
+  Its registry submissions go with it, now or when the delay ends (`services/reportRelease/`).
+- **`signOutCytologyCase.ts`:** new optional dep `releaseReport`. When present, the case report and its registry submissions (per sample, in case order) go through it.
+  - Recall marks the specimen's sign-out recalled and puts the case back to its earlier status, so the specimen can be signed again.
+  - Without the dep (older tests), it publishes at once as before.
+  - `releaseFinalizedCytologyCase` takes `previousStatus`. `cytologyCaseFinalization` passes it.
+- **`publishCytologyRevision.ts`:** goes through the delay, carrying the revision's registry submission. `releaseCytologyCorrection` and `releaseCytologyAddendum` take `registry` ({isGynCytology, categories}), and `useCytologyRevision` no longer submits it itself.
+- **`releaseCytologyPreliminary.ts`:** goes through the delay (the STAT bypass applies, as for everything).
+- **Records:**
+  - `CytologySignOutRecord.recalled` and `ICytologySignOutRecordService.markRecalled` mark a record withdrawn. It is never edited or deleted.
+  - `getByCaseId` and `getBySpecimenId` leave recalled records out; `getByCaseIdIncludingRecalled` keeps them.
+  - `CytologyPreliminaryRelease.recalled` is listed as "(recalled, not sent)".
+
+## Batch 538
+
+- **The release's report document.** The cytology case report, correction, addendum and preliminary messages carry it. These are the same bytes print and fax get. Before, the case message drew its own PDF.
+  - `dispatchCytologyCaseInstances` / `dispatchCytologyAmendedCaseInstance` / `sendCaseMessage` take `generatePdf`.
+  - `buildCytologyCaseReportMessage({ pdf })`.
+  - Queue entries record `reportDocumentId` and `pdfSha256`, and a retry sends that document.
+- **Fix:** `generateCytologyReportPdfInWorker`'s fallback, used when a worker can't be built, passes the report's labels. It printed English wording.
+
+## Batch 539 (PS-539 D2): cytology PDFs come from the report renderer
+
+Pete, Oct 12: "PDF that leaves PathScribe, and the browser only shows previews. As long as the preview matches exactly what gets sent out."
+
+- **`cytologyRenderPayload.ts` (new, pure).** Every line of a cytology report, in its language and date format, in the order the browser renderer printed them: title; correction, addendum or preliminary banner; letterhead; patient; specimen type; adequacy; general categorization; interpretation; adjunctive testing; recommendations; addendum (on its own page when the lab says so); sign-off. `buildCytologyReportRenderPayload` (one report) and `buildCytologyCaseRenderPayload` (the case report: first page, then each specimen, each in its own language). The preview and the release use the same builder; only an unsigned preview adds the PRELIMINARY — SUBJECT TO CHANGE watermark.
+- **`renderCytologyPdf.ts` (new).** Posts the payload to the report renderer (`functions/cytology_report.py`), fetches a letterhead logo first, and refuses a PDF without the template's marker (`pathscribe-template:cytology`): a renderer deployed before this batch would return a blank surgical page, so the release is held instead. `cytologyPrintFailureKey` picks the screen message.
+- **Changed to use it:** `generateCytologyReportPdfSnapshot.ts` (sign-out snapshot, preliminary), `generateCytologyCaseReportPdf.ts` (the case report, one request instead of a pdf-lib merge), the workspace print and preview (`cytologyWorkspaceDeps.renderReportPdf(content, { preview })`, `cytologyCaseActions.buildCytologyPrintDocument`), and the retry of a message queued one specimen at a time (`buildCytologyOruR01Payload` now takes the PDF; `interfaceDispatch/outboundQueueAdapters.ts` makes it first and holds the message if it can't).
+- **`cytologyCaseReportForPrint.ts`:** on a released case, "Print case report" opens the newest stored case document (final, correction or addendum) byte for byte; a case released before Batch 538 is made by the renderer.
+- **`cytologyPdfLabelsFor.ts`:** `cytologyPreviewWatermarkFor(language)`.
+- **Removed:** `generateCytologyReportPdf.ts` (jsPDF), its worker and `generateCytologyReportPdfInWorker.ts` (see `DELETED_FILES.txt`). Earlier sections of this README that describe them (Phase 81's Web Worker, the PS-276/PS-277 rendering work) are history: the same layout rules (margins, embedded font, barcode, continuation line, keep-with-next, addendum page, deterministic bytes) now live in the server template.
+- **Not drawn by the server:** `imageAssociations` (nothing sets it today).
+- Tests: `cytologyRenderPayload.test.ts` (new), `cytologyCaseReport.test.ts`, `generateCytologyReportPdfSnapshot.test.ts`, `buildCytologyOruR01Payload.test.ts`, `cytologyCaseActions.test.ts`.
+
+## Batch 540
+
+`releaseCytologyCorrection` / `releaseCytologyAddendum`: refused (`inReleaseDelay: true`) while the case report is still in its release delay; the report is recalled instead (`reportRelease/revisionDuringDelay.ts`). Checked after the permission and the reason.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: the cytology–histology sweep on load stops once the server runs `cytology.histologyCorrelationSweep`.
+
+## Batch 556 (PS-539 phase 2d: report documents through the API)
+
+- Batch 556: "Print case report" refuses to print when the server's list of sent documents couldn't be read, rather than print a fresh render or an older document (`cytologyCaseReportForPrint.ts`).
+
+## Batch 572 (readiness review F7, option C: screening hours)
+
+- `screeningHoursRules.ts` (new): the lab's day (`screeningDay`, facility time zone), recorded hours for a day, corrections compared to one decimal as shown, the 0.5 h flag, out-of-date sign-offs (`isSignOffStale`), the hours that count, and when the worklist shows the panel.
+- `ICytologyScreeningHoursService.ts` / `mockCytologyScreeningHoursService.ts` (new): a person's day and their end-of-day sign-off, append-only, audited, `cytology:screening-hours:sign-off` checked. A confirmation stores the recorded figure itself.
+- `resolveCytologyWorkloadTrackingReport.ts`: groups by the lab's day; new columns recorded hours, signed-off hours, flagged (a large correction, or one that clears an exceedance) and out of date.
+- `resolveCytologyWorkloadCapacity.ts` (correction): hours beyond 8 no longer raise the limit above the assigned cap (`CLIA_WORKLOAD_FULL_PERIOD_HOURS`).
+- Contract: `docs/architecture/CYTOLOGY_QC_API.md` §5.
+
+## Batch 574 (Pete, Oct 15, 2026)
+
+- `cytologyWorkloadSummary.ts` (new) and `cytologyWorkloadSummaryDeps.ts`: the workload counter's figures (slides of the cap over 24 hours, reviews, left now and in a full day, status), matching the save-time check; no jurisdiction, no counter.
+- `screeningHoursRules.ts`: the lab's start of day (an hour or its history, `dayStartHourAt`), `previousDay`, `signOffDays`, `yesterdayNeedsSignOff`, `hoursFromSeconds`, the note limit (`noteTooLong`).
+- `mockCytologyScreeningHoursService.ts`: `currentDays` (today, and yesterday while it needs it); sign-offs only for those (`dateNotAllowed`); each stores its start hour.
+- `saveScreeningDayStart.ts` (new) and `screeningDayStartSaveDeps.ts`: changing the start of day, checked and audited; the settings keep the history (`mockCytologyWorkloadCapSettingsService.ts`).
+- `resolveCytologyWorkloadTrackingReport.ts`: the start-of-day history; the correction's reason and note; two-decimal hours.
+- `resolveCytologyScuWeight.ts` `resolveCytologyScuWeightAdded` and `saveCytologyReview.ts`: an edit adds only an escalation's extra weight (correction).
+- `mockFacilityCytologyWorkloadCapOverrideService.ts`: `getAll`.
+
+## Batch 576
+
+- `cytologyWorkloadCapRules.ts` (new): a cap is 1–100 whole slides; checked in the three cap services; `resolveEffectiveCytologyWorkloadCap` reads an older value over 100 as 100. `mockStaffCytologyWorkloadCapOverrideService.ts`: guarded by `config:cytology-workload-cap:manage`. `mockCytologyScreeningHoursService.ts`: `createMockCytologyScreeningHoursService(clock)`.
+
+## Batch 578
+
+- `cytologyWorkloadCapRules.ts`: `cytologyWorkloadCapError` (which tier, and why), `withoutCapOverride` (who can still be given an override). `mockCytologyWorkloadCapSettingsService.ts`: `createMockCytologyWorkloadCapSettingsService(clock)`; the start-of-day history takes its time from the clock.

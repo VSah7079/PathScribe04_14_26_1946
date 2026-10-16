@@ -1,6 +1,6 @@
 {
   "id": "colon_resection",
-  "name": "Generic Template — Colon Resection",
+  "name": "Generic Template \u2014 Colon Resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLON",
@@ -370,43 +370,43 @@
           "options": [
             {
               "id": "histologic_grade_opt_1",
-              "label": "Option 1",
+              "label": "Well differentiated (G1)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_2",
-              "label": "Option 2",
+              "label": "Moderately differentiated (G2)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_3",
-              "label": "Option 3",
+              "label": "Poorly differentiated (G3)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_4",
-              "label": "Option 4",
+              "label": "Undifferentiated (G4)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_5",
-              "label": "Option 5",
+              "label": "Low-grade",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_6",
-              "label": "Option 6",
+              "label": "High-grade",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_7",
-              "label": "Option 7",
+              "label": "Cannot be assessed (GX)",
               "snomed": "",
               "icd": ""
             }
@@ -636,31 +636,31 @@
           "options": [
             {
               "id": "tumor_budding_score_opt_1",
-              "label": "Option 1",
+              "label": "Bd1 \u2014 low (0–4 buds)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumor_budding_score_opt_2",
-              "label": "Option 2",
+              "label": "Bd2 \u2014 intermediate (5–9 buds)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumor_budding_score_opt_3",
-              "label": "Option 3",
+              "label": "Bd3 \u2014 high (≥10 buds)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumor_budding_score_opt_4",
-              "label": "Option 4",
+              "label": "Not performed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumor_budding_score_opt_5",
-              "label": "Option 5",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -746,43 +746,43 @@
           "options": [
             {
               "id": "treatment_effect_opt_1",
-              "label": "Option 1",
+              "label": "TRG 1 \u2014 no viable tumour cells",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "treatment_effect_opt_2",
-              "label": "Option 2",
+              "label": "TRG 2 \u2014 rare residual cancer cells",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "treatment_effect_opt_3",
-              "label": "Option 3",
+              "label": "TRG 3 \u2014 fibrosis outgrowing residual cancer",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "treatment_effect_opt_4",
-              "label": "Option 4",
+              "label": "TRG 4 \u2014 residual cancer outgrowing fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "treatment_effect_opt_5",
-              "label": "Option 5",
+              "label": "TRG 5 \u2014 no regressive change",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "treatment_effect_opt_6",
-              "label": "Option 6",
+              "label": "Not applicable (no neoadjuvant therapy)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "treatment_effect_opt_7",
-              "label": "Option 7",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -815,7 +815,19 @@
           "options": [
             {
               "id": "margin_status_invasive_opt_1",
-              "label": "Option 1",
+              "label": "Negative (uninvolved)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_status_invasive_opt_2",
+              "label": "Positive (involved)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_status_invasive_opt_3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -832,49 +844,49 @@
           "options": [
             {
               "id": "closest_margins_invasive_opt_1",
-              "label": "Option 1",
+              "label": "Proximal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_2",
-              "label": "Option 2",
+              "label": "Distal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_3",
-              "label": "Option 3",
+              "label": "Radial/circumferential",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_4",
-              "label": "Option 4",
+              "label": "Mesenteric",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_5",
-              "label": "Option 5",
+              "label": "Serosal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_6",
-              "label": "Option 6",
+              "label": "Omental",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_7",
-              "label": "Option 7",
+              "label": "Anterior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_8",
-              "label": "Option 8",
+              "label": "Posterior",
               "snomed": "",
               "icd": ""
             }
@@ -931,49 +943,49 @@
           "options": [
             {
               "id": "margins_involved_invasive_opt_1",
-              "label": "Option 1",
+              "label": "Proximal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_2",
-              "label": "Option 2",
+              "label": "Distal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_3",
-              "label": "Option 3",
+              "label": "Radial/circumferential",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_4",
-              "label": "Option 4",
+              "label": "Mesenteric",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_5",
-              "label": "Option 5",
+              "label": "Serosal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_6",
-              "label": "Option 6",
+              "label": "Omental",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_7",
-              "label": "Option 7",
+              "label": "Anterior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_8",
-              "label": "Option 8",
+              "label": "Posterior",
               "snomed": "",
               "icd": ""
             }
@@ -990,19 +1002,19 @@
           "options": [
             {
               "id": "margin_status_noninvasive_opt_1",
-              "label": "Option 1",
+              "label": "Negative (uninvolved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_noninvasive_opt_2",
-              "label": "Option 2",
+              "label": "Positive (involved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_noninvasive_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -1019,31 +1031,31 @@
           "options": [
             {
               "id": "margins_involved_hgd_opt_1",
-              "label": "Option 1",
+              "label": "Proximal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_hgd_opt_2",
-              "label": "Option 2",
+              "label": "Distal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_hgd_opt_3",
-              "label": "Option 3",
+              "label": "Radial/circumferential",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_hgd_opt_4",
-              "label": "Option 4",
+              "label": "Mesenteric",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_hgd_opt_5",
-              "label": "Option 5",
+              "label": "Serosal",
               "snomed": "",
               "icd": ""
             }
@@ -1060,31 +1072,31 @@
           "options": [
             {
               "id": "margins_involved_lgd_opt_1",
-              "label": "Option 1",
+              "label": "Proximal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_lgd_opt_2",
-              "label": "Option 2",
+              "label": "Distal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_lgd_opt_3",
-              "label": "Option 3",
+              "label": "Radial/circumferential",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_lgd_opt_4",
-              "label": "Option 4",
+              "label": "Mesenteric",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_lgd_opt_5",
-              "label": "Option 5",
+              "label": "Serosal",
               "snomed": "",
               "icd": ""
             }
@@ -1150,7 +1162,9 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true,
+          "notMoreThan": "ln_examined"
         },
         {
           "id": "ln_examined",
@@ -1160,7 +1174,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true
         },
         {
           "id": "tumor_deposits",
@@ -1268,19 +1283,19 @@
           "options": [
             {
               "id": "modified_classification_opt_1",
-              "label": "Option 1",
+              "label": "y (post-therapy)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "modified_classification_opt_2",
-              "label": "Option 2",
+              "label": "r (recurrent)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "modified_classification_opt_3",
-              "label": "Option 3",
+              "label": "m (multiple synchronous primaries)",
               "snomed": "",
               "icd": ""
             }
@@ -1294,52 +1309,53 @@
           "required": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pT",
           "options": [
             {
               "id": "stage_category_a_opt_1",
-              "label": "Option 1",
+              "label": "pT0",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_2",
-              "label": "Option 2",
+              "label": "pTis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_3",
-              "label": "Option 3",
+              "label": "pT1",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_4",
-              "label": "Option 4",
+              "label": "pT2",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_5",
-              "label": "Option 5",
+              "label": "pT3",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_6",
-              "label": "Option 6",
+              "label": "pT4a",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_7",
-              "label": "Option 7",
+              "label": "pT4b",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_8",
-              "label": "Option 8",
+              "label": "pTX (cannot be assessed)",
               "snomed": "",
               "icd": ""
             },
@@ -1368,13 +1384,13 @@
           "options": [
             {
               "id": "stage_category_a_suffix_opt_1",
-              "label": "Option 1",
+              "label": "(m) \u2014 multiple synchronous primary tumours",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_suffix_opt_2",
-              "label": "Option 2",
+              "label": "No suffix",
               "snomed": "",
               "icd": ""
             }
@@ -1388,46 +1404,47 @@
           "required": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pN",
           "options": [
             {
               "id": "stage_category_b_opt_1",
-              "label": "Option 1",
+              "label": "pN0",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_2",
-              "label": "Option 2",
+              "label": "pN1a",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_3",
-              "label": "Option 3",
+              "label": "pN1b",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_4",
-              "label": "Option 4",
+              "label": "pN1c",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_5",
-              "label": "Option 5",
+              "label": "pN2a",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_6",
-              "label": "Option 6",
+              "label": "pN2b",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_7",
-              "label": "Option 7",
+              "label": "pNX (cannot be assessed)",
               "snomed": "",
               "icd": ""
             },
@@ -1471,40 +1488,41 @@
           "required": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pM",
           "options": [
             {
               "id": "stage_category_c_opt_1",
-              "label": "Option 1",
+              "label": "pM1a",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_c_opt_2",
-              "label": "Option 2",
+              "label": "pM1b",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_c_opt_3",
-              "label": "Option 3",
+              "label": "pM1c",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_c_opt_4",
-              "label": "Option 4",
+              "label": "Not applicable / cM0 (clinical, not pathologic)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_c_opt_5",
-              "label": "Option 5",
+              "label": "MX (cannot be assessed)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_c_opt_6",
-              "label": "Option 6",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }

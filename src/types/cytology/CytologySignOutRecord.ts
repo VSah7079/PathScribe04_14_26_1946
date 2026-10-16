@@ -62,4 +62,10 @@ export interface CytologySignOutRecord {
    *  (the release services refuse an empty one); undefined on every
    *  original sign-out. Stored as entered: it is data, not interface text. */
   revisionReason?: string;
+  /** Batch 534 (Pete, Oct 12: recall during the release delay "reopens, like
+   *  sign-out"): set when the person who released this record recalled it
+   *  before the delay ran out. The record itself is never edited or deleted;
+   *  this marks it withdrawn, so it no longer counts as the specimen's result
+   *  (the getters leave it out) and the specimen can be signed again. */
+  recalled?: { at: string; by: { userId: string; userName: string } };
 }

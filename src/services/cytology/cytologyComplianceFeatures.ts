@@ -15,20 +15,28 @@
 // the default, so US labs behave as before and other countries stop getting US
 // rules unless they switch them on. Workload is still recorded in the ledger
 // either way; Off only stops the cap from blocking and reassigning.
+//
+// Batch 533 (Pete, Oct 12: "This should be configurable"): a laboratory
+// policy alongside them, set the same way:
+//
+//   • preliminarySignature  an urgent cytology preliminary report needs the
+//                           pathologist's electronic signature, as a sign-out
+//                           does. Automatic = required in every jurisdiction.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Jurisdiction } from '@/types/systemConfig';
 
-export type CytologyComplianceFeature = 'workloadCap' | 'fiveYearLookback';
+export type CytologyComplianceFeature = 'workloadCap' | 'fiveYearLookback' | 'preliminarySignature';
 export type CytologyFeatureSetting = 'auto' | 'on' | 'off';
 export type CytologyComplianceSettings = Partial<Record<CytologyComplianceFeature, CytologyFeatureSetting>>;
 
-export const CYTOLOGY_COMPLIANCE_FEATURES: CytologyComplianceFeature[] = ['workloadCap', 'fiveYearLookback'];
+export const CYTOLOGY_COMPLIANCE_FEATURES: CytologyComplianceFeature[] = ['workloadCap', 'fiveYearLookback', 'preliminarySignature'];
 
 /** Where Automatic turns each feature on: the jurisdictions whose regulation it is. */
-const AUTO_ON: Record<CytologyComplianceFeature, Jurisdiction[]> = {
+const AUTO_ON: Record<CytologyComplianceFeature, Jurisdiction[] | 'all'> = {
   workloadCap: ['US'],
   fiveYearLookback: ['US'],
+  preliminarySignature: 'all',
 };
 
 /** Facility setting, else enterprise, else Automatic; Automatic follows the lab's jurisdiction. */
@@ -39,7 +47,17 @@ export function resolveCytologyComplianceFeatures(
 ): Record<CytologyComplianceFeature, boolean> {
   const one = (f: CytologyComplianceFeature) => {
     const setting = facility?.[f] ?? enterprise?.[f] ?? 'auto';
-    return setting === 'on' || (setting === 'auto' && !!jurisdiction && AUTO_ON[f].includes(jurisdiction));
+    const auto = AUTO_ON[f];
+    return setting === 'on' || (setting === 'auto' && (auto === 'all' || (!!jurisdiction && auto.includes(jurisdiction))));
   };
-  return { workloadCap: one('workloadCap'), fiveYearLookback: one('fiveYearLookback') };
+  return { workloadCap: one('workloadCap'), fiveYearLookback: one('fiveYearLookback'), preliminarySignature: one('preliminarySignature') };
+}
+
+/** Batch 533: the features whose Automatic is on everywhere (the screen words Automatic for them). */
+export const CYTOLOGY_FEATURES_ON_EVERYWHERE: readonly CytologyComplianceFeature[] =
+  CYTOLOGY_COMPLIANCE_FEATURES.filter(f => AUTO_ON[f] === 'all');
+
+/** Batch 533: the locale key (under cytologyCompliance.settings) naming a setting for a feature. */
+export function cytologyComplianceSettingKey(feature: CytologyComplianceFeature, setting: CytologyFeatureSetting): string {
+  return setting === 'auto' && CYTOLOGY_FEATURES_ON_EVERYWHERE.includes(feature) ? 'autoEverywhere' : setting;
 }

@@ -19,7 +19,6 @@
 
 import { getAdminFirestore } from './_lib/firebaseAdmin';
 import { verifyEngineAuth } from './_lib/verifyEngineAuth';
-import { claimMessageId } from './_lib/idempotency';
 import { applyEngineCaseUpdate } from './_lib/applyEngineCaseUpdate';
 import { logIntegrationError } from './_lib/logIntegrationError';
 import { raiseSpecimenDeficiency } from './_lib/raiseSpecimenDeficiency';
@@ -85,11 +84,6 @@ export default async function handler(request: Request): Promise<Response> {
   const payload = body;
 
   try {
-    const { alreadyProcessed } = await claimMessageId(payload.messageId, EVENT_TYPE);
-    if (alreadyProcessed) {
-      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
-    }
-
     // Real, same lookupId convention every existing process*Event
     // function already uses.
     const caseId = payload.internalCaseId ?? payload.accessionNumber;
@@ -104,8 +98,14 @@ export default async function handler(request: Request): Promise<Response> {
         timestamp: payload.timestamp,
       });
       return mutation ? { field: 'specimens', specimens: mutation.specimens } : null;
-    });
+    }, { messageId: payload.messageId, eventType: EVENT_TYPE });
 
+    // Batch 545 (F10): the messageId is claimed inside the update's own
+    // transaction, so a not-found or a crash leaves no claim and the engine's
+    // redelivery is applied once the case exists.
+    if (result.outcome === 'already-processed') {
+      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
+    }
     if (result.outcome === 'case-not-found') {
       return new Response(JSON.stringify({ error: `No case found for '${caseId}'.` }), { status: 404 });
     }
@@ -118,8 +118,8 @@ export default async function handler(request: Request): Promise<Response> {
     // the bench needs to know something changed without waiting to
     // manually refresh the case view. Same pending_engine_notifications
     // collection cassette-dispatch-outcome.ts already writes to;
-    // usePendingEngineNotifications.ts's own polling picks this up and
-    // calls the real, separate notifyBlockExceptionApplied — never the
+    // the notification side (the browser poll, never mounted, was removed
+    // in Batch 549; the hub's case event replaces it) calls the real, separate notifyBlockExceptionApplied — never the
     // mutation-performing processBlockExceptionEvent, which would
     // apply this same exception a second time.
     const db = getAdminFirestore();

@@ -28,6 +28,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useNavigate, useParams } from 'react-router';
 import '../../pathscribe.css';
 import {
@@ -44,11 +45,17 @@ import { useCurrentScanStation } from '@/hooks/useCurrentScanStation';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatList } from '@/utils/formatList';
 import RackPlacementPanel, { type RackPlacementChoice } from './components/RackPlacementPanel';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const MolecularRackLoadingPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { rackId } = useParams<{ rackId: string }>();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('molecularRackLoadingPage.pageTitle'), `/molecular-rack/${rackId}`); }, [pushCrumb, t, rackId]);
   const isNew = rackId === 'new';
   const requirements = useFieldRequirements('molecularRack');
 
@@ -107,6 +114,7 @@ const MolecularRackLoadingPage: React.FC = () => {
     };
     window.addEventListener('PATHSCRIBE_SCAN', handler);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the handler reads only the armed position, rack and station (listed); re-subscribing on those is enough
   }, [armedForScan, selectedPositionLabel, rack, stationId, stationName]);
 
   // Real, per direct follow-up: "If the scan doesn't work, they need
@@ -186,7 +194,7 @@ const MolecularRackLoadingPage: React.FC = () => {
 
   const errorText = (code: string) => t(`molecularRackLoadingPage.errors.${code}`, { defaultValue: t('molecularRackLoadingPage.genericLoadError') });
 
-  if (loading) return <div className="ps-conf-loading">{t('molecularRackLoadingPage.loading')}</div>;
+  if (loading) return <LoadingState label={t('molecularRackLoadingPage.loading')} />;
 
   const unmapped = rack ? rackPositionsMissingSampleId(rack.positions) : [];
   const selected = rack?.positions.find(p => p.positionLabel === selectedPositionLabel);

@@ -18,11 +18,13 @@ PS-128 (Batch 437): what the Configuration page knows about unsaved changes. Pur
   - provides it through `components/Config/configDirtyGuardContext.ts` (`useReportConfigDirty`, `useConfigNavigationGuard`);
   - watches dialogs with `hooks/useConfigEditTracking.ts`;
   - tells the app-wide guard (`contexts/DirtyStateContext`), so the logo, breadcrumbs, nav bar, header search (`hooks/useGuardedNavigate.ts`) and Sign Out ask first.
-- These sections report their exact state, 20 in all:
-  - Cytology: Nomenclature, Routing, Screening Strategy, Registry, Workload Cap, Instrumentation and Compliance Features;
-  - System: Cytology QC settings, Cancer Registry, Country Signing Rules, Governing Bodies, Retention, Crosswalk, SNOMED cervical severity mapping, Support Access and Research Feed;
+- These sections report their exact state, 25 in all:
+  - Cytology: Nomenclature, Routing, Screening Strategy, Registry, Workload Cap, Instrumentation, Compliance Features and Cyto-Histologic Correlation;
+  - System: Cytology QC settings, Cancer Registry, Country Signing Rules, Governing Bodies, Retention, Crosswalk, SNOMED cervical severity mapping, Support Access, Research Feed, Follow-up Tracking, Inking Validation Mode, Organ Maps and Tumor Board Rules;
   - AI Provider Settings and the Action Registry's shortcut editor;
   - Macros and Assist LIS polling, through Batch 309's `setDirty`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): five later sections added (20 → 25), from `useReportConfigDirty` call sites.*
 
 ## Batch 438: closing a dialog from outside
 

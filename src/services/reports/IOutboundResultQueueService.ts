@@ -21,4 +21,9 @@ export interface IOutboundResultQueueService {
    *  this app ever called this; a queue entry could only ever reach
    *  'QUEUED' or 'FAILED', never a genuinely earned 'SENT'. */
   markSent(id: string): Promise<ServiceResult<OutboundResultQueueEntry>>;
+  /**
+   * Batch 559: the SHA-256 of the PDF a send or retry actually carried, recorded on the entry (a retry may
+   * send a newer signed version than the release did, so the entry says what went last).
+   */
+  recordPdfSha256(id: string, sha256: string): Promise<ServiceResult<OutboundResultQueueEntry>>;
 }

@@ -51,6 +51,7 @@ import { VoiceCommandOverlay } from "../components/Voice/VoiceCommandOverlay";
 import { VoiceMissPrompt }     from "../components/Voice/VoiceMissPrompt";
 import { actionRegistryService } from "@/services";
 import { VOICE_CONTEXT } from "../constants/systemActions";
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // react-router's useLocation() always returns Location<any> — there's no
 // generic parameter to narrow it at the call site. This describes what
@@ -160,7 +161,7 @@ export default function FullReportPage() {
         <div className="ps-report-bg" />
         <div className="ps-report-bg-grad" />
         <div className="ps-report-content ps-report-notfound">
-          <div className="ps-report-notfound-title">{t('fullReport.loading')}</div>
+          <LoadingState variant="inline" className="ps-report-notfound-title" label={t('fullReport.loading')} />
         </div>
       </div>
     );

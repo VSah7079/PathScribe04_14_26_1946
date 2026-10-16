@@ -51,6 +51,7 @@ export const molecularOrderEngine: MolecularOrderEngine = createMolecularOrderEn
     return r.ok ? r.data.id : undefined;
   },
   now: () => new Date().toISOString(),
+  // eslint-disable-next-line no-restricted-properties -- the year in a new order id is the creating device's own date (an id, not a stored event's date)
   newOrderId: () => `MO-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`,
   actorName: () => { const u = getSessionUser(); return u ? [u.firstName, u.lastName].filter(Boolean).join(' ') || u.id : 'Unknown user'; },
 });

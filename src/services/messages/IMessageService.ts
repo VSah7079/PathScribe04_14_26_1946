@@ -20,6 +20,12 @@ export interface SecureEmailInput {
   to: string;
   subject: string;
   body: string;
+  /** Batch 517 (PS-143): the sender's organisation, whose lab's gateways apply. */
+  organisationId: string | null | undefined;
+  /** The gateway chosen (services/secureMessaging/secureGateways.ts). */
+  gatewayId: string | undefined;
+  /** Whether the message carries patient or finding details: only a gateway with its agreement in force may carry it. */
+  containsPatientData: boolean;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -54,7 +60,12 @@ export interface IMessageService {
   /** Who a message can be addressed to (the organisation's staff). */
   listRecipients(): Promise<ServiceResult<MessageRecipient[]>>;
 
-  /** Send a secure email to an external address. Needs message:secure-email:send. */
+  /**
+   * Send a secure message through one of the lab's gateways. Needs
+   * message:secure-email:send. Batch 517 (PS-143): refuses with a
+   * SecureSendProblem (no gateway, gateway not available, or patient data
+   * through a gateway without its BAA / data processing agreement in force).
+   */
   sendSecureEmail(input: SecureEmailInput): Promise<ServiceResult<void>>;
 
   /** Fetch all messages for a given user (inbox + sent) */

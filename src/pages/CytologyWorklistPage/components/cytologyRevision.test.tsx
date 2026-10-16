@@ -196,8 +196,10 @@ describe('useCytologyRevision', () => {
     expect(updateSpecimen).toHaveBeenCalledWith({ finalDiagnosis: expect.objectContaining({ reviewRecordId: 'rv2', selectedBy: 'PATH-1' }) });
     expect(gate.commit).toHaveBeenCalledWith('CASE-1', 'signed', { kind: 'cytology-sign-out', id: 'so2' });
     expect(toast.success).toHaveBeenCalledWith('cytologyRevision.toasts.correctionReleased');
-    // Batch 419: the registry gets the corrected version.
-    expect(registry.submit).toHaveBeenCalledWith(expect.objectContaining({ signOutRecordId: 'so2', kind: 'correction', isGynCytology: true }), {});
+    // Batch 419: the registry gets the corrected version. Batch 534: it goes with the reissued report
+    // (publishCytologyRevision, after the release delay), so the hook hands the release what it needs.
+    expect(args[10]).toEqual({ isGynCytology: true, categories: expect.any(Array) });
+    expect(registry.submit).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalled();
     expect(result.current.mode).toBeNull();
   });
@@ -207,7 +209,7 @@ describe('useCytologyRevision', () => {
     act(() => result.current.start('addendum'));
     act(() => { result.current.setAddendumText('HPV 16 positive.'); result.current.setReason('Result received later.'); });
     await act(async () => { await result.current.release(confirmation); });
-    expect(release.addendum).toHaveBeenCalledWith('CASE-1', 'SP-1', 'HPV 16 positive.', { id: 'PATH-1', name: 'Dr. Reed', isPathologist: true }, 'Result received later.', 'F1');
+    expect(release.addendum).toHaveBeenCalledWith('CASE-1', 'SP-1', 'HPV 16 positive.', { id: 'PATH-1', name: 'Dr. Reed', isPathologist: true }, 'Result received later.', 'F1', undefined, { isGynCytology: true, categories: expect.any(Array) });
     expect(release.correction).not.toHaveBeenCalled();
     expect(updateSpecimen).not.toHaveBeenCalled();
     expect(gate.commit).toHaveBeenCalledWith('CASE-1', 'signed', { kind: 'cytology-sign-out', id: 'so3' });

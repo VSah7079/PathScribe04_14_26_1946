@@ -89,6 +89,11 @@ honest, self-documented confidence levels (explicitly flags which
 entries are "verified" against the Admin Guide vs. "placeholder"
 best-guesses for tabs that were never documented) — a genuinely mature
 pattern, not something needing correction here.
+*(Since closed: Batch 449 replaced the last placeholder entries, and
+`configSearchCoverage.test.ts` now fails if any entry is
+`'placeholder'`; every entry today is `'verified'`. Since Batch 431 most
+entries are generated from the sidebar section lists rather than
+hand-maintained. Checked in the Batch 496 README audit.)*
 
 **Real, per direct follow-up ("did we work on this yet? Per-facility
 Specimen Deficiencies" → the config search bug this surfaced): five
@@ -201,3 +206,15 @@ Pete: "I was searching for Field Requirements, but the system couldn't find any 
 ## Batch 461
 
 `configSearchIndex.ts`: `sys-organ-maps` (Configuration → System → Organ maps), with synonyms such as "anatomical map", "pi-rads", "map colours".
+
+## Batch 491 — new entry sys-tumor-board-rules (PS-359 follow-up)
+
+`configSearchIndex.ts`: new entry `sys-tumor-board-rules` (Configuration → System → Tumor Board Auto-Flag Rules), with synonyms such as "tumor board", "mdt", "auto-flag", "margin threshold", "rule engine", "close margin".
+
+## Batch 533
+
+`configSearchIndex.ts`: `cyt-preliminary-signature` (finds the urgent-preliminary signature setting).
+
+## Batch 536
+
+`configSearchIndex.ts`: entries for System → AI Instructions (`sys-ai-instructions`) and the AI vendor policy (`ai-vendor-policy`).

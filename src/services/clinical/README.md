@@ -142,12 +142,14 @@ standard interface/mock triplet).
   registering OAuth/SMTP-relay tenants and routing on the receiving
   side — is backend work in the separate `receive_interface_message`
   repo, out of this codebase's scope.
-- **10 real tests** in `detectCriticalFindings.test.ts` (empty-input handling,
+- **16 tests** in `detectCriticalFindings.test.ts` (empty-input handling,
   real parsing, markdown-fence stripping, honest-empty-on-no-finding, error
   handling for bad JSON/failed calls, the PHI-minimization boundary, defensive
   severity/confidence validation) plus coverage in
   `mockCriticalResultNotificationService.test.ts` and
   `useSignOutWorkflow.test.ts`'s own sign-out-integration suite.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `detectCriticalFindings.test.ts` has 16 tests (10 when this was written).*
 
 ## Batch 399
 
@@ -190,3 +192,62 @@ A `CriticalResultNotification` migrated from an intraoperative verbal report now
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 517 — critical finding by secure email (PS-143)
+
+`criticalFindingEmail.ts` (+ test) builds the pre-filled email for the critical-findings window:
+- a subject with the case's accession number;
+- each finding with its source quote;
+- a request to acknowledge receipt.
+
+It is written in the sender's language; the findings stay as written.
+
+## Batch 523 (PS-145, decision 15): the mismatch check at cytology and autopsy sign-out
+
+- **`detectClinicalPathologicMismatch.ts`.** The input takes a `discipline` (surgical, cytology, autopsy) and `gynScreening`. The prompt is built by `mismatchPrompt` (pure):
+  - **cytology:** an abnormal GYN screen is never "unexpected";
+  - **autopsy:** the clinical cause of death or a major diagnosis contradicted by the findings, which is the new kind `cause-of-death` (Goldman class I/II), or an undiagnosed malignancy.
+
+  The rule-based fallback runs for surgical and non-GYN cytology (without screening words), never for autopsy.
+- **`clinicalMismatchInputs.ts` (new, pure)** builds what is compared for each discipline:
+  - surgical: as before;
+  - cytology: the final interpretations and comments; malignant means rank 5 or a category marked Malignant;
+  - autopsy: the report sections and the abnormal organ findings.
+
+  `mismatchAlreadyDecided` holds the "once" rule: once per case, or once per specimen for cytology.
+- **`clinicalMismatchService.pending`** returns the suggestion still to decide.
+- **The decision** records `discipline` and `specimenId`.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+`clinicalMismatchInputs.test.ts`: fixed a type error (`fieldValues` typing) that Batch 523 shipped; Batch 523's "type-check clean" was wrong for that test file.
+
+## Batch 526
+
+The mismatch check is explained for customers and staff in `docs/product/CLINICAL_MISMATCH_CHECK.md`. That document covers how it works today (`detectClinicalPathologicMismatch.ts`, `clinicalMismatchInputs.ts`, `clinicalMismatchDecision.ts`, `clinicalMismatchService.ts`) and the approved redesign, PS-554: configurable risk rules with display and action thresholds, an inline alert, a hold on sign-out only for a high-risk mismatch, RESOLVED / UNRESOLVED / DEFERRED, a QA queue, and governed AI instructions. The redesign is not built yet.
+
+## Batch 529 (PS-554): the mismatch risk rules
+
+- `clinicalMismatchRules.ts` (pure): the rule model, the five starting rules (Pete, Oct 11), validation, the engine `evaluateClinicalMismatch(suggestion, specimenTypeIds, rules)` (suppressed / low risk / high risk, whether to show the alert, hold sign-out, log to QA) and the audit entry.
+- `clinicalMismatchRuleService.ts`: `list` needs `config:clinical-mismatch-rules:view`; `save` and `remove` need `config:clinical-mismatch-rules:manage`, and each change is audited (`CLINICAL_MISMATCH_RULE_CHANGED`). `rulesForCheck` is the system read the check will use. `mockClinicalMismatchRuleService.ts` wires it to mockStorage.
+- The report page doesn't use the rules yet (Batch 530). `docs/product/CLINICAL_MISMATCH_CHECK.md` explains them for customers and staff.
+
+## Batch 530 (PS-554): Gate A, Gate B and the QA queues
+
+- `clinicalMismatchDecision.ts`: the resolution status replaces the Batch 439 decision. RESOLVED, UNRESOLVED (CAPA recommended) and DEFERRED (low risk only) are a person's choice; LOGGED is written by sign-out (`logLowRiskMismatch`, no capability). Quick reasons; the note is optional. The QA record keeps the status, risk, rule, reason and, for a secondary review, `reviewOf`. Audit events `CLINICAL_MISMATCH_DECIDED`, `…_DEFERRED`, `…_LOGGED`.
+- `clinicalMismatchService.ts`: `assess` (the suggestion and its risk; the answer is remembered in memory for the same inputs, so Gate A and Gate B call the AI once), `atSignOut` (returns only a high-risk assessment; logs a low-risk one), `clinicalMismatchSignOutStep` (pure), `secondaryReviewQueue`.
+- `clinicalMismatchInputs.ts`: `reportPageMismatchInput` (what the report page checks: surgical with a diagnosis, or autopsy between PAD and FAD; nothing once signed out), `caseSpecimenTypeIds`, `mismatchesAwaitingSecondaryReview`, `deferredMismatchDetails`.
+- Tests: `clinicalMismatchGates.test.ts`.
+
+## Batch 531 (Pete, Oct 12): re-run on change
+
+`clinicalMismatchInputs.ts`: `mismatchInputFingerprint` (FNV-1a of the compared text, spacing ignored), `latestMismatchRecord`, `mismatchRecheck` (same text → decided; changed text or a record without a fingerprint → re-check), `mismatchWorseThanBefore` (ask again only for a different kind, or newly high risk). `clinicalMismatchService.assess` uses them and returns `previous` when it asks again; every decision and LOGGED entry keeps `inputFingerprint`. `mismatchAlreadyDecided` is no longer used by the app.
+
+## Batch 536 (PS-554): governed AI instructions
+
+- `aiInstructions.ts` (pure): the instructions for each discipline as versions (0 is PathScribe's own text, approved with the release). An edit is a new pending version (it replaces, as withdrawn, any pending one); the check uses only the latest approved version; nobody who edited the text since the last approval can approve it (`SELF_APPROVAL`); a rejection needs a reason; audit entries `AI_PROMPT_EDITED`, `AI_PROMPT_APPROVED`, `AI_PROMPT_REJECTED`.
+- `aiInstructionService.ts` / `mockAiInstructionService.ts`: list (`config:ai-prompt:view`), saveDraft (`…:edit`), approve and reject (`…:approve`), test (edit or approve: runs the AI on a sample with a draft, nothing stored), `instructionsForCheck` (system read). Storage: `pathscribe_ai_instructions`. `aiInstructionSamples.ts`: the Test panel's invented sample cases.
+- `detectClinicalPathologicMismatch.ts`: `mismatchPrompt(input, instructions)` takes the governed text; the case data and the JSON answer format stay fixed. The check reads the approved text (PathScribe's own if it can't), records `instructionVersion` on the suggestion, passes the case to `callAi` for the AI vendor policy (never to the AI), and when the policy refuses the call falls back to the rule-based check with `aiNotAvailable: 'jurisdiction'`. `askAiForMismatch` is the AI step on its own (the Test panel).
+- `detectCriticalFindings` takes an optional `{ caseId, facilityId }` for the vendor policy.

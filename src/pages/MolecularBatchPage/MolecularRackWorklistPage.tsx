@@ -13,13 +13,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useNavigate } from 'react-router';
 import '../../pathscribe.css';
 import { molecularExtractionRackService, rackWorklistRows, type RackWorklistRow } from '@/services';
 import { formatDateTime } from '@/utils/formatDate';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const MolecularRackWorklistPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('molecularRackWorklistPage.title'), '/molecular-rack'); }, [pushCrumb, t]);
   const navigate = useNavigate();
   const [rows, setRows] = useState<RackWorklistRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,10 +71,10 @@ const MolecularRackWorklistPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {loading && (<tr><td className="ps-conf-empty-row" colSpan={5}>{t('molecularRackWorklistPage.loading')}</td></tr>)}
+              {loading && (<tr><td className="ps-conf-empty-row" colSpan={5}><LoadingState variant="inline" label={t('molecularRackWorklistPage.loading')} /></td></tr>)}
               {!loading && rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={5}>{t('molecularRackWorklistPage.empty')}</td></tr>)}
               {!loading && rows.map(r => (
-                <tr key={r.id} className="ps-conf-tr ps-conf-tr--clickable" onClick={() => navigate(`/molecular-rack/${r.id}`)}>
+                <tr key={r.id} className="ps-conf-tr ps-conf-tr--clickable" {...pressable(() => navigate(`/molecular-rack/${r.id}`), { role: null })}>
                   <td className="ps-conf-td">{r.rackBarcode}</td>
                   <td className="ps-conf-td">{r.capacity}</td>
                   <td className="ps-conf-td">{t('molecularRackWorklistPage.occupiedOf', { occupied: r.occupied, capacity: r.capacity })}</td>

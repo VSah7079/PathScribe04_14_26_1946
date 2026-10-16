@@ -15,3 +15,7 @@ Organization/Site/Lab hierarchy — the real Enterprise-and-participating-hospit
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 517
+
+Removed `secureEmailGateway` from the organisation config and its three seeds. Nothing ever read it. Each lab's gateways and agreements now live in `services/secureMessaging` (PS-143).

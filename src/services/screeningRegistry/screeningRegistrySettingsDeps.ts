@@ -7,7 +7,6 @@ import { mockFacilityRegistryOverrideService } from '../facilities/mockFacilityR
 import { mockScreeningRegistryConfigService } from './mockScreeningRegistryConfigService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const screeningRegistrySettingsDeps: ScreeningRegistrySettingsDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   updateEnterprise: registryId => mockRegistrySettingsService.update({ registryId }),

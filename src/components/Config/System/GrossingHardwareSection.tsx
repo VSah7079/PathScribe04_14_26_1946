@@ -22,6 +22,7 @@ import {
   GROSSING_BRIDGES_BY_KIND, GROSSING_HARDWARE_KINDS, bridgeForKind, grossingHardwareDraftForSave, grossingProfilesForFacility,
   validateGrossingHardwareDraft, type GrossingHardwareDraft, type GrossingHardwareErrors,
 } from '../../../services/grossingHardware/grossingHardwareRules';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const emptyDraft: GrossingHardwareDraft = { kind: 'camera', label: '', bridgeType: 'browser_native', stationId: '', agentBaseUrl: '', equipmentId: '', isActive: true };
 
@@ -121,7 +122,7 @@ const GrossingHardwareModal: React.FC<ModalProps> = ({ mode, profile, equipment,
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('grossingHardwareSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <button type="button" aria-pressed={draft.isActive} onClick={() => set('isActive', !draft.isActive)}
+              <button type="button" aria-pressed={draft.isActive} aria-label={t('a11y.fields.active')} onClick={() => set('isActive', !draft.isActive)}
                 className={`ps-conf-toggle-track ${draft.isActive ? 'ps-conf-toggle-track--active' : ''}`}>
                 <span className="ps-conf-toggle-thumb" />
               </button>
@@ -175,7 +176,7 @@ const GrossingHardwareSection: React.FC<{ selectedFacilityId?: string }> = ({ se
     await reload();
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('grossingHardwareSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('grossingHardwareSection.loading')} />;
 
   return (
     <div>

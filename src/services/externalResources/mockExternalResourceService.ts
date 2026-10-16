@@ -6,6 +6,7 @@ import type {
   IExternalResourceService,
 } from './IExternalResourceService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'pathscribe_external_resources';
 const delay = (ms = 60) => new Promise(res => setTimeout(res, ms));
@@ -18,14 +19,14 @@ function generateId(): string {
 
 function loadResources(): ExternalResource[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = dataStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch { /* fall through to seed */ }
   return seedDefaults();
 }
 
 function saveResources(resources: ExternalResource[]): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(resources)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(STORAGE_KEY, JSON.stringify(resources)); } catch { /* non-critical */ }
 }
 
 // Real migration off the hardcoded object that used to live directly in

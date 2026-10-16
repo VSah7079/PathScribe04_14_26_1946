@@ -7,12 +7,16 @@ specific to this page.
 
 ## Files
 
-- **`WorklistPage.tsx`** (871 lines) — the page itself: LIS/Outreach
+- **`WorklistPage.tsx`** (about 1,300 lines) — the page itself: LIS/Outreach
   context switching, the filter-tile strip, stats computation, and the
-  page title above the table.
+  page title above the table. Since Batch 375 it also holds the Cytology QC
+  Peer Review and Surgical Post-Sign-Out QA queues as views beside the case
+  list (`?view=cytologyQc`, `?view=surgicalQa`), shown to whoever may open
+  them; the old `/cytology-qc-queue` and `/surgical-qa-worklist` addresses
+  redirect there.
 
   **Real bugs found and fixed in a review pass** (`PRIORITY_FIXES.md`
-  item #54): page title and tile label were two completely independent
+  item #54 — that file is no longer in the repo): page title and tile label were two completely independent
   hardcoded strings (`FILTER_TITLES` map vs. each tile's own inline
   label) that had already drifted apart in several places — most
   visibly, selecting "Amendment & Addenda" showed "Amended Cases" as
@@ -21,7 +25,8 @@ specific to this page.
   `grosscomplete`/`urgent`/`draft` each had a different string in the
   title than on their own tile. Fixed properly, not patched: replaced
   both hardcoded copies with one shared `FILTER_LABELS` map that both
-  the title and every tile's label read from — the specific class of
+  the title and every tile's label read from (now `FILTER_LABEL_KEY`, a map of
+  translation keys) — the specific class of
   drift that caused this is now structurally impossible, not just
   fixed for the one reported case.
 
@@ -58,9 +63,11 @@ specific to this page.
   of this page's inline style block (position/width/height/font-
   family/display/flex-direction) deliberately left as-is — a full
   inline-style-to-CSS-class conversion for this page is separate,
-  larger, pre-existing work, not part of this pass.
+  larger, pre-existing work, not part of this pass. *(Since closed: Batch 353
+  moved the layout styles into `.ps-wl-page*` classes; the only `style={{...}}`
+  left set per-tile CSS custom properties — checked in the Batch 496 README audit.)*
 
-- **`AmendedAddendaTriageTile.tsx`** (94 lines) — the "Amendment &
+- **`AmendedAddendaTriageTile.tsx`** (113 lines) — the "Amendment &
   Addenda Triage" summary tile, built to an explicit spec documented in
   its own header: inbound LIS amendment notices awaiting review, open
   (draft) amendment records, and open (draft) addendum records. Two
@@ -83,13 +90,15 @@ specific to this page.
   (`isTriagePending`, exported and unit-tested) rather than issuing a
   second, redundant fetch.
 
-- **`ResourcesModal.tsx`** (45 lines) — the shared quick-links modal
+- **`ResourcesModal.tsx`** (48 lines) — the shared quick-links modal
   (protocols/references/internal systems), opened via the global
   `PATHSCRIBE_PAGE_OPEN_RESOURCES` window event — see
   `pages/README.md`'s `AuditLogPage.tsx` entry for a real bug found
   elsewhere where a page rendered this same modal but never listened
   for that event at all. This page's own listener was confirmed
   correctly wired. Not reviewed in further depth this session.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): line counts updated (`wc -l`); the shared label map is `FILTER_LABEL_KEY`; added the Batch 375 review-queue views (`WorklistPage.tsx` lines 132-146, `App.tsx` redirects); `PRIORITY_FIXES.md` no longer exists.*
 
 ## Notes
 
@@ -181,3 +190,20 @@ The Autopsy branch tab's rows now show real autopsy state — case authority, an
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 504
+
+- The voice commands' listeners now update when the flag definitions arrive. "Read flags" could say a case had no flags when the definitions loaded after the listeners were set up.
+- `openCytologyReviewCase` lists `openCasePage`, the function it actually uses.
+
+## Batch 565 (WCAG 2.1 AA)
+
+- Contrast of colours set in code raised from the old greys; filter tiles say which is selected (`aria-pressed`) where this folder has them.
+
+## Batch 566 (WCAG 2.1 AA)
+
+- The LIS and Outreach tiles say which is on (`aria-pressed`, `type="button"`), as the peer-review queue tiles already did.
+
+## Batch 568
+
+- The LIS and Outreach tiles' on/off colours come from modifier classes in `pathscribe.css` (`.ps-wl-mode-tile--lis`, `--outreach`, `--active`), not values set in the page; they look exactly as before.

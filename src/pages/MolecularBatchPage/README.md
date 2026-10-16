@@ -31,13 +31,13 @@ per direct follow-up — see that folder's own README).
 left unrouted — fully superseded by `MolecularWorkcenterPage.tsx`'s own
 real Worklist/Active/History tabs.
 
-**Real, honest, flagged convention gap**: every page in this folder uses
-inline `style={{...}}` throughout, not this app's own established
-"no inline CSS, named classes only" convention for admin/Config-adjacent
-UI (see `components/Config/System/README.md`'s own header, and
-`src/README.md`'s own documented history of real bugs this exact pattern
-has caused elsewhere). Found while auditing README coverage, not yet
-reconciled — a real, later cleanup, not attempted here.
+**Inline styles**: the pages in this folder now use named
+`pathscribe.css` classes. The only `style={{...}}` left are two
+per-instance CSS custom properties in `MolecularPlateBuilderPage.tsx`
+(the plate's column count and a legend swatch's `--ps-hue`), the
+pattern the no-inline-CSS rule allows.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this said every page here used inline styles throughout; a grep of the folder finds only those two custom-property styles.*
 
 ## Batch 356 (PS-326)
 
@@ -133,3 +133,23 @@ Plate Builder:
 - A well holding an in-house order has a corner mark and a tooltip naming the order.
 - On a saved plate, a filled well can be selected to see its sample, accession, order or control (read-only).
 - The tooltip text is now locale templates; it used to be joined in code.
+
+## Batch 495 — breadcrumb registered
+
+MolecularPlateBuilderPage, MolecularRackWorklistPage, MolecularRackLoadingPage and MolecularControlRulesPage now register a breadcrumb (`useBreadcrumb().pushCrumb(...)`) — same gap Batch 492 fixed on the Tumor Board and margin-exception pages: AppShell only shows the breadcrumb bar once there is more than one crumb, so these pages had none. Each reuses its existing page-title key; pages under a parameterised route (`/molecular-batch/:batchId`, `/molecular-rack/:rackId`) push their own concrete path.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. Movement history: the level names (primary vial, …) and the "at" line are one translated template, and the timestamps follow the user's locale.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

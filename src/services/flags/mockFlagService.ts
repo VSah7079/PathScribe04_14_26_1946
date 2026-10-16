@@ -19,6 +19,8 @@ const SEED_FLAGS: Flag[] = [
   { id: 'f12', tagClass: 'ADMINISTRATIVE', name: 'Heme Oncology Notified',       lisCode: 'HEME',  description: 'Haematology oncology team has been notified',       level: 'Case',     severity: 2, status: 'Active'   },
   { id: 'f13', tagClass: 'ADMINISTRATIVE', name: 'Sarcoma Protocol',             lisCode: 'SARC',  description: 'Sarcoma multidisciplinary protocol initiated',      level: 'Case',     severity: 3, status: 'Active'   },
   { id: 'f14', tagClass: 'ADMINISTRATIVE', name: 'Pending Clinical Correlation', lisCode: 'PCC',   description: 'Awaiting clinical correlation from referring MD',   level: 'Case',     severity: 3, status: 'Active'   },
+  // Batch 516 (PS-283): a flag that restricts printing (VIP / confidential).
+  { id: 'f37', tagClass: 'ADMINISTRATIVE', name: 'Confidential — Restricted Printing', lisCode: 'CONF', description: 'VIP or confidential consultation: only staff with the restricted-case print permission can print the report', level: 'Case', severity: 4, status: 'Active', restrictsPrinting: true },
   { id: 'f15', tagClass: 'ADMINISTRATIVE', name: 'Intraoperative Consult',       lisCode: 'INTRA', description: 'Frozen section or intraoperative consultation done', level: 'Case',    severity: 4, status: 'Active'   },
   { id: 'f10', tagClass: 'ADMINISTRATIVE', name: 'Legacy Urgent',                lisCode: 'URG',   description: 'Legacy urgent flag — replaced by STAT',            level: 'Case',     severity: 4, status: 'Inactive' },
 
@@ -124,6 +126,10 @@ if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
 }
 
 let MOCK_FLAGS: Flag[] = load();
+// Batch 516: seed flags added since a browser's copy was saved are appended,
+// without resetting the flags a lab has already edited.
+const missingSeeds = SEED_FLAGS.filter(seed => !MOCK_FLAGS.some(f => f.id === seed.id));
+if (missingSeeds.length) { MOCK_FLAGS = [...MOCK_FLAGS, ...missingSeeds]; persist(MOCK_FLAGS); }
 
 // Real, confirmed fix (Jira PS-57's own follow-up): caseFilterUtils.ts
 // needs the real flag catalog to resolve a FlagInstance's

@@ -114,6 +114,49 @@ describe('Assist synoptic dispatch (Batch 426)', () => {
   });
 });
 
+describe('Batch 538: the Assist result carries a stored report document', () => {
+  function withDocuments(ctx: ReturnType<typeof setup>) {
+    const stored = new Map<string, string>();
+    const documents = {
+      store: vi.fn(async (input: any) => { const id = `rdoc-${stored.size + 1}`; stored.set(id, input.pdfBase64); return { ok: true as const, data: { ...input, id, sha256: `h-${id}`, byteLength: 1, createdAt: 'now', pdfBase64: undefined } }; }),
+      read: vi.fn(async (id: string) => stored.has(id)
+        ? { ok: true as const, data: { document: { id, sha256: `h-${id}` } as any, pdfBase64: stored.get(id)! } }
+        : { ok: false as const, error: 'notFound' }),
+    };
+    ctx.deps.documents = documents as any;
+    return { documents, stored };
+  }
+  it('Batch 549: the stored document\'s releasedAt is the time of release, even when the result carries the sign-out time', async () => {
+    const ctx = setup();
+    const { documents } = withDocuments(ctx);
+    ctx.c.finalizedAt = '2026-09-30T09:15:00.000Z'; ctx.c.finalizedBy = 'u1';
+    await dispatchAssistCaseRelease('S26-1', signer, ctx.deps);
+    expect(documents.store.mock.calls[0][0].releasedAt).toBe('2026-10-01T18:00:00.000Z');
+    expect(ctx.entries[0].signer.signedAt).toBe('2026-09-30T09:15:00.000Z');
+  });
+  it('the release stores its PDF once; the queue entry records the document; a retry rebuild sends those bytes without rendering', async () => {
+    const ctx = setup();
+    const { documents } = withDocuments(ctx);
+    expect((await dispatchAssistSynopticResult({ caseId: 'S26-1', instanceId: 'i1', kind: 'final', signer }, ctx.deps)).outcome).toBe('sent');
+    expect(documents.store).toHaveBeenCalledTimes(1);
+    expect(documents.store.mock.calls[0][0]).toMatchObject({ caseId: 'S26-1', instanceId: 'i1', reportType: 'FINAL', source: 'SURGPATH', producedBy: 'report-renderer', pdfBase64: 'JVBERi0=' });
+    expect(ctx.entries[0]).toMatchObject({ reportDocumentId: 'rdoc-1', pdfSha256: 'h-rdoc-1' });
+    ctx.deps.renderPdf = vi.fn(async () => ({ pdfBase64: 'DIFFERENT=' }));
+    const rebuilt: any = await rebuildAssistSynopticMessage(ctx.entries[0], ctx.deps);
+    expect(rebuilt.workupPdf.base64).toBe('JVBERi0=');
+    expect(ctx.deps.renderPdf).not.toHaveBeenCalled();
+    expect(documents.store).toHaveBeenCalledTimes(1);
+  });
+  it('a retry whose document cannot be read is held, never re-rendered in its place', async () => {
+    const ctx = setup();
+    withDocuments(ctx);
+    ctx.deps.renderPdf = vi.fn(async () => ({ pdfBase64: 'NEW=' }));
+    const r = await prepareAssistSynopticMessage({ caseId: 'S26-1', instanceId: 'i1', kind: 'final', version: 1, signer: { ...signer, signedAt: 'x' }, reportDocumentId: 'rdoc-missing' }, ctx.deps);
+    expect(r).toMatchObject({ ok: false, reason: 'held' });
+    expect(ctx.deps.renderPdf).not.toHaveBeenCalled();
+  });
+});
+
 describe('one PDF per workup (Batch 426)', () => {
   it('workupChanges lists changed, added and removed answers', () => {
     const o = (field_id: string, value: string, unit: string | null = null) => ({ field_id, label: field_id, value, unit, block_id: null, snomed: null, overridden: false, ai_suggested: false });
@@ -137,5 +180,26 @@ describe('one PDF per workup (Batch 426)', () => {
     expect(await renderWorkupPdf({}, { post: async () => ({ ok: true, pdfBase64: 'AA==' }) })).toEqual({ pdfBase64: 'AA==' });
     expect(await renderWorkupPdf({}, { post: async () => ({ ok: false, status: 500 }) })).toEqual({ generationError: 'Workup PDF generation failed (500)' });
     expect((await renderWorkupPdf({}, { post: async () => { throw new Error('offline'); } })).generationError).toBe('offline');
+  });
+});
+
+describe('Batch 549 (open since Batch 538): the signed time is the sign-out time', () => {
+  it('a case release carries the time the case was finalized, in the queue entry and the PDF', async () => {
+    const { c, deps, entries, renders } = setup();
+    c.finalizedAt = '2026-09-30T09:15:00.000Z'; c.finalizedBy = 'u1';
+    await dispatchAssistCaseRelease('S26-1', signer, deps);
+    expect(entries[0].signer).toEqual({ ...signer, signedAt: '2026-09-30T09:15:00.000Z' });
+    expect(JSON.stringify(renders[0])).toContain('D(2026-09-30T09:15:00.000Z)');
+  });
+  it('someone else releasing the case keeps the time of release, so their id is never paired with the signer\'s time', async () => {
+    const { c, deps, entries } = setup();
+    c.finalizedAt = '2026-09-30T09:15:00.000Z'; c.finalizedBy = 'u-other';
+    await dispatchAssistCaseRelease('S26-1', signer, deps);
+    expect(entries[0].signer.signedAt).toBe('2026-10-01T18:00:00.000Z');
+  });
+  it('with no finalized time (or a correction signed on the page) it is the time of sending, as before', async () => {
+    const { deps, entries } = setup();
+    await dispatchAssistSynopticResult({ caseId: 'S26-1', instanceId: 'i1', kind: 'final', signer }, deps);
+    expect(entries[0].signer.signedAt).toBe('2026-10-01T18:00:00.000Z');
   });
 });

@@ -99,12 +99,16 @@ export default function PathologyWorkspacePage() {
       description: t('pathologyWorkspace.embeddingTile.description'),
       route: '/workstations/embedding',
       color: '#F97316',
-      // TODO: still borrowing Worklist's image — no dedicated
-      // Embedding Workspace photo was provided in the Sep 2026 tile-image
-      // refresh (Cytology/Microtomy/Slide Distribution/Molecular all got
-      // their own real photo; this one didn't). Swap in a real image once
-      // one's available — see UPDATE_288_SUMMARY.md.
-      image: '/worklist.webp',
+      // Batch 484 (tracker Section B, "Case tile photo"): this tile was
+      // still borrowing Worklist's image — the Sep 2026 tile-image
+      // refresh gave Cytology/Microtomy/Slide Distribution/Molecular
+      // their own real photo but missed this one (the referenced
+      // UPDATE_288_SUMMARY.md doesn't exist in this repo — standing rule
+      // #6, verify before repeating a claim). public/embedding.webp is a
+      // locally generated placeholder (a paraffin-mold motif in this
+      // tile's own #F97316), not a sourced photograph — swap in a real
+      // one when photography is available.
+      image: '/embedding.webp',
     },
     {
       key: 'slideDistribution',
@@ -133,6 +137,21 @@ export default function PathologyWorkspacePage() {
       route: '/batch-management',
       color: '#D4A017',
       image: '/batch_management.webp',
+    },
+    // Batch 491 (deferred from Batch 490's own margin-distance extraction
+    // layer): the review queue for a margin-distance free-text answer the
+    // extraction layer couldn't confidently parse. No dedicated photo shot
+    // for this tile yet — reuses /deficiencies.webp (an existing "needs a
+    // person to resolve it" placeholder), same disclosed-placeholder
+    // posture as the embedding tile's image above.
+    {
+      key: 'marginExceptionReview',
+      screen: 'marginExceptionReview',
+      title: t('pathologyWorkspace.marginExceptionReviewTile.title'),
+      description: t('pathologyWorkspace.marginExceptionReviewTile.description'),
+      route: '/margin-exception-review',
+      color: '#DC2626',
+      image: '/deficiencies.webp',
     },
   ];
   // Batch 374: only the screens this user may open (services/screens/screenAccess.ts).

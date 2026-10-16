@@ -5,9 +5,11 @@
 // version of buildOruR01Payload.ts. Same real principle: PathScribe
 // never decides HL7 formatting itself; this hands the interface engine
 // the real, structured JSON materials — narrative-equivalent fields
-// plus an embedded, real, base64-encoded PDF this app generates itself
-// (generateCytologyReportPdf.ts) — and the engine builds the actual
-// ORU^R01 transaction from it.
+// plus an embedded, base64-encoded PDF — and the engine builds the actual
+// ORU^R01 transaction from it. Batch 539 (PS-539 D2): the PDF is made by the
+// report renderer and passed in (generateCytologyReportPdfSnapshot); this
+// builder no longer draws one. Since Batch 532 only a retry of a message
+// queued one specimen at a time uses this builder.
 //
 // Real, deliberate scope, mirroring buildOruR01Payload's own: only
 // ever called for a real CytologySignOutRecord on an orchestrator-mode
@@ -17,9 +19,6 @@
 
 import type { CytologySignOutRecord } from '@/types/cytology/CytologySignOutRecord';
 import type { CisoeAScore } from '@/types/cytology/CisoeAScore';
-import { generateCytologyReportPdf } from './generateCytologyReportPdf';
-import { cytologyPdfLabelsFor } from './cytologyPdfLabelsFor';
-import type { PrintFont } from '../documentRendering/printFonts';
 
 // Real, per direct guidance: "It might be easier to implant different
 // outbound payload types based on geography." Real, generic,
@@ -82,9 +81,7 @@ export interface CytologyOruR01Payload {
     previouslyReportedAs?: string;
     addendumText?: string;
   };
-  /** The real, generated PDF, base64-encoded — this app's own,
-   *  genuinely simpler cytology renderer (generateCytologyReportPdf.ts),
-   *  not the external, synoptic-shaped render_report Cloud Function. */
+  /** The report PDF, base64-encoded, made by the report renderer (Batch 539). */
   reportPdfBase64: string;
   /** Real, optional — present only when the underlying review carries
    *  real, native data a receiving system in that specific geography
@@ -101,13 +98,11 @@ export function buildCytologyOruR01Payload(
   signOutRecord: CytologySignOutRecord,
   resultState: 'FINAL' | 'CORRECTED' | 'ADDENDUM' = 'FINAL',
   previouslyReportedAs?: string,
-  /** Batch 391: the font a Korean report needs (loadPrintFont); the caller loads it. */
-  printFont?: PrintFont,
+  /** Batch 539: the report PDF, from the report renderer. The one caller (the outbound retry) makes it
+   *  first and holds the message when it can't, so it never sends this empty. */
+  reportPdfBase64 = '',
 ): CytologyOruR01Payload {
   const content = signOutRecord.reportContent;
-  const doc = generateCytologyReportPdf(content, undefined, cytologyPdfLabelsFor(content.language), printFont);
-  const dataUri = doc.output('datauristring');
-  const reportPdfBase64 = dataUri.split(',').pop() ?? '';
 
   return {
     messageId: crypto.randomUUID(),

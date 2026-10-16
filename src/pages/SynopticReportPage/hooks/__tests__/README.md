@@ -1,8 +1,11 @@
 # Testing the SynopticReportPage hooks
 
-192 tests across 8 of the 10 hooks in this directory (`useMicroscopicEntry.ts`
-and `useReleaseBufferCountdown.ts` — both new, Aug 2026 — don't yet have a
-dedicated test file; see "Test files" below). This is the first React-hook
+272 tests across 8 of the 15 hooks in this directory. `useMicroscopicEntry.ts`,
+`useReleaseBufferCountdown.ts`, `useEffectiveSpecimenComplexity.ts`,
+`useCaseMaterialStore.ts`, `usePeerReview.ts`, `useOrganMap.ts` and
+`useWarningConfirm.tsx` have no dedicated test file here
+(`useCaseMaterialStore` is exercised by `../../components/DecantBillingSync.test.tsx`);
+see "Test files" below. This is the first React-hook
 test coverage in this codebase — the existing suite (~520 tests before
 this) is entirely non-React: services, utilities, calculations, running in
 Node with no DOM. Setting these up required real, non-obvious
@@ -18,6 +21,8 @@ infrastructure work, documented here so it isn't rediscovered the hard way.
 - `useReportGeneration.test.ts` (referenced below, "gotchas" section)
 - `useSignOutWorkflow.test.ts`
 - `useSpecimenBlockManagement.test.ts` (has an integration test — see below)
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the eight files hold 272 `it`/`test` cases (was 192), and the folder now has 15 hooks, seven without a test file here. The "~520 tests before this" figure is from when this suite was first written.*
 
 ## Running the tests
 

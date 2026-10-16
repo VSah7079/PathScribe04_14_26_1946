@@ -48,11 +48,13 @@ All are at Desert Valley (Metro General Hospital) unless noted.
 | Informal review | Sarah asked Pete; Pete asked Sarah | The other one publishes | S26-4601, S26-4602 |
 | Cytology QC rescreen | Priya Desai screened | Nadia Rahman rescreens | S26-4650, S26-4651 |
 | Cytology QC rescreen, the other way | Nadia Rahman screened | Priya Desai rescreens | S26-4652 |
-| Template author → approver | Hannah Price drafts and submits | Dr. Samuel Osei approves | Configuration → Templates |
-| Billing dictionary approval | (seeded as pending) | Michelle or Pete approves | Configuration → Billing |
+| Template author → approver | Hannah Price drafts and submits | Dr. Samuel Osei approves | Configuration → Synoptic Library |
+| Billing dictionary approval | (seeded as pending) | Michelle or Pete approves | Configuration → System → Pending Billing Rule Approvals |
 | Surgical post-sign-out peer review | Pete signed out | Sarah reviews | S26-4405, S26-4412, S26-4492 |
 | Pool claim | Any demo pathologist or the fellow | (none needed) | Pool tile on the worklist |
 | Support access | Amber Fehrs-Battey (ForMedrixAI support) asked for access to Desert Valley, ticket FMX-20417 | The hospital's administrator, Michelle Nimmo (or Pete), approves or rejects | Configuration → System → Support Access |
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): there is no Configuration → Billing or Templates tab for these; synoptic templates are under Synoptic Library and billing approvals under System → Pending Billing Rule Approvals (`ConfigurationPage.tsx`, `systemSections.ts`).*
 
 ## Cases for specific screens
 
@@ -110,7 +112,7 @@ The pool-claim race (two people accepting the same pool case at once) needs two 
 **Billing in the Cytology Workspace (full review)**
 1. Open S26-4650 in the Cytology Workspace and click **$ Billing** (next to # Codes).
 2. Approve a pending code, then delete it.
-3. Open Quality Assurance → Audit Log. It shows "Billing code charged", then "Billing code credited".
+3. Open Quality & Compliance → Audit → Audit Log. It shows "Billing code charged", then "Billing code credited".
 4. Take "Review a case's billing codes" off a test role in the Role Dictionary and sign in as that role. Approving is refused with a message, and nothing changes.
 
 **Billing at Microtomy (read-only, with full review)**
@@ -129,8 +131,10 @@ The pool-claim race (two people accepting the same pool case at once) needs two 
 3. Remove an unprinted slide and add a new one. The new slide gets a new level and never reuses the removed one.
 
 **Label Designer**
-1. Configuration → Label Designer. Click a field and drag a corner handle; it stops at the label's edge.
+1. Configuration → System → Label Designer. Click a field and drag a corner handle; it stops at the label's edge.
 2. Type a width larger than the label; it's capped.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the Audit Log is a tile on Quality & Compliance, not inside Quality Assurance; Label Designer is under Configuration → System.*
 
 ## Demo: the anatomical map beside the synoptic (Batch 461)
 
@@ -201,10 +205,12 @@ S26-4466 is a composite resection: two specimens, each with its own PathScribe s
 2. The right kidney (hilum toward the middle) shows carcinoma in the upper pole, lateral half, marked A (anterior aspect); perinephric fat and the renal vein show carcinoma. The renal vein margin is involved, the ureteral margin clear, and the soft tissue margin at 0 mm is involved by the site's rule (= 0.0 mm, on ink). The caption reads "Extent and size: pT3a (AJCC 8th)" — a guide; the stage stays the pathologist's answer.
 3. In **Anatomical map (PathScribe)**, change the soft tissue margin to 0.5 mm: it turns clear. Change the procedure to partial nephrectomy: the renal vein and ureteral margin questions disappear from the form (and from the report), and the map shows the parenchymal and perinephric / capsular soft tissue margins, each with its site rule. Batch 466c: the drawing drops the renal vein, vena cava and ureter too (a partial specimen doesn't hold them). Tick "Renal vein segment submitted" under **Add non-standard margin**: its question and box come back. Choose "Left" for the kidney: the drawing mirrors.
 4. Enter −1 (or 1.5) in **Number Positive** under Regional Nodes: the field is flagged, and Save Draft and sign-out stop until it's a whole number (Batch 466: node counts are whole numbers, 0 or more; the neck dissection's level counts and totals too).
-5. Configuration → Organ maps → Colours & patterns: "Kidney, radical nephrectomy: soft tissue margin involved at" (and the partial nephrectomy's parenchymal margin) — each a distance and an operator per site.
-6. Batch 466b — the generic margin questions follow the map: Configuration → Organ maps → Map bindings, choose Kidney Resection, and under **Generic margin questions (calculated from the map)** choose "Margin Status" (say which answer means involved and which not involved) and "Margin(s) Involved" (which answer is the renal vein, ureter, soft tissue). Save, reopen S26-4467: both questions are filled from the map and locked; change the soft tissue distance to 2 mm and the vein margin to not involved — they turn to "not involved" at once.
+5. Configuration → System → Organ maps → Colours & patterns: "Kidney, radical nephrectomy: soft tissue margin involved at" (and the partial nephrectomy's parenchymal margin) — each a distance and an operator per site.
+6. Batch 466b — the generic margin questions follow the map: Configuration → System → Organ maps → Map bindings, choose Kidney Resection, and under **Generic margin questions (calculated from the map)** choose "Margin Status" (say which answer means involved and which not involved) and "Margin(s) Involved" (which answer is the renal vein, ureter, soft tissue). Save, reopen S26-4467: both questions are filled from the map and locked; change the soft tissue distance to 2 mm and the vein margin to not involved — they turn to "not involved" at once.
 7. Batch 466b — count settings in the Synoptic Editor: open a copy of Neck Dissection; a numeric question offers **Number type** (decimal / whole number), **Can't exceed** (another numeric question) and **Value** (entered by hand / total from a grid); the levels grid lists its number columns with the same rules.
-8. Batch 466c — the Synoptic Editor builds the new conditions: Configuration → Protocols, open Kidney Resection in the editor and select "Renal vein margin". Its visibility reads **Shown unless…** the procedure is "Partial nephrectomy", **or also when** "Add non-standard margin" is "Renal vein segment submitted" — editable, no longer "Custom condition". On "Total nodes positive" in the Neck Dissection template, the **Value** list now offers "Entered by hand, checked against a grid's total".
+8. Batch 466c — the Synoptic Editor builds the new conditions: Configuration → Synoptic Library, open Kidney Resection in the editor and select "Renal vein margin". Its visibility reads **Shown unless…** the procedure is "Partial nephrectomy", **or also when** "Add non-standard margin" is "Renal vein segment submitted" — editable, no longer "Custom condition". On "Total nodes positive" in the Neck Dissection template, the **Value** list now offers "Entered by hand, checked against a grid's total".
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): Organ maps is under Configuration → System; the editor is reached from the Synoptic Library tab (there is no "Protocols" tab).*
 
 ## Demo: in-house molecular orders (Batch 467)
 
@@ -213,9 +219,11 @@ S26-4466 is a composite resection: two specimens, each with its own PathScribe s
 3. Press **Demo: run → positive**: the plate is dispatched (the order is "Running") and the run's results come back; the order is "Resulted", Positive, "Report answered from this result."
 4. As Pete, open S26-4493 (Angela Weiss) and the **Lung Adenocarcinoma** synoptic: EGFR Mutation Status reads "Detected", with the note "From in-house EGFR mutation PCR result (MO-2026-0467-01)."
 5. Change the answer to "Not Detected": the question shows the delta tag **Result differs** ("In-house EGFR mutation PCR (MO-2026-0467-01) reported “Detected”.") and **Use result**. Your answer is never overwritten; pressing Use result puts "Detected" back.
-6. Re-routing: in Configuration → Stain Dictionary, edit EGFR mutation PCR and untick Desert Valley under **Run in-house at**. A queued in-house EGFR order now reads "This lab no longer runs this test in-house: send it out or cancel it." and offers **Send out instead** (to Summit, the test's default lab) and Cancel; it can't go on a plate. Tick it again afterwards.
+6. Re-routing: in Configuration → System → Diagnostic Catalog (the stain dictionary), edit EGFR mutation PCR and untick Desert Valley under **Run in-house at**. A queued in-house EGFR order now reads "This lab no longer runs this test in-house: send it out or cancel it." and offers **Send out instead** (to Summit, the test's default lab) and Cancel; it can't go on a plate. Tick it again afterwards.
 7. Ordering: on the Add-On Order page for S26-4493, add EGFR mutation PCR: the line offers In-house (selected) or Send-out; the reference lab is asked for only for send-out. The placed order appears in the Order Queue.
-8. Configuration → Protocols, open Lung Adenocarcinoma in the editor, select EGFR Mutation Status: **Filled from in-house molecular test** shows EGFR mutation PCR and what a positive and a negative result mean.
+8. Configuration → Synoptic Library, open Lung Adenocarcinoma in the editor, select EGFR Mutation Status: **Filled from in-house molecular test** shows EGFR mutation PCR and what a positive and a negative result mean.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the stain dictionary is labelled Diagnostic Catalog; the synoptic editor is under Synoptic Library.*
 
 After sign-out, a late result doesn't change the report: the order reads "Arrived after sign-out: report unchanged, addendum draft opened." and the draft waits for the case's pathologist.
 
@@ -256,7 +264,7 @@ The stage maps are drawn from the Mohs synoptic's answers and are always part of
 3. Press **Record Custody Transfer**. Fill in Item ("Decedent's clothing"), Transferred To (Type) "Law Enforcement", Transferred To (Name) (e.g. "Metro PD Evidence Unit"), Released By, and press **Save Transfer**: the toast reads "Custody transfer recorded." and the new entry appears, continuing on from the Medical Examiner (the log's own last recipient), not from the mortuary — the current custodian is always wherever the chain last left it.
 4. This panel and its capability (`autopsy:custody:transfer`) only appear for a forensic case; open A26-4660/4661/4662 again to confirm it's absent there.
 
-**Limits of this seed:** toxicology and the fuller organ/tissue retention & release workflow are out of scope for this batch (still open per PS-261); there's no screen yet to narrow or revoke an already-granted hospital consent (A26-4661's narrowed consent above is pre-set, not something you can do from the UI yet); the retention-tier hard block has no UI-demoable case, as noted above; and body release (A26-4661/4662) is still a separate event from this custody log, not yet unified into one timeline.
+**Limits of this seed:** toxicology and the fuller organ/tissue retention & release workflow are out of scope for this batch (still open per PS-261); *(Since closed: toxicology orders and results in Batch 469, specimen barcodes in Batch 475; retention recipient, location and disposal in Batches 469–472 — checked in the Batch 496 README audit.)* there's no screen yet to narrow or revoke an already-granted hospital consent (A26-4661's narrowed consent above is pre-set, not something you can do from the UI yet); *(Since closed: Narrow or Revoke Consent, Batch 469 — checked in the Batch 496 README audit.)* the retention-tier hard block has no UI-demoable case, as noted above; and body release (A26-4661/4662) is still a separate event from this custody log, not yet unified into one timeline. *(Since closed: Batch 469 `releaseAutopsyBody.ts` writes the final custody entry, and Batch 476 `AutopsyCaseTimeline.tsx` shows one timeline — checked in the Batch 496 README audit.)*
 
 ## Demo: autopsy toxicology ordering/results, organ-retention disposal, consent narrowing (Batch 469)
 

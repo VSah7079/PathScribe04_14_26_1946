@@ -1,7 +1,7 @@
 # components/Config/RegistryGoLive
 
 `RegistryGoLivePanel` is the registry connection panel (Batches 423–424). It appears on:
-- Configuration → Cytology → Screening registry reporting, for the registry being configured;
+- Configuration → Cytology → Registry Reporting (screening registries), for the registry being configured (the sidebar label; corrected in the Batch 496 README audit);
 - Configuration → System → Cancer Registry Reporting, for the enterprise registry and any registry a facility override uses.
 
 What it shows depends on the instance (`services/deployment/`):

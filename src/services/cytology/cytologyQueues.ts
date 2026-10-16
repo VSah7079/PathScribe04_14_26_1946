@@ -95,6 +95,27 @@ export function cytologyReviewTrayState(participants: readonly CaseParticipant[]
   return pathologists.includes(viewerId) ? 'mine' : 'hidden';
 }
 
+/**
+ * Batch 483 (PS-359 tracker follow-up — "Cytology: multi-specimen bug"):
+ * `gynSpecimens()` (cytologyQueuesLive.ts) now returns one ref per GYN
+ * cytology specimen on a case, not just the case's first — a case can
+ * carry more than one, and the one actually QC-flagged or awaiting
+ * pathologist review isn't necessarily the first. The QC/Rescreen tile and
+ * the Cytology Review tray still show one row per case, though: once refs
+ * are filtered down to ones that actually qualify, this keeps only the
+ * first per case id (later ones for the same case are dropped).
+ */
+export function firstQualifyingSpecimenPerCase<T extends { caseData: { id: string } }>(refs: readonly T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const ref of refs) {
+    if (seen.has(ref.caseData.id)) continue;
+    seen.add(ref.caseData.id);
+    out.push(ref);
+  }
+  return out;
+}
+
 export type TakeCytologyReviewProblem = 'ALREADY_TAKEN' | 'NOT_AWAITING';
 
 export function takeCytologyReviewProblem(

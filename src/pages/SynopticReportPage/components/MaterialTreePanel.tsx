@@ -12,6 +12,7 @@
 // HistologyBlock/StainOrder before that was caught; this component reuses
 // them directly rather than re-flattening its own copy.
 // ─────────────────────────────────────────────────────────────────────────────
+import type { HistologyBlock } from '@/types/case/Specimen';
 import { slideLevelOf } from '@/services/material/slideLevels';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +21,7 @@ import { formatDate, formatDateTime } from '@/utils/formatDate';
 import '../../../pathscribe.css';
 import MaterialTrackingHistoryModal from '../modals/MaterialTrackingHistoryModal';
 import GrossingReleasePanel from './GrossingReleasePanel';
-import { mockCassetteColorService } from '@/services/cassetteColors/mockCassetteColorService';
+
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
 import { classifyGrossingComplexity } from '@/utils/classifyGrossingComplexity';
 import { resolveSpecimenDisplayId, resolveBlockDisplayId, resolveSlideDisplayId, resolveDecantDisplayId, resolveDecantSlideDisplayId } from '@/utils/materialDisplayId';
@@ -29,6 +30,8 @@ import type { BlockStatus, StainOrderStatus } from '@/types/case/Specimen';
 import BiopsyArrayDiagram, { type BiopsyArrayPosition } from './BiopsyArrayDiagram';
 import { isExhausted, isLost, isDamaged, isEntirelySubmitted, entirelySubmittedBlockRangeText } from '@/utils/blockExceptionStates';
 import type { MaterialLocation } from '@/types/case/Material';
+import { cassetteColorService } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
 
 /**
  * Real fix, per direct report with screenshots in hand: "how come the
@@ -236,7 +239,7 @@ const SlideChip: React.FC<{ level: string; stainName: string; status: string; on
   return (
     <div
       className="ps-material-tree-slide-chip"
-      onClick={onClick}
+      {...pressable(onClick)}
       title={loc ? `${baseTitle} · 📍 ${loc.location} (${formatDateTime(loc.at, i18n.language)})` : baseTitle}
     >
       <div className={bodyClass.join(' ')}>
@@ -303,7 +306,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
   // cassetteColors, not passed in as a prop.
   const [cassetteColors, setCassetteColors] = useState<CassetteColorDefinition[]>([]);
   useEffect(() => {
-    mockCassetteColorService.getAll().then(res => { if (res.ok) setCassetteColors(res.data); });
+    cassetteColorService.getAll().then(res => { if (res.ok) setCassetteColors(res.data); });
   }, []);
   const specimens = caseData?.specimens ?? [];
   // Real feature, per direct follow-up: "resolveBlockDisplayId() etc.
@@ -548,10 +551,14 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                       the block's own children, not crammed onto the
                       same line as its badges. */}
                   <div className="ps-material-tree-block-header">
+                    {/* Batch 516 (PS-72): the tooltip shows the block id, which carries the accession. */}
                     <div
-                      onClick={() => onOpenBlockEditor(block.id)}
+                      data-phi="accession"
+                      {...pressable(() => onOpenBlockEditor(block.id))}
                       className="ps-material-tree-block-clickable"
-                      title={`${resolvedBlockId} · ${blockStatusLabel}${isCancelled && block.cancelReason ? ` — ${block.cancelReason}` : ''}`}
+                      title={isCancelled && block.cancelReason
+                        ? t('materialTreePanel.blockTooltipCancelled', { id: resolvedBlockId, status: blockStatusLabel, reason: block.cancelReason })
+                        : t('materialTreePanel.blockTooltip', { id: resolvedBlockId, status: blockStatusLabel })}
                     >
                       <BlockIcon label={`${sp.label}${block.label}`} />
                     </div>
@@ -714,7 +721,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
               return (
                 <div
                   key={matrixBlockId}
-                  onClick={() => onOpenMatrixBlockEditor(matrixBlockId)}
+                  {...pressable(() => onOpenMatrixBlockEditor(matrixBlockId))}
                   className="ps-material-tree-matrix-link"
                 >
                   🧩 {t('materialTreePanel.partOfBiopsyArray', { label: mb.label, position: participant?.positionInBlock })}
@@ -740,12 +747,12 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                     themselves a real, clickable entry point, matching
                     the matrix block row's own "click to open" pattern
                     immediately above in this file. */}
-                <div title={`${resolvedDecantId} · ${decant.decantType}`} onClick={() => onOpenBlockEditor(decant.id)} className="ps-material-tree-decant-clickable">
+                <div data-phi="accession" title={t('materialTreePanel.decantTooltip', { id: resolvedDecantId, type: decant.decantType })} {...pressable(() => onOpenBlockEditor(decant.id))} className="ps-material-tree-decant-clickable">
                   <DecantIcon label={`${sp.label}${decant.label}`} />
                 </div>
                 <div className="ps-material-tree-decant-info">
                   <span
-                    onClick={() => onOpenBlockEditor(decant.id)}
+                    {...pressable(() => onOpenBlockEditor(decant.id))}
                     className="ps-material-tree-decant-id"
                     data-phi="accession"
                   >
@@ -753,7 +760,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                   </span>
                   {decant.stains.length === 0 && (
                     <div
-                      onClick={() => onOpenBlockEditor(decant.id)}
+                      {...pressable(() => onOpenBlockEditor(decant.id))}
                       className="ps-material-tree-decant-empty-link"
                     >
                       {t('materialTreePanel.noSlidesYetClickToEdit')}
@@ -799,7 +806,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                 specimen with no such blocks. */}
             <GrossingReleasePanel
               specimenLabel={sp.label}
-              pendingBlocks={(sp.blocks ?? []).filter(b => b.status === 'Pending' && b.cassetteColorId)}
+              pendingBlocks={(sp.blocks ?? []).filter((b: HistologyBlock) => b.status === 'Pending' && b.cassetteColorId)}
               cassetteColors={cassetteColors}
               onOverrideColor={(blockId, colorId) => onUpdateBlock(sp.id, blockId, { cassetteColorId: colorId, cassetteColorOverridden: true })}
               onRemove={blockId => onRemovePendingBlock(sp.id, blockId)}
@@ -814,7 +821,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                 blocks, a cytology one doesn't suddenly grow a block. */}
             {decants.length === 0 && (
               <div
-                onClick={() => onAddBlock(sp.id)}
+                {...pressable(() => onAddBlock(sp.id))}
                 className="ps-material-tree-add-block-link"
               >
                 + {t('materialTreePanel.requestBlockRecut')}
@@ -830,7 +837,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
             {blocks.length === 0 && (
               <div className="ps-material-tree-add-decant-wrap">
                 <div
-                  onClick={() => setOpenDecantMenuFor(v => v === sp.id ? null : sp.id)}
+                  {...pressable(() => setOpenDecantMenuFor(v => v === sp.id ? null : sp.id))}
                   className="ps-material-tree-add-decant-link"
                 >
                   + {t('materialTreePanel.addDecantFluid')} {openDecantMenuFor === sp.id ? '▴' : '▾'}
@@ -885,7 +892,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
 
       {isOrchestrationMode ? (
         <div
-          onClick={onAddSpecimen}
+          {...pressable(onAddSpecimen)}
           className="ps-material-tree-add-specimen-link"
         >
           + {t('materialTreePanel.addSpecimen')}
@@ -904,7 +911,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
           multi-specimen concept. */}
       {specimens.length >= 2 && (
         <div
-          onClick={onCreateBiopsyArray}
+          {...pressable(onCreateBiopsyArray)}
           className="ps-material-tree-add-array-link"
         >
           + {t('materialTreePanel.createBiopsyArray')}

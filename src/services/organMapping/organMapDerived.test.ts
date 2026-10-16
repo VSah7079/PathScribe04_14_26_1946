@@ -136,7 +136,7 @@ describe('Batch 466d (Pete): margins per component — the invasive carcinoma ap
     ]) as never };
     expect(derivedMarginState(breast, 'invasive')).toEqual({ status: 'notInvolved', involved: [] });
     expect(derivedMarginState(breast, 'precursor')).toEqual({ status: 'involved', involved: ['superior'] });
-    const oral = (dysplasia?: string) => ({ mapType: 'oralCavity' as const, meta: dysplasia ? { dysplasia } : {}, sectors: [{ id: 'mPeripheral', category: 'marginClear' }, { id: 'mDeep', category: 'marginClear' }] as never });
+    const oral = (dysplasia?: string) => ({ mapType: 'oralCavity' as const, meta: (dysplasia ? { dysplasia } : {}) as Record<string, string>, sectors: [{ id: 'mPeripheral', category: 'marginClear' }, { id: 'mDeep', category: 'marginClear' }] as never });
     expect([derivedMarginState(oral('highGrade'), 'invasive').status, derivedMarginState(oral('highGrade'), 'precursor')]).toEqual(['notInvolved', { status: 'involved', involved: ['peripheral'] }]);
     expect(derivedMarginState(oral('absent'), 'precursor')).toEqual({ status: 'notInvolved', involved: [] });
     // Batch 466e (Pete): low-grade dysplasia at the mucosal margin counts as not involved; only high-grade involves it.

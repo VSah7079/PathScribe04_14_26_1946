@@ -12,6 +12,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import '../../pathscribe.css';
 import { equipmentService, equipmentLogService } from '@/services';
 import type { Equipment, EquipmentLogEntry } from '@/services';
@@ -26,6 +27,11 @@ import EquipmentLogModal from '@/components/Config/System/EquipmentLogModal';
 
 const EquipmentServiceLogPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('equipmentServiceLog.pageTitle'), '/batch-management/equipment-log'); }, [pushCrumb, t]);
   const { config } = useSystemConfig();
   const { user } = useAuth();
   const today = getFacilityIsoDate(new Date(), config.facilityTimezone);

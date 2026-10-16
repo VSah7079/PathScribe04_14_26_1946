@@ -18,7 +18,8 @@ import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { IQaSupervisionAssignmentService } from './IQaSupervisionAssignmentService';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
-import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { CONFIG_NOT_PERMITTED, permitConfigChange, notifyConfigWritten } from '../authorization/guardConfigWrites';
+import { computeFppeProgress } from '@/services/cases/fppeEndCondition';
 
 const STORAGE_KEY = 'qa_supervision_assignments';
 
@@ -95,16 +96,11 @@ const persist = (data: QaSupervisionAssignment[]) => storageSet(STORAGE_KEY, dat
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
 const err = <T>(message: string): ServiceResult<T> => ({ ok: false, error: message });
 
-/** Real end-condition check — carried forward unchanged from
- *  mockFppeAssignmentService.ts. 'either' means whichever threshold is
- *  hit first, matching the most common real supervision policy shape. */
+/** End condition met? 'either' means whichever threshold is hit first.
+ *  Batch 515 (PS-124): the same computeFppeProgress the screens use, so the
+ *  enforcement and the progress display can't disagree. */
 function endConditionMet(a: QaSupervisionAssignment): boolean {
-  const daysSinceStart = (Date.now() - new Date(a.startedAt).getTime()) / 86400000;
-  switch (a.endCondition.type) {
-    case 'case_count':    return a.casesReviewedCount >= a.endCondition.threshold;
-    case 'duration_days': return daysSinceStart >= a.endCondition.threshold;
-    case 'either':        return a.casesReviewedCount >= a.endCondition.caseCountThreshold || daysSinceStart >= a.endCondition.durationDaysThreshold;
-  }
+  return computeFppeProgress(a).met;
 }
 function completionReason(a: QaSupervisionAssignment): 'case_count_met' | 'duration_met' {
   if (a.endCondition.type === 'case_count') return 'case_count_met';
@@ -175,7 +171,54 @@ const qaSupervisionAssignmentServiceUnchecked: IQaSupervisionAssignmentService =
   },
 };
 
-/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
-export const mockQaSupervisionAssignmentService: IQaSupervisionAssignmentService = guardConfigWrites(qaSupervisionAssignmentServiceUnchecked, [
-  ['config:cytotech-competency:manage', ['create', 'graduate']],
-]);
+// ── Permission per activity type (Batch 515, PS-124) ────────────────────────
+// Each supervision activity has its own Configuration permission: FPPE needs
+// config:fppe:manage, cytotech competency config:cytotech-competency:manage.
+// Before, this service checked only the cytotech permission for every
+// activity, so the FPPE screen's copy of each assignment here was refused for
+// anyone with FPPE rights alone (the refusal was swallowed by the
+// fire-and-forget shadow write). An activity type with no permission of its
+// own is refused.
+const enforce = async (capability: string) => {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  return authorizationService.enforce(capability);
+};
+function enforceForActivity(activityTypeId: string): Promise<{ allowed: boolean }> | null {
+  if (activityTypeId === FPPE_ACTIVITY_TYPE_ID) return enforce('config:fppe:manage');
+  if (activityTypeId === CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID) return enforce('config:cytotech-competency:manage');
+  return null;
+}
+const CAPABILITY_FOR_ACTIVITY: Record<string, string> = {
+  [FPPE_ACTIVITY_TYPE_ID]: 'config:fppe:manage',
+  [CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID]: 'config:cytotech-competency:manage',
+};
+
+/** Checks the activity's permission; tells the Configuration page on a refusal. */
+async function permitFor(activityTypeId: string): Promise<boolean> {
+  const decision = enforceForActivity(activityTypeId);
+  const capability = CAPABILITY_FOR_ACTIVITY[activityTypeId];
+  if (!decision || !capability) return false;
+  return permitConfigChange(decision, capability);
+}
+
+export const mockQaSupervisionAssignmentService: IQaSupervisionAssignmentService = {
+  getAll: () => qaSupervisionAssignmentServiceUnchecked.getAll(),
+  getActiveAssignmentForUser: (activityTypeId, userId, subspecialtyId) =>
+    qaSupervisionAssignmentServiceUnchecked.getActiveAssignmentForUser(activityTypeId, userId, subspecialtyId),
+  // A case review counted at sign-out is the system's bookkeeping, not a configuration change.
+  recordCaseReviewed: (assignmentId) => qaSupervisionAssignmentServiceUnchecked.recordCaseReviewed(assignmentId),
+  async create(input) {
+    if (!(await permitFor(input.activityTypeId))) return err(CONFIG_NOT_PERMITTED);
+    const result = await qaSupervisionAssignmentServiceUnchecked.create(input);
+    if (result.ok) notifyConfigWritten();
+    return result;
+  },
+  async graduate(assignmentId) {
+    const existing = load().find(a => a.id === assignmentId);
+    if (!existing) return err(`Supervision assignment ${assignmentId} not found`);
+    if (!(await permitFor(existing.activityTypeId))) return err(CONFIG_NOT_PERMITTED);
+    const result = await qaSupervisionAssignmentServiceUnchecked.graduate(assignmentId);
+    if (result.ok) notifyConfigWritten();
+    return result;
+  },
+};

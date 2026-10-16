@@ -17,10 +17,13 @@ export function buildRequisitionLabelData(
   now: () => string = () => new Date().toISOString(),
 ): RequisitionLabelData {
   return {
-    fullAccession: caseData.accession.fullAccession,
+    // Same fallback the scan resolver matches on (resolveMaterialFromScan.ts);
+    // the label renderers call string methods on these, so never undefined.
+    fullAccession: caseData.accession.fullAccession ?? caseData.id,
     patientName: `${caseData.patient.givenNames} ${caseData.patient.familyNames}`.trim(),
-    dateOfBirth: caseData.patient.dateOfBirth,
-    mrn: caseData.patient.mrn,
+    // '' reads as "not recorded" in every label renderer, as undefined did.
+    dateOfBirth: caseData.patient.dateOfBirth ?? '',
+    mrn: caseData.patient.mrn ?? '',
     requestingProvider: caseData.order.requestingProvider,
     // Real, honest fallback — a case can genuinely have no real facility
     // record resolved (e.g. a downtime/placeholder accession); never

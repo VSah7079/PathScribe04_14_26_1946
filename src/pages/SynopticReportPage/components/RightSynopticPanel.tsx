@@ -2,6 +2,7 @@
 // Schema-driven synoptic field renderer — dark navy theme.
 
 import React, { useImperativeHandle, forwardRef, useState, useEffect, useCallback, useRef } from 'react';
+import { nodeCountBelowSum, textNodeCountExceeds, textNodeCountProblem } from '@/services/templates/nodeCountText';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { Case, PendingReevaluation, SynopticReportInstance } from '@/types/case/Case';
@@ -20,9 +21,9 @@ import { mustHaveFields, type MustHaveFields } from '@/services/templates/aiSynt
 import { getTemplateCached, listTemplatesCached } from '@/services/templates/templateService';
 import { filterAutopsyTemplateToActiveSections } from '@/services/autopsy/filterAutopsyTemplateToActiveSections';
 import { calculateAutopsyBodyMassIndex } from '@/services/autopsy/calculateAutopsyBodyMassIndex';
-import { generateAiSuggestionsForReport, saveReportSuggestions, recordAiFeedback } from '@/services/cases/mockCaseService';
+
 import { resolveEmbeddedCodesForAnswer, appendEmbeddedCodesToSpecimen } from '../resolveEmbeddedCoding';
-import { aiBehaviorService } from '@/services';
+import { aiBehaviorService, generateAiSuggestionsForReport, saveReportSuggestions, recordAiFeedback } from '@/services';
 import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { matchSourceText } from '@/utils/sourceTextMatching';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
@@ -38,6 +39,8 @@ import {
   clearSynopticFieldAnswers, computedSumPatch, partGridCellHasProblem, partGridCountProblems, partGridKey, partGridRowHeading, sumFieldState, sumOfTotal, wholeNumberFieldProblem, fieldExceedsProblem, partGridRowsForField, partGridRowsOf, synopticFieldAnswered, synopticFieldComplete, synopticFieldMissing, type PartGridColumn, type PartGridRow,
 } from '@/services/templates/partGrid';
 import { shownSynopticFields } from '@/services/templates/synopticEntryChecks';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 
 
@@ -115,6 +118,8 @@ interface FieldRowProps {
   molecular?: { assayName: string; orderId: string; delta?: { resultLabel: string; onAccept: () => void } };
   /** Batch 466b: this count is above the question it can't exceed (the two values). */
   exceeds?: { value: number; limit: number };
+  /** Batch 519 (PS-494): this total is below the sum of the counts it covers. */
+  belowSum?: { value: number; sum: number };
 }
 
 /** Batch 461: the results grid (one row per part of the case). Each cell is an ordinary answer. */
@@ -180,11 +185,12 @@ const FieldRow: React.FC<FieldRowProps> = ({
   isActive = false, aiAttempted = false,
   belowThreshold = false, belowThresholdConf, belowThresholdSource,
   isPulsing = false, fieldRef, onFieldFocus, sourceNotFound = false, reevaluation, onReevaluation,
-  answers, gridRows, mohs, sumTotal, derivedFromMap = false, exceeds, molecular,
+  answers, gridRows, mohs, sumTotal, derivedFromMap = false, exceeds, belowSum, molecular,
 }) => {
   const { t } = useTranslation();
   const sumState = sumFieldState(field, sumTotal);
   const notWhole = wholeNumberFieldProblem(field as never, { [field.id]: value as string });
+  const notCount = textNodeCountProblem(field as never, { [field.id]: value as string });
   const strVal = (value ?? '') as string;
   const arrVal = Array.isArray(value) ? value as string[] : [];
   const ai = aiSuggestion;
@@ -231,7 +237,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
     >
       {/* Field header */}
       <div
-        onClick={handleActivate}
+        {...pressable(handleActivate, { role: null })}
         className="ps-syn-field-header"
       >
         <span
@@ -322,13 +328,25 @@ const FieldRow: React.FC<FieldRowProps> = ({
 
       {/* Input controls */}
       {field.type === 'text' && (
-        <input type="text" value={strVal} onChange={e => onChange(field.id, e.target.value)} className="ps-syn-input" />
+        <input aria-label={field.label} type="text" value={strVal} onChange={e => onChange(field.id, e.target.value)}
+          aria-invalid={notCount !== undefined || undefined}
+          className={`ps-syn-input${notCount !== undefined ? ' ps-syn-partgrid-input--problem' : ''}`} />
+      )}
+      {/* Batch 519 (PS-494): a free-text node count — a whole number, "cannot be determined" or "at least N". */}
+      {field.type === 'text' && notCount !== undefined && (
+        <p className="ps-syn-partgrid-problem" role="alert">{t('synopticChecks.notCountHint', { value: notCount })}</p>
+      )}
+      {field.type === 'text' && notCount === undefined && exceeds && (
+        <p className="ps-syn-partgrid-problem" role="alert">{t('synopticChecks.fieldExceedsHint', { value: exceeds.value, limitValue: exceeds.limit })}</p>
+      )}
+      {(field.type === 'text' || field.type === 'numeric') && belowSum && (
+        <p className="ps-syn-partgrid-problem" role="alert">{t('synopticChecks.belowSumHint', { value: belowSum.value, sum: belowSum.sum })}</p>
       )}
       {field.type === 'longtext' && (
         <SpellCheckedTextarea rows={3} value={strVal} onChange={e => onChange(field.id, e.target.value)} className="ps-syn-input ps-syn-input--textarea" />
       )}
       {field.type === 'numeric' && (
-        <input
+        <input aria-label={field.label}
           type="number"
           value={strVal}
           onChange={e => onChange(field.id, e.target.value)}
@@ -660,11 +678,16 @@ interface RightSynopticPanelProps {
   /** PS-329 (Batch 437): the template's Must Have fields for the answers so
    *  far, so the report header's AI badge counts only those. */
   onMustHaveFieldsUpdate?: (fields: MustHaveFields | null) => void;
+  /**
+   * Batch 577 (review): changes when the page takes up someone else's saved version (Show their changes, Use
+   * their version), so the form reads its answers from the case again instead of keeping the ones it holds.
+   */
+  reloadKey?: number;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPanelProps>(
-  ({ caseData: initialCaseData, activeReportInstanceId, activeReportType = 'synoptic', activeSpecimenId, onReportInstanceChange, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate, onMustHaveFieldsUpdate }, ref) => {
+  ({ caseData: initialCaseData, reloadKey = 0, activeReportInstanceId, activeReportType = 'synoptic', activeSpecimenId, onReportInstanceChange, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate, onMustHaveFieldsUpdate }, ref) => {
   const { t } = useTranslation();
 
   // Real fix, found via a direct audit: same as HeaderBar.tsx — this
@@ -999,7 +1022,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       if (caseData && activeReportInstanceId) saveReportSuggestions(caseData.id, activeReportInstanceId, finalSuggestions);
       return { answers, aiSuggestions: finalSuggestions, verificationSummary: { explicitConfirmed, overridden, missed, notFound, leftUnverified } };
     },
-  }), [aiSuggestions, answers, templateDetail, caseData, activeReportInstanceId, confidenceThreshold, getActiveReports, user?.id]);
+  }), [aiSuggestions, answers, templateDetail, caseData, activeReportInstanceId, confidenceThreshold, getActiveReports, user?.id, t]);
 
   // ── Scroll to missing field ───────────────────────────────────────────────
   // `scrollToField` historically only worked as a truthy TRIGGER, not an
@@ -1092,8 +1115,14 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   }, [initialCaseData?.id, caseData]);
 
   // ── Load active report + template ─────────────────────────────────────────
+  // Batch 579: a re-read for the same report (the page took up someone else's version, `reloadKey`) keeps the
+  // section open if the template still has it; opening another report starts at its first section as before.
+  const loadedForRef = useRef<{ reportKey: string; reloadKey: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
+    const reportKey = `${initialCaseData?.id ?? ''}|${activeReportType}|${activeReportInstanceId ?? ''}`;
+    const isReRead = loadedForRef.current?.reportKey === reportKey && loadedForRef.current.reloadKey !== reloadKey;
+    loadedForRef.current = { reportKey, reloadKey };
     (async () => {
       if (!caseData) { setLoading(false); return; }
       setLoading(true); setError(null);
@@ -1152,7 +1181,10 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           });
 
           setTemplateDetail(detail);
-          if (detail.template.sections.length > 0) setActiveSectionId(detail.template.sections[0].id);
+          if (detail.template.sections.length > 0) {
+            const first = detail.template.sections[0].id;
+            setActiveSectionId(prev => (isReRead && detail.template.sections.some(sec => sec.id === prev) ? prev : first));
+          }
         } else {
           if (cancelled) return;
           updateAiSuggestions({});
@@ -1167,7 +1199,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       }
     })();
     return () => { cancelled = true; };
-  }, [initialCaseData?.id, initialCaseData?.synopticTemplateId, initialCaseData?.synopticReports?.length, (initialCaseData as any)?.grossingReports?.length, activeReportInstanceId, activeReportType]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialCaseData?.id, initialCaseData?.synopticTemplateId, initialCaseData?.synopticReports?.length, (initialCaseData as any)?.grossingReports?.length, activeReportInstanceId, activeReportType, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── setAnswer ─────────────────────────────────────────────────────────────
   // ── Regenerate AI suggestions from the current Gross description ──────────
@@ -1186,7 +1218,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     setIsRegenerating(true);
     try {
       const allFields = templateDetail.template.sections.flatMap((s: EditorSection) => s.fields);
-      const { generateAiSuggestionsForReport } = await import('@/services/cases/mockCaseService');
+      const { generateAiSuggestionsForReport } = await import('@/services');
       const suggestions = await generateAiSuggestionsForReport(
         caseData, inst.templateId, allFields, computationalResults
       );
@@ -1419,9 +1451,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
 
   // ── Early returns ─────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="ps-syn-loading">
-      {t('rightSynopticPanel.loading')}
-    </div>
+    <LoadingState label={t('rightSynopticPanel.loading')} />
   );
   if (error) return <div className="ps-syn-error">{error}</div>;
   if (!caseData) return <div className="ps-syn-empty-case">{t('rightSynopticPanel.noCaseLoaded')}</div>;
@@ -1542,7 +1572,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               gridRows={f.type === 'partGrid' ? partGridRowsForField(f as never, gridRows) : undefined}
               derivedFromMap={derivedIds.includes(f.id)}
               molecular={molecularFieldState(f.id)}
-              exceeds={fieldExceedsProblem(f as never, answers)}
+              exceeds={fieldExceedsProblem(f as never, answers) ?? textNodeCountExceeds(f as never, answers)}
+              belowSum={nodeCountBelowSum(f as never, answers)}
               sumTotal={f.sumOf ? sumOfTotal(f as never, template.sections.flatMap((s: EditorSection) => s.fields) as never, answers, gridRows) : undefined}
               // Previously: `aboveThreshold ? sug : undefined` — stripped
               // the suggestion entirely for low-confidence fields, which

@@ -15,16 +15,20 @@
 // it supplements.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { revisionAllowedNow, REVISION_IN_RELEASE_DELAY } from '../reportRelease/revisionDuringDelay';
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
-import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
+import { publishCytologyRevision } from './publishCytologyRevision';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
 import { resolvePerformingLabFacility } from './resolveCytologyReportLanguage';
 import { resolveReportLanguage } from '../reports/reportLanguage';
 import { reportLocaleOf } from './resolveCytologyReportLanguage';
 
 export interface ReleaseCytologyAddendumResult {
   ok: boolean;
+  /** Batch 540: refused, the case report is still in its release delay (recall it instead). */
+  inReleaseDelay?: boolean;
+  /** Batch 532: whether the case report was reissued (false while the case is still open: it goes out at release). */
+  published?: boolean;
   signOutRecordId?: string;
   error?: string;
   /** Batch 390: the user lacks cytology:report:addend. */
@@ -43,12 +47,16 @@ export async function releaseCytologyAddendum(
   reason: string,
   facilityId?: string,
   generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
+  /** Batch 534: the registry submission that goes out with the reissued report (when the case is released). */
+  registry?: { isGynCytology: boolean; categories: import('./ICytologyCategoryService').CytologyCategoryEntry[] },
 ): Promise<ReleaseCytologyAddendumResult> {
   // Batch 390 (PS-340): an addendum needs its own permission, some text and a reason.
   const decision = await authorizationService.enforce('cytology:report:addend', { caseId });
   if (!decision.allowed) return { ok: false, notPermitted: true, error: 'Adding an addendum to a signed-out cytology report needs the cytology:report:addend permission.' };
   const revisionReason = (reason ?? '').trim();
   if (revisionReason === '') return { ok: false, reasonMissing: true, error: 'A reason for the addendum is required.' };
+  // Batch 540 (Pete): not while the case report is still in its release delay; it is recalled instead.
+  if (!(await revisionAllowedNow(caseId))) return { ok: false, inReleaseDelay: true, error: REVISION_IN_RELEASE_DELAY };
   const text = (addendumText ?? '').trim();
   if (text === '') return { ok: false, textMissing: true, error: 'The addendum text is required.' };
 
@@ -103,17 +111,17 @@ export async function releaseCytologyAddendum(
   if (!createRes.ok) return { ok: false, error: 'Could not create the addendum sign-out record.' };
   const newRecord = createRes.data;
 
-  await publishReportReleasedEvent({
+  // Batch 532 (Pete, Oct 12): the whole case report is reissued, once the case has been released.
+  const published = await publishCytologyRevision({
     caseId,
     instanceId: newRecord.id,
     reportType: 'ADDENDUM',
-    source: 'CYTOLOGY',
     releasedAt: signedAtIso,
     releasedBy: { id: addingUser.id, name: addingUser.name },
     performingFacilityId: facilityId,
-    // Batch 390: the addendum's own PDF, unless the caller supplies one.
-    generatePdf: generatePdf ?? (() => generateCytologyReportPdfSnapshot(newRecord.reportContent ?? reportContent)),
+    ...(generatePdf ? { generatePdf } : {}),
+    ...(registry ? { registry } : {}),
   });
 
-  return { ok: true, signOutRecordId: newRecord.id };
+  return { ok: true, signOutRecordId: newRecord.id, published };
 }

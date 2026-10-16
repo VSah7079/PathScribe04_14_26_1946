@@ -180,3 +180,8 @@ function localeToJurisdiction(locale?: string): Jurisdiction | null {
     .find(([, v]) => v.locale === locale);
   return entry?.[0] ?? null;
 }
+
+/** Batch 574: an hour of the day (0–23) as the user's locale writes a time ("6:00 AM", "06:00"); no time zone involved. */
+export function formatHourOfDay(hour: number, locale?: string): string {
+  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 0, 1, hour)));
+}

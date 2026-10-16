@@ -16,18 +16,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockAssistPollingService, MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES } from '@/services/assistPolling/mockAssistPollingService';
+
 import { runAssistPollNow, ingestLisMessageNow, retryFailedLisEventsNow } from '@/services/assistPolling/assistPollingRuntime';
 import { isConfigRefusal } from '@/services/authorization/guardConfigWrites';
 import { assistSettingsChanged, summarizeRun } from '@/services/assistPolling/assistMilestoneRules';
 import { ASSIST_MILESTONES, type AssistMilestone, type AssistPollingSettings, type AssistPollingState, type AssistPollRun } from '@/services/assistPolling/types';
-import { mockLisStagingQueueService } from '@/services/lisIngestion/mockLisStagingQueueService';
+
 import { recentEvents, countByState } from '@/services/lisIngestion/stagingRules';
 import { isAdapterError, type StagedLisEvent } from '@/services/lisIngestion/types';
 import { EXAMPLE_HL7_STATUS_MESSAGE } from '@/services/lisIngestion/adapters/hl7v2StatusAdapter';
 import { EXAMPLE_WEBHOOK_BODY } from '@/services/lisIngestion/adapters/webhookJsonAdapter';
 import { useConfigDirtyGuard } from '../configDirtyGuardContext';
 import { formatDateTime } from '@/utils/formatDate';
+import { assistPollingService, MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES, lisStagingQueueService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 type PushKind = 'hl7v2' | 'webhook';
 const EXAMPLES: Record<PushKind, string> = { hl7v2: EXAMPLE_HL7_STATUS_MESSAGE, webhook: EXAMPLE_WEBHOOK_BODY };
@@ -47,7 +49,7 @@ const AssistLisPollingSection: React.FC = () => {
   const [pushResult, setPushResult] = useState<AssistPollRun | null>(null);
 
   const load = useCallback(async () => {
-    const [s, q] = await Promise.all([mockAssistPollingService.getState(), mockLisStagingQueueService.load()]);
+    const [s, q] = await Promise.all([assistPollingService.getState(), lisStagingQueueService.load()]);
     setState(s);
     setDraft(s.settings);
     setQueue(q);
@@ -58,14 +60,14 @@ const AssistLisPollingSection: React.FC = () => {
   useEffect(() => { setDirty(changed); }, [changed, setDirty]);
   useEffect(() => () => setDirty(false), [setDirty]);
 
-  if (!state || !draft) return <div className="ps-conf-loading">{t('assistLisPolling.loading')}</div>;
+  if (!state || !draft) return <LoadingState label={t('assistLisPolling.loading')} />;
 
   const set = <K extends keyof AssistPollingSettings>(k: K, v: AssistPollingSettings[K]) => { setDraft({ ...draft, [k]: v }); setSaved(false); };
   const setRow = (i: number, patch: Partial<AssistPollingSettings['statusCrosswalk'][number]>) =>
     set('statusCrosswalk', draft.statusCrosswalk.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const handleSave = async () => {
-    const res = await mockAssistPollingService.saveSettings(draft);
+    const res = await assistPollingService.saveSettings(draft);
     if (res.ok === false) { setErrorCode(res.error); return; }
     setErrorCode(null);
     setSaved(true);

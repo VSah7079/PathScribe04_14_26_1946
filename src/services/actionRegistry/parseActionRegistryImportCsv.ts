@@ -18,6 +18,7 @@
 // summary from `outcomes`.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { parseCsvRows } from '@/utils/csv';
 import type { SystemAction } from './IActionRegistryService';
 
 export type ActionImportRowOutcome =
@@ -74,15 +75,17 @@ export function parseActionRegistryImportCsv(content: string, actions: SystemAct
     const excelRow = index + 1;
     if (line.startsWith('#') || line.toLowerCase().includes('(do not alter)')) return;
 
-    const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+    // Batch 543: parsed as CSV (quoted fields, "" inside them, and the apostrophe the export adds
+    // before a formula-like cell), the same way the export writes it.
+    const parts = parseCsvRows(line)[0] ?? [];
     if (parts.length < 5) return;
 
-    const id = parts[0].replace(/["\s]/g, '');
-    const label = parts[1].replace(/"/g, '').trim();
-    const category = parts[2].replace(/"/g, '').trim();
-    const shortcut = parts[3].replace(/"/g, '').trim().toLowerCase();
+    const id = parts[0].replace(/\s/g, '');
+    const label = parts[1].trim();
+    const category = parts[2].trim();
+    const shortcut = parts[3].trim().toLowerCase();
     const triggersRaw = parts[4] || '';
-    const voiceTriggers = triggersRaw.replace(/"/g, '').split(';').map(trig => trig.trim()).filter(trig => trig !== '');
+    const voiceTriggers = triggersRaw.split(';').map(trig => trig.trim()).filter(trig => trig !== '');
 
     const original = actions.find(a => a.id === id);
 

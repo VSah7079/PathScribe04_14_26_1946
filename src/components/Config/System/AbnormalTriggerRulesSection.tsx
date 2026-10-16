@@ -20,6 +20,7 @@ import type { AbnormalTriggerRule, AbnormalSeverity } from '../../../services/ab
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import { saveAbnormalTriggerRule, toggleAbnormalTriggerRule } from '../../../services/abnormalDetection/abnormalTriggerRuleEditing';
 import { duplicateAbnormalTriggerRule } from '@/services/duplication/duplicateEntities';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const SEVERITIES: AbnormalSeverity[] = ['Abnormal', 'Critical', 'Malignant'];
 
@@ -97,7 +98,7 @@ const AbnormalTriggerRulesSection: React.FC = () => {
 
   const severityBadgeClass = (s: AbnormalSeverity) => s === 'Malignant' ? 'ps-defic-status-badge--inactive' : s === 'Critical' ? 'ps-defic-status-badge--inactive' : 'ps-defic-status-badge--active';
 
-  if (loading) return <div className="ps-defic-loading">{t('abnormalTriggerRulesSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('abnormalTriggerRulesSection.loading')} />;
 
   return (
     <div className="ps-defic-section">
@@ -135,7 +136,7 @@ const AbnormalTriggerRulesSection: React.FC = () => {
 
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('abnormalTriggerRulesSection.labFilter.all')}</option>
             <option value="Global">{t('abnormalTriggerRulesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -196,33 +197,33 @@ const AbnormalTriggerRulesSection: React.FC = () => {
             <div className="ps-ms-header">{modal.mode === 'add' ? t('abnormalTriggerRulesSection.modal.addTitle') : t('abnormalTriggerRulesSection.modal.editTitle')}</div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.fieldLabelLabel')}</label>
-              <input className="ps-ms-input" value={draft.fieldLabel} onChange={e => setDraft(d => ({ ...d, fieldLabel: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.fieldLabelPlaceholder')} />
+              <input aria-label={t('abnormalTriggerRulesSection.modal.fieldLabelLabel')} className="ps-ms-input" value={draft.fieldLabel} onChange={e => setDraft(d => ({ ...d, fieldLabel: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.fieldLabelPlaceholder')} />
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.triggerValuesLabel')}</label>
-              <input className="ps-ms-input" value={draft.triggerValues} onChange={e => setDraft(d => ({ ...d, triggerValues: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.triggerValuesPlaceholder')} />
+              <input aria-label={t('abnormalTriggerRulesSection.modal.triggerValuesLabel')} className="ps-ms-input" value={draft.triggerValues} onChange={e => setDraft(d => ({ ...d, triggerValues: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.triggerValuesPlaceholder')} />
               {fieldError && <span className="ps-conf-error-text">{fieldError}</span>}
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.severityLabel')}</label>
-              <select className="ps-ms-select" value={draft.severity} onChange={e => setDraft(d => ({ ...d, severity: e.target.value as AbnormalSeverity }))}>
+              <select aria-label={t('abnormalTriggerRulesSection.modal.severityLabel')} className="ps-ms-select" value={draft.severity} onChange={e => setDraft(d => ({ ...d, severity: e.target.value as AbnormalSeverity }))}>
                 {SEVERITIES.map(s => <option key={s} value={s}>{t(SEVERITY_LABEL_KEY[s])}</option>)}
               </select>
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.descriptionLabel')}</label>
-              <textarea className="ps-ms-textarea" value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.descriptionPlaceholder')} />
+              <textarea aria-label={t('abnormalTriggerRulesSection.modal.descriptionLabel')} className="ps-ms-textarea" value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.descriptionPlaceholder')} />
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.performingLabLabel')}</label>
-              <select className="ps-ms-select" value={draft.performingLabFacilityId} onChange={e => setDraft(d => ({ ...d, performingLabFacilityId: e.target.value }))}>
+              <select aria-label={t('abnormalTriggerRulesSection.modal.performingLabLabel')} className="ps-ms-select" value={draft.performingLabFacilityId} onChange={e => setDraft(d => ({ ...d, performingLabFacilityId: e.target.value }))}>
                 <option value="">{t('abnormalTriggerRulesSection.modal.globalOption')}</option>
                 {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.statusLabel')}</label>
-              <select className="ps-ms-select" value={draft.active ? 'active' : 'inactive'} onChange={e => setDraft(d => ({ ...d, active: e.target.value === 'active' }))}>
+              <select aria-label={t('abnormalTriggerRulesSection.modal.statusLabel')} className="ps-ms-select" value={draft.active ? 'active' : 'inactive'} onChange={e => setDraft(d => ({ ...d, active: e.target.value === 'active' }))}>
                 <option value="active">{t('common.active')}</option>
                 <option value="inactive">{t('common.inactive')}</option>
               </select>

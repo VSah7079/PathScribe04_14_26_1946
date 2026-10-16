@@ -93,7 +93,7 @@ function getSectionStatus(s: OrchestratorSection): SectionStatus {
 // label-key indirection used for other computed display statuses in
 // this sweep, resolved with t() wherever STATUS_META is read.
 const STATUS_META: Record<SectionStatus, { color: string; titleKey: string; icon: string }> = {
-  'empty':           { color: '#475569', titleKey: 'orchestratorSectionEditor.status.empty',        icon: '○' },
+  'empty':           { color: '#8794a8', titleKey: 'orchestratorSectionEditor.status.empty',        icon: '○' },
   'ai-generated':    { color: '#0891b2', titleKey: 'orchestratorSectionEditor.status.aiGenerated',   icon: '◉' },
   // Matches RightSynopticPanel's field-level convention exactly: once
   // accepted, the badge still names the AI's involvement explicitly
@@ -409,7 +409,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
     if (!selectedText) return;
     setQuickTextTrigger('');
     setQuickTextDraft({ sectionId: section.id, selectedText });
-  }, []);
+  }, [t]);
 
   const handleConfirmSaveAsQuickText = useCallback(async () => {
     if (!quickTextDraft || !quickTextTrigger.trim()) return;
@@ -835,7 +835,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
               {getSessionUser()?.firstName ?? t('orchestratorSectionEditor.quickText.youFallback')} {getSessionUser()?.lastName ?? ''} · {casePerformingLabName ?? (casePerformingLabFacilityId ? casePerformingLabFacilityId : t('orchestratorSectionEditor.quickText.noFacilityResolved'))}
             </div>
             <label className="ps-conf-label">{t('orchestratorSectionEditor.quickText.voiceTriggerLabel')}</label>
-            <input
+            <input aria-label={t('orchestratorSectionEditor.quickText.voiceTriggerLabel')}
               autoFocus
               className="ps-conf-input"
               value={quickTextTrigger}

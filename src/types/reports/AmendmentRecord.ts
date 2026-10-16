@@ -124,6 +124,9 @@ export interface AmendmentRecord {
 
   authoringPathologist: { userId: string; userName: string };
   status: 'draft' | 'released';
+  /** Batch 535: each time a release was recalled within the release delay
+   *  (nothing was sent; the record went back to draft), oldest first. */
+  recalls?: { at: string; by: { userId: string; userName: string }; releasedAt?: string }[];
   /** Whether this record originated from an LIS-side amendment notice, rather than the pathologist independently amending. */
   triggeredByLisNotice?: boolean;
 

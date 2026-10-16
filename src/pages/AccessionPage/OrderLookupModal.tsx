@@ -27,6 +27,7 @@ import type { MasterPatientRecord } from '@/services/patients/IPatientIndexServi
 import type { JurisdictionDateFormat } from '@/types/systemConfig';
 import { isoDateForSearch, dobIncludesQuery } from '@/utils/isoDateForSearch';
 import { normalizeIdForSearch } from '@/utils/normalizeIdForSearch';
+import { pressable } from '@/utils/a11y/pressable';
 
 interface Props {
   isOpen: boolean;
@@ -154,7 +155,7 @@ export const OrderLookupModal: React.FC<Props> = ({
                     <div>{t('accessionPage.orderLookupModal.gridOrderNumber')}</div><div>{t('accessionPage.orderLookupModal.gridPatient')}</div><div>{t('accessionPage.orderLookupModal.gridMrn')}</div><div>{t('accessionPage.orderLookupModal.gridDob', { format: dobFormatHint })}</div><div>{t('accessionPage.orderLookupModal.gridFacility')}</div>
                   </div>
                   {orderMatches.map(o => (
-                    <div key={o.id} className="ps-order-lookup-grid-row" onClick={() => onSelectOrder(o.id)}>
+                    <div key={o.id} className="ps-order-lookup-grid-row" {...pressable(() => onSelectOrder(o.id))}>
                       <div><strong>{o.externalOrderNumber}</strong></div>
                       <div data-phi="name">{o.patient.firstName} {o.patient.lastName}</div>
                       <div data-phi="mrn">{o.patient.mrn || '—'}</div>
@@ -178,7 +179,7 @@ export const OrderLookupModal: React.FC<Props> = ({
                     <div>{t('accessionPage.orderLookupModal.gridOrderNumber')}</div><div>{t('accessionPage.orderLookupModal.gridPatient')}</div><div>{t('accessionPage.orderLookupModal.gridMrn')}</div><div>{t('accessionPage.orderLookupModal.gridDob', { format: dobFormatHint })}</div><div>{t('accessionPage.orderLookupModal.gridFacility')}</div>
                   </div>
                   {patientResults.map(p => (
-                    <div key={p.id} className="ps-order-lookup-grid-row" onClick={() => onSelectPatient(p)}>
+                    <div key={p.id} className="ps-order-lookup-grid-row" {...pressable(() => onSelectPatient(p))}>
                       <div>—</div>
                       <div>{p.firstName} {p.lastName}{p.needsReview ? ' ⚠' : ''}</div>
                       <div data-phi="mrn">{p.mrn || '—'}</div>

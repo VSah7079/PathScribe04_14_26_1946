@@ -14,7 +14,6 @@ import { PostSignoutBillingChangeModal } from './PostSignoutBillingChangeModal';
 import { CorrectAppliedCodeModal } from './CorrectAppliedCodeModal';
 import type { useCaseBillingReview } from '@/hooks/useCaseBillingReview';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface Props {
   caseData: Case;

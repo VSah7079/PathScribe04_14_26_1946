@@ -27,7 +27,6 @@ import {
   type BillingApprovalItem, type UnitCoding,
 } from '@/services';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CaseBillingWriter {
   /** Saves one block's or decant's codes; `change` is applied to the codes as saved. Returns the new specimens. */

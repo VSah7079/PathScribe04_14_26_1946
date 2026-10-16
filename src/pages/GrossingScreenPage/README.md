@@ -55,6 +55,47 @@ A new **Margins & Ink Applications** section per specimen, below its block/decan
 
 **Deliberately not wired in this batch:** the severity engine's (`resolveInkingValidationSeverity.ts`) WARN_ONLY/STRICT_ENFORCE advisory display. It needs a real site id to read the site's `inking_validation_mode` from, and `Case` has no real link to a `Site` yet — the Organisation/Site admin UI is still unbuilt (see `services/grossing/README.md`'s own Batch 480 entry). Wiring that in is a later batch's own scope, once that link exists.
 
+## Batch 482 — Structured Inking, Module 3: severity display + ink-colour palette (PS-359 follow-up)
+
+The display deferred above, now wired in. `GrossingScreenPage.tsx`'s margin/ink forms:
+
+- Pick a colour from the active ink-colour palette (`services/inkColors/`) via a `<select>`, instead of free-text colour name/code inputs.
+- Show the severity engine's own real, current issues for each margin (`grossingScreen.margins.issues.*` — `margin_not_examined`/`margin_no_ink_applied` at severity 2, the new `margin_ink_color_unmapped` at severity 3) and a per-specimen notice naming the facility's own `inking_validation_mode` (`grossingScreen.margins.validationNotice.*`).
+
+Unblocked by re-scoping `inking_validation_mode` from Site to the real, current `Case.order.facilityId` (`services/grossing/inkingSiteSettings.ts`'s own header explains why) — Pete's own choice, via `AskUserQuestion`, over deferring the display again until the Organisation/Site admin UI exists.
+
+`hooks/useGrossingScreen.ts` gains `inkColors` (the active palette), `inkingValidationMode`, and `inkingValidation` (`resolveInkingValidationSeverity`'s real output, recomputed from the case's own current margins). **Display only** — doesn't change what blocks Complete grossing (`services/grossing/grossingCompletion.ts`); that's further, separate scope.
+
+## Batch 484 — Gate A wired for real (PS-519 follow-up)
+
+The "further, separate scope" above, now built: `handleCompleteGrossing` (`hooks/useGrossingScreen.ts`) runs `services/grossing/evaluateInkingGate.ts` before `completeGrossing` —
+
+- A Severity 3 issue, or an unreadable ink-colour palette, opens a new blocking modal (no bypass — `showInkingGateBlock`/`cancelInkingGateBlock`).
+- A Severity 2 issue (and nothing worse) opens a "Proceed with Advisory Note" confirmation (`showInkingAdvisoryConfirm`) instead of blocking; confirming logs an "Inking gate advisory acknowledged" audit entry, then completes grossing exactly as before.
+- Also resolves the facility's own jurisdiction (`facilityService.getById`, new effect) and tracks whether the ink-colour palette read actually succeeded (`inkColorsLoaded`/`inkPaletteAvailable`) — distinct from the pre-existing `inkColors` display state, which stays unchanged.
+
+Both new modals render in `GrossingScreenPage.tsx`, same `ps-overlay`/`ps-modal-dark`/`ps-batch-modal-*` shell as the existing `pendingProtocolConfirmation` modal.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+Click handlers check that the case is loaded before acting; one fixation test narrows its result. No visible change.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `useGrossingScreen` returns reason codes (`noCase`, `specimenNotFound`, `notPermitted`, …) that the screen translates. A refused margin-ink save shows a translated message chosen by reason.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 530 (Pete)
+
+`CaseClinicalHistoryBar` under the header: add or reconcile the coded clinical history while grossing.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

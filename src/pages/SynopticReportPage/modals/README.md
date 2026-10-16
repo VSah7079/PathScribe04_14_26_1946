@@ -1,6 +1,8 @@
 # pages/SynopticReportPage/modals/
 
-Every modal reachable from the case report page — 23 files, roughly grouped below by what they're for. All import `../../../pathscribe.css` directly rather than relying on a shared shell, per this codebase's established modal convention.
+Every modal reachable from the case report page — 35 files (33 modals plus `CassetteColorControl.tsx` and `ForeignIdFields.tsx`), roughly grouped below by what they're for. All but `FinalizeSynopticModal.tsx` (and the `ForeignIdFields.tsx` helper) import `../../../pathscribe.css` directly rather than relying on a shared shell, per this codebase's established modal convention.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the folder has 35 non-test files, not 23, and two of them don't import `pathscribe.css` themselves.*
 
 ## Case-level workflow
 
@@ -186,6 +188,69 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 
 `ManageReprintsModal.tsx` and `MaterialTrackingHistoryModal.tsx` use each slide's printed level. Before, a reprint after Microtomy reordered the slides printed another slide's barcode.
 
+## Batch 483 — new: SignatureHistoryModal.tsx (PS-359 tracker follow-up)
+
+`services/signatures/` has recorded every signature applied to a case since Batch 345 (who, what action, when, how confirmed) with no screen ever reading it back — its own README said so plainly. New **`SignatureHistoryModal.tsx`**: read-only, same shell and fetch pattern as `VersionHistoryModal.tsx` (a new "recorded signatures" chip in `HeaderBar.tsx`, re-fetched on load and whenever the modal opens). Shows each record's action, outcome, signer, confirmation method, SSO issuer (when used, never the ID token itself), and whether verification was done in-browser or by the server. Signer/attending names are staff names, not patient PHI (CLAUDE.md), so nothing here is tagged `data-phi`.
+
+## Batch 484 — new: InkingGateModal.tsx (Gate B, PS-519 follow-up)
+
+New **`InkingGateModal.tsx`**, mirroring `StainQcGateModal.tsx`'s own real, established shape (a hard block with real resolution paths, not a dismissible warning). Shown only when `hooks/checkInkingSignOutGate.ts` returns a real interruption:
+
+- **BLOCK** / **PALETTE_UNAVAILABLE**: the jurisdiction-specific regulatory blocking message (`signOutInkingGate.blockingMessage.<profile>`, `services/grossing/jurisdictionInkingGateMessages.ts`) plus the unresolved Severity 3 issue(s) — cancel only, no bypass.
+- **OVERRIDE_REQUIRED**: the same message, plus a reason dropdown (`FOREIGN_OBJECT_PRE_INKED`/`EMERGENCY_INTRAOP_CONSULTATION`/`SPECIMEN_CONSUMED_UNAVAILABLE`/`OTHER`, with optional free text for `OTHER`) and a "Record Administrative Override" button, which calls `services/grossing/recordInkingGateOverride.ts` directly (real `authorizationService.enforce('case:inking-gate:override')` + audit, same as every other real action this modal layer calls straight from a button handler).
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 495 — print permission and revision header (PS-283)
+
+- `CopilotReportViewModal.tsx`: Print calls `beginReportPrint()` before planning the print (refused: nothing prints, nothing is recorded); the button is a `report:case-report:print` `CapabilityButton`. The printed header now carries a revision line (amended/addendum/corrected, original sign-out date vs latest revision date) from `useReportRevisionStatus`, styled both on screen (`.ps-copilot-report-revision`) and in the print window's own stylesheet.
+- `VersionHistoryModal.tsx`: opening a stored version's PDF is checked the same way (new optional `facilityId` prop); a refusal shows `reportPrint.notPermitted` and opens nothing.
+- `printOutputAudit.test.tsx`: grants the permission for its audit-entry tests, waits for the now-async prints, and adds two refusal tests (preview window, version history).
+
+## Batch 497
+
+`printOutputAudit.test.tsx`: the preview-window tests are removed with the window; a refusal test for the CoPilot report view's Print replaces the preview one, so each remaining print path keeps its refusal check.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 512
+
+`SpecimenEditModal`: the LIS sync state on save comes from `services/specimens/resolveSpecimenLisSyncState.ts`. That fixes ordinary LIS specimens never being flagged "Pending sync" after an edit.
+
+## Batch 517 — critical findings by secure email (PS-143)
+
+`CriticalFindingsModal`:
+- **Opening the email.** Choosing "Secure email" and pressing "Write the secure email…" opens the shared secure message window. The window is pre-filled with the case and the findings (`services/clinical/criticalFindingEmail.ts`) and marked as carrying patient data, so only a gateway with its BAA or data processing agreement in force can send it.
+- **Recording.** The notification is recorded once the email is sent. Closing the window without sending records nothing.
+- **Read-back.** It is hidden for email, with a note explaining why.
+- **New props:** `caseReference` and `senderEmail`.
+
+Tests: 2 new cases in `CriticalFindingsModal.test.tsx`.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 538
+
+`VersionHistoryModal.tsx`: a **Released documents** section lists the case's released report documents (type, release time, how made, SHA-256). **View as sent** opens the stored bytes, after the print permission check, and is audited as `report-document`. A document that fails its hash check is not shown.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 556 (PS-539 phase 2d: report documents through the API)
+
+- `VersionHistoryModal.tsx` (Batch 556): "View as sent" reads with `purpose 'view'`, says when the document can't be fetched or isn't permitted, and notes when the server's list of sent documents couldn't be read. Test: `VersionHistoryModal.test.tsx` (new).
+
+## Batch 558 (PS-539 phase 2d: report versions through the API)
+
+- `VersionHistoryModal.tsx` (Batch 558): "View PDF" shows for any version with a PDF (one kept here, or one the server lists by its hash) and opens it through `reportVersionPdfReader` with purpose `view`; says why a PDF can't be opened; notes when the server's list of versions couldn't be read (`versionsPartial`). Test: `VersionHistoryModal.test.tsx`.
+
+## Batch 567 (WCAG 2.1 AA, 4.1.2)
+
+- `ProtocolChangeModal.tsx`: each proposed change, and "Select all", was a button holding a checkbox; each is now the checkbox's label (click anywhere on it to tick). A change's checkbox is named by the specimen and the proposed template and described by the reason. The close button has a name. Tests: `ProtocolChangeModal.labels.test.tsx`.

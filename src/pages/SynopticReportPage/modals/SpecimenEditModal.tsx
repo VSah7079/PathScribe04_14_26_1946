@@ -32,9 +32,11 @@ import { containerTypeService, actionRegistryService, specimenEditProblems, repo
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatList } from '@/utils/formatList';
 import type { ContainerType, ContainerCategory } from '@/services/containerTypes/IContainerTypeService';
-import type { Specimen, SpecimenLisStatus, SpecimenComplexity } from '@/types/case/Specimen';
+import type { Specimen, SpecimenComplexity } from '@/types/case/Specimen';
+import { resolveSpecimenLisSyncState } from '@/services/specimens/resolveSpecimenLisSyncState';
 import { findForeignIdCollision } from '@/utils/foreignIdCollision';
 import type { ForeignIdCollision } from '@/utils/foreignIdCollision';
+import { pressable } from '@/utils/a11y/pressable';
 
 // ─── Persisted-value label maps ─────────────────────────────────────────────
 // Laterality and container-category values below are real, stored/matched
@@ -197,12 +199,8 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = () => {
     if (!validate()) return;
-    // Determine LIS sync status for this specimen
-    const lisStatus: SpecimenLisStatus = isOrchestrationMode
-      ? 'local_only'                                      // O26-: goes out with result message
-      : (specimen?.lisStatus === 'lis_owned' || !specimen) // S26-: edited or new
-        ? 'pending_sync'                                  // needs LIS write-back
-        : specimen.lisStatus;                             // preserve sync_sent/rejected
+    // Batch 512: decided in services/specimens/resolveSpecimenLisSyncState.ts.
+    const lisSyncState = resolveSpecimenLisSyncState(isOrchestrationMode);
 
     const built: Specimen = {
       ...(specimen ?? {}),
@@ -211,7 +209,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
       description: description.trim(),
       displayName: `Specimen ${label.trim().toUpperCase()} — ${description.trim()}`,
       active:      true,
-      lisStatus,
+      lisSyncState,
       // Real fix, found while building specimen complexity: selecting
       // a dictionary entry from the left panel never actually
       // persisted the link - selectedEntry was tracked in local state
@@ -294,7 +292,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
                     <div
                       key={e.id}
                       className={`ps-specedit-dict-row${selectedEntry === e.id ? ' ps-specedit-dict-row--active' : ''}`}
-                      onClick={() => applyEntry(e.id)}
+                      {...pressable(() => applyEntry(e.id))}
                     >
                       <span className="ps-specedit-dict-name">{e.name}</span>
                       <span className="ps-specedit-dict-meta">
@@ -341,7 +339,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             {/* Description */}
             <div className="ps-specedit-field-group">
               <label className={labelClass('specimenDescription')}>{t('specimenEditModal.fields.description')}</label>
-              <input
+              <input aria-label={t('specimenEditModal.fields.description')}
                 className={`ps-specedit-input${errors.description ? ' ps-specedit-input--error' : ''}`}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
@@ -393,7 +391,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             <div className="ps-specedit-row-2col">
               <div className="ps-specedit-field-group">
                 <label className={labelClass('anatomicSite')}>{t('specimenEditModal.fields.anatomicSite')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.anatomicSite')}
                   className="ps-specedit-input"
                   value={bodySite}
                   onChange={e => setBodySite(e.target.value)}
@@ -402,7 +400,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className={labelClass('laterality')}>{t('specimenEditModal.fields.laterality')}</label>
-                <select
+                <select aria-label={t('specimenEditModal.fields.laterality')}
                   className="ps-specedit-input"
                   value={laterality}
                   onChange={e => setLaterality(e.target.value)}
@@ -419,7 +417,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             <div className="ps-specedit-row-2col">
               <div className="ps-specedit-field-group">
                 <label className={labelClass('collectionMethod')}>{t('specimenEditModal.fields.collectionMethod')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.collectionMethod')}
                   className="ps-specedit-input"
                   value={method}
                   onChange={e => setMethod(e.target.value)}
@@ -428,7 +426,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className={labelClass('containerType')}>{t('specimenEditModal.fields.containerType')}</label>
-                <select
+                <select aria-label={t('specimenEditModal.fields.containerType')}
                   className="ps-specedit-input"
                   value={container}
                   onChange={e => setContainer(e.target.value)}
@@ -453,7 +451,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             <div className="ps-specedit-row-2col">
               <div className="ps-specedit-field-group">
                 <label className={labelClass('snomedTypeCode')}>{t('specimenEditModal.fields.snomedType')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.snomedType')}
                   className="ps-specedit-input"
                   value={snomedCode}
                   onChange={e => setSnomedCode(e.target.value)}
@@ -462,7 +460,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className={labelClass('snomedSiteCode')}>{t('specimenEditModal.fields.snomedSite')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.snomedSite')}
                   className="ps-specedit-input"
                   value={siteCode}
                   onChange={e => setSiteCode(e.target.value)}
@@ -491,7 +489,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
                     not ps-conf-select, so it never had that sibling
                     bug's dropdown-chevron/placeholder issue. */}
                 <label className="ps-specedit-label">{t('specimenEditModal.fields.referralClient')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.referralClient')}
                   className="ps-specedit-input"
                   value={externalIdSource}
                   onChange={e => setExternalIdSource(e.target.value)}
@@ -501,7 +499,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className="ps-specedit-label">{t('specimenEditModal.fields.referralClientId')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.referralClientId')}
                   className="ps-specedit-input"
                   value={externalId}
                   onChange={e => setExternalId(e.target.value)}

@@ -14,7 +14,7 @@ purely for consistency, name was otherwise accurate).
 
 ## Notes
 
-- This is a 25-line wrapper used by exactly one page. Worth considering
+- This is a ~20-line wrapper used by exactly one page. Worth considering
   whether it belongs in `pages/SynopticReportPage/components/` instead of
   top-level `components/` at all, given it has no reuse beyond its one
   consumer — same category of question as `Common/InlineCommentThread.tsx`

@@ -11,9 +11,9 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import '@/pathscribe.css';
-import { claimPoolCase, acceptPoolCase, passPoolCase } from '../../services/cases/mockCaseService';
-import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
+
 import { sendAccessRequestToAdmins, pendingAccessRequestsFor } from '@/utils/accessRequests';
+import { claimPoolCase, acceptPoolCase, passPoolCase, actionRegistryService } from '@/services';
 
 interface PoolClaimModalProps {
   isOpen:            boolean;
@@ -163,7 +163,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
   // twice or act on a modal that isn't actually showing.
   useEffect(() => {
     if (!isOpen) return;
-    const unsubscribe = mockActionRegistryService.onAction((actionId: string) => {
+    const unsubscribe = actionRegistryService.onAction((actionId: string) => {
       if (step === 'accepting' || step === 'passing') return;
       if (actionId === 'POOL_ACCEPT_CASE') handleAccept();
       else if (actionId === 'POOL_PASS_CASE') handlePass();

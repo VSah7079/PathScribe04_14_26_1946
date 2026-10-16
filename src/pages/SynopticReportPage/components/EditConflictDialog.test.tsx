@@ -6,32 +6,33 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }) }));
 vi.mock('@/components/Common/CapabilityButton', () => ({
-  CapabilityButton: ({ children, onClick, capability }: { children: React.ReactNode; onClick: () => void; capability: string }) =>
-    <button type="button" data-capability={capability} onClick={onClick}>{children}</button>,
+  CapabilityButton: ({ children, onClick, capability, disabled }: { children: React.ReactNode; onClick: () => void; capability: string; disabled?: boolean }) =>
+    <button type="button" data-capability={capability} onClick={onClick} disabled={disabled}>{children}</button>,
 }));
 import { EditConflictDialog } from './EditConflictDialog';
 
 afterEach(cleanup);
 const K = 'synopticReportPage.concurrency.';
-const handlers = () => ({ onKeepWorking: vi.fn(), onViewChanges: vi.fn(), onReload: vi.fn(), onSaveMine: vi.fn() });
+const handlers = () => ({ onKeepWorking: vi.fn(), onViewChanges: vi.fn(), onUseTheirs: vi.fn(), onSaveMine: vi.fn() });
 
 describe('EditConflictDialog', () => {
-  it('offers keep working, view changes, reload, and Save mine anyway behind its capability', () => {
+  it('offers keep working, view changes, use their version, and Save mine anyway behind its capability', () => {
     const h = handlers();
     render(<EditConflictDialog actualVersion={6} blockOverride={false} rows={null} {...h} />);
     fireEvent.click(screen.getByText(`${K}viewChanges`));
-    fireEvent.click(screen.getByText(`${K}reload`));
+    fireEvent.click(screen.getByText(`${K}useTheirs`));
     const mine = screen.getByText(`${K}saveMine`);
     expect(mine.getAttribute('data-capability')).toBe('case:edit-conflict:override');
     fireEvent.click(mine);
     expect(h.onViewChanges).toHaveBeenCalled();
-    expect(h.onReload).toHaveBeenCalled();
+    expect(h.onUseTheirs).toHaveBeenCalled();
     expect(h.onSaveMine).toHaveBeenCalled();
   });
 
-  it('a change to the finalized report allows only reloading', () => {
+  it('a change to the finalized report allows only using their version', () => {
     render(<EditConflictDialog actualVersion={6} blockOverride rows={null} {...handlers()} />);
     expect(screen.queryByText(`${K}saveMine`)).toBeNull();
+    expect(screen.getByText(`${K}useTheirs`)).toBeTruthy();
     expect(screen.getByText(new RegExp(`${K}finalizedBlocked`))).toBeTruthy();
   });
 
@@ -40,5 +41,20 @@ describe('EditConflictDialog', () => {
     expect(screen.queryByText(`${K}viewChanges`)).toBeNull();
     const rows = screen.getAllByRole('row').slice(1).map(r => r.textContent);
     expect(rows).toEqual([`${K}parts.synopticReports${K}replacedByYours`, `${K}parts.participants${K}keptAsSaved`]);
+  });
+
+  it('Batch 577: every choice is disabled while their version is being read', () => {
+    const h = handlers();
+    render(<EditConflictDialog actualVersion={6} blockOverride={false} rows={null} busy {...h} />);
+    const btn = screen.getByText(`${K}useTheirs`) as HTMLButtonElement;
+    expect(btn.getAttribute('aria-busy')).toBe('true');
+    for (const k of ['keepWorking', 'viewChanges', 'useTheirs', 'saveMine']) {
+      const b = screen.getByText(`${K}${k}`) as HTMLButtonElement;
+      expect(b.disabled, k).toBe(true);
+      fireEvent.click(b);
+    }
+    expect(h.onUseTheirs).not.toHaveBeenCalled();
+    expect(h.onKeepWorking).not.toHaveBeenCalled();
+    expect(h.onSaveMine).not.toHaveBeenCalled();
   });
 });

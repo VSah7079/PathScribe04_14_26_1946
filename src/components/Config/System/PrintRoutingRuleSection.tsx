@@ -24,31 +24,41 @@
 //   - 'workstation' → free-text. Confirmed directly before building
 //     this: this app has no real workstation/scan-station dictionary
 //     service (only ad hoc, per-mock-data IDs like
-//     'ws-fgh-theatre2-01' — see mockPrintRoutingRuleService.ts's own
+//     'ws-fgh-theatre2-01' — see printRoutingRuleService.ts's own
 //     seed data) to populate a dropdown from, so forcing a `<select>`
 //     here would mean inventing a fake, closed list — a free-text
 //     field is the honest choice, not a fallback shortcut.
 //   - 'location' → the same real, distinct `pointOfCare` list
-//     DeliveryRulesSection.tsx already loads via mockLocationService.
+//     DeliveryRulesSection.tsx already loads via locationService.
 //   - 'clientAccount'/'facility' → the same real Facility list
-//     (mockFacilityService) — both are real Facility ids per
+//     (facilityService) — both are real Facility ids per
 //     PrintRoutingRule.ts's own header (ordering vs. performing lab
 //     respectively); this app has one real Facility entity, not two
 //     separate dictionaries, so both tiers share the same list.
+// Batch 553 (SITE_AGENT_API.md §3): the destination is a site agent's printer,
+// chosen from the site's list (the site is the rule's facility on the facility
+// tier, otherwise chosen), or a printer address. PrintDestinationFields edits
+// it; printDestinationRules.ts holds the rules.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockPrintRoutingRuleService } from '../../../services/printRouting/mockPrintRoutingRuleService';
+
 import { resolvePrintDestination } from '../../../services/printRouting/resolvePrintDestination';
-import { mockFacilityService } from '../../../services/facilities/mockFacilityService';
-import { mockLocationService } from '../../../services/locations/mockLocationService';
+
 import type {
   PrintRoutingRule, PrintDestinationScopeType, SpecimenCaseType, EventTriggerType,
 } from '../../../types/printRouting/PrintRoutingRule';
-import type { PrintDestination, PrintProtocol } from '../../../types/printRouting/PrintDestination';
+import type { PrintDestination } from '../../../types/printRouting/PrintDestination';
+import {
+  performingLabSites, printDestinationDraft, printDestinationDraftProblem, printDestinationFromDraft, printDestinationSiteId, printDestinationText, routingRuleErrorKey,
+  routingRuleSite, withSite, type PrintDestinationDraft,
+} from '../../../services/printRouting/printDestinationRules';
+import { PrintDestinationFields } from '@/components/Printing/PrintDestinationFields';
 import type { Facility } from '../../../services/facilities/IFacilityService';
+import { printRoutingRuleService, facilityService, locationService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const SCOPE_TYPE_LABEL_KEY: Record<PrintDestinationScopeType, string> = {
   workstation: 'printRoutingRulesSection.scopeTypeLabels.workstation',
@@ -66,43 +76,6 @@ const EVENT_TRIGGER_TYPE_LABEL_KEY: Record<EventTriggerType, string> = {
   PRELIMINARY: 'printRoutingRulesSection.eventTriggerTypeLabels.preliminary',
   AMENDED_SIGNOUT: 'printRoutingRulesSection.eventTriggerTypeLabels.amendedSignout',
 };
-const PROTOCOL_LABEL_KEY: Record<PrintProtocol, string> = {
-  RAW_9100: 'printRoutingRulesSection.protocolLabels.raw9100',
-  LPR_LPD: 'printRoutingRulesSection.protocolLabels.lprLpd',
-  IPP: 'printRoutingRulesSection.protocolLabels.ipp',
-};
-
-type DestinationDraft = {
-  protocol: PrintProtocol;
-  ipAddress: string;
-  port: string;
-  queueName: string;
-  resourcePath: string;
-  displayName: string;
-};
-
-function destinationToDraft(d?: PrintDestination): DestinationDraft {
-  return {
-    protocol: d?.protocol ?? 'RAW_9100',
-    ipAddress: d?.ipAddress ?? '',
-    port: d?.port !== undefined ? String(d.port) : '',
-    queueName: d?.queueName ?? '',
-    resourcePath: d?.resourcePath ?? '',
-    displayName: d?.displayName ?? '',
-  };
-}
-
-function draftToDestination(draft: DestinationDraft): PrintDestination {
-  return {
-    protocol: draft.protocol,
-    ipAddress: draft.ipAddress.trim(),
-    port: draft.port.trim() ? Number(draft.port) : undefined,
-    queueName: draft.protocol === 'LPR_LPD' ? (draft.queueName.trim() || undefined) : undefined,
-    resourcePath: draft.protocol === 'IPP' ? (draft.resourcePath.trim() || undefined) : undefined,
-    displayName: draft.displayName.trim() || undefined,
-  };
-}
-
 // ── Add/Edit Rule Modal ──────────────────────────────────────────────────────
 
 const RuleModal: React.FC<{
@@ -111,21 +84,33 @@ const RuleModal: React.FC<{
   pointsOfCare: string[];
   onSave: (rule: Partial<PrintRoutingRule>) => void;
   onClose: () => void;
-}> = ({ rule, facilities, pointsOfCare, onSave, onClose }) => {
+  /** Batch 553: why the last save was refused (a message key); the window stays open. */
+  saveError?: string | null;
+}> = ({ rule, facilities, pointsOfCare, onSave, onClose, saveError }) => {
   const { t } = useTranslation();
   const [scopeType, setScopeType] = useState<PrintDestinationScopeType>(rule?.scopeType ?? 'workstation');
   const [scopeId, setScopeId] = useState(rule?.scopeId ?? '');
   const [specimenCaseType, setSpecimenCaseType] = useState<SpecimenCaseType | ''>(rule?.specimenCaseType ?? '');
   const [eventTriggerType, setEventTriggerType] = useState<EventTriggerType | ''>(rule?.eventTriggerType ?? '');
   const [note, setNote] = useState(rule?.note ?? '');
-  const [destination, setDestination] = useState<DestinationDraft>(destinationToDraft(rule?.printDestination));
+  const [destination, setDestination] = useState<PrintDestinationDraft>(() => printDestinationDraft(rule?.printDestination, routingRuleSite(rule?.scopeType ?? 'workstation', rule?.scopeId ?? '') ?? ''));
 
   const scopeIdMissing = !scopeId.trim();
-  const destinationMissing = !destination.ipAddress.trim();
+  // Batch 553: a site agent printer, or a printer address (printDestinationRules.ts).
+  const destinationProblem = printDestinationDraftProblem(destination);
+  const lockedSite = routingRuleSite(scopeType, scopeId);
+  const siteChoices = performingLabSites(facilities.map(f => ({ id: f.id as string, name: f.name, roles: f.roles })));
 
   const handleScopeTypeChange = (next: PrintDestinationScopeType) => {
     setScopeType(next);
     setScopeId(''); // real, deliberate reset — a scopeId value from one tier's own vocabulary (a pointOfCare string, say) is never a valid value for another tier
+    if (next === 'facility') setDestination(d => withSite(d, ''));
+  };
+  // A facility-tier rule prints at that facility: its agent printers are the facility's own.
+  const handleScopeIdChange = (next: string) => {
+    setScopeId(next);
+    const site = routingRuleSite(scopeType, next);
+    if (site !== null) setDestination(d => withSite(d, site));
   };
 
   return (
@@ -171,7 +156,7 @@ const RuleModal: React.FC<{
               </select>
             )}
             {(scopeType === 'clientAccount' || scopeType === 'facility') && (
-              <select className="ps-conf-select" aria-label={t('printRoutingRulesSection.fields.scopeId')} value={scopeId} onChange={e => setScopeId(e.target.value)}>
+              <select className="ps-conf-select" aria-label={t('printRoutingRulesSection.fields.scopeId')} value={scopeId} onChange={e => handleScopeIdChange(e.target.value)}>
                 <option value="">{t('printRoutingRulesSection.modal.facilityPlaceholder')}</option>
                 {facilities.map(f => <option key={f.id as string} value={f.id as string}>{f.name}</option>)}
               </select>
@@ -211,97 +196,28 @@ const RuleModal: React.FC<{
 
           <div className="ps-rr-section-title">{t('printRoutingRulesSection.modal.destinationSectionTitle')}</div>
 
-          <div>
-            <div className="ps-conf-label">{t('printRoutingRulesSection.modal.protocolLabel')}</div>
-            <select
-              className="ps-conf-select"
-              aria-label={t('printRoutingRulesSection.modal.protocolLabel')}
-              value={destination.protocol}
-              onChange={e => setDestination({ ...destination, protocol: e.target.value as PrintProtocol })}
-            >
-              {(Object.keys(PROTOCOL_LABEL_KEY) as PrintProtocol[]).map(p => (
-                <option key={p} value={p}>{t(PROTOCOL_LABEL_KEY[p])}</option>
-              ))}
-            </select>
-          </div>
+          <PrintDestinationFields draft={destination} onChange={setDestination} purpose="routing" sites={siteChoices} siteLocked={lockedSite !== null} />
 
-          <div>
-            <div className="ps-conf-label">{t('printRoutingRulesSection.modal.ipAddressLabel')}</div>
-            <input
-              className="ps-conf-input"
-              aria-label={t('printRoutingRulesSection.modal.ipAddressLabel')}
-              value={destination.ipAddress}
-              onChange={e => setDestination({ ...destination, ipAddress: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <div className="ps-conf-label">{t('printRoutingRulesSection.modal.portLabel')}</div>
-            <input
-              className="ps-conf-input"
-              aria-label={t('printRoutingRulesSection.modal.portLabel')}
-              placeholder={t('printRoutingRulesSection.modal.portPlaceholder')}
-              value={destination.port}
-              onChange={e => setDestination({ ...destination, port: e.target.value })}
-            />
-          </div>
-
-          {destination.protocol === 'LPR_LPD' && (
-            <div>
-              <div className="ps-conf-label">{t('printRoutingRulesSection.modal.queueNameLabel')}</div>
-              <input
-                className="ps-conf-input"
-                aria-label={t('printRoutingRulesSection.modal.queueNameLabel')}
-                placeholder={t('printRoutingRulesSection.modal.queueNamePlaceholder')}
-                value={destination.queueName}
-                onChange={e => setDestination({ ...destination, queueName: e.target.value })}
-              />
-            </div>
-          )}
-
-          {destination.protocol === 'IPP' && (
-            <div>
-              <div className="ps-conf-label">{t('printRoutingRulesSection.modal.resourcePathLabel')}</div>
-              <input
-                className="ps-conf-input"
-                aria-label={t('printRoutingRulesSection.modal.resourcePathLabel')}
-                placeholder={t('printRoutingRulesSection.modal.resourcePathPlaceholder')}
-                value={destination.resourcePath}
-                onChange={e => setDestination({ ...destination, resourcePath: e.target.value })}
-              />
-            </div>
-          )}
-
-          <div>
-            <div className="ps-conf-label">{t('printRoutingRulesSection.modal.displayNameLabel')}</div>
-            <input
-              className="ps-conf-input"
-              aria-label={t('printRoutingRulesSection.modal.displayNameLabel')}
-              placeholder={t('printRoutingRulesSection.modal.displayNamePlaceholder')}
-              value={destination.displayName}
-              onChange={e => setDestination({ ...destination, displayName: e.target.value })}
-            />
-          </div>
-
-          {destinationMissing && <p className="ps-rr-modal-warn">{t('printRoutingRulesSection.modal.missingDestinationWarning')}</p>}
+          {destinationProblem && <p className="ps-rr-modal-warn">{t(`printDestination.problems.${destinationProblem}`)}</p>}
 
           <div>
             <div className="ps-conf-label">{t('printRoutingRulesSection.modal.noteLabel')}</div>
-            <input className="ps-conf-input" placeholder={t('printRoutingRulesSection.modal.notePlaceholder')} value={note} onChange={e => setNote(e.target.value)} />
+            <input aria-label={t('printRoutingRulesSection.modal.noteLabel')} className="ps-conf-input" placeholder={t('printRoutingRulesSection.modal.notePlaceholder')} value={note} onChange={e => setNote(e.target.value)} />
           </div>
         </div>
 
         <div className="ps-modal-dark-footer">
+          {saveError && <p className="ps-rr-modal-warn" role="alert">{t(saveError)}</p>}
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
           <button
             className="ps-conf-btn-primary"
-            disabled={scopeIdMissing || destinationMissing}
+            disabled={scopeIdMissing || !!destinationProblem}
             onClick={() => onSave({
               scopeType,
               scopeId: scopeId.trim(),
               specimenCaseType: specimenCaseType || undefined,
               eventTriggerType: eventTriggerType || undefined,
-              printDestination: draftToDestination(destination),
+              printDestination: printDestinationFromDraft(destination),
               note: note.trim() || undefined,
               active: rule?.active ?? true,
             })}
@@ -348,34 +264,34 @@ const TestPanel: React.FC<{ rules: PrintRoutingRule[]; facilities: Facility[]; p
       <div className="ps-rr-test-subtitle">{t('printRoutingRulesSection.testPanel.subtitle')}</div>
 
       <div className="ps-conf-label">{t('printRoutingRulesSection.testPanel.workstationIdLabel')}</div>
-      <input className="ps-conf-input" placeholder={t('printRoutingRulesSection.testPanel.anyPlaceholder')} value={workstationId} onChange={e => setWorkstationId(e.target.value)} />
+      <input aria-label={t('printRoutingRulesSection.testPanel.workstationIdLabel')} className="ps-conf-input" placeholder={t('printRoutingRulesSection.testPanel.anyPlaceholder')} value={workstationId} onChange={e => setWorkstationId(e.target.value)} />
 
       <div className="ps-conf-label">{t('printRoutingRulesSection.scopeTypeLabels.location')}</div>
-      <select className="ps-conf-select" value={pointOfCare} onChange={e => setPointOfCare(e.target.value)}>
+      <select aria-label={t('printRoutingRulesSection.scopeTypeLabels.location')} className="ps-conf-select" value={pointOfCare} onChange={e => setPointOfCare(e.target.value)}>
         <option value="">{t('printRoutingRulesSection.testPanel.anyPlaceholder')}</option>
         {pointsOfCare.map(p => <option key={p} value={p}>{p}</option>)}
       </select>
 
       <div className="ps-conf-label">{t('printRoutingRulesSection.scopeTypeLabels.clientAccount')}</div>
-      <select className="ps-conf-select" value={orderingFacilityId} onChange={e => setOrderingFacilityId(e.target.value)}>
+      <select aria-label={t('printRoutingRulesSection.scopeTypeLabels.clientAccount')} className="ps-conf-select" value={orderingFacilityId} onChange={e => setOrderingFacilityId(e.target.value)}>
         <option value="">{t('printRoutingRulesSection.testPanel.anyPlaceholder')}</option>
         {facilities.map(f => <option key={f.id as string} value={f.id as string}>{f.name}</option>)}
       </select>
 
       <div className="ps-conf-label">{t('printRoutingRulesSection.scopeTypeLabels.facility')}</div>
-      <select className="ps-conf-select" value={facilityId} onChange={e => setFacilityId(e.target.value)}>
+      <select aria-label={t('printRoutingRulesSection.scopeTypeLabels.facility')} className="ps-conf-select" value={facilityId} onChange={e => setFacilityId(e.target.value)}>
         <option value="">{t('printRoutingRulesSection.testPanel.anyPlaceholder')}</option>
         {facilities.map(f => <option key={f.id as string} value={f.id as string}>{f.name}</option>)}
       </select>
 
       <div className="ps-conf-label">{t('printRoutingRulesSection.fields.specimenCaseType')}</div>
-      <select className="ps-conf-select" value={specimenCaseType} onChange={e => setSpecimenCaseType(e.target.value as SpecimenCaseType | '')}>
+      <select aria-label={t('printRoutingRulesSection.fields.specimenCaseType')} className="ps-conf-select" value={specimenCaseType} onChange={e => setSpecimenCaseType(e.target.value as SpecimenCaseType | '')}>
         <option value="">{t('printRoutingRulesSection.testPanel.anyPlaceholder')}</option>
         {(Object.keys(SPECIMEN_CASE_TYPE_LABEL_KEY) as SpecimenCaseType[]).map(sc => <option key={sc} value={sc}>{t(SPECIMEN_CASE_TYPE_LABEL_KEY[sc])}</option>)}
       </select>
 
       <div className="ps-conf-label">{t('printRoutingRulesSection.fields.eventTriggerType')}</div>
-      <select className="ps-conf-select" value={eventTriggerType} onChange={e => setEventTriggerType(e.target.value as EventTriggerType | '')}>
+      <select aria-label={t('printRoutingRulesSection.fields.eventTriggerType')} className="ps-conf-select" value={eventTriggerType} onChange={e => setEventTriggerType(e.target.value as EventTriggerType | '')}>
         <option value="">{t('printRoutingRulesSection.testPanel.anyPlaceholder')}</option>
         {(Object.keys(EVENT_TRIGGER_TYPE_LABEL_KEY) as EventTriggerType[]).map(et => <option key={et} value={et}>{t(EVENT_TRIGGER_TYPE_LABEL_KEY[et])}</option>)}
       </select>
@@ -385,7 +301,7 @@ const TestPanel: React.FC<{ rules: PrintRoutingRule[]; facilities: Facility[]; p
       {result && (
         <div className="ps-rr-test-result-box">
           <div className="ps-rr-test-result-label">{t('printRoutingRulesSection.testPanel.resolvedDestinationLabel')}</div>
-          <div className="ps-rr-test-result-value">{result.destination?.displayName ?? result.destination?.ipAddress ?? '—'}</div>
+          <div className="ps-rr-test-result-value">{printDestinationText(result.destination) || '—'}</div>
           <div className="ps-rr-test-result-matched">
             {matchedRule && result.matchedScopeType
               ? t('printRoutingRulesSection.testPanel.matchedRule', { tier: t(SCOPE_TYPE_LABEL_KEY[result.matchedScopeType]), note: matchedRule.note || matchedRule.id })
@@ -406,13 +322,15 @@ const PrintRoutingRuleSection: React.FC = () => {
   const [pointsOfCare, setPointsOfCare] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ rule?: PrintRoutingRule } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     const [rulesRes, facilitiesRes, locationsRes] = await Promise.all([
-      mockPrintRoutingRuleService.getAll(),
-      mockFacilityService.getAll(),
-      mockLocationService.getAll(),
+      printRoutingRuleService.getAll(),
+      facilityService.getAll(),
+      locationService.getAll(),
     ]);
     if (rulesRes.ok) setRules(rulesRes.data);
     if (facilitiesRes.ok) setFacilities((facilitiesRes.data as Facility[]).filter(f => f.status === 'Active'));
@@ -425,23 +343,26 @@ const PrintRoutingRuleSection: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // Batch 553: a refused save keeps the window open with the reason, instead of closing and losing the rule.
   const handleSave = async (data: Partial<PrintRoutingRule>) => {
-    if (modal?.rule) {
-      await mockPrintRoutingRuleService.update(modal.rule.id, data);
-    } else {
-      await mockPrintRoutingRuleService.create(data as Omit<PrintRoutingRule, 'id' | 'createdAt' | 'updatedAt'>);
-    }
+    const res = modal?.rule
+      ? await printRoutingRuleService.update(modal.rule.id, data)
+      : await printRoutingRuleService.create(data as Omit<PrintRoutingRule, 'id' | 'createdAt' | 'updatedAt'>);
+    if (res && res.ok === false) { setSaveError(routingRuleErrorKey(res.error)); return; }
+    setSaveError(null);
     setModal(null);
     load();
   };
+  const openModal = (next: { rule?: PrintRoutingRule } | null) => { setSaveError(null); setModal(next); };
 
   const handleDelete = async (id: string) => {
-    await mockPrintRoutingRuleService.remove(id);
+    await printRoutingRuleService.remove(id);
     load();
   };
 
   const handleToggle = async (rule: PrintRoutingRule) => {
-    await mockPrintRoutingRuleService.update(rule.id, { active: !rule.active });
+    const res = await printRoutingRuleService.update(rule.id, { active: !rule.active });
+    setListError(res && res.ok === false ? routingRuleErrorKey(res.error) : null);
     load();
   };
 
@@ -449,14 +370,20 @@ const PrintRoutingRuleSection: React.FC = () => {
     const parts: string[] = [];
     if (rule.specimenCaseType) parts.push(t('printRoutingRulesSection.criteriaDescription.specimenCaseType', { type: t(SPECIMEN_CASE_TYPE_LABEL_KEY[rule.specimenCaseType]) }));
     if (rule.eventTriggerType) parts.push(t('printRoutingRulesSection.criteriaDescription.eventTriggerType', { type: t(EVENT_TRIGGER_TYPE_LABEL_KEY[rule.eventTriggerType]) }));
-    return parts.length ? parts.join(' · ') : t('printRoutingRulesSection.criteriaDescription.matchesEvery');
+    if (parts.length === 2) return t('printRoutingRulesSection.criteriaDescription.both', { first: parts[0], second: parts[1] });
+    return parts.length ? parts[0] : t('printRoutingRulesSection.criteriaDescription.matchesEvery');
   };
 
-  const describeScope = (rule: PrintRoutingRule): string => `${t(SCOPE_TYPE_LABEL_KEY[rule.scopeType])}: ${rule.scopeId}`;
-  const describeDestination = (rule: PrintRoutingRule): string =>
-    rule.printDestination.displayName ?? `${rule.printDestination.protocol} — ${rule.printDestination.ipAddress}`;
+  const describeScope = (rule: PrintRoutingRule): string => t('printRoutingRulesSection.scopeDescription', { tier: t(SCOPE_TYPE_LABEL_KEY[rule.scopeType]), id: rule.scopeId });
+  // Batch 553: an agent printer is named with its site, except on a facility-tier rule (the scope already names it).
+  const describeDestination = (rule: PrintRoutingRule): string => {
+    const text = printDestinationText(rule.printDestination);
+    const site = printDestinationSiteId(rule.printDestination);
+    if (!site || rule.scopeType === 'facility') return text;
+    return t('printDestination.atSite', { printer: text, site: facilities.find(f => f.id === site)?.name ?? site });
+  };
 
-  if (loading) return <div className="ps-conf-loading">{t('printRoutingRulesSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('printRoutingRulesSection.loading')} />;
 
   return (
     <div className="ps-rr-root">
@@ -465,8 +392,9 @@ const PrintRoutingRuleSection: React.FC = () => {
           <h2 className="tmpl-list-title">{t('printRoutingRulesSection.title')}</h2>
           <p className="tmpl-list-subtitle">{t('printRoutingRulesSection.subtitle')}</p>
         </div>
-        <button className="ps-conf-btn-primary" onClick={() => setModal({})}>{t('printRoutingRulesSection.addRuleButton')}</button>
+        <button className="ps-conf-btn-primary" onClick={() => openModal({})}>{t('printRoutingRulesSection.addRuleButton')}</button>
       </div>
+      {listError && <p className="ps-rr-modal-warn" role="alert">{t(listError)}</p>}
 
       <div className="ps-rr-layout">
         <div className="ps-rr-tables">
@@ -495,7 +423,7 @@ const PrintRoutingRuleSection: React.FC = () => {
                     <button className="ps-rr-btn" onClick={() => handleToggle(rule)}>{rule.active ? t('common.active') : t('common.inactive')}</button>
                   </td>
                   <td>
-                    <button className="ps-rr-btn" onClick={() => setModal({ rule })}>{t('common.edit')}</button>
+                    <button className="ps-rr-btn" onClick={() => openModal({ rule })}>{t('common.edit')}</button>
                     <button className="ps-rr-btn ps-rr-btn--danger" onClick={() => handleDelete(rule.id)}>{t('common.delete')}</button>
                   </td>
                 </tr>
@@ -513,7 +441,8 @@ const PrintRoutingRuleSection: React.FC = () => {
           facilities={facilities}
           pointsOfCare={pointsOfCare}
           onSave={handleSave}
-          onClose={() => setModal(null)}
+          onClose={() => openModal(null)}
+          saveError={saveError}
         />
       )}
     </div>

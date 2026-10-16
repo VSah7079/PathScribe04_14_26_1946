@@ -72,7 +72,42 @@ const CONFIG_GROUPS: readonly string[] = [
   'configTemplates', 'configAi', 'configCytology', 'configLab', 'configQuality',
   'configOperations', 'configIntegrations', 'configBilling', 'configSystem',
 ];
-export const CONFIG_SECTIONS = CAPABILITY_CATALOG.filter(c => CONFIG_GROUPS.includes(c.group)).map(c => c.key as string);
+// Batch 529 (PS-554, Pete): configuration capabilities that no built-in role
+// is given by the sweep above. Changing the mismatch rules starts with nobody
+// (each hospital grants it to its own role); reading them goes to the roles
+// below (MISMATCH_RULES_VIEW).
+// Batch 536 (PS-554): and the AI instructions: editing starts with nobody,
+// approving with Lab Director only (AI_PROMPT_APPROVE), reading with Lab
+// Director and QA Reviewer (AI_PROMPT_VIEW).
+export const CONFIG_NO_DEFAULT_GRANT: readonly string[] = [
+  'config:clinical-mismatch-rules:manage', 'config:clinical-mismatch-rules:view',
+  'config:ai-prompt:view', 'config:ai-prompt:edit', 'config:ai-prompt:approve',
+];
+export const CONFIG_SECTIONS = CAPABILITY_CATALOG
+  .filter(c => CONFIG_GROUPS.includes(c.group) && !CONFIG_NO_DEFAULT_GRANT.includes(c.key))
+  .map(c => c.key as string);
+// Batch 529 (PS-554): reading the mismatch rules: Pathologist (so a pathologist
+// can see why a case was held; Pete's deliberate exception to least
+// privilege), QA Reviewer and Lab Director.
+export const MISMATCH_RULES_VIEW = ['config:clinical-mismatch-rules:view'];
+// Batch 536 (PS-554, Pete Oct 11): approving the AI instructions starts with
+// Lab Director; reading them with Lab Director and QA Reviewer.
+export const AI_PROMPT_VIEW = ['config:ai-prompt:view'];
+export const AI_PROMPT_APPROVE = ['config:ai-prompt:view', 'config:ai-prompt:approve'];
+/**
+ * Batch 536 (Pete, Oct 11, 2026): capabilities the Superadmin role does not
+ * hold. Approving the AI instructions is a laboratory's own act; ForMedrixAI
+ * tests it with a Lab Director test account in a demonstration or test
+ * tenant. Superadmin keeps reading and editing them (an edit voids nothing
+ * that is approved: it waits for the laboratory's approval).
+ */
+export const SUPERADMIN_WITHHELD: readonly string[] = ['config:ai-prompt:approve'];
+export const SUPERADMIN_CAPABILITY_KEYS: readonly string[] = ALL_CAPABILITY_KEYS.filter(k => !SUPERADMIN_WITHHELD.includes(k));
+// Batch 530 (Pete: "allow pathologists or residents to add or reconcile the
+// structured clinical history later during grossing or sign-out"): the roles
+// that report and gross.
+export const CLINICAL_HISTORY_RECORD = ['case:clinical-history:record'];
+const CLINICAL_HISTORY_RECORD_ROLES = ['pathologist', 'fellow', 'resident', 'pa'];
 export const CONFIG_SECTIONS_LAB_DIRECTOR = CONFIG_SECTIONS.filter(k => k !== 'config:protocol:draft');
 export const CONFIG_TEMPLATE_AUTHOR = ['config:protocol:draft', 'config:report-template:manage'];
 // Batch 429 (Pete): recording equipment maintenance and calibration, for the bench roles too.
@@ -92,14 +127,30 @@ const screens = (...names: string[]) => names.map(n => `screen:${n}:open`);
 // Batch 421: and the Registry Exceptions worklist.
 const QUALITY_COMPLIANCE = screens('audit-log', 'quality-assurance', 'registry-exceptions');
 export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
-  pathologist: screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace'),
-  fellow:      screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace'),
-  resident:    screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'my-contributions', 'cytology-workspace'),
-  pa:          screens('accession', 'worklist', 'search', 'intraop-queue', 'embedding', 'my-contributions'),
-  [SYSTEM_ROLE_IDS.ACCESSIONER]:            screens('accession', 'worklist', 'search'),
-  [SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST]:      screens('batch-management', 'embedding', 'microtomy', 'slide-distribution', 'search'),
-  [SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST]:       screens('cytology-workspace', 'batch-management', 'search'),
-  [SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST]: screens('molecular', 'batch-management', 'search'),
+  // Batch 489: and the Tumor Board workspace, for the roles that nominate
+  // cases to a board (GROSSERS below).
+  // Batch 491: and the margin-exception review queue, same roles — the
+  // same clinical judgment call as case:margin-exception:resolve, which
+  // this screen exists to reach.
+  pathologist: screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
+  fellow:      screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
+  resident:    screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
+  pa:          screens('accession', 'worklist', 'search', 'intraop-queue', 'embedding', 'my-contributions', 'tumor-board', 'margin-exception-review'),
+  // Batch 486 (Pete): considered, then reverted — the four bench roles
+  // don't need My Contribution (it's a pathologist/resident screen). A
+  // Cytotech Competency Assessment supervisor's own Mentor-tab fix
+  // (MentorTab.tsx, caseMixCalculations.ts) stays — that's the
+  // supervisor's screen, already seeded to pathologist/fellow/resident,
+  // not the trainee's.
+  // Batch 488 (Pete): the real next step from that review — each bench
+  // role now opens its own dedicated bench-contribution page instead
+  // (real accessioning rate / batch throughput & queue aging / stage-
+  // to-stage TAT / molecular QC, scoped to what each role's own work
+  // actually produces; see src/pages/README.md).
+  [SYSTEM_ROLE_IDS.ACCESSIONER]:            screens('accession', 'worklist', 'search', 'bench-contributions'),
+  [SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST]:      screens('batch-management', 'embedding', 'microtomy', 'slide-distribution', 'search', 'bench-contributions'),
+  [SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST]:       screens('cytology-workspace', 'batch-management', 'search', 'bench-contributions'),
+  [SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST]: screens('molecular', 'batch-management', 'search', 'bench-contributions'),
   // Batch 434 (Pete): Admin also opens Batch Management (it couldn't see Slide
   // scanning). The screen only: the batch actions stay with the bench roles,
   // and an administrator can add them to any role in the Role Dictionary.
@@ -119,6 +170,13 @@ const BILLING_CORRECTION = ['billing:applied-code:correct'];
 const BILLING_REVIEW = ['billing:applied-code:review'];
 // Batch 383: releasing an autopsy body, for the roles with case access.
 const AUTOPSY_RELEASE = ['autopsy:body:release'];
+// Batch 495 (PS-283): printing a case report, for every role that could
+// print one before (the roles with case access, built-in and a hospital's own).
+const REPORT_PRINT = ['report:case-report:print'];
+// Batch 516 (PS-283): printing a VIP/confidential case, for the Pathologist who
+// reports it (least privilege; it needs report:case-report:print, which only the
+// case-access roles hold). An administrator grants it to anyone else.
+export const RESTRICTED_CASE_PRINT = ['report:restricted-case:print'];
 // Batch 468: recording a forensic chain-of-custody transfer — seeded
 // alongside AUTOPSY_RELEASE for the same case-access roles, since both
 // are the same "handles the body/evidence" class of autopsy action.
@@ -135,6 +193,8 @@ const AUTOPSY_TOXICOLOGY = ['autopsy:toxicology:order', 'autopsy:toxicology:resu
 // roles as the rest of this group.
 const AUTOPSY_TOXICOLOGY_CANCEL = ['autopsy:toxicology:cancel'];
 const AUTOPSY_RETENTION_DETAIL = ['autopsy:retention-detail:record'];
+// Batch 499: the organ-retention tier itself, same roles as retention detail.
+const AUTOPSY_RETENTION_TIER = ['autopsy:retention-tier:record'];
 const AUTOPSY_CONSENT_REINSTATE = ['autopsy:consent:reinstate'];
 // Batch 478: per-organ tagging during the gross exam — ordinary clinical
 // documentation, seeded alongside case:grossing:complete for the same
@@ -181,6 +241,10 @@ export const CYTOLOGY_SIGN_OUT = [
   'cytology:revision:request',
 ];
 const CYTOLOGY_SIGN_OUT_ROLES = ['pathologist', 'fellow', 'resident', SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST as string];
+// Batch 572: signing off your own screening hours, for the built-in roles whose reviews count toward the
+// workload limit. Its own seed (not CYTOLOGY_SIGN_OUT): a hospital's own roles with case access don't get it,
+// because a sign-off is a workload record a lab grants deliberately.
+export const CYTOLOGY_SCREENING_HOURS = ['cytology:screening-hours:sign-off'];
 // Batch 415: a cytotechnologist's own sign-out (negative GYN, advanced-CT
 // exception), for the Cytotechnologist role and a hospital's own roles with
 // case access (keep today's users). Remove it from the role where the
@@ -226,6 +290,27 @@ export const MOLECULAR_ORDER_ACTIONS = ['molecular:order:assign-plate', 'molecul
 // bypass (cytology:qc-review:bypass) starts with nobody: an administrator
 // assigns it, and holding it opens the Cytology QC queue for the override.
 export const AUDIT_ERROR_RESOLVE = ['audit:error:resolve'];
+/** Batch 551: the Server jobs view (Admin). */
+export const SERVER_JOBS = ['jobs:server-job:view', 'jobs:server-job:requeue'];
+/** Batch 554: interface monitoring, the engines' listeners and queues (Admin; a hospital can grant it to its interface analysts). */
+export const INTERFACE_MONITORING = ['interface:engine-status:view'];
+// Batch 515 (PS-283): the Print Queue dashboard's actions, for everyone who
+// opens the Audit Log, where the dashboard sits (keep today's users).
+export const PRINT_QUEUE_ACTIONS = ['print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry'];
+// Batch 518 (PS-122): resending outbound interface messages. Admin by
+// default (Pete's accepted default named Admin and an Interface Analyst; there
+// is no built-in Interface Analyst role, so a hospital grants it to its own).
+export const INTERFACE_RESEND = ['interface:outbound:resend'];
+// Batch 518 (PS-123, Pete Oct 2): batch label reprint, Histotechnologist and Admin.
+export const LABEL_BATCH_REPRINT = ['label:batch:reprint'];
+// Batch 515 (PS-290): issuing and revoking an outside consult link, for every
+// role with case access (keep today's users) until Pete decides who should
+// (proposed: Pathologist and Admin).
+export const CONSULT_LINK_ACTIONS = ['case:consult-link:issue', 'case:consult-link:revoke'];
+// Batch 522 (PS-290): the list of outside consult links across all cases
+// (Audit Log → Consult links), for the roles that oversee access: Admin,
+// Lab Director and QA Reviewer.
+export const CONSULT_LINK_OVERSIGHT = ['audit:consult-links:view'];
 // Batch 437 (PS-282, PS-357): the exports, for the roles that open the screen
 // they sit on (keep today's users).
 export const AUDIT_LOG_EXPORTS = ['audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export'];
@@ -252,6 +337,17 @@ const ORGAN_MAP_INSERT_ROLES = ['pathologist', 'fellow', 'resident'];
 // clinical authority on sign-off and amendments, and an administrator-only
 // overwrite would hold up urgent addenda and off-hours work.
 export const CASE_EDIT_CONFLICT_OVERRIDE = ['case:edit-conflict:override'];
+
+// Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic Engine;
+// PS-519 follow-up). The Administrative Override action at Gate B
+// (Sign-Out), for a Severity 3 issue only — Pete's own spec names
+// "Clinical Admin, Lead Pathologist" as eligible; this app has no
+// built-in role literally named either, so this maps onto Admin and Lab
+// Director, the same two roles config:inking-validation-mode:manage
+// (the site's own inking policy) already trusts. Deliberately NOT given
+// to 'pathologist' — a standard pathologist is never override-eligible
+// per the spec, unlike case:edit-conflict:override above.
+export const INKING_GATE_OVERRIDE = ['case:inking-gate:override'];
 export const REFERRAL_TRANSIT = ['referral:transit-status:update'];
 // Batch 434: WSI scan batches, for every role with the Batch Management screen.
 export const WSI_SCAN_BATCH = ['wsi:scan-batch:load', 'wsi:scan-batch:send', 'wsi:scan-batch:unload'];
@@ -294,6 +390,7 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     ...(role.caseAccess || role.configAccess ? [...BILLING_REVIEW] : []),
     // Batch 383: and releasing an autopsy body.
     ...(role.caseAccess ? [...AUTOPSY_RELEASE] : []),
+    ...(role.caseAccess ? [...REPORT_PRINT] : []),
     // Batch 468: and recording a forensic chain-of-custody transfer.
     ...(role.caseAccess ? [...AUTOPSY_CUSTODY_TRANSFER] : []),
     // Batch 469: and consent narrowing/revocation, organ-retention disposal, toxicology.
@@ -303,6 +400,7 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     // Batch 471: and cancelling a toxicology order, retention detail, consent reinstatement.
     ...(role.caseAccess ? [...AUTOPSY_TOXICOLOGY_CANCEL] : []),
     ...(role.caseAccess ? [...AUTOPSY_RETENTION_DETAIL] : []),
+    ...(role.caseAccess ? [...AUTOPSY_RETENTION_TIER] : []),
     ...(role.caseAccess ? [...AUTOPSY_CONSENT_REINSTATE] : []),
     // Batch 417: and recording a national identifier.
     ...(role.caseAccess ? [...NATIONAL_IDENTIFIER_RECORD] : []),
@@ -326,6 +424,8 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     // Batch 434: and WSI scan batches (case access had Batch Management).
     ...(role.caseAccess ? [...WSI_SCAN_BATCH] : []),
     ...(role.configAccess ? [...AUDIT_ERROR_RESOLVE] : []),
+    ...(role.configAccess ? [...PRINT_QUEUE_ACTIONS] : []),
+    ...(role.caseAccess ? [...CONSULT_LINK_ACTIONS] : []),
     // Batch 437: and the exports on the screens it gets.
     ...screenExports([
       ...(role.caseAccess ? SCREEN_KEYS.filter(k => !admin.includes(k)) : []),
@@ -358,16 +458,39 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(GROSSERS.includes(r) ? AUTOPSY_ORGAN_TAG : []),
     // Batch 480: and recording a margin's ink application during grossing.
     ...(GROSSERS.includes(r) ? GROSSING_MARGIN_INK : []),
+    // Batch 489: flagging a case for Tumor Board/MDT is a clinical
+    // judgment call, seeded only to the roles that gross/sign out, not
+    // the broader CASE_ACCESS_ROLES (which also reaches bench roles).
+    ...(GROSSERS.includes(r) ? ['case:tumor-board:flag'] : []),
+    // Batch 490: resolving/dismissing a margin-distance extraction
+    // exception is the same kind of clinical judgment call, seeded the
+    // same way.
+    ...(GROSSERS.includes(r) ? ['case:margin-exception:resolve'] : []),
+    // Batch 491: overriding an auto-generated Tumor Board flag is the same
+    // kind of clinical judgment call as flagging one, seeded the same way —
+    // never the broader CASE_ACCESS_ROLES.
+    ...(GROSSERS.includes(r) ? ['case:tumor-board:dismiss'] : []),
+    // Batch 491: queue management (status — Presented/Deferred, or
+    // cancelling a manual nomination) is broader than the clinical dismiss
+    // above — seeded the same way as the other case-access actions below.
+    // Batch 493: scheduling (board/meeting date/time/presenter) moved to
+    // its own case:tumor-board:schedule, seeded the same way here so
+    // nothing changes for existing case-access roles — a clerical/
+    // scheduling-only custom role gets just that one, granted separately
+    // through the Role Dictionary, not from this seed list.
+    ...(CASE_ACCESS_ROLES.includes(r) ? ['case:tumor-board:manage', 'case:tumor-board:schedule'] : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? CASE_REPORT_ACTIONS : []),
     ...(CASE_ACCESS_ROLES.includes(r) || BILLING_CORRECTION_ROLES.includes(r) ? BILLING_CORRECTION : []),
     ...(CASE_ACCESS_ROLES.includes(r) || BILLING_CORRECTION_ROLES.includes(r) ? BILLING_REVIEW : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RELEASE : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? REPORT_PRINT : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CUSTODY_TRANSFER : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CONSENT_MANAGE : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RETENTION_DISPOSAL : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_TOXICOLOGY : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_TOXICOLOGY_CANCEL : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RETENTION_DETAIL : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RETENTION_TIER : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CONSENT_REINSTATE : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? NATIONAL_IDENTIFIER_RECORD : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? REGISTRY_CONSENT_RECORD : []),
@@ -380,6 +503,7 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(r === SYSTEM_ROLE_IDS.TEMPLATE_APPROVER ? CONFIG_TEMPLATE_APPROVER : []),
     ...(EQUIPMENT_MAINTENANCE_ROLES.includes(r) ? EQUIPMENT_MAINTENANCE : []),
     ...(CYTOLOGY_SIGN_OUT_ROLES.includes(r) ? CYTOLOGY_SIGN_OUT : []),
+    ...(CYTOLOGY_SIGN_OUT_ROLES.includes(r) ? CYTOLOGY_SCREENING_HOURS : []),
     ...(r === SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST ? CYTOLOGY_CT_SIGN_OUT : []),
     ...(r === 'pathologist' ? CYTOLOGY_REVISION : []),
     ...(r === 'pathologist' ? CYTOLOGY_EARLY_FINALIZE : []),
@@ -393,6 +517,9 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(caps.includes('screen:batch-management:open') ? REFERRAL_TRANSIT : []),
     ...(caps.includes('screen:batch-management:open') ? WSI_SCAN_BATCH : []),
     ...(caps.includes('screen:audit-log:open') ? AUDIT_ERROR_RESOLVE : []),
+    ...(caps.includes('screen:audit-log:open') ? PRINT_QUEUE_ACTIONS : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? CONSULT_LINK_ACTIONS : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CONSULT_LINK_OVERSIGHT : []),
     ...(caps.includes('screen:audit-log:open') ? AUDIT_LOG_EXPORTS : []),
     ...(caps.includes('screen:search:open') ? CASE_SEARCH_EXPORT : []),
     ...(caps.includes('screen:my-contributions:open') ? CONTRIBUTION_EXPORTS : []),
@@ -401,18 +528,25 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(FOLLOW_UP_EXPECT_ROLES.includes(r) ? FOLLOW_UP_EXPECT : []),
     ...(ORGAN_MAP_INSERT_ROLES.includes(r) ? ORGAN_MAP_INSERT : []),
     ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CASE_EDIT_CONFLICT_OVERRIDE : []),
+    ...(r === 'pathologist' ? RESTRICTED_CASE_PRINT : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? INKING_GATE_OVERRIDE : []),
+    ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? MISMATCH_RULES_VIEW : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? AI_PROMPT_APPROVE : []),
+    ...(CLINICAL_HISTORY_RECORD_ROLES.includes(r) ? CLINICAL_HISTORY_RECORD : []),
+    ...(r === SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST ? LABEL_BATCH_REPRINT : []),
     ...(caps.includes('screen:molecular:open') ? MOLECULAR_SUPERSEDE : []),
     ...(caps.includes('screen:molecular:open') ? MOLECULAR_ORDER_ACTIONS : []),
     ...MESSAGING,
   ]])),
-  [SYSTEM_ROLE_IDS.SUPERADMIN]: ALL_CAPABILITY_KEYS,
-  [SYSTEM_ROLE_IDS.ADMIN]: [...EXPORTS, ...CASE_EDIT_CONFLICT_OVERRIDE, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN])],
-  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER])],
+  [SYSTEM_ROLE_IDS.SUPERADMIN]: SUPERADMIN_CAPABILITY_KEYS,
+  [SYSTEM_ROLE_IDS.ADMIN]: [...EXPORTS, ...CASE_EDIT_CONFLICT_OVERRIDE, ...INKING_GATE_OVERRIDE, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...INTERFACE_RESEND, ...INTERFACE_MONITORING, ...SERVER_JOBS, ...LABEL_BATCH_REPRINT, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN])],
+  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...MISMATCH_RULES_VIEW, ...AI_PROMPT_VIEW, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER])],
 };
 
 /**
  * Batch 371 (Pete: hospital administrators have no control over
- * Superadmin). The Superadmin role always holds the whole catalog; any
+ * Superadmin). The Superadmin role always holds the whole catalog (since
+ * Batch 536, except SUPERADMIN_WITHHELD); any
  * stored difference is put back on load. ForMedrixAI decides what it
  * holds, in the catalog, not a hospital in its Role Dictionary.
  */
@@ -421,9 +555,9 @@ export function lockPlatformRoles<R extends SeedableRole>(roles: readonly R[]): 
   const out = roles.map(r => {
     if (r.id !== SYSTEM_ROLE_IDS.SUPERADMIN) return r;
     const have = r.capabilities ?? [];
-    if (have.length === ALL_CAPABILITY_KEYS.length && ALL_CAPABILITY_KEYS.every(k => have.includes(k))) return r;
+    if (have.length === SUPERADMIN_CAPABILITY_KEYS.length && SUPERADMIN_CAPABILITY_KEYS.every(k => have.includes(k))) return r;
     changed = true;
-    return { ...r, capabilities: [...ALL_CAPABILITY_KEYS], seededCapabilities: [...ALL_CAPABILITY_KEYS] };
+    return { ...r, capabilities: [...SUPERADMIN_CAPABILITY_KEYS], seededCapabilities: [...SUPERADMIN_CAPABILITY_KEYS] };
   });
   return { roles: out, changed };
 }

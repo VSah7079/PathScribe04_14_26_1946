@@ -28,3 +28,8 @@ Activation and a recorded committee approval are stored under the signed-in pers
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 514 (PS-269): printed report translated
+
+- **`buildValidationReportHtml.ts`** (+ test): the printed AI validation report, moved out of `ValidationStudiesSection.tsx`. It now prints in the reader's language with dates and percentages in their format (Pete, Oct 10, 2026). It used to be English with an `en-GB` date, on the reasoning that it was a compliance artifact; Pete decided it follows the user's language. Study name, ethics reference and section ids print as recorded, escaped. No inline `style` attributes.
+- **`computeValidationStudyGrade.ts`**: returns a translation `key` (`pass` / `conditionalPass` / `furtherReview`) in place of the English `description`. The grade code stored on the study (`finalGrade`, "PASS") is unchanged.

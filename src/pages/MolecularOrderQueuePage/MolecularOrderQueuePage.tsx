@@ -31,10 +31,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { molecularOrderOutboundQueueService, queueEntriesNewestFirst, isMolecularOrderPayload as isMolecularPayload } from '@/services';
 import { formatDateTime } from '@/utils/formatDate';
 import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
 import type { MolecularOrderOutboundQueueEntry } from '@/types/case/MolecularOrderOutboundQueueEntry';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const DEMO_ACCESSION = 'S26-5003-CYT-001';
 const DEMO_SPECIMEN_LETTER = 'A';
@@ -43,6 +45,11 @@ const DEMO_ASSAY_BUNDLED = 'st-hpv-reflex';
 
 const MolecularOrderQueuePage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('molecularOrderQueue.pageTitle'), '/molecular-order-queue'); }, [pushCrumb, t]);
   const [entries, setEntries] = useState<MolecularOrderOutboundQueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [assayChoice, setAssayChoice] = useState<typeof DEMO_ASSAY_STANDALONE | typeof DEMO_ASSAY_BUNDLED>(DEMO_ASSAY_STANDALONE);
@@ -107,7 +114,7 @@ const MolecularOrderQueuePage: React.FC = () => {
         <p className="ps-molq-demo-description" data-phi="accession">{t('molecularOrderQueue.demoPanelDescription', { accession: DEMO_ACCESSION })}</p>
 
         <label className="ps-molq-field-label">{t('molecularOrderQueue.assayLabel')}</label>
-        <select className="ps-batch-select" value={assayChoice} onChange={e => setAssayChoice(e.target.value as typeof assayChoice)}>
+        <select aria-label={t('molecularOrderQueue.assayLabel')} className="ps-batch-select" value={assayChoice} onChange={e => setAssayChoice(e.target.value as typeof assayChoice)}>
           <option value={DEMO_ASSAY_STANDALONE}>{t('molecularOrderQueue.assayStandalone')}</option>
           <option value={DEMO_ASSAY_BUNDLED}>{t('molecularOrderQueue.assayBundled')}</option>
         </select>
@@ -117,7 +124,7 @@ const MolecularOrderQueuePage: React.FC = () => {
         </button>
 
         <label className="ps-molq-field-label">{t('molecularOrderQueue.resultLabel')}</label>
-        <select className="ps-batch-select" value={resultChoice} onChange={e => setResultChoice(e.target.value as typeof resultChoice)}>
+        <select aria-label={t('molecularOrderQueue.resultLabel')} className="ps-batch-select" value={resultChoice} onChange={e => setResultChoice(e.target.value as typeof resultChoice)}>
           <option value="Positive">{t('molecularOrderQueue.resultPositive')}</option>
           <option value="Negative">{t('molecularOrderQueue.resultNegative')}</option>
         </select>
@@ -130,7 +137,7 @@ const MolecularOrderQueuePage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="ps-molq-loading">{t('common.loading')}</div>
+        <LoadingState variant="inline" className="ps-molq-loading" label={t('common.loading')} />
       ) : entries.length === 0 ? (
         <div className="ps-molq-empty">{t('molecularOrderQueue.noEntries')}</div>
       ) : (

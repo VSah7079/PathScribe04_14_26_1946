@@ -7,12 +7,14 @@ media hosts, never the binary payload itself. Real, direct
 motivation, confirmed: "I didn't want to store large PDF reports or
 image captures in the cloud."
 
-Items 1 and 2 of a 5-item scoping breakdown (item 3 — migrating
-`CameraCaptureControl.tsx`'s own real, existing base64 capture onto
-this model — and item 5 — fidelity-preserving embedding into generated
-reports — are real, separate, deferred work; item 4 — ref-lab HL7/MIME
-inbound results — is confirmed interface-engine work, not tracked
-here).
+Items 1 and 2 of a 5-item scoping breakdown, later joined by item 3
+(migrating `CameraCaptureControl.tsx` off inline base64 capture, done
+Sep 2026) and item 5 (fidelity-preserving embedding into generated
+reports, done for the cytology pipeline, Sep 2026) — see "scope
+boundaries" below. Item 4 — ref-lab HL7/MIME inbound results — is
+confirmed interface-engine work, not tracked here.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): items 3 and 5 are no longer deferred; `pdf-lib` is installed; the surgical report renderer's source is in this repo (`functions/main.py`).*
 
 ## Files
 
@@ -21,8 +23,9 @@ here).
   `image_type`, `source_system_id`, `fallback_url`). Deliberately a
   NEW, separate type from `types/case/Material.ts`'s own
   `DigitalAsset` — that type stores a base64 `data:` URL inline,
-  confirmed non-compliant with §1.1. Migrating existing consumers
-  onto this model is real, separate, deferred work (item 3).
+  confirmed non-compliant with §1.1. *(Since addressed for camera
+  capture: item 3 below uploads the frame first and stores only the
+  returned URL in `DigitalAsset.url`.)*
 - **`resolveImageUrlWithFallback.ts`** — the real, pure decision logic
   behind spec §2.2. Kept the spec's own exact carve-out: a 401/403 on
   the primary URL does **not** trigger a fallback — that's an auth
@@ -63,7 +66,7 @@ here).
   viewer nor a passive image store. Real, named, researched seed
   vendors: PAX-it!/PAXcam (MIS Incorporated, Villa Park IL), Smart In
   Media PathoZoom® (Cologne, Germany), Milestone Medical MacroPATH
-  (UK). Directly unblocks the still-deferred "item 3" migration of
+  (UK). Directly unblocked the "item 3" migration (since done, below) of
   `CameraCaptureControl.tsx`'s own real gross/block-face photo
   capture — this is the real vendor category that capture should
   eventually hand off to.
@@ -131,19 +134,18 @@ here).
   gained a new, separate `generateCytologyReportPdfWithAttachments()`
   async wrapper — the original, synchronous function's own signature
   and every existing caller are untouched.
-  **Real, new dependency**: `pdf-lib` is not yet in this project's own
-  `package.json` — needs a real `npm install pdf-lib` before this
-  code can run for real.
+  **Dependency**: `pdf-lib` (now in `package.json`, `^1.17.1`).
   **Real, honest scope wall, confirmed before building anything**:
   this only ever reaches `generateCytologyReportPdf.ts`'s own
   real, in-repo, client-side pipeline. The *main* synoptic report
   pipeline (used for the majority of surgical pathology reports)
-  generates its PDF via an external, source-inaccessible Firebase
-  Cloud Function (`SynopticReportPage.tsx`'s own
-  `generateReportPdfSnapshot`) — this cannot be inspected, verified,
-  or extended from here at all. The equivalent fidelity/merging work
-  for that pipeline is real, separate backend work for whoever owns
-  that function's source — see the Jira ticket filed alongside this.
+  generates its PDF via the Python `render_report` Cloud Function
+  (`SynopticReportPage.tsx`'s own `generateReportPdfSnapshot`), whose
+  source is `functions/main.py` at this repo's root, not this
+  folder. The equivalent fidelity/merging work for that pipeline is
+  not done there; production rendering is planned for the API server
+  (`docs/architecture/REPORT_RENDERING_SERVICE.md`) — see the Jira
+  ticket filed alongside this.
   **Updated (PS-276, Sep 2026)**: `embedImageAssociationsIntoPdf()`'s
   own return shape changed from a bare `Uint8Array` to
   `{ bytes, warnings }` — `warnings` is a real, per-association
@@ -168,3 +170,11 @@ Before, anyone who could open Configuration could change this; now each change i
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 505 (PS-475)
+
+`embedImageAssociationsIntoPdf.ts` loads `pdf-lib` when it runs, not with the first page (see `services/loadSize/README.md`).
+
+## Batch 539
+
+`embedImageAssociationsIntoPdf.ts` extended the browser's cytology renderer, which is removed (PS-539 D2: the report renderer makes every PDF). Nothing sets `CytologyReportContent.imageAssociations` today and the server's cytology template doesn't draw them, so this file is unused until that work is scheduled.

@@ -27,16 +27,16 @@ beforeEach(() => {
 
 describe('cytologyWorkspaceDeps.getWorkloadCaps', () => {
   it('loads the Enterprise default, that facility\'s override and that reviewer\'s override', async () => {
-    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-wl-1', { dailySlideCap: 120 });
+    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-wl-1', { dailySlideCap: 90 });
     await mockStaffCytologyWorkloadCapOverrideService.create('CT-WL-1', { dailySlideCap: 70 });
     const caps = await cytologyWorkspaceDeps.getWorkloadCaps('fac-wl-1', 'CT-WL-1');
-    expect(caps?.facility?.overrides.dailySlideCap).toBe(120);
+    expect(caps?.facility?.overrides.dailySlideCap).toBe(90);
     expect(caps?.staff?.overrides.dailySlideCap).toBe(70);
     expect(resolveEffectiveCytologyWorkloadCap(caps!.enterprise, caps!.facility, caps!.staff).dailySlideCap).toBe(70);
   });
 
   it('another facility\'s override is never applied: a reviewer with no override at a facility with none gets the Enterprise cap', async () => {
-    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-wl-1', { dailySlideCap: 120 });
+    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-wl-1', { dailySlideCap: 90 });
     const caps = await cytologyWorkspaceDeps.getWorkloadCaps('fac-wl-2', 'CT-WL-2');
     expect(caps?.facility).toBeNull();
     expect(caps?.staff).toBeNull();
@@ -44,9 +44,9 @@ describe('cytologyWorkspaceDeps.getWorkloadCaps', () => {
   });
 
   it('the facility\'s cap applies to a reviewer with no override of their own', async () => {
-    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-wl-3', { dailySlideCap: 150 });
+    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-wl-3', { dailySlideCap: 95 });
     const caps = await cytologyWorkspaceDeps.getWorkloadCaps('fac-wl-3', 'CT-WL-3');
-    expect(resolveEffectiveCytologyWorkloadCap(caps!.enterprise, caps!.facility, caps!.staff).dailySlideCap).toBe(150);
+    expect(resolveEffectiveCytologyWorkloadCap(caps!.enterprise, caps!.facility, caps!.staff).dailySlideCap).toBe(95);
   });
 });
 

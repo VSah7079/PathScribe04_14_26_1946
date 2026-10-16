@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { compileCytologySynopticNarrative } from './compileCytologySynopticNarrative';
 import type { SynopticTemplate } from '@/types/cytology/SynopticTemplate';
+import { normalizeSynopticTemplate } from '@/services/templates/normalizeSynopticTemplate';
 import type { PathologyLexiconEntry } from '@/types/cytology/PathologyLexicon';
 
-const template: SynopticTemplate = {
+const template: SynopticTemplate = normalizeSynopticTemplate({
   id: 'test-template', name: 'Test', source: 'Custom', version: '1.0.0', category: 'CYTOLOGY_NONGYN', standard: 'Test',
   sections: [
     {
@@ -49,7 +50,7 @@ const template: SynopticTemplate = {
       ],
     },
   ],
-};
+});
 
 const t = (key: string) => key;
 const noLexicon: PathologyLexiconEntry[] = [];
@@ -108,7 +109,7 @@ describe('compileCytologySynopticNarrative', () => {
   });
 
   it('a real field with a real narrativeSentenceTemplateKey resolves it via t(), never the raw English fallback, once a real, current locale provides one', () => {
-    const localizedTemplate: SynopticTemplate = {
+    const localizedTemplate: SynopticTemplate = normalizeSynopticTemplate({
       ...template,
       sections: [{
         id: 'specimen', title: 'Specimen',
@@ -119,7 +120,7 @@ describe('compileCytologySynopticNarrative', () => {
           options: [{ id: 'fna', label: 'FNA', narrativePhrase: 'Fine needle aspiration' }],
         }],
       }],
-    };
+    });
     const tFr = (key: string) => key === 'narrative.procedure' ? 'Acte : {value}.' : key;
     const result = compileCytologySynopticNarrative(localizedTemplate, { procedure: 'fna' }, tFr, 'en', noLexicon);
     expect(result.rawText).toBe('Acte : Fine needle aspiration.');
@@ -132,7 +133,7 @@ describe('compileCytologySynopticNarrative', () => {
   });
 
   it('an option with a real lexiconTermKey and no real, validated lexicon entry at all falls back to its own real, canonical narrativePhrase, flagged as an unvalidated fallback segment carrying its own real lexiconTermKey', () => {
-    const lexiconTemplate: SynopticTemplate = {
+    const lexiconTemplate: SynopticTemplate = normalizeSynopticTemplate({
       ...template,
       sections: [{
         id: 'diagnostic_category', title: 'Category',
@@ -142,7 +143,7 @@ describe('compileCytologySynopticNarrative', () => {
           options: [{ id: 'ii_benign', label: 'II \u2014 Benign', narrativePhrase: 'II \u2014 Benign', lexiconTermKey: 'bethesda.thyroid.category.ii' }],
         }],
       }],
-    };
+    });
     const result = compileCytologySynopticNarrative(lexiconTemplate, { bethesda_category: 'ii_benign' }, t, 'de', noLexicon);
     expect(result.rawText).toBe('Category: II \u2014 Benign.');
     expect(result.hasUnvalidatedTerms).toBe(true);
@@ -159,7 +160,7 @@ describe('compileCytologySynopticNarrative', () => {
   });
 
   it('an option with a real lexiconTermKey and a real, validated lexicon entry (text only) uses the validated translation as a real, plain (non-flagged) segment', () => {
-    const lexiconTemplate: SynopticTemplate = {
+    const lexiconTemplate: SynopticTemplate = normalizeSynopticTemplate({
       ...template,
       sections: [{
         id: 'diagnostic_category', title: 'Category',
@@ -169,7 +170,7 @@ describe('compileCytologySynopticNarrative', () => {
           options: [{ id: 'ii_benign', label: 'II \u2014 Benign', narrativePhrase: 'II \u2014 Benign', lexiconTermKey: 'bethesda.thyroid.category.ii' }],
         }],
       }],
-    };
+    });
     const lexicon: PathologyLexiconEntry[] = [
       { termKey: 'bethesda.thyroid.category.ii', canonicalTerm: 'II \u2014 Benign', translations: {
         de: { text: 'II \u2014 Benigne', validatedBy: 'Dr. Weber', validatedAt: '2026-01-01', version: 1 },
@@ -182,7 +183,7 @@ describe('compileCytologySynopticNarrative', () => {
   });
 
   it('an option with a real, validated narrativeText (Path Two) prefers it over the standalone label-context text, as a real, plain (non-flagged) segment', () => {
-    const lexiconTemplate: SynopticTemplate = {
+    const lexiconTemplate: SynopticTemplate = normalizeSynopticTemplate({
       ...template,
       sections: [{
         id: 'diagnostic_category', title: 'Category',
@@ -192,7 +193,7 @@ describe('compileCytologySynopticNarrative', () => {
           options: [{ id: 'ii_benign', label: 'II \u2014 Benign', narrativePhrase: 'II \u2014 Benign', lexiconTermKey: 'bethesda.thyroid.category.ii' }],
         }],
       }],
-    };
+    });
     const lexicon: PathologyLexiconEntry[] = [
       { termKey: 'bethesda.thyroid.category.ii', canonicalTerm: 'II \u2014 Benign', translations: {
         de: { text: 'II \u2014 Benigne', narrativeText: 'gutartig', validatedBy: 'Dr. Weber', validatedAt: '2026-01-01', version: 1 },

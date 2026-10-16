@@ -97,8 +97,8 @@ export interface TemplateRoutingResult {
 
 // ── Synoptic protocol → Case Report Template ─────────────────────────────
 // Key = synopticReports[].templateId value in real case data — these MUST
-// match the IDs actually seeded in templateService.ts's editorStore
-// (editorStore.set('breast_invasive', ...) etc.) — NOT an invented naming
+// match the seed template ids in templateService.ts
+// (SEED_TEMPLATE_LOADERS / SEED_TEMPLATE_IDS: 'breast_invasive' etc.) — NOT an invented naming
 // convention. Previously this map used fictitious 'cap-xxx-resection' style
 // keys that didn't match any real protocol ID anywhere in the codebase,
 // which meant Pass 1 (the most specific, highest-priority match) could

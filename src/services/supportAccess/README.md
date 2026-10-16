@@ -58,3 +58,7 @@ See `docs/architecture/AUTHORIZATION_API.md` § Support access for the server co
 ## Batch 456 — Sign-in lockout, password screening, demo seeds
 
 `demoSupportAccessRequests()` (`demoSupportAccessSeed.ts`, wired through the new optional `seedRequests`): one pending request from Amber Fehrs-Battey (ForMedrixAI support; her staff organisation is Midwest, so it counts as support access) to Desert Valley, ticket FMX-20417. Michelle Nimmo or Pete approves it; only Admin has `config:support-access:approve` by default, so the Lab Director can't. No "requested" entry is seeded in the support audit (it survives a reset and is hash-chained, so it is only written through the service).
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: once the server runs `supportAccess.expire`, the browser doesn't record expiries (`runServerJobs`). `effectiveSupportStatus` shows an approval past its time as expired, and Revoke and End accept only an approval still in force.

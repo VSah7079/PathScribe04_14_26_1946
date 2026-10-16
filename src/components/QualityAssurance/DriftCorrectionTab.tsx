@@ -38,6 +38,7 @@ import type { AuditLog } from '@/services/auditlog/IAuditService';
 import { DRIFT_EVENTS, resolveUnresolvedDriftCorrections } from '@/services/auditlog/resolveUnresolvedDriftCorrections';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatDateTime, parseStoredUtc } from '@/utils/formatDate';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const EVENT_LABEL_KEY: Record<typeof DRIFT_EVENTS[number], string> = {
   'Post-Finalization Drift Detected':            'auditLog.statusLabels.driftDetected',
@@ -131,10 +132,10 @@ export const DriftCorrectionTab: React.FC = () => {
       'Detail': l.detail,
       'Timestamp (UTC)': l.timestamp,
     }));
-    void exportQaReportRows('qa:drift-correction:export', rows, `drift-correction-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+    void exportQaReportRows('qa:drift-correction:export', rows, `drift-correction-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('driftCorrectionTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('driftCorrectionTab.loading')} />;
 
   return (
     <div>

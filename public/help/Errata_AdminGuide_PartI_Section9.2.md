@@ -22,7 +22,7 @@ Phase 3 is additionally marked "**NEW in v0.9.0**," which reads as a shipped-fea
 - `OrchestratorEngine`'s callback interface (`onSectionStart`, `onToken`, `onSectionComplete`, `onComplete`, `onError`) has no hook that evaluates protocol/template fit against case content.
 - None of the six audit event types named above appear anywhere in the application code.
 
-In short: Section 9.2 describes the *intended design* for this feature, written as if it were already built and audited. It isn't, yet.
+In short: Section 9.2 describes the *intended design* for this feature, written as if it were already built and audited. It isn't, yet. *(Since partly closed: Phase 2's trigger is now built. Complete grossing (`pages/SynopticReportPage/hooks/useGrossingCompletion.ts`) calls `evaluateSynopticAssignment` (`services/cases/mockCaseService.ts`) when Gross-Driven AI is on in Configuration → AI Behavior, and opens `ProtocolChangeModal` with real proposed changes; Assist-mode polling does the same (`services/assistPolling/runAssistPollCycle.ts`). Still true as of Oct 9, 2026: none of the six audit event names above are emitted anywhere, and no Microscopic-save trigger for Phase 3 was found; the "Sim Microscopic" button is still a dev tool. Checked in the Batch 496 README audit.)*
 
 ## Why this matters
 

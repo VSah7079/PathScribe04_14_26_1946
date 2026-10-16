@@ -29,43 +29,27 @@
     },
 
     // Linting
-    "strict": false,
+    // Batch 511 (PS-478): full strict type-checking. strictNullChecks found
+    // 161 errors and the other strict flags 25; all fixed. Only
+    // noImplicitReturns stays off (not part of "strict"; it would flag the
+    // ordinary React effect that returns a cleanup in one branch only).
+    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": false,
-    "noImplicitAny": false,
-    "noImplicitThis": false,
-    "strictNullChecks": false,
-    "strictFunctionTypes": false,
-    "strictBindCallApply": false,
-    "strictPropertyInitialization": false,
     "noImplicitReturns": false,
-    
+
     // Node types
     "types": ["node"]
   },
 
   "include": ["src", "firestore.rules.test.ts"],
 
-  "exclude": [
-    "node_modules",
-    "src/Legacy",
-    "src/types/App.tsx",
-    "src/utils/AppShell.tsx",
-    "src/services/codes/firestoreCodeService.ts",
-    "src/services/internalNotes/firestoreInternalNoteService.ts",
-    "src/services/messages/firestoreMessageService.ts",
-    "src/services/physicians/index.ts",
-    "src/services/users/index.ts",
-    "src/api/caseFlagsApi.ts",
-    "src/api/lisFlagSimulator.ts",
-    "src/audit/AuditLogPage.tsx",
-    "src/components/Config/System/FlagModal.tsx",
-    "src/components/Config/System/FlagTable.tsx",
-    "src/components/Flags/AutoCreatedBanner.tsx",
-    "src/components/Config/System/KeyboardShortcutsModal.tsx",
-    "src/components/Config/System/CategorySection.tsx"
-  ],
+  // Batch 511 (PS-478): nothing is excluded from type-checking any more. The
+  // 15 files and one folder listed here before were either deleted (14,
+  // now in DELETED_FILES.txt) or have been brought under the check
+  // (src/api/caseFlagsApi.ts, src/components/Flags/AutoCreatedBanner.tsx).
+  "exclude": ["node_modules"],
 
   "references": [{ "path": "./tsconfig.node.json" }]
 }

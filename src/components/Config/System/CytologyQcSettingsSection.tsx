@@ -20,6 +20,7 @@
 // is translated.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { describeQcOverrideRates, type QcRateDisplay } from '@/services/cytology/describeQcOverrideRates';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -83,18 +84,27 @@ const CytologyQcSettingsSection: React.FC = () => {
     <div className="ps-cytqc__rate-pair">
       <div className="ps-cytqc__rate-field">
         <span className="ps-cytqc__rate-label">{t('cytologyQcSettingsSection.ratePair.negativeLabel')}</span>
-        <input type="number" min={0} max={100} className="ps-cytqc__input" value={value.negative} onChange={e => onChange({ ...value, negative: Number(e.target.value) })} />
+        <input aria-label={t('cytologyQcSettingsSection.ratePair.negativeLabel')} type="number" min={0} max={100} className="ps-cytqc__input" value={value.negative} onChange={e => onChange({ ...value, negative: Number(e.target.value) })} />
         <span className="ps-cytqc__rate-pct">%</span>
       </div>
       <div className="ps-cytqc__rate-field">
         <span className="ps-cytqc__rate-label">{t('cytologyQcSettingsSection.ratePair.nonNegativeLabel')}</span>
-        <input type="number" min={0} max={100} className="ps-cytqc__input" value={value.nonNegative} onChange={e => onChange({ ...value, nonNegative: Number(e.target.value) })} />
+        <input aria-label={t('cytologyQcSettingsSection.ratePair.nonNegativeLabel')} type="number" min={0} max={100} className="ps-cytqc__input" value={value.nonNegative} onChange={e => onChange({ ...value, nonNegative: Number(e.target.value) })} />
         <span className="ps-cytqc__rate-pct">%</span>
       </div>
     </div>
   );
 
-  const rateSummary = (neg: number, nonNeg: number) => t('cytologyQcSettingsSection.rateSummary', { neg, nonNeg });
+  // Batch 512: a rate an override doesn't set shows as inherited (with the
+  // enterprise value on a facility row), not "undefined%".
+  const rateText = (r: QcRateDisplay) =>
+    r.kind === 'own' ? t('cytologyQcSettingsSection.rate.own', { value: r.value })
+      : r.value === null ? t('cytologyQcSettingsSection.rate.inherited')
+        : t('cytologyQcSettingsSection.rate.inheritedValue', { value: r.value });
+  const rateSummary = (overrides: Parameters<typeof describeQcOverrideRates>[0], inheritsFrom: CytologyQcSettingsConfig | null) => {
+    const d = describeQcOverrideRates(overrides, inheritsFrom);
+    return t('cytologyQcSettingsSection.rateSummaryParts', { neg: rateText(d.negative), nonNeg: rateText(d.nonNegative) });
+  };
 
   return (
     <div className="ps-cytqc__page">
@@ -127,7 +137,7 @@ const CytologyQcSettingsSection: React.FC = () => {
         {facilityOverrides.map(o => (
           <div key={o.id} className="ps-cytqc__row">
             <span className="ps-cytqc__row-name">{facilityName(o.facilityId)}</span>
-            <span className="ps-cytqc__row-summary">{rateSummary(o.overrides.negativeRandomSelectionRatePercent, o.overrides.nonNegativeRandomSelectionRatePercent)}</span>
+            <span className="ps-cytqc__row-summary">{rateSummary(o.overrides, enterprise)}</span>
             <button className="ps-cytqc__btn" onClick={async () => { await facilityCytologyQcOverrideService.remove(o.facilityId); refresh(); }}>{t('common.remove')}</button>
           </div>
         ))}
@@ -137,7 +147,7 @@ const CytologyQcSettingsSection: React.FC = () => {
 
         {addingFacility && (
           <div className="ps-cytqc__add-row">
-            <select value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}
+            <select aria-label={t('a11y.fields.facility')} value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}
               className="ps-conf-select ps-cytqc__add-select">
               {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
@@ -166,7 +176,7 @@ const CytologyQcSettingsSection: React.FC = () => {
         {staffOverrides.map(o => (
           <div key={o.id} className="ps-cytqc__row">
             <span className="ps-cytqc__row-name">{staffName(o.staffUserId)}</span>
-            <span className="ps-cytqc__row-summary">{rateSummary(o.overrides.negativeRandomSelectionRatePercent, o.overrides.nonNegativeRandomSelectionRatePercent)}</span>
+            <span className="ps-cytqc__row-summary">{rateSummary(o.overrides, null)}</span>
             <button className="ps-cytqc__btn" onClick={async () => { await staffCytologyQcOverrideService.remove(o.staffUserId); refresh(); }}>{t('common.remove')}</button>
           </div>
         ))}
@@ -176,7 +186,7 @@ const CytologyQcSettingsSection: React.FC = () => {
 
         {addingStaff && (
           <div className="ps-cytqc__add-row">
-            <select value={addingStaff.staffUserId} onChange={e => setAddingStaff({ ...addingStaff, staffUserId: e.target.value })}
+            <select aria-label={t('a11y.fields.staffMember')} value={addingStaff.staffUserId} onChange={e => setAddingStaff({ ...addingStaff, staffUserId: e.target.value })}
               className="ps-conf-select ps-cytqc__add-select">
               {staff.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
             </select>

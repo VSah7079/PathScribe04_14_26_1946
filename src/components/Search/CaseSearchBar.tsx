@@ -6,11 +6,11 @@ import { useTranslation } from 'react-i18next';
 import '@/pathscribe.css';
 import { useVoice } from '../../contexts/VoiceProvider';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockOnDemandCaseFetchService } from '@/services/cases/mockOnDemandCaseFetchService';
+
 import { useEnabledIdentifierFormats } from '../../hooks/useEnabledIdentifierFormats';
 import { useAuditLog } from '../Audit/useAuditLog';
 import { useAuth } from '../../contexts/AuthContext';
-import { flagService, supportReferenceService } from '@/services';
+import { flagService, supportReferenceService, onDemandCaseFetchService } from '@/services';
 import { searchHitFlags } from '@/services/caseSearch/searchHitFlags';
 import type { Flag } from '@/services/flags/IFlagService';
 import { isSupportReference } from '@/services/supportReferences/supportReferenceRules';
@@ -315,7 +315,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
       // before ever telling the pathologist the case doesn't exist
       // at all.
       setFetchingFromLis(q);
-      const fetchResult = await mockOnDemandCaseFetchService.fetchCaseByAccession(q);
+      const fetchResult = await onDemandCaseFetchService.fetchCaseByAccession(q);
       setFetchingFromLis(null);
 
       if (fetchResult.ok && fetchResult.data.outcome === 'found') {

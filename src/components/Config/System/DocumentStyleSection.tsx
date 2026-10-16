@@ -138,7 +138,7 @@ const DocumentStyleSection: React.FC = () => {
 
       <div className="ps-tinsp-stack ps-docstyle__stack">
         <Label>{t('documentStyleSection.fontFamilyLabel')}</Label>
-        <Sel value={style.fontFamily ?? 'Arial'} onChange={v => update({ ...style, fontFamily: v })}
+        <Sel ariaLabel={t('documentStyleSection.fontFamilyLabel')} value={style.fontFamily ?? 'Arial'} onChange={v => update({ ...style, fontFamily: v })}
           options={FONT_FAMILY_OPTIONS} fullWidth />
 
         <Label>{t('documentStyleSection.fontSizeLabel')}</Label>
@@ -162,7 +162,7 @@ const DocumentStyleSection: React.FC = () => {
         </div>
 
         <Label>{t('documentStyleSection.textTransformLabel')}</Label>
-        <Sel value={style.transform ?? 'none'} onChange={v => update({ ...style, transform: v as LabelConfig['transform'] })}
+        <Sel ariaLabel={t('documentStyleSection.textTransformLabel')} value={style.transform ?? 'none'} onChange={v => update({ ...style, transform: v as LabelConfig['transform'] })}
           options={[
             { value: 'none',       label: t('documentStyleSection.transforms.none') },
             { value: 'uppercase',  label: t('documentStyleSection.transforms.uppercase') },
@@ -181,7 +181,7 @@ const DocumentStyleSection: React.FC = () => {
         <h3 className="ps-docstyle__page-setup-title">{t('documentStyleSection.pageSetup.title')}</h3>
         <p className="config-fonts-description">{t('documentStyleSection.pageSetup.hint')}</p>
         <Label>{t('documentStyleSection.pageSetup.pageSizeLabel')}</Label>
-        <Sel value={pageSetup.pageSizeId} onChange={v => updatePageSetup({ ...pageSetup, pageSizeId: v })}
+        <Sel ariaLabel={t('documentStyleSection.pageSetup.pageSizeLabel')} value={pageSetup.pageSizeId} onChange={v => updatePageSetup({ ...pageSetup, pageSizeId: v })}
           options={PAGE_SIZES.map(p => ({ value: p.id, label: `${p.label} — ${t(PAGE_SIZE_REGION_KEY[p.id])}` }))} fullWidth />
         {MARGIN_SIDES.map(side => (
           <React.Fragment key={side}>

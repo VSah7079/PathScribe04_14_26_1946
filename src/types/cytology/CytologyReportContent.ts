@@ -112,6 +112,10 @@ export interface CytologyReportContent {
    *  "ADDENDUM", the reason, and for a correction what was reported
    *  before). Undefined on every original sign-out. */
   revision?: { kind: 'correction' | 'addendum'; reason: string; previouslyReportedAs?: string };
+  /** Batch 533: set only on an urgent preliminary report (one specimen,
+   *  before the case report). The PDF prints "PRELIMINARY REPORT — not the
+   *  final report" and the reason under the title. */
+  preliminary?: { reason: string; note?: string };
 
   // ── 7. Educational Notes, Comments, & Sign-Off ───────────────────────────
   recommendations: string[];
@@ -132,7 +136,10 @@ export interface CytologyReportContent {
    *  consult PDF). Each entry's own `imageUrl` is a real,
    *  already-resolved reference (services/imageAssociation/) — this
    *  type never carries the binary payload itself, same reference-
-   *  only posture as everywhere else in this app. */
+   *  only posture as everywhere else in this app.
+   *  Batch 539: nothing sets this today, and the report renderer's
+   *  cytology template doesn't draw it (the browser renderer that did
+   *  is removed). */
   imageAssociations?: ImageAssociation[];
 
   /** Real, per PS-277 §1.2.2 (Master Template Engine — conditional

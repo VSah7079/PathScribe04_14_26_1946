@@ -33,6 +33,7 @@ import { mockFacilityService } from '../facilities/mockFacilityService';
 import { mockLocationService } from '../locations/mockLocationService';
 import { localLiveUpdateService } from '../liveUpdates/localLiveUpdateService';
 import type { IntraopChangeKind } from '../liveUpdates/liveUpdateContract';
+import { dataStorage } from '../browserData/dataStorage';
 
 /** PS-262: what the API server will do after each committed write — tell
  *  the live boards and queues that something changed (ids only, no PHI). */
@@ -50,10 +51,10 @@ const STORAGE_KEY = 'intraop_entries';
 const INTRAOP_VERSION = '5'; // bumped: added MERGED_TAT_SEED batch for the linkage TAT trend chart
 const VERSION_KEY = 'pathscribe_mock_intraop_version';
 try {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
+  const storedVersion = dataStorage.getItem(VERSION_KEY);
   if (storedVersion !== INTRAOP_VERSION) {
-    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-    localStorage.setItem(VERSION_KEY, INTRAOP_VERSION);
+    dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    dataStorage.setItem(VERSION_KEY, INTRAOP_VERSION);
   }
 } catch { /* SSR / sandboxed env — ignore */ }
 

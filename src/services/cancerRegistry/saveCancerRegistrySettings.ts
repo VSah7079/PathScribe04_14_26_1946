@@ -11,7 +11,6 @@
 import type { CancerRegistryId, CancerRegistrySettingsConfig } from './ICancerRegistrySettingsService';
 import { cancerRegistryDefinition } from './cancerRegistryDefinitions';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface CancerRegistrySettingsDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
   updateEnterprise: (patch: Partial<CancerRegistrySettingsConfig>) => Promise<unknown>;

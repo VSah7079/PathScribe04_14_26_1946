@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  SUPPORT_AUDIT_GENESIS, activeGrant, decisionProblem, expireRequests, normaliseSupportSettings, requestProblem,
+  SUPPORT_AUDIT_GENESIS, activeGrant, decisionProblem, effectiveSupportStatus, expireRequests, normaliseSupportSettings, requestProblem,
   supportAccessDecision, supportAuditRows, verifySupportAuditChain, supportRequestQueues, supportWindowParts, isLiveGrant,
   type SupportAccessRequest,
 } from './supportAccessRules';
@@ -26,6 +26,13 @@ describe('support access rules (Batch 372)', () => {
     expect(activeGrant([approved], 'fac-dvmc', 'SUP', T0)).toBeNull();
     expect(activeGrant([approved], 'fac-mft', 'SUP', new Date('2026-09-28T12:00:00Z'))).toBeNull();
   });
+  it('Batch 555: an approval past its time reads as expired before it is recorded', () => {
+    const lapsed = req({ status: 'approved', expiresAt: '2026-09-28T10:30:00Z' });
+    expect(effectiveSupportStatus(lapsed, new Date('2026-09-28T10:31:00Z'))).toBe('expired');
+    expect(effectiveSupportStatus(lapsed, new Date('2026-09-28T10:29:00Z'))).toBe('approved');
+    expect(effectiveSupportStatus(req({ id: 'p' }), new Date('2026-09-28T10:31:00Z'))).toBe('pending');
+  });
+
   it('an approval runs out and is marked expired', () => {
     const list = [req({ status: 'approved', expiresAt: '2026-09-28T10:30:00Z' }), req({ id: 'r2' })];
     expect(expireRequests(list, new Date('2026-09-28T10:31:00Z')).map(r => r.id)).toEqual(['r1']);
@@ -72,7 +79,7 @@ describe('support access rules (Batch 372)', () => {
 
 // ── The service, with an in-memory store and a controllable clock ────────────
 
-function harness(opts: { sessionRole?: string; sessionId?: string; org?: string; granted?: string[]; seed?: Record<string, any> } = {}) {
+function harness(opts: { sessionRole?: string; sessionId?: string; org?: string; granted?: string[]; seed?: Record<string, any>; runServerJobs?: () => boolean } = {}) {
   const mem = new Map<string, unknown>();
   let clock = T0;
   let session = { id: opts.sessionId ?? 'H1', name: 'Hospital Admin', role: opts.sessionRole ?? 'admin', organisationId: opts.org ?? 'ORG-MFT' };
@@ -98,6 +105,7 @@ function harness(opts: { sessionRole?: string; sessionId?: string; org?: string;
     now: () => clock,
     newId: () => `id${++n}`,
     seedSettings: opts.seed,
+    runServerJobs: opts.runServerJobs,
   });
   return {
     svc, notified, mem,
@@ -134,6 +142,23 @@ describe('support access service (Batch 372)', () => {
     const audit = await h.svc.listAudit('fac-mft');
     expect(audit.ok && audit.entries.map(e => e.action)).toEqual(['accessExpired', 'accessApproved', 'accessRequested', 'policyChanged']);
     expect(await h.svc.verifyAudit('fac-mft')).toEqual({ intact: true, entries: 4 });
+  });
+
+  it('Batch 555: with the API server, the expiry is recorded by its job, not here; access still ends on time', async () => {
+    const h = harness({ runServerJobs: () => false });
+    await h.svc.setSettings('fac-mft', { policy: 'approvalRequired', windowMinutes: 60 });
+    h.as({ id: 'SUP', name: 'Support A', role: 'superadmin', organisationId: 'ORG-DVMC' });
+    const r = await h.svc.requestAccess({ tenantId: 'fac-mft', ticketId: 'TK-8', reason: 'Report render fault, ticket TK-8' });
+    h.as({ id: 'H1', name: 'Hospital Admin', role: 'admin', organisationId: 'ORG-MFT' });
+    await h.svc.decide(r.ok ? r.request.id : '', 'approve');
+    h.tick(61);
+    expect(await h.svc.decisionFor('fac-mft', 'SUP')).toEqual({ allowed: false, reason: 'noApproval' });
+    const audit = await h.svc.listAudit('fac-mft');
+    expect(audit.ok && audit.entries.map(e => e.action)).not.toContain('accessExpired');
+    // It reads as expired, and can't be revoked or ended after the fact.
+    expect(await h.svc.revoke(r.ok ? r.request.id : '')).toEqual({ ok: false, reason: 'notFound' });
+    h.as({ id: 'SUP', name: 'Support A', role: 'superadmin', organisationId: 'ORG-DVMC' });
+    expect(await h.svc.endAccess(r.ok ? r.request.id : '')).toEqual({ ok: false });
   });
 
   it('the hospital can revoke; support can end its own access; disabled refuses requests', async () => {

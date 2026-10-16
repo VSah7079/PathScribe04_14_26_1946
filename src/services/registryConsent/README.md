@@ -12,7 +12,11 @@ Batch 418 (Registry Engine SRS v2.1, FR-008.1). What a patient's registry opt-ou
 
 **Recorded where.** `types/patient/PatientRegistryConsent.ts` on `Patient.registryConsent` and `MasterPatientRecord.registryConsent`. Entered on the Accession page (`components/Common/RegistryConsentFields.tsx`).
 
-**Not yet.** A Configuration switch for `honoursPatientOptOut` (the cancer registry settings screen is on the deployment baseline and needs its own clean-up first; the setting is honoured by the service today). Editing an opt-out after accession. An HL7 source for consent (PID-… / a CON segment).
+**Since built.** The Configuration switch for `honoursPatientOptOut`: a checkbox on Configuration → System → Cancer Registry Reporting (`components/Config/System/CancerRegistrySettingsSection.tsx`). Editing an opt-out after accession: `components/Common/PatientRegistryDetailsModal.tsx`, opened from the Registry Exceptions worklist (Batch 425).
+
+**Not yet.** An HL7 source for consent (PID-… / a CON segment).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the opt-out switch and post-accession editing were listed as not built; both exist.*
 
 ## Batch 458 — PS-71: every case save carries its version
 

@@ -97,7 +97,9 @@ export interface CriticalFindingDetectionResult {
  *  empty flags array, never a fabricated one, when nothing in the
  *  real text warrants flagging. */
 export async function detectCriticalFindings(
-  caseText: { gross: string; microscopic: string; ancillary: string }
+  caseText: { gross: string; microscopic: string; ancillary: string },
+  /** Batch 536 (PS-558): where the work belongs, for the AI vendor policy (never sent to the AI). */
+  where?: { caseId?: string; facilityId?: string },
 ): Promise<ServiceResult<CriticalFindingDetectionResult>> {
   if (!caseText.gross.trim() && !caseText.microscopic.trim() && !caseText.ancillary.trim()) {
     return { ok: true, data: { flags: [], negated: [] } };
@@ -124,6 +126,7 @@ Rules:
 - confidence: your genuine confidence (0-100) that this specific finding is real and correctly characterized — never a placeholder value
 - Return an empty flags array if nothing in the real text warrants flagging — never fabricate a finding`,
       maxTokens: 800,
+      context: { feature: 'critical-findings', ...where },
     });
 
     const clean = raw.replace(/```json|```/g, '').trim();

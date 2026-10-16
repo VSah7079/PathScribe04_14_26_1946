@@ -7,7 +7,6 @@ import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { mockOutboundPatientAdtQueueService } from '../patients/mockOutboundPatientAdtQueueService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const recordNationalPatientIdentifierDeps: RecordNationalIdentifierDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   getCase: caseId => caseRouter.getCase(caseId) as any,

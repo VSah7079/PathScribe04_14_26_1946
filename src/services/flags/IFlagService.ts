@@ -37,6 +37,12 @@ export interface Flag {
 
   iconKey?: IconKey;
   meta?:    Record<string, unknown>;
+
+  /** Batch 516 (PS-283, Pete): a case carrying this flag (VIP, confidential
+   *  consultation) can be printed only by someone holding
+   *  report:restricted-case:print, on top of report:case-report:print. Set by
+   *  the lab in Configuration → Case Flags. Case-level flags only. */
+  restrictsPrinting?: boolean;
 }
 
 export interface IFlagService {

@@ -89,7 +89,7 @@ export const FixativeTimeGateModal: React.FC<Props> = ({ specimens, onContinue, 
                 {row.mode !== 'unrecoverable' && (
                   <div className="ps-fixgate-row-fields">
                     <span className="ps-fixgate-field-label">{t('fixativeTimeGateModal.timeLabel')} {star('fixationTime')}</span>
-                    <input
+                    <input aria-label={t('fixativeTimeGateModal.timeLabel')}
                       type="datetime-local"
                       className="ps-input-dark"
                       value={row.mode === 'time' ? row.value : ''}
@@ -110,7 +110,7 @@ export const FixativeTimeGateModal: React.FC<Props> = ({ specimens, onContinue, 
                 {row.mode === 'unrecoverable' && (
                   <div className="ps-fixgate-row-fields">
                     <span className="ps-fixgate-field-label">{t('fixativeTimeGateModal.unrecoverableCommentLabel')} {star('fixationUnrecoverableComment')}</span>
-                    <input
+                    <input aria-label={t('fixativeTimeGateModal.unrecoverableCommentLabel')}
                       type="text"
                       className="ps-input-dark ps-fixgate-comment-input"
                       placeholder={t('fixativeTimeGateModal.unrecoverableCommentPlaceholder')}

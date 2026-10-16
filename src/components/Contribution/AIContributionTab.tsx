@@ -21,6 +21,8 @@ import {
   deriveBreakdownFromSpecimens,
   type AiContributionDateRange, type BreakdownRow, type OverriddenCase, type CaseComparison,
 } from './aiContributionCalculations';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -319,7 +321,7 @@ const AIContributionTab: React.FC = () => {
             </div>
             <div className="ps-quality-bar-list">
               {specimens === null
-                ? <div className="ps-quality-empty">{t('aiContributionTab.breakdown.loading')}</div>
+                ? <LoadingState variant="inline" className="ps-quality-empty" label={t('aiContributionTab.breakdown.loading')} />
                 : scaledBreakdown.map(r => (
                 <div key={r.label} className="ps-quality-bar-row">
                   <div className="ps-quality-bar-row__label-row">
@@ -347,8 +349,8 @@ const AIContributionTab: React.FC = () => {
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={trendRows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} tickLine={false} />
-                  <YAxis domain={[50, 100]} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false}
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_TICK_COLOR }} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} tickLine={false} />
+                  <YAxis domain={[50, 100]} tick={{ fontSize: 11, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false}
                     tickFormatter={(v: number) => `${v}%`} width={40} />
                   <Tooltip content={({ active, payload, label }: any) => {
                     if (!active || !payload?.length) return null;

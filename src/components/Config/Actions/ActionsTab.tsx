@@ -1,7 +1,8 @@
+import { csvField, csvQuoted } from '@/utils/csv';
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { mockActionRegistryService } from '../../../services/actionRegistry/mockActionRegistryService';
+
 import { SystemAction } from '../../../services/actionRegistry/IActionRegistryService';
 import { toTitleCase } from '../../../utils/formatLabel';
 import { WORKSTATION_DISCIPLINES, FUNCTIONAL_AREAS_BY_DISCIPLINE } from '../../../services/workstationGroups/IWorkstationGroupService';
@@ -9,7 +10,8 @@ import { resolveShortcutConflict, suggestAlternateShortcut } from '../../../serv
 import { parseActionRegistryImportCsv, type ActionImportRowOutcome } from '../../../services/actionRegistry/parseActionRegistryImportCsv';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
-import { recordExport } from '@/services';
+import { recordExport, actionRegistryService } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
 
 // Real, per PS-289's own comment thread — every real, populated
 // functional area across every real discipline, flattened for this
@@ -68,7 +70,7 @@ function buildImportSummary(outcomes: ActionImportRowOutcome[], t: TFunction): s
 
 export const ActionsTab: React.FC = () => {
   const { t } = useTranslation();
-  const [actions, setActions] = useState<SystemAction[]>(mockActionRegistryService.getActions());
+  const [actions, setActions] = useState<SystemAction[]>(actionRegistryService.getActions());
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -149,12 +151,12 @@ export const ActionsTab: React.FC = () => {
     if (!editingAction) return;
     if (shortcutError) return;
     const triggers = tempTriggers.split(',').map(trig => trig.trim()).filter(trig => trig !== "");
-    await mockActionRegistryService.updateAction(editingAction.id, {
+    await actionRegistryService.updateAction(editingAction.id, {
       shortcut: tempShortcut,
       voiceTriggers: triggers,
       stationProfiles: tempStationProfiles.length > 0 ? tempStationProfiles : undefined,
     });
-    setActions([...mockActionRegistryService.getActions()]);
+    setActions([...actionRegistryService.getActions()]);
     setEditingAction(null);
   };
 
@@ -192,11 +194,12 @@ export const ActionsTab: React.FC = () => {
       // even with no real edit intended).
       ...(a.isActive ? [] : [[`# ^ DISABLED — not voice/keyboard-eligible; editing this row's Shortcut/Voice Triggers below will not make it functional.`]]),
       [
-        a.id,
-        `"${a.label}"`,
-        `"${a.category}"`,
-        `"${a.shortcut}"`,
-        `"${a.voiceTriggers.join('; ')}"`
+        // Batch 543 (F8): quoted (quotes in a label no longer break the row) and formula cells neutralized.
+        csvField(a.id),
+        csvQuoted(a.label),
+        csvQuoted(a.category),
+        csvQuoted(a.shortcut),
+        csvQuoted(a.voiceTriggers.join('; '))
       ],
     ]);
 
@@ -230,10 +233,10 @@ export const ActionsTab: React.FC = () => {
       const { outcomes, updates } = parseActionRegistryImportCsv(content, actions);
 
       updates.forEach(({ id, shortcut, voiceTriggers }) => {
-        mockActionRegistryService.updateAction(id, { shortcut, voiceTriggers });
+        actionRegistryService.updateAction(id, { shortcut, voiceTriggers });
       });
 
-      setActions([...mockActionRegistryService.getActions()]);
+      setActions([...actionRegistryService.getActions()]);
 
       alert(buildImportSummary(outcomes, t));
     };
@@ -345,7 +348,7 @@ export const ActionsTab: React.FC = () => {
             <div className="ps-actionstab-field-group">
               <label className="ps-actionstab-field-label">{t('actionsTab.table.shortcut')}</label>
               <div className="ps-actionstab-shortcut-row">
-                <input
+                <input aria-label={t('actionsTab.table.shortcut')}
                   value={isRecording ? t('actionsTab.edit.recordingPlaceholder') : (tempShortcut || t('actionsTab.edit.noneLabel'))}
                   readOnly
                   onKeyDown={handleShortcutKeyDown}
@@ -369,7 +372,7 @@ export const ActionsTab: React.FC = () => {
                   ⚠ {shortcutError}
                   {shortcutSuggestion && (
                     <span
-                      onClick={() => { setTempShortcut(shortcutSuggestion); validateShortcut(shortcutSuggestion, editingAction?.id ?? ''); }}
+                      {...pressable(() => { setTempShortcut(shortcutSuggestion); validateShortcut(shortcutSuggestion, editingAction?.id ?? ''); })}
                       className="ps-actionstab-shortcut-suggestion">
                       {t('actionsTab.edit.useSuggestionInstead', { suggestion: shortcutSuggestion })}
                     </span>
@@ -379,7 +382,7 @@ export const ActionsTab: React.FC = () => {
             </div>
             <div className="ps-actionstab-field-group ps-actionstab-field-group--wide">
               <label className="ps-actionstab-field-label">{t('actionsTab.edit.voiceTriggersLabel')}</label>
-              <textarea value={tempTriggers} onChange={(e) => setTempTriggers(e.target.value)} className="ps-actionstab-triggers-textarea" />
+              <textarea aria-label={t('actionsTab.edit.voiceTriggersLabel')} value={tempTriggers} onChange={(e) => setTempTriggers(e.target.value)} className="ps-actionstab-triggers-textarea" />
             </div>
             <div className="ps-actionstab-field-group ps-actionstab-field-group--wide">
               <label className="ps-actionstab-field-label">{t('actionsTab.edit.stationProfilesLabel')}</label>

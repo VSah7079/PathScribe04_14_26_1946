@@ -5,12 +5,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-lock.yaml
-package-lock.json
+# Batch 527 (PS-468): package-lock.json is committed, so CI installs exactly these versions (npm ci).
 
-# Environment files
+# Environment files (Batch 527: every .env file except the example)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Build output
 bin/
@@ -24,6 +24,8 @@ out/
 coverage/
 *.lcov
 test-results/
+e2e-results/
+*.tsbuildinfo
 
 # IDE/editor settings
 .vscode/

@@ -2,7 +2,9 @@
 
 Structured container-type dictionary (jar/cassette/slide etc.) — replaces a previously-unconstrained free-text field.
 
-**Pattern:** Standard interface/mock/firestore pattern.
+**Pattern:** Standard interface/mock pattern (no firestore stub).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): there is no firestore file in this folder.*
 
 ## Notes
 

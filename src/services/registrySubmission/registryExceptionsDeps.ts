@@ -4,6 +4,9 @@ import type { RegistryExceptionsLoadDeps, RegistryExceptionScopeDeps, RegistryTr
 import { registryRevisionDeps } from './recordRegistryAcknowledgementDeps';
 import type { RegistryRevisionDeps } from './recordRegistryRevision';
 import { exportQaReport, qaScopeContext } from '../qualityAssurance/qaExport';
+import { runQaExport } from '../qualityAssurance/runQaExport';
+import { isServerOutcome } from '../exports/exportTracker';
+import { exportService } from '../exports/exportTrackerInstance';
 import type { ResendDeps } from './resendRegistrySubmission';
 import type { RebuildDeps } from './rebuildRegistrySubmission';
 import { rebuildRegistrySubmission } from './rebuildRegistrySubmission';
@@ -25,7 +28,6 @@ import { registrySendGateCheck } from '../registryGoLive/registryGoLiveDeps';
 import type { RegistryCapaDeps } from './captureRegistryExceptionAsCapa';
 import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const cyto = mockCytologyRegistryOutboundQueueService;
 const cancer = mockCancerRegistryOutboundQueueService;
 
@@ -59,7 +61,15 @@ export const registryRevisionReviewDeps: Pick<RegistryRevisionDeps, 'queues' | '
 export const registryTransmissionExportDeps: RegistryTransmissionExportDeps = {
   getAll: { cytology: () => cyto.getAll() as any, cancer: () => cancer.getAll() as any },
   visibleCaseIds,
-  exportQaReport: (capability, rows, filename) => exportQaReport(capability, rows, filename, { authorization: authorizationService }, qaScopeContext()),
+  exportsViaServer: exportService.viaServer,
+  // Batch 550: through the app's export service (built by the API server when there is one).
+  exportQaReport: async (capability, rows, filename, parameters = {}) => {
+    let local: { ok: boolean; reason?: string; rowCount?: number } = { ok: false };
+    const outcome = await runQaExport(capability, filename, qaScopeContext(), parameters, async () => {
+      local = await exportQaReport(capability, rows, filename, { authorization: authorizationService }, qaScopeContext());
+    });
+    return isServerOutcome(outcome) ? { ok: true, viaServer: true } : local;
+  },
 };
 
 const rebuildDeps: RebuildDeps = {

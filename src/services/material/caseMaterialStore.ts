@@ -23,7 +23,6 @@ import { applyDecantChange, type DecantChange } from './materialTree';
 import type { MaterialEventBus } from './materialEvents';
 import type { DecantSaveResult } from './caseMaterialService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CaseMaterialState {
   caseId: string;

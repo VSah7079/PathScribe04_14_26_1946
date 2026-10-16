@@ -8,6 +8,11 @@
 //
 // Proxy config lives in vite.config.ts → server.proxy.
 //
+// Batch 536 (PS-558): every call is checked against the AI vendor policy of
+// the jurisdiction the work belongs to before it is sent (aiCallPolicy.ts),
+// and recorded in the AI audit log with its service, model and hosting
+// region. A refused call throws AiNotAvailableError.
+//
 // Provider builders/parsers below are named for their real request/
 // response protocol shape (structured_messages, chat_completions,
 // model_gateway, structured_content) rather than the vendor, matching
@@ -19,15 +24,23 @@
 
 import {
   resolveAiConfig,
+  aiHostingRegion,
   type AiProviderConfig,
   type AiProviderId,
 } from '@/components/Config/AI/aiProviderConfig';
+import { checkAiCall, defaultAiCallPolicyDeps, recordAiCall, type AiCallContext, type AiCallPolicyDeps } from './aiCallPolicy';
 
 export interface AiCallOptions {
   system: string;
   prompt: string;
   maxTokens?: number;
   configOverride?: Partial<AiProviderConfig>;
+  /** Batch 536 (PS-558): what the call is for and where the work belongs
+   *  (the case or facility, for its jurisdiction's AI vendor policy). Without
+   *  it, the laboratory's own jurisdiction applies. Never sent to the AI. */
+  context?: AiCallContext;
+  /** Tests only: the policy dependencies. */
+  policyDeps?: AiCallPolicyDeps;
 }
 
 export interface AiCallResult {
@@ -172,6 +185,10 @@ export async function callAi(opts: AiCallOptions): Promise<AiCallResult> {
 
   let request: { url: string; headers: Record<string, string>; body: object };
   let parseResponse: (data: any) => string;
+  // Batch 536: the service the request actually goes to (the fallback below
+  // sends an unknown or 'mock' setting to structured_messages), which is what
+  // the vendor policy checks and the audit log records.
+  let sentTo: AiProviderId = cfg.providerId;
 
   switch (cfg.providerId) {
     case 'structured_messages':
@@ -214,23 +231,37 @@ export async function callAi(opts: AiCallOptions): Promise<AiCallResult> {
       console.warn(`[PathScribe AI] Unknown provider '${(cfg as any).providerId}' — falling back to structured_messages.`);
       request       = buildStructuredMessagesRequest({ ...cfg, providerId: 'structured_messages' }, opts);
       parseResponse = parseStructuredMessagesResponse;
+      sentTo        = 'structured_messages';
   }
 
-  const response = await fetch(request.url, {
-    method:  'POST',
-    headers: request.headers,
-    body:    JSON.stringify(request.body),
-  });
+  // Batch 536 (PS-558): the jurisdiction's AI vendor policy, before anything
+  // is sent. A refusal throws AiNotAvailableError; there is no fallback to
+  // another service.
+  const policyDeps = opts.policyDeps ?? defaultAiCallPolicyDeps;
+  const target = { providerId: sentTo, modelId: cfg.modelId, region: aiHostingRegion({ ...cfg, providerId: sentTo }) };
+  const where = await checkAiCall(target, opts.context, policyDeps);
+  const started = Date.now();
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    throw new Error(
-      `[PathScribe AI] ${cfg.providerId} returned ${response.status}: ${errorBody.slice(0, 200)}`
-    );
+  try {
+    const response = await fetch(request.url, {
+      method:  'POST',
+      headers: request.headers,
+      body:    JSON.stringify(request.body),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      throw new Error(
+        `[PathScribe AI] ${cfg.providerId} returned ${response.status}: ${errorBody.slice(0, 200)}`
+      );
+    }
+
+    const data = await response.json();
+    const text = parseResponse(data);
+    recordAiCall(target, opts.context, where, { status: 'completed', latencyMs: Date.now() - started, text }, policyDeps);
+    return { text, provider: sentTo, model: cfg.modelId };
+  } catch (e) {
+    recordAiCall(target, opts.context, where, { status: 'error', latencyMs: Date.now() - started, error: e instanceof Error ? e.message : String(e) }, policyDeps);
+    throw e;
   }
-
-  const data = await response.json();
-  const text = parseResponse(data);
-
-  return { text, provider: cfg.providerId, model: cfg.modelId };
 }

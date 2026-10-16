@@ -23,3 +23,9 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 516 (PS-283)
+
+- `Flag.restrictsPrinting`: a case flag that restricts printing to holders of `report:restricted-case:print`.
+- New seed flag `f37` "Confidential — Restricted Printing" (CONF).
+- Seed flags added since a browser's copy was saved are now appended without resetting edited flags.

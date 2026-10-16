@@ -15,12 +15,15 @@ a real, external audience for it.
 - **In-app end-user documentation** (Admin Guide, User Guide) is real,
   current, and already embedded/served directly inside the app itself
   (`public/help/`, via `src/utils/guideAssets.ts`) — that's the right
-  home for it today, not this folder. See `../developer/GETTING_STARTED.md`
-  for the update workflow if those guides need a rebuild.
+  home for it today, not this folder. `scripts/Update-GuideAssets.ps1`
+  rebuilds `guideAssets.ts` from the PDFs if those guides need a rebuild
+  (see `src/utils/README.md`).
 - **A public API contract** doesn't exist yet in any current, accurate
   form — an earlier draft was found stale (predating most of the
   app's current surface) and was purged rather than kept as a
   misleading starting point. See `../ARCHIVE.md`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `GETTING_STARTED.md` has no guide-rebuild workflow; the rebuild is `scripts/Update-GuideAssets.ps1`.*
 
 ## When to actually write into this folder
 

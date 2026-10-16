@@ -34,9 +34,13 @@ import { billingApprovalChoice, billingApprovalChoices, requireBillingApprovalFo
 import '../../pathscribe.css';
 import type { Facility, FacilityInput, FacilityRole } from "../../services/facilities/IFacilityService";
 import { FACILITY_ROLE_LABELS, FACILITY_ROLE_TOOLTIPS } from "../../services/facilities/IFacilityService";
-import { findDuplicate } from "../../utils/validateUnique";
-import { placeOfServiceCodeService } from "@/services";
+import { placeOfServiceCodeService, fieldRequirementService } from "@/services";
+import { resolveFieldRequirements, isFieldRequired, type ResolvedFieldRequirement } from "@/services/fieldRequirements/fieldRequirementRules";
+import { checkFacilityForm } from "@/services/facilities/facilityFormChecks";
+import { formatList } from "@/utils/formatList";
 import IdentifierFormatsTab from "./IdentifierFormatsTab";
+import { FacilityPrintingTab } from "./FacilityPrintingTab";
+import { FacilitySecureMessagingTab } from "./FacilitySecureMessagingTab";
 import type { PlaceOfServiceCode } from "../../types/billing/PlaceOfServiceCode";
 import { JURISDICTION_LABELS, type Jurisdiction } from "../../types/systemConfig";
 import { SUFFIX_PRESETS, isPresetSuffix } from "../../utils/personName";
@@ -47,6 +51,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { AIModel } from "../../services/models/IModelService";
 import type { Location } from "../../services/locations/ILocationService";
 import { HL7_LOCATION_STATUS_OPTIONS, HL7_PERSON_LOCATION_TYPE_OPTIONS } from "../../services/locations/ILocationService";
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface FacilityEditorModalProps {
   isOpen: boolean;
@@ -125,22 +130,32 @@ const blank = (): FacilityInput => ({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const Field: React.FC<{ label: string; children: React.ReactNode; span?: boolean }> = ({
-  label, children, span,
+// Batch 528 (PS-359): `required` adds the star, from the organisation's Field Requirements.
+const Field: React.FC<{ label: string; children: React.ReactNode; span?: boolean; required?: boolean }> = ({
+  label, children, span, required,
 }) => (
   <div className={span ? "cem-field--span" : undefined}>
-    <label className="cem-label">{label}</label>
+    <label className="cem-label">{label}{required && <span className="cem-required"> *</span>}</label>
     {children}
   </div>
 );
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = "general" | "lis_integration" | "identifier_formats" | "reporting" | "tat" | "ai" | "locations" | "spelling";
+type Tab = "general" | "lis_integration" | "identifier_formats" | "reporting" | "tat" | "ai" | "locations" | "spelling" | "printing" | "secure_messaging";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
+// Batch 499: the modal used to return null part-way through its hooks when closed
+// (`if (!isOpen) return null` before ten more useState/useEffect calls), so
+// opening it changed the number of hooks between renders — React's rules of
+// hooks, and a "Rendered more hooks than during the previous render" crash
+// waiting to happen. The body now mounts only while open; every hook runs on
+// every render of it, and closing unmounts it (so reopening starts clean).
+export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = (props) =>
+  props.isOpen ? <FacilityEditorModalBody {...props} /> : null;
+
+const FacilityEditorModalBody: React.FC<FacilityEditorModalProps> = ({
   isOpen,
   onClose,
   mode,
@@ -148,7 +163,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
   onSave,
   allFacilities,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // Real fix (PS-73): was `!!facility` — broke the moment Duplicate started
   // passing a prefilled `facility` object into 'add' mode. `mode` is the
   // single source of truth now; see file header comment.
@@ -170,6 +185,10 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
   const [tab,  setTab]  = useState<Tab>("general");
   const [errors, setErrors] = useState<Partial<Record<keyof FacilityInput, string>>>({});
   const [saved, setSaved]   = useState(false);
+  // Batch 528 (PS-359): what this organisation requires on a facility (Configuration → Field Requirements).
+  const [requirements, setRequirements] = useState<ResolvedFieldRequirement[]>(() => resolveFieldRequirements('facility', {}));
+  const [missingLabel, setMissingLabel] = useState('');
+  const req = (id: string) => isFieldRequired(requirements, id);
   const [contactSuffixCustom, setContactSuffixCustom] = useState(!isPresetSuffix(form.contactNameSuffix));
 
   useEffect(() => {
@@ -184,10 +203,16 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
     }
     setTab("general");
     setErrors({});
+    setMissingLabel('');
     setSaved(false);
   }, [isOpen, facility]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    let live = true;
+    fieldRequirementService.forSession('facility').then(r => { if (live) setRequirements(r); }).catch(() => {});
+    return () => { live = false; };
+  }, [isOpen]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -204,7 +229,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
   // reporting above which were always-present objects - each helper
   // seeds a real, sensible blank shape on first edit rather than
   // spreading undefined.
-  const setInterfaceEngineConnection = (key: keyof Facility["interfaceEngineConnection"], val: unknown) =>
+  const setInterfaceEngineConnection = (key: keyof NonNullable<Facility["interfaceEngineConnection"]>, val: unknown) =>
     setForm((f) => ({
       ...f,
       interfaceEngineConnection: {
@@ -214,7 +239,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
       },
     }));
 
-  const setLisRouting = (key: keyof Facility["lisRouting"], val: unknown) =>
+  const setLisRouting = (key: keyof NonNullable<Facility["lisRouting"]>, val: unknown) =>
     setForm((f) => ({
       ...f,
       lisRouting: {
@@ -369,45 +394,36 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
 
   // ── Validation ─────────────────────────────────────────────────────────────
 
+  // Batch 528 (PS-359): the check is services/facilities/facilityFormChecks.ts,
+  // from the organisation's Field Requirements. The assigning authority stays
+  // required and unique (PS-73: inbound HL7 orders are matched to a facility by
+  // it). In 'add' mode nothing is excluded from the uniqueness check, so a
+  // Duplicate saved without its own assigning authority is caught.
   const validate = (): boolean => {
-    const e: typeof errors = {};
-    if (!form.name.trim()) e.name = t('facilityEditorModal.errors.nameRequired');
-    // Real fix (PS-73, Sep 2026): assigningAuthority was required-only —
-    // no uniqueness check — despite mockOrderIntakeService.ts's own real
-    // Facility-resolution lookup keying directly off it
-    // (`facilities.find(c => c.assigningAuthority.toLowerCase() === ...)`).
-    // Two facilities sharing one would let that real lookup silently
-    // resolve an inbound HL7 order to the wrong facility — same failure
-    // mode this pattern already protects Physicians' npi/physicianCode
-    // against. excludeId only applies in real 'edit' mode — in 'add' mode
-    // (including a Duplicate template, whose assigningAuthority is cleared
-    // before this modal ever opens — see FacilityDictionaryPage.tsx's
-    // handleDuplicateFacility) nothing is excluded, so saving a clone
-    // without giving it its own value is correctly caught.
-    if (!form.assigningAuthority.trim()) {
-      e.assigningAuthority = t('facilityEditorModal.errors.assigningAuthorityRequired');
-    } else {
-      const excludeId = isEdit ? facility?.id : undefined;
-      const collision = findDuplicate(allFacilities, { assigningAuthority: form.assigningAuthority.trim() }, ['assigningAuthority'], excludeId);
-      if (collision) {
-        e.assigningAuthority = t('facilityEditorModal.errors.assigningAuthorityCollision', {
-          code: collision.assigningAuthority,
-          name: collision.name,
-        });
-      }
-    }
-    if (!form.email.trim() || !form.email.includes("@"))
-      e.email = t('facilityEditorModal.errors.emailRequired');
-    // Real, per direct guidance: replaces the old hl7.enabled-based
-    // check — presence of a real, configured object is the enabled
-    // signal now, not a separate boolean. interfaceEngineConnection
-    // is only ever set here when isEnterprise, so endpoint is the
-    // one real required field once an admin starts configuring it.
-    if (form.isEnterprise && form.interfaceEngineConnection && !form.interfaceEngineConnection.endpoint.trim())
-      (e as Record<string, string>).interfaceEngineConnection = t('facilityEditorModal.errors.endpointRequired');
-    if (form.lisRouting && !form.lisRouting.sendingFacilityId.trim())
-      (e as Record<string, string>).lisRouting = t('facilityEditorModal.errors.sendingFacilityIdRequired');
-    setErrors(e);
+    const check = checkFacilityForm(form, requirements, allFacilities, isEdit ? facility?.id : undefined);
+    const p = check.problems;
+    const e: Record<string, string> = {};
+    if (p.name) e.name = t('facilityEditorModal.errors.nameRequired');
+    if (p.assigningAuthority === 'required') e.assigningAuthority = t('facilityEditorModal.errors.assigningAuthorityRequired');
+    if (p.assigningAuthority === 'assigningAuthorityCollision' && check.collision)
+      e.assigningAuthority = t('facilityEditorModal.errors.assigningAuthorityCollision', { code: check.collision.assigningAuthority, name: check.collision.name });
+    if (p.email) e.email = t('facilityEditorModal.errors.emailRequired');
+    if (p.phone) e.phone = t('common.required');
+    if (p.address) e.address = t('common.required');
+    // Batch 530 (Pete): fax, city, region and postal code are on the editor now.
+    if (p.fax) e.fax = t('common.required');
+    if (p.city) e.city = t('common.required');
+    if (p.region) e.state = t('common.required');
+    if (p.postalCode) e.zip = t('common.required');
+    if (p.contactPerson) e.contactFamilyNames = t('common.required');
+    if (p.interfaceEndpoint) e.interfaceEngineConnection = t('facilityEditorModal.errors.endpointRequired');
+    if (p.sendingFacilityId) e.lisRouting = t('facilityEditorModal.errors.sendingFacilityIdRequired');
+    // Batch 549: the logo is a link (images are links only).
+    if (p.headerLogoUrl === 'invalidLink') e.headerLogoUrl = t('links.invalidHttpsLink');
+    setErrors(e as typeof errors);
+    setMissingLabel(check.missing.length
+      ? formatList(check.missing.map(m => t(`fieldRequirements.fields.facility.${m.id}`)), i18n.language)
+      : '');
     return Object.keys(e).length === 0;
   };
 
@@ -476,6 +492,16 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
             )}
             {/* Batch 432: the lab's spelling dictionary (a performing lab's
                 words are used for its cases); config:facilities:manage. */}
+            {/* Batch 517 (PS-337): report printing; saves on its own with
+                config:print-settings:manage. */}
+            {/* Batch 517 (PS-143): a tenant's secure messaging gateways and agreements;
+                config:secure-messaging:manage. */}
+            {isEdit && form.isEnterprise && (
+              <button className={tabClass("secure_messaging")}  onClick={() => setTab("secure_messaging")}>{t('facilityEditorModal.tabs.secureMessaging')}</button>
+            )}
+            {isEdit && (
+              <button className={tabClass("printing")}  onClick={() => setTab("printing")}>{t('facilityEditorModal.tabs.printing')}</button>
+            )}
             {isEdit && hasRole('performing_lab') && (
               <button className={tabClass("spelling")}  onClick={() => setTab("spelling")}>{t('facilityEditorModal.tabs.spelling')}</button>
             )}
@@ -490,8 +516,8 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
             <div className="ps-client-editor-form">
               <div className="cem-section">{t('facilityEditorModal.general.facilityDetails')}</div>
               <div className="ps-client-editor-grid-2">
-                <Field label={t('facilityEditorModal.general.facilityName')} span>
-                  <input
+                <Field label={t('facilityEditorModal.general.facilityName')} span required={req('name')}>
+                  <input aria-label={t('facilityEditorModal.general.facilityName')}
                     className={`ps-modal-dark-input${errors.name ? " ps-modal-dark-input--error" : ""}`}
                     value={form.name}
                     onChange={(e) => set("name", e.target.value)}
@@ -499,8 +525,8 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   />
                   {errors.name && <div className="ps-client-editor-field-error">{errors.name}</div>}
                 </Field>
-                <Field label={t('facilityEditorModal.general.assigningAuthority')}>
-                  <input
+                <Field label={t('facilityEditorModal.general.assigningAuthority')} required={req('assigningAuthority')}>
+                  <input aria-label={t('facilityEditorModal.general.assigningAuthority')}
                     className={`ps-modal-dark-input cem-input--mono-upper${errors.assigningAuthority ? " ps-modal-dark-input--error" : ""}`}
                     value={form.assigningAuthority}
                     onChange={(e) => set("assigningAuthority", e.target.value.toUpperCase())}
@@ -510,7 +536,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   {errors.assigningAuthority && <div className="ps-client-editor-field-error">{errors.assigningAuthority}</div>}
                 </Field>
                 <Field label={t('facilityEditorModal.general.status')}>
-                  <select className="cem-input" value={form.status} onChange={(e) => set("status", e.target.value)}>
+                  <select aria-label={t('facilityEditorModal.general.status')} className="cem-input" value={form.status} onChange={(e) => set("status", e.target.value)}>
                     <option value="Active">{t('facilityEditorModal.general.statusActive')}</option>
                     <option value="Inactive">{t('facilityEditorModal.general.statusInactive')}</option>
                     {/* Unverified is only ever set by order-intake auto-creation,
@@ -546,7 +572,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                 </Field>
                 {hasRole('specimen_acquisition') && (
                   <Field label={t('facilityEditorModal.general.placeOfServiceCode')}>
-                    <select className="cem-input" value={form.placeOfServiceCodeId ?? ''} onChange={(e) => set("placeOfServiceCodeId", e.target.value || undefined)}>
+                    <select aria-label={t('facilityEditorModal.general.placeOfServiceCode')} className="cem-input" value={form.placeOfServiceCodeId ?? ''} onChange={(e) => set("placeOfServiceCodeId", e.target.value || undefined)}>
                       <option value="">{t('facilityEditorModal.general.notSet')}</option>
                       {posCodes.map(c => (
                         <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
@@ -574,7 +600,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                     also carry performing_lab today. */}
                 {(hasRole('performing_lab') || form.isEnterprise) && (
                   <Field label={t('facilityEditorModal.general.cliaIsoNumber')}>
-                    <input
+                    <input aria-label={t('facilityEditorModal.general.cliaIsoNumber')}
                       className="cem-input"
                       value={form.cliaOrIsoNumber ?? ''}
                       onChange={(e) => set("cliaOrIsoNumber", e.target.value || undefined)}
@@ -587,7 +613,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                 )}
                 {(hasRole('performing_lab') || form.isEnterprise) && (
                   <Field label={t('facilityEditorModal.general.directorName')}>
-                    <input
+                    <input aria-label={t('facilityEditorModal.general.directorName')}
                       className="cem-input"
                       value={form.directorName ?? ''}
                       onChange={(e) => set("directorName", e.target.value || undefined)}
@@ -600,12 +626,13 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                 )}
                 {(hasRole('performing_lab') || form.isEnterprise) && (
                   <Field label={t('facilityEditorModal.general.headerLogoUrl')}>
-                    <input
+                    <input aria-label={t('facilityEditorModal.general.headerLogoUrl')}
                       className="cem-input"
                       value={form.headerLogoUrl ?? ''}
                       onChange={(e) => set("headerLogoUrl", e.target.value || undefined)}
                       placeholder={t('facilityEditorModal.general.headerLogoUrlPlaceholder')}
                     />
+                    {errors.headerLogoUrl && <div className="ps-client-editor-field-error">{errors.headerLogoUrl}</div>}
                     <div className="cem-hint">
                       {t('facilityEditorModal.general.headerLogoUrlHint')}
                     </div>
@@ -650,7 +677,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                 )}
                 {hasRole('performing_lab') && (
                   <Field label={t('facilityEditorModal.general.reportLanguage')}>
-                    <select className="cem-input" value={form.reportLanguage ?? ''} onChange={(e) => set("reportLanguage", (e.target.value || undefined) as ReportLanguage | undefined)}>
+                    <select aria-label={t('facilityEditorModal.general.reportLanguage')} className="cem-input" value={form.reportLanguage ?? ''} onChange={(e) => set("reportLanguage", (e.target.value || undefined) as ReportLanguage | undefined)}>
                       <option value="">{t('facilityEditorModal.general.reportLanguageDefault', { language: t(`language.${defaultReportLanguage(form.jurisdiction)}`) })}</option>
                       {REPORT_LANGUAGES.map(code => (
                         <option key={code} value={code}>{t(`language.${code}`)}</option>
@@ -679,14 +706,14 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   </Field>
                 )}
                 <Field label={t('facilityEditorModal.general.jurisdiction')}>
-                  <select className="cem-input" value={form.jurisdiction} onChange={(e) => set("jurisdiction", e.target.value)}>
+                  <select aria-label={t('facilityEditorModal.general.jurisdiction')} className="cem-input" value={form.jurisdiction} onChange={(e) => set("jurisdiction", e.target.value)}>
                     {(Object.entries(JURISDICTION_LABELS) as [Jurisdiction, string][]).map(([code, label]) => (
                       <option key={code} value={code}>{label}</option>
                     ))}
                   </select>
                 </Field>
                 <Field label={t('facilityEditorModal.general.specimenLabeling')}>
-                  <select className="cem-input" value={form.specimenLabelStyle ?? 'alpha-specimen'} onChange={(e) => set("specimenLabelStyle", e.target.value)}>
+                  <select aria-label={t('facilityEditorModal.general.specimenLabeling')} className="cem-input" value={form.specimenLabelStyle ?? 'alpha-specimen'} onChange={(e) => set("specimenLabelStyle", e.target.value)}>
                     <option value="alpha-specimen">{t('facilityEditorModal.general.specimenLabelingAlpha')}</option>
                     <option value="numeric-specimen">{t('facilityEditorModal.general.specimenLabelingNumeric')}</option>
                   </select>
@@ -707,7 +734,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   </div>
                 </Field>
                 <Field label={t('facilityEditorModal.general.parentEnterprise')}>
-                  <select className="cem-input" value={form.parentId ?? ''} onChange={(e) => set("parentId", e.target.value || undefined)}>
+                  <select aria-label={t('facilityEditorModal.general.parentEnterprise')} className="cem-input" value={form.parentId ?? ''} onChange={(e) => set("parentId", e.target.value || undefined)}>
                     <option value="">{t('facilityEditorModal.general.parentEnterpriseNone')}</option>
                     {allFacilities
                       .filter(c => c.id !== facility?.id && c.isEnterprise)
@@ -719,13 +746,13 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               <div className="cem-section">{t('facilityEditorModal.general.contact')}</div>
               <div className="ps-client-editor-grid-2">
                 <Field label={t('facilityEditorModal.general.contactPrefix')}>
-                  <select className="cem-input" value={form.contactNamePrefix ?? ''} onChange={(e) => set("contactNamePrefix", e.target.value)}>
+                  <select aria-label={t('facilityEditorModal.general.contactPrefix')} className="cem-input" value={form.contactNamePrefix ?? ''} onChange={(e) => set("contactNamePrefix", e.target.value)}>
                     <option value="">{t('facilityEditorModal.general.none')}</option>
-                    <option value="Mr.">Mr.</option>
-                    <option value="Mrs.">Mrs.</option>
-                    <option value="Ms.">Ms.</option>
-                    <option value="Mx.">Mx.</option>
-                    <option value="Dr.">Dr.</option>
+                    <option value="Mr.">{t('common.honorifics.mr')}</option>
+                    <option value="Mrs.">{t('common.honorifics.mrs')}</option>
+                    <option value="Ms.">{t('common.honorifics.ms')}</option>
+                    <option value="Mx.">{t('common.honorifics.mx')}</option>
+                    <option value="Dr.">{t('common.honorifics.dr')}</option>
                   </select>
                 </Field>
                 <Field label={t('facilityEditorModal.general.contactSuffix')}>
@@ -737,7 +764,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <select className="cem-input" value={form.contactNameSuffix ?? ''} onChange={(e) => {
+                    <select aria-label={t('a11y.fields.nameSuffix')} className="cem-input" value={form.contactNameSuffix ?? ''} onChange={(e) => {
                       if (e.target.value === "__other__") { setContactSuffixCustom(true); set("contactNameSuffix", ""); }
                       else set("contactNameSuffix", e.target.value);
                     }}>
@@ -748,16 +775,17 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   )}
                 </Field>
                 <Field label={t('facilityEditorModal.general.contactGivenNames')}>
-                  <input className="cem-input" value={form.contactGivenNames ?? ''} onChange={(e) => set("contactGivenNames", e.target.value)} placeholder={t('facilityEditorModal.general.contactGivenNamesPlaceholder')} />
+                  <input aria-label={t('facilityEditorModal.general.contactGivenNames')} className="cem-input" value={form.contactGivenNames ?? ''} onChange={(e) => set("contactGivenNames", e.target.value)} placeholder={t('facilityEditorModal.general.contactGivenNamesPlaceholder')} />
                 </Field>
-                <Field label={t('facilityEditorModal.general.contactFamilyNames')}>
-                  <input className="cem-input" value={form.contactFamilyNames ?? ''} onChange={(e) => set("contactFamilyNames", e.target.value)} placeholder={t('facilityEditorModal.general.contactFamilyNamesPlaceholder')} />
+                <Field label={t('facilityEditorModal.general.contactFamilyNames')} required={req('contactPerson')}>
+                  <input aria-label={t('facilityEditorModal.general.contactFamilyNames')} className={`cem-input${errors.contactFamilyNames ? ' cem-input--error' : ''}`} value={form.contactFamilyNames ?? ''} onChange={(e) => set("contactFamilyNames", e.target.value)} placeholder={t('facilityEditorModal.general.contactFamilyNamesPlaceholder')} />
+                  {errors.contactFamilyNames && <div className="ps-client-editor-field-error">{errors.contactFamilyNames}</div>}
                 </Field>
                 <Field label={t('facilityEditorModal.general.contactPreferredName')} span>
-                  <input className="cem-input" value={form.contactPreferredName ?? ''} onChange={(e) => set("contactPreferredName", e.target.value)} placeholder={t('facilityEditorModal.general.contactPreferredNamePlaceholder')} />
+                  <input aria-label={t('facilityEditorModal.general.contactPreferredName')} className="cem-input" value={form.contactPreferredName ?? ''} onChange={(e) => set("contactPreferredName", e.target.value)} placeholder={t('facilityEditorModal.general.contactPreferredNamePlaceholder')} />
                 </Field>
-                <Field label={t('facilityEditorModal.general.email')}>
-                  <input
+                <Field label={t('facilityEditorModal.general.email')} required={req('email')}>
+                  <input aria-label={t('facilityEditorModal.general.email')}
                     className={`ps-modal-dark-input${errors.email ? " ps-modal-dark-input--error" : ""}`}
                     value={form.email}
                     onChange={(e) => set("email", e.target.value)}
@@ -766,11 +794,29 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   />
                   {errors.email && <div className="ps-client-editor-field-error">{errors.email}</div>}
                 </Field>
-                <Field label={t('facilityEditorModal.general.phone')}>
-                  <input className="cem-input" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="555-000-0000" />
+                <Field label={t('facilityEditorModal.general.phone')} required={req('phone')}>
+                  <input aria-label={t('facilityEditorModal.general.phone')} className={`cem-input${errors.phone ? ' cem-input--error' : ''}`} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="555-000-0000" />
+                  {errors.phone && <div className="ps-client-editor-field-error">{errors.phone}</div>}
                 </Field>
-                <Field label={t('facilityEditorModal.general.address')} span>
-                  <input className="cem-input" value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={t('facilityEditorModal.general.addressPlaceholder')} />
+                <Field label={t('facilityEditorModal.general.fax')} required={req('fax')}>
+                  <input aria-label={t('facilityEditorModal.general.fax')} className={`cem-input${errors.fax ? ' cem-input--error' : ''}`} value={form.fax ?? ''} onChange={(e) => set("fax", e.target.value)} />
+                  {errors.fax && <div className="ps-client-editor-field-error">{errors.fax}</div>}
+                </Field>
+                <Field label={t('facilityEditorModal.general.address')} span required={req('address')}>
+                  <input aria-label={t('facilityEditorModal.general.address')} className={`cem-input${errors.address ? ' cem-input--error' : ''}`} value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={t('facilityEditorModal.general.addressPlaceholder')} />
+                  {errors.address && <div className="ps-client-editor-field-error">{errors.address}</div>}
+                </Field>
+                <Field label={t('facilityEditorModal.general.city')} required={req('city')}>
+                  <input aria-label={t('facilityEditorModal.general.city')} className={`cem-input${errors.city ? ' cem-input--error' : ''}`} value={form.city ?? ''} onChange={(e) => set("city", e.target.value)} />
+                  {errors.city && <div className="ps-client-editor-field-error">{errors.city}</div>}
+                </Field>
+                <Field label={t('facilityEditorModal.general.region')} required={req('region')}>
+                  <input aria-label={t('facilityEditorModal.general.region')} className={`cem-input${errors.state ? ' cem-input--error' : ''}`} value={form.state ?? ''} onChange={(e) => set("state", e.target.value)} />
+                  {errors.state && <div className="ps-client-editor-field-error">{errors.state}</div>}
+                </Field>
+                <Field label={t('facilityEditorModal.general.postalCode')} required={req('postalCode')}>
+                  <input aria-label={t('facilityEditorModal.general.postalCode')} className={`cem-input${errors.zip ? ' cem-input--error' : ''}`} value={form.zip ?? ''} onChange={(e) => set("zip", e.target.value)} />
+                  {errors.zip && <div className="ps-client-editor-field-error">{errors.zip}</div>}
                 </Field>
               </div>
             </div>
@@ -787,7 +833,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   </p>
                   <div className="ps-client-editor-grid-2 cem-grid-spaced">
                     <Field label={t('facilityEditorModal.lis.endpoint')}>
-                      <input
+                      <input aria-label={t('facilityEditorModal.lis.endpoint')}
                         className={`cem-input${(errors as Record<string, string>).interfaceEngineConnection ? ' cem-input--error' : ''}`}
                         value={form.interfaceEngineConnection?.endpoint ?? ""}
                         onChange={(e) => setInterfaceEngineConnection("endpoint", e.target.value)}
@@ -800,7 +846,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       )}
                     </Field>
                     <Field label={t('facilityEditorModal.lis.hl7Version')}>
-                      <select className="cem-input" value={form.interfaceEngineConnection?.hl7Version ?? "2.5.1"} onChange={(e) => setInterfaceEngineConnection("hl7Version", e.target.value)}>
+                      <select aria-label={t('facilityEditorModal.lis.hl7Version')} className="cem-input" value={form.interfaceEngineConnection?.hl7Version ?? "2.5.1"} onChange={(e) => setInterfaceEngineConnection("hl7Version", e.target.value)}>
                         <option value="2.3">2.3</option>
                         <option value="2.4">2.4</option>
                         <option value="2.5">2.5</option>
@@ -809,7 +855,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       </select>
                     </Field>
                     <Field label={t('facilityEditorModal.lis.authType')}>
-                      <select className="cem-input" value={form.interfaceEngineConnection?.authType ?? "none"} onChange={(e) => setInterfaceEngineConnection("authType", e.target.value)}>
+                      <select aria-label={t('facilityEditorModal.lis.authType')} className="cem-input" value={form.interfaceEngineConnection?.authType ?? "none"} onChange={(e) => setInterfaceEngineConnection("authType", e.target.value)}>
                         <option value="none">{t('facilityEditorModal.lis.authTypeNone')}</option>
                         <option value="basic">{t('facilityEditorModal.lis.authTypeBasic')}</option>
                         <option value="oauth2">OAuth2</option>
@@ -885,11 +931,11 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               {(form.isEnterprise || form.lisRouting) ? (
                 <div className="ps-client-editor-grid-2">
                   <Field label={t('facilityEditorModal.lis.sendingFacilityId')}>
-                    <input
+                    <input aria-label={t('facilityEditorModal.lis.sendingFacilityId')}
                       className={`cem-input${(errors as Record<string, string>).lisRouting ? ' cem-input--error' : ''}`}
                       value={form.lisRouting?.sendingFacilityId ?? ""}
                       onChange={(e) => setLisRouting("sendingFacilityId", e.target.value)}
-                      placeholder="e.g. SURGI_CENTER_NORTH"
+                      placeholder={t('common.examplePlaceholder', { example: 'SURGI_CENTER_NORTH' })}
                     />
                     {(errors as Record<string, string>).lisRouting && (
                       <div className="ps-client-editor-field-error">
@@ -898,10 +944,10 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                     )}
                   </Field>
                   <Field label={t('facilityEditorModal.lis.receivingFacilityId')}>
-                    <input className="cem-input" value={form.lisRouting?.receivingFacilityId ?? ""} onChange={(e) => setLisRouting("receivingFacilityId", e.target.value)} placeholder={t('facilityEditorModal.lis.optional')} />
+                    <input aria-label={t('facilityEditorModal.lis.receivingFacilityId')} className="cem-input" value={form.lisRouting?.receivingFacilityId ?? ""} onChange={(e) => setLisRouting("receivingFacilityId", e.target.value)} placeholder={t('facilityEditorModal.lis.optional')} />
                   </Field>
                   <Field label={t('facilityEditorModal.lis.outboundChannelOverride')} span>
-                    <input className="cem-input" value={form.lisRouting?.outboundChannelOverride ?? ""} onChange={(e) => setLisRouting("outboundChannelOverride", e.target.value)} placeholder={t('facilityEditorModal.lis.outboundChannelOverridePlaceholder')} />
+                    <input aria-label={t('facilityEditorModal.lis.outboundChannelOverride')} className="cem-input" value={form.lisRouting?.outboundChannelOverride ?? ""} onChange={(e) => setLisRouting("outboundChannelOverride", e.target.value)} placeholder={t('facilityEditorModal.lis.outboundChannelOverridePlaceholder')} />
                   </Field>
                 </div>
               ) : (
@@ -943,14 +989,14 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               <div className="cem-section">{t('facilityEditorModal.reporting.preferences')}</div>
               <div className="ps-client-editor-grid-2">
                 <Field label={t('facilityEditorModal.reporting.reportFormat')}>
-                  <select className="cem-input" value={form.reporting.reportFormat} onChange={(e) => setReporting("reportFormat", e.target.value)}>
+                  <select aria-label={t('facilityEditorModal.reporting.reportFormat')} className="cem-input" value={form.reporting.reportFormat} onChange={(e) => setReporting("reportFormat", e.target.value)}>
                     <option value="PDF">PDF</option>
                     <option value="HL7">HL7</option>
                     <option value="Both">{t('facilityEditorModal.reporting.reportFormatBoth')}</option>
                   </select>
                 </Field>
                 <Field label={t('facilityEditorModal.reporting.deliveryMethod')}>
-                  <select className="cem-input" value={form.reporting.deliveryMethod} onChange={(e) => setReporting("deliveryMethod", e.target.value)}>
+                  <select aria-label={t('facilityEditorModal.reporting.deliveryMethod')} className="cem-input" value={form.reporting.deliveryMethod} onChange={(e) => setReporting("deliveryMethod", e.target.value)}>
                     <option value="Email">{t('facilityEditorModal.reporting.deliveryEmail')}</option>
                     <option value="Fax">{t('facilityEditorModal.reporting.deliveryFax')}</option>
                     <option value="Portal">{t('facilityEditorModal.reporting.deliveryPortal')}</option>
@@ -982,7 +1028,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               <div className="cem-section">{t('facilityEditorModal.tat.turnaroundTimeTargets')}</div>
               <div className="ps-client-editor-grid-2">
                 <Field label={t('facilityEditorModal.tat.firstTouchTarget')}>
-                  <input
+                  <input aria-label={t('facilityEditorModal.tat.firstTouchTarget')}
                     className="cem-input"
                     type="number"
                     min={1}
@@ -996,7 +1042,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   </div>
                 </Field>
                 <Field label={t('facilityEditorModal.tat.totalCaseTarget')}>
-                  <input
+                  <input aria-label={t('facilityEditorModal.tat.totalCaseTarget')}
                     className="cem-input"
                     type="number"
                     min={1}
@@ -1014,7 +1060,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               <div className="cem-section">{t('facilityEditorModal.tat.escalationPriority')}</div>
               <div className="cem-maxwidth-sm">
                 <Field label={t('facilityEditorModal.tat.priorityLabel')}>
-                  <select className="cem-input" value={form.escalationPriority ?? "high"} onChange={(e) => set("escalationPriority", e.target.value)}>
+                  <select aria-label={t('facilityEditorModal.tat.priorityLabel')} className="cem-input" value={form.escalationPriority ?? "high"} onChange={(e) => set("escalationPriority", e.target.value)}>
                     <option value="high">{t('facilityEditorModal.tat.priorityHigh')}</option>
                     <option value="critical">{t('facilityEditorModal.tat.priorityCritical')}</option>
                   </select>
@@ -1059,7 +1105,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               <div className="cem-section">{t('facilityEditorModal.ai.orchestrator')}</div>
               <div className="ps-client-editor-grid-2">
                 <Field label={t('facilityEditorModal.ai.narrativeAutoDraft')}>
-                  <select
+                  <select aria-label={t('facilityEditorModal.ai.narrativeAutoDraft')}
                     className="cem-input"
                     value={
                       form.internalAiOrchestratorEnabled === true ? 'on'
@@ -1077,7 +1123,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   </select>
                 </Field>
                 <Field label={t('facilityEditorModal.ai.idleTimeoutOverride')}>
-                  <select
+                  <select aria-label={t('facilityEditorModal.ai.idleTimeoutOverride')}
                     className="cem-input"
                     value={form.idleTimeoutMinutesOverride == null ? 'inherit' : String(form.idleTimeoutMinutesOverride)}
                     onChange={(e) => {
@@ -1095,7 +1141,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                   </select>
                 </Field>
                 <Field label={t('facilityEditorModal.ai.codeReviewSamplingRate')}>
-                  <input
+                  <input aria-label={t('facilityEditorModal.ai.codeReviewSamplingRate')}
                     type="number"
                     min={0}
                     max={100}
@@ -1125,7 +1171,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               <div className="cem-section">{t('facilityEditorModal.ai.releaseBuffer')}</div>
               <div className="ps-client-editor-grid-2">
                 <Field label={t('facilityEditorModal.ai.configForThisLab')}>
-                  <select
+                  <select aria-label={t('facilityEditorModal.ai.configForThisLab')}
                     className="cem-input"
                     value={form.releaseBufferOverride == null || form.releaseBufferOverride.inheritSystemDefault ? 'inherit' : 'override'}
                     onChange={(e) => {
@@ -1142,7 +1188,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                 {form.releaseBufferOverride && !form.releaseBufferOverride.inheritSystemDefault && (
                   <>
                     <Field label={t('facilityEditorModal.ai.bufferEnabled')}>
-                      <select
+                      <select aria-label={t('facilityEditorModal.ai.bufferEnabled')}
                         className="cem-input"
                         value={form.releaseBufferOverride.enabled ? 'on' : 'off'}
                         onChange={(e) => set("releaseBufferOverride", { ...form.releaseBufferOverride!, enabled: e.target.value === 'on' })}
@@ -1152,7 +1198,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       </select>
                     </Field>
                     <Field label={t('facilityEditorModal.ai.bufferDuration')}>
-                      <input
+                      <input aria-label={t('facilityEditorModal.ai.bufferDuration')}
                         type="number" min={1} max={30} className="cem-input"
                         value={form.releaseBufferOverride.durationMinutes}
                         disabled={!form.releaseBufferOverride.enabled}
@@ -1164,7 +1210,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       />
                     </Field>
                     <Field label={t('facilityEditorModal.ai.bypassForStat')}>
-                      <select
+                      <select aria-label={t('facilityEditorModal.ai.bypassForStat')}
                         className="cem-input"
                         value={form.releaseBufferOverride.bypassForStat ? 'on' : 'off'}
                         disabled={!form.releaseBufferOverride.enabled}
@@ -1180,7 +1226,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
 
               <div className="cem-section">{t('facilityEditorModal.ai.modelVersion')}</div>
               <Field label={t('facilityEditorModal.ai.model')}>
-                <select
+                <select aria-label={t('facilityEditorModal.ai.model')}
                   className="cem-input"
                   value={form.internalAiModelId ?? 'inherit'}
                   onChange={(e) => {
@@ -1220,6 +1266,14 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               any specific role (see tab bar above) — edit-mode only,
               since a brand-new, unsaved facility can't have locations
               attached to it yet. */}
+          {tab === "secure_messaging" && facility?.id && (
+            <FacilitySecureMessagingTab facility={facility} />
+          )}
+
+          {tab === "printing" && facility?.id && (
+            <FacilityPrintingTab facility={facility} isPerformingLab={hasRole('performing_lab')} />
+          )}
+
           {tab === "spelling" && facility?.id && (
             <div className="ps-client-editor-form">
               <div className="cem-section">{t('facilityEditorModal.spelling.title')}</div>
@@ -1235,7 +1289,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                 {t('facilityEditorModal.locations.intro')}
               </p>
 
-              {locationsLoading && <div className="cem-loading-text">{t('facilityEditorModal.locations.loading')}</div>}
+              {locationsLoading && <LoadingState variant="inline" className="cem-loading-text" label={t('facilityEditorModal.locations.loading')} />}
 
               {!locationsLoading && locations.length === 0 && !showAddLocation && (
                 <div className="cem-empty-text">
@@ -1306,7 +1360,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                 <div className="cem-add-location-form">
                   <div className="ps-client-editor-grid-2">
                     <Field label={t('facilityEditorModal.locations.pointOfCare')}>
-                      <input
+                      <input aria-label={t('facilityEditorModal.locations.pointOfCare')}
                         className="cem-input"
                         value={newLocation.pointOfCare}
                         onChange={e => setNewLocation(p => ({ ...p, pointOfCare: e.target.value }))}
@@ -1314,7 +1368,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       />
                     </Field>
                     <Field label={t('facilityEditorModal.locations.room')}>
-                      <input
+                      <input aria-label={t('facilityEditorModal.locations.room')}
                         className="cem-input"
                         value={newLocation.room}
                         onChange={e => setNewLocation(p => ({ ...p, room: e.target.value }))}
@@ -1322,7 +1376,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       />
                     </Field>
                     <Field label={t('facilityEditorModal.locations.bed')}>
-                      <input
+                      <input aria-label={t('facilityEditorModal.locations.bed')}
                         className="cem-input"
                         value={newLocation.bed}
                         onChange={e => setNewLocation(p => ({ ...p, bed: e.target.value }))}
@@ -1330,7 +1384,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       />
                     </Field>
                     <Field label={t('facilityEditorModal.locations.buildingLabel')}>
-                      <input
+                      <input aria-label={t('facilityEditorModal.locations.buildingLabel')}
                         className="cem-input"
                         value={newLocation.building}
                         onChange={e => setNewLocation(p => ({ ...p, building: e.target.value }))}
@@ -1338,7 +1392,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       />
                     </Field>
                     <Field label={t('facilityEditorModal.locations.floorLabel')}>
-                      <input
+                      <input aria-label={t('facilityEditorModal.locations.floorLabel')}
                         className="cem-input"
                         value={newLocation.floor}
                         onChange={e => setNewLocation(p => ({ ...p, floor: e.target.value }))}
@@ -1346,7 +1400,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       />
                     </Field>
                     <Field label={t('facilityEditorModal.locations.locationStatus')}>
-                      <select
+                      <select aria-label={t('facilityEditorModal.locations.locationStatus')}
                         className="cem-input"
                         value={newLocation.locationStatus}
                         onChange={e => setNewLocation(p => ({ ...p, locationStatus: e.target.value }))}
@@ -1356,7 +1410,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                       </select>
                     </Field>
                     <Field label={t('facilityEditorModal.locations.personLocationType')} span>
-                      <select
+                      <select aria-label={t('facilityEditorModal.locations.personLocationType')}
                         className="cem-input"
                         value={newLocation.personLocationType}
                         onChange={e => setNewLocation(p => ({ ...p, personLocationType: e.target.value }))}
@@ -1392,6 +1446,7 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
 
         {/* ── Footer ── */}
         <div className="ps-client-editor-footer">
+          {missingLabel && <span className="ps-client-editor-field-error cem-footer-missing" role="alert">{t('fieldRequirements.stillRequired', { fields: missingLabel })}</span>}
           <button onClick={onClose} className="cem-footer-cancel">{t('facilityEditorModal.cancel')}</button>
           <button
             onClick={handleSubmit}

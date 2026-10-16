@@ -24,12 +24,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockSnomedCervicalHistologySeverityMappingService } from '../../../services/cytology/mockSnomedCervicalHistologySeverityMappingService';
+
 import type { SnomedCervicalHistologySeverityMappingEntry } from '../../../services/cytology/ISnomedCervicalHistologySeverityMappingService';
 import { getSessionUser } from '../../../services/auth/caseAccessControl';
 import type { ServiceResult } from '../../../services/types';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
+import { snomedCervicalHistologySeverityMappingService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface Draft { snomedCode: string; description: string; severityRank: string }
 const emptyDraft: Draft = { snomedCode: '', description: '', severityRank: '' };
@@ -49,7 +51,7 @@ const SnomedCervicalHistologySeverityMappingSection: React.FC = () => {
 
   const refresh = () => {
     setLoading(true);
-    mockSnomedCervicalHistologySeverityMappingService.getAll().then(res => {
+    snomedCervicalHistologySeverityMappingService.getAll().then(res => {
       if (res.ok) setEntries([...res.data].sort((a, b) => a.severityRank - b.severityRank));
       setLoading(false);
     });
@@ -66,7 +68,7 @@ const SnomedCervicalHistologySeverityMappingSection: React.FC = () => {
     }
     const session = getSessionUser();
     const sessionName = session ? `${session.firstName ?? ''} ${session.lastName ?? ''}`.trim() || session.id : undefined;
-    const res: ServiceResult<SnomedCervicalHistologySeverityMappingEntry> = await mockSnomedCervicalHistologySeverityMappingService.add({
+    const res: ServiceResult<SnomedCervicalHistologySeverityMappingEntry> = await snomedCervicalHistologySeverityMappingService.add({
       snomedCode: draft.snomedCode.trim(),
       description: draft.description.trim(),
       severityRank: rank,
@@ -85,14 +87,14 @@ const SnomedCervicalHistologySeverityMappingSection: React.FC = () => {
   const handleSaveEdit = async (id: string) => {
     const rank = Number(editDraft.severityRank);
     if (!editDraft.description.trim() || Number.isNaN(rank)) return;
-    await mockSnomedCervicalHistologySeverityMappingService.update(id, { description: editDraft.description.trim(), severityRank: rank });
+    await snomedCervicalHistologySeverityMappingService.update(id, { description: editDraft.description.trim(), severityRank: rank });
     setEditingId(null);
     refresh();
   };
 
   const handleRemove = async (id: string) => {
     if (!window.confirm(t('snomedCervicalHistologySeverityMappingSection.removeConfirm'))) return;
-    await mockSnomedCervicalHistologySeverityMappingService.remove(id);
+    await snomedCervicalHistologySeverityMappingService.remove(id);
     refresh();
   };
 
@@ -116,7 +118,7 @@ const SnomedCervicalHistologySeverityMappingSection: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {loading && (<tr><td className="ps-conf-empty-row" colSpan={5}>{t('snomedCervicalHistologySeverityMappingSection.loading')}</td></tr>)}
+              {loading && (<tr><td className="ps-conf-empty-row" colSpan={5}><LoadingState variant="inline" label={t('snomedCervicalHistologySeverityMappingSection.loading')} /></td></tr>)}
               {!loading && entries.length === 0 && (
                 <tr><td className="ps-conf-empty-row" colSpan={5}>{t('snomedCervicalHistologySeverityMappingSection.emptyRow')}</td></tr>
               )}
@@ -125,12 +127,12 @@ const SnomedCervicalHistologySeverityMappingSection: React.FC = () => {
                   <td className="ps-conf-td">{entry.snomedCode}</td>
                   <td className="ps-conf-td">
                     {editingId === entry.id
-                      ? <input className="ps-input-dark" value={editDraft.description} onChange={e => setEditDraft(d => ({ ...d, description: e.target.value }))} />
+                      ? <input aria-label={t('a11y.fields.description')} className="ps-input-dark" value={editDraft.description} onChange={e => setEditDraft(d => ({ ...d, description: e.target.value }))} />
                       : entry.description}
                   </td>
                   <td className="ps-conf-td">
                     {editingId === entry.id
-                      ? <input className="ps-input-dark ps-snomed-severity__rank-input" type="number" min={0} max={5} value={editDraft.severityRank} onChange={e => setEditDraft(d => ({ ...d, severityRank: e.target.value }))} />
+                      ? <input aria-label={t('a11y.fields.severityRank')} className="ps-input-dark ps-snomed-severity__rank-input" type="number" min={0} max={5} value={editDraft.severityRank} onChange={e => setEditDraft(d => ({ ...d, severityRank: e.target.value }))} />
                       : entry.severityRank}
                   </td>
                   <td className="ps-conf-td ps-snomed-severity__added-cell">

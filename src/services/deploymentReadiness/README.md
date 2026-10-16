@@ -6,11 +6,14 @@
 
 - **`deploymentReadiness.guard.test.ts`** — three rules for the UI layer (`components/`, `pages/`, `hooks/`, `contexts/`, and top-level `src/*.tsx`):
   1. **No direct mock-service import** (`…/mockXxx`). Use `@/services` or an injected dependency, so replacing mocks with the real backend is one switch rather than a change in every screen.
-  2. **No direct `localStorage` / `sessionStorage`.** Display preferences go through `utils/uiPreferences.ts`; data goes through a service.
+  2. **No direct `localStorage` / `sessionStorage`.** Display preferences go through `utils/uiPreferences.ts`, settings that belong to the computer (scan station, OR terminal, display profile, foot pedal, window positions) through `utils/workstationSettings.ts` (Batch 506), and data through a service.
   3. **No direct Firebase SDK import.** The database is reached only through services, so it can be replaced. Production will use Microsoft SQL Server behind an API server (Pete, Sep 2026).
 - **`deploymentBaseline.ts`** — the files that broke a rule when the guard was added. It listed 183 mock imports, 39 browser-storage users and 1 Firebase import. Batch 334 removed `PendingApprovalSection.tsx` from the mock-import list (182 left). Batch 338 removed `OrchestratorSectionEditor.tsx` from the mock-import list (181 left) and `components/Editor/PathScribeEditor.tsx` from the browser-storage list (38 left; its theme preference now goes through `utils/uiPreferences.ts`). Batch 342 removed `pages/OrSuiteDashboardPage.tsx` from the mock-import list (180 left). Batch 343 (PS-60) removed `contexts/AuthContext.tsx` from both lists, and `ProtectedRoute.tsx` and `pages/LoginPage.tsx` from the browser-storage list (179 mock imports, 35 browser-storage users left). Batch 344 removed `pages/SynopticReportPage/modals/PreFinalisationModal.tsx` from the mock-import list and `pages/Synoptic/useSynopticFinalize.ts` from the browser-storage list (178 and 34 left). Batch 350 removed `pages/SearchPage.tsx` from both lists (177 and 33 left): saved searches go through the saved-search service, the last search through `utils/search/searchSession.ts`, and the action registry through `@/services`.
   - **The lists only shrink.** A new file may not break a rule, and a listed file that has been cleaned up must come off the list; the guard fails otherwise.
   - **Checked:** a new file importing a mock and using `localStorage` fails the guard with the fix named.
+  - **Today: zero in all three lists (Batch 506, PS-477).** The guard also fails if an entry is added back. The batch entries below record how it got there.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): added the current baseline counts; the list above stopped at Batch 350.*
 
 ## Not covered by the guard
 
@@ -22,7 +25,7 @@
 
 The TAT and delegation services took six files off the mock-import baseline (177 → 171) and four off the browser-storage baseline (33 → 29):
 - `TATConfigSection.tsx`, `QualityTab.tsx`, `EnterpriseRollupTab.tsx` and `ContributionDashboardPage.tsx` came off both.
-- `DelegateModal.tsx` and `InformalReviewBanner.tsx` came off the mock-import baseline.
+- `DelegateModal.tsx` and `InformalReviewBanner.tsx` came off the mock-import baseline. *(Since removed: `InformalReviewBanner.tsx` was deleted in Batch 355, PS-346 — checked in the Batch 496 README audit.)*
 
 
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
@@ -145,3 +148,64 @@ Three Configuration sections left the mock-import baseline (99 left).
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 495
+
+Two pages left `MOCK_IMPORT_BASELINE`: `pages/ReportPreview/ReportPreviewPage.tsx` (now opens its case through `openCaseForViewDefault()`) and `pages/MigrationJobsPage.tsx` (now reaches `migrationJobService`/`migrationRecordResultService` through `@/services`). `pages/MockInterfaceEnginePage/MockInterfaceEnginePage.tsx` was touched too (breadcrumb) but stays listed: it is the developer screen for the mock interface engine itself, and its imports are that mock by design.
+
+## Batch 506 (PS-477): the baseline is empty
+
+- **Mock imports, 95 → 0.** Each screen imports its service from `@/services`. The index gained the services and helpers screens were reaching into mock files for (marked "Batch 506" at the end of `services/index.ts`). Two screens built their own `MockVoiceMacroService`; they now share `voiceMacroService` (the class keeps no state of its own, so nothing changes). Dynamic `import()` calls of mock files now import `@/services`.
+- **Browser storage, 6 → 0.**
+  - The five workstation hooks use the new `utils/workstationSettings.ts`, with the same keys, so saved settings carry over.
+  - `WorklistTable` kept its collapsed-pool state through the mock-storage helpers. It's a display preference, so it now goes through `utils/uiPreferences.ts`. That changes the key, so a remembered collapsed/expanded state resets once.
+  - The demo-reset key audit moved to `services/demoReset/demoResetKeys.auditTest.ts`.
+- **Firebase, 1 → 0.** `usePendingEngineNotifications` reads through `services/engravers/fetchNewEngineNotifications.ts` (same query, same handlers). The hook was never mounted, and both were removed in Batch 549 (F1). Firebase itself leaves the front end in PS-487.
+- **New check:** the guard fails if any baseline list is non-empty.
+
+## Batch 507: `deletedFiles.guard.test.ts`
+
+Fails when a file listed in the root `DELETED_FILES.txt` is still in the working copy, and names it. Fix with `npm run cleanup:deleted`. It was added after a stale `CreateBatchModal.tsx` in Pete's copy failed the HTML sanitising guard instead (Oct 10). That file had been retired in an earlier batch whose deletion was only mentioned in the changelog. `DELETED_FILES.txt` now also lists 19 such earlier deletions.
+
+## Batch 537: `deploymentReadinessReview.guard.test.ts`
+
+Keeps `docs/architecture/DEPLOYMENT_READINESS_REVIEW.md` (PS-539) honest. Every file the review cites must exist, by path or by its tail under the repo; proposed files are listed in `PROPOSED`. The review must also keep decisions D1 to D7 and findings F1 to F7.
+
+## Batch 541
+
+`deploymentReadinessReview.guard.test.ts`: every decision row (D1–D7) must say Decided and carry its verification column.
+
+## Batch 542
+
+- `phase2cContracts.guard.test.ts` (new): `MESSAGE_BUS_API.md` cites only real files and places every server job of the review's §7; `ASYNC_EXPORT_API.md` cites only real files, and the export kinds equal the catalog's export capabilities.
+- `deploymentReadinessReview.guard.test.ts`: findings F8 and F9 must stay listed.
+
+## Batch 543
+
+`phase2cContracts.guard.test.ts`: `BLOB_STORAGE_API.md` cites only real files and names every place the browser holds a file today (each field must still exist).
+
+## Batch 544
+
+`phase2cContracts.guard.test.ts`: links only (Pete, Oct 13). It fails if a screen takes an image file (`type="file"` with an image `accept`), if `StaffTab.tsx` reads a file again, or if `BLOB_STORAGE_API.md` plans an `images`, `attachments`, `signatures`, `branding` or `uploads-staging` container.
+
+## Batch 545
+
+- `phase2cContracts.guard.test.ts` adds the following checks:
+  - `INTERFACE_ENGINE_EDGE.md` cites only real files;
+  - it has a row for every answer in `engineEdgeContract.ts`;
+  - the review's §6.2 points to it;
+  - no engine webhook claims a message first and then answers 404 (F10).
+- `deploymentReadinessReview.guard.test.ts` now checks findings F1 to F12.
+
+## Batch 546
+
+`phase2cContracts.guard.test.ts` adds `SITE_AGENT_API.md`. It checks that:
+- the document cites only real files;
+- its failure table places every agent error as `agentFailureRetriable` does;
+- its figures match the contract's limits;
+- the review's §6.3 points to it;
+- `attemptPrintDelivery.ts` checks where it runs before reaching the Node print transports (F3).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- The engine-notification hook and its Firestore read are removed (F1); `DELETED_FILES.txt` lists them.

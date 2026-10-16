@@ -25,8 +25,9 @@ import { mockPrintQueueService } from './mockPrintQueueService';
 import { printPdfViaQzTray, isQzTrayConnected } from '@/utils/labels/qzTrayBridge';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { dispatchViaPrintProtocol } from './transport/dispatchViaPrintProtocol';
+import { AGENT_PRINT_NEEDS_SERVER, canSendNetworkPrintHere, NETWORK_PRINT_NEEDS_SITE_AGENT } from './transport/networkPrintRuntime';
 import type { PrintDeliveryMode, PrintJobReportType, PaperSize, PaperSourceTray, DuplexMode } from '@/types/printing/PrintJob';
-import type { PrintDestination } from '@/types/printRouting/PrintDestination';
+import { isAgentPrintDestination, type PrintDestination } from '@/types/printRouting/PrintDestination';
 
 export interface PrintDeliveryPresentation {
   paperSource?: PaperSourceTray;
@@ -55,6 +56,8 @@ export interface AttemptPrintDeliveryInput {
 export interface AttemptPrintDeliveryResult {
   outcome: 'dispatched' | 'failed';
   jobId: string;
+  /** Batch 546 (F3): false when retrying can't help, so the release goes straight to the exception queue and its fallback. */
+  retriable?: boolean;
 }
 
 export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput): Promise<AttemptPrintDeliveryResult> {
@@ -106,7 +109,32 @@ export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput): Pr
       });
       return { outcome: 'failed', jobId };
     }
-    const sendRes = await dispatchViaPrintProtocol(input.destination, Buffer.from(pdfBase64, 'base64'), input.presentation);
+    // Batch 553: a site agent's printer is reached only through the API
+    // server, which hands the job to the site's agent (SITE_AGENT_API.md §4).
+    // Nothing here can send it, so the job fails at once with that reason and
+    // goes to the exception queue and its fallback, as a browser attempt does.
+    if (isAgentPrintDestination(input.destination)) {
+      await mockPrintQueueService.markFailed(jobId, {
+        errorCode: 'NEEDS_SITE_AGENT', errorMessage: AGENT_PRINT_NEEDS_SERVER, maxRetriesExceeded: true,
+      });
+      return { outcome: 'failed', jobId, retriable: false };
+    }
+    // Batch 546 (finding F3): the network transports need Node. From a
+    // browser the job fails with a plain reason instead of throwing, so it is
+    // FAILED (not stuck QUEUED). Retrying from here can't help, so it goes
+    // straight to the exception queue, the fallback channels and the alert.
+    if (!canSendNetworkPrintHere()) {
+      await mockPrintQueueService.markFailed(jobId, {
+        errorCode: 'NEEDS_SITE_AGENT', errorMessage: NETWORK_PRINT_NEEDS_SITE_AGENT, maxRetriesExceeded: true,
+      });
+      return { outcome: 'failed', jobId, retriable: false };
+    }
+    let sendRes: { ok: boolean; error?: string };
+    try {
+      sendRes = await dispatchViaPrintProtocol(input.destination, Buffer.from(pdfBase64, 'base64'), input.presentation);
+    } catch (e) {
+      sendRes = { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
     if (!sendRes.ok) {
       await mockPrintQueueService.markFailed(jobId, {
         errorCode: 'PRINTER_UNREACHABLE', errorMessage: sendRes.error ?? 'Direct network print failed.', maxRetriesExceeded: false,

@@ -3,6 +3,12 @@
 // Batch 330: the UI files that break the deployment-readiness rules today,
 // recorded when the guard was added (see deploymentReadiness.guard.test.ts).
 //
+// Batch 506 (PS-477): all three lists are EMPTY. Every screen reaches its
+// services through `@/services` (or takes them as a dependency), keeps display
+// preferences in utils/uiPreferences.ts and workstation settings in
+// utils/workstationSettings.ts, and imports no database SDK. The guard now
+// also fails if anything is added back.
+//
 // These lists may only SHRINK. When you clean a file up, remove it here:
 // the guard fails if a listed file no longer needs its entry, so the list
 // can't go stale. A file not listed here may not break the rules at all.
@@ -12,121 +18,12 @@
 
 /** UI files that import a specific mock service (…/mockXxx) instead of the
  *  services index (`@/services`) or an injected dependency. */
-export const MOCK_IMPORT_BASELINE: readonly string[] = [
-  'components/Audit/BreakGlassRebindModal.tsx',
-  'components/Audit/InterfaceExceptionReviewModal.tsx',
-  'components/Config/AI/resolveClientAiModel.ts',
-  'components/Config/AI/resolveVoiceAiModel.ts',
-  'components/Config/Actions/ActionsTab.tsx',
-  'components/Config/Cytology/CytologyInstrumentationSection.tsx',
-  'components/Config/Cytology/CytologyNomenclatureSettingsSection.tsx',
-  'components/Config/Cytology/CytologyRoutingSettingsSection.tsx',
-  'components/Config/Cytology/CytologyScreeningStrategySection.tsx',
-  'components/Config/Cytology/CytologyWorkloadCapSettingsSection.tsx',
-  'components/Config/Cytology/NonGynCytologyCategoriesSection.tsx',
-  'components/Config/System/ActionGroupsSection.tsx',
-  'components/Config/System/AssistLisPollingSection.tsx',
-  'components/Config/System/BillingDictionarySection.tsx',
-  'components/Config/System/BillingTypeTriggerSection.tsx',
-  'components/Config/System/CaseMaskConfigSection.tsx',
-  'components/Config/System/CassetteColorsSection.tsx',
-  'components/Config/System/CassetteRoutingRulesSection.tsx',
-  'components/Config/System/ConcordanceReviewSettingsSection.tsx',
-  'components/Config/System/CytologyQcRulesSection.tsx',
-  'components/Config/System/CytotechCompetencyAssignmentsSection.tsx',
-  'components/Config/System/DelegationTypeSection.tsx',
-  'components/Config/System/DeliveryRulesSection.tsx',
-  'components/Config/System/DftExportPreviewSection.tsx',
-  'components/Config/System/DisplayProfilesSection.tsx',
-  'components/Config/System/DpVendorDictionarySection.tsx',
-  'components/Config/System/ExternalResourcesSection.tsx',
-  'components/Config/System/FppeAssignmentsSection.tsx',
-  'components/Config/System/GrossImagingVendorDictionarySection.tsx',
-  'components/Config/System/ImageManagementSystemVendorDictionarySection.tsx',
-  'components/Config/System/JurisdictionPaymentMappingSection.tsx',
-  'components/Config/System/MasterPaymentTypeDictionarySection.tsx',
-  'components/Config/System/MigrationFieldMappingsSection.tsx',
-  'components/Config/System/OrSuiteTerminalsSection.tsx',
-  'components/Config/System/OutboundMessagePreviewSection.tsx',
-  'components/Config/System/ParticipationTypesSection.tsx',
-  'components/Config/System/PrintRoutingRuleSection.tsx',
-  'components/Config/System/ReagentLotsSection.tsx',
-  'components/Config/System/ReleaseBufferSection.tsx',
-  'components/Config/System/ResearchFeedSection.tsx',
-  'components/Config/System/RvuCodeMapSection.tsx',
-  'components/Config/System/SessionSecuritySection.tsx',
-  'components/Config/System/SnomedCervicalHistologySeverityMappingSection.tsx',
-  'components/Config/System/SubspecialtiesSection.tsx',
-  'components/Config/System/WorkstationGroupsSection.tsx',
-  'components/Config/System/WsiViewerVendorDictionarySection.tsx',
-  'components/Contribution/aiContributionCalculations.ts',
-  'components/GrossingHardware/CameraCaptureControl.tsx',
-  'components/NavBar/NavBarScanStation.tsx',
-  'components/PatientHistory/PatientHistoryModal.tsx',
-  'components/QualityAssurance/PatientManagementSection.tsx',
-  'components/QualityAssurance/QaScopeSwitcher.tsx',
-  'components/RequestReview/RequestReviewModal.tsx',
-  'components/ScanStationPrompt.tsx',
-  'components/Search/CaseSearchBar.tsx',
-  'components/TemplateBuilder/PartBuilderPage.tsx',
-  'components/TemplateBuilder/PartLibraryTab.tsx',
-  'components/TemplateBuilder/RoutingRulesTab.tsx',
-  'components/TemplateBuilder/TemplateListTab.tsx',
-  'components/ValidationStudies/ModelStoreModal.tsx',
-  'components/ValidationStudies/ValidationStudiesSection.tsx',
-  'components/Voice/SpeechConfigTab.tsx',
-  'components/Voice/VoiceCommandOverlay.tsx',
-  'components/Voice/VoiceMissPrompt.tsx',
-  'components/Worklist/PoolClaimModal.tsx',
-  'components/Worklist/WorklistTable.tsx',
-  'contexts/VoiceProvider.tsx',
-  'hooks/useDefaultActionOnScan.ts',
-  'hooks/useDraftCache.ts',
-  'hooks/useEnabledIdentifierFormats.ts',
-  'hooks/useGlobalMaterialScanTracking.ts',
-  'hooks/useIdleTimeout.ts',
-  'main.tsx',
-  'pages/AccessionPage/ClinicalHistory/ClinicalHistoryEntryPanel.tsx',
-  'pages/AccessionPage/PatientLinkSearch.tsx',
-  'pages/AuditLogPage.tsx',
-  'pages/ConfigurationPage.tsx',
-  'pages/CriticalAlertAuditSection.tsx',
-  'pages/CriticalAlertReferencePage/CriticalAlertReferencePage.tsx',
-  'pages/FacilityOpsDashboard/FacilityOpsDashboardPage.tsx',
-  'pages/MigrationJobsPage.tsx',
-  'pages/MockInterfaceEnginePage/MockInterfaceEnginePage.tsx',
-  'pages/OutboundDispatchTrailSection.tsx',
-  'pages/OutboundDlqSection.tsx',
-  'pages/OutboundInterfaceDlqSection.tsx',
-  'pages/PrintQueueDashboardSection.tsx',
-  'pages/ReportPreview/ReportPreviewPage.tsx',
-  'pages/SynopticReportPage/components/MaterialTreePanel.tsx',
-  'pages/SynopticReportPage/components/ReleaseBufferBanner.tsx',
-  'pages/SynopticReportPage/components/RightSynopticPanel.tsx',
-  'pages/SynopticReportPage/components/WsiViewerLaunchButton.tsx',
-  'pages/SynopticReportPage/hooks/checkStainQcGate.ts',
-  'pages/SynopticReportPage/hooks/sharedHookTypes.ts',
-  'pages/SynopticReportPage/hooks/useGrossingCompletion.ts',
-  'pages/SynopticReportPage/hooks/useSignOutWorkflow.ts',
-  'pages/SynopticReportPage/modals/MaterialTrackingHistoryModal.tsx',
-  'pages/SynopticReportPage/modals/StainQcGateModal.tsx',
-];
+export const MOCK_IMPORT_BASELINE: readonly string[] = [];
 
 /** UI files that use localStorage/sessionStorage directly. Display
  *  preferences belong in utils/uiPreferences.ts; data belongs in a service. */
-export const BROWSER_STORAGE_BASELINE: readonly string[] = [
-  // Batch 431: what's left is the workstation's own settings (they belong to
-  // the machine, not a person or the lab) and the demo-reset key audit.
-  'components/Config/System/DemoResetTab.auditTest.ts',
-  'hooks/useCompanionWindow.ts',
-  'hooks/useCurrentDisplayProfile.ts',
-  'hooks/useCurrentOrTerminal.ts',
-  'hooks/useCurrentScanStation.ts',
-  'hooks/useFootPedal.ts',
-];
+export const BROWSER_STORAGE_BASELINE: readonly string[] = [];
 
 /** UI files that import the Firebase SDK directly instead of going through a
  *  service. */
-export const FIREBASE_IMPORT_BASELINE: readonly string[] = [
-  'hooks/usePendingEngineNotifications.ts',
-];
+export const FIREBASE_IMPORT_BASELINE: readonly string[] = [];

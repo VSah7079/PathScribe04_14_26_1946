@@ -50,6 +50,7 @@ import { CodeSearchModal } from '@/components/Common/CodeSearchModal';
 import { billingSelectionForMaterialBlock, billingHighlightsForSelection, billingReactionToMaterialEvent, type BillingSelection } from '@/services/billing/billingMaterialSync';
 import { billableMaterialOf } from '@/services/material/billableMaterial';
 import { materialEventBus } from '@/services/material/materialEvents';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 
 interface PendingCode {
   specimenId: string;
@@ -265,7 +266,6 @@ const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
     setManualAddTargetStainId(null);
     setSelected(found);
     setEventFocusId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventFocusId, specimens]);
 
   const pending: PendingCode[] = summary.flatMap(sp =>
@@ -682,7 +682,7 @@ const SpecimenTree: React.FC<{
               className="ps-billing-tree-toggle-btn"
               title={isSpecCollapsed ? t('billingReviewPanel.expand') : t('billingReviewPanel.collapse')}
             >{isSpecCollapsed ? '▶' : '▼'}</button>
-            <div className="ps-billing-tree-specimen-label" onClick={() => onSelect({ type: 'specimen', specimenId: sp.specimenId })}>
+            <div className="ps-billing-tree-specimen-label" {...pressable(() => onSelect({ type: 'specimen', specimenId: sp.specimenId }))}>
               <div className="ps-billing-tree-specimen-label-row">
                 <span className="ps-billing-tree-specimen-name">
                   {sp.specimenLabel}: {rawSpecimen?.description ?? ''}
@@ -742,7 +742,7 @@ const SpecimenTree: React.FC<{
                     >{isBlockExpanded ? '▼' : '▶'}</button>
                   ) : <span className="ps-billing-tree-block-toggle-spacer" />}
                   <div
-                    onClick={() => onSelect({ type: 'block', specimenId: sp.specimenId, blockId: block.blockId })}
+                    {...pressable(() => onSelect({ type: 'block', specimenId: sp.specimenId, blockId: block.blockId }))}
                     className="ps-billing-tree-block-label"
                   >
                     <span className="ps-billing-tree-block-name">
@@ -783,7 +783,7 @@ const SpecimenTree: React.FC<{
                   return (
                     <div
                       key={stain.stainOrderId || stain.stainName}
-                      onClick={() => onSelectStain(sp.specimenId, block.blockId, pendingKey, stain.stainOrderId)}
+                      {...pressable(() => onSelectStain(sp.specimenId, block.blockId, pendingKey, stain.stainOrderId))}
                       title={stain.status === 'not-applicable' ? t('billingReviewPanel.noAncillaryCode', { stainName: stain.stainName }) : `${stain.stainName} — ${t(DOT_STATUS_LABEL_KEY[stain.status === 'rejected' ? 'rejected' : stain.status === 'applied' ? 'complete' : stain.status === 'pending' ? 'partial' : 'empty'])}`}
                       className={`ps-billing-tree-stain-row${isStainSelected ? ' ps-billing-tree-stain-row--selected' : ''}`}
                     >
@@ -1164,13 +1164,23 @@ const PendingRow: React.FC<{
   return (
   <>
   <div
-    onClick={isOverriding ? undefined : onClick}
+    // Batch 567 (axe nested-interactive): the row holds buttons (confirm, override, dismiss), so it isn't a button
+    // itself; clicking it still selects it, and its code is the button that does the same from the keyboard.
+    {...clickableContainer(isOverriding ? undefined : onClick)}
     className={`ps-billing-pending-row${isActive || isOverriding ? ' ps-billing-pending-row--active' : ''}${isOverriding ? ' ps-billing-pending-row--overriding' : ''}`}
   >
     <div className="ps-billing-pending-row-top">
-      <span className="ps-billing-pending-row-code" title={`${resolveRealCptCode(item.code) ?? item.code} — ${describeCode(item.code)}`}>
-        {resolveRealCptCode(item.code) ?? item.code}
-      </span>
+      {isOverriding ? (
+        <span className="ps-billing-pending-row-code" title={`${resolveRealCptCode(item.code) ?? item.code} — ${describeCode(item.code)}`}>
+          {resolveRealCptCode(item.code) ?? item.code}
+        </span>
+      ) : (
+        <button type="button" className="ps-row-open-btn ps-billing-pending-row-code" aria-current={isActive ? 'true' : undefined}
+          title={`${resolveRealCptCode(item.code) ?? item.code} — ${describeCode(item.code)}`}
+          onClick={e => { e.stopPropagation(); onClick(); }}>
+          {resolveRealCptCode(item.code) ?? item.code}
+        </button>
+      )}
       {!isOverriding && (
         <div className="ps-billing-pending-row-actions" onClick={e => e.stopPropagation()}>
           <button
@@ -1182,9 +1192,11 @@ const PendingRow: React.FC<{
             className="ps-billing-override-btn"
           >✎ {t('billingReviewPanel.overrideButton')}</button>
           <button
+            type="button"
             onClick={onRejectOnly}
             className="ps-btn-icon-danger ps-btn-icon-danger--visible"
             title={t('billingReviewPanel.dismissTooltip')}
+            aria-label={t('billingReviewPanel.dismissTooltip')}
           >🗑</button>
         </div>
       )}

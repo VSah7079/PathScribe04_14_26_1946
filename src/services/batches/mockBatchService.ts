@@ -109,6 +109,7 @@ function generateDisposableBarcode(containerType: ContainerType | undefined, exi
   const code = settings.containerTypeCodes[containerType ?? 'Ad-Hoc Batch'] ?? CONTAINER_TYPE_CODE[containerType ?? 'Ad-Hoc Batch'];
   const prefix = settings.disposableBarcodePrefix || 'CONT';
   const now = new Date();
+  // eslint-disable-next-line no-restricted-properties -- the date in a new container barcode is the bench's own date (an identifier, not a stored event's date)
   const yyyymmdd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 
   const MAX_ATTEMPTS = 50;
@@ -390,7 +391,7 @@ export const mockBatchService: IBatchService = {
           const { caseData, slideId } = await createControlSlideCase(lotRes.data, stainType, facilityId);
           batch.items.push({
             id: genId('batch-item'), materialType: 'slide', displayId: slideId,
-            caseAccession: caseData.accession.fullAccession,
+            caseAccession: caseData.accession.fullAccession ?? caseData.id, // control cases always set it (id === fullAccession)
             specimenLabel: 'A', addedAt: new Date().toISOString(),
             addedByUserId: 'system', addedByUserName: 'System (auto-appended control)',
           });

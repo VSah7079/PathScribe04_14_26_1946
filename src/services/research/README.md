@@ -139,7 +139,10 @@ Notes.
   alongside the existing PDF generator) serving all clients from one call per
   day globally. Not built. Flagged here rather than discovered in production.
 
-- **`VITE_NCBI_API_KEY` is a deliberate exception to this codebase's own
+- *Superseded in Batch 499 (PS-476): the browser no longer reads any NCBI
+  key; PubMed is called without one (3 requests a second per IP). The note
+  below is kept as history.*
+- **`VITE_NCBI_API_KEY` was a deliberate exception to this codebase's own
   rule.** Anything `VITE_`-prefixed is inlined into the client bundle and is
   publicly readable — which is exactly why the AI, Gemini and UMLS keys had
   that prefix *removed* (see the June 2026 security work). An NCBI key is
@@ -178,3 +181,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 499 (PS-476): no key in the browser
+
+`pubmedResearchFeedService.ts` no longer reads `VITE_NCBI_API_KEY` and no longer sends `api_key`. NCBI E-utilities work without a key at 3 requests a second per IP; the 30-minute park after a 429 still covers a throttled hospital gateway. The variable is gone from `vite-env.d.ts` and `.env.example`, and `services/security/envExposure.guard.test.ts` now allows no secret-looking `VITE_` name at all. A keyed, server-side fetch can come with the terminology/AI proxy (PS-488).

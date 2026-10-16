@@ -1,4 +1,5 @@
 import { ProtocolDefinition } from "../types/ProtocolDefinition";
+import { dataStorage } from '@/services/browserData/dataStorage';
 
 // ─────────────────────────────────────────────────────────────
 // BASE PROTOCOL REGISTRY (read‑only CAP templates)
@@ -97,7 +98,7 @@ const OVERRIDE_KEY = "ps_protocol_overrides";
 
 export const loadProtocolRegistry = (): Record<string, ProtocolDefinition> => {
   try {
-    const raw = localStorage.getItem(OVERRIDE_KEY);
+    const raw = dataStorage.getItem(OVERRIDE_KEY);
     if (!raw) return baseProtocolRegistry;
 
     const overrides = JSON.parse(raw) as Record<string, ProtocolDefinition>;
@@ -111,14 +112,14 @@ export const loadProtocolRegistry = (): Record<string, ProtocolDefinition> => {
 
 export const saveProtocolOverride = (protocol: ProtocolDefinition) => {
   try {
-    const raw = localStorage.getItem(OVERRIDE_KEY);
+    const raw = dataStorage.getItem(OVERRIDE_KEY);
     const overrides = raw
       ? (JSON.parse(raw) as Record<string, ProtocolDefinition>)
       : {};
 
     overrides[protocol.id] = protocol;
 
-    localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
+    dataStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
   } catch {
     // ignore errors silently
   }

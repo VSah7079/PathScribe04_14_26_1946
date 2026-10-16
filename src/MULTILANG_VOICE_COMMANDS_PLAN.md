@@ -6,6 +6,13 @@ not built.** Same real posture as `FHIR_DISPATCH_ARCHITECTURE_PLAN.md`
 — the real, considered plan recorded before work starts, updated
 here to reflect what's actually done versus what remains.
 
+**Today (Oct 2026):** the registry (`mockActionRegistryService.ts`)
+seeds 245 actions, up from the 191 counted below, and every one carries
+`voiceTriggersByLanguage` for French, German, Dutch and Korean. The
+191 / 188 / 721-phrase figures in this plan are its Sep 2026 baseline.
+The `phraseMatch()` substring quirk described under Phase 3b is still
+present. *(Added in the Batch 496 README audit, Oct 9, 2026.)*
+
 ## Phase 3b — real, done: the remaining 170 actions translated
 
 Every one of this registry's real, remaining actions (721 English

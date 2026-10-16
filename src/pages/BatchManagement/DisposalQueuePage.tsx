@@ -37,6 +37,7 @@ import type { DisposalQueueItem } from '@/services/retentionPolicy/computeDispos
 import { disposeItemByScan } from '@/services/retentionPolicy/disposeItemByScan';
 import { playScanBeep, playScanErrorTone } from '@/utils/playScanBeep';
 import type { ScanEvent } from '@/contexts/ScannerProvider';
+import { pressable } from '@/utils/a11y/pressable';
 
 // Real, label-key-map — keeps the real DisposalQueueItem['materialType']
 // value (used for filtering/matching elsewhere) untouched, translating
@@ -128,7 +129,7 @@ const DisposalQueuePage: React.FC = () => {
           can dismiss it immediately by clicking through to keep
           working; never silently blocks the next real scan. */}
       {redScreen && (
-        <div className="ps-disposal-redscreen" onClick={() => setRedScreen(null)}>
+        <div className="ps-disposal-redscreen" {...pressable(() => setRedScreen(null))}>
           <div className="ps-disposal-redscreen-icon">⛔</div>
           <div className="ps-disposal-redscreen-text" data-phi={redScreen.hasPatientId ? 'accession' : undefined}>{redScreen.text}</div>
           <div className="ps-disposal-redscreen-dismiss">{t('disposalQueue.dismissHint')}</div>

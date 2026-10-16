@@ -13,6 +13,7 @@ export function safeInternalPath(target: unknown): string | null {
   if (!target.startsWith('/') || target.startsWith('//')) return null;
   // Backslashes, whitespace and control characters are never part of a
   // PathScribe route; browsers normalise some of them into "//".
+  // eslint-disable-next-line no-control-regex -- control characters are exactly what this rejects
   if (/[\\\s\u0000-\u001f\u007f]/.test(target)) return null;
   return target;
 }

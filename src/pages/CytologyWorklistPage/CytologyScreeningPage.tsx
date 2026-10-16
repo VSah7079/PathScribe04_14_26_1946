@@ -51,6 +51,13 @@ import { CytologyQcCaseBar } from '@/components/CytologyQc/CytologyQcCaseBar';
 import { CytologyHistologyCandidateBanner } from './components/CytologyHistologyCandidateBanner';
 import { EMPTY_CISOEA_DRAFT, cisoeADraftFromScore, resolveCisoeAPartialFromDraft, type CisoeADraft } from '@/services/cytology/cisoeADraft';
 import { cytologyFieldRequired } from '@/services';
+import { clinicalMismatchService, type ClinicalMismatchAssessment } from '@/services';
+import { CaseClinicalHistoryBar } from '@/components/ClinicalHistory/CaseClinicalHistoryBar';
+import { ClinicalMismatchAlert } from '@/components/ClinicalMismatch/ClinicalMismatchAlert';
+import { useClinicalMismatchCheck } from '@/hooks/useClinicalMismatchCheck';
+import { cytologyWorkspaceMismatchInput } from '@/services/cytology/cytologyClinicalMismatch';
+import { cytologyClinicalMismatch } from '@/services/cytology/cytologyClinicalMismatch';
+import { ClinicalMismatchModal } from '@/components/ClinicalMismatch/ClinicalMismatchModal';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import CytologyRoseView from './components/CytologyRoseView';
 import { resolveHasAdvancedSignOutCertification } from '@/services/staff/resolveHasAdvancedSignOutCertification';
@@ -69,8 +76,12 @@ import { qcByPrimaryScreener } from '@/services/cytology/cytologyQueues';
 import { cloneCytologyReviewAsDraft } from '@/services/cytology/cloneCytologyReviewAsDraft';
 import { latestCytologySignOut } from '@/services/cytology/resolveCytologyRevisionInputs';
 import { resolveCytologyStructuredWorkflowAccess } from '@/services/cytology/resolveCytologyStructuredWorkflowAccess';
-import { signOutCytologyCase } from '@/services/cytology/signOutCytologyCase';
+import { signOutCytologyCase, releaseFinalizedCytologyCase } from '@/services/cytology/signOutCytologyCase';
+import { cytologyCaseReportForPrint } from '@/services/cytology/cytologyCaseReportForPrint';
+import { cytologyPrintFailureKey } from '@/services/cytology/renderCytologyPdf';
+import { cytologyCaseIsReleased } from '@/services/cytology/cytologyCaseReportMessage';
 import { signOutCytologyCaseDeps } from '@/services/cytology/signOutCytologyCaseDeps';
+import { refreshCytologySynopticLibrary } from '@/services/cytology/cytologyTemplateLibraryDeps';
 import { recordAiHumanConcordance } from '@/services/digitalPathology/recordAiHumanConcordance';
 import type { AiScreeningResult } from '@/types/digitalPathology/AiScreeningResult';
 import { resolveCisoeAReflexRecommendation } from '@/services/cytology/resolveCisoeAReflexRecommendation';
@@ -89,6 +100,9 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { CytologyRevisionActions } from './components/CytologyRevisionActions';
 import { CytologyRevisionPanel } from './components/CytologyRevisionPanel';
 import { useCytologyRevision } from './hooks/useCytologyRevision';
+import { useCytologyPreliminary } from './hooks/useCytologyPreliminary';
+import { HeldReportsBanner } from '@/components/ReportRelease/HeldReportsBanner';
+import { CytologyPreliminaryPanel } from './components/CytologyPreliminaryPanel';
 import { EMPTY_DRAFT, draftFromClonedReview, draftFromReview, isDraftDirty, notesWithNarrative, ownReviewForEditing, type Draft } from '@/services/cytology/cytologyReviewDraft';
 import { loadCytologyWorkspace, type CytologySpecimenTab } from '@/services/cytology/loadCytologyWorkspace';
 import { finalizeCytologyCaseEarly } from '@/services/cytology/cytologyCaseFinalization';
@@ -98,6 +112,10 @@ import { reviseCytologyReviewForSignOut } from '@/services/cytology/reviseCytolo
 import { acknowledgeCytologyReviewNote, addCytologyReviewNote, hasPendingAuthorRevision, notesForReview } from '@/services/cytology/cytologyReviewNotes';
 import { CytologyReviewNotes } from './components/CytologyReviewNotes';
 import { CytologyReviewEligibilityBadge } from './components/CytologyReviewEligibilityBadge';
+import { resolveCytologyScuWeight } from '@/services/cytology/resolveCytologyScuWeight';
+import { useCytologyWorkloadSummary } from './hooks/useCytologyWorkloadSummary';
+import { CytologyWorkloadCounter } from './components/CytologyWorkloadCounter';
+import { showCytologyWorkloadCounter } from '@/services/cytology/cytologyWorkloadSummary';
 import { cytologyWorkspaceDeps } from '@/services/cytology/cytologyWorkspaceDeps';
 import { saveCytologyUnitCoding, saveCytologySpecimenBilling } from '@/services';
 import { useCaseBillingReview } from '@/hooks/useCaseBillingReview';
@@ -117,6 +135,7 @@ import {
   openHistologyCorrelationCandidates, shouldPromptAiConcordance, showCytologySynopticTrigger,
   type CytologyGateContext, type CytologyHpvFields,
 } from '@/services/cytology/cytologyWorkspaceView';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const fieldLabel = (text: string, hint?: string) => <CytologyFieldLabel text={text} hint={hint} />;
 const deps = cytologyWorkspaceDeps;
@@ -153,6 +172,14 @@ export default function CytologyScreeningPage() {
   const [showSynopticDrawer, setShowSynopticDrawer] = useState(false);
   const [stainTypes, setStainTypes] = useState<import('@/services/stains/IStainService').StainType[]>([]);
   const [molecularTargets, setMolecularTargets] = useState<import('@/types/billing/MolecularBillingRule').MolecularTarget[]>([]);
+  // Batch 519 (PS-273): the synoptic templates come from the Synoptic Library; once read, the sign-out checks
+  // use the lab's published versions (re-rendered through the tick).
+  const [, setSynopticLibraryTick] = useState(0);
+  useEffect(() => {
+    let live = true;
+    void refreshCytologySynopticLibrary().then(() => { if (live) setSynopticLibraryTick(n => n + 1); }).catch(() => undefined);
+    return () => { live = false; };
+  }, []);
   useEffect(() => {
     stainTypeService.getAll().then(res => { if (res.ok) setStainTypes(res.data); });
     molecularTargetService.getAll().then(res => { if (res.ok) setMolecularTargets(res.data); });
@@ -338,7 +365,11 @@ export default function CytologyScreeningPage() {
         caseData, cytologySpecimenIds: cytologySpecimens.map(s => s.id),
         signedOutSpecimenIds: cytologySpecimens.filter(s => s.status === 'signedOut').map(s => s.id),
         reason, user: { id: user.id, name: user.name },
-      }, deps);
+      }, {
+        ...deps,
+        // Batch 532: release the consolidated case report, unsigned specimens listed as not reported.
+        releaseCase: (caseId, previousStatus) => releaseFinalizedCytologyCase({ caseId, categories, isGynCytology, user: { id: user.id, name: user.name }, previousStatus }, signOutCytologyCaseDeps),
+      });
       if (outcome !== 'finalized') { toast.error(t(`cytologyScreening.specimens.finalizeEarly.errors.${outcome}`)); return false; }
       toast.success(t('cytologyScreening.specimens.finalizeEarly.done'));
       await load();
@@ -367,6 +398,15 @@ export default function CytologyScreeningPage() {
   const [workloadStatus, setWorkloadStatus] = useState<CytologyWorkloadCapacityStatus | null>(null);
   const [workloadBlockedReason, setWorkloadBlockedReason] = useState<string | null>(null);
   const workloadBanner = cytologyWorkloadBanner(workloadStatus, i18n.language);
+  // Batch 574: the always-visible counter (reviews, slides, what is left), read again after each saved review.
+  const [workloadRefresh, setWorkloadRefresh] = useState(0);
+  // The review open now counts too (its time isn't in the ledger yet), and "at the limit" uses the chosen mode's weight.
+  const activeSecondsRef = useRef(0);
+  activeSecondsRef.current = activeScreeningSeconds;
+  const workloadSummary = useCytologyWorkloadSummary(
+    user?.id, { facilityId: (caseData as { order?: { facilityId?: string } } | null)?.order?.facilityId }, complianceFeatures.workloadCap,
+    { refreshKey: workloadRefresh, extraSeconds: () => activeSecondsRef.current, nextReviewWeight: resolveCytologyScuWeight(reviewMode) },
+  );
 
   // ── Categories ─────────────────────────────────────────────────────────────
   const options = cytologyCategoryOptions(categories);
@@ -402,6 +442,7 @@ export default function CytologyScreeningPage() {
       return false;
     }
     if (result.outcome !== 'saved') return false;
+    setWorkloadRefresh(n => n + 1);
     setWorkloadBlockedReason(result.workloadNotice === 'escalation' ? t('cytologyScreening.workload.escalationReason') : null);
     if (result.qcFlagApplied === 'targeted_high_risk') toast.warning(t('cytologyScreening.qc.toastHighRisk'));
     if (result.qcFlagApplied === 'random_selection') toast.info(t('cytologyScreening.qc.toastRandom'));
@@ -431,7 +472,7 @@ export default function CytologyScreeningPage() {
         if (revised.outcome !== 'readyToSign') return;
         setRevisingFromReviewId(null);
         await load();
-        setConfirmingSignOut(true);
+        await beginSignOut();
         return;
       }
       if (!showSaveResult(await saveCytologyReview(saveInput, deps), kind)) return;
@@ -496,6 +537,12 @@ export default function CytologyScreeningPage() {
     caseData, specimen: currentSpecimen, specimenId,
     signedReview: currentFinalDiagnosis ? reviews.find(r => r.id === currentFinalDiagnosis.reviewRecordId) : undefined,
     categories, user, isPathologist, isGynCytology, updateSpecimen, reload: load,
+  });
+  // Batch 533 (Pete): an urgent preliminary report for this specimen, before the case report.
+  const preliminary = useCytologyPreliminary({
+    caseData, specimen: currentSpecimen, specimenId, reviews, categories,
+    finalDiagnosisReviewId: currentFinalDiagnosis?.reviewRecordId, signedOut: signOutRecords.length > 0,
+    isPathologist, user, reload: () => load(specimenId ?? undefined),
   });
 
   const handleSelectFinalDiagnosis = async (reviewId: string) => {
@@ -578,6 +625,28 @@ export default function CytologyScreeningPage() {
   // ── Sign-out (Batch 409: services/cytology/signOutCytologyCase.ts) ─────────
   const [signingOut, setSigningOut] = useState(false);
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
+  // Batch 523 (PS-145, decision 15): a clinical-pathologic mismatch to decide
+  // before the signature (services/cytology/cytologyClinicalMismatch.ts).
+  const [cytologyMismatch, setCytologyMismatch] = useState<ClinicalMismatchAssessment | null>(null);
+  // Batch 531 (Pete: consistent with surgical and autopsy): the same check in the
+  // background once the specimen's final diagnosis is chosen, with the inline alert.
+  const mismatchInput = useMemo(() => (caseData && specimenId ? cytologyWorkspaceMismatchInput({
+    caseData, specimenId, isPathologist, categories, gynScreening: isGynCytology, signedOut: signOutRecords.length > 0,
+    finalReview: reviews.find(r => r.id === currentFinalDiagnosis?.reviewRecordId),
+  }) : null), [caseData, specimenId, isPathologist, categories, isGynCytology, signOutRecords.length, reviews, currentFinalDiagnosis?.reviewRecordId]);
+  const mismatchScope = useMemo(() => (caseData && specimenId ? { caseId: caseData.id, specimenId } : null), [caseData?.id, specimenId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const mismatchSpecimenTypes = useMemo(() => (currentSpecimen?.specimenDictionaryEntryId ? [currentSpecimen.specimenDictionaryEntryId] : []), [currentSpecimen?.specimenDictionaryEntryId]);
+  const mismatchAlert = useClinicalMismatchCheck(mismatchInput, mismatchScope, mismatchSpecimenTypes);
+  const beginSignOut = async () => {
+    if (caseData && specimenId) {
+      const suggestion = await cytologyClinicalMismatch({
+        caseData, specimenId, isPathologist, categories, gynScreening: isGynCytology,
+        finalReview: reviews.find(r => r.id === currentFinalDiagnosis?.reviewRecordId),
+      }, clinicalMismatchService.atSignOut).catch(() => null);
+      if (suggestion) { setCytologyMismatch(suggestion); return; }
+    }
+    setConfirmingSignOut(true);
+  };
   const blockReasonsText = (reasons: readonly string[]) => formatList(reasons.map(r => t(`cytologySignOut.blockReasons.${r}`)), i18n.language);
   const handleSignOut = async (confirmation: SignatureConfirmation) => {
     if (!caseData || !specimenId || !user?.id || !currentFinalDiagnosis) return;
@@ -692,13 +761,34 @@ export default function CytologyScreeningPage() {
     await load();
   };
   // The signed record exactly as signed; before sign-out, a preview.
-  const handlePrint = async () => {
+  // Batch 539 (PS-539 D2): the report renderer makes the PDF. The tab opens at the click, so the
+  // browser doesn't block it once the PDF arrives.
+  const showPdf = async (make: () => Promise<Uint8Array | null>) => {
+    const win = window.open('', '_blank');
+    try {
+      const bytes = await make();
+      if (!bytes) { win?.close(); return; }
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }));
+      if (win) win.location.href = url; else window.open(url, '_blank');
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      win?.close();
+      toast.error(t(cytologyPrintFailureKey(e)));
+    }
+  };
+  const handlePrint = () => {
     if (!caseData || !specimenId) return;
-    const doc = await buildCytologyPrintDocument({
+    void showPdf(() => buildCytologyPrintDocument({
       caseData, specimen: currentSpecimen, specimenId, reviews, categories,
       finalDiagnosisReviewId: currentFinalDiagnosis?.reviewRecordId, isPathologist,
-    }, deps);
-    doc?.output('dataurlnewwindow');
+    }, deps));
+  };
+  // Batch 532 (Pete): the consolidated case report, once the case has been released.
+  // Batch 539: the case report as released (its stored document), when there is one.
+  const caseReleased = !!caseData && cytologyCaseIsReleased(caseData);
+  const handlePrintCaseReport = () => {
+    if (!caseData) return;
+    void showPdf(() => cytologyCaseReportForPrint(caseData, cytologySpecimens.map(s => s.id)));
   };
 
   // Spell check (PS-342, Batch 338): the case's spelling language.
@@ -716,7 +806,7 @@ export default function CytologyScreeningPage() {
     saveCaseOverride: saveSpellingLocaleOverride,
   });
 
-  if (loading) return <div className="ps-cytoscreen-loading">{t('common.loading')}</div>;
+  if (loading) return <LoadingState label={t('common.loading')} />;
 
   if (!caseData || !specimenId) {
     return (
@@ -751,7 +841,7 @@ export default function CytologyScreeningPage() {
                 <Trans i18nKey="cytologyScreening.caseTitle" values={{ id: caseData.id }} components={{ accession: <span data-phi="accession" /> }} />
               </h1>
               <p className="ps-cytoscreen-patient-line" data-phi="true">
-                {t('cytologyScreening.patientLine', { name: resolvePatientFullDisplayName(caseData.patient) ?? t('cytologyScreening.patientUnknown'), mrn: caseData.patient?.mrn ?? '—' })}
+                {t('cytologyScreening.patientLine', { name: resolvePatientFullDisplayName(caseData.patient, i18n.language) ?? t('cytologyScreening.patientUnknown'), mrn: caseData.patient?.mrn ?? '—' })}
               </p>
               {/* Batch 425: the patient's registry opt-outs. */}
               <RegistryOptOutBadge consent={caseData.patient?.registryConsent} />
@@ -768,6 +858,13 @@ export default function CytologyScreeningPage() {
                 className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal">
                 🖨️ {t('cytologyScreening.printBtn')}
               </button>
+              {caseReleased && cytologySpecimens.length > 1 && (
+                <button
+                  onClick={() => { void handlePrintCaseReport(); }}
+                  className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal">
+                  🖨️ {t('cytologyScreening.printCaseReportBtn')}
+                </button>
+              )}
               {showSynopticTrigger && (
                 <button
                   onClick={() => setShowSynopticDrawer(true)}
@@ -839,7 +936,7 @@ export default function CytologyScreeningPage() {
                 />
               )}
               <span>{t('cytologyScreening.lmpLabel')}{isGynCytology && cytologyFieldRequired(cytologyRequirements, 'reviewLmp') && <span className="ps-conf-required"> *</span>}</span>
-              <input type="date" value={lmpDraft} onChange={e => setLmpDraft(e.target.value)} onBlur={handleLmpSave}
+              <input aria-label={t('cytologyScreening.lmpLabel')} type="date" value={lmpDraft} onChange={e => setLmpDraft(e.target.value)} onBlur={handleLmpSave}
                 className="ps-cytoscreen-lmp-input" />
             </div>
           </div>
@@ -884,6 +981,24 @@ export default function CytologyScreeningPage() {
                 />
               );
             })}
+
+          {/* Batch 530 (Pete): the case's clinical history, addable until sign-out; with none, the mismatch check is deferred. */}
+          {caseData && specimenId && mismatchAlert.assessment && (
+            <ClinicalMismatchAlert
+              assessment={mismatchAlert.assessment}
+              caseId={caseData.id}
+              caseType={currentSpecimen?.description || caseData.id}
+              subspecialtyId={caseData.subspecialtyId}
+              clinicalIndication={caseData.order?.clinicalIndication}
+              discipline="cytology"
+              specimenId={specimenId}
+              onRecorded={mismatchAlert.recorded}
+            />
+          )}
+          {caseData && signOutRecords.length === 0 && (
+            <CaseClinicalHistoryBar caseData={caseData}
+              onSaved={(clinicalHistory, version) => setCaseData(prev => (prev ? ({ ...prev, order: { ...prev.order, clinicalHistory }, version } as typeof prev) : prev))} />
+          )}
 
           {/* Real Sign Out action */}
           {signOutRecords.length > 0 ? (
@@ -930,13 +1045,47 @@ export default function CytologyScreeningPage() {
                 {/* Batch 409: greyed without cytology:report:sign-out; the service checks it again. */}
                 {/* Batch 415: a cytotechnologist also needs the cytotechnologist sign-out permission. */}
                 <CapabilityButton capability={isPathologist ? 'cytology:report:sign-out' : 'cytology:ct-report:sign-out'} context={{ caseId: caseData?.id }}
-                  onClick={() => setConfirmingSignOut(true)} disabled={!canSign || signingOut}
+                  onClick={() => { void beginSignOut(); }} disabled={!canSign || signingOut}
                   className={`ps-cytoscreen-signout-btn ${canSign ? 'ps-cytoscreen-signout-btn--ready' : 'ps-cytoscreen-signout-btn--blocked'}`}>
                   {signingOut ? t('cytologySignOut.signing') : t('cytologySignOut.signOut')}
                 </CapabilityButton>
               </div>
             );
           })()}
+
+          {/* Batch 534 (Pete): the case report, revisions and preliminaries held for the release delay; Recall reopens. */}
+          <HeldReportsBanner caseId={caseData?.id} user={user?.id ? { id: user.id, name: user.name } : null}
+            onRecalled={() => load(specimenId ?? undefined)} />
+          <CytologyPreliminaryPanel
+            caseId={caseData?.id} available={preliminary.available} sent={preliminary.sent} open={preliminary.open}
+            reason={preliminary.reason} note={preliminary.note} signatureNeeded={preliminary.signatureNeeded} sending={preliminary.sending}
+            onStart={() => { void preliminary.start(); }} onReason={preliminary.setReason} onNote={preliminary.setNote}
+            onSend={preliminary.requestSend} onCancel={preliminary.cancel}
+          />
+          <SignatureConfirmModal
+            show={preliminary.confirming}
+            action="cytology-preliminary"
+            caseRef={caseData?.accession?.fullAccession ?? caseData?.id ?? null}
+            title={t('cytologyPreliminary.confirmTitle')}
+            confirmLabel={t('cytologyPreliminary.send')}
+            onConfirmed={(confirmation) => { void preliminary.send(confirmation); }}
+            onCancel={() => preliminary.setConfirming(false)}
+          />
+
+          {cytologyMismatch && caseData && (
+            <ClinicalMismatchModal
+              caseId={caseData.id}
+              accession={caseData.accession?.fullAccession}
+              caseType={currentSpecimen?.description || caseData.id}
+              subspecialtyId={caseData.subspecialtyId}
+              clinicalIndication={caseData.order?.clinicalIndication}
+              assessment={cytologyMismatch}
+              discipline="cytology"
+              specimenId={specimenId}
+              onCancel={() => setCytologyMismatch(null)}
+              onContinue={() => { setCytologyMismatch(null); mismatchAlert.recorded(); setConfirmingSignOut(true); }}
+            />
+          )}
 
           <SignatureConfirmModal
             show={confirmingSignOut}
@@ -976,7 +1125,7 @@ export default function CytologyScreeningPage() {
               {!isPathologist && (
                 <div className="ps-cytoscreen-card">
                   {fieldLabel(t('cytologyScreening.reviewMode.label'), t('cytologyScreening.reviewMode.hint'))}
-                  <select value={reviewMode} onChange={e => setReviewMode(e.target.value as CytologyReviewMode)}
+                  <select aria-label={t('a11y.fields.reviewMode')} value={reviewMode} onChange={e => setReviewMode(e.target.value as CytologyReviewMode)}
                     className="ps-conf-select ps-w-full">
                     <option value="primary_manual">{t('cytologyScreening.reviewMode.options.primary_manual')}</option>
                     <option value="liquid_nongyn">{t('cytologyScreening.reviewMode.options.liquid_nongyn')}</option>
@@ -986,6 +1135,7 @@ export default function CytologyScreeningPage() {
                 </div>
               )}
 
+              {showCytologyWorkloadCounter(workloadSummary) && <CytologyWorkloadCounter summary={workloadSummary} idSuffix="screening" />}
               {workloadBanner && (
                 <div className={`ps-cytoscreen-workload-banner ps-cytoscreen-workload-banner--${workloadBanner.level}`}>
                   <div className={`ps-cytoscreen-workload-status-text ps-cytoscreen-workload-status-text--${workloadBanner.level}`}>

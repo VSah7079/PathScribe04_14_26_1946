@@ -50,9 +50,11 @@ interface UseLisIntegrationParams {
   setCaseData: Dispatch<SetStateAction<Case | null>>;
   signingUser: SigningUser;
   showToast:  (message: string, kind?: import('@/utils/toastPolicy').ToastKind) => void;
+  /** Batch 577: changes when the page takes up someone else's saved version, so the notice is read again. */
+  refreshKey?: number;
 }
 
-export function useLisIntegration({ caseData, setCaseData, signingUser, showToast }: UseLisIntegrationParams) {
+export function useLisIntegration({ caseData, setCaseData, signingUser, showToast, refreshKey = 0 }: UseLisIntegrationParams) {
   const { t } = useTranslation();
 
   // ── LIS order requests — Blocks/Recuts and Stains ───────────────────────
@@ -136,12 +138,14 @@ export function useLisIntegration({ caseData, setCaseData, signingUser, showToas
 
   useEffect(() => {
     if (!caseData?.id) { setPendingLisNotice(null); return; }
+    let live = true;
     lisAmendmentNoticeService.getByCaseId(caseData.id).then(res => {
-      if (!res.ok) return;
+      if (!live || !res.ok) return;
       const pending = res.data.find(n => n.status === 'pending_review');
       setPendingLisNotice(pending ? { id: pending.id, lisAmendmentSummary: pending.lisAmendmentSummary, receivedAt: pending.receivedAt } : null);
     });
-  }, [caseData?.id]);
+    return () => { live = false; };
+  }, [caseData?.id, refreshKey]);
 
   // Exit Gate A — clerical clearance. Only reachable when there's no
   // open amendment/addendum draft for this case (Exit Gate B rule: an

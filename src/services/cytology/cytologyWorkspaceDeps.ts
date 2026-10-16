@@ -36,11 +36,9 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { resolveDecantCassetteColor } from '@/utils/resolveDecantCassetteColor';
 import { mockCytologyComplianceFeaturesService } from './mockCytologyComplianceFeaturesService';
 import { resolveCytologyReportLocale } from './resolveCytologyReportLanguage';
-import { generateCytologyReportPdf } from './generateCytologyReportPdf';
-import { cytologyPdfLabelsFor } from './cytologyPdfLabelsFor';
-import { loadPrintFont, printFontLanguageFor } from '../documentRendering/printFonts';
+import { renderCytologyReportPdf } from './renderCytologyPdf';
+import { cytologyPreviewWatermarkFor } from './cytologyPdfLabelsFor';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const none = Promise.resolve({ ok: true as const, data: null });
 const dataOr = <T>(res: { ok: boolean; data?: T }, fallback: T | null = null) => (res.ok ? (res.data as T) : fallback);
 
@@ -122,6 +120,7 @@ export const cytologyWorkspaceDeps: CytologyWorkspaceDeps = {
 
   resolveDecantCassetteColor: (decantType, context) => resolveDecantCassetteColor(decantType, context as any),
   resolveReportLocale: facilityId => resolveCytologyReportLocale(facilityId),
-  renderReportPdf: async content =>
-    generateCytologyReportPdf(content, undefined, cytologyPdfLabelsFor(content.language), await loadPrintFont(printFontLanguageFor(content))) as any,
+  // Batch 539 (PS-539 D2): made by the report renderer; a preview carries the watermark.
+  renderReportPdf: (content, options) =>
+    renderCytologyReportPdf(content, options?.preview ? { watermarkText: cytologyPreviewWatermarkFor(content.language) } : {}),
 };

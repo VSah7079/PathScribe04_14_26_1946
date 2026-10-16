@@ -104,3 +104,11 @@ Filter boxes are marked `data-dirty-ignore` (PS-128).
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`AutoCreatedBanner.tsx` is type-checked again (it was excluded in `tsconfig.json`); it needed no change.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).

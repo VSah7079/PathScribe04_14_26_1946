@@ -27,6 +27,7 @@ import { printerProfilesForFacility, printerSupportLabelKey } from '@/services/p
 import { duplicatePrinterProfile } from '@/services/duplication/duplicateEntities';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import { hasInvalidAgentPort, isPrinterProfileDraftValid, printerProfileDraftForSave } from '@/services/printerProfiles/validatePrinterProfileDraft';
+import { switchable } from '@/utils/a11y/pressable';
 
 type Draft = Omit<PrinterProfile, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -97,23 +98,23 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, labs, equipment,
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.printerIdField')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={draft.printerId} onChange={e => set('printerId', e.target.value)} placeholder={t('printerProfilesSection.modal.printerIdPlaceholder')} />
+              <input aria-label={t('printerProfilesSection.modal.printerIdField')} className="ps-conf-input" value={draft.printerId} onChange={e => set('printerId', e.target.value)} placeholder={t('printerProfilesSection.modal.printerIdPlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.modelField')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={draft.model} onChange={e => set('model', e.target.value)} placeholder={t('printerProfilesSection.modal.modelPlaceholder')} />
+              <input aria-label={t('printerProfilesSection.modal.modelField')} className="ps-conf-input" value={draft.model} onChange={e => set('model', e.target.value)} placeholder={t('printerProfilesSection.modal.modelPlaceholder')} />
             </div>
           </div>
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.vendorField')}</label>
-              <select className="ps-conf-select" value={draft.vendor} onChange={e => set('vendor', e.target.value as PrinterVendor)}>
+              <select aria-label={t('printerProfilesSection.modal.vendorField')} className="ps-conf-select" value={draft.vendor} onChange={e => set('vendor', e.target.value as PrinterVendor)}>
                 {(Object.keys(VENDOR_LABEL_KEY) as PrinterVendor[]).map(v => <option key={v} value={v}>{t(VENDOR_LABEL_KEY[v])}</option>)}
               </select>
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.zplVersionField')}</label>
-              <input className="ps-conf-input" value={draft.zplVersion} onChange={e => set('zplVersion', e.target.value)} placeholder={t('printerProfilesSection.modal.zplVersionPlaceholder')} />
+              <input aria-label={t('printerProfilesSection.modal.zplVersionField')} className="ps-conf-input" value={draft.zplVersion} onChange={e => set('zplVersion', e.target.value)} placeholder={t('printerProfilesSection.modal.zplVersionPlaceholder')} />
             </div>
           </div>
           <div className="ps-conf-form-row">
@@ -121,7 +122,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, labs, equipment,
               <label className="ps-conf-label" title={t('printerProfilesSection.modal.bridgeTypeHint')}>
                 {t('printerProfilesSection.modal.bridgeTypeField')}
               </label>
-              <select className="ps-conf-select" value={draft.bridgeType} onChange={e => set('bridgeType', e.target.value as PrinterBridgeType)}>
+              <select aria-label={t('printerProfilesSection.modal.bridgeTypeField')} className="ps-conf-select" value={draft.bridgeType} onChange={e => set('bridgeType', e.target.value as PrinterBridgeType)}>
                 {(Object.keys(BRIDGE_LABEL_KEY) as PrinterBridgeType[]).map(b => <option key={b} value={b}>{t(BRIDGE_LABEL_KEY[b])}</option>)}
               </select>
             </div>
@@ -153,7 +154,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, labs, equipment,
               <label className="ps-conf-label" title={t('printerProfilesSection.modal.facilityHint')}>
                 {t('printerProfilesSection.modal.facilityField')}
               </label>
-              <select className="ps-conf-select" value={draft.facilityId ?? ''} onChange={e => set('facilityId', e.target.value || undefined)}>
+              <select aria-label={t('printerProfilesSection.modal.facilityField')} className="ps-conf-select" value={draft.facilityId ?? ''} onChange={e => set('facilityId', e.target.value || undefined)}>
                 <option value="">{t('printerProfilesSection.modal.globalFacilityOption')}</option>
                 {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
@@ -170,34 +171,34 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, labs, equipment,
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.dpiField')}</label>
-              <input className="ps-conf-input" type="number" value={draft.dpi} onChange={e => set('dpi', Number(e.target.value) || 0)} />
+              <input aria-label={t('printerProfilesSection.modal.dpiField')} className="ps-conf-input" type="number" value={draft.dpi} onChange={e => set('dpi', Number(e.target.value) || 0)} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.maxPrintDensityField')}</label>
-              <input className="ps-conf-input" type="number" value={draft.maxPrintDensity} onChange={e => set('maxPrintDensity', Number(e.target.value) || 0)} />
+              <input aria-label={t('printerProfilesSection.modal.maxPrintDensityField')} className="ps-conf-input" type="number" value={draft.maxPrintDensity} onChange={e => set('maxPrintDensity', Number(e.target.value) || 0)} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label" title={t('printerProfilesSection.modal.moduleSizeHint')}>
                 {t('printerProfilesSection.modal.moduleSizeField')}
               </label>
-              <input className="ps-conf-input" type="number" value={draft.moduleSize} onChange={e => set('moduleSize', Number(e.target.value) || 0)} />
+              <input aria-label={t('printerProfilesSection.modal.moduleSizeField')} className="ps-conf-input" type="number" value={draft.moduleSize} onChange={e => set('moduleSize', Number(e.target.value) || 0)} />
             </div>
           </div>
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.ipAddressField')}</label>
-              <input className="ps-conf-input" value={draft.ipAddress} onChange={e => set('ipAddress', e.target.value)} placeholder={t('printerProfilesSection.modal.ipAddressPlaceholder')} />
+              <input aria-label={t('printerProfilesSection.modal.ipAddressField')} className="ps-conf-input" value={draft.ipAddress} onChange={e => set('ipAddress', e.target.value)} placeholder={t('printerProfilesSection.modal.ipAddressPlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.portField')}</label>
-              <input className="ps-conf-input" type="number" value={draft.port ?? ''} onChange={e => set('port', e.target.value ? Number(e.target.value) : undefined)} placeholder={t('printerProfilesSection.modal.portPlaceholder')} />
+              <input aria-label={t('printerProfilesSection.modal.portField')} className="ps-conf-input" type="number" value={draft.port ?? ''} onChange={e => set('port', e.target.value ? Number(e.target.value) : undefined)} placeholder={t('printerProfilesSection.modal.portPlaceholder')} />
             </div>
           </div>
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.supportsDataMatrixField')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('supportsDataMatrix', !draft.supportsDataMatrix)} className={`ps-conf-toggle-track ${draft.supportsDataMatrix ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.supportsDataMatrix, () => set('supportsDataMatrix', !draft.supportsDataMatrix), t('printerProfilesSection.modal.supportsDataMatrixField'))} className={`ps-conf-toggle-track ${draft.supportsDataMatrix ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
               </div>
@@ -205,7 +206,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, labs, equipment,
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.supportsGs1Field')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('supportsGS1', !draft.supportsGS1)} className={`ps-conf-toggle-track ${draft.supportsGS1 ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.supportsGS1, () => set('supportsGS1', !draft.supportsGS1), t('printerProfilesSection.modal.supportsGs1Field'))} className={`ps-conf-toggle-track ${draft.supportsGS1 ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
               </div>
@@ -213,7 +214,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, labs, equipment,
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('printerProfilesSection.modal.activeField')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.active, () => set('active', !draft.active), t('printerProfilesSection.modal.activeField'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
               </div>

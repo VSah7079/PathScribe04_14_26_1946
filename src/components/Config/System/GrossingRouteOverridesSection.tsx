@@ -25,6 +25,8 @@ import { grossingRoutingOverrideService, facilityService, specimenDictionaryServ
 import type { GrossingRoutingOverrideEntry } from '../../../services/grossingRoutingOverrides/IGrossingRoutingOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import type { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Same three Gold Standard routes as DepartmentsSection.tsx —
 // same pragmatic hardcode-rather-than-fetch call, same reason. Same
@@ -84,7 +86,7 @@ const OverrideModal: React.FC<OverrideModalProps> = ({ mode, entry, facilities, 
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('grossingRouteOverridesSection.modal.specimenTypeLabel')} <span className="ps-conf-required">*</span></label>
-            <input
+            <input aria-label={t('grossingRouteOverridesSection.modal.specimenTypeLabel')}
               className={`ps-conf-input ${error ? 'ps-conf-input--error' : ''}`}
               list="ps-gro-known-types"
               value={draft.specimenType}
@@ -107,7 +109,7 @@ const OverrideModal: React.FC<OverrideModalProps> = ({ mode, entry, facilities, 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('grossingRouteOverridesSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('grossingRouteOverridesSection.modal.statusLabel'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -171,7 +173,7 @@ const GrossingRouteOverridesSection: React.FC = () => {
     setOverrides(prev => prev.filter(o => o.id !== id));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('grossingRouteOverridesSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('grossingRouteOverridesSection.loading')} />;
 
   const headers: Array<{ key: string; label: string }> = [
     { key: 'facility', label: t('grossingRouteOverridesSection.table.headers.facility') },

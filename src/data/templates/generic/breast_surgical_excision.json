@@ -491,30 +491,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "dcis_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "dcis_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "dcis_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "dcis_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "dcis_grade_opt_1", "label": "Low", "snomed": "", "icd": "" },
+            { "id": "dcis_grade_opt_2", "label": "Intermediate", "snomed": "", "icd": "" },
+            { "id": "dcis_grade_opt_3", "label": "High", "snomed": "", "icd": "" },
+            { "id": "dcis_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": ""
         },
@@ -883,30 +863,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "histological_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histological_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histological_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histological_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "histological_grade_opt_1", "label": "Grade 1 (well differentiated)", "snomed": "", "icd": "" },
+            { "id": "histological_grade_opt_2", "label": "Grade 2 (moderately differentiated)", "snomed": "", "icd": "" },
+            { "id": "histological_grade_opt_3", "label": "Grade 3 (poorly differentiated)", "snomed": "", "icd": "" },
+            { "id": "histological_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": ""
         },
@@ -919,30 +879,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "tubule_formation_score_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "tubule_formation_score_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "tubule_formation_score_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "tubule_formation_score_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "tubule_formation_score_opt_1", "label": "Score 1 (>75% tubule/gland formation)", "snomed": "", "icd": "" },
+            { "id": "tubule_formation_score_opt_2", "label": "Score 2 (10–75%)", "snomed": "", "icd": "" },
+            { "id": "tubule_formation_score_opt_3", "label": "Score 3 (<10%)", "snomed": "", "icd": "" },
+            { "id": "tubule_formation_score_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -955,30 +895,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "nuclear_pleomorphism_score_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "nuclear_pleomorphism_score_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "nuclear_pleomorphism_score_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "nuclear_pleomorphism_score_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "nuclear_pleomorphism_score_opt_1", "label": "Score 1 (mild variation)", "snomed": "", "icd": "" },
+            { "id": "nuclear_pleomorphism_score_opt_2", "label": "Score 2 (moderate variation)", "snomed": "", "icd": "" },
+            { "id": "nuclear_pleomorphism_score_opt_3", "label": "Score 3 (marked variation)", "snomed": "", "icd": "" },
+            { "id": "nuclear_pleomorphism_score_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -991,30 +911,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "mitosis_score_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "mitosis_score_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "mitosis_score_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "mitosis_score_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "mitosis_score_opt_1", "label": "Score 1 (low)", "snomed": "", "icd": "" },
+            { "id": "mitosis_score_opt_2", "label": "Score 2 (intermediate)", "snomed": "", "icd": "" },
+            { "id": "mitosis_score_opt_3", "label": "Score 3 (high)", "snomed": "", "icd": "" },
+            { "id": "mitosis_score_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -1448,79 +1348,20 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pT",
           "options": [
-            {
-              "id": "t_stage_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_7",
-              "label": "Option 7",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_8",
-              "label": "Option 8",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_11",
-              "label": "Option 11",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_12",
-              "label": "Option 12",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "t_stage_opt_1", "label": "pTis", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_2", "label": "pT1mi", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_3", "label": "pT1a", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_4", "label": "pT1b", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_5", "label": "pT1c", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_6", "label": "pT2", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_7", "label": "pT3", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_8", "label": "pT4a", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_9", "label": "pT4b", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_10", "label": "pT4c", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_11", "label": "pT4d", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_12", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -1532,67 +1373,18 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pN",
           "options": [
-            {
-              "id": "n_stage_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_7",
-              "label": "Option 7",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_8",
-              "label": "Option 8",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "n_stage_opt_1", "label": "pN0", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_2", "label": "pN1mi", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_3", "label": "pN1a", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_4", "label": "pN1b", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_5", "label": "pN1c", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_6", "label": "pN2a", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_7", "label": "pN2b", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_8", "label": "pN3a", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_9", "label": "pN3b", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_10", "label": "pN3c", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -1604,19 +1396,10 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pM",
           "options": [
-            {
-              "id": "m_stage_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "m_stage_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "m_stage_opt_1", "label": "pM1 (pathologically confirmed distant metastasis)", "snomed": "", "icd": "" },
+            { "id": "m_stage_opt_2", "label": "Not applicable (M status is determined clinically, not pathologically)", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         }

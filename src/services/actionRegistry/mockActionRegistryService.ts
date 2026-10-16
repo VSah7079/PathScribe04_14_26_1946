@@ -4,6 +4,7 @@ import type { VoiceProfileLanguage } from '../../constants/voiceProfiles';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { getPersonalSetting, setPersonalSetting } from '../userSettings/personalSettings';
 import { getSessionUser } from '../auth/caseAccessControl';
+import { dataStorage } from '../browserData/dataStorage';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Categories always eligible regardless of current context
@@ -3612,9 +3613,9 @@ const ACTIONS_STORAGE_KEY = 'ps_action_registry';
 const ACTIONS_VERSION = '2'; // bumped: the whole "flawless" action-registry pass
 const ACTIONS_VERSION_KEY = 'pathscribe_actions_version';
 try {
-  if (localStorage.getItem(ACTIONS_VERSION_KEY) !== ACTIONS_VERSION) {
-    localStorage.removeItem(ACTIONS_STORAGE_KEY);
-    localStorage.setItem(ACTIONS_VERSION_KEY, ACTIONS_VERSION);
+  if (dataStorage.getItem(ACTIONS_VERSION_KEY) !== ACTIONS_VERSION) {
+    dataStorage.removeItem(ACTIONS_STORAGE_KEY);
+    dataStorage.setItem(ACTIONS_VERSION_KEY, ACTIONS_VERSION);
   }
 } catch {
   // localStorage unavailable (e.g. test environment) — degrade
@@ -3625,7 +3626,7 @@ try {
 
 function loadActions(): SystemAction[] {
   try {
-    const raw = localStorage.getItem(ACTIONS_STORAGE_KEY);
+    const raw = dataStorage.getItem(ACTIONS_STORAGE_KEY);
     if (!raw) return SEED_ACTIONS.map(a => ({ ...a }));
     const stored: SystemAction[] = JSON.parse(raw);
     const storedIds = new Set(stored.map(a => a.id));
@@ -3639,7 +3640,7 @@ function loadActions(): SystemAction[] {
 
 function persistActions(actions: SystemAction[]) {
   try {
-    localStorage.setItem(ACTIONS_STORAGE_KEY, JSON.stringify(actions));
+    dataStorage.setItem(ACTIONS_STORAGE_KEY, JSON.stringify(actions));
   } catch {
     // localStorage unavailable — degrade gracefully
   }

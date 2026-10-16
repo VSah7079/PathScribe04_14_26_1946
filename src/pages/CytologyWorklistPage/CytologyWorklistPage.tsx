@@ -39,7 +39,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useOpenCase } from '@/hooks/useOpenCase';
-import { acceptPoolCase, availableOrganSites, claimPoolCase, cytologyWorklistView, loadCytologyWorklist, passPoolCase, simulatedHpvResultEvent, type CytologyDomain, type CytologyWorklistCase, type CytologyWorklistTab } from '@/services';
+import { acceptPoolCase, availableOrganSites, claimPoolCase, cytologyWorklistView, loadCytologyWorklist, passPoolCase, showScreeningHoursPanel, simulatedHpvResultEvent, type CytologyDomain, type CytologyWorklistCase, type CytologyWorklistTab } from '@/services';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
@@ -48,10 +48,19 @@ import '../../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
 import type { Case } from '@/types/case/Case';
-import { formatFullDisplayName } from '@/utils/personName';
+import { formatDisplayNameForLanguage } from '@/utils/personName';
 import { useSynopticFlags } from '@/pages/Synoptic/useSynopticFlags';
 import FlagManagerModal from '@/components/Flags/FlagManagerModal';
 import { openComposeTo } from '@/utils/openComposeTo';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { useScreeningHoursSignOff } from './hooks/useScreeningHoursSignOff';
+import { ScreeningHoursPanel } from './components/ScreeningHoursPanel';
+import { useCytologyWorkloadSummary } from './hooks/useCytologyWorkloadSummary';
+import { CytologyWorkloadCounter } from './components/CytologyWorkloadCounter';
+import { showCytologyWorkloadCounter } from '@/services/cytology/cytologyWorkloadSummary';
 
 type Tab = CytologyWorklistTab;
 
@@ -102,7 +111,7 @@ const EMPTY_KEY: Record<Tab, string> = {
 const CytologyWorklistPage: React.FC = () => {
   const { user } = useAuth();
   const openCasePage = useOpenCase();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // Real, per direct guidance's own explicit spec: "Home > Cytology
   // Workspace" breadcrumb navigation across Cytology sub-routes —
   // reuses the app's own real, existing BreadcrumbContext mechanism
@@ -110,6 +119,14 @@ const CytologyWorklistPage: React.FC = () => {
   // not a new, separate breadcrumb system.
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('cytologyWorklist.breadcrumbLabel'), '/cytology-worklist'); }, [pushCrumb, t]);
+  // Batch 572 (F7, option C): today's screening hours and the end-of-day sign-off, for those who screen.
+  const capabilities = useCapabilities();
+  const systemConfig = useSystemConfig().config;
+  const facilityTimezone = systemConfig.facilityTimezone;
+  const screeningHours = useScreeningHoursSignOff(user, capabilities.has('cytology:screening-hours:sign-off'), facilityTimezone);
+  // Batch 574: reviews and slides over the last 24 hours, for the people whose screening counts toward the limit.
+  // No case open here: the lab's jurisdiction decides whether the limit applies.
+  const workloadSummary = useCytologyWorkloadSummary(user?.id, { jurisdiction: systemConfig.jurisdiction }, capabilities.has('cytology:screening-hours:sign-off'));
   const [rows, setRows]             = useState<CytologyWorklistCase[]>([]);
   const [triageRows, setTriageRows] = useState<Case[]>([]);
   const [scansCompletedRows, setScansCompletedRows] = useState<Case[]>([]);
@@ -250,12 +267,23 @@ const CytologyWorklistPage: React.FC = () => {
             );
           })()}
 
+          {showCytologyWorkloadCounter(workloadSummary) && <CytologyWorkloadCounter summary={workloadSummary} />}
+          {/* Batch 574: yesterday first, while it still needs signing off (a night shift's first part). */}
+          {screeningHours.yesterday && (
+            <ScreeningHoursPanel which="yesterday" day={screeningHours.yesterday} saving={screeningHours.saving}
+              onSignOff={(h, r, n) => screeningHours.signOff(screeningHours.yesterday!.date, h, r, n)} />
+          )}
+          {screeningHours.today && showScreeningHoursPanel(screeningHours.today) && (
+            <ScreeningHoursPanel day={screeningHours.today} saving={screeningHours.saving}
+              onSignOff={(h, r, n) => screeningHours.signOff(screeningHours.today!.date, h, r, n)} />
+          )}
+
           {/* Real, three-tile row — matches the existing WorklistPage.tsx's own real stat-tile pattern */}
           <div className="ps-cytoworklist-tiles">
             {(domain === 'gyn' ? GYN_TILES : NON_GYN_TILES).map(tile => {
               const active = activeTab === tile.key;
               return (
-                <button key={tile.key} onClick={() => setActiveTab(tile.key)}
+                <button key={tile.key} type="button" onClick={() => setActiveTab(tile.key)} aria-pressed={active}
                   className={`ps-cytoworklist-tile ${active ? 'ps-cytoworklist-tile--active' : 'ps-cytoworklist-tile--inactive'}`}
                   style={{ '--ps-hue': tile.color } as React.CSSProperties}>
                   <div className="ps-cytoworklist-tile-count">{counts[tile.key]}</div>
@@ -288,7 +316,7 @@ const CytologyWorklistPage: React.FC = () => {
             </div>
           </div>
 
-          {loading && <div className="ps-cytoworklist-empty">{t('cytologyWorklist.loading')}</div>}
+          {loading && <LoadingState variant="inline" className="ps-cytoworklist-empty" label={t('cytologyWorklist.loading')} />}
 
           {!loading && activeTab === 'hpv_triage' && (
             triageRows.length === 0 ? (
@@ -298,7 +326,7 @@ const CytologyWorklistPage: React.FC = () => {
                 {triageRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ${i === triageRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatDisplayNameForLanguage(c.patient as any, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
                       <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">{t('cytologyWorklist.badges.awaitingHpv')}</span>
@@ -325,7 +353,7 @@ const CytologyWorklistPage: React.FC = () => {
                 {recallRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ${i === recallRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatDisplayNameForLanguage(c.patient as any, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
                       <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--red-strong">
@@ -344,9 +372,9 @@ const CytologyWorklistPage: React.FC = () => {
               <div className="ps-cytoworklist-list">
                 {scansCompletedRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ps-cytoworklist-row--clickable ${i === scansCompletedRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}
-                    onClick={() => void openCasePage(c.id, 'cytology')}>
+                    {...pressable(() => void openCasePage(c.id, 'cytology'))}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatDisplayNameForLanguage(c.patient as any, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
                       <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--green">{t('cytologyWorklist.badges.scanComplete')}</span>
@@ -367,12 +395,23 @@ const CytologyWorklistPage: React.FC = () => {
               {visible.map((row, i) => {
                 const c = row.caseData;
                 const hasFinalDiagnosis = row.hasFinalDiagnosis;
+                const title = formatDisplayNameForLanguage(c.patient as any, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient');
                 return (
                   <div key={c.id}
-                    onClick={() => activeTab !== 'pool' && void openCasePage(c.id, 'cytology')}
+                    // Batch 565: a pool row isn't clickable. Batch 566: these rows hold buttons of their own (flags,
+                    // ask a colleague, claim), so the row is a mouse shortcut only and its title is the button that
+                    // opens the case (axe nested-interactive).
+                    {...clickableContainer(activeTab !== 'pool' ? () => void openCasePage(c.id, 'cytology') : undefined)}
                     className={`ps-cytoworklist-row ${activeTab !== 'pool' ? 'ps-cytoworklist-row--clickable' : 'ps-cytoworklist-row--static'} ${i === visible.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
+                      {activeTab !== 'pool' ? (
+                        <button type="button" className="ps-cytoworklist-row-title ps-cytoworklist-row-open" data-phi="name"
+                          onClick={e => { e.stopPropagation(); void openCasePage(c.id, 'cytology'); }}>
+                          {title}
+                        </button>
+                      ) : (
+                        <div className="ps-cytoworklist-row-title" data-phi="name">{title}</div>
+                      )}
                       <div className="ps-cytoworklist-row-subtitle" data-phi="true">
                         {t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}
                       </div>
@@ -402,7 +441,7 @@ const CytologyWorklistPage: React.FC = () => {
                           {t('cytologyWorklist.badges.csmsVerification')}
                         </span>
                         <button
-                          onClick={() => openFlagManager(c)}
+                          onClick={e => { e.stopPropagation(); openFlagManager(c); }}
                           className="ps-cytoworklist-badge ps-cytoworklist-badge--gray-action"
                         >
                           {t('cytologyWorklist.actions.manageFlags')}

@@ -9,6 +9,7 @@
 // a system task and sees them all.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { browserRunsServerJob } from '../serverJobs/browserStandIns';
 import i18n from '@/i18n/config';
 import { formatDate } from '@/utils/formatDate';
 import { caseRouter } from '../cases/CaseRouter';
@@ -32,7 +33,6 @@ import { draftFollowUpClinicianEmail, emailOrderingClinician, type ClinicianEmai
 import { followUpAlertRecipients, followUpAlertsDue } from './followUpAlerts';
 import type { FollowUpDisposition, FollowUpExpectation, FollowUpItem, FollowUpRecord } from './followUpTypes';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** i18next would otherwise empty the template's {{placeholders}}. */
 const KEEP_PLACEHOLDERS = FOLLOW_UP_PLACEHOLDERS_AS_WRITTEN;
@@ -98,6 +98,8 @@ let sweepInFlight: Promise<number> | null = null;
 
 /** Sends the internal alerts that are due, once each. Returns how many follow-ups were alerted. */
 export function sendFollowUpAlertsLive(now: Date = new Date()): Promise<number> {
+  // Batch 555: once the API server runs followUp.dailyAlerts (VITE_SERVER_JOBS), it sends them.
+  if (!browserRunsServerJob('followUp.dailyAlerts')) return Promise.resolve(0);
   if (!sweepInFlight) sweepInFlight = runFollowUpAlertSweep(now).finally(() => { sweepInFlight = null; });
   return sweepInFlight;
 }

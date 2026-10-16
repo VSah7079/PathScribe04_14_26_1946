@@ -14,7 +14,6 @@
 
 import { otherPatientCasesForCorrelation, resolveCytologyHistologyCorrelationCandidates } from './resolveCytologyHistologyCorrelationCandidates';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CorrelationSweepChange {
   caseId: string;

@@ -12,6 +12,7 @@ import { mockInterfaceExceptionService } from '../interfaceExceptions/mockInterf
 import { resolveProviderName } from '../physicians/resolveProviderName';
 import { normalizeOrderCode } from '@/utils/normalizeOrderCode';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
@@ -421,13 +422,13 @@ const ORDERS_SEED_VERSION_KEY = 'pathscribe_orders_seed_version';
 
 function loadOrders(): IncomingOrder[] {
   const stored = storageGet<IncomingOrder[]>('pathscribe_incoming_orders', SEED_ORDERS);
-  const storedVersion = localStorage.getItem(ORDERS_SEED_VERSION_KEY);
+  const storedVersion = dataStorage.getItem(ORDERS_SEED_VERSION_KEY);
   if (storedVersion === ORDERS_SEED_VERSION) return stored;
 
   const existingIds = new Set(stored.map(o => o.id));
   const newOnes = SEED_ORDERS.filter(o => !existingIds.has(o.id));
   const merged = newOnes.length > 0 ? [...stored, ...newOnes] : stored;
-  localStorage.setItem(ORDERS_SEED_VERSION_KEY, ORDERS_SEED_VERSION);
+  dataStorage.setItem(ORDERS_SEED_VERSION_KEY, ORDERS_SEED_VERSION);
   if (newOnes.length > 0) persistOrders(merged);
   return merged;
 }

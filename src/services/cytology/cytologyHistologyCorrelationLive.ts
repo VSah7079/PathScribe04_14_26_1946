@@ -12,12 +12,12 @@
 //     services/cytology/README.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { browserRunsServerJob } from '../serverJobs/browserStandIns';
 import { resolveEffectiveCorrelationRule, type EffectiveCorrelationRule } from './cytologyHistologyCorrelationWindow';
 import { sweepCytologyHistologyCorrelationCandidates, type CorrelationSweepChange } from './sweepCytologyHistologyCorrelationCandidates';
 import { backfillCytologyHistologyCorrelationWindows, latestSignOutBySpecimen } from './backfillCytologyHistologyCorrelationWindows';
 import { saveCaseChangeFrom, type VersionedCaseUpdate } from './cytologyCaseWriteDeps';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export async function getEffectiveHistologyCorrelationRule(facilityId: string | undefined): Promise<EffectiveCorrelationRule> {
   const { mockCytologyHistologyCorrelationSettingsService, mockFacilityCytologyHistologyCorrelationOverrideService } = await import('./mockCytologyHistologyCorrelationSettingsService');
@@ -141,6 +141,8 @@ function mergeCorrelationChange(current: any, ch: CorrelationRefreshChange): Rec
 
 /** The sweep against the app's own services. */
 export async function refreshCytologyHistologyCorrelationCandidatesLive(): Promise<CorrelationRefreshChange[]> {
+  // Batch 555: once the API server runs cytology.histologyCorrelationSweep (VITE_SERVER_JOBS), it sweeps.
+  if (!browserRunsServerJob('cytology.histologyCorrelationSweep')) return [];
   const { caseRouter } = await import('../cases/CaseRouter');
   const { mockSpecimenDictionaryService } = await import('../specimenDictionary/mockSpecimenDictionaryService');
   const { mockCytologySignOutRecordService } = await import('./mockCytologySignOutRecordService');

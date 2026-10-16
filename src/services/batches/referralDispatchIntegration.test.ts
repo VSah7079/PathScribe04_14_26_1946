@@ -124,7 +124,7 @@ describe('mockBatchService — real referral dispatch on completion, per direct 
     // The tracking record exists as soon as the batch completes.
     expect((await mockReferralTrackingService.getByBatchId(created.data.id)).ok).toBe(true);
     spy.mockRestore();
-  }, 20000);
+  });
 
   it('real, completing a genuine, non-referral batch (e.g. Processing) never enqueues anything to the referral queue', async () => {
     const { mockBatchService } = await import('./mockBatchService');

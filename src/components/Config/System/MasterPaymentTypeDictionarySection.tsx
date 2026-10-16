@@ -21,8 +21,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockMasterPaymentTypeService } from '../../../services/billing/mockMasterPaymentTypeService';
+
 import type { MasterPaymentType, GuarantorRequirement } from '../../../types/billing/MasterPaymentType';
+import { masterPaymentTypeService } from '@/services';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const GUARANTOR_LABEL_KEY: Record<GuarantorRequirement, string> = {
   required: 'common.required',
@@ -47,7 +50,7 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
 
   const refresh = () => {
     setLoading(true);
-    mockMasterPaymentTypeService.getAll().then(res => {
+    masterPaymentTypeService.getAll().then(res => {
       if (res.ok) setEntries(res.data);
       setLoading(false);
     });
@@ -63,7 +66,7 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
   const handleSave = async () => {
     if (!canSave) return;
     if (modal?.mode === 'add') {
-      const res = await mockMasterPaymentTypeService.add({
+      const res = await masterPaymentTypeService.add({
         id: draft.id!.trim().toUpperCase().replace(/\s+/g, '_'),
         displayName: draft.displayName!.trim(),
         requiresSubscriberId: !!draft.requiresSubscriberId,
@@ -74,7 +77,7 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
       });
       if (!res.ok) { alert((res as any).error); return; }
     } else if (modal?.entry) {
-      const res = await mockMasterPaymentTypeService.update(modal.entry.id, {
+      const res = await masterPaymentTypeService.update(modal.entry.id, {
         displayName: draft.displayName!.trim(),
         requiresSubscriberId: !!draft.requiresSubscriberId,
         subscriberIdLabel: draft.requiresSubscriberId ? (draft.subscriberIdLabel?.trim() || undefined) : undefined,
@@ -89,13 +92,13 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
   };
 
   const toggleActive = async (e: MasterPaymentType) => {
-    const res = e.active ? await mockMasterPaymentTypeService.deactivate(e.id) : await mockMasterPaymentTypeService.reactivate(e.id);
+    const res = e.active ? await masterPaymentTypeService.deactivate(e.id) : await masterPaymentTypeService.reactivate(e.id);
     if (res.ok) refresh();
   };
 
   const displayed = entries.filter(e => showInactive || e.active);
 
-  if (loading) return <div className="ps-conf-loading">{t('masterPaymentTypeDictionarySection.loading')}</div>;
+  if (loading) return <LoadingState label={t('masterPaymentTypeDictionarySection.loading')} />;
 
   return (
     <div>
@@ -108,7 +111,7 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
 
       <div className="ps-mptd__toolbar">
         <label className="ps-sub-toggle-wrap ps-mptd__toggle-wrap">
-          <div onClick={() => setShowInactive(v => !v)} className={showInactive ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}>
+          <div {...switchable(showInactive, () => setShowInactive(v => !v), t('common.showInactive'))} className={showInactive ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}>
             <div className={showInactive ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
           </div>
           <span className="ps-tat-hint-text">{t('common.showInactive')}</span>
@@ -155,11 +158,11 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
             <div className="ps-ose-quicktext-title">{modal.mode === 'add' ? t('masterPaymentTypeDictionarySection.modal.addTitle') : t('masterPaymentTypeDictionarySection.modal.editTitle', { name: modal.entry?.displayName })}</div>
 
             <label className="ps-conf-label">{t('masterPaymentTypeDictionarySection.modal.categoryIdLabel')} {modal.mode === 'edit' && <span className="ps-mptd__locked-hint">{t('masterPaymentTypeDictionarySection.modal.categoryIdLockedHint')}</span>}</label>
-            <input className="ps-conf-input" value={draft.id ?? ''} disabled={modal.mode === 'edit'}
+            <input aria-label={t('masterPaymentTypeDictionarySection.modal.categoryIdLabel')} className="ps-conf-input" value={draft.id ?? ''} disabled={modal.mode === 'edit'}
               onChange={e => setDraft(d => ({ ...d, id: e.target.value }))} placeholder={t('masterPaymentTypeDictionarySection.modal.categoryIdPlaceholder')} />
 
             <label className="ps-conf-label">{t('masterPaymentTypeDictionarySection.modal.displayNameLabel')}</label>
-            <input className="ps-conf-input" value={draft.displayName ?? ''} onChange={e => setDraft(d => ({ ...d, displayName: e.target.value }))} />
+            <input aria-label={t('masterPaymentTypeDictionarySection.modal.displayNameLabel')} className="ps-conf-input" value={draft.displayName ?? ''} onChange={e => setDraft(d => ({ ...d, displayName: e.target.value }))} />
 
             <label className="ps-conf-label ps-mptd__checkbox-label">
               <input type="checkbox" checked={!!draft.requiresSubscriberId} onChange={e => setDraft(d => ({ ...d, requiresSubscriberId: e.target.checked }))} />
@@ -171,7 +174,7 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
             )}
 
             <label className="ps-conf-label">{t('masterPaymentTypeDictionarySection.modal.requiresGuarantorLabel')}</label>
-            <select className="ps-conf-select" value={draft.requiresGuarantor ?? 'not_required'} onChange={e => setDraft(d => ({ ...d, requiresGuarantor: e.target.value as GuarantorRequirement }))}>
+            <select aria-label={t('masterPaymentTypeDictionarySection.modal.requiresGuarantorLabel')} className="ps-conf-select" value={draft.requiresGuarantor ?? 'not_required'} onChange={e => setDraft(d => ({ ...d, requiresGuarantor: e.target.value as GuarantorRequirement }))}>
               <option value="not_required">{t(GUARANTOR_LABEL_KEY.not_required)}</option>
               <option value="optional">{t(GUARANTOR_LABEL_KEY.optional)}</option>
               <option value="required">{t(GUARANTOR_LABEL_KEY.required)}</option>
@@ -183,7 +186,7 @@ const MasterPaymentTypeDictionarySection: React.FC = () => {
             </label>
 
             <label className="ps-conf-label">{t('masterPaymentTypeDictionarySection.modal.notesLabel')}</label>
-            <input className="ps-conf-input" value={draft.notes ?? ''} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
+            <input aria-label={t('masterPaymentTypeDictionarySection.modal.notesLabel')} className="ps-conf-input" value={draft.notes ?? ''} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
 
             <div className="ps-ose-quicktext-actions">
               <button className="ps-btn-ghost-dark" onClick={() => setModal(null)}>{t('common.cancel')}</button>

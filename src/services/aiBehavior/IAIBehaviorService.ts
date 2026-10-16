@@ -4,6 +4,7 @@
  */
 import type { ServiceResult } from '../types';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 export interface AIBehaviorConfig {
   confidenceThreshold:    number;
@@ -40,13 +41,13 @@ const LS_KEY = 'ps_ai_behavior_config_v1';
 
 const load = (): AIBehaviorConfig => {
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = dataStorage.getItem(LS_KEY);
     return raw ? { ...DEFAULT_AI_BEHAVIOR_CONFIG, ...JSON.parse(raw) } : { ...DEFAULT_AI_BEHAVIOR_CONFIG };
   } catch { return { ...DEFAULT_AI_BEHAVIOR_CONFIG }; }
 };
 
 const save = (config: AIBehaviorConfig) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(config)); } catch {}
+  try { dataStorage.setItem(LS_KEY, JSON.stringify(config)); } catch {}
 };
 
 const aiBehaviorServiceUnchecked: IAIBehaviorService = {
@@ -59,7 +60,7 @@ const aiBehaviorServiceUnchecked: IAIBehaviorService = {
     return { ok: true, data: merged };
   },
   async reset() {
-    localStorage.removeItem(LS_KEY);
+    dataStorage.removeItem(LS_KEY);
     return { ok: true, data: { ...DEFAULT_AI_BEHAVIOR_CONFIG } };
   },
 };

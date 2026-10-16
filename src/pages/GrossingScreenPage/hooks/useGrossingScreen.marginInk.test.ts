@@ -20,6 +20,9 @@ vi.mock('@/services/cases/CaseRouter', () => ({
 vi.mock('@/services', () => ({
   fieldRequirementService: { forSession: vi.fn().mockResolvedValue([]) },
   specimenDeficiencyService: { getByCaseId: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+  // Structured Inking, Module 3 (PS-359 follow-up): the hook loads the active
+  // ink-colour palette for the severity engine's display; empty is fine here.
+  inkColorService: { getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
 }));
 
 const { recordMarginInkApplication } = vi.hoisted(() => ({ recordMarginInkApplication: vi.fn() }));

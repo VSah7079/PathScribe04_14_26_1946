@@ -9,15 +9,16 @@
 // Each setting's own service checks who may change it before saving here.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { dataStorage } from '../browserData/dataStorage';
 /** A lab-wide setting, or the fallback when none is saved (or it can't be read). */
 export function readLabSetting<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = dataStorage.getItem(key);
     return raw === null ? fallback : JSON.parse(raw) as T;
   } catch { return fallback; }
 }
 
 /** Saves a lab-wide setting. */
 export function saveLabSetting<T>(key: string, value: T): void {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+  try { dataStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
 }

@@ -25,7 +25,7 @@
 // and batch prints follow the grid's order.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
@@ -112,7 +112,7 @@ export function useMicrotomyWorkstation() {
   const [pendingRemoval, setPendingRemoval] = useState<{ kind: 'block' | 'decant'; parentId: string; stainId: string } | null>(null);
   const versionRef = useRef(0);
 
-  const actor = { id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' };
+  const actor = useMemo(() => ({ id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' }), [user?.id, user?.name]);
 
   const loadStainTypes = useCallback(async () => {
     const res = await stainTypeService.getAll();

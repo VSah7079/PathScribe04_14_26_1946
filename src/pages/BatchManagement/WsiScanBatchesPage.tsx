@@ -28,6 +28,7 @@ import { scanBatchActions, scanBatchProgress, type ScanQueueSlide } from '@/serv
 import { listSlideScanners, loadScanBatch, loadScanQueue, sendScanBatch, unloadScanBatch, type ScanBatchRefusal } from '@/services/digitalPathology/wsiScanBatchWorkflow';
 import { formatDateTime } from '@/utils/formatDate';
 import { CASE_PRIORITY_KEYS } from '@/utils/slideDistributionOperations';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const REFUSAL_KEY: Record<ScanBatchRefusal | 'SEND_FAILED', string> = {
   NO_SCANNER: 'wsiScanBatches.error.noScanner',
@@ -151,7 +152,7 @@ const WsiScanBatchesPage: React.FC = () => {
                     </tr>
                   ))}
                   {queue.length === 0 && (
-                    <tr><td className="ps-conf-empty-row" colSpan={6}>{loading ? t('wsiScanBatches.loading') : t('wsiScanBatches.queueEmpty')}</td></tr>
+                    <tr><td className="ps-conf-empty-row" colSpan={6}>{loading ? <LoadingState variant="inline" label={t('wsiScanBatches.loading')} /> : t('wsiScanBatches.queueEmpty')}</td></tr>
                   )}
                 </tbody>
               </table>

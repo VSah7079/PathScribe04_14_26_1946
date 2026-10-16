@@ -14,7 +14,9 @@
 // quota fall back to the default rather than throwing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PREFIX = 'ps_ui_';
+/** Every display preference is stored under this prefix (Batch 508: Full Reset clears them all). */
+export const UI_PREFERENCE_PREFIX = 'ps_ui_';
+const PREFIX = UI_PREFERENCE_PREFIX;
 
 export function getUiPreference<T>(key: string, fallback: T): T {
   try {

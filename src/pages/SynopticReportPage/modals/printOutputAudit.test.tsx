@@ -7,7 +7,8 @@
 // reads), as the signed-in person:
 //   • the report page's Print (the entry it records, reportPrintAuditEvent,
 //     for each outcome);
-//   • Report Preview's Print button (ReportPreviewPage, rendered);
+//   • (Report Preview's Print button was here until Batch 497, when that
+//     window was retired.)
 //   • the CoPilot report view's Print (CopilotReportViewModal, rendered): a
 //     first print, then a reprint of the same case;
 //   • opening a signed version's stored PDF (VersionHistoryModal, rendered),
@@ -23,23 +24,26 @@ import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 import { reportPrintAuditEvent } from '@/services/printing/reportPrintAudit';
 import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 
-vi.mock('react-router', async importOriginal => ({ ...(await importOriginal<typeof import('react-router')>()), useParams: () => ({ caseId: 'CASE-282-PREVIEW' }) }));
-vi.mock('@/hooks/usePreviewChannel', () => ({
-  usePreviewReceiver: () => ({
-    sections: [],
-    caseData: { id: 'CASE-282-PREVIEW', version: 7, status: 'finalized', accession: { fullAccession: 'S26-282-PV' }, specimens: [] },
-    lastUpdated: null,
-    isConnected: true,
-  }),
+// Batch 495 (PS-283 §4.2.4): Print buttons are CapabilityButtons and every
+// print goes through beginReportPrint (report:case-report:print). These tests
+// are about the audit entries, so the permission is granted here; the
+// refusal path is checked at the end of this file.
+const printGate = vi.hoisted(() => ({ allowed: true }));
+vi.mock('@/hooks/useCapabilities', () => ({
+  useCapabilities: () => ({ loading: false, has: () => true, decide: () => ({ allowed: true }) }),
 }));
-vi.mock('@/services/cases/mockOrchestratorCaseService', () => ({ mockOrchestratorCaseService: { getCase: async () => null } }));
+vi.mock('@/services/printing/reportPrintGate', () => ({
+  beginReportPrint: async () => printGate.allowed,
+  // Batch 516: the screens ask why (not permitted, or a restricted case).
+  checkReportPrint: async () => (printGate.allowed ? 'allowed' : 'notPermitted'),
+}));
 
-import ReportPreviewPage from '@/pages/ReportPreview/ReportPreviewPage';
 import { VersionHistoryModal } from './VersionHistoryModal';
 import { CopilotReportViewModal } from './CopilotReportViewModal';
 
 beforeAll(async () => { await i18n.changeLanguage('en'); });
 beforeEach(() => {
+  printGate.allowed = true;
   localStorage.setItem(SESSION_PROFILE_STORAGE_KEY, JSON.stringify({ id: 'PS282-UI', name: 'Dr Print Tester', role: 'pathologist' }));
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -78,21 +82,6 @@ describe('PS-282 the report page Print records its entry', () => {
   });
 });
 
-describe('PS-282 Report Preview Print', () => {
-  it('pressing Print opens the print dialog and records DOCUMENT_PREVIEW_PRINTED for the case and version', async () => {
-    const print = vi.fn();
-    window.print = print; // happy-dom has no window.print
-    render(<ReportPreviewPage />);
-    fireEvent.click(await screen.findByRole('button', { name: '🖨 Print' }));
-    expect(print).toHaveBeenCalledTimes(1);
-    await waitFor(async () => expect(await entries('DOCUMENT_PREVIEW_PRINTED', 'id=CASE-282-PREVIEW;')).toHaveLength(1));
-    const [e] = await entries('DOCUMENT_PREVIEW_PRINTED', 'id=CASE-282-PREVIEW;');
-    expect(e).toMatchObject({ user: 'Dr Print Tester', caseId: 'S26-282-PV' });
-    expect(e.detail).toContain('version=7');
-    expect(e.detail).toContain('destination=browser print dialog');
-  });
-});
-
 describe('PS-282 opening a signed version\'s stored PDF', () => {
   const version = (caseId: string, versionNumber: number): ReportVersionRecord => ({
     id: `v-${caseId}-${versionNumber}`, caseId, versionNumber, createdAt: '2026-10-01T10:00:00Z', mode: 'orchestration',
@@ -104,7 +93,7 @@ describe('PS-282 opening a signed version\'s stored PDF', () => {
     const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     render(<VersionHistoryModal versions={[version('CASE-282-VH', 2)]} onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'View signed PDF' }));
-    expect(open).toHaveBeenCalledWith('blob:pdf', '_blank');
+    await waitFor(() => expect(open).toHaveBeenCalledWith('blob:pdf', '_blank'));
     await waitFor(async () => expect(await entries('DOCUMENT_RENDERED', 'document=report-version; id=CASE-282-VH;')).toHaveLength(1));
     const [e] = await entries('DOCUMENT_RENDERED', 'id=CASE-282-VH;');
     expect(e.user).toBe('Dr Print Tester');
@@ -119,7 +108,7 @@ describe('PS-282 opening a signed version\'s stored PDF', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     render(<VersionHistoryModal versions={[version('CASE-282-VH-DL', 3)]} onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'View signed PDF' }));
-    expect(click).toHaveBeenCalled();
+    await waitFor(() => expect(click).toHaveBeenCalled());
     await waitFor(async () => expect(await entries('DOCUMENT_RENDERED', 'id=CASE-282-VH-DL;')).toHaveLength(1));
     const [e] = await entries('DOCUMENT_RENDERED', 'id=CASE-282-VH-DL;');
     expect(e.detail).toContain('destination=download version-3.pdf');
@@ -144,5 +133,50 @@ describe('PS-282 CoPilot report view Print', () => {
     rerender(view());
     fireEvent.click(screen.getByRole('button', { name: /Print/ }));
     await waitFor(async () => expect(await entries('DOCUMENT_REPRINTED', 'document=report; id=CASE-282-CP;')).toHaveLength(1));
+  });
+});
+
+describe('Batch 495 (PS-283 §4.2.4): a refused report:case-report:print produces nothing', () => {
+  it('CoPilot report view: nothing is printed or recorded, and the refusal is shown', async () => {
+    printGate.allowed = false;
+    const alert = vi.fn();
+    window.alert = alert; // happy-dom has no window.alert
+    const open = vi.spyOn(window, 'open');
+    render(<CopilotReportViewModal show onClose={vi.fn()} accession="S26-283-CP" patient="Test, Patient" mrn="MRN-1" instances={[]} caseRecord={{ id: 'CASE-283-CP', version: 1, originHospitalId: null }} />);
+    fireEvent.click(screen.getByRole('button', { name: /Print/ }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(i18n.t('reportPrint.notPermitted')));
+    expect(open).not.toHaveBeenCalled();
+    expect(await entries('DOCUMENT_PRINTED', 'id=CASE-283-CP;')).toHaveLength(0);
+  });
+
+  it('Version history: the stored PDF is not opened and the refusal is shown', async () => {
+    printGate.allowed = false;
+    const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
+    render(<VersionHistoryModal versions={[{
+      id: 'v-refused', caseId: 'CASE-283-REFUSED', versionNumber: 1, createdAt: '2026-10-01T10:00:00Z', mode: 'orchestration',
+      trigger: 'initial_signout', createdBy: { userId: 'u1', userName: 'Dr Signer' }, pdfBase64: btoa('%PDF-1.4 test'),
+    } as ReportVersionRecord]} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'View signed PDF' }));
+    await waitFor(() => expect(screen.getByText(i18n.t('reportPrint.notPermitted'))).toBeTruthy());
+    expect(open).not.toHaveBeenCalled();
+    expect(await entries('DOCUMENT_RENDERED', 'id=CASE-283-REFUSED;')).toHaveLength(0);
+  });
+});
+
+describe('Batch 538: Released documents — the released report, exactly as sent', () => {
+  it('lists the case\'s released documents with their SHA-256; "View as sent" opens the stored bytes and is audited', async () => {
+    const { reportDocumentService, pdfSha256 } = await import('@/services');
+    const pdf = btoa('%PDF-1.4 the correction as sent');
+    const stored = await reportDocumentService.store({ pdfBase64: pdf, caseId: 'CASE-538', reportType: 'CORRECTED', source: 'SURGPATH', releasedAt: '2026-10-12T20:00:00Z', producedBy: 'report-renderer' });
+    expect(stored.ok).toBe(true);
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:sent');
+    const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
+    render(<VersionHistoryModal versions={[]} caseId="CASE-538" onClose={vi.fn()} />);
+    expect(await screen.findByText('Released documents')).toBeTruthy();
+    const hash = pdfSha256(pdf);
+    expect(screen.getByTitle(hash).textContent).toBe(`SHA-256 ${hash.slice(0, 8)}…${hash.slice(-4)}`);
+    fireEvent.click(screen.getByRole('button', { name: 'View as sent' }));
+    await waitFor(() => expect(open).toHaveBeenCalledWith('blob:sent', '_blank'));
+    await waitFor(async () => expect(await entries('DOCUMENT_RENDERED', `document=report-document; id=${stored.ok ? stored.data.id : ''};`)).toHaveLength(1));
   });
 });

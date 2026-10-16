@@ -63,7 +63,14 @@ const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId,
     if (result.ok) {
       onReleased();
     } else {
-      setServerError(result.notPermitted ? t('autopsyBodyRelease.notPermitted') : (result.error ?? result.blockedReasons?.join(' ') ?? t('autopsyBodyRelease.genericError')));
+      // Batch 495: translated text only — never the service's English
+      // `error` string or raw block-reason codes.
+      setServerError(
+        result.notPermitted ? t('autopsyBodyRelease.notPermitted')
+        : result.blockedReasons?.length ? formatList(result.blockedReasons.map(r => t(`autopsyBodyRelease.blockedReasons.${r}`)), i18n.language)
+        : result.reasonCode ? t(`autopsyBodyRelease.errors.${result.reasonCode}`)
+        : t('autopsyBodyRelease.genericError'),
+      );
     }
   };
 
@@ -81,7 +88,7 @@ const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId,
 
       {!gate.allowed && (
         <div className="ps-conf-validation-errors">
-          {gate.blockedReasons.map(reason => <div key={reason}>{reason}</div>)}
+          {gate.blockedReasons.map(reason => <div key={reason}>{t(`autopsyBodyRelease.blockedReasons.${reason}`)}</div>)}
         </div>
       )}
 

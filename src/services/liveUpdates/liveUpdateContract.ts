@@ -14,6 +14,8 @@
 // event re-reads the data through the normal (authorised) service call,
 // so an event never grants access to anything.
 // ─────────────────────────────────────────────────────────────────────────────
+import type { ExportStatus, ExportStatusEvent } from '../exports/asyncExportContract';
+import { DATA_KEY_MAX_LENGTH, isDataTopic, isKeyedDataTopic, type DataChangedEvent } from './dataTopics';
 
 /** Hub path on the API server, relative to its base URL. */
 export const LIVE_UPDATES_HUB_PATH = '/hubs/live';
@@ -186,5 +188,103 @@ export function parseWsiScanBatchChangedEvent(raw: unknown): WsiScanBatchChanged
     change: e.change as WsiScanBatchChange,
     ...(typeof e.facilityId === 'string' ? { facilityId: e.facilityId } : {}),
     occurredAt: e.occurredAt as string,
+  };
+}
+
+// ── Report delivery status (Batch 521, PS-281) ──────────────────────────────
+
+/** Server → client: what a fax provider reported about a fax the interface
+ *  server submitted (PS-281 §3.2.3: confirmation down to transmission). The
+ *  queue entry is the report delivery queue's; ids and status only, no PHI.
+ *  The server sends it when the provider's transmission report comes in (its
+ *  webhook, or the report email to the sending address). */
+export const HUB_REPORT_DELIVERY_STATUS = 'ReportDeliveryStatus';
+
+export const REPORT_DELIVERY_STATUSES = ['TRANSMITTED', 'TRANSMISSION_FAILED'] as const;
+export type ReportDeliveryStatusCode = typeof REPORT_DELIVERY_STATUSES[number];
+
+export interface ReportDeliveryStatusEvent {
+  v: typeof LIVE_UPDATES_CONTRACT_VERSION;
+  eventId: string;
+  queueEntryId: string;
+  status: ReportDeliveryStatusCode;
+  /** The provider's own words (e.g. "Busy", "No answer"), when it gave any. */
+  detail?: string;
+  occurredAt: string;
+}
+
+/** Validates a report delivery status received from the wire; anything else is ignored. */
+export function parseReportDeliveryStatusEvent(raw: unknown): ReportDeliveryStatusEvent | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const e = raw as Record<string, unknown>;
+  if (e.v !== LIVE_UPDATES_CONTRACT_VERSION) return null;
+  for (const k of ['eventId', 'queueEntryId', 'occurredAt'] as const) {
+    if (typeof e[k] !== 'string' || !e[k]) return null;
+  }
+  if (typeof e.status !== 'string' || !(REPORT_DELIVERY_STATUSES as readonly string[]).includes(e.status)) return null;
+  if (e.detail !== undefined && typeof e.detail !== 'string') return null;
+  return {
+    v: LIVE_UPDATES_CONTRACT_VERSION,
+    eventId: e.eventId as string,
+    queueEntryId: e.queueEntryId as string,
+    status: e.status as ReportDeliveryStatusCode,
+    ...(typeof e.detail === 'string' ? { detail: e.detail } : {}),
+    occurredAt: e.occurredAt as string,
+  };
+}
+
+// ── Exports (Batch 550, PS-539 phase 2d; ASYNC_EXPORT_API.md §5) ────────────
+/** Hub → client: one of the requester's exports changed status. Sent with
+ *  `Clients.User(userId)` to the requester only, like PrintJobStatus. The
+ *  payload is `ExportStatusEvent` (services/exports/asyncExportContract.ts):
+ *  ids, status, the title built from the screen and date, and the row count.
+ *  No patient data. */
+export const HUB_EXPORT_STATUS = 'ExportStatus';
+
+const EXPORT_EVENT_STATUSES: readonly ExportStatus[] = ['queued', 'running', 'ready', 'failed', 'cancelled', 'expired'];
+
+/** Validates an export status received from the wire; anything else is ignored. */
+export function parseExportStatusEvent(raw: unknown): ExportStatusEvent | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const e = raw as Record<string, unknown>;
+  if (e.type !== HUB_EXPORT_STATUS || e.v !== LIVE_UPDATES_CONTRACT_VERSION) return null;
+  for (const k of ['eventId', 'exportId', 'title'] as const) {
+    if (typeof e[k] !== 'string' || !e[k]) return null;
+  }
+  if (typeof e.status !== 'string' || !EXPORT_EVENT_STATUSES.includes(e.status as ExportStatus)) return null;
+  if (e.rowCount !== undefined && (typeof e.rowCount !== 'number' || !Number.isFinite(e.rowCount) || e.rowCount < 0)) return null;
+  return {
+    type: 'ExportStatus',
+    v: LIVE_UPDATES_CONTRACT_VERSION,
+    eventId: e.eventId as string,
+    exportId: e.exportId as string,
+    status: e.status as ExportStatus,
+    title: e.title as string,
+    ...(typeof e.rowCount === 'number' ? { rowCount: e.rowCount } : {}),
+  };
+}
+
+// ─── Batch 559: data topics (dataTopics.ts) ──────────────────────────────────
+
+/** Client → server: replace this connection's data topics (DataTopicScope). Answers SetDataTopicsResult. */
+export const HUB_SET_DATA_TOPICS = 'SetDataTopics';
+/** Server → client: something a topic's screen shows changed; the screen re-reads (DataChangedEvent). */
+export const HUB_DATA_CHANGED = 'DataChanged';
+
+
+/** Validates a DataChanged event from the wire; anything else is ignored. A keyed topic's event must name its key. */
+export function parseDataChangedEvent(raw: unknown): DataChangedEvent | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const e = raw as Record<string, unknown>;
+  if (e.type !== HUB_DATA_CHANGED || e.v !== LIVE_UPDATES_CONTRACT_VERSION) return null;
+  if (typeof e.eventId !== 'string' || !e.eventId || !isDataTopic(e.topic)) return null;
+  if (typeof e.occurredAt !== 'string' || Number.isNaN(Date.parse(e.occurredAt))) return null;
+  const key = typeof e.key === 'string' ? e.key.trim() : undefined;
+  if (e.key !== undefined && (!key || key.length > DATA_KEY_MAX_LENGTH)) return null;
+  if (isKeyedDataTopic(e.topic) && !key) return null;
+  return {
+    type: 'DataChanged', v: LIVE_UPDATES_CONTRACT_VERSION, eventId: e.eventId, topic: e.topic,
+    ...(key && isKeyedDataTopic(e.topic) ? { key } : {}),
+    occurredAt: e.occurredAt,
   };
 }

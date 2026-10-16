@@ -7,7 +7,7 @@
 // services/quality/resolveQaEvidenceBinder.test.ts.
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
@@ -16,7 +16,7 @@ const h = vi.hoisted(() => {
   return {
     openCase: vi.fn(async () => undefined),
     exportQaReport: vi.fn(async () => ({ ok: true, rowCount: 2 })),
-    authorizationService: { enforce: vi.fn(async () => ({ allowed: true })) },
+    authorizationService: { enforce: vi.fn(async () => ({ allowed: true })), snapshot: vi.fn(async () => ({ subject: null, roles: [] })) },
     records: [
       { id: 'r1', activityTypeId: 'qa-type-1', caseId: 'S26-0101', specimenId: 'A', caseType: 'Surgical', fieldValues: {}, outcome: 'discordant', severity: 'high', recordedAt: now, recordedBy: { userId: 'u1', userName: 'Dr. One' } },
       { id: 'r2', activityTypeId: 'qa-type-1', caseId: 'S26-0102', caseType: 'Surgical', fieldValues: {}, outcome: 'concordant', recordedAt: now, recordedBy: { userId: 'u2', userName: 'Dr. Two' } },
@@ -36,6 +36,15 @@ vi.mock('@/services', () => ({
 }));
 vi.mock('@/services/auth/caseAccessControl', () => ({ getSessionUser: () => null, canViewCrossTenantQaData: () => false }));
 vi.mock('@/hooks/useOpenCase', () => ({ useOpenCase: () => h.openCase }));
+vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getAll: vi.fn(async () => ({ ok: true, data: [
+  { id: 'S26-0101', order: { facilityId: 'fac-north' } }, { id: 'S26-0102', order: { facilityId: 'fac-south' } },
+] })) } }));
+// Batch 544: the scope picker, reduced to one button that picks fac-north.
+vi.mock('./QaScopeSwitcher', () => ({
+  QaScopeSwitcher: ({ onChange, visibleClientIds }: { onChange: (s: unknown) => void; visibleClientIds?: string[] }) =>
+    <button type="button" data-offered={(visibleClientIds ?? []).join(',')} onClick={() => onChange({ level: 'client', clientId: 'fac-north' })}>pick fac-north</button>,
+}));
+
 // The greyed-out state is CapabilityButton's own concern; here it renders a
 // plain button that names the capability it was given.
 vi.mock('@/components/Common/CapabilityButton', () => ({
@@ -65,6 +74,18 @@ describe('InspectionModeTab (PS-121)', () => {
     expect(filename).toMatch(/^qa-inspection-evidence-binder-24mo-\d{4}-\d{2}-\d{2}\.csv$/);
     expect(deps.authorization).toBe(h.authorizationService);
     expect(context).toEqual({ allFacilities: true });
+  });
+
+  it('Batch 544: one facility exports only its records, checked for that facility and named for it', async () => {
+    render(<InspectionModeTab />);
+    const pick = await screen.findByText('pick fac-north');
+    await waitFor(() => expect(pick.getAttribute('data-offered')).toBe('fac-north,fac-south'));
+    fireEvent.click(pick);
+    fireEvent.click(screen.getByText('inspectionModeTab.downloadButton'));
+    const [, rows, filename, , context] = h.exportQaReport.mock.calls[0] as unknown as [string, Record<string, string>[], string, unknown, unknown];
+    expect(rows.map(r => r.Case)).toEqual(['S26-0101']);
+    expect(filename).toMatch(/^qa-inspection-evidence-binder-24mo-fac-north-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(context).toEqual({ facilityIds: ['fac-north'] });
   });
 
   it('drilling into a binder record opens the underlying case', async () => {

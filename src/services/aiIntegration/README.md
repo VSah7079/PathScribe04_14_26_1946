@@ -33,11 +33,20 @@ Every method here now returns `ServiceResult` from `services/types.ts` (`{ ok: t
 
 ## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-105, PS-131, PS-275)
 
-`PathScribeAIService.test.ts`: every finding-detection request carries the negation instruction; narrative generation from synoptic answers. **Open:** negation is prompt-only; a negated finding the model wrongly returns still reaches the Critical Findings modal.
+`PathScribeAIService.test.ts`: every finding-detection request carries the negation instruction; narrative generation from synoptic answers. **Open:** negation is prompt-only; a negated finding the model wrongly returns still reaches the Critical Findings modal. *(Since closed: Batch 452 added a code-side check, `services/clinical/negatedFindingCheck.ts`, that drops a flag whose term is negated in its source text — checked in the Batch 496 README audit.)*
 
 ## Batch 451 — screen-level test evidence for Priority 2 tickets
 
 `aiReportTools.ts`: which AI tool buttons the report page shows (PS-274, PS-275).
+
+
+## Batch 536 (PS-558): AI vendor policy per jurisdiction
+
+- `aiVendorPolicy.ts` (pure): the rules (allowed services by request shape, allowed hosting regions per service; a facility rule narrows its jurisdiction's), `aiVendorDecision`, `aiVendorConflicts` (the warning before saving a service), `aiVendorScopeStatuses`, rule problems, normalising, the audit text.
+- `aiVendorPolicyService.ts` / `mockAiVendorPolicyService.ts`: list, save and remove (`config:ai-vendor-policy:manage`, audited `AI_VENDOR_POLICY_CHANGED`), `rulesForCheck` (system read), `served` (the lab's and every facility's jurisdiction). Storage: `pathscribe_ai_vendor_policy` (mockStorage).
+- `aiCallPolicy.ts`: the check before every call. Where the work belongs (jurisdiction given, else the case's or facility's, else the lab's own); a refusal throws `AiNotAvailableError` (`AI_VENDOR_NOT_ALLOWED`), is recorded as `refused` in the AI audit log and audited `AI_CALL_REFUSED`; `recordAiCall` logs every call with service, model, hosting region, jurisdiction and feature.
+- `aiProviderService.callAi`: takes `context` (the feature, and the case or facility) and checks before `fetch`. It checks the service the request actually goes to (an unknown or `mock` setting is sent to `structured_messages`, as before), and never falls back to another service.
+- `PathScribeAIService`: each call passes its feature and facility.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

@@ -8,7 +8,9 @@
 // For a REAL Engine-reported event, the backend webhook
 // (api/webhooks/engine/block-exception.ts) has already applied the
 // mutation server-side via applyEngineCaseUpdate before this ever
-// runs. usePendingEngineNotifications.ts calls THIS function instead
+// runs. The notification side calls THIS function instead (the old poll,
+// usePendingEngineNotifications.ts, was never mounted and was removed in
+// Batch 549; the hub's case event takes its place, phase 2d/2e)
 // of processBlockExceptionEvent — calling the mutating function here
 // too would apply the same real exception a second time, against
 // whatever the case looks like NOW rather than what it looked like

@@ -8,16 +8,22 @@ The core case domain model — `Case`, `Specimen`, and every real type layered o
 - **`Specimen.ts`** — specimens, `HistologyBlock`, `StainOrder` — the primary material tree. `Material.ts` below extends this rather than duplicating it. Real, per direct billing-expert guidance (PS-93): `StainOrder` gained `targetSpecimenIds`/`evaluatedSpecimenIds` (only meaningful on a stain inside a shared `MatrixBlock.slides[]`), and `Specimen` gained `matrixBlockCoding` — see `MatrixBlock.ts`'s own entry below and `services/billing/README.md`'s full PS-93 account. Real, per direct guidance (Cytology & Cervical Screening module, Phase 2, Sep 2026): `Specimen` gained `cytologyScreening?: CytologyScreeningRecord` — a GYN cytology specimen is just a regular `Specimen` (`SpecimenEntry.type: 'Cytology'`/`'FNA'` already distinguishes it), not a parallel case system. References `CytologyCategoryEntry.id` (`services/cytology/`) for adequacy/general categorization/interpretation-result rather than duplicating label text. See `services/cytology/README.md` for the full account. **Protocol-Driven Workflow Infrastructure story additions (Sep 2026)**: `Specimen.protocolSnapshot?: { id, version, name }` locks the exact Protocol identity/version resolved at accession (`utils/generateDefaultMaterial.ts`) — a later edit to the master Protocol never retroactively changes what an already-accessioned specimen shows. `Specimen.triage?: SpecimenTriage` supersedes the earlier, simple retrospective `triageConfirmedAt`/`triageConfirmedBy` pair with a real, per-item checklist that genuinely gates block release (`useSpecimenBlockManagement.ts`'s `handleReleaseGrossingBlocks`) unless every item is confirmed or a supervisor override reason is recorded — see `services/protocols/README.md` for the full Part 1–2c account.
 - **`CaseStatus.ts`** — the case lifecycle status enum (`draft` → ... → `finalized`/`closed`), deliberately large and mutually-exclusive; see its own header for why a status like "on hold" doesn't belong here (that's `CaseHold.ts`, layered orthogonally). **Real, per direct guidance ("Yes we should scope 'Return to Trainee'/'Reject with Notes'"): `'returned'` — a real, pre-existing member of this union previously confirmed to have zero real consuming logic anywhere in the app — is now genuinely wired**, reused deliberately rather than adding a new status value; see `services/cases/README.md`'s own fuller account of that decision and why.
 - **`CaseComment.ts`** — real, append-only comment thread, replacing an earlier plain-string field that any save silently overwrote.
-- **`CaseFlag.ts`** / **`SpecimenFlag.ts`** — clinical-grade flag models (LIS interoperability via `lisCode`, 1–5 severity scoring) for case-level vs. specimen-level annotations.
+- ~~`CaseFlag.ts` / `SpecimenFlag.ts`~~ — removed in Batch 499 (listed in the root `DELETED_FILES.txt`). They were older flag-definition shapes with no importers: since Batch 452 (PS-57), `Case.caseFlags` and `Specimen.specimenFlags` are `FlagInstance[]` (`types/flagsRuntime.ts`). The flag catalog itself is in `services/flags/`.
 - **`RetentionHold.ts`** — case-level hold gating **disposal** after finalization (litigation, patient request, research). Set at accession or later; multiple can accumulate over a case's life, none ever deleted, only released.
 - **`CaseHold.ts`** — case-level hold gating **finalize** on an active, not-yet-done case ("something truly wrong" — quality issue, awaiting outside materials, clinical discrepancy, pending consultation). Deliberately a separate type from `RetentionHold` despite the shared "Hold" name — see this file's own header for the full distinction.
 - **`MatrixBlock.ts`** — case-level (not per-specimen) shared/matrix blocks, pulled out of individual `Specimen.blocks[]` arrays so a block shared across specimens has one real, single identity rather than duplicated copies. Real, per direct billing-expert guidance (PS-93): `StainOrder.targetSpecimenIds`/`evaluatedSpecimenIds` (`Specimen.ts`, same file) resolve real per-specimen ancillary billing coverage for a Biopsy Array — see `services/billing/README.md`'s own PS-93 entry for the full account.
 - **`Material.ts`** — the newer pieces of the material tree not already covered by `Specimen.ts` (e.g. `Decant`).
-- **`CountersignRecord.ts`** — the real resident-drafts/attending-countersigns workflow record. **Real, per direct guidance ("Yes we should scope 'Return to Trainee'/'Reject with Notes'"): `status` gained a real, third member, `'returned'`**, alongside a new `returnedAt` — see `services/cases/README.md`'s own fuller account of the new `reject()` method that produces it.
-- **`FppeAssignment.ts`** — Focused Professional Practice Evaluation (new-hire credentialing) tracking, generalized from the countersign mechanism. **Real fix, per direct guidance:** gained a required `facilityId` — had no facility association at all before, a genuine gap; every FPPE assignment is a real, specific person practicing at one real, specific performing lab, unlike a shared network-pool printer where "no single owner" is a valid state.
+- **`CountersignRecord.ts`** — the real resident-drafts/attending-countersigns workflow record. **Real, per direct guidance ("Yes we should scope 'Return to Trainee'/'Reject with Notes'"): `status` gained a real, third member, `'returned'`**, alongside a new `returnedAt` — see `services/cases/README.md`'s own fuller account of the new `reject()` method that produces it. **Batch 483 (PS-359 tracker follow-up):** gained an optional `specimenId`, set only by cytology's per-specimen sign-out — never by surgical pathology or autopsy — fixing a real data-loss bug where a cytology case's second specimen release destroyed the first's still-pending record. See `services/cases/README.md`'s own Batch 483 entry for the full reasoning.
+- **`FppeAssignment.ts`** — Focused Professional Practice Evaluation (new-hire credentialing) tracking, generalized from the countersign mechanism. **Real fix, per direct guidance:** gained a required `facilityId` — had no facility association at all before, a genuine gap; every FPPE assignment is a real, specific person practicing at one real, specific performing lab, unlike a shared network-pool printer where "no single owner" is a valid state. *(Deleted in Batch 515, PS-124: replaced by `types/quality/QaSupervisionAssignment.ts`.)*
 - **`Patient.ts`** — patient demographics; medical-grade name schema (Prefix/Given/Family/Preferred/Suffix, not rigid First/Middle/Last).
 - **`ErasureCertificate.ts`** — deliberate, forward-looking scaffolding for a real GDPR Article 17 compliance feature. Zero current consumers on purpose — waiting on legal counsel sign-off before being wired to a real delete. Not dead code.
+- **`Margin.ts`** — margins and their ink applications (Batch 480, below).
+- **`MaterialComment.ts`** — plain-text comments on blocks, slides and decants.
+- **`AddOnOrder.ts`** (PS-287) — shared constants and small types for pathologist-initiated add-on orders.
+- **Outbound queue entries** (one per interface message kind): `OutboundResultQueueEntry.ts` (surgical results, ORU^R01), `CytologyOutboundResultQueueEntry.ts`, `AccessionOutboundQueueEntry.ts` (accession and deficiency events), `MolecularOrderOutboundQueueEntry.ts`, `OutboundLisSyncQueueEntry.ts`, `CytologyRegistryOutboundQueueEntry.ts` and `CancerRegistryOutboundQueueEntry.ts` (see the batch entries below).
 - ~~`ReportSnapshot.ts`~~ — removed in Batch 366 (PS-68): nothing used it, and `types/reports/ReportVersionRecord.ts` is the release record the app uses. See that file's header for the two points carried forward for the API server.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `CaseFlag.ts`/`SpecimenFlag.ts` are no longer the stored flag shape and have no importers; added ten files missing from this list.*
 
 ## Notes
 
@@ -107,3 +113,31 @@ See `services/digitalPathology/wsiScanQueue.ts`.
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`Case.finalizedBy` is `string | null`; sign-out stores `null` when there is no signing user.
+
+## Batch 512
+
+`Specimen.lisStatus` is renamed **`lisSyncState`** (type `SpecimenLisSyncState`, was `SpecimenLisStatus`). It records whether PathScribe has changed the specimen since the LIS sent it, not the LIS's own status, and the old name read like the latter. Unset means the same as `lis_owned`. Demo data saved before the rename loses any "Pending sync" badge until the specimen is edited again or the demo is reset.
+
+## Batch 515 (PS-124)
+
+`FppeAssignment.ts` deleted; FPPE assignments use `types/quality/QaSupervisionAssignment.ts`.
+
+## Batch 532
+
+`CytologyOutboundResultQueueEntry.scope` (`'case'`): one consolidated message for the accession, since Batch 532. Entries without it are the per-specimen messages sent before.
+
+## Batch 533
+
+`Case.cytologyPreliminaryReleases`: urgent cytology preliminaries sent before the case report, written once. `CytologyOutboundResultQueueEntry`: `PRELIMINARY` with `scope: 'preliminary'` (signOutRecordId is then the release id).
+
+## Batch 538
+
+`OutboundResultQueueEntry` and `CytologyOutboundResultQueueEntry`: `reportDocumentId`, `pdfSha256` (the released report document the message carries; a retry sends it).
+
+## Batch 559 (PS-539 phase 2d)
+
+- `OutboundResultQueueEntry.pdfSha256` is set for a signed version's PDF too, and updated by a retry.

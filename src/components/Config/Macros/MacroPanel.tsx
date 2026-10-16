@@ -35,6 +35,7 @@ import type { Facility } from '@/services/facilities/IFacilityService';
 import { extractWordBuildingBlocks, type ExtractedBuildingBlock } from '@/services/import/wordBuildingBlocksEngine';
 import { generateShortcutFromName } from '../../../services/macros/generateShortcutFromName';
 import PathScribeEditor, { Macro } from '../../Editor/PathScribeEditor';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface MacroPanelProps {
   approvedFonts: string[];
@@ -315,7 +316,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
   }, [isDirty]);
 
   if (loadingMacros) return (
-    <div className="ps-macro-loading">{t('macroPanel.loading')}</div>
+    <LoadingState variant="inline" className="ps-macro-loading" label={t('macroPanel.loading')} />
   );
 
   return (
@@ -370,7 +371,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
         </div>
 
         {activeTier === 'facility' && (
-          <select data-dirty-ignore data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
+          <select aria-label={t('a11y.filters.facility')} data-dirty-ignore data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
             <option value="">— {t('macroPanel.sidebar.selectFacility')} —</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
@@ -428,7 +429,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
                 <label className="ps-macro-field-label">
                   {t('macroPanel.editor.nameLabel')}
                 </label>
-                <input
+                <input aria-label={t('macroPanel.editor.nameLabel')}
                   value={macroName}
                   onChange={e => setMacroName(e.target.value)}
                   placeholder={t('macroPanel.editor.namePlaceholder')}
@@ -439,7 +440,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
                 <label className="ps-macro-field-label">
                   {t('macroPanel.editor.triggerLabel')}
                 </label>
-                <input
+                <input aria-label={t('macroPanel.editor.triggerLabel')}
                   value={trigger}
                   onChange={e => setTrigger(e.target.value)}
                   placeholder=";gs"
@@ -454,7 +455,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
                 <label className="ps-macro-field-label">
                   {t('macroPanel.editor.visibilityLabel')}
                 </label>
-                <select className="ps-conf-select" value={draftTier} onChange={e => setDraftTier(e.target.value as Tier)} disabled={!canEditSelected}>
+                <select aria-label={t('macroPanel.editor.visibilityLabel')} className="ps-conf-select" value={draftTier} onChange={e => setDraftTier(e.target.value as Tier)} disabled={!canEditSelected}>
                   {tierOptions.map(tier => (
                     <option key={tier} value={tier} disabled={!allowedTiers.includes(tier)}>{t(TIER_OPTION_LABEL_KEY[tier])}</option>
                   ))}
@@ -465,7 +466,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
                   <label className="ps-macro-field-label">
                     {t('macroPanel.editor.facilityLabel')}
                   </label>
-                  <select className="ps-conf-select" value={draftFacilityId} onChange={e => setDraftFacilityId(e.target.value)}>
+                  <select aria-label={t('macroPanel.editor.facilityLabel')} className="ps-conf-select" value={draftFacilityId} onChange={e => setDraftFacilityId(e.target.value)}>
                     <option value="">— {t('common.select')} —</option>
                     {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
@@ -516,9 +517,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
             <div className="ps-macro-empty-icon">⚡</div>
             <div className="ps-macro-empty-title">{t('macroPanel.emptyState.title')}</div>
             <div className="ps-macro-empty-body">
-              <Trans i18nKey="macroPanel.emptyState.body">
-                Select a macro from the list to edit it, or click <strong className="ps-macro-empty-cta">+ New</strong> to create your first macro template.
-              </Trans>
+              <Trans i18nKey="macroPanel.emptyState.body" components={{ cta: <strong className="ps-macro-empty-cta" /> }} />
             </div>
             <button
               onClick={handleCreateNew}
@@ -573,7 +572,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
                 <div className="ps-macro-field-row ps-macro-import-tier-row">
                   <div className="ps-macro-field-flex1">
                     <label className="ps-conf-label">{t('macroPanel.import.importAsLabel')}</label>
-                    <select className="ps-conf-select" value={importTier} onChange={e => setImportTier(e.target.value as Tier)}>
+                    <select aria-label={t('macroPanel.import.importAsLabel')} className="ps-conf-select" value={importTier} onChange={e => setImportTier(e.target.value as Tier)}>
                       <option value="personal">{t(TIER_OPTION_LABEL_KEY.personal)}</option>
                       <option value="facility">{t(TIER_OPTION_LABEL_KEY.facility)}</option>
                       <option value="enterprise">{t(TIER_OPTION_LABEL_KEY.enterprise)}</option>
@@ -582,7 +581,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
                   {importTier === 'facility' && (
                     <div className="ps-macro-field-flex1">
                       <label className="ps-conf-label">{t('macroPanel.editor.facilityLabel')}</label>
-                      <select className="ps-conf-select" value={importFacilityId} onChange={e => setImportFacilityId(e.target.value)}>
+                      <select aria-label={t('macroPanel.editor.facilityLabel')} className="ps-conf-select" value={importFacilityId} onChange={e => setImportFacilityId(e.target.value)}>
                         <option value="">— {t('common.select')} —</option>
                         {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>

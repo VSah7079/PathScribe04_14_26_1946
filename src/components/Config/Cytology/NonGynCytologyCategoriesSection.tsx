@@ -13,8 +13,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockNonGynCytologyCategoryService } from '../../../services/cytology/mockNonGynCytologyCategoryService';
+
 import type { NonGynCytologyCategoryEntry, NewNonGynCytologyCategoryEntry, NonGynCytologySystem } from '../../../services/cytology/INonGynCytologyCategoryService';
+import { nonGynCytologyCategoryService } from '@/services';
 
 type Draft = NewNonGynCytologyCategoryEntry;
 const emptyDraft = (system: NonGynCytologySystem): Draft => ({ system, categoryNumber: '', label: '', requiresPathologistReview: true, active: true });
@@ -74,21 +75,21 @@ const NonGynCytologyCategoriesSection: React.FC = () => {
   const [showInactive, setShowInactive] = useState(false);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: NonGynCytologyCategoryEntry } | null>(null);
 
-  const refresh = () => { mockNonGynCytologyCategoryService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
+  const refresh = () => { nonGynCytologyCategoryService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
 
   const visible = entries.filter(e => e.system === system && (showInactive || e.active));
 
   const handleSave = async (draft: Draft) => {
-    if (modal?.mode === 'edit' && modal.entry) await mockNonGynCytologyCategoryService.update(modal.entry.id, draft);
-    else await mockNonGynCytologyCategoryService.add(draft);
+    if (modal?.mode === 'edit' && modal.entry) await nonGynCytologyCategoryService.update(modal.entry.id, draft);
+    else await nonGynCytologyCategoryService.add(draft);
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: NonGynCytologyCategoryEntry) => {
-    if (e.active) await mockNonGynCytologyCategoryService.deactivate(e.id);
-    else await mockNonGynCytologyCategoryService.reactivate(e.id);
+    if (e.active) await nonGynCytologyCategoryService.deactivate(e.id);
+    else await nonGynCytologyCategoryService.reactivate(e.id);
     refresh();
   };
 

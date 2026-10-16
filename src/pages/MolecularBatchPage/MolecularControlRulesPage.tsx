@@ -25,6 +25,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useNavigate } from 'react-router';
 import '../../pathscribe.css';
 import {
@@ -36,6 +37,7 @@ import type { StainType } from '@/services/stains/IStainService';
 import type { MolecularSampleType } from '@/services/molecular/IMolecularBatchService';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatList } from '@/utils/formatList';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const MANAGE = 'config:molecular-control-rules:manage';
 
@@ -47,6 +49,11 @@ const emptyRequiredControl = (): MolecularRequiredControl => ({ sampleType: 'CON
 
 const MolecularControlRulesPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('molecularControlRulesPage.title'), '/molecular-control-rules'); }, [pushCrumb, t]);
   const navigate = useNavigate();
   const [rules, setRules] = useState<MolecularAssayControlRule[]>([]);
   // Real, per direct follow-up ("wouldn't we use the existing process
@@ -143,7 +150,7 @@ const MolecularControlRulesPage: React.FC = () => {
         {editingId === null && <CapabilityButton capability={MANAGE} className="ps-conf-btn-secondary" onClick={startNew}>{t('molecularControlRulesPage.newRule')}</CapabilityButton>}
       </div>
 
-      {loading && <div className="ps-conf-loading">{t('molecularControlRulesPage.loading')}</div>}
+      {loading && <LoadingState label={t('molecularControlRulesPage.loading')} />}
       {listError && <div className="ps-error-text" role="alert">{listError}</div>}
 
       {confirmDelete && (

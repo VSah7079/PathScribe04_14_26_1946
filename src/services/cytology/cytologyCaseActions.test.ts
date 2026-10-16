@@ -191,6 +191,14 @@ describe('material, codes, print', () => {
     await buildCytologyPrintDocument({ caseData, specimen, specimenId: 'SP1', reviews: [], categories, isPathologist: true }, deps);
     expect(deps.renderReportPdf).toHaveBeenCalledWith({ language: 'fr' });
   });
+  it('Batch 539: before sign-out, the preview is rendered as a preview (it carries the PRELIMINARY watermark)', async () => {
+    const screen = { id: 'rv-p', caseId: 'C1', specimenId: 'SP1', role: 'primary_screen', primaryInterpretationId: 'nilm', requiresPathologistReview: false,
+      adequacySelections: [], recordedAt: '2026-09-29T10:00:00Z', recordedBy: { userId: 'CT1', userName: 'CT One' } } as CytologyReviewRecord;
+    const { deps } = makeWorkspaceDeps();
+    const bytes = await buildCytologyPrintDocument({ caseData, specimen, specimenId: 'SP1', reviews: [screen], categories, isPathologist: true }, deps);
+    expect(bytes).toBeInstanceOf(Uint8Array);
+    expect(vi.mocked(deps.renderReportPdf).mock.calls[0][1]).toEqual({ preview: true });
+  });
   it('before sign-out with no review, there is nothing to print', async () => {
     const { deps } = makeWorkspaceDeps();
     expect(await buildCytologyPrintDocument({ caseData, specimen, specimenId: 'SP1', reviews: [], categories, isPathologist: true }, deps)).toBeNull();

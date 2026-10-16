@@ -104,7 +104,7 @@ const CytologyRegistrySettingsSection: React.FC = () => {
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">{t('cytologyQcSettingsSection.enterprise.title')}</div>
         <div className="ps-conf-row-actions">
-          <select className="ps-conf-select" value={enterpriseDraft} onChange={e => setEnterpriseDraft(e.target.value as RegistryId)}>{registryOptions}</select>
+          <select aria-label={t('cytologyQcSettingsSection.enterprise.title')} className="ps-conf-select" value={enterpriseDraft} onChange={e => setEnterpriseDraft(e.target.value as RegistryId)}>{registryOptions}</select>
           <CapabilityButton capability="config:screening-registry:manage" className="ps-conf-btn-primary" disabled={saving}
             onClick={async () => { setSaving(true); report(await saveEnterpriseScreeningRegistry(enterpriseDraft, actor, screeningRegistrySettingsDeps)); setSaving(false); refresh(); }}>
             {t('common.save')}
@@ -138,11 +138,11 @@ const CytologyRegistrySettingsSection: React.FC = () => {
         {facilityOverrides.length === 0 && !addingFacility && <div className="ps-conf-empty-row">{t('cytologyQcSettingsSection.facility.emptyState')}</div>}
         {addingFacility && (
           <div className="ps-conf-row">
-            <select className="ps-conf-select" value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}>
+            <select aria-label={t('a11y.fields.facility')} className="ps-conf-select" value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}>
               {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
             <div className="ps-conf-row-actions">
-              <select className="ps-conf-select" value={addingFacility.registryId} onChange={e => setAddingFacility({ ...addingFacility, registryId: e.target.value as RegistryId })}>{registryOptions}</select>
+              <select aria-label={t('a11y.fields.registry')} className="ps-conf-select" value={addingFacility.registryId} onChange={e => setAddingFacility({ ...addingFacility, registryId: e.target.value as RegistryId })}>{registryOptions}</select>
               <CapabilityButton capability="config:screening-registry:manage" context={{ facilityId: addingFacility.facilityId }} className="ps-conf-btn-primary"
                 onClick={async () => { report(await saveFacilityScreeningRegistry(addingFacility.facilityId, addingFacility.registryId, actor, screeningRegistrySettingsDeps)); setAddingFacility(null); refresh(); }}>
                 {t('common.save')}
@@ -156,7 +156,7 @@ const CytologyRegistrySettingsSection: React.FC = () => {
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-row">
           <div className="ps-conf-card-title">{t(`${K}.detail.title`)}</div>
-          <select className="ps-conf-select" value={configuring ?? ''} onChange={e => setConfiguring((e.target.value || null) as ScreeningRegistryId | null)}>
+          <select aria-label={t(`${K}.detail.title`)} className="ps-conf-select" value={configuring ?? ''} onChange={e => setConfiguring((e.target.value || null) as ScreeningRegistryId | null)}>
             <option value="">{t(`${K}.detail.choose`)}</option>
             {SCREENING_REGISTRY_DEFINITIONS.map(d => <option key={d.id} value={d.id}>{t(`${K}.registries.${d.labelId}`)}</option>)}
           </select>
@@ -199,8 +199,8 @@ const CytologyRegistrySettingsSection: React.FC = () => {
                     <div key={`${r.field}:${r.categoryId}`} className="ps-registry-row">
                       <span>{r.label}{r.nomenclatureLabelId ? <span className="ps-registry-system">{t(`cytologyCategoriesSection.nomenclatureSystems.${r.nomenclatureLabelId}`)}</span> : null}</span>
                       <span>{t(`${K}.fields.${r.field}`)}</span>
-                      <input className="ps-conf-input" value={r.code} onChange={e => setConfig(withRegistryMapping(config, r, e.target.value, r.display))} />
-                      <input className="ps-conf-input" value={r.display} onChange={e => setConfig(withRegistryMapping(config, r, r.code, e.target.value))} />
+                      <input aria-label={t('a11y.fields.code')} className="ps-conf-input" value={r.code} onChange={e => setConfig(withRegistryMapping(config, r, e.target.value, r.display))} />
+                      <input aria-label={t('a11y.fields.displayText')} className="ps-conf-input" value={r.display} onChange={e => setConfig(withRegistryMapping(config, r, r.code, e.target.value))} />
                     </div>
                   ))}
                 </div>

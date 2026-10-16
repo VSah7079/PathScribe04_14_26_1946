@@ -242,6 +242,11 @@ export function isLiveGrant(r: SupportAccessRequest, now: Date): boolean {
   return r.status === 'approved' && minutesLeft(r.expiresAt, now) > 0;
 }
 
+/** Batch 555: the status to show. An approval whose time has run out reads "expired" even before it is recorded (the API server records it). */
+export function effectiveSupportStatus(r: SupportAccessRequest, now: Date): SupportRequestStatus {
+  return r.status === 'approved' && !isLiveGrant(r, now) ? 'expired' : r.status;
+}
+
 /** The hospital's two working lists: requests awaiting a decision, and approvals in force. */
 export function supportRequestQueues(requests: readonly SupportAccessRequest[], now: Date): { pending: SupportAccessRequest[]; active: SupportAccessRequest[] } {
   return {

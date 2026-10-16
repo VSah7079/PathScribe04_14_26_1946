@@ -26,12 +26,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockCriticalAlertDispatchService } from '@/services/clinical/mockCriticalAlertDispatchService';
-import { mockCriticalAlertReferenceTokenService } from '@/services/clinical/mockCriticalAlertReferenceTokenService';
+
 import { resolveCriticalAlertReferenceTokenStatus } from '@/services/clinical/ICriticalAlertReferenceTokenService';
 import type { CriticalAlertDispatchRecord, AlertChannelType } from '@/types/clinical/CriticalAlertDispatch';
 import type { CriticalAlertReferenceToken } from '@/services/clinical/ICriticalAlertReferenceTokenService';
 import { formatAuditTimestamp } from '@/utils/formatDate';
+import { criticalAlertDispatchService, criticalAlertReferenceTokenService } from '@/services';
 
 const CHANNEL_LABEL_KEY: Record<AlertChannelType, string> = {
   secure_email: 'criticalAlertsAudit.channelLabel.secureEmail',
@@ -49,8 +49,8 @@ const CriticalAlertAuditSection: React.FC = () => {
   const loadAll = useCallback(() => {
     setLoading(true);
     Promise.all([
-      mockCriticalAlertDispatchService.getAll(),
-      mockCriticalAlertReferenceTokenService.getAll(),
+      criticalAlertDispatchService.getAll(),
+      criticalAlertReferenceTokenService.getAll(),
     ]).then(([dispatchRes, tokenRes]) => {
       if (dispatchRes.ok) {
         setRecords([...dispatchRes.data].sort((a, b) => b.dispatchedAt.localeCompare(a.dispatchedAt)));
@@ -76,7 +76,7 @@ const CriticalAlertAuditSection: React.FC = () => {
           <h2 className="ps-conf-section-title">{t('criticalAlertsAudit.title')}</h2>
           <p className="ps-conf-section-subtitle">{t('criticalAlertsAudit.subtitle')}</p>
         </div>
-        <input
+        <input aria-label={t('criticalAlertsAudit.caseFilterPlaceholder')}
           className="ps-conf-input"
           placeholder={t('criticalAlertsAudit.caseFilterPlaceholder')}
           value={caseFilter}

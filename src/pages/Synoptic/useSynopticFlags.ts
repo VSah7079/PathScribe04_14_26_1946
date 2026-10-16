@@ -7,8 +7,14 @@ import { flagService, caseService } from '@/services';
 import { toCaseWithFlags } from '@/services/flags/caseFlagView';
 import { applyFlags, deleteFlags, ApplyFlagPayload, DeleteFlagPayload } from '../../api/caseFlagsApi';
 import { adaptFlag } from '../../utils/flagAdapter';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function useSynopticFlags(caseId: string) {
+  // Batch 491 (disclosed Batch-452 gap): the hook's own signature stays
+  // unchanged for its 3 call sites (SynopticReportPage, CytologyWorklistPage,
+  // CytologyScreeningPage) — it reads the signed-in user itself rather than
+  // taking it as a new parameter.
+  const { user } = useAuth();
   const [flagCaseData,    setFlagCaseData]    = useState<CaseWithFlags | null>(null);
   const [flagDefinitions, setFlagDefinitions] = useState<FlagDefinition[]>([]);
   const [showFlagManager, setShowFlagManager] = useState(false);
@@ -34,14 +40,14 @@ export function useSynopticFlags(caseId: string) {
   // hook owns the real API call and keeps flagCaseData in sync with
   // whatever was actually committed.
   const onApplyFlags = useCallback(async (payload: ApplyFlagPayload) => {
-    const updated = await applyFlags(payload);
+    const updated = await applyFlags({ ...payload, byUserName: user?.name ?? payload.byUserName });
     setFlagCaseData(updated);
-  }, []);
+  }, [user]);
 
   const onRemoveFlag = useCallback(async (payload: DeleteFlagPayload) => {
-    const updated = await deleteFlags(payload);
+    const updated = await deleteFlags({ ...payload, byUserName: user?.name ?? payload.byUserName });
     setFlagCaseData(updated);
-  }, []);
+  }, [user]);
 
   return {
     flagCaseData,    setFlagCaseData,

@@ -20,17 +20,9 @@
 // the renderer (deps.post, a fake in tests).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
 import type { SynopticResultPayloadV1 } from './synopticResultPayload';
-
-/** The report renderer's endpoint (the same setting the report page uses). */
-const REPORT_PDF = resolveServiceEndpoint({
-  name: 'report renderer',
-  envVar: 'VITE_REPORT_PDF_ENDPOINT',
-  configured: import.meta.env.VITE_REPORT_PDF_ENDPOINT,
-  devDefault: 'http://localhost:8080/',
-  isProduction: !!import.meta.env.PROD,
-});
+// Batch 539: the renderer's address is shared (reportRenderer.ts).
+import { REPORT_RENDERER as REPORT_PDF, bytesToBase64 } from './reportRenderer';
 
 export interface WorkupChange { label: string; from: string; to: string }
 
@@ -122,10 +114,7 @@ export interface RenderWorkupPdfDeps {
 async function defaultPost(url: string, body: object): Promise<{ ok: boolean; status?: number; pdfBase64?: string }> {
   const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!resp.ok) return { ok: false, status: resp.status };
-  const bytes = new Uint8Array(await resp.arrayBuffer());
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return { ok: true, pdfBase64: btoa(binary) };
+  return { ok: true, pdfBase64: bytesToBase64(new Uint8Array(await resp.arrayBuffer())) };
 }
 
 /** Renders one workup's PDF. Never throws: a failure comes back as generationError. */

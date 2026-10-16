@@ -16,4 +16,8 @@ export interface ICytologySignOutRecordService {
   getByCaseId(caseId: string): Promise<ServiceResult<CytologySignOutRecord[]>>;
   getBySpecimenId(specimenId: string): Promise<ServiceResult<CytologySignOutRecord[]>>;
   create(record: Omit<CytologySignOutRecord, 'id' | 'signedAt'>): Promise<ServiceResult<CytologySignOutRecord>>;
+  /** Batch 534: marks a record recalled (withdrawn within the release delay). getByCaseId and
+   *  getBySpecimenId leave recalled records out; getByCaseIdIncludingRecalled keeps them (audit). */
+  markRecalled(recordId: string, by: { userId: string; userName: string }, at: string): Promise<ServiceResult<CytologySignOutRecord>>;
+  getByCaseIdIncludingRecalled(caseId: string): Promise<ServiceResult<CytologySignOutRecord[]>>;
 }

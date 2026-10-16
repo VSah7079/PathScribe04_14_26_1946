@@ -22,7 +22,9 @@
 // Pure.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type FieldRequirementPageId = 'accession' | 'grossing' | 'report' | 'messaging' | 'cytology' | 'microtomy' | 'intraop' | 'embedding' | 'slideDistribution' | 'addOnOrder' | 'batchManagement' | 'molecularBatch' | 'molecularRack';
+export type FieldRequirementPageId = 'accession' | 'grossing' | 'report' | 'messaging' | 'cytology' | 'microtomy' | 'intraop' | 'embedding' | 'slideDistribution' | 'addOnOrder' | 'batchManagement' | 'molecularBatch' | 'molecularRack'
+  // Batch 528 (PS-359, Pete Oct 10): per organisation, no jurisdiction locks.
+  | 'staff' | 'facility' | 'clinicalHistory';
 export type FieldGroup = 'patient' | 'order' | 'specimens' | 'blocks' | 'fixation'
   | 'specimenDetails' | 'revisions' | 'criticalFindings'
   | 'holds' | 'comments' | 'delegation' | 'biopsyArray' | 'blockChanges'
@@ -37,7 +39,10 @@ export type FieldGroup = 'patient' | 'order' | 'specimens' | 'blocks' | 'fixatio
   | 'addOnOrder' | 'addOnException' | 'addOnResponse'
   | 'batchCreate' | 'batchClose'
   | 'molecularRun' | 'molecularWells' | 'molecularSupersede'
-  | 'molecularRackContents' | 'molecularRackPlacement';
+  | 'molecularRackContents' | 'molecularRackPlacement'
+  | 'staffIdentity' | 'staffAccess' | 'staffContact' | 'staffProfessional'
+  | 'facilityIdentity' | 'facilityContact' | 'facilityInterfaces'
+  | 'clinicalHistoryEntries';
 export type FieldDefault = 'locked' | 'required' | 'optional';
 export type LockReason = 'patientIdentification' | 'routing' | 'orderingProvider' | 'specimen'
   | 'specimenIdentity' | 'specimenDescription' | 'revisionRecord' | 'amendmentNotification' | 'criticalResult'
@@ -54,14 +59,16 @@ export type LockReason = 'patientIdentification' | 'routing' | 'orderingProvider
   | 'addOnOrderContent' | 'sendOutRouting'
   | 'batchProtocol' | 'rackTraceability' | 'decalTiming' | 'batchStain' | 'batchCustodyChange' | 'coldChainRecord'
   | 'molecularRunRecord' | 'wellTraceability' | 'controlTraceability' | 'supersedeRecord'
-  | 'rackIdentity' | 'sampleMapping' | 'deckPlacement';
+  | 'rackIdentity' | 'sampleMapping' | 'deckPlacement'
+  | 'staffIdentity' | 'staffAccess' | 'facilityIdentity' | 'facilityRouting' | 'interfaceRouting';
 /** Extra guidance shown beside a field on the Field Requirements screen (Batch 379). */
 export type FieldHint = 'blocksScope' | 'protocolOff' | 'delegationNoteByType' | 'nonNegativeOnly' | 'gynOnly'
   | 'matrixBlocksToo' | 'withFrozenDiagnosis' | 'otherReasonOnly' | 'noAdtMatchOnly' | 'criticalNotSurgeonOnly'
   | 'recutLinesOnly' | 'sendOutLinesOnly'
   | 'reusableRackOnly' | 'decalOnly' | 'referralOnly' | 'cytologyStainingOnly' | 'stainingOnly'
   | 'patientWellsOnly' | 'controlWellsOnly'
-  | 'occupiedPositionsOnly' | 'multiSlotOnly';
+  | 'occupiedPositionsOnly' | 'multiSlotOnly'
+  | 'whenInterfaceConfigured' | 'whenLisRoutingConfigured' | 'cytologyCasesOnly' | 'cytologySpecimensOnly' | 'codedEntriesOnly';
 
 export interface FieldRequirementDefinition {
   /** Stable id, stored in settings. Never change a published id. */
@@ -405,6 +412,52 @@ export const FIELD_REQUIREMENT_PAGES: Readonly<Record<FieldRequirementPageId, re
     { id: 'deckSlot',      group: 'molecularRackPlacement', default: 'locked',   lockReason: 'deckPlacement',    hint: 'multiSlotOnly' },
     { id: 'assay',         group: 'molecularRackPlacement', default: 'optional' },
   ],
+  // Batch 528 (PS-359). Pete, Oct 10: Staff, the Facility editor and Clinical
+  // history are configurable per organisation (the performing-lab tenant, not
+  // each ordering client), with no locks tied to a jurisdiction. The locks
+  // below are the ones the system itself depends on. The defaults reproduce
+  // what each editor required before.
+  // Staff (Configuration → Staff → add or edit), checked in services/staff/staffFormChecks.ts.
+  staff: [
+    { id: 'firstName',      group: 'staffIdentity',     default: 'locked',   lockReason: 'staffIdentity' },
+    { id: 'middleName',     group: 'staffIdentity',     default: 'optional' },
+    { id: 'lastName',       group: 'staffIdentity',     default: 'locked',   lockReason: 'staffIdentity' },
+    { id: 'roles',          group: 'staffAccess',       default: 'locked',   lockReason: 'staffAccess' },
+    { id: 'subspecialties', group: 'staffAccess',       default: 'optional' },
+    { id: 'facilities',     group: 'staffAccess',       default: 'optional' },
+    { id: 'email',          group: 'staffContact',      default: 'optional' },
+    { id: 'phone',          group: 'staffContact',      default: 'optional' },
+    { id: 'credentials',    group: 'staffProfessional', default: 'optional' },
+    { id: 'npi',            group: 'staffProfessional', default: 'optional' },
+    { id: 'gmcNumber',      group: 'staffProfessional', default: 'optional' },
+    { id: 'license',        group: 'staffProfessional', default: 'optional' },
+    { id: 'signature',      group: 'staffProfessional', default: 'optional' },
+  ],
+  // Facility editor (Facility Dictionary → add or edit), checked in services/facilities/facilityFormChecks.ts.
+  // Batch 530 (Pete): fax, city, region and postal code are on the editor now,
+  // so they are here too (Batch 528 had left them out while they had no input).
+  facility: [
+    { id: 'name',               group: 'facilityIdentity',   default: 'locked',   lockReason: 'facilityIdentity' },
+    { id: 'assigningAuthority', group: 'facilityIdentity',   default: 'locked',   lockReason: 'facilityRouting' },
+    { id: 'email',              group: 'facilityContact',    default: 'required' },
+    { id: 'phone',              group: 'facilityContact',    default: 'optional' },
+    { id: 'fax',                group: 'facilityContact',    default: 'optional' },
+    { id: 'address',            group: 'facilityContact',    default: 'optional' },
+    { id: 'city',               group: 'facilityContact',    default: 'optional' },
+    { id: 'region',             group: 'facilityContact',    default: 'optional' },
+    { id: 'postalCode',         group: 'facilityContact',    default: 'optional' },
+    { id: 'contactPerson',      group: 'facilityContact',    default: 'optional' },
+    { id: 'interfaceEndpoint',  group: 'facilityInterfaces', default: 'locked',   lockReason: 'interfaceRouting', hint: 'whenInterfaceConfigured' },
+    { id: 'sendingFacilityId',  group: 'facilityInterfaces', default: 'locked',   lockReason: 'interfaceRouting', hint: 'whenLisRoutingConfigured' },
+  ],
+  // Clinical history recorded at Accession for cytology and FNA cases.
+  // What each history code asks for (its own metadata fields) is set per code
+  // in the Clinical History Dictionary; these are the case-level rules.
+  clinicalHistory: [
+    { id: 'caseEntry',     group: 'clinicalHistoryEntries', default: 'optional', hint: 'cytologyCasesOnly' },
+    { id: 'specimenEntry', group: 'clinicalHistoryEntries', default: 'optional', perSpecimen: true, hint: 'cytologySpecimensOnly' },
+    { id: 'coded',         group: 'clinicalHistoryEntries', default: 'optional', hint: 'codedEntriesOnly' },
+  ],
 };
 
 /** The order groups are shown in on the Field Requirements screen (Batch 397: moved here from the screen, so a new group can't be left off). */
@@ -418,6 +471,9 @@ export const FIELD_GROUP_ORDER: readonly FieldGroup[] = [
   'batchCreate', 'batchClose',
   'molecularRun', 'molecularWells', 'molecularSupersede', 'molecularRackContents', 'molecularRackPlacement',
   'intraopSession', 'intraopSpecimen', 'intraopTouchPrep', 'intraopReport', 'intraopMerge',
+  'staffIdentity', 'staffAccess', 'staffContact', 'staffProfessional',
+  'facilityIdentity', 'facilityContact', 'facilityInterfaces',
+  'clinicalHistoryEntries',
 ];
 
 export const FIELD_REQUIREMENT_PAGE_IDS = Object.keys(FIELD_REQUIREMENT_PAGES) as FieldRequirementPageId[];

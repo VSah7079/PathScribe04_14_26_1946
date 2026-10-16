@@ -63,7 +63,8 @@ describe('releaseAutopsyBody', () => {
     getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: true } } as any }));
     const result = await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
     expect(result.ok).toBe(false);
-    expect(result.blockedReasons?.length).toBeGreaterThan(0);
+    // Batch 495: reason codes, not English sentences.
+    expect(result.blockedReasons).toEqual(['pad_not_signed', 'ancillary_hold_active']);
     expect(updateCase).not.toHaveBeenCalled();
   });
 
@@ -101,6 +102,7 @@ describe('releaseAutopsyBody', () => {
     const result = await releaseAutopsyBody('case-unknown', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
     expect(result.ok).toBe(false);
     expect(result.error).toBeDefined();
+    expect(result.reasonCode).toBe('caseNotFound');
     expect(updateCase).not.toHaveBeenCalled();
   });
 
@@ -108,6 +110,7 @@ describe('releaseAutopsyBody', () => {
     getCase.mockResolvedValue(baseCase({}));
     const result = await releaseAutopsyBody('case-1', 'sp-unknown', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
     expect(result.ok).toBe(false);
+    expect(result.reasonCode).toBe('specimenNotFound');
     expect(updateCase).not.toHaveBeenCalled();
   });
 

@@ -17,6 +17,7 @@ import MigrationFieldMappingsSection from './MigrationFieldMappingsSection';
 import CancerRegistrySettingsSection from './CancerRegistrySettingsSection';
 import ProtocolDictionarySection from './ProtocolDictionarySection';
 import PrinterProfilesSection from './PrinterProfilesSection';
+import SiteAgentsSection from './SiteAgentsSection';
 import AssistLisPollingSection from './AssistLisPollingSection';
 import GrossingRouteOverridesSection from './GrossingRouteOverridesSection';
 import DepartmentsSection from './DepartmentsSection';
@@ -30,6 +31,8 @@ import EquipmentSection from './EquipmentSection';
 import GrossingHardwareSection from './GrossingHardwareSection';
 import CassetteRoutingRulesSection from './CassetteRoutingRulesSection';
 import CassetteColorsSection from './CassetteColorsSection';
+import InkColorsSection from './InkColorsSection';
+import InkingValidationModeSection from './InkingValidationModeSection';
 import PrintSettingsSection from './PrintSettingsSection';
 import LabelDesignerPage from '../../../pages/LabelDesignerPage/LabelDesignerPage';
 import SubspecialtiesSection     from './SubspecialtiesSection';
@@ -82,6 +85,7 @@ import DeficienciesSection from './DeficienciesSection';
 import AbnormalTriggerRulesSection from './AbnormalTriggerRulesSection';
 import QAConfigurationCenterSection from './QAConfigurationCenterSection';
 import BiopsyResectionCorrelationSection from './BiopsyResectionCorrelationSection';
+import TumorBoardRulesSection from './TumorBoardRulesSection';
 import FollowUpTrackingSection from './FollowUpTrackingSection';
 import OrganMapsSection from './OrganMapsSection';
 import QaTrendPolicySection from './QaTrendPolicySection';
@@ -93,6 +97,8 @@ import { SECTIONS, GROUP_LABEL_KEY, type SystemSection } from './systemSections'
 import { useConfigNavigationGuard } from '../configDirtyGuardContext';
 import RevisionReasonsSection from './RevisionReasonsSection';
 import PeerReviewGateSection from './PeerReviewGateSection';
+import ClinicalMismatchRulesSection from './ClinicalMismatchRulesSection';
+import AiInstructionsSection from './AiInstructionsSection';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
@@ -184,10 +190,13 @@ const SystemTab: React.FC = () => {
       case 'workstation_groups': return <WorkstationGroupsSection />;
       case 'action_groups': return <ActionGroupsSection />;
       case 'scan_stations': return <ScanStationsSection selectedFacilityId={workstationFacilityId || undefined} />;
+      case 'site_agents': return <SiteAgentsSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'equipment': return <EquipmentSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'grossing_hardware': return <GrossingHardwareSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'cassette_routing_rules': return <CassetteRoutingRulesSection />;
       case 'cassette_colors': return <CassetteColorsSection />;
+      case 'ink_colors': return <InkColorsSection />;
+      case 'inking_validation_mode': return <InkingValidationModeSection />;
       case 'print_settings': return <PrintSettingsSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'label_designer': return <LabelDesignerPage />;
       case 'fonts':               return <FontsSection />;
@@ -231,10 +240,13 @@ const SystemTab: React.FC = () => {
       case 'assist_lis_polling': return <AssistLisPollingSection />;
       case 'qa_config_center': return <QAConfigurationCenterSection />;
       case 'biopsy_resection_correlation': return <BiopsyResectionCorrelationSection />;
+      case 'tumor_board_rules': return <TumorBoardRulesSection />;
       case 'follow_up_tracking': return <FollowUpTrackingSection />;
       case 'organ_maps':         return <OrganMapsSection />;
       case 'revision_reasons': return <RevisionReasonsSection />;
       case 'peer_review_gate': return <PeerReviewGateSection />;
+      case 'clinical_mismatch_rules': return <ClinicalMismatchRulesSection />;
+      case 'ai_instructions': return <AiInstructionsSection />;
       case 'qa_trend_policy': return <QaTrendPolicySection />;
       case 'feedback': return <FeedbackSection />;
       default:                    return null;
@@ -284,9 +296,10 @@ const SystemTab: React.FC = () => {
         <div className="ps-conf-callout-banner ps-confsys-facility-selector">
           <span className="ps-conf-callout-banner-text">{t('systemTab.facilityLabel')}</span>
           <select
+            aria-label={t('systemTab.facilityLabel')}
             className="ps-conf-select"
             value={workstationFacilityId}
-            onChange={e => setWorkstationFacilityId(e.target.value)}
+            onChange={e => { const next = e.target.value; guardNav(() => setWorkstationFacilityId(next)); }}
           >
             <option value="">{t('systemTab.allFacilitiesOption')}</option>
             {workstationLabs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

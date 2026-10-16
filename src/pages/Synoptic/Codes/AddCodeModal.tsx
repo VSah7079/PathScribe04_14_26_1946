@@ -13,6 +13,7 @@ import type { MedicalCode } from '../synopticTypes';
 import { searchCodes, filterToVerifiedCodes, type CodeResult, type SnomedFilter } from '../../../services/terminologySearch/codeSearchService';
 import { getOrganisationByHospitalId, type CodingSystem } from '@/services/organisation/organisationService';
 import { CODE_MAP_TABLE, resolveSpecimenDictionaryBaseCptCode } from '@/services/billing/codeMapTable';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,13 +145,9 @@ const SNOMED_FILTER_HINT_KEY: Record<SnomedFilter, string> = {
   anatomy: 'addCodeModal.snomedFilter.anatomy.hint', specimen: 'addCodeModal.snomedFilter.specimen.hint', organism: 'addCodeModal.snomedFilter.organism.hint',
 };
 
-const SNOMED_FILTERS: { id: SnomedFilter; label: string; hint: string }[] = [
-  { id: 'all',       label: 'All',        hint: 'All SNOMED concepts' },
-  { id: 'morphology',label: 'Morphology', hint: 'Diagnoses & structural changes' },
-  { id: 'anatomy',   label: 'Anatomy',    hint: 'Body structures & sites' },
-  { id: 'specimen',  label: 'Specimen',   hint: 'Specimen types' },
-  { id: 'organism',  label: 'Organism',   hint: 'Infectious agents' },
-];
+// Batch 513 (PS-269): the filter order only; the visible names and hints
+// come from SNOMED_FILTER_LABEL_KEY / SNOMED_FILTER_HINT_KEY above.
+const SNOMED_FILTERS: readonly SnomedFilter[] = ['all', 'morphology', 'anatomy', 'specimen', 'organism'];
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -266,7 +263,7 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
     const autoDefaults: PendingCode[] = !isOrchestrationMode
       ? allSpecimens
         .filter(sp => !fromExisting.some(c => c.specimenIndex === sp.index && c.system === 'CPT'))
-        .map(sp => {
+        .map((sp): PendingCode | null => {
           const defaultCode = sp.specimenDictionaryEntryId
             ? resolveSpecimenDictionaryBaseCptCode({ specimenDictionaryEntryId: sp.specimenDictionaryEntryId, complexity: sp.complexity }, specimenDictionary)
             : null;
@@ -558,6 +555,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
 - Only include codes you are highly confident are correct`,
         maxTokens: 1200,
         configOverride: await resolveAiConfigOverrideForClient(facilityId),
+        context: { feature: 'coding', facilityId },
       });
 
       const clean = raw.replace(/```json|```/g, '').trim();
@@ -620,7 +618,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
     } finally {
       setAiLoading(false);
     }
-  }, [caseText, synopticAnswers, templateName, isUK, narrativeText, siteCodingSystems, isOrchestrationMode, t]);
+  }, [caseText, synopticAnswers, templateName, isUK, narrativeText, siteCodingSystems, isOrchestrationMode, t, facilityId]);
 
   // Auto-run on open — after generateAiCodes is defined
   // Tier 1: use pre-derived synoptic codes immediately
@@ -1016,7 +1014,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
             {aiSuggestions.length > 0 && (
               <div className="acd-ai-panel">
                 <div
-                  onClick={() => setAiPanelCollapsed(c => !c)}
+                  {...pressable(() => setAiPanelCollapsed(c => !c))}
                   className="acd-ai-panel-header"
                 >
                   <span>✦</span>
@@ -1039,7 +1037,9 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                   return (
                     <div
                       key={sug.code}
-                      onClick={() => elsewhere.length === 0 && addCode({ code: sug.code, display: sug.display, system: sug.system })}
+                      // Batch 567 (axe nested-interactive): the row can hold a button (Move here), so it isn't a button
+                      // itself; clicking it still applies the code, and the button at its end does the same from the keyboard.
+                      {...clickableContainer(elsewhere.length === 0 ? () => addCode({ code: sug.code, display: sug.display, system: sug.system }) : undefined)}
                       className={`acd-ai-suggestion-row${activeCount > 0 ? ' acd-ai-suggestion-row--active' : ''}`}
                     >
                       <span className="acd-code-badge">
@@ -1068,7 +1068,8 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                         </span>
                       )}
                       {activeCount > 0 ? (
-                        <span className="acd-added-check" title={t('addCodeModal.appliedNTimes', { count: activeCount })}>✓ ×{activeCount}</span>
+                        <button type="button" className="ps-row-open-btn acd-added-check" aria-label={t('addCodeModal.applyAgainLabel', { applied: `✓ ×${activeCount}` })} title={t('addCodeModal.appliedNTimes', { count: activeCount })}
+                          onClick={e => { e.stopPropagation(); addCode({ code: sug.code, display: sug.display, system: sug.system }); }}>✓ ×{activeCount}</button>
                       ) : elsewhere.length > 0 ? (
                         <span
                           className="acd-elsewhere-hint"
@@ -1076,6 +1077,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                         >
                           {t('addCodeModal.elsewhere')}
                           <button
+                            type="button"
                             className="ps-conf-btn-row"
                             onClick={(e) => { e.stopPropagation(); moveCode(elsewhere[0], target); }}
                           >
@@ -1083,7 +1085,8 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                           </button>
                         </span>
                       ) : (
-                        <span className="acd-add-btn" title={t('addCodeModal.applyCode')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+                        <button type="button" className="ps-row-open-btn acd-add-btn" title={t('addCodeModal.applyCode')} aria-label={t('addCodeModal.applyCode')}
+                          onClick={e => { e.stopPropagation(); addCode({ code: sug.code, display: sug.display, system: sug.system }); }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></button>
                       )}
                     </div>
                   );
@@ -1105,9 +1108,9 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
             {system === 'SNOMED' && (
               <div className="acd-filter-row">
                 {SNOMED_FILTERS.map(f => (
-                  <button key={f.id} onClick={() => setSnomedFilter(f.id)} title={t(SNOMED_FILTER_HINT_KEY[f.id])}
-                    className={`acd-snomed-filter-btn${snomedFilter === f.id ? ' acd-snomed-filter-btn--active' : ''}`}
-                  >{t(SNOMED_FILTER_LABEL_KEY[f.id])}</button>
+                  <button key={f} onClick={() => setSnomedFilter(f)} title={t(SNOMED_FILTER_HINT_KEY[f])}
+                    className={`acd-snomed-filter-btn${snomedFilter === f ? ' acd-snomed-filter-btn--active' : ''}`}
+                  >{t(SNOMED_FILTER_LABEL_KEY[f])}</button>
                 ))}
               </div>
             )}
@@ -1208,7 +1211,8 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                     key={r.code}
                     className={`fm-flag-card acd-result-card${activeCount > 0 ? ' applied' : ''}${isFocus && activeCount === 0 ? ' acd-result-card--focused' : ''}`}
                     onMouseEnter={() => setFocused(i)}
-                    onClick={() => elsewhere.length === 0 && addCode(r)}
+                    // Batch 567: as the suggestion rows above (a mouse shortcut; the button at its end, or Enter in the search box).
+                    {...clickableContainer(elsewhere.length === 0 ? () => addCode(r) : undefined)}
                   >
                     <span className={`fm-code-chip${activeCount > 0 ? ' applied' : ''}`}>
                       {r.code}
@@ -1217,7 +1221,8 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                       {r.display}
                     </span>
                     {activeCount > 0 ? (
-                      <span className="acd-added-text" title={t('addCodeModal.appliedNTimes', { count: activeCount })}>✓ {t('addCodeModal.appliedTimesLabel', { count: activeCount })}</span>
+                      <button type="button" className="ps-row-open-btn acd-added-text" aria-label={t('addCodeModal.applyAgainLabel', { applied: `✓ ${t('addCodeModal.appliedTimesLabel', { count: activeCount })}` })} title={t('addCodeModal.appliedNTimes', { count: activeCount })}
+                        onClick={e => { e.stopPropagation(); addCode(r); }}>✓ {t('addCodeModal.appliedTimesLabel', { count: activeCount })}</button>
                     ) : elsewhere.length > 0 ? (
                       <span
                         className="acd-elsewhere-hint"
@@ -1225,6 +1230,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                       >
                         {t('addCodeModal.appliedElsewhere')}
                         <button
+                          type="button"
                           className="ps-conf-btn-row"
                           onClick={(e) => { e.stopPropagation(); moveCode(elsewhere[0], target); }}
                         >
@@ -1232,7 +1238,8 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                         </button>
                       </span>
                     ) : (
-                      <span className="fm-apply-btn acd-apply-btn-right" title={t('addCodeModal.applyCode')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+                      <button type="button" className="ps-row-open-btn fm-apply-btn acd-apply-btn-right" title={t('addCodeModal.applyCode')} aria-label={t('addCodeModal.applyCode')}
+                        onClick={e => { e.stopPropagation(); addCode(r); }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></button>
                     )}
                   </div>
                 );

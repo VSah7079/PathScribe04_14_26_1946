@@ -15,7 +15,8 @@ import { slideIdentifier } from '@/types/labels/LabelData';
 import type { SlideLabelDispatchRequest } from './dispatchSlideLabel';
 
 export function getAllSlideLabelRequests(caseData: Case): SlideLabelDispatchRequest[] {
-  const fullAccession = caseData.accession.fullAccession;
+  // Same fallback the scan resolver matches on (resolveMaterialFromScan.ts).
+  const fullAccession = caseData.accession.fullAccession ?? caseData.id;
   const requests: SlideLabelDispatchRequest[] = [];
   for (const specimen of caseData.specimens ?? []) {
     for (const block of specimen.blocks ?? []) {

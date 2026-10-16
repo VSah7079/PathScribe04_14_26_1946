@@ -40,3 +40,9 @@ describe('exportQaReport (PS-282)', () => {
     expect(qaExportDocumentName('qa:registry-transmission-audit:export' as never)).toBe('qa-registry-transmission-audit');
   });
 });
+
+describe('Batch 549: an organisation scope is still checked as all facilities', () => {
+  it('because its rows and the facility tree don\'t yet agree on an organisation\'s facilities (PS-610)', () => {
+    expect(qaScopeContext({ level: 'organisation', organisationId: 'ORG-DVMC' })).toEqual({ allFacilities: true });
+  });
+});

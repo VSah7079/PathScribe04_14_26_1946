@@ -23,8 +23,9 @@ describe('supportPageOf', () => {
   it('an unknown address is reported as "(other page)", not echoed', () => {
     expect(supportPageOf('/whatever/S26-4403')).toEqual({ pattern: '(other page)' });
   });
-  it('knows every route in App.tsx', () => {
-    const app = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../App.tsx'), 'utf8');
+  it('knows every route in App.tsx and SignedInApp.tsx (Batch 527)', () => {
+    const app = ['../../App.tsx', '../../SignedInApp.tsx']
+      .map(f => readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), f), 'utf8')).join('\n');
     const routes = [...app.matchAll(/path="([^"]+)"/g)].map(m => m[1]).filter(p => p !== '*');
     expect(routes.filter(r => !SUPPORT_ROUTE_PATTERNS.includes(r))).toEqual([]);
   });

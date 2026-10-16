@@ -33,6 +33,14 @@ describe('Configuration search covers everything (Batch 431)', () => {
     expect(CONFIG_SEARCH_INDEX.some(e => e.tabId === 'system' && e.section === 'field_requirements')).toBe(true);
   });
 
+  // Batch 530 (Pete: every new configuration reachable from Config Search).
+  it.each([
+    ['staff required fields', 'field_requirements'], ['postal code', 'field_requirements'], ['clinical history required', 'field_requirements'],
+    ['mismatch', 'clinical_mismatch_rules'], ['block sign-out', 'clinical_mismatch_rules'], ['unexpected malignancy', 'clinical_mismatch_rules'],
+  ])('"%s" finds the %s section', (query, section) => {
+    expect(CONFIG_SEARCH_INDEX.some(e => e.section === section && e.synonyms.some(s => s.toLowerCase().includes(query)))).toBe(true);
+  });
+
   it.each(['system', 'cytology', 'staff', 'protocols', 'templates', 'validation'] as const)('every %s section has an entry', tab => {
     const covered = new Set(CONFIG_SEARCH_INDEX.filter(e => e.tabId === tab).map(e => e.section));
     expect([...SECTION_IDS[tab]].filter(id => !covered.has(id))).toEqual([]);

@@ -49,7 +49,7 @@ export function onConfigWritten(listener: WrittenListener): () => void {
   writtenListeners.add(listener);
   return () => { writtenListeners.delete(listener); };
 }
-function notifyConfigWritten(): void {
+export function notifyConfigWritten(): void {
   for (const l of writtenListeners) { try { l(); } catch { /* a screen's problem, not the save's */ } }
 }
 /** Whether a guarded write's result means it went through (pure). */

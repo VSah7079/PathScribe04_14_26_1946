@@ -1,6 +1,6 @@
 {
   "id": "colorectal_resection_b",
-  "name": "Generic Template — Colorectal Resection B",
+  "name": "Generic Template \u2014 Colorectal Resection B",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLORECTAL",
@@ -342,19 +342,19 @@
           "options": [
             {
               "id": "differentiation_opt_1",
-              "label": "Option 1",
+              "label": "Well differentiated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "differentiation_opt_2",
-              "label": "Option 2",
+              "label": "Moderately differentiated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "differentiation_opt_3",
-              "label": "Option 3",
+              "label": "Poorly differentiated",
               "snomed": "",
               "icd": ""
             }
@@ -372,43 +372,43 @@
           "options": [
             {
               "id": "local_invasion_opt_1",
-              "label": "Option 1",
+              "label": "No tumour identified in specimen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_2",
-              "label": "Option 2",
+              "label": "Invades submucosa",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_3",
-              "label": "Option 3",
+              "label": "Invades muscularis propria",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_4",
-              "label": "Option 4",
+              "label": "Invades pericolorectal/perirectal tissues (subserosa or non-peritonealised pericolic/perirectal tissue)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_5",
-              "label": "Option 5",
+              "label": "Invades to the surface of the visceral peritoneum",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_6",
-              "label": "Option 6",
+              "label": "Directly invades other organs or structures",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_7",
-              "label": "Option 7",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -437,31 +437,31 @@
           "options": [
             {
               "id": "tumour_regression_score_opt_1",
-              "label": "Option 1",
+              "label": "TRG1 \u2014 complete response, no viable tumour cells",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_2",
-              "label": "Option 2",
+              "label": "TRG2 \u2014 moderate response, rare residual tumour cells amid fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_3",
-              "label": "Option 3",
+              "label": "TRG3 \u2014 minimal response, residual tumour outgrowing fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_4",
-              "label": "Option 4",
+              "label": "TRG4/5 \u2014 poor or no response, extensive residual tumour with little or no fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_5",
-              "label": "Option 5",
+              "label": "Not applicable (no neoadjuvant therapy)",
               "snomed": "",
               "icd": ""
             }
@@ -485,25 +485,25 @@
           "options": [
             {
               "id": "longitudinal_margin_involvement_opt_1",
-              "label": "Option 1",
+              "label": "Not involved",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "longitudinal_margin_involvement_opt_2",
-              "label": "Option 2",
+              "label": "Involved (proximal margin)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "longitudinal_margin_involvement_opt_3",
-              "label": "Option 3",
+              "label": "Involved (distal margin)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "longitudinal_margin_involvement_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -521,25 +521,25 @@
           "options": [
             {
               "id": "circumferential_margin_involvement_opt_1",
-              "label": "Option 1",
+              "label": "Not involved (> 1 mm clearance)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "circumferential_margin_involvement_opt_2",
-              "label": "Option 2",
+              "label": "Involved (tumour at or within 1 mm of the circumferential margin)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "circumferential_margin_involvement_opt_3",
-              "label": "Option 3",
+              "label": "Involved by a tumour deposit or lymph node, not direct tumour extension",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "circumferential_margin_involvement_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -568,13 +568,13 @@
           "options": [
             {
               "id": "doughnuts_involved_opt_1",
-              "label": "Option 1",
+              "label": "Doughnuts not involved by tumour",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "doughnuts_involved_opt_2",
-              "label": "Option 2",
+              "label": "Doughnuts involved by tumour",
               "snomed": "",
               "icd": ""
             }
@@ -596,7 +596,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "nodeCount": true
         },
         {
           "id": "total_lymph_nodes_involved",
@@ -607,7 +608,9 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "nodeCount": true,
+          "notMoreThan": "total_lymph_nodes_examined"
         },
         {
           "id": "highest_node_involved",
@@ -800,13 +803,13 @@
           "options": [
             {
               "id": "confirmed_distant_metastasis_opt_1",
-              "label": "Option 1",
+              "label": "No distant metastasis identified in this specimen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "confirmed_distant_metastasis_opt_2",
-              "label": "Option 2",
+              "label": "Distant metastasis confirmed in this specimen",
               "snomed": "",
               "icd": ""
             }
@@ -907,19 +910,19 @@
           "options": [
             {
               "id": "resection_status_opt_1",
-              "label": "Option 1",
+              "label": "R0 \u2014 complete resection, margins clear",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "resection_status_opt_2",
-              "label": "Option 2",
+              "label": "R1 \u2014 incomplete resection, microscopic residual tumour",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "resection_status_opt_3",
-              "label": "Option 3",
+              "label": "R2 \u2014 incomplete resection, macroscopic residual tumour",
               "snomed": "",
               "icd": ""
             }
@@ -935,6 +938,7 @@
           "snomed": "",
           "icd": "",
           "options": [],
+          "reportingRole": "pT",
           "note": "Optional"
         },
         {
@@ -946,6 +950,7 @@
           "snomed": "",
           "icd": "",
           "options": [],
+          "reportingRole": "pN",
           "note": "Optional"
         },
         {
@@ -957,6 +962,7 @@
           "snomed": "",
           "icd": "",
           "options": [],
+          "reportingRole": "pM",
           "note": "Optional"
         }
       ]

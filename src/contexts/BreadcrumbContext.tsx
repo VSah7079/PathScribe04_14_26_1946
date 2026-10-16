@@ -39,6 +39,8 @@ export function useBreadcrumb() {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const BreadcrumbProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // The root crumb's label is a fallback; AppShell shows each route crumb
+  // through its translated page label (appShell.pageLabels.*).
   const [crumbs, setCrumbsState] = useState<Crumb[]>([{ label: 'Home', path: '/' }]);
   const navigate = useNavigate();
 

@@ -1,6 +1,6 @@
 # PathScribe — working rules for Claude
 
-PathScribe (`pathscribe-ai`) is ForMedrixAI LLC's AI-assisted clinical pathology reporting / LIS platform, built for the US, UK, EU, and other markets. React + TypeScript on Vite, tested with vitest, UI text through i18next. Services are mostly localStorage-backed mocks today (the `I*Service` → `mock*` / `firestore*` pattern). **The production database is Microsoft SQL Server** (Pete, Sep 2026), reached through a PathScribe API server built on **ASP.NET Core, with SignalR for live updates** (Pete, Sep 26, 2026; see `docs/architecture/LIVE_UPDATES_SIGNALR.md`); the `firestore*` stubs, `firestore.rules` and Firebase emulator tests predate that decision and will be replaced, so don't extend them. The project is **not** a git repository, so every change ships as a delta zip.
+PathScribe (`pathscribe-ai`) is ForMedrixAI LLC's AI-assisted clinical pathology reporting / LIS platform, built for the US, UK, EU, and other markets. React + TypeScript on Vite, tested with vitest, UI text through i18next. Services are mostly localStorage-backed mocks today (the `I*Service` → `mock*` / `firestore*` pattern). **The production database is Microsoft SQL Server** (Pete, Sep 2026), reached through a PathScribe API server built on **ASP.NET Core, with SignalR for live updates** (Pete, Sep 26, 2026; see `docs/architecture/LIVE_UPDATES_SIGNALR.md`); the `firestore*` stubs, `firestore.rules` and Firebase emulator tests predate that decision and will be replaced, so don't extend them. **Source control (PS-468, Pete, Oct 11, 2026): trunk-based.** Short-lived `feature/` and `bugfix/` branches (Jira key in the branch name and the PR title) merge into a single `main` through pull requests, with Vercel previews and CI gates (PS-471). Never push to `main`. Until the GitHub repository exists and is connected to the session, the working copy is **not** a git repository and every change still ships as a delta zip.
 
 Pete Nimmo (product owner) is a domain expert, not a coder. When he raises a feature he's asking about feasibility and fit, not claiming it already exists.
 
@@ -39,12 +39,14 @@ Full reference: [`src/i18n/README.md`](src/i18n/README.md). The essentials:
 - **Data is not chrome.** Admin-entered or persisted values (type labels, facility names, stored codes) are never translated at the data layer, but their *display* can go through a lookup key (see `batchManagement.nodes.*`).
 - **Jurisdiction names** come from `t('jurisdictionNames.<code>')`, never the English-only `JURISDICTION_LABELS` constant. Some older screens still use that constant; convert them when you touch them.
 - **Dates, times, numbers**: format with the user's locale. Use `utils/formatDate.ts` (`formatDate` / `formatDateLong` / `formatDateTime(iso, i18n.language)`), or `JURISDICTION_LOCALE` / `utils/formatAddress.ts` for jurisdiction-specific formats. Never hard-code a locale (`'en-US'`, `'en-GB'`).
+- **Terminology Pete has decided** (French MRN is IPP, percentage-point wording per language, Korean name honorifics, the Ms. qualifier) is listed under "Terminology decisions" in `src/i18n/README.md`. Follow it in every new string.
 - **Copy names are data.** A duplicated record's name is stored, so it comes from `t('common.copyOfName', { name })`, never an English `" (Copy)"`.
 - **Converting on touch**: editing a page's own UI text means converting that page's visible strings in the same change.
 - **Audit-log `detail` text stays literal English.** Audit records are compliance artifacts, not UI (see `services/auditlog/README.md`).
 - Machine translations for fr/de/nl/ko follow standard professional lab terminology. Korean clinical wording in particular should get native-speaker review before clinical use; say so when adding a lot of it.
 
 **Enforced by tests:**
+- `src/i18n/uiText.guard.test.ts`, app-wide (Batch 513): no literal on-screen text, UI attribute or toast message in any UI `.tsx` file; allowed literals are listed in the test with reasons. It can't see English held in a constant and rendered later, so still check those by hand.
 - `src/i18n/localeParity.test.ts`, project-wide: every key present in every locale, non-empty, placeholder and markup parity, sorted, `SUPPORTED_LANGUAGES` matches the files.
 - `src/services/participationTypes/standingRules.guard.test.ts`: all three rules at source level for the signing-authority screens. Copy its pattern for new high-stakes screens.
 - `src/services/duplication/duplicatePolicy.guard.test.ts`: the duplication policy (below), no English copy markers anywhere in `src/`, and no inline CSS in the admin screens the policy covers.
@@ -55,9 +57,10 @@ Offer **Duplicate** only where Pete's framework allows it. Yes for complex confi
 ### 4. Deployment-neutral UI (public or private cloud)
 PathScribe must deploy to public or private cloud, so the UI never assumes where data lives.
 - **Mock services:** UI code (`components/`, `pages/`, `hooks/`, `contexts/`) never imports a mock service file directly. Use `@/services` or take the service as a dependency.
-- **Browser storage:** UI code never touches `localStorage`/`sessionStorage`. Per-user display preferences go through `utils/uiPreferences.ts`; anything that is data goes through a service.
+- **Browser storage:** UI code never touches `localStorage`/`sessionStorage`. Per-user display preferences go through `utils/uiPreferences.ts`; settings that belong to the computer (its scan station, OR terminal, display profile, foot pedal, window positions) go through `utils/workstationSettings.ts`; anything that is data goes through a service.
+- **Data in services:** a service that keeps data in the browser uses `dataStorage` / `tabDataStorage` (`services/browserData/dataStorage.ts`) or `mockStorage`, never localStorage / sessionStorage directly; with the API server configured these stay in memory, so no patient data is written to the browser (PS-485, Batch 525). Only preferences, workstation settings and the sign-in session touch browser storage directly. **Enforced by** `src/services/browserData/browserData.guard.test.ts`.
 - **Firebase:** no direct Firebase SDK import outside services (and none in new code at all: production is SQL Server).
-- **Existing files:** the ones that still break these rules are listed in `services/deploymentReadiness/deploymentBaseline.ts`. That list only shrinks: when you touch a listed file, clean it up if it's practical and remove it from the list.
+- **No exceptions:** `services/deploymentReadiness/deploymentBaseline.ts` is empty since Batch 506 (PS-477), and the guard fails if anything is added to it.
 - **Enforced by** `src/services/deploymentReadiness/deploymentReadiness.guard.test.ts`.
 
 ### 5. Patient data on screen is redactable
@@ -79,6 +82,23 @@ PathScribe must deploy to public or private cloud, so the UI never assumes where
 - **A new screen reached from Home or a hub** gets a `screen:<name>:open` capability, a seed for the roles that use it, a tile id in `services/screens/screenAccess.ts`, and a `ScreenGate` on its route (Batch 374).
 - **Enforced by** `src/services/authorization/capabilities.guard.test.ts`: every catalog capability has a check, every key used is in the catalog, and every capability has its locale text. Server contract: `docs/architecture/AUTHORIZATION_API.md`.
 
+### 8. Click economy (Pete, Oct 11, 2026: "be cognizant of click fatigue")
+Pathologists and bench staff repeat the same steps hundreds of times a day. Count the clicks, and remove the ones that add nothing:
+- **Don't interrupt.** Show information inline (a banner, a badge, a field note) instead of a window that must be dismissed. Keep a blocking window for a decision that genuinely has to be made before going on (a high-risk mismatch at sign-out, a destructive action).
+- **Sensible defaults, pre-filled.** Pre-select the likely answer, and remember the person's last choice (`utils/uiPreferences.ts`).
+- **Quick picks before typing.** Offer picklist reasons, with the note optional unless the record needs it.
+- **One step, not two.** No confirmation for an action that can be undone. Save on change where it's safe.
+- **Keyboard and scanner first.** Every frequent action can be done without the mouse (PS-491).
+- When a change adds a click or a window to a frequent path, say so in the summary and why it's needed.
+
+### 9. Every capability is documented for the people who sell, configure, teach and use it (Pete, Oct 11, 2026)
+Admin and user guides, training, marketing and RFP answers are written from the docs, so a batch isn't finished until what it changed is written down for them:
+- **`docs/product/GUIDE_UPDATES.md`:** one entry per batch that changes what someone sees or can do. It covers what changed, the User Guide and Admin Guide sections affected (the PDFs in `public/help/` are edited outside this repo), the steps for training, a one-line description for marketing and RFPs, and any standards it supports (WCAG, CAP, ISO 15189, HIPAA, GDPR).
+- **`docs/product/FEATURE_OVERVIEW.md`:** the area's entry, with its status kept honest (Live / Partial / Planned).
+- **Permissions:** `docs/architecture/AUTHORIZATION_API.md` (enforced by its guard).
+- **A feature that needs explaining** (a workflow, a rule set, a governance model) gets its own guide in `docs/product/`, as `CLINICAL_MISMATCH_CHECK.md` does.
+- Planned work is labelled Planned, never described as built.
+
 ---
 
 ## Delivery routine (every batch)
@@ -87,9 +107,9 @@ PathScribe must deploy to public or private cloud, so the UI never assumes where
 2. **Build.** Follow the standing rules above.
 3. **Validate:** `npm run type-check`, then `npm test` (the full suite, ~6 minutes: give the command a ~590 s timeout). Both must be clean. Report exact file and test counts.
 4. **Docs.** Update the `README.md` of every folder you touched **and every ancestor folder up to the repo root**, including the root `README.md` when the change is notable at project level. Add a `## Batch N — …` entry to `src/i18n/README.md` (the master build changelog). Check the last `## Batch` header for the next number.
-5. **Package.** A delta zip mirroring `src/` paths (plus any root files), delivered with `SendUserFile`.
+5. **Package.** Once the repository is connected (PS-468): a `feature/PS-nnn-…` or `bugfix/PS-nnn-…` branch and a pull request into `main`; CI must pass. Until then: a delta zip mirroring `src/` paths (plus any root files), delivered with `SendUserFile`. A zip can't delete files: list every deleted or moved-away path in the root `DELETED_FILES.txt` (newest first). `npm run cleanup:deleted` removes them, and `deletedFiles.guard.test.ts` fails while any is still present (Batch 507).
 6. **Jira** (project `PS`, site `formedrixai.atlassian.net`, cloudId `d909ed2d-8fe5-490b-be39-3a2ef8635aa0`): record what was done, what was verified, and what's still open as a comment or in the description.
-   - **Never transition an issue's status.** Pete does that.
+   - **Statuses (Pete, Oct 12, 2026):** when a batch fully delivers a story or task (nothing material left open), move it to **In Review** with a comment naming the batch and anything for Pete to check. Pete moves it to Done. Never move anything to Done, and never move a ticket that still has open items; comment instead.
    - Don't create new tickets or expand scope unless Pete asks or directs the work.
 
 ### Pre-delivery checklist
@@ -101,4 +121,5 @@ PathScribe must deploy to public or private cloud, so the UI never assumes where
 - [ ] Any new or touched protected action checks its capability in the service (capabilities guard passes)
 - [ ] Type-check clean, full suite green, counts reported
 - [ ] READMEs updated from each touched folder up to the root; changelog batch entry added
+- [ ] `docs/product/GUIDE_UPDATES.md` entry (and `FEATURE_OVERVIEW.md`) for anything a user, admin or buyer would notice
 - [ ] Anything disclosed-but-not-fixed is listed plainly in the summary and in Jira

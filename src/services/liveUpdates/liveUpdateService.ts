@@ -12,12 +12,13 @@ import { localLiveUpdateService } from './localLiveUpdateService';
 import { createSignalRLiveUpdateService } from './signalRLiveUpdateService';
 import type { ILiveUpdateService } from './ILiveUpdateService';
 import { getAccessToken } from '../auth/accessTokenSource';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 const HUB_ENV_VAR = 'VITE_LIVE_UPDATES_HUB_URL';
 const isProduction = !!import.meta.env.PROD;
 
 export const liveTransportChoice = selectLiveUpdateTransport({
-  configured: import.meta.env.VITE_LIVE_UPDATES_HUB_URL as string | undefined,
+  configured: appEnv().VITE_LIVE_UPDATES_HUB_URL as string | undefined,
   isProduction,
   resolve: configured => {
     const r = resolveServiceEndpoint({ name: 'live-update hub', envVar: HUB_ENV_VAR, configured, devDefault: '', isProduction });

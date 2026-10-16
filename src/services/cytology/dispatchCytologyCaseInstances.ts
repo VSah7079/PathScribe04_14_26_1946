@@ -17,88 +17,96 @@
 // implementations before this file existed; this file calls them,
 // never re-implements them.
 //
-// Real, honest scope limit, per direct investigation: Cytology has no
-// real PDF-generation mechanism at all today (confirmed directly —
-// zero references to pdfBase64/generateReportPdf anywhere in
-// CytologyScreeningPage.tsx). This function's own real job is the
-// electronic (ORU^R01) dispatch only — it says nothing about print;
-// a Cytology case reaching dispatchPrintJob.ts (Component B) via the
-// same publishReportReleasedEvent call will honestly fail that
-// specific job (PRINT_REJECTED, no generatePdf available) rather than
-// silently print nothing, exactly the same real posture the release-
-// buffer's own automatic-expiry path already has for the same reason.
+// Batch 532 (corrects two statements that had gone stale): cytology does
+// have a PDF (since Batch 532 the consolidated case report,
+// generateCytologyCaseReportPdf.ts; since Batch 539 made by the report
+// renderer, not drawn in the browser), and print,
+// fax and file drop use it through publishReportReleasedEvent. The registry
+// submission is made by signOutCytologyCase.ts (no longer the page).
 //
-// Real, deliberate scope: the separate CSMS/national-registry dispatch
-// (REGISTRY_REPORT, mockCytologyRegistryOutboundQueueService) stays
-// OUT of this function and out of publishReportReleasedEvent
-// entirely — that's a real, distinct regulatory-reporting obligation
-// to a national registry, not a "deliver this report to the ordering
-// provider" concern the Report_Released_Event was ever scoped to
-// cover. CytologyScreeningPage.tsx keeps that dispatch as its own,
-// separate, unchanged call, alongside its new call into this event.
+// Batch 532 (Pete, Oct 12, 2026): one consolidated message per accession,
+// sent once the case is released, instead of one per specimen sign-out.
+//
+// The registry submission (REGISTRY_REPORT) stays out of this function and
+// out of publishReportReleasedEvent: it is a separate regulatory obligation.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { loadPrintFont, printFontLanguageFor, type PrintFont } from '../documentRendering/printFonts';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { mockCytologyOutboundResultQueueService } from './mockCytologyOutboundResultQueueService';
-import { buildCytologyOruR01Payload } from './buildCytologyOruR01Payload';
+// Batch 527 (PS-486): buildCytologyOruR01Payload is loaded when a report is built (it carries the PDF engine).
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
+import { buildCytologyCaseReportMessage, cytologyCaseIsReleased } from './cytologyCaseReportMessage';
+import type { GenerateReportPdf } from '../reports/resolveOruReportPdf';
 
-export async function dispatchCytologyCaseInstances(caseId: string): Promise<void> {
+/**
+ * Batch 532 (Pete, Oct 12, 2026: "a single comprehensive message per
+ * accession"). The case's FINAL result, once, when the case is released
+ * (every cytology specimen signed out, or the case finalized early): one
+ * consolidated message with every specimen and the case report PDF. Before
+ * release it sends nothing. Called again for the same case (or for a case
+ * whose specimens were sent one by one before Batch 532), it sends nothing:
+ * any FINAL already queued for the case counts.
+ */
+/** Batch 538: `generatePdf` is the release's report document, so the result message carries the same bytes as print and fax. */
+export async function dispatchCytologyCaseInstances(caseId: string, generatePdf?: GenerateReportPdf): Promise<void> {
   const caseData = await caseRouter.getCase(caseId);
-  if (!caseData) return;
+  if (!caseData || !cytologyCaseIsReleased(caseData)) return;
 
   const patientId = (caseData as any)?.patient?.id;
   const patientRecord = patientId ? await mockPatientIndexService.getById(patientId) : null;
-  // Honest, non-blocking skip — same real posture as
-  // dispatchCaseInstances.ts's own identical check: no real
-  // organisationId to enqueue against.
+  // Non-blocking skip: no organisationId to enqueue against.
   if (!patientRecord) return;
 
+  const existing = await mockCytologyOutboundResultQueueService.getByCaseId(caseId).catch(() => null);
+  if (existing?.ok && existing.data.some(e => e.resultState === 'FINAL')) return;
+
   const recordsRes = await mockCytologySignOutRecordService.getByCaseId(caseId);
-  if (!recordsRes.ok) return;
+  if (!recordsRes.ok || !recordsRes.data.length) return;
+  const closing = [...recordsRes.data].sort((a, b) => String(a.signedAt).localeCompare(String(b.signedAt))).pop()!;
+  await sendCaseMessage(caseData, recordsRes.data, (patientRecord as any).organisationId, 'FINAL', closing.id, undefined, generatePdf);
+}
 
-  for (const record of recordsRes.data) {
-    // Real, idempotent dedup — same real reasoning
-    // dispatchCaseInstances.ts's own FINAL path already establishes:
-    // this function may genuinely be called more than once for the
-    // same case, never double-enqueue the same real record's initial
-    // FINAL result. getBySignOutRecordId itself returns every real
-    // entry regardless of state — filtered here for FINAL specifically,
-    // matching dispatchCaseInstances.ts's own getByInstanceAndState
-    // equivalent semantics on the one real method this service
-    // actually has.
-    const existingRes = await mockCytologyOutboundResultQueueService.getBySignOutRecordId(record.id).catch(() => null);
-    if (existingRes?.ok && existingRes.data.some(e => e.resultState === 'FINAL')) continue;
-
-    const enqueueRes = await mockCytologyOutboundResultQueueService.enqueue({
-      caseId, signOutRecordId: record.id, resultState: 'FINAL',
-      organisationId: (patientRecord as any).organisationId,
+/** Enqueues and sends one consolidated message (shared with dispatchCytologyAmendedCaseInstance). */
+export async function sendCaseMessage(
+  caseData: Parameters<typeof buildCytologyCaseReportMessage>[0],
+  records: Parameters<typeof buildCytologyCaseReportMessage>[1],
+  organisationId: string,
+  resultState: 'FINAL' | 'CORRECTED' | 'ADDENDUM',
+  signOutRecordId: string,
+  previouslyReportedAs?: string,
+  generatePdf?: GenerateReportPdf,
+): Promise<void> {
+  // Batch 538: the release's document first, so the queue entry records which one it carries.
+  // A generator that throws becomes a render error, which the message build then holds for retry.
+  const doc = generatePdf
+    ? await generatePdf().catch((e: unknown): Awaited<ReturnType<GenerateReportPdf>> => ({ generationError: e instanceof Error ? e.message : String(e) }))
+    : undefined;
+  const enqueueRes = await mockCytologyOutboundResultQueueService.enqueue({
+    caseId: caseData.id, signOutRecordId, resultState, scope: 'case', organisationId,
+    ...(doc?.documentId ? { reportDocumentId: doc.documentId, ...(doc.sha256 ? { pdfSha256: doc.sha256 } : {}) } : {}),
+  });
+  if (!enqueueRes.ok) return;
+  const built = await buildCytologyCaseReportMessage(caseData, records, resultState, {
+    ...(resultState !== 'FINAL' ? { changedRecordId: signOutRecordId } : {}),
+    ...(previouslyReportedAs ? { previouslyReportedAs } : {}),
+    ...(doc ? { pdf: async () => doc } : {}),
+  }).catch((e: unknown) => ({ held: e instanceof Error ? e.message : 'The case report could not be built.' }));
+  if ('held' in built) {
+    await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+      errorCode: 'DISPATCH_REJECTED', errorMessage: built.held, maxRetriesExceeded: false,
     });
-    if (!enqueueRes.ok) continue;
-
-    // Batch 391: a Korean report needs its font before the PDF can be built.
-    let printFont: PrintFont | undefined;
-    try { printFont = await loadPrintFont(printFontLanguageFor(record.reportContent)); } catch {
-      await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
-        errorCode: 'DISPATCH_REJECTED', // not sent: the PDF could not be built
-        errorMessage: 'The font this report\'s language needs could not be loaded; the report PDF was not built.',
-        maxRetriesExceeded: false,
-      });
-      continue;
-    }
-    const payload = buildCytologyOruR01Payload(record, 'FINAL', undefined, printFont);
-    const dispatchResult = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', payload as any);
-    if (dispatchResult.ok) {
-      await mockCytologyOutboundResultQueueService.markSent(enqueueRes.data.id);
-    } else {
-      await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
-        errorCode: (dispatchResult as any).errorCode ?? 'DISPATCH_REJECTED',
-        errorMessage: (dispatchResult as any).error ?? 'Unknown dispatch failure.',
-        maxRetriesExceeded: false,
-      });
-    }
+    return;
+  }
+  const dispatchResult = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', built.payload as any);
+  if (dispatchResult.ok) {
+    await mockCytologyOutboundResultQueueService.markSent(enqueueRes.data.id);
+  } else {
+    await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+      errorCode: (dispatchResult as any).errorCode ?? 'DISPATCH_REJECTED',
+      errorMessage: (dispatchResult as any).error ?? 'Unknown dispatch failure.',
+      maxRetriesExceeded: false,
+    });
   }
 }

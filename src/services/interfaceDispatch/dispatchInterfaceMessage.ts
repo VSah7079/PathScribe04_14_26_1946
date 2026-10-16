@@ -32,6 +32,7 @@
 import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
 import { checkRegistryPayloadBoundary } from './registryPayloadBoundary';
 import { deploymentInstance } from '../deployment/deploymentInstance';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 // 'CRITICAL_ALERT' added per direct follow-up ("Can the interface
 // engine be used for any post GA modification to fully implement this
@@ -40,7 +41,16 @@ import { deploymentInstance } from '../deployment/deploymentInstance';
 // call site produces it yet. See that folder's own README.
 // Batch 434: 'WSI_SCAN_MANIFEST', the slides loaded on a slide scanner
 // (services/digitalPathology/wsiScanBatchWorkflow.ts).
-export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'CANCER_REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT' | 'WSI_SCAN_MANIFEST';
+// Batch 518 (PS-122): 'ACCESSION_EVENT' (order.accessioned / order.deficiency.created),
+// 'REFERRAL_MANIFEST' and 'MOLECULAR_ORDER', for the three queues that store
+// their message and are now sent from Audit Log → Interfaces → Outbound.
+// The development receiver (functions/main.py) accepts them, and
+// docs/architecture/INTERFACE_TRANSACTIONS.md lists them.
+export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'CANCER_REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT' | 'WSI_SCAN_MANIFEST'
+  | 'ACCESSION_EVENT' | 'REFERRAL_MANIFEST' | 'MOLECULAR_ORDER'
+  // Batch 520 (PS-280): a signed report PDF to fax or drop as a file. The interface server
+  // delivers it and answers only once it is delivered (services/delivery/deliverReport.ts).
+  | 'REPORT_DELIVERY';
 
 export interface InterfaceDispatchEnvelope {
   queueEntryId: string;
@@ -91,7 +101,7 @@ export interface InterfaceDispatchResult {
 export const INTERFACE_RECEIVER = resolveServiceEndpoint({
   name: 'interface engine',
   envVar: 'VITE_INTERFACE_RECEIVER_ENDPOINT',
-  configured: import.meta.env.VITE_INTERFACE_RECEIVER_ENDPOINT,
+  configured: appEnv().VITE_INTERFACE_RECEIVER_ENDPOINT,
   devDefault: 'http://localhost:8080/',
   isProduction: !!import.meta.env.PROD,
 });

@@ -1,6 +1,14 @@
 // src/services/reports/releasePreliminaryReport.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Batch 534: no release delay in this test (releaseReport is tested on its own).
+vi.mock('@/services/reportRelease/releaseThroughDelay', () => ({
+  releaseThroughDelay: vi.fn(async (event: any) => {
+    const m = await import('@/services/reports/publishReportReleasedEvent');
+    return { published: await m.publishReportReleasedEvent(event) };
+  }),
+}));
+
 vi.mock('../cases/CaseRouter', () => ({
   caseRouter: { getCase: vi.fn(), updateCase: vi.fn() },
 }));
@@ -145,5 +153,18 @@ describe('releasePreliminaryReport — versioned attestation (PS-71)', () => {
     const calls = vi.mocked(caseRouter.updateCase).mock.calls;
     expect(calls.map(c => c[2])).toEqual([1, 2]);
     expect((calls[1][1] as any).diagnostic).toMatchObject({ finalDiagnosis: 'theirs', reviewerRole: 'Pathologist' });
+  });
+});
+
+describe('Batch 534: through the release delay', () => {
+  it('held: reports when it goes, records the attestation, and goes as a recallable surgical preliminary', async () => {
+    const { releaseThroughDelay } = await import('@/services/reportRelease/releaseThroughDelay');
+    vi.mocked(releaseThroughDelay).mockResolvedValueOnce({ held: { expiresAt: '2026-10-12T18:10:00.000Z' } } as any);
+    vi.mocked(caseRouter.getCase).mockResolvedValue(makeCase({ status: 'in-progress' }) as any);
+    const result = await releasePreliminaryReport('CASE-1', { id: 'P1', name: 'Dr P', role: 'Pathologist' });
+    expect(result).toEqual({ ok: true, dispatchedCount: 0, heldUntil: '2026-10-12T18:10:00.000Z' });
+    expect(vi.mocked(releaseThroughDelay).mock.calls.slice(-1)[0][1]).toEqual({ kind: 'surgical-preliminary', releasedBy: { userId: 'P1', userName: 'Dr P' } });
+    expect(caseRouter.updateCase).toHaveBeenCalled();
+    expect(publishReportReleasedEvent).not.toHaveBeenCalled();
   });
 });

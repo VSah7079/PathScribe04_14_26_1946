@@ -23,6 +23,7 @@ import {
 } from '@/services/billing/billingCorrectionCase';
 import type { BillingDeficiencyRecord } from '@/types/billing/BillingDeficiencyRecord';
 import type { ReasonDictionaryEntry } from '@/types/reasons/ReasonDictionaryEntry';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 export interface BillingCorrectionDialogProps {
   /** The deficiency this correction resolves (its case and charge are filled in). */
@@ -128,7 +129,7 @@ export const BillingCorrectionDialog: React.FC<BillingCorrectionDialogProps> = (
               </div>
             </div>
           )}
-          {lookupState === 'loading' && <p className="ps-billing-reason-hint">{t('billingCorrection.loading')}</p>}
+          {lookupState === 'loading' && <LoadingState variant="inline" className="ps-billing-reason-hint" label={t('billingCorrection.loading')} />}
           {lookupState === 'notFound' && <p className="ps-conf-error-text" role="alert">{t('billingCorrection.caseNotFound')}</p>}
 
           {caseInfo && (

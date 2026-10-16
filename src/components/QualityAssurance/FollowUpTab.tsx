@@ -12,7 +12,8 @@
 //   • emails the ordering clinician, when the facility has turned that on.
 //     Nothing is sent until the user has reviewed the draft and pressed Send
 //     (qa:follow-up-clinician:email);
-//   • downloads the list as CSV (qa:follow-up:export).
+//   • downloads the list as CSV (qa:follow-up:export), for one facility or
+//     all (Batch 544: the scope picker filters the list and the export).
 // Decisions live in services/followUp/. Opening the tab also sends any
 // internal alerts now due.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,9 +31,12 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useOpenCase } from '@/hooks/useOpenCase';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
-import { exportQaReportRows, qaScopeContext } from './qaReportUtils';
+import { exportQaReportRows } from './qaReportUtils';
+import { QaScopeSwitcher } from './QaScopeSwitcher';
+import { useQaCaseScope } from '@/hooks/useQaCaseScope';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import '@/pathscribe.css';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const K = 'followUp.report';
 const FILTERS: FollowUpFilter[] = ['attention', 'overdue', 'dueSoon', 'open', 'resolved', 'all'];
@@ -71,7 +75,9 @@ export const FollowUpTab: React.FC<Props> = ({ onAttentionCountChange }) => {
     void sendFollowUpAlertsLive().catch(() => undefined).finally(() => { void load(); });
   }, [load]);
 
-  const items = useMemo(() => loaded?.items ?? [], [loaded]);
+  const qa = useQaCaseScope();
+  const allItems = useMemo(() => loaded?.items ?? [], [loaded]);
+  const items = useMemo(() => qa.filter(allItems, i => i), [qa, allItems]);
   const rows = useMemo(() => filterFollowUpItems(items, filter), [items, filter]);
   const counts = useMemo(() => countFollowUpItems(items), [items]);
   const date = (iso?: string) => formatDate(iso, i18n.language);
@@ -124,10 +130,10 @@ export const FollowUpTab: React.FC<Props> = ({ onAttentionCountChange }) => {
   };
 
   const handleExport = () => {
-    void exportQaReportRows('qa:follow-up:export', followUpExportRows(rows), `follow-up-not-received-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:follow-up:export', followUpExportRows(rows), qa.filename('follow-up-not-received'), qa.context, { scope: qa.scope, filter });
   };
 
-  if (!loaded) return <div className="ps-conf-loading">{t(`${K}.loading`)}</div>;
+  if (!loaded) return <LoadingState label={t(`${K}.loading`)} />;
 
   return (
     <div className="ps-followup">
@@ -150,7 +156,8 @@ export const FollowUpTab: React.FC<Props> = ({ onAttentionCountChange }) => {
             </button>
           ))}
         </div>
-        <CapabilityButton capability="qa:follow-up:export" context={qaScopeContext()} className="ps-conf-btn-secondary" onClick={handleExport}>{t('common.export')}</CapabilityButton>
+        <QaScopeSwitcher scope={qa.scope} onChange={qa.setScope} visibleClientIds={qa.facilityIds(allItems, i => i)} />
+        <CapabilityButton capability="qa:follow-up:export" context={qa.context} className="ps-conf-btn-secondary" onClick={handleExport}>{t('common.export')}</CapabilityButton>
       </div>
 
       {notice && <div className="ps-followup__notice" role="status">{notice}</div>}
@@ -262,7 +269,7 @@ export const FollowUpTab: React.FC<Props> = ({ onAttentionCountChange }) => {
                   </div>
                 </>
               ) : drafting ? (
-                <div className="ps-conf-loading">{t(`${K}.drafting`)}</div>
+                <LoadingState label={t(`${K}.drafting`)} />
               ) : (
                 <>
                   <p className="ps-conf-field-hint">{t(`${K}.emailReviewHint`)}</p>

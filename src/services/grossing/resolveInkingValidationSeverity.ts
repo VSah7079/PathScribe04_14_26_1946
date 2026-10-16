@@ -42,16 +42,15 @@
 //                                        anything real, which is exactly
 //                                        Pete's own given example
 //                                        ("unmapped codes that cause LIS
-//                                        drop-off"). Nothing in THIS batch
-//                                        can trigger it yet, by design:
-//                                        there's no real ink-color palette
-//                                        to validate a colorCode against —
-//                                        that's the admin-list batch,
-//                                        still to come. The type and the
-//                                        blocking logic are real and
-//                                        tested now so wiring in that one
-//                                        future check is additive, not a
-//                                        second pass over this file.
+//                                        drop-off"). Wired additively
+//                                        below (margin_ink_color_unmapped,
+//                                        Structured Inking Module 3,
+//                                        PS-359 follow-up) once the real
+//                                        ink-color admin palette existed
+//                                        (services/inkColors/) — exactly
+//                                        the additive, non-second-pass
+//                                        extension this comment promised
+//                                        when it was written.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Specimen, HistologyBlock } from '@/types/case/Specimen';
@@ -61,7 +60,8 @@ export type InkingValidationMode = 'WARN_ONLY' | 'STRICT_ENFORCE';
 
 export type InkingValidationIssueCode =
   | 'margin_not_examined'
-  | 'margin_no_ink_applied';
+  | 'margin_no_ink_applied'
+  | 'margin_ink_color_unmapped';
 
 export type InkingValidationIssueSeverity = 1 | 2 | 3;
 
@@ -74,6 +74,21 @@ export interface InkingValidationIssue {
   blockId?: string;
   marginId: string;
   marginName: string;
+  /** Present only for margin_ink_color_unmapped — which real ink
+   *  application raised it, and the colorCode it recorded that the
+   *  current active ink-colour dictionary no longer (or never did)
+   *  recognize. */
+  inkApplicationId?: string;
+  colorCode?: string;
+}
+
+export interface ResolveInkingValidationSeverityOptions {
+  /** The active ink-colour dictionary's own codes (services/inkColors/),
+   *  normalized by the caller to a consistent case. When omitted, the
+   *  margin_ink_color_unmapped check is skipped entirely — same honest
+   *  "can't check what we don't have" posture as every other optional
+   *  cross-reference in this app. Compared case-insensitively. */
+  activeInkColorCodes?: ReadonlySet<string>;
 }
 
 export interface InkingValidationResult {
@@ -83,16 +98,16 @@ export interface InkingValidationResult {
   blocked: boolean;
 }
 
-/** The default severity for each check this batch implements. A later
- *  batch adding the real ink-color-palette check assigns IT severity 3
- *  directly (never through this table — that check is structural/
- *  compliance-critical by definition, not site-configurable). */
-const DEFAULT_SEVERITY: Record<InkingValidationIssueCode, InkingValidationIssueSeverity> = {
+/** The default severity for each site-configurable check. margin_ink_color_unmapped
+ *  is deliberately excluded — it's assigned severity 3 directly, inline, never
+ *  through this table (see this file's own header: structural/compliance-critical
+ *  by definition, not site-configurable). */
+const DEFAULT_SEVERITY: Record<Exclude<InkingValidationIssueCode, 'margin_ink_color_unmapped'>, InkingValidationIssueSeverity> = {
   margin_not_examined: 2,
   margin_no_ink_applied: 2,
 };
 
-function issuesForMargin(specimenId: string, blockId: string | undefined, margin: Margin): InkingValidationIssue[] {
+function issuesForMargin(specimenId: string, blockId: string | undefined, margin: Margin, activeInkColorCodes: ReadonlySet<string> | undefined): InkingValidationIssue[] {
   const issues: InkingValidationIssue[] = [];
   if (margin.examinationStatus !== 'examined') {
     issues.push({ severity: DEFAULT_SEVERITY.margin_not_examined, code: 'margin_not_examined', specimenId, blockId, marginId: margin.id, marginName: margin.name });
@@ -100,26 +115,47 @@ function issuesForMargin(specimenId: string, blockId: string | undefined, margin
   if (margin.inkApplications.length === 0) {
     issues.push({ severity: DEFAULT_SEVERITY.margin_no_ink_applied, code: 'margin_no_ink_applied', specimenId, blockId, marginId: margin.id, marginName: margin.name });
   }
+  // Severity 3, assigned directly (never through DEFAULT_SEVERITY — see
+  // this file's own header): a real structural export failure, not
+  // site-configurable. Only ever checked when the caller supplies the
+  // active ink-colour dictionary; an application whose colorCode matches
+  // nothing in it (case-insensitively) is exactly Pete's own given
+  // example of an "unmapped code that causes LIS drop-off."
+  if (activeInkColorCodes) {
+    for (const app of margin.inkApplications) {
+      if (!activeInkColorCodes.has(app.colorCode.trim().toUpperCase())) {
+        issues.push({
+          severity: 3, code: 'margin_ink_color_unmapped', specimenId, blockId,
+          marginId: margin.id, marginName: margin.name, inkApplicationId: app.id, colorCode: app.colorCode,
+        });
+      }
+    }
+  }
   return issues;
 }
 
 /**
  * Every margin, on every specimen and every one of its blocks, checked
- * against the two real rules this batch implements. `mode` is the site's
- * own `inking_validation_mode` (services/siteSettings/inkingSiteSettings.ts).
+ * against the real rules this file implements. `mode` is the site's own
+ * `inking_validation_mode` (services/grossing/inkingSiteSettings.ts).
+ * `options.activeInkColorCodes` additively enables the Severity 3
+ * margin_ink_color_unmapped check (Structured Inking Module 3, PS-359
+ * follow-up) — omit it and this behaves exactly as Batch 480 shipped it.
  */
 export function resolveInkingValidationSeverity(
   specimens: readonly Pick<Specimen, 'id' | 'margins' | 'blocks'>[],
   mode: InkingValidationMode,
+  options?: ResolveInkingValidationSeverityOptions,
 ): InkingValidationResult {
+  const activeInkColorCodes = options?.activeInkColorCodes;
   const issues: InkingValidationIssue[] = [];
   for (const sp of specimens) {
     for (const margin of sp.margins ?? []) {
-      issues.push(...issuesForMargin(sp.id, undefined, margin));
+      issues.push(...issuesForMargin(sp.id, undefined, margin, activeInkColorCodes));
     }
     for (const block of (sp.blocks ?? []) as readonly Pick<HistologyBlock, 'id' | 'margins'>[]) {
       for (const margin of block.margins ?? []) {
-        issues.push(...issuesForMargin(sp.id, block.id, margin));
+        issues.push(...issuesForMargin(sp.id, block.id, margin, activeInkColorCodes));
       }
     }
   }

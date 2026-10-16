@@ -3,19 +3,20 @@ import type { IEncounterService, Encounter, EncounterStatus, AttendingProviderIn
 import type { ServiceResult } from '../types';
 import { mockPatientEventBus } from '../events/mockPatientEventBus';
 import { resolveProviderName } from '../physicians/resolveProviderName';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'pathscribe_encounters';
 const delay = (ms = 60) => new Promise(res => setTimeout(res, ms));
 
 function loadEncounters(): Encounter[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = dataStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveEncounters(encounters: Encounter[]): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(encounters)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(STORAGE_KEY, JSON.stringify(encounters)); } catch { /* non-critical */ }
 }
 
 let idCounter = 0;

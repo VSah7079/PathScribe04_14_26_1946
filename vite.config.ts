@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { preloadAppStart } from './scripts/vite/preloadAppStart';
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -38,9 +39,19 @@ export default defineConfig(({ mode }) => {
   });
 
   return {
-    plugins: [react()],
+    // Batch 549: download the app's code while config.json is read (scripts/vite/preloadAppStart.ts).
+    plugins: [react(), preloadAppStart()],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
+      // Batch 527 (PS-486): demo and developer screens (the mock interface engine,
+      // the mock EMR and WSI viewer, the demo reset, the demo simulations) are
+      // built in only when there is no PathScribe API server (the demo). A
+      // server build leaves them out entirely.
+      // Batch 547 (PS-539 phase 2d): a server build no longer needs the API
+      // address at build time (it comes from config.json at start-up,
+      // services/runtimeConfig/), so `--mode server` (npm run build:server)
+      // marks it as one. A build with VITE_API_BASE_URL set is still one too.
+      __DEMO_TOOLS__: JSON.stringify(mode !== 'server' && !(env.VITE_API_BASE_URL ?? '').trim()),
     },
     resolve: {
       alias: {
@@ -183,9 +194,27 @@ export default defineConfig(({ mode }) => {
     // default worker format (iife) made `npm run build` fail outright.
     worker: {
       format: 'es',
+      // Batch 505: the PDF worker bundles its own copy of the services it
+      // uses, so the same cycle-breaking imports show up there (see build).
+      rolldownOptions: { checks: { ineffectiveDynamicImport: false } },
     },
     build: {
+      // Batch 505 (PS-475): i18n/config.ts waits for the person's language
+      // before the app starts (top-level await), which needs ES2022 output.
+      // Every browser PathScribe supports (current Edge, Chrome, Firefox,
+      // Safari 15+) runs it.
+      target: 'es2022',
+      // Batch 505: scripts/measure-first-load.mjs reads the manifest to find the start-up language chunk.
+      manifest: true,
       rollupOptions: {
+        // Batch 505 (PS-475): the 23 "ineffective dynamic import" warnings
+        // were all `await import()` calls inside services that exist to break
+        // import cycles (a module reached during another's start-up), not to
+        // split code; the module is also imported normally elsewhere, so it
+        // was always going to share a chunk. That is intended, so the check is
+        // off. What actually guards load size is the first-load budget:
+        // `node scripts/measure-first-load.mjs` (fails over 3 MB gzipped).
+        checks: { ineffectiveDynamicImport: false },
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {

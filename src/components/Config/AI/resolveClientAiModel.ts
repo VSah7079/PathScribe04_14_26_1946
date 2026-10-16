@@ -24,8 +24,8 @@
 // must call it before allowing the change, not just before saving.
 // ─────────────────────────────────────────────────────────────
 
-import { facilityService, modelService } from '../../../services';
-import { mockValidationStudyService as validationStudyService } from '../../../services/validationStudies/mockValidationStudyService';
+import { facilityService, modelService, validationStudyService } from '@/services';
+
 import { resolvePerformingLabFacilityId } from '../../../services/facilities/IFacilityService';
 import type { AiProviderConfig } from './aiProviderConfig';
 

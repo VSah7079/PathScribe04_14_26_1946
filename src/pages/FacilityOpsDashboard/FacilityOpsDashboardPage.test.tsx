@@ -26,7 +26,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));
 
 vi.mock('@/hooks/useCurrentDisplayProfile', async () => {
@@ -40,13 +41,12 @@ vi.mock('@/hooks/useCurrentDisplayProfile', async () => {
 });
 
 const { getActive, getById } = vi.hoisted(() => ({ getActive: vi.fn(), getById: vi.fn() }));
-vi.mock('@/services/facilityOpsDashboard/mockDisplayProfileService', () => ({
-  mockDisplayProfileService: { getActive, getById },
-}));
 
 const { facilityGetAll } = vi.hoisted(() => ({ facilityGetAll: vi.fn() }));
+// Batch 506: the page takes displayProfileService from the services index.
 vi.mock('@/services', () => ({
   facilityService: { getAll: facilityGetAll },
+  displayProfileService: { getActive, getById },
 }));
 
 vi.mock('./viewRegistry', () => ({

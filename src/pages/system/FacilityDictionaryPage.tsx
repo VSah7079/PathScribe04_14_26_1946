@@ -34,6 +34,7 @@ import type { Facility, FacilityInput } from "../../services/facilities/IFacilit
 import { FacilityEditorModal } from "../../components/FacilityDictionary/FacilityEditorModal";
 import { FacilityTable } from "../../components/FacilityDictionary/FacilityTable";
 import { duplicateFacility } from "@/services/duplication/duplicateEntities";
+import { LoadingState } from '@/components/Common/LoadingState';
 
 export const FacilityDictionaryPage = () => {
   const { t } = useTranslation();
@@ -156,9 +157,7 @@ export const FacilityDictionaryPage = () => {
   if (loading) {
     return (
       <div className="config-section-container">
-        <div className="config-section-loading">
-          {t('facilityDictionaryPage.loading')}
-        </div>
+        <LoadingState label={t('facilityDictionaryPage.loading')} />
       </div>
     );
   }

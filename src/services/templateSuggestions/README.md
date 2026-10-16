@@ -13,6 +13,11 @@ AI-driven synoptic template suggestion — 'which diagnostic template fits this 
 
 - Its own code explicitly self-describes as 'the diagnostic-template analog of IGrossingEvaluationService' — which is why it now lives in its own folder, matching that precedent, instead of being bundled inside templates/ (library management) as it originally was.
 
+
+## Batch 536 (PS-558)
+
+`synopticTemplateSuggestionService.ts` passes its feature and facility to `callAi`, for the jurisdiction's AI vendor policy.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

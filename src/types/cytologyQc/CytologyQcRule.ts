@@ -217,4 +217,26 @@ export interface CytologyQcCaseAssignment {
   slaEscalationCount: number;
   createdAt: string;
   resolvedAt?: string;
+  /** Batch 501: the reviewer pool (roles) the assignment is routed to — the
+   *  matched rule's `eligibleReviewerRoles`, or the more senior pool when a
+   *  later trigger raised the tier. Undefined: no pool restriction. */
+  eligibleReviewerRoles?: string[];
+  /** Batch 501 (Pete: "store all triggers that selected the case"): every
+   *  reason this specimen was selected, e.g. ["rose_discrepancy",
+   *  "rule:qc-rule-104", "peer_review_flag:random_selection"]. Older
+   *  assignments have none; treat absent as [triggerSource]. */
+  selectionReasons?: string[];
+  /** Batch 501: what happened to the assignment after it was created
+   *  (a later trigger raising its tier, tightening its SLA or adding a reason). */
+  history?: QcAssignmentHistoryEntry[];
+}
+
+/** Batch 501: one change to an open QC assignment made by a later trigger. */
+export interface QcAssignmentHistoryEntry {
+  at: string;
+  event: 'created' | 'upgraded' | 'reason_added';
+  /** What selected the case this time (a selection reason, as above). */
+  reason: string;
+  /** English, for the audit trail: "Tier routine_random → targeted_high_consequence; SLA 2026-10-10T09:00Z → 2026-10-09T23:00Z". */
+  detail: string;
 }

@@ -36,10 +36,10 @@ describe('mockFacilityCytologyWorkloadCapOverrideService — Tier 2', () => {
   });
 
   it('a real, facility-wide cap persists and is isolated to that one facility', async () => {
-    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-001', { dailySlideCap: 120 });
+    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-001', { dailySlideCap: 90 });
     const res = await mockFacilityCytologyWorkloadCapOverrideService.getForFacility('fac-001');
     if (!res.ok) throw new Error('setup failed');
-    expect(res.data?.overrides.dailySlideCap).toBe(120);
+    expect(res.data?.overrides.dailySlideCap).toBe(90);
     const other = await mockFacilityCytologyWorkloadCapOverrideService.getForFacility('fac-002');
     if (!other.ok) throw new Error('setup failed');
     expect(other.data).toBeNull();
@@ -71,20 +71,20 @@ describe('resolveEffectiveCytologyWorkloadCap — real, three-tier cascade, per 
   });
 
   it('a real facility override wins over the Enterprise default when no staff override exists', () => {
-    const facilityOverride = { id: 'x', facilityId: 'fac-001', overrides: { dailySlideCap: 120 }, createdAt: '', updatedAt: '' };
+    const facilityOverride = { id: 'x', facilityId: 'fac-001', overrides: { dailySlideCap: 90 }, createdAt: '', updatedAt: '' };
     const effective = resolveEffectiveCytologyWorkloadCap(DEFAULT_CYTOLOGY_WORKLOAD_CAP_SETTINGS, facilityOverride, null);
-    expect(effective.dailySlideCap).toBe(120);
+    expect(effective.dailySlideCap).toBe(90);
   });
 
   it('a real staff override wins over both the facility override and the Enterprise default — the most specific setting always wins', () => {
-    const facilityOverride = { id: 'x', facilityId: 'fac-001', overrides: { dailySlideCap: 120 }, createdAt: '', updatedAt: '' };
+    const facilityOverride = { id: 'x', facilityId: 'fac-001', overrides: { dailySlideCap: 90 }, createdAt: '', updatedAt: '' };
     const staffOverride = { id: 'y', staffUserId: 'CT-001', overrides: { dailySlideCap: 80 }, createdAt: '', updatedAt: '' };
     const effective = resolveEffectiveCytologyWorkloadCap(DEFAULT_CYTOLOGY_WORKLOAD_CAP_SETTINGS, facilityOverride, staffOverride);
     expect(effective.dailySlideCap).toBe(80);
   });
 
-  it('a real, end-to-end scenario: Enterprise says 100, a high-throughput facility overrides to 120, one staff member at that facility is individually capped lower at 80, another staff member at the same facility still gets the facility\'s own 120', async () => {
-    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-001', { dailySlideCap: 120 });
+  it('a real, end-to-end scenario: Enterprise says 100, a facility lowers it to 90, one staff member at that facility is individually capped lower at 80, another staff member at the same facility still gets the facility\'s own 120', async () => {
+    await mockFacilityCytologyWorkloadCapOverrideService.create('fac-001', { dailySlideCap: 90 });
     await mockStaffCytologyWorkloadCapOverrideService.create('CT-001', { dailySlideCap: 80 });
 
     const enterprise = await mockCytologyWorkloadCapSettingsService.get();
@@ -94,6 +94,6 @@ describe('resolveEffectiveCytologyWorkloadCap — real, three-tier cascade, per 
     if (!enterprise.ok || !facility.ok || !staffCapped.ok || !staffUncapped.ok) throw new Error('setup failed');
 
     expect(resolveEffectiveCytologyWorkloadCap(enterprise.data, facility.data, staffCapped.data).dailySlideCap).toBe(80);
-    expect(resolveEffectiveCytologyWorkloadCap(enterprise.data, facility.data, staffUncapped.data).dailySlideCap).toBe(120);
+    expect(resolveEffectiveCytologyWorkloadCap(enterprise.data, facility.data, staffUncapped.data).dailySlideCap).toBe(90);
   });
 });

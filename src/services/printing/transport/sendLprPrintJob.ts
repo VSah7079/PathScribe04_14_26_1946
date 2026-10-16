@@ -35,7 +35,7 @@
 import * as net from 'net';
 import * as os from 'os';
 import { DEFAULT_PRINT_PROTOCOL_PORT } from '@/types/printRouting/PrintDestination';
-import type { PrintDestination } from '@/types/printRouting/PrintDestination';
+import type { NetworkPrintDestination as PrintDestination } from '@/types/printRouting/PrintDestination';
 import type { SendPrintJobResult } from './sendRawPrintJob';
 
 export const LPR_CONNECT_TIMEOUT_MS = 10_000;

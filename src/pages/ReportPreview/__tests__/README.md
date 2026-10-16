@@ -5,6 +5,9 @@ Tests for `ReportPreviewRenderer.tsx`.
 ## Files
 
 - **`ReportPreviewRenderer.sectionLabelConfig.test.tsx`** — tests the section-label configuration resolution used when rendering `orchSections` against a resolved `ReportTemplate`.
+- **`ReportPreviewRenderer.revisionAndReference.test.tsx`** — the amended/addendum/corrected banner and the footer document reference (Batch 495, 4 tests).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): added the second test file.*
 
 ## Batch 367 (PS-74): no inline CSS
 

@@ -1,4 +1,68 @@
 {
+  "a11y": {
+    "cellLabel": "{{column}}: {{row}}",
+    "fields": {
+      "active": "Active",
+      "block": "Block",
+      "code": "Code",
+      "colour": "Colour",
+      "consultLink": "Consult link",
+      "dailyCap": "Daily limit",
+      "dateFrom": "From date",
+      "dateTo": "To date",
+      "deficiencyType": "Deficiency type",
+      "description": "Description",
+      "displayText": "Display text",
+      "enabled": "Enabled",
+      "facility": "Facility",
+      "font": "Font",
+      "fontSize": "Font size",
+      "generalCategorization": "General categorization",
+      "inkColour": "Ink colour",
+      "laterality": "Laterality",
+      "minimumCount": "Minimum count",
+      "modality": "Modality",
+      "name": "Name",
+      "nameSuffix": "Name suffix",
+      "nomenclatureSystem": "Nomenclature system",
+      "observedCount": "Observed count",
+      "pageSize": "Page size",
+      "pieceCount": "Number of pieces",
+      "questionText": "Question text",
+      "questionType": "Question type",
+      "registry": "Registry",
+      "reprintReason": "Reprint reason",
+      "resultState": "Result state",
+      "reviewMode": "Review mode",
+      "routing": "Routing",
+      "scope": "Scope",
+      "screeningStrategy": "Screening strategy",
+      "severityRank": "Severity rank",
+      "staffMember": "Staff member",
+      "stain": "Stain",
+      "subspecialty": "Subspecialty",
+      "suites": "Operating suites",
+      "title": "Title",
+      "viewer": "Viewer",
+      "width": "Width",
+      "zplOutput": "ZPL output"
+    },
+    "filters": {
+      "country": "Filter by country",
+      "facility": "Filter by facility",
+      "lab": "Filter by laboratory",
+      "level": "Filter by level",
+      "qcState": "Filter by QC state",
+      "role": "Filter by role",
+      "site": "Filter by site",
+      "source": "Filter by source",
+      "status": "Filter by status"
+    },
+    "labelCanvas": "Label layout",
+    "messageType": "Message type",
+    "scrollableTable": "Scrollable table",
+    "showDetails": "Show details"
+  },
   "abnormalTriggerRulesSection": {
     "addButton": "+ Add Trigger Rule",
     "enterpriseToggle": {
@@ -185,6 +249,7 @@
         "screening": "Screening",
         "symptoms": "Symptoms"
       },
+      "flaggedNotBlocked": "Clinical history not yet recorded: {{fields}}. The case can be accessioned now; the history can be added later, and the mismatch check waits for it.",
       "heading": "Structured Clinical History",
       "hint": "Alt+1–6 jumps to a category · type to search · Enter selects · Esc closes",
       "historyItem": "History Item",
@@ -317,6 +382,8 @@
       "keepTyping": "Keep typing…",
       "label": "Import from Order ({{count}} pending) — Optional",
       "noMatch": "No pending orders match.",
+      "orderMeta": "{{authority}} · {{source}} · {{priority}}",
+      "priorityRoutine": "Routine",
       "search": "Search",
       "searchPlaceholder": "Search by Order #, MRN, Patient Name, DOB ({{format}}), or Facility Code…",
       "typeAtLeast2": "Type at least 2 characters to search pending orders."
@@ -640,6 +707,7 @@
     "appliedElsewhere": "Applied elsewhere",
     "appliedNTimes": "Applied {{count}}× — click to add another instance",
     "appliedTimesLabel": "Applied ×{{count}}",
+    "applyAgainLabel": "{{applied}}: apply again",
     "applyCode": "Apply code",
     "applyingTo": "Applying to:",
     "assistModeNote": "Assist mode: this records a CPT code for RVU/productivity tracking only — your LIS owns real billing for this case.",
@@ -1008,6 +1076,83 @@
       "question": "Looking for practice-wide AI narrative performance?"
     }
   },
+  "aiInstructionsSection": {
+    "approved": "Approved: the check now uses it",
+    "disciplineAria": "Discipline",
+    "disciplines": {
+      "autopsy": "Autopsy",
+      "cytology": "Cytology",
+      "surgical": "Surgical"
+    },
+    "edit": {
+      "count": "{{length}} of {{max}} characters",
+      "description": "Saving makes a new version that waits for approval. Only the instructions can change here: the case details and the answer format the check reads stay fixed.",
+      "label": "AI instructions",
+      "save": "Save for approval",
+      "title": "Edit"
+    },
+    "history": {
+      "approved": "Approved by {{name}}, {{date}}.",
+      "line": "Version {{version}} ({{status}}): edited by {{editor}}, {{edited}}.",
+      "rejected": "Rejected by {{name}}, {{date}}: {{reason}}",
+      "title": "History"
+    },
+    "inUse": {
+      "approvedBy": "Approved by {{name}} on {{date}}.",
+      "builtIn": "PathScribe's own instructions, approved with the release.",
+      "title": "In use: version {{version}}"
+    },
+    "notPermitted": "Your roles don't include viewing the AI instructions.",
+    "pending": {
+      "approve": "Approve",
+      "editedBy": "Edited by {{name}} on {{date}}. The check doesn't use it until it is approved.",
+      "reasonLabel": "Reason for rejecting",
+      "reasonPlaceholder": "Reason (needed to reject)",
+      "reject": "Reject",
+      "title": "Awaiting approval: version {{version}}",
+      "youEdited": "You edited this text, so someone else must approve it."
+    },
+    "pendingBadge": "Awaiting approval",
+    "problems": {
+      "CONFIG_NOT_PERMITTED": "Not saved: your roles don't allow this.",
+      "SELF_APPROVAL": "You edited this text, so you can't approve it.",
+      "empty": "Enter the instructions first.",
+      "error": "Something went wrong. Try again.",
+      "notFound": "That version no longer exists. Reload the page.",
+      "notPending": "That version has already been decided.",
+      "reasonRequired": "Give a reason for rejecting it.",
+      "tooLong": "The instructions are too long.",
+      "unchanged": "Nothing has changed from the current version."
+    },
+    "rejected": "Rejected",
+    "saved": "Saved for approval",
+    "status": {
+      "approved": "in use",
+      "pending": "awaiting approval",
+      "rejected": "rejected",
+      "superseded": "replaced",
+      "withdrawn": "replaced before approval"
+    },
+    "subtitle": "What the clinical mismatch check tells the AI counts as a mismatch, for each discipline. The check uses only approved text.",
+    "test": {
+      "description": "Runs the check on this sample case with the text in the editor, before it is saved or approved. The sample is invented; change it as you like. Nothing is recorded on a case.",
+      "diagnosis": "Diagnosis",
+      "findings": "Findings",
+      "history": "Clinical history",
+      "indication": "Clinical indication",
+      "malignant": "Pathologist-confirmed malignant finding",
+      "result": {
+        "mismatch": "Mismatch: {{kind}} ({{confidence}}% confidence). {{explanation}}",
+        "none": "No mismatch found.",
+        "notAllowed": "AI is not available for this jurisdiction: the AI service in use isn't allowed by the AI vendor policy.",
+        "unavailable": "The AI could not be reached: {{message}}"
+      },
+      "run": "Test this text",
+      "running": "Testing…",
+      "title": "Test"
+    },
+    "title": "AI Instructions"
+  },
   "aiNarrativeReviewModal": {
     "discardButton": "Discard",
     "eyebrow": "AI-Generated Narrative",
@@ -1017,6 +1162,7 @@
     "title": "Review and edit before inserting into the report"
   },
   "aiProviderSettings": {
+    "activeSummary": "{{provider}} · {{model}}",
     "adminHeading": "AI Provider — Organisation Settings",
     "adminSubtitle": "Sets the AI provider for all users in this organisation. API keys are managed server-side and never entered here.",
     "awsRegionLabel": "AWS Region",
@@ -1036,9 +1182,31 @@
     "developmentDemoGroup": "Development & Demo",
     "errorPrefix": "Error: {{message}}",
     "failedButton": "Failed",
+    "hostingRegionHint": "Where this service runs, as the vendor names it. Checked against each jurisdiction's AI vendor policy and recorded with every AI call.",
+    "hostingRegionLabel": "Hosting region",
     "modelLabel": "Model",
+    "modelOption": {
+      "custom": "Custom model (set in endpoint config)",
+      "fastest": "{{model}} (fastest)",
+      "highestAccuracy": "{{model}} (highest accuracy)",
+      "mockDemo": "{{model}} (instant, no API cost — demo only)",
+      "recommended": "{{model}} (recommended)",
+      "viaBedrock": "{{model}} via Bedrock"
+    },
+    "policyConflict": "The AI vendor policy doesn't allow this service or region for: {{places}}. AI features there will be unavailable if you save it.",
     "productionProvidersGroup": "Production Providers",
     "providerLabel": "AI Provider",
+    "providerName": {
+      "custom": "Self-hosted / Custom endpoint",
+      "mock": "Mock — Demo Mode"
+    },
+    "providerNote": {
+      "azure": "Requires Azure deployment name and endpoint. Key managed server-side.",
+      "bedrock": "Uses IAM role credentials on the server. No API key needed here.",
+      "custom": "Must be an OpenAI-compatible endpoint. Auth managed server-side.",
+      "mock": "No API connection. Returns instant deterministic responses. Use for demos and offline testing only.",
+      "serverKey": "API key managed server-side. Contact PathScribe support to rotate keys."
+    },
     "saveOrgConfigButton": "Save Org Config",
     "saveOverrideButton": "Save Override",
     "savedButton": "Saved",
@@ -1095,6 +1263,49 @@
     "resetToDefaults": "Reset to Defaults",
     "subtitle": "Configure how the AI assists with gross and microscopic reporting.",
     "title": "AI Behavior"
+  },
+  "aiVendorPolicySection": {
+    "addFacility": "Add a facility rule",
+    "allServices": "Every service",
+    "allowAll": "Allow every service",
+    "anyRegion": "Any region",
+    "chooseFacility": "Choose a facility…",
+    "columns": {
+      "actions": "Actions",
+      "allowed": "Allowed",
+      "inUse": "Service in use",
+      "where": "Jurisdiction or facility"
+    },
+    "description": "Which AI services, and hosting regions, each jurisdiction allows, optionally narrowed for one facility. Every AI call is checked against the jurisdiction of the work; when the service isn't allowed, the feature carries on without AI and says so. No rule: every service is allowed.",
+    "edit": "Edit",
+    "editing": "Rule for {{where}}",
+    "facilityNarrows": "A facility rule narrows its jurisdiction's rule: a call must be allowed by both.",
+    "facilityScope": "{{facility}} ({{jurisdiction}})",
+    "inUse": "In use: {{service}}, model {{model}}, region {{region}}.",
+    "noRule": "No rule: every service",
+    "problems": {
+      "CONFIG_NOT_PERMITTED": "Not saved: your roles don't allow this.",
+      "NOT_FOUND": "That rule no longer exists.",
+      "blankRegion": "A region is blank.",
+      "error": "Something went wrong. Try again.",
+      "noServices": "Allow at least one service, or remove the rule.",
+      "regionForDisallowedService": "Regions are set for a service that isn't allowed.",
+      "unknownService": "Unknown AI service."
+    },
+    "regionNotRecorded": "not recorded",
+    "regionsFor": "{{service}}: {{regions}}",
+    "regionsHint": "Regions as the vendor names them, separated by commas (e.g. eu-west-1, uksouth). Leave empty to allow any region. A call whose region isn't recorded is refused where regions are limited.",
+    "regionsLabel": "Allowed regions for {{service}}",
+    "remove": "Remove rule",
+    "save": "Save rule",
+    "saved": "Saved",
+    "status": {
+      "allowed": "Allowed",
+      "regionNotAllowed": "Not allowed: region",
+      "regionUnknown": "Not allowed: region not recorded",
+      "serviceNotAllowed": "Not allowed: service"
+    },
+    "title": "AI vendor policy"
   },
   "allProtocolsSection": {
     "openEditorButton": "Open Editor",
@@ -1295,11 +1506,23 @@
       "bodyPlaceholder": "Message body…",
       "cancelButton": "Cancel",
       "closeButton": "Close",
-      "deliveredTo": "Delivered to <strong>{{to}}</strong> via NHSMail secure relay.",
-      "encryptedNotice": "End-to-end encrypted · NHS DSPT compliant · Audit logged",
-      "eyebrow": "🔒 NHSMail · Secure External Email",
+      "containsPatientData": "Contains patient or case details",
+      "deliveredTo": "Delivered to <strong>{{to}}</strong> through {{gateway}}.",
+      "encryptedNotice": "Encrypted in transit · Audit logged",
+      "eyebrow": "🔒 {{gateway}} · Secure message",
+      "eyebrowNoGateway": "🔒 Secure message",
       "fromLabel": "From",
-      "securityNotice": "This message will be sent via NHSMail secure relay · End-to-end encrypted · DSPT compliant",
+      "fromValue": "{{name}} ({{address}})",
+      "gatewayLabel": "Send through",
+      "gatewayOption": "{{gateway}} ({{agreement}} on file)",
+      "gatewayOptionNoAgreement": "{{gateway}} (no {{agreement}}: no patient details)",
+      "problems": {
+        "gatewayNotAvailable": "That gateway is no longer available to your lab. Choose another.",
+        "noAgreementForPatientData": "{{gateway}} has no {{agreement}} in force, so it can’t carry patient details. Choose another gateway, or take the patient details out and untick the box.",
+        "noGatewayConfigured": "Your lab has no secure messaging gateway set up. An administrator can add one in the lab’s facility settings, under Secure messaging."
+      },
+      "securityNotice": "Sent through {{gateway}} · {{agreement}} on file ({{reference}}) · Audit logged",
+      "securityNoticeNoAgreement": "No {{agreement}} on file for {{gateway}}: leave patient details out of this message.",
       "sendButton": "Send Securely",
       "sendingButton": "Sending…",
       "sentTitle": "Message sent securely",
@@ -1307,7 +1530,9 @@
       "subjectPlaceholder": "Subject…",
       "title": "New Secure Message",
       "toLabel": "To",
-      "toPlaceholder": "recipient@nhs.net or external email…"
+      "toPlaceholder": "The recipient’s secure email address…",
+      "toRecipientIdLabel": "To (recipient ID)",
+      "toRecipientIdPlaceholder": "The recipient’s ID in the network’s directory…"
     },
     "thread": {
       "baseTemplateLabel": " · Base: {{name}}",
@@ -1590,6 +1815,7 @@
       "review": "Review",
       "scrollAria": "Interface exception entries, scrollable table",
       "searchPlaceholder": "Search event type, reason…",
+      "subTabEngines": "Engines",
       "subTabExceptions": "Interface Exceptions",
       "subTabOutboundDispatches": "Outbound Dispatches",
       "subTabOutboundDlq": "Outbound Interface DLQ",
@@ -1663,11 +1889,13 @@
     },
     "tabs": {
       "audit": "📋 Audit Log",
+      "consultLinks": "🔗 Consult links",
       "criticalAlerts": "🚨 Critical Alerts",
       "errors": "⚠️ Error Log",
       "financial": "🧾 Financial",
       "interfaces": "🔌 Interface Log",
-      "quality": "✓ Quality Assurance"
+      "quality": "✓ Quality Assurance",
+      "serverJobs": "Server jobs"
     },
     "typeLabels": {
       "ai": "AI",
@@ -1706,6 +1934,16 @@
   "autopsyBodyRelease": {
     "bannerSummary": "PAD is signed and no ancillary hold is active — the body may now be released.",
     "bannerTitle": "Autopsy — Ready for Body Release",
+    "blockedReasons": {
+      "ancillary_hold_active": "Body release is blocked while an ancillary hold is active.",
+      "pad_not_signed": "Body release requires a signed Preliminary Anatomical Diagnosis (PAD). The final report is not required."
+    },
+    "errors": {
+      "caseNotFound": "This case could not be found.",
+      "conflict": "The case changed while the release was being saved. Reopen it and try again.",
+      "noAutopsyRecord": "This case has no autopsy record.",
+      "specimenNotFound": "The body specimen could not be found on this case."
+    },
     "genericError": "Something went wrong. Please try again.",
     "notPermitted": "You don't have permission to release a body.",
     "releasedByLabel": "Released By",
@@ -1912,6 +2150,8 @@
     "filterTileTitleActive": "Showing: {{node}} — click to reset",
     "itemCount_one": "{{count}} item",
     "itemCount_other": "{{count}} items",
+    "labelReprintTile": "Label reprint",
+    "labelReprintTitle": "Reprint labels for many cases at once",
     "loading": "Loading batches…",
     "lookupPlaceholder": "Scan or enter a master batch barcode…",
     "newContainer": "New Container",
@@ -1953,6 +2193,50 @@
     },
     "wsiScanTile": "Slide scanning",
     "wsiScanTitle": "Load slides onto a slide scanner, send the batch, unload it"
+  },
+  "benchContributions": {
+    "accessioning": {
+      "dailyChartTitle": "Daily accessioning",
+      "noActivity": "No accessioning activity in this window.",
+      "perActiveHourLabel": "Per active hour",
+      "title": "Accessioning Rate",
+      "totalLabel": "Cases accessioned"
+    },
+    "molecularQc": {
+      "controlsEvaluatedLabel": "Controls evaluated",
+      "noActivity": "No molecular batches in this window.",
+      "passRateLabel": "Pass rate",
+      "rerunRateLabel": "Rerun rate",
+      "title": "Molecular QC",
+      "totalBatchesLabel": "Batches"
+    },
+    "queueAging": {
+      "meanLabel": "Average age",
+      "noOpenBatches": "No open batches at this node.",
+      "oldestLabel": "Oldest open batch",
+      "openBatchesLabel": "Open batches",
+      "title": "Queue Aging — All Techs"
+    },
+    "scrollRegionLabel": "Bench contributions, scrollable",
+    "stageTat": {
+      "accessioningStage": "Accessioning",
+      "cytologyTitle": "Cytology",
+      "meanLabel": "Mean",
+      "medianLabel": "Median",
+      "noSamples": "No specimens passed through both stages in this window.",
+      "sampleCount_one": "{{count}} sample",
+      "sampleCount_other": "{{count}} samples",
+      "surgicalTitle": "Surgical",
+      "title": "Stage-to-Stage TAT"
+    },
+    "subtitle": "Your own real accessioning, batch, and molecular QC activity — last {{days}} days",
+    "throughput": {
+      "itemsAddedLabel": "Items added",
+      "noActivity": "No batch activity in this window.",
+      "title": "My Batch Throughput"
+    },
+    "title": "Bench Contributions",
+    "windowLabel": "Last {{days}} days"
   },
   "billingCorrection": {
     "apply": "Save correction",
@@ -2160,6 +2444,7 @@
     "collapseFilters": "Collapse filters",
     "dateFrom": "From",
     "dateTo": "To",
+    "deleteQueryAria": "Delete saved query {{name}}",
     "expandFilters": "Expand filters",
     "exportCsv": "Export CSV",
     "filtersCount_one": "{{count}} filter",
@@ -2473,6 +2758,8 @@
       "consultTitle": "External consult / second-opinion access (demo/pilot only — not real security)",
       "delegateLabel": "Delegate",
       "delegateTitle": "Delegate case",
+      "flagForMdtLabel": "Tumor Board",
+      "flagForMdtTitle": "Flag for Tumor Board / MDT",
       "flagsLabel": "Flags",
       "historyLabel": "History",
       "reviewLabel": "Req. Review",
@@ -2708,6 +2995,10 @@
         "description": "Download Audit Log → Billing Log as CSV. It contains patient names and identifiers. The export is recorded in the audit log.",
         "label": "Export the Billing Log"
       },
+      "auditConsultLinksView": {
+        "description": "Audit Log → Consult links: every link issued to an outside consultant, on every case.",
+        "label": "See outside consult links"
+      },
       "auditErrorLogExport": {
         "description": "Download Audit Log → Error Log as CSV. The export is recorded in the audit log.",
         "label": "Export the Error Log"
@@ -2756,6 +3047,10 @@
         "description": "Record how and when retained organs or tissue were disposed of, with a note.",
         "label": "Record organ/tissue retention disposal"
       },
+      "autopsyRetentionTierRecord": {
+        "description": "Choose an autopsy case's organ or tissue retention tier and its reason, within what the consent on file permits.",
+        "label": "Record the organ/tissue retention tier"
+      },
       "autopsyToxicologyCancel": {
         "description": "Cancel a postmortem toxicology order that is still pending, with a reason, and clear the hold it started if it's still open.",
         "label": "Cancel a toxicology order"
@@ -2792,9 +3087,21 @@
         "description": "Approve, reject, hold and release charges waiting for billing approval, for the labs the person is assigned to. Nobody approves a charge they drafted.",
         "label": "Approve charges"
       },
+      "caseClinicalHistoryRecord": {
+        "description": "Add or reconcile a case’s coded clinical history after accession (grossing, report review, sign-out), until the case is signed out. Pathologist, Fellow, Resident and PA by default.",
+        "label": "Record clinical history after accession"
+      },
       "caseClinicalMismatchRecord": {
-        "description": "Decide a suggested mismatch between the clinical picture and the findings: not a mismatch, resolved, or unresolved (which recommends a CAPA).",
+        "description": "Decide a suggested mismatch between the clinical picture and the findings: Resolved, Unresolved (which recommends a CAPA) or, for a low-risk one, Deferred to secondary review.",
         "label": "Decide a clinical-pathologic mismatch"
+      },
+      "caseConsultLinkIssue": {
+        "description": "Give an outside consultant a time-limited, view-only link to a case or chosen slides. Recorded in the case's audit trail.",
+        "label": "Issue an outside consult link"
+      },
+      "caseConsultLinkRevoke": {
+        "description": "Switch off an outside consultant’s link before it expires. Recorded in the case’s audit trail.",
+        "label": "Revoke an outside consult link"
       },
       "caseDecantDelete": {
         "description": "Remove a decant from a case’s material on the Material tab. Billing is recalculated. Audited.",
@@ -2823,6 +3130,14 @@
       "caseHoldRelease": {
         "description": "Release a case from hold, with a note, so work can continue.",
         "label": "Release a case hold"
+      },
+      "caseInkingGateOverride": {
+        "description": "Administrative Override of a Severity 3 (compliance-critical) margin-ink issue blocking sign-out, with a mandatory reason. Audited.",
+        "label": "Override the inking sign-out gate"
+      },
+      "caseMarginExceptionResolve": {
+        "description": "Manually tag the real distance for a margin-distance answer the extraction layer couldn't confidently read, or dismiss it with no numeric tag.",
+        "label": "Resolve a margin-distance exception"
       },
       "caseOutsideConsultAssess": {
         "description": "Record whether an outside consultant's opinion agrees with the case, differs slightly, or is a major discordance. A major discordance on a released report recommends a CAPA.",
@@ -2856,6 +3171,22 @@
         "description": "Add or remove people on a case's team (Case Team), including who its primary pathologist is. A cytotechnologist can't be put in a pathologist slot.",
         "label": "Change a case's team"
       },
+      "caseTumorBoardDismiss": {
+        "description": "Dismiss an auto-generated Tumor Board/MDT flag with a reason, overriding what the rules engine raised. A clinical judgment call, never a queue-management action.",
+        "label": "Dismiss a Tumor Board flag"
+      },
+      "caseTumorBoardFlag": {
+        "description": "Nominate a case for a Tumor Board/MDT's agenda.",
+        "label": "Flag a case for Tumor Board"
+      },
+      "caseTumorBoardManage": {
+        "description": "Manage a Tumor Board/MDT listing's status: mark it Presented or Deferred, or cancel a manual nomination. Scheduling the meeting itself (board, date/time, presenter) is the separate Schedule a Tumor Board meeting permission below.",
+        "label": "Manage the Tumor Board queue"
+      },
+      "caseTumorBoardSchedule": {
+        "description": "Schedule a Tumor Board/MDT meeting in advance: set which board, the meeting date and time, and who presents — without the broader queue-management actions above. The permission a scheduling/administrative role needs.",
+        "label": "Schedule a Tumor Board meeting"
+      },
       "configAbnormalTriggersManage": {
         "description": "Choose what counts as an abnormal result, and turn detection on or off. Audited.",
         "label": "Manage abnormal result rules"
@@ -2876,9 +3207,25 @@
         "description": "Set the model clinical suggestions come from. Audited.",
         "label": "Choose the default AI model"
       },
+      "configAiPromptApprove": {
+        "description": "Approve or reject an edited version of the AI instructions; nobody can approve text they edited. Lab Director by default. Can't be held together with changing the mismatch rules (separation of duties).",
+        "label": "Approve the AI instructions"
+      },
+      "configAiPromptEdit": {
+        "description": "Change the instructions the mismatch check gives the AI. An edit is a new version that waits for approval; the check keeps using the approved one. No built-in role has it: grant it to your own role.",
+        "label": "Edit the AI instructions"
+      },
+      "configAiPromptView": {
+        "description": "Read the instructions the clinical mismatch check gives the AI, their versions and who approved them. Lab Director and QA Reviewer by default.",
+        "label": "View the AI instructions"
+      },
       "configAiProviderManage": {
         "description": "Choose the AI service the lab uses and the default reporting mode. Audited.",
         "label": "Manage the AI service"
+      },
+      "configAiVendorPolicyManage": {
+        "description": "Set which AI services and hosting regions each jurisdiction, or facility, allows. Audited.",
+        "label": "Manage the AI vendor policy"
       },
       "configAssetLocationsManage": {
         "description": "Add and edit where material and bodies are kept. Audited.",
@@ -2943,6 +3290,14 @@
       "configCassetteRoutingManage": {
         "description": "Change how cassettes are printed and routed. Audited.",
         "label": "Manage cassette routing"
+      },
+      "configClinicalMismatchRulesManage": {
+        "description": "Set, per kind of mismatch and specimen type, the confidence at which the mismatch check alerts and acts, and whether it holds up sign-out (Block), warns or only logs to QA. No built-in role has it: grant it to your own role.",
+        "label": "Change the clinical mismatch rules"
+      },
+      "configClinicalMismatchRulesView": {
+        "description": "Read the mismatch rules, so a pathologist can see why a case was held. Pathologist, QA Reviewer and Lab Director by default.",
+        "label": "View the clinical mismatch rules"
       },
       "configConcordanceReviewManage": {
         "description": "Set the lab's concordance review default. Audited.",
@@ -3067,6 +3422,10 @@
       "configGrossingRoutesManage": {
         "description": "Choose where specimens are grossed when the usual route doesn't apply. Audited.",
         "label": "Manage grossing route overrides"
+      },
+      "configInkColorManage": {
+        "description": "Add, edit and deactivate the margin ink colours used at grossing and validated at sign-out. Audited.",
+        "label": "Manage the ink colour dictionary"
       },
       "configInkingValidationModeManage": {
         "description": "Choose whether a site warns (default) or hard-blocks at sign-out when a margin isn't examined or inked. Audited.",
@@ -3216,9 +3575,21 @@
         "description": "Choose which cervical screening registry each facility reports to, and set each registry's code mappings and what to hold rather than send. Audited.",
         "label": "Manage screening registry reporting"
       },
+      "configSecureMessagingManage": {
+        "description": "Choose the lab’s secure messaging gateways and record each one’s BAA or data processing agreement. Audited.",
+        "label": "Manage secure messaging gateways"
+      },
       "configSessionSecurityManage": {
         "description": "Set the idle sign-out time for everyone. Audited.",
         "label": "Manage session timeout"
+      },
+      "configSiteAgentConfigManage": {
+        "description": "Add, change or remove the printers and file shares a site's agent uses. The hospital's own allow-list on the agent's machine still decides what it may reach. Audited.",
+        "label": "Manage site agent printers and shares"
+      },
+      "configSiteAgentsEnroll": {
+        "description": "Make a one-time enrolment code for installing a site agent, and revoke an agent (cut off at once). At the site's facility. Audited.",
+        "label": "Enrol and revoke site agents"
       },
       "configSpecimenDictionaryManage": {
         "description": "Add and edit specimen types and their defaults. Audited.",
@@ -3268,6 +3639,10 @@
         "description": "Choose which report template a case gets. Audited.",
         "label": "Manage template routing rules"
       },
+      "configTumorBoardRulesManage": {
+        "description": "Set the margin-distance thresholds that auto-flag a case for Tumor Board/MDT, for the enterprise and each facility's own override. Audited.",
+        "label": "Manage Tumor Board auto-flagging rules"
+      },
       "configValidationStudiesManage": {
         "description": "Create, edit, submit, activate and close method validation studies. Audited.",
         "label": "Manage validation studies"
@@ -3312,6 +3687,10 @@
         "description": "Take a positive GYN cytology case from the Worklist's Cytology Review tile. You become the case's pathologist; the cytotechnologist stays on the case.",
         "label": "Take a positive GYN cytology case for review"
       },
+      "cytologyPreliminaryRelease": {
+        "description": "Send one specimen's result as an urgent preliminary report before the case report. No role starts with it; grant it to the roles your laboratory allows.",
+        "label": "Send an urgent cytology preliminary report"
+      },
       "cytologyQcFlagRemove": {
         "description": "Remove a random or high-risk QC flag from a cytology specimen. While flagged, a cytotechnologist can't sign it out without the rescreen. Each removal is audited.",
         "label": "Remove a cytology QC flag"
@@ -3348,6 +3727,10 @@
         "description": "Mark a note on someone's cytology review as requiring revision. A cytotechnologist can't sign the specimen out until the author revises or a pathologist records their own review.",
         "label": "Request a cytology review revision"
       },
+      "cytologyScreeningHoursSignOff": {
+        "description": "Confirm, or correct with a reason, your own screening hours for a day. The confirmed hours are your screening hours record, counted in the supervisor's workload report; a large correction is flagged for your supervisor.",
+        "label": "Sign off your screening hours"
+      },
       "equipmentMaintenanceRecord": {
         "description": "Record maintenance, calibration and malfunctions in an instrument's service log (Batch Management → Equipment log). Audited.",
         "label": "Record equipment maintenance"
@@ -3355,6 +3738,26 @@
       "grossingMarginInkRecord": {
         "description": "Record ink applied to a surgical margin during grossing, and mark the margin examined.",
         "label": "Record a margin ink application"
+      },
+      "interfaceEngineStatusView": {
+        "description": "See each hospital's interface engine in Audit Log → Interfaces → Engines: its listeners and channels, what is waiting and the dead letters. No patient data.",
+        "label": "View interface engines"
+      },
+      "interfaceOutboundResend": {
+        "description": "Send, resend or simulate a failure for a failed or waiting outbound interface message, in any queue. Audited.",
+        "label": "Resend interface messages"
+      },
+      "jobsServerJobRequeue": {
+        "description": "Send a server job that failed for good again: a delivery, a held release, a charge, an export or an event. Interface and print jobs are resent from Interfaces with their own permissions. Audited.",
+        "label": "Requeue server jobs"
+      },
+      "jobsServerJobView": {
+        "description": "See the PathScribe server's background jobs: what is waiting or running, the recurring jobs, and the jobs that failed for good (System Logs → Server jobs). No patient data is shown beyond the case number.",
+        "label": "View server jobs"
+      },
+      "labelBatchReprint": {
+        "description": "Reprint requisition, container and cassette labels for many cases at once. Each label is audited.",
+        "label": "Batch label reprint"
       },
       "messageSecureEmailSend": {
         "description": "Send a secure email to an address outside the organisation.",
@@ -3399,6 +3802,22 @@
       "platformSigningRulesManage": {
         "description": "Set the national signing rules for each country. ForMedrixAI support only. Audited.",
         "label": "Manage country signing rules"
+      },
+      "printJobCancel": {
+        "description": "Cancel a print job in the Print Queue so it is never printed. Recorded with who cancelled it.",
+        "label": "Cancel a print job"
+      },
+      "printJobHold": {
+        "description": "Put a queued or failed print job on hold in Audit Log → Interfaces → Print Queue, or release it. Recorded with who did it.",
+        "label": "Hold or release a print job"
+      },
+      "printJobRedirect": {
+        "description": "Send a network print job to a different printer from the Print Queue. Recorded with the new printer and who chose it.",
+        "label": "Redirect a print job"
+      },
+      "printJobRetry": {
+        "description": "Resend a failed print job from the Print Queue, using the report as it was first printed.",
+        "label": "Retry a print job"
       },
       "qaAccessRequestResponseExport": {
         "description": "Download patient access requests and their response times as CSV.",
@@ -3504,6 +3923,10 @@
         "description": "Send the synthetic test cases (fictitious patients only) to a registry's test system, on a validation instance only. Audited.",
         "label": "Run the registry test suite"
       },
+      "reportCaseReportPrint": {
+        "description": "Print or reprint a case report, or open a stored version's PDF. Every print is recorded in the audit log.",
+        "label": "Print a case report"
+      },
       "reportChangeHistoryExport": {
         "description": "Download a case's report change history (who changed which field, when, and at which workstation) as CSV.",
         "label": "Export report change history"
@@ -3511,6 +3934,10 @@
       "reportOrganMapInsert": {
         "description": "Place the anatomical map, drawn from the synoptic answers, in the report, or take it out, before sign-out. Audited.",
         "label": "Insert the organ map into a report"
+      },
+      "reportRestrictedCasePrint": {
+        "description": "Print, reprint or open the PDF of a case carrying a flag that restricts printing (VIP, confidential consultation). Needs \"Print a case report\" as well.",
+        "label": "Print a restricted case"
       },
       "retentionDisposalReportExport": {
         "description": "Download the waste-tracking report of disposed material, which lists case accessions.",
@@ -3536,6 +3963,10 @@
         "description": "See the Batch Management screen and its tile in the Pathology Workspace.",
         "label": "Open Batch Management"
       },
+      "screenBenchContributionsOpen": {
+        "description": "See the Bench Contributions screen and its tile on the Home page.",
+        "label": "Open Bench Contributions"
+      },
       "screenConfigurationOpen": {
         "description": "See the Configuration screen and its tile on the Home page.",
         "label": "Open Configuration"
@@ -3555,6 +3986,10 @@
       "screenIntraopQueueOpen": {
         "description": "See the Intraop Queue screen and its tile on the Home page.",
         "label": "Open Intraop Queue"
+      },
+      "screenMarginExceptionReviewOpen": {
+        "description": "See the Margin Exception Review screen and its tile in Pathology Workspace.",
+        "label": "Open Margin Exception Review"
       },
       "screenMicrotomyOpen": {
         "description": "See the Microtomy Workspace screen and its tile in Pathology Workspace.",
@@ -3587,6 +4022,10 @@
       "screenSurgicalQaWorklistOpen": {
         "description": "See the Surgical Post-Sign-Out QA in the Worklist.",
         "label": "Open Surgical Post-Sign-Out QA"
+      },
+      "screenTumorBoardOpen": {
+        "description": "See the Tumor Board screen and its tile on the Home page.",
+        "label": "Open Tumor Board"
       },
       "screenWorklistOpen": {
         "description": "See the Worklist screen and its tile on the Home page.",
@@ -3628,6 +4067,22 @@
       "noActiveSession": "No active session.",
       "notAParticipant": "Only the assigned Primary/Attending, or an administrative supervisor, may finalize this case."
     }
+  },
+  "caseClinicalHistory": {
+    "add": "Add clinical history",
+    "caseTarget": "The case",
+    "deferred": "Mismatch check deferred: no clinical information provided. Add the clinical history when you have it.",
+    "edit": "Edit clinical history",
+    "errors": {
+      "conflict": "The case changed while saving; try again.",
+      "notFound": "The case could not be found.",
+      "notPermitted": "You don’t have permission to record clinical history.",
+      "signedOut": "The case is signed out; a change now needs an amendment."
+    },
+    "save": "Save clinical history",
+    "summaryNone": "Clinical history: clinical indication only, no coded entries.",
+    "summary_one": "Clinical history: {{count}} coded entry.",
+    "summary_other": "Clinical history: {{count}} coded entries."
   },
   "caseCommentModal": {
     "commentsOnCase_one": "{{count}} comment on this case",
@@ -4433,34 +4888,111 @@
     "verify": "Verify"
   },
   "clinicalMismatch": {
-    "decisions": {
-      "not-a-mismatch": "No: the findings fit the clinical picture",
-      "resolved": "Yes, and it is resolved (say how)",
-      "unresolved": "Yes, and it remains unexplained (recommends a CAPA)"
+    "alert": {
+      "badge": "AI suggests possible mismatch",
+      "hide": "Hide",
+      "holdsSignOut": "Sign-out will ask for a decision; you can decide now.",
+      "lowRisk": "Sign-out won’t be held.",
+      "review": "Review",
+      "title": "{{kind}} ({{confidence}}% confidence)."
     },
+    "backToReport": "Back to the report",
     "errors": {
       "DECISION_REQUIRED": "Choose an answer.",
-      "NOTE_REQUIRED": "Say what was found.",
+      "DEFER_HIGH_RISK": "A high-risk mismatch can’t be deferred: choose Resolved or Unresolved.",
       "NOT_PERMITTED": "You don’t have permission to record this.",
+      "UNKNOWN_REASON": "Unknown reason.",
       "failed": "The decision could not be saved."
     },
+    "highRiskIntro": "This mismatch is high risk under your laboratory’s rules, so sign-out waits for a decision. Either choice lets sign-out go ahead.",
     "indication": "Clinical indication: {{indication}}",
-    "intro": "A suggestion, not a finding: you decide. Only a mismatch left unresolved recommends a CAPA to the QA lead.",
     "kinds": {
+      "cause-of-death": "Cause of death or a major diagnosis differs from the clinical one",
       "expected-malignancy-absent": "Expected malignancy not found",
       "other": "Findings contradict the clinical picture",
       "site-or-organ": "Site or organ does not match the order",
       "unexpected-malignancy": "Unexpected malignancy"
     },
-    "noteLabel": "What was found",
+    "noteLabel": "Note (optional)",
     "notePlaceholder": "e.g. the clinician confirmed the history was out of date",
-    "question": "Is this a real mismatch?",
-    "recordButton": "Record decision",
+    "previousDecision": "The report changed since this was last looked at (recorded then: {{resolution}}). The new result is worse, so it is shown again.",
+    "reasonLabel": "Reason (optional)",
+    "reasons": {
+      "clinical-context-reviewed": "Clinical context reviewed",
+      "expected-variation": "Expected variation",
+      "preop-nonspecific": "Pre-op diagnosis non-specific"
+    },
+    "resolutionHints": {
+      "DEFERRED": "Defer: the case goes to the secondary review queue.",
+      "RESOLVED": "Resolved: the mismatch is explained.",
+      "UNRESOLVED": "Unresolved: sign-out can go ahead, and a corrective action is recommended to QA."
+    },
+    "resolutionNames": {
+      "DEFERRED": "Deferred",
+      "LOGGED": "Logged for QA",
+      "RESOLVED": "Resolved",
+      "UNRESOLVED": "Unresolved"
+    },
+    "resolutions": {
+      "DEFERRED": "Defer to secondary review",
+      "RESOLVED": "Resolved",
+      "UNRESOLVED": "Unresolved"
+    },
     "source": {
       "ai": "Suggested by the AI evaluation ({{confidence}}% confidence)",
-      "rule": "Suggested by a rule-based check (the AI was unavailable; {{confidence}}% confidence)"
+      "rule": "Suggested by a rule-based check (the AI was unavailable; {{confidence}}% confidence)",
+      "ruleJurisdiction": "Suggested by a rule-based check (AI is not available for this jurisdiction; {{confidence}}% confidence)"
     },
-    "title": "Clinical-pathologic correlation"
+    "title": "Clinical-pathologic correlation",
+    "why": {
+      "holds": "Holds sign-out: your laboratory’s rule blocks this kind of mismatch at {{threshold}}% confidence or more.",
+      "lowRisk": "Low risk under your laboratory’s rules: sign-out is not held. Left undecided, it is logged for QA at sign-out."
+    }
+  },
+  "clinicalMismatchRulesSection": {
+    "actionAria": "Action for {{kind}}, {{specimen}}",
+    "actionAtAria": "Action threshold for {{kind}}, {{specimen}}",
+    "actions": {
+      "block": "Block: hold sign-out for a decision",
+      "log": "Log: QA queue only",
+      "warn": "Warn: alert only"
+    },
+    "add": {
+      "button": "Add rule",
+      "chooseSpecimen": "Choose a specimen type",
+      "description": "Tune a kind of mismatch for one specimen type. It starts from the rule for all specimen types.",
+      "exists": "That rule already exists; change it in the table.",
+      "title": "A rule for one specimen type"
+    },
+    "allSpecimenTypes": "All specimen types",
+    "columns": {
+      "action": "Action",
+      "actionAt": "Action at",
+      "display": "Alert from",
+      "kind": "Kind of mismatch",
+      "remove": "Remove",
+      "specimenType": "Specimen type"
+    },
+    "displayAria": "Alert threshold for {{kind}}, {{specimen}}",
+    "fromDisplay": "From alert",
+    "howItWorks": "Below the display threshold there is no alert. From the display threshold up to the action threshold, the report shows an alert and the case is logged for QA. At or above the action threshold, the action applies: Block holds sign-out until the pathologist records a decision; Warn and Log never hold it. A rule for one specimen type takes precedence over the rule for all specimen types.",
+    "notPermitted": "You don’t have permission to view these rules.",
+    "percent": "%",
+    "problems": {
+      "CONFIG_NOT_PERMITTED": "You don’t have permission to change these rules.",
+      "NOT_FOUND": "This rule no longer exists.",
+      "actionBelowDisplay": "The action threshold can’t be below the alert threshold.",
+      "cannotRemoveDefault": "The rule for all specimen types can be changed but not removed.",
+      "duplicate": "There is already a rule for this kind of mismatch and specimen type.",
+      "thresholdRange": "Thresholds are whole percentages from 0 to 100.",
+      "unknownAction": "Unknown action.",
+      "unknownCategory": "Unknown kind of mismatch."
+    },
+    "remove": "Remove",
+    "removeAria": "Remove the rule for {{kind}}, {{specimen}}",
+    "saved": "Saved",
+    "subtitle": "When the check comparing the clinical expectation with the pathology findings alerts, and which mismatches hold up sign-out.",
+    "title": "Clinical Mismatch Rules"
   },
   "codeImportSection": {
     "anyCountry": "Any country",
@@ -4644,13 +5176,28 @@
     "done": "Done",
     "duplicate": "Duplicate",
     "edit": "Edit",
+    "examplePlaceholder": "e.g. {{example}}",
     "export": "Export",
+    "honorifics": {
+      "dame": "Dame",
+      "dr": "Dr.",
+      "mr": "Mr.",
+      "mrs": "Mrs.",
+      "ms": "Ms.",
+      "mx": "Mx.",
+      "sir": "Sir"
+    },
     "inactive": "Inactive",
     "loading": "Loading…",
     "next": "Next",
     "no": "No",
     "none": "None",
     "optional": "Optional",
+    "patientIds": {
+      "mrnAfterSeparator": "· MRN {{mrn}}",
+      "mrnDob": "MRN {{mrn}} · DOB {{dob}}",
+      "mrnDobLabelled": "MRN: {{mrn}} · DOB: {{dob}}"
+    },
     "reactivate": "Reactivate",
     "remove": "Remove",
     "required": "Required",
@@ -4730,6 +5277,9 @@
       "ai-provider": {
         "description": "Select Anthropic Claude or Google Gemini as the active AI provider."
       },
+      "ai-vendor-policy": {
+        "description": "Which AI services and hosting regions each jurisdiction or facility allows, and whether the service in use is allowed."
+      },
       "cyt-histology-correlation": {
         "description": "How long after an abnormal Pap a later biopsy is matched for cyto-histologic correlation, and whether the window starts at collection, receipt or sign-out; per enterprise, jurisdiction and facility."
       },
@@ -4739,6 +5289,9 @@
       },
       "cyt-nomenclature": {
         "description": "Two-tier cascade (Enterprise + Facility) controlling which real reporting terminology a lab’s interpretation dropdowns use."
+      },
+      "cyt-preliminary-signature": {
+        "description": "Whether an urgent cytology preliminary report needs the pathologist's electronic signature."
       },
       "cyt-registry": {
         "description": "Two-tier cascade controlling which real, national centralized registry a lab’s signed-out GYN cytology results report to."
@@ -4780,6 +5333,9 @@
       "staff-sign-in-password": {
         "description": "Set, reset or remove someone's sign-in password: open their staff record, then Sign-in password."
       },
+      "sys-ai-instructions": {
+        "description": "The instructions the clinical mismatch check gives the AI, per discipline: edit, test on a sample case, approve, and the history of every version."
+      },
       "sys-asset-locations": {
         "description": "The governed reference list for physical/asset locations, including mortuary storage slots and their real-time occupancy."
       },
@@ -4788,6 +5344,9 @@
       },
       "sys-cancer-registry-settings": {
         "description": "Real, facility-scoped central cancer registry setting (NAACCR, CPAC, COSD, INCa, ADT/GEKID, AIHW, NZ Cancer Registry, KCCR) for surgical pathology sign-out reporting — genuinely separate from Cytology Registry Reporting."
+      },
+      "sys-clinical-mismatch-rules": {
+        "description": "When the clinical-pathologic mismatch check alerts, and which mismatches hold up sign-out: thresholds and actions per kind of mismatch and specimen type."
       },
       "sys-cytology-categories": {
         "description": "Standardized specimen adequacy, general categorization, interpretation/result, and clinical recommendation vocabulary for GYN cytology — Bethesda, BSCC/RCPath (UK), München III (Germany), and SFCC (France, French-labeled Bethesda).",
@@ -4819,6 +5378,9 @@
       },
       "sys-feedback": {
         "description": "Whether the QA feedback button shows, and who receives QA feedback."
+      },
+      "sys-field-requirements": {
+        "description": "Which fields each page requires, per organisation: Accession, Grossing, the report, Staff, the Facility editor, Clinical history and more. Identity and routing fields stay locked."
       },
       "sys-flags": {
         "description": "Case and specimen flags — visual markers for clinical context or required actions.",
@@ -4882,6 +5444,9 @@
       "sys-terminology": {
         "description": "Connection status for SNOMED CT, UMLS, and other terminology services (Connected/Degraded/Offline)."
       },
+      "sys-tumor-board-rules": {
+        "description": "The margin-distance thresholds that auto-flag a case for Tumor Board/MDT, per enterprise and facility."
+      },
       "sys-wsi-viewer-vendors": {
         "description": "Real, launchable whole-slide-image viewer platforms and their real launch URL templates — configure a vendor’s real viewer URL here so \"Launch in Viewer\" can route to a specific slide. One category within the consolidated Vendor Integrations screen.",
         "label": "Vendor Integrations — WSI Viewers"
@@ -4936,6 +5501,42 @@
       "voice": "Voice"
     },
     "title": "Configuration"
+  },
+  "connectionBanner": {
+    "offline": {
+      "detail": "Not connected to the PathScribe server. What you see may be out of date; PathScribe keeps trying.",
+      "title": "Offline"
+    },
+    "reconnected": {
+      "detail": "Connection restored.",
+      "title": "Reconnected"
+    },
+    "reconnecting": {
+      "detail": "The live connection dropped. Changes by others may appear late until it reconnects.",
+      "title": "Reconnecting…"
+    }
+  },
+  "consultLinksAudit": {
+    "activeOnly": "Active only",
+    "columns": {
+      "actions": "Actions",
+      "case": "Case",
+      "consultant": "Consultant",
+      "expires": "Expires",
+      "issued": "Issued",
+      "issuedBy": "Issued by",
+      "scope": "Scope",
+      "status": "Status",
+      "views": "Views"
+    },
+    "empty": "No consult links have been issued.",
+    "emptyActive": "No consult links are active.",
+    "hint": "Every link issued to an outside consultant, on every case. Revoking a link closes it at once; an expired link closes on its own.",
+    "loading": "Loading…",
+    "notPermitted": "You don't have permission to see consult links. Ask an administrator to grant it in the Role Dictionary.",
+    "notViewed": "Not viewed",
+    "revokedBy": "Revoked by {{name}}, {{date}}",
+    "title": "Outside consult links"
   },
   "containerTypesSection": {
     "addContainerType": "+ Add Container Type",
@@ -5053,6 +5654,7 @@
       "title": "RVUs — Last 30 Days",
       "unit": "RVUs"
     },
+    "scrollRegionLabel": "Contribution dashboard, scrollable",
     "subtitleRole": "Pathologist",
     "tabLabels": {
       "ai": "AI Contribution",
@@ -5122,6 +5724,7 @@
   "copilotReportViewModal": {
     "accessionLabel": "Accession:",
     "amendedFlag": "AMENDED",
+    "clinicianNotifiedDetail": "{{name}} — {{method}}, {{date}}",
     "clinicianNotifiedLabel": "Clinician Notified:",
     "diffTable": {
       "currentlyReported": "Currently Reported As",
@@ -5146,6 +5749,7 @@
     "synopticCount_one": "{{count}} synoptic",
     "synopticCount_other": "{{count}} synoptics",
     "toolbarTitle": "Synoptic Report — as sent to LIS",
+    "versionMeta": "{{date}} — {{name}}",
     "versionSelectHint": "Select a version to include it in the printed report. Defaults to each report's most recent version."
   },
   "correctAppliedCodeModal": {
@@ -5320,6 +5924,15 @@
   "criticalFindingsModal": {
     "acknowledgeButton": "Acknowledge without recording",
     "clinicianNotifiedPlaceholder": "Name of the physician contacted",
+    "composeEmailButton": "Write the secure email…",
+    "email": {
+      "closing": "Please review the report and acknowledge receipt.",
+      "findingLine": "• {{term}} ({{sourceField}})",
+      "noReference": "(no accession number)",
+      "opening": "A critical finding was identified at sign-out of case {{reference}}:",
+      "quoteLine": "  “{{quote}}”",
+      "subject": "URGENT: critical finding, case {{reference}}"
+    },
     "findingLabel": "{{term}} — {{sourceField}}",
     "header": "Critical Finding Detected",
     "intro": "This case's own narrative text was flagged as containing a critical finding that may require immediate physician communication. Review below, then either record the real notification you've made or acknowledge if it's already been handled some other way.",
@@ -5328,6 +5941,7 @@
     "readBackLabel": "Clinician read back the finding to confirm",
     "recordButton": "Record Notification",
     "requiresUrgentLabel": "Requires urgent notification",
+    "secureEmailNote": "A read-back doesn’t apply to email. The notification is recorded when the secure email has been sent.",
     "sourceQuote": "“{{quote}}”"
   },
   "crosswalkSection": {
@@ -5443,22 +6057,27 @@
         "help": "(US, CAP): a new high-grade diagnosis flags the patient's negative Paps from the last five years for retrospective review.",
         "label": "CAP 5-year retrospective lookback"
       },
+      "preliminarySignature": {
+        "help": "(laboratory policy): an urgent preliminary report for one specimen needs the pathologist's electronic signature, as a sign-out does. Automatic requires it everywhere.",
+        "label": "Signature for urgent preliminary reports"
+      },
       "workloadCap": {
         "help": "(US, 42 CFR § 493.1274): stops a cytotechnologist's review once their prorated daily slide cap is reached and returns their queue to the pool. Workload is recorded either way.",
         "label": "CLIA daily workload cap"
       }
     },
-    "notPermitted": "You don't have permission to change country-specific rules.",
+    "notPermitted": "You don't have permission to change these rules.",
     "saved": "Saved.",
     "settings": {
       "auto": "Automatic (on in the US)",
+      "autoEverywhere": "Automatic (required everywhere)",
       "off": "Off",
       "on": "On"
     },
-    "subtitle": "Regulations that apply in some countries only. Automatic turns each on for a US lab and off elsewhere; a lab can switch it on or off for the enterprise or one facility.",
+    "subtitle": "Rules that some countries require, and the laboratory's own release policy. Each is Automatic, On or Off, for the enterprise or one facility.",
     "summary": "{{feature}}: {{setting}}",
     "summarySeparator": "; ",
-    "title": "Country-specific rules"
+    "title": "Country and laboratory rules"
   },
   "cytologyHistologyCorrelationPrintView": {
     "scopeLine": "Scope: {{scope}} — Generated {{date}}",
@@ -5513,6 +6132,11 @@
     "addendum": "Addendum",
     "addendumBanner": "ADDENDUM",
     "adjunctive": "Adjunctive Testing & Integrated Results",
+    "caseContents": "Specimens in this report",
+    "caseNotReported": "Not reported. Reason: {{reason}}",
+    "caseReported": "Reported",
+    "caseSpecimen": "{{label}}: {{description}}",
+    "caseTitle": "Cytology Case Report — {{accession}}",
     "clia": "CLIA/ISO: {{number}}",
     "collected": "Collected: {{date}}",
     "computerAssisted": "Computer-Assisted Screening: {{value}}",
@@ -5530,6 +6154,13 @@
     "no": "No",
     "orderingProvider": "Ordering Provider: {{name}}",
     "patient": "Patient",
+    "preliminaryBanner": "PRELIMINARY REPORT",
+    "preliminaryNote": "Note: {{note}}",
+    "preliminaryNotice": "This is not the final report. The final case report follows when the case is signed out.",
+    "preliminaryReasonClinicianRequest": "Requested by the clinician",
+    "preliminaryReasonCriticalFinding": "Critical finding",
+    "preliminaryReasonUrgentManagement": "Needed for urgent clinical management",
+    "preliminaryReleasedBy": "Preliminary released by: {{name}}, {{role}}, {{date}}",
     "prepConventional": "Conventional",
     "prepLiquidBased": "Liquid-Based",
     "previouslyReported": "Previously reported as: {{diagnosis}}",
@@ -5545,6 +6176,37 @@
     "specimenType": "Specimen Type",
     "title": "Cytology Report — GYN Cervical Screening",
     "yes": "Yes"
+  },
+  "cytologyPreliminary": {
+    "confirmTitle": "Sign the urgent preliminary report",
+    "errors": {
+      "alreadySignedOut": "This specimen is already signed out.",
+      "caseReleased": "The case report has already been released.",
+      "noFinalDiagnosis": "Choose the specimen's final diagnosis first.",
+      "notPermitted": "You don't have permission to send a cytology preliminary report.",
+      "notSaved": "The preliminary report couldn't be saved. Nothing was sent.",
+      "reasonMissing": "Choose a reason.",
+      "signatureRefused": "The signature wasn't accepted.",
+      "signatureRequired": "Your laboratory requires a signature for a preliminary report."
+    },
+    "hint": "Sends this specimen's chosen final diagnosis now, marked preliminary. The case report follows at sign-out.",
+    "history": "Preliminary sent {{date}} by {{name}} ({{reason}})",
+    "historyNote": "Note: {{note}}",
+    "noteLabel": "Note",
+    "notePlaceholder": "Note (optional)",
+    "reasonLabel": "Reason",
+    "reasons": {
+      "clinicianRequest": "Clinician request",
+      "criticalFinding": "Critical finding",
+      "urgentManagement": "Urgent clinical management"
+    },
+    "recalledTag": "(recalled, not sent)",
+    "send": "Send",
+    "sending": "Sending…",
+    "sent": "Urgent preliminary report sent.",
+    "signAndSend": "Sign and send",
+    "startBtn": "Send urgent preliminary",
+    "title": "Urgent preliminary report"
   },
   "cytologyQaTab": {
     "apacPtTable": {
@@ -5606,6 +6268,25 @@
     },
     "exceededBadge": "Exceeded",
     "failBadge": "Fail",
+    "fiveYearLookbackTable": {
+      "completedPercent": "Completed",
+      "completedStatus": "Completed",
+      "correctiveAction": "Corrective Action",
+      "correctiveActionRate": "Corrective Action Rate",
+      "noneFlaggedYet": "No specimens flagged for this scope yet.",
+      "outcome": "Outcome",
+      "outcomes": {
+        "confirmed_negative": "Confirmed Negative",
+        "interpretation_error": "Interpretation Error",
+        "sampling_error": "Sampling Error",
+        "screening_error": "Screening Error"
+      },
+      "pending": "Pending",
+      "pendingStatus": "Pending",
+      "reviewedBy": "Reviewed By",
+      "totalFlagged": "Total Flagged",
+      "triggeredAt": "Triggered"
+    },
     "headers": {
       "accession": "Accession",
       "case": "Case",
@@ -5635,6 +6316,8 @@
       "indication": "Indication",
       "noDataYet": "No data on file for this scope yet.",
       "otherHrPercent": "Other HR %",
+      "percentagePoints_one": "{{value}} pp",
+      "percentagePoints_other": "{{value}} pp",
       "testingSite": "Testing Site",
       "totalTested": "Total Tested",
       "varianceVsMean": "Variance vs. Mean"
@@ -5696,6 +6379,7 @@
     "reportTitle": {
       "ctPath": "CT vs. Pathologist Correlation",
       "finalDx": "Primary Screen vs Final Diagnosis Discordance",
+      "fiveYearLookback": "5-Year Retrospective Lookback",
       "highRisk": "Directed / High-Risk Rescreening",
       "peerReview": "Post-Sign-Out Peer Review Correlation",
       "random": "10% Random Rescreening"
@@ -5716,6 +6400,7 @@
       "ctStats": "CT Statistical Comparison",
       "euCompliance": "EU Compliance",
       "finalDx": "Primary vs Final Diagnosis",
+      "fiveYearLookback": "5-Year Retrospective Lookback",
       "highRisk": "High-Risk Rescreening",
       "histologyCorrelation": "Histology Correlation",
       "hpvPositivity": "HPV Positivity",
@@ -5773,13 +6458,20 @@
       "unscreenedStatus": "Unscreened"
     },
     "workloadTable": {
+      "correctionFlagged": "Correction flagged",
+      "correctionNote": "({{note}})",
+      "correctionReason": "Reason: {{reason}}",
       "exceedance": "Exceedance",
       "hoursScreened": "Hours Screened",
       "imagerSlides": "Imager Slides",
       "manualSlides": "Manual Slides",
       "maxAllowed": "Max Allowed",
       "noLedgerEntriesYet": "No ledger entries on file for this scope yet.",
+      "notSignedOff": "(not signed off)",
+      "recordedHours": "Recorded hours",
       "shiftDate": "Shift Date",
+      "signOffStale": "(signed off before more was recorded)",
+      "signedOff": "(signed off)",
       "totalEquivSlides": "Total Equiv. Slides"
     }
   },
@@ -5813,6 +6505,18 @@
     "recordConcurrenceBtn": "Record Concurrence",
     "recordDiscrepancyBtn": "Record Discrepancy",
     "secondaryCodeLabel": "Secondary Diagnostic Code",
+    "selectedBy": {
+      "label": "Selected by: {{reasons}}",
+      "reason": {
+        "ctEscalation": "CT escalation",
+        "other": "{{reason}}",
+        "peerReviewRandom": "Random peer review",
+        "peerReviewTargeted": "High-risk peer review",
+        "roseDiscrepancy": "ROSE discrepancy",
+        "rule": "Rule: {{name}}"
+      },
+      "reviewerPool": "Reviewer pool: {{roles}}"
+    },
     "severity": {
       "major": "Major",
       "minor": "Minor"
@@ -5907,11 +6611,16 @@
       "emptyState": "No facility overrides — every facility uses the Enterprise default.",
       "title": "Facility Overrides"
     },
+    "rate": {
+      "inherited": "inherited",
+      "inheritedValue": "{{value}}% (inherited)",
+      "own": "{{value}}%"
+    },
     "ratePair": {
       "negativeLabel": "Negative",
       "nonNegativeLabel": "Non-Negative"
     },
-    "rateSummary": "Neg {{neg}}% · Non-Neg {{nonNeg}}%",
+    "rateSummaryParts": "Neg {{neg}} · Non-Neg {{nonNeg}}",
     "staff": {
       "emptyState": "No staff overrides.",
       "hint": "Assign a higher rate for a new employee or student — this wins over any Facility override.",
@@ -5962,6 +6671,7 @@
       "addendumReleased": "Addendum released.",
       "correctionReleased": "Correction released.",
       "failed": "The report could not be released. Nothing was changed.",
+      "inReleaseDelay": "This case report is still in its release delay, so it hasn't been sent. Recall it to make changes, or wait until the delay ends to add a correction or addendum.",
       "notPermitted": "You do not have permission to release this."
     }
   },
@@ -6145,6 +6855,9 @@
     "patientLine": "{{name}} · MRN {{mrn}}",
     "patientUnknown": "Unknown Patient",
     "printBtn": "Print",
+    "printCaseReportBtn": "Print case report",
+    "printFailed": "The report PDF could not be made. Try again; if it keeps failing, tell your administrator.",
+    "printRendererOutdated": "The report renderer has not been updated for cytology reports yet, so the PDF could not be made. Tell your administrator.",
     "qc": {
       "autoHint": "Random QC selection runs automatically when the Initial Review is saved.",
       "flagBtn": "Flag High-Risk QC",
@@ -6395,14 +7108,14 @@
     "signedOut": "Report signed out.",
     "signedOutBanner": "Signed out by {{name}} on {{date}}.",
     "signing": "Signing…",
-    "specimenSignedOut_one": "Specimen signed out. {{count}} more specimen to sign out before the case is final.",
-    "specimenSignedOut_other": "Specimen signed out. {{count}} more specimens to sign out before the case is final."
+    "specimenSignedOut_one": "Specimen signed out. {{count}} more specimen to sign out; the case report is released when the last one is signed.",
+    "specimenSignedOut_other": "Specimen signed out. {{count}} more specimens to sign out; the case report is released when the last one is signed."
   },
   "cytologyTab": {
     "sections": {
       "assistedInstrumentation": "Assisted Instrumentation",
       "correlationWindow": "Correlation window",
-      "countryRules": "Country-specific rules",
+      "countryRules": "Country and laboratory rules",
       "cytoHistologicCorrelation": "Cyto-Histologic Correlation (SNOMED)",
       "dailyWorkloadCap": "Daily Workload Cap",
       "nonGynRouting": "Non-GYN Routing",
@@ -6476,6 +7189,41 @@
     },
     "qaComplianceSectionLabel": "QA & Compliance",
     "rowSubtitle": "Case {{caseId}} · MRN {{mrn}}",
+    "screeningHours": {
+      "cancel": "Cancel",
+      "change": "Change",
+      "confirm": "Confirm {{hours}} h",
+      "correct": "Correct",
+      "errors": {
+        "dateNotAllowed": "That day can no longer be signed off here (the day has moved on). Your supervisor can correct it.",
+        "failed": "Your hours weren't saved. Try again.",
+        "hoursInvalid": "Enter hours between 0 and 24.",
+        "noteRequired": "Add a note for “Other”.",
+        "noteTooLong": "Keep the note to 200 characters.",
+        "reasonRequired": "Choose a reason for the correction."
+      },
+      "flaggedNote": "More than {{tolerance}} h from the recorded time: your supervisor will see it.",
+      "hint": "Confirm at the end of your day. This is your screening hours record.",
+      "hintYesterday": "Not signed off yet, for example a shift that went past the start of the day. Confirm or correct it.",
+      "hoursLabel": "Hours screened today",
+      "hoursLabelYesterday": "Hours screened that day",
+      "noteHint": "Shown to your supervisor. Don't include patient details.",
+      "noteLabel": "Note (required)",
+      "noteOptional": "Note (optional)",
+      "reasonLabel": "Reason for the correction",
+      "reasons": {
+        "microscopeOffScreen": "Screened at the microscope, away from the screen",
+        "other": "Other",
+        "slideLeftOpen": "A slide was left open while I was away"
+      },
+      "recorded": "Recorded: {{hours}} h",
+      "save": "Save",
+      "signedOff": "Signed off: {{hours}} h at {{time}}",
+      "signedOffCorrected": "Signed off: {{hours}} h at {{time}} (recorded {{recorded}} h)",
+      "staleNote": "You signed off {{signed}} h at {{time}}; more screening was recorded after that. Confirm again.",
+      "title": "Today's screening hours",
+      "titleYesterday": "Yesterday's screening hours"
+    },
     "subtitle": "Your assigned cytology cases, the shared pool, and the shared QC rescreen queue.",
     "tiles": {
       "assigned": "My Worklist",
@@ -6494,9 +7242,37 @@
       "unassignedPool": "Unassigned Pool"
     },
     "title": "Cytology Worklist",
-    "unknownPatient": "Unknown patient"
+    "unknownPatient": "Unknown patient",
+    "workload": {
+      "leftFullDay": "{{left}} slides left in a full 8-hour day",
+      "leftNow": "{{left}} slides left now (limit so far {{limit}}, {{hours}} h screened)",
+      "reviews_one": "{{count}} review",
+      "reviews_other": "{{count}} reviews",
+      "slides": "{{used}} of {{cap}} slides counted",
+      "status": {
+        "approaching": "Approaching your limit",
+        "atLimit": "At your limit: the next review would go over it",
+        "over": "Over your limit"
+      },
+      "title": "Your workload (last 24 hours)"
+    }
   },
   "cytologyWorkloadCapSettingsSection": {
+    "allFacilitiesHaveOverride": "Every facility already has an override. Remove one to set it again.",
+    "allStaffHaveOverride": "Everyone already has an override. Remove one to set it again.",
+    "dayStart": {
+      "errors": {
+        "failed": "The start of the day wasn't saved. Try again.",
+        "notPermitted": "You don't have permission to change this."
+      },
+      "fromNowOn": "Not saved yet. A change applies from now on; earlier days keep the start time in force then.",
+      "hint": "For the end-of-day hours sign-off and the workload report's days, in the lab's time zone (System settings). Midnight by default; 6:00 AM keeps a 10 PM to 6 AM night shift on one date. The workload limit itself is checked over a rolling 24 hours and doesn't use this.",
+      "title": "Screening day starts at"
+    },
+    "errors": {
+      "capOutOfRange": "The cap must be a whole number of slides from 1 to 100.",
+      "failed": "The cap wasn't saved. Try again."
+    },
     "staffHint": "Assign a lower cap for a new employee or student — this wins over any Facility override.",
     "subtitle": "The maximum real number of GYN cytology slides a cytotechnologist may screen in one day (CLIA workload limit). Three-tier cascade — Enterprise default, with optional Facility and Staff Member overrides. Staff overrides win over Facility overrides, which win over the Enterprise default.",
     "title": "Cytology Daily Workload Cap",
@@ -6725,6 +7501,30 @@
     },
     "title": "Delegation Types"
   },
+  "deliveryExceptions": {
+    "alert": {
+      "bodyWithFallback_one": "A {{reportType}} report could not be delivered by {{channel}} after {{count}} attempt: {{error}}. The delivery rule's fallback channels were sent. It is listed in Audit Log → Interfaces → Outbound → Delivery exceptions.",
+      "bodyWithFallback_other": "A {{reportType}} report could not be delivered by {{channel}} after {{count}} attempts: {{error}}. The delivery rule's fallback channels were sent. It is listed in Audit Log → Interfaces → Outbound → Delivery exceptions.",
+      "body_one": "A {{reportType}} report could not be delivered by {{channel}} after {{count}} attempt: {{error}}. It is listed in Audit Log → Interfaces → Outbound → Delivery exceptions.",
+      "body_other": "A {{reportType}} report could not be delivered by {{channel}} after {{count}} attempts: {{error}}. It is listed in Audit Log → Interfaces → Outbound → Delivery exceptions.",
+      "sender": "Delivery monitor",
+      "subject_one": "{{channel}} delivery failed after {{count}} attempt",
+      "subject_other": "{{channel}} delivery failed after {{count}} attempts"
+    },
+    "columns": {
+      "attempts": "Attempts",
+      "case": "Case",
+      "channel": "Channel",
+      "fallback": "Fallback",
+      "lastError": "Last error",
+      "when": "Gave up"
+    },
+    "empty": "No delivery exceptions.",
+    "fallbackSent": "Sent by {{channels}}",
+    "hint": "Prints, faxes and file drops that still failed after their automatic retries. Admin and Lab Director were sent a message. Resend them from their queue (the Print Queue, or Report Delivery below); one that goes through leaves this list.",
+    "title_one": "Delivery exceptions ({{count}})",
+    "title_other": "Delivery exceptions ({{count}})"
+  },
   "deliveryRulesSection": {
     "actionLabels": {
       "dual": "Dual Delivery",
@@ -6733,6 +7533,16 @@
       "suppress": "Suppress (hold for manual retrieval)"
     },
     "addRuleButton": "+ Add Rule",
+    "channelNames": {
+      "ELECTRONIC": "Electronic (result message to the interface engine)",
+      "FAX": "E-fax",
+      "FILE_DROP": "File drop",
+      "PRINT": "Print"
+    },
+    "channels": {
+      "hint": "Primary and secondary channels go at once. Fallback channels go when a primary print, fax or file drop has nowhere to go, or still fails after its automatic retries.",
+      "title": "Delivery channels"
+    },
     "criteriaDescription": {
       "facility": "Facility: {{name}}",
       "location": "Location: {{location}}",
@@ -6741,6 +7551,12 @@
       "report": "Report: {{type}}"
     },
     "fields": {
+      "faxNumber": "Fax number",
+      "faxNumberHint": "Leave blank to fax the ordering physician (or, without a fax number, the ordering facility).",
+      "faxNumberPlaceholder": "e.g. +1 520 555 0100",
+      "fileDropTarget": "File-drop target",
+      "fileDropTargetHint": "The target's name as set up on the interface server. The folder or SFTP server and its sign-in details are kept there, not in PathScribe.",
+      "fileDropTargetPlaceholder": "e.g. client-a-sftp",
       "orderingFacility": "Ordering Facility",
       "patientLocation": "Patient Location",
       "provider": "Provider",
@@ -6748,8 +7564,6 @@
     },
     "loading": "Loading delivery rules…",
     "modal": {
-      "actionAriaLabel": "Action",
-      "actionLabel": "Action *",
       "addRuleButton": "Add Rule",
       "addTitle": "Add Delivery Rule",
       "editTitle": "Edit Delivery Rule",
@@ -6764,17 +7578,46 @@
       "reportTypePlaceholder": "— Any report type —",
       "saveChangesButton": "Save Changes"
     },
+    "problems": {
+      "fallbackWithoutPrimary": "A fallback needs a primary channel to fall back from.",
+      "faxNumberInvalid": "That isn't a fax number (7 to 15 digits, with an optional +).",
+      "fileDropNeedsTarget": "Name the file-drop target."
+    },
     "reportTypeLabels": {
       "addendum": "Addendum",
       "corrected": "Corrected",
       "final": "Final",
       "preliminary": "Preliminary"
     },
+    "retries": {
+      "hint": "A print, fax or file drop that fails is tried again after each wait in turn. When the last try fails it goes to the delivery exceptions, Admin and Lab Director are told, and the rule's fallback channels are sent.",
+      "label": "Automatic retries: wait before each (minutes)",
+      "none": "No retries: a failed delivery goes straight to the delivery exceptions.",
+      "placeholder": "1, 5, 15",
+      "problems": {
+        "notWholeMinutes": "Use whole minutes, separated by commas.",
+        "outOfRange": "Each wait must be from 1 to 1,440 minutes (24 hours).",
+        "tooMany": "At most 10 retries."
+      },
+      "refused": "Not saved: you don't have permission to change delivery settings.",
+      "save": "Save retries",
+      "saved": "Retries saved."
+    },
+    "roles": {
+      "fallback": "Fallback",
+      "off": "Off",
+      "primary": "Primary",
+      "secondary": "Secondary"
+    },
     "subtitle": "Decide whether a released report is dispatched electronically, printed, both, or held for manual retrieval — by provider, ordering facility, patient location, and report type. The most specific real match wins; when nothing matches, delivery defaults to Electronic Only.",
+    "summary": {
+      "none": "Nothing is sent",
+      "role": "{{role}}: {{channels}}"
+    },
     "table": {
       "emptyState": "No delivery rules configured yet — every case resolves to the real, spec-stated default (Electronic Only).",
       "headers": {
-        "action": "Action",
+        "channels": "Channels",
         "criteria": "Criteria",
         "note": "Note"
       }
@@ -6785,6 +7628,7 @@
       "noRuleMatched": "No rule matched — this is the real, spec-stated default (Electronic Only) applied when nothing else qualifies.",
       "resolveButton": "Resolve",
       "resolvedActionLabel": "Resolved action:",
+      "resolvedPlanLabel": "Channels",
       "subtitle": "Enter real case details to see which action would be selected and why.",
       "title": "🧪 Test Delivery Resolution"
     },
@@ -7598,11 +8442,53 @@
     "pageSubtitle": "Each active instrument's maintenance and calibration status. Record what you did with Log entry; adding or changing equipment is in Configuration → System → Equipment.",
     "pageTitle": "Equipment log"
   },
+  "errorBoundary": {
+    "appBody": "PathScribe hit an unexpected error and had to stop. Try again, or go back to the worklist to start afresh.",
+    "backToWorklist": "Back to worklist",
+    "body": "PathScribe hit an unexpected error and stopped showing this screen. The rest of the app is still running.",
+    "panel": {
+      "body": "An unexpected error stopped this panel. The rest of the page still works.",
+      "title": "This panel stopped working"
+    },
+    "reference": "Reference for support: {{reference}}",
+    "title": "Something went wrong on this screen",
+    "tryAgain": "Try again",
+    "unsavedLost": "This screen had unsaved changes when the error happened. They may have been lost; check them when the screen reopens. Work you had already saved is safe.",
+    "unsavedMaybeLost": "Work you had already saved is safe. Changes on this screen that were not saved yet may have been lost."
+  },
   "evaluateMicroscopicFinalizeGate": {
     "incompleteSynopticFields": "This specimen's synoptic template has required fields that are still incomplete.",
     "noDocumentationAtAll": "This specimen has no Microscopic Description and no synoptic template — add documentation before finalizing.",
     "requiredForProcedure": "A Microscopic Description narrative is required for this procedure.",
     "unsavedDraft": "This specimen's Microscopic Description is an unsaved draft — save or discard it before finalizing."
+  },
+  "exports": {
+    "notice": {
+      "dismiss": "Dismiss",
+      "dismissAria": "Dismiss this export notice",
+      "download": "Download",
+      "myExports": "My exports",
+      "preparing": "Preparing your export. We'll tell you when it's ready; you can carry on working.",
+      "ready": "Your export is ready.",
+      "readyRows_one": "Your export is ready ({{count}} row).",
+      "readyRows_other": "Your export is ready ({{count}} rows).",
+      "regionLabel": "Exports"
+    },
+    "problem": {
+      "BUILD_FAILED": "The export couldn't be made. Try again; if it fails again, tell your administrator.",
+      "CANCELLED": "This export was cancelled.",
+      "EXPIRED": "This export has expired and its file was deleted. Export it again.",
+      "INVALID_PARAMETERS": "The server could not use these filters. Change them and try again.",
+      "NOT_FOUND": "This export is no longer available.",
+      "NOT_PERMITTED": "You don't have permission to export this report.",
+      "SIGNED_OUT": "Your session has ended. Sign in again, then export again.",
+      "TIMED_OUT": "The export took too long and was stopped. Narrow the filters and try again.",
+      "TOO_MANY_OPEN": "You already have 3 exports being prepared. Wait for one to finish, or cancel one in My exports.",
+      "TOO_MANY_ROWS": "Too many rows for one export. Narrow the filters and try again.",
+      "TOO_MANY_ROWS_count_one": "{{count}} row matched, more than one export can hold. Narrow the filters and try again.",
+      "TOO_MANY_ROWS_count_other": "{{count}} rows matched, more than one export can hold. Narrow the filters and try again.",
+      "UNAVAILABLE": "The PathScribe server can't be reached. Try again in a moment."
+    }
   },
   "externalConsultAccessModal": {
     "accessScopeLabel": "Access Scope",
@@ -7615,14 +8501,15 @@
     "copy": "Copy",
     "createdTitle": "Link Created",
     "defaultLifespan": "Default lifespan: 24 hours (72 hours if that window would span a weekend).",
-    "disclosureBody": "This link is an opaque, unsigned string with no server-side validation behind it. Do not send it to a real external party outside a trusted demo environment. Real, cryptographic token issuance depends on PS-291's own Interface Engine backend, which does not exist yet.",
-    "disclosureTitle": "Demo/pilot only — not real security.",
+    "disclosureBody": "The link's token is random and only its fingerprint is kept, but no PathScribe server checks it yet, so the link opens only in this browser. Don't send it to a real outside party until the PathScribe server serves consult links.",
+    "disclosureTitle": "Demo only — no PathScribe server serves this link yet.",
     "done": "Done",
     "expiresAround": "This link would expire around",
     "expiresAt": "Expires {{date}}",
     "eyebrow": "External Consult / Second Opinion",
     "fullCase": "Full case",
     "fullCaseOption": "Full Case",
+    "issueFailed": "The link could not be issued.",
     "issueLink": "Issue Link",
     "issueNewLink": "+ Issue New Consult Link",
     "issueTitle": "Issue Consult Link",
@@ -7634,6 +8521,7 @@
     "noDirectoryLookupHint": "Free text — there's no real external-directory lookup to select from.",
     "noLinksYet": "No consult links issued for this case yet.",
     "noSlidesRecorded": "No slides recorded on this case yet.",
+    "notPermitted": "You don't have permission to issue consult links. Ask an administrator to grant it in the Role Dictionary.",
     "noteHint": "(optional, internal only — never shown to the consultant)",
     "noteLabel": "Note",
     "notePlaceholder": "e.g. Requesting a second opinion on the deep margin call.",
@@ -7685,8 +8573,13 @@
   "externalConsultViewPage": {
     "diagnosticCategoryLabel": "Diagnostic Category (optional)",
     "diagnosticCategoryPlaceholder": "e.g. Benign, Malignant, Indeterminate",
-    "disclosureBanner": "<strong>This is a demo/pilot access link, not a production-secure one.</strong> It relies on an unsigned, opaque URL rather than real cryptographic authentication.",
+    "disclosureBanner": "<strong>Demo link: no PathScribe server checks it yet.</strong> It opens only in the browser that issued it. Its token is random and kept only as a fingerprint.",
     "dobPrefix": "DOB {{date}}",
+    "errors": {
+      "alreadySigned": "A signed opinion has already been sent on this link. To add anything, contact the ordering pathologist.",
+      "failed": "The opinion could not be sent.",
+      "linkNoLongerActive": "This link is no longer active, so the opinion was not sent. Contact the ordering pathologist."
+    },
     "eyebrow": "PathScribe External Consult",
     "fullCaseAccess": "Full case access",
     "invalidLink": {
@@ -7698,9 +8591,13 @@
     "noSlidesInScope": "No slides in scope for this link.",
     "opinionPlaceholder": "Enter your diagnostic impression / opinion…",
     "opinionSubmittedConfirmation": "Your opinion has been recorded and returned to the ordering pathologist.",
+    "patientName": "{{lastName}}, {{firstName}}",
     "requiredOpinionError": "An opinion is required before submitting.",
     "scopedAccess_one": "Scoped access — {{count}} slide",
     "scopedAccess_other": "Scoped access — {{count}} slides",
+    "separator": " · ",
+    "signedIsFinal": "A signed opinion is final: this link takes no more opinions after it.",
+    "specimenLine": "{{label}} — {{description}}",
     "specimensAndSlides": "Specimens & Slides",
     "status": {
       "draft": "Draft",
@@ -7808,6 +8705,7 @@
       "addressPlaceholder": "123 Main St, City, State ZIP",
       "assigningAuthority": "Assigning Authority *",
       "assigningAuthorityPlaceholder": "e.g. NWOG",
+      "city": "City",
       "cliaIsoNumber": "CLIA / ISO Accreditation Number",
       "cliaIsoNumberHint": "Free text, not validated against a format — a real US CLIA number and a real UK/ISO accreditation number look genuinely different, and this app has no verified format spec for either to check against.",
       "cliaIsoNumberPlaceholder": "e.g. 12D3456789 (US CLIA) or a UK/ISO accreditation number",
@@ -7831,6 +8729,7 @@
       "facilityDetails": "Facility Details",
       "facilityName": "Facility Name *",
       "facilityNamePlaceholder": "e.g. Northwest Oncology Group",
+      "fax": "Fax",
       "forceAddendumOnDedicatedPage": "Addendum Page Policy",
       "forceAddendumOnDedicatedPageCheckbox": "Force addenda onto a dedicated page",
       "forceAddendumOnDedicatedPageHint": "When on, a report's own addendum text always starts on a new page rather than sharing a page with the content it supplements. Only meaningful when Performing Lab is checked above.",
@@ -7847,6 +8746,8 @@
       "phone": "Phone",
       "placeOfServiceCode": "Place of Service Code",
       "placeOfServiceCodeHint": "The real, current CMS Place of Service code set — reflects the setting where the specimen is actually collected, not this facility's own performing-lab characteristics.",
+      "postalCode": "Postal code",
+      "region": "State / province / region",
       "reportLanguage": "Report language",
       "reportLanguageDefault": "Default for the jurisdiction ({{language}})",
       "reportLanguageHint": "The language this lab writes its reports in: the labels, section headers and dates on the report PDF. It is kept with each report when it is signed out, and corrections and addenda keep it. Diagnosis wording comes from the dictionaries.",
@@ -7951,7 +8852,9 @@
       "identifierFormats": "Identifier Formats",
       "lisIntegration": "LIS Integration",
       "locations": "Locations",
+      "printing": "Printing",
       "reporting": "Reporting",
+      "secureMessaging": "Secure messaging",
       "spelling": "Spelling",
       "tat": "TAT & Escalation"
     },
@@ -7997,6 +8900,110 @@
       "sendoutReference": "Send-Out & Reference Laboratory",
       "stainingIhc": "Staining & IHC"
     }
+  },
+  "facilityPrintingTab": {
+    "delivery": {
+      "enabled": "Print released reports",
+      "intro": "How this lab prints reports when they are released. Leave it off and nothing is printed automatically.",
+      "mode": "Delivery",
+      "paperSize": "Paper size",
+      "paperSizeDefault": "Default (Letter)",
+      "printerName": "Printer name",
+      "printerNameHint": "The printer’s name exactly as QZ Tray lists it on the lab’s print computer.",
+      "title": "Report printing"
+    },
+    "destination": {
+      "address": "Printer address (IP or host name)",
+      "intro": "Default network printer (when no print routing rule matches). Leave blank and such reports fail with a clear reason instead of printing somewhere unexpected.",
+      "name": "Display name",
+      "noDefault": "No default (a routing rule must match)",
+      "path": "Printer path",
+      "port": "Port",
+      "portHint": "Leave blank for the protocol’s standard port.",
+      "protocol": "Protocol",
+      "queue": "Queue name"
+    },
+    "duplexModes": {
+      "DUPLEX": "Double-sided",
+      "SIMPLEX": "Single-sided"
+    },
+    "modeHints": {
+      "DIRECT_NETWORK_PRINT": "Sends each report straight to a network printer. Print routing rules choose the printer; the one below is used when no rule matches.",
+      "INTERFACE_ENGINE_HANDOFF": "Hands each report to the interface engine, which sends it to the lab’s print server.",
+      "NATIVE_QZ_TRAY": "Prints from the lab’s computer through QZ Tray to the printer named below."
+    },
+    "modes": {
+      "DIRECT_NETWORK_PRINT": "Network printer (direct)",
+      "INTERFACE_ENGINE_HANDOFF": "Interface engine or print server",
+      "NATIVE_QZ_TRAY": "QZ Tray (named printer)"
+    },
+    "notPermitted": "You don’t have permission to change print settings.",
+    "paperSizes": {
+      "A4": "A4",
+      "LEGAL": "Legal",
+      "LETTER": "Letter"
+    },
+    "paperSources": {
+      "TRAY_1_LETTERHEAD": "Tray 1 (letterhead)",
+      "TRAY_2_PLAIN": "Tray 2 (plain)"
+    },
+    "presentation": {
+      "duplex": "Sides",
+      "intro": "Applies when this facility ordered the case. Report default: final and corrected reports on letterhead, double-sided; preliminary reports on plain paper, single-sided.",
+      "paperSource": "Paper tray",
+      "reportDefault": "Report default",
+      "title": "Paper handling for this client’s reports"
+    },
+    "problems": {
+      "agentPrinterOtherSite": "The default printer must be one of this facility's own site agent printers.",
+      "destinationAddressInvalid": "The printer address can contain only letters, digits, dots, hyphens and colons.",
+      "destinationAddressRequired": "Enter the network printer’s address, or clear the default printer fields.",
+      "portOutOfRange": "The port must be a whole number from 1 to 65535.",
+      "printerNameRequired": "Enter the printer name, or turn printing off."
+    },
+    "protocols": {
+      "IPP": "IPP",
+      "LPR_LPD": "LPR/LPD",
+      "RAW_9100": "RAW (port 9100)"
+    },
+    "save": "Save printing settings",
+    "saveFailed": "The printing settings could not be saved.",
+    "saved": "Printing settings saved."
+  },
+  "facilitySecureMessagingTab": {
+    "add": "Add",
+    "addLabel": "Add a gateway",
+    "addPlaceholder": "Choose a gateway…",
+    "agreementInForce": "{{agreement}} in force",
+    "agreementOnFile": "{{agreement}} on file",
+    "agreementReference": "Agreement reference",
+    "default": "Default",
+    "enabled": "Staff can send through it",
+    "expiresOn": "Expires on (optional)",
+    "intro": "The gateways this lab’s staff send secure messages through. Patient or finding details go only through a gateway whose agreement is on file and in force; each gateway is checked on its own.",
+    "kinds": {
+      "clinicalMessaging": "Clinical messaging network (recipient IDs)",
+      "email": "Secure email"
+    },
+    "noAgreement": "No {{agreement}}: no patient details",
+    "none": "No gateways yet. Staff can’t send secure messages until one is added.",
+    "notPermitted": "You don’t have permission to change secure messaging.",
+    "problems": {
+      "agreementDateRequired": "Enter the date the agreement was signed.",
+      "agreementEndsBeforeStart": "The agreement can’t expire before it was signed.",
+      "agreementReferenceRequired": "Enter the agreement’s reference.",
+      "defaultNotEnabled": "The default gateway must be one staff can send through.",
+      "duplicateGateway": "A gateway is listed twice.",
+      "unknownGateway": "One of the gateways is not recognised."
+    },
+    "remove": "Remove gateway",
+    "save": "Save secure messaging",
+    "saveFailed": "Secure messaging could not be saved.",
+    "saved": "Secure messaging saved.",
+    "senderAddress": "Lab’s sending address",
+    "senderId": "Lab’s ID on the network",
+    "signedOn": "Signed on",
+    "title": "Secure messaging gateways"
   },
   "facilityTable": {
     "activate": "Activate",
@@ -8107,6 +9114,11 @@
         "referralTestRequested": "Test / panel requested",
         "stainingReagentLots": "Reagent / solution lots"
       },
+      "clinicalHistory": {
+        "caseEntry": "Clinical history for the case",
+        "coded": "Coded clinical history (no free text)",
+        "specimenEntry": "Clinical history for each specimen"
+      },
       "cytology": {
         "cisoeaAdequacy": "A — Adequacy",
         "cisoeaComments": "Comment on every axis",
@@ -8137,6 +9149,20 @@
         "observedPieceCount": "Observed piece count",
         "orientationInstructions": "Orientation instructions",
         "reprintReason": "Reprint reason"
+      },
+      "facility": {
+        "address": "Address",
+        "assigningAuthority": "Assigning authority",
+        "city": "City",
+        "contactPerson": "Contact person",
+        "email": "Email",
+        "fax": "Fax",
+        "interfaceEndpoint": "Interface engine endpoint",
+        "name": "Facility name",
+        "phone": "Phone",
+        "postalCode": "Postal code",
+        "region": "State / province / region",
+        "sendingFacilityId": "LIS sending facility ID"
       },
       "grossing": {
         "blocks": "At least one block",
@@ -8271,6 +9297,21 @@
         "slideFolderId": "Slide folder ID",
         "slotPosition": "Slot position",
         "trayNumber": "Tray number"
+      },
+      "staff": {
+        "credentials": "Credentials",
+        "email": "Email",
+        "facilities": "Facilities",
+        "firstName": "First name",
+        "gmcNumber": "GMC number",
+        "lastName": "Last name",
+        "license": "Licence number",
+        "middleName": "Middle name",
+        "npi": "NPI",
+        "phone": "Phone",
+        "roles": "Role",
+        "signature": "Signature",
+        "subspecialties": "Subspecialties"
       }
     },
     "forOrganisation": "Settings for {{organisation}}",
@@ -8288,6 +9329,7 @@
       "blocks": "Blocks",
       "cassetteReprint": "Cassette label reprint",
       "cisoea": "CISOE-A review",
+      "clinicalHistoryEntries": "Clinical history entries",
       "comments": "Comments",
       "criticalFindings": "Critical findings",
       "cytologyReview": "Cytology review (Bethesda)",
@@ -8295,6 +9337,9 @@
       "delegation": "Delegation",
       "discordance": "Frozen-final reconciliation",
       "embeddingConfirm": "Confirm embedding",
+      "facilityContact": "Contact",
+      "facilityIdentity": "Facility",
+      "facilityInterfaces": "Interfaces",
       "fixation": "Fixation",
       "histologyCorrelation": "Cyto-histologic correlation",
       "holds": "Holds",
@@ -8322,12 +9367,19 @@
       "slideLabelReprint": "Slide label reprint",
       "slideOrders": "Slide orders",
       "specimenDetails": "Add or edit specimen",
-      "specimens": "Specimens"
+      "specimens": "Specimens",
+      "staffAccess": "Roles and facilities",
+      "staffContact": "Contact",
+      "staffIdentity": "Name",
+      "staffProfessional": "Professional details"
     },
     "hints": {
       "blocksScope": "Checked on every specimen with a protocol, except cytology preparations",
+      "codedEntriesOnly": "Every entry must be a code from the Clinical History dictionary, not free text.",
       "controlWellsOnly": "Control and calibrator wells only.",
       "criticalNotSurgeonOnly": "Only when a critical result goes to someone other than the operating surgeon",
+      "cytologyCasesOnly": "Cytology and FNA cases only. Flagged at Accession, never blocks intake; it can be added later.",
+      "cytologySpecimensOnly": "Cytology and FNA cases only; with one specimen, a case entry counts. Flagged at Accession, never blocks intake.",
       "cytologyStainingOnly": "Cytology staining batches only.",
       "decalOnly": "Decal / special processing batches only.",
       "delegationNoteByType": "A delegation type can also require a note of its own (Delegation Types)",
@@ -8345,6 +9397,8 @@
       "reusableRackOnly": "Reusable racks only.",
       "sendOutLinesOnly": "Molecular/send-out lines only; filled in from the test’s approved labs.",
       "stainingOnly": "Staining batches only.",
+      "whenInterfaceConfigured": "Only once the interface engine connection is set up.",
+      "whenLisRoutingConfigured": "Only once LIS routing is set up.",
       "withFrozenDiagnosis": "Only asked for when a frozen diagnosis is entered"
     },
     "lockReasons": {
@@ -8371,8 +9425,11 @@
       "delegationRouting": "Decides who the case or report goes to.",
       "discordanceRecord": "A frozen section that differs from the final diagnosis must be classified and explained (CAP, ISO 15189).",
       "externalAddress": "A secure email needs a recipient address.",
+      "facilityIdentity": "A facility is identified by name on orders, reports and labels.",
+      "facilityRouting": "Inbound HL7 orders are matched to a facility by its assigning authority, so it is required and must be unique.",
       "fixationCompliance": "CAP/ASCO biomarker guidance requires documented fixation timing before sign-out, or a confirmed exception.",
       "holdAccountability": "A hold stops work on the case, so placing or releasing one records why.",
+      "interfaceRouting": "Once an interface is set up, messages cannot be routed without it.",
       "intraopMergeTarget": "A session is merged into exactly one case.",
       "intraopReporting": "The session records the operating surgeon. The frozen result may be given to the surgeon or an authorized member of the surgical team; who received it is recorded with the report.",
       "materialTraceability": "Changes to blocks and slides must be traceable: what changed and why (ISO 15189).",
@@ -8400,6 +9457,8 @@
       "specimen": "A case needs at least one described specimen.",
       "specimenDescription": "Every specimen needs a description; it appears on the report.",
       "specimenIdentity": "Identifies the specimen on labels, blocks and the report.",
+      "staffAccess": "What a staff member can do comes from their roles, so at least one is needed.",
+      "staffIdentity": "A staff member is identified by name on cases, reports and the audit trail.",
       "supersedeRecord": "Superseding a run keeps the reason on both runs’ records.",
       "verbalReportRecord": "The record must show who received the result and their role.",
       "wellTraceability": "A patient well must name its specimen, so the result can be traced back to it."
@@ -8411,8 +9470,10 @@
       "accession": "Accession",
       "addOnOrder": "Add-On Orders",
       "batchManagement": "Batch Management",
+      "clinicalHistory": "Clinical history (cytology)",
       "cytology": "Cytology screening",
       "embedding": "Embedding station",
+      "facility": "Facility editor",
       "grossing": "Grossing",
       "intraop": "Intraoperative consultation",
       "messaging": "Messaging",
@@ -8420,7 +9481,8 @@
       "molecularBatch": "Molecular plate builder",
       "molecularRack": "Molecular rack loading",
       "report": "Case report",
-      "slideDistribution": "Slide distribution station"
+      "slideDistribution": "Slide distribution station",
+      "staff": "Staff"
     },
     "perBlock": "Checked on every block",
     "perSpecimen": "Checked on every specimen",
@@ -8498,6 +9560,8 @@
       "nameLabel": "Name",
       "namePlaceholder": "Flag name",
       "nameRequiredError": "Name is required",
+      "restrictsPrintingHint": "For VIP or confidential cases: a case carrying this flag can be printed only by staff with the \"Print a restricted case\" permission.",
+      "restrictsPrintingLabel": "Restricts printing",
       "saveChangesTitle": "Save Changes",
       "severityLabel": "Severity",
       "statusLabel": "Status"
@@ -8515,6 +9579,22 @@
     },
     "subtitle": "Manage administrative and computational flags used in case workflows",
     "title": "Case & Specimen Flags"
+  },
+  "flagForMdtModal": {
+    "boardLabel": "Board",
+    "cancelBtn": "Cancel",
+    "errors": {
+      "activeListingExists": "This case is already flagged for a Tumor Board.",
+      "batchLocked": "This board's case list is locked for its upcoming meeting — choose a later date.",
+      "notPermitted": "You don't have permission to flag a case for Tumor Board.",
+      "presenterNotEligible": "That person isn't eligible to present at Tumor Board.",
+      "saveFailed": "Could not flag this case for Tumor Board — please try again."
+    },
+    "meetingDateHint": "Leave blank if the date isn't set yet — the case lands in the Unscheduled group until it is.",
+    "meetingDateLabel": "Meeting date",
+    "meetingTimeLabel": "Meeting time",
+    "submitBtn": "Flag for MDT",
+    "title": "Flag for Tumor Board / MDT"
   },
   "flagManagerModal": {
     "activeCount_one": "{{count}} active",
@@ -9092,22 +10172,38 @@
       "addMargin": "Add margin",
       "attachToBlock": "Attach to: block {{label}}",
       "attachToSpecimen": "Attach to: specimen",
-      "colorCodePlaceholder": "Ink color code",
-      "colorNamePlaceholder": "Ink color name",
       "empty": "No margins recorded yet.",
       "inkEntry": "{{colorName}} ({{colorCode}}) — {{by}}, {{when}}",
+      "issues": {
+        "margin_ink_color_unmapped": "Ink colour \"{{colorCode}}\" isn't in the ink-colour dictionary",
+        "margin_no_ink_applied": "No ink applied",
+        "margin_not_examined": "Not yet examined"
+      },
       "lateralityPlaceholder": "Laterality (optional)",
       "markExamined": "Mark this margin examined",
       "namePlaceholder": "Margin name (e.g. Lateral, Deep)",
       "onBlock": "On block {{label}}",
       "onSpecimen": "On the specimen",
       "orientationPlaceholder": "Orientation (optional)",
+      "reason": {
+        "blockNotFound": "This block is no longer on the specimen. Reload the case and try again.",
+        "caseNotFound": "This case couldn't be found. Reload the case and try again.",
+        "conflict": "Someone else changed this case at the same time. Reload the case and try again.",
+        "marginNotFound": "This margin is no longer recorded. Reload the case and try again.",
+        "notPermitted": "You don't have permission to record margin ink applications.",
+        "specimenNotFound": "This specimen is no longer on the case. Reload the case and try again."
+      },
       "saveFailed": "Couldn't save this margin ink application. Try again.",
+      "selectColorPlaceholder": "Select ink color",
       "status": {
         "examined": "Examined",
         "pending": "Pending"
       },
-      "title": "Margins & Ink Applications"
+      "title": "Margins & Ink Applications",
+      "validationNotice": {
+        "strictEnforce": "Inking validation mode: Strict Enforce — issues shown below will block sign-out until corrected.",
+        "warnOnly": "Inking validation mode: Warn & Advisory — issues shown below don't block sign-out."
+      }
     },
     "noOverrides": "No overrides recorded.",
     "noProtocol": "No protocol assigned",
@@ -9156,6 +10252,8 @@
       "deficiencyChip_other": "{{count}} specimen deficiencies — click to view history",
       "noStainsYet": "no stains yet",
       "priorityOverrideTitle": "Priority override",
+      "signatureChip_one": "{{count}} signature recorded — click to view history",
+      "signatureChip_other": "{{count}} signatures recorded — click to view history",
       "versionChip_one": "{{count}} signed version — click to view history",
       "versionChip_other": "{{count}} signed versions — click to view history"
     },
@@ -9214,6 +10312,36 @@
       "remaining": "{{countdown}} remaining"
     }
   },
+  "heldReports": {
+    "kinds": {
+      "autopsy": "autopsy report",
+      "cytology-finalize-early": "cytology case report (finalized early)",
+      "cytology-late-sign-out": "cytology specimen added to the released case report",
+      "cytology-preliminary": "urgent cytology preliminary",
+      "cytology-revision": "cytology correction or addendum",
+      "cytology-sign-out": "cytology case report",
+      "surgical-amendment": "report correction or addendum",
+      "surgical-preliminary": "preliminary report",
+      "surgical-sign-out": "signed-out report"
+    },
+    "line": "{{type}} {{what}} held for the release delay until {{time}} (released by {{name}}).",
+    "recall": "Recall",
+    "recalled": "Recalled. Nothing was sent, and it is open again.",
+    "refused": {
+      "expired": "The release delay has ended; it has gone out.",
+      "notFound": "It was not found.",
+      "notHeld": "It is no longer held.",
+      "notRecallable": "This report can't be recalled yet.",
+      "notReleaser": "Only the person who released it can recall it.",
+      "superseded": "A later report is already signed on this one (the FAD on this PAD). Recall that first."
+    },
+    "types": {
+      "ADDENDUM": "Addendum",
+      "CORRECTED": "Corrected",
+      "FINAL": "Final",
+      "PRELIMINARY": "Preliminary"
+    }
+  },
   "hl7Notifications": {
     "blockException": "🔬 {{accession}}: block {{block}} reported {{status}}",
     "blockExceptionWithNote": "🔬 {{accession}}: block {{block}} reported {{status}} — {{note}}",
@@ -9247,6 +10375,10 @@
       "description": "Log new specimens and assign Grossing Templates",
       "title": "Accession"
     },
+    "benchContributionsTile": {
+      "description": "Accessioning rate • Batch throughput & queue aging • Stage-to-stage TAT • Molecular QC",
+      "title": "Bench Contributions"
+    },
     "configurationTile": {
       "description": "System settings and AI preferences",
       "title": "Configuration"
@@ -9276,11 +10408,25 @@
       "title": "Search"
     },
     "systemsOperational": "SYSTEMS OPERATIONAL",
+    "tumorBoardTile": {
+      "description": "Flag a case for Tumor Board / MDT and manage its board agenda listing",
+      "title": "Tumor Board / MDT"
+    },
     "welcomeBack": "Welcome back,",
     "worklistTile": {
       "description": "View and manage pending pathology cases",
       "title": "Worklist"
     }
+  },
+  "hostingRegions": {
+    "kinds": {
+      "ai": "AI service",
+      "database": "Database",
+      "files": "File storage (reports, exports)"
+    },
+    "notReported": "Not reported",
+    "note": "The database and file storage regions come from the PathScribe server and can't be changed here. \"Not reported\" means the server hasn't given them (the demo has no server).",
+    "title": "Where PathScribe keeps data"
   },
   "identifierFormatsTab": {
     "barcode": {
@@ -9375,9 +10521,103 @@
     "title": "Image Management Systems",
     "tokenWarning": "Never include an authorization token in this URL — a short-lived token is resolved fresh at request time, never stored here."
   },
+  "inkColorsSection": {
+    "addColorButton": "+ Add Color",
+    "emptyState": "No ink colors yet.",
+    "headers": {
+      "actions": "Actions",
+      "code": "Code",
+      "color": "Color",
+      "status": "Status"
+    },
+    "loading": "Loading ink colors...",
+    "modal": {
+      "addColorButton": "Add Color",
+      "addTitle": "Add Ink Color",
+      "codeField": "Code",
+      "codeHint": "Validated against MarginInkApplication.colorCode at sign-out.",
+      "codePlaceholder": "#0000FF",
+      "editTitle": "Edit — {{name}}",
+      "errors": {
+        "codeCollision": "Code \"{{code}}\" is already used by \"{{name}}\".",
+        "codeRequired": "Required — the code validated against at sign-out",
+        "nameCollision": "A color named \"{{name}}\" already exists."
+      },
+      "nameField": "Name",
+      "namePlaceholder": "e.g. Blue",
+      "saveChangesButton": "Save Changes",
+      "statusField": "Status"
+    },
+    "subtitle": "The real colour dictionary MarginInkApplication.colorCode is validated against at sign-out (see the inking validation mode notice on the Grossing screen) and that the Grossing screen's margin/ink forms pick from.",
+    "title": "Ink Colors"
+  },
+  "inkingGate": {
+    "advisoryConfirm": {
+      "body_one": "{{count}} margin-inking issue is unresolved. Completing grossing now will record an advisory note; it will not block completion.",
+      "body_other": "{{count}} margin-inking issues are unresolved. Completing grossing now will record an advisory note; it will not block completion.",
+      "confirm": "Proceed with Advisory Note",
+      "title": "Unresolved margin-inking issue(s)"
+    },
+    "grossingBlock": {
+      "body": "Grossing cannot be completed: a margin-inking issue is Compliance Critical (Severity 3) and has no bypass at this gate.",
+      "title": "Grossing cannot be completed"
+    },
+    "issueCode": {
+      "margin_ink_color_unmapped": "an ink colour code that isn't in the active ink-colour dictionary",
+      "margin_no_ink_applied": "no ink application recorded",
+      "margin_not_examined": "not yet marked examined"
+    },
+    "issueLine": "Specimen {{specimen}}: {{code}}",
+    "overrideModal": {
+      "cancel": "Cancel",
+      "confirm": "Record Administrative Override",
+      "jurisdictionLabel": "Applicable regulatory reference",
+      "notPermitted": "You don't have permission to override this gate.",
+      "reasonLabel": "Reason for override",
+      "reasonTextLabel": "Additional detail (optional)",
+      "reasonTextPlaceholder": "Add any further detail for the audit record...",
+      "reasons": {
+        "EMERGENCY_INTRAOP_CONSULTATION": "Emergency intraoperative consultation",
+        "FOREIGN_OBJECT_PRE_INKED": "Specimen was pre-inked as a foreign object",
+        "OTHER": "Other (describe below)",
+        "SPECIMEN_CONSUMED_UNAVAILABLE": "Specimen consumed/unavailable for re-inking"
+      },
+      "title": "Administrative Override — Sign-Out Gate"
+    },
+    "paletteUnavailable": {
+      "body": "The ink-colour dictionary could not be read. Sign-out and grossing completion are blocked until it's available again — this does not retry automatically."
+    },
+    "signOutBlock": {
+      "overrideButton": "Administrative Override",
+      "title": "Sign-out cannot be completed"
+    }
+  },
+  "inkingValidationModeSection": {
+    "facilityLabel": "Facility",
+    "modeLabel": "Inking validation mode",
+    "modes": {
+      "STRICT_ENFORCE": {
+        "hint": "Severity 2 margin-inking issues hard-block Complete grossing until resolved.",
+        "label": "Strict Enforce"
+      },
+      "WARN_ONLY": {
+        "hint": "Severity 2 margin-inking issues are flagged but never block Complete grossing (the default).",
+        "label": "Warn Only"
+      }
+    },
+    "notPermitted": "You don't have permission to change this.",
+    "save": "Save",
+    "saved": "Saved.",
+    "subtitle": "Choose whether this facility warns (the default) or hard-blocks Complete grossing when a margin isn't examined or inked (Severity 2). A Severity 3 issue (an unmapped ink colour) always blocks, regardless of this setting.",
+    "title": "Inking Validation Mode"
+  },
   "inlineCommentThread": {
+    "addButton": "Add",
+    "addCommentLabel": "Comment on “{{question}}”",
     "addCommentPlaceholder": "Add a comment...",
+    "authorSeparator": ": ",
     "reopenButton": "Reopen",
+    "resolveButton": "Resolve",
     "resolvedBadge": "(resolved)"
   },
   "inspectionModeTab": {
@@ -9403,6 +10643,90 @@
     "totalRecordsLabel": "Total Records in Window",
     "windowLabel": "Window",
     "windowRange": "Window: {{start}} — {{end}}"
+  },
+  "interfaceEngines": {
+    "apiNotReachable": "Can't reach PathScribe: storing messages to forward",
+    "apiReachable": "Reaches PathScribe",
+    "certExpires": "Certificate expires {{when}}",
+    "channelProblem": {
+      "backlog": "Waiting more than {{minutes, number}} minutes",
+      "deadLetters": "Dead letters to resolve",
+      "error": "In error",
+      "paused": "Paused, queue kept",
+      "stopped": "Stopped"
+    },
+    "columns": {
+      "channel": "Channel",
+      "deadLetters": "Dead letters",
+      "direction": "Direction",
+      "oldest": "Oldest waiting",
+      "queued": "Waiting",
+      "state": "State"
+    },
+    "demoNote": "In the demo the browser handles interface messages itself, so there is no interface engine to monitor.",
+    "direction": {
+      "inbound": "Inbound (listener)",
+      "outbound": "Outbound"
+    },
+    "diskFree": "{{percent, number}}% disk free",
+    "hosting": {
+      "cloud": "Hosted",
+      "onsite": "On site"
+    },
+    "lastCheckIn": "Last check-in {{when}}",
+    "line": "Interface engines: {{parts}}",
+    "lineParts": {
+      "attention_one": "{{count, number}} needs attention",
+      "attention_other": "{{count, number}} need attention",
+      "degraded_one": "{{count, number}} degraded",
+      "degraded_other": "{{count, number}} degraded",
+      "listenersDown_one": "{{count, number}} listener down",
+      "listenersDown_other": "{{count, number}} listeners down",
+      "offline_one": "{{count, number}} offline",
+      "offline_other": "{{count, number}} offline",
+      "online_one": "{{count, number}} online",
+      "online_other": "{{count, number}} online",
+      "queued_one": "{{count, number}} message waiting",
+      "queued_other": "{{count, number}} messages waiting"
+    },
+    "loading": "Loading the engines' status…",
+    "minutes_one": "{{count, number}} min",
+    "minutes_other": "{{count, number}} min",
+    "neverCheckedIn": "Never checked in",
+    "none": "No interface engine has been registered yet.",
+    "number": "{{value, number}}",
+    "openOutbound": "Open Outbound",
+    "problem": {
+      "NOT_PERMITTED": "You don't have permission to see the interface engines.",
+      "SIGNED_OUT": "Your session has ended. Sign in again to see the engines.",
+      "UNAVAILABLE": "The engines' status couldn't be loaded. It will be tried again in a minute."
+    },
+    "readOnlyNote": "Channels are started or stopped on the engine itself. Failed outbound messages are resent from Outbound.",
+    "refresh": "Refresh",
+    "state": {
+      "error": "Error",
+      "paused": "Paused",
+      "started": "Started",
+      "stopped": "Stopped"
+    },
+    "status": {
+      "attention": "Needs attention",
+      "degraded": "Degraded",
+      "offline": "Offline",
+      "online": "Online"
+    },
+    "subtitle": "Each hospital's interface engine: whether its listeners are up, what is waiting and what failed. Refreshed every minute.",
+    "title": "Interface engines",
+    "totals": {
+      "deadLetters_one": "{{count, number}} dead letter",
+      "deadLetters_other": "{{count, number}} dead letters",
+      "listenersDown_one": "{{count, number}} listener down",
+      "listenersDown_other": "{{count, number}} listeners down",
+      "queued_one": "{{count, number}} waiting",
+      "queued_other": "{{count, number}} waiting"
+    },
+    "version": "Version {{version}}",
+    "view": "View engines"
   },
   "interfaceExceptionReviewModal": {
     "casesLabel": "Source patient's active cases — select which, if any, should move to the target patient",
@@ -9438,6 +10762,7 @@
     "deleteNote": "Delete note",
     "deleteNoteConfirm": "Delete this note? This cannot be undone.",
     "deleteNoteTitle": "Delete Note",
+    "dictationLabel": "Internal Note",
     "internalUseOnly": "Internal use only — not included in the formatted patient report",
     "linkedToThread": "Linked to message thread",
     "listening": "● Listening…",
@@ -9788,6 +11113,49 @@
     "subtitle": "Drag a field from the palette onto the canvas to place it. Drag a placed field to reposition it. Click a placed field to edit its exact position and size.",
     "title": "Label Designer"
   },
+  "labelReprint": {
+    "accession": "Accession",
+    "accessionFrom": "Accession number from",
+    "accessionTo": "Accession number to",
+    "accessionedFrom": "Accessioned from",
+    "accessionedTo": "Accessioned to",
+    "casesFound_one": "{{count}} case found; {{selected}} selected.",
+    "casesFound_other": "{{count}} cases found; {{selected}} selected.",
+    "cassettePrinter": "Cassette printer",
+    "choosePrinter": "Choose a printer…",
+    "find": "Find cases",
+    "include": "Reprint",
+    "includeAria": "Include this case",
+    "intro": "Find cases by accession date or number, choose the labels, and reprint them one at a time. Every label is audited; failed labels can be retried.",
+    "kinds": {
+      "cassette": "Cassettes",
+      "container": "Specimen containers",
+      "requisition": "Requisition"
+    },
+    "labelCount_one": "{{count}} label to print.",
+    "labelCount_other": "{{count}} labels to print.",
+    "labels": "Labels",
+    "noCases": "No cases match. Enter a date range or an accession number range.",
+    "pageTitle": "Label reprint",
+    "problemLine": "{{kind}} {{target}}: {{status}}. {{message}}",
+    "progress": "Printing {{done}} of {{total}}…",
+    "refusals": {
+      "noCassettePrinter": "Choose the cassette printer first.",
+      "notPermitted": "You don’t have permission to reprint labels in a batch.",
+      "nothingToPrint": "There is nothing to print."
+    },
+    "reprint": "Reprint labels",
+    "retryFailed_one": "Retry {{count}} failed label",
+    "retryFailed_other": "Retry {{count}} failed labels",
+    "specimens": "Specimens",
+    "statuses": {
+      "blocked": "blocked",
+      "failed": "failed",
+      "pending": "not printed",
+      "printed": "printed"
+    },
+    "summary": "Printed {{printed}}; failed {{failed}}; blocked by the on-demand guardrail {{blocked}}."
+  },
   "language": {
     "de": "Deutsch",
     "en": "English",
@@ -9825,6 +11193,9 @@
       "preliminaryDiagnosis": "Preliminary Diagnosis"
     }
   },
+  "links": {
+    "invalidHttpsLink": "Enter an https:// link (PathScribe keeps links to images, not the images)."
+  },
   "liveUpdates": {
     "hint": {
       "connecting": "Connecting to live updates. Refreshing every {{seconds}} seconds meanwhile.",
@@ -9840,6 +11211,11 @@
       "offline": "Offline",
       "reconnecting": "Reconnecting…"
     }
+  },
+  "loadingState": {
+    "page": "Loading page…",
+    "slow": "Still working… this is taking longer than usual.",
+    "slowPage": "Still loading this page… this is taking longer than usual."
   },
   "login": {
     "changePassword": {
@@ -9863,6 +11239,7 @@
       "newPassword": "New password",
       "submit": "Save and sign in"
     },
+    "colophonLogoAlt": "ForMedrixAI — Precision, Care, Innovation",
     "continueWith": "or continue with",
     "descriptor": "Clinical Pathology Reporting",
     "email": "Email",
@@ -9938,7 +11315,7 @@
       "visibilityLabel": "Visibility"
     },
     "emptyState": {
-      "body": "Select a macro from the list to edit it, or click <1>+ New</1> to create your first macro template.",
+      "body": "Select a macro from the list to edit it, or click <cta>+ New</cta> to create your first macro template.",
       "ctaButton": "+ Create New Macro",
       "title": "No Macro Selected"
     },
@@ -10054,6 +11431,32 @@
     "intro_other": "{{count}} closed deficiencies not yet covered by a review — all included by default, deselect anything genuinely out of scope for this session.",
     "nothingClosed": "Nothing closed since the last review."
   },
+  "marginExceptionReview": {
+    "dismissBtn": "Dismiss",
+    "dismissModal": {
+      "cancelBtn": "Cancel",
+      "reasonLabel": "Why this field has no distance to give",
+      "submitBtn": "Dismiss",
+      "title": "Dismiss exception"
+    },
+    "emptyRow": "No pending margin-distance exceptions.",
+    "errors": {
+      "notPermitted": "You don't have permission to resolve margin-distance exceptions.",
+      "saveFailed": "Couldn't save — please try again.",
+      "valueMmInvalid": "Enter a margin distance of 0 or more."
+    },
+    "openCaseBtn": "Open Case",
+    "pageTitle": "Margin Exception Review",
+    "reasons": {
+      "empty": "No answer given yet",
+      "noNumericToken": "No number found in the text",
+      "surroundingText": "A number was found, but surrounded by text this parser doesn't trust"
+    },
+    "resolveBtn": "Resolve",
+    "subtitle": "Margin-distance free-text answers the extraction layer couldn't confidently parse into a number. Tag the real distance, or dismiss with a reason.",
+    "valueMmLabel": "Margin distance (mm)",
+    "valueMmPlaceholder": "mm"
+  },
   "markersPanel": {
     "title": "Biomarkers"
   },
@@ -10149,6 +11552,8 @@
       "lost": "Lost",
       "pending": "Pending"
     },
+    "blockTooltip": "{{id}} · {{status}}",
+    "blockTooltipCancelled": "{{id}} · {{status}} — {{reason}}",
     "cancelledBadge": "CANCELLED",
     "cellBlockOption": "Cell Block",
     "createBiopsyArray": "Create Biopsy Array",
@@ -10159,6 +11564,7 @@
       "remove": "Remove",
       "removeConfirm": "Remove decant {{label}}? Its billing lines are removed too."
     },
+    "decantTooltip": "{{id}} · {{type}}",
     "editBiopsyArrayTooltip": "Edit Biopsy Array {{label}}",
     "entirelySubmittedBadge": "Entirely Submitted",
     "entirelySubmittedTooltip": "Specimen entirely submitted — all tissue used during grossing, nothing remains.",
@@ -10260,9 +11666,12 @@
     }
   },
   "mentorTab": {
+    "cleanCountersignRateLabel": "Clean countersign rate (no corrections needed)",
+    "concordanceRateLabel": "Concordance rate",
     "countersignedCount_one": "{{count}} case countersigned",
     "countersignedCount_other": "{{count}} cases countersigned",
     "noActiveSupervisees": "You have no active supervisees right now.",
+    "noCytologyCountersignRecords": "No cytology countersign records yet — coverage will show here once one exists.",
     "noFrozenSectionRecords": "No frozen-section reconciliation records yet — coverage will show here once one exists.",
     "ofExpected": "{{total}} of {{target}} expected",
     "progressTowardGraduation": "Progress toward graduation",
@@ -11005,6 +12414,12 @@
     "lotNumberLabel": "Lot Number",
     "manualEntryPlaceholder": "Specimen / container barcode",
     "manualEntryPrompt": "⌨️ Scan not working? Enter specimen ID manually",
+    "movementLevel": {
+      "plate_well": "Plate well",
+      "primary_vial": "Primary vial",
+      "secondary_rack": "Secondary rack"
+    },
+    "movementLine": "{{from}} → {{to}} — {{user}} at {{station}} — {{when}}",
     "newBatchTitle": "New Molecular Batch",
     "noDeckSlotRecorded": " (no deck slot recorded)",
     "noInstrumentsHint": "No active analysers. An administrator can add them under Configuration → System → Equipment.",
@@ -11013,6 +12428,7 @@
     "notScanned": "— not scanned —",
     "orderHint": "Placed from the Order Queue; take it off the plate there.",
     "orderLabel": "Molecular order",
+    "pageTitle": "Molecular Batch",
     "plateBarcodeLabel": "Plate Barcode",
     "plateLabel": "🖨️ Plate Label",
     "plateLayout": {
@@ -11109,6 +12525,7 @@
     "manualEntryPlaceholder": "Tube barcode",
     "manualEntryPrompt": "⌨️ Scan not working? Enter specimen ID manually",
     "newRackTitle": "New Extraction Rack",
+    "pageTitle": "Extraction Rack Loading",
     "placement": {
       "assay": "Assay",
       "assaySlots": "This assay's sample rack goes in {{slots}}.",
@@ -11192,6 +12609,32 @@
       "worklist": "Worklist & Plate Builder"
     }
   },
+  "myExports": {
+    "cancel": "Cancel",
+    "columns": {
+      "actions": "Actions",
+      "expires": "Deleted after",
+      "requested": "Requested",
+      "rows": "Rows",
+      "status": "Status",
+      "title": "Export"
+    },
+    "demoNote": "In this demonstration, exports download straight away, so there is nothing to list here. With the PathScribe server, a large export is prepared in the background and appears here when it is ready.",
+    "download": "Download",
+    "empty": "You have no exports from the last 7 days.",
+    "loading": "Loading your exports…",
+    "refresh": "Refresh",
+    "status": {
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "failed": "Failed",
+      "queued": "Waiting",
+      "ready": "Ready",
+      "running": "Preparing"
+    },
+    "subtitle": "Exports you asked for. Files are kept for 7 days, and only you can download them.",
+    "title": "My exports"
+  },
   "narrativeEditor": {
     "defaultPlaceholder": "Begin narrative report…"
   },
@@ -11246,6 +12689,9 @@
     "focusedMode": "Focused Mode",
     "messages": "Messages",
     "messagesUnread": "Messages, {{count}} unread",
+    "myExports": "My exports",
+    "myExportsReady_one": "My exports: {{count}} ready to download",
+    "myExportsReady_other": "My exports: {{count}} ready to download",
     "registryExceptions_one": "Registry exceptions: {{count}} submission needs attention",
     "registryExceptions_other": "Registry exceptions: {{count}} submissions need attention",
     "switchBackToFocusedMode": "Switch back to Focused Mode",
@@ -12598,7 +14044,6 @@
     "captured": "✓ Captured",
     "dispatchHeader": "Dispatch",
     "dispatchNow": "Dispatch Now",
-    "dispatchedSuccess": "✓ Dispatched and accepted by the receiving interface.",
     "errorHeader": "Error",
     "errorLabel": {
       "dispatchRejected": "Dispatch rejected",
@@ -12606,20 +14051,53 @@
       "engineUnreachable": "Engine unreachable",
       "unknown": "Unknown"
     },
-    "heldNoPdf": "Held: the report PDF isn't available yet. It will be sent with the PDF on a later retry.",
     "maxExceededSuffix": "(max exceeded)",
     "noFailedDispatches": "No failed dispatches.",
     "noQueuedMessages": "No queued messages.",
+    "outcomes": {
+      "failed": "Not sent: the reason is in the Error column.",
+      "held": "Held: the report PDF isn’t available yet. It will be sent with the PDF on a later retry.",
+      "notBuildable": "Not sent: the message couldn’t be built (a patient, case or record it refers to may no longer exist).",
+      "notFound": "That message is no longer in the queue.",
+      "notPermitted": "You don’t have permission to resend interface messages.",
+      "sent": "✓ Sent and accepted by the interface engine."
+    },
+    "queueLabel": "Queue",
     "queueType": {
+      "accession": {
+        "identifierColumnLabel": "Case",
+        "kindColumnLabel": "Event",
+        "optionLabel": "Accession events (accessioned / deficiency)"
+      },
+      "cytologyResult": {
+        "identifierColumnLabel": "Case",
+        "kindColumnLabel": "Result State",
+        "optionLabel": "Cytology Result (ORU^R01)"
+      },
       "lisSync": {
         "identifierColumnLabel": "Case",
         "kindColumnLabel": "Sync Kind",
         "optionLabel": "Assist-Mode LIS Sync"
       },
+      "molecularOrder": {
+        "identifierColumnLabel": "Specimen or barcode",
+        "kindColumnLabel": "Assay",
+        "optionLabel": "Molecular / Instrument Order"
+      },
       "patientAdt": {
         "identifierColumnLabel": "Source Patient",
         "kindColumnLabel": "Event Type",
         "optionLabel": "Patient ADT (A08/A40/A47)"
+      },
+      "referral": {
+        "identifierColumnLabel": "Batch barcode",
+        "kindColumnLabel": "Priority",
+        "optionLabel": "Referral Manifest"
+      },
+      "reportDelivery": {
+        "identifierColumnLabel": "Accession",
+        "kindColumnLabel": "Channel · report",
+        "optionLabel": "Report Delivery (E-fax, File Drop)"
       },
       "result": {
         "identifierColumnLabel": "Case",
@@ -12634,11 +14112,13 @@
     "retryDispatch": "Retry Dispatch",
     "retryHeader": "Retry",
     "sending": "Sending…",
+    "simulate": {
+      "rejected": "Simulate Rejected",
+      "timeout": "Simulate Timeout",
+      "unreachable": "Simulate Unreachable"
+    },
     "simulateHeader": "Simulate",
-    "simulateRejected": "Simulate Rejected",
-    "simulateTimeout": "Simulate Timeout",
-    "simulateUnreachable": "Simulate Unreachable",
-    "subtitle": "Failed and queued outbound ADT^A08/A40/A47, ORU^R01, and assist-mode LIS sync dispatches. Dispatch Now and Retry Dispatch genuinely send the real payload to the real receiving endpoint (receive_interface_message) — Simulate Failure stays a real, separate testing aid, never a real dispatch attempt.",
+    "subtitle": "Failed and waiting outbound interface messages, for all seven queues. Dispatch Now and Retry send the message to the interface engine; Simulate Failure is a testing aid and never sends. Sending needs the permission to resend interface messages.",
     "title": "Outbound Interface DLQ"
   },
   "outboundMessagePreviewSection": {
@@ -12941,6 +14421,10 @@
     "embeddingTile": {
       "description": "Cassette scan/verify, piece-count confirmation, mold selection, and discrepancy flagging at the embedding bench",
       "title": "Embedding Workspace"
+    },
+    "marginExceptionReviewTile": {
+      "description": "Margin-distance free-text answers the extraction layer couldn't confidently parse — tag the real distance or dismiss with a reason",
+      "title": "Margin Exception Review"
     },
     "microtomyTile": {
       "description": "Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench",
@@ -13428,12 +14912,7 @@
       "preferredContactLabel": "Preferred Contact",
       "preferredNameLabel": "Preferred Name (optional)",
       "preferredNamePlaceholder": "What staff should call them, if different",
-      "prefixDr": "Dr.",
       "prefixLabel": "Prefix",
-      "prefixMr": "Mr.",
-      "prefixMrs": "Mrs.",
-      "prefixMs": "Ms.",
-      "prefixMx": "Mx.",
       "prefixNone": "None",
       "saveChangesBtn": "Save Changes",
       "smsCarrierAtt": "AT&T",
@@ -13579,6 +15058,53 @@
       "fieldsCount": "{{answered}}/{{total}} fields"
     }
   },
+  "printDestination": {
+    "address": "Address",
+    "agentNeedsOneSite": "The selected jobs come from more than one lab, so only a printer address can be given. Select one lab's jobs to choose a site agent printer.",
+    "agentNoSite": "This job's lab isn't recorded (it was queued before site agent printers), so only a printer address can be given.",
+    "atSite": "{{printer}} at {{site}}",
+    "choosePrinter": "Choose a printer",
+    "chooseSite": "Choose a site",
+    "kind": "Printer",
+    "kinds": {
+      "agent": "Site agent printer",
+      "network": "Printer address (sent directly)"
+    },
+    "loadingPrinters": "Loading printers…",
+    "name": "Name",
+    "networkHint": "Sent straight to this address. This works only from a PathScribe server inside the hospital's network; from the cloud, use a site agent printer.",
+    "noPrinters": "This site's agent has no report printers yet.",
+    "openSiteAgents": "Add them in Site agents",
+    "path": "IPP path",
+    "placeholders": {
+      "address": "e.g. 10.20.30.40 or printer.lab.local",
+      "name": "e.g. Histology front desk",
+      "path": "/ipp/print",
+      "port": "Protocol's default",
+      "queue": "lp"
+    },
+    "port": "Port",
+    "printer": "Printer",
+    "printerNotListed": "This printer is no longer on the site's list. Choose another.",
+    "printersNotPermitted": "You don't have permission to see this site's printers here.",
+    "printersUnavailable": "The site's printers couldn't be loaded. Try again shortly.",
+    "problems": {
+      "addressInvalid": "Enter an IP address or host name only (no http:// or path).",
+      "addressRequired": "Enter the printer's address.",
+      "agentPrinterRequired": "Choose the site and one of its agent's printers.",
+      "portOutOfRange": "The port must be a whole number from 1 to 65535."
+    },
+    "protocol": "Protocol",
+    "protocols": {
+      "IPP": "IPP",
+      "LPR_LPD": "LPR/LPD",
+      "RAW_9100": "Raw (port 9100)"
+    },
+    "queue": "LPR queue",
+    "scopeFirst": "Choose the facility above first: its agent's printers are listed.",
+    "site": "Site (performing lab)",
+    "siteFirst": "Choose the site first: its agent's printers are listed."
+  },
   "printLabels": {
     "agent": {
       "disconnected": "The connection to the PathScribe Agent was lost before the print was confirmed.",
@@ -13634,6 +15160,9 @@
       "DUPLEX": "Duplex",
       "SIMPLEX": "Simplex"
     },
+    "failure": {
+      "needsSiteAgent": "Network printing needs the PathScribe site agent. It can't be sent from a browser."
+    },
     "noJobs": "No print jobs match this filter.",
     "paperSource": {
       "TRAY_1_LETTERHEAD": "Tray 1 — Letterhead",
@@ -13642,10 +15171,8 @@
     "redirect": {
       "cancelForm": "Cancel",
       "confirm": "Redirect & Retry",
-      "ipAddressLabel": "IP address",
-      "portLabel": "Port",
-      "portPlaceholder": "Default for protocol",
-      "protocolLabel": "Protocol"
+      "notRedirected_one": "{{count}} job wasn't redirected: you may not redirect it, or the printer isn't at its lab.",
+      "notRedirected_other": "{{count}} jobs weren't redirected: you may not redirect them, or the printer isn't at their lab."
     },
     "status": {
       "ALL": "All statuses",
@@ -13654,7 +15181,8 @@
       "HOLD": "On hold",
       "PRINTED": "Printed",
       "PRINTING": "Printing",
-      "QUEUED": "Queued"
+      "QUEUED": "Queued",
+      "SENT_TO_PRINTER": "Sent to printer"
     },
     "subtitle": "Queued, held, failed, and completed print jobs — hold, release, cancel, retry, or redirect individually or in bulk.",
     "title": "Print Queue Dashboard"
@@ -13662,9 +15190,15 @@
   "printRoutingRulesSection": {
     "addRuleButton": "+ Add Rule",
     "criteriaDescription": {
+      "both": "{{first}} · {{second}}",
       "eventTriggerType": "Trigger: {{type}}",
       "matchesEvery": "Matches every job at this tier (lowest priority within it)",
       "specimenCaseType": "Specimen: {{type}}"
+    },
+    "errors": {
+      "agentPrinterOtherSite": "A facility rule must use one of that facility's own site agent printers.",
+      "notPermitted": "You don't have permission to change print routing for that site.",
+      "saveFailed": "The rule couldn't be saved. Try again."
     },
     "eventTriggerTypeLabels": {
       "amendedSignout": "Amended Sign-out (Corrected/Addendum)",
@@ -13682,34 +15216,19 @@
       "addRuleButton": "Add Rule",
       "addTitle": "Add Print Routing Rule",
       "destinationSectionTitle": "Print Destination",
-      "displayNameLabel": "Display Name",
-      "displayNamePlaceholder": "e.g. Theatre 2 Frozen Section Printer",
       "editTitle": "Edit Print Routing Rule",
       "eventTriggerTypePlaceholder": "— Any event trigger —",
       "facilityPlaceholder": "— Select facility —",
       "hint": "Scope Tier and Scope together decide WHICH real job this rule can ever apply to — the most specific real tier with any matching, active rule wins outright over every less specific tier. Specimen/Case Type and Event Trigger are both optional refinements within that tier: leave either blank to match any value, or set both for the most specific real match among rules at the same tier.",
-      "ipAddressLabel": "IP Address",
       "locationPlaceholder": "— Select location —",
-      "missingDestinationWarning": "⚠ A protocol and IP address are required.",
       "missingScopeIdWarning": "⚠ A scope value is required for this tier.",
       "noteLabel": "Note",
       "notePlaceholder": "Why does this rule exist?",
-      "portLabel": "Port",
-      "portPlaceholder": "Default for protocol",
-      "protocolLabel": "Protocol",
-      "queueNameLabel": "Queue Name (LPR/LPD)",
-      "queueNamePlaceholder": "Default: lp",
-      "resourcePathLabel": "Resource Path (IPP)",
-      "resourcePathPlaceholder": "Default: /ipp/print",
       "saveChangesButton": "Save Changes",
       "specimenCaseTypePlaceholder": "— Any specimen/case type —",
       "workstationIdPlaceholder": "e.g. ws-fgh-theatre2-01"
     },
-    "protocolLabels": {
-      "ipp": "IPP",
-      "lprLpd": "LPR/LPD",
-      "raw9100": "RAW / Port 9100"
-    },
+    "scopeDescription": "{{tier}}: {{id}}",
     "scopeTypeLabels": {
       "clientAccount": "Client Account (Ordering Facility)",
       "facility": "Facility (Performing Lab)",
@@ -14223,6 +15742,35 @@
       "idle": "Click to check for a more recent article"
     }
   },
+  "qaActivityBoard": {
+    "by": "By",
+    "completed": "Completed",
+    "completedAt": "Completed",
+    "countersign": {
+      "attending": "Attending",
+      "changedFields": "Fields changed",
+      "name": "Countersign",
+      "resident": "Resident",
+      "status": "Status",
+      "statuses": {
+        "countersigned": "Countersigned",
+        "pending": "Awaiting countersign",
+        "returned": "Returned"
+      }
+    },
+    "discrepancyRate": "Discrepancy rate",
+    "empty": "No records yet.",
+    "intro": "Every QA activity: pending work, completed in the last {{days}} days, turnaround compliance against its TAT target, and discrepancy rate. “—” means the activity can’t measure it yet. Choose a tile to see its records.",
+    "loading": "Loading activities…",
+    "notYet": "Not yet",
+    "pending": "Pending",
+    "scopes": {
+      "adapter": "Workflow",
+      "custom": "Custom",
+      "standard": "Standard"
+    },
+    "tatCompliance": "Within TAT"
+  },
   "qaConfigurationCenterSection": {
     "addCustomActivityButton": "+ Add Custom Activity",
     "addPicker": {
@@ -14234,6 +15782,47 @@
     "archetypeLabel": {
       "review": "Review-with-Outcome",
       "supervision": "Supervision / Assignment"
+    },
+    "fieldEditor": {
+      "addField": "Add field",
+      "addOption": "Add option",
+      "defaultNotesLabel": "Notes",
+      "hintAria": "Field {{n}} hint",
+      "hintPlaceholder": "Hint for the reviewer (optional)",
+      "labelAria": "Field {{n}} label",
+      "labelPlaceholder": "Field label",
+      "moveDown": "Move down",
+      "moveUp": "Move up",
+      "optionAria": "Option {{n}} label",
+      "optionPlaceholder": "Option label",
+      "problems": {
+        "blankLabel": "Every field needs a label.",
+        "blankOptionLabel": "Every option needs a label.",
+        "choiceWithoutOptions": "A choice field needs at least one option.",
+        "duplicateId": "Two fields have the same identifier.",
+        "fieldRemoved": "A saved field can't be removed: past reviews keep their answers under it. Make it optional instead.",
+        "fieldRetyped": "A saved field can't change type: past reviews would no longer read correctly. Add a new field instead.",
+        "noFields": "An activity needs at least one field.",
+        "optionRemoved": "A saved option can't be removed: past reviews may have chosen it. Rename it instead."
+      },
+      "readOnlyLine": "{{label}} ({{type}})",
+      "removeField": "Remove field",
+      "removeOption": "Remove option",
+      "required": "Required",
+      "requiredTag": "(required)",
+      "rulesHint": "Saved fields can be renamed or made optional, but not removed or changed to another type: past reviews keep their answers under them. New fields can be added at any time.",
+      "saveFailed": "The activity couldn't be saved.",
+      "savedFieldNote": "Saved field: rename or make optional only",
+      "typeAria": "Field {{n}} type",
+      "typeLocked": "A saved field keeps its type, so past reviews still read correctly.",
+      "types": {
+        "checkboxes": "Multiple choice",
+        "dropdown": "Drop-down list",
+        "longtext": "Long text",
+        "numeric": "Number",
+        "radio": "Single choice",
+        "text": "Short text"
+      }
     },
     "loading": "Loading QA activity configuration…",
     "modal": {
@@ -14250,7 +15839,6 @@
       "noDeficiencyOption": "— No deficiency type selected —",
       "postSignOutOnlyLabel": "Only for reviews after the report was released",
       "removeButton": "Remove",
-      "requiredSuffix": "required",
       "reviewFieldsLabel": "Review Fields (from Duplicate — read-only here)",
       "samplingHint": "Fraction of eligible cases randomly selected for this activity. Blank = no automatic sampling.",
       "samplingLabel": "Sampling Percentage",
@@ -14594,6 +16182,7 @@
       "title": "✓ Quality Assurance"
     },
     "pillars": {
+      "activities": "Activities",
       "capa": "CAPA Engine",
       "cytology": "🔬 Cytology QA",
       "enterprise": "🌐 Enterprise Rollup",
@@ -15369,16 +16958,6 @@
     "finalizedReadOnly": "Finalized — read only",
     "footerNote": "Sent to LIS on finalization. Protocol-defined fields are in the Tumor, Margins & Biomarkers tabs."
   },
-  "reportPreviewPage": {
-    "close": "✕ Close",
-    "closeTitle": "Close preview",
-    "live": "Live",
-    "loadingReport": "Loading report…",
-    "print": "🖨 Print",
-    "printTitle": "Print / Save as PDF",
-    "standalone": "Standalone",
-    "updatedAt": "Updated {{time}}"
-  },
   "reportPreviewRenderer": {
     "badgeAccepted": "✓ Accepted",
     "badgeAiDraft": "AI Draft",
@@ -15400,6 +16979,16 @@
     "requiredNotCompleted": "⚠ Required — not yet completed",
     "resolvedBy": "resolved by {{resolvedBy}}"
   },
+  "reportPrint": {
+    "documentReference": "Document {{accession}} · record version {{version}}",
+    "documentReferenceNoVersion": "Document {{accession}}",
+    "notPermitted": "You don't have permission to print this case report.",
+    "restrictedCase": "This case is restricted (VIP or confidential). Printing it needs the restricted-case print permission."
+  },
+  "reportPrintFallback": {
+    "confidential": "CONFIDENTIAL — CLINICAL RECORD",
+    "windowTitle": "{{accession}} — PathScribe report"
+  },
   "reportPrintPrompt": {
     "pendingReleaseWarning": "Hard-copy printing is restricted while this report is Pending Release. The printed copy will carry the \"PENDING FINAL RELEASE\" watermark.",
     "printButton": "Print",
@@ -15410,10 +16999,24 @@
     "reprintButton": "Reprint",
     "reprintTitle": "Reprint report"
   },
+  "reportRevision": {
+    "datesLatestOnly": "Revised {{latest}}",
+    "datesWithOriginal": "Originally signed out {{original}} · Revised {{latest}}",
+    "flag": {
+      "addendum": "Report with addendum",
+      "amendment": "Amended report",
+      "correction": "Corrected report"
+    },
+    "revisionCount_one": "{{count}} revision",
+    "revisionCount_other": "{{count}} revisions"
+  },
   "reportTemplatesSection": {
     "subtabs": {
       "routingRules": "Routing Rules"
     }
+  },
+  "reportWatermark": {
+    "preliminary": "PRELIMINARY — SUBJECT TO CHANGE"
   },
   "requestReviewModal": {
     "addedToPool": "Case {{caseId}} has been added to the billing review pool.",
@@ -15422,6 +17025,7 @@
     "close": "Close",
     "codeReviewHint": "A billing specialist will review it in Quality Assurance — this does not block sign-out.",
     "codeReviewNotice": "This does not block sign-out. The case can be signed out normally regardless of review status.",
+    "defaultColleagueRole": "Pathologist",
     "eyebrow": "Informal Review Request",
     "loadingColleagues": "Loading colleagues…",
     "messageSentBody": "{{name}} has been sent a message with a link to case {{caseId}}.",
@@ -15651,6 +17255,24 @@
     }
   },
   "roleDictionary": {
+    "builtInDescriptions": {
+      "accessioner": "Receives specimens and accessions new cases.",
+      "admin": "System administrator with configuration access but no clinical case access.",
+      "cytotechnologist": "Prepares and screens cytology specimens.",
+      "fellow": "Subspecialty fellow with near-attending drafting autonomy. Manages cases independently through a complete draft report; attending still officially signs out.",
+      "histotechnologist": "Processes, embeds, cuts and stains tissue; runs histology batches and slide distribution.",
+      "labDirector": "Laboratory director. Signs off and publishes synoptic templates written by others.",
+      "molecularTechnologist": "Runs molecular testing: plates, racks and molecular batches.",
+      "orStaff": "Operating room staff (RN, circulator, surgeon) using the Intraoperative Dashboard's quick-auth PIN. Directory only — no general app access.",
+      "pathologist": "Licensed pathologist with full clinical case access and sign-out authority.",
+      "pathologistsAssistant": "Performs macroscopic examination, grossing, and specimen description. Distinct certified profession (PA(ASCP)/AAPA) — not the general-healthcare 'Physician Assistant.' No microscopic, diagnosis, or sign-out access.",
+      "physician": "External ordering physician. Directory only — no app access.",
+      "qaReviewer": "Exports quality-assurance reports and report change history. Given alongside a staff member's main role.",
+      "resident": "Pathology resident with case access and co-sign capability.",
+      "superadmin": "PathScribe platform support. Held only through a PathScribe support sign-in; cannot be given to staff.",
+      "templateApprover": "Reviews, approves and publishes synoptic templates written by others.",
+      "templateAuthor": "Drafts and edits synoptic templates and submits them for review. Cannot approve or publish."
+    },
     "capabilities": {
       "auditedTag": "Audited",
       "auditedTitle": "Every use is recorded in the audit log, allowed or refused.",
@@ -15748,7 +17370,9 @@
       "lastRoleManager": "Not saved: no role could manage roles afterwards. Give “Manage roles” to another assignable role first.",
       "notFound": "Not saved: this role no longer exists.",
       "notPermitted": "Not saved: your roles don't include managing roles.",
-      "platformRole": "Not saved: this role is managed by ForMedrixAI."
+      "platformRole": "Not saved: this role is managed by ForMedrixAI.",
+      "separationOfDuties": "Not saved: changing the clinical mismatch rules and approving the AI instructions are separate duties, so one role can't hold both.",
+      "separationOfDutiesStaff": "Not saved: this change would give someone who holds this role and another one both separate duties (changing the mismatch rules and approving the AI instructions)."
     },
     "tabs": {
       "actionReference": "Action Reference",
@@ -15892,6 +17516,28 @@
     "saveEdit": "Save Changes",
     "titleAdd": "Add Routing Rule",
     "titleEdit": "Edit Rule"
+  },
+  "runtimeConfigError": {
+    "fromServer": "(from the PathScribe server's /api/config)",
+    "help": "Your IT team or ForMedrixAI support can correct config.json on the web server; reload this page afterwards. The settings are described in the deployment guide (RUNTIME_CONFIG.md).",
+    "intro": "This deployment's configuration file (config.json) has the problems below. PathScribe won't start until they're fixed, so it never runs with the wrong settings.",
+    "problems": {
+      "ADDRESS_NOT_FROM_SERVER": "The server can't set an address. Put it in config.json, so the site's security policy allows it.",
+      "API_SERVER_IN_DEMO_BUILD": "This is a demonstration build. It can't connect to a PathScribe server, so that its demonstration accounts never reach real data. Install a server build.",
+      "API_SERVER_REQUIRED": "This build needs the address of the PathScribe server, and none is set.",
+      "INVALID_URL": "This must be a web address, or a path on this site starting with /.",
+      "NOT_AN_OBJECT": "config.json must be a list of settings and their values (a JSON object).",
+      "NOT_FROM_SERVER": "Only config.json or the build may set this (sign-in, the instance role, which jobs the server runs and similar settings stay with the site). Remove it from the server's /api/config.",
+      "NOT_HTTPS": "This address must use https (plain http is allowed only to this computer, in a development build).",
+      "NOT_IN_DEMO_BUILD": "A demonstration build can't use this: it must never reach a real server, and it is never \"production\". Install a server build.",
+      "NOT_TEXT": "This setting must be text, a number, or true or false.",
+      "NOT_THIS_SITE": "This path leads to another site. Use a path on this site, or an https address.",
+      "SSO_REQUIRED": "A server build signs in through your identity provider only. Set VITE_AUTH_MODE to \"sso\" and the provider's settings.",
+      "TOO_LONG": "This value is too long.",
+      "UNKNOWN_SETTING": "This isn't a setting PathScribe knows. Check its spelling.",
+      "UNREADABLE": "config.json isn't valid JSON."
+    },
+    "title": "PathScribe can't start: its configuration needs fixing"
   },
   "rvuCodeMapSection": {
     "activeVersion": {
@@ -16514,6 +18160,24 @@
     "defaultPlaceholder": "Search…",
     "typeToFilterPlaceholder": "Type to filter…"
   },
+  "secureMessaging": {
+    "agreementKinds": {
+      "BAA": "Business Associate Agreement (BAA)",
+      "DPA": "data processing agreement"
+    },
+    "gatewayNames": {
+      "ACCURX": "Accurx",
+      "EGRESS": "Egress",
+      "HEALTHLINK": "HealthLink",
+      "KR_HIE": "Korea Health Information Exchange (진료정보교류)",
+      "MEDICAL_OBJECTS": "Medical-Objects",
+      "NHSMAIL": "NHSmail",
+      "PAUBOX": "Paubox",
+      "REFERRALNET": "ReferralNet",
+      "VIRTRU": "Virtru",
+      "ZIX": "Zix"
+    }
+  },
   "sequencerPanel": {
     "activeBadge": "active",
     "closeAriaLabel": "Close sequencer",
@@ -16540,6 +18204,112 @@
     },
     "synopticCount_one": "{{count}} synoptic",
     "synopticCount_other": "{{count}} synoptics"
+  },
+  "serverJobs": {
+    "allKinds": "All kinds",
+    "attemptsOf": "{{attempts}} of {{max}}",
+    "columns": {
+      "actions": "Actions",
+      "attempts": "Attempts",
+      "case": "Case",
+      "deadLetters24h": "Failed for good (24 h)",
+      "error": "Last error",
+      "failedAt": "Failed",
+      "kind": "Job kind",
+      "lastRun": "Last run",
+      "overdue": "Oldest past due",
+      "ready": "Waiting",
+      "recurring": "Recurring job",
+      "running": "Running",
+      "state": "State"
+    },
+    "deadLettersHeading": "Failed for good",
+    "demoNote": "In this demonstration the browser does this work itself, so there are no server jobs to show. With the PathScribe server, its background jobs and any that failed for good are listed here.",
+    "filterKind": "Show job kind",
+    "kinds": {
+      "charge": {
+        "dispatch": "Charges"
+      },
+      "delivery": {
+        "attempt": "Report deliveries"
+      },
+      "event": "Event handlers",
+      "export": {
+        "build": "Exports"
+      },
+      "interface": {
+        "dispatch": "Interface messages"
+      },
+      "print": {
+        "dispatch": "Network prints"
+      },
+      "report": {
+        "releaseHeld": "Held report releases"
+      }
+    },
+    "kindsHeading": "Job kinds",
+    "loading": "Loading server jobs…",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "never": "Never",
+    "noDeadLetters": "No jobs have failed for good.",
+    "none": "None",
+    "openIn": {
+      "outboundInterfaces": "Resend from Interfaces",
+      "printQueue": "Open the Print Queue"
+    },
+    "problem": {
+      "NOT_DEAD_LETTERED": "This job is no longer failed; it may already have been requeued.",
+      "NOT_FOUND": "This job no longer exists.",
+      "NOT_PERMITTED": "You don't have permission for this.",
+      "SIGNED_OUT": "Your session has ended. Sign in again.",
+      "UNAVAILABLE": "The PathScribe server can't be reached. Try again in a moment.",
+      "WRONG_SCREEN": "Resend this job from Interfaces."
+    },
+    "recurring": {
+      "assist": {
+        "pollLis": "LIS polling (Assist)"
+      },
+      "bus": {
+        "purge": "Job history clean-up"
+      },
+      "consult": {
+        "expireLinks": "Consult links expiry"
+      },
+      "cytology": {
+        "histologyCorrelationSweep": "Cytology–histology correlation",
+        "roseSlaMonitor": "ROSE turnaround monitor"
+      },
+      "delivery": {
+        "retrySweep": "Delivery retries"
+      },
+      "followUp": {
+        "dailyAlerts": "Follow-up alerts"
+      },
+      "print": {
+        "batchAggregation": "Print batches"
+      },
+      "registry": {
+        "escalateStale": "Stale registry submissions"
+      },
+      "release": {
+        "dueSweep": "Held releases due"
+      },
+      "supportAccess": {
+        "expire": "Support access expiry"
+      }
+    },
+    "recurringHeading": "Recurring jobs",
+    "refresh": "Refresh",
+    "requeue": "Requeue",
+    "requeued": "Requeued. It will run again shortly.",
+    "state": {
+      "failed": "Last run failed",
+      "ok": "Running on time",
+      "overdue": "Overdue"
+    },
+    "subtitle": "The PathScribe server's background work: deliveries, prints, interface messages, held releases, charges and exports.",
+    "title": "Server jobs"
   },
   "sessionExpiryWarningModal": {
     "body": "You’ve been inactive for a while. For security reasons, your session will expire in <strong>{{mm}}:{{ss}}</strong>.",
@@ -16655,6 +18425,16 @@
       "viewAddComment": "View / add comment"
     }
   },
+  "signOutInkingGate": {
+    "blockingMessage": {
+      "ANZ_RCPA": "Sign-out is blocked: a margin-inking issue is Compliance Critical and conflicts with NPAAC / RCPA requirements ({{citation}}).",
+      "CA_IQMH": "Sign-out is blocked: a margin-inking issue is Compliance Critical and conflicts with IQMH / OLA requirements ({{citation}}).",
+      "EU_IVDR": "Sign-out is blocked: a margin-inking issue is Compliance Critical and conflicts with EU IVDR requirements ({{citation}}).",
+      "KR_MFDS": "Sign-out is blocked: a margin-inking issue is Compliance Critical and conflicts with KSP / KALM requirements ({{citation}}).",
+      "UK_RCPATH": "Sign-out is blocked: a margin-inking issue is Compliance Critical and conflicts with UKAS / RCPath requirements ({{citation}}).",
+      "US_CAP": "Sign-out is blocked: a margin-inking issue is Compliance Critical and conflicts with CLIA / CAP requirements ({{citation}})."
+    }
+  },
   "signatureEvidence": {
     "refused": {
       "different_account": "The signature was confirmed by a different account. Nothing was signed.",
@@ -16669,6 +18449,48 @@
       "wrong_case": "The signature was confirmed for a different case. Nothing was signed.",
       "wrong_signer": "The signature confirmation belongs to someone else. Nothing was signed."
     }
+  },
+  "signatureHistoryModal": {
+    "action": {
+      "autopsyFad": "Autopsy FAD signature",
+      "autopsyPad": "Autopsy PAD signature",
+      "caseSignOut": "Case sign-out",
+      "countersign": "Countersignature",
+      "cytologyPreliminary": "Cytology preliminary report",
+      "cytologySignOut": "Cytology sign-out",
+      "registryGoLive": "Registry live register approval",
+      "reportFinalize": "Report finalisation",
+      "synopticFinalize": "Synoptic report finalisation"
+    },
+    "confirmedByLabel": "Confirmed by:",
+    "emptyState": "No signatures recorded for this case yet.",
+    "header": "Signature History",
+    "intro_one": "{{count}} signature recorded for this case.",
+    "intro_other": "{{count}} signatures recorded for this case.",
+    "link": {
+      "autopsySnapshot": "Recorded for an autopsy report snapshot",
+      "cytologyPreliminary": "Recorded for a cytology preliminary report",
+      "cytologySignOut": "Recorded for a cytology sign-out",
+      "reportVersion": "Recorded for a signed report version"
+    },
+    "method": {
+      "biometric": "Biometric",
+      "password": "Password",
+      "sso": "Single sign-on"
+    },
+    "outcome": {
+      "finalized": "Finalized",
+      "released_for_countersign": "Released for countersign",
+      "signed": "Signed"
+    },
+    "recordedForLabel": "Recorded for:",
+    "signedByLabel": "Signed by:",
+    "ssoProviderLabel": "Identity provider:",
+    "verifiedBy": {
+      "browser": "verified in-browser (server verification pending)",
+      "server": "verified by the server"
+    },
+    "verifiedByLabel": "Verification:"
   },
   "signerConfirmation": {
     "attemptsLeft_one": "{{count}} attempt left before signing is locked.",
@@ -16699,6 +18521,170 @@
     "username": "Username",
     "usernamePlaceholder": "Your email address",
     "waitingForProvider": "Waiting for the sign-in window…"
+  },
+  "siteAgents": {
+    "addPickupShare": "Add pickup share",
+    "addPrinter": "Add printer",
+    "addWriteShare": "Add write share",
+    "agentsHeading": "Agents",
+    "chooseSite": "Choose a site (a performing lab) in the facility picker above to see its agents, printers and shares.",
+    "codeExpires": "Enter it when installing the agent on this site. It works once and expires {{when}}; it is not shown again.",
+    "codeLabel": "Enrolment code:",
+    "columns": {
+      "actions": "Actions",
+      "certificate": "Certificate expires",
+      "lastSeen": "Last checked in",
+      "machine": "Machine",
+      "printers": "Printers",
+      "status": "Status",
+      "version": "Version"
+    },
+    "confirmRevoke": "Revoke now",
+    "copied": "Copied",
+    "copy": "Copy",
+    "copyFailed": "Couldn't copy. Select the code and copy it by hand.",
+    "demoNote": "In this demonstration no agent can enrol, so the list of agents is empty. You can still make an enrolment code to see the steps, and set up the site's agent printers and shares.",
+    "discard": "Discard",
+    "done": "Done",
+    "line": "Site agents — online: {{online}}, need attention: {{degraded}}, offline: {{offline}}.",
+    "lineLink": "Open site agents",
+    "loading": "Loading site agents…",
+    "never": "Never",
+    "newCode": "New enrolment code",
+    "noAgents": "No agent is enrolled for this site yet. Make an enrolment code and enter it when installing the agent.",
+    "noAgentsDemo": "No agents (none can enrol in this demonstration).",
+    "noPrinters": "No printers for this site’s agent yet.",
+    "noShares": "No file shares for this site’s agent yet.",
+    "notice": {
+      "revoked": "Revoked. The agent is cut off at once.",
+      "saved": "Saved. The site’s agent picks up the change at once."
+    },
+    "placeholders": {
+      "channel": "Engine channel id",
+      "ippPath": "/ipp/print",
+      "lprQueue": "lp",
+      "pattern": "*.hl7",
+      "revokeNoteOptional": "Note (optional)",
+      "revokeNoteRequired": "Note (required for Other)",
+      "unc": "\\\\fileserver\\pathology$\\inbound"
+    },
+    "printer": {
+      "host": "Address",
+      "id": "Printer id",
+      "kind": "Kind",
+      "kinds": {
+        "label": "Label",
+        "report": "Report"
+      },
+      "name": "Name",
+      "path": "IPP path",
+      "port": "Port",
+      "problem": {
+        "hostInvalid": "Enter an IP address or a host name.",
+        "hostRequired": "An address is needed.",
+        "idDuplicate": "Two printers have this id.",
+        "idRequired": "A printer id is needed.",
+        "ipv6NotSupported": "IPv6 addresses aren’t supported yet; use an IPv4 address or a host name.",
+        "labelNeedsRaw": "Label printers use Raw 9100.",
+        "portInvalid": "The port must be between 1 and 65535."
+      },
+      "protocol": "Protocol",
+      "protocols": {
+        "IPP": "IPP",
+        "IPPS": "IPPS (confirms printing)",
+        "LPR_LPD": "LPR",
+        "RAW_9100": "Raw 9100"
+      },
+      "queue": "LPR queue",
+      "queueOrPath": "Queue or path"
+    },
+    "printerNote": "IPPS is preferred: the printer confirms each report printed. Raw 9100 and LPR can only confirm the report was sent. The agent refuses any printer outside the subnets and ports the hospital’s IT allowed on its machine.",
+    "printersHeading": "Agent printers",
+    "problem": {
+      "INVALID": "Some entries need fixing before they can be saved.",
+      "NOT_FOUND": "That agent or site no longer exists.",
+      "NOT_PERMITTED": "You don't have permission for this.",
+      "SIGNED_OUT": "Your session has ended. Sign in again.",
+      "UNAVAILABLE": "The PathScribe server can't be reached. Try again in a moment."
+    },
+    "reachable": "{{reachable}} of {{total}} reachable",
+    "remove": "Remove",
+    "revoke": "Revoke",
+    "revokeNote": "Note",
+    "revokeReason": "Reason for revoking",
+    "revokeReasons": {
+      "compromised": "May be compromised",
+      "enrolledByMistake": "Enrolled by mistake",
+      "movedSite": "Moved to another site",
+      "other": "Other",
+      "replaced": "Machine replaced",
+      "retired": "Machine retired"
+    },
+    "save": "Save printers and shares",
+    "share": {
+      "after": {
+        "delete": "Delete",
+        "moveToProcessed": "Move to “processed”"
+      },
+      "afterHandover": "After hand-over",
+      "channel": "Engine channel",
+      "chooseImport": "Choose an import",
+      "credentialRef": "Credential entry name (optional)",
+      "deleteWarning": "Deleting files after hand-over is not recommended for clinical files: keep them in “processed” unless the sender keeps its own copy.",
+      "directions": {
+        "pickup": "Pickup",
+        "write": "Write"
+      },
+      "handTo": "Hand to",
+      "handToKinds": {
+        "apiImport": "PathScribe import",
+        "engineChannel": "Interface engine channel"
+      },
+      "id": "Share id",
+      "importKind": "Import",
+      "importKinds": {
+        "orders": "Orders",
+        "results": "Results"
+      },
+      "maxMb": "Largest file (MB)",
+      "minStable": "Unchanged for (s)",
+      "pattern": "File pattern",
+      "problem": {
+        "folderInvalid": "A folder name of letters, numbers, spaces, - or _.",
+        "handToRequired": "Say which channel or import the files go to.",
+        "idDuplicate": "Two shares have this id.",
+        "idRequired": "A share id is needed.",
+        "numbersInvalid": "Unchanged for at least 5 s; largest file 1–500 MB.",
+        "patternInvalid": "A pattern is a file name only (no folders), and PDFs and images are not picked up: they stay links.",
+        "patternRequired": "A pickup share needs a file pattern, such as *.hl7.",
+        "uncInvalid": "Enter a share path like \\\\server\\share\\folder."
+      },
+      "rejectedFolder": "Refused files go to",
+      "unc": "Share path"
+    },
+    "shareNote": "Passwords for shares are never entered in PathScribe. The hospital’s IT gives the agent’s service account access, or stores the credential on the agent’s machine; here you give only that entry’s name.",
+    "sharesHeading": "File shares",
+    "status": {
+      "degraded": "Needs attention",
+      "offline": "Offline",
+      "online": "Online",
+      "revoked": "Revoked"
+    },
+    "subtitle": "The PathScribe program installed on a site's network to send reports and labels to its printers and to write and pick up files on its shares.",
+    "title": "Site agents",
+    "unsaved": "Unsaved changes",
+    "updateWindow": {
+      "clear": "No window",
+      "end": "to",
+      "note": "The site's local time. The agent installs a new version only in this window (it may cross midnight), so printing isn't interrupted during the working day. With no window, it updates when the server says.",
+      "problem": {
+        "bothRequired": "Give both times, or neither.",
+        "sameTimes": "The window can't start and end at the same time.",
+        "timeInvalid": "Use a time such as 02:00."
+      },
+      "start": "Update window from"
+    },
+    "updatesHeading": "Agent updates"
   },
   "slideDetailDrawer": {
     "acquisitionLabel": "Acquisition:",
@@ -17176,7 +19162,8 @@
       "facilityPlaceholder": "Limit to a facility…",
       "notPermitted": "Not saved: your roles don't allow this change.",
       "readOnly": "Your roles don't include assigning roles and access, so these are read-only.",
-      "saveFailed": "Not saved: something went wrong. Try again."
+      "saveFailed": "Not saved: something went wrong. Try again.",
+      "separationOfDuties": "Not saved: these roles together would give this person two separate duties (changing the clinical mismatch rules and approving the AI instructions)."
     },
     "linkedAccounts": {
       "accountLine": "Account {{account}} · linked {{date}} {{how}}",
@@ -17329,10 +19316,11 @@
       },
       "title": "Sign-in password"
     },
-    "signatureUpload": {
+    "signatureLink": {
       "alt": "Signature",
-      "formatHint": "PNG, JPG, SVG — transparent background recommended",
-      "uploadPrompt": "Click to upload signature image"
+      "hint": "A link to the signature image in your hospital's own system. PathScribe stores the link, not the image.",
+      "label": "Signature image link",
+      "placeholder": "https://…"
     },
     "status": {
       "active": "Active",
@@ -17345,7 +19333,9 @@
     },
     "validation": {
       "atLeastOneRole": "At least one role is required",
-      "invalidEmail": "Invalid email"
+      "invalidEmail": "Invalid email",
+      "invalidLink": "Enter an https:// link to the image",
+      "signatureNeedsLink": "This signature was saved as an image. PathScribe now keeps a link instead: enter the https:// link to the signature image."
     }
   },
   "stainDictionarySection": {
@@ -17780,6 +19770,14 @@
       "failed": "The review couldn't be saved. Please try again.",
       "notPermitted": "You don't have permission to record surgical QA reviews."
     },
+    "mismatch": {
+      "confidence": "{{confidence}}% confidence",
+      "deferredBy": "Deferred by {{name}}, {{date}}",
+      "description": "Low-risk mismatches a pathologist deferred while reviewing the report. Record Resolved or Unresolved; Unresolved recommends a corrective action to QA.",
+      "empty": "No deferred mismatches waiting.",
+      "reviewBtn": "Review",
+      "title": "Deferred clinical mismatches (secondary review)"
+    },
     "notRelevantBtn": "Not Relevant",
     "openCaseBtn": "Open Case",
     "pageTitle": "Surgical Post-Sign-Out QA",
@@ -17791,6 +19789,8 @@
     "clinician": "Clinician",
     "confidential": "CONFIDENTIAL — PATHOLOGY REPORT",
     "dob": "Date of Birth",
+    "documentReference": "Document {{accession}} · record version {{version}}",
+    "documentReferenceNoVersion": "Document {{accession}}",
     "figureNotDrawn": "Map notice: the map could not be drawn as an image. What it shows:",
     "mrn": "MRN",
     "noContent": "No content",
@@ -17801,6 +19801,11 @@
     "reportTemplate": "Report Template: {{name}}",
     "requiredNotCompleted": "⚠ Required — not yet completed",
     "resolvedBy": " (resolved by {{name}})",
+    "revisionAddendum": "REPORT WITH ADDENDUM",
+    "revisionAmendment": "AMENDED REPORT",
+    "revisionCorrection": "CORRECTED REPORT",
+    "revisionDatesLatestOnly": "Revised {{latest}}",
+    "revisionDatesWithOriginal": "Originally signed out {{original}} · Revised {{latest}}",
     "workupAddendum": "Addendum",
     "workupChanges": "Changed in this version",
     "workupCorrected": "Corrected",
@@ -17813,18 +19818,22 @@
     "workupVersion": "Version"
   },
   "synopticChecks": {
+    "belowSumHint": "{{value}} is less than the counts it covers ({{sum}}).",
     "calculatedHint": "Calculated from the grid.",
     "calculatedWhenFilled": "Calculated from the grid once it has counts; until then, enter the total.",
     "cellNotWhole": "{{field}}, {{row}}: {{column}} must be a whole number, 0 or more ({{value}} entered).",
     "continueAnyway": "Continue as entered",
     "countExceeds": "{{field}}, {{row}}: {{column}} ({{value}}) can’t exceed {{limit}} ({{limitValue}}).",
     "derivedFromMapHint": "Calculated from the organ map’s margin questions.",
+    "fieldBelowSum": "{{field}} ({{value}}) can’t be less than {{parts}} ({{sum}}).",
     "fieldExceeds": "{{field}} ({{value}}) can’t exceed {{limit}} ({{limitValue}}).",
     "fieldExceedsHint": "{{value}} is more than the {{limitValue}} it can’t exceed.",
+    "fieldNotCount": "{{field}} must be a whole number of 0 or more, “cannot be determined” or “at least N” ({{value}} entered).",
     "fieldNotWhole": "{{field}} must be a whole number, 0 or more ({{value}} entered).",
     "goBack": "Go back and reconcile",
     "gridEmptyHint": "The grid has no counts yet.",
     "gridTotalHint": "The grid adds up to {{total}}.",
+    "notCountHint": "Enter a whole number, “cannot be determined” or “at least N” ({{value}} isn’t one).",
     "notWholeHint": "Enter a whole number, 0 or more ({{value}} entered).",
     "rowExceeds": "{{row}}: {{column}} ({{value}}) can’t exceed {{limit}} ({{limitValue}}).",
     "rowNotWhole": "{{row}}: {{column}} must be a whole number, 0 or more ({{value}} entered).",
@@ -17849,6 +19858,7 @@
     "category": {
       "breast": "BREAST",
       "colon": "COLON",
+      "cytologyNonGyn": "NON-GYN CYTOLOGY",
       "headNeck": "Head & neck",
       "kidney": "KIDNEY",
       "liver": "LIVER",
@@ -17887,13 +19897,14 @@
       "alwaysVisible": "Always visible",
       "answerIsLabel": "Answer is",
       "answerLabel": "Answer",
+      "answersAnyLabel": "Answer is any of",
       "custom": "Custom condition (set in the template file)",
       "modeIs": "when the answer is",
       "modeIsNot": "unless the answer is",
       "modeLabel": "Show it",
       "noChoiceFieldsWarning": "⚠ No Dropdown, Radio, or Checkbox fields available as triggers",
       "orWhenLabel": "Or also when field",
-      "pickAnswerOption": "— pick an answer —",
+      "pickFieldFirst": "Choose the question first.",
       "pickFieldOption": "— pick a field —",
       "removeAlternative": "Remove",
       "removeCustom": "Remove the custom condition",
@@ -17925,6 +19936,7 @@
       "changeTypeTooltip": "Change field type",
       "codingLabel": "Field-level Coding",
       "count": {
+        "atLeastSumOf": "Can’t be below the sum of",
         "column": "Column",
         "decimal": "Decimal",
         "gridRules": "Count rules for the grid’s number columns",
@@ -17932,6 +19944,8 @@
         "gridSumChecked": "Entered by hand, checked against a grid’s total",
         "manual": "Entered by hand",
         "noLimit": "No limit",
+        "nodeCount": "Node count (free text)",
+        "nodeCountHint": "Accepts a whole number of 0 or more, “cannot be determined” or “at least N”. Anything else stops save and sign-out.",
         "notMoreThan": "Can’t exceed",
         "numberType": "Number type",
         "sumColumn": "Column",
@@ -18028,12 +20042,30 @@
       "sourceLabel": "Source / Governing Body",
       "stagingEditionLabel": "Staging edition",
       "stagingEditionPlaceholder": "e.g. AJCC 8th",
+      "standardLabel": "Reporting standard",
+      "standardPlaceholder": "e.g. The Bethesda System for Reporting Thyroid Cytopathology, 3rd edition",
       "title": "Template Metadata",
       "versionLabel": "Version",
       "versionPart": {
         "major": "MAJOR",
         "minor": "MINOR",
         "patch": "PATCH"
+      }
+    },
+    "narrative": {
+      "noValueWarning": "This sentence has no {value}, so the answer never appears in the narrative.",
+      "phraseHint": "What this answer puts into the narrative. Leave blank for an answer that adds nothing (e.g. \"Not specified\").",
+      "phraseLabel": "Narrative phrase",
+      "phrasePlaceholder": "e.g. satisfactory for evaluation",
+      "sentenceHint": "{value} is replaced by the chosen answers' narrative phrases (or a free-text answer). Leave blank and this question adds no sentence.",
+      "sentenceLabel": "Narrative sentence",
+      "sentencePlaceholder": "e.g. The specimen is {value}.",
+      "tierHint": "Tier 1 questions carry the diagnostic category; only their answers may name a lexicon term, and only they are checked for unvalidated translations at sign-out.",
+      "tierLabel": "Clinical tier",
+      "tiers": {
+        "none": "Not set",
+        "tier_1_diagnostic_category": "Tier 1: diagnostic category",
+        "tier_2_descriptive": "Tier 2: descriptive"
       }
     },
     "nav": {
@@ -18379,14 +20411,23 @@
       "tag": "Cannot finalize",
       "title": "Required fields incomplete"
     },
+    "caseUpdated": {
+      "failed": "Their changes couldn't be loaded. Try again.",
+      "gotIt": "Got it",
+      "later": "Later",
+      "message": "Someone else saved this case while you have it open. Show their changes before you save; what you haven't saved is kept.",
+      "overlap": "Someone else changed the same parts you haven't saved. Their other changes are shown; yours are kept as you typed them. When you save, you'll choose which to keep.",
+      "show": "Show their changes",
+      "shown": "Their changes are shown. Your unsaved report text and held changes are kept on top."
+    },
     "concurrency": {
       "body": "Someone else updated this case after you opened it (their version is #{{version}}).",
       "changesNone": "Nothing differs from the saved version any more.",
       "changesTitle": "Where your copy differs from the saved version",
       "colOnSave": "If you save yours anyway",
       "colPart": "Part of the case",
-      "finalizedBlocked": "This action affects the finalized report, so it can only go ahead against the current version. Reload to see their changes first.",
-      "hint": "Reload to see their version (your unsaved work is kept and offered back after the reload), or save yours anyway and overwrite theirs.",
+      "finalizedBlocked": "This action affects the finalized report, so it can only go ahead against the current version. Use their version to see their changes first (anything you haven't saved here is discarded).",
+      "hint": "Use their version (your unsaved changes here are discarded), or save yours anyway and overwrite theirs.",
       "keepWorking": "Keep working, decide later",
       "keptAsSaved": "Kept as saved",
       "notLostYet": "Your unsaved changes here aren't lost yet, but saving now would overwrite theirs.",
@@ -18406,10 +20447,12 @@
         "status": "Status",
         "synopticReports": "Synoptic reports"
       },
-      "reload": "Reload their version",
       "replacedByYours": "Replaced by yours",
       "saveMine": "Save mine anyway",
       "title": "Someone else changed this case",
+      "useTheirs": "Use their version",
+      "useTheirsDone": "Their version is shown. Your unsaved changes were discarded.",
+      "useTheirsFailed": "Their version couldn't be loaded. Try again.",
       "viewChanges": "View changes"
     },
     "countersign": {
@@ -18451,6 +20494,24 @@
       "title": "Someone else changed this case while you were working"
     },
     "noSynopticSelected": "No synoptic selected",
+    "presence": {
+      "announce": {
+        "editing": "{{name}} is editing this case.",
+        "editingSelf": "You are editing this case in another window.",
+        "joined": "{{name}} has opened this case.",
+        "joinedSelf": "You have this case open in another window.",
+        "left": "{{name}} no longer has this case open.",
+        "leftSelf": "Your other window no longer has this case open."
+      },
+      "call": "Call {{phone}}",
+      "callAria": "Call {{phone}} ({{name}})",
+      "editing": "editing",
+      "email": "Email",
+      "emailAria": "Email {{name}}",
+      "label": "Also opened by:",
+      "viewing": "viewing",
+      "youElsewhere": "You, in another window"
+    },
     "print": {
       "button": "Print",
       "buttonTitle": "Print report",
@@ -18517,6 +20578,7 @@
       "draftOverwroteOther": "Draft saved. Your version replaced a change someone else made at the same time.",
       "fixationSaveFailed": "Could not save the fixation time. Please try again.",
       "fixationTimeRecorded": "Fixation time recorded",
+      "flaggedForMdt": "Case flagged for {{board}}.",
       "grossingTemplateAssignFailed": "Specimen added, but the grossing template could not be assigned automatically. Please assign one.",
       "intraopMerged": "Intraoperative entry merged into {{caseId}}",
       "materialScanned": "📍 {{target}} scanned at “{{station}}”. Location updated and sent to the engine.",
@@ -18525,16 +20587,22 @@
         "consentRevoked": "Consent has been revoked. No tissue or organ retention can be recorded.",
         "retentionNotPermitted": "The consent on file does not permit tissue or organ retention."
       },
+      "organRetentionNotPermitted": "You don't have permission to record the organ retention tier.",
       "organRetentionRecorded": "Organ retention tier recorded",
       "organRetentionSaveFailed": "Could not save the organ retention tier. Please try again.",
       "pdfFailedPrintingScreen": "The PDF could not be created ({{error}}). Printing from the screen instead.",
       "preAnalyticDatesRecorded": "Collection and receipt dates recorded",
       "preAnalyticSaveFailed": "Could not save the pre-analytic dates. Please try again.",
+      "preliminaryHeld": "Preliminary report held for the release delay; it goes out at {{time}}.",
       "preliminaryReleaseFailed": "Could not release the preliminary report.",
       "preliminaryReleased_one": "Preliminary report released ({{count}} specimen)",
       "preliminaryReleased_other": "Preliminary report released ({{count}} specimens)",
       "savedMergedParts": "Saved. Someone else had also changed this case ({{parts}}); their changes are now shown.",
+      "sequenceReportsWithDraft": "Report order changed. It is saved with your next Save Draft.",
       "sequenceSaved": "Sequence saved",
+      "sequenceSavedReportsWithDraft": "Specimen order saved. The report order is saved with your next Save Draft.",
+      "specimenSaveConflict": "Not saved: someone else saved this case meanwhile. Show their changes, then make this change again.",
+      "specimenSaveFailed": "Could not save the specimen change. Please try again.",
       "unknownError": "unknown error"
     }
   },
@@ -18607,6 +20675,7 @@
     "sections": {
       "abnormalTriggerRules": "Abnormal Trigger Rules",
       "actionGroups": "Action Groups",
+      "aiInstructions": "AI Instructions",
       "assetLocations": "Asset Location Dictionary",
       "assistLisPolling": "Assist LIS Ingestion",
       "billingDictionary": "Billing Dictionary (Charge Capture)",
@@ -18618,6 +20687,7 @@
       "cassetteColors": "Cassette Colors",
       "cassetteRoutingRules": "Cassette Routing Rules",
       "clients": "Facility Configuration",
+      "clinicalMismatchRules": "Clinical Mismatch Rules",
       "codeImport": "Code Import (Bulk)",
       "concordanceReviewSettings": "Preliminary-vs-Final Concordance Review",
       "containerTypes": "Container Types",
@@ -18642,6 +20712,8 @@
       "governingBodies": "Governing Bodies",
       "grossingHardware": "Grossing Hardware",
       "grossingRouteOverrides": "Grossing Route Overrides",
+      "inkColors": "Ink Colors",
+      "inkingValidationMode": "Inking Validation Mode",
       "intraopCriticalResults": "Intraoperative critical results",
       "jurisdictionPaymentMappings": "Jurisdiction Payment Mapping",
       "labelDesigner": "Label Designer",
@@ -18671,12 +20743,14 @@
       "rvuCodeMap": "RVU Code Map (Productivity)",
       "scanStations": "Scan Stations",
       "sessionSecurity": "Session Security",
+      "siteAgents": "Site agents",
       "specimens": "Specimen Dictionary",
       "stains": "Diagnostic Catalog",
       "subspecialties": "Subspecialties",
       "supportAccess": "Support Access",
       "templateGovernance": "Template Review",
       "terminology": "Terminology Services",
+      "tumorBoardRules": "Tumor Board Auto-Flag Rules",
       "vendorIntegrations": "Vendor Integrations",
       "workstationGroups": "Workstation Groups"
     }
@@ -18908,6 +20982,7 @@
       "dragSub": "Drag any item from the left panel. Drop it anywhere in this area.",
       "releaseHint": "↓ Release to drop here"
     },
+    "childrenToggle": "Show contents",
     "chip": {
       "accessionHash": "Accession #",
       "always": "Always",
@@ -18930,6 +21005,7 @@
     "grid": {
       "empty": "Drop components here"
     },
+    "removeNamed": "Remove {{label}}",
     "removeTooltip": "Remove",
     "resizeTooltip": "Drag to resize column width",
     "zone": {
@@ -19024,11 +21100,13 @@
       "divLabel": "Expression Value",
       "fallbackLabel": "Fallback",
       "hint": "Use <code>{{field.path}}</code> syntax to insert values from case data.",
+      "templatePlaceholder": "{{name}}, {{age}} years old",
       "templateStringLabel": "Template string"
     },
     "footer": {
       "contentDivLabel": "Content",
       "customHtmlLabel": "Custom HTML",
+      "customHtmlPlaceholder": "<div>Page {{page}}</div>",
       "divLabel": "Footer",
       "heightLabel": "Height (px)",
       "pageNumberFormatLabel": "Page number format",
@@ -19277,6 +21355,7 @@
       "noItems": "No items",
       "noSynopticData": "No synoptic data recorded"
     },
+    "footerPatientLine": "{{name}} · DOB {{dob}} · {{accession}}",
     "margins": {
       "bottom": "Bottom",
       "heading": "MARGINS (mm)",
@@ -19295,6 +21374,7 @@
         "letter": "United States · Canada"
       }
     },
+    "sampleDepartment": "Department of Anatomic Pathology",
     "toolbar": {
       "close": "Close",
       "contextJson": "Context JSON",
@@ -19336,7 +21416,7 @@
     "lifecycleBar": {
       "notAvailableTooltip": "Not available from \"{{state}}\" state",
       "publishedBanner": "🚀 This protocol has been {{goLiveVerb}} and is live in the reporting workflow.",
-      "resetButton": "↺ Reset",
+      "resetButton": "↺ Reset to Draft",
       "transitionLabel": "LIFECYCLE TRANSITION"
     },
     "loading": "Loading protocol…",
@@ -19345,7 +21425,7 @@
       "placeholderOptional": "Add notes (optional)…",
       "placeholderRequired": "Reason for changes required (recommended)…",
       "reset": {
-        "bodyPre": "This will clear all reviewer annotations and return the lifecycle state to",
+        "bodyPre": "This clears the trial answers and any approvals, and returns the template to",
         "bodySuffix": ". This action cannot be undone.",
         "confirmButton": "Reset to Draft",
         "draftWord": "Draft",
@@ -19364,6 +21444,17 @@
       "noTemplateId": "No template ID provided.",
       "templateNotFound": "Template \"{{templateId}}\" not found.",
       "unknownError": "Unknown error."
+    },
+    "reviewGuide": {
+      "coding": "Check the coding badges: a diagnostic template can't be published until at least {{threshold}}% of its fields have SNOMED codes.",
+      "comment": "Comment on a question in the box under it, and mark a comment resolved once it has been dealt with.",
+      "independentSelf_one": "This site lets authors approve their own templates; it needs {{count}} approval.",
+      "independentSelf_other": "This site lets authors approve their own templates; it needs {{count}} approvals, each from a different person.",
+      "independent_one": "Approve only a template you didn't author: it needs {{count}} approval from someone who didn't save it.",
+      "independent_other": "Approve only a template you didn't author: it needs {{count}} approvals, each from a different person who didn't save it.",
+      "read": "Read each question as the pathologist filling it in would. Try answers in the fields: they are only for checking the form and are never added to a patient's case.",
+      "sendBack": "If anything must change, choose {{needsChanges}} and say what in the note. Reset to draft, at the end of the row, returns the template to draft and clears its approvals.",
+      "title": "How to review this template"
     },
     "state": {
       "approved": "Approved",
@@ -19426,6 +21517,8 @@
     }
   },
   "templateRequestModal": {
+    "baseOptionMeta_one": "{{source}} · {{count}} field · v{{version}}",
+    "baseOptionMeta_other": "{{source}} · {{count}} fields · v{{version}}",
     "baseSearchPlaceholder": "Search published templates…",
     "baseSelectedNote": "Admin will start from {{name}} ({{fields}} fields, {{source}} v{{version}})",
     "baseTemplateLabel": "Base Template",
@@ -19492,9 +21585,12 @@
     "whatHappensNextText": "Your request is sent to the template administration team as an internal message. They will construct the template in the Synoptic Library, where it will go through the standard governance workflow (draft → review → approved → published). You will receive a notification when it is ready to use."
   },
   "terminologyAlertBanner": {
+    "countsBoth": "{{errors}} · {{warnings}}",
     "deprecatedCodeCount_one": "{{count}} deprecated code",
     "deprecatedCodeCount_other": "{{count}} deprecated codes",
     "dismissTooltip": "Dismiss this alert",
+    "fieldOptionRef": "— {{field}} › \"{{option}}\"",
+    "fieldRef": "— {{field}}",
     "recheckButton": "Re-check",
     "suggestedReplacements_one": "Suggested replacement:",
     "suggestedReplacements_other": "Suggested replacements:",
@@ -19512,7 +21608,7 @@
       "status": "Status"
     },
     "cptCallout": {
-      "description": "CPT codes are AMA-licensed and cannot be served via a public API. Procure an <link>AMA CPT data license</link> (~$3–10k/year depending on usage) and build a backend proxy at <envVar>{{proxyUrl}}</envVar>. Both the pathologist professional component (26 modifier) and lab technical component (TC modifier) billing depend on this.",
+      "description": "CPT codes are AMA-licensed and cannot be served via a public API. Procure an <licence>AMA CPT data license</licence> (~$3–10k/year depending on usage) and build a backend proxy at <envVar>{{proxyUrl}}</envVar>. Both the pathologist professional component (26 modifier) and lab technical component (TC modifier) billing depend on this.",
       "title": "CPT License Required Before Go-Live"
     },
     "header": {
@@ -19567,6 +21663,96 @@
       "testAll": "Test All",
       "testing": "Testing…"
     }
+  },
+  "tumorBoard": {
+    "boards": {
+      "Breast MDT": "Breast MDT",
+      "GI MDT": "GI MDT",
+      "Gyn-Onc": "Gyn-Onc",
+      "Thoracic MDM": "Thoracic MDM"
+    },
+    "dismissModal": {
+      "cancelBtn": "Cancel",
+      "errors": {
+        "notPermitted": "You don't have permission to dismiss a Tumor Board flag.",
+        "reasonRequired": "A reason is required to dismiss a flag.",
+        "saveFailed": "Could not dismiss this flag — please try again."
+      },
+      "reasonLabel": "Reason",
+      "submitBtn": "Dismiss flag",
+      "title": "Dismiss Tumor Board flag"
+    },
+    "emptyRow": "No cases match these filters.",
+    "filters": {
+      "allBoards": "All boards",
+      "allPresenters": "All presenters",
+      "allStatuses": "All statuses",
+      "board": "Board",
+      "meetingWindow": "Meeting window",
+      "presenter": "Presenter",
+      "sortBy": "Sort by",
+      "sortByMeetingDate": "Meeting date",
+      "sortByUpdatedAt": "Recently updated",
+      "status": "Case status"
+    },
+    "meetingWindows": {
+      "all": "All",
+      "thisMonth": "Next 30 days",
+      "thisWeek": "Next 7 days",
+      "today": "Today"
+    },
+    "pageTitle": "Tumor Board / MDT",
+    "printBtn": "Print",
+    "row": {
+      "claimBtn": "Claim this case",
+      "claimedBy": "Claimed by {{name}}",
+      "dismissBtn": "Dismiss",
+      "meetingDate": "Meeting date",
+      "meetingTime": "Meeting time",
+      "meetingTimeNeedsDate": "Set a meeting date first",
+      "noPresenter": "No presenter assigned",
+      "openCaseBtn": "Open case",
+      "source": {
+        "Manual": "Manual",
+        "Rule": "Auto-flagged"
+      }
+    },
+    "session": {
+      "locked": "Locked",
+      "open": "Open",
+      "unassignedCount_one": "{{count}} case unassigned",
+      "unassignedCount_other": "{{count}} cases unassigned",
+      "unscheduled": "Unscheduled"
+    },
+    "statuses": {
+      "Cancelled": "Cancelled",
+      "Deferred": "Deferred",
+      "Dismissed": "Dismissed",
+      "Pending Presentation": "Pending Presentation",
+      "Presented": "Presented"
+    }
+  },
+  "tumorBoardRulesSection": {
+    "activeLabel": "Active",
+    "addOverride": "+ Add facility override",
+    "batchCutoffSubtitle": "How long before a board's meeting its case list locks — scheduling changes are refused inside this window, but presenter self-assignment still works right up to and after the meeting.",
+    "batchCutoffTitle": "Batching cut-off",
+    "cutoffHoursLabel": "Cut-off (hours before meeting)",
+    "disabled": "disabled",
+    "enterpriseTitle": "Enterprise baseline",
+    "errors": {
+      "cutoffHoursInvalid": "Enter 0 or a positive number of hours.",
+      "facilityRequired": "Choose a facility.",
+      "marginThresholdMmInvalid": "Enter a margin threshold greater than 0.",
+      "notPermitted": "You don't have permission to manage the Tumor Board auto-flag rules.",
+      "saveFailed": "Could not save — please try again."
+    },
+    "facilityEmpty": "No facility overrides yet.",
+    "facilityTitle": "Facility overrides",
+    "ruleSummary": "< {{mm}}mm",
+    "subtitle": "The margin-distance threshold that auto-flags a case for each board, at sign-out. An admin may override a board's threshold, or turn it off, for one facility.",
+    "thresholdLabel": "Margin threshold (mm)",
+    "title": "Tumor Board Auto-Flag Rules"
   },
   "ukPatientIdValidation": {
     "checksumMismatch": "Checksum (Modulus 11) failed — check digit does not match",
@@ -19626,6 +21812,7 @@
     "toast": {
       "addendumReleased": "Addendum released",
       "amendmentReleased": "Amendment released",
+      "inReleaseDelay": "This report is still in its release delay, so it hasn't been sent. Recall it to make changes, or wait until the delay ends to add a correction or addendum.",
       "reportUnlockedForMode": "Report unlocked for {{mode}} — edit the synoptic fields, then re-finalize and sign out to transmit."
     }
   },
@@ -19712,6 +21899,7 @@
       "aiSuggestionsNeedReview": "{{count}} AI suggestions still need your review before this case can be finalized — starting with \"{{label}}\"",
       "alreadyPendingRelease": "This report is already Pending Release — recall it first if you need to make further changes.",
       "answerFieldsBeforeGeneratingNarrative": "Answer some synoptic fields before generating narrative text.",
+      "autoFlaggedForTumorBoard": "Case auto-flagged for {{board}} based on the margin-distance rule.",
       "billingItemsFlaggedQa_one": "{{count}} billing item flagged for QA review — case signed out, not blocked.",
       "billingItemsFlaggedQa_other": "{{count}} billing items flagged for QA review — case signed out, not blocked.",
       "billingItemsFlaggedStartingWith": "{{count}} billing items flagged — starting with: {{note}}",
@@ -19904,6 +22092,53 @@
       "toggle": "How this works — with an example",
       "workedExample": "Worked example"
     },
+    "printReport": {
+      "deidentification": "This report contains no patient-identifiable information. Aggregate statistics only. De-identification applied at signal capture — clinical values replaced with typed placeholders before storage.",
+      "documentTitle": "PathScribe Validation Report — {{name}}",
+      "fields": {
+        "ethicsReference": "Ethics Reference",
+        "period": "Period",
+        "studyName": "Study Name",
+        "validationMode": "Validation Mode",
+        "version": "PathScribe Version"
+      },
+      "footer": "PathScribe v{{version}} · ForMedrixAI · Confidential validation report · {{date}}",
+      "generated": "Generated {{date}} · Confidential — not for distribution without authorisation",
+      "governanceStatement": "All AI-generated narrative output was reviewed, edited where necessary, and signed by a qualified pathologist before submission to the laboratory information system. PathScribe operated in advisory mode throughout this study. No AI output was transmitted to the LIS without pathologist approval. Patient data does not appear in this report. Individual pathologist performance metrics are not disclosed in this report.",
+      "grade": {
+        "conditionalPass": "CONDITIONAL PASS",
+        "furtherReview": "FURTHER REVIEW",
+        "pass": "PASS"
+      },
+      "gradeDescription": {
+        "conditionalPass": "Performance approaches targets — extended study recommended",
+        "furtherReview": "Performance below targets — review AI configuration",
+        "pass": "Performance meets study targets"
+      },
+      "kpi": {
+        "acceptanceRate": "Acceptance rate",
+        "cases": "Cases",
+        "meanEditRatio": "Mean edit ratio",
+        "sectionsAnalysed": "Sections analysed"
+      },
+      "ongoing": "Ongoing",
+      "periodRange": "{{start}} — {{end}}",
+      "sections": {
+        "bySection": "3. AI Narrative Quality — by Section",
+        "governance": "4. Governance Statement",
+        "overview": "1. Study Overview",
+        "summary": "2. Executive Summary"
+      },
+      "table": {
+        "acceptance": "Acceptance",
+        "meanEditRatio": "Mean Edit Ratio",
+        "section": "Section",
+        "signals": "Signals"
+      },
+      "title": "PathScribe AI Validation Report",
+      "validationModeValue": "Advisory — AI output reviewed and signed by pathologist. No AI-direct LIS submission.",
+      "versionValue": "v{{version}}"
+    },
     "reports": {
       "acceptanceRate": "Acceptance rate",
       "advisoryModeOnly": "Advisory mode only",
@@ -19988,6 +22223,35 @@
     "intro_one": "{{count}} version recorded for this case — signed and archived, read-only.",
     "intro_other": "{{count}} versions recorded for this case — signed and archived, read-only.",
     "pdfOpenError": "Could not open this version's PDF.",
+    "pdfProblems": {
+      "integrity": "This version's PDF no longer matches its SHA-256 fingerprint, so it is not shown. Report this to your administrator.",
+      "notFound": "This version's PDF could not be found.",
+      "notPermitted": "You don't have permission to open this version's PDF.",
+      "unavailable": "This version's PDF couldn't be fetched from the PathScribe server. Try again shortly."
+    },
+    "sentDocuments": {
+      "hash": "SHA-256 {{hash}}",
+      "integrity": "This document no longer matches its SHA-256 fingerprint, so it is not shown. Report this to your administrator.",
+      "intro": "Each released report is stored once, with its SHA-256 fingerprint. The result message, print, fax and file drop for that release, and their retries, send this stored file. \"View as sent\" opens it.",
+      "line": "{{type}} · released {{date}} · {{producer}}",
+      "listPartial": "The PathScribe server's list of sent documents couldn't be read, so this list may be incomplete.",
+      "notFound": "This document could not be found.",
+      "notPermitted": "You don't have permission to open this document.",
+      "producers": {
+        "browser-cytology": "cytology report made in the browser",
+        "report-renderer": "made by the report renderer",
+        "saved-version": "the signed report saved at sign-out"
+      },
+      "title": "Released documents",
+      "types": {
+        "ADDENDUM": "Addendum",
+        "CORRECTED": "Corrected",
+        "FINAL": "Final",
+        "PRELIMINARY": "Preliminary"
+      },
+      "unavailable": "The document couldn't be fetched from the PathScribe server. Try again shortly.",
+      "viewAsSent": "View as sent"
+    },
     "signedByLabel": "Signed by",
     "snapshotField": {
       "encounterClass": "Encounter Class",
@@ -20001,6 +22265,7 @@
       "initialSignout": "Initial Sign-Out"
     },
     "versionLabel": "Version {{number}}",
+    "versionsPartial": "The PathScribe server's list of versions couldn't be read, so this list may be incomplete.",
     "viewPdfButton": "View signed PDF"
   },
   "voiceCommandOverlay": {
@@ -20144,8 +22409,17 @@
       "requestPending": "Access request pending — your System Admin has been notified.",
       "willReceiveMessage": "You'll receive a message when access is granted."
     },
+    "amendmentGroup": {
+      "addendum": "Addenda",
+      "amendmentCorrection": "Amendment & Correction",
+      "notice": "LIS Notices — Pending Review"
+    },
     "autopsy": {
       "fieldLabel": "Autopsy"
+    },
+    "autopsyGroup": {
+      "fullyAuthorized": "Fully Authorized",
+      "temporary": "Temporary Accession — Authorization Pending"
     },
     "card": {
       "accessionPhysicianLabel": "Accession · Physician",
@@ -20227,6 +22501,7 @@
     },
     "staffChip": {
       "messageTitle": "Message {{name}}",
+      "residentBadge": "RES",
       "residentBadgeTitle": "Resident / Fellow"
     },
     "statusDot": {

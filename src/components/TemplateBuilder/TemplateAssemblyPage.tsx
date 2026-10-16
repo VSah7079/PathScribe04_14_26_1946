@@ -31,6 +31,8 @@ import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
 import { labelStyleVars } from '@/utils/labelStyleVars';
 import ConfigRefusalBanner from '../Config/ConfigRefusalBanner';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const svc  = reportTemplateService;
 const pSvc = reportPartService;
@@ -139,7 +141,7 @@ const PartPicker: React.FC<{
           <div className="ps-tmpla-picker-subtitle">
             {t('templateAssemblyPage.addingToSlotLabel')} <RoleBadge role={role} />
           </div>
-          <input data-dirty-ignore data-config-nav
+          <input aria-label={t('templateAssemblyPage.addingToSlotLabel')} data-dirty-ignore data-config-nav
             autoFocus
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -149,14 +151,14 @@ const PartPicker: React.FC<{
         </div>
         {/* List */}
         <div className="ps-tmpla-picker-list">
-          {loading && <div className="ps-tmpla-picker-loading">{t('templateAssemblyPage.loadingLabel')}</div>}
+          {loading && <LoadingState variant="inline" className="ps-tmpla-picker-loading" label={t('templateAssemblyPage.loadingLabel')} />}
           {!loading && filtered.length === 0 && (
             <div className="ps-tmpla-picker-empty">{t('templateAssemblyPage.noPublishedPartsFound')}</div>
           )}
           {filtered.map(part => (
             <div
               key={part.id}
-              onClick={() => onPick(part)}
+              {...pressable(() => onPick(part))}
               className="ps-tmpla-picker-row"
             >
               <div className={`ps-tmpla-picker-row-icon ps-tmpla-picker-row-icon--${part.partType}`}>
@@ -260,7 +262,7 @@ const PartsPanel: React.FC<{
           which lab's context is active. */}
       {labs.length > 0 && (
         <div className="ps-tmpla-panel-search-wrap">
-          <select className="ps-conf-select" value={labFilter} onChange={e => onLabFilterChange(e.target.value)}>
+          <select aria-label={t('a11y.filters.lab')} className="ps-conf-select" value={labFilter} onChange={e => onLabFilterChange(e.target.value)}>
             <option value="">{t('templateAssemblyPage.allLabsOption')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
@@ -294,7 +296,7 @@ const PartsPanel: React.FC<{
                   <div
                     key={part.id}
                     title={canAdd ? t('templateAssemblyPage.addToTooltip', { role: t(ASSEMBLY_ROLE_LABEL_KEY[activeRole!]) }) : t('templateAssemblyPage.selectZoneFirstTooltip')}
-                    onClick={() => canAdd && onAdd(part, activeRole!)}
+                    {...pressable(() => canAdd && onAdd(part, activeRole!))}
                     className={`ps-tmpla-panel-row${canAdd ? ' ps-tmpla-panel-row--addable' : ''}`}
                   >
                     <div className="ps-tmpla-panel-row-icon">
@@ -429,7 +431,7 @@ const DocumentStyleEditor: React.FC<{ style: LabelConfig; onChange: (s: LabelCon
   return (
   <div className="ps-tinsp-stack">
     <Label>{t('templateAssemblyPage.fontFamilyLabel')}</Label>
-    <Sel value={style.fontFamily ?? 'Arial'} onChange={v => onChange({ ...style, fontFamily: v })}
+    <Sel ariaLabel={t('templateAssemblyPage.fontFamilyLabel')} value={style.fontFamily ?? 'Arial'} onChange={v => onChange({ ...style, fontFamily: v })}
       options={FONT_FAMILY_OPTIONS} fullWidth />
 
     <Label>{t('templateAssemblyPage.fontSizeLabel')}</Label>
@@ -453,7 +455,7 @@ const DocumentStyleEditor: React.FC<{ style: LabelConfig; onChange: (s: LabelCon
     </div>
 
     <Label>{t('templateAssemblyPage.textTransformLabel')}</Label>
-    <Sel value={style.transform ?? 'none'} onChange={v => onChange({ ...style, transform: v as LabelConfig['transform'] })}
+    <Sel ariaLabel={t('templateAssemblyPage.textTransformLabel')} value={style.transform ?? 'none'} onChange={v => onChange({ ...style, transform: v as LabelConfig['transform'] })}
       options={[
         { value: 'none',       label: t('templateAssemblyPage.transformAsTyped') },
         { value: 'uppercase',  label: t('templateAssemblyPage.transformUppercase') },
@@ -633,7 +635,7 @@ export const TemplateAssemblyPage: React.FC = () => {
     setActiveRole(null);
   }, [addSlot]);
 
-  if (loading) return <div className="ps-tmpla-loading">{t('templateAssemblyPage.loadingTemplate')}</div>;
+  if (loading) return <LoadingState label={t('templateAssemblyPage.loadingTemplate')} />;
   if (!template) return <div className="ps-tmpla-loading">{t('templateAssemblyPage.templateNotFound')}</div>;
 
   // Group slots by role display order
@@ -691,7 +693,7 @@ export const TemplateAssemblyPage: React.FC = () => {
               onMouseEnter={() => setNameActive(true)}
               onMouseLeave={() => setNameActive(false)}
             >
-              <input value={template.name}
+              <input aria-label={t('a11y.fields.name')} value={template.name}
                 onChange={e => setTemplate({ ...template, name: e.target.value })}
                 onFocus={() => setNameActive(true)}
                 onBlur={() => { setNameActive(false); save(template); }}

@@ -4,7 +4,7 @@ The case worklist table and its pool-claim workflow.
 
 ## Files
 
-- **`WorklistTable.tsx`** (1834 lines, one of the largest single
+- **`WorklistTable.tsx`** (~2,270 lines; was 1834, updated in the Batch 496 README audit — one of the largest single
   components in the app) — The core case list: sorting, filtering,
   responsive card/table switching, divider rows, virtualization. Cleanly
   self-organized into clear internal sections (Types/Constants/Color
@@ -46,6 +46,11 @@ The case worklist table and its pool-claim workflow.
   nothing about how `buildPoolGroupRows()` itself groups, sorts, or
   counts pools needed to change.
 - **`poolGrouping.test.ts`** — 19 real tests (grew from 8): the original grouping/sorting/counting coverage, plus the new explicit-flag regression fix, and `computeRestrictedPoolKeys`'s real membership logic (restricted when not a member and restriction is on, unrestricted when a member, unrestricted when restriction is off, matches by both Subspecialty name and id). Re-run and confirmed still passing, unmodified, after `splitPoolRowsByUrgency()` was added above — the additive-function approach was specifically chosen to keep this coverage untouched, and re-running confirmed that held rather than just assuming it.
+- **`SlideDetailDrawer.tsx`** — the Digital Readiness slide detail drawer, opened from the worklist (`pages/WorklistPage/WorklistPage.tsx`).
+- **`autopsyGrouping.ts`** (+ test) — the Autopsy branch tab's grouping, same pattern as the pool and amendment grouping files.
+- **`AutopsyWorklistBadges.tsx`** — see Batch 477 below.
+
+  *Corrected in the Batch 496 README audit (Oct 9, 2026): these three files were missing from this list.*
 - **`amendmentGrouping.ts`** (+ `amendmentGrouping.test.ts`) — pure,
   testable extraction of the Worklist's Amendment & Addenda
   sub-grouping logic, same discipline as `poolGrouping.ts` above. Real
@@ -349,3 +354,20 @@ New `AutopsyWorklistBadges.tsx`, shown in both the table row's Status cell and t
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 506 (PS-477)
+
+- `WorklistTable` remembers collapsed pools through `utils/uiPreferences.ts` instead of the mock-storage helpers. The key changed, so a remembered collapsed/expanded state resets once.
+- `PoolClaimModal` and `WorklistTable` import their services from `@/services`.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. The MRN label and the resident badge ("RES") are translated. Group dividers in `amendmentGrouping.ts` and `autopsyGrouping.ts` carry a translation key (`labelKey`) instead of English text.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 567 (WCAG 2.1 AA)
+
+- `WorklistTable.tsx`: the two digital-pathology cells are a mouse shortcut only (`clickableContainer`), and only when they show a badge; the badge button is the one tab stop (it was the cell and the badge).

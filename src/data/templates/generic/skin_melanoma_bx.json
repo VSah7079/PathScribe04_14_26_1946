@@ -359,18 +359,9 @@
           "type": "checkboxes",
           "required": true,
           "options": [
-            {
-              "id": "margin_status_melanoma_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "margin_status_melanoma_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "margin_status_melanoma_opt_3",
-              "label": "Option 3"
-            }
+            { "id": "margin_status_melanoma_opt_1", "label": "Negative (uninvolved)" },
+            { "id": "margin_status_melanoma_opt_2", "label": "Positive (involved)" },
+            { "id": "margin_status_melanoma_opt_3", "label": "Cannot be assessed" }
           ]
         },
         {
@@ -379,22 +370,10 @@
           "type": "checkboxes",
           "required": true,
           "options": [
-            {
-              "id": "margins_involved_invasive_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "margins_involved_invasive_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "margins_involved_invasive_opt_3",
-              "label": "Option 3"
-            },
-            {
-              "id": "margins_involved_invasive_opt_4",
-              "label": "Option 4"
-            }
+            { "id": "margins_involved_invasive_opt_1", "label": "Peripheral (lateral)" },
+            { "id": "margins_involved_invasive_opt_2", "label": "Deep" },
+            { "id": "margins_involved_invasive_opt_3", "label": "Peripheral and deep" },
+            { "id": "margins_involved_invasive_opt_4", "label": "Not applicable" }
           ]
         },
         {
@@ -403,22 +382,10 @@
           "type": "checkboxes",
           "required": true,
           "options": [
-            {
-              "id": "margins_involved_in_situ_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "margins_involved_in_situ_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "margins_involved_in_situ_opt_3",
-              "label": "Option 3"
-            },
-            {
-              "id": "margins_involved_in_situ_opt_4",
-              "label": "Option 4"
-            }
+            { "id": "margins_involved_in_situ_opt_1", "label": "Peripheral (lateral)" },
+            { "id": "margins_involved_in_situ_opt_2", "label": "Deep" },
+            { "id": "margins_involved_in_situ_opt_3", "label": "Peripheral and deep" },
+            { "id": "margins_involved_in_situ_opt_4", "label": "Not applicable" }
           ]
         },
         {

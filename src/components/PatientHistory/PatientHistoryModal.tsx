@@ -5,18 +5,16 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
-import { mockMessageService } from '@/services/messages/mockMessageService';
+
 import { useAuth } from '@/contexts/AuthContext';
-import { mockUserService } from '@/services/users/mockUserService';
-import {
-  PatientHistoryCase,
-  AiMatchedCase,
-  findSimilarCases,
-} from '@/services/cases/mockCaseService';
+
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+
 import type { MasterPatientRecord } from '@/services/patients/IPatientIndexService';
 import { queryRealPatientHistory } from '@/services/patients/patientHistoryQuery';
+import { messageService, userService, type PatientHistoryCase, type AiMatchedCase, findSimilarCases, patientIndexService } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,7 +56,7 @@ function isAiCase(item: ReportItem): item is AiMatchedCase {
 // clinical data, not chrome authored in this file — and stay
 // untranslated throughout, same posture as every other case-content
 // field elsewhere in this codebase. The outbound message `subject`/
-// `body` sent via mockMessageService.send() is a message body to
+// `body` sent via messageService.send() is a message body to
 // another user and stays English per established convention. Field
 // *labels* ("Case ID", "Site", "Gross Description", etc.) are UI
 // chrome and are translated below.
@@ -72,7 +70,7 @@ function CaseCard({ item, onClick }: { item: ReportItem; onClick: () => void }) 
   return (
     <div
       className="ps-ph-card"
-      onClick={onClick}
+      {...pressable(onClick)}
     >
       <div className="ps-ph-card-top">
         <span className="ps-ph-card-date">{item.date}</span>
@@ -240,7 +238,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
       // distinct
       // real people; merging their histories together here would be
       // a real, clinically wrong outcome, not a cosmetic one.
-      mockPatientIndexService.getLinkedPatientIds(patientId, 'same_person'),
+      patientIndexService.getLinkedPatientIds(patientId, 'same_person'),
       caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
     ])
       .then(([linkedIds, casesRes]) => {
@@ -253,11 +251,11 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
     // genuinely distinct real people, shown as its own, separate
     // cross-reference below, never folded into the case-history list
     // above.
-    mockPatientIndexService.getLinkedPatientIds(patientId, 'family_relation')
+    patientIndexService.getLinkedPatientIds(patientId, 'family_relation')
       .then(async ids => {
         const relatedIds = ids.filter(id => id !== patientId);
         if (relatedIds.length === 0) { setFamilyRelatedPatients([]); return; }
-        const records = await Promise.all(relatedIds.map(id => mockPatientIndexService.getById(id)));
+        const records = await Promise.all(relatedIds.map(id => patientIndexService.getById(id)));
         setFamilyRelatedPatients(records.filter((r): r is MasterPatientRecord => !!r));
       })
       .catch(() => setFamilyRelatedPatients([]));
@@ -297,13 +295,13 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
     // anywhere in this data yet. Strips a leading "Dr." before matching
     // since physicianName typically includes it but the directory's
     // firstName/lastName fields don't.
-    const usersResult = await mockUserService.getAll();
+    const usersResult = await userService.getAll();
     const normalizedTarget = (physicianName ?? '').replace(/^dr\.?\s*/i, '').trim().toLowerCase();
     const matchedPhysician = usersResult.ok
       ? usersResult.data.find(u => `${u.firstName} ${u.lastName}`.trim().toLowerCase() === normalizedTarget)
       : undefined;
 
-    await mockMessageService.send({
+    await messageService.send({
       senderId: user?.id ?? '',
       senderName: user?.name ?? 'Unknown',
       recipientId: matchedPhysician?.id ?? '',
@@ -405,7 +403,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
                   {t('patientHistoryModal.insufficientId.body', { missing: t(missingIdentifierKey) })}
                 </div>
               ) : historyLoading ? (
-                <div className="ps-ph-empty-state">{t('patientHistoryModal.panel.loadingHistory')}</div>
+                <LoadingState variant="inline" className="ps-ph-empty-state" label={t('patientHistoryModal.panel.loadingHistory')} />
               ) : history.length === 0 ? (
                 <div className="ps-ph-empty-state">{t('patientHistoryModal.panel.noHistory')}</div>
               ) : (
@@ -428,7 +426,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
                     <div
                       key={r.id}
                       className="ps-ph-empty-state ps-ph-related-patient-row"
-                      onClick={() => { setViewingRelatedPatient({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mrn: r.mrn, dateOfBirth: r.dateOfBirth }); setView('list'); }}
+                      {...pressable(() => { setViewingRelatedPatient({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mrn: r.mrn, dateOfBirth: r.dateOfBirth }); setView('list'); })}
                       data-phi="true"
                     >
                       {t('patientHistoryModal.relatedPatient.row', { firstName: r.firstName, lastName: r.lastName, mrn: r.mrn, dob: new Date(r.dateOfBirth).toLocaleDateString() })} →

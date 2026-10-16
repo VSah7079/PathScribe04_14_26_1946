@@ -36,11 +36,12 @@
 //   - handleProtocolChangesDetected: from useAmendmentWorkflow.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { AuditLogFn } from '@/components/Audit/useAuditLog';
 import { useState, useCallback, useRef, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { routeCase, routeStatCase } from '@/services/cases/casePoolAssignmentService';
-import { aiBehaviorService, authorizationService, auditService, specimenDeficiencyService } from '@/services';
+import { aiBehaviorService, authorizationService, auditService, specimenDeficiencyService, serviceChargeService, outboundChargeQueueService, billingTypeTriggerConfigService } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatList } from '@/utils/formatList';
@@ -50,17 +51,17 @@ import type { Case, ProtocolChange } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { SetConcurrencyConflict } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
-import { mockServiceChargeService } from '@/services/billing/mockServiceChargeService';
-import { mockOutboundChargeQueueService } from '@/services/billing/mockOutboundChargeQueueService';
+
 import { sweepChargesForOutbox } from '@/services/billing/sweepChargesForOutbox';
-import { mockBillingTypeTriggerConfigService } from '@/services/billing/mockBillingTypeTriggerConfigService';
+
 import { validateChargeMetadata } from '@/services/billing/validateChargeMetadata';
 
 interface UseGrossingCompletionParams {
   caseData: Case | null;
   setCaseData: React.Dispatch<React.SetStateAction<Case | null>>;
   showToast: (message: string, kind?: import('@/utils/toastPolicy').ToastKind) => void;
-  log: (event: string, detail: Record<string, unknown>) => void;
+  // Batch 511 (PS-478): the page's typed audit logger, so each event and its details are checked against the audit catalogue.
+  log: AuditLogFn;
   knownVersionRef: MutableRefObject<number>;
   setConcurrencyConflict: SetConcurrencyConflict;
   grossingSnapshotRef: MutableRefObject<Map<string, string>>;
@@ -344,17 +345,17 @@ export function useGrossingCompletion({
       // once (see its own header), so every specimen is genuinely,
       // simultaneously grossed at this moment.
       (async () => {
-        const chargesRes = await mockServiceChargeService.getChargesForCase(caseData.id);
+        const chargesRes = await serviceChargeService.getChargesForCase(caseData.id);
         if (!chargesRes.ok) return;
-        const alreadyQueuedRes = await mockOutboundChargeQueueService.getByServiceChargeRecordIds(
+        const alreadyQueuedRes = await outboundChargeQueueService.getByServiceChargeRecordIds(
           chargesRes.data.map(c => c.id)
         );
         const alreadyQueuedIds = new Set(alreadyQueuedRes.ok ? alreadyQueuedRes.data.map(e => e.serviceChargeRecordId) : []);
-        const triggerMapRes = await mockBillingTypeTriggerConfigService.getEffectiveTriggerMap(caseData.order?.siteId);
+        const triggerMapRes = await billingTypeTriggerConfigService.getEffectiveTriggerMap(caseData.order?.siteId);
         const toEnqueue = sweepChargesForOutbox(chargesRes.data, 'SPECIMEN_GROSSED', alreadyQueuedIds, triggerMapRes.ok ? triggerMapRes.data : undefined);
         const metadataFailures = validateChargeMetadata(caseData);
         await Promise.all(toEnqueue.map(async f => {
-          const enqueueRes = await mockOutboundChargeQueueService.enqueue({
+          const enqueueRes = await outboundChargeQueueService.enqueue({
             serviceChargeRecordId: f.serviceChargeRecordId,
             caseId: f.caseId,
             specimenId: f.specimenId,
@@ -365,7 +366,7 @@ export function useGrossingCompletion({
           // metadata is flagged FAILED immediately, not left QUEUED
           // with data already known to be bad.
           if (enqueueRes.ok && metadataFailures.length > 0) {
-            await mockOutboundChargeQueueService.markFailed(enqueueRes.data.id, {
+            await outboundChargeQueueService.markFailed(enqueueRes.data.id, {
               errorCode: metadataFailures[0].errorCode,
               errorMessage: metadataFailures[0].errorMessage,
               maxRetriesExceeded: false,
@@ -424,7 +425,7 @@ export function useGrossingCompletion({
         // while any resulting review modal is open — see isEvaluatingSynopticFit.
         setIsEvaluatingSynopticFit(true);
         try {
-          const { evaluateSynopticAssignment } = await import('@/services/cases/mockCaseService');
+          const { evaluateSynopticAssignment } = await import('@/services');
           const result = await evaluateSynopticAssignment(evaluationInput);
           const allWarnings = [...evalWarnings, ...result.warnings];
           if (allWarnings.length) {
@@ -471,7 +472,7 @@ export function useGrossingCompletion({
           let specimensWithProposedGrossingChange = new Set<string>();
           if (grossAiEnabled && combinedDictatedGrossText.trim()) {
             try {
-              const { evaluateGrossingTemplateFit } = await import('@/services/cases/mockCaseService');
+              const { evaluateGrossingTemplateFit } = await import('@/services');
               const grossingAvailableTemplates = allTemplates
                 .filter(t => t.isDiagnostic === false)
                 .map(t => ({ id: t.id, name: t.name, category: t.category }));
@@ -524,7 +525,7 @@ export function useGrossingCompletion({
             .filter(s => !specimensWithProposedGrossingChange.has(s.specimenId!));
           if ((hasDictatedGrossText || perSpecimenGrossSections.length > 0) && (caseData.specimens ?? []).some(sp => !specimensWithProposedGrossingChange.has(sp.id))) {
             try {
-              const { generateGrossingFieldSuggestionsFromDictation } = await import('@/services/cases/mockCaseService');
+              const { generateGrossingFieldSuggestionsFromDictation } = await import('@/services');
               // stripHtml already imported and in scope from the
               // fit-evaluation block above.
 
@@ -611,7 +612,7 @@ export function useGrossingCompletion({
       console.error('[Gross Complete] Failed:', err);
       showToast(t(isUpdate ? 'useGrossingCompletion.toast.updateGrossFailed' : 'useGrossingCompletion.toast.grossCompleteFailed'), 'warning');
     }
-  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t, i18n.language, grossingRequirements, missingText, user, promptForUpdateReason]);
+  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t, i18n.language, grossingRequirements, missingText, user, promptForUpdateReason, handleGrossingProtocolChangesDetected]);
 
   const confirmGrossCompleteWithoutProtocol = useCallback(async () => {
     setPendingProtocolConfirmation(null);

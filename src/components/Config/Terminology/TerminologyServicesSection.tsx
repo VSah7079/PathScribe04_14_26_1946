@@ -21,6 +21,7 @@ import {
   type ServiceStatus,
   type TerminologyServiceStatus,
 } from './terminologyConfig';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ─── Toggle (matches GoverningBodiesSection design) ───────────────────────────
 
@@ -29,9 +30,10 @@ const Toggle: React.FC<{
   onChange:  (v: boolean) => void;
   disabled?: boolean;
   color?:    string;
-}> = ({ checked, onChange, disabled = false, color = '#0891B2' }) => (
+  label:     string;
+}> = ({ checked, onChange, disabled = false, color = '#0891B2', label }) => (
   <div
-    onClick={() => !disabled && onChange(!checked)}
+    {...switchable(checked, () => onChange(!checked), label, disabled)}
     className={`ps-termsvc-toggle-track${disabled ? ' ps-termsvc-toggle-track--disabled' : ''}`}
     style={{ '--toggle-bg': checked ? color : '#334155' } as React.CSSProperties}
   >
@@ -51,7 +53,7 @@ const STATUS_STYLES: Record<ServiceStatus, { bg: string; color: string; dot: str
   live:             { bg: 'rgba(16,185,129,0.1)',  color: '#10b981', dot: '#10b981' },
   degraded:         { bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b', dot: '#f59e0b' },
   down:             { bg: 'rgba(239,68,68,0.1)',   color: '#ef4444', dot: '#ef4444' },
-  not_configured:   { bg: 'rgba(100,116,139,0.1)', color: '#64748b', dot: '#475569' },
+  not_configured:   { bg: 'rgba(100,116,139,0.1)', color: '#8794a8', dot: '#475569' },
   license_required: { bg: 'rgba(251,191,36,0.1)',  color: '#fbbf24', dot: '#fbbf24' },
   checking:         { bg: 'rgba(100,116,139,0.1)', color: '#94a3b8', dot: '#334155' },
 };
@@ -301,7 +303,7 @@ const TerminologyServicesSection: React.FC<{ isSuperAdmin?: boolean }> = ({
           {isSuperAdmin && (
             <div className="ps-termsvc-envtoggle-row">
               <span className="ps-termsvc-envtoggle-label">{t('terminologyServicesSection.showEnvVars')}</span>
-              <Toggle checked={showEnvVars} onChange={setShowEnvVars} color="#7c3aed" />
+              <Toggle checked={showEnvVars} onChange={setShowEnvVars} color="#7c3aed" label={t('terminologyServicesSection.showEnvVars')} />
             </div>
           )}
 
@@ -361,7 +363,8 @@ const TerminologyServicesSection: React.FC<{ isSuperAdmin?: boolean }> = ({
               i18nKey="terminologyServicesSection.cptCallout.description"
               values={{ proxyUrl: TERMINOLOGY_CONFIG.cpt.proxyUrl }}
               components={{
-                link: <a href="https://www.ama-assn.org/practice-management/cpt" target="_blank" rel="noreferrer" className="ps-termsvc-callout-link" />,
+                // Batch 524 (PS-491): was `link`, an HTML void element name, so Trans dropped the link text.
+                licence: <a href="https://www.ama-assn.org/practice-management/cpt" target="_blank" rel="noreferrer" className="ps-termsvc-callout-link" />,
                 envVar: <span className="ps-termsvc-mono" />,
               }}
             />

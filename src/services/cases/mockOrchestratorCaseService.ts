@@ -14,6 +14,7 @@ import type { Case } from '../../types/case/Case';
 import { storageGet, storageSet, storageClear } from '../mockStorage';
 import { applyCaseFilters, applyCasePagination } from './caseFilterUtils';
 import { recordCaseChange } from '../reportChangeLog/recordCaseChange';
+import { dataStorage } from '../browserData/dataStorage';
 
 // v3 key forces reset to pick up Stage 0 seed cases (O26-0018/0019/0020) —
 // see Stage 0 Requirements §5 (S0-MD-01). v2 was the reportingMode fix
@@ -1912,10 +1913,10 @@ const ORCH_CASES: Case[] = [...PETE_CASES, ...PAUL_CASES, ...AMBER_CASES, ...BRO
 // ORCH_MOCK_VERSION whenever ORCH_CASES content changes.
 const ORCH_MOCK_VERSION = '7'; // bumped: added real, accurate specimen-level base CPT codes to 5 of the 6 demo cases with pending ancillary suggestions (O26-0001: 88309, O26-0004/0025/0026: 88307, O26-0024: 88309), so a sales/test demo of the full sign-out workflow doesn't hit an unrelated "no base code" warning. O26-0028 deliberately left without one, per direct decision, so the existing hasAncillaryButNoBaseCode safety warning stays demonstrable on at least one real case.
 const ORCH_VERSION_KEY = 'pathscribe_mock_orch_cases_version';
-const storedOrchVersion = localStorage.getItem(ORCH_VERSION_KEY);
+const storedOrchVersion = dataStorage.getItem(ORCH_VERSION_KEY);
 if (storedOrchVersion !== ORCH_MOCK_VERSION) {
   storageClear(STORAGE_KEY);
-  localStorage.setItem(ORCH_VERSION_KEY, ORCH_MOCK_VERSION);
+  dataStorage.setItem(ORCH_VERSION_KEY, ORCH_MOCK_VERSION);
 }
 
 const CASES: Case[] = (() => {

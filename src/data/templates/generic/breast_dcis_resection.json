@@ -1,6 +1,6 @@
 {
   "id": "breast_dcis_resection",
-  "name": "Generic Template — Breast Dcis Resection",
+  "name": "Generic Template \u2014 Breast Dcis Resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "BREAST",
@@ -252,25 +252,25 @@
           "options": [
             {
               "id": "dcis_nuclear_grade_opt_1",
-              "label": "Option 1",
+              "label": "Low",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "dcis_nuclear_grade_opt_2",
-              "label": "Option 2",
+              "label": "Intermediate",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "dcis_nuclear_grade_opt_3",
-              "label": "Option 3",
+              "label": "High",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "dcis_nuclear_grade_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -380,19 +380,19 @@
           "options": [
             {
               "id": "margin_status_dcis_opt_1",
-              "label": "Option 1",
+              "label": "Negative (uninvolved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_dcis_opt_2",
-              "label": "Option 2",
+              "label": "Positive (involved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_dcis_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -409,55 +409,55 @@
           "options": [
             {
               "id": "closest_margins_dcis_opt_1",
-              "label": "Option 1",
+              "label": "Superior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_2",
-              "label": "Option 2",
+              "label": "Inferior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_3",
-              "label": "Option 3",
+              "label": "Medial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_4",
-              "label": "Option 4",
+              "label": "Lateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_5",
-              "label": "Option 5",
+              "label": "Anterior (superficial)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_6",
-              "label": "Option 6",
+              "label": "Posterior (deep)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_7",
-              "label": "Option 7",
+              "label": "Superomedial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_8",
-              "label": "Option 8",
+              "label": "Superolateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_9",
-              "label": "Option 9",
+              "label": "Inferomedial",
               "snomed": "",
               "icd": ""
             }
@@ -474,49 +474,49 @@
           "options": [
             {
               "id": "margins_involved_dcis_opt_1",
-              "label": "Option 1",
+              "label": "Superior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_2",
-              "label": "Option 2",
+              "label": "Inferior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_3",
-              "label": "Option 3",
+              "label": "Medial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_4",
-              "label": "Option 4",
+              "label": "Lateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_5",
-              "label": "Option 5",
+              "label": "Anterior (superficial)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_6",
-              "label": "Option 6",
+              "label": "Posterior (deep)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_7",
-              "label": "Option 7",
+              "label": "Superomedial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_8",
-              "label": "Option 8",
+              "label": "Superolateral",
               "snomed": "",
               "icd": ""
             }
@@ -592,7 +592,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true
         },
         {
           "id": "regional_ln_comment",

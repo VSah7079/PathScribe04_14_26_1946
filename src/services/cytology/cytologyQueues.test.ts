@@ -1,7 +1,7 @@
 // Batch 440 (PS-271 follow-up): who works which GYN cytology case.
 import { describe, it, expect } from 'vitest';
 import {
-  awaitingPathologistReview, cytologyReviewTrayState, isOwnPrimaryScreen, isQcRole,
+  awaitingPathologistReview, cytologyReviewTrayState, firstQualifyingSpecimenPerCase, isOwnPrimaryScreen, isQcRole,
   pathologistsOnCase, primaryScreenerId, qcByPrimaryScreener, takeCytologyReviewProblem,
 } from './cytologyQueues';
 import type { Case, CaseParticipant } from '@/types/case/Case';
@@ -99,3 +99,23 @@ describe('Cytology Review tray (positive GYN)', () => {
   });
 });
 
+
+describe('Batch 483 — firstQualifyingSpecimenPerCase (multi-specimen cytology bug)', () => {
+  const ref = (caseId: string, specimenId: string) => ({ caseData: { id: caseId }, specimenId });
+
+  it('keeps one ref per case, the first seen', () => {
+    const refs = [ref('C1', 'S1'), ref('C1', 'S2'), ref('C2', 'S3')];
+    expect(firstQualifyingSpecimenPerCase(refs)).toEqual([ref('C1', 'S1'), ref('C2', 'S3')]);
+  });
+
+  it("a case whose SECOND specimen is the one that qualifies still surfaces once, pointed at that specimen", () => {
+    // The caller already filtered to refs that qualify (e.g. QC-pending); the
+    // case's first specimen never appears here because it didn't qualify.
+    const refs = [ref('C1', 'S2')];
+    expect(firstQualifyingSpecimenPerCase(refs)).toEqual([ref('C1', 'S2')]);
+  });
+
+  it('empty in, empty out', () => {
+    expect(firstQualifyingSpecimenPerCase([])).toEqual([]);
+  });
+});

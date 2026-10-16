@@ -81,6 +81,17 @@ describe('caseFlagsApi (PS-57)', () => {
   it('an unknown case is an error, not a silent no-op', async () => {
     await expect(applyFlags({ caseId: 'NO-SUCH-CASE', flagDefinitionId: 'x' })).rejects.toThrow();
   });
+
+  it('Batch 491: a caller-supplied byUserName is stored as appliedBy/deletedBy instead of the fallback', async () => {
+    const applied = await applyFlags({ caseId: CASE_ID, flagDefinitionId: 'flag-test-5', byUserName: 'Dr. Patel' });
+    const id = applied.flags.find(f => f.flagDefinitionId === 'flag-test-5')!.id;
+    const afterApply = (await mockCaseService.getCase(CASE_ID))!;
+    expect(afterApply.caseFlags!.find(f => f.id === id)!.appliedBy).toBe('Dr. Patel');
+
+    await deleteFlags({ caseId: CASE_ID, flagInstanceId: id, byUserName: 'Dr. Lee' });
+    const afterDelete = (await mockCaseService.getCase(CASE_ID))!;
+    expect(afterDelete.caseFlags!.find(f => f.id === id)!.deletedBy).toBe('Dr. Lee');
+  });
 });
 
 describe('toCaseWithFlags (PS-57)', () => {

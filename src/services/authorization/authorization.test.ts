@@ -5,7 +5,7 @@ import {
 } from './capabilityCatalog';
 import { dependentsOf, planGrant, planRevoke, requirementsOf, unknownCapabilities, unmetRequirements } from './capabilityDependencies';
 import { capabilityAuditEntry, evaluateCapability, grantedCapabilities, heldRoles, type AuthzRole, type AuthzSubject } from './evaluateCapability';
-import { applyCapabilitySeeds, CAPABILITY_SEEDS, CONFIG_SECTIONS, CONFIG_SECTIONS_LAB_DIRECTOR, CONFIG_TEMPLATE_APPROVER, CONFIG_TEMPLATE_AUTHOR, customRoleScreenSeed, type SeedableRole } from './capabilitySeeds';
+import { applyCapabilitySeeds, CAPABILITY_SEEDS, SUPERADMIN_CAPABILITY_KEYS, CONFIG_SECTIONS, CONFIG_SECTIONS_LAB_DIRECTOR, CONFIG_TEMPLATE_APPROVER, CONFIG_TEMPLATE_AUTHOR, customRoleScreenSeed, type SeedableRole } from './capabilitySeeds';
 import { roleCapabilityProblem } from './roleCapabilityRules';
 import { createAuthorizationService } from './authorizationService';
 
@@ -169,9 +169,12 @@ describe('capability seeds', () => {
     const { roles } = applyCapabilitySeeds(custom);
     expect(roles[0].capabilities).toContain('screen:microtomy:open');
     expect(roles[0].capabilities).not.toContain('screen:configuration:open');
+    // Batch 515 (PS-290): a role with case access keeps issuing consult links.
+    expect(roles[0].capabilities).toEqual(expect.arrayContaining(['case:consult-link:issue', 'case:consult-link:revoke']));
     // Batch 432: and resolving Audit Log errors (configuration access had the Audit Log).
     // Batch 437: and the Audit Log's exports (it opens the Audit Log).
-    expect(roles[1].capabilities).toEqual(['billing:applied-code:correct', 'billing:applied-code:review', 'audit:error:resolve', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email', 'message:internal:send', 'message:secure-email:send', 'screen:configuration:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open']);
+    // Batch 515: and the Print Queue actions (they sit on the Audit Log).
+    expect(roles[1].capabilities).toEqual(['billing:applied-code:correct', 'billing:applied-code:review', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email', 'message:internal:send', 'message:secure-email:send', 'screen:configuration:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open']);
     // Batch 437: a role with case access gets Search, so the case search export too.
     expect(roles[0].capabilities).toEqual(expect.arrayContaining(['search:case-results:export', 'contribution:trainee-case-reference:export']));
     const trimmed = [{ ...roles[1], capabilities: [] }];
@@ -179,14 +182,17 @@ describe('capability seeds', () => {
   });
   it('built-in roles open the screens Pete chose (Batch 374)', () => {
     const open = (role: string) => CAPABILITY_SEEDS[role].filter(k => k.startsWith('screen:')).map(k => k.split(':')[1]).sort();
-    expect(open('pathologist')).toEqual(['add-on-orders', 'cytology-qc-queue', 'cytology-workspace', 'intraop-queue', 'my-contributions', 'search', 'surgical-qa-worklist', 'worklist']);
+    // Batch 489: and the Tumor Board workspace, for the roles that nominate cases to a board.
+    // Batch 491: and the margin-exception review queue, same roles.
+    expect(open('pathologist')).toEqual(['add-on-orders', 'cytology-qc-queue', 'cytology-workspace', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'surgical-qa-worklist', 'tumor-board', 'worklist']);
     expect(open('fellow')).toEqual(open('pathologist'));
-    expect(open('resident')).toEqual(['add-on-orders', 'cytology-workspace', 'intraop-queue', 'my-contributions', 'search', 'worklist']);
-    expect(open('pa')).toEqual(['accession', 'embedding', 'intraop-queue', 'my-contributions', 'search', 'worklist']);
-    expect(open('accessioner')).toEqual(['accession', 'search', 'worklist']);
-    expect(open('histotechnologist')).toEqual(['batch-management', 'embedding', 'microtomy', 'search', 'slide-distribution']);
-    expect(open('cytotechnologist')).toEqual(['batch-management', 'cytology-workspace', 'search']);
-    expect(open('molecular-technologist')).toEqual(['batch-management', 'molecular', 'search']);
+    expect(open('resident')).toEqual(['add-on-orders', 'cytology-workspace', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'tumor-board', 'worklist']);
+    expect(open('pa')).toEqual(['accession', 'embedding', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'tumor-board', 'worklist']);
+    // Batch 488: each bench role also opens its own dedicated bench-contribution page.
+    expect(open('accessioner')).toEqual(['accession', 'bench-contributions', 'search', 'worklist']);
+    expect(open('histotechnologist')).toEqual(['batch-management', 'bench-contributions', 'embedding', 'microtomy', 'search', 'slide-distribution']);
+    expect(open('cytotechnologist')).toEqual(['batch-management', 'bench-contributions', 'cytology-workspace', 'search']);
+    expect(open('molecular-technologist')).toEqual(['batch-management', 'bench-contributions', 'molecular', 'search']);
     // Batch 434: and Batch Management (the screen only).
     expect(open('admin')).toEqual(['audit-log', 'batch-management', 'configuration', 'quality-assurance', 'registry-exceptions']);
     expect(open('template-author')).toEqual(['configuration']);
@@ -203,17 +209,28 @@ describe('capability seeds', () => {
     expect(grown.capabilities).toEqual(['x:d:view']);
   });
   it('day-one grants: Superadmin everything; Admin every export, administration, support access and its screens; QA Reviewer the exports and its screens', () => {
-    expect(CAPABILITY_SEEDS.superadmin).toEqual(ALL_CAPABILITY_KEYS);
+    // Batch 536 (Pete, Oct 11): everything except approving the AI instructions.
+    expect(CAPABILITY_SEEDS.superadmin).toEqual(ALL_CAPABILITY_KEYS.filter(k => k !== 'config:ai-prompt:approve'));
+    expect(CAPABILITY_SEEDS.superadmin).toEqual(SUPERADMIN_CAPABILITY_KEYS);
     // The change-history and QA exports (Batch 407: the disposal report export belongs to the Batch Management roles).
     const exports = ALL_CAPABILITY_KEYS.filter(k => k === 'report:change-history:export' || (k.startsWith('qa:') && k.endsWith(':export')));
     // Batch 432: and resolving Audit Log errors (everyone who opens the Audit Log).
-    expect(CAPABILITY_SEEDS['qa-reviewer']).toEqual([...exports, 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email']);
+    expect(CAPABILITY_SEEDS['qa-reviewer']).toEqual([...exports, 'config:clinical-mismatch-rules:view', 'config:ai-prompt:view', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry', 'audit:consult-links:view', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email']);
     // Batch 458 (PS-71): Save mine anyway on the Edit Conflict dialog.
-    expect(CAPABILITY_SEEDS.admin).toEqual([...exports, 'case:edit-conflict:override', 'config:roles:manage', 'config:staff:edit', 'config:staff-access:assign', 'config:staff-password:manage', 'config:demo-data:reset', 'config:field-requirements:manage', 'config:intraop-critical-results:manage', 'config:molecular-control-rules:manage', 'config:screening-registry:manage', 'config:cancer-registry:manage', 'config:cytology-compliance:manage', 'registry:submission:resend', 'registry:live-register:approve', 'config:registry-go-live:manage', 'registry:test-suite:run', 'registry:revision:review', 'config:template-governance:manage',
+    expect(CAPABILITY_SEEDS.admin).toEqual([...exports, 'case:edit-conflict:override', 'case:inking-gate:override', 'config:roles:manage', 'config:staff:edit', 'config:staff-access:assign', 'config:staff-password:manage', 'config:demo-data:reset', 'config:field-requirements:manage', 'config:intraop-critical-results:manage', 'config:molecular-control-rules:manage', 'config:screening-registry:manage', 'config:cancer-registry:manage', 'config:cytology-compliance:manage', 'registry:submission:resend', 'registry:live-register:approve', 'config:registry-go-live:manage', 'registry:test-suite:run', 'registry:revision:review', 'config:template-governance:manage',
       'config:support-access:policy', 'config:support-access:approve', 'config:support-audit:view',
       // Batch 428: every Configuration section.
       ...CONFIG_SECTIONS,
-      'screen:configuration:open', 'screen:batch-management:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve',
+      'screen:configuration:open', 'screen:batch-management:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry',
+      // Batch 518: resending interface messages (PS-122) and batch label reprint (PS-123).
+      'interface:outbound:resend',
+      // Batch 554: interface monitoring.
+      'interface:engine-status:view',
+      // Batch 551: the Server jobs view (see and requeue the API server's background jobs).
+      'jobs:server-job:view', 'jobs:server-job:requeue',
+      'label:batch:reprint',
+      // Batch 522 (PS-290): the cross-case consult link list.
+      'audit:consult-links:view',
       // Batch 437: the exports on the screens it opens. Batch 438: deciding CAPA recommendations. Batch 454: follow-up outcomes and clinician emails.
       'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email']);
     // Batch 437 (PS-357): the exports go with the screen they sit on.
@@ -228,6 +245,14 @@ describe('capability seeds', () => {
     // override starts with nobody, same as the Cytology QC bypass above.
     for (const [role, set] of Object.entries(CAPABILITY_SEEDS)) if (role !== 'superadmin') expect(set, role).not.toContain('autopsy:gross-exam-gate:override');
     expect(customRoleScreenSeed({ caseAccess: true, configAccess: true })).not.toContain('autopsy:gross-exam-gate:override');
+    // Batch 529 (PS-554, Pete): changing the mismatch rules starts with nobody; reading them, Pathologist, QA Reviewer and Lab Director.
+    for (const [role, set] of Object.entries(CAPABILITY_SEEDS)) if (role !== 'superadmin') expect(set, role).not.toContain('config:clinical-mismatch-rules:manage');
+    expect(Object.entries(CAPABILITY_SEEDS).filter(([role, set]) => role !== 'superadmin' && set.includes('config:clinical-mismatch-rules:view')).map(([role]) => role).sort())
+      .toEqual(['lab-director', 'pathologist', 'qa-reviewer']);
+    expect(customRoleScreenSeed({ caseAccess: true, configAccess: true })).not.toContain('config:clinical-mismatch-rules:manage');
+    // Batch 533 (Pete: who may send a cytology preliminary is "Configurable"): no built-in or hospital role starts with it.
+    for (const [role, set] of Object.entries(CAPABILITY_SEEDS)) if (role !== 'superadmin') expect(set, role).not.toContain('cytology:preliminary:release');
+    expect(customRoleScreenSeed({ caseAccess: true, configAccess: true })).not.toContain('cytology:preliminary:release');
     // Batch 480: the site-level inking_validation_mode toggle is a
     // group: 'configSystem' capability, so — same as its siblings
     // config:report-appearance:manage/config:organ-map-scheme:manage — it is
@@ -266,6 +291,17 @@ describe('capability seeds', () => {
       ...(['pathologist', 'fellow', 'resident', 'pa'].includes(role) ? ['autopsy:organ-tag:record'] : []),
       // Batch 480: and recording a margin's ink application during grossing, same roles.
       ...(['pathologist', 'fellow', 'resident', 'pa'].includes(role) ? ['grossing:margin-ink:record'] : []),
+      // Batch 489: and flagging a case for Tumor Board/MDT, same roles (a
+      // clinical judgment call, not a broader case-access action).
+      ...(['pathologist', 'fellow', 'resident', 'pa'].includes(role) ? ['case:tumor-board:flag'] : []),
+      // Batch 490: and resolving/dismissing a margin-distance extraction
+      // exception, same roles and reasoning.
+      ...(['pathologist', 'fellow', 'resident', 'pa'].includes(role) ? ['case:margin-exception:resolve'] : []),
+      // Batch 491: overriding an auto-generated Tumor Board flag, same roles and reasoning.
+      ...(['pathologist', 'fellow', 'resident', 'pa'].includes(role) ? ['case:tumor-board:dismiss'] : []),
+      // Batch 491: Tumor Board queue management (status — Presented/Deferred/cancel) — broader, same roles as case:delegation:create etc.
+      // Batch 493: and the narrower scheduling permission (board/meeting date/time/presenter), split out so a clerical/scheduling-only role could hold just this one.
+      ...(caseAccess.includes(role) ? ['case:tumor-board:manage', 'case:tumor-board:schedule'] : []),
       ...(caseAccess.includes(role) ? caseReport : []),
       // Batch 382: correcting an applied billing code is its own permission, for the roles that could before.
       ...(caseAccess.includes(role) || role === 'lab-director' ? ['billing:applied-code:correct', 'billing:applied-code:review'] : []),
@@ -273,7 +309,7 @@ describe('capability seeds', () => {
       // Batch 468: and recording a forensic chain-of-custody transfer.
       // Batch 469: and consent narrowing/revocation, organ-retention disposal, toxicology.
       // Batch 471: and cancelling a toxicology order, retention detail, consent reinstatement.
-      ...(caseAccess.includes(role) ? ['autopsy:body:release', 'autopsy:custody:transfer', 'autopsy:consent:manage', 'autopsy:retention-disposal:record', 'autopsy:toxicology:order', 'autopsy:toxicology:result', 'autopsy:toxicology:cancel', 'autopsy:retention-detail:record', 'autopsy:consent:reinstate', 'patient:national-identifier:record', 'patient:registry-consent:record'] : []),
+      ...(caseAccess.includes(role) ? ['autopsy:body:release', 'report:case-report:print', 'autopsy:custody:transfer', 'autopsy:consent:manage', 'autopsy:retention-disposal:record', 'autopsy:toxicology:order', 'autopsy:toxicology:result', 'autopsy:toxicology:cancel', 'autopsy:retention-detail:record', 'autopsy:retention-tier:record', 'autopsy:consent:reinstate', 'patient:national-identifier:record', 'patient:registry-consent:record'] : []),
       // Batch 421: resending a registry submission, Lab Director (Admin has it through the administration group).
       ...(role === 'lab-director' ? ['registry:submission:resend', 'qa:pathologist-trend:view', 'qa:pathologist-trend:decide', 'registry:live-register:approve', 'registry:revision:review'] : []),
       // Batch 428 (Pete): Lab Director keeps every Configuration section it could change; the template roles keep only theirs.
@@ -283,6 +319,8 @@ describe('capability seeds', () => {
       ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['equipment:maintenance:record'] : []),
       // Batch 409: signing out a cytology specimen, for the roles that did (Batch 410: and the workspace's other actions).
       ...(['pathologist', 'fellow', 'resident', 'cytotechnologist'].includes(role) ? CYTOLOGY_WORKSPACE : []),
+      // Batch 572: signing off your own screening hours, the same built-in roles (not a hospital's own roles).
+      ...(['pathologist', 'fellow', 'resident', 'cytotechnologist'].includes(role) ? ['cytology:screening-hours:sign-off'] : []),
       // Batch 415: a cytotechnologist's own sign-out.
       ...(role === 'cytotechnologist' ? ['cytology:ct-report:sign-out'] : []),
       // Batch 390 (PS-340): correcting or adding to a signed-out cytology report, Pathologist only.
@@ -308,6 +346,11 @@ describe('capability seeds', () => {
       // Batch 434: WSI scan batches, for every role with the Batch Management screen.
       ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['wsi:scan-batch:load', 'wsi:scan-batch:send', 'wsi:scan-batch:unload'] : []),
       ...(role === 'lab-director' ? ['audit:error:resolve'] : []),
+      // Batch 515: the Print Queue actions (Lab Director opens the Audit Log), and consult links for the roles with case access.
+      ...(role === 'lab-director' ? ['print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry'] : []),
+      ...(caseAccess.includes(role) ? ['case:consult-link:issue', 'case:consult-link:revoke'] : []),
+      // Batch 522 (PS-290): the cross-case consult link list, Lab Director (Admin and QA Reviewer above).
+      ...(role === 'lab-director' ? ['audit:consult-links:view'] : []),
       // Batch 437 (PS-357): the exports on the screens the role opens.
       ...(set.includes('screen:audit-log:open') ? ['audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export'] : []),
       ...(set.includes('screen:search:open') ? ['search:case-results:export'] : []),
@@ -321,6 +364,18 @@ describe('capability seeds', () => {
       ...(['pathologist', 'fellow', 'resident'].includes(role) ? ['report:organ-map:insert'] : []),
       // Batch 458 (PS-71): Save mine anyway on the Edit Conflict dialog (Pathologist and Lab Director here; Admin above).
       ...(['pathologist', 'lab-director'].includes(role) ? ['case:edit-conflict:override'] : []),
+      // Batch 516: printing a VIP/confidential case.
+      ...(role === 'pathologist' ? ['report:restricted-case:print'] : []),
+      // Batch 484: the Administrative Override of the Structured Inking sign-out gate (Lab Director here; Admin above — never Pathologist).
+      ...(role === 'lab-director' ? ['case:inking-gate:override'] : []),
+      // Batch 529 (PS-554): reading the mismatch rules (QA Reviewer above).
+      ...(['pathologist', 'lab-director'].includes(role) ? ['config:clinical-mismatch-rules:view'] : []),
+      // Batch 536 (PS-554, Pete): approving the AI instructions starts with Lab Director.
+      ...(role === 'lab-director' ? ['config:ai-prompt:view', 'config:ai-prompt:approve'] : []),
+      // Batch 530: recording clinical history after accession.
+      ...(['pathologist', 'fellow', 'resident', 'pa'].includes(role) ? ['case:clinical-history:record'] : []),
+      // Batch 518 (PS-123): batch label reprint, Histotechnologist (and Admin above).
+      ...(role === 'histotechnologist' ? ['label:batch:reprint'] : []),
       // Batch 405: superseding a molecular run, for the roles with the Molecular screen.
       ...(role === 'molecular-technologist' ? ['molecular:batch:supersede'] : []),
       // Batch 467: the molecular Order Queue — assigning to plates, cancelling and re-routing.
@@ -330,7 +385,7 @@ describe('capability seeds', () => {
     ]);
     // Batch 428: the Configuration sections, by Pete's decisions.
     // Batch 438: and Revision Reasons. Batch 439: and the peer-review sign-out gate. Batch 442: and the discordance trend policy.
-    expect(CONFIG_SECTIONS).toHaveLength(95); // Batch 461: + config:organ-map-scheme:manage, config:organ-map-bindings:manage. Batch 452: + config:cytology-histology-correlation:manage; Batch 453: + config:biopsy-resection-correlation:manage; Batch 454: + config:follow-up-tracking:manage; Batch 480: + config:inking-validation-mode:manage
+    expect(CONFIG_SECTIONS).toHaveLength(101); // Batch 552: + config:site-agents:enroll, config:site-agent-config:manage. Batch 536: + config:ai-vendor-policy:manage (PS-558); the ai-prompt ones have no default grant. Batch 517: + config:secure-messaging:manage (PS-143). Batch 461: + config:organ-map-scheme:manage, config:organ-map-bindings:manage. Batch 452: + config:cytology-histology-correlation:manage; Batch 453: + config:biopsy-resection-correlation:manage; Batch 454: + config:follow-up-tracking:manage; Batch 480: + config:inking-validation-mode:manage. Structured Inking Module 3 (PS-359 follow-up): + config:ink-color:manage. Batch 491: + config:tumor-board-rules:manage
     // Batch 429: recording equipment maintenance is also the bench roles'.
     expect(CONFIG_SECTIONS).toContain('equipment:maintenance:record');
     expect(CONFIG_SECTIONS_LAB_DIRECTOR).toEqual(CONFIG_SECTIONS.filter(k => k !== 'config:protocol:draft'));
@@ -353,6 +408,8 @@ describe('capability seeds', () => {
     for (const k of CYTOLOGY_WORKSPACE) expect(customRoleScreenSeed({ configAccess: true })).not.toContain(k);
     // Batch 411: the early-finalization override isn't offered to a hospital's own roles.
     expect(customRoleScreenSeed({ caseAccess: true })).not.toContain('cytology:case:finalize');
+    // Batch 572: nor signing off screening hours (a workload record the lab grants deliberately).
+    expect(customRoleScreenSeed({ caseAccess: true })).not.toContain('cytology:screening-hours:sign-off');
     expect(customRoleScreenSeed({ configAccess: true })).not.toContain('retention:material:dispose');
     // A hospital's own role with case access is offered them too.
     expect(customRoleScreenSeed({ caseAccess: true })).toEqual(expect.arrayContaining(caseReport));
@@ -498,11 +555,14 @@ describe('ForMedrixAI platform capabilities (Batch 371)', async () => {
     expect(roleCapabilityProblem(['platform:governing-bodies:manage'])).toContain('Platform-only capability on a hospital role');
     expect(roleCapabilityProblem(['platform:governing-bodies:manage'], { assignable: false })).toBeNull();
   });
-  it('the Superadmin role is always put back to the whole catalog, whatever was stored', () => {
+  it('the Superadmin role is always put back to the whole catalog (Batch 536: but approving the AI instructions), whatever was stored', () => {
     const { roles: out, changed } = lockPlatformRoles([{ id: 'superadmin', builtIn: true, capabilities: ['qa:fppe-tracking:export'] }, { id: 'admin', builtIn: true, capabilities: [] }]);
     expect(changed).toBe(true);
-    expect(out[0].capabilities).toEqual([...ALL_CAPABILITY_KEYS]);
+    expect(out[0].capabilities).toEqual([...SUPERADMIN_CAPABILITY_KEYS]);
+    expect(out[0].capabilities).not.toContain('config:ai-prompt:approve');
     expect(out[1].capabilities).toEqual([]);
+    // A stored approval on Superadmin is taken away again.
+    expect(lockPlatformRoles([{ id: 'superadmin', builtIn: true, capabilities: [...ALL_CAPABILITY_KEYS] }]).roles[0].capabilities).not.toContain('config:ai-prompt:approve');
     expect(lockPlatformRoles(out).changed).toBe(false);
   });
   it('the hospital seeds hold no platform capability', () => {

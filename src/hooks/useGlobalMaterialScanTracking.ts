@@ -47,15 +47,16 @@ import { dispatchSlideLabel } from '@/utils/labels/dispatchSlideLabel';
 import { hydrateGrossingBlocks } from '@/utils/hydrateGrossingBlocks';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import type { ResolvedScanTarget } from '@/utils/resolveMaterialFromScan';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
+
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '@/services/cases/caseWrite';
-import { mockAuditService } from '@/services/auditlog/mockAuditService';
+
 import { slideIdentifier, matrixSlideIdentifier } from '@/types/labels/LabelData';
 import { useCurrentScanStation } from './useCurrentScanStation';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ScanEvent } from '@/contexts/ScannerProvider';
 import type { Case } from '@/types/case/Case';
+import { scanStationService, auditService } from '@/services';
 
 /** Real, event-carried notification that a specific case's material
  *  was just updated by a scan — listened for by SynopticReportPage.tsx
@@ -67,7 +68,7 @@ export const MATERIAL_SCAN_UPDATED_EVENT = 'PATHSCRIBE_MATERIAL_SCAN_UPDATED';
  *  well. In that workflow, the user scans the block at microtomy and
  *  the labels get generated dynamically." Confirmed directly:
  *  'Microtomy / Sectioning' is a real, already-established
- *  ScanStation.workflowStage value (mockScanStationService.ts's own
+ *  ScanStation.workflowStage value (scanStationService.ts's own
  *  seed data). Only ever fires for a block-level or matrix_block-
  *  level scan at a station on that real stage — a slide-level scan
  *  (the slide already exists) has nothing pending to generate.
@@ -124,7 +125,7 @@ export async function processMicrotomyScan(
           }),
         }),
       }), caseRouter);
-      mockAuditService.logEvent({
+      auditService.logEvent({
         type: 'system', event: 'Slides Engraved at Microtomy',
         detail: `${pendingIndexes.length} real slide${pendingIndexes.length === 1 ? '' : 's'} engraved for ${specimen.label}${block.label} at microtomy.`,
         user: userId, caseId: caseData.id, confidence: null,
@@ -152,7 +153,7 @@ export async function processMicrotomyScan(
           slides: (m.slides ?? []).map(s => s.status === 'Pending Cut' && engraved.has(s.id) ? { ...s, status: 'Cut & Placed' as const } : s),
         }),
       }), caseRouter);
-      mockAuditService.logEvent({
+      auditService.logEvent({
         type: 'system', event: 'Slides Engraved at Microtomy',
         detail: `${pendingIndexes.length} real slide${pendingIndexes.length === 1 ? '' : 's'} engraved for matrix block ${matrixBlock.label} at microtomy.`,
         user: userId, caseId: caseData.id, confidence: null,
@@ -200,7 +201,7 @@ async function processGrossingScan(
     const hydrated = await hydrateGrossingBlocks(caseData.id, specimen.id);
     if (hydrated.length === 0) return;
 
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system', event: 'Grossing Blocks Hydrated',
       detail: `${hydrated.length} real block${hydrated.length === 1 ? '' : 's'} resolved (cassette color) for specimen ${specimenLetter} at grossing — ready for PA release.`,
       user: userId, caseId: caseData.id, confidence: null,
@@ -263,7 +264,7 @@ export function useGlobalMaterialScanTracking() {
     const { caseData, fullAccession, specimenLetter, target } = resolved;
 
     if (!stationId) return; // Real, silent no-op — same as the toast-driven version, but a global listener with no case-specific page open has nowhere sensible to show that toast; the station selector itself (Material tab) still explains this when a tech does check.
-    const stationResult = await mockScanStationService.getById(stationId);
+    const stationResult = await scanStationService.getById(stationId);
     if (!stationResult.ok) return;
     const station = stationResult.data;
 

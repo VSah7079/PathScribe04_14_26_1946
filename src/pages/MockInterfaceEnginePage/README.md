@@ -19,3 +19,11 @@ A switch, **Answer for the slide scanner**, is on by default. The banner and sub
 ## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
 
 "Molecular instrument results" chooses what the simulated instrument reports after a worklist: Positive, Negative or no results.
+
+## Batch 495 — breadcrumb registered
+
+MockInterfaceEnginePage now registers a breadcrumb (`useBreadcrumb().pushCrumb(...)`) — same gap Batch 492 fixed on the Tumor Board and margin-exception pages: AppShell only shows the breadcrumb bar once there is more than one crumb, so this page had none. It reuses its existing page-title key.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.

@@ -41,7 +41,7 @@ The page is built from patient data. Nothing it contains may reach the network, 
 
 - The PDF hash stored on the report version is of the PDF actually produced (each PDF is unique: creation date).
 - A map that is part of the report and cannot be drawn prints the notice with its content as text (`ORGAN_MAPPING_API.md` §5; `surgicalReportPdf.figureNotDrawn`), recorded on the report version; the request still succeeds.
-- **Open checks before go-live:** PDF/A (Chromium doesn't produce it; add a conversion step if a customer or regulator requires archival PDF/A); tagged (accessible) PDF output; header/footer templates against today's continuation-page headers (`applyContinuationPageHeaders.ts`); layout parity with the HTML preview (`pages/ReportPreview/ReportPreviewRenderer.tsx`).
+- **Open checks before go-live:** PDF/A (Chromium doesn't produce it; add a conversion step if a customer or regulator requires archival PDF/A); tagged (accessible) PDF output; header/footer templates against today's continuation-page headers (since Batch 539 the cytology template's, `functions/cytology_report.py`); layout parity with the HTML preview (`pages/ReportPreview/ReportPreviewRenderer.tsx`).
 
 ## Summary for sign-off
 
@@ -57,3 +57,34 @@ The page is built from patient data. Nothing it contains may reach the network, 
 | Sandbox | `--no-sandbox` if isolated, or `CAP_SYS_ADMIN` | Native sandbox via user namespaces + seccomp; never `CAP_SYS_ADMIN`; `--no-sandbox` only in a locked-down container, recorded |
 | Memory | — | Larger `/dev/shm` or `--disable-dev-shm-usage` |
 | Patching | — | Rebuild on Chromium security releases; renderer version in the audit |
+
+## 5. Content rules to carry over from the interim renderer (Batch 498)
+
+The interim renderer (`functions/main.py`) now prints these; the production service must too:
+
+- **Release-buffer watermark** (`watermarkText`, only while a case is pending release): on every page, behind the text.
+- **Revision status** (`revision`): a banner in the header area — amended / corrected / with addendum, original sign-out date and latest revision date (dates written in the report's locale by the app) — and the revision flag in every page's footer.
+- **Footer document reference**: Code 128 of the accession (scannable back to the case) plus the record version, on every page.
+- **Pre-analytic override disclaimer** (`preAnalyticDisclaimerText`): before the report body.
+- Wording from the request's `labels` (`surgicalReportPdf.*`), never hard-coded.
+
+## 6. Preview and release from one payload (Batch 538)
+
+Pete, Oct 12, 2026: the server makes every PDF that leaves PathScribe, and the browser only shows previews, "as long as the preview matches exactly what gets sent out".
+
+- **One payload builder.** The report page builds one payload for both the released PDF and the preview or print (`buildReportRenderPayload(outputFormat, purpose)` in `SynopticReportPage.tsx`). The purpose changes only the watermark (`services/reports/resolveReportWatermark.ts`): an unsigned print says "PRELIMINARY — SUBJECT TO CHANGE". Before Batch 538, print built a separate payload.
+- **Server endpoints.** The API server offers the same split:
+  - `POST /api/cases/{caseId}/report-preview` renders without storing;
+  - the release renders once and stores the document (`REPORT_DOCUMENT_STORE_API.md`).
+- **After release,** "View as sent" opens the stored document, never a fresh render.
+
+## 7. Cytology (Batch 539)
+
+The report renderer has a cytology template (`functions/cytology_report.py`, reached through `render_report` with `"template": "cytology"`). The browser composes every line of the report in its language (`src/services/cytology/cytologyRenderPayload.ts`); the template lays it out:
+- A4, 15 mm margins (never below the 0.5 inch printing minimum);
+- Liberation Sans embedded (Pretendard for Korean), chosen per document, so a case report can mix languages;
+- the accession barcode (Code 128) on each report's first page, and a continuation line with "Page X of Y" on the others;
+- an unsigned preview's watermark;
+- the same bytes for the same request (creation date is the signing time; fixed document ID).
+
+The preview and the release send the same lines; only the preview's watermark differs. Each PDF carries `pathscribe-template:cytology` in its Keywords: the browser refuses a PDF without it, so a renderer deployed before Batch 539 holds the release instead of sending a blank page. The production renderer (Playwright, §4) must keep the same contract: the request in `cytology_report.py`'s header, and the marker.

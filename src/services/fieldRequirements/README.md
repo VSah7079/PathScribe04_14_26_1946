@@ -41,6 +41,11 @@ The Accession page greys out Next and Submit until the required fields are fille
 | `fieldRequirements.test.ts` | Rules and service. |
 | `reportPageChecks.ts` | Batch 380: what the case report page's modals need before saving (+ `reportPageChecks.test.ts`). |
 | `messagingChecks.ts` | Batch 384: what the message drawer, reply box and Secure email window need before sending (+ `messagingChecks.test.ts`). |
+| `cytologyChecks.ts`, `microtomyChecks.ts`, `intraopChecks.ts`, `embeddingChecks.ts`, `slideDistributionChecks.ts`, `addOnOrderChecks.ts`, `batchChecks.ts`, `molecularBatchChecks.ts`, `molecularRackChecks.ts` | Batches 386 to 406: one per later page (each with its test); see the batch entries below. |
+
+The catalog now has thirteen pages: Accession, Grossing, Case report, Messaging, Cytology, Microtomy, Intraop, Embedding, Slide distribution, Add-On Orders, Batch Management, Molecular plate builder and Molecular rack loading.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the Files table stopped at Batch 384; added the nine later check files and the current page count.*
 
 ## Batch 377: fields filled in automatically
 
@@ -300,3 +305,43 @@ The rack service enforces the same rules again in `placeOnDeck`.
 ## Batch 473 — Case-type key migration
 
 `reportPageChecks.ts`'s forensic-path check now compares against `'statutory_judicial'`, not `'medicolegal_forensic'` — the local `forensic` variable name is unchanged, only the literal it compares against. No behavior change. See `services/autopsy/README.md`.
+
+## Batch 517
+
+`criticalNotificationMissing`: a required read-back never applies when the method is `secure_email`. A read-back is spoken, and the email is recorded once it is sent (PS-143).
+
+## Batch 528: Staff, Facility editor and Clinical history (pages 14 to 16, PS-359)
+
+Pete's decision (Oct 10, 2026): these requirements are configurable per organisation (the performing-lab tenant). No requirement is fixed by jurisdiction.
+
+| Page | Group | Field | Default |
+|---|---|---|---|
+| `staff` | Name | First name, last name | locked (`staffIdentity`) |
+| | | Middle name | optional |
+| | Roles and facilities | Role | locked (`staffAccess`): what someone can do comes from their roles |
+| | | Facilities, subspecialties | optional |
+| | Contact | Email, phone | optional. An email, when given, must look like one. |
+| | Professional details | Credentials, NPI, GMC number, licence number, signature | optional |
+| `facility` | Facility | Name | locked (`facilityIdentity`) |
+| | | Assigning authority | locked (`facilityRouting`). Also unique, ignoring case: inbound HL7 orders are matched by it (PS-73). |
+| | Contact | Email | **required** (was always required; now an organisation can switch it off). When given, it must contain "@". |
+| | | Phone, address, contact person (family names) | optional |
+| | | Fax, city, region, postal code (Batch 530) | optional |
+| | Interfaces | Interface engine endpoint | locked (`interfaceRouting`), only once the connection is set up |
+| | | LIS sending facility ID | locked (`interfaceRouting`), only once LIS routing is set up |
+| `clinicalHistory` | Clinical history entries | Case entry | optional; cytology and FNA cases only |
+| | | Entry on every specimen (per specimen) | optional; with one specimen a case entry counts |
+| | | Coded (no free-text entries) | optional; satisfied when there are no entries |
+
+Fax, city, region and postcode are stored on a facility but the editor had no input for them, so Batch 528 left them out of the catalog (a required field nobody can fill in would block every save). *Batch 530 (Pete): the editor now has the four inputs, and they are in the catalog (optional by default).*
+
+The checks:
+- `services/staff/staffFormChecks.ts`: `checkStaffForm` (problems `required`, `atLeastOneRole`, `invalidEmail`).
+- `services/facilities/facilityFormChecks.ts`: `checkFacilityForm` (problems `required`, `assigningAuthorityCollision`, `invalidEmail`).
+- `services/clinicalHistory/clinicalHistoryRequirementChecks.ts`: `missingClinicalHistory`.
+
+`fieldRequirementCatalogText.test.ts` checks that every page, group, field, lock reason and hint in the catalog has text in all five languages.
+
+## Batch 530 (Pete, Oct 11, 2026: no hard blocks at intake)
+
+The `clinicalHistory` page's requirements no longer block Accession: what's missing shows as a note ("Clinical history not yet recorded: …") and the case is accessioned. The same for every specialty. The history can be added later (`clinicalHistory/recordClinicalHistoryAfterAccession.ts`), and the mismatch check is deferred while there is no clinical information. The hints say so in the Field Requirements screen. *(Corrects Batch 528, which made them block the Case & Patient step.)* Facility editor: fax, city, region and postal code added (optional).

@@ -18,7 +18,6 @@
 import type { RegistryExceptionRow } from './registryExceptions';
 import { REGISTRY_REVISION_DEFICIENCY_TYPE } from './recordRegistryRevision';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const REGISTRY_CAPA_DEFICIENCY_TYPE = 'def-registry-submission-failure';
 
 export interface RegistryCapaDeps {

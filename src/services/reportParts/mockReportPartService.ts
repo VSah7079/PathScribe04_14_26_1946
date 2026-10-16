@@ -35,6 +35,7 @@ import type { ReportPart, PartLibraryFilter, ReportPartType, ReportPartStatus } 
 import type { TemplateNode } from '../../types/template';
 import type { IReportPartService } from './IReportPartService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage, storageKeys } from '../browserData/dataStorage';
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -60,11 +61,11 @@ export function onReportPartsChanged(handler: () => void): () => void {
 
 const LS = 'ps_rpart_';
 const lsLoad  = (id: string): ReportPart | null => {
-  try { const r = localStorage.getItem(LS + id); return r ? JSON.parse(r) : null; } catch { return null; }
+  try { const r = dataStorage.getItem(LS + id); return r ? JSON.parse(r) : null; } catch { return null; }
 };
-const lsSave  = (p: ReportPart) => localStorage.setItem(LS + p.id, JSON.stringify(p));
-const lsDel   = (id: string) => localStorage.removeItem(LS + id);
-const lsAllIds = () => Object.keys(localStorage).filter(k => k.startsWith(LS)).map(k => k.slice(LS.length));
+const lsSave  = (p: ReportPart) => dataStorage.setItem(LS + p.id, JSON.stringify(p));
+const lsDel   = (id: string) => dataStorage.removeItem(LS + id);
+const lsAllIds = () => storageKeys(dataStorage).filter(k => k.startsWith(LS)).map(k => k.slice(LS.length));
 
 // ── In-memory store ────────────────────────────────────────────
 

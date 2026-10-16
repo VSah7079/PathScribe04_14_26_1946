@@ -127,50 +127,12 @@
           "type": "dropdown",
           "required": true,
           "options": [
-            {
-              "id": "grade_group_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "grade_group_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "grade_group_opt_3",
-              "label": "Option 3"
-            },
-            {
-              "id": "grade_group_opt_4",
-              "label": "Option 4"
-            },
-            {
-              "id": "grade_group_opt_5",
-              "label": "Option 5"
-            },
-            {
-              "id": "grade_group_opt_6",
-              "label": "Option 6"
-            },
-            {
-              "id": "grade_group_opt_7",
-              "label": "Option 7"
-            },
-            {
-              "id": "grade_group_opt_8",
-              "label": "Option 8"
-            },
-            {
-              "id": "grade_group_opt_9",
-              "label": "Option 9"
-            },
-            {
-              "id": "grade_group_opt_10",
-              "label": "Option 10"
-            },
-            {
-              "id": "grade_group_opt_11",
-              "label": "Option 11"
-            }
+            { "id": "grade_group_opt_1", "label": "Grade Group 1 (Gleason ≤6)" },
+            { "id": "grade_group_opt_2", "label": "Grade Group 2 (3+4=7)" },
+            { "id": "grade_group_opt_3", "label": "Grade Group 3 (4+3=7)" },
+            { "id": "grade_group_opt_4", "label": "Grade Group 4 (8)" },
+            { "id": "grade_group_opt_5", "label": "Grade Group 5 (9–10)" },
+            { "id": "grade_group_opt_6", "label": "Cannot be assessed" }
           ]
         },
         {
@@ -480,18 +442,9 @@
           "type": "dropdown",
           "required": true,
           "options": [
-            {
-              "id": "margin_status_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "margin_status_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "margin_status_opt_3",
-              "label": "Option 3"
-            }
+            { "id": "margin_status_opt_1", "label": "Negative (uninvolved)" },
+            { "id": "margin_status_opt_2", "label": "Positive (involved)" },
+            { "id": "margin_status_opt_3", "label": "Cannot be assessed" }
           ]
         },
         {
@@ -500,62 +453,20 @@
           "type": "checkboxes",
           "required": false,
           "options": [
-            {
-              "id": "margins_involved_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "margins_involved_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "margins_involved_opt_3",
-              "label": "Option 3"
-            },
-            {
-              "id": "margins_involved_opt_4",
-              "label": "Option 4"
-            },
-            {
-              "id": "margins_involved_opt_5",
-              "label": "Option 5"
-            },
-            {
-              "id": "margins_involved_opt_6",
-              "label": "Option 6"
-            },
-            {
-              "id": "margins_involved_opt_7",
-              "label": "Option 7"
-            },
-            {
-              "id": "margins_involved_opt_8",
-              "label": "Option 8"
-            },
-            {
-              "id": "margins_involved_opt_9",
-              "label": "Option 9"
-            },
-            {
-              "id": "margins_involved_opt_10",
-              "label": "Option 10"
-            },
-            {
-              "id": "margins_involved_opt_11",
-              "label": "Option 11"
-            },
-            {
-              "id": "margins_involved_opt_12",
-              "label": "Option 12"
-            },
-            {
-              "id": "margins_involved_opt_13",
-              "label": "Option 13"
-            },
-            {
-              "id": "margins_involved_opt_14",
-              "label": "Option 14"
-            }
+            { "id": "margins_involved_opt_1", "label": "Right apex" },
+            { "id": "margins_involved_opt_2", "label": "Left apex" },
+            { "id": "margins_involved_opt_3", "label": "Right base" },
+            { "id": "margins_involved_opt_4", "label": "Left base" },
+            { "id": "margins_involved_opt_5", "label": "Bladder neck" },
+            { "id": "margins_involved_opt_6", "label": "Right posterolateral" },
+            { "id": "margins_involved_opt_7", "label": "Left posterolateral" },
+            { "id": "margins_involved_opt_8", "label": "Anterior" },
+            { "id": "margins_involved_opt_9", "label": "Right seminal vesicle margin" },
+            { "id": "margins_involved_opt_10", "label": "Left seminal vesicle margin" },
+            { "id": "margins_involved_opt_11", "label": "Urethral margin" },
+            { "id": "margins_involved_opt_12", "label": "Not applicable" },
+            { "id": "margins_involved_opt_13", "label": "Cannot be assessed" },
+            { "id": "margins_involved_opt_14", "label": "Other" }
           ]
         }
       ]
@@ -637,18 +548,9 @@
           "type": "checkboxes",
           "required": false,
           "options": [
-            {
-              "id": "tnm_modifiers_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "tnm_modifiers_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "tnm_modifiers_opt_3",
-              "label": "Option 3"
-            }
+            { "id": "tnm_modifiers_opt_1", "label": "y (post-therapy)" },
+            { "id": "tnm_modifiers_opt_2", "label": "r (recurrent)" },
+            { "id": "tnm_modifiers_opt_3", "label": "m (multiple synchronous primaries)" }
           ]
         },
         {
@@ -656,27 +558,13 @@
           "label": "Category A",
           "type": "dropdown",
           "required": true,
+          "reportingRole": "pT",
           "options": [
-            {
-              "id": "stage_category_a_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "stage_category_a_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "stage_category_a_opt_3",
-              "label": "Option 3"
-            },
-            {
-              "id": "stage_category_a_opt_4",
-              "label": "Option 4"
-            },
-            {
-              "id": "stage_category_a_opt_5",
-              "label": "Option 5"
-            }
+            { "id": "stage_category_a_opt_1", "label": "pT2" },
+            { "id": "stage_category_a_opt_2", "label": "pT3a" },
+            { "id": "stage_category_a_opt_3", "label": "pT3b" },
+            { "id": "stage_category_a_opt_4", "label": "pT4" },
+            { "id": "stage_category_a_opt_5", "label": "Cannot be assessed (pTX)" }
           ]
         },
         {
@@ -684,23 +572,12 @@
           "label": "Category B",
           "type": "dropdown",
           "required": true,
+          "reportingRole": "pN",
           "options": [
-            {
-              "id": "stage_category_b_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "stage_category_b_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "stage_category_b_opt_3",
-              "label": "Option 3"
-            },
-            {
-              "id": "stage_category_b_opt_4",
-              "label": "Option 4"
-            }
+            { "id": "stage_category_b_opt_1", "label": "pN0" },
+            { "id": "stage_category_b_opt_2", "label": "pN1" },
+            { "id": "stage_category_b_opt_3", "label": "pNX (not applicable / no nodes submitted)" },
+            { "id": "stage_category_b_opt_4", "label": "Cannot be assessed" }
           ]
         },
         {
@@ -709,26 +586,11 @@
           "type": "dropdown",
           "required": false,
           "options": [
-            {
-              "id": "stage_category_c_opt_1",
-              "label": "Option 1"
-            },
-            {
-              "id": "stage_category_c_opt_2",
-              "label": "Option 2"
-            },
-            {
-              "id": "stage_category_c_opt_3",
-              "label": "Option 3"
-            },
-            {
-              "id": "stage_category_c_opt_4",
-              "label": "Option 4"
-            },
-            {
-              "id": "stage_category_c_opt_5",
-              "label": "Option 5"
-            }
+            { "id": "stage_category_c_opt_1", "label": "Not applicable (M status is determined clinically)" },
+            { "id": "stage_category_c_opt_2", "label": "Option 2" },
+            { "id": "stage_category_c_opt_3", "label": "Option 3" },
+            { "id": "stage_category_c_opt_4", "label": "Option 4" },
+            { "id": "stage_category_c_opt_5", "label": "Option 5" }
           ]
         }
       ]

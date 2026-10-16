@@ -10,7 +10,6 @@ import { MOLECULAR_ORDER_DEMO_IDS } from '../molecularOrders/molecularOrderDemoS
 import { mockCaseService } from '../cases/mockCaseService';
 import { writeSessionProfile } from '../auth/sessionProfile';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 beforeEach(() => localStorage.clear());
 const allowAll = { ...resendRegistrySubmissionDeps, enforce: async () => ({ allowed: true }) };
 const PETE = { id: 'PATH-001', name: 'Pete Nimmo' };

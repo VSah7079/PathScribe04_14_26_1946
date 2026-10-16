@@ -14,17 +14,24 @@
 
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
-import { resolveAutopsyBodyReleaseGate } from './resolveAutopsyBodyReleaseGate';
+import { resolveAutopsyBodyReleaseGate, type AutopsyBodyReleaseBlockReason } from './resolveAutopsyBodyReleaseGate';
 import { buildAutopsyBodyReleaseLocationEvent, type AutopsyBodyReleaseDetails } from './buildAutopsyBodyReleaseLocationEvent';
 import { resolveCurrentAutopsyCustodian } from './recordAutopsyCustodyTransfer';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import type { AutopsyCustodyTransferEvent } from '@/types/autopsy/AutopsyCaseDetails';
 
+/** Batch 495: a stable code for each failure, so the screen shows
+ *  translated text (autopsyBodyRelease.errors.<code>). `error` stays as a
+ *  developer-facing English fallback and is never shown directly — same
+ *  pattern as recordAutopsyCustodyTransfer.ts's reasonCode. */
+export type ReleaseAutopsyBodyReasonCode = 'caseNotFound' | 'noAutopsyRecord' | 'specimenNotFound' | 'conflict';
+
 export interface ReleaseAutopsyBodyResult {
   ok: boolean;
-  blockedReasons?: string[];
+  blockedReasons?: AutopsyBodyReleaseBlockReason[];
   error?: string;
+  reasonCode?: ReleaseAutopsyBodyReasonCode;
   /** The person lacks autopsy:body:release (Batch 383). */
   notPermitted?: boolean;
 }
@@ -38,14 +45,14 @@ export async function releaseAutopsyBody(
   const decision = await authorizationService.enforce('autopsy:body:release', { caseId });
   if (!decision.allowed) return { ok: false, error: 'Releasing an autopsy body needs the autopsy:body:release permission', notPermitted: true };
   const caseData = await caseRouter.getCase(caseId);
-  if (!caseData) return { ok: false, error: 'Case not found.' };
-  if (!caseData.autopsy) return { ok: false, error: 'Case has no autopsy record.' };
+  if (!caseData) return { ok: false, error: 'Case not found.', reasonCode: 'caseNotFound' };
+  if (!caseData.autopsy) return { ok: false, error: 'Case has no autopsy record.', reasonCode: 'noAutopsyRecord' };
 
   const gate = resolveAutopsyBodyReleaseGate(caseData.autopsy);
   if (!gate.allowed) return { ok: false, blockedReasons: gate.blockedReasons };
 
   const targetSpecimen = caseData.specimens.find(s => s.id === specimenId);
-  if (!targetSpecimen) return { ok: false, error: 'Specimen not found on this case.' };
+  if (!targetSpecimen) return { ok: false, error: 'Specimen not found on this case.', reasonCode: 'specimenNotFound' };
 
   const releaseEvent = buildAutopsyBodyReleaseLocationEvent(releaseDetails);
 
@@ -61,7 +68,7 @@ export async function releaseAutopsyBody(
   // separate write against the same case. Not done for a hospital-consented
   // case: custodyLog is only ever real for caseAuthority ===
   // 'statutory_judicial' (AutopsyCaseDetails.ts's own doc comment).
-  let blocked: string[] | undefined;
+  let blocked: AutopsyBodyReleaseBlockReason[] | undefined;
   let custodyEvent: AutopsyCustodyTransferEvent | undefined;
   const write = await updateCaseWithRetry(caseId, current => {
     blocked = undefined;
@@ -108,6 +115,8 @@ export async function releaseAutopsyBody(
     return { ok: true };
   }
   if (blocked) return { ok: false, blockedReasons: blocked };
-  if (write.reason === 'conflict') return { ok: false, error: 'The case changed while the release was being saved; reopen it and try again.' };
-  return { ok: false, error: write.reason === 'notFound' ? 'Case not found.' : 'Specimen not found on this case.' };
+  if (write.reason === 'conflict') return { ok: false, error: 'The case changed while the release was being saved; reopen it and try again.', reasonCode: 'conflict' };
+  return write.reason === 'notFound'
+    ? { ok: false, error: 'Case not found.', reasonCode: 'caseNotFound' }
+    : { ok: false, error: 'Specimen not found on this case.', reasonCode: 'specimenNotFound' };
 }

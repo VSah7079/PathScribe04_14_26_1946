@@ -269,42 +269,12 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "histologic_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histologic_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histologic_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histologic_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histologic_grade_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histologic_grade_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "histologic_grade_opt_1", "label": "WHO/ISUP grade 1", "snomed": "", "icd": "" },
+            { "id": "histologic_grade_opt_2", "label": "WHO/ISUP grade 2", "snomed": "", "icd": "" },
+            { "id": "histologic_grade_opt_3", "label": "WHO/ISUP grade 3", "snomed": "", "icd": "" },
+            { "id": "histologic_grade_opt_4", "label": "WHO/ISUP grade 4", "snomed": "", "icd": "" },
+            { "id": "histologic_grade_opt_5", "label": "Not applicable (histologic type not graded by this system)", "snomed": "", "icd": "" },
+            { "id": "histologic_grade_opt_6", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ]
         },
         {

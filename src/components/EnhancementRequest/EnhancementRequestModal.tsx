@@ -20,6 +20,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import ReactDOM from 'react-dom';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   EnhancementRequestPayload,
@@ -33,6 +34,7 @@ import { useScreenCapture, ScreenCaptureResult } from '../../hooks/useScreenCapt
 import { caseService, supportReferenceService } from '@/services';
 import { replaceCaseNumbersWithReferences } from '../../services/enhancementRequestService';
 import { identifierWarningOnSend, canReplaceCaseNumbers, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 
 // ─── Screenshot compression ───────────────────────────────────────────────────
 // Resizes and re-encodes to JPEG to stay under EmailJS 50KB request limit.
@@ -112,13 +114,17 @@ const SuccessScreen: React.FC<{ ticketUrl?: string; onClose: () => void }> = ({ 
 
 // ─── Screenshot preview ───────────────────────────────────────────────────────
 
-const ScreenshotPreview: React.FC<{
+/** Exported for its tests (Batch 570). */
+export const ScreenshotPreview: React.FC<{
   screenshot:  ScreenCaptureResult;
   included:    boolean;
   onToggle:    () => void;
 }> = ({ screenshot, included, onToggle }) => {
   const { t } = useTranslation();
   const [lightbox, setLightbox] = React.useState(false);
+  // Batch 568: focus stays in the full-size view while it is open, and goes back to the picture when it closes.
+  const lightboxRef = React.useRef<HTMLDivElement>(null);
+  useFocusTrap(lightboxRef, lightbox);
   return (
   <div>
     <label className="erm-label">
@@ -133,7 +139,7 @@ const ScreenshotPreview: React.FC<{
         '--erm-shot-border':  included ? 'rgba(8,145,178,0.3)' : '#334155',
         '--erm-shot-opacity': included ? 1 : 0.4,
       } as React.CSSProperties}
-      onClick={() => setLightbox(true)}
+      {...pressable(() => setLightbox(true))}
       title={t('enhancementRequestModal.clickToViewFullSize')}
     >
       <img
@@ -146,13 +152,17 @@ const ScreenshotPreview: React.FC<{
 
     {/* Lightbox */}
     {lightbox && ReactDOM.createPortal(
-      <div onClick={() => setLightbox(false)} className="erm-lightbox">
+      // Batch 568 (axe nested-interactive): the picture's full-size view was a button holding its Close button.
+      // It is a dialog now: clicking anywhere still closes it, Close takes focus (useFocusTrap), Escape closes it too.
+      <div ref={lightboxRef} {...clickableContainer(() => setLightbox(false))} className="erm-lightbox" role="dialog" aria-modal="true"
+        aria-label={t('enhancementRequestModal.screenCaptureFullSizeAlt')}
+        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setLightbox(false); } }}>
         <img
           src={screenshot.dataUrl}
           alt={t('enhancementRequestModal.screenCaptureFullSizeAlt')}
           className="erm-lightbox-img"
         />
-        <button onClick={() => setLightbox(false)} className="erm-lightbox-close">
+        <button type="button" onClick={e => { e.stopPropagation(); setLightbox(false); }} className="erm-lightbox-close">
           {'✕ '}{t('enhancementRequestModal.close')}
         </button>
       </div>,
@@ -312,7 +322,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               {/* Title */}
               <div>
                 <label className="erm-label">{t('enhancementRequestModal.titleLabel')} <span className="erm-label-required">*</span></label>
-                <input
+                <input aria-label={t('enhancementRequestModal.titleLabel')}
                   value={title} onChange={e => setTitle(e.target.value)}
                   placeholder={t('enhancementRequestModal.titlePlaceholder')}
                   maxLength={120} className="erm-input" autoFocus
@@ -325,7 +335,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               {/* Description */}
               <div>
                 <label className="erm-label">{t('enhancementRequestModal.descriptionLabel')} <span className="erm-label-required">*</span></label>
-                <textarea
+                <textarea aria-label={t('enhancementRequestModal.descriptionLabel')}
                   value={description} onChange={e => setDescription(e.target.value)}
                   placeholder={t('enhancementRequestModal.descriptionPlaceholder')}
                   rows={4}
@@ -351,7 +361,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                         <button key={cat} onClick={() => setCategory(cat)} className="erm-cat-chip"
                           style={{
                             '--erm-chip-bg':     active ? 'rgba(8,145,178,0.15)' : 'rgba(255,255,255,0.04)',
-                            '--erm-chip-color':  active ? '#0891B2' : '#64748b',
+                            '--erm-chip-color':  active ? '#22d3ee' : '#8794a8',
                             '--erm-chip-border': active ? 'rgba(8,145,178,0.4)' : '#334155',
                           } as React.CSSProperties}
                         >{t(CATEGORY_LABEL_KEY[cat])}</button>
@@ -369,7 +379,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                         <button key={p} onClick={() => setPriority(active ? undefined : p)} className="erm-priority-btn"
                           style={{
                             '--erm-priority-bg':     active ? s.bg     : 'rgba(255,255,255,0.03)',
-                            '--erm-priority-color':  active ? s.color  : '#475569',
+                            '--erm-priority-color':  active ? s.color  : '#8794a8',
                             '--erm-priority-border': active ? s.border : '#334155',
                           } as React.CSSProperties}
                         >{t(PRIORITY_LABEL_KEY[p])}</button>
@@ -409,7 +419,8 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
 
               {/* Include system details toggle */}
               <div
-                onClick={() => setIncludeSystem(v => !v)}
+                {...pressable(() => setIncludeSystem(v => !v), { role: 'switch' })}
+                aria-checked={includeSystem}
                 className="erm-system-toggle"
                 style={{
                   '--erm-toggle-bg':    includeSystem ? 'rgba(8,145,178,0.06)' : 'rgba(255,255,255,0.02)',

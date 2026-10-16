@@ -95,10 +95,10 @@ Pete: multi-site FNAs and concurrent Non-GYN and FNA specimens under one accessi
 - The Batch 410 "one specimen per case" open item is resolved here.
 
 **Still open:**
-- The Cytology Worklist's own tiles (QC pending, 5-year lookback) still read the case's first cytology specimen.
+- The Cytology Worklist's own tiles (QC pending, 5-year lookback) still read the case's first cytology specimen. *(Since closed: Batch 483 — `cytologySpecimensOf` and `aggregateCytologySpecimenFacts` in `services/cytology/cytologyWorklist.ts` look at every cytology specimen — checked in the Batch 496 README audit.)*
 - Countersign release is still case-level: a resident releasing one specimen puts the whole case in pending-countersign.
 - Each specimen's report is its own. There's no combined multi-specimen report PDF yet.
-- Next piece of work (Pete, agreed): pre-sign-out revision workflow. That means review version history with restore, reviewer notes attached to a part of someone's review, and Pending Author Revision. That status blocks choosing the final diagnosis and sign-out, and only the author clears it.
+- Next piece of work (Pete, agreed): pre-sign-out revision workflow. That means review version history with restore, reviewer notes attached to a part of someone's review, and Pending Author Revision. That status blocks choosing the final diagnosis and sign-out, and only the author clears it. *(Since closed: built in Batch 412, below — checked in the Batch 496 README audit.)*
 
 ## Batch 412 (PS-359): pre-sign-out review without delays
 
@@ -181,3 +181,74 @@ Losing a pool claim to someone else shows a message. Screening-page saves go thr
 - Billing saves read the case as saved and adopt its version, so "Approve all" across decants works.
 - Only an orchestration case is charged, as on the report page.
 - A failed block save has its own message.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`useCytologyRevision` accepts a `null` specimen id, which it already handled.
+
+## Batch 514 (PS-269)
+
+Patient names on the worklist and the screening page show in the screen's language (Korean: full name + 님).
+
+## Batch 519 (PS-273)
+
+`CytologyScreeningPage.tsx` reads the Synoptic Library's cytology templates when it opens, so the sign-out checks use the published versions. The synoptic drawer's picker lists them.
+
+## Batch 523
+
+`CytologyScreeningPage.tsx`: on the pathologist track, Sign out first runs the clinical-pathologic mismatch check (`services/cytology/cytologyClinicalMismatch.ts`). A suggestion is decided in the shared mismatch window, then the signature step follows (PS-145, decision 15).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 530 (PS-554)
+
+`CytologyScreeningPage.tsx`: specimen sign-out uses `clinicalMismatchService.atSignOut`: only a high-risk mismatch opens the window; a low-risk one is logged for QA. No inline alert in the workspace yet.
+
+`CaseClinicalHistoryBar` above sign-out: the clinical history line and "Mismatch check deferred" notice, the same as on the report page.
+
+## Batch 531
+
+The inline mismatch alert (`ClinicalMismatchAlert` via `hooks/useClinicalMismatchCheck.ts`) above the clinical history line, per specimen, once the final diagnosis is chosen (pathologist track).
+
+## Batch 532
+
+One case report per accession (Pete, Oct 12). `CytologyScreeningPage.tsx`: **Print case report** (`cytology/cytologyCaseReportForPrint.ts`) once a multi-specimen case is released; **Finalize case early** now releases the case report (`releaseFinalizedCytologyCase`). `hooks/useCytologyRevision.ts`: a correction or addendum goes to the registry only when the case report was reissued (the case is released). The sign-out message says the case report is released when the last specimen is signed. Details: `services/cytology/README.md`, Batch 532.
+
+## Batch 533
+
+**Send urgent preliminary** (`components/CytologyPreliminaryPanel.tsx`, `hooks/useCytologyPreliminary.ts`): before a specimen is signed out, once its final diagnosis is chosen. It opens inline, not in a window: one click on a reason, an optional note, then Send (or "Sign and send", opening the signature window when the laboratory requires it). The preliminaries already sent are listed under it. The button greys out without `cytology:preliminary:release`; the service checks it again. Details: `services/cytology/README.md`, Batch 533.
+
+## Batch 534
+
+`HeldReportsBanner` above the preliminary panel lists the reports waiting out the release delay: the case report, revisions and preliminaries. Recall is there for the person who released them, and the page reloads with what was reopened. `hooks/useCytologyRevision.ts` passes the registry details to the release (it no longer submits them itself). A recalled preliminary is listed as recalled.
+
+## Batch 539
+
+`CytologyScreeningPage.tsx`: Print and Print case report open the report renderer's PDF (a preview before sign-out carries the PRELIMINARY — SUBJECT TO CHANGE watermark; a released case report is its stored document). The tab opens at the click so the browser doesn't block it; a failure closes it with a message (`cytologyScreening.printFailed`, or `printRendererOutdated` when the renderer hasn't been redeployed). The blob URL is released after a minute.
+
+## Batch 540
+
+`hooks/useCytologyRevision.ts`: a correction or addendum refused during the release delay shows `cytologyRevision.toasts.inReleaseDelay`.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 565 (WCAG 2.1 AA)
+
+- Contrast of colours set in code raised from the old greys; filter tiles say which is selected (`aria-pressed`) where this folder has them.
+
+## Batch 566 (WCAG 2.1 AA, 4.1.2)
+
+- The screening rows hold buttons of their own, so a row is no longer a button: `clickableContainer` (`utils/a11y/pressable.ts`) keeps the click anywhere on the row, and the patient's name (or MRN), still tagged `data-phi="name"`, is a real button that opens the case (`.ps-cytoworklist-row-open`, same look as before plus a hover underline and a focus ring). Pool rows are unchanged (not clickable). The tab tiles have `type="button"`.
+- `CytologyWorklistPage.rowOpen.test.tsx` (new): the name button opens the case once; the row has no role or tab stop; clicking elsewhere on the row opens it; a pool row doesn't; Manage flags doesn't also open the case.
+
+## Batch 572 (readiness review F7, option C)
+
+- "Today's screening hours": `components/ScreeningHoursPanel.tsx` and `hooks/useScreeningHoursSignOff.ts`, shown once something is recorded that day, with the facility time zone.
+
+## Batch 574
+
+- The workload counter (`components/CytologyWorkloadCounter.tsx`, `hooks/useCytologyWorkloadSummary.ts`) on the worklist and the screening page (with the review open now and the chosen mode); yesterday's screening hours panel above today's.

@@ -2,7 +2,7 @@
 
 **Status:** phases 1 and 2 built in the browser (Batches 369 and 370;
 PS-355, PS-356); phase 3, the remaining real permissions, is being added
-screen by screen (232 capabilities as of Batch 480, Oct 7, 2026; this said 88, as of Batch 425, until Batch 467b corrected it: see
+screen by screen (245 capabilities as of Batch 499, Oct 9, 2026; 244 as of Batch 495 — this said 232 "as of Batch 480" and had fallen behind the catalog; it said 88, as of Batch 425, until Batch 467b corrected it: see
 [the capability catalog](#capability-catalog-system-capabilities) below). The
 API server part described here is phase 4 (PS-358) and is not built yet.
 
@@ -86,7 +86,7 @@ Endpoints so far:
 | Action | Capability |
 |---|---|
 | Export a case's report change history | `report:change-history:export` |
-| Export each Quality Assurance report | its own `qa:<report>:export` (14), with the scope's facilities |
+| Export each Quality Assurance report | its own `qa:<report>:export` (16; this said 14 until the Batch 496 README audit), with the scope's facilities |
 | Create or change a role (including its capabilities) | `config:roles:manage`; also refuse a change that leaves no assignable role with it |
 | Create or edit a staff record | `config:staff:edit` |
 | Change a staff member's roles, facilities, pediatric/orchestration/cross-tenant access or credentials | `config:staff-access:assign` (requires `config:staff:edit`) |
@@ -105,6 +105,7 @@ Endpoints so far:
 | Correct an applied billing code | `billing:applied-code:correct` (Batch 382) |
 | Approve, decline, override, add or delete a case's billing codes (report page, Cytology Workspace, Microtomy) | `billing:applied-code:review` (Batch 460) |
 | Insert, replace or remove a case's anatomical map image in the report | `report:organ-map:insert`, with the case's facility (Batch 461) |
+| Print or reprint a case report, or open a stored version's PDF | `report:case-report:print`, with the case's facility (Batch 495; the preview window it also covered was retired in Batch 497). *Batch 558:* the API server checks it for the case on `GET /api/cases/{caseId}/report-versions` and `…/report-versions/{versionNumber}/pdf` (`BLOB_STORAGE_API.md` §11) |
 | Change organ-map colours, patterns and thresholds (enterprise, jurisdiction, facility) / a template's map question bindings | `config:organ-map-scheme:manage` (with the facility for a facility layer) / `config:organ-map-bindings:manage` (Batch 461; thresholds Batches 462, 464, 465, 466) |
 | Release an autopsy body | `autopsy:body:release` (Batch 383) |
 | Record a forensic autopsy chain-of-custody transfer | `autopsy:custody:transfer` (Batch 468) |
@@ -113,6 +114,7 @@ Endpoints so far:
 | Order postmortem toxicology / record its result | `autopsy:toxicology:order` / `autopsy:toxicology:result` (Batch 469) |
 | Send an internal message / a secure email | `message:internal:send` / `message:secure-email:send` (Batch 385) |
 | Correct or add to a signed-out cytology report | `cytology:report:correct` / `cytology:report:addend` (Batch 390) |
+| Send an urgent cytology preliminary report (one specimen, before the case report) | `cytology:preliminary:release` (Batch 533) |
 | Record a cytology QC or surgical QA review verdict | `cytology:qc-review:record` / `surgical:qa-review:record` (Batch 396) |
 | Change the intraoperative critical results dictionary | `config:intraop-critical-results:manage` (Batch 399) |
 | Place add-on orders; cancel or modify one after a block exception | `add-on:order:place` (Batch 403) |
@@ -128,6 +130,7 @@ Endpoints so far:
 | Sign out a cytology specimen, or release it for countersign | `cytology:report:sign-out` with the case (Batch 409), before signing authority, the CT gate and countersign rules, which still apply |
 | A cytotechnologist signing out (negative GYN, advanced-CT exception) | also `cytology:ct-report:sign-out` with the case (Batch 415); remove it from the role where cytotechnologists may not sign reports |
 | Save a cytology screening review (new or your own) | `cytology:review:record` with the case (Batch 410), before the workload check and QC selection |
+| Sign off your own screening hours for a day (Batch 572) | `cytology:screening-hours:sign-off`; your own hours only, a correction needs a reason (CYTOLOGY_QC_API.md §5) |
 | Choose which cytology review is the final diagnosis | `cytology:final-diagnosis:select` with the case (Batch 410); the CT/pathologist sign-out gate still applies |
 | Remove a cytology QC flag (adding one needs none) | `cytology:qc-flag:remove` with the case (Batch 410); audited |
 | Record a 5-year retrospective review outcome | `cytology:retrospective-review:record` with the case (Batch 410) |
@@ -217,11 +220,12 @@ code.
 | `config:ai-behavior:manage` | Manage AI features. | high | Admin, Lab Director | `aiBehavior/IAIBehaviorService.ts` |
 | `config:ai-provider:manage` | Manage the AI service. | high | Admin, Lab Director | `aiConfig/saveAiSettings.ts` |
 | `config:ai-model:manage` | Choose the default AI model. | high | Admin, Lab Director | `models/mockModelService.ts` |
+| `config:ai-vendor-policy:manage` | Set which AI services and hosting regions each jurisdiction (or facility) allows (Batch 536, PS-558). Audited (`AI_VENDOR_POLICY_CHANGED`). | high | Admin, Lab Director | `aiIntegration/aiVendorPolicyService.ts` `save`, `remove` |
 | `config:actions:manage` | Manage keyboard and voice commands. | high | Admin, Lab Director | `actionRegistry/mockActionRegistryService.ts` |
 | `config:voice:manage` | Turn voice on or off. | high | Admin, Lab Director | `systemConfig/systemConfigChangeChecks.ts` |
 | `config:macros:manage` | Manage shared macros. | high | Admin, Lab Director | `macros/mockMacroService.ts`, `voicemacro/mockVoiceMacroService.ts` |
 
-### Configuration: cytology (12)
+### Configuration: cytology (13)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -231,14 +235,15 @@ code.
 | `config:cytology-screening-strategy:manage` | Manage the screening strategy. | high | Admin, Lab Director | `cytology/mockCytologyScreeningStrategyService.ts`, `cytology/mockFacilityCytologyScreeningStrategyOverrideService.ts` |
 | `config:cytology-histology-correlation:manage` | Manage the cyto-histo correlation window (Batch 452, PS-156). | high | Admin, Lab Director | `cytology/mockCytologyHistologyCorrelationSettingsService.ts` |
 | `config:biopsy-resection-correlation:manage` | Manage the surgical biopsy-to-resection correlation window (Batch 453, PS-324). | high | Admin, Lab Director | `quality/biopsyResectionCorrelationSettings.ts` |
+| `config:tumor-board-rules:manage` | Manage the Tumor Board auto-flagging rules (enterprise baseline and facility overrides). | high | Admin, Lab Director | `tumorBoardRules/mockTumorBoardRuleService.ts` |
 | `config:follow-up-tracking:manage` | Manage follow-up tracking: the warning period, whether staff may email the ordering clinician, and that email's wording (Batch 454). | high | Admin, Lab Director | `followUp/followUpSettings.ts` |
 | `config:cytology-instrumentation:manage` | Manage cytology instruments. | high | Admin, Lab Director | `cytology/mockCytologyInstrumentationService.ts`, `cytology/mockFacilityCytologyInstrumentationOverrideService.ts` |
 | `config:cytology-qc-rates:manage` | Manage QC rescreen rates. | high | Admin, Lab Director | `cytology/mockCytologyQcSettingsService.ts`, `cytology/mockFacilityCytologyQcOverrideService.ts`, `cytology/mockStaffCytologyQcOverrideService.ts` |
-| `config:cytology-workload-cap:manage` | Manage the slide workload cap. | high | Admin, Lab Director | `cytology/mockCytologyWorkloadCapSettingsService.ts`, `cytology/mockFacilityCytologyWorkloadCapOverrideService.ts` |
+| `config:cytology-workload-cap:manage` | Manage the slide workload cap (enterprise, facility and, from Batch 576, a person's own cap; the start of the screening day, Batch 574). A cap is 1–100 whole slides. | high | Admin, Lab Director | `cytology/mockCytologyWorkloadCapSettingsService.ts`, `cytology/mockFacilityCytologyWorkloadCapOverrideService.ts`, `cytology/mockStaffCytologyWorkloadCapOverrideService.ts`, `cytology/saveScreeningDayStart.ts` |
 | `config:cytology-severity-mapping:manage` | Manage histology severity mapping. | high | Admin, Lab Director | `cytology/mockSnomedCervicalHistologySeverityMappingService.ts` |
 | `config:cytology-qc-rules:manage` | Manage cytology QC rules. | high | Admin, Lab Director | `cytologyQc/mockCytologyQcRuleService.ts` |
 
-### Configuration: lab dictionaries and case workflow (18)
+### Configuration: lab dictionaries and case workflow (19)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -246,6 +251,7 @@ code.
 | `config:subspecialties:manage` | Manage subspecialties. | high | Admin, Lab Director | `subspecialties/mockSubspecialtyService.ts` |
 | `config:specimen-dictionary:manage` | Manage the specimen dictionary. | high | Admin, Lab Director | `specimenDictionary/mockSpecimenDictionaryService.ts` |
 | `config:stain-dictionary:manage` | Manage the stain dictionary. | high | Admin, Lab Director | `stains/mockMolecularTargetService.ts`, `stains/mockSectioningProtocolService.ts`, `stains/mockStainOrderMacroService.ts`, `stains/mockStainTypeService.ts` |
+| `config:ink-color:manage` | Manage the ink colour dictionary. | high | Admin, Lab Director | `inkColors/mockInkColorService.ts` |
 | `config:processing-protocols:manage` | Manage processing protocols. | high | Admin, Lab Director | `protocols/mockProtocolService.ts` |
 | `config:container-types:manage` | Manage container types. | high | Admin, Lab Director | `containerTypes/mockContainerTypeService.ts` |
 | `config:reagent-lots:manage` | Manage reagent lots. | high | Admin, Lab Director | `reagentLots/mockReagentLotService.ts` |
@@ -273,6 +279,11 @@ code.
 | `config:qa-types:manage` | Manage QA activity types. | high | Admin, Lab Director | `quality/mockQaActivityTypeService.ts`, `quality/mockQaSupervisionAssignmentTypeService.ts`, `quality/mockSurgicalPeerReviewRiskWeightService.ts` |
 | `config:revision-reasons:manage` | Manage revision reasons. | high | Admin, Lab Director | `reasons/mockReasonDictionaryService.ts` |
 | `config:peer-review:manage` | Manage the peer-review sign-out gate. | high | Admin, Lab Director | `quality/mockPeerReviewSettingsService.ts` |
+| `config:clinical-mismatch-rules:manage` | Change the clinical-pathologic mismatch risk rules (Batch 529, PS-554). Requires `…rules:view`. | high | **none**: each hospital grants it to its own role (e.g. a Pathologist Administrator) | `clinical/clinicalMismatchRuleService.ts` `save`, `remove` |
+| `config:clinical-mismatch-rules:view` | Read the mismatch rules (Batch 529, PS-554), so a pathologist can see why a case was held. | standard | Pathologist, QA Reviewer, Lab Director | `clinical/clinicalMismatchRuleService.ts` `list` |
+| `config:ai-prompt:view` | Read the governed AI instructions for the mismatch check, their versions and approvals (Batch 536, PS-554). | standard | QA Reviewer, Lab Director | `clinical/aiInstructionService.ts` `list` |
+| `config:ai-prompt:edit` | Edit the AI instructions: a new version, pending approval; the check keeps using the approved one (Batch 536). Requires `…:view`. | high | **none**: each hospital grants it (Superadmin holds it, for ForMedrixAI testing) | `clinical/aiInstructionService.ts` `saveDraft`, `test` |
+| `config:ai-prompt:approve` | Approve or reject an edited version; never by anyone who edited it (`SELF_APPROVAL`) (Batch 536). Requires `…:view`. Separation of duties with `config:clinical-mismatch-rules:manage`. | high | Lab Director (**never Superadmin**, Pete Oct 11) | `clinical/aiInstructionService.ts` `approve`, `reject`, `test` |
 | `config:qa-trend-policy:manage` | Manage the discordance trend policy. | high | Admin, Lab Director | `quality/mockQaTrendPolicyService.ts` |
 | `config:validation-studies:manage` | Manage validation studies. | high | Admin, Lab Director | `validationStudies/mockValidationStudyService.ts` |
 | `validation:approval:record` | Record validation approval. | high | Admin, Lab Director | `validationStudies/mockValidationStudyService.ts` |
@@ -285,8 +296,8 @@ code.
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
 | `config:printers:manage` | Manage printers. | high | Admin, Lab Director | `printerProfiles/mockPrinterProfileService.ts` |
-| `config:print-settings:manage` | Manage print settings. | high | Admin, Lab Director | `printSettings/mockFacilityPrintSettingsService.ts`, `printSettings/mockPrintSettingsService.ts` |
-| `config:print-routing:manage` | Manage print routing. | high | Admin, Lab Director | `printRouting/mockPrintRoutingRuleService.ts` |
+| `config:print-settings:manage` | Manage print settings, including a facility's report printing (Batch 517). Batch 553: also lets the Printing tab list the facility's own site agent printers for its default (`siteAgent/siteAgentAdminService.ts` reportPrinters). | high | Admin, Lab Director | `printSettings/mockFacilityPrintSettingsService.ts`, `printSettings/mockPrintSettingsService.ts`, `facilities/mockFacilityService.ts` (setPrintSettings) |
+| `config:print-routing:manage` | Manage print routing. Batch 553: also lets the rule window list a site's agent printers (`siteAgent/siteAgentAdminService.ts` reportPrinters). | high | Admin, Lab Director | `printRouting/mockPrintRoutingRuleService.ts` |
 | `config:label-layouts:manage` | Manage label layouts. | high | Admin, Lab Director | `labelDesigner/mockLabelLayoutService.ts` |
 | `config:cassette-routing:manage` | Manage cassette routing. | high | Admin, Lab Director | `cassetteRouting/mockCassetteRoutingRuleService.ts` |
 | `config:cassette-colors:manage` | Manage cassette colours. | high | Admin, Lab Director | `cassetteColors/mockCassetteColorService.ts` |
@@ -303,8 +314,11 @@ code.
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
+| `config:site-agents:enroll` | Make a one-time enrolment code for a site agent, and revoke an agent, at the site's facility (Batch 552; `SITE_AGENT_API.md` §2). Either this or the next lets you see the site's agents and configuration. | high | Admin, Lab Director | `siteAgent/siteAgentAdminService.ts` |
+| `config:site-agent-config:manage` | Change a site agent's printers and file shares (Batch 552; `SITE_AGENT_API.md` §3). | high | Admin, Lab Director | `siteAgent/siteAgentAdminService.ts` |
 | `config:vendor-integrations:manage` | Manage vendor integrations. | high | Admin, Lab Director | `digitalPathology/mockDpVendorService.ts`, `digitalPathology/mockWsiViewerVendorService.ts`, `imageAssociation/mockGrossImagingVendorService.ts`, `imageAssociation/mockImageManagementSystemVendorService.ts` |
 | `config:crosswalk:manage` | Manage the specimen code crosswalk. | high | Admin, Lab Director | `orderIntake/mockOrderIntakeService.ts` |
+| `config:secure-messaging:manage` | Manage a lab's secure messaging gateways and their BAA or data processing agreements (Batch 517, PS-143). | high | Admin, Lab Director | `secureMessaging/mockSecureMessagingConfigService.ts` |
 | `config:migration-mappings:manage` | Manage migration field mappings. | high | Admin, Lab Director | `migration/mockMigrationFieldMappingService.ts` |
 | `config:assist-polling:manage` | Manage Assist LIS polling. | high | Admin, Lab Director | `assistPolling/mockAssistPollingService.ts` |
 | `assist:lis-message:ingest` | Process LIS messages by hand. | high | Admin, Lab Director | `assistPolling/assistPollingRuntime.ts` |
@@ -338,7 +352,7 @@ code.
 | `config:organ-map-bindings:manage` | Manage which of a synoptic template's questions feed its organ map, and what each answer means (Batch 461); and which of its generic margin questions the map calculates (Batch 466b). | high | Admin, Lab Director | `organMapping/organMapConfig.ts` |
 | `config:inking-validation-mode:manage` | Manage a site's inking validation mode (`WARN_ONLY`, the default, or `STRICT_ENFORCE`) for structured-inking sign-out checks (Batch 480). | high | Admin, Lab Director | `grossing/inkingSiteSettings.ts` |
 
-### Case work (52)
+### Case work (59)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -349,14 +363,21 @@ code.
 | `case:retention-hold:place` | Place a retention hold. | high | Every case-access role; hospital roles with case access | `cases/caseHolds.ts` |
 | `case:retention-hold:release` | Release a retention hold. | high | Every case-access role; hospital roles with case access | `cases/caseHolds.ts` |
 | `case:delegation:create` | Delegate a case. | high | Every case-access role; hospital roles with case access | `delegations/mockDelegationService.ts` |
+| `case:tumor-board:flag` | Flag a case for Tumor Board/MDT. | high | Pathologist, Fellow, Resident, PA | `tumorBoard/mockTumorBoardService.ts` |
+| `case:margin-exception:resolve` | Resolve a margin-distance exception. | high | Pathologist, Fellow, Resident, PA | `marginExtraction/mockMarginExtractionService.ts` |
+| `case:tumor-board:manage` | Manage the Tumor Board queue status (Cancel, Presented, Deferred a nomination). Board, schedule and presenter changes are `case:tumor-board:schedule` instead (Batch 493). | standard | Pathologist, Fellow, Resident, PA, Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist | `tumorBoard/mockTumorBoardService.ts` |
+| `case:tumor-board:schedule` | Schedule a Tumor Board/MDT meeting in advance: which board, the meeting date and time, and who presents (Batch 493). | standard | Pathologist, Fellow, Resident, PA, Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist | `tumorBoard/mockTumorBoardService.ts` |
+| `case:tumor-board:dismiss` | Dismiss an auto-generated Tumor Board flag with a reason. | high | Pathologist, Fellow, Resident, PA | `tumorBoard/mockTumorBoardService.ts` |
 | `case:team:manage` | Change a case's team. | high | Every case-access role; hospital roles with case access | `cases/saveCaseTeam.ts` |
 | `patient:national-identifier:record` | Record a patient's national identifier. | high | Every case-access role; hospital roles with case access | `patientIdentifiers/recordNationalPatientIdentifier.ts` |
 | `patient:registry-consent:record` | Record a patient's registry opt-out. | high | Every case-access role; hospital roles with case access | `registryConsent/recordPatientRegistryConsent.ts` |
 | `cytology:report:correct` | Correct a signed-out cytology report. | high | Pathologist | `cytology/releaseCytologyCorrection.ts` |
 | `cytology:report:addend` | Add an addendum to a signed-out cytology report. | high | Pathologist | `cytology/releaseCytologyAddendum.ts` |
+| `cytology:preliminary:release` | Send an urgent preliminary report for one cytology specimen before the case report (Batch 533). | high | **none**: each laboratory grants it in the Role Dictionary (Pete: configurable) | `cytology/releaseCytologyPreliminary.ts` |
 | `cytology:report:sign-out` | Sign out a cytology report. | high | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `cytology/signOutCytologyCase.ts` |
 | `cytology:ct-report:sign-out` | Sign out a cytology report as a cytotechnologist. Requires `cytology:report:sign-out`. | high | Cytotechnologist; hospital roles with case access | `cytology/signOutCytologyCase.ts` |
 | `cytology:review:record` | Record a cytology screening review. | high | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `cytology/saveCytologyReview.ts` |
+| `cytology:screening-hours:sign-off` | Confirm or correct your own screening hours for a day (the screening hours record, CLIA in the US: the supervisor's workload report counts them; the live limit uses the recorded time). | high | Pathologist, Fellow, Resident, Cytotechnologist (its own seed, `CYTOLOGY_SCREENING_HOURS`; not offered to a hospital's own roles) | `cytology/mockCytologyScreeningHoursService.ts` |
 | `cytology:final-diagnosis:select` | Choose a cytology final diagnosis. | high | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `cytology/cytologyCaseActions.ts` |
 | `cytology:qc-flag:remove` | Remove a cytology QC flag. | high | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `cytology/cytologyCaseActions.ts` |
 | `cytology:retrospective-review:record` | Record a 5-year retrospective review. | high | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `cytology/cytologyCaseActions.ts` |
@@ -370,7 +391,11 @@ code.
 | `case:peer-review:record` | Record a peer review. | high | Pathologist | `quality/peerReviewService.ts` |
 | `case:peer-review:override` | Sign out ahead of a required peer review. | high | Pathologist | `quality/peerReviewService.ts` |
 | `case:clinical-mismatch:record` | Decide a clinical-pathologic mismatch. | high | Pathologist, Fellow | `clinical/clinicalMismatchDecision.ts` |
+| `case:clinical-history:record` | Add or reconcile a case's structured clinical history after accession, until sign-out (Batch 530). | high | Pathologist, Fellow, Resident, PA | `clinicalHistory/recordClinicalHistoryAfterAccession.ts` |
 | `case:outside-consult:assess` | Assess an outside consult opinion. | high | Pathologist, Fellow | `consultAccess/mockConsultTokenService.ts` |
+| `case:consult-link:issue` | Issue an outside consultant's view-only link to a case. | high | Pathologist, Fellow, Resident, PA, Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access (Batch 515; who should hold it is awaiting Pete's decision) | `consultAccess/mockConsultTokenService.ts` |
+| `case:consult-link:revoke` | Revoke an outside consult link. | high | Same as `case:consult-link:issue` | `consultAccess/mockConsultTokenService.ts` |
+| `audit:consult-links:view` | See every outside consult link across all cases (Audit Log → Consult links). Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer (Batch 522) | `consultAccess/mockConsultTokenService.ts` (`listAll`) |
 | `cytology:pathologist-review:take` | Take a positive GYN cytology case for review. | high | Pathologist, Fellow | `cytology/cytologyQueuesLive.ts` |
 | `add-on:order:place` | Place an add-on order. | high | Pathologist, Fellow, Resident; hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
 | `add-on:exception:approve-destructive-cut` | Approve destructive cutting. | high | Pathologist, Fellow, Resident; hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
@@ -385,7 +410,10 @@ code.
 | `case:decant:delete` | Remove a decant from the material tree (Batch 452). | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `material/caseMaterialService.ts` |
 | `case:follow-up:expect` | Mark a signed-out surgical case "follow-up specimen expected" (Batch 454). | standard | Pathologist, Fellow | `followUp/followUpActions.ts` |
 | `case:edit-conflict:override` | Overwrite on the Edit Conflict dialog: save this session's changes over a newer version someone else saved (Batch 458, PS-71). | high | Pathologist, Admin, Lab Director | `cases/caseWrite.ts` |
+| `case:inking-gate:override` | Administrative Override of the Structured Inking sign-out gate (Gate B) for a Severity 3 issue, with a mandatory reason (Batch 484, PS-519). | high | Admin, Lab Director | `grossing/recordInkingGateOverride.ts` |
 | `report:organ-map:insert` | Insert the anatomical map (drawn from the synoptic answers) into the report as a snapshot, insert it again, or remove it; refused once the report is signed out (Batch 461). | standard | Pathologist, Fellow, Resident | `organMapping/organMapFigures.ts` |
+| `report:case-report:print` | Print or reprint a case report, or open a stored version's PDF (the preview window was retired in Batch 497) (Batch 495, PS-283 §4.2.4). Since Batch 516 a case carrying a print-restricting flag also needs `report:restricted-case:print` (below). | high | Every case-access role; hospital roles with case access | `printing/reportPrintGate.ts` (`beginReportPrint`) |
+| `report:restricted-case:print` | Print a case that carries a print-restricting flag (VIP, confidential). Requires `report:case-report:print`. | high | Pathologist (Batch 516) | `printing/reportPrintGate.ts` |
 | `retention:disposal-report:export` | Export the disposal report. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `retentionPolicy/exportDisposalReport.ts` |
 | `search:case-results:export` | Export case search results. Requires `screen:search:open`. | high | Every case-access role, Lab Director; hospital roles with case access | `printing/exportGate.ts` |
 | `contribution:trainee-case-reference:export` | Export my trainee case log. Requires `screen:my-contributions:open`. | high | Pathologist, Fellow, Resident, PA, Lab Director; hospital roles with case access | `printing/exportGate.ts` |
@@ -395,6 +423,8 @@ code.
 | `molecular:order:cancel` | Cancel an in-house molecular order (and its add-on slide order), or re-route it to send-out when its lab no longer runs the test in-house (Batch 467). Requires `screen:molecular:open`. | high | Molecular Technologist; hospital roles with case access | `molecularOrders/molecularOrderEngine.ts` |
 | `molecular:order:set-lab` | Choose or change the reference lab a queued send-out molecular order goes to: one of the test's approved labs, or any active reference lab when it has none (Batch 467b). Requires `screen:molecular:open`. | standard | Molecular Technologist; hospital roles with case access | `molecularOrders/molecularOrderEngine.ts` |
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the five Tumor Board and margin-exception capabilities are not seeded to a hospital's own roles (`customRoleScreenSeed` in `capabilitySeeds.ts` leaves them out); "hospital roles with case access" removed from their rows.*
+
 ### Billing (3)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
@@ -403,7 +433,7 @@ code.
 | `billing:applied-code:review` | Review a case's billing codes: approve, decline, override, add and delete (each charges or credits the case). | high | Same as `billing:applied-code:correct` | `billing/caseBillingCharges.ts` (`enforceBillingReview`) |
 | `billing:charge:approve` | Approve charges. | high | None | `billing/chargeApproval.ts` |
 
-### Autopsy (11)
+### Autopsy (12)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -413,6 +443,7 @@ code.
 | `autopsy:consent:reinstate` | Restore an already-narrowed or revoked hospital next-of-kin consent, with a required note. A separate capability from `autopsy:consent:manage` — narrowing and reinstating are opposite-direction actions. | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyConsentReinstatement.ts` |
 | `autopsy:retention-disposal:record` | Record how and when retained organs/tissue were disposed of. | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyOrganRetentionDisposal.ts` |
 | `autopsy:retention-detail:record` | Record who holds retained organs/tissue and where, while retention is ongoing (distinct from disposal). | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyOrganRetentionDetail.ts` |
+| `autopsy:retention-tier:record` | Choose the organ/tissue retention tier and its reason, within what the consent on file permits (Batch 499; saved with no check before). | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyOrganRetentionTier.ts` |
 | `autopsy:toxicology:order` | Order a postmortem toxicology test on a specimen. | standard | Every case-access role; hospital roles with case access | `autopsy/orderAutopsyToxicology.ts` |
 | `autopsy:toxicology:result` | Record the result of an ordered postmortem toxicology test. | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyToxicologyResult.ts` |
 | `autopsy:toxicology:cancel` | Cancel a still-pending postmortem toxicology order, with a reason. | high | Every case-access role; hospital roles with case access | `autopsy/cancelAutopsyToxicologyOrder.ts` |
@@ -476,6 +507,15 @@ code.
 |---|---|---|---|---|
 | `qa:activity-dashboard:export` | Export QA dashboard. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `audit:error:resolve` | Resolve an Audit Log error. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `auditlog/mockAuditService.ts` |
+| `print:job:hold` | Hold or release a print job in the Print Queue. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access (Batch 515) | `printing/mockPrintQueueService.ts` |
+| `print:job:cancel` | Cancel a print job in the Print Queue. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access (Batch 515) | `printing/mockPrintQueueService.ts` |
+| `print:job:redirect` | Redirect a network print job to another printer. Batch 553: also lets Redirect list the job's site's agent printers; an agent printer on another site than the job's performing lab is refused. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access (Batch 515) | `printing/mockPrintQueueService.ts` |
+| `print:job:retry` | Retry a failed print job. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access (Batch 515) | `printing/redispatchPrintJob.ts` |
+| `interface:outbound:resend` | Send, resend or simulate a failure for an outbound interface message, in any of the seven queues (Batch 518, PS-122). | high | Admin | `interfaceDispatch/outboundQueueActions.ts` |
+| `interface:engine-status:view` | See the interface engines' status in Audit Log → Interfaces → Engines: each hospital's engine (hosted or on site), its listeners and channels, what is waiting and the dead letters (Batch 554). No patient data. Requires `screen:audit-log:open`. | standard | Admin | `interfaceMonitoring/interfaceMonitoringService.ts` |
+| `jobs:server-job:view` | See the API server's background jobs in System Logs → Server jobs: each job kind's waiting, running and dead-lettered counts, the recurring jobs, and the jobs that failed for good (Batch 551). Requires `screen:audit-log:open`. | standard | Admin | `serverJobs/serverJobsService.ts` |
+| `jobs:server-job:requeue` | Requeue a dead-lettered delivery, held release, charge, export or event job (Batch 551; interface and print jobs keep `interface:outbound:resend` and `print:job:retry`). Audited by the server. Requires `jobs:server-job:view`. | high | Admin | `serverJobs/serverJobsService.ts` |
+| `label:batch:reprint` | Reprint labels for many cases at once, through the print queue (Batch 518, PS-123). | high | Admin, Histotechnologist | `labels/batchLabelReprint.ts` |
 | `qa:inspection-evidence:export` | Export inspection evidence binder. Requires `qa:activity-dashboard:export`. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `qa:enterprise-rollup:export` | Export enterprise rollup. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `audit:audit-log:export` | Export the Audit Log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
@@ -484,7 +524,7 @@ code.
 | `audit:qa-log:export` | Export the Quality Assurance log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
 | `audit:billing-log:export` | Export the Billing Log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
 
-### Screens: what each role can open (18)
+### Screens: what each role can open (21)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -496,12 +536,15 @@ code.
 | `screen:cytology-qc-queue:open` | Open Cytology QC Peer Review Queue. | standard | Pathologist, Fellow; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:surgical-qa-worklist:open` | Open Surgical Post-Sign-Out QA. | standard | Pathologist, Fellow; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:my-contributions:open` | Open My Contribution. | standard | Pathologist, Fellow, Resident, PA, Lab Director; hospital roles with case access | `screens/screenAccess.ts` |
+| `screen:bench-contributions:open` | Open Bench Contributions. | standard | Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `screens/screenAccess.ts` |
+| `screen:tumor-board:open` | Open Tumor Board. | standard | Pathologist, Fellow, Resident, PA; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:batch-management:open` | Open Batch Management. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist, Admin; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:cytology-workspace:open` | Open Cytology Workspace. | standard | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:microtomy:open` | Open Microtomy Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:embedding:open` | Open Embedding Workspace. | standard | PA, Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:slide-distribution:open` | Open Slide Distribution Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:molecular:open` | Open Molecular Workspace. | standard | Molecular Technologist; hospital roles with case access | `screens/screenAccess.ts` |
+| `screen:margin-exception-review:open` | Open Margin Exception Review. | standard | Pathologist, Fellow, Resident, PA; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:audit-log:open` | Open Audit. | standard | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `screens/screenAccess.ts` |
 | `screen:quality-assurance:open` | Open Quality Assurance. | standard | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `screens/screenAccess.ts` |
 | `screen:registry-exceptions:open` | Open Registry Exceptions. | standard | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `registrySubmission/captureRegistryExceptionAsCapa.ts`, `screens/screenAccess.ts` |
@@ -560,11 +603,17 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `cytology/mockCytologyHistologyCorrelationSettingsService.ts` (facility overrides) | set, remove | `config:cytology-histology-correlation:manage` |
 | `quality/biopsyResectionCorrelationSettings.ts` (settings) | update, reset | `config:biopsy-resection-correlation:manage` |
 | `quality/biopsyResectionCorrelationSettings.ts` (facility overrides) | set, remove | `config:biopsy-resection-correlation:manage` |
+| `tumorBoardRules/mockTumorBoardRuleService.ts` (rules) | update | `config:tumor-board-rules:manage` |
+| `tumorBoardRules/mockTumorBoardRuleService.ts` (facility overrides) | set, remove | `config:tumor-board-rules:manage` |
+| `tumorBoard/mockTumorBoardService.ts` (update, status change) | update | `case:tumor-board:manage` |
+| `tumorBoard/mockTumorBoardService.ts` (update, board/schedule/presenter change) | update | `case:tumor-board:schedule` (Batch 493) |
+| `tumorBoard/mockTumorBoardService.ts` (dismiss) | dismiss | `case:tumor-board:dismiss` |
 | `followUp/followUpSettings.ts` (settings) | update, reset | `config:follow-up-tracking:manage` |
 | `followUp/followUpSettings.ts` (facility overrides) | set, remove | `config:follow-up-tracking:manage` |
 | `organMapping/organMapConfig.ts` (colour layers) | save, remove a layer | `config:organ-map-scheme:manage` (facility layer: with that facility) |
 | `organMapping/organMapConfig.ts` (bindings) | save, remove | `config:organ-map-bindings:manage` |
 | `cytology/mockFacilityCytologyWorkloadCapOverrideService.ts` | create, update, remove | `config:cytology-workload-cap:manage` |
+| `cytology/mockStaffCytologyWorkloadCapOverrideService.ts` (Batch 576) | create, update, remove | `config:cytology-workload-cap:manage` |
 | `cytology/mockNonGynCytologyCategoryService.ts` | add, update, deactivate, reactivate, remove | `config:cytology-categories:manage` |
 | `cytology/mockSnomedCervicalHistologySeverityMappingService.ts` | add, update, remove | `config:cytology-severity-mapping:manage` |
 | `cytology/mockStaffCytologyQcOverrideService.ts` | create, update, remove | `config:cytology-qc-rates:manage` |
@@ -586,6 +635,7 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `grossingRoutingOverrides/mockGrossingRoutingOverrideService.ts` | add, update, remove | `config:grossing-routes:manage` |
 | `imageAssociation/mockGrossImagingVendorService.ts` | add, update, deactivate, reactivate, remove | `config:vendor-integrations:manage` |
 | `imageAssociation/mockImageManagementSystemVendorService.ts` | add, update, deactivate, reactivate, remove | `config:vendor-integrations:manage` |
+| `inkColors/mockInkColorService.ts` | create, update, deactivate, reactivate | `config:ink-color:manage` |
 | `intraopDashboard/mockOrSuiteTerminalService.ts` | add, update, deactivate | `config:or-suite-terminals:manage` |
 | `labelDesigner/mockLabelLayoutService.ts` | save, reset | `config:label-layouts:manage` |
 | `locations/mockLocationService.ts` | create, update, deactivate, reactivate, verify | `config:facilities:manage` |
@@ -595,6 +645,8 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `printRouting/mockPrintRoutingRuleService.ts` | create, update, remove | `config:print-routing:manage` |
 | `printSettings/mockFacilityPrintSettingsService.ts` | create, update, remove | `config:print-settings:manage` |
 | `printSettings/mockPrintSettingsService.ts` | update, reset | `config:print-settings:manage` |
+| `facilities/mockFacilityService.ts` | setPrintSettings (Batch 517; add and update never change report printing) | `config:print-settings:manage` |
+| `secureMessaging/mockSecureMessagingConfigService.ts` | save | `config:secure-messaging:manage` |
 | `printerProfiles/mockPrinterProfileService.ts` | add, update, remove | `config:printers:manage` |
 | `protocols/mockProtocolService.ts` | add, update, restoreVersion | `config:processing-protocols:manage` |
 | `quality/mockQaActivityTypeService.ts` | add, update, deactivate, reactivate | `config:qa-types:manage` |
@@ -653,6 +705,10 @@ These actions had a service method but nothing called it; Batch 432 added the sc
 | Action | Service (mock) | Check |
 |---|---|---|
 | Resolve an Audit Log error (records who and when) | `auditlog/mockAuditService.ts` `resolveError` | `audit:error:resolve` |
+| Send, resend or simulate a failed outbound interface message (Batch 518) | `interfaceDispatch/outboundQueueActions.ts` `dispatchOutboundEntry`, `resendOutboundEntry`, `simulateOutboundFailure` | `interface:outbound:resend` |
+| Batch label reprint (Batch 518) | `labels/batchLabelReprint.ts` `reprintLabelsForCases` | `label:batch:reprint` |
+| See the interface engines' listeners and queues (Batch 554) | `interfaceMonitoring/interfaceMonitoringService.ts` `engines` (the API server checks again) | `interface:engine-status:view` |
+| See the server jobs; requeue a dead-lettered job (Batch 551) | `serverJobs/serverJobsService.ts` `health`, `deadLetters`, `requeue` (the API server checks again) | `jobs:server-job:view`, `jobs:server-job:requeue` |
 | Retire an AI model (not the default) | `models/mockModelService.ts` `retire` | `config:ai-model:manage` |
 | Escalate an SLA-breached cytology QC review (reason required) | `cytologyQc/mockCytologyQcCaseAssignmentService.ts` `escalateForSlaBreach` | `cytology:qc-review:record` |
 | Cytology QC supervisor bypass (justification required) | same, `supervisorBypass` | `cytology:qc-review:bypass` (nobody by default; also opens the Cytology QC queue) |
@@ -747,8 +803,15 @@ Server notes:
 | Record the independent read; record the consensus as the reviewer | `quality/peerReviewService.ts` `recordRead`, `resolve` | `case:peer-review:record` |
 | Sign out ahead of a required review for urgent care | `quality/peerReviewService.ts` `override` | `case:peer-review:override` |
 | Decide a clinical-pathologic mismatch suggestion | `clinical/clinicalMismatchDecision.ts` | `case:clinical-mismatch:record` |
+| Record clinical history after accession (audited `CLINICAL_HISTORY_UPDATED`; refused once signed out) | `clinicalHistory/recordClinicalHistoryAfterAccession.ts` | `case:clinical-history:record` |
 | Assess an outside consultant's opinion | `consultAccess/mockConsultTokenService.ts` `assessOpinion` | `case:outside-consult:assess` |
 | Change where the peer-review gate is on (organisation, facility, department) | `quality/mockPeerReviewSettingsService.ts` `save` (via `guardConfigWrites`) | `config:peer-review:manage` |
+| Read the clinical mismatch rules | `clinical/clinicalMismatchRuleService.ts` `list` | `config:clinical-mismatch-rules:view` |
+| Add, change or remove a clinical mismatch rule; audited (`CLINICAL_MISMATCH_RULE_CHANGED`) | `clinical/clinicalMismatchRuleService.ts` `save`, `remove` | `config:clinical-mismatch-rules:manage` |
+| Save an edit to the AI instructions (pending approval); audited (`AI_PROMPT_EDITED`) | `clinical/aiInstructionService.ts` `saveDraft` | `config:ai-prompt:edit` |
+| Approve or reject a version of the AI instructions; audited (`AI_PROMPT_APPROVED`, `AI_PROMPT_REJECTED`) | `clinical/aiInstructionService.ts` `approve`, `reject` | `config:ai-prompt:approve` |
+| Read the AI instructions | `clinical/aiInstructionService.ts` `list` | `config:ai-prompt:view` |
+| Add, change or remove an AI vendor policy rule; audited (`AI_VENDOR_POLICY_CHANGED`) | `aiIntegration/aiVendorPolicyService.ts` `save`, `remove` | `config:ai-vendor-policy:manage` |
 
 Server notes:
 
@@ -759,7 +822,7 @@ Server notes:
 - **CAPA** is always a recommendation (Pete): an unresolved disagreement → `unresolved-disagreement`; an unresolved mismatch → `clinical-mismatch`; a major outside-consult discordance on a released report → `post-signout-discordance`. Consensus reached, a resolved mismatch, or a discordance found before release recommend nothing.
 - **The mismatch check** sends only narrative and clinical text to the AI provider, never patient identifiers. The server should run it, not the browser.
 - Audit events: `PEER_REVIEW_REQUESTED`, `PEER_REVIEW_READ_RECORDED`, `PEER_REVIEW_RESOLVED`, `PEER_REVIEW_WITHDRAWN`, `PEER_REVIEW_OVERRIDDEN`, `PEER_REVIEW_GATE_CHANGED`, `CLINICAL_MISMATCH_DECIDED`, `consult.opinion.assessed`.
-- Endpoints: `GET /api/cases/{id}/peer-review`, `POST /api/cases/{id}/peer-review` `{ reviewerId, trigger, note? }`, `POST /api/peer-reviews/{id}/read` `{ agrees, diagnosis?, severity?, notes? }`, `POST /api/peer-reviews/{id}/resolve` `{ result, consensusDiagnosis?, note? }`, `POST /api/peer-reviews/{id}/withdraw` `{ reason }`, `POST /api/cases/{id}/peer-review/override` `{ reason, note? }`, `GET/PUT /api/config/peer-review-gate`, `POST /api/cases/{id}/clinical-mismatch` `{ kind, source, confidence?, decision, note? }`, `POST /api/consult-opinions/{id}/assessment` `{ assessment, note? }`.
+- Endpoints: `GET /api/cases/{id}/peer-review`, `POST /api/cases/{id}/peer-review` `{ reviewerId, trigger, note? }`, `POST /api/peer-reviews/{id}/read` `{ agrees, diagnosis?, severity?, notes? }`, `POST /api/peer-reviews/{id}/resolve` `{ result, consensusDiagnosis?, note? }`, `POST /api/peer-reviews/{id}/withdraw` `{ reason }`, `POST /api/cases/{id}/peer-review/override` `{ reason, note? }`, `GET/PUT /api/config/peer-review-gate`, `POST /api/cases/{id}/clinical-mismatch` (Batch 530: `{ kind, source, confidence?, resolution, risk?, ruleId?, quickReason?, note?, reviewOf? }`; see the mismatch section below), `POST /api/consult-opinions/{id}/assessment` `{ assessment, note? }`.
 
 ## GYN cytology QC queue and pathologist review tray (Batch 440, PS-271)
 
@@ -870,14 +933,61 @@ full contract is `docs/architecture/ORGAN_MAPPING_API.md`.
 
 Margin/ink data model, recording and the severity engine only this batch (no
 grossing-screen UI yet, no ink-colour admin palette yet — see
-`src/services/grossing/README.md`'s own Batch 480 entry).
+`src/services/grossing/README.md`'s own Batch 480 entry). *(Since closed: the grossing-screen UI in Batch 481 (`pages/GrossingScreenPage/GrossingScreenPage.tsx`) and the ink-colour palette in Batch 482 — checked in the Batch 496 README audit.)*
 
 | Action | Service (mock) | Check |
 |---|---|---|
 | Record a margin's first ink application (creating the margin) or append a further ink application to an existing margin, never overwriting a prior application or renaming/re-orienting the margin; audited | `grossing/recordMarginInkApplication.ts` | `grossing:margin-ink:record` |
-| Change a site's `inking_validation_mode` (`WARN_ONLY`, the default, or `STRICT_ENFORCE`) | `grossing/inkingSiteSettings.ts` `setInkingValidationMode` | `config:inking-validation-mode:manage`. `group: 'configSystem'`, so granted to Admin and Lab Director by default via `CONFIG_SECTIONS` — not "nobody by default" |
+| Change a facility's `inking_validation_mode` (`WARN_ONLY`, the default, or `STRICT_ENFORCE`) | `grossing/inkingSiteSettings.ts` `setInkingValidationMode` | `config:inking-validation-mode:manage`. `group: 'configSystem'`, so granted to Admin and Lab Director by default via `CONFIG_SECTIONS` — not "nobody by default" |
 
-`resolveInkingValidationSeverity.ts` is read-only resolution logic (no capability of its own, same as `resolveAutopsyGrossExaminationGate.ts`): it blocks sign-out on a Severity 2 issue only when the site's mode is `STRICT_ENFORCE`, and would always block on a Severity 3 issue (not yet triggerable this batch).
+`resolveInkingValidationSeverity.ts` is read-only resolution logic (no capability of its own, same as `resolveAutopsyGrossExaminationGate.ts`): it blocks sign-out on a Severity 2 issue only when the facility's mode is `STRICT_ENFORCE`, and always blocks on a Severity 3 issue.
+
+## Batch 482 — Structured Inking, Module 3 (PS-359 follow-up)
+
+Both items the Module 1/2 entries above left open, now resolved:
+
+- **`inkingSiteSettings.ts` re-scoped from Site to Facility.** `getInkingValidationMode`/`setInkingValidationMode` now take `Case.order?.facilityId`, not a Site id — no case ever resolved a real Site id, a gap confirmed before this batch. Pete's own choice, over deferring again until the Organisation/Site admin UI exists.
+- **The ink-colour admin palette** (`services/inkColors/`) now exists, so the Severity 3 `margin_ink_color_unmapped` check in `resolveInkingValidationSeverity.ts` can actually trigger.
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Add, edit, deactivate or reactivate a margin ink colour; audited | `inkColors/mockInkColorService.ts` | `config:ink-color:manage` |
+
+## Clinical-pathologic mismatch rules and governed AI instructions (PS-554, Pete's decisions of Oct 11, 2026)
+
+**Built in stages.** Batch 529 built the rules and their two capabilities, now in the catalog above. Batch 530 built the report alert, sign-out and the QA queues. Batch 536 built the governed AI instructions, their three capabilities and separation of duties. *(Corrected in Batch 536: earlier text here and in `CLINICAL_MISMATCH_CHECK.md` scheduled this for "Batch 531"; Batch 531 did other work, and this shipped in Batch 536.)* The customer and staff explanation is in [`docs/product/CLINICAL_MISMATCH_CHECK.md`](../product/CLINICAL_MISMATCH_CHECK.md).
+
+| Capability | Allows | Risk | Default roles | Checked in |
+|---|---|---|---|---|
+| `config:clinical-mismatch-rules:manage` (built, Batch 529) | Create and change mismatch rules: specimen type, category, `minimumDisplayThreshold`, `actionThreshold`, `actionType` (block / warn / log) | high | **none**; each hospital grants it (e.g. to its own Pathologist Administrator role) | `clinical/clinicalMismatchRuleService.ts` |
+| `config:ai-prompt:approve` (built, Batch 536) | Approve or reject the AI instructions for the mismatch check; not by anyone who edited the version | high | Lab Director (never Superadmin) | `clinical/aiInstructionService.ts` |
+| `config:ai-prompt:edit` (built, Batch 536) | Edit the AI instructions (a new version, pending) | high | **none**; each hospital grants it | `clinical/aiInstructionService.ts` |
+| `config:ai-prompt:view` (built, Batch 536) | Read the AI instructions and their history | standard | QA Reviewer, Lab Director | `clinical/aiInstructionService.ts` |
+| `config:clinical-mismatch-rules:view` (built, Batch 529) | Read the rules | standard | Pathologist, QA Reviewer, Lab Director | `clinical/clinicalMismatchRuleService.ts` |
+| `case:clinical-mismatch:record` (exists) | Record a decision on a case: RESOLVED, UNRESOLVED or DEFERRED (built, Batch 530), at report review, at sign-out or in the secondary review | high | Pathologist, Fellow | `clinical/clinicalMismatchDecision.ts` |
+
+**Decisions (Batch 530, for the API server):** `POST /api/cases/{id}/clinical-mismatch` `{ kind, source, confidence?, resolution: RESOLVED | UNRESOLVED | DEFERRED, risk?: low | high, ruleId?, quickReason?: expected-variation | clinical-context-reviewed | preop-nonspecific, note?, discipline?, specimenId?, reviewOf? }` needs `case:clinical-mismatch:record`; refusals `DECISION_REQUIRED`, `DEFER_HIGH_RISK` (DEFERRED is for low risk only), `UNKNOWN_REASON`. The server must recompute the risk from its own rules rather than trust the browser's. Sign-out itself writes `LOGGED` for a low-risk mismatch nobody decided (no capability: part of the sign-out). `GET /api/qa/clinical-mismatch/secondary-review` lists DEFERRED records with no later record whose `reviewOf` names them.
+
+**Rules endpoints (Batch 529, for the API server):** `GET /api/config/clinical-mismatch-rules` (needs `…rules:view`); `PUT /api/config/clinical-mismatch-rules/{id}` with `{ specimenTypeId | null, category, minimumDisplayThreshold, actionThreshold | null, actionType }` and `DELETE /api/config/clinical-mismatch-rules/{id}` (need `…rules:manage`; the rule for all specimen types of a kind can be changed, never deleted; refusals `CONFIG_NOT_PERMITTED`, `thresholdRange`, `actionBelowDisplay`, `duplicate`, `cannotRemoveDefault`). The mismatch check reads the rules as a system read, whoever signs out. Each change writes `CLINICAL_MISMATCH_RULE_CHANGED` with before and after.
+
+- **The Pathologist default for viewing the rules** is a deliberate exception to least privilege (Pete). It lets a pathologist see why a case was held.
+- **Separation of duties** (Pete): one person may not hold both `config:clinical-mismatch-rules:manage` and `config:ai-prompt:approve`.
+  - The server refuses granting both to one role (`SEPARATION_OF_DUTIES`).
+  - It also refuses assigning a person roles that together carry both.
+  - Built (Batch 536): the browser refuses both, in `roleCapabilityRules.roleCapabilityProblem` (a role; also when a role change would give someone holding it and another role both: `roleAdministration.saveRole`, reason `separationOfDutiesStaff`) and `staffAdministration.saveStaffMember` (a person's roles). The pairs are `SEPARATION_OF_DUTIES` in `capabilityCatalog.ts`.
+  - Superadmin has no exemption. **Pete's decision (Oct 11, 2026):** Superadmin will not hold `config:ai-prompt:approve` (Batch 536 takes it out of the Superadmin set: `SUPERADMIN_WITHHELD` in `capabilitySeeds.ts`, also kept out by `lockPlatformRoles`), provided ForMedrixAI staff can still test and research: Superadmin keeps reading and changing the rules and reading and editing the AI instructions (an edit voids approval), and approval itself is exercised with a Lab Director test account in a demonstration or test tenant.
+  - The catalog will carry the pair as a separation-of-duty rule, so the Role Dictionary and the Staff screen can say why a change is refused.
+- **Editing the AI instructions** needs `config:ai-prompt:edit` (Batch 536). An edit is a new version, pending; the check keeps using the last approved version and never uses an unapproved one. A new edit replaces a pending one (withdrawn), so an approval always covers the exact text approved. Nobody who edited the pending text since the last approval can approve it (`SELF_APPROVAL`). Endpoints for the API server: `GET /api/config/ai-instructions` (`…:view`); `POST /api/config/ai-instructions/{discipline}` `{ text }` (`…:edit`; refusals `empty`, `tooLong`, `unchanged`); `POST /api/config/ai-instructions/versions/{id}/approve` and `…/reject` `{ reason }` (`…:approve`; refusals `notPending`, `SELF_APPROVAL`, `reasonRequired`); the mismatch check reads the approved text as a system read. Only the instructions (what counts as a mismatch) are governed; the case data block and the JSON answer format stay in code, because the check parses that answer.
+- **Assignment history** (Pete's `PrivilegeAssignment` design): the server keeps, for each grant, the capability or role, the user, `assignedBy`, `assignedDate` and `activeFlag`, so the history of who could change the rules and who approved the instructions can be reported. In PathScribe's model, people receive capabilities through roles, so this history covers role assignments and role grants.
+- **Audit events:**
+  - `CLINICAL_MISMATCH_RULE_CHANGED` (before and after; built, Batch 529);
+  - `AI_PROMPT_EDITED`, `AI_PROMPT_APPROVED`, `AI_PROMPT_REJECTED` (built, Batch 536; each names the discipline and version);
+  - `AI_VENDOR_POLICY_CHANGED` (built, Batch 536, PS-558: before and after) and `AI_CALL_REFUSED` (an AI call the jurisdiction's policy didn't allow; see `AI_PROXY.md`);
+  - `CLINICAL_MISMATCH_DEFERRED` (built, Batch 530);
+  - `CLINICAL_MISMATCH_LOGGED` (built, Batch 530: a low-risk mismatch logged at sign-out);
+  - `CLINICAL_MISMATCH_CHECK_DEFERRED` (built, Batch 530: no clinical indication or history at sign-out, so the check could not run; sign-out is not held);
+  - `CLINICAL_HISTORY_UPDATED` (built, Batch 530: clinical history added after accession; `PUT /api/cases/{id}/clinical-history` `{ entries }`, needs `case:clinical-history:record`, refused `signedOut` after sign-out);
+  - `CLINICAL_MISMATCH_DECIDED` (existing; it gained the resolution status, risk and reason in Batch 530).
 
 ## What the browser does
 

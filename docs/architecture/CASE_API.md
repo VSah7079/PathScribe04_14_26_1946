@@ -49,7 +49,7 @@ Saves that no person makes (interface messages, scans, batch and workspace actio
 - On a 409 the report page shows the Edit Conflict dialog:
   - **Keep working:** close the dialog; nothing is saved.
   - **View changes:** the parts of the case where this copy differs from the version now saved, and which parts "Save mine anyway" would replace. Every other part stays as saved.
-  - **Reload their version.**
+  - **Use their version** (Batch 577; was "Reload their version"): the page reads the case (`GET`, with its version) and shows it in place, discarding what it held unsaved. Nothing new is needed from the server.
   - **Save mine anyway:**
     - Needs `case:edit-conflict:override` (Pathologist, Admin and Lab Director by default; Pete, Oct 4).
     - The server re-reads the newest version and saves the draft's own parts against it (`If-Match` with that version), so a third save landing in between is caught.
@@ -75,7 +75,7 @@ When a draft save gets 409, the client doesn't open the dialog straight away. It
 - If no section was changed on both sides, the merged parts are saved with `If-Match` on the newest version, and the page takes up the saved case.
 - Otherwise the Edit Conflict dialog opens, naming the sections both sides changed.
 
-**Restored drafts.** The page keeps a browser copy of an unsaved draft, every second, together with the version it was built on and its merge base. Restoring it (after a crash, a reload, an inactivity sign-out or "Reload their version") sets those back, so the next save is checked against that version and merged the same way. A restored copy never overwrites newer sections it didn't change.
+**Restored drafts.** The page keeps a browser copy of an unsaved draft, every second, together with the version it was built on and its merge base. Restoring it (after a crash, a reload or an inactivity sign-out; "Use their version" discards it, Batch 577) sets those back, so the next save is checked against that version and merged the same way. A restored copy never overwrites newer sections it didn't change.
 
 The server can offer the same merge as `PATCH /api/cases/{id}/draft` with the base version, but it doesn't have to: the client's merge is checked by the ordinary version check.
 
@@ -97,3 +97,23 @@ This applies to draft saves and to every instant save on the report page (commen
 - `src/services/cases/caseWriteVersion.guard.test.ts` fails on any case save without a version.
 - `CaseRouter.updateCase` requires the version, so the type checker refuses a save without one.
 - Tests that cover this: `caseWrite.test.ts`, `mockCaseServicePoolClaim.test.ts`, `blockCaseChanges.test.ts`, `EditConflictDialog.test.tsx`, plus the conflict test in each converted service's own test file.
+
+## 7. Sanitise on save (Batch 500, PS-473)
+
+The browser sanitises HTML **when it displays it** (`src/services/security/sanitizeHtml.ts`, DOMPurify): report sections and paragraphs, case and report comments, barcode SVGs. That is the protection that matters in the browser, but a modified client can save anything, so **the API server must also sanitise on save**:
+
+- **Fields:** report section HTML (`orchSections` / narrative text), report paragraphs bound to case data, case comments and report comments (`text`).
+- **Allowed:** ordinary formatting tags (p, br, strong/b, em/i, u, s, ul/ol/li, table/thead/tbody/tr/th/td, h1–h6, span, div, a, sup/sub, blockquote), `class`, `data-*` (including `data-phi`), `href` with http, https, mailto, tel or a relative address (DOMPurify's default URL rule), `target="_blank"` (with `rel="noopener noreferrer"` added), and inline `style` limited to `text-align`, `font-weight`, `font-style`, `text-decoration`.
+- **Removed:** script, style, iframe, object, embed, form and form controls, template, every `on*` attribute, `javascript:`/`vbscript:` URLs.
+- **Library:** a maintained allow-list sanitiser (e.g. HtmlSanitizer / Ganss.Xss for ASP.NET Core) configured to the list above, so what the server stores and what the browser renders agree.
+- **Never** reject a save for content the sanitiser cleans: store the cleaned HTML and record that it was cleaned in the audit log.
+
+## 8. A case's support reference (Batch 573)
+
+`GET /api/cases/{caseId}/support-reference` → `200 { "ref": "SR-XXXX-XXXX" }`.
+
+- The live hub's `caseReport` topic and case presence (`LIVE_UPDATES_SIGNALR.md` §14, §15) are keyed by this reference, so every user of a case must get the same one. The server issues it the first time it's asked for (random, never derived from the case number; `ISupportReferenceService.ts`) and keeps it.
+- The caller must be allowed to open the case; otherwise `404`, the same as for a case that doesn't exist.
+- Not audited: it is the case's own reference, asked for by someone who may open the case. (Resolving a reference to its case stays audited, `support_reference.resolved`.)
+- The browser asks once per case per page load (`services/supportReferences/caseSupportReference.ts`) and, with no API server (the demo), uses its own reference service instead.
+

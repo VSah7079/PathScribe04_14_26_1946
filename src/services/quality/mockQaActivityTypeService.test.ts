@@ -5,6 +5,7 @@ vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
   authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
 }));
 import { mockQaActivityTypeService } from './mockQaActivityTypeService';
+import { qaFieldSchemaProblem } from './qaFieldSchemaRules';
 
 // Real, minimal localStorage mock - same established pattern every
 // other storage-backed service test in this app uses (confirmed
@@ -122,5 +123,27 @@ describe('mockQaActivityTypeService', () => {
     expect(frozenFinal?.jurisdictions).toEqual(expect.arrayContaining(['GB_EW', 'GB_SCT', 'GB_NIR']));
     expect(frozenFinal?.jurisdictions).not.toContain('UK');
     expect(frozenFinal?.jurisdictions).not.toContain('EU');
+  });
+});
+
+describe('mockQaActivityTypeService — field schema (Batch 516, PS-125)', () => {
+  it('every seeded activity already satisfies the field rules, so editing one never trips over its own seed', async () => {
+    const all = await mockQaActivityTypeService.getAll();
+    if (!all.ok) throw new Error('getAll failed');
+    for (const type of all.data) expect(qaFieldSchemaProblem(type.fields, type.fields), type.id).toBeNull();
+  });
+
+  it('refuses an update that removes or retypes a saved field; allows relabel, optional and additions', async () => {
+    const all = await mockQaActivityTypeService.getAll();
+    if (!all.ok) throw new Error('getAll failed');
+    const type = all.data.find(t => t.tabScope === 'custom') ?? all.data[0];
+    const [first, ...rest] = type.fields;
+    expect(await mockQaActivityTypeService.update(type.id, { fields: rest.length ? rest : [] })).toMatchObject({ ok: false });
+    const retyped = { ...first, type: first.type === 'text' ? 'longtext' as const : 'text' as const, options: [] };
+    expect(await mockQaActivityTypeService.update(type.id, { fields: [retyped, ...rest] })).toEqual({ ok: false, error: 'fieldRetyped' });
+    const relabelled = { ...first, label: `${first.label} (revised)`, required: false };
+    const added = { id: 'batch516_extra', label: 'Extra', type: 'text' as const, required: false, options: [] };
+    const res = await mockQaActivityTypeService.update(type.id, { fields: [relabelled, ...rest, added] });
+    expect(res.ok && res.data.fields.map(f => f.id)).toEqual([first.id, ...rest.map(f => f.id), 'batch516_extra']);
   });
 });

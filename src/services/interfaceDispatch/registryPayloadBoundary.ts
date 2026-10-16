@@ -16,7 +16,6 @@
 
 import type { InstanceRole } from '../deployment/deploymentInstance';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const REGISTRY_TRANSACTIONS = new Set(['REGISTRY_REPORT', 'CANCER_REGISTRY_REPORT']);
 
 /** Null to let it through. */

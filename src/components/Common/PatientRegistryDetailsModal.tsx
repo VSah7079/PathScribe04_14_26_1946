@@ -19,6 +19,7 @@ import { NationalIdentifierFields } from './NationalIdentifierFields';
 import { RegistryConsentFields } from './RegistryConsentFields';
 import { CapabilityButton } from './CapabilityButton';
 import { usePatientRegistryDetailsEditor } from '@/hooks/usePatientRegistryDetailsEditor';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface Props {
   caseId: string | null;
@@ -51,7 +52,7 @@ export const PatientRegistryDetailsModal: React.FC<Props> = ({ caseId, jurisdict
           {t('patientRegistryDetails.caseLabel')} <span data-phi="accession">{caseId}</span>
         </p>
         <p className="ps-regx-muted">{t('patientRegistryDetails.note')}</p>
-        {!loaded || !draft ? <div className="ps-regx-muted">{t('patientRegistryDetails.loading')}</div> : (
+        {!loaded || !draft ? <LoadingState variant="inline" className="ps-regx-muted" label={t('patientRegistryDetails.loading')} /> : (
           <div className="ps-patient-registry-fields">
             <NationalIdentifierFields jurisdiction={jurisdiction} values={draft.nationalIds} disabled={saving}
               onChange={(system, value) => setDraft({ ...draft, nationalIds: { ...draft.nationalIds, [system]: value } })} />

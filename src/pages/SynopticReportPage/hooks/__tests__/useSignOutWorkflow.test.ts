@@ -34,6 +34,21 @@ import { abnormalDetectionSignalService, qaActivityRecordService } from '@/servi
 import { ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaActivityTypeService';
 import { detectCriticalFindings } from '@/services/clinical/detectCriticalFindings';
 import { mockCriticalResultNotificationService } from '@/services/clinical/mockCriticalResultNotificationService';
+import * as qaSupervisionMod from '@/services/quality/mockQaSupervisionAssignmentService';
+import * as qaActivityTypeMod from '@/services/quality/mockQaActivityTypeService';
+import * as reportReleaseMod from '@/services/reportRelease/mockReportReleaseService';
+import * as serviceChargeMod from '@/services/billing/mockServiceChargeService';
+import * as ncciEditMod from '@/services/billing/mockNcciEditService';
+import * as billingDeficiencyMod from '@/services/billing/mockBillingDeficiencyService';
+import * as outboundChargeQueueMod from '@/services/billing/mockOutboundChargeQueueService';
+import * as codeReviewPoolMod from '@/services/billing/mockCodeReviewPoolService';
+import * as billingTypeTriggerMod from '@/services/billing/mockBillingTypeTriggerConfigService';
+import * as validationStudyMod from '@/services/validationStudies/mockValidationStudyService';
+import * as narrativeSignalMod from '@/services/narrativeSignals/mockNarrativeSignalService';
+import * as batchMod from '@/services/batches/mockBatchService';
+import * as scanStationMod from '@/services/scanStations/mockScanStationService';
+import * as workstationGroupMod from '@/services/workstationGroups/mockWorkstationGroupService';
+import * as auditMod from '@/services/auditlog/mockAuditService';
 import type { Case } from '@/types/case/Case';
 import { applySurgicalPostSignOutQa } from '@/services/quality/applySurgicalPostSignOutQa';
 import { getTemplate } from '@/services/templates/templateService';
@@ -57,10 +72,31 @@ vi.mock('../checkPeerReviewAndMismatch', () => ({
   checkClinicalMismatch: vi.fn().mockResolvedValue(null),
   checkPeerReviewGate: vi.fn().mockResolvedValue(null),
 }));
+// Batch 506 (PS-477): the hook now takes from the index the services it used
+// to import from their mock files. The test gives it exactly what it got
+// before: the same modules (real, or mocked further down), nothing more.
+// Getters, because those modules import the index themselves.
 vi.mock('@/services', () => ({
+  get FPPE_ACTIVITY_TYPE_ID() { return qaSupervisionMod.FPPE_ACTIVITY_TYPE_ID; },
+  get ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID() { return qaActivityTypeMod.ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID; },
+  get reportReleaseService() { return reportReleaseMod.mockReportReleaseService; },
+  get criticalResultNotificationService() { return mockCriticalResultNotificationService; },
+  get serviceChargeService() { return serviceChargeMod.mockServiceChargeService; },
+  get ncciEditService() { return ncciEditMod.mockNcciEditService; },
+  get billingDeficiencyService() { return billingDeficiencyMod.mockBillingDeficiencyService; },
+  get outboundChargeQueueService() { return outboundChargeQueueMod.mockOutboundChargeQueueService; },
+  get codeReviewPoolService() { return codeReviewPoolMod.mockCodeReviewPoolService; },
+  get billingTypeTriggerConfigService() { return billingTypeTriggerMod.mockBillingTypeTriggerConfigService; },
+  get validationStudyService() { return validationStudyMod.mockValidationStudyService; },
+  get narrativeSignalService() { return narrativeSignalMod.mockNarrativeSignalService; },
+  get computeEditRatio() { return narrativeSignalMod.computeEditRatio; },
+  // …and what checkStainQcGate.ts and sharedHookTypes.ts take from the index.
+  get batchService() { return batchMod.mockBatchService; },
+  get scanStationService() { return scanStationMod.mockScanStationService; },
+  get workstationGroupService() { return workstationGroupMod.mockWorkstationGroupService; },
+  get auditService() { return auditMod.mockAuditService; },
   countersignService: { release: vi.fn().mockResolvedValue({ ok: true }), countersign: vi.fn().mockResolvedValue({ ok: true }), reject: vi.fn().mockResolvedValue({ ok: true, data: { residentId: 'PATH-002', residentName: 'Dr. Resident' } }) },
   userService: { getById: vi.fn().mockResolvedValue({ ok: true, data: { email: 'attending@test.com' } }) },
-  fppeAssignmentService: { getActiveAssignmentForUser: vi.fn().mockResolvedValue({ ok: true, data: null }), recordCaseReviewed: vi.fn().mockResolvedValue({ ok: true }) },
   qaSupervisionAssignmentService: { getActiveAssignmentForUser: vi.fn().mockResolvedValue({ ok: true, data: null }), recordCaseReviewed: vi.fn().mockResolvedValue({ ok: true }) },
   intraoperativeService: { getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   amendmentService: { release: vi.fn().mockResolvedValue({ ok: true, data: {} }) },
@@ -69,6 +105,11 @@ vi.mock('@/services', () => ({
   abnormalDetectionSignalService: { recordSignal: vi.fn().mockResolvedValue({ ok: true, data: {} }), getByCaseId: vi.fn().mockResolvedValue({ ok: true, data: [] }), getStats: vi.fn().mockResolvedValue({ ok: true, data: {} }) },
   qaActivityRecordService: { create: vi.fn().mockResolvedValue({ ok: true, data: {} }), getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   facilityService: { getById: vi.fn().mockResolvedValue({ ok: false, error: 'not mocked' }) },
+  // Batch 484: checkInkingSignOutGate.ts's own palette read. Empty but
+  // ok: true, same honest "not mocked further, but reachable" posture as
+  // facilityService above — a clean case with no margins never reaches
+  // the color-code check anyway.
+  inkColorService: { getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   concordanceReviewSettingsService: { resolveEffectiveConfigForFacility: vi.fn().mockResolvedValue({ ok: true, data: { aiComparisonEnabled: true, reviewScreenEnabled: true } }) },
   // Batch 345: the signature check (services/auth/signatureEvidence.ts) is
   // tested on its own; here it accepts unless a test says otherwise.
@@ -80,6 +121,8 @@ vi.mock('@/services/communications/notificationService', () => ({
 vi.mock('@/services/reportRelease/mockReportReleaseService', () => ({
   mockReportReleaseService: { resolveBufferForCase: vi.fn().mockResolvedValue({ applies: true, durationMinutes: 5 }) },
 }));
+// Batch 535: a correction released at an Orchestration re-sign-out is sent (publishReleasedRevision).
+vi.mock('@/services/reports/publishReleasedRevision', () => ({ publishReleasedRevision: vi.fn().mockResolvedValue({ held: {} }), releasedRevisionDeps: {} }));
 vi.mock('@/services/reports/dispatchCaseInstances', () => ({
   dispatchCaseInstances: vi.fn().mockResolvedValue(undefined),
 }));
@@ -147,6 +190,7 @@ function baseParams(overrides: Partial<Parameters<typeof useSignOutWorkflow>[0]>
     setStainQcGateBlocking: vi.fn(),
     setClinicalMismatch: vi.fn(),
     setPeerReviewGate: vi.fn(),
+    setInkingGateBlocking: vi.fn(),
     setPreAnalyticDateGateSpecimens: vi.fn(),
     setPendingFinalizeArgs: vi.fn(),
     setPendingActionIsSignOut: vi.fn(),
@@ -229,6 +273,29 @@ describe('useSignOutWorkflow — finalizeSignOut (CoPilot ordering guarantee)', 
 
     expect(sendSynopticReportToLis).not.toHaveBeenCalled();
     expect(amendmentService.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('Batch 535 (bug fix): the correction released at an Orchestration re-sign-out is sent as such, and labelled on the report', async () => {
+    const { amendmentService } = await import('@/services');
+    const { publishReleasedRevision } = await import('@/services/reports/publishReleasedRevision');
+    vi.mocked(publishReleasedRevision).mockClear();
+    vi.mocked(amendmentService.release).mockResolvedValueOnce({ ok: true, data: { id: 'amend-1', type: 'correction', originalReportSnapshot: { answers: { dx: 'old' } } } } as any);
+    const setCaseData = vi.fn();
+    const caseData = makeTestCase({
+      reportingMode: 'orchestration' as any, status: 'in-progress' as any,
+      synopticReports: [{ instanceId: 'SR-1', templateId: 'T1', pendingAmendmentId: 'amend-1', previouslyFinalizedForAmendment: true, answers: {} }] as any,
+    });
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.finalizeSignOut(); });
+    expect(publishReleasedRevision).toHaveBeenCalledWith(expect.objectContaining({
+      caseId: caseData.id, instance: expect.objectContaining({ instanceId: 'SR-1', templateId: 'T1' }),
+      record: expect.objectContaining({ id: 'amend-1', type: 'correction' }), previousStatus: 'in-progress',
+    }), {});
+    const patch = setCaseData.mock.calls[0][0];
+    expect(patch.lastRevisionType).toBe('correction');
+    expect(patch.synopticReports[0]).toMatchObject({ status: 'finalized', lastRevisionType: 'correction' });
+    expect(patch.synopticReports[0].pendingAmendmentId).toBeUndefined();
+    expect(patch.synopticReports[0].previouslyFinalizedForAmendment).toBeUndefined();
   });
 
   it('always sets caseSigned true and closes the sign-out modal at the end, regardless of amendment content', async () => {
@@ -447,7 +514,8 @@ describe('useSignOutWorkflow — handleSignOutConfirm (resident/countersign gate
     const finalizeCall = updateCalls.find((call: any[]) => call[1]?.status === 'finalized');
     expect(finalizeCall).toBeDefined();
     expect(finalizeCall[1].releasedAt).toBeDefined();
-    expect(dispatchCaseInstances).toHaveBeenCalledWith('TEST-CASE-NOBUFFER', expect.any(Function)); // Batch 392: with the saved signed PDF
+    // Batch 538: the release (fire-and-forget) stores its document before any channel, so the dispatch comes a moment later.
+    await vi.waitFor(() => expect(dispatchCaseInstances).toHaveBeenCalledWith('TEST-CASE-NOBUFFER', expect.any(Function))); // Batch 392: with the saved signed PDF
   });
 
   it('denies sign-out entirely and shows the real denial reason when the user has no genuine relationship to the case', async () => {
@@ -480,14 +548,9 @@ describe('useSignOutWorkflow — handleSignOutConfirm (resident/countersign gate
   // them.
 
   it('a provisional hire under an active QaSupervisionAssignment is redirected to release-for-countersign, with the reviewer resolved from supervisorUserId', async () => {
-    const { qaSupervisionAssignmentService, fppeAssignmentService, countersignService, userService } = await import('@/services');
+    const { qaSupervisionAssignmentService, countersignService, userService } = await import('@/services');
     vi.mocked(qaSupervisionAssignmentService.getActiveAssignmentForUser).mockResolvedValueOnce({
       ok: true, data: { id: 'qa-sup-gate-test-001', status: 'active', supervisorUserId: 'SUPERVISOR-001' } as any,
-    });
-    // Aligned with the new system here so the real drift-check (tested
-    // on its own below) doesn't spuriously warn in this, unrelated test.
-    vi.mocked(fppeAssignmentService.getActiveAssignmentForUser).mockResolvedValueOnce({
-      ok: true, data: { id: 'fppe-gate-test-001', status: 'active' } as any,
     });
     const caseData = makeTestCase({
       participants: [{ status: 'active', staffId: 'PATH-001', participationTypeIds: ['provisional_hire'] }],
@@ -523,36 +586,8 @@ describe('useSignOutWorkflow — handleSignOutConfirm (resident/countersign gate
     expect(countersignService.release).not.toHaveBeenCalled();
   });
 
-  it('logs a real drift warning, but does not change gating behavior, when the old and new systems disagree on active-assignment status', async () => {
-    const { qaSupervisionAssignmentService, fppeAssignmentService, countersignService } = await import('@/services');
-    // New system says active (real gate should follow this); old
-    // system disagrees and says inactive — a real, deliberate
-    // mismatch, only possible during the transition period this
-    // safety net exists for.
-    vi.mocked(qaSupervisionAssignmentService.getActiveAssignmentForUser).mockResolvedValueOnce({
-      ok: true, data: { id: 'qa-sup-drift-001', status: 'active', supervisorUserId: 'SUPERVISOR-001' } as any,
-    });
-    vi.mocked(fppeAssignmentService.getActiveAssignmentForUser).mockResolvedValueOnce({ ok: true, data: null });
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const caseData = makeTestCase({
-      participants: [{ status: 'active', staffId: 'PATH-001', participationTypeIds: ['provisional_hire'] }],
-    } as any);
-    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
-
-    await act(async () => { await result.current.handleSignOutConfirm(); });
-    // The drift check fires as an unawaited .then() alongside the main
-    // gate flow — flush the microtask queue once more before asserting.
-    await act(async () => { await Promise.resolve(); });
-
-    // Real gating behavior follows the NEW system (release-for-
-    // countersign fired) regardless of the old system's disagreement.
-    expect(countersignService.release).toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith('[PS-114 drift] FPPE gate disagreement between old and new systems', expect.objectContaining({ legacyActive: false, newActive: true }));
-    warnSpy.mockRestore();
-  });
-
-  it('shadow-writes the real countersign increment to the OLD fppeAssignmentService, using the same real id the new system resolved, and surfaces (does not swallow) a failure on the new, now-primary system', async () => {
-    const { fppeAssignmentService, qaSupervisionAssignmentService } = await import('@/services');
+  it('records the countersign increment on the supervision service and surfaces (does not swallow) a failure (Batch 515: the old system and its shadow write are retired)', async () => {
+    const { qaSupervisionAssignmentService } = await import('@/services');
     vi.mocked(qaSupervisionAssignmentService.getActiveAssignmentForUser).mockResolvedValueOnce({
       ok: true, data: { id: 'qa-sup-shadow-test-001', status: 'active', supervisorUserId: 'SUPERVISOR-001' } as any,
     });
@@ -566,15 +601,9 @@ describe('useSignOutWorkflow — handleSignOutConfirm (resident/countersign gate
 
     await act(async () => { await result.current.handleSignOutConfirm(); });
 
-    // Both systems still get the same real id — old-system writes are
-    // NOT retired, since FppeAssignmentsSection.tsx still reads them.
     expect(qaSupervisionAssignmentService.recordCaseReviewed).toHaveBeenCalledWith('qa-sup-shadow-test-001');
-    expect(fppeAssignmentService.recordCaseReviewed).toHaveBeenCalledWith('qa-sup-shadow-test-001');
-    // Real point of this test: a failure on the new, now-authoritative
-    // system is surfaced, not silently swallowed — the old shadow-write
-    // failing silently is fine (nothing reads it live), but a silent
-    // failure on the new system could leave a graduated pathologist
-    // incorrectly gated on their next sign-out.
+    // A silent failure here could leave a graduated pathologist
+    // incorrectly gated on their next sign-out, so it is surfaced.
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
   });

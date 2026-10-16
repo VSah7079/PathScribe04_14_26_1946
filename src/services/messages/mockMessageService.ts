@@ -2,8 +2,11 @@ import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { Message, MessageThread, IMessageService, MESSAGE_NOT_PERMITTED } from './IMessageService';
 import { DEMO_MESSAGE_RECIPIENTS } from './messageRecipients';
+import { localToday, secureSendProblem } from '../secureMessaging/secureGatewayRules';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { mockSecureMessagingConfigService } from '../secureMessaging/mockSecureMessagingConfigService';
 import { mockAuditService } from '../auditlog/mockAuditService';
+import { dataStorage } from '../browserData/dataStorage';
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 
@@ -495,9 +498,9 @@ const MESSAGES_VERSION = '7'; // bumped: added Amber seed messages
 const VERSION_KEY = 'pathscribe_messages_version';
 
 const load = (): Message[] => {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
+  const storedVersion = dataStorage.getItem(VERSION_KEY);
   if (storedVersion !== MESSAGES_VERSION) {
-    localStorage.setItem(VERSION_KEY, MESSAGES_VERSION);
+    dataStorage.setItem(VERSION_KEY, MESSAGES_VERSION);
     storageSet(STORAGE_KEY, SEED_MESSAGES);
     return SEED_MESSAGES;
   }
@@ -525,7 +528,12 @@ export const mockMessageService: IMessageService = {
     // Batch 385: needs message:secure-email:send.
     const decision = await authorizationService.enforce('message:secure-email:send');
     if (!decision.allowed) return err<void>(MESSAGE_NOT_PERMITTED);
-    // Demo: stands in for the NHSMail SMTP handshake. The real send is PS-143 / PS-332.
+    // Batch 517 (PS-143): only through one of the lab's gateways, and patient
+    // data only through a gateway with its own agreement in force.
+    const config = await mockSecureMessagingConfigService.forOrganisation(input.organisationId);
+    const problem = secureSendProblem(config.ok ? config.data : null, input.gatewayId, input.containsPatientData, localToday());
+    if (problem) return err<void>(problem);
+    // Demo: stands in for the gateway's handshake. The real send is PS-332.
     await new Promise(r => setTimeout(r, 1800));
     // The caller logs the sent email (useAuditLog 'secure_email_sent'), as before.
     void input;

@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { resolveSynopticTemplateClinicalTierConsistency } from './resolveSynopticTemplateClinicalTierConsistency';
 import type { SynopticTemplate } from '@/types/cytology/SynopticTemplate';
+import { normalizeSynopticTemplate, type LooseField } from '@/services/templates/normalizeSynopticTemplate';
 
-function templateWith(field: SynopticTemplate['sections'][0]['fields'][0]): SynopticTemplate {
-  return {
+function templateWith(field: LooseField): SynopticTemplate {
+  return normalizeSynopticTemplate({
     id: 't', name: 'Test', source: 'Custom', version: '1.0.0', category: 'CYTOLOGY_NONGYN', standard: 'Test',
     sections: [{ id: 's', title: 'Section', fields: [field] }],
-  };
+  });
 }
 
 describe('resolveSynopticTemplateClinicalTierConsistency', () => {
@@ -46,7 +47,7 @@ describe('resolveSynopticTemplateClinicalTierConsistency', () => {
   });
 
   it('real findings are collected across every real field in the whole template, not just the first one', () => {
-    const template: SynopticTemplate = {
+    const template: SynopticTemplate = normalizeSynopticTemplate({
       id: 't', name: 'Test', source: 'Custom', version: '1.0.0', category: 'CYTOLOGY_NONGYN', standard: 'Test',
       sections: [{
         id: 's', title: 'Section',
@@ -56,7 +57,7 @@ describe('resolveSynopticTemplateClinicalTierConsistency', () => {
           { id: 'field-c', label: 'C', type: 'checkboxes', clinicalTier: 'tier_2_descriptive', options: [{ id: 'z', label: 'Z', lexiconTermKey: 'c.z' }] },
         ],
       }],
-    };
+    });
     expect(resolveSynopticTemplateClinicalTierConsistency(template)).toEqual([
       { fieldId: 'field-a', reason: 'untagged_field_has_lexicon_option' },
       { fieldId: 'field-c', reason: 'tier_2_field_has_lexicon_option' },

@@ -38,7 +38,6 @@ import { latestCompletedAiResult } from './cytologyWorkspaceView';
 import { hasPendingAuthorRevision } from './cytologyReviewNotes';
 import { resolveCytologyComplianceFeatures, type CytologyComplianceFeature } from './cytologyComplianceFeatures';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** One cytology specimen on the case, for the specimen tabs (Batch 411). */
 export interface CytologySpecimenTab {

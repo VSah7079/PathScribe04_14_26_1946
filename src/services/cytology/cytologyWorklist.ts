@@ -23,8 +23,13 @@ import { resolveEffectiveCytologyScreeningStrategy } from './resolveEffectiveCyt
 import { resolveEffectiveCytologyScreeningStrategyForPatient } from './resolveEffectiveCytologyScreeningStrategyForPatient';
 import { resolveAgeFromDateOfBirth } from './resolveAgeFromDateOfBirth';
 import { resolveSpecimenEntryMatchesCategory } from '../specimenDictionary/resolveSpecimenEntryMatchesCategory';
+import { resolveCytologyQcPoolMembership } from './resolveCytologyQcPoolMembership';
+import { resolveCytologyRetrospectiveReviewPoolMembership } from './resolveCytologyRetrospectiveReviewPoolMembership';
+import { resolveCytologyPostSignOutPeerReviewPoolMembership } from './resolveCytologyPostSignOutPeerReviewPoolMembership';
+import { resolveCytologyHistologyCorrelationPoolMembership } from './resolveCytologyHistologyCorrelationPoolMembership';
+import { resolveCytologyDecantPendingMembership } from './resolveCytologyDecantPendingMembership';
+import { resolveCytologyRoseActiveMembership } from './resolveCytologyRoseActiveMembership';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type CytologyWorklistTab =
   | 'assigned' | 'pool' | 'qc' | 'hpv_triage' | 'recall_needed' | 'csms_qa' | 'retrospective_lookback'
@@ -91,13 +96,81 @@ export function latestCompletedAiResults(results: readonly AiScreeningResult[]):
   return out;
 }
 
-/** The case's cytology specimen (the first whose dictionary entry is Cytology or FNA) and that entry. */
-export function cytologySpecimenOf(c: Case, dictById: ReadonlyMap<string, any>): { specimen: any; entry: any } {
+/**
+ * Every one of the case's cytology specimens (Cytology or FNA dictionary
+ * entries), each with its dictionary entry.
+ *
+ * Batch 483 (PS-359 tracker follow-up — "Cytology: multi-specimen bug"):
+ * this replaces the old `cytologySpecimenOf`, which returned only the
+ * FIRST matching specimen on the case. A case can carry more than one
+ * cytology/FNA specimen (two separate FNA sites, say); the first one's
+ * screening state is not necessarily representative — its own QC flag,
+ * retrospective-review flag, post-sign-out-peer-review flag, histology-
+ * correlation candidates, pending decant or active ROSE evaluation could
+ * all be on a SECOND specimen the old code never looked at, so that
+ * specimen's state was silently invisible to every worklist tab and QA
+ * tile. Callers aggregate across every specimen this returns
+ * (`cytologySpecimenScreeningFacts` + `aggregateCytologySpecimenFacts`)
+ * rather than picking just one up front.
+ */
+export function cytologySpecimensOf(c: Case, dictById: ReadonlyMap<string, any>): Array<{ specimen: any; entry: any }> {
+  const out: Array<{ specimen: any; entry: any }> = [];
   for (const sp of (c.specimens ?? []) as any[]) {
     const entry = sp.specimenDictionaryEntryId ? dictById.get(sp.specimenDictionaryEntryId) : undefined;
-    if (entry && (entry.type === 'Cytology' || entry.type === 'FNA')) return { specimen: sp, entry };
+    if (entry && (entry.type === 'Cytology' || entry.type === 'FNA')) out.push({ specimen: sp, entry });
   }
-  return { specimen: undefined, entry: undefined };
+  return out;
+}
+
+/** One cytology specimen's own screening-derived worklist/QA flags. */
+export interface CytologySpecimenScreeningFacts {
+  specimen: any;
+  entry: any;
+  isQcPending: boolean;
+  isRetrospectiveReviewPending: boolean;
+  isPostSignOutPeerReviewPending: boolean;
+  isHistologyCorrelationPending: boolean;
+  isCellBlockAncillaryPending: boolean;
+  isRoseActive: boolean;
+}
+
+/** `specimen`'s own flags, given its already-fetched QC/peer-review history (`reviewsFor` is a live concern). */
+export function cytologySpecimenScreeningFacts(specimen: any, entry: any, reviews: readonly unknown[]): CytologySpecimenScreeningFacts {
+  const screening = specimen?.cytologyScreening;
+  return {
+    specimen, entry,
+    isQcPending: !!(specimen?.id && screening?.qcFlag) && resolveCytologyQcPoolMembership(screening.qcFlag, reviews as never),
+    isRetrospectiveReviewPending: !!screening?.retrospectiveReviewFlag && resolveCytologyRetrospectiveReviewPoolMembership(screening.retrospectiveReviewFlag),
+    isPostSignOutPeerReviewPending: !!(specimen?.id && screening?.postSignOutPeerReviewFlag) && resolveCytologyPostSignOutPeerReviewPoolMembership(screening.postSignOutPeerReviewFlag, reviews as never),
+    isHistologyCorrelationPending: resolveCytologyHistologyCorrelationPoolMembership(screening?.histologyCorrelationCandidates),
+    isCellBlockAncillaryPending: resolveCytologyDecantPendingMembership(specimen?.decants),
+    isRoseActive: resolveCytologyRoseActiveMembership(specimen?.roseEvaluations),
+  };
+}
+
+/**
+ * ORs every specimen-level flag across the case's cytology specimens (so
+ * the case surfaces on a tab/tile when ANY of its specimens qualifies),
+ * and picks the specimen that should represent the row: `preferSpecimenId`
+ * when given (the QC/Rescreen queue already knows which specimen actually
+ * matched), else whichever specimen is itself QC-pending, else the first.
+ */
+export function aggregateCytologySpecimenFacts(
+  perSpecimen: readonly CytologySpecimenScreeningFacts[],
+  preferSpecimenId?: string,
+): Omit<CytologySpecimenScreeningFacts, 'isQcPending'> & { isQcPending: boolean } {
+  const representative = (preferSpecimenId ? perSpecimen.find(p => p.specimen?.id === preferSpecimenId) : undefined)
+    ?? perSpecimen.find(p => p.isQcPending)
+    ?? perSpecimen[0];
+  return {
+    specimen: representative?.specimen, entry: representative?.entry,
+    isQcPending: perSpecimen.some(p => p.isQcPending),
+    isRetrospectiveReviewPending: perSpecimen.some(p => p.isRetrospectiveReviewPending),
+    isPostSignOutPeerReviewPending: perSpecimen.some(p => p.isPostSignOutPeerReviewPending),
+    isHistologyCorrelationPending: perSpecimen.some(p => p.isHistologyCorrelationPending),
+    isCellBlockAncillaryPending: perSpecimen.some(p => p.isCellBlockAncillaryPending),
+    isRoseActive: perSpecimen.some(p => p.isRoseActive),
+  };
 }
 
 /** The flags a row needs that come from outside the case (review history, AI). */

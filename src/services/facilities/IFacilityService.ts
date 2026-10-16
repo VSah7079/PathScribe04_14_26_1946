@@ -799,6 +799,14 @@ export interface IFacilityService {
   /** Flips an Unverified facility to Active — the admin-approval step. */
   verify(id: ID): Promise<ServiceResult<Facility>>;
   /**
+   * Batch 517 (PS-337): sets the facility's report-printing settings
+   * (printDeliveryConfig and printPresentationPreference; `undefined` clears
+   * one). Needs config:print-settings:manage, and refuses settings with a
+   * problem (services/printing/facilityReportPrinting.ts). `add` and `update`
+   * never change these two fields, so a facility edit can't overwrite them.
+   */
+  setPrintSettings(id: ID, settings: import('../printing/facilityReportPrinting').FacilityReportPrintSettings): Promise<ServiceResult<Facility>>;
+  /**
    * Called by order-intake / crosswalk resolution. No exact crosswalk
    * match on the order's facility code → creates an Unverified,
    * autoCreated facility so processing can continue immediately,

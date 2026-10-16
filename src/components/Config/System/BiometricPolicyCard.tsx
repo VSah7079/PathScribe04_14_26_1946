@@ -39,14 +39,14 @@ export const BiometricPolicyCard: React.FC = () => {
       {policy.enabled && (
         <>
           <div className="ps-session-security__field-label">{t('sessionSecurity.biometric.cadenceLabel')}</div>
-          <select className="ps-conf-select ps-session-security__select" value={policy.cadence}
+          <select aria-label={t('sessionSecurity.biometric.cadenceLabel')} className="ps-conf-select ps-session-security__select" value={policy.cadence}
             onChange={e => void save({ ...policy, cadence: e.target.value as BiometricCadence })}>
             {CADENCES.map(c => <option key={c} value={c}>{t(`sessionSecurity.biometric.cadence.${c}`)}</option>)}
           </select>
           {policy.cadence === 'per_days' && (
             <>
               <div className="ps-session-security__field-label">{t('sessionSecurity.biometric.daysLabel')}</div>
-              <input className="ps-conf-input ps-session-security__days" type="number" min={1} max={365} value={policy.cadenceDays}
+              <input aria-label={t('sessionSecurity.biometric.daysLabel')} className="ps-conf-input ps-session-security__days" type="number" min={1} max={365} value={policy.cadenceDays}
                 onChange={e => void save({ ...policy, cadenceDays: Number(e.target.value) })} />
             </>
           )}

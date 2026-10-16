@@ -29,9 +29,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
+
 import { resolveStationBenchRoute } from '@/services/workstationGroups/resolveStationBenchRoute';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
+import { scanStationService } from '@/services';
 
 export function ScanStationPrompt() {
   const { t } = useTranslation();
@@ -42,7 +43,7 @@ export function ScanStationPrompt() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    mockScanStationService.getAll().then(res => {
+    scanStationService.getAll().then(res => {
       if (res.ok) setStations(res.data.filter(s => s.status === 'Active'));
     });
   }, []);
@@ -102,7 +103,7 @@ export function ScanStationPrompt() {
             {t('scanStationPrompt.subtitle')}
           </div>
         </div>
-        <select
+        <select aria-label={t('scanStationPrompt.subtitle')}
           value={selected}
           onChange={e => setSelected(e.target.value)}
           className="ps-scan-prompt-select"

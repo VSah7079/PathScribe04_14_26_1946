@@ -1,8 +1,10 @@
 # services/cassetteRouting/
 
-Admin-configurable rules resolving which logical cassette color (`services/cassetteColors/`) an order routes to, based on protocol, priority, origin station, ordering facility, and case type. Fully admin-manageable through Configuration → Cassette Routing Rules — an admin can link any real protocol to any real color and set a priority weight, all without code.
+Admin-configurable rules resolving which logical cassette color (`services/cassetteColors/`) an order routes to, based on protocol, priority, origin station, ordering facility, and case type. Fully admin-manageable through Configuration → System → Cassette Routing Rules (Lab Materials & Workflows) — an admin can link any real protocol to any real color and set a priority weight, all without code.
 
 **Pattern:** Standard interface/mock pattern (no firestore stub currently).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the screen is a section of Configuration → System, not its own Configuration tab.*
 
 ## Files
 

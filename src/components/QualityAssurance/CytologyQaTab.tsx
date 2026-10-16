@@ -14,8 +14,12 @@
 // case/accession identifiers are shown (necessary for the report to
 // be actionable), patient name/MRN/DOB are not.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from 'i18next'; // the app's i18next instance (initialised in i18n/config.ts)
+import { formatDate } from '@/utils/formatDate';
+import { formatPercent, formatDecimal, formatPercentagePointChange } from '@/utils/formatPercent';
 import '../../pathscribe.css';
 import { cytologyQaReportService } from '@/services';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
@@ -35,14 +39,19 @@ import type { CytologyHpvPositivityMonitorRow } from '@/services/cytology/resolv
 import type { CytologyMolecularQcFailureRateRow } from '@/services/cytology/resolveCytologyMolecularQcFailureRateReport';
 import type { CytologyMolecularLotToLotTrendRow } from '@/services/cytology/resolveCytologyMolecularLotToLotTrendReport';
 import type { CytologyApacProficiencyTestReport } from '@/services/cytology/resolveCytologyApacProficiencyTestReport';
+import type { CytologyFiveYearLookbackReport } from '@/services/cytology/resolveCytologyFiveYearRetrospectiveLookbackReport';
 import { CytologyHistologyCorrelationPrintView } from './CytologyHistologyCorrelationPrintView';
 import { QaScopeSwitcher } from './QaScopeSwitcher';
 import { scopeLabel, exportQaReportRows, QaScope, qaScopeContext } from './qaReportUtils';
 import type { CapabilityContext } from '@/services/authorization/evaluateCapability';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { LoadingState } from '@/components/Common/LoadingState';
 
-const pct = (n: number) => `${n.toFixed(1)}%`;
-const num = (n: number, digits = 2) => n.toFixed(digits);
+// Batch 514: numbers in the user's language ("12,3 %" in French). The
+// tables re-render on a language change (useTranslation), so reading
+// i18n.language here picks up the new language.
+const pct = (n: number) => formatPercent(n, i18n.language);
+const num = (n: number, digits = 2) => formatDecimal(n, i18n.language, digits);
 
 // Real, computed comparison-classification labels (classifyCytologyAgreement.ts's
 // own output) — the underlying level value (c.level) is real, persisted
@@ -59,7 +68,7 @@ const LEVEL_LABEL: Record<string, { textKey: string; color: string }> = {
 // same real .ps-wl-filter-tile pattern the parent QualityAssurancePage
 // already uses for its own Operations/CAPA sub-navigation, reused
 // directly rather than a second, competing tile style.
-type CytologyQaReportKey = 'random' | 'high-risk' | 'ct-path' | 'peer-review' | 'final-dx' | 'ct-stats' | 'ascus-hpv' | 'workload' | 'transmission' | 'secondary-screening-audit' | 'histology-correlation' | 'unscreened-backlog' | 'uk-failsafe' | 'eu-compliance' | 'hpv-positivity' | 'mol-qc-failure' | 'mol-lot-trend' | 'apac-pt';
+type CytologyQaReportKey = 'random' | 'high-risk' | 'ct-path' | 'peer-review' | 'final-dx' | 'ct-stats' | 'ascus-hpv' | 'workload' | 'transmission' | 'secondary-screening-audit' | 'histology-correlation' | 'unscreened-backlog' | 'uk-failsafe' | 'eu-compliance' | 'hpv-positivity' | 'mol-qc-failure' | 'mol-lot-trend' | 'apac-pt' | 'five-year-lookback';
 
 // Tile labels are UI chrome — icon kept as literal, text resolved via
 // t() at render with labelKey below.
@@ -75,6 +84,10 @@ const REPORT_TILES: { key: CytologyQaReportKey; icon: string; labelKey: string; 
   { key: 'workload', icon: '⏱️', labelKey: 'cytologyQaTab.tiles.workload', color: '#261CE3' },
   { key: 'transmission', icon: '📡', labelKey: 'cytologyQaTab.tiles.transmission', color: '#0891B2' },
   { key: 'secondary-screening-audit', icon: '📋', labelKey: 'cytologyQaTab.tiles.secondaryScreeningAudit', color: '#DC2626' },
+  // Batch 483 (PS-359 tracker follow-up — "CYT-QA-03 vs CYT-QA-04 report
+  // asymmetry"): CYT-QA-03's own aggregate, same CAP-mandate family as
+  // histology-correlation (CYT-QA-04) right below it.
+  { key: 'five-year-lookback', icon: '📆', labelKey: 'cytologyQaTab.tiles.fiveYearLookback', color: '#A855F7' },
   { key: 'histology-correlation', icon: '🔬', labelKey: 'cytologyQaTab.tiles.histologyCorrelation', color: '#F472B6' },
   { key: 'unscreened-backlog', icon: '⏳', labelKey: 'cytologyQaTab.tiles.unscreenedBacklog', color: '#F97316' },
   { key: 'uk-failsafe', icon: '🇬🇧', labelKey: 'cytologyQaTab.tiles.ukFailsafe', color: '#7C3AED' },
@@ -236,7 +249,7 @@ const AscusHpvReflexTable: React.FC<{ rows: CytologyAscusHpvReflexRow[] }> = ({ 
     normal: { textKey: 'cytologyQaTab.ascusHpvTable.outlier.normal', color: '#10B981' },
     under_calling: { textKey: 'cytologyQaTab.ascusHpvTable.outlier.underCalling', color: '#f59e0b' },
     over_calling: { textKey: 'cytologyQaTab.ascusHpvTable.outlier.overCalling', color: '#ef4444' },
-    insufficient_data: { textKey: 'cytologyQaTab.ascusHpvTable.outlier.insufficientData', color: '#6b7280' },
+    insufficient_data: { textKey: 'cytologyQaTab.ascusHpvTable.outlier.insufficientData', color: '#8794a8' },
   };
   return (
     <div className="ps-conf-table-wrap">
@@ -290,6 +303,7 @@ const WorkloadTrackingTable: React.FC<{ rows: CytologyWorkloadTrackingRow[] }> =
             <th className="ps-conf-th">{t('cytologyQaTab.headers.cytotechnologist')}</th>
             <th className="ps-conf-th">{t('cytologyQaTab.workloadTable.shiftDate')}</th>
             <th className="ps-conf-th">{t('cytologyQaTab.workloadTable.hoursScreened')}</th>
+            <th className="ps-conf-th">{t('cytologyQaTab.workloadTable.recordedHours')}</th>
             <th className="ps-conf-th">{t('cytologyQaTab.workloadTable.manualSlides')}</th>
             <th className="ps-conf-th">{t('cytologyQaTab.workloadTable.imagerSlides')}</th>
             <th className="ps-conf-th">{t('cytologyQaTab.workloadTable.totalEquivSlides')}</th>
@@ -301,8 +315,22 @@ const WorkloadTrackingTable: React.FC<{ rows: CytologyWorkloadTrackingRow[] }> =
           {rows.map((r, i) => (
             <tr key={`${r.ctUserId}-${r.shiftDate}-${i}`} className="ps-conf-tr">
               <td className="ps-conf-td">{r.ctUserId}</td>
-              <td className="ps-conf-td">{r.shiftDate}</td>
-              <td className="ps-conf-td">{num(r.hoursScreened, 1)}</td>
+              <td className="ps-conf-td">{formatDate(r.shiftDate, i18n.language)}</td>
+              <td className="ps-conf-td">
+                {num(r.hoursScreened, 1)}
+                {/* Batch 572 (F7, option C): signed off by the person, or still the recorded figure. */}
+                {' '}<span className="ps-qa-workload-hours-source">{t(`cytologyQaTab.workloadTable.${r.signOffStale ? 'signOffStale' : r.signedOffHours !== null ? 'signedOff' : 'notSignedOff'}`)}</span>
+                {r.signOffFlagged && <span className="ps-qa-badge ps-qa-badge--warning ps-qa-workload-flag">{t('cytologyQaTab.workloadTable.correctionFlagged')}</span>}
+                {/* Batch 574: why the person corrected their hours, and their note. The note is free text: it is
+                    tagged for redaction in case someone typed a patient detail despite the hint. */}
+                {r.signOffReasonId && (
+                  <span className="ps-qa-workload-reason">
+                    {t('cytologyQaTab.workloadTable.correctionReason', { reason: t(`cytologyWorklist.screeningHours.reasons.${r.signOffReasonId}`) })}
+                    {r.signOffNote && <>{' '}<span data-phi="true" className="ps-qa-workload-note">{t('cytologyQaTab.workloadTable.correctionNote', { note: r.signOffNote })}</span></>}
+                  </span>
+                )}
+              </td>
+              <td className="ps-conf-td">{num(r.recordedHours, 1)}</td>
               <td className="ps-conf-td">{r.manualSlidesCount}</td>
               <td className="ps-conf-td">{r.imagerSlidesCount}</td>
               <td className="ps-conf-td">{num(r.totalEquivSlides, 1)}</td>
@@ -314,7 +342,7 @@ const WorkloadTrackingTable: React.FC<{ rows: CytologyWorkloadTrackingRow[] }> =
               </td>
             </tr>
           ))}
-          {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={8}>{t('cytologyQaTab.workloadTable.noLedgerEntriesYet')}</td></tr>)}
+          {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={9}>{t('cytologyQaTab.workloadTable.noLedgerEntriesYet')}</td></tr>)}
         </tbody>
       </table>
     </div>
@@ -457,6 +485,78 @@ const HistologyCorrelationTable: React.FC<{
 };
 
 // US-QA-02 — Unscreened Backlog & TAT.
+// CYT-QA-03 — 5-Year Retrospective Lookback. Batch 483 (PS-359 tracker
+// follow-up — "CYT-QA-03 vs CYT-QA-04 report asymmetry"): same real
+// .ps-conf-table shape as every sibling report in this file; summary
+// counts shown above the table, same posture as HistologyCorrelationTable's
+// own stat row just below.
+const FiveYearLookbackTable: React.FC<{ report: CytologyFiveYearLookbackReport | null }> = ({ report }) => {
+  const { t } = useTranslation();
+  const rows = report?.rows ?? [];
+  return (
+  <div>
+    {report && (
+      <div className="ps-qa-report-card">
+        <div className="ps-qa-report-card-title">{t('cytologyQaTab.reportTitle.fiveYearLookback')} (CYT-QA-03)</div>
+        <div className="ps-qa-report-card-stats">
+          <div>
+            <div className="ps-qa-stat-value ps-qa-stat-value--plain">{report.totalFlagged}</div>
+            <div className="ps-qa-stat-label">{t('cytologyQaTab.fiveYearLookbackTable.totalFlagged')}</div>
+          </div>
+          <div>
+            <div className="ps-qa-stat-value ps-qa-stat-value--plain">{report.pendingCount}</div>
+            <div className="ps-qa-stat-label">{t('cytologyQaTab.fiveYearLookbackTable.pending')}</div>
+          </div>
+          <div>
+            <div className="ps-qa-stat-value ps-qa-stat-value--teal">{pct(report.completedPercent)}</div>
+            <div className="ps-qa-stat-label">{t('cytologyQaTab.fiveYearLookbackTable.completedPercent')}</div>
+          </div>
+          <div>
+            <div className="ps-qa-stat-value ps-qa-stat-value--blue">{report.correctiveActionRatePercent === undefined ? '—' : pct(report.correctiveActionRatePercent)}</div>
+            <div className="ps-qa-stat-label">{t('cytologyQaTab.fiveYearLookbackTable.correctiveActionRate')}</div>
+          </div>
+        </div>
+      </div>
+    )}
+    <div className="ps-conf-table-wrap">
+      <div className="ps-conf-table-scroll">
+        <table className="ps-conf-table">
+          <thead className="ps-conf-thead-sticky">
+            <tr>
+              <th className="ps-conf-th">{t('cytologyQaTab.headers.case')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.headers.accession')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.fiveYearLookbackTable.triggeredAt')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.headers.status')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.fiveYearLookbackTable.outcome')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.fiveYearLookbackTable.correctiveAction')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.fiveYearLookbackTable.reviewedBy')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="ps-conf-tr">
+                <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
+                <td className="ps-conf-td">{r.accessionId ?? '—'}</td>
+                <td className="ps-conf-td">{new Date(r.triggeredAt).toLocaleDateString()}</td>
+                <td className="ps-conf-td">
+                  {r.status === 'pending'
+                    ? <span className="ps-qa-badge ps-qa-badge--warning">{t('cytologyQaTab.fiveYearLookbackTable.pendingStatus')}</span>
+                    : <span className="ps-qa-badge ps-qa-badge--success">{t('cytologyQaTab.fiveYearLookbackTable.completedStatus')}</span>}
+                </td>
+                <td className="ps-conf-td">{r.outcome ? t(`cytologyQaTab.fiveYearLookbackTable.outcomes.${r.outcome}`) : '—'}</td>
+                <td className="ps-conf-td">{r.correctiveAction ?? '—'}</td>
+                <td className="ps-conf-td">{r.reviewedByName ?? '—'}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={7}>{t('cytologyQaTab.fiveYearLookbackTable.noneFlaggedYet')}</td></tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  );
+};
+
 const UnscreenedBacklogTable: React.FC<{ rows: CytologyUnscreenedBacklogRow[] }> = ({ rows }) => {
   const { t } = useTranslation();
   return (
@@ -581,6 +681,11 @@ const INDICATION_LABEL_KEY: Record<string, string> = {
 };
 const HpvPositivityMonitorTable: React.FC<{ rows: CytologyHpvPositivityMonitorRow[] }> = ({ rows }) => {
   const { t } = useTranslation();
+  // Batch 514: the unit word agrees with the number ("1,5 point", "2,3 points").
+  const percentagePoints = (change: number) => {
+    const { value, form } = formatPercentagePointChange(change, i18n.language);
+    return t('cytologyQaTab.hpvPositivityTable.percentagePoints', { value, context: form });
+  };
   return (
   <div>
     <div className="ps-qa-disclaimer">
@@ -611,7 +716,7 @@ const HpvPositivityMonitorTable: React.FC<{ rows: CytologyHpvPositivityMonitorRo
                 <td className="ps-conf-td">{pct(r.hpv16PositivityPercent)}</td>
                 <td className="ps-conf-td">{pct(r.hpv18Or45PositivityPercent)}</td>
                 <td className="ps-conf-td">{pct(r.otherHrPositivityPercent)}</td>
-                <td className="ps-conf-td">{r.positivityVarianceFromAggregateMean >= 0 ? '+' : ''}{r.positivityVarianceFromAggregateMean.toFixed(1)}pp</td>
+                <td className="ps-conf-td">{percentagePoints(r.positivityVarianceFromAggregateMean)}</td>
               </tr>
             ))}
             {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={8}>{t('cytologyQaTab.hpvPositivityTable.noDataYet')}</td></tr>)}
@@ -852,6 +957,8 @@ const EMPTY_AGGREGATE: CytologyQaAggregateReport = {
 
 export const CytologyQaTab: React.FC = () => {
   const [activeReport, setActiveReport] = useState<CytologyQaReportKey>('random');
+  // Batch 572: the lab's time zone decides each workload entry's day (as the end-of-day sign-off does).
+  const facilityTimezone = useSystemConfig().config.facilityTimezone;
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [transmissionRegistryId, setTransmissionRegistryId] = useState<RegistryId>('ncsr_australia');
   const [loading, setLoading] = useState(true);
@@ -871,6 +978,8 @@ export const CytologyQaTab: React.FC = () => {
   const [molQcFailureReport, setMolQcFailureReport] = useState<CytologyMolecularQcFailureRateRow[]>([]);
   const [molLotTrendReport, setMolLotTrendReport] = useState<CytologyMolecularLotToLotTrendRow[]>([]);
   const [apacPtReport, setApacPtReport] = useState<CytologyApacProficiencyTestReport>({ rows: [], totalEvents: 0, satisfactoryCount: 0, satisfactoryRatePercent: 0 });
+  // Batch 483 (PS-359 tracker follow-up — "CYT-QA-03 vs CYT-QA-04 report asymmetry").
+  const [fiveYearLookbackReport, setFiveYearLookbackReport] = useState<CytologyFiveYearLookbackReport | null>(null);
 
   // Real, per direct follow-up ("mimicking the backend bits against
   // the mock while the real backend gets built"): only the currently
@@ -919,7 +1028,7 @@ export const CytologyQaTab: React.FC = () => {
         const res = await cytologyQaReportService.getAscusHpvReflexReport(scope);
         if (!cancelled && res.ok) setAscusHpvReport(res.data);
       } else if (activeReport === 'workload') {
-        const res = await cytologyQaReportService.getWorkloadTrackingReport(scope);
+        const res = await cytologyQaReportService.getWorkloadTrackingReport(scope, facilityTimezone);
         if (!cancelled && res.ok) setWorkloadReport(res.data);
       } else if (activeReport === 'transmission') {
         const res = await cytologyQaReportService.getRegistryTransmissionAuditReport(scope, transmissionRegistryId);
@@ -927,6 +1036,9 @@ export const CytologyQaTab: React.FC = () => {
       } else if (activeReport === 'secondary-screening-audit') {
         const res = await cytologyQaReportService.getGynCytologySecondaryScreeningAuditReport(scope);
         if (!cancelled && res.ok) setSecondaryScreeningAuditReport(res.data);
+      } else if (activeReport === 'five-year-lookback') {
+        const res = await cytologyQaReportService.getFiveYearRetrospectiveLookbackReport(scope);
+        if (!cancelled && res.ok) setFiveYearLookbackReport(res.data);
       } else if (activeReport === 'histology-correlation') {
         const res = await cytologyQaReportService.getHistologyCorrelationReport(scope);
         if (!cancelled && res.ok) setHistologyCorrelationReport(res.data);
@@ -956,7 +1068,7 @@ export const CytologyQaTab: React.FC = () => {
     })();
 
     return () => { cancelled = true; };
-  }, [activeReport, scope, transmissionRegistryId]);
+  }, [activeReport, scope, transmissionRegistryId, facilityTimezone]);
 
   const { t } = useTranslation();
 
@@ -973,12 +1085,13 @@ export const CytologyQaTab: React.FC = () => {
           return (
             <button
               key={tile.key}
+              aria-pressed={isActive}
               className={`ps-wl-filter-tile ps-wl-filter-tile--hued${isActive ? ' ps-wl-filter-tile--hued-active' : ''}`}
               title={t('cytologyQaTab.tileViewTooltip', { label: `${tile.icon} ${t(tile.labelKey)}` })}
               onClick={() => setActiveReport(tile.key)}
               style={{ '--ps-hue': tile.color } as React.CSSProperties}
             >
-              <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa' } as React.CSSProperties}>{tile.icon} {t(tile.labelKey)}</div>
+              <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa', '--tile-label-mix': isActive ? '55%' : '100%' } as React.CSSProperties}>{tile.icon} {t(tile.labelKey)}</div>
               <div className="ps-wl-filter-tile__count" style={{ '--tile-count-color': tile.color } as React.CSSProperties}>{'\u00A0'}</div>
               <div className="ps-wl-filter-tile__sublabel" style={{ '--tile-count-color': tile.color } as React.CSSProperties}>{'\u00A0'}</div>
             </button>
@@ -1006,7 +1119,7 @@ export const CytologyQaTab: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="ps-qa-loading">{t('cytologyQaTab.loading')}</div>
+        <LoadingState variant="inline" className="ps-qa-loading" label={t('cytologyQaTab.loading')} />
       ) : (
         <>
           {activeReport === 'random' && <ReportCard titleKey="cytologyQaTab.reportTitle.random" titleCode="CYT-QA-02" report={aggregateReport} />}
@@ -1019,9 +1132,10 @@ export const CytologyQaTab: React.FC = () => {
           {activeReport === 'workload' && <WorkloadTrackingTable rows={workloadReport} />}
           {activeReport === 'transmission' && (
             <TransmissionAuditTable rows={transmissionReport}
-              onDownload={() => { void exportQaReportRows('qa:registry-transmission-audit:export', cytologyTransmissionAuditCsvRows(transmissionReport, transmissionRegistryId), `registry-transmission-audit-${transmissionRegistryId}-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope)); }} />
+              onDownload={() => { void exportQaReportRows('qa:registry-transmission-audit:export', cytologyTransmissionAuditCsvRows(transmissionReport, transmissionRegistryId), `registry-transmission-audit-${transmissionRegistryId}-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope, registryId: transmissionRegistryId }); }} />
           )}
           {activeReport === 'secondary-screening-audit' && <SecondaryScreeningAuditTable records={secondaryScreeningAuditReport} />}
+          {activeReport === 'five-year-lookback' && <FiveYearLookbackTable report={fiveYearLookbackReport} />}
           {activeReport === 'histology-correlation' && (
             <HistologyCorrelationTable
               report={histologyCorrelationReport}
@@ -1036,7 +1150,7 @@ export const CytologyQaTab: React.FC = () => {
                   'Hist Diagnosis': r.histDiagnosis, 'Days to Biopsy': r.daysToBiopsy ?? '',
                   'Correlation Category': CATEGORY_LABEL_EXPORT_TEXT[r.correlationCategory],
                 }));
-                void exportQaReportRows('qa:cytology-histology-correlation:export', rows, `cyto-histo-correlation-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+                void exportQaReportRows('qa:cytology-histology-correlation:export', rows, `cyto-histo-correlation-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
               }}
               onPrint={() => { void authorizationService.enforce('qa:cytology-histology-correlation:export', qaScopeContext(scope)).then(d => { if (d.allowed) setShowHistologyCorrelationPrint(true); }); }}
             />

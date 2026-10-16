@@ -2,7 +2,7 @@
 
 Synoptic template LIBRARY MANAGEMENT ONLY, post-July-2026 split — seeds the CAP/RCPath-derived generic JSON templates into editorStore.
 
-**Pattern:** Single real file.
+**Pattern:** `templateService.ts` plus pure rule modules (`protocolLifecycle.ts`, `templatePublishingRules.ts`, `conditionEdits.ts` and others listed below); no interface/mock split.
 
 ## Files
 
@@ -18,7 +18,9 @@ Synoptic template LIBRARY MANAGEMENT ONLY, post-July-2026 split — seeds the CA
 ## Notes
 
 - The AI-suggestion sub-system that used to live here moved to services/templateSuggestions/ — see that folder's README.
-- src/templates/mockDcisTemplate.ts (a DIFFERENT, top-level, non-services/ folder) still needs relocating here or into Config/Templates/ — flagged in PRIORITY_FIXES.md, not yet done.
+- The old top-level `src/templates/mockDcisTemplate.ts` that once needed relocating no longer exists; there is no `src/templates/` folder anywhere in the repo.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): pattern line updated (many files, not one); the `mockDcisTemplate.ts` relocation item is moot, the file is gone.*
 
 ## Archive, restore and New Version (Batch 317, PS-73)
 
@@ -176,3 +178,28 @@ Pete: negative or decimal node counts are refused. Grid column property `wholeNu
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 505 (PS-475): seed templates load on demand
+
+The 31 seed synoptic templates (about 420 KB of JSON) are no longer imported when `templateService.ts` loads. `SEED_TEMPLATE_LOADERS` maps each id to its file; `ensureSeedTemplate(id)` fetches a seed the first time it's needed, and every function that reads the editor store awaits it first (`getTemplate`, and submit / resubmit / publish through `assertMohsHistologySources`). A saved edit still wins: hydration puts it in the store first and a seed never overwrites an id that's there. A seed deleted this session isn't fetched again. `SEED_TEMPLATE_IDS` lists the ids. Test: `templateService.seeds.test.ts`.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`publishTemplate` checks for the actor explicitly after `decidePublish`, which already refuses a missing one with the same `NOT_APPROVER` error.
+
+## Batch 519 (PS-493, PS-494, PS-273)
+
+- **`conditionEdits.ts` (PS-493):** a condition can name several answers (`answerIds`) or "unless" answers (`notAnswerIds`), per alternative. Only nested alternatives, or mixed answer keys, stay read-only (`conditionTooComplex`).
+- **`nodeCountText.ts` (PS-494, new):** free-text node counts: `parseNodeCount` (exact, "at least N", "cannot be determined", in all five languages), `textNodeCountProblem`, `textNodeCountExceeds` (positive ≤ examined) and `nodeCountBelowSum` (Breast: total examined ≥ A + B + C). `partGrid.fieldCountProblem` uses them; `synopticEntryChecks.ts` reports `fieldNotCount` and `fieldBelowSum`. `templateCountRules.ts` gains `withNodeCount` and `withSumPartToggled` for the editor.
+- **`normalizeSynopticTemplate.ts` (PS-273, new):** fills the shared model's required properties on content in the older Cytology shape; keeps everything else.
+- **`narrativeAuthoring.ts` (PS-273, new):** when the editor shows the narrative settings (`authorsNarrative`), the clinical tiers, and `withNarrativeSentence` (a lab's sentence replaces PathScribe's translated one: the key is dropped, or it would win).
+- **`templateService.ts`:** imports `EditorTemplate` as a type only.
+- Tests: `nodeCountText.test.ts` (19, covering the seven templates), `conditionEdits.test.ts`.
+
+## Batch 526
+
+Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.
+
+## Batch 579
+
+- `templateReviewWork.ts`: `addTemplateQuestionComment` and `toggleTemplateQuestionComment` (save and audit a reviewer's comment; the comment thread only renders).

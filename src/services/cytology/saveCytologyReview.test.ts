@@ -77,6 +77,20 @@ describe('saveCytologyReview', () => {
     expect(random).not.toHaveBeenCalled();
   });
 
+  it('Batch 574: an edit doesn\'t count the slide again (the time still counts); an escalation adds only its extra weight', async () => {
+    const { deps, ledger } = makeWorkspaceDeps();
+    await saveCytologyReview(input({ editingReviewId: 'rv-p', reviews: [{ ...primary, reviewMode: 'primary_manual' } as CytologyReviewRecord] }), deps);
+    expect(ledger[ledger.length - 1]).toMatchObject({ reviewRecordId: 'rv-p', scuWeight: 0, activeDurationSeconds: 600 });
+    await saveCytologyReview(input({ editingReviewId: 'rv-p', reviews: [{ ...primary, reviewMode: 'fov_assisted' } as CytologyReviewRecord], reviewMode: 'fov_manual_rescreen' }), deps);
+    expect(ledger[ledger.length - 1]).toMatchObject({ scuWeight: 1 });
+  });
+
+  it('Batch 574: over the cap, an edit that adds nothing isn\'t refused', async () => {
+    const { deps } = makeWorkspaceDeps({ ...overCap });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 36, editingReviewId: 'rv-p', reviews: [{ ...primary, reviewMode: 'primary_manual' } as CytologyReviewRecord] }), deps);
+    expect(result.outcome).toBe('saved');
+  });
+
   it('over the workload cap, a new review is refused and the reviewer\'s pending cases (this one too) go back to the pool', async () => {
     const pending = [{ id: 'C1', status: 'in-progress', order: { assignedTo: 'CT1' } }, { id: 'C2', status: 'in-progress', order: { assignedTo: 'CT1' } }] as never[];
     const { deps } = makeWorkspaceDeps({ ...overCap, listCasesForUser: async () => pending });
@@ -187,9 +201,10 @@ describe('saveCytologyReview', () => {
 // Batch 450 (PS-188): the workload check at save time uses all three cap tiers
 // (Enterprise, the case's performing facility, the reviewer).
 describe('saveCytologyReview — workload cap tiers at save time', () => {
-  // 36 s of screening = 0.01 h: a cap of 100 allows 0.125 SCU (blocked), 1000 allows 1.25 (a 1-SCU review fits).
-  const caps = (facility: number | null, staff: number | null) => vi.fn(async () => ({
-    enterprise: { dailySlideCap: 100 },
+  // Batch 576: caps are 1–100 (CLIA), so the tiers are shown with a lower Enterprise default where needed.
+  // 360 s of screening = 0.1 h: a cap of 100 allows 1.25 SCU (a 1-SCU review fits), 40 allows 0.5 (blocked).
+  const caps = (facility: number | null, staff: number | null, enterprise = 100) => vi.fn(async () => ({
+    enterprise: { dailySlideCap: enterprise },
     facility: facility === null ? null : { id: 'fc', facilityId: 'F1', overrides: { dailySlideCap: facility }, createdAt: '', updatedAt: '' },
     staff: staff === null ? null : { id: 'sc', staffUserId: 'CT1', overrides: { dailySlideCap: staff }, createdAt: '', updatedAt: '' },
   }));
@@ -202,8 +217,8 @@ describe('saveCytologyReview — workload cap tiers at save time', () => {
   });
 
   it('a facility cap above the Enterprise default lets through a review the Enterprise cap alone would block', async () => {
-    const { deps, ledger } = makeWorkspaceDeps({ getWorkloadCaps: caps(1000, null) });
-    const result = await saveCytologyReview(input({ activeScreeningSeconds: 36 }), deps);
+    const { deps, ledger } = makeWorkspaceDeps({ getWorkloadCaps: caps(100, null, 40) });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 360 }), deps);
     expect(result).toMatchObject({ outcome: 'saved', capacity: expect.objectContaining({ maxAllowedScu: 1.25, status: 'ok' }) });
     expect(deps.returnToCytologyPool).not.toHaveBeenCalled();
     expect(ledger).toHaveLength(1);
@@ -218,9 +233,9 @@ describe('saveCytologyReview — workload cap tiers at save time', () => {
   });
 
   it('the reviewer\'s own cap beats the facility cap', async () => {
-    const { deps } = makeWorkspaceDeps({ getWorkloadCaps: caps(1000, 50) });
-    const result = await saveCytologyReview(input({ activeScreeningSeconds: 36 }), deps);
-    expect(result).toMatchObject({ outcome: 'workloadBlocked', capacity: expect.objectContaining({ maxAllowedScu: 0.0625 }) });
+    const { deps } = makeWorkspaceDeps({ getWorkloadCaps: caps(100, 50, 40) });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 360 }), deps);
+    expect(result).toMatchObject({ outcome: 'workloadBlocked', capacity: expect.objectContaining({ maxAllowedScu: 0.625 }) });
     expect(deps.createReview).not.toHaveBeenCalled();
   });
 });

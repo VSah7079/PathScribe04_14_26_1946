@@ -39,6 +39,7 @@ import type { EnterpriseConfig, EnterpriseFeatures } from '@app-types/config/Ent
 import type { HospitalConfig } from '@app-types/config/HospitalConfig';
 import { permitSystemConfigPatch, permitEnterpriseConfigPatch } from '../services/systemConfig/systemConfigChangeChecks';
 import { readStoredConfig, saveStoredConfig } from '../services/systemConfig/systemConfigStore';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ const DEFAULT_HOSPITAL_CONFIG: HospitalConfig = {
 
 function loadSystemConfig(): SystemConfig {
   const merged = readStoredConfig('system', DEFAULT_SYSTEM_CONFIG);
-  const envVoice = import.meta.env.VITE_VOICE_ENABLED;
+  const envVoice = appEnv().VITE_VOICE_ENABLED;
   if (envVoice === 'false') merged.voiceEnabled = false;
   return merged;
 }
@@ -137,7 +138,8 @@ export const SystemConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Hospital overrides enterprise — if hospital explicitly sets a feature,
   // that value wins regardless of the enterprise default.
   const isFeatureEnabled = useCallback((feature: keyof EnterpriseFeatures): boolean => {
-    const hospitalVal  = hospitalConfig.features[feature];
+    // Batch 511: a hospital may override any enterprise feature, including ones its type doesn't list yet.
+    const hospitalVal  = (hospitalConfig.features as Partial<Record<keyof EnterpriseFeatures, boolean>>)[feature];
     const enterpriseVal = enterpriseConfig.features[feature];
     // Hospital value takes precedence; fall back to enterprise; default false
     return hospitalVal ?? enterpriseVal ?? false;

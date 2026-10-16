@@ -68,6 +68,9 @@ export function createCaseAddresses(refs: Pick<ISupportReferenceService, 'forRec
   const known = new Map<string, string>();
   return {
     async addressOf(caseId, view, query) {
+      // Batch 527 (PS-486): the demo EMR window isn't in a server build, so
+      // there is no address (the EMR button opens the in-page panel instead).
+      if (view === 'emr' && !__DEMO_TOOLS__) return null;
       const r = await refs.forRecord('case', caseId);
       if (r.ok === false) return null;
       known.set(r.data.ref, caseId);

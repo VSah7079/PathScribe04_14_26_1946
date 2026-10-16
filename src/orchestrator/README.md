@@ -17,3 +17,7 @@ New tests: `contextBuilder.prelimOverride.test.ts` (a template without a Prelimi
 ## Batch 466b
 
 `contextBuilder.ts` `resolveAnswers`: a question hidden by its visibility condition (or its section's) is left out of the report even if an answer is stored. Pete: a partial nephrectomy's report has no renal vein or ureter margin lines.
+
+## Batch 536 (PS-558)
+
+`orchestratorEngine.ts`: the default provider is `AIProviderRegistry.getActive({ feature: 'narrative', caseId })`, so each section's generation is checked against the case's jurisdiction's AI vendor policy first.

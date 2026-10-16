@@ -7,6 +7,7 @@ import type { TFunction } from 'i18next';
 import type { ReportTemplate as OldTemplate, TemplateNode } from '../../types/template';
 import type { StructuredContext } from '../../orchestrator/contextBuilder';
 import { evalCondition } from '../../pages/ReportPreview/ReportPreviewRenderer';
+import { formatDateLong } from '@/utils/formatDate';
 import { PAGE_SIZES, PAGE_SIZE_REGION_KEY, getLabPageSetup, type Margins } from '@/services/reportAppearance/pageSetup';
 
 // ── Page sizes ─────────────────────────────────────────────────
@@ -184,7 +185,7 @@ const FieldTable: React.FC<{ nodes: TemplateNode[]; ctx: StructuredContext }> = 
 // ── Content node ───────────────────────────────────────────────
 const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNum?: number; totalPages?: number }> =
   ({ node, ctx, pageNum = 1, totalPages = 1 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (node.showWhen && !evalCond(node.showWhen, ctx)) return null;
   if (isField(node)) return <FieldTable nodes={[node]} ctx={ctx} />;
   // 'synoptic-block' is deliberately outside the formal TemplateNode
@@ -287,29 +288,28 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
         </div>
       );
     case 'header':
-      // "PathScribe Laboratory" / "Department of Anatomic Pathology" mirror
-      // the same default institution-name/department fallback values seeded
-      // in mockReportPartService.ts (e('Institution', ..., 'PathScribe
-      // Laboratory')) — mock/demo institution data for this preview, not
-      // UI chrome, so left untranslated like the rest of MOCK_CTX.
+      // Batch 513 (PS-269): "PathScribe Laboratory" is the sample
+      // institution's brand name and stays literal; the sample department
+      // line is preview chrome, so it is translated. The date follows the
+      // user's locale instead of a hard-coded 'en-GB'.
       return (
         <div className="ps-tpp-print-header">
           <div>
             {node.showLogo && <div className="ps-tpp-print-header-logo">PathScribe Laboratory</div>}
-            <div className="ps-tpp-print-header-sub">Department of Anatomic Pathology</div>
+            <div className="ps-tpp-print-header-sub">{t('templatePreviewPanel.sampleDepartment')}</div>
           </div>
           <div className="ps-tpp-print-header-right" data-phi="accession">{node.showAccession && <div className="ps-tpp-print-header-accession">{MOCK_CTX.order.fullAccession}</div>}
             {node.showPatientName && <div className="ps-tpp-print-header-patient" data-phi="name">{MOCK_CTX.patient.name}</div>}
-            <div className="ps-tpp-print-header-sub">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+            <div className="ps-tpp-print-header-sub">{formatDateLong(new Date().toISOString(), i18n.language)}</div>
           </div>
         </div>
       );
     case 'footer':
-      // Patient name/DOB/accession are mock demo data (MOCK_CTX), left
-      // untranslated like the rest of the mock context.
+      // Patient name/DOB/accession values are mock demo data (MOCK_CTX); the
+      // "DOB" label and the separators come from one template key.
       return (
         <div className="ps-tpp-print-footer">
-          <span>{MOCK_CTX.patient.name} · DOB {MOCK_CTX.patient.dob} · {MOCK_CTX.order.fullAccession}</span>
+          <span data-phi="true">{t('templatePreviewPanel.footerPatientLine', { name: MOCK_CTX.patient.name, dob: MOCK_CTX.patient.dob, accession: MOCK_CTX.order.fullAccession })}</span>
           {node.showPageNumbers && <span>{t('templatePreviewPanel.pageNumber', { pageNum, totalPages })}</span>}
         </div>
       );
@@ -487,7 +487,7 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
 
       {/* Toolbar */}
       <div className="ps-tpp-toolbar">
-        <select value={pageSizeId} onChange={e => handlePageSizeChange(e.target.value)}
+        <select aria-label={t('a11y.fields.pageSize')} value={pageSizeId} onChange={e => handlePageSizeChange(e.target.value)}
           className="ps-tpp-toolbar-select">
           {PAGE_SIZES.map(p => <option key={p.id} value={p.id}>{p.label} — {t(PAGE_SIZE_REGION_KEY[p.id])}</option>)}
         </select>

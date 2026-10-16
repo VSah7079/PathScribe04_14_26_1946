@@ -18,6 +18,7 @@
 
 import { readLabSetting, saveLabSetting } from '../labSettings/labSettingsStore';
 import { permitConfigChange } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 // Paper size names (A4, US Letter, ...) are standard names and stay literal in
 // every locale; only the "where it's used" text is translated.
@@ -70,8 +71,8 @@ export function normalisePageSetup(raw: Partial<PageSetup> | null | undefined): 
 
 function legacyPageSetup(): Partial<PageSetup> | null {
   try {
-    const size = localStorage.getItem(LEGACY_SIZE_KEY);
-    const margins = localStorage.getItem(LEGACY_MARGINS_KEY);
+    const size = dataStorage.getItem(LEGACY_SIZE_KEY);
+    const margins = dataStorage.getItem(LEGACY_MARGINS_KEY);
     if (size === null && margins === null) return null;
     return { pageSizeId: size ?? undefined, margins: margins ? JSON.parse(margins) as Margins : undefined };
   } catch { return null; }
@@ -85,7 +86,7 @@ export function getLabPageSetup(): PageSetup {
   if (!legacy) return DEFAULT_PAGE_SETUP;
   const carried = normalisePageSetup(legacy);
   saveLabSetting(PAGE_SETUP_KEY, carried);
-  try { localStorage.removeItem(LEGACY_SIZE_KEY); localStorage.removeItem(LEGACY_MARGINS_KEY); } catch { /* fine */ }
+  try { dataStorage.removeItem(LEGACY_SIZE_KEY); dataStorage.removeItem(LEGACY_MARGINS_KEY); } catch { /* fine */ }
   return carried;
 }
 

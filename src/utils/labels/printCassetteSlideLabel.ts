@@ -13,16 +13,15 @@
 // configured for (services/scanStations/ — cassetteSlidePrinterProfileId
 // points at the real PrinterProfile that carries the real bridgeType).
 //
-// Real, honest routing: only 'qz_tray' (qzTrayBridge.ts) and
-// 'direct_interface_engine' (dispatchNetworkPrintJob.ts, cassette
-// labels only — see printSlideLabel's own note) have real, working
-// dispatch implementations today. The other bridge types
-// (zebra_browser_print, bartender_rest, pathscribe_agent,
-// os_print_dialog) are real, valid PrinterProfile configurations — see
-// that type's own doc comment — but this module refuses cleanly with
-// a real, specific "not yet implemented" message rather than silently
-// doing nothing or pretending to print through a path this app hasn't
-// actually built.
+// Routing: 'qz_tray' and 'pathscribe_agent' go through dispatchZplLabel.ts,
+// which refuses every other bridge type with a "not yet implemented"
+// message (zebra_browser_print, bartender_rest, os_print_dialog).
+// 'direct_interface_engine' goes to networkPrintJobs, whose sender
+// (dispatchNetworkPrintJob.ts) is still a stub: network label printing on
+// site is the site agent's (docs/architecture/SITE_AGENT_API.md,
+// print.label). *(Corrected in Batch 546: this said pathscribe_agent was
+// refused here; it has been sent through dispatchZplLabel.ts since that file
+// gained it.)*
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { validateGs1Fields, buildGs1DataMatrix } from './gs1DataMatrix';

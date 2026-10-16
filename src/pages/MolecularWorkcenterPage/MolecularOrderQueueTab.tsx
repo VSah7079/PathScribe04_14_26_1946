@@ -6,15 +6,23 @@
 // (dispatchAction); the engine decides each order's status, the actions a row
 // offers and the plates an order can go on. The only state here is what the
 // user has selected.
+//
+// Batch 562: with the live-update hub, the queue re-reads when an order changes
+// elsewhere (results from the instrument or the reference lab, another
+// technologist's action; topic `molecularQueue`). It never polled, and still
+// doesn't without the hub.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_MOCK_BACKEND, molecularOrderEngine, simulateMolecularRunResults, simulateSendOutResult, MOLECULAR_ORDER_STATUS_HUE } from '@/services';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import type { MolecularOrderAction, MolecularQueueRow, MolecularQueueView } from '@/services/molecularOrders/molecularOrderTypes';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatDateTime } from '@/utils/formatDate';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { useLiveData } from '@/hooks/useLiveData';
+import { keepSelectedInView } from '@/services/molecularOrders/molecularQueueSelection';
 
 const K = 'molecularOrders';
 
@@ -26,13 +34,26 @@ export const MolecularOrderQueueTab: React.FC<{ onOpenPlate: (batchId: string) =
   const [plateId, setPlateId] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => setView(await molecularOrderEngine.queueView()), []);
+  // Batch 562: only the latest view is shown (a live re-read never puts back the view before the user's own
+  // action), and orders that left the queue drop out of the selection.
+  const viewGeneration = useRef(0);
+  const showView = useCallback((next: MolecularQueueView | null) => {
+    setView(next);
+    if (next) setSelected(prev => keepSelectedInView(prev, next.rows));
+  }, []);
+  const refresh = useCallback(async () => {
+    const mine = ++viewGeneration.current;
+    const next = await molecularOrderEngine.queueView();
+    if (mine === viewGeneration.current) showView(next);
+  }, [showView]);
   useEffect(() => { void refresh(); }, [refresh]);
+  useLiveData(refresh, { topic: 'molecularQueue', pollMs: null });
 
   const send = async (action: MolecularOrderAction) => {
     setMessage(null);
+    viewGeneration.current += 1; // a re-read started before the action is out of date
     const r = await molecularOrderEngine.dispatchAction(action);
-    if (r.ok) { setSelected([]); setPlateId(''); setView(r.view ?? null); setMessage(t(`${K}.queue.done.${action.type}`)); }
+    if (r.ok) { viewGeneration.current += 1; setSelected([]); setPlateId(''); setView(r.view ?? null); setMessage(t(`${K}.queue.done.${action.type}`)); }
     else setMessage(t(`${K}.errors.${r.refused ?? 'orderNotFound'}`));
   };
   const simulate = async (row: MolecularQueueRow, call: 'POSITIVE' | 'NEGATIVE') => {
@@ -92,7 +113,7 @@ export const MolecularOrderQueueTab: React.FC<{ onOpenPlate: (batchId: string) =
               </tr>
             </thead>
             <tbody>
-              {!view && <tr><td className="ps-conf-empty-row" colSpan={9}>{t('common.loading')}</td></tr>}
+              {!view && <tr><td className="ps-conf-empty-row" colSpan={9}><LoadingState variant="inline" label={t('common.loading')} /></td></tr>}
               {view && rows.length === 0 && <tr><td className="ps-conf-empty-row" colSpan={9}>{t(`${K}.queue.empty`)}</td></tr>}
               {rows.map(r => (
                 <tr key={r.orderId} className="ps-conf-tr">

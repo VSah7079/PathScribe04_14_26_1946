@@ -87,7 +87,7 @@ export const RetentionHoldModal: React.FC<RetentionHoldModalProps> = ({
   const deps = {
     authorization: authorizationService,
     getCase: (id: string) => caseRouter.getCase(id),
-    updateCase: (id: string, patch: Parameters<typeof caseRouter.updateCase>[1], version?: number) => caseRouter.updateCase(id, patch, version),
+    updateCase: (id: string, patch: Parameters<typeof caseRouter.updateCase>[1], version: number) => caseRouter.updateCase(id, patch, version),
     audit: auditService.logEvent.bind(auditService),
   };
   const actor = { id: currentUserId, name: currentUserName };

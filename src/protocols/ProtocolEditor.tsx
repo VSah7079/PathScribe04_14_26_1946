@@ -221,7 +221,7 @@ const ProtocolEditor: React.FC = () => {
           <div key={section.id} className="ps-pe-section-card">
             {/* Section header row */}
             <div className="ps-pe-section-header">
-              <input
+              <input aria-label={t('a11y.fields.title')}
                 type="text"
                 value={section.title}
                 onChange={e =>
@@ -259,7 +259,7 @@ const ProtocolEditor: React.FC = () => {
                   <div
                     className={`ps-pe-question-header-row${q.type === "choice" ? " ps-pe-question-header-row--spaced" : ""}`}
                   >
-                    <input
+                    <input aria-label={t('a11y.fields.questionText')}
                       type="text"
                       value={q.text}
                       onChange={e =>
@@ -270,7 +270,7 @@ const ProtocolEditor: React.FC = () => {
                       }
                       className="ps-pe-input"
                     />
-                    <select
+                    <select aria-label={t('a11y.fields.questionType')}
                       value={q.type}
                       onChange={e =>
                         updateQuestion(section.id, q.id, qq => ({

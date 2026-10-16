@@ -16,6 +16,10 @@
 //   • Outcome (completed / error / cancelled)
 //   • Performance (tokensGenerated, latencyMs)
 //   • Any error message
+//   • Batch 536 (PS-558): every callAi() call too (the mismatch check,
+//     critical findings, suggestions, voice), with its hosting region, the
+//     jurisdiction it was checked against and the feature; a call the
+//     jurisdiction's AI vendor policy refused is recorded as 'refused'
 //
 // STORAGE:
 //   localStorage for mock/dev. In production, entries are written
@@ -23,6 +27,7 @@
 //   also to an org-level audit collection for compliance reporting.
 // ─────────────────────────────────────────────────────────────
 
+import { dataStorage } from '../browserData/dataStorage';
 const LS_KEY    = 'ps_ai_audit_log_v1';
 const MAX_ENTRIES = 2000; // prevent unbounded localStorage growth
 
@@ -41,21 +46,29 @@ export interface AIAuditEntry {
   providerId:      string;
   /** Specific model used */
   modelId:         string;
-  /** Outcome of the generation */
-  status:          'completed' | 'error' | 'cancelled';
+  /** Outcome of the generation. Batch 536 (PS-558): 'refused' when the
+   *  jurisdiction's AI vendor policy didn't allow the service or region. */
+  status:          'completed' | 'error' | 'cancelled' | 'refused';
   /** Approximate tokens generated */
   tokensGenerated: number;
   /** Wall-clock latency in ms */
   latencyMs:       number;
   /** Error message if status === 'error' */
   error?:          string;
+  /** Batch 536 (PS-558): where the call went and for whom, so a regulator can
+   *  be shown what was used: the hosting region (when recorded), the
+   *  jurisdiction and facility it was checked against, and the feature. */
+  hostingRegion?:  string;
+  jurisdiction?:   string;
+  facilityId?:     string;
+  feature?:        string;
 }
 
 // ── Storage helpers ───────────────────────────────────────────
 
 function loadLog(): AIAuditEntry[] {
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = dataStorage.getItem(LS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
@@ -64,7 +77,7 @@ function saveLog(entries: AIAuditEntry[]): void {
   try {
     // Trim to max entries (keep most recent)
     const trimmed = entries.slice(-MAX_ENTRIES);
-    localStorage.setItem(LS_KEY, JSON.stringify(trimmed));
+    dataStorage.setItem(LS_KEY, JSON.stringify(trimmed));
   } catch {
     // Storage quota exceeded — silently ignore
   }
@@ -130,6 +143,6 @@ export const AIAuditLog = {
    * Admin only — should be gated by role check before calling.
    */
   clear(): void {
-    localStorage.removeItem(LS_KEY);
+    dataStorage.removeItem(LS_KEY);
   },
 };

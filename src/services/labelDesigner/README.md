@@ -152,7 +152,7 @@ Per direct guidance's own broader architectural strategy:
 
 24 tests (`ILabelLayoutService.test.ts`, `mockLabelLayoutService.test.ts`), plus
 9 more (`buildLabelLayoutZpl.test.ts`), 33 total.
-Full suite clean: 303/306 files, 2936/2945 tests, 0 failures.
+Full suite clean at the time (PS-245's first increment): 303/306 files, 2936/2945 tests, 0 failures. *(A historical count; `labelFieldGeometry.test.ts` adds 6 more tests since Batch 460 — checked in the Batch 496 README audit.)*
 
 ## Batch 428: Configuration permissions
 

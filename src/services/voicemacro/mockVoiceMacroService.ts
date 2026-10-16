@@ -5,6 +5,7 @@ import type { ServiceResult } from '../types';
 import { getSessionUser } from '../auth/caseAccessControl';
 import { CONFIG_NOT_PERMITTED, permitConfigChange } from '../authorization/guardConfigWrites';
 import { macroChangeNeedsCapability } from '../macros/macroAccess';
+import { dataStorage } from '../browserData/dataStorage';
 
 /** Batch 430: a person's own voice macro (Personal Quick Text) is theirs; a shared
  *  one (enterprise or facility), or someone else's, needs config:macros:manage,
@@ -20,7 +21,7 @@ export class MockVoiceMacroService implements IVoiceMacroService {
   private STORAGE_KEY = 'pathscribe_voice_macros';
 
   private getStoredMacros(): VoiceMacro[] {
-    const data = localStorage.getItem(this.STORAGE_KEY);
+    const data = dataStorage.getItem(this.STORAGE_KEY);
     
     if (!data) {
       // Seed defaults using the correct 'spoken' and 'written' keys
@@ -43,7 +44,7 @@ export class MockVoiceMacroService implements IVoiceMacroService {
   }
 
   private saveToStorage(macros: VoiceMacro[]) {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(macros));
+    dataStorage.setItem(this.STORAGE_KEY, JSON.stringify(macros));
   }
 
   // --- Public API Methods ---

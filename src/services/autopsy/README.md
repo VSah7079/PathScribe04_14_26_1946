@@ -22,12 +22,23 @@ Autopsy Pathology Module (PS-261, RFP-APLIS-2026-GLOBAL §3.1.C) — case author
 
 ## Real, deliberate scope not yet built
 
-- **Toxicology specimen tracking beyond the order/result/cancel set** (PS-261 §2.3) — Batch 469 built ordering and result recording; Batch 471 closed the one gap that batch disclosed, cancellation (`cancelAutopsyToxicologyOrder.ts`), see "Batch 471" below. Still not built: any specimen-level barcode/chain-of-custody tracking for the toxicology specimen itself (distinct from the body-specimen `locationHistory` this folder already has) — a real, further extension, not attempted.
-- **Organ/tissue retention mapping** (PS-261 §2.4.1, §2.4.2) — Batch 469 built disposal recording; Batch 471 closed the recipient/location gap for retention itself (`recordAutopsyOrganRetentionDetail.ts`); Batch 472 closed the last of the three — a reason for the tier selection itself (`organRetentionTierReason`), see "Batch 472" below. Still open: a real retention custody chain (should the recipient or location change mid-retention) is a further extension, not attempted.
-- Narrowing, revoking, AND reinstating an already-granted hospital consent are all built (Batch 469's `applyAutopsyConsentStatusChange.ts`; Batch 471's `applyAutopsyConsentReinstatement.ts`, see below) — the narrow-only guarantee and the deliberately separate, explicitly-widening reinstatement path are both real and tested. What's still open: a single custody chain unifying consent, retention and disposal history into one timeline is a further, separate extension, not attempted.
-- Per-field organ tagging within the gross-exam template — only whole grossing SECTIONS are organ-derived (`resolveActiveAutopsyGrossingSections.ts`), and only specimens carry a real `AutopsyOrganCode`. Batch 468's consent-scope warning (`resolveExcludedOrgansPresent`) works at that granularity; a true per-finding hard block isn't representable in the current template/data model.
-- Body release is now fully wired end-to-end: gate, event builder, orchestration (fetch/re-check/append/persist), and UI (`components/Autopsy/AutopsyBodyReleaseForm.tsx`) all exist and are tested — but it is still a separate, one-shot event, not unified with Batch 468's new `custodyLog`; disclosed below. The three-tier BI/reporting dashboards (PS-261 §2.6.3) are the one item from the original sequence not started at all.
-- No Autopsy worklist/case-listing UI exists yet; `AccessionPage.tsx`'s own integration handles initial case creation, but there's no dedicated Autopsy case view. `components/Autopsy/AutopsyAuthorizationCompletionForm.tsx` is a real, presentational, reusable form for the later authorization-completion step. *(Superseded: the form is opened from the report page and saved to the case by `handleAutopsyAuthCompletionSubmit` in `SynopticReportPage.tsx`, a versioned save since Batch 458.)*
+*Rewritten in Batch 495 after checking each item against the current code: four of the six bullets that stood here had since been built (Batches 456, 469, 475, 476) without this list being updated. What was closed, and where, is listed under "Closed since this list was written" below.*
+
+Still open (all front-end, none blocked on a backend):
+
+- **Organ/tissue retention custody chain** (PS-261 §2.4) — retention recipient/location, tier reason and disposal are recorded (Batches 469, 471, 472), but if the recipient or location changes mid-retention there is no chain of those changes.
+- **Per-field organ tagging within the gross-exam template** — only whole grossing SECTIONS are organ-derived (`resolveActiveAutopsyGrossingSections.ts`), and only specimens carry an `AutopsyOrganCode`. The consent-scope check (`resolveExcludedOrgansPresent`, Batch 468) works at that granularity; a per-finding hard block isn't representable in the current template data model.
+- **Sub-national jurisdictional appointments** — forensic sign-out authority is checked per country, not per county/state/coroner's area (see the Batch 331 section below).
+- **Three-tier BI/reporting dashboards** (PS-261 §2.6.3) — not started.
+
+### Closed since this list was written
+
+- **Toxicology specimen barcode and custody** — Batch 475: `AutopsyToxicologyOrder.specimenBarcode` (required) and a custody-log link to a specific toxicology specimen (`custodyEventsForToxicologyOrder()`).
+- **Body release unified with the custody log** — Batch 469: `releaseAutopsyBody.ts` appends the final custody entry for a forensic case in the same versioned save as the release event, and writes the audit entry.
+- **One timeline for consent, custody, toxicology, retention and disposal** — Batch 476: `buildAutopsyCaseTimeline.ts`, shown by `AutopsyCaseTimeline.tsx` on the report page.
+- **Autopsy case listing** — the worklist has had an Autopsy tab since Batch 456 (three seeded demo cases).
+- **"Ready for Body Release" banner in English** — translated (`autopsyBodyRelease.bannerTitle`/`bannerSummary`); see `pages/SynopticReportPage/README.md`.
+- **Body-release gate reasons in English** — Batch 495, below.
 
 ## Real, per direct follow-up ("wire in Autopsy"): Autopsy joins the Report_Released_Event infrastructure (Components A, B, C)
 
@@ -66,7 +77,7 @@ Before this batch, anyone who reached the Sign PAD / Sign FAD button could sign.
   - resident on a forensic case still routed for countersign.
 - **Not done:**
   - **Sub-national appointments.** Jurisdictions are country-level, so this stops cross-country sign-out but not cross-county. A US medical examiner's county or state, or a coroner's area, would need a region on both the case and the credential. Pete agreed this is a follow-up.
-  - **Still-English text.** The adjacent "Ready for Body Release" banner on the report page is still English. It's outside this change.
+  - **Still-English text.** The adjacent "Ready for Body Release" banner on the report page is still English. It's outside this change. *(Since closed: the banner is translated — see "Closed since this list was written" above.)*
 
 ## Batch 383 (PS-359)
 
@@ -91,7 +102,7 @@ Body release and PAD/FAD signing are versioned. A signature is refused if the re
 
 ## Batch 459
 
-**Superseded statement above:** the authorization-completion form is wired. The report page opens it for an autopsy case and saves the result to the case (`handleAutopsyAuthCompletionSubmit`). What is still open is a document-backed consent record (the signed form attached, with an append-only history) and a chain-of-custody log.
+**Superseded statement above:** the authorization-completion form is wired. The report page opens it for an autopsy case and saves the result to the case (`handleAutopsyAuthCompletionSubmit`). What is still open is a document-backed consent record (the signed form attached, with an append-only history) and a chain-of-custody log. *(Since closed in part: the chain-of-custody log exists — `recordAutopsyCustodyTransfer.ts`, Batch 468; checked in the Batch 496 README audit.)*
 
 **Correction (Batch 468):** this note said both were "planned for Batch 462." Batch 462, per the project's own changelog, actually shipped breast organ maps and test time limits — unrelated. Nothing happened on either item in the interim; both are addressed directly below, in Batch 468, instead.
 
@@ -102,7 +113,7 @@ Closes two of the items Pete chose from PS-261's remaining gaps (toxicology orde
 **Consent-scope enforcement.** Before this batch, `HospitalConsentRecord.consentScope: string[]` was captured and stored but never read by any code path anywhere — pure decoration (confirmed by a repo-wide search). Two new structured fields make it real:
 - **`status: 'active' | 'narrowed' | 'revoked'`** replaces the old, conflated `revokedOrNarrowedAt` timestamp. `resolveAutopsyGrossExaminationGate.ts` now hard-blocks only on `'revoked'` — `'narrowed'` consent proceeds to gross exam, with its own constraints enforced below.
 - **`excludedOrgans: AutopsyOrganCode[]`** — organs the NOK's consent excludes. `resolveExcludedOrgansPresent()` (new, `resolveAutopsyConsentScopeViolation.ts`) flags any excluded organ actually present among the case's specimens; `SynopticReportPage.tsx` shows this as a warning banner. Honestly bounded: the grossing template has no per-field organ tag, only whole sections derived from specimen organ codes, so this is a clear warning, not a per-finding hard block — the file's own header comment says why.
-- **`retentionPermitted: boolean`** — whether consent permits retention beyond the diagnostic gross exam. `resolveRetentionTierConsentCheck()` hard-blocks `organRetentionTier` from moving beyond `'tier_0_no_retention'` when this is false or consent is revoked — the one real write site for that field (`SynopticReportPage.tsx`'s `handleOrganRetentionTierChange`), so the one real place this is enforced.
+- **`retentionPermitted: boolean`** — whether consent permits retention beyond the diagnostic gross exam. `resolveRetentionTierConsentCheck()` hard-blocks `organRetentionTier` from moving beyond `'tier_0_no_retention'` when this is false or consent is revoked — the one real write site for that field (since Batch 499 `recordAutopsyOrganRetentionTier.ts`; before that the report page's `handleOrganRetentionTierChange` wrote it directly), so the one real place this is enforced.
 - Both new fields are captured on `components/Autopsy/AutopsyAuthorizationCompletionForm.tsx`, alongside the existing free-text `consentScope` (kept as the human-readable record of what the NOK actually said — not what's enforced).
 - Neither check is a capability/authorization check — whether an organ is excluded or retention is permitted is a clinical fact about the consent on file, not a permission about the user, same reasoning as the gross-exam gate itself.
 - **Not done (at the time of this batch; closed in Batch 469 below):** no UI yet to narrow or revoke an already-granted consent after the initial authorization-completion submit.
@@ -113,7 +124,7 @@ Closes two of the items Pete chose from PS-261's remaining gaps (toxicology orde
 - `resolveCurrentAutopsyCustodian()` derives "who holds it now" from the log's last entry, defaulting to the pathology department for the first transfer.
 - New capability `autopsy:custody:transfer` (high risk; same default roles as `autopsy:body:release` — never reusing that capability, a distinct action).
 - `SynopticReportPage.tsx` (forensic cases only): a read-only custody-log list plus a "Record Custody Transfer" form.
-- **Not done:** body release (`releaseAutopsyBody.ts`) is still a separate, one-shot `MaterialLocation` event — not unified with the new `custodyLog`, so a forensic case's full custody picture today is the `custodyLog` for in-process transfers plus the specimen's own `locationHistory` for the final release. Unifying them is a real, well-scoped follow-up, not attempted here to keep this batch's risk bounded (it would mean changing `releaseAutopsyBody.ts`'s own tested behavior).
+- **Not done:** body release (`releaseAutopsyBody.ts`) is still a separate, one-shot `MaterialLocation` event — not unified with the new `custodyLog`, so a forensic case's full custody picture today is the `custodyLog` for in-process transfers plus the specimen's own `locationHistory` for the final release. Unifying them is a real, well-scoped follow-up, not attempted here to keep this batch's risk bounded (it would mean changing `releaseAutopsyBody.ts`'s own tested behavior). *(Since closed: Batch 469, `releaseAutopsyBody.ts` appends the final custody-log entry in the same save — checked in the Batch 496 README audit.)*
 
 **Demo seed.** `services/cases/demoBaselineCases.ts`: A26-4661's consent is now narrowed with `excludedOrgans: ['brain']`, and its body specimen's `organCodes` include `'brain'`, so the new warning banner is demoable. New **A26-4663** — a `medicolegal_forensic` case (County Medical Examiner order, no `hospitalConsent`) with one `custodyLog` entry already on record, so the new custody panel has a real forensic case to demo against (`MOCK_VERSION` bumped to `'60'`). The `retentionPermitted:false` hard block has no seeded demo path: the `organRetentionTier` control only shows for an HTA-governed jurisdiction (`resolveHtaApplicability.ts`: UK E&W/NI/Scotland, NZ), and every seeded autopsy is US — covered by `resolveAutopsyConsentScopeViolation.test.ts` instead. See `docs/product/DEMO_GUIDE.md`.
 
@@ -130,13 +141,13 @@ Closes the three items Pete selected from the folder's own "Real, deliberate sco
 - **`recordAutopsyToxicologyResult.ts`** (new) — records the result against the matching order and clears `ancillaryHold` only when it's safe to: `hold.active && hold.startedAt === order.orderedAt`. A hold that's moved on to a different reason since the order was placed is never blindly cleared.
 - New capabilities: `autopsy:toxicology:order` (standard risk) and `autopsy:toxicology:result` (high risk).
 - `SynopticReportPage.tsx` (any autopsy case, unconditional): a read-only order/result log, an order-form toggle, and a result-form toggle per open order.
-- **Not done:** cancelling an order — `AutopsyToxicologyOrder.cancelledAt`/`cancelReason` exist on the type but nothing sets them yet; a real `cancelAutopsyToxicologyOrder.ts` (its own capability) is the honestly-scoped follow-up, and it would also need to clear the ancillary hold the same careful way result-recording does.
+- **Not done:** cancelling an order — `AutopsyToxicologyOrder.cancelledAt`/`cancelReason` exist on the type but nothing sets them yet; a real `cancelAutopsyToxicologyOrder.ts` (its own capability) is the honestly-scoped follow-up, and it would also need to clear the ancillary hold the same careful way result-recording does. *(Since closed: `cancelAutopsyToxicologyOrder.ts`, with `autopsy:toxicology:cancel` — checked in the Batch 496 README audit.)*
 
 **Organ-retention disposal recording.**
 - **`recordAutopsyOrganRetentionDisposal.ts`** (new) — same orchestration shape again. Writes `AutopsyCaseDetails.organRetentionDisposal` (recipient, method, date, note). Only meaningful where `resolveHtaApplicability()` is true (`GB_EW`, `GB_NIR`, `GB_SCT`, `NZ`) and `organRetentionTier` is set beyond `'tier_0_no_retention'` — the UI panel is gated on both.
 - New capability `autopsy:retention-disposal:record` (high risk).
 - `SynopticReportPage.tsx`: inserted right after the existing `organRetentionTier` select — a read-only disposal summary (when recorded) plus a form toggle (when not).
-- **Still open**, per the "Real, deliberate scope not yet built" section above: no recipient/location on the *retention* itself, only on disposal; no "reason for retention" field.
+- **Still open**, per the "Real, deliberate scope not yet built" section above: no recipient/location on the *retention* itself, only on disposal; no "reason for retention" field. *(Since closed: `recordAutopsyOrganRetentionDetail.ts` records retention recipient/location, and `organRetentionTierReason` holds the reason — checked in the Batch 496 README audit.)*
 
 **Consent narrowing/revocation.**
 - **`applyAutopsyConsentStatusChange.ts`** (new) — the write site this folder's own README had flagged as missing since before Batch 468. A pure merge function, same reasoning as `applyAutopsyAuthorizationCompletion.ts` being kept separate from its own validation: `status` only moves forward on an `active → narrowed → revoked` ladder, `excludedOrgans` is the union of current and newly-passed (never a replacement), `retentionPermitted` only moves `true → false`. Deliberately one-directional — reinstating withdrawn consent is a real, separate clinical/legal decision this module doesn't model.
@@ -189,7 +200,7 @@ Pete asked for three small Front End items, deliberately scoped smaller than the
 
 **Tests.** No new service test files (no new service functions this batch); `locale-parity` suite covers the new/changed keys. Full suite and type-check counts below.
 
-**Still open, disclosed.** The four genuinely-new Front End features raised in the same conversation — per-organ tagging on gross-exam findings, a dedicated autopsy worklist/case view, specimen-level toxicology barcode/chain-of-custody tracking, and a unified consent/retention/disposal/custody timeline — all need Pete's own scoping decisions before any of them are built; none were started this batch. The `organRetentionTier` write site's missing capability check and UI-embedded business logic (noted above) is also disclosed rather than silently carried forward.
+**Still open, disclosed.** The four genuinely-new Front End features raised in the same conversation — per-organ tagging on gross-exam findings, a dedicated autopsy worklist/case view, specimen-level toxicology barcode/chain-of-custody tracking, and a unified consent/retention/disposal/custody timeline — all need Pete's own scoping decisions before any of them are built; none were started this batch. *(Since closed: all four were built later — per-organ tagging (`recordAutopsyOrganTag.ts`, Batch 478), the worklist's Autopsy tab (Batch 456), toxicology specimen barcode and custody (Batch 475), and the timeline (`buildAutopsyCaseTimeline.ts`, Batch 476) — checked in the Batch 496 README audit.)* The `organRetentionTier` write site's missing capability check and UI-embedded business logic (noted above) is also disclosed rather than silently carried forward.
 
 ## Batch 473 — Case-type key migration: `medicolegal_forensic` → `statutory_judicial` (PS-261 follow-up)
 
@@ -251,10 +262,33 @@ Closes the "disclosed, not fixed" gap from Batch 478, same batch it was flagged 
 
 **Scope check before touching anything else:** grepped every real UI consumer of `gate.blockedReasons` first. `AutopsyAuthorizationCompletionForm.tsx` only reads `.allowed` (never the reasons text) — untouched. `signAutopsyReport.ts`'s own internal `error` string and the audit log's `detail` text both still join the reason codes directly — acceptable: the `error` field isn't shown to a user (the sign-error toast is already keyed by `errorCode`, done in Batch 478), and audit `detail` text is required to stay literal English project-wide (CLAUDE.md). `AutopsyGateOverrideEvent.blockedReasons` (persisted on the case, part of the audit trail) keeps its `string[]` type — it stores these same codes now, a compact record, not prose; the timeline's own `gate_overridden` entry never surfaces this field as text.
 
-**A related, not-yet-fixed gap, found by the same grep, not fixed here:** `resolveAutopsyBodyReleaseGate.ts` has the identical anti-pattern (literal English `blockedReasons` strings, read by `AutopsyBodyReleaseForm.tsx` at `gate.blockedReasons.map(reason => <div key={reason}>{reason}</div>)`). Out of scope for this batch — Pete's fix request named the gross-exam gate specifically — but flagged now rather than left for a future "disclosed, not fixed."
+**A related, not-yet-fixed gap, found by the same grep, not fixed here:** `resolveAutopsyBodyReleaseGate.ts` has the identical anti-pattern (literal English `blockedReasons` strings, read by `AutopsyBodyReleaseForm.tsx` at `gate.blockedReasons.map(reason => <div key={reason}>{reason}</div>)`). Out of scope for this batch — Pete's fix request named the gross-exam gate specifically — but flagged now rather than left for a future "disclosed, not fixed." *(Since closed: Batch 495 converted `resolveAutopsyBodyReleaseGate.ts` to reason codes — checked in the Batch 496 README audit.)*
 
 **Tests.** `resolveAutopsyGrossExaminationGate.test.ts`: one assertion sharpened from a substring match to an exact code (`'consent_revoked'`), 2 new tests asserting the other two codes. `signAutopsyReport.test.ts`: the full suite run caught one real pre-existing assertion that still matched the old English prose (`result.error` checked against `/legal authorization/i`) — fixed to match the new code; the adjacent revoked-consent assertion happened to still pass (`consent_revoked` contains "revoked") but was tightened to check the exact code too. Full suite: 989 files / 8442 tests passed, 3 files / 9 tests skipped, 0 failures. `npm run type-check` clean.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 495 — body-release gate reasons translated (closes a gap disclosed in Batch 479)
+
+`resolveAutopsyBodyReleaseGate.ts` returned hard-coded English sentences, which `components/Autopsy/AutopsyBodyReleaseForm.tsx` showed as-is. Batch 479 fixed the same problem in `resolveAutopsyGrossExaminationGate.ts` and named this file as having it too, but this file was never converted.
+
+- **Gate:** `blockedReasons` are now reason codes — `AutopsyBodyReleaseBlockReason` = `'pad_not_signed' | 'ancillary_hold_active'` — translated by callers via `autopsyBodyRelease.blockedReasons.<code>`. The criteria themselves are unchanged.
+- **`releaseAutopsyBody.ts`:** passes the typed codes through, and every failure now carries a `reasonCode` (`caseNotFound` | `noAutopsyRecord` | `specimenNotFound` | `conflict`), the same pattern `recordAutopsyCustodyTransfer.ts` already uses. `error` stays as a developer-facing English fallback and is no longer shown on screen.
+- **Tests:** `resolveAutopsyBodyReleaseGate.test.ts` and `releaseAutopsyBody.test.ts` assert the exact codes.
+- **README correction:** the "not yet built" list above was rewritten after checking it against the code; four of its six items had already been built.
+
+## Batch 499 — the retention tier gets its own service and capability
+
+**`recordAutopsyOrganRetentionTier.ts`** (new, with tests) saves `organRetentionTier` and `organRetentionTierReason`. Same orchestration as `recordAutopsyOrganRetentionDetail.ts`: checks `autopsy:retention-tier:record` (new capability, seeded to the same case-access roles as retention detail), fetches, re-checks on the freshest copy, saves version-safely with `updateCaseWithRetry`, and audits (`AUTOPSY_ORGAN_RETENTION_TIER_RECORDED`). `organRetentionTierRefusal()` (pure) holds both rules the page used to apply: retention tracking only where `resolveHtaApplicability` says so, and never beyond what a hospital consent permits (`resolveRetentionTierConsentCheck`, Batch 468).
+
+This closes what Batches 472 and 468 disclosed: the tier was saved from the report page with no permission check and with its logic in the component. The page now calls this service and greys the tier select and reason field without the capability.
+
+## Batch 534
+
+`signAutopsyReport.ts`: the PAD (PRELIMINARY) and FAD (FINAL) go through the release delay (`reportRelease/releaseThroughDelay`). Recall that reopens them comes in Batch 535.
+
+## Batch 535
+
+`signAutopsyReport.ts`: the held PAD or FAD records the case status before signing, so Recall can put it back. Recall withdraws the signature's frozen snapshot (`reportRelease/heldReleaseActions.ts`). A PAD can't be recalled once the FAD is signed on it.

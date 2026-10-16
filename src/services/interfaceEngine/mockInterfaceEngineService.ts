@@ -15,6 +15,7 @@ import type { DispatchOutcome, IInterfaceEngineService, OrderCreatedDispatchReco
 import type { ServiceResult } from '../types';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { buildDispatchTrail, shouldResendRedelivery } from './buildDispatchTrail';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'pathscribe_interface_engine_dispatched_events';
 /** Dispatch outcome per messageId (Batch 318, PS-86). Kept beside the event
@@ -25,18 +26,18 @@ const delay = (ms = 60) => new Promise(res => setTimeout(res, ms));
 
 function loadEvents(): OrderCreationEventPayload[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = dataStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveEvents(events: OrderCreationEventPayload[]): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch { /* non-critical */ }
 }
 
 function loadOutcomes(): Record<string, DispatchOutcome> {
   try {
-    const raw = localStorage.getItem(OUTCOME_KEY);
+    const raw = dataStorage.getItem(OUTCOME_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
@@ -45,7 +46,7 @@ function saveOutcome(messageId: string, outcome: DispatchOutcome): void {
   try {
     const all = loadOutcomes();
     all[messageId] = outcome;
-    localStorage.setItem(OUTCOME_KEY, JSON.stringify(all));
+    dataStorage.setItem(OUTCOME_KEY, JSON.stringify(all));
   } catch { /* non-critical */ }
 }
 

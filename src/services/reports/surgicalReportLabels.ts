@@ -21,8 +21,13 @@ export const SURGICAL_REPORT_LABEL_KEYS = [
   'workupFinal', 'workupCorrected', 'workupAddendum',
   // Batch 463: in place of a map that is part of the report but couldn't be drawn as an image.
   'figureNotDrawn',
+  // Batch 498 (PS-283): the revision banner and the footer document reference.
+  'revisionAmendment', 'revisionAddendum', 'revisionCorrection', 'revisionDatesWithOriginal', 'revisionDatesLatestOnly',
+  'documentReference', 'documentReferenceNoVersion',
 ] as const;
 export type SurgicalReportLabels = Record<typeof SURGICAL_REPORT_LABEL_KEYS[number], string>;
+
+const RENDERER_PLACEHOLDERS = { name: '{{name}}', original: '{{original}}', latest: '{{latest}}', accession: '{{accession}}', version: '{{version}}' };
 
 /** The labels for a report language; undefined before the app's i18n has started (the renderer then uses English). */
 export function surgicalReportLabelsFor(language: string | undefined): SurgicalReportLabels | undefined {
@@ -30,7 +35,8 @@ export function surgicalReportLabelsFor(language: string | undefined): SurgicalR
   const t = i18n.getFixedT(resolvePdfLanguage(language));
   const out = {} as SurgicalReportLabels;
   for (const key of SURGICAL_REPORT_LABEL_KEYS) {
-    out[key] = t(`surgicalReportPdf.${key}`, { name: '{{name}}', interpolation: { skipOnVariables: true, escapeValue: false } }) as string;
+    // Every placeholder is passed through as itself, for the renderer to fill.
+    out[key] = t(`surgicalReportPdf.${key}`, { ...RENDERER_PLACEHOLDERS, interpolation: { skipOnVariables: true, escapeValue: false } }) as string;
   }
   return out;
 }

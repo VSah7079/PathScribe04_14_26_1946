@@ -51,3 +51,7 @@ No behavior change. `AutopsyAuthorizationCompletionForm.tsx`/`.test.tsx` and `Au
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 495
+
+`AutopsyBodyReleaseForm.tsx` shows translated text only: the gate's reason codes via `autopsyBodyRelease.blockedReasons.<code>`, and a failed release via `autopsyBodyRelease.errors.<reasonCode>` (falling back to `genericError`). Before, both the gate's English sentences and the service's English `error` were shown as-is. See `services/autopsy/README.md`.

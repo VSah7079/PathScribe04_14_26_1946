@@ -92,7 +92,7 @@ export async function recordMarginInkApplication(
     if (!target) { reasonCode = 'blockNotFound'; return null; }
 
     const existingMargins = target.margins ?? [];
-    let margin = input.marginId ? existingMargins.find(m => m.id === input.marginId) : undefined;
+    const margin = input.marginId ? existingMargins.find(m => m.id === input.marginId) : undefined;
     if (input.marginId && !margin) { reasonCode = 'marginNotFound'; return null; }
 
     const application: MarginInkApplication = {

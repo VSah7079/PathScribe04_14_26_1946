@@ -50,6 +50,8 @@ import { molecularQcRunRecordService, qcRunsNewestFirst, specimensByMolecularRun
 import type { MolecularQcRunRecord } from '@/services/cytology/IMolecularQcRunRecordService';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { formatDate } from '@/utils/formatDate';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const MolecularBatchManagementPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -79,7 +81,7 @@ const MolecularBatchManagementPage: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) return <div className="ps-conf-loading">{t('molecularBatchManagementPage.loading')}</div>;
+  if (loading) return <LoadingState label={t('molecularBatchManagementPage.loading')} />;
 
   return (
     <div className="ps-batch-page">
@@ -112,7 +114,7 @@ const MolecularBatchManagementPage: React.FC = () => {
                     const isExpanded = expandedRunId === batch.id;
                     return (
                       <React.Fragment key={batch.id}>
-                        <tr className="ps-conf-tr ps-conf-tr--clickable" onClick={() => setExpandedRunId(isExpanded ? null : batch.id)}>
+                        <tr className="ps-conf-tr ps-conf-tr--clickable" {...pressable(() => setExpandedRunId(isExpanded ? null : batch.id), { role: null })}>
                           <td className="ps-conf-td">{isExpanded ? '▾' : '▸'}</td>
                           <td className="ps-conf-td">{formatDate(batch.runDate, i18n.language)}</td>
                           <td className="ps-conf-td">{batch.instrumentId}</td>

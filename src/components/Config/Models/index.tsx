@@ -19,6 +19,7 @@ import { facilitiesPinnedToModel } from '../../../services/models/modelAdoption'
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { canBecomeDefault } from '../AI/resolveVoiceAiModel';
 import ConfirmModal from '../../Common/ConfirmModal';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const STATUS_LABEL_KEY: Record<ModelStatus, string> = {
   Active:  'common.active',
@@ -82,7 +83,7 @@ const ModelsTab: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="ps-models-loading">{t('modelsTab.loading')}</div>
+    <LoadingState variant="inline" className="ps-models-loading" label={t('modelsTab.loading')} />
   );
 
   return (

@@ -93,17 +93,25 @@ audit logging, and a few smaller single-purpose hooks.
   `ReportPreviewPage.tsx`, the `/report-preview/:caseId` route, and a
   dormant event listener that could never fire once the only thing
   that dispatched its event was gone.
+  **Since restored:** `usePreviewChannel.ts` is back in this folder
+  (Batch 431 entry below) with two exports. `usePreviewReceiver` is used
+  by `pages/ReportPreview/ReportPreviewPage.tsx`, whose
+  `/report-preview/:caseId` route was added back to `App.tsx` in Batch
+  495. `usePreviewSender` (which opens that window) is not called from
+  any page or component today, so nothing in the app opens the preview
+  window.
 
 - **`usepathscribeSpeech.ts`** — thin, intentionally-narrow wrapper
   over `VoiceProvider`'s full context (see
   `contexts/VoiceProvider.tsx`). Documents itself as "the primary hook
-  for all voice interactions across the app," but only 1 of 9 actual
-  voice-consuming files uses it — the other 8, including
+  for all voice interactions across the app," but only 1 of 12 actual
+  voice-consuming files uses it (`components/Voice/SpeechConfigTab.tsx`)
+  — the other 11, including
   `OrchestratorSectionEditor.tsx` (exactly where the wrapper's own
   usage example says dictation happens), call `useVoice()` directly
   instead. Not a bug — both paths correctly read the same underlying
   context — but a real, confirmed drift between documented and actual
-  usage. Flagged rather than force-migrated, since some of those 8
+  usage. Flagged rather than force-migrated, since some of those 11
   files clearly need fields the narrower wrapper doesn't expose
   (`accent`, `voiceEnabled`, `aiAvailable`). Removed its `isProcessing`
   re-export as part of `VoiceProvider.tsx`'s own dead-code cleanup
@@ -150,8 +158,27 @@ audit logging, and a few smaller single-purpose hooks.
   look given the WCAG relevance.
 
 - **`useLogout.ts`**, **`useLatestResearch.ts`** — small, clean,
-  properly adopted (5 and 1 consumers respectively, no bypasses
-  found).
+  properly adopted (3 and 1 consumers respectively — `AppShell.tsx`,
+  `WorklistPage.tsx`, `SynopticReportPage.tsx`; `PubMedTicker.tsx` — no
+  bypasses found).
+
+- **`useCurrentOrTerminal.ts`** — binds this browser to one OR
+  location (stored per device, same pattern as
+  `useCurrentScanStation.ts`) so a wall-mounted intraoperative display
+  reconnects to the same OR after a reload. Used by
+  `OrSuiteDashboardPage.tsx`.
+
+- **`useCurrentDisplayProfile.ts`** (PS-288) — the same per-device
+  binding for a wall-mounted Facility Ops Dashboard display. Used by
+  `FacilityOpsDashboardPage.tsx`.
+
+- **`useEnabledIdentifierFormats.ts`** — the identifier formats enabled
+  across all enterprises (falls back to `IDENTIFIER_FORMAT_LIBRARY` when
+  none are configured), for consumers with no single facility context:
+  `ScannerProvider`, `CaseSearchBar`, `SearchPage`, and the facility
+  dictionary's identifier formats tab.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `usePreviewChannel.ts` is back (receiver used, sender unused); voice-consumer counts now 1 of 12; `useLogout` has 3 consumers, not 5; added four hooks missing from this list (`useCurrentOrTerminal`, `useCurrentDisplayProfile`, `useEnabledIdentifierFormats`, and `useDefaultActionOnScan` below).*
 
 ## Scan station & material scanning (Aug 2026)
 
@@ -176,6 +203,16 @@ audit logging, and a few smaller single-purpose hooks.
   Worklist, Search, or any other page was silently ignored, even
   though `ScannerProvider`'s own `PATHSCRIBE_SCAN` event is already
   genuinely global (window-level, mounted once at the app root).
+  *(The page-scoped `useMaterialScanTracking.ts` no longer exists;
+  `useGlobalMaterialScanTracking.ts` is mounted app-wide through
+  `components/MaterialScanTrackingBridge.tsx` in `App.tsx`. Checked in
+  the Batch 496 README audit.)*
+- **`useDefaultActionOnScan.ts`** (PS-289) — fires the scan station's
+  default action (e.g. "Log Slide/Block" at a microtomy desk) on the
+  next scan, with no click. Same global `PATHSCRIBE_SCAN` listener and
+  `STATION:` guard as the hooks above; skips the Disposal Queue route.
+  Mounted app-wide through `components/DefaultActionOnScanBridge.tsx`.
+  Tested in `__tests__/useDefaultActionOnScan.test.ts`.
 - **`useGlobalStationSwitch.ts`** — real feature: "MVP Station-Switching
   via Barcode Label" — detects the `STATION:` prefix from the scanner
   input stream and triggers a station switch, even mid-dictation or
@@ -218,40 +255,9 @@ audit logging, and a few smaller single-purpose hooks.
 
 ## Cassette Engine integration (Aug 2026)
 
-- **`usePendingEngineNotifications.ts`** — real, poll-based delivery of
-  real, backend-raised Engine events (`api/webhooks/engine/` — see
-  that folder's own README) to whichever technician's browser
-  currently has the relevant case open. Poll, not `onSnapshot` —
-  deliberate, matching this app's own existing convention (confirmed
-  directly: no real-time Firestore listener exists anywhere else in
-  this codebase). Dispatches by real event type: `cassette-dispatch-outcome`
-  goes to the existing, unchanged `processCassetteDispatchOutcomeEvent`
-  (the same function the Dev Tools "Sim" button already calls — that
-  event never mutates a case, so one function safely serves both real
-  and simulated flows). `block-exception`/`material-location` go to
-  two new, deliberately notification-*only* siblings
-  (`notifyBlockExceptionApplied`/`notifyMaterialLocationApplied`,
-  `services/hl7/`) — **never** the mutation-performing
-  `processBlockExceptionEvent`/`processMaterialLocationEvent` — because
-  the real backend webhook has already applied that mutation
-  server-side by the time a notification record exists to poll for;
-  calling the mutating function here too would silently apply the
-  same real change a second time.
+- **`usePendingEngineNotifications.ts`: removed in Batch 549** (finding F1 of the readiness review, open since Batch 537). It polled Firestore for the engine's notifications, but no page ever mounted it. The webhooks still write the notification record; the browser will hear about engine events through the hub's case event (phase 2d/2e). `services/hl7/notifyBlockExceptionApplied.ts` and `notifyMaterialLocationApplied.ts` stay, for that handler.
 
-  **Real, security-driven rewrite, mid-session**: originally marked a
-  notification "done" by writing `consumed: true` back to Firestore
-  from the client SDK. Removed entirely after direct review found this
-  app has no real, server-verifiable session anywhere (`AuthContext.tsx`
-  is a custom, `localStorage`-backed mock) — a Firestore rule can't
-  distinguish a legitimate technician's write from anyone else's
-  without one, so `pending_engine_notifications` needed to become
-  `allow write: if false` for every real client. Replaced with a
-  client-side-only `lastPolledAt` cursor (`where('createdAt', '>',
-  lastPolledAt)`), advanced to when each poll *started*, not when it
-  finished, so a notification created mid-poll isn't silently skipped.
-  Real, disclosed consequence: nothing ever marks a document "done"
-  anymore, so `pending_engine_notifications` grows unbounded until a
-  real, separate, Admin-SDK-only cleanup job exists (not built).
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this hook is not called anywhere, and its Firestore source is legacy.*
 
 ## Real findings this pass, ranked by severity
 
@@ -275,6 +281,8 @@ audit logging, and a few smaller single-purpose hooks.
    bug.
 6. **Possible focus-trap coverage gap** (`useFocusTrap.ts`) — flagged,
    not verified further, out of scope for this pass.
+
+*(`PRIORITY_FIXES.md` has since been retired (Aug 19, 2026); its open items became Jira PS-57 to PS-71 — see `docs/ARCHIVE.md`.)* *(Since this list: `usePreviewChannel.ts` (item 4) was restored — see its entry above. `useFocusTrap` is still used only by `FlagConfigPage.tsx`. Checked in the Batch 496 README audit.)*
 
 ## React Router 7 (Batch 341, PS-344)
 
@@ -393,3 +401,150 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 
 - `useOrganMapConfig.ts`: passes every facility's jurisdiction, so a save can report conflicts.
 - `useGlobalStationSwitch.ts`: its messages are translated (`stationSwitch.*`). "Not saved" no longer claims a newer version exists, since a check can also stop the save. It uses the services barrel and is off the deployment baseline.
+
+## Batch 489
+
+`useTumorBoardWorkspace.ts`: orchestrates `tumorBoardService`/`caseService`/`userService` for `TumorBoardWorkspacePage.tsx` — loads listings with the resolved filter, resolves each listing's patient display name, loads eligible presenters, and saves status/presenter/meeting-date changes. Sticky filter state via `utils/uiPreferences.ts`. No decision logic of its own beyond orchestration; filtering/sorting live in `services/tumorBoard/tumorBoardWorkspaceFilters.ts`.
+
+## Batch 491 — new useMarginExceptionReview.ts; dismissListing on useTumorBoardWorkspace.ts (PS-359 follow-up)
+
+`useTumorBoardWorkspace.ts` gains `dismissListing(id, reason, byUserId, byUserName)`, calling `tumorBoardService.dismiss()` and reloading — kept separate from the existing `updateListing` (`case:tumor-board:dismiss`, never `case:tumor-board:manage`).
+
+New **`useMarginExceptionReview.ts`**: orchestrates `marginExtractionService`/`caseService` for `MarginExceptionReviewPage.tsx` — loads every `Pending` exception, resolves each one's case accession/patient display name, and exposes `resolve`/`dismiss` (reloading after either). No decision logic of its own beyond orchestration; the extraction/exception rules live in `services/marginExtraction/`.
+
+## Batch 493 — Residents as presenters; meeting time passed through (PS-359 follow-up)
+
+`useTumorBoardWorkspace.ts`:
+- Presenter list now filters to `pathologist | fellow | resident` (was pathologist/fellow only) — Pete confirmed residents genuinely present at Tumor Board too; PA stays excluded.
+- `updateListing` now passes the facility `timezone` through to `tumorBoardService.update()`, which uses it to decide whether a presenter/date/time change is still in the future (and so whether to fire the new assignment notification — see `services/tumorBoard/README.md`'s own Batch 493 entry). No decision logic added here; the notification decision itself is a pure function in the service layer.
+
+## Batch 494 — self-service claiming; the batch-lock cut-off (PS-359 follow-up — MDT Self-Service Assignment & Batching redesign)
+
+`useTumorBoardWorkspace.ts`:
+- New `claimListing(id, byUserId, byUserName)` — a thin convenience over the existing `updateListing`, setting the acting (claiming) user as their own presenter. Goes through the exact same `case:tumor-board:schedule`, batch-lock, and presenter-eligibility checks as any other presenter change (`mockTumorBoardService.ts`'s own `update()`); no decision logic added here.
+- New `cutoffHours` in the returned state — fetched once on mount from `tumorBoardBatchSettingsService.get()` (defaulting to `DEFAULT_TUMOR_BOARD_BATCH_SETTINGS.cutoffHours` until that resolves), passed straight through to `TumorBoardWorkspacePage.tsx`'s own `groupTumorBoardRowsBySession()` call so each rendered session can show its real locked/open state.
+- The presenter-list filter now calls the shared `isPresenterEligibleRoles()` (`services/tumorBoard/tumorBoardPresenterEligibility.ts`) instead of an inline role check, so this filter and the service's own new server-side enforcement can't drift apart.
+
+## Batch 495
+
+**`useReportRevisionStatus.ts`** (new): loads a case's amendment records (`amendmentService`) and returns `resolveReportRevisionStatus()` for the printed report's revision header. Re-fetches when the case id, record version or `finalizedAt` changes. Used by `SynopticReportPage.tsx`, `ReportPreviewPage.tsx` and `CopilotReportViewModal.tsx`.
+
+## Batch 497
+
+`usePreviewChannel.ts` is deleted again, this time with its page. It had been removed once before (Pete confirmed the cross-window preview was superseded); the file came back because a zip can't express a deletion, and its sender never had a caller. The route and `pages/ReportPreview/ReportPreviewPage.tsx` are gone too — see `pages/ReportPreview/README.md`. Listed in `DELETED_FILES.txt` for removal by hand.
+
+## Batch 505 (PS-475): `useGuideAssets`
+
+`useGuideAssets(active)` loads `utils/guideAssets` (the user and admin guide PDFs, 5.5 MB) the first time `active` is true and returns it, or `null` while it loads. AppShell passes "About menu open", so the guides are fetched when someone opens that menu, not with every page.
+
+## Batch 506 (PS-477)
+
+- The workstation hooks (`useCurrentScanStation`, `useCurrentOrTerminal`, `useCurrentDisplayProfile`, `useFootPedal`, `useCompanionWindow`) keep their settings through `utils/workstationSettings.ts`. The keys are unchanged, so saved settings carry over.
+- `usePendingEngineNotifications` reads through `services/engravers/fetchNewEngineNotifications.ts` and no longer imports Firebase. It is still not mounted anywhere.
+- `useDefaultActionOnScan`, `useDraftCache`, `useEnabledIdentifierFormats`, `useGlobalMaterialScanTracking` and `useIdleTimeout` import their services from `@/services`.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`useCompanionWindow` checks both the left and top positions before centring a window. `usePendingEngineNotifications` narrows the case id for its poll. No behaviour change.
+
+## Batch 514 (PS-269)
+
+`useTumorBoardWorkspace` and `useMarginExceptionReview` return `patientName` (the name fields) instead of a formatted `patientDisplayName`; the page formats it in the screen's language.
+
+## Batch 521
+
+`useDeliveryBackgroundWork.ts` (new): starts the delivery retries and fax transmission reports while someone is signed in (PS-281).
+
+## Batch 522
+
+`useConsultLinkToken.ts` (new): reads an outside consult link's token from after `#` (or the old path form), removes it from the address bar, and sets `no-referrer` while the page is open (PS-290).
+
+## Batch 530 (PS-554)
+
+`useMismatchSecondaryReview.ts`: the deferred clinical mismatches awaiting secondary review. `useReviewQueueCounts.ts` counts them on the Surgical QA tile.
+
+## Batch 531
+
+`useClinicalMismatchCheck.ts`: the background mismatch check (two seconds after the text stops changing, again on change), shared by the report page (`useClinicalMismatchAlert`) and the Cytology Workspace.
+
+## Batch 534
+
+- `useReleaseBackgroundWork.ts` (new): while PathScribe is open, it sends held reports when their release delay ends, from any screen. It is mounted by the app shell.
+- `useHeldReports.ts` (new): a case's held reports, refreshed every 5 seconds, and Recall.
+
+## Batch 544
+
+- `useQaCaseScope.ts` (new): the scope a QA report is filtered and exported by.
+  - Someone assigned to one facility opens on it.
+  - It loads the cases rows are placed by, and audits a cross-tenant read.
+  - It returns `filter`, `facilityIds`, `filename` and the export's capability `context`.
+  - The decisions are in `services/qualityAssurance/qaScopeRows.ts`.
+
+## Batch 548
+
+- `useLoadingPhase.ts` (new): how long the component has been waiting, as hidden, skeleton or slow.
+- `useConnectionBanner.ts` (new): what the connection banner shows, from the browser's network and the live-updates hub.
+
+The rules for both are in `services/connectivity/latencyStates.ts`.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `useConnectionBanner.ts`: on the browser's `online` event, calls `liveUpdateService.retryNow()` before re-evaluating.
+- `usePendingEngineNotifications.ts` removed (readiness review F1, open since Batch 537): no page mounted it.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `useMyExports.ts` (new): the My exports list (latest read only), Download and Cancel through the export service; `useReadyExportCount` for the top bar's badge.
+
+## Batch 551 (PS-539 phase 2d: the Server jobs view)
+
+- `useServerJobs.ts` (new): the Server jobs view's data: health, recurring jobs and dead letters (latest read only; the kind filter clears the list while it reads), and Requeue, whose outcome is kept for the message above the list.
+
+## Batch 552 (PS-539 phase 2d: site agent screens)
+
+- `useSiteAgents.ts` (new): the Site agents section for one site (answers for another site, after a switch, are dropped; a revoke keeps unsaved edits; the agents refresh every minute); `useSiteAgentCounts` for the Print Queue line.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- `useAgentPrinters.ts` (Batch 553, new): a site's report printers for the screen asking; an answer for a site no longer chosen is dropped. `useSiteAgents.ts`: coded revoke reasons, the update window (both blank is none), channel suggestions.
+
+## Batch 554 (PS-539 phase 2d: interface monitoring)
+
+- `useInterfaceEngines.ts` (Batch 554, new): the engines' status, read every minute with the API server (not while the browser tab is hidden), latest read only; a refusal clears what was shown.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: `useDeliveryBackgroundWork` and `useReleaseBackgroundWork` don't start once the server runs `delivery.retrySweep` / `release.dueSweep`.
+
+## Batch 560 (PS-539 phase 2d: push instead of polling)
+
+- `useLiveData.ts` (new): a screen re-reads when the live-update hub says its topic changed, with a safety poll; only SSO sessions subscribe. Imports the transport module directly (as `useConnectionBanner.ts` does), so tests that replace `@/services` keep working. Test: `useLiveData.test.tsx`.
+- Switched to it: `useRegistryExceptionCount.ts`, `useHeldReports.ts` (also drops answers for another case), `useSiteAgents.ts` (per site; `useSiteAgentCounts` keeps its minute poll), `useInterfaceEngines.ts`.
+
+## Batch 561 (PS-539 phase 2d)
+
+- `useLiveData.ts`: the timed read is due an interval after the last read (not restarted when the connection flaps); a running read counts as the timed one; event reads keep a second after a timed read. New tests: `useHeldReports.test.tsx`, `useRegistryExceptionCount.test.tsx`.
+
+## Batch 562 (PS-539 phase 2d)
+
+- `useLiveData.ts`: `dataKeys` (several keys) and `pollMs: null` (events only). `useSiteAgents.ts` `useSiteAgentCounts`: live for every site it counts.
+
+## Batch 563 (PS-622)
+
+- `useLoadingPhase.ts`: an optional `startedAt` (the page loader's shared clock).
+
+## Batch 570 (WCAG 2.1 AA, 2.4.3)
+
+- `useFocusAfterRemoval.ts` (new): after an item's own Delete (or Restore), pressed from the keyboard or a screen reader, removes it from a list, focus goes to the nearest item still there, or a fallback, never to the page. A mouse click leaves focus alone; focus is moved only from the page or the pressed button; a removal that never happens is forgotten. Used by the inbox and the saved-search chips. Tests: `useFocusAfterRemoval.test.tsx`.
+
+## Batch 572 (PS-539)
+
+- `useCaseUpdateNotice.ts` (new): an open case report hears that someone else saved the case: the hub's `caseReport` topic (keyed by the support reference; events only) or, in the demo, another tab. Returns the newer version to show, or null; the page's own saves show nothing. Rules: `services/cases/caseUpdateNotice.ts`.
+
+## Batch 573 (PS-539)
+
+- `useCasePresence.ts` (new): who else has the open case report open, and whether they are editing; tells others whether this page has unsaved changes. Hub only for a signed-in (SSO) session; other windows in the demo. One message for screen readers per change, none for the first list or a dropped connection.
+
+## Batch 575
+
+- `useCaseUpdateNotice.ts`: `dismiss(throughVersion)`, so a version the page has taken up never shows the notice again.

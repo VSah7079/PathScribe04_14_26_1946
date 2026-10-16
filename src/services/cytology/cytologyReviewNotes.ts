@@ -22,7 +22,6 @@ import type { CytologyReviewNote, CytologyReviewRecord, CytologyReviewSection } 
 import type { CytologyWorkspaceDeps } from './cytologyWorkspacePorts';
 import { patchCytologyScreening } from './cytologyCaseActions';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const CYTOLOGY_REVIEW_SECTIONS: CytologyReviewSection[] = ['adequacy', 'generalCategorization', 'primary', 'additional', 'recommendations', 'notes'];
 

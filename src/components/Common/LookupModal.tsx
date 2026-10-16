@@ -27,6 +27,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { pressable } from '@/utils/a11y/pressable';
 import '../../pathscribe.css';
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
@@ -137,7 +138,7 @@ export const LookupItem: React.FC<LookupItemProps> = ({
   selected, onToggle, primary, secondary, badge, badgeColor = '#0891B2',
 }) => (
   <div
-    onClick={onToggle}
+    {...pressable(onToggle)}
     className={`ps-lookup-item${selected ? ' ps-lookup-item--selected' : ''}`}
   >
     {/* Label */}

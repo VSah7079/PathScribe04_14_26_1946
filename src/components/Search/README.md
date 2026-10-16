@@ -2,8 +2,10 @@
 
 ## Files
 
-- **`CaseSearchBar.tsx`** (490 lines) — Global case search bar (NavBar),
-  routes to `/case/${id}/synoptic` on match — confirmed as one of the real
+- **`CaseSearchBar.tsx`** (~560 lines) — Global case search bar (NavBar),
+  opens a matched case through `useOpenCaseGuarded()` (`hooks/useOpenCase.ts`;
+  since Batch 446 case pages are addressed by support reference, not
+  `/case/${id}/synoptic` — corrected in the Batch 496 README audit) — confirmed as one of the real
   navigation call sites used when diagnosing the `PatientReportPage.tsx`
   deletion earlier this session. Wired to `caseRouter`, voice context,
   audit log, jurisdiction-aware identifier formats. No issues.
@@ -86,3 +88,7 @@ Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which address
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.

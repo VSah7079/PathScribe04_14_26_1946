@@ -43,6 +43,7 @@ import { getActivePerformingLabs } from '@/utils/performingLabs';
 import type { Facility } from '@/services';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import CassetteLabelLayoutEditor from './CassetteLabelLayoutEditor';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Data-key-stays-English, label-is-translated: the stored
 // LabelBarcodeSymbology values ('code128'/'qr'/'datamatrix') stay the
@@ -123,9 +124,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
   };
 
   if (loading || !effective) return (
-    <div className="ps-conf-loading">
-      {t('printSettingsSection.loading')}
-    </div>
+    <LoadingState label={t('printSettingsSection.loading')} />
   );
 
   const facilityName = selectedFacilityId ? (labs.find(l => l.id === selectedFacilityId)?.name ?? selectedFacilityId) : '';
@@ -258,6 +257,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
             display-label constant left untouched" precedent as
             MATERIAL_TYPE_LABEL/BILLING_TYPE_LABEL elsewhere in this sweep. */}
         <select
+          aria-label={t('printSettingsSection.containerLabelSize.title')}
           value={effective.containerLabelPresetId}
           onChange={e => update({ containerLabelPresetId: e.target.value })}
           disabled={readOnly}
@@ -277,7 +277,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.requisitionLabelSize.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.requisitionLabelSize.title')}
           value={effective.requisitionLabelPresetId}
           onChange={e => update({ requisitionLabelPresetId: e.target.value })}
           disabled={readOnly}
@@ -297,7 +297,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.containerPrinterProfile.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.containerPrinterProfile.title')}
           value={effective.containerLabelPrinterProfileId ?? ''}
           onChange={e => update({ containerLabelPrinterProfileId: e.target.value || undefined })}
           disabled={readOnly}
@@ -317,7 +317,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.molecularPrinterProfile.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.molecularPrinterProfile.title')}
           value={effective.molecularLabelPrinterProfileId ?? ''}
           onChange={e => update({ molecularLabelPrinterProfileId: e.target.value || undefined })}
           disabled={readOnly}
@@ -337,7 +337,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.requisitionPrinterProfile.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.requisitionPrinterProfile.title')}
           value={effective.requisitionLabelPrinterProfileId ?? ''}
           onChange={e => update({ requisitionLabelPrinterProfileId: e.target.value || undefined })}
           disabled={readOnly}
@@ -357,7 +357,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.containerBarcodeSymbology.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.containerBarcodeSymbology.title')}
           value={effective.containerBarcodeSymbology}
           onChange={e => update({ containerBarcodeSymbology: e.target.value as LabelBarcodeSymbology })}
           disabled={readOnly}
@@ -385,7 +385,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-prefix-row">
           <div>
             <label className="ps-conf-prefix-field-label">{t('printSettingsSection.barcodePrefixConventions.disposableLabel')}</label>
-            <input
+            <input aria-label={t('printSettingsSection.barcodePrefixConventions.disposableLabel')}
               className="ps-input-dark ps-conf-input-code"
               value={effective.disposableBarcodePrefix}
               onChange={e => update({ disposableBarcodePrefix: e.target.value.toUpperCase() })}
@@ -395,7 +395,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
           </div>
           <div>
             <label className="ps-conf-prefix-field-label">{t('printSettingsSection.barcodePrefixConventions.reusableRackLabel')}</label>
-            <input
+            <input aria-label={t('printSettingsSection.barcodePrefixConventions.reusableRackLabel')}
               className="ps-input-dark ps-conf-input-code"
               value={effective.rackBarcodePrefix}
               onChange={e => update({ rackBarcodePrefix: e.target.value.toUpperCase() })}
@@ -421,7 +421,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.gs1Gtin.description')}
         </div>
-        <input
+        <input aria-label={t('printSettingsSection.gs1Gtin.title')}
           className="ps-input-dark ps-conf-input-gtin"
           value={effective.gs1Gtin}
           onChange={e => update({ gs1Gtin: e.target.value })}
@@ -451,7 +451,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         {CONTAINER_TYPES.map(type => (
           <div key={type} className="ps-conf-container-type-row">
             <span className="ps-conf-container-type-label">{type}</span>
-            <input
+            <input aria-label={type}
               className="ps-input-dark ps-conf-input-code"
               value={effective.containerTypeCodes[type]}
               onChange={e => update({ containerTypeCodes: { ...effective.containerTypeCodes, [type]: e.target.value.toUpperCase() } })}

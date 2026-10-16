@@ -24,6 +24,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { pressable } from '@/utils/a11y/pressable';
 import '@/pathscribe.css';
 
 export interface DropdownOption {
@@ -77,7 +78,7 @@ export const Dropdown: React.FC<DropdownProps> = ({ options, placeholder, onSele
             <div
               key={opt.value}
               className="ps-dropdown-option"
-              onClick={() => { onSelect(opt.value); setOpen(false); }}
+              {...pressable(() => { onSelect(opt.value); setOpen(false); })}
             >
               {opt.label}
             </div>

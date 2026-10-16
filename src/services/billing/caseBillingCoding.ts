@@ -15,7 +15,6 @@
 
 import type { AppliedBlockCode } from '@/types/case/Specimen';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface UnitCoding { cpt: AppliedBlockCode[]; rejectedCpt: AppliedBlockCode[] }
 

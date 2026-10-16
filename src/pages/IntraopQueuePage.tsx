@@ -68,6 +68,7 @@ import { useCaseSpellCheck } from '@/hooks/useCaseSpellCheck';
 import { useLiveIntraopUpdates } from '@/hooks/useLiveIntraopUpdates';
 import { LiveStatusBadge } from '@/components/LiveUpdates/LiveStatusBadge';
 import type { IntraopScope } from '@/services/liveUpdates/liveUpdateContract';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 /** PS-262: the queue lists every pending session, so it follows every change. */
 const ALL_INTRAOP: IntraopScope = { locationIds: [], all: true };
@@ -392,7 +393,7 @@ const NewEntryForm: React.FC<{
           <div className="ps-intraop-manual-fields">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('intraopQueue.scanStep.mrnLabel')}</label>
-              <input className="ps-conf-input" value={manualMrn} onChange={e => setManualMrn(e.target.value)} placeholder={t('intraopQueue.scanStep.mrnPlaceholder')} autoFocus />
+              <input aria-label={t('intraopQueue.scanStep.mrnLabel')} className="ps-conf-input" value={manualMrn} onChange={e => setManualMrn(e.target.value)} placeholder={t('intraopQueue.scanStep.mrnPlaceholder')} autoFocus />
             </div>
             <button className="ps-conf-btn-row" disabled={busy || !manualMrn.trim()} onClick={() => lookupPatient(manualMrn.trim(), 'adt_match')}>
               {t('intraopQueue.scanStep.lookUpPatient')}
@@ -420,11 +421,11 @@ const NewEntryForm: React.FC<{
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('intraopQueue.demographicsStep.patientNameLabel')}<Req requirements={requirements} id="patientName" /></label>
-              <input className="ps-conf-input" data-phi="name" value={patientName} onChange={e => { setPatientName(e.target.value); setPatientConfirmed(false); }} onFocus={() => setFocusedFieldId('patientName')} placeholder={t('intraopQueue.demographicsStep.patientNamePlaceholder')} />
+              <input aria-label={t('intraopQueue.demographicsStep.patientNameLabel')} className="ps-conf-input" data-phi="name" value={patientName} onChange={e => { setPatientName(e.target.value); setPatientConfirmed(false); }} onFocus={() => setFocusedFieldId('patientName')} placeholder={t('intraopQueue.demographicsStep.patientNamePlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('intraopQueue.demographicsStep.dateOfBirthLabel')}<Req requirements={requirements} id="dateOfBirth" /></label>
-              <input className="ps-conf-input" type="date" data-phi="dob" value={dateOfBirth} onChange={e => { setDateOfBirth(e.target.value); setPatientConfirmed(false); }} />
+              <input aria-label={t('intraopQueue.demographicsStep.dateOfBirthLabel')} className="ps-conf-input" type="date" data-phi="dob" value={dateOfBirth} onChange={e => { setDateOfBirth(e.target.value); setPatientConfirmed(false); }} />
             </div>
           </>
         )}
@@ -440,11 +441,11 @@ const NewEntryForm: React.FC<{
         )}
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('intraopQueue.demographicsStep.orNumberLabel')}<Req requirements={requirements} id="orNumber" /></label>
-          <input className="ps-conf-input" value={orNumber} onChange={e => setOrNumber(e.target.value)} onFocus={() => setFocusedFieldId('orNumber')} placeholder={t('intraopQueue.demographicsStep.orNumberPlaceholder')} />
+          <input aria-label={t('intraopQueue.demographicsStep.orNumberLabel')} className="ps-conf-input" value={orNumber} onChange={e => setOrNumber(e.target.value)} onFocus={() => setFocusedFieldId('orNumber')} placeholder={t('intraopQueue.demographicsStep.orNumberPlaceholder')} />
         </div>
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('intraopQueue.demographicsStep.surgeonLabel')}<Req requirements={requirements} id="surgeon" /></label>
-          <input className="ps-conf-input" value={surgeon} onChange={e => setSurgeon(e.target.value)} onFocus={() => setFocusedFieldId('surgeon')} placeholder={t('intraopQueue.demographicsStep.surgeonPlaceholder')} />
+          <input aria-label={t('intraopQueue.demographicsStep.surgeonLabel')} className="ps-conf-input" value={surgeon} onChange={e => setSurgeon(e.target.value)} onFocus={() => setFocusedFieldId('surgeon')} placeholder={t('intraopQueue.demographicsStep.surgeonPlaceholder')} />
         </div>
         {/* Real feature, per direct confirmation: "Let's wire in
             Facility and Location (Room) for Intraop." Optional — a
@@ -452,14 +453,14 @@ const NewEntryForm: React.FC<{
             location is known. */}
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('intraopQueue.demographicsStep.facilityLabel')}<Req requirements={requirements} id="facility" /></label>
-          <select className="ps-conf-input" value={facilityId} onChange={e => setFacilityId(e.target.value)}>
+          <select aria-label={t('intraopQueue.demographicsStep.facilityLabel')} className="ps-conf-input" value={facilityId} onChange={e => setFacilityId(e.target.value)}>
             <option value="">{t('intraopQueue.demographicsStep.facilityPlaceholder')}</option>
             {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('intraopQueue.demographicsStep.locationLabel')}<Req requirements={requirements} id="location" /></label>
-          <select className="ps-conf-input" value={locationId} onChange={e => setLocationId(e.target.value)} disabled={!facilityId}>
+          <select aria-label={t('intraopQueue.demographicsStep.locationLabel')} className="ps-conf-input" value={locationId} onChange={e => setLocationId(e.target.value)} disabled={!facilityId}>
             <option value="">
               {!facilityId
                 ? t('intraopQueue.demographicsStep.locationSelectFacilityFirst')
@@ -500,7 +501,7 @@ const NewEntryForm: React.FC<{
       </div>
       <div className="ps-conf-form-field">
         <label className="ps-conf-label">{t('intraopQueue.specimenStep.specimenLabelField')}<Req requirements={requirements} id="specimenLabel" /></label>
-        <input className="ps-conf-input" value={specimenLabel} onChange={e => setSpecimenLabel(e.target.value)} onFocus={() => setFocusedFieldId('specimenLabel')} placeholder={t('intraopQueue.specimenStep.specimenLabelPlaceholder')} />
+        <input aria-label={t('intraopQueue.specimenStep.specimenLabelField')} className="ps-conf-input" value={specimenLabel} onChange={e => setSpecimenLabel(e.target.value)} onFocus={() => setFocusedFieldId('specimenLabel')} placeholder={t('intraopQueue.specimenStep.specimenLabelPlaceholder')} />
       </div>
       <div className="ps-conf-form-field">
         <label className="ps-conf-label">{t('intraopQueue.specimenStep.quickGrossLabel')}<Req requirements={requirements} id="quickGross" /></label>
@@ -602,7 +603,6 @@ const PreparationLogger: React.FC<{ sessionId: string; specimen: IntraopSpecimen
       // real sequence count) to correctly number the next real output;
       // firing these concurrently would race and could produce
       // duplicate identifiers.
-      // eslint-disable-next-line no-await-in-loop
       await intraoperativeService.addPreparationOutput(sessionId, specimen.id, loggedType);
     }
     // Real, deliberate: also logs the corresponding workflow milestone
@@ -663,14 +663,14 @@ const PreparationLogger: React.FC<{ sessionId: string; specimen: IntraopSpecimen
       <div className="ps-conf-form-row">
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('intraopQueue.preparationLogger.typeLabel')}</label>
-          <select className="ps-conf-select" value={type} onChange={e => setType(e.target.value as PreparationType)}>
+          <select aria-label={t('intraopQueue.preparationLogger.typeLabel')} className="ps-conf-select" value={type} onChange={e => setType(e.target.value as PreparationType)}>
             {PREPARATION_TYPES.map(pt => <option key={pt} value={pt}>{t(PREPARATION_TYPE_LABEL_KEY[pt])}</option>)}
           </select>
         </div>
         {type === 'frozen_block' && (
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('intraopQueue.preparationLogger.blockCountLabel')}</label>
-            <input className="ps-conf-input" type="number" min="1" value={blockCount} onChange={e => setBlockCount(e.target.value)} />
+            <input aria-label={t('intraopQueue.preparationLogger.blockCountLabel')} className="ps-conf-input" type="number" min="1" value={blockCount} onChange={e => setBlockCount(e.target.value)} />
           </div>
         )}
       </div>
@@ -1108,7 +1108,7 @@ const IntraopQueuePage: React.FC = () => {
     setMergeTarget(null);
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('intraopQueue.page.loading')}</div>;
+  if (loading) return <LoadingState label={t('intraopQueue.page.loading')} />;
 
   return (
     <div className="ps-intraop-page">

@@ -6,8 +6,9 @@
 // • Clicking a sector jumps to (and highlights) its synoptic question.
 // • "Insert into report" is optional, per case: a snapshot in print colours.
 //   The panel says when the report's image is out of date or locked.
-// • An empty presence slot at the top is kept for the live "who else is here"
-//   banner (PS-71 presence, later batch).
+// • Batch 573: who else has the case open is shown once for the whole report,
+//   above its tabs (SynopticReportPage/components/CasePresenceStrip.tsx), so
+//   the empty presence slot this panel kept for it is gone.
 // Rendering only: what the map shows, the figure's state and the colours all
 // come from services/organMapping via hooks/useOrganMap.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,7 +48,6 @@ export const OrganMapPanel: React.FC<Props> = ({ context, loading, payload, figu
       aria-label={t('organMap.panel.title')}
       style={scheme ? (organMapSchemeVars(scheme) as React.CSSProperties) : undefined}
     >
-      <div className="ps-organmap-presence" aria-hidden="true" />
       {loading && !context ? null : !context?.binding ? (
         <p className="ps-organmap-note">{t('organMap.panel.noBinding')}</p>
       ) : payload && scheme ? (

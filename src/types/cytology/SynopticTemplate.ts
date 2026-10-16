@@ -1,132 +1,42 @@
 // src/types/cytology/SynopticTemplate.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per direct guidance's own confirmed sequencing: "Drawer now,
-// but structured for easy migration to i18n-keyed schema later."
-// This type matches the real, existing schema already used by the 5
-// real templates in data/templates/Cytology/ (plain-string labels) —
-// it does NOT invent a new, parallel schema format. The future
-// i18n-keyed schema (labelKey per field/option, per the later
-// "Custom Synoptic Template Engine" spec) is pre-declared here as a
-// real, optional, currently-unused field, so the real migration seam
-// is explicit in the type itself, not just aspirational — a future
-// template can carry BOTH label and labelKey during a real, gradual
-// migration, and resolveSynopticFieldLabel.ts is the one, real place
-// that decides which one wins, never the renderer itself.
+// Batch 519 (PS-273): Cytology's synoptic templates are on the shared
+// Synoptic Library model (EditorTemplate / EditorSection / EditorField /
+// FieldOption, components/Config/Protocols/SynopticEditor.tsx). There is one
+// template model, not two. These names stay as aliases so the Cytology code
+// reads as before.
+//
+// What Cytology brought to the shared model (all optional, all kept when a
+// template is edited in the Synoptic Library):
+//   • FieldOption.narrativePhrase — the phrase an answer adds to the compiled
+//     narrative (Layer B, compileCytologySynopticNarrative.ts). Separate from
+//     the picklist label and from lexiconTermKey (the Managed Pathology
+//     Lexicon term, Layer C). Absent: the answer adds nothing — a deliberate
+//     authoring decision (e.g. "Not specified"), never treated as empty text.
+//   • EditorField.narrativeSentenceTemplate (+ …Key) — the sentence a question
+//     adds, `{value}` being the selected answers' phrases joined with ", ", or
+//     a free-text answer itself. Absent: no sentence (opt-in per question).
+//   • EditorField.clinicalTier — 'tier_1_diagnostic_category' (its options
+//     carry lexicon terms; triggers unvalidated-term tracking and the
+//     sign-out audit) or 'tier_2_descriptive'. Checked by
+//     resolveSynopticTemplateClinicalTierConsistency.ts.
+//   • labelKey / titleKey — translation-key migration seams, unused today;
+//     resolveSynopticFieldLabel.ts decides which wins.
+//   • EditorTemplate.standard — the reporting system cited (Bethesda, Milan,
+//     Paris, Papanicolaou Society; "none universally adopted" for lymph node).
+//
+// The five JSONs in data/templates/Cytology/ were transformed to the shared
+// shape (each section gained `collapsed: false`, each free-text question
+// `options: []`); no content changed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface SynopticFieldOption {
-  id: string;
-  label: string;
-  /** Real, migration seam — see this file's own header. Undefined for
-   *  every real template today. */
-  labelKey?: string;
-  /** Real, per direct guidance's own confirmed architectural
-   *  separation: "Treat internationalization (i18n) strictly as a
-   *  software localization effort... Rather than attempting ad-hoc
-   *  translation of specialized terms, build a controlled, versioned
-   *  dictionary specifically for standard pathology nomenclature."
-   *  Deliberately a SEPARATE field from labelKey above — labelKey is
-   *  for real, generic UI chrome (never used for this option's own
-   *  clinical meaning); this references a real, specific
-   *  PathologyLexiconEntry.termKey instead, whenever this option
-   *  represents a real, specialized diagnostic/clinical term (a
-   *  Bethesda category, a CAP histologic term). Undefined for a real
-   *  option with no such clinical-terminology concern (e.g. a plain
-   *  "Not specified" choice). */
-  lexiconTermKey?: string;
-  /** Real, Layer B (Narrative Generation Engine) declaration, per
-   *  direct guidance's own confirmed 3-layer architecture ("Layer A:
-   *  Structured Data Capture... Layer B: Narrative Generation Engine
-   *  — Template logic, conditional rules, sentence assembly...
-   *  finalize the narrative generation logic in the primary source
-   *  language" before any localization). The exact, real, clinical
-   *  English-language phrase this option contributes to a compiled
-   *  narrative sentence when selected — e.g. "satisfactory for
-   *  evaluation" for the `satisfactory` adequacy option. Deliberately
-   *  separate from `label` (UI picklist text) and `lexiconTermKey`
-   *  (i18n clinical-term validation, Layer C) — this is real,
-   *  English-only, source-language narrative content, authored
-   *  independently of both. Undefined means this option contributes
-   *  nothing to the compiled narrative — a genuine, deliberate
-   *  authoring decision (e.g. "Not specified" or "Other (specify)"
-   *  has no fixed narrative content of its own), never an oversight
-   *  silently treated as empty text. */
-  narrativePhrase?: string;
-  snomed?: string;
-  icd?: string;
-}
+export type {
+  FieldOption as SynopticFieldOption,
+  EditorField as SynopticField,
+  EditorSection as SynopticSection,
+  EditorTemplate as SynopticTemplate,
+  SynopticClinicalTier,
+} from '@/components/Config/Protocols/SynopticEditor';
 
+/** The question types the Cytology templates use (a subset of the shared FieldType). */
 export type SynopticFieldType = 'text' | 'longtext' | 'numeric' | 'dropdown' | 'checkboxes';
-
-export interface SynopticField {
-  id: string;
-  label: string;
-  /** Real, migration seam — see this file's own header. Undefined for
-   *  every real template today. */
-  labelKey?: string;
-  type: SynopticFieldType;
-  required?: boolean;
-  /** Real, per direct guidance's own confirmed tiering: "Tier 1:
-   *  Diagnostic Classification Categories... Tier 2: Descriptive /
-   *  Morphological Attributes." Makes that boundary a real, explicit
-   *  schema fact rather than an implicit convention inferred from
-   *  whether an option happens to carry a lexiconTermKey — a future
-   *  author adding one to a real Tier 2 field without setting this
-   *  would be caught by resolveSynopticTemplateClinicalTierConsistency.ts,
-   *  not discovered by surprise in a live sign-out banner. Only
-   *  'tier_1_diagnostic_category' fields are ever meant to carry a real
-   *  lexiconTermKey on any of their options; only they trigger real
-   *  unvalidated-term tracking, inline preview flagging, and
-   *  sign-out audit logging. Undefined for every real field this
-   *  distinction has never been made for yet — never assumed to be
-   *  either tier by default. */
-  clinicalTier?: 'tier_1_diagnostic_category' | 'tier_2_descriptive';
-  /** Real, Layer B declaration: the sentence this field contributes
-   *  to the compiled narrative when answered. `{value}` is replaced
-   *  with the resolved narrativePhrase(s) of whichever option(s) were
-   *  actually selected — dropdown: that one option's phrase;
-   *  checkboxes: every selected option's real phrase, joined with
-   *  ", " — or, for a field with no `options` at all (text/longtext/
-   *  numeric), the raw answer itself, since a freeform field's own
-   *  content already IS real, source-language prose with nothing
-   *  further to resolve. Undefined means this field never
-   *  contributes a sentence to the compiled narrative (e.g. an
-   *  internal tracking field with no real narrative content of its
-   *  own) — deliberately opt-in per field, never a blanket default,
-   *  so every sentence the real compiler ever produces was a
-   *  genuine, reviewed authoring decision, not an accidental
-   *  inclusion. */
-  narrativeSentenceTemplate?: string;
-  /** Real, Layer C (Localization/i18n) migration seam, per direct
-   *  guidance's own "Rendering UI strings" scope — mirrors labelKey's
-   *  own exact pattern above. The sentence's generic connective
-   *  wording ("Procedure:", "The specimen is...") is real, low-risk
-   *  UI chrome, genuinely different from the clinical {value} content
-   *  it wraps around (that half is a Managed Pathology Lexicon
-   *  concern, never this one). resolveSynopticNarrativeSentenceTemplate
-   *  is the one, real place that decides which of this pair wins —
-   *  the compiler itself never inspects both directly. */
-  narrativeSentenceTemplateKey?: string;
-  snomed?: string;
-  icd?: string;
-  options?: SynopticFieldOption[];
-}
-
-export interface SynopticSection {
-  id: string;
-  title: string;
-  /** Real, migration seam — see this file's own header. Undefined for
-   *  every real template today. */
-  titleKey?: string;
-  fields: SynopticField[];
-}
-
-export interface SynopticTemplate {
-  id: string;
-  name: string;
-  source: string;
-  version: string;
-  category: string;
-  standard: string;
-  sections: SynopticSection[];
-}

@@ -2,7 +2,9 @@
 
 Coarse-grained specimen classification controlling workflow at Accession (e.g. 'Surgical Tissue') — the level ABOVE the fine-grained Specimen Dictionary entry.
 
-**Pattern:** Standard interface/mock/firestore pattern.
+**Pattern:** Interface/mock only; there is no firestore stub in this folder.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the folder has no firestore file.*
 
 ## Notes
 

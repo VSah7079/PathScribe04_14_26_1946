@@ -47,11 +47,9 @@ describe('buildCytologyOruR01Payload — real, cytology-specific dispatch payloa
     expect(payload.narrative.recommendations).toBeUndefined();
   });
 
-  it('embeds a real, non-empty base64-encoded PDF', () => {
-    const payload = buildCytologyOruR01Payload(SIGN_OUT_RECORD);
-    expect(payload.reportPdfBase64.length).toBeGreaterThan(100);
-    // Real, basic sanity check that this decodes as real base64, not garbage.
-    expect(() => atob(payload.reportPdfBase64.slice(0, 100))).not.toThrow();
+  it('Batch 539: carries the PDF the report renderer made, as given (it draws none itself)', () => {
+    const payload = buildCytologyOruR01Payload(SIGN_OUT_RECORD, 'FINAL', undefined, 'JVBERi0xLjQ=');
+    expect(payload.reportPdfBase64).toBe('JVBERi0xLjQ=');
   });
 
   it('every real payload gets its own, genuinely unique messageId', () => {

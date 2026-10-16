@@ -4,6 +4,7 @@ import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { DeficiencyType, IDeficiencyTypeService } from './IDeficiencyService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 // Real, per direct guidance's own established re-seed convention (see
 // mockContainerTypeService.ts's own header for the full reasoning) —
@@ -23,11 +24,11 @@ import { guardConfigWrites } from '../authorization/guardConfigWrites';
 // permanently, for anyone with existing localStorage data) is worse.
 const DEFICIENCY_TYPE_VERSION = '5'; // bumped: added def-registry-revised-post-acceptance (Batch 425)
 const DEFICIENCY_TYPE_VERSION_KEY = 'pathscribe_deficiency_types_version';
-if (typeof localStorage !== 'undefined') {
+if (typeof dataStorage !== 'undefined') {
   try {
-    if (localStorage.getItem(DEFICIENCY_TYPE_VERSION_KEY) !== DEFICIENCY_TYPE_VERSION) {
-      localStorage.removeItem('pathscribe_deficiency_types');
-      localStorage.setItem(DEFICIENCY_TYPE_VERSION_KEY, DEFICIENCY_TYPE_VERSION);
+    if (dataStorage.getItem(DEFICIENCY_TYPE_VERSION_KEY) !== DEFICIENCY_TYPE_VERSION) {
+      dataStorage.removeItem('pathscribe_deficiency_types');
+      dataStorage.setItem(DEFICIENCY_TYPE_VERSION_KEY, DEFICIENCY_TYPE_VERSION);
     }
   } catch { /* SSR / sandboxed env — ignore */ }
 }

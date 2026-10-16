@@ -25,6 +25,14 @@
  * fields, "" escaping, embedded commas/newlines). Row 0 is the header row —
  * callers that want header-keyed objects should use `parseCsv` instead.
  */
+/** Batch 543 (F8): cells a spreadsheet would run as formulas (see neutralizeFormula below). */
+const FORMULA_START = /^[=+\-@\t\r]/;
+const NUMBER_LIKE = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+const NEUTRALIZED = /^'+[=+\-@\t\r\n]/;
+
+/** Batch 543: the apostrophe csvField adds before a formula-like cell is taken off again on import. */
+const restore = (field: string) => (NEUTRALIZED.test(field) ? field.slice(1) : field);
+
 export function parseCsvRows(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -45,10 +53,10 @@ export function parseCsvRows(text: string): string[][] {
     } else if (ch === '"') {
       inQuotes = true;
     } else if (ch === ',') {
-      row.push(field);
+      row.push(restore(field));
       field = '';
     } else if (ch === '\n') {
-      row.push(field);
+      row.push(restore(field));
       rows.push(row);
       row = [];
       field = '';
@@ -58,7 +66,7 @@ export function parseCsvRows(text: string): string[][] {
   }
   // Flush a trailing field/row — the file may or may not end with a newline.
   if (field.length > 0 || row.length > 0) {
-    row.push(field);
+    row.push(restore(field));
     rows.push(row);
   }
   return rows;
@@ -84,10 +92,35 @@ export function parseCsv(text: string): Record<string, string>[] {
     });
 }
 
-/** One CSV field, quoted (with internal quotes escaped as "") only when the value actually contains a comma, quote, or newline. */
-function csvField(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/**
+ * Batch 543 (finding F8, OWASP "CSV injection"): a text cell starting with
+ * =, +, -, @, a tab or a carriage return would run as a formula when the file
+ * is opened in a spreadsheet (=HYPERLINK(...), say). It gets a leading
+ * apostrophe, so it shows as text. Numbers, booleans and number-like text
+ * ("-5", "+1.5") are left alone, so a negative number stays a number.
+ * parseCsvRows removes the apostrophe again, so an exported dictionary
+ * re-imports unchanged.
+ */
+
+export function neutralizeFormula(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const s = String(value);
+  if (typeof value !== 'string') return s;
+  // A value that already starts with an apostrophe before such a character gets one more, so the
+  // import (which removes one) gives it back exactly.
+  if (NEUTRALIZED.test(s)) return `'${s}`;
+  return FORMULA_START.test(s) && !NUMBER_LIKE.test(s) ? `'${s}` : s;
+}
+
+/** One CSV field, neutralized, then quoted (internal quotes as "") only when it contains a comma, quote or newline. */
+export function csvField(value: unknown): string {
+  const s = neutralizeFormula(value);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** One CSV field, neutralized and always quoted (for writers that quote every cell). */
+export function csvQuoted(value: unknown): string {
+  return `"${neutralizeFormula(value).replace(/"/g, '""')}"`;
 }
 
 /**

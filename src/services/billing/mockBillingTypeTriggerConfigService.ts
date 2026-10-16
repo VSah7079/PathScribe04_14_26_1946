@@ -24,6 +24,7 @@ import type { ServiceResult } from '../types';
 import type { BillingDictionaryEntry } from './RvuTableVersion';
 import { BILLING_TYPE_DEFAULT_TRIGGER } from './codeMapTable';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 export type BillingTypeTriggerMap = Record<BillingDictionaryEntry['billingType'], 'SPECIMEN_GROSSED' | 'CASE_SIGNED_OUT'>;
 
@@ -44,7 +45,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
  *  admin only ever configured TC/26/Global. */
 function readEnterpriseConfig(): BillingTypeTriggerMap {
   try {
-    const stored = localStorage.getItem(ORG_CONFIG_STORAGE_KEY);
+    const stored = dataStorage.getItem(ORG_CONFIG_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       return { ...BILLING_TYPE_DEFAULT_TRIGGER, ...parsed };
@@ -58,7 +59,7 @@ function readEnterpriseConfig(): BillingTypeTriggerMap {
 
 function readAllSiteOverrides(): Record<string, Partial<BillingTypeTriggerMap>> {
   try {
-    const stored = localStorage.getItem(SITE_CONFIG_STORAGE_KEY);
+    const stored = dataStorage.getItem(SITE_CONFIG_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch {
     // fail safe toward "no site overrides" rather than a thrown error.
@@ -108,7 +109,7 @@ const billingTypeTriggerConfigServiceUnchecked: IBillingTypeTriggerConfigService
   async setTriggerOverride(map, siteId) {
     if (!siteId) {
       try {
-        localStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(map));
+        dataStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(map));
       } catch {
         // ignore write failures — same posture as setOrgDefault's own
       }
@@ -117,7 +118,7 @@ const billingTypeTriggerConfigServiceUnchecked: IBillingTypeTriggerConfigService
     try {
       const all = readAllSiteOverrides();
       all[siteId] = map;
-      localStorage.setItem(SITE_CONFIG_STORAGE_KEY, JSON.stringify(all));
+      dataStorage.setItem(SITE_CONFIG_STORAGE_KEY, JSON.stringify(all));
     } catch {
       // ignore write failures — same posture as the enterprise-wide save
     }
@@ -128,7 +129,7 @@ const billingTypeTriggerConfigServiceUnchecked: IBillingTypeTriggerConfigService
   async resetToDefault(siteId) {
     if (!siteId) {
       try {
-        localStorage.removeItem(ORG_CONFIG_STORAGE_KEY);
+        dataStorage.removeItem(ORG_CONFIG_STORAGE_KEY);
       } catch {
         // ignore
       }
@@ -137,7 +138,7 @@ const billingTypeTriggerConfigServiceUnchecked: IBillingTypeTriggerConfigService
     try {
       const all = readAllSiteOverrides();
       delete all[siteId];
-      localStorage.setItem(SITE_CONFIG_STORAGE_KEY, JSON.stringify(all));
+      dataStorage.setItem(SITE_CONFIG_STORAGE_KEY, JSON.stringify(all));
     } catch {
       // ignore
     }

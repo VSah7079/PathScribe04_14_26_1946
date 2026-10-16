@@ -1,9 +1,10 @@
 // src/components/Contribution/caseMixCalculations.test.ts
 import { describe, it, expect } from 'vitest';
-import { buildSubspecialtyBreakdown, describeSupervisionProgress, applyExpectedCaseMix, buildCaseMixExportRows } from './caseMixCalculations';
+import { buildSubspecialtyBreakdown, buildCytologyCountersignBreakdown, describeSupervisionProgress, applyExpectedCaseMix, buildCaseMixExportRows } from './caseMixCalculations';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
 import type { ExpectedCaseMixTarget } from '@/types/quality/QaSupervisionAssignmentType';
+import type { CountersignRecord } from '@/types/case/CountersignRecord';
 import type { Subspecialty } from '@/services';
 
 function makeRecord(over: Partial<QaActivityRecord> = {}): QaActivityRecord {
@@ -144,6 +145,45 @@ describe('buildCaseMixExportRows', () => {
     ];
     const rows = buildCaseMixExportRows('u2', breakdown);
     expect(rows.map(r => r.Concordance_Status)).toEqual(['Unchecked', 'Discrepant', 'Verified']);
+  });
+});
+
+function makeCountersign(over: Partial<CountersignRecord> = {}): CountersignRecord {
+  return {
+    id: 'cs-1', caseId: 'C26-1', residentId: 'u2', residentName: 'CT Trainee',
+    releasedAt: '2026-03-15T00:00:00.000Z', releasedAnswersSnapshot: {},
+    status: 'countersigned',
+    ...over,
+  };
+}
+
+describe('buildCytologyCountersignBreakdown — Batch 486 cytology coverage, distinct from diagnostic concordance', () => {
+  it('groups by subspecialty and counts a countersign with no field changes as clean', () => {
+    const records = [
+      makeCountersign({ subspecialtyId: 'ss-breast', status: 'countersigned' }),
+      makeCountersign({ subspecialtyId: 'ss-breast', status: 'countersigned', changedFieldCount: 2 }),
+      makeCountersign({ subspecialtyId: 'ss-breast', status: 'returned' }),
+    ];
+    const result = buildCytologyCountersignBreakdown(records, subspecialties);
+    expect(result).toEqual([{ id: 'ss-breast', name: 'Breast', total: 3, concordant: 1, rate: (1 / 3) * 100 }]);
+  });
+
+  it('excludes still-pending records — no real outcome yet', () => {
+    const records = [makeCountersign({ subspecialtyId: 'ss-breast', status: 'pending' })];
+    expect(buildCytologyCountersignBreakdown(records, subspecialties)).toEqual([]);
+  });
+
+  it('groups a record with no subspecialtyId under Unspecified rather than dropping it', () => {
+    const result = buildCytologyCountersignBreakdown([makeCountersign({ subspecialtyId: undefined })], subspecialties);
+    expect(result).toEqual([{ id: '__unspecified__', name: 'Unspecified', total: 1, concordant: 1, rate: 100 }]);
+  });
+
+  it('a changed-field countersign counts as non-clean, same as a returned one', () => {
+    const result = buildCytologyCountersignBreakdown(
+      [makeCountersign({ subspecialtyId: 'ss-gi', status: 'countersigned', changedFieldCount: 1 })],
+      subspecialties
+    );
+    expect(result).toEqual([{ id: 'ss-gi', name: 'GI', total: 1, concordant: 0, rate: 0 }]);
   });
 });
 

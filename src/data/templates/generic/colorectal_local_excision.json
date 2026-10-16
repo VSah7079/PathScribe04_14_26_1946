@@ -1,6 +1,6 @@
 {
   "id": "colorectal_local_excision",
-  "name": "Generic Template — Colorectal Local Excision",
+  "name": "Generic Template \u2014 Colorectal Local Excision",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLORECTAL",
@@ -211,19 +211,19 @@
           "options": [
             {
               "id": "differentiation_opt_1",
-              "label": "Option 1",
+              "label": "Well differentiated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "differentiation_opt_2",
-              "label": "Option 2",
+              "label": "Moderately differentiated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "differentiation_opt_3",
-              "label": "Option 3",
+              "label": "Poorly differentiated",
               "snomed": "",
               "icd": ""
             }
@@ -241,25 +241,25 @@
           "options": [
             {
               "id": "local_invasion_opt_1",
-              "label": "Option 1",
+              "label": "Confined to mucosa (intramucosal, no invasive carcinoma)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_2",
-              "label": "Option 2",
+              "label": "Invades submucosa (pT1)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_3",
-              "label": "Option 3",
+              "label": "Invades muscularis propria or beyond (not completely excised by local excision)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "local_invasion_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -393,7 +393,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "nodeCount": true
         },
         {
           "id": "total_lymph_nodes_involved",
@@ -404,7 +405,9 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "nodeCount": true,
+          "notMoreThan": "total_lymph_nodes_examined"
         },
         {
           "id": "number_of_tumour_deposits",
@@ -578,19 +581,19 @@
           "options": [
             {
               "id": "tumour_budding_grade_opt_1",
-              "label": "Option 1",
+              "label": "Bd1 \u2014 low (0-4 buds)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_budding_grade_opt_2",
-              "label": "Option 2",
+              "label": "Bd2 \u2014 intermediate (5-9 buds)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_budding_grade_opt_3",
-              "label": "Option 3",
+              "label": "Bd3 \u2014 high (10 or more buds)",
               "snomed": "",
               "icd": ""
             }
@@ -614,31 +617,31 @@
           "options": [
             {
               "id": "tumour_regression_score_opt_1",
-              "label": "Option 1",
+              "label": "TRG1 \u2014 complete response, no viable tumour cells",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_2",
-              "label": "Option 2",
+              "label": "TRG2 \u2014 moderate response, rare residual tumour cells amid fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_3",
-              "label": "Option 3",
+              "label": "TRG3 \u2014 minimal response, residual tumour outgrowing fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_4",
-              "label": "Option 4",
+              "label": "TRG4/5 \u2014 poor or no response, extensive residual tumour with little or no fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_5",
-              "label": "Option 5",
+              "label": "Not applicable (no neoadjuvant therapy)",
               "snomed": "",
               "icd": ""
             }
@@ -683,7 +686,7 @@
           "core": true,
           "snomed": "",
           "icd": "",
-          "note": "PathScribe — calculated from the anatomical map",
+          "note": "PathScribe \u2014 calculated from the anatomical map",
           "options": [
             {
               "id": "psmap_crp_derived_marginStatus_notInvolved",
@@ -714,7 +717,7 @@
           "core": true,
           "snomed": "",
           "icd": "",
-          "note": "PathScribe — calculated from the anatomical map",
+          "note": "PathScribe \u2014 calculated from the anatomical map",
           "options": [
             {
               "id": "psmap_crp_derived_marginsInvolved_deep",
@@ -742,7 +745,7 @@
           "core": true,
           "snomed": "",
           "icd": "",
-          "note": "PathScribe — calculated from the anatomical map",
+          "note": "PathScribe \u2014 calculated from the anatomical map",
           "options": [
             {
               "id": "psmap_crp_derived_precursorMarginStatus_notInvolved",
@@ -769,25 +772,25 @@
           "options": [
             {
               "id": "resection_status_opt_1",
-              "label": "Option 1",
+              "label": "Complete excision, all margins clear",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "resection_status_opt_2",
-              "label": "Option 2",
+              "label": "Incomplete excision, invasive carcinoma at a margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "resection_status_opt_3",
-              "label": "Option 3",
+              "label": "Incomplete excision, adenoma at a margin only",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "resection_status_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed (fragmented or piecemeal specimen)",
               "snomed": "",
               "icd": ""
             }
@@ -809,6 +812,7 @@
           "snomed": "",
           "icd": "",
           "options": [],
+          "reportingRole": "pT",
           "note": "Optional"
         },
         {
@@ -820,6 +824,7 @@
           "snomed": "",
           "icd": "",
           "options": [],
+          "reportingRole": "pN",
           "note": "Optional"
         },
         {
@@ -831,6 +836,7 @@
           "snomed": "",
           "icd": "",
           "options": [],
+          "reportingRole": "pM",
           "note": "Optional"
         }
       ]
@@ -918,43 +924,43 @@
           "options": [
             {
               "id": "psmap_crp_paris_0-Ip",
-              "label": "0-Ip — pedunculated",
+              "label": "0-Ip \u2014 pedunculated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "psmap_crp_paris_0-Isp",
-              "label": "0-Isp — subpedunculated",
+              "label": "0-Isp \u2014 subpedunculated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "psmap_crp_paris_0-Is",
-              "label": "0-Is — sessile",
+              "label": "0-Is \u2014 sessile",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "psmap_crp_paris_0-IIa",
-              "label": "0-IIa — slightly elevated",
+              "label": "0-IIa \u2014 slightly elevated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "psmap_crp_paris_0-IIb",
-              "label": "0-IIb — flat",
+              "label": "0-IIb \u2014 flat",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "psmap_crp_paris_0-IIc",
-              "label": "0-IIc — slightly depressed",
+              "label": "0-IIc \u2014 slightly depressed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "psmap_crp_paris_0-III",
-              "label": "0-III — excavated",
+              "label": "0-III \u2014 excavated",
               "snomed": "",
               "icd": ""
             }

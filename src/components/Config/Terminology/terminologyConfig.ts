@@ -1,3 +1,4 @@
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 /**
  * terminologyConfig.ts
  * src/components/Config/Terminology/terminologyConfig.ts
@@ -32,7 +33,7 @@
 export const TERMINOLOGY_CONFIG = {
 
   nlm: {
-    baseUrl: import.meta.env.VITE_NLM_BASE_URL ?? 'https://clinicaltables.nlm.nih.gov/api',
+    baseUrl: appEnv().VITE_NLM_BASE_URL ?? 'https://clinicaltables.nlm.nih.gov/api',
     endpoints: {
       snomed:     '/snomed_ct/v3/search',  // Dev: Conditions API (free, no license)
                                             // Prod: swap to UMLS API via backend proxy
@@ -45,14 +46,14 @@ export const TERMINOLOGY_CONFIG = {
   cpt: {
     // CPT is AMA-licensed — must go through your backend proxy.
     // Requires AMA CPT data license before go-live (~$3–10k/year).
-    proxyUrl: import.meta.env.VITE_CPT_PROXY_URL ?? '/api/terminology/cpt',
+    proxyUrl: appEnv().VITE_CPT_PROXY_URL ?? '/api/terminology/cpt',
   },
 
   icd10Variants: {
     // Non-US ICD-10 variants require your backend proxy.
     // NLM only carries ICD-10-CM (US). Your backend routes to the correct
     // variant based on a ?variant= query param.
-    proxyUrl: import.meta.env.VITE_ICD10_PROXY_URL ?? '/api/terminology/icd10',
+    proxyUrl: appEnv().VITE_ICD10_PROXY_URL ?? '/api/terminology/icd10',
   },
 
 } as const;

@@ -55,7 +55,7 @@ const VoiceSettings: React.FC = () => {
               {t('voiceSettings.accentProfileDesc')}
             </p>
           </div>
-          <select
+          <select aria-label={t('voiceSettings.accentProfileTitle')}
             value={accent || 'EN-US'}
             onChange={handleAccentChange}
             className="vset-select"
@@ -80,6 +80,7 @@ const VoiceSettings: React.FC = () => {
             </p>
           </div>
           <input
+            aria-label={t('voiceSettings.micSensitivityTitle')}
             type="range"
             defaultValue={85}
             className="vset-range"

@@ -14,6 +14,7 @@ import { buildSpellMenuModel, type SpellMenuModel } from '@/services/spellcheck/
 import type { SpellIssue } from '@/services/spellcheck/spellCascade';
 import type { SpellToken } from '@/services/spellcheck/tokenizeForSpelling';
 import { useSpellCheckContext } from './SpellCheckContext';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 export interface SpellMenuRequest {
   x: number;
@@ -80,7 +81,7 @@ export const SpellCheckMenu: React.FC<{ request: SpellMenuRequest; onClose: () =
       {request.issue.reason === 'regionalVariant' && (
         <div className="ps-spellmenu__hint">{t('spellCheck.menu.regionalHint', { locale: t(`spellCheck.locales.${ctx.locale}`) })}</div>
       )}
-      {!model && <div className="ps-spellmenu__hint">{t('spellCheck.menu.loading')}</div>}
+      {!model && <LoadingState variant="inline" className="ps-spellmenu__hint" label={t('spellCheck.menu.loading')} />}
       {model && model.suggestions.length === 0 && <div className="ps-spellmenu__hint">{t('spellCheck.menu.noSuggestions')}</div>}
       {model?.suggestions.map(s => (
         <button key={s} type="button" role="menuitem" className="ps-spellmenu__item ps-spellmenu__item--suggestion" onClick={() => choose(s)}>{s}</button>

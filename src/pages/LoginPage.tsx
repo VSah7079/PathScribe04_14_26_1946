@@ -31,7 +31,8 @@ import { consumeSupersededNotice } from '@/services/session/sessionSupersedeServ
 import { resolvePostSignInPath } from '@/services/auth/sessionRole';
 import { isSsoDenialReason } from '@/services/auth/externalIdentity';
 import type { SsoProviderId } from '@/services/auth/authConfig';
-import { staffPasswordService, passwordConfirmProblem, PASSWORD_MIN_LENGTH, signInRefusalNotice } from '@/services';
+import { staffPasswordService, passwordConfirmProblem, PASSWORD_MIN_LENGTH, signInRefusalNotice } from '@/services/signIn';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 /** Route state LoginPage reads: where the user was going, and why an SSO sign-in was refused. */
 export interface LoginRouteState {
@@ -72,7 +73,7 @@ const ENVIRONMENTS: Record<string, { labelKey: string; tone: string }> = {
 };
 
 const resolveEnvironment = () => {
-  const raw = String(import.meta.env.VITE_APP_ENV ?? '').toLowerCase().trim();
+  const raw = String(appEnv().VITE_APP_ENV ?? '').toLowerCase().trim();
   return ENVIRONMENTS[raw] ?? null;
 };
 
@@ -142,7 +143,8 @@ const LoginPage: React.FC = () => {
   // filled, and clicking Sign In submits the stale, empty state.
   //
   // Two-part fix: (1) a CSS animation on the real, standard
-  // :-webkit-autofill pseudo-class (see login-brand.css) fires a real,
+  // :-webkit-autofill pseudo-class (see pathscribe.css; Batch 517 corrected
+  // this pointer from login-brand.css, a file never loaded) fires a real,
   // detectable animationstart DOM event the instant autofill happens
   // — far faster than any polling interval — and syncs React state
   // from the real DOM value immediately. (2) A ref-based fallback:
@@ -412,7 +414,7 @@ const LoginPage: React.FC = () => {
           <div className="ps-login-colophon">
             <img
               src="/formedrix-logo-capM-dark.png"
-              alt="ForMedrixAI — Precision, Care, Innovation"
+              alt={t('login.colophonLogoAlt')}
               width={175}
               height={44}
               className="ps-login-colophon-logo"

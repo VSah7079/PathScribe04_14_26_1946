@@ -10,8 +10,8 @@
 // established pattern. This module is that missing piece.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { AiFeedbackEntry } from '@/services/cases/mockCaseService';
 import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
+import { type AiFeedbackEntry } from '@/services';
 
 export type AiContributionDateRange = '30d' | '90d' | 'ytd';
 

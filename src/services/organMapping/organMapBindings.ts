@@ -293,7 +293,7 @@ export function upgradeStoredBinding(template: TemplateLike, stored: OrganMapBin
       if (!derived[k] && d && !used.has(d.fieldId)) { derived[k] = d; used.add(d.fieldId); }
     }
   }
-  const { derived: _old, ...rest } = stored; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { derived: _old, ...rest } = stored;
   // PathScribe's own questions name their component, so a binding left with only those needs no review.
   const onlyPathScribe = Object.values(derived).every(b => fallback?.derived && Object.values(fallback.derived).some(d => d?.fieldId === b!.fieldId));
   const next = { ...rest, ...(Object.keys(derived).length ? { derived } : {}) } as OrganMapBinding;
@@ -311,7 +311,7 @@ export function resolveOrganMapBinding(template: TemplateLike | null | undefined
   if (!saved) return pathScribeDefaultBinding(template);
   const upgraded = upgradeStoredBinding(template, saved);
   if (!bindingNeedsMarginReview(upgraded)) return upgraded;
-  const { derived: _d, ...rest } = upgraded; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { derived: _d, ...rest } = upgraded;
   return rest as OrganMapBinding;
 }
 

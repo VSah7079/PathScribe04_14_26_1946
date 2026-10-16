@@ -2,7 +2,9 @@
 
 **NEW (Sep 2026)** — PS-286, third of the PS-284→285→286→287→288 workstation-build sequence. A dedicated, bench-facing surface for the post-staining distribution tech: continuously scan finished, physical slides and route each one either to a pathologist (physical checkout — pathologist/pool assignment, slide folder/tray/courier tracking) or a digital scanner (WSI ingestion — instrument + rack/slot mapping), with split-destination warnings and a scan exception log. Genuinely different shape from `MicrotomyWorkstationPage/`/`EmbeddingStationPage/`: those are single-work-item benches; this one is a real continuous-scan **queue** — see `hooks/useSlideDistributionStation.ts`'s own header comment for the full reasoning.
 
-**Route**: `/workstations/slide-distribution` — same non-case-scoped, `ScannerProvider`-wrapped route group as its two siblings, for the identical "a tech works across many cases in a shift" reasoning. Reachable from a new tile on `Home.tsx`.
+**Route**: `/workstations/slide-distribution` — same non-case-scoped, `ScannerProvider`-wrapped route group as its two siblings, for the identical "a tech works across many cases in a shift" reasoning. Reached from its tile on the Pathology Workspace hub (`/pathology-workspace`, `PathologyWorkspacePage.tsx`); the route needs `screen:slide-distribution:open`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the tile is on the Pathology Workspace hub, not `Home.tsx` (`PathologyWorkspacePage.tsx`, `App.tsx` ScreenGate `slideDistribution`).*
 
 ## Investigation done before building (confirmed, not assumed)
 
@@ -23,12 +25,14 @@
 
 ## Related files elsewhere
 
-- **`utils/slideDistributionOperations.ts`** (+ `.test.ts`, 13 tests) — the pure, tested business logic: `assignPhysicalSlide`, `assignScannerSlide`, `flagSlideException`/`resolveSlideException`, `recordLabelReprintRequest`, `resolveSplitDestinationWarning`. Constant: `SLIDE_EXCEPTION_REASONS`.
+- **`utils/slideDistributionOperations.ts`** (+ `.test.ts`, 16 tests) — the pure, tested business logic: `assignPhysicalSlide`, `assignScannerSlide`, `flagSlideException`/`resolveSlideException`, `recordLabelReprintRequest`, `resolveSplitDestinationWarning`. Constant: `SLIDE_EXCEPTION_REASONS`.
 - **`types/case/Specimen.ts`** — `StainOrder` extended: `distributionDestination`/`distributionStatus`, `assignedPathologistId`/`assignedPathologistName`, `assignedSubspecialtyId`, `physicalLocation` (`slideFolderId`/`trayNumber`/`courierBagId`), `scannerAssignment` (`scannerInstrumentId`/`rackId`/`slotPosition`), `activeExceptionReason`, `distributionEvents` (`SlideDistributionEvent[]`, new exported type — the real, append-only chain-of-custody log).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `slideDistributionOperations.test.ts` has 16 tests, not 13.*
 
 ## Notes
 
-- Built with `useTranslation()` from the start — every visible string goes through the `slideDistribution.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). Only the new `home.slideDistributionTile.*` strings were converted in the not-yet-fully-converted `Home.tsx`, same precedent as the two tiles before it.
+- Built with `useTranslation()` from the start — every visible string goes through the `slideDistribution.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). Only the new `home.slideDistributionTile.*` strings were converted in the not-yet-fully-converted `Home.tsx` *(since moved: the tile's strings are now `pathologyWorkspace.slideDistributionTile.*` on the Pathology Workspace hub — checked in the Batch 496 README audit)*, same precedent as the two tiles before it.
 - **`distributionStatus` is one shared real field covering both real destinations** (`Assigned`/`Checked Out` for physical, `In Scanning Queue`/`Loaded on Scanner` for digital) — a slide is only ever routed one way at a time, so a single status field (rather than two, destination-specific ones) stays accurate without a cross-check.
 - **Split-Destination Warnings are scoped to one block**, same real scope-cut precedent PS-285's own `resolveSplitBlockGroupStatus` documents for its differently-named concept — a genuine whole-accession/cross-specimen check would need data this pass deliberately doesn't reach for.
 - Deliberate scope cuts for this pass, matching the series' own precedent: no `MatrixBlock`-level slides, no formal scanner-instrument registry (free-text `scannerInstrumentId`, same honest convention `WsiScanBatch.scannerInstrumentId` already uses), no real rack/tray container model (see Investigation above). **Physical foot-pedal integration is explicitly deferred, not dropped** — per direct instruction, it is the next real item to address once PS-288 is delivered, tracked here so it isn't lost across the series.

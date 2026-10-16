@@ -38,7 +38,11 @@ Authority flags are recorded **explicitly** in every profile even though all sev
 - `pages/SynopticReportPage/hooks/useSignOutWorkflow.ts` — Surg Path sign-out (countersign gate + write guard) and Assist-mode finalize.
 - `pages/SynopticReportPage/modals/CaseTeamModal.tsx` — offers only the types valid in the case's jurisdiction, shows the local title, and shows the **effective** Countersign/Finalise badges (previously it showed raw platform defaults, which could promise a different rule than the gate enforced).
 
-**Not yet consuming this — disclosed, not silently assumed**: `deriveEligibleFinalizerIds()` (platform default only — a disclosed cost tradeoff in its own doc comment, moot until the repo-root `firestore.rules` gains a finalize-eligibility rule — it currently has none); Cytology and Autopsy sign-out (neither resolves participation types at all yet); `canViewWholeCase` (resolved, but no confirmed real consumer).
+**Not yet consuming this — disclosed, not silently assumed**: `deriveEligibleFinalizerIds()` (platform default only — a disclosed cost tradeoff in its own doc comment, moot until the repo-root `firestore.rules` gains a finalize-eligibility rule — it currently has none); `canViewWholeCase` (resolved and editable in `TypeModal.tsx` / the Role Dictionary, but no confirmed enforcement consumer).
+
+Also consuming it since Batches 331–332 (PS-327): Cytology sign-out, pathologist track (`services/cytology/resolveCytologySignOutAuthority.ts`, called from `signOutCytologyCase.ts`), and Autopsy sign-out (`services/autopsy/signAutopsyReport.ts`), both through `canFinalizeCase()` and `resolveCountersignRequiredTypeIds()`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): Cytology and Autopsy sign-out were listed as not resolving participation types; both do.*
 
 ### Admin UI — facility tier as a first-class, human-in-the-loop control (Sep 2026)
 

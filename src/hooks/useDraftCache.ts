@@ -18,7 +18,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { mockDraftCacheService } from '@/services/drafts/mockDraftCacheService';
+import { draftCacheService } from '@/services';
+
 
 const DEBOUNCE_MS = 1000; // matches the spec's Drafts:DebounceIntervalMs default
 
@@ -72,7 +73,7 @@ export function useDraftCache<T>(
     if (!enabled || !userId || !entityId) return;
 
     let cancelled = false;
-    mockDraftCacheService.getDraft<T>(userId, entityId).then(res => {
+    draftCacheService.getDraft<T>(userId, entityId).then(res => {
       if (cancelled || !res.ok || !res.data) return;
       setHasExistingDraft(true);
       setExistingDraftPayload(res.data.payload);
@@ -86,21 +87,21 @@ export function useDraftCache<T>(
     if (!enabled || !userId || !entityId) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      mockDraftCacheService.saveDraft(userId, entityId, currentState);
+      draftCacheService.saveDraft(userId, entityId, currentState);
     }, DEBOUNCE_MS);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [enabled, userId, entityId, currentState]);
 
   const confirmRestore = useCallback(() => {
     if (!userId || !entityId) return;
-    mockDraftCacheService.clearDraft(userId, entityId);
+    draftCacheService.clearDraft(userId, entityId);
     setHasExistingDraft(false);
     setExistingDraftPayload(null);
   }, [userId, entityId]);
 
   const discardDraft = useCallback(() => {
     if (!userId || !entityId) return;
-    mockDraftCacheService.clearDraft(userId, entityId);
+    draftCacheService.clearDraft(userId, entityId);
     setHasExistingDraft(false);
     setExistingDraftPayload(null);
   }, [userId, entityId]);

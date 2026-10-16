@@ -5,10 +5,10 @@
 // the sign-off line and the correction / addendum banner. It follows the
 // report's language (services/reports/reportLanguage.ts).
 //
-// The PDF is built in a Web Worker that has no i18n, so the wording travels as
-// plain data: `cytologyPdfLabelsFor` (cytologyPdfLabelsFor.ts, main thread) reads
-// it from the locale files (`cytologyPdf.*`) and the generator only fills the
-// {{placeholders}}. This file has no i18n import so the worker stays small.
+// The wording travels as plain data: `cytologyPdfLabelsFor` (cytologyPdfLabelsFor.ts)
+// reads it from the locale files (`cytologyPdf.*`), and since Batch 539
+// cytologyRenderPayload.ts fills the {{placeholders}} and sends the finished lines
+// to the report renderer (functions/cytology_report.py). This file has no i18n import.
 // ENGLISH_CYTOLOGY_PDF_LABELS is what a caller that passes no labels gets; a
 // test keeps it equal to `cytologyPdf` in en.json.
 //
@@ -29,6 +29,11 @@ export const CYTOLOGY_PDF_LABEL_VARS = {
   prepLiquidBased: [], prepConventional: [],
   correctedReport: [], addendumBanner: [], reason: ['reason'], previouslyReported: ['diagnosis'],
   continuationPage: ['page', 'total'], metadataTitle: ['accession'], metadataSubject: [],
+  // Batch 532: the consolidated case report's first page.
+  caseTitle: ['accession'], caseContents: [], caseSpecimen: ['label', 'description'], caseReported: [], caseNotReported: ['reason'],
+  // Batch 533: an urgent preliminary report's banner, and its quick-pick reasons.
+  preliminaryBanner: [], preliminaryNotice: [], preliminaryNote: ['note'], preliminaryReleasedBy: ['name', 'role', 'date'],
+  preliminaryReasonCriticalFinding: [], preliminaryReasonClinicianRequest: [], preliminaryReasonUrgentManagement: [],
 } as const satisfies Record<string, readonly string[]>;
 
 export type CytologyPdfLabelKey = keyof typeof CYTOLOGY_PDF_LABEL_VARS;
@@ -73,6 +78,18 @@ export const ENGLISH_CYTOLOGY_PDF_LABELS: CytologyPdfLabels = {
   continuationPage: 'Page {{page}} of {{total}}',
   metadataTitle: 'Cytology Report — {{accession}}',
   metadataSubject: 'Cytology Report',
+  caseTitle: 'Cytology Case Report — {{accession}}',
+  caseContents: 'Specimens in this report',
+  caseSpecimen: '{{label}}: {{description}}',
+  caseReported: 'Reported',
+  caseNotReported: 'Not reported. Reason: {{reason}}',
+  preliminaryBanner: 'PRELIMINARY REPORT',
+  preliminaryNotice: 'This is not the final report. The final case report follows when the case is signed out.',
+  preliminaryNote: 'Note: {{note}}',
+  preliminaryReleasedBy: 'Preliminary released by: {{name}}, {{role}}, {{date}}',
+  preliminaryReasonCriticalFinding: 'Critical finding',
+  preliminaryReasonClinicianRequest: 'Requested by the clinician',
+  preliminaryReasonUrgentManagement: 'Needed for urgent clinical management',
 };
 
 /** Fills a label's {{placeholders}}; a missing value becomes empty. */

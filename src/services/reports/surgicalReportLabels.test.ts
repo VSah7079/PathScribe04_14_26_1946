@@ -30,6 +30,9 @@ describe('surgical report labels (Batch 392)', () => {
     expect(labels.mrn).toBe('Patienten-Nr.');
     expect(labels.reportTemplate).toBe('Befundvorlage: {{name}}');
     expect(surgicalReportLabelsFor('xx')!.mrn).toBe('MRN');
+    // Batch 498: labels with other placeholders keep them for the renderer too.
+    expect(labels.revisionDatesWithOriginal).toBe('Ursprünglich abgezeichnet am {{original}} · Überarbeitet am {{latest}}');
+    expect(labels.documentReference).toBe('Dokument {{accession}} · Datensatzversion {{version}}');
   });
   it('writes the date of birth in the report locale, on its own calendar day', () => {
     expect(formatReportDateOfBirth('1988-04-02', 'en-GB')).toBe('02 April 1988');

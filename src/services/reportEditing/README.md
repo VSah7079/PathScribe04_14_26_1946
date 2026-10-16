@@ -16,3 +16,7 @@
 ## Batch 458 — PS-71 (review before saving over someone else's save)
 
 New unsaved-changes section `mergeReview`: changes shown on top of someone else's update, not yet saved.
+
+## Batch 579
+
+- `reportSequence.ts` (new): the Sequencer's reorder of specimens and their synoptic reports, moved out of the report page; nothing the order leaves out is dropped; says whether the specimen and report orders changed (the page saves the first at once; the second is part of the draft).

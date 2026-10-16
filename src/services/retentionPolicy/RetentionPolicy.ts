@@ -91,6 +91,7 @@ export function calculateRetentionEligibleDate(
   if (!signOutAt) return null;
   const signOutDate = new Date(signOutAt);
   const eligible = new Date(signOutDate);
-  eligible.setDate(eligible.getDate() + retentionDays);
+  // Batch 504: exact days (UTC), the same whatever device runs it.
+  eligible.setUTCDate(eligible.getUTCDate() + retentionDays);
   return eligible;
 }

@@ -23,7 +23,6 @@ import { resolveMolecularRunValidationGating } from '../molecular/resolveMolecul
 import { rackWorklistRows } from '../molecular/rackWorklist';
 import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 beforeEach(() => localStorage.clear());
 
 const cases = DEMO_BASELINE_CASES as any[];

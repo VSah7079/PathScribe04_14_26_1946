@@ -51,9 +51,9 @@ const CASE = {
   }],
 } as unknown as Case;
 
-function makeToken(overrides: Partial<ConsultToken> = {}): ConsultToken {
+function makeToken(overrides: Partial<ConsultToken & { token: string }> = {}): ConsultToken & { token: string } {
   return {
-    id: 'ctok-1', token: 'ct_abc123',
+    id: 'ctok-1', token: 'ct_abc123', tokenHash: 'h',
     scope: { caseId: 'case-1', caseAccessionNumber: 'S26-1234' },
     issuedByUserId: 'u1', issuedByName: 'Dr. Attending',
     // Real, deliberately far-future expiresAt — resolveConsultTokenStatus()
@@ -84,7 +84,7 @@ async function renderModal(onClose = vi.fn()) {
 describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
   it('shows the load-bearing disclosure banner and the case label on open', async () => {
     await renderModal();
-    expect(screen.getByText(/Demo\/pilot only — not real security\./)).not.toBeNull();
+    expect(screen.getByText(/Demo only — no PathScribe server serves this link yet\./)).not.toBeNull();
     expect(screen.getByText('S26-1234 · Roe, Jane')).not.toBeNull();
   });
 
@@ -112,8 +112,9 @@ describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
       issuedByUserId: 'u1', issuedByName: 'Dr. Attending', consultantIdentifier: 'Dr. Jane Reviewer',
     }));
     expect(screen.getByText('Link Created')).not.toBeNull();
-    const linkInput = screen.getByDisplayValue(/\/consult\/ct_abc123$/) as HTMLInputElement;
-    expect(linkInput.value.endsWith('/consult/ct_abc123')).toBe(true);
+    // Batch 522: the token goes after `#`, out of server logs.
+    const linkInput = screen.getByDisplayValue(/\/consult#ct_abc123$/) as HTMLInputElement;
+    expect(linkInput.value.endsWith('/consult#ct_abc123')).toBe(true);
   });
 
   it('a Specific Slides scope requires at least one slide, then issues with the real selected slide id', async () => {
@@ -149,8 +150,20 @@ describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
     fireEvent.click(screen.getByText('Revoke'));
     await act(async () => {});
 
-    expect(revoke).toHaveBeenCalledWith('ctok-1', 'u1');
+    // Batch 522: the service takes the revoker from the session.
+    expect(revoke).toHaveBeenCalledWith('ctok-1');
     expect(getByCaseId).toHaveBeenCalledTimes(2);
+  });
+
+  it('a refused issue shows the translated reason, not a code (Batch 522)', async () => {
+    issue.mockResolvedValue({ ok: false, error: 'CONSULT_LINK_NOT_PERMITTED' });
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    fireEvent.change(screen.getByPlaceholderText(/Dr\. Jane Reviewer/), { target: { value: 'Dr. Jane Reviewer' } });
+    fireEvent.click(screen.getByText('Issue Link'));
+    await act(async () => {});
+    expect(screen.getByText(/You don't have permission to issue consult links/)).not.toBeNull();
+    expect(screen.queryByText('CONSULT_LINK_NOT_PERMITTED')).toBeNull();
   });
 
   // Batch 439 (PS-148): opinions sent back, and assessing one.

@@ -1,5 +1,7 @@
 # src/orchestrator/
 
+*Batch 496 README audit (Oct 9, 2026): this root-level `orchestrator/` folder is a stale Aug 2, 2026 copy of `src/orchestrator/`. Its two `.ts` files are older than the live ones and sit outside the TypeScript build (`tsconfig.json` includes only `src`), so nothing imports them. The live folder and its README are `src/orchestrator/`.*
+
 The AI narrative-generation engine — "Layer 2" (context) and "Layer 3"
 (generation) of what both files' own headers call "the Orchestrator
 stack." Not a `services/`-style data-access folder; this is where a

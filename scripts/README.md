@@ -2,7 +2,9 @@
 
 Real, local, developer-run Node scripts — never deployed, never part of the app's own build or runtime.
 
-**Real, honest disclosure**: this README only documents what was actually built and seen this session. The real `scripts/` folder in the actual repo almost certainly has more content that was never part of any upload to this session — confirmed indirectly: `src/services/specimenDictionary/mockSpecimenDictionaryService.ts` imports from `../../../scripts/terminology-sources/specimens-starter.json`, a real file this session has never seen (it's the one, single root cause behind the same 26 pre-existing, unrelated test failures that showed up in every full-suite run this whole session). This file does not attempt to describe that file or any other real script this session never had visibility into.
+This README documents only the scripts listed below. The folder also holds `terminology-sources/specimens-starter.json` (the specimen dictionary's seed data, imported by `src/services/specimenDictionary/mockSpecimenDictionaryService.ts`), `reset-mock-data.ts`, and about 30 one-off maintenance scripts (`*.cjs`, `*.ps1`, `css-audit.js`, `tag-phi.mjs` and others) from earlier clean-up passes, which are not described here.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this paragraph said `specimens-starter.json` had never been seen and caused 26 test failures; the file is in `scripts/terminology-sources/`, and the undocumented scripts are now named.*
 
 ## Files
 
@@ -32,3 +34,47 @@ Real, local, developer-run Node scripts — never deployed, never part of the ap
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 503
+
+- **`generate-security-headers.mjs`** — writes every hosting option's security-header config from `deploy/security-headers/securityHeaders.mjs` and a deployment's origins file (`node scripts/generate-security-headers.mjs <origins.json> <outDir>`); with `origins.demo.json` it also refreshes the root `vercel.json`. See `deploy/security-headers/README.md`.
+
+## Batch 505 (PS-475): `measure-first-load.mjs`
+
+`npm run build` runs it after every build (and `npm run measure:first-load` runs it alone): the gzipped size of everything a browser fetches before PathScribe can show anything (entry script, preloaded modules, stylesheets, and the English locale chunk found through `dist/.vite/manifest.json`). Exits 1 over `--target-mb` (default 3); `--json` for machine-readable output. See `src/services/loadSize/README.md`.
+
+## Batch 507: `remove-deleted-files.mjs`
+
+`npm run cleanup:deleted` removes every path listed in the root `DELETED_FILES.txt` that is still present; a path ending in `/` is a whole folder. A delta zip can't delete files, so this is the one-step way to apply a batch's deletions. `-- --dry` only lists them. Safe to run repeatedly.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`hash-demo-password.d.mts` (in `auth/`), `measure-first-load.d.mts`, `remove-deleted-files.d.mts` and `generate-security-headers.d.mts` declare the types of the plain `.mjs` scripts that tests import, so the tests type-check under strict mode.
+
+## Batch 516
+
+`tag-phi.mjs` prints a note that its count isn't the PS-72 measure (the structure-aware guard is).
+
+## Batch 519: `import-xray.ps1`
+
+Imports a batch's Xray execution file (`docs/quality/evidence/PathScribe-BatchN-xray.json`) into Xray Cloud as a new Test Execution, through Xray's REST API (Xray Cloud has no screen that imports a results file). Run it from the repo folder in PowerShell: `.\scripts\import-xray.ps1 "$HOME\Downloads\PathScribe-Batch519-xray.json"`. It prints the new Test Execution's key. The Xray API key comes from the user environment variables `XRAY_CLIENT_ID` and `XRAY_CLIENT_SECRET`; if they aren't set it asks you to copy each value to the clipboard and press Enter, saves them, and clears the clipboard. The key is never written to the repo. Setup steps: `docs/quality/README.md`.
+
+## Batch 527 (PS-486): a lean first load
+
+`measure-first-load.mjs`: the target is now **1 MB** (PS-486), and it also counts the sign-in page's own chunks (`signInPageAssets`), since nothing shows until they arrive. New `check-production-bundle.mjs` (`npm run check:production`) checks a server build:
+- **fails** if a demo or developer screen is in it (the mock interface engine, mock EMR, mock WSI viewer, demo reset);
+- **lists** the mock service modules. With `--require-no-mocks` (Stage 2, once the HTTP services exist) those fail too.
+
+`npm run build:server` builds a server build (`vite build --mode server`), measures and checks it. Since Batch 547 the API server's address isn't needed at build time: each deployment sets it in its `config.json` (`docs/architecture/RUNTIME_CONFIG.md`), so one server build serves every site. A plain `npm run build` with no `VITE_API_BASE_URL` is the demo build, and the check fails on it.
+
+## Batch 547
+
+- `build:server` is `vite build --mode server`, so `.env.server` is loaded, not `.env.production`.
+- `measure-first-load.mjs` counts the `startApp` chunk.
+- `check-production-bundle.mjs` also fails on the demo accounts module.
+- `generate-security-headers.mjs` takes `--runtime-config config.json`.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `static-chunk-closure.mjs` (+ `.d.mts`, new): the chunks to preload for the app's start (`startApp.tsx` and its static imports). Pure; used by `vite/preloadAppStart.ts`.
+- `vite/preloadAppStart.ts` (new): the build plugin that adds those `modulepreload` tags to `index.html` (`vite.config.ts`). See `vite/README.md`.

@@ -511,7 +511,8 @@
           "snomed": "",
           "icd": "",
           "note": "PathScribe",
-          "options": []
+          "options": [],
+          "reportingRole": "pT"
         }
       ]
     },

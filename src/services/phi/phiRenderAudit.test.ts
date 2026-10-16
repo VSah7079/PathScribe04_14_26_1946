@@ -35,6 +35,12 @@ describe('auditPhiRendering: shown on screen, not redacted', () => {
     expect(kinds(`const R = ({ mrn }) => <input value={mrn} />;`)).toEqual(['mrn/field']);
     expect(kinds(`const R = ({ c }) => <h1>{t('page.title', { accession: c.id })}</h1>;`)).toEqual(['accession/text']);
   });
+  it('flags patient data in a tooltip, placeholder or alt text, unless the element is tagged (Batch 516)', () => {
+    expect(kinds(`const R = ({ c }) => <div title={c.patient.lastName}>x</div>;`)).toEqual(['name/attribute']);
+    expect(kinds(`const R = ({ mrn }) => <input placeholder={mrn} />;`)).toEqual(['mrn/attribute']);
+    expect(kinds(`const R = ({ c }) => <div data-phi="name" title={c.patient.lastName}>x</div>;`)).toEqual([]);
+    expect(kinds(`const R = ({ c }) => <div aria-label={c.patient.lastName}>x</div>;`)).toEqual([]);
+  });
   it('flags a list of label/value rows rendered through map', () => {
     const code = `const R = ({ c }) => <div>{[{ label: 'MRN', value: c.patient.mrn }].map(({ label, value }) => <span key={label}>{value}</span>)}</div>;`;
     expect(kinds(code)).toEqual(['mrn/text']);

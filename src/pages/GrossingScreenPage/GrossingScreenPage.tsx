@@ -21,6 +21,7 @@ import { protocolService, stainTypeService, batchService, actionRegistryService 
 import { canCompleteGrossingFrom } from '@/services/grossing/grossingCompletion';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { CaseClinicalHistoryBar } from '@/components/ClinicalHistory/CaseClinicalHistoryBar';
 import { formatList } from '@/utils/formatList';
 import { formatDateTime } from '@/utils/formatDate';
 import type { Case } from '@/types/case/Case';
@@ -29,12 +30,25 @@ import type { Margin } from '@/types/case/Margin';
 import type { Protocol, ProtocolPathway } from '@/services/protocols/IProtocolService';
 import type { StainType } from '@/services/stains/IStainService';
 import type { Batch } from '@/services/batches/IBatchService';
+import type { RecordMarginInkApplicationReasonCode } from '@/services/grossing/recordMarginInkApplication';
 import { useGrossingScreen } from './hooks/useGrossingScreen';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 function findPathwayForBlock(protocol: Protocol | undefined, block: HistologyBlock): ProtocolPathway | undefined {
   if (!protocol || !block.sourcePathwayName) return undefined;
   return protocol.pathways.find(p => p.pathwayName === block.sourcePathwayName);
 }
+
+// Batch 513 (PS-269): a refused margin-ink save is worded from its reason
+// code; the service's own `error` text is an English diagnostic, never shown.
+const MARGIN_INK_REASON_KEY: Record<RecordMarginInkApplicationReasonCode, string> = {
+  notPermitted:     'grossingScreen.margins.reason.notPermitted',
+  caseNotFound:     'grossingScreen.margins.reason.caseNotFound',
+  specimenNotFound: 'grossingScreen.margins.reason.specimenNotFound',
+  blockNotFound:    'grossingScreen.margins.reason.blockNotFound',
+  marginNotFound:   'grossingScreen.margins.reason.marginNotFound',
+  conflict:         'grossingScreen.margins.reason.conflict',
+};
 
 const GrossingScreenPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -98,6 +112,9 @@ const GrossingScreenPage: React.FC = () => {
     handleUpdatePieceCount, handleRecordFixationEnded, handleConfirmFixativeRatio,
     handleRaiseFixationDeficiency, specimensWithOpenFixationDeficiency,
     handleRecordMarginInk,
+    inkColors, inkingValidation, inkingValidationMode,
+    inkingGate, showInkingGateBlock, cancelInkingGateBlock,
+    showInkingAdvisoryConfirm, cancelInkingAdvisory, confirmInkingAdvisoryAndComplete,
   } = useGrossingScreen({ caseData, setCaseData: setCaseData as any, signingUser: user, knownVersionRef, setConcurrencyConflict });
 
   // Batch 378 (Pete): Complete grossing can be asked for by voice or keyboard
@@ -154,7 +171,7 @@ const GrossingScreenPage: React.FC = () => {
       setMarginFormFor(null);
       setMarginForm({ name: '', orientation: '', laterality: '', colorName: '', colorCode: '', examined: true });
     } else {
-      setMarginSubmitError(result.error ?? t('grossingScreen.margins.saveFailed'));
+      setMarginSubmitError(t(result.reasonCode ? MARGIN_INK_REASON_KEY[result.reasonCode] : 'grossingScreen.margins.saveFailed'));
     }
   }, [marginFormFor, marginForm, handleRecordMarginInk, t]);
 
@@ -177,7 +194,7 @@ const GrossingScreenPage: React.FC = () => {
       setInkFormFor(null);
       setInkForm({ colorName: '', colorCode: '', examined: true });
     } else {
-      setMarginSubmitError(result.error ?? t('grossingScreen.margins.saveFailed'));
+      setMarginSubmitError(t(result.reasonCode ? MARGIN_INK_REASON_KEY[result.reasonCode] : 'grossingScreen.margins.saveFailed'));
     }
   }, [inkFormFor, inkForm, handleRecordMarginInk, t]);
 
@@ -206,16 +223,31 @@ const GrossingScreenPage: React.FC = () => {
           </li>
         ))}
       </ul>
+      {/* Structured Inking, Module 3 (PS-359 follow-up): the severity
+          engine's own real, current findings for this margin — display
+          only, mirrors resolveInkingValidationSeverity.ts's issues array
+          verbatim rather than re-deriving anything here. */}
+      {inkingValidation.issues.filter(i => i.marginId === m.id).length > 0 && (
+        <ul className="ps-grossing-margin-issue-list">
+          {inkingValidation.issues.filter(i => i.marginId === m.id).map((issue, idx) => (
+            <li key={idx} className={`ps-grossing-margin-issue ps-grossing-margin-issue--${issue.severity}`}>
+              {issue.colorCode ? t(`grossingScreen.margins.issues.${issue.code}`, { colorCode: issue.colorCode }) : t(`grossingScreen.margins.issues.${issue.code}`)}
+            </li>
+          ))}
+        </ul>
+      )}
       {inkFormFor?.marginId === m.id ? (
         <div className="ps-grossing-add-stain-row">
-          <input
-            type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorNamePlaceholder')}
-            value={inkForm.colorName} onChange={e => setInkForm(f => ({ ...f, colorName: e.target.value }))}
-          />
-          <input
-            type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorCodePlaceholder')}
-            value={inkForm.colorCode} onChange={e => setInkForm(f => ({ ...f, colorCode: e.target.value }))}
-          />
+          <select aria-label={t('a11y.fields.inkColour')}
+            className="ps-conf-select" value={inkForm.colorCode}
+            onChange={e => {
+              const chosen = inkColors.find(c => c.code === e.target.value);
+              setInkForm(f => ({ ...f, colorCode: e.target.value, colorName: chosen?.name ?? '' }));
+            }}
+          >
+            <option value="">{t('grossingScreen.margins.selectColorPlaceholder')}</option>
+            {inkColors.filter(c => c.active).map(c => <option key={c.id} value={c.code}>{c.name}</option>)}
+          </select>
           <label className="ps-grossing-margin-examined-check">
             <input type="checkbox" checked={inkForm.examined} onChange={e => setInkForm(f => ({ ...f, examined: e.target.checked }))} />
             {t('grossingScreen.margins.markExamined')}
@@ -241,8 +273,8 @@ const GrossingScreenPage: React.FC = () => {
     </div>
   );
 
-  if (!isLoaded) return <div className="ps-grossing-screen-loading">{t('common.loading')}</div>;
-  if (!caseData) return <div className="ps-grossing-screen-loading">{t('grossingScreen.caseNotFound')}</div>;
+  if (!isLoaded) return <LoadingState label={t('common.loading')} />;
+  if (!caseData || !caseId) return <div className="ps-grossing-screen-loading">{t('grossingScreen.caseNotFound')}</div>; // caseData only loads with a caseId
 
   return (
     <div className="ps-grossing-screen-page">
@@ -252,6 +284,10 @@ const GrossingScreenPage: React.FC = () => {
         </button>
         <h1 className="ps-grossing-screen-title" data-phi="accession">{t('grossingScreen.pageTitle', { accession: caseData.accession?.fullAccession ?? caseData.id })}</h1>
       </div>
+
+      {/* Batch 530 (Pete): add or reconcile the clinical history while grossing. */}
+      <CaseClinicalHistoryBar caseData={caseData}
+        onSaved={(clinicalHistory, version) => { knownVersionRef.current = version; setCaseData(prev => (prev ? { ...prev, order: { ...prev.order, clinicalHistory }, version } : prev)); }} />
 
       {/* Batch 378 (PS-359): Complete grossing, checked against the
           organisation's Grossing field requirements. */}
@@ -403,7 +439,7 @@ const GrossingScreenPage: React.FC = () => {
                       <tr key={block.id} className={block.userModified ? 'ps-grossing-block-row--modified' : ''}>
                         <td>{sp.label}{block.label}</td>
                         <td>
-                          <input
+                          <input aria-label={t('a11y.fields.pieceCount')}
                             type="number" min={0} className="ps-grossing-piece-count-input"
                             defaultValue={block.pieceCount ?? ''}
                             onBlur={e => {
@@ -430,7 +466,7 @@ const GrossingScreenPage: React.FC = () => {
                           </ul>
                           {addStainForBlock?.specimenId === sp.id && addStainForBlock.blockId === block.id ? (
                             <div className="ps-grossing-add-stain-row">
-                              <select className="ps-batch-select" value={selectedStainId} onChange={e => setSelectedStainId(e.target.value)}>
+                              <select aria-label={t('a11y.fields.stain')} className="ps-batch-select" value={selectedStainId} onChange={e => setSelectedStainId(e.target.value)}>
                                 <option value="">{t('grossingScreen.selectStain')}</option>
                                 {availableStainTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                               </select>
@@ -498,17 +534,26 @@ const GrossingScreenPage: React.FC = () => {
                 recording margins and their ink applications during
                 grossing. Data model, the recording service, and the
                 severity engine are Batch 480's; this is the first UI that
-                calls recordMarginInkApplication.ts. The severity engine's
-                own WARN_ONLY/STRICT_ENFORCE advisory display is
-                deliberately not wired in here yet — it needs a real
-                site id to read the site's inking_validation_mode from,
-                and Case has no real link to a Site yet (the
-                Organisation/Site admin UI is still unbuilt — see
-                services/grossing/README.md). */}
+                calls recordMarginInkApplication.ts.
+                Structured Inking, Module 3 (PS-359 follow-up): the
+                severity engine's own WARN_ONLY/STRICT_ENFORCE advisory
+                display, unblocked by re-scoping inking_validation_mode
+                from Site to the real, current Case.order.facilityId (see
+                services/grossing/inkingSiteSettings.ts's own header), plus
+                the ink-colour admin palette (services/inkColors/) the
+                Severity 3 margin_ink_color_unmapped check validates
+                against. Display only — doesn't change what blocks
+                Complete grossing yet (see useGrossingScreen.ts's own
+                comment). */}
             <div className="ps-grossing-margins-section">
               <div className="ps-grossing-margins-header">
                 <span className="ps-grossing-margins-title">{t('grossingScreen.margins.title')}</span>
               </div>
+              {hasAnyMargins && (
+                <p className="ps-grossing-margins-mode-notice">
+                  {t(`grossingScreen.margins.validationNotice.${inkingValidationMode === 'STRICT_ENFORCE' ? 'strictEnforce' : 'warnOnly'}`)}
+                </p>
+              )}
               {!hasAnyMargins && marginFormFor?.specimenId !== sp.id && (
                 <div className="ps-grossing-margins-empty">{t('grossingScreen.margins.empty')}</div>
               )}
@@ -526,7 +571,7 @@ const GrossingScreenPage: React.FC = () => {
               ))}
               {marginFormFor?.specimenId === sp.id ? (
                 <div className="ps-grossing-add-margin-row">
-                  <select
+                  <select aria-label={t('a11y.fields.block')}
                     className="ps-conf-select" value={marginFormFor.blockId ?? ''}
                     onChange={e => setMarginFormFor({ specimenId: sp.id, blockId: e.target.value || undefined })}
                   >
@@ -547,14 +592,16 @@ const GrossingScreenPage: React.FC = () => {
                     type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.lateralityPlaceholder')}
                     value={marginForm.laterality} onChange={e => setMarginForm(f => ({ ...f, laterality: e.target.value }))}
                   />
-                  <input
-                    type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorNamePlaceholder')}
-                    value={marginForm.colorName} onChange={e => setMarginForm(f => ({ ...f, colorName: e.target.value }))}
-                  />
-                  <input
-                    type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorCodePlaceholder')}
-                    value={marginForm.colorCode} onChange={e => setMarginForm(f => ({ ...f, colorCode: e.target.value }))}
-                  />
+                  <select aria-label={t('a11y.fields.inkColour')}
+                    className="ps-conf-select" value={marginForm.colorCode}
+                    onChange={e => {
+                      const chosen = inkColors.find(c => c.code === e.target.value);
+                      setMarginForm(f => ({ ...f, colorCode: e.target.value, colorName: chosen?.name ?? '' }));
+                    }}
+                  >
+                    <option value="">{t('grossingScreen.margins.selectColorPlaceholder')}</option>
+                    {inkColors.filter(c => c.active).map(c => <option key={c.id} value={c.code}>{c.name}</option>)}
+                  </select>
                   <label className="ps-grossing-margin-examined-check">
                     <input type="checkbox" checked={marginForm.examined} onChange={e => setMarginForm(f => ({ ...f, examined: e.target.checked }))} />
                     {t('grossingScreen.margins.markExamined')}
@@ -632,6 +679,56 @@ const GrossingScreenPage: React.FC = () => {
             <div className="ps-batch-modal-footer">
               <button className="ps-btn-secondary" onClick={cancelPendingStainRemoval}>{t('common.cancel')}</button>
               <button className="ps-btn-primary" onClick={confirmPendingStainRemoval}>{t('grossingScreen.confirmRemove')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch 484 (Structured Inking Gate Logic Engine, Gate A). A
+          Severity 3 issue (or an unreadable ink-colour palette) hard-blocks
+          Complete grossing — no bypass, ever. */}
+      {showInkingGateBlock && (
+        <div className="ps-overlay" onClick={cancelInkingGateBlock}>
+          <div className="ps-modal-dark" role="alertdialog" aria-labelledby="inking-gate-block-title" onClick={e => e.stopPropagation()}>
+            <div className="ps-batch-modal-header">
+              <div id="inking-gate-block-title" className="ps-batch-modal-title">{t('inkingGate.grossingBlock.title')}</div>
+            </div>
+            <div className="ps-batch-modal-body">
+              <p>{t(inkingGate.mode === 'PALETTE_UNAVAILABLE' ? 'inkingGate.paletteUnavailable.body' : 'inkingGate.grossingBlock.body')}</p>
+              {inkingGate.mode !== 'PALETTE_UNAVAILABLE' && (
+                <ul className="ps-inking-gate-issue-list">
+                  {inkingGate.issues.filter(i => i.severity === 3).map((issue, idx) => (
+                    <li key={idx}>{t('inkingGate.issueLine', { specimen: issue.specimenDisplayName ?? issue.specimenId, code: t(`inkingGate.issueCode.${issue.code}`) })}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="ps-batch-modal-footer">
+              <button className="ps-btn-primary" onClick={cancelInkingGateBlock}>{t('common.close')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gate A, Severity 2: a soft "Proceed with Advisory Note" warning —
+          never a hard block, and audited either way. */}
+      {showInkingAdvisoryConfirm && (
+        <div className="ps-overlay" onClick={cancelInkingAdvisory}>
+          <div className="ps-modal-dark" role="alertdialog" aria-labelledby="inking-gate-advisory-title" onClick={e => e.stopPropagation()}>
+            <div className="ps-batch-modal-header">
+              <div id="inking-gate-advisory-title" className="ps-batch-modal-title">{t('inkingGate.advisoryConfirm.title')}</div>
+            </div>
+            <div className="ps-batch-modal-body">
+              <p>{t('inkingGate.advisoryConfirm.body', { count: inkingGate.issues.length })}</p>
+              <ul className="ps-inking-gate-issue-list">
+                {inkingGate.issues.map((issue, idx) => (
+                  <li key={idx}>{t('inkingGate.issueLine', { specimen: issue.specimenDisplayName ?? issue.specimenId, code: t(`inkingGate.issueCode.${issue.code}`) })}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="ps-batch-modal-footer">
+              <button className="ps-btn-secondary" onClick={cancelInkingAdvisory}>{t('common.cancel')}</button>
+              <button className="ps-btn-primary" onClick={() => { void confirmInkingAdvisoryAndComplete(); }}>{t('inkingGate.advisoryConfirm.confirm')}</button>
             </div>
           </div>
         </div>

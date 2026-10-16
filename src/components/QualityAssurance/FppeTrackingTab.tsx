@@ -4,7 +4,8 @@
 // Countersign Turnaround tab, since these represent genuinely different
 // audiences and regulatory contexts (Joint Commission credentialing
 // verification for new hires, not ACGME trainee milestones). Real data
-// from fppeAssignmentService — active assignments, their real progress
+// from qaSupervisionAssignmentService, FPPE activity only (Batch 515, PS-124:
+// the legacy fppeAssignmentService is retired) — active assignments, their real progress
 // toward the configured end condition, and completed ones with how they
 // actually concluded.
 //
@@ -18,21 +19,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { fppeAssignmentService, subspecialtyService } from '@/services';
+import { qaSupervisionAssignmentService, subspecialtyService } from '@/services';
 import type { Subspecialty } from '@/services';
-import type { FppeAssignment } from '@/types/case/FppeAssignment';
-import { computeFppeProgress } from '@/services/cases/fppeEndCondition';
-import { exportQaReportRows, qaScopeContext } from './qaReportUtils';
+import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
+import { splitFppeAssignments, fppeProgressPercent as progressPercent, overdueFppeAssignments, fppeTrackingCsvRows } from '@/services/quality/fppeAssignmentForm';
+import { formatDate } from '@/utils/formatDate';
+import { exportQaReportRows } from './qaReportUtils';
+import { QaScopeSwitcher } from './QaScopeSwitcher';
+import { useQaCaseScope } from '@/hooks/useQaCaseScope';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 export const FppeTrackingTab: React.FC = () => {
-  const { t } = useTranslation();
-  const [assignments, setAssignments] = useState<FppeAssignment[]>([]);
+  const { t, i18n } = useTranslation();
+  const [assignments, setAssignments] = useState<QaSupervisionAssignment[]>([]);
   const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fppeAssignmentService.getAll(), subspecialtyService.getAll()]).then(([aRes, sRes]) => {
+    Promise.all([qaSupervisionAssignmentService.getAll(), subspecialtyService.getAll()]).then(([aRes, sRes]) => {
       if (aRes.ok) setAssignments(aRes.data);
       if (sRes.ok) setSubspecialties(sRes.data);
       setLoading(false);
@@ -40,40 +45,25 @@ export const FppeTrackingTab: React.FC = () => {
   }, []);
 
   const subspecialtyName = (id?: string) => id ? (subspecialties.find(s => s.id === id)?.name ?? id) : t('fppeAssignmentsSection.form.allSubspecialties');
-  // Real fix, found by this app's own inline-CSS/business-logic sweep:
-  // delegates to fppeEndCondition.ts's shared computeFppeProgress() —
-  // the same real source of truth mockFppeAssignmentService.ts's actual
-  // completion enforcement and FppeAssignmentsSection.tsx's admin
-  // progress label both use — instead of a third, independently
-  // maintained copy of the same threshold math.
-  const progressPercent = (a: FppeAssignment): number => Math.min(100, computeFppeProgress(a).fraction * 100);
-
-  const active = assignments.filter(a => a.status === 'active');
-  const completed = assignments.filter(a => a.status === 'completed');
-  const overdue = active.filter(a => (progressPercent(a) ?? 0) >= 100); // hit the threshold but not yet formally graduated
+  // Batch 544: one facility or all. An assignment with no facility shows only enterprise-wide (qaScopeRows.ts).
+  const qa = useQaCaseScope();
+  const scoped = qa.filter(assignments, a => ({ facilityId: a.facilityId }));
+  // Batch 515: FPPE only; progress, overdue and CSV rows come from services/quality/fppeAssignmentForm.ts.
+  const { active, completed } = splitFppeAssignments(scoped, '');
+  const overdue = overdueFppeAssignments(active); // hit the threshold but not yet formally graduated
 
   const handleExport = () => {
-    const rows = assignments.map(a => ({
-      'Provisional Hire': a.provisionalUserName,
-      'Proctor': a.proctorUserName,
-      'Scope': subspecialtyName(a.subspecialtyId),
-      'Status': a.status,
-      'Cases Reviewed': a.casesReviewedCount,
-      'Started At': a.startedAt,
-      'Completed At': a.completedAt ?? '',
-      'Completion Reason': a.completedReason ?? '',
-      'Progress %': progressPercent(a)?.toFixed(0) ?? '',
-    }));
-    void exportQaReportRows('qa:fppe-tracking:export', rows, `fppe-tracking-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    const rows = fppeTrackingCsvRows([...active, ...completed], subspecialtyName);
+    void exportQaReportRows('qa:fppe-tracking:export', rows, qa.filename('fppe-tracking'), qa.context, { scope: qa.scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('fppeAssignmentsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('fppeAssignmentsSection.loading')} />;
 
   return (
     <div>
       <div className="ps-qa-tab-toolbar">
-        <div />
-        <CapabilityButton capability="qa:fppe-tracking:export" context={qaScopeContext()} className="ps-conf-btn-secondary" onClick={handleExport}>{t('qualityAssurance.common.export')}</CapabilityButton>
+        <QaScopeSwitcher facilitiesOnly scope={qa.scope} onChange={qa.setScope} visibleClientIds={qa.facilityIds(assignments, a => ({ facilityId: a.facilityId }))} />
+        <CapabilityButton capability="qa:fppe-tracking:export" context={qa.context} className="ps-conf-btn-secondary" onClick={handleExport}>{t('qualityAssurance.common.export')}</CapabilityButton>
       </div>
 
       <div className="ps-qa-summary-tiles">
@@ -97,12 +87,12 @@ export const FppeTrackingTab: React.FC = () => {
               const pct = progressPercent(a);
               return (
                 <tr key={a.id}>
-                  <td className="ps-conf-td">{a.provisionalUserName}</td>
-                  <td className="ps-conf-td">{a.proctorUserName}</td>
+                  <td className="ps-conf-td">{a.superviseeUserName}</td>
+                  <td className="ps-conf-td">{a.supervisorUserName}</td>
                   <td className="ps-conf-td">{subspecialtyName(a.subspecialtyId)}</td>
                   <td className="ps-conf-td">{a.casesReviewedCount}</td>
                   <td className={`ps-conf-td${pct !== null && pct >= 100 ? ' ps-conf-td--overdue' : ''}`}>{pct !== null ? `${pct.toFixed(0)}%` : '—'}</td>
-                  <td className="ps-conf-td">{new Date(a.startedAt).toLocaleDateString()}</td>
+                  <td className="ps-conf-td">{formatDate(a.startedAt, i18n.language)}</td>
                 </tr>
               );
             })}
@@ -120,10 +110,10 @@ export const FppeTrackingTab: React.FC = () => {
             {completed.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('fppeAssignmentsSection.table.emptyCompletedGlobal')}</td></tr>}
             {completed.map(a => (
               <tr key={a.id}>
-                <td className="ps-conf-td">{a.provisionalUserName}</td>
-                <td className="ps-conf-td">{a.proctorUserName}</td>
+                <td className="ps-conf-td">{a.superviseeUserName}</td>
+                <td className="ps-conf-td">{a.supervisorUserName}</td>
                 <td className="ps-conf-td">{a.casesReviewedCount}</td>
-                <td className="ps-conf-td">{a.completedAt ? new Date(a.completedAt).toLocaleDateString() : ''}</td>
+                <td className="ps-conf-td">{a.completedAt ? formatDate(a.completedAt, i18n.language) : ''}</td>
                 <td className="ps-conf-td">
                   {a.completedReason === 'manually_graduated'
                     ? t('fppeAssignmentsSection.table.completedReason.graduatedEarly')

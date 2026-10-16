@@ -92,10 +92,12 @@ synoptic answers against it.
 
 - Admin UI: `components/Config/System/AbnormalTriggerRulesSection.tsx`
   (Clinical Lookups group).
-- **11 real tests** in `evaluateAbnormalTriggerRules.test.ts` — field-label
+- **13 tests** in `evaluateAbnormalTriggerRules.test.ts` — field-label
   matching, case-insensitivity, the "Not Present" vs. "Present" substring
   safety case, multi-select handling, inactive-rule exclusion, and the
   highest-severity reduction helper.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): test count 11 → 13.*
 
 ## PS-137's open gap closed: signals carry the Validation Study (Batch 318)
 

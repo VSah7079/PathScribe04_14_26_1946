@@ -35,13 +35,14 @@ touched by Tier 2.
   fontHeightMm: 1.2`), and `PrintSettingsConfig.slideLabelLayout` —
   mirrors the existing `CassetteLabelLayoutConfig` shape for the new
   microtomy slide-label print path. **Honest gap:** this config is not
-  yet wired into `buildSlideZplTemplate.ts`'s actual ZPL dot
+  yet wired into `buildSlideZplTemplate()`'s (in `utils/labels/zplTemplates.ts`) actual ZPL dot
   coordinates, which remain hardcoded literals verified against
   Labelary at a fixed 1.0"×0.25"/300dpi scale — re-verifying that
   template against a configurable layout was out of scope for this
   pass. There is also no admin editor UI for this field yet (unlike
   `CassetteLabelLayoutConfig`, which `LabelDesignerPage/` already
   covers) — both are real, tracked gaps, not silent placeholders.
+  *Corrected in the Batch 496 README audit (Oct 9, 2026): `buildSlideZplTemplate` is a function in `utils/labels/zplTemplates.ts`, not its own file; both gaps re-checked and still open.*
 - **`mockPrintSettingsService.ts`** — the real, active Tier 1 implementation.
 - **`IFacilityPrintSettingsService.ts`** / **`mockFacilityPrintSettingsService.ts`**
   (+ `.test.ts`) — **New (Workstation & Hardware redesign).** Real Tier 2:

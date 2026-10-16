@@ -13,6 +13,7 @@ import { liveUpdateService } from '../liveUpdates/liveUpdateService';
 import { localLiveUpdateService } from '../liveUpdates/localLiveUpdateService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { createNetworkPrintJobTracker } from './networkPrintJobs';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 /** The demo may simulate an engine answer only with no API server and outside SSO builds. */
 export function canSimulatePrintResults(opts: { transport: 'signalr' | 'local'; authMode: string | undefined }): boolean {
@@ -23,7 +24,7 @@ export const networkPrintJobs = createNetworkPrintJobTracker({
   dispatch: dispatchNetworkPrintJob,
   audit: mockAuditService,
   subscribeResults: onEvent => liveUpdateService.subscribePrintJobs(onEvent),
-  simulate: canSimulatePrintResults({ transport: liveUpdateService.transport, authMode: import.meta.env.VITE_AUTH_MODE as string | undefined })
+  simulate: canSimulatePrintResults({ transport: liveUpdateService.transport, authMode: appEnv().VITE_AUTH_MODE as string | undefined })
     ? result => { localLiveUpdateService.publishPrintJobStatus(result); }
     : undefined,
   currentUserName: () => { const p = readSessionProfile(); return p?.name ?? p?.id ?? 'unknown'; },

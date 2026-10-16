@@ -13,7 +13,6 @@ import { surgicalReportLabelsFor, formatReportDateOfBirth } from './surgicalRepo
 import { formatDateTime } from '@/utils/formatDate';
 import { resolvePerformingLabFacility } from './resolveReportLocale';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /** The code system releases this deployment has loaded (SNOMED CT edition, ICD-10-CM year, ICD-O). Unset is
  *  sent as null, never guessed; the API server sets these from its terminology release (PS-345). */
 export const DEPLOYMENT_CODE_SYSTEM_VERSIONS: { snomed?: string; icd10?: string; icdO?: string } = {};
@@ -32,6 +31,11 @@ export const assistSynopticDeps: AssistSynopticDeps = {
   queue: mockOutboundLisSyncQueueService as any,
   dispatch: (id, payload) => dispatchInterfaceMessage(id, 'LIS_SYNC', payload),
   renderPdf: payload => renderWorkupPdf(payload),
+  // Batch 538: each PDF sent to the LIS is stored once with its SHA-256; a retry sends the stored one.
+  documents: {
+    store: async input => (await import('../reportDocuments/reportDocumentInstance')).reportDocumentService.store(input),
+    read: async id => (await import('../reportDocuments/reportDocumentInstance')).reportDocumentService.read(id),
+  },
   reportLanguage: async caseData => {
     const { language, locale } = await resolveReportLocaleForFacility(caseData?.order?.facilityId);
     return {

@@ -37,10 +37,12 @@
 
 ## Still open
 
-- **Linking the workflow screens.** Printer Profiles and Grossing Hardware are not linked yet (Batch 359). Engravers and cold-chain storage units aren't linked.
-- **Maintenance and calibration** records are not built.
+- **Linking the workflow screens.** Printer Profiles and Grossing Hardware are linked (Batch 359). Engravers and cold-chain storage units aren't linked.
+- **Maintenance and calibration** records were built in Batch 360; reminders and a cross-device report are not.
 - **Free-text instrument ids.** Molecular QC run records and inbound instrument messages still carry a free-text `instrumentId`.
 - **Workcenter display.** The Molecular Workcenter shows codes, not names.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): Printer Profiles and Grossing Hardware links (Batch 359) and maintenance/calibration records (Batch 360) are built.*
 
 ## Batch 359: settings records point at the register
 

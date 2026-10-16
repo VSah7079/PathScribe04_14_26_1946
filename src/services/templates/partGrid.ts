@@ -11,6 +11,7 @@
 // The question's own id holds no answer.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { nodeCountBelowSum, textNodeCountExceeds, textNodeCountProblem } from './nodeCountText';
 import { mohsBlockProblems } from './mohsStages';
 
 export interface PartGridColumn {
@@ -265,9 +266,17 @@ export function wholeNumberFieldProblem(field: PartGridField & { wholeNumber?: b
   return field.type === 'numeric' && field.wholeNumber ? notWholeCount(answers[field.id]) : undefined;
 }
 
-export function synopticFieldComplete(field: PartGridField & { wholeNumber?: boolean; notMoreThan?: string }, answers: Answers): boolean {
+/** Batch 519 (PS-494): any count problem on a question's own value — a numeric count that isn't whole or
+ *  exceeds its limit, a free-text node count that isn't a count / "cannot be determined" / "at least N" or
+ *  exceeds its limit, or a total below the sum of the counts it covers (nodeCountText.ts). */
+export function fieldCountProblem(field: PartGridField & { wholeNumber?: boolean; notMoreThan?: string; nodeCount?: boolean; atLeastSumOf?: string[] }, answers: Answers): boolean {
+  return wholeNumberFieldProblem(field, answers) !== undefined || !!fieldExceedsProblem(field, answers)
+    || textNodeCountProblem(field, answers) !== undefined || !!textNodeCountExceeds(field, answers) || !!nodeCountBelowSum(field, answers);
+}
+
+export function synopticFieldComplete(field: PartGridField & { wholeNumber?: boolean; notMoreThan?: string; nodeCount?: boolean; atLeastSumOf?: string[] }, answers: Answers): boolean {
   if (!synopticFieldAnswered(field, answers)) return false;
-  if (wholeNumberFieldProblem(field, answers) !== undefined || fieldExceedsProblem(field, answers)) return false;
+  if (fieldCountProblem(field, answers)) return false;
   // Batch 465b: a grid with a count above its limit (nodes positive > examined) isn't complete.
   if (field.type === 'partGrid') return partGridCountProblems(field, answers).length === 0;
   return field.type !== 'spatialStageCanvas' || mohsBlockProblems(field.id, answers).length === 0;
@@ -276,11 +285,11 @@ export function synopticFieldComplete(field: PartGridField & { wholeNumber?: boo
 /** Batch 463b: what stops sign-out for a question: required and not complete, or,
  *  required or not, a Mohs stage question with a positive sector whose block is
  *  unassigned or not cut. */
-export function synopticFieldMissing(field: PartGridField & { required?: boolean; wholeNumber?: boolean; notMoreThan?: string }, answers: Answers): boolean {
+export function synopticFieldMissing(field: PartGridField & { required?: boolean; wholeNumber?: boolean; notMoreThan?: string; nodeCount?: boolean; atLeastSumOf?: string[] }, answers: Answers): boolean {
   if (field.required && !synopticFieldComplete(field, answers)) return true;
   // Batch 466: required or not, a node count that isn't a whole number of 0 or more stops sign-out
-  // (Batch 466b: or one above the question it can't exceed).
-  if (wholeNumberFieldProblem(field, answers) !== undefined || fieldExceedsProblem(field, answers)) return true;
+  // (Batch 466b: or one above the question it can't exceed; Batch 519: free-text counts and sums too).
+  if (fieldCountProblem(field, answers)) return true;
   // Batch 465b: required or not, a grid with a count above its limit stops sign-out.
   if (field.type === 'partGrid' && partGridCountProblems(field, answers).length > 0) return true;
   return field.type === 'spatialStageCanvas' && mohsBlockProblems(field.id, answers).length > 0;

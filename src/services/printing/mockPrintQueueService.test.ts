@@ -12,11 +12,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('@/services', () => ({
   auditService: { logEvent: vi.fn() },
 }));
+// Batch 515: the user actions check their capability; `allowed` switches the answer.
+const auth = vi.hoisted(() => ({ allowed: true, asked: [] as string[] }));
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async (capability: string) => { auth.asked.push(capability); return { allowed: auth.allowed }; } },
+}));
 
-import { mockPrintQueueService } from './mockPrintQueueService';
+import { mockPrintQueueService, PRINT_JOB_BAD_DESTINATION, PRINT_JOB_NOT_PERMITTED, PRINT_JOB_WRONG_SITE } from './mockPrintQueueService';
 import type { PrintJob } from '@/types/printing/PrintJob';
 
 beforeEach(() => {
+  auth.allowed = true; auth.asked = [];
   const store: Record<string, string> = {};
   (globalThis as any).localStorage = {
     getItem: (k: string) => store[k] ?? null,
@@ -144,6 +150,24 @@ describe('mockPrintQueueService — real, per PS-279 additions', () => {
       expect(redirected.data.redirectedBy).toBe('admin1');
       expect(redirected.data.status).toBe('FAILED'); // unchanged by redirect itself
     });
+
+    it("Batch 553: an agent printer must be on the job's own site; a destination with a problem is refused", async () => {
+      const created = await mockPrintQueueService.enqueue({ ...entry(), mode: 'DIRECT_NETWORK_PRINT', performingFacilityId: 'S1' });
+      if (!created.ok) throw new Error('setup failed');
+      const other = await mockPrintQueueService.redirectPrintJob(created.data.id, { agentPrinter: { siteId: 'S2', destinationId: 'rep-1' } }, 'admin1');
+      expect(other).toEqual({ ok: false, error: PRINT_JOB_WRONG_SITE });
+      const bad = await mockPrintQueueService.redirectPrintJob(created.data.id, { protocol: 'RAW_9100', ipAddress: 'http://x/y' }, 'admin1');
+      expect(bad).toEqual({ ok: false, error: PRINT_JOB_BAD_DESTINATION });
+      const own = await mockPrintQueueService.redirectPrintJob(created.data.id, { agentPrinter: { siteId: 'S1', destinationId: 'rep-1' }, displayName: 'Front desk' }, 'admin1');
+      expect(own.ok && own.data.redirectedToDestination).toEqual({ agentPrinter: { siteId: 'S1', destinationId: 'rep-1' }, displayName: 'Front desk' });
+    });
+
+    it('Batch 553: a job with no site (queued before Batch 553) can be redirected to a printer address only', async () => {
+      const created = await mockPrintQueueService.enqueue({ ...entry(), mode: 'DIRECT_NETWORK_PRINT' });
+      if (!created.ok) throw new Error('setup failed');
+      expect(await mockPrintQueueService.redirectPrintJob(created.data.id, { agentPrinter: { siteId: 'S1', destinationId: 'rep-1' } }, 'admin1')).toEqual({ ok: false, error: PRINT_JOB_WRONG_SITE });
+      expect((await mockPrintQueueService.redirectPrintJob(created.data.id, { protocol: 'IPP', ipAddress: '10.0.0.9' }, 'admin1')).ok).toBe(true);
+    });
   });
 
   describe('bulk operations', () => {
@@ -184,5 +208,46 @@ describe('mockPrintQueueService — real, per PS-279 additions', () => {
       expect(aAfter.ok && aAfter.data.batchId).toBe('batch-clientAccount-CLIENT-A-seed1');
       expect(bAfter.ok && bAfter.data.batchId).toBeUndefined();
     });
+  });
+});
+
+describe('mockPrintQueueService — permissions (Batch 515, PS-283)', () => {
+  it('each action checks its own capability', async () => {
+    const created = await mockPrintQueueService.enqueue(entry());
+    if (!created.ok) throw new Error('setup failed');
+    const id = created.data.id;
+    await mockPrintQueueService.holdPrintJob(id, 'admin');
+    await mockPrintQueueService.releaseHold(id, 'admin');
+    await mockPrintQueueService.redirectPrintJob(id, { protocol: 'RAW_9100', ipAddress: '10.0.0.9' }, 'admin');
+    await mockPrintQueueService.cancelPrintJob(id, 'admin');
+    expect(auth.asked).toEqual(['print:job:hold', 'print:job:hold', 'print:job:redirect', 'print:job:cancel']);
+  });
+
+  it('a refused action changes nothing', async () => {
+    const created = await mockPrintQueueService.enqueue(entry());
+    if (!created.ok) throw new Error('setup failed');
+    auth.allowed = false;
+    const held = await mockPrintQueueService.holdPrintJob(created.data.id, 'someone');
+    expect(held).toEqual({ ok: false, error: PRINT_JOB_NOT_PERMITTED });
+    const cancelled = await mockPrintQueueService.cancelMany([created.data.id], 'someone');
+    expect(cancelled.ok && cancelled.data).toEqual({ succeededIds: [], failed: [{ id: created.data.id, error: PRINT_JOB_NOT_PERMITTED }] });
+    const after = await mockPrintQueueService.getById(created.data.id);
+    expect(after.ok && after.data.status).toBe('QUEUED');
+  });
+
+  it('a bulk action checks once for the whole selection', async () => {
+    const a = await mockPrintQueueService.enqueue(entry());
+    const b = await mockPrintQueueService.enqueue(entry());
+    if (!a.ok || !b.ok) throw new Error('setup failed');
+    auth.asked = [];
+    await mockPrintQueueService.holdMany([a.data.id, b.data.id], 'admin');
+    expect(auth.asked).toEqual(['print:job:hold']);
+  });
+
+  it('the system steps (queue, mark printed or failed) are not checked', async () => {
+    const created = await mockPrintQueueService.enqueue(entry());
+    if (!created.ok) throw new Error('setup failed');
+    await mockPrintQueueService.markPrinted(created.data.id);
+    expect(auth.asked).toEqual([]);
   });
 });

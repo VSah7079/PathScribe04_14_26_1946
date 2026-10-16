@@ -43,9 +43,10 @@ import {
 } from './synopticResultPayload';
 import { buildCombinedRenderPayload, buildWorkupRenderPayload, workupChanges, type WorkupChange } from './workupPdf';
 import { heldMessage } from './heldMessage';
+import { documentPdf, type IReportDocumentService } from '../reportDocuments/reportDocumentService';
+import type { ReportDocumentType, ReportPdf } from '../reportDocuments/reportDocuments';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface AssistSynopticDeps {
   getCase: (caseId: string) => Promise<(CaseLike & { reportingMode?: string; synopticReports?: (InstanceLike & { status?: string })[]; patient?: { id?: string; mrn?: string; firstName?: string; lastName?: string; dateOfBirth?: string } }) | null | undefined>;
@@ -68,7 +69,34 @@ export interface AssistSynopticDeps {
   now: () => string;
   /** Batch 427: the performing lab's LIS takes one PDF per accession (Facility setting). */
   consolidatePdfs: (caseData: any) => Promise<boolean>;
+  /** Batch 538: where each PDF sent is stored once, with its SHA-256 (a retry sends the stored one). */
+  documents?: Pick<IReportDocumentService, 'store' | 'read'>;
 }
+
+const DOCUMENT_TYPE: Record<LisSyncKind, ReportDocumentType> = {
+  final: 'FINAL', case_pdf: 'FINAL', corrected: 'CORRECTED', corrected_with_addition: 'CORRECTED', new_instance: 'ADDENDUM',
+};
+
+/**
+ * Batch 538: the PDF a message carries. A retry with the entry's stored document sends those bytes;
+ * otherwise it is rendered and, when the store is there, stored as a report document.
+ */
+async function messagePdf(
+  render: () => Promise<{ pdfBase64?: string; generationError?: string }>,
+  meta: { caseId: string; instanceId?: string; kind: LisSyncKind; releasedAt: string; reportDocumentId?: string },
+  deps: AssistSynopticDeps,
+): Promise<ReportPdf> {
+  if (meta.reportDocumentId && deps.documents) return documentPdf(meta.reportDocumentId, deps.documents)();
+  const made = await render();
+  if (!made.pdfBase64 || !deps.documents) return made;
+  const stored = await deps.documents.store({
+    pdfBase64: made.pdfBase64, caseId: meta.caseId, reportType: DOCUMENT_TYPE[meta.kind], source: 'SURGPATH',
+    releasedAt: meta.releasedAt, producedBy: 'report-renderer', ...(meta.instanceId ? { instanceId: meta.instanceId } : {}),
+  }).catch(() => null);
+  return stored?.ok ? { pdfBase64: made.pdfBase64, documentId: stored.data.id, sha256: stored.data.sha256 } : made;
+}
+
+const documentFields = (d?: { id: string; sha256?: string }) => (d ? { reportDocumentId: d.id, ...(d.sha256 ? { pdfSha256: d.sha256 } : {}) } : {});
 
 const KIND_TO_FLAG: Record<LisSyncKind, 'A' | 'P'> = { final: 'A', corrected: 'A', corrected_with_addition: 'A', new_instance: 'P', case_pdf: 'A' };
 
@@ -96,6 +124,8 @@ export interface PreparedAssistMessage {
   payload: object;
   observations: SynopticObservation[];
   version: number;
+  /** Batch 538: the stored document the message carries. */
+  document?: { id: string; sha256?: string };
 }
 
 /**
@@ -105,8 +135,12 @@ export interface PreparedAssistMessage {
 export async function prepareAssistSynopticMessage(
   input: {
     caseId: string; instanceId: string; kind: LisSyncKind; version: number; previous?: SynopticObservation[]; signer: { id: string; name: string; signedAt: string }; sequenceNumber?: number;
+    /** Batch 549: when the release happened (a rebuild passes the original); defaults to now. */
+    releasedAt?: string;
     /** Batch 427: the site takes one PDF per accession; this workup's version is in that case PDF, sent separately. */
     combinedPdfDocumentId?: string;
+    /** Batch 538: a retry's stored document. */
+    reportDocumentId?: string;
   },
   deps: AssistSynopticDeps,
 ): Promise<PreparedAssistMessage | { ok: false; held?: string; reason: 'notFound' | 'notAssist' | 'held' }> {
@@ -135,7 +169,7 @@ export async function prepareAssistSynopticMessage(
   if (input.combinedPdfDocumentId) return { ok: true, version: input.version, observations: result.synoptic_observations, payload: message };
   const lang = await deps.reportLanguage(c);
   const accession = result.header.accession_number;
-  const pdf = await deps.renderPdf(buildWorkupRenderPayload({
+  const pdf = await messagePdf(() => deps.renderPdf(buildWorkupRenderPayload({
     result,
     caseHeader: {
       accession,
@@ -148,12 +182,13 @@ export async function prepareAssistSynopticMessage(
     changes,
     language: lang.language,
     labels: lang.labels,
-  }));
+  })), { caseId: input.caseId, instanceId: input.instanceId, kind: input.kind, releasedAt: input.releasedAt ?? deps.now(), reportDocumentId: input.reportDocumentId }, deps);
   if (!pdf.pdfBase64) return { ok: false, reason: 'held', held: heldMessage(pdf.generationError ?? 'The workup PDF could not be made.') };
   return {
     ok: true,
     version: input.version,
     observations: result.synoptic_observations,
+    ...(pdf.documentId ? { document: { id: pdf.documentId, ...(pdf.sha256 ? { sha256: pdf.sha256 } : {}) } } : {}),
     payload: { ...message, workupPdf: { documentId: result.header.pdf_document_id, contentType: 'application/pdf', base64: pdf.pdfBase64 } },
   };
 }
@@ -161,7 +196,9 @@ export async function prepareAssistSynopticMessage(
 /** Queues and sends one workup to the LIS. */
 export async function dispatchAssistSynopticResult(
   input: {
-    caseId: string; instanceId: string; kind: LisSyncKind; signer: { id: string; name: string }; sequenceNumber?: number;
+    caseId: string; instanceId: string; kind: LisSyncKind;
+    /** Batch 549: `signedAt` is the sign-out time when the caller has it (a case release); otherwise now (a correction signed on the page). */
+    signer: { id: string; name: string; signedAt?: string }; sequenceNumber?: number;
     /** Batch 427: the release sends the combined PDF once, after every workup. */
     skipCasePdf?: boolean;
   },
@@ -176,7 +213,7 @@ export async function dispatchAssistSynopticResult(
   if (input.kind === 'final' && mine.some(e => e.kind === 'final')) return { outcome: 'alreadySent' };
   const version = mine.length + 1;
   const previous = [...mine].reverse().find(e => e.sentObservations)?.sentObservations;
-  const signer = { ...input.signer, signedAt: deps.now() };
+  const signer = { ...input.signer, signedAt: input.signer.signedAt || deps.now() };
   const combined = await deps.consolidatePdfs(c);
   const combinedPdfDocumentId = combined ? casePdfDocumentId(input.caseId, entries.filter(e => e.kind === 'case_pdf').length + 1) : undefined;
   const prepared = await prepareAssistSynopticMessage({ ...input, version, previous, signer, combinedPdfDocumentId }, deps);
@@ -184,7 +221,7 @@ export async function dispatchAssistSynopticResult(
   const organisationId = c.patient?.id ? await deps.organisationIdForPatient(c.patient.id) : undefined;
   const queued = await deps.queue.enqueue({
     caseId: input.caseId, instanceId: input.instanceId, kind: input.kind, organisationId: organisationId ?? '',
-    workupVersion: version, signer, ...(prepared.ok ? { sentObservations: prepared.observations } : {}),
+    workupVersion: version, signer, ...(prepared.ok ? { sentObservations: prepared.observations, ...documentFields(prepared.document) } : {}),
   });
   if (queued.ok === false) return { outcome: 'failed', error: (queued as { error?: string }).error };
   if (prepared.ok === false) {
@@ -206,9 +243,9 @@ export async function dispatchAssistSynopticResult(
  * when the PDF can't be made.
  */
 export async function prepareAssistCasePdfMessage(
-  input: { caseId: string; version: number; signer: { id: string; name: string; signedAt: string } },
+  input: { caseId: string; version: number; signer: { id: string; name: string; signedAt: string }; reportDocumentId?: string; releasedAt?: string },
   deps: AssistSynopticDeps,
-): Promise<{ ok: true; payload: object } | { ok: false; reason: 'notFound' | 'notAssist' | 'nothingFinal' | 'held'; held?: string }> {
+): Promise<{ ok: true; payload: object; document?: { id: string; sha256?: string } } | { ok: false; reason: 'notFound' | 'notAssist' | 'nothingFinal' | 'held'; held?: string }> {
   const c = await deps.getCase(input.caseId);
   if (!c) return { ok: false, reason: 'notFound' };
   if (c.reportingMode !== 'assist') return { ok: false, reason: 'notAssist' };
@@ -219,7 +256,7 @@ export async function prepareAssistCasePdfMessage(
   const documentId = casePdfDocumentId(input.caseId, input.version);
   const npi = input.signer.id ? await deps.getNpi(input.signer.id) : undefined;
   const lang = await deps.reportLanguage(c);
-  const workups = [];
+  const workups: Parameters<typeof buildCombinedRenderPayload>[0]['workups'] = [];
   for (const inst of finals) {
     const sentForIt = entries.filter(e => e.instanceId === inst.instanceId && e.kind !== 'case_pdf').sort((a, b) => (a.workupVersion ?? 0) - (b.workupVersion ?? 0));
     const latest = sentForIt[sentForIt.length - 1];
@@ -234,7 +271,7 @@ export async function prepareAssistCasePdfMessage(
     const changes = kind === 'corrected' || kind === 'corrected_with_addition' ? workupChanges(before, result.synoptic_observations) : [];
     workups.push({ result, signerName: latest?.signer?.name ?? input.signer.name, signedAtDisplay: lang.formatDate(latest?.signer?.signedAt ?? input.signer.signedAt), changes });
   }
-  const pdf = await deps.renderPdf(buildCombinedRenderPayload({
+  const pdf = await messagePdf(() => deps.renderPdf(buildCombinedRenderPayload({
     workups,
     caseHeader: {
       accession: workups[0].result.header.accession_number,
@@ -242,12 +279,13 @@ export async function prepareAssistCasePdfMessage(
       mrn: c.patient?.mrn ?? '', dob: lang.formatDob(c.patient?.dateOfBirth),
     },
     documentId, language: lang.language, labels: lang.labels,
-  }));
+  })), { caseId: input.caseId, kind: 'case_pdf', releasedAt: input.releasedAt ?? deps.now(), reportDocumentId: input.reportDocumentId }, deps);
   if (!pdf.pdfBase64) return { ok: false, reason: 'held', held: heldMessage(pdf.generationError ?? 'The combined PDF could not be made.') };
   const timestamp = deps.now();
   const embeddedHeader = embeddedLisHeader('case_pdf', timestamp);
   return {
     ok: true,
+    ...(pdf.documentId ? { document: { id: pdf.documentId, ...(pdf.sha256 ? { sha256: pdf.sha256 } : {}) } } : {}),
     payload: {
       kind: 'case_pdf', caseId: input.caseId, instanceId: '', transactionStatusFlag: 'A', embeddedHeader, timestamp,
       fullPayloadText: [embeddedHeader, ...workups.map(w => `\n${w.result.header.template.name ?? w.result.header.template.id}\n${synopticText(w.result, w.changes)}`)].join('\n'),
@@ -260,7 +298,7 @@ export async function prepareAssistCasePdfMessage(
 /** Batch 427: queues and sends the case's combined PDF (a new version each time). */
 export async function dispatchAssistCasePdf(
   caseId: string,
-  signer: { id: string; name: string },
+  signer: { id: string; name: string; signedAt?: string },
   deps: AssistSynopticDeps,
 ): Promise<{ outcome: AssistSynopticOutcome | 'nothingFinal'; queueEntryId?: string; version?: number; error?: string }> {
   const c = await deps.getCase(caseId);
@@ -268,11 +306,11 @@ export async function dispatchAssistCasePdf(
   if (c.reportingMode !== 'assist') return { outcome: 'notAssist' };
   const prior = await deps.queue.getByCaseId(caseId);
   const version = (prior.ok ? prior.data : []).filter(e => e.kind === 'case_pdf').length + 1;
-  const withTime = { ...signer, signedAt: deps.now() };
+  const withTime = { ...signer, signedAt: signer.signedAt || deps.now() };
   const prepared = await prepareAssistCasePdfMessage({ caseId, version, signer: withTime }, deps);
   if (prepared.ok === false && prepared.reason !== 'held') return { outcome: prepared.reason };
   const organisationId = c.patient?.id ? await deps.organisationIdForPatient(c.patient.id) : undefined;
-  const queued = await deps.queue.enqueue({ caseId, instanceId: '', kind: 'case_pdf', organisationId: organisationId ?? '', workupVersion: version, signer: withTime });
+  const queued = await deps.queue.enqueue({ caseId, instanceId: '', kind: 'case_pdf', organisationId: organisationId ?? '', workupVersion: version, signer: withTime, ...(prepared.ok ? documentFields(prepared.document) : {}) });
   if (queued.ok === false) return { outcome: 'failed', error: (queued as { error?: string }).error };
   if (prepared.ok === false) {
     await deps.queue.markFailed(queued.data.id, { errorCode: 'DISPATCH_REJECTED', errorMessage: prepared.held ?? '', maxRetriesExceeded: false });
@@ -287,11 +325,19 @@ export async function dispatchAssistCasePdf(
 /** Every finalized workup of an Assist case, on release (Finalize, or the end of the release buffer). */
 export async function dispatchAssistCaseRelease(
   caseId: string,
-  signer: { id: string; name: string },
+  signer: { id: string; name: string; signedAt?: string },
   deps: AssistSynopticDeps,
 ): Promise<{ instanceId: string; outcome: AssistSynopticOutcome }[]> {
   const c = await deps.getCase(caseId);
   if (!c || c.reportingMode !== 'assist') return [];
+  // Batch 549 (open since Batch 538): the result carries the time the case was signed out, not the time the message
+  // was built, when the signer is the pathologist who signed it out. Someone else releasing it ("release now") keeps
+  // the time of release, so a person's id is never paired with another person's time. The stored document's
+  // releasedAt is always the time of release (deps.now()).
+  const finalized = c as { finalizedAt?: unknown; finalizedBy?: unknown };
+  if (typeof finalized.finalizedAt === 'string' && finalized.finalizedAt && signer.id && signer.id === finalized.finalizedBy) {
+    signer = { ...signer, signedAt: finalized.finalizedAt };
+  }
   const out: { instanceId: string; outcome: AssistSynopticOutcome }[] = [];
   const combined = await deps.consolidatePdfs(c);
   for (const inst of (c.synopticReports ?? []).filter(r => r.status === 'finalized')) {
@@ -308,7 +354,7 @@ export async function dispatchAssistCaseRelease(
  *  the signer it was queued with. A held PDF stays held; a message from before Batch 426 (no version) is version 1. */
 export async function rebuildAssistSynopticMessage(entry: OutboundLisSyncQueueEntry, deps: AssistSynopticDeps): Promise<object | { held: string } | null> {
   if (entry.kind === 'case_pdf') {
-    const p = await prepareAssistCasePdfMessage({ caseId: entry.caseId, version: entry.workupVersion ?? 1, signer: entry.signer ?? { id: '', name: '', signedAt: entry.queuedAt } }, deps);
+    const p = await prepareAssistCasePdfMessage({ caseId: entry.caseId, version: entry.workupVersion ?? 1, signer: entry.signer ?? { id: '', name: '', signedAt: entry.queuedAt }, releasedAt: entry.queuedAt, ...(entry.reportDocumentId ? { reportDocumentId: entry.reportDocumentId } : {}) }, deps);
     if (p.ok === true) return p.payload;
     const f = p as { reason: string; held?: string };
     return f.reason === 'held' ? { held: f.held ?? '' } : null;
@@ -318,7 +364,8 @@ export async function rebuildAssistSynopticMessage(entry: OutboundLisSyncQueueEn
   const previous = [...earlier].reverse().find(e => e.sentObservations)?.sentObservations;
   const prepared = await prepareAssistSynopticMessage({
     caseId: entry.caseId, instanceId: entry.instanceId, kind: entry.kind, version: entry.workupVersion ?? 1, previous,
-    signer: entry.signer ?? { id: '', name: '', signedAt: entry.queuedAt },
+    signer: entry.signer ?? { id: '', name: '', signedAt: entry.queuedAt }, releasedAt: entry.queuedAt,
+    ...(entry.reportDocumentId ? { reportDocumentId: entry.reportDocumentId } : {}),
     combinedPdfDocumentId: (await deps.consolidatePdfs(await deps.getCase(entry.caseId))) ? casePdfDocumentId(entry.caseId, (all.ok ? all.data : []).filter(e => e.kind === 'case_pdf').length || 1) : undefined,
   }, deps);
   if (prepared.ok === true) return prepared.payload;

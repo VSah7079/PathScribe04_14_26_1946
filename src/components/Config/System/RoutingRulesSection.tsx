@@ -27,6 +27,7 @@ import { Subspecialty } from '../../../services/subspecialties/ISubspecialtyServ
 import RuleModal from './RuleModal';
 import { duplicateRoutingRule } from '@/services/duplication/duplicateEntities';
 import ConfirmModal from '../../Common/ConfirmModal';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ─── Main Section ─────────────────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ const RoutingRulesSection: React.FC = () => {
           {t('routingRulesSection.testRouting.label')}
         </div>
         <div className="ps-routingrules__test-row">
-          <input
+          <input aria-label={t('routingRulesSection.testRouting.label')}
             value={testInput}
             onChange={e => { setTestInput(e.target.value); setTestResult(null); }}
             onKeyDown={e => e.key === 'Enter' && handleTest()}
@@ -226,7 +227,7 @@ const RoutingRulesSection: React.FC = () => {
                   </td>
                   {/* Toggle */}
                   <td className="ps-routingrules__td-toggle">
-                    <div onClick={() => handleToggle(rule.id)}
+                    <div {...switchable(rule.active, () => handleToggle(rule.id), t('a11y.cellLabel', { column: t('a11y.fields.active'), row: poolName(rule.subspecialtyId) }))}
                       className={`ps-routingrules__toggle-track${rule.active ? ' ps-routingrules__toggle-track--on' : ' ps-routingrules__toggle-track--off'}`}>
                       <div className={`ps-routingrules__toggle-thumb${rule.active ? ' ps-routingrules__toggle-thumb--on' : ' ps-routingrules__toggle-thumb--off'}`} />
                     </div>

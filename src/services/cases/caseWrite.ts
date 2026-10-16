@@ -27,7 +27,6 @@
 // Server contract: docs/architecture/CASE_API.md.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Case } from '@/types/case/Case';
 import { ConcurrencyConflictError } from './ConcurrencyConflictError';
 
@@ -392,6 +391,120 @@ export function takeUpSavedCase(input: {
     return { show: { ...input.saved, ...input.applied, ...draft } as Case, adoptVersion: null, draftBase: null, draftParts: draft };
   }
   return { show: { ...input.saved, ...input.applied, ...m.parts } as Case, adoptVersion: input.savedVersion, draftBase: pick(input.saved), draftParts: m.parts };
+}
+
+/** Batch 575: the Orchestration report's text fields the page fills from its sections (useOrchestratorDraft). */
+export const SECTION_BACKED_DIAGNOSTIC_FIELDS = ['grossDescription', 'microscopicDescription', 'ancillaryStudies', 'reportNarrative'] as const;
+
+/**
+ * Batch 575 (review): the diagnostic to show after taking up a newer case in Orchestration mode: the saved one
+ * (so someone else's sign-out or recut fields are shown, and not written back over later), with only the
+ * fields the page fills from its own sections kept from the page.
+ */
+export function orchestrationDiagnosticAfterTakeUp(saved: Record<string, unknown> | undefined, page: Record<string, unknown> | undefined): Record<string, unknown> {
+  const kept = Object.fromEntries(SECTION_BACKED_DIAGNOSTIC_FIELDS.filter(k => page && k in page).map(k => [k, page![k]]));
+  return { ...(saved ?? {}), ...kept };
+}
+
+export type TakeUpNewerCaseResult =
+  | { kind: 'stale' }
+  | { kind: 'shown'; show: Case; adoptVersion: number; draftBase: Partial<Case>; pending: { parts: Partial<Case>; base: Partial<Case> } | null }
+  | { kind: 'overlap'; show: Case };
+
+/**
+ * Batch 575 ("Show their changes" on the "someone else saved this case" notice): take up the newer saved case
+ * in place, without a reload, keeping everything this page holds and hasn't saved: its draft parts AND the
+ * changes held back by an earlier conflict (`pending`, e.g. a flag edit kept with "decide later"), merged field
+ * by field like any save.
+ *   - stale: the case read is not newer than the page (its own save landed meanwhile): nothing to do.
+ *   - shown: merged cleanly; the page moves to the saved version, its unsaved parts laid over theirs, the held
+ *     changes rebased on the saved case (so the next save checks them against what is now shown).
+ *   - overlap: their changes touch what this page hasn't saved: theirs are shown everywhere else, this page's
+ *     unsaved parts stay exactly as typed, and the page keeps its old version, so the next save opens the Edit
+ *     Conflict dialog to choose.
+ */
+export function takeUpNewerCase(input: {
+  saved: Case; savedVersion: number; knownVersion: number;
+  pageDraft: Partial<Case>; draftBase: Partial<Case>;
+  pending: { parts: Partial<Case>; base: Partial<Case> } | null;
+}): TakeUpNewerCaseResult {
+  if (!(input.savedVersion > input.knownVersion)) return { kind: 'stale' };
+  const pendingParts = input.pending?.parts ?? {};
+  const pageDraft = { ...pendingParts, ...input.pageDraft } as Partial<Case>;
+  const draftBase = { ...(input.pending?.base ?? {}), ...input.draftBase } as Partial<Case>;
+  const take = takeUpSavedCase({ saved: input.saved, savedVersion: input.savedVersion, applied: {}, pageDraft, draftBase });
+  if (take.adoptVersion === null) return { kind: 'overlap', show: take.show };
+  const pendingKeys = Object.keys(pendingParts);
+  const merged = take.draftParts as Record<string, unknown>;
+  const savedFields = input.saved as unknown as Record<string, unknown>;
+  const pending = pendingKeys.length
+    ? {
+      parts: Object.fromEntries(pendingKeys.map(k => [k, merged[k]])) as Partial<Case>,
+      base: Object.fromEntries(pendingKeys.map(k => [k, savedFields[k]])) as Partial<Case>,
+    }
+    : null;
+  const draftKeys = Object.keys(input.pageDraft);
+  return {
+    kind: 'shown', show: take.show, adoptVersion: take.adoptVersion, pending,
+    draftBase: Object.fromEntries(draftKeys.map(k => [k, savedFields[k]])) as Partial<Case>,
+  };
+}
+
+/** Batch 577: what the page shows after "Use their version" in the Edit Conflict dialog. */
+export interface TheirVersion {
+  /** The saved case, exactly as saved: nothing of this page's is laid over it. */
+  show: Case;
+  /** The Orchestration report's sections as saved (none saved: none, as when the case is opened). */
+  orchSections: unknown[];
+  /** The version the page now holds. */
+  adoptVersion: number;
+}
+
+/**
+ * Batch 577 (carried from 575): the Edit Conflict dialog's "Use their version" replaces "Reload their
+ * version". The person has chosen to discard what this page holds and hasn't saved (its draft parts and any
+ * change held back by an earlier conflict), so the page takes the saved case up in place, exactly as opening
+ * it would show it, without a reload: no wait, the tab and scroll position kept, and no draft copy offered
+ * back afterwards. The caller also discards its draft copy, clears its unsaved marks and held changes, and
+ * reads its lists again.
+ */
+export function takeTheirVersion(saved: Case, savedVersion: number): TheirVersion {
+  const orch = (saved as unknown as { orchSections?: unknown }).orchSections;
+  return { show: saved, orchSections: Array.isArray(orch) ? orch : [], adoptVersion: savedVersion };
+}
+
+/** Batch 577: where the report page is in the case (which specimen, report and section are open). */
+export interface CasePageSelection {
+  specimenId: string;
+  reportType: 'grossing' | 'microscopic' | 'synoptic' | 'billing';
+  reportInstanceId: string;
+  /** The Orchestration section open in the editor (null: the first, as when the case opens). */
+  sectionId: string | null;
+}
+
+/**
+ * Batch 577 (review): after the page takes up someone else's saved version (Show their changes, Use their
+ * version), whatever is open stays open if it still exists. Something their save removed is replaced as
+ * opening the case would choose: the first specimen; an unfinished grossing report, else the first synoptic
+ * report, else the first grossing report; the first section.
+ */
+export function selectionAfterTakeUp(show: Case, sections: readonly { id: string }[], current: CasePageSelection): CasePageSelection {
+  const specimens = (show.specimens ?? []) as { id: string }[];
+  const specimenId = current.specimenId && !specimens.some(s => s.id === current.specimenId) ? (specimens[0]?.id ?? '') : current.specimenId;
+  const synoptic = (show.synopticReports ?? []) as { instanceId: string }[];
+  const grossing = ((show as unknown as { grossingReports?: { instanceId: string; status?: string }[] }).grossingReports ?? []);
+  const list = current.reportType === 'grossing' ? grossing : synoptic;
+  let reportType = current.reportType;
+  let reportInstanceId = current.reportInstanceId;
+  if (reportInstanceId && !list.some(r => r.instanceId === reportInstanceId)) {
+    const unfinished = grossing.find(g => g.status === 'draft');
+    if (unfinished) { reportType = 'grossing'; reportInstanceId = unfinished.instanceId; }
+    else if (synoptic.length) { reportType = 'synoptic'; reportInstanceId = synoptic[0].instanceId; }
+    else if (grossing.length) { reportType = 'grossing'; reportInstanceId = grossing[0].instanceId; }
+    else reportInstanceId = '';
+  }
+  const sectionId = current.sectionId && !sections.some(s => s.id === current.sectionId) ? null : current.sectionId;
+  return { specimenId, reportType, reportInstanceId, sectionId };
 }
 
 /**

@@ -46,6 +46,7 @@ import type { MolecularTarget, MolecularMethodology, BillingModel, CptMappingRul
 import { duplicateStainType, duplicateSectioningProtocol, duplicateStainOrderMacro, duplicateMolecularTarget } from '@/services/duplication/duplicateEntities';
 import { findDuplicate } from '../../../utils/validateUnique';
 import { recordExport } from '@/services';
+import { pressable, switchable } from '@/utils/a11y/pressable';
 
 type SubTab = 'types' | 'protocols' | 'macros' | 'targets';
 
@@ -178,7 +179,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('stainDictionarySection.nameLabel')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={name} onChange={e => { setName(e.target.value); setNameError(null); }} placeholder={t('stainDictionarySection.typeModal.namePlaceholder')} />
+              <input aria-label={t('stainDictionarySection.nameLabel')} className="ps-conf-input" value={name} onChange={e => { setName(e.target.value); setNameError(null); }} placeholder={t('stainDictionarySection.typeModal.namePlaceholder')} />
               {nameError && <div className="ps-body-modal-error">{nameError}</div>}
             </div>
             <div className="ps-conf-form-field">
@@ -190,11 +191,11 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.descriptionLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={description} onChange={e => setDescription(e.target.value)} placeholder={t('stainDictionarySection.typeModal.descriptionPlaceholder')} />
+            <textarea aria-label={t('stainDictionarySection.descriptionLabel')} className="ps-conf-input ps-conf-textarea" value={description} onChange={e => setDescription(e.target.value)} placeholder={t('stainDictionarySection.typeModal.descriptionPlaceholder')} />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.typeModal.billingCodeLabel')}</label>
-            <input
+            <input aria-label={t('stainDictionarySection.typeModal.billingCodeLabel')}
               className="ps-conf-input"
               value={defaultBillingCode}
               onChange={e => setDefaultBillingCode(e.target.value.trim())}
@@ -205,7 +206,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
             </p>
             {defaultBillingCode.trim() && category === 'IHC' && (
               <div className="ps-conf-toggle-row ps-conf-section-subtitle--top-gap">
-                <div onClick={() => setExcludeFromIhcSequenceCounting(!excludeFromIhcSequenceCounting)}
+                <div {...switchable(excludeFromIhcSequenceCounting, () => setExcludeFromIhcSequenceCounting(!excludeFromIhcSequenceCounting), t('stainDictionarySection.typeModal.standaloneBillingToggle'))}
                   className={`ps-conf-toggle-track ${excludeFromIhcSequenceCounting ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
@@ -241,7 +242,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
               </div>
 
               <div className="ps-conf-toggle-row">
-                <div onClick={() => { const next = !requiresTargetControl; setRequiresTargetControl(next); if (!next) { setAllowControlAutoAppend(false); setDefaultControlTissueType(''); } }}
+                <div {...switchable(requiresTargetControl, () => { const next = !requiresTargetControl; setRequiresTargetControl(next); if (!next) { setAllowControlAutoAppend(false); setDefaultControlTissueType(''); } }, t('stainDictionarySection.typeModal.requireControlToggle'))}
                   className={`ps-conf-toggle-track ${requiresTargetControl ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
@@ -253,7 +254,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
               {requiresTargetControl && (
                 <>
                   <div className="ps-conf-toggle-row ps-conf-section-subtitle--top-gap">
-                    <div onClick={() => setAllowControlAutoAppend(!allowControlAutoAppend)}
+                    <div {...switchable(allowControlAutoAppend, () => setAllowControlAutoAppend(!allowControlAutoAppend), t('stainDictionarySection.typeModal.autoAppendToggle'))}
                       className={`ps-conf-toggle-track ${allowControlAutoAppend ? 'ps-conf-toggle-track--active' : ''}`}>
                       <div className="ps-conf-toggle-thumb" />
                     </div>
@@ -267,7 +268,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
 
                   <div className="ps-conf-form-field ps-conf-section-subtitle--top-gap">
                     <label className="ps-conf-label">{t('stainDictionarySection.typeModal.controlTissueLabel')}</label>
-                    <input className="ps-conf-input" value={defaultControlTissueType} onChange={e => setDefaultControlTissueType(e.target.value)} placeholder={t('stainDictionarySection.typeModal.controlTissuePlaceholder')} />
+                    <input aria-label={t('stainDictionarySection.typeModal.controlTissueLabel')} className="ps-conf-input" value={defaultControlTissueType} onChange={e => setDefaultControlTissueType(e.target.value)} placeholder={t('stainDictionarySection.typeModal.controlTissuePlaceholder')} />
                     <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">
                       {t('stainDictionarySection.typeModal.controlTissueHint')}
                     </p>
@@ -280,11 +281,11 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
             <div className="ps-conf-form-row">
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('stainDictionarySection.typeModal.antibodyCloneLabel')}</label>
-                <input className="ps-conf-input" value={antibodyClone} onChange={e => setAntibodyClone(e.target.value)} placeholder={t('stainDictionarySection.typeModal.antibodyClonePlaceholder')} />
+                <input aria-label={t('stainDictionarySection.typeModal.antibodyCloneLabel')} className="ps-conf-input" value={antibodyClone} onChange={e => setAntibodyClone(e.target.value)} placeholder={t('stainDictionarySection.typeModal.antibodyClonePlaceholder')} />
               </div>
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('stainDictionarySection.typeModal.vendorLabel')}</label>
-                <input className="ps-conf-input" value={vendor} onChange={e => setVendor(e.target.value)} placeholder={t('stainDictionarySection.typeModal.vendorPlaceholder')} />
+                <input aria-label={t('stainDictionarySection.typeModal.vendorLabel')} className="ps-conf-input" value={vendor} onChange={e => setVendor(e.target.value)} placeholder={t('stainDictionarySection.typeModal.vendorPlaceholder')} />
               </div>
             </div>
           )}
@@ -375,7 +376,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
                       .filter(target => !selectedTargets.some(s => s.id === target.id))
                       .filter(target => target.symbol.toLowerCase().includes(targetSearch.trim().toLowerCase()) || target.detail?.toLowerCase().includes(targetSearch.trim().toLowerCase()))
                       .map(target => (
-                        <div key={target.id} onClick={() => { setSelectedTargets(prev => [...prev, target]); setTargetSearch(''); }}
+                        <div key={target.id} {...pressable(() => { setSelectedTargets(prev => [...prev, target]); setTargetSearch(''); })}
                           className="ps-staindict__target-option">
                           <strong>{target.symbol}</strong>{target.detail ? <span className="ps-staindict__target-option-detail"> — {target.detail}</span> : null}
                         </div>
@@ -386,7 +387,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
                   {t('stainDictionarySection.typeModal.defaultTargetsHint')}
                 </p>
                 <div className="ps-staindict__new-target-row">
-                  <input className="ps-conf-input ps-staindict__new-target-input" placeholder={t('stainDictionarySection.typeModal.newTargetSymbolPlaceholder')} value={newTargetSymbol} onChange={e => setNewTargetSymbol(e.target.value)} />
+                  <input aria-label={t('stainDictionarySection.typeModal.defaultTargetsHint')} className="ps-conf-input ps-staindict__new-target-input" placeholder={t('stainDictionarySection.typeModal.newTargetSymbolPlaceholder')} value={newTargetSymbol} onChange={e => setNewTargetSymbol(e.target.value)} />
                   <input className="ps-conf-input ps-staindict__new-target-input" placeholder={t('stainDictionarySection.typeModal.newTargetDetailPlaceholder')} value={newTargetDetail} onChange={e => setNewTargetDetail(e.target.value)} />
                   <button
                     type="button"
@@ -412,32 +413,32 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
                 <div className="ps-conf-form-row">
                   <div className="ps-conf-form-field">
                     <label className="ps-conf-label">{t('stainDictionarySection.typeModal.baseCptLabel')}</label>
-                    <input className="ps-conf-input" value={baseCptCode} onChange={e => setBaseCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.baseCptPlaceholder')} />
+                    <input aria-label={t('stainDictionarySection.typeModal.baseCptLabel')} className="ps-conf-input" value={baseCptCode} onChange={e => setBaseCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.baseCptPlaceholder')} />
                   </div>
                   <div className="ps-conf-form-field">
                     <label className="ps-conf-label">{t('stainDictionarySection.typeModal.addOnCptLabel')}</label>
-                    <input className="ps-conf-input" value={addOnCptCode} onChange={e => setAddOnCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.addOnCptPlaceholder')} />
+                    <input aria-label={t('stainDictionarySection.typeModal.addOnCptLabel')} className="ps-conf-input" value={addOnCptCode} onChange={e => setAddOnCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.addOnCptPlaceholder')} />
                   </div>
                   <div className="ps-conf-form-field">
                     <label className="ps-conf-label">{t('stainDictionarySection.typeModal.multiplexCptLabel')}</label>
-                    <input className="ps-conf-input" value={multiplexCptCode} onChange={e => setMultiplexCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.multiplexCptPlaceholder')} />
+                    <input aria-label={t('stainDictionarySection.typeModal.multiplexCptLabel')} className="ps-conf-input" value={multiplexCptCode} onChange={e => setMultiplexCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.multiplexCptPlaceholder')} />
                   </div>
                   <div className="ps-conf-form-field">
                     <label className="ps-conf-label">{t('stainDictionarySection.typeModal.multiplexThresholdLabel')}</label>
-                    <input className="ps-conf-input" type="number" min="1" value={multiplexThreshold} onChange={e => setMultiplexThreshold(e.target.value)} />
+                    <input aria-label={t('stainDictionarySection.typeModal.multiplexThresholdLabel')} className="ps-conf-input" type="number" min="1" value={multiplexThreshold} onChange={e => setMultiplexThreshold(e.target.value)} />
                   </div>
                 </div>
               )}
               {billingModel === 'PER_UNIT_MULTIPLIER' && (
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('stainDictionarySection.typeModal.perUnitCptLabel')}</label>
-                  <input className="ps-conf-input" value={perUnitCptCode} onChange={e => setPerUnitCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.perUnitCptPlaceholder')} />
+                  <input aria-label={t('stainDictionarySection.typeModal.perUnitCptLabel')} className="ps-conf-input" value={perUnitCptCode} onChange={e => setPerUnitCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.perUnitCptPlaceholder')} />
                 </div>
               )}
               {billingModel === 'FLAT_FEE' && (
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('stainDictionarySection.typeModal.flatFeeCptLabel')}</label>
-                  <input className="ps-conf-input" value={flatFeeCptCode} onChange={e => setFlatFeeCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.flatFeeCptPlaceholder')} />
+                  <input aria-label={t('stainDictionarySection.typeModal.flatFeeCptLabel')} className="ps-conf-input" value={flatFeeCptCode} onChange={e => setFlatFeeCptCode(e.target.value)} placeholder={t('stainDictionarySection.typeModal.flatFeeCptPlaceholder')} />
                 </div>
               )}
               <p className="ps-conf-section-subtitle">
@@ -448,12 +449,12 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('stainDictionarySection.typeModal.turnaroundLabel')}</label>
-              <input className="ps-conf-input" type="number" min="0" value={turnaround} onChange={e => setTurnaround(e.target.value)} placeholder={t('stainDictionarySection.typeModal.turnaroundPlaceholder')} />
+              <input aria-label={t('stainDictionarySection.typeModal.turnaroundLabel')} className="ps-conf-input" type="number" min="0" value={turnaround} onChange={e => setTurnaround(e.target.value)} placeholder={t('stainDictionarySection.typeModal.turnaroundPlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('stainDictionarySection.statusLabel')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => setActive(!active)} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(active, () => setActive(!active), t('stainDictionarySection.statusLabel'))} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
                 <span className={`ps-conf-toggle-label ${active ? 'ps-conf-toggle-label--active' : ''}`}>{active ? t('common.active') : t('common.inactive')}</span>
@@ -505,17 +506,17 @@ const ProtocolModal: React.FC<ProtocolModalProps> = ({ mode, entry, existingEntr
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.nameLabel')} <span className="ps-conf-required">*</span></label>
-            <input className="ps-conf-input" value={name} onChange={e => { setName(e.target.value); setNameError(null); }} placeholder={t('stainDictionarySection.protocolModal.namePlaceholder')} />
+            <input aria-label={t('stainDictionarySection.nameLabel')} className="ps-conf-input" value={name} onChange={e => { setName(e.target.value); setNameError(null); }} placeholder={t('stainDictionarySection.protocolModal.namePlaceholder')} />
             {nameError && <div className="ps-body-modal-error">{nameError}</div>}
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.descriptionLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={description} onChange={e => setDescription(e.target.value)} placeholder={t('stainDictionarySection.protocolModal.descriptionPlaceholder')} />
+            <textarea aria-label={t('stainDictionarySection.descriptionLabel')} className="ps-conf-input ps-conf-textarea" value={description} onChange={e => setDescription(e.target.value)} placeholder={t('stainDictionarySection.protocolModal.descriptionPlaceholder')} />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => setActive(!active)} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(active, () => setActive(!active), t('stainDictionarySection.statusLabel'))} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${active ? 'ps-conf-toggle-label--active' : ''}`}>{active ? t('common.active') : t('common.inactive')}</span>
@@ -593,7 +594,7 @@ const MolecularTargetModal: React.FC<MolecularTargetModalProps> = ({ mode, entry
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('stainDictionarySection.targetModal.symbolLabel')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={symbol} onChange={e => { setSymbol(e.target.value); setSymbolError(null); }} placeholder={t('stainDictionarySection.targetModal.symbolPlaceholder')} />
+              <input aria-label={t('stainDictionarySection.targetModal.symbolLabel')} className="ps-conf-input" value={symbol} onChange={e => { setSymbol(e.target.value); setSymbolError(null); }} placeholder={t('stainDictionarySection.targetModal.symbolPlaceholder')} />
               {symbolError && <div className="ps-body-modal-error">{symbolError}</div>}
             </div>
             <div className="ps-conf-form-field">
@@ -607,12 +608,12 @@ const MolecularTargetModal: React.FC<MolecularTargetModalProps> = ({ mode, entry
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.targetModal.detailLabel')}</label>
-            <input className="ps-conf-input" value={detail} onChange={e => setDetail(e.target.value)} placeholder={t('stainDictionarySection.targetModal.detailPlaceholder')} />
+            <input aria-label={t('stainDictionarySection.targetModal.detailLabel')} className="ps-conf-input" value={detail} onChange={e => setDetail(e.target.value)} placeholder={t('stainDictionarySection.targetModal.detailPlaceholder')} />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => setActive(!active)} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(active, () => setActive(!active), t('stainDictionarySection.statusLabel'))} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${active ? 'ps-conf-toggle-label--active' : ''}`}>{active ? t('common.active') : t('common.inactive')}</span>
@@ -670,7 +671,7 @@ const MacroModal: React.FC<MacroModalProps> = ({ mode, entry, existingEntries, s
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('stainDictionarySection.macroModal.labelLabel')} <span className="ps-conf-required">*</span></label>
-            <input className="ps-conf-input" value={label} onChange={e => { setLabel(e.target.value); setLabelError(null); }} placeholder={t('stainDictionarySection.macroModal.labelPlaceholder')} />
+            <input aria-label={t('stainDictionarySection.macroModal.labelLabel')} className="ps-conf-input" value={label} onChange={e => { setLabel(e.target.value); setLabelError(null); }} placeholder={t('stainDictionarySection.macroModal.labelPlaceholder')} />
             {labelError && <div className="ps-body-modal-error">{labelError}</div>}
           </div>
           <div className="ps-conf-form-row">
@@ -690,12 +691,12 @@ const MacroModal: React.FC<MacroModalProps> = ({ mode, entry, existingEntries, s
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('stainDictionarySection.macroModal.sortOrderLabel')}</label>
-              <input className="ps-conf-input" type="number" value={sortOrder} onChange={e => setSortOrder(e.target.value)} />
+              <input aria-label={t('stainDictionarySection.macroModal.sortOrderLabel')} className="ps-conf-input" type="number" value={sortOrder} onChange={e => setSortOrder(e.target.value)} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('stainDictionarySection.statusLabel')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => setActive(!active)} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(active, () => setActive(!active), t('stainDictionarySection.statusLabel'))} className={`ps-conf-toggle-track ${active ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
                 <span className={`ps-conf-toggle-label ${active ? 'ps-conf-toggle-label--active' : ''}`}>{active ? t('common.active') : t('common.inactive')}</span>

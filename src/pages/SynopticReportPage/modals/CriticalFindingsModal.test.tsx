@@ -22,6 +22,15 @@ vi.mock('@/services', async () => {
   };
 });
 
+// Batch 517 (PS-143): the secure email window, as a stand-in that "sends".
+const email = vi.hoisted(() => ({ props: null as null | Record<string, any> }));
+vi.mock('@/components/SecureEmail/SecureEmailModal', () => ({
+  SecureEmailModal: (props: Record<string, any>) => {
+    email.props = props;
+    return props.isOpen ? <button onClick={() => props.onSent('dr.lee@example.org', props.prefillSubject, 'PAUBOX')}>stub-send</button> : null;
+  },
+}));
+
 import { CriticalFindingsModal } from './CriticalFindingsModal';
 
 afterEach(() => { cleanup(); settings.current = {}; listeners.length = 0; });
@@ -67,5 +76,33 @@ describe('CriticalFindingsModal and Field Requirements (Batch 380)', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'secure_page' } });
     act(() => listeners[0]('CRITICAL_NOTIFICATION_RECORD'));
     await waitFor(() => expect(onRecord).toHaveBeenCalledTimes(1));
+  });
+
+  it('secure email: no read-back, opens the email window pre-filled, and records only once it is sent (Batch 517)', async () => {
+    settings.current = { criticalReadBack: true };
+    render(<CriticalFindingsModal findings={FINDINGS} defaultNotifiedByName="Pete Nimmo" caseReference="S26-4671" onRecord={vi.fn()} onAcknowledge={vi.fn()} />);
+    await waitFor(() => expect(listeners.length).toBe(1));
+    fireEvent.change(screen.getByPlaceholderText('criticalFindingsModal.clinicianNotifiedPlaceholder'), { target: { value: 'Dr Lee' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'secure_email' } });
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.getByText('criticalFindingsModal.secureEmailNote')).toBeTruthy();
+    fireEvent.click(screen.getByText('criticalFindingsModal.composeEmailButton'));
+    expect(email.props?.isOpen).toBe(true);
+    expect(email.props?.containsPatientData).toBe(true);
+    expect(email.props?.prefillSubject).toContain('S26-4671');
+    expect(email.props?.prefillBody).toContain('invasive carcinoma');
+  });
+
+  it('closing the email window records nothing; sending it records the notification', async () => {
+    const onRecord = vi.fn();
+    render(<CriticalFindingsModal findings={FINDINGS} defaultNotifiedByName="Pete Nimmo" onRecord={onRecord} onAcknowledge={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText('criticalFindingsModal.clinicianNotifiedPlaceholder'), { target: { value: 'Dr Lee' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'secure_email' } });
+    fireEvent.click(screen.getByText('criticalFindingsModal.composeEmailButton'));
+    act(() => email.props?.onClose());
+    expect(onRecord).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('criticalFindingsModal.composeEmailButton'));
+    fireEvent.click(screen.getByText('stub-send'));
+    await waitFor(() => expect(onRecord).toHaveBeenCalledWith({ clinicianName: 'Dr Lee', method: 'secure_email', notifiedByName: 'Pete Nimmo' }));
   });
 });

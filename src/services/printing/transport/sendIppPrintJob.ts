@@ -34,7 +34,7 @@
 
 import * as http from 'http';
 import { DEFAULT_PRINT_PROTOCOL_PORT } from '@/types/printRouting/PrintDestination';
-import type { PrintDestination } from '@/types/printRouting/PrintDestination';
+import type { NetworkPrintDestination as PrintDestination } from '@/types/printRouting/PrintDestination';
 import type { SendPrintJobResult } from './sendRawPrintJob';
 import type { PrintProtocolPresentation } from './dispatchViaPrintProtocol';
 

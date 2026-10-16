@@ -59,12 +59,21 @@ vi.mock('@/services', async () => {
     FOLLOW_UP_DISPOSITIONS: types.FOLLOW_UP_DISPOSITIONS,
     MAX_FOLLOW_UP_EMAIL_SUBJECT: settings.MAX_FOLLOW_UP_EMAIL_SUBJECT,
     MAX_FOLLOW_UP_EMAIL_BODY: settings.MAX_FOLLOW_UP_EMAIL_BODY,
-    authorizationService: { enforce: vi.fn(async () => ({ allowed: true })) },
+    authorizationService: { enforce: vi.fn(async () => ({ allowed: true })), snapshot: vi.fn(async () => ({ subject: null, roles: [] })) },
+    auditService: { logEvent: vi.fn(async () => undefined) },
     exportQaReport: h.exportQaReport,
   };
 });
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u-qa', name: 'Pat QA' } }) }));
 vi.mock('@/hooks/useOpenCase', () => ({ useOpenCase: () => vi.fn() }));
+vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getAll: vi.fn(async () => ({ ok: true, data: [] })) } }));
+vi.mock('@/services/auth/caseAccessControl', () => ({ getSessionUser: () => null, canViewCrossTenantQaData: () => false }));
+// Batch 544: the scope picker, reduced to one button that picks F-ON.
+vi.mock('./QaScopeSwitcher', () => ({
+  QaScopeSwitcher: ({ onChange, visibleClientIds }: { onChange: (s: unknown) => void; visibleClientIds?: string[] }) =>
+    <button type="button" data-offered={(visibleClientIds ?? []).join(',')} onClick={() => onChange({ level: 'client', clientId: 'F-ON' })}>pick F-ON</button>,
+}));
+
 vi.mock('@/components/Common/CapabilityButton', () => ({
   CapabilityButton: ({ children, onClick, capability }: { children: React.ReactNode; onClick: () => void; capability: string }) =>
     <button type="button" data-capability={capability} onClick={onClick}>{children}</button>,
@@ -134,5 +143,20 @@ describe('FollowUpTab (Batch 454)', () => {
     expect(capability).toBe('qa:follow-up:export');
     expect(rows.map(r => r.Case)).toEqual(['CY26-0001', 'S26-0002']);
     expect(Object.keys(rows[0])).not.toContain('Note');
+  });
+
+  it('Batch 544: one facility lists and exports only its follow-ups, checked for that facility', async () => {
+    render(<FollowUpTab />);
+    await screen.findByText('CY26-0001');
+    const pick = screen.getByText('pick F-ON');
+    expect(pick.getAttribute('data-offered')).toBe('F-OFF,F-ON');
+    fireEvent.click(pick);
+    await waitFor(() => expect(screen.queryByText('S26-0002')).toBeNull());
+    fireEvent.click(screen.getByText('common.export'));
+    await waitFor(() => expect(h.exportQaReport).toHaveBeenCalledTimes(1));
+    const [, rows, filename, , context] = h.exportQaReport.mock.calls[0] as unknown as [string, Record<string, unknown>[], string, unknown, unknown];
+    expect(rows.map(r => r.Case)).toEqual(['CY26-0001']);
+    expect(filename).toMatch(/^follow-up-not-received-F-ON-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(context).toEqual({ facilityIds: ['F-ON'] });
   });
 });

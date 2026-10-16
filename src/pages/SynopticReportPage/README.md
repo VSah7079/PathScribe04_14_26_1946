@@ -4,13 +4,17 @@ The core clinical workflow page — a case's full report/material/sign-out exper
 
 ## Files
 
-- **`SynopticReportPage.tsx`** — layout and modal wiring only. Deliberately kept to that: business logic lives in `hooks/`, presentational pieces in `components/`, and every dialog in `modals/` — this file's own job is assembling those, not implementing them.
+- **`SynopticReportPage.tsx`** — the page: layout and modal wiring, with business logic meant to live in `hooks/` and services, presentational pieces in `components/`, and dialogs in `modals/`. In practice it is still a large file (about 6,750 lines) with a good deal of handler code of its own.
+- **`resolveEmbeddedCoding.ts`** (+ test) — applies a synoptic template's embedded SNOMED/ICD codes when a pathologist approves an AI suggestion (see `../Synoptic/Codes/README.md`).
+- **`reportPageText.guard.test.ts`** — fails on literal on-screen English text in this folder.
 
 ## Subfolders
 
-- **`hooks/`** — ten domain hooks (LIS integration, specimen/block management, report generation, amendment workflow, grossing completion, orchestrator draft lifecycle, sign-out/finalize, microscopic entry, cassette scan verification, release-buffer countdown). See its own `README.md` for the full architecture and `hooks/__tests__/README.md` for the testing approach.
+- **`hooks/`** — fifteen hooks (LIS integration, specimen/block management, report generation, amendment workflow, grossing completion, orchestrator draft lifecycle, sign-out/finalize, microscopic entry, cassette scan verification, release-buffer countdown, peer review, organ map, case material store, effective specimen complexity, warning confirm) plus pure helpers. See its own `README.md` for the full architecture and `hooks/__tests__/README.md` for the testing approach.
 - **`components/`** — presentational pieces specific to this page (header, sidebar, material tree, banners, panels).
-- **`modals/`** — every modal reachable from this page (23 files — sign-out, holds, specimen/block editors, amendment, team, printing, and more).
+- **`modals/`** — every modal reachable from this page (33 modal files plus two shared pieces, `CassetteColorControl.tsx` and `ForeignIdFields.tsx` — sign-out, holds, specimen/block editors, amendment, team, printing, gates, and more).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the hook and modal counts were out of date (15 `use*` hooks in `hooks/`, 35 non-test `.tsx` files in `modals/`), the page file is far from "wiring only" at 6,756 lines, and two top-level files were missing.*
 
 ## Signing authority on this page (Sep 2026, PS-327 / PS-341)
 
@@ -148,7 +152,7 @@ Field Requirements for Add Orders → Blocks / Recut and the block and matrix bl
 
 ## Batch 398
 
-`hooks/useGrossingCompletion.ts`: Gross Complete / Update Gross apply the organisation's Grossing field requirements and `case:grossing:complete` (`services/grossing/reportGrossComplete.ts`); a Grossing template counts as the specimen's protocol. With the protocol rule off, `SynopticReportPage.tsx` shows a confirmation (the shared `ConfirmModal`) and the specimens are routed for secondary review. Still open: Update Gross asks its reason with `window.prompt`.
+`hooks/useGrossingCompletion.ts`: Gross Complete / Update Gross apply the organisation's Grossing field requirements and `case:grossing:complete` (`services/grossing/reportGrossComplete.ts`); a Grossing template counts as the specimen's protocol. With the protocol rule off, `SynopticReportPage.tsx` shows a confirmation (the shared `ConfirmModal`) and the specimens are routed for secondary review. Still open: Update Gross asks its reason with `window.prompt`. *(Since closed: Update Gross now asks through `ReasonPromptModal` — `SynopticReportPage.tsx`, PS-359 quick fix — checked in the Batch 496 README audit.)*
 
 ## Batch 425
 
@@ -186,7 +190,7 @@ When the performing lab (or its enterprise) requires billing approval, the charg
 ## Batch 439 (PS-144, PS-145)
 
 - A peer review banner (`components/PeerReviewBanner.tsx`, via `hooks/usePeerReview.ts`).
-- Two more sign-out checks after the stain QC gate, on both sign-out paths (`hooks/checkPeerReviewAndMismatch.ts`): a clinical-pathologic mismatch to decide (`modals/ClinicalMismatchModal.tsx`), then the peer-review gate where it is switched on (`modals/PeerReviewGateModal.tsx`). Both resume sign-out the way the stain QC gate does.
+- Two more sign-out checks after the stain QC gate, on both sign-out paths (`hooks/checkPeerReviewAndMismatch.ts`): a clinical-pathologic mismatch to decide (`modals/ClinicalMismatchModal.tsx`; moved to `components/ClinicalMismatch/` in Batch 523), then the peer-review gate where it is switched on (`modals/PeerReviewGateModal.tsx`). Both resume sign-out the way the stain QC gate does.
 
 ## Batch 441
 
@@ -274,7 +278,7 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 - **Edit Conflict dialog** (`components/EditConflictDialog.tsx`):
   - Keep working.
   - View changes: which parts differ from the saved version, and which "Save mine anyway" would replace.
-  - Reload their version.
+  - Reload their version (Batch 577: Use their version, in place).
   - Save mine anyway: now checked (`case:edit-conflict:override`), saved against the newest version and audited. Before, it saved with no version.
 - `writeCaseDraft` requires a version; `caseDraftUpdates` is shared with the overwrite.
 - The page keeps its old version after a save that was merged with someone else's (holds, team, delegation, blocks), so its next save of anything else is checked rather than overwriting theirs.
@@ -397,7 +401,7 @@ Same strategy as Batch 469: no direct component test for the page itself; the pu
 Three small items, deliberately scoped smaller than the four genuinely-new Front End features raised in the same conversation (per-organ tagging, a dedicated worklist, toxicology specimen barcoding, a unified timeline) — those need Pete's own scoping, not a build, and weren't started here.
 
 - All eight autopsy action buttons (toxicology order/result/cancel, retention detail, disposal, custody transfer, consent narrow/revoke, consent reinstate) converted from plain `<button>` to `CapabilityButton`, each with its own capability and `{ caseId }` context — the same component already used on `SearchPage.tsx`, `AuditLogPage.tsx`, and the Batch Management pages. Presentation only; the service-layer enforcement underneath each is unchanged.
-- A plain text input beside the `organRetentionTier` select, saving `organRetentionTierReason` through the existing `handleOrganRetentionTierChange` handler on blur (only when the text actually changed). Disclosed, not fixed: that handler itself still has no capability check and still lives in this component rather than `services/autopsy/` — a pre-existing design, not something this batch introduced or was asked to refactor.
+- A plain text input beside the `organRetentionTier` select, saving `organRetentionTierReason` through the existing `handleOrganRetentionTierChange` handler on blur (only when the text actually changed). Disclosed, not fixed: that handler itself still has no capability check and still lives in this component rather than `services/autopsy/` — a pre-existing design, not something this batch introduced or was asked to refactor. *(Since closed: Batch 499 — `services/autopsy/recordAutopsyOrganRetentionTier.ts`, capability `autopsy:retention-tier:record`.)*
 - Two pre-existing hard-coded-punctuation lines fixed: the custody log's "received by" (now baked into the `custody.receivedBy` key itself) and the consent panel's note line (now `consent.noteSuffix`).
 
 ## Batch 475 — Autopsy Module 3: toxicology specimen barcode & chain-of-custody link (PS-261 follow-up)
@@ -424,6 +428,206 @@ The Case Timeline (Batch 476) shows both new event kinds (every organ tag, every
 
 The gate-blocked warning banner's summary line (`{{gate.blockedReasons.join(' ')}}`, Batch 478's own disclosed gap) now reads `formatList(gate.blockedReasons.map(r => t(\`autopsySignOut.blockedReasons.${r}\`)), i18n.language)` — the same locale-aware join `cytologySignOut`'s own block-reason display already uses, instead of raw English sentences. No behavior change beyond the fix: still the same banner, same override button, same reasons — just translated now. See [services/autopsy/README.md](../../services/autopsy/README.md)'s own Batch 479 entry.
 
+## Batch 483 — new "recorded signatures" chip (PS-359 tracker follow-up)
+
+`services/signatures/` has recorded every signature applied to a case since Batch 345 with no screen ever reading it back. This page gains a `caseSignatures` fetch (same real-source pattern as `caseVersions`: on load and whenever the new modal opens) and wires `HeaderBar`'s new `signatureCount`/`onOpenSignatureHistory` props to a new `SignatureHistoryModal`. See `components/README.md` and `modals/README.md`'s own Batch 483 entries for the full account.
+
+## Batch 484 — Gate B wired for real (PS-519 follow-up)
+
+New `inkingGateBlocking` state (same resume shape as `clinicalMismatch`/`peerReviewGate`): checked via `hooks/checkInkingSignOutGate.ts` at both sign-out call sites in `useSignOutWorkflow.ts`, right after the existing stain-QC check. `null` for a clean or Severity-2-only case (advisory only at Gate B — nothing new to show); set only for a real interruption (BLOCK/OVERRIDE_REQUIRED/PALETTE_UNAVAILABLE), rendered by the new `modals/InkingGateModal.tsx`. A successful Administrative Override (Severity 3, override-eligible role only) resumes exactly as `resumeAfterGate()` already does for the mismatch/peer-review gates. See `hooks/README.md` and `modals/README.md`'s own Batch 484 entries.
+
+## Batch 491 — margin-distance extraction + Tumor Board auto-flagging wired at sign-out (PS-359 follow-up)
+
+`finalizeSignOut` (in `hooks/useSignOutWorkflow.ts`) now runs the margin-distance extraction layer and the Tumor Board auto-flagging rule evaluator, fire-and-forget, right after the existing post-sign-out QA call — closing Batch 490's own disclosed "nothing calls this yet" gap. See `hooks/README.md`'s own Batch 491 entry and `services/tumorBoardRules/README.md`.
+
+## Batch 492 — real "Flag for Tumor Board / MDT" button; naming consistency (PS-359 follow-up; found-while-testing bug fix)
+
+Real, found-while-testing bug: Pete assigned a case and added a flag through the voice/keyboard path, then couldn't find any clickable way to repeat it — `showFlagForMdtModal` was only ever set by the `'delegation.tumorBoard'` voice/keyboard action handler, and Batch 491's own deactivation of `DelegateModal.tsx`'s `'TUMOR_BOARD'` delegation type removed the last (awkward) menu path that used to reach it. `BottomActionBar.tsx` gains a new `onFlagForMdt?` prop and a `CapabilityButton` (capability `case:tumor-board:flag`, context `{ caseId }`) next to Flags/Codes, wired here via `onFlagForMdt={() => setShowFlagForMdtModal(true)}`; the pre-existing `'delegation.tumorBoard'` voice/keyboard case is unchanged — the button is a second way in, not a replacement. New CSS class `.ps-bab-action-btn--flag-mdt` (`#EC4899`). See `components/README.md`'s own Batch 492 entry for the full button detail.
+
+Also, in the same change: display text now reads "Tumor Board / MDT" consistently (home tile title/description, `tumorBoard.pageTitle`) in en/de/nl/ko — fr's "RCP" stays alone, since that's the actual regional clinical term, not a shortening. See `src/i18n/README.md`'s own Batch 492 entry.
+
+**Disclosed, not fixed (surfaced while answering Pete's own follow-up questions on the workspace, not a bug in this batch's scope):** assigning a presenter on `TumorBoardWorkspacePage.tsx` sends no notification to that presenter — there's no messaging/notification system to send one through yet, so this is a new-feature-level gap, not something to patch in here. The Presenter dropdown is, by design, limited to users with the Pathologist or Fellow role (`useTumorBoardWorkspace.ts`'s own filter) — confirmed deliberate, not a bug.
+
+**Correction (Batch 493, CLAUDE.md rule 6):** the notification claim above was wrong — this app already had a real in-app messaging service (`services/messages/`) and a generic email transport (`services/communications/`), not checked carefully enough before writing that disclosure. Now wired up for real — see Batch 493's own entry below. The presenter-filter note was genuinely accurate as of this batch; Pete has since asked that Residents be included too, also done in Batch 493.
+
+## Batch 500 (PS-473)
+
+The HTML fallback print window escapes the accession in its `<title>` and in the CSS page header (`escapeHtml`, `cssString`); `modals/CopilotReportViewModal.tsx` escapes its print window's title. The page body is copied from the already-rendered (sanitised) report.
+
+## Batch 504 (lint clean-up)
+
+- **Sign-out (`hooks/useSignOutWorkflow.ts`, `handleSignOutConfirm`):** the callback didn't list the specimen dictionary or the PDF snapshot generator among its inputs, so it could keep stale copies of both. The finalize path did list them. Two consequences:
+  - **Fixative-time check could be skipped.** If the dictionary finished loading after the callback was last rebuilt, the check ran against an empty dictionary and let a specimen through that should have been held.
+  - **Stored PDF snapshot could use older text.** The snapshot could be built from report text as it stood when the callback was last rebuilt.
+
+  Both are now listed.
+- **Other screens in this folder:** many callbacks now list `savePagePatch`, `tGrossingNav` and `t`, so messages follow a language switch. `knownVersionRef` (a ref) comes out of dependency lists. Two that can't be listed are explained in the code: `savePagePatch` in `handleChangePriority`, and `handleReturnToTrainee` in the action-registry effect. Both are declared further down the page.
+- **Printed age (`ReportPreviewRenderer`):** uses `utils/ageFromDateOfBirth.ts`. The old "viewer-relative" justification was wrong: the age went up a day early in the Americas.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 495 — print permission, revision header, autopsy release reasons translated
+
+- **Print permission (PS-283 §4.2.4):** `printReport` (the orchestration print) calls `beginReportPrint()` first and shows `reportPrint.notPermitted` on a refusal; the orchestration Print button and the version-history modal are `report:case-report:print` `CapabilityButton`s. `VersionHistoryModal` now receives the case's `facilityId` for the check.
+- **Revision status (PS-283 §4.2.2):** `useReportRevisionStatus(caseData)` feeds `ReportPreviewRenderer`'s new revision banner, and the orchestration PDF payload carries `revisionStatus` (sent so `render_report` can draw it; unverifiable from here, PS-333). The HTML fallback print window's own stylesheet gained the revision-banner and footer-reference rules, since that window doesn't load `pathscribe.css`.
+- **Found, not fixed (disclosed):** that same HTML fallback stylesheet hard-codes English in its `@page` margin boxes ("CONFIDENTIAL — CLINICAL RECORD", "Page … of …"). It predates this batch; converting it means passing translated strings into a CSS `content:` value and was kept out of this batch's scope.
+
+*Correction (Batch 496 README audit): the surgical/orchestration PDF renderer is not external — it is `render_report` in `functions/main.py` in this repo. It reads only the case header, institution, body parts, sections, synoptic answers, map figures and render scope; it ignores `amendments`, `revisionStatus`, `watermarkText`, `preAnalyticDisclaimerText`, `documentStyle` and the header/footer parts, so none of those appear on the generated PDF yet. That work is in this repo (PS-333), not blocked.*
+
+## Batch 498 — what the PDF now shows
+
+Both PDF request builders (the sign-out snapshot, `buildReportRenderPayload`, and the orchestration print, `printReport`) send `revision` (dates in the report locale) and `documentVersion`, which `render_report` now draws with the watermark and disclaimer it already received. **Also fixed:** the orchestration print sent no `language` or `labels`, so its PDF was always worded in English and its date of birth always in en-GB; it now uses the lab's language like the sign-out snapshot. The two builders are still separate code paths — a candidate for merging.
+
+## Batch 499
+
+- **Organ retention tier:** `handleOrganRetentionTierChange` now calls `services/autopsy/recordAutopsyOrganRetentionTier.ts` (capability `autopsy:retention-tier:record`, consent and jurisdiction rules, audit) instead of writing the case itself. The tier select and its reason field are greyed without the capability; the select's label is now tied to it (`htmlFor`).
+
+## Batch 502 (PS-472)
+
+The organ map panel and the synoptic panel each sit in their own error boundary (`panel:organ-map`, `panel:synoptic`): a crash in one shows a small notice with Try again, and the rest of the report page keeps working. The synoptic answers live in the page's own state, so trying again reloads the panel with them.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 511 (PS-478): full strict type-checking
+
+- **Bug fixed:** picking a report in the Sequencer set the active report type to `undefined` (the Sequencer doesn't pass one), which hid the organ-map panel. It now defaults to `synoptic`, the only kind the Sequencer lists.
+- **Bug fixed:** "Open Grossing Screen" before the case had loaded threw an error. It now does nothing until the case is loaded.
+- **Bug fixed, `hooks/checkStainQcGate.ts`:** for a case without a full accession, the stain-QC sign-out gate looked for slide ids starting `undefined-…`. The batch queue builds them from the case id, so a failed staining batch never blocked sign-out. Both now use the case id when there is no full accession.
+- **Bug fixed, labels (`hooks/useSpecimenBlockManagement.ts` 4 print paths, `modals/ManageReprintsModal.tsx`):** for a case without a full accession, cassette and slide labels printed `undefined-A1` and couldn't be scanned back. They now use the case id, as the scan resolver does.
+- **Critical-result notification:** the sign-out hook accepts every method the modal offers (secure email and fax included); it was typed for three.
+- The amendment, grossing and sign-out hooks take the page's typed audit logger (`AuditLogFn`), which found four audit events missing from the catalogue (see `components/Audit/README.md`).
+- Typing only: `ReleaseBufferBanner`, `BlockStainEditorModal` (decant rows typed as `Decant`), `CaseHoldModal`, `RetentionHoldModal`, `SpecimenEditModal`, `MaterialTreePanel`.
+
+## Batch 512
+
+**Bug fixed: editing an ordinary LIS specimen never flagged it "Pending sync".** `modals/SpecimenEditModal.tsx` now takes the state from `services/specimens/resolveSpecimenLisSyncState.ts`. `components/Sidebar.tsx` shows the badge through `lisSyncStateNeedsBadge()`. The field is renamed `lisStatus` → `lisSyncState` (see `types/case/README.md`).
+
+## Batch 515 (PS-124)
+
+`hooks/useSignOutWorkflow.ts` no longer writes to the retired legacy FPPE service.
+
+## Batch 516 (PS-283, PS-72)
+
+- **Watermark:** printing before sign-out carries "PRELIMINARY — SUBJECT TO CHANGE" in the report's language.
+- **Restricted cases:** a restricted (VIP/confidential) case says so when printing is refused.
+- **CoPilot report view:** dates are in the user's format.
+- **Material tree:** the block and decant tooltips are tagged as PHI.
+
+## Batch 517
+
+The report page passes the case's accession to `CriticalFindingsModal`, for the secure email's subject (PS-143).
+
+## Batch 519 (PS-494)
+
+Free-text lymph node counts (seven templates) are checked at draft save and sign-out: not a count, above examined, or (Breast) total below A + B + C (`services/templates/nodeCountText.ts`).
+
+## Batch 523 (PS-145, decision 15)
+
+- **Autopsy:** before the FAD is signed (the button, or after a gate override), the clinical-pathologic mismatch check runs against the report sections as on screen (`checkAutopsyClinicalMismatch`). A suggestion is decided in the mismatch window, then the signature step follows. PAD signing isn't checked.
+- `ClinicalMismatchModal` moved to `components/ClinicalMismatch/`.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+The required-fields banner row has no button role (it holds the details button); the details chevron is a named button that says whether it is open.
+
+## Batch 530 (PS-554)
+
+The report page shows the inline mismatch alert (`components/ClinicalMismatch/ClinicalMismatchAlert.tsx`, `hooks/useClinicalMismatchAlert.ts`) above the peer-review banner, for surgical reports and autopsy reports awaiting the FAD. The sign-out and FAD windows open for high-risk mismatches only.
+
+`CaseClinicalHistoryBar` above the mismatch alert: the clinical history line, the deferred notice, and adding the history later.
+
+## Batch 533
+
+`modals/SignatureHistoryModal.tsx`: the new signing action and link, "Cytology preliminary report".
+
+## Batch 534
+
+- Under the release-buffer banner, `HeldReportsBanner` lists the case's reports held for the release delay (preliminary, corrections, addenda, autopsy), with Recall for the person who released them.
+- `hooks/useAmendmentWorkflow.ts`:
+  - corrections and addenda go through the delay (`releaseThroughDelay`);
+  - a correction released during the case's sign-out buffer leaves it 'pending-release' (`caseStatusAfterCorrection`; before, it set 'finalized' and left the buffer fields behind).
+- `hooks/useSignOutWorkflow.ts` hands a buffered sign-out to the background release (`trackSignOutBuffer`).
+- The preliminary release says when a held preliminary goes.
+
+## Batch 535
+
+- `hooks/useSignOutWorkflow.ts` (bug fix): a correction released at an Orchestration re-sign-out is now sent (`services/reports/publishReleasedRevision.ts`). The instance and the case are labelled Final (Corrected / Amended), and the instance is no longer flagged unlocked for amendment.
+- `hooks/useAmendmentWorkflow.ts`: the held correction or addendum records what Recall reopens (the record, its instance, the status and label before).
+- Recall on the held-reports line now works for corrections, addenda and autopsy PAD/FAD.
+
+## Batch 536
+
+`hooks/useSignOutWorkflow.ts`: the critical-findings AI call carries the case for the AI vendor policy.
+
+## Batch 538 (Pete: the preview must match what is sent)
+
+- `SynopticReportPage.tsx`: print and preview use the same payload builder as the released PDF (`buildReportRenderPayload(outputFormat, purpose)`). Only the watermark depends on the purpose. Before, print built its own payload.
+- Version History gets the case id and shows the documents sent.
+
+## Batch 539
+
+The renderer's address comes from `services/reports/reportRenderer.ts` (shared with Assist and cytology).
+
+## Batch 540
+
+`hooks/useAmendmentWorkflow.ts`: when starting a correction or addendum is refused because the report is still in its release delay, the window closes with a message (`useAmendmentWorkflow.toast.inReleaseDelay`). `SynopticReportPage.tsx` checks the same before adding an addendum workup to a finalized case. The release snapshot's watermark comment is updated (no release-buffer mark on a released PDF).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `components/` and `modals/`: loading text through `LoadingState`.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- The change history export goes through the export service (`report.change-history`, `{ caseId }`).
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: the release countdown on `components/ReleaseBufferBanner.tsx` no longer releases a report the server releases.
+
+## Batch 556 (PS-539 phase 2d: report documents through the API)
+
+- Batch 556: `modals/VersionHistoryModal.tsx`: sent documents through the API server.
+
+## Batch 558 (PS-539 phase 2d: report versions through the API)
+
+- Batch 558: `modals/VersionHistoryModal.tsx`: versions' PDFs through the reader; `SynopticReportPage.tsx` passes whether the server's list of versions was read.
+
+## Batch 567 (WCAG 2.1 AA)
+
+- Batch 567: `components/BillingReviewPanel.tsx`, `components/SequencerPanel.tsx`, `modals/ProtocolChangeModal.tsx`: no control inside another.
+
+## Batch 569 (WCAG 2.1 AA)
+
+- Batch 569: `components/Sidebar.tsx` (the rail's review dot beside, not inside, the specimen button).
+
+## Batch 572 (PS-539)
+
+- "Someone else saved this case": `components/CaseUpdatedBanner.tsx` above the tabs, from `hooks/useCaseUpdateNotice.ts`. The first-open write and the abnormal-detection confirmation (`hooks/useSignOutWorkflow.ts`) now move the known version on, so they don't show the notice or cause a refused save.
+
+## Batch 573 (PS-539)
+
+- Who else has the case open: `components/CasePresenceStrip.tsx` above the tabs (in the tab bar's row from Batch 577), from `hooks/useCasePresence.ts`; "editing" follows `services/cases/caseEditingSignal.ts`, which the unsaved-changes warning now uses too.
+
+## Batch 575
+
+- "Show their changes" on the case-updated notice takes the newer case up in place (`services/cases/caseWrite.ts` `takeUpNewerCase`), keeping unsaved report text and held changes; an overlap leaves a lasting note.
+
+## Batch 576
+
+- `markDirty` notes the person's own edits (not the set-up prefill or a restored draft), for presence and the unsaved-changes warning.
+
+## Batch 577
+
+- `components/EditConflictDialog.tsx`: "Use their version" (was "Reload their version") takes the saved case up in place; every choice is disabled while it is read.
+- `SynopticReportPage.tsx`: `takenUpKey` is bumped whenever the page takes up someone else's version; deficiencies, versions, signatures, the change log, the follow-up mark, the resolved context, `hooks/useLisIntegration.ts` (`refreshKey`), `components/AmendmentStatusBanner.tsx` (`refreshKey`) and `components/RightSynopticPanel.tsx` (`reloadKey`, its answers) read again. What their save removed is replaced as at case open (`selectionAfterTakeUp`).
+- `components/CasePresenceStrip.tsx` sits in the tab bar's row (`.ps-syn-tabbar-end`, pinned right with the tools), no longer above the tabs' content.
+
+## Batch 579
+
+- `SynopticReportPage.tsx` `saveSpecimensNow`: a specimen's billing codes and the Sequencer's specimen order are saved at once, one at a time; billing codes all or nothing (no charge or credit unless the code saved). `components/RightSynopticPanel.tsx`: a re-read keeps the open section.

@@ -12,6 +12,7 @@ import { rvuCodeMapService } from "@/services";
 import { getFacilityDateParts } from "@/utils/facilityTime";
 import { computeMonthlyCaseCounts, canSeePeerComparison, computeRvuSummary, computeMonthlyRvu, computePeerRvuStats, type RealRvuSummary, type RealPeerRvuStats } from "./productivityCalculations";
 import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -225,7 +226,7 @@ const LineChart: React.FC<{
           <RechartsTooltip
             contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, fontSize: 12 }}
             labelStyle={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}
-            formatter={(value: number, name: string) => [t('productivityTab.chart.valueRvus', { value: fmt(value) }), name]}
+            formatter={(value, name) => [t('productivityTab.chart.valueRvus', { value: fmt(value as number) }), name]}
           />
           {showLastYear && (
             <Line dataKey="lastYear" name={seriesLastYear} stroke={theme.colors.text.muted}
@@ -293,7 +294,7 @@ const PeerComparison: React.FC<{ you: number; peer: RealPeerRvuStats | null; las
     return (
       <Card>
         <SectionTitle title={t('productivityTab.peer.title')} sub={t('productivityTab.peer.subtitle')} />
-        <div className="ps-prodtab-peer-loading ps-prodtab-text--muted">{t('productivityTab.peer.loading')}</div>
+        <LoadingState variant="inline" className="ps-prodtab-peer-loading ps-prodtab-text--muted" label={t('productivityTab.peer.loading')} />
       </Card>
     );
   }
@@ -387,7 +388,7 @@ const ProductivityTab: React.FC = () => {
       }
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, config.facilityTimezone]);
 
   // Real fix: replaces the entirely hardcoded demoPeerData. Deliberately
   // a SEPARATE fetch from the one above - only ever runs when canSeePeer
@@ -408,7 +409,7 @@ const ProductivityTab: React.FC = () => {
       setRealPeer(computePeerRvuStats(allCasesRes.data, peerIds, versionsRes.data, config.facilityTimezone));
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [user?.id, canSeePeer]);
+  }, [user?.id, canSeePeer, config.facilityTimezone]);
 
   // Merge real case counts with the real, computed monthly RVU data into
   // the same MonthlyData shape the rest of this component already

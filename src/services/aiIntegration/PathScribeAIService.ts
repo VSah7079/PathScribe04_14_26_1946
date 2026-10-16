@@ -41,6 +41,7 @@ export class PathScribeAIService implements IAIIntegrationService {
         prompt: `Context: ${options?.context ?? 'Pathology Report'}\nRaw Text: "${text}"`,
         maxTokens: 500,
         configOverride: await resolveAiConfigOverrideForClient(options?.facilityId),
+        context: { feature: 'dictation', facilityId: options?.facilityId, jurisdiction: options?.jurisdiction },
       });
       return { ok: true, data: refined.trim() };
     } catch (error: any) {
@@ -56,6 +57,7 @@ export class PathScribeAIService implements IAIIntegrationService {
         prompt: `Suggest macros for this pathology text. Return JSON array: [{"id":"m1","keyword":"XX","expansion":"Full text"}]\n\nText: "${text}"`,
         maxTokens: 300,
         configOverride: await resolveAiConfigOverrideForClient(facilityId),
+        context: { feature: 'macro-suggestions', facilityId: facilityId },
       });
       const clean  = raw.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
@@ -99,6 +101,7 @@ Rules:
 - Only include fields you can answer with confidence ≥30`,
         maxTokens: 1000,
         configOverride: await resolveAiConfigOverrideForClient(facilityId),
+        context: { feature: 'synoptic-suggestions', facilityId: facilityId },
       });
 
       const clean  = raw.replace(/```json|```/g, '').trim();
@@ -112,7 +115,7 @@ Rules:
   // ── Narrative generation ────────────────────────────────────
   async generateNarrative(system: string, prompt: string, facilityId?: string): Promise<ServiceResult<string>> {
     try {
-      const { text } = await callAi({ system, prompt, maxTokens: 1000, configOverride: await resolveAiConfigOverrideForClient(facilityId) });
+      const { text } = await callAi({ system, prompt, maxTokens: 1000, configOverride: await resolveAiConfigOverrideForClient(facilityId), context: { feature: 'narrative', facilityId } });
       return { ok: true, data: text };
     } catch (error: any) {
       return { ok: false, error: error.message };

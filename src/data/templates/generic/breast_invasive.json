@@ -545,19 +545,19 @@
           "options": [
             {
               "id": "margin_status_invasive_opt_1",
-              "label": "Option 1",
+              "label": "Negative (uninvolved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_invasive_opt_2",
-              "label": "Option 2",
+              "label": "Positive (involved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_invasive_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -574,49 +574,49 @@
           "options": [
             {
               "id": "closest_margins_invasive_opt_1",
-              "label": "Option 1",
+              "label": "Superior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_2",
-              "label": "Option 2",
+              "label": "Inferior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_3",
-              "label": "Option 3",
+              "label": "Medial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_4",
-              "label": "Option 4",
+              "label": "Lateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_5",
-              "label": "Option 5",
+              "label": "Anterior (superficial)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_6",
-              "label": "Option 6",
+              "label": "Posterior (deep)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_7",
-              "label": "Option 7",
+              "label": "Superomedial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_invasive_opt_8",
-              "label": "Option 8",
+              "label": "Superolateral",
               "snomed": "",
               "icd": ""
             }
@@ -633,49 +633,49 @@
           "options": [
             {
               "id": "margins_involved_invasive_opt_1",
-              "label": "Option 1",
+              "label": "Superior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_2",
-              "label": "Option 2",
+              "label": "Inferior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_3",
-              "label": "Option 3",
+              "label": "Medial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_4",
-              "label": "Option 4",
+              "label": "Lateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_5",
-              "label": "Option 5",
+              "label": "Anterior (superficial)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_6",
-              "label": "Option 6",
+              "label": "Posterior (deep)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_7",
-              "label": "Option 7",
+              "label": "Superomedial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_invasive_opt_8",
-              "label": "Option 8",
+              "label": "Superolateral",
               "snomed": "",
               "icd": ""
             }
@@ -702,19 +702,19 @@
           "options": [
             {
               "id": "margin_status_dcis_opt_1",
-              "label": "Option 1",
+              "label": "Negative (uninvolved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_dcis_opt_2",
-              "label": "Option 2",
+              "label": "Positive (involved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_dcis_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -731,55 +731,55 @@
           "options": [
             {
               "id": "closest_margins_dcis_opt_1",
-              "label": "Option 1",
+              "label": "Superior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_2",
-              "label": "Option 2",
+              "label": "Inferior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_3",
-              "label": "Option 3",
+              "label": "Medial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_4",
-              "label": "Option 4",
+              "label": "Lateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_5",
-              "label": "Option 5",
+              "label": "Anterior (superficial)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_6",
-              "label": "Option 6",
+              "label": "Posterior (deep)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_7",
-              "label": "Option 7",
+              "label": "Superomedial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_8",
-              "label": "Option 8",
+              "label": "Superolateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margins_dcis_opt_9",
-              "label": "Option 9",
+              "label": "Inferomedial",
               "snomed": "",
               "icd": ""
             }
@@ -796,49 +796,49 @@
           "options": [
             {
               "id": "margins_involved_dcis_opt_1",
-              "label": "Option 1",
+              "label": "Superior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_2",
-              "label": "Option 2",
+              "label": "Inferior",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_3",
-              "label": "Option 3",
+              "label": "Medial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_4",
-              "label": "Option 4",
+              "label": "Lateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_5",
-              "label": "Option 5",
+              "label": "Anterior (superficial)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_6",
-              "label": "Option 6",
+              "label": "Posterior (deep)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_7",
-              "label": "Option 7",
+              "label": "Superomedial",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_dcis_opt_8",
-              "label": "Option 8",
+              "label": "Superolateral",
               "snomed": "",
               "icd": ""
             }
@@ -881,25 +881,25 @@
           "options": [
             {
               "id": "regional_ln_status_opt_1",
-              "label": "Option 1",
+              "label": "Negative",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "regional_ln_status_opt_2",
-              "label": "Option 2",
+              "label": "Positive",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "regional_ln_status_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "regional_ln_status_opt_4",
-              "label": "Option 4",
+              "label": "Not applicable (no nodes submitted)",
               "snomed": "",
               "icd": ""
             }
@@ -914,7 +914,9 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true,
+          "notMoreThan": "total_ln_examined"
         },
         {
           "id": "number_ln_micrometastases",
@@ -924,7 +926,9 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true,
+          "notMoreThan": "total_ln_examined"
         },
         {
           "id": "number_ln_itc",
@@ -934,7 +938,9 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true,
+          "notMoreThan": "total_ln_examined"
         },
         {
           "id": "largest_nodal_met_mm",
@@ -1001,7 +1007,13 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true,
+          "atLeastSumOf": [
+            "number_ln_macrometastases",
+            "number_ln_micrometastases",
+            "number_ln_itc"
+          ]
         },
         {
           "id": "sentinel_ln_examined",
@@ -1011,7 +1023,9 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "nodeCount": true,
+          "notMoreThan": "total_ln_examined"
         },
         {
           "id": "regional_ln_comment",
@@ -1039,49 +1053,49 @@
           "options": [
             {
               "id": "distant_metastasis_opt_1",
-              "label": "Option 1",
+              "label": "Not identified",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_2",
-              "label": "Option 2",
+              "label": "Present — pathologically confirmed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_3",
-              "label": "Option 3",
+              "label": "Bone",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_4",
-              "label": "Option 4",
+              "label": "Liver",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_5",
-              "label": "Option 5",
+              "label": "Lung",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_6",
-              "label": "Option 6",
+              "label": "Brain",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_7",
-              "label": "Option 7",
+              "label": "Other",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_8",
-              "label": "Option 8",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }

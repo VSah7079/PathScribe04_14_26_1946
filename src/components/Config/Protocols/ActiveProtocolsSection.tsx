@@ -53,6 +53,7 @@ import {
   CategoryGroup,
   EmptyState,
 } from './ProtocolCardParts';
+import { pressable } from '@/utils/a11y/pressable';
 
 // protocolGroup()'s return values are a real, closed set of data
 // identifiers compared by strict string equality (see protocolShared.tsx);
@@ -74,7 +75,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
 
       {/* Collapsed row */}
       <div
-        onClick={() => setOpen(o => !o)}
+        {...pressable(() => setOpen(o => !o))}
         className={`ps-activeprotocols-row${open ? ' ps-activeprotocols-row--open' : ''}`}
       >
         <div className="ps-activeprotocols-cat-bar" style={categoryHueVar(p.category)} />

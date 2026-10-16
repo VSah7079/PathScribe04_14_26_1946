@@ -36,7 +36,7 @@ same change.
   `specimen_acquisition` | `reference_lab`),
   `FACILITY_ROLE_LABELS` (display strings), `FACILITY_ROLE_TOOLTIPS`
   (real, per-role hover text — further defines what each role actually
-  means/gates, shown in `ClientEditorModal.tsx` via a native `title`
+  means/gates, shown in `components/FacilityDictionary/FacilityEditorModal.tsx` via a native `title`
   attribute; grounded in each role's own real, verified behavior, not
   a restatement of the label — see that constant's own doc comment
   for which roles genuinely gate a field/tab vs. which are currently
@@ -75,7 +75,7 @@ same change.
   Gated to `performing_lab`. `placeOfServiceCodeId?: string` — real
   field, gated to `specimen_acquisition`. References a real, versioned
   `PlaceOfServiceCode` dictionary (`services/billing/`) via a real
-  picker in `ClientEditorModal.tsx`.
+  picker in `FacilityEditorModal.tsx`.
   **Real, new field (Outside Client Support & International Financial
   Class Architecture Specification, Step 2):**
   `defaultAccountBillingType?: string` — the source spec's own dynamic-
@@ -200,12 +200,13 @@ same change.
   at module load for the seeded performing labs above, which predate
   this field.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the role tooltips and Place of Service picker are in `FacilityEditorModal.tsx`; `ClientEditorModal.tsx` was deleted in Batch 179.*
+
 ## Consumers
 
-- `components/ClientDictionary/ClientEditorModal.tsx` — the unified
-  editor. See that folder's own README for the full tab-gating
-  breakdown (which tabs are gated to which roles, and two real bugs
-  found and fixed in that gating).
+- `components/FacilityDictionary/FacilityEditorModal.tsx` — the unified
+  editor (Configuration → Facilities). See that folder's own README for
+  its tab and role gating.
 - `components/Config/AI/orchestratorModeConfig.ts` /
   `resolveClientAiModel.ts`, `services/session/mockSessionTimeoutService.ts`,
   `services/reportRelease/mockReportReleaseService.ts` (**NEW, August
@@ -244,6 +245,8 @@ same change.
   about which country governs a case. See
   `services/participationTypes/README.md` for the model it feeds.
   Tested in `resolveCasePerformingLabScope.test.ts`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the editor is `components/FacilityDictionary/FacilityEditorModal.tsx`, not the deleted `components/ClientDictionary/ClientEditorModal.tsx`.*
 
 ## Notes
 
@@ -302,7 +305,7 @@ dead code). Neither list is derived from the real `FacilityRole` type
 itself, so TypeScript has no way to catch a role added to one without
 the other — both were updated by hand for `reference_lab` here, but
 this is a real, standing risk for the next new role, not just a
-one-time miss.
+one-time miss. *(Since closed: `components/ClientDictionary/` and `ClientDictionaryPage.tsx` were deleted in Batch 179, so only `FacilityEditorModal.tsx` keeps a `FACILITY_ROLE_ORDER` list; it is still hand-maintained rather than derived from the type — checked in the Batch 496 README audit.)*
 
 - **Real, new consumer (PS-287, Sep 2026):** `getAll()`, filtered to `roles.includes('reference_lab') && status === 'Active'`, is now how `pages/AddOnOrderPage/`'s own Order Summary & Routing panel offers a real Reference/Send-Out Lab picker for a molecular/send-out add-on order — the first real place this app lets a user actively choose a `reference_lab` facility, as opposed to that role's prior, purely-descriptive existence on the Facility record. Read-only; nothing in this folder's own files changed. Real, honest scope note: no per-performing-lab "preferred reference lab" mapping exists — the ordering pathologist picks explicitly each time.
 
@@ -389,7 +392,7 @@ context with fallback to Department and Enterprise defaults").
 - **Still open:**
   - The three Manchester site labs (`c-site-mft-*`) have no cases, because searching by a Trust does not include its sites. *Fixed in Batch 354.*
   - `MPA26-1006-POOL` is a Midwest case, but its ordering facility, `c-hfhs-07`, is a Henry Ford client, so it is found under Henry Ford.
-  - The Desert Valley cases at Metro General, Riverside, Northside and Westview (`c1`–`c4`) have facility records but no lab link.
+  - The Desert Valley cases at Metro General, Riverside, Northside and Westview (`c1`–`c4`) have facility records but no lab link. *(Since closed: Batch 441 gave `c1`–`c5` Desert Valley Medical Center as their performing lab, `withDemoClientPerformingLab` in `mockFacilityService.ts` — checked in the Batch 496 README audit.)*
 
 ## Batch 354: a Trust includes what is under it
 
@@ -436,7 +439,7 @@ Pete: "Link Hospital ID to an Organization so all this can be demo'd appropriate
 
 `Facility.consolidateOutboundPdfs` (performing labs): the lab's LIS takes one PDF per accession, so synoptic results go with one combined case PDF instead of one per workup (`services/reports/`).
 
-**Disclosed, not fixed:** saving a facility checks no capability; anyone who can open Configuration can do it. A Configuration-wide permission scan is the next batch.
+**Disclosed, not fixed:** saving a facility checks no capability; anyone who can open Configuration can do it. A Configuration-wide permission scan is the next batch. *(Since closed: Batch 428 requires `config:facilities:manage`, see below — checked in the Batch 496 README audit.)*
 
 ## Batch 428: Configuration permissions
 
@@ -463,3 +466,26 @@ Desert Valley's US demo ordering clients (`c1` to `c5`) now name Desert Valley M
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 517 — setPrintSettings (PS-337)
+
+- **New method.** `IFacilityService.setPrintSettings(id, { printDeliveryConfig?, printPresentationPreference? })` checks `config:print-settings:manage`. It refuses settings that have a problem (`services/printing/facilityReportPrinting.ts`). `undefined` clears a block.
+- **`add` and `update` now ignore the two printing fields.** This means a facility edit can't overwrite printing saved from the Printing tab, and someone with only `config:facilities:manage` can't change printing.
+- **Duplicating a facility doesn't copy its printing.** A new site sets up its own printers.
+- Test: `facilityPrintSettings.test.ts`.
+
+## Batch 528: Facility editor requirements (PS-359)
+
+`facilityFormChecks.ts` decides what the Facility editor needs before it saves, from the organisation's Field Requirements (page `facility`). It replaces the check hard-coded in `FacilityEditorModal.tsx`:
+- name and assigning authority stay locked, and the assigning authority stays unique ignoring case (PS-73);
+- email is required by default, and an organisation can switch that off;
+- phone, address and the contact person can be made required;
+- the interface engine endpoint and the LIS sending-facility ID are required only once that interface is set up.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `facilityFormChecks.ts`: the letterhead logo (`headerLogoUrl`), when given, must be an https link (`invalidLink`, `services/links/externalLink.ts`). Carried over from Batch 544.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- Batch 553: `setPrintSettings` checks a site agent default printer is on this facility's own site (`facilityPrintProblem(settings, id)`).

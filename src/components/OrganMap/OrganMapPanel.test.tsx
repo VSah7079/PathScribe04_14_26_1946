@@ -91,3 +91,25 @@ describe('OrganMapSvg without a jump target', () => {
     expect(container.querySelectorAll('[role="img"]')).toHaveLength(41);
   });
 });
+
+// Batch 524 (PS-491 acceptance): colour is never the only cue, and outlines keep their halo.
+describe('OrganMapSvg: colour never alone, overlays keep their halo', () => {
+  it('every patterned colour is drawn with its pattern, and every outline sits on a white halo and a dark edge', async () => {
+    const { OrganMapSvg } = await import('./OrganMapSvg');
+    const { organMapSchemePreview } = await import('@/services/organMapping/organMapConfigDraft');
+    const { organMapDrawingLabels } = await import('@/services/organMapping/organMapLabels');
+    const { usesPatternFill } = await import('@/services/organMapping/organMapDrawing');
+    const p = organMapSchemePreview(BUILT_IN_ORGAN_MAP_SCHEME);
+    const { container } = render(<OrganMapSvg payload={p} scheme={BUILT_IN_ORGAN_MAP_SCHEME} labels={organMapDrawingLabels(k => k, p.mapType, BUILT_IN_ORGAN_MAP_SCHEME)} summaryOf={s => s.id} />);
+    const patterned = p.sectors.filter(s => usesPatternFill(BUILT_IN_ORGAN_MAP_SCHEME[s.category].pattern));
+    expect(patterned.length).toBeGreaterThan(0);
+    const shapes = [...container.querySelectorAll('.ps-organmap-sector')].map(g => g.querySelector('.ps-organmap-shape')!);
+    const filledByPattern = shapes.filter(s => /^url\(#/.test(s.getAttribute('fill') ?? ''));
+    expect(filledByPattern).toHaveLength(patterned.length);
+    for (const s of filledByPattern) expect(container.querySelector(s.getAttribute('fill')!.slice(4, -1))).not.toBeNull();
+    const withOverlays = p.sectors.filter(s => s.overlays.length > 0).length;
+    expect(withOverlays).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.ps-organmap-overlay-halo')).toHaveLength(withOverlays);
+    expect(container.querySelectorAll('.ps-organmap-overlay-edge')).toHaveLength(withOverlays);
+  });
+});

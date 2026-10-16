@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { txGet, txSet, runTransaction } = vi.hoisted(() => {
+const { txGet, txSet, txCreate, runTransaction } = vi.hoisted(() => {
   const txGet = vi.fn();
   const txSet = vi.fn();
-  const runTransaction = vi.fn(async (cb: any) => cb({ get: txGet, set: txSet }));
-  return { txGet, txSet, runTransaction };
+  const txCreate = vi.fn();
+  const runTransaction = vi.fn(async (cb: any) => cb({ get: txGet, set: txSet, create: txCreate }));
+  return { txGet, txSet, txCreate, runTransaction };
 });
 
 vi.mock('./firebaseAdmin', () => ({
   getAdminFirestore: () => ({
-    collection: () => ({ doc: () => ({}) }),
+    collection: (name: string) => ({ doc: (id: string) => ({ path: `${name}/${id}` }) }),
     runTransaction,
   }),
 }));
@@ -25,6 +26,7 @@ describe('upsertEngraverStatus', () => {
   beforeEach(() => {
     txGet.mockReset();
     txSet.mockReset();
+    txCreate.mockReset();
   });
 
   it('applies the update when no prior state exists for this device', async () => {
@@ -53,5 +55,19 @@ describe('upsertEngraverStatus', () => {
     const outcome = await upsertEngraverStatus(baseInput);
     expect(outcome).toBe('stale-ignored');
     expect(txSet).not.toHaveBeenCalled();
+  });
+
+  it('Batch 549 (F10): with a claim, the messageId is claimed in the same transaction as the status', async () => {
+    txGet.mockImplementation(async (ref: any) => ref.path.startsWith('processed_messages/') ? { exists: false } : { exists: false, data: () => undefined });
+    expect(await upsertEngraverStatus(baseInput, { messageId: 'msg-9', eventType: 'engraver-status' })).toBe('applied');
+    expect(txCreate).toHaveBeenCalledWith({ path: 'processed_messages/msg-9' }, expect.objectContaining({ eventType: 'engraver-status' }));
+    expect(txSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('Batch 549 (F10): a messageId already claimed changes nothing', async () => {
+    txGet.mockImplementation(async (ref: any) => ref.path.startsWith('processed_messages/') ? { exists: true } : { exists: false, data: () => undefined });
+    expect(await upsertEngraverStatus(baseInput, { messageId: 'msg-9', eventType: 'engraver-status' })).toBe('already-processed');
+    expect(txSet).not.toHaveBeenCalled();
+    expect(txCreate).not.toHaveBeenCalled();
   });
 });

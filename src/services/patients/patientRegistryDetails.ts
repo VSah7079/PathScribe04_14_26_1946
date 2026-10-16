@@ -35,7 +35,6 @@ import { normalizeNationalIdentifier, verifyNationalIdentifier } from '../patien
 import { withNationalIdentifier } from '../patientIdentifiers/recordNationalPatientIdentifier';
 import { updateCaseWithRetry } from '../cases/caseWrite';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface PatientRegistryDetailsDeps {
   resolvePatient: (assigningAuthority: string, identifierValue: string) => Promise<string | null>;
   getPatient: (patientId: string) => Promise<{ id: string; registryConsent?: PatientRegistryConsent } | null | undefined>;

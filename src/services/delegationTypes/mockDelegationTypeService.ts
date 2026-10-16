@@ -4,8 +4,10 @@ import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
-// Mirrors DEFAULT_DELEGATION_TYPES from constants/delegationTypes.ts.
-// The mock owns its own copy so it is not coupled to localStorage.
+// Batch 491 (verify-don't-trust correction): this comment used to claim the
+// seed mirrors a `DEFAULT_DELEGATION_TYPES` in `constants/delegationTypes.ts`
+// — no such file or constant exists in this repo. This array is the mock's
+// own, sole copy of the seed data; it is not coupled to localStorage.
 
 const SEED: DelegationType[] = [
   {
@@ -33,10 +35,18 @@ const SEED: DelegationType[] = [
     color: '#10b981', active: false, isSystem: true, sortOrder: 4,
   },
   {
+    // Batch 491: deactivated, not deleted (isSystem:true blocks deletion
+    // here anyway, and historical DelegationRequest records may still
+    // reference this id). The real path for a tumor board submission is
+    // now services/tumorBoard (FlagForMdtModal → mockTumorBoardService),
+    // which models a board queue instead of forcing the generic
+    // DelegationRequest's person/pool recipient this type always required
+    // — the exact mismatch disclosed in services/tumorBoard/README.md and
+    // ITumorBoardService.ts since that module's first batch.
     id: 'TUMOR_BOARD', label: 'Tumor Board',
     description: 'Submitted for multidisciplinary team discussion — not a sign-out',
     transfersOwnership: false, requiresNote: false, multiAssign: false,
-    color: '#8b5cf6', active: true, isSystem: true, sortOrder: 5,
+    color: '#8b5cf6', active: false, isSystem: true, sortOrder: 5,
   },
   {
     id: 'TEACHING', label: 'Teaching Case',

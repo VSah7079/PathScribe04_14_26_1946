@@ -263,72 +263,17 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "highest_gleason_score_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_7",
-              "label": "Option 7",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_8",
-              "label": "Option 8",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "highest_gleason_score_opt_11",
-              "label": "Option 11",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "highest_gleason_score_opt_1", "label": "≤5 (rarely assigned)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_2", "label": "6 (3+3)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_3", "label": "7 (3+4)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_4", "label": "7 (4+3)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_5", "label": "8 (3+5)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_6", "label": "8 (4+4)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_7", "label": "8 (5+3)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_8", "label": "9 (4+5)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_9", "label": "9 (5+4)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_10", "label": "10 (5+5)", "snomed": "", "icd": "" },
+            { "id": "highest_gleason_score_opt_11", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ]
         },
         {
@@ -470,66 +415,16 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "combined_systematic_targeted_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_7",
-              "label": "Option 7",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_8",
-              "label": "Option 8",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "combined_systematic_targeted_grade_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "combined_systematic_targeted_grade_opt_1", "label": "6 (3+3)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_2", "label": "7 (3+4)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_3", "label": "7 (4+3)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_4", "label": "8 (3+5)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_5", "label": "8 (4+4)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_6", "label": "8 (5+3)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_7", "label": "9 (4+5)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_8", "label": "9 (5+4)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_9", "label": "10 (5+5)", "snomed": "", "icd": "" },
+            { "id": "combined_systematic_targeted_grade_opt_10", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ]
         },
         {

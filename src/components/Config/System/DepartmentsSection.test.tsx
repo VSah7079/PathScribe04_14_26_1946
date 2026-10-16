@@ -104,3 +104,16 @@ describe('DepartmentsSection — real, per PS-277 §1.2.2 gap-closing: branding 
     ));
   });
 });
+
+describe('Batch 549 (carried over from Batch 544): the department logo must be an https link', () => {
+  it('an http logo address is refused with a message under the field, and nothing is saved', async () => {
+    render(<DepartmentsSection />);
+    await screen.findByText('Surgical Tissue');
+    fireEvent.click(screen.getByText('common.edit'));
+    const logoInput = await screen.findByDisplayValue('https://example.com/dept-logo.png');
+    fireEvent.change(logoInput, { target: { value: 'http://example.com/logo.png' } });
+    fireEvent.click(screen.getByText('departmentsSection.modal.saveButton'));
+    expect(await screen.findByText('links.invalidHttpsLink')).toBeTruthy();
+    expect(departmentService.update).not.toHaveBeenCalled();
+  });
+});

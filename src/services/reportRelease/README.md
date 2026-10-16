@@ -41,7 +41,10 @@ simulation — `checkAndReleaseIfExpired()`, called from
 `ReleaseBufferBanner.tsx`'s own live countdown timer, is genuinely correct
 for an open tab, but isn't yet backed by a real, server-side scheduler
 that would also release a case nobody has the page open for. Flagged
-honestly here and in the component itself, not hidden.
+honestly here and in the component itself, not hidden. *(Batch 534: a
+buffered sign-out is now also released by a background sweep that runs on
+any open PathScribe screen (`releaseReportDeps.startReleaseBackgroundWork`).
+A real server-side scheduler still comes with the API server, PS-539.)*
 
 ## Files
 
@@ -93,29 +96,30 @@ than an implicit blank-means-inherit convention.
 
 ## Real admin UI
 
-**Org-wide default** — `components/Config/Integrations/LISSection.tsx`,
-under Configuration → Integrations → LIS Integration, per direct
-specification's own stated navigation ("Under Integration sublevel LIS
-Integrations"). Reuses that file's own existing `Toggle`/`SettingRow`
-components.
+**Org-wide default** — `components/Config/System/ReleaseBufferSection.tsx`,
+under Configuration → System → Post-Sign-Out Release Buffer (nav id
+`release_buffer`, in the Administration & Compliance group). It was
+first built inside `components/Config/Integrations/LISSection.tsx`
+(Configuration → Integrations → LIS Integration); that screen was later
+retired and the release-buffer default moved to its own section.
 
 **A real, genuine mistake made and caught while building this**: a
-second, near-identical `LISSection.tsx` exists at
-`components/Config/System/LISSection.tsx` — confirmed, directly, to be
-orphaned dead code, never imported anywhere in the app (the real one is
-consumed by `components/Config/Integrations/index.tsx`). The org-config
-UI was built against the orphaned file first; caught by checking which
-file was actually wired into navigation before considering the work
-done, reverted cleanly via `git checkout`, and rebuilt against the real
-file. Left here as a note in case anyone else reaches for
-`Config/System/LISSection.tsx` in the future — it does nothing.
+second, near-identical, orphaned `LISSection.tsx` then existed at
+`components/Config/System/LISSection.tsx`. The org-config UI was built
+against the orphaned file first; caught by checking which file was
+actually wired into navigation, reverted, and rebuilt against the real
+file. Both `LISSection.tsx` copies have since been deleted (see
+`components/Config/System/README.md`).
 
-**Per-facility override** — `components/ClientDictionary/ClientEditorModal.tsx`,
+**Per-facility override** — `components/FacilityDictionary/FacilityEditorModal.tsx`
+(formerly `components/ClientDictionary/ClientEditorModal.tsx`),
 on the facility editor's AI & Performance tab, right alongside the
 existing idle-timeout override, matching that established split (org
 default gets its own config screen; facility override lives on the
 facility editor) — confirmed via `SessionSecuritySection.tsx`'s own
 header comment before building.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): org default now lives in `ReleaseBufferSection.tsx` (Configuration → System), facility override in `FacilityEditorModal.tsx`; both `LISSection.tsx` files are gone.*
 
 ## Real consumer
 
@@ -130,7 +134,7 @@ calling it would need to when Phase 2 landed.
 - Full test suite: 773/773 passing (17 in this folder), zero
   regressions.
 - Full live browser verification: navigated to the real, correct config
-  screen (Configuration → Integrations → LIS Integration), changed the
+  screen (Configuration → Integrations → LIS Integration *(since moved to Configuration → System → Post-Sign-Out Release Buffer — checked in the Batch 496 README audit)*), changed the
   buffer duration through the actual UI, confirmed it persisted via a
   direct read-back. Directly verified the full, real resolution chain
   live in the running app (not just in tests): a facility with a
@@ -184,7 +188,7 @@ the spec's own "administrative override... watermarked" language.
 **Real, honest scope gap**: this covers the one print entry point in
 this file. Orchestration mode's separate print entry point (confirmed
 to live inside the full report preview panel — a genuinely different
-component, not duplicated here) is NOT yet gated.
+component, not duplicated here) is NOT yet gated. *(Since closed: `handleOrchPrint` is gated too — see "Two known gaps closed" below; checked in the Batch 496 README audit.)*
 
 **PDF payload** — `generateReportPdfSnapshot()` in
 `SynopticReportPage.tsx` now sends a real `watermarkText` field
@@ -192,7 +196,11 @@ component, not duplicated here) is NOT yet gated.
 `pending-release`) through to the separate, server-side PDF renderer —
 same honest, already-established caveat as that function's own
 `documentStyle` field: sent so the renderer CAN draw it, not verifiable
-from this frontend codebase that it actually does.
+from this frontend codebase that it actually does. *(Checked in the Batch 496
+README audit: the renderer is `render_report` in `functions/main.py`, in this
+repo, and it did not read `watermarkText` — so a PDF generated during the
+release buffer carries no watermark yet. The on-screen watermark and the print
+restriction are real. PS-333.)* *(Since closed in Batch 498: the PDF carries the watermark diagonally on every page.)*
 
 **Config additions** — `ReportReleaseOrgConfig` gained `watermarkText`
 (default matches the spec's own stated default) and
@@ -310,7 +318,7 @@ scope — audit-logging polish, not a rearchitecture of pre-existing
 sign-out/versioning logic this session didn't build and doesn't have
 full context on the blast radius of. Flagged here plainly as a real,
 open question rather than silently left unmentioned or riskily "fixed"
-without that context.
+without that context. *(Since closed: buffer-aware dispatch via `services/reports/dispatchCaseInstances.ts` — see the §18b section below; checked in the Batch 496 README audit.)*
 
 ## Verified
 
@@ -455,7 +463,7 @@ Two real, honest gaps remain — client IP address (needs real backend
 infrastructure) and the `ReportVersionRecord`/`finalizeSignOut()`
 relationship for §18b (needs a real, separate architectural decision) —
 both documented above rather than silently left for someone else to
-discover.
+discover. *(Since closed: the §18b gap — see the next section; client IP still needs the API server. Checked in the Batch 496 README audit.)*
 
 ## Real, per direct follow-up ("we had a configurable delay feature that allowed the Pathologist time to fix typos... Hopefully that still works given all the updates?"): the §18b gap immediately above is now closed — real ORU^R01 dispatch is genuinely deferred to real buffer expiry
 
@@ -487,3 +495,74 @@ Fair, direct observation worth recording honestly: this genuinely is the kind of
 - `mockReportReleaseService`: `setOrgDefault` need `config:release-buffer:manage`.
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 498
+
+The release-buffer watermark now appears on the generated PDF too (diagonal, every page) — `render_report` draws `watermarkText`. Before, it showed only on screen.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`mockReportReleaseService` (and its test) sends the case version like every other case write (`caseVersionOf`, 0 when missing).
+
+## Batch 534 — every report output follows the release delay (Pete, Oct 12, 2026)
+
+Pete: "Any report output, unless it's a resubmission to an output failure, should follow the consistent delay rule." The STAT bypass applies the same way to every output, the urgent preliminary included. Recall "reopens, like sign-out", and only the person who released the report may recall it.
+
+Before this batch only the surgical FINAL sign-out was delayed. Preliminaries, corrections and addenda (surgical and cytology), autopsy PAD/FAD, and every cytology release published at once.
+
+- **`releaseReport.ts`** (new). `releaseReport(event, hold, deps)`:
+  - With no delay (switched off, or STAT with the bypass on), it publishes now, with its follow-ups (the cytology registry submissions).
+  - Otherwise it keeps a `HeldRelease` (`types/reportRelease/HeldRelease.ts`). That record holds the PDF as it was when released, what Recall reopens and what goes with it. The hold is audited as `REPORT_RELEASE_HELD`.
+  - `releaseDueReports` sends those whose delay has ended. Each is settled first, so it never goes twice, and the send is audited as `REPORT_RELEASE_SENT`.
+  - `recallHeldRelease` checks the person (`heldReleaseRules.heldRecallRefusal`), reopens and audits `REPORT_RELEASE_RECALLED`. Nothing is sent.
+  - `trackSignOutBuffer` hands a surgical sign-out's buffer to the sweep. That sign-out keeps its own state on the case and its own banner and recall.
+- **`heldReleaseActions.ts`** (new): what Recall reopens and the follow-ups.
+  - A cytology case report: the last sign-out record is marked recalled (never deleted) and the case goes back to its earlier status.
+  - A late specimen: its record is marked recalled.
+  - An early finalization: undone.
+  - A cytology correction: marked recalled, and the final diagnosis is put back. An addendum is marked recalled.
+  - A cytology preliminary: marked recalled.
+  - A surgical preliminary: its attestation is cleared.
+  - **Not yet reopened:** surgical corrections and addenda, and autopsy PAD/FAD. These are held, but Recall for them comes in Batch 535.
+- **`mockHeldReleaseService.ts`** (new): the held releases, kept through `mockStorage`.
+- **`releaseReportDeps.ts`** (new): the wiring, and `startReleaseBackgroundWork`, a 15-second sweep started by the app shell (`hooks/useReleaseBackgroundWork.ts`). It also releases buffered sign-outs whose page nobody has open.
+- **`releaseThroughDelay.ts`** (new): `releaseThroughDelay`, `listHeldReports` and `recallHeldReport` for callers without a deps object.
+- **`mockReportReleaseService.ts`**:
+  - recall and expiry settle the sign-out's tracker;
+  - expiry now passes the performing facility, so print and fax route as they did at sign-out.
+- **Never delayed:** resends after a failure (the outbound and delivery queues' retries). They don't go through `releaseReport`.
+- **`heldReleaseRules.caseStatusAfterCorrection`** fixes a bug where Finalize followed straight away by a surgical correction set the case 'finalized' during its buffer and left the buffer fields behind. The case now stays 'pending-release'.
+
+Tests: `releaseReport.test.ts` (7), `heldReleaseActions.test.ts` (9), `mockReportReleaseService.test.ts` (+1).
+
+## Batch 535 — Recall for surgical corrections and addenda, and autopsy PAD/FAD
+
+- **What Recall reopens** (`heldReleaseActions.ts`):
+  - `surgical-amendment`: the record goes back to draft (`amendmentService.reopen`; the recall is kept on the record). Its report instance becomes editable again with its pending id, as it was before release, and the case status and revision label are restored. A correction released during the case's sign-out buffer leaves the status to the sign-out's own recall.
+  - `autopsy`: the PAD or FAD frozen snapshot is withdrawn, and a FAD puts the case status back. A PAD can't be recalled once the FAD is signed on it (`heldRecallBlocked` → `superseded`). `signAutopsyReport` now stores the case status before signing (Batch 534 stored the tier there by mistake).
+  - Both are in `RECALLABLE_KINDS`.
+- **`recallHeldForCase`**: recalling a surgical sign-out (`mockReportReleaseService.recall`) also takes back the corrections and addenda still held on that case, so nothing goes out for a report that was taken back.
+- **Not undone by Recall:**
+  - a CAPA recommendation made when a correction was released stays for the QA lead to dismiss;
+  - a countersign completed at the autopsy signature stays completed;
+  - the signature record stays, with the recall audited next to it.
+
+Tests: `releaseReport.test.ts` (+3), `heldReleaseActions.test.ts` (+6).
+
+## Batch 538
+
+A held report keeps its PDF on the hold (`HeldRelease.pdfBase64`, as before). When the delay ends, `releaseDueReports` publishes it and `publishReportReleasedEvent` stores it then as the release's report document, with no new PDF. A report recalled during the delay leaves no document behind.
+
+## Batch 540 (Pete, Oct 12): no correction or addendum during the release delay
+
+`revisionDuringDelay.ts` (new): while a report is still in its release delay, nothing has been sent, so a correction or addendum is refused; the pathologist recalls the report instead. "In its delay": a case in its sign-out buffer (`pending-release`), or a held original report (`surgical-sign-out`, `cytology-sign-out`, `cytology-finalize-early`, `cytology-late-sign-out`, `autopsy`). A held revision or preliminary doesn't count. `revisionBlockedByDelay` (pure), `revisionAllowedNow(caseId, deps)`, `REVISION_IN_RELEASE_DELAY`.
+
+Enforced in the services: `reports/mockAmendmentService.startDraft` (every surgical and Assist correction, amendment and addendum starts there), `cytology/releaseCytologyCorrection` and `releaseCytologyAddendum` (`inReleaseDelay: true`). The report page also checks before adding an addendum workup to a finalized case.
+
+Why (found in the Batch 538 review): a revision released during the buffer was rendered while the case was `pending-release`, so its PDF carried the release-buffer watermark, and that file went out when the delay ended. Also fixed at the source: a released PDF never carries the release-buffer watermark (`reports/resolveReportWatermark.ts`); a print during the delay still does.
+
+`heldReleaseRules.caseStatusAfterCorrection` stays: an Assist correction is released by re-finalizing, which can put the case back in its buffer first.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- `releaseCountdown.ts` (Batch 555, new): when a held surgical sign-out's countdown ends on the report page, the page releases it, or (once the server runs `release.dueSweep`) reads the case again every 15 s until the server has released it.

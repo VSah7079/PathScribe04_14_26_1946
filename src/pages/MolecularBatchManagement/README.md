@@ -40,3 +40,11 @@ Phase 21 restructuring.
 ## Batch 406
 
 The page takes the QC-run service from `@/services` and is off the deployment baseline. Sorting and the specimen-to-run lookup moved to `services/cytology/molecularQcRunLinks.ts`. Run dates follow the user's language.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.

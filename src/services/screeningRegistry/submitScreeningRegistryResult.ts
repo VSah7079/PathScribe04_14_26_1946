@@ -37,7 +37,6 @@ import { buildRegistrySubmissionHeader, registryContentHash, type PriorRegistryS
 import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface ScreeningRegistrySubmitDeps {
   getRegistrySettings: (facilityId: string) => Promise<{ enterprise: any; facility: any }>;

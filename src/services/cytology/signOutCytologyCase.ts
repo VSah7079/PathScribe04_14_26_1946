@@ -18,13 +18,24 @@
 //   6. Sign-out side effects, before the record is written: the
 //      translation-validation audit entry, the CAP 5-year retrospective
 //      lookback, a ROSE discrepancy QC assignment, post-sign-out peer review
-//      selection, and cyto-histologic correlation candidates.
+//      selection, the QC Rules engine (Batch 501), and cyto-histologic
+//      correlation candidates.
+//      Batch 501 (Pete, Oct 9 — layered QC): ROSE and the Rules engine create
+//      or upgrade ONE open QC assignment per specimen
+//      (cytologyQc/resolveQcAssignmentUpsert.ts); peer-review selection stays
+//      a passive flag, recorded as a selection reason when a rule or ROSE also
+//      selects the specimen.
 //   7. The sign-out record, the case finalized, the signature committed, the
 //      Report_Released_Event, and (where the facility reports to one) the
 //      national screening registry dispatch, with the CSMS eligibility flag.
 //      Batch 411: each cytology specimen is signed out on its own, and the
 //      case is finalized only when every cytology specimen has been
 //      (cytologyCaseFinalization.ts); until then it keeps its status.
+//      Batch 532 (Pete, Oct 12): the release event and the registry wait for
+//      that. When the last specimen is signed, one consolidated case report
+//      is released (FINAL) and every sample goes to the registry together; on
+//      a case finalized early, a later sign-out releases the case report
+//      again as an ADDENDUM.
 //
 // Screen text is the caller's; this returns what happened. Email and audit
 // text stay English (transport and compliance records).
@@ -43,9 +54,19 @@ import { resolveCanSignOutCytology } from './resolveCanSignOutCytology';
 import { resolveCytologySignOutAuthority } from './resolveCytologySignOutAuthority';
 import { resolveResidentCountersignRequired } from '../cases/resolveResidentCountersignRequired';
 import { resolveSynopticTranslationSignOutAuditEvent } from './resolveSynopticTranslationSignOutAuditEvent';
+import { ensureCytologySynopticTemplate } from './cytologySynopticTemplateRegistry';
+import { cytologySynopticTranslationCheck } from './cytologyWorkspaceView';
 import { resolveCytologyFiveYearRetrospectiveLookback } from './resolveCytologyFiveYearRetrospectiveLookback';
 import { resolveCytologyRoseDiscrepancy } from './resolveCytologyRoseDiscrepancy';
-import { resolveNewQcCaseAssignmentFromRoseDiscrepancy } from '../cytologyQc/resolveNewQcCaseAssignment';
+import { ROSE_DISCREPANCY_QC_CANDIDATE } from '../cytologyQc/resolveNewQcCaseAssignment';
+import { resolveQcAssignmentUpsert, qcRuleSelectionReason, peerReviewFlagSelectionReason, type QcAssignmentCandidate } from '../cytologyQc/resolveQcAssignmentUpsert';
+import { resolveQcRuleEvaluation } from '../cytologyQc/resolveQcRuleEvaluation';
+import { resolveQcEvaluationContextFromCytologyReview } from '../cytologyQc/resolveQcEvaluationContextFromCytologyReview';
+import { resolveCaseInFormalConsultation } from '../cytologyQc/resolveCaseInFormalConsultation';
+import type { QcSamplingState } from '../cytologyQc/resolveQcSamplingDecision';
+import type { CytologyQcCaseAssignment, CytologyQcRule } from '@/types/cytologyQc/CytologyQcRule';
+import type { QcTriggerChanges } from '../cytologyQc/ICytologyQcCaseAssignmentService';
+import { resolveNormalizedCredentialCapabilities } from '../staff/resolveNormalizedCredentialCapabilities';
 import { resolveCytologyPeerReviewTargetedSelection } from './resolveCytologyPeerReviewTargetedSelection';
 import { resolveEffectiveCytologyQcSettings } from './resolveEffectiveCytologyQcSettings';
 import { resolveCytologyRandomQcSelection } from './resolveCytologyRandomQcSelection';
@@ -56,14 +77,15 @@ import type { ScreeningRegistryConfig } from '../screeningRegistry/IScreeningReg
 import { submitScreeningRegistryResult } from '../screeningRegistry/submitScreeningRegistryResult';
 import type { RegistrySubmissionHeader, PriorRegistrySubmission } from '../registrySubmission/registrySubmissionHeader';
 import { FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from '../quality/mockQaSupervisionAssignmentService';
+import { latestRecordPerSpecimen } from './resolveCytologyCaseReport';
 import { resolveCytologyCaseFinalization } from './cytologyCaseFinalization';
 import { resolveCytologyComplianceFeatures } from './cytologyComplianceFeatures';
 import { updateCaseWithRetry, updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 import { caseWriteDepsFrom, type VersionedCaseUpdate } from './cytologyCaseWriteDeps';
+import type { ICountersignService } from '../cases/ICountersignService';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
 // Loose on purpose: these are the page's existing calls, typed as the page used them.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** Everything the sign-out uses, passed in (defaults: signOutCytologyCaseDeps.ts). */
 export interface CytologySignOutDeps {
@@ -76,7 +98,19 @@ export interface CytologySignOutDeps {
   getSessionUser: () => any;
   resolveFinalizeAuthorityContext: (caseData: Case) => Promise<any>;
   getActiveSupervisionAssignment: (activityTypeId: string, userId: string, subspecialtyId?: string) => Promise<{ supervisorUserId?: string } | null>;
-  releaseForCountersign: (input: { caseId: string; subspecialtyId?: string; residentId: string; residentName: string; releasedAnswersSnapshot: Record<string, Record<string, string | string[]>> }) => Promise<unknown>;
+  /** Batch 483 (PS-359 tracker follow-up): `specimenId` keeps a SECOND
+   *  cytology specimen's own release from destroying a first, still-
+   *  pending specimen's CountersignRecord (ICountersignService.release's
+   *  own doc comment has the full reasoning). */
+  releaseForCountersign: (input: { caseId: string; subspecialtyId?: string; residentId: string; residentName: string; releasedAnswersSnapshot: Record<string, Record<string, string | string[]>>; specimenId?: string }) => Promise<unknown>;
+  /** Batch 485 (PS-359 tracker follow-up — the cytology countersign
+   *  completion gap Batch 483 disclosed but didn't build): the real
+   *  per-specimen completion path, mirroring useSignOutWorkflow.ts's
+   *  own attending-side countersign completion, but scoped per
+   *  specimen — a cytology case can have more than one specimen
+   *  independently pending at once, so this only ever checks and
+   *  completes THIS specimen's own record, never the case as a whole. */
+  countersign: Pick<ICountersignService, 'getForSpecimen' | 'countersign' | 'getAll'>;
   /** PS-71 (Batch 458): every case save reads the case and carries its version (updateCaseWithRetry). */
   getCase: (caseId: string) => Promise<Case | null | undefined>;
   updateCase: VersionedCaseUpdate;
@@ -88,6 +122,14 @@ export interface CytologySignOutDeps {
   sendGate: (registryId: string) => Promise<import('../registryGoLive/registrySendGate').RegistrySendGate>;
   getAllReviews: () => Promise<Result<CytologyReviewRecord[]>>;
   createQcAssignment: (assignment: any) => Promise<Result<{ id: string }>>;
+  /** Batch 501: the specimen's existing QC assignments, so a trigger upgrades an open one instead of duplicating it. Absent: treated as none. */
+  getQcAssignmentsForCase?: (caseId: string) => Promise<Result<CytologyQcCaseAssignment[]>>;
+  /** Batch 501: upgrade an open assignment (cytologyQc applyAdditionalTrigger). */
+  applyQcTrigger?: (id: string, changes: QcTriggerChanges) => Promise<Result<{ id: string }>>;
+  /** Batch 501: the active QC rules (Configuration → Cytology QC Rules). Absent: the Rules engine step is skipped. */
+  getActiveQcRules?: () => Promise<Result<CytologyQcRule[]>>;
+  /** Batch 501: each rule's sampling counters ("every Nth", "first N"), read before and saved after evaluation. */
+  qcSamplingStates?: { getAll: () => Promise<Map<string, QcSamplingState>>; saveAll: (states: Map<string, QcSamplingState>) => Promise<void> };
   getQcSettings: (facilityId: string, userId: string) => Promise<{ enterprise: any; facility: any; staff: any } | null>;
   random: () => number;
   getSpecimenDictionary: () => Promise<Result<{ id: string; type?: string }[]>>;
@@ -101,6 +143,12 @@ export interface CytologySignOutDeps {
   createSignOutRecord: (input: { caseId: string; specimenId: string; reviewRecordId: string; reportContent: any; signedBy: { userId: string; userName: string; isPathologist: boolean } }) => Promise<Result<CytologySignOutRecord>>;
   publishReportReleased: (event: any) => Promise<unknown>;
   generatePdfSnapshot: (reportContent: any) => Promise<any>;
+  /** Batch 532: the consolidated case report PDF, from the case and its records (generateCytologyCaseReportPdfSnapshot). */
+  generateCaseReportPdfSnapshot?: (caseData: Case, records: CytologySignOutRecord[]) => Promise<{ pdfBase64?: string; generationError?: string }>;
+  /** Batch 534 (Pete: every report output follows the release delay): releaseReport with its services.
+   *  Present: the case report and its registry submissions go through it (now, or when the delay ends).
+   *  Absent (older tests): published at once, as before. */
+  releaseReport?: (event: import('../reports/publishReportReleasedEvent').ReportReleasedEvent, hold: import('../reportRelease/releaseReport').ReleaseHold) => Promise<unknown>;
   getRegistrySettings: (facilityId: string) => Promise<{ enterprise: any; facility: any }>;
   /** Batch 415: the CAP 5-year lookback (and CLIA cap) feature settings. */
   getComplianceSettings: (facilityId: string | undefined) => Promise<{ enterprise: any; facility: any }>;
@@ -116,6 +164,9 @@ export interface CytologySignOutDeps {
   dispatchInterfaceMessage: (queueId: string, kind: string, payload: any) => Promise<{ ok: boolean; errorCode?: string; error?: string }>;
   now: () => Date;
   newId: () => string;
+  /** Batch 519 (PS-273): a synoptic template's content from the Synoptic Library (the review's template is read
+   *  before the translation check and its audit entry). Absent: the templates already held are used. */
+  getSynopticTemplate?: (id: string) => Promise<unknown>;
 }
 
 export interface CytologySignOutInput {
@@ -134,7 +185,7 @@ export interface CytologySignOutInput {
     isGynCytology: boolean;
     isFlaggedForQc: boolean;
     labJurisdiction: Jurisdiction;
-    signingProviderCredentials: ProviderCredential[];
+    signingProviderCredentials: ProviderCredential[] | undefined;
     translationCheck?: { hasUnvalidatedTerms: boolean; hasCurrentAcknowledgment: boolean };
     /** Batch 412: an open revision request on the specimen (stops a cytotechnologist). */
     pendingAuthorRevision?: boolean;
@@ -158,6 +209,8 @@ export interface CytologySignOutOutcome {
   /** signedOut (Batch 411): whether this was the case's last cytology specimen, and how many are left. */
   caseFinalized?: boolean;
   specimensRemaining?: number;
+  /** Batch 532: whether the consolidated case report was published by this sign-out (the case closed, or it adds to an early-finalized case). */
+  published?: boolean;
 }
 
 const activeParticipant = (participants: CaseParticipant[] | undefined, userId: string, typeId: string) =>
@@ -186,11 +239,16 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
     if (!ct.allowed) return { outcome: 'ctNotPermitted' };
   }
 
-  // 1. The sign-out gate.
+  // 1. The sign-out gate. Batch 519 (PS-273): the review's synoptic template comes from the Synoptic Library, so it
+  // is read first, and the translation check is worked out here from it (the screen's own check is used only when
+  // this one has nothing to say, e.g. no synoptic answers).
   const g = input.gateInputs;
+  const templateId = finalReview.synopticData?.templateId;
+  if (templateId && deps.getSynopticTemplate) await ensureCytologySynopticTemplate(templateId, { getTemplate: deps.getSynopticTemplate });
+  const translationCheck = cytologySynopticTranslationCheck(finalReview, input.uiLanguage, input.pathologyLexicon) ?? g.translationCheck;
   const gate = resolveCytologySignOutGate(
     { adequacyCategoryIds: finalReview.adequacySelections?.map(s => s.categoryId), requiresPathologistReview: finalReview.requiresPathologistReview },
-    g.isGynCytology, g.isFlaggedForQc, categories, g.labJurisdiction, g.signingProviderCredentials, undefined, g.translationCheck,
+    g.isGynCytology, g.isFlaggedForQc, categories, g.labJurisdiction, g.signingProviderCredentials, undefined, translationCheck,
     !!g.pendingAuthorRevision,
   );
   if (!resolveCanSignOutCytology(isPathologist, gate)) return { outcome: 'gateBlocked' };
@@ -226,8 +284,14 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
     countersignRequiredTypeIds: authority.countersignRequiredTypeIds,
   });
   if (countersign.required) {
+    // Batch 483: specimenId scopes the release to THIS specimen, so a
+    // second cytology specimen on the same case that also needs
+    // countersign (released separately, possibly by a different
+    // resident) gets its own independent record rather than replacing
+    // this one.
     await deps.releaseForCountersign({
       caseId: caseData.id, subspecialtyId, residentId: user.id, residentName: user.name ?? 'Unknown User',
+      specimenId,
       releasedAnswersSnapshot: {
         [specimenId]: {
           primaryInterpretationId: finalReview.primaryInterpretationId ?? '',
@@ -284,8 +348,11 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
   const carry = (specimens: any[] | undefined) => {
     if (specimens) working = { ...working, caseData: { ...working.caseData, specimens } as Case, specimen: specimens.find(sp => sp.id === specimenId) ?? working.specimen };
   };
-  carry(await applyRoseDiscrepancy(working, deps));
+  // Batch 501: the peer-review flag is set first, so a ROSE discrepancy or a
+  // QC rule that also selects the specimen records it as a selection reason.
   carry(await applyPostSignOutPeerReview(working, rankOf(finalReview.primaryInterpretationId), deps));
+  carry(await applyRoseDiscrepancy(working, deps));
+  await applyQcRules(working, deps);
   carry(await applyHistologyCorrelationCandidates(working, rankOf(finalReview.primaryInterpretationId), deps));
 
   // 7. The record, the release and the registry.
@@ -317,22 +384,91 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
   if (!created.ok) return { outcome: 'failed' };
   const record = created.data;
 
+  // Batch 485 (PS-359 tracker follow-up — the deeper gap Batch 483
+  // disclosed but didn't build): if THIS specimen itself was earlier
+  // released for countersign (by a resident, or a new cytotechnologist
+  // under the gate above) and the signer completing it now is not that
+  // same person (by definition — that gate above would have intercepted
+  // them again otherwise), close the real CountersignRecord out. Without
+  // this, the record stayed orphaned at 'pending' forever, even once the
+  // attending had, in practice, already re-signed the specimen out —
+  // breaking CountersignTurnaroundTab.tsx's QA reporting and competency
+  // tracking for cytology specifically.
+  const pendingForThisSpecimen = await deps.countersign.getForSpecimen(caseData.id, specimenId);
+  const completedCountersignForThisSpecimen = pendingForThisSpecimen.ok && pendingForThisSpecimen.data?.status === 'pending';
+  if (completedCountersignForThisSpecimen) {
+    await deps.countersign.countersign({
+      caseId: caseData.id, specimenId, attendingId: user.id, attendingName: user.name ?? 'Unknown User',
+      currentAnswersByInstance: {
+        [specimenId]: {
+          primaryInterpretationId: finalReview.primaryInterpretationId ?? '',
+          generalCategorizationId: finalReview.generalCategorizationId ?? '',
+          adequacySelections: (finalReview.adequacySelections ?? []).map(s => s.categoryId),
+        },
+      },
+    }).catch(() => {});
+  }
+
   // Batch 411: the case is final once every cytology specimen is signed out.
   const caseRecords = await deps.getCaseSignOutRecords(caseData.id);
   const finalization = resolveCytologyCaseFinalization(input.cytologySpecimenIds ?? [specimenId],
     [...(caseRecords.ok ? caseRecords.data.map(r => r.specimenId) : []), specimenId]);
   // PS-71 (Batch 458): versioned; a lasting conflict throws, as a failed save did.
-  if (finalization.allSignedOut) await updateCaseWithRetryOrThrow(caseData.id, () => ({ status: 'finalized' }), writeDeps(deps));
+  if (finalization.allSignedOut) {
+    await updateCaseWithRetryOrThrow(caseData.id, () => ({ status: 'finalized' }), writeDeps(deps));
+  } else if (completedCountersignForThisSpecimen) {
+    // Batch 485: this specimen's own countersign is now closed, but other
+    // cytology specimens on the case remain unsigned — don't finalize yet.
+    // Still fix the real, previously-disclosed "stuck" symptom: Case.status
+    // was forced to 'pending-countersign' at release time with no memory of
+    // WHICH specimen caused it, so once no OTHER specimen on this case is
+    // still pending, the case is no longer genuinely awaiting anyone's
+    // countersign and shouldn't keep showing as blocked.
+    const allRecords = await deps.countersign.getAll();
+    const anyOtherPending = allRecords.ok && allRecords.data.some(r => r.caseId === caseData.id && r.status === 'pending' && r.specimenId !== specimenId);
+    if (!anyOtherPending && caseData.status === 'pending-countersign') {
+      await updateCaseWithRetry(caseData.id, () => ({ status: 'in-progress' }), writeDeps(deps)).catch(() => {});
+    }
+  }
   await deps.signatureGate.commit(caseData.id, 'signed', { kind: 'cytology-sign-out', id: record.id });
-  await deps.publishReportReleased({
-    caseId: caseData.id, reportType: 'FINAL', releasedAt: deps.now().toISOString(),
-    releasedBy: { id: user.id, name: user.name }, source: 'CYTOLOGY',
-    performingFacilityId: (caseData.order as any)?.facilityId,
-    generatePdf: () => deps.generatePdfSnapshot(record.reportContent),
-  });
 
-  await dispatchToRegistry(working, record, deps);
-  return { outcome: 'signedOut', retrospectiveFlagged, caseFinalized: finalization.allSignedOut, specimensRemaining: finalization.remaining.length };
+  // Batch 532 (Pete, Oct 12, 2026: one consolidated report per accession,
+  // released when the case closes). Each specimen keeps its own signature
+  // and record; nothing is published until the last cytology specimen is
+  // signed (FINAL), or, on a case finalized early, a later sign-out adds its
+  // specimen to the released report (ADDENDUM). Registry: per sample, all
+  // sent together at release (Pete).
+  const finalizedEarly = !!caseData.cytologyEarlyFinalization;
+  const released = finalization.allSignedOut || finalizedEarly;
+  if (released) {
+    const allRecords = [...(caseRecords.ok ? caseRecords.data : []).filter(r => r.id !== record.id), record];
+    const latestCase = (await deps.getCase(caseData.id).catch(() => null)) ?? caseData;
+    const event = {
+      caseId: caseData.id, reportType: finalizedEarly ? 'ADDENDUM' as const : 'FINAL' as const,
+      ...(finalizedEarly ? { instanceId: record.id } : {}),
+      releasedAt: deps.now().toISOString(),
+      releasedBy: { id: user.id, name: user.name }, source: 'CYTOLOGY' as const,
+      performingFacilityId: caseData.order?.facilityId,
+      generatePdf: () => (deps.generateCaseReportPdfSnapshot
+        ? deps.generateCaseReportPdfSnapshot(latestCase as Case, allRecords)
+        : deps.generatePdfSnapshot(record.reportContent)),
+    };
+    if (deps.releaseReport) {
+      // Batch 534: through the release delay; the registry submissions go with the report.
+      const recordIds = finalizedEarly ? [record.id] : registryOrder(working, allRecords).map(r => r.id);
+      await deps.releaseReport(event, {
+        kind: finalizedEarly ? 'cytology-late-sign-out' : 'cytology-sign-out',
+        releasedBy: { userId: user.id, userName: user.name },
+        subject: { recordId: record.id, specimenId, previousStatus: caseData.status },
+        followUps: [{ type: 'cytology-registry', recordIds, isGynCytology: input.gateInputs.isGynCytology, categories: input.categories }],
+      });
+    } else {
+      await deps.publishReportReleased(event);
+      if (finalizedEarly) await dispatchToRegistry(working, record, deps);
+      else await dispatchCaseToRegistry(working, allRecords, record, deps);
+    }
+  }
+  return { outcome: 'signedOut', retrospectiveFlagged, caseFinalized: finalization.allSignedOut, specimensRemaining: finalization.remaining.length, published: released };
 }
 
 /** CAP's 5-year retrospective lookback, for a new HSIL+/AIS/malignant diagnosis. Returns how many specimens were flagged. */
@@ -381,9 +517,9 @@ async function applyFiveYearLookback(input: CytologySignOutInput, triggeringRank
   return flagged.length;
 }
 
-/** A ROSE bedside adequacy call the final lab call contradicts opens a QC assignment. */
+/** A ROSE bedside adequacy call the final lab call contradicts opens (or upgrades) the specimen's QC assignment. */
 async function applyRoseDiscrepancy(input: CytologySignOutInput, deps: CytologySignOutDeps): Promise<any[] | undefined> {
-  const { caseData, specimenId, specimen, finalReview, categories } = input;
+  const { caseData, specimen, finalReview, categories } = input;
   const evaluations = specimen?.roseEvaluations as any[] | undefined;
   if (!evaluations?.length) return;
   const mostRecent = [...evaluations].sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
@@ -391,16 +527,80 @@ async function applyRoseDiscrepancy(input: CytologySignOutInput, deps: CytologyS
   if (!lastPass) return;
   const finalIsUnsatisfactory = (finalReview.adequacySelections ?? []).some(s => categories.find(c => c.id === s.categoryId)?.isUnsatisfactory === true);
   if (!resolveCytologyRoseDiscrepancy(lastPass.adequacyAssessment, finalIsUnsatisfactory)) return;
-  const created = await deps.createQcAssignment(resolveNewQcCaseAssignmentFromRoseDiscrepancy(caseData.id, specimenId, finalReview.recordedBy.userId));
-  if (!created.ok) return;
+  // Batch 501: creates the specimen's QC assignment, or upgrades its open one (top tier, 4-hour SLA).
+  const qcCaseAssignmentId = await upsertQcAssignment(input, ROSE_DISCREPANCY_QC_CANDIDATE, deps);
+  if (!qcCaseAssignmentId) return;
   // PS-71 (Batch 458): the QC link is applied to the case as read for the save, with its version.
-  const qcCaseAssignmentId = created.data.id;
   const r = await updateCaseWithRetryOrThrow(caseData.id, current => ({
     specimens: ((current.specimens as any[]) ?? []).map(sp => (sp.id === specimen.id
       ? { ...sp, roseEvaluations: ((sp.roseEvaluations as any[]) ?? []).map(ev => (ev.id === mostRecent.id ? { ...ev, qcCaseAssignmentId } : ev)) }
       : sp)),
   }), writeDeps(deps));
   return r.ok ? (r.updates.specimens as any[]) : undefined;
+}
+
+/** Batch 501: the specimen's peer-review flag, as a selection reason (it never creates an assignment itself). */
+function peerReviewReasons(specimen: any): string[] {
+  const flag = specimen?.cytologyScreening?.postSignOutPeerReviewFlag;
+  return flag?.reason ? [peerReviewFlagSelectionReason(flag.reason)] : [];
+}
+
+/** Batch 501: create the specimen's QC assignment, or upgrade its open one. Returns the assignment id. */
+async function upsertQcAssignment(input: CytologySignOutInput, candidate: QcAssignmentCandidate, deps: CytologySignOutDeps): Promise<string | undefined> {
+  const { caseData, specimenId, finalReview } = input;
+  const existing = deps.getQcAssignmentsForCase ? await deps.getQcAssignmentsForCase(caseData.id) : { ok: true as const, data: [] };
+  const upsert = resolveQcAssignmentUpsert({
+    existing: existing.ok ? existing.data : [],
+    caseId: caseData.id, specimenId, primarySignOutProviderId: finalReview.recordedBy.userId,
+    candidate, otherReasons: peerReviewReasons(input.specimen), now: deps.now().toISOString(),
+  });
+  if (upsert.kind === 'create') {
+    const created = await deps.createQcAssignment(upsert.assignment);
+    return created.ok ? created.data.id : undefined;
+  }
+  if (!deps.applyQcTrigger) return upsert.id;
+  const r = await deps.applyQcTrigger(upsert.id, upsert.changes);
+  return r.ok ? upsert.id : undefined;
+}
+
+/**
+ * Batch 501: the QC Rules engine at sign-out (Configuration → Cytology QC Rules).
+ * Active rules in priority order; the first that matches AND is selected by its
+ * sampling wins. Skipped for a case in formal consultation (spec §2.2). Every
+ * matching rule's sampling counter advances and is saved.
+ */
+async function applyQcRules(input: CytologySignOutInput, deps: CytologySignOutDeps): Promise<void> {
+  if (!deps.getActiveQcRules) return;
+  const { caseData, specimen, user, isPathologist, finalReview, categories } = input;
+  const rules = await deps.getActiveQcRules();
+  if (!rules.ok || rules.data.length === 0) return;
+  const g = input.gateInputs;
+  const adequacy = (finalReview.adequacySelections ?? []).some(sel => categories.find(c => c.id === sel.categoryId)?.isUnsatisfactory === true) ? 'unsatisfactory' : 'satisfactory';
+  const context = resolveQcEvaluationContextFromCytologyReview({
+    jurisdiction: g.labJurisdiction,
+    performingFacilityId: (caseData.order as any)?.facilityId,
+    primarySignOutProviderId: user.id,
+    providerRole: isPathologist ? 'pathologist' : 'cytotechnologist',
+    isGynCytology: g.isGynCytology,
+    isFna: !!(specimen?.roseEvaluations as any[] | undefined)?.length,
+    sampleAdequacy: adequacy,
+    resultIsNegative: !finalReview.requiresPathologistReview,
+    isHighRiskHpvPositive: !!input.hpv.hpvGenotypeDetail?.otherHighRisk,
+    providerCapabilities: resolveNormalizedCredentialCapabilities(g.signingProviderCredentials, g.labJurisdiction, deps.now().toISOString()),
+  });
+  const states = deps.qcSamplingStates ? await deps.qcSamplingStates.getAll() : new Map<string, QcSamplingState>();
+  const evaluation = resolveQcRuleEvaluation(context, resolveCaseInFormalConsultation(caseData), rules.data, states, deps.random());
+  if (deps.qcSamplingStates) await deps.qcSamplingStates.saveAll(evaluation.updatedSamplingStates);
+  if (!evaluation.matched) return;
+  const rule = rules.data.find(r => r.id === evaluation.ruleId);
+  await upsertQcAssignment(input, {
+    triggerSource: 'rule_match',
+    matchedRuleId: evaluation.ruleId,
+    priorityTier: evaluation.priorityTier,
+    slaHours: evaluation.slaHours,
+    eligibleReviewerRoles: rule?.eligibleReviewerRoles,
+    selectionReason: qcRuleSelectionReason(evaluation.ruleId),
+  }, deps);
 }
 
 /** Post-sign-out peer review: targeted high-risk first, else random at the QC rate cascade. */
@@ -489,3 +689,76 @@ async function dispatchToRegistry(input: CytologySignOutInput, record: CytologyS
     isGynCytology: input.gateInputs.isGynCytology, kind: 'signOut',
   }, deps);
 }
+
+/**
+ * Batch 532 (Pete, Oct 12, 2026: registry "per sample, sent together"): at
+ * release, each cytology specimen's newest record goes to the registry, in
+ * case order, with the review it was signed on. The one just signed uses the
+ * review in hand.
+ */
+/** Each cytology specimen's newest record, in case order (the registry's order). */
+function registryOrder(input: Pick<CytologySignOutInput, 'caseData'>, records: CytologySignOutRecord[]): CytologySignOutRecord[] {
+  const order = (input.caseData.specimens ?? []).map(sp => sp.id);
+  return [...latestRecordPerSpecimen(records).values()].sort((a, b) => order.indexOf(a.specimenId) - order.indexOf(b.specimenId));
+}
+
+async function dispatchCaseToRegistry(input: CytologySignOutInput, records: CytologySignOutRecord[], justSigned: CytologySignOutRecord, deps: CytologySignOutDeps): Promise<void> {
+  const latest = registryOrder(input, records);
+  const allReviews = latest.some(r => r.id !== justSigned.id) ? await deps.getAllReviews().catch(() => null) : null;
+  for (const r of latest) {
+    if (r.id === justSigned.id) { await dispatchToRegistry(input, r, deps); continue; }
+    const review = allReviews?.ok ? allReviews.data.find(v => v.id === r.reviewRecordId) : undefined;
+    if (!review) continue;
+    await submitScreeningRegistryResult({
+      caseData: input.caseData, record: r, review, categories: input.categories,
+      // The registry has had nothing for this sample yet: its first submission, whatever the record.
+      isGynCytology: input.gateInputs.isGynCytology, kind: 'signOut',
+    }, deps);
+  }
+}
+
+/**
+ * Batch 532 (Pete, Oct 12, 2026): releasing a case that was finalized before
+ * every cytology specimen was signed out (cytologyCaseFinalization.ts). The
+ * consolidated case report goes out once (FINAL), listing each unsigned
+ * specimen as "not reported" with the reason, and each signed sample goes to
+ * the registry. Before Batch 532 an early finalization published nothing.
+ */
+export async function releaseFinalizedCytologyCase(
+  input: { caseId: string; categories: CytologySignOutInput['categories']; isGynCytology: boolean; user: { id: string; name: string }; previousStatus?: string },
+  deps: CytologySignOutDeps,
+): Promise<void> {
+  const caseData = await deps.getCase(input.caseId);
+  if (!caseData) return;
+  const recordsRes = await deps.getCaseSignOutRecords(input.caseId);
+  const records = recordsRes.ok ? recordsRes.data : [];
+  if (!records.length) return;
+  const event = {
+    caseId: input.caseId, reportType: 'FINAL' as const, releasedAt: deps.now().toISOString(),
+    releasedBy: { id: input.user.id, name: input.user.name }, source: 'CYTOLOGY' as const,
+    performingFacilityId: caseData.order?.facilityId,
+    generatePdf: () => (deps.generateCaseReportPdfSnapshot
+      ? deps.generateCaseReportPdfSnapshot(caseData, records)
+      : Promise.resolve({ generationError: 'No case report renderer.' })),
+  };
+  const latest = [...latestRecordPerSpecimen(records).values()];
+  if (deps.releaseReport) {
+    // Batch 534: through the release delay; Recall undoes the early finalization.
+    await deps.releaseReport(event, {
+      kind: 'cytology-finalize-early', releasedBy: { userId: input.user.id, userName: input.user.name },
+      subject: { previousStatus: input.previousStatus ?? 'in-progress' },
+      followUps: [{ type: 'cytology-registry', recordIds: latest.map(r => r.id), isGynCytology: input.isGynCytology, categories: input.categories }],
+    });
+    return;
+  }
+  await deps.publishReportReleased(event);
+  const allReviews = await deps.getAllReviews().catch(() => null);
+  for (const r of latest) {
+    const review = allReviews?.ok ? allReviews.data.find(v => v.id === r.reviewRecordId) : undefined;
+    if (!review) continue;
+    await submitScreeningRegistryResult({
+      caseData, record: r, review, categories: input.categories, isGynCytology: input.isGynCytology, kind: 'signOut',
+    }, deps);
+  }
+}
+

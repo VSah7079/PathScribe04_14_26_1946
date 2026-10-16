@@ -15,6 +15,10 @@ System-wide audit log — AI actions, user changes, system events.
 
 `resolveError` needs `audit:error:resolve` and records `resolvedBy` and `resolvedAt`. Audit Log → Error Log has a Resolve button on open errors.
 
+## Batch 499 — `auditLogLinks.ts`
+
+Deep links into the Audit Log page. `FAILED_CHARGE_DISPATCHES_LINK` (`/audit?tab=financial&view=outbound_dlq`) is what the Quality Assurance page's "Failed Dispatches" tile opens; `financialAuditViewFromParams()` (pure, tested) reads `view=` for the Financial tab. The tile used to point at `/configuration?tab=system&section=outbound_charge_dlq`, a section that stopped existing when the charge dead-letter queue moved to Audit Log → Financial.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -81,6 +81,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
   // Batch 408: whether this reconciliation can complete (one rule with the service).
   const gate = reconciliationGate(batch);
   // Batch 407: every refusal the batch service gives, in the user's language.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuilt each render from batch and t, both listed where it is used
   const refusal = (error: string) => {
     if (error === BATCH_NOT_PERMITTED) return t('batchDetail.notPermitted');
     if (error === BATCH_REASON_REQUIRED) return t('batchDetail.reasonRequired');
@@ -191,7 +192,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
       }
       onBatchUpdated(res.data);
     }
-  }, [batch, userId, userName, flashFeedback, onBatchUpdated, t]);
+  }, [batch, userId, userName, flashFeedback, onBatchUpdated, t, refusal]);
 
   useEffect(() => {
     const listener = (e: Event) => {

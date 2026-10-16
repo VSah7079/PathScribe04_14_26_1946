@@ -32,7 +32,6 @@ import type { Decant } from '@/types/case/Material';
 import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import { decantIdentifier, decantSlideIdentifier, matrixSlideIdentifier } from '@/types/labels/LabelData';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const DEMO_DECANT_CASE_IDS = ['S26-4650-CYT-001', 'S26-4651-CYT-001', 'S26-4652-CYT-001', 'S26-5005-CYT-001'] as const;
 export const DEMO_MATRIX_BLOCK_CASE_ID = 'S26-4404';

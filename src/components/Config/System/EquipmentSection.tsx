@@ -33,6 +33,7 @@ import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import {
   filterEquipment, normaliseEquipmentCode, settingsLinksByEquipment, stationsForEquipment, validateEquipmentDraft, type EquipmentDraftErrors,
 } from '../../../services/equipment/equipmentRules';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 type Draft = Omit<EquipmentDraft, 'status'> & { active: boolean };
 const emptyDraft: Draft = { code: '', name: '', kind: 'analyser', make: '', model: '', serialNumber: '', facilityId: '', scanStationId: '', active: true };
@@ -172,7 +173,7 @@ const EquipmentModal: React.FC<ModalProps> = ({ mode, item, items, labs, station
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('equipmentSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <button type="button" aria-pressed={draft.active} onClick={() => set('active', !draft.active)}
+              <button type="button" aria-pressed={draft.active} aria-label={t('a11y.fields.active')} onClick={() => set('active', !draft.active)}
                 className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <span className="ps-conf-toggle-thumb" />
               </button>
@@ -257,7 +258,7 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
     await reload();
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('equipmentSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('equipmentSection.loading')} />;
 
   return (
     <div>
@@ -275,7 +276,7 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
           <option value="All">{t('equipmentSection.kindFilterAll')}</option>
           {EQUIPMENT_KINDS.map(k => <option key={k} value={k}>{t(`equipmentKinds.${k}`)}</option>)}
         </select>
-        <select data-dirty-ignore data-config-nav className="ps-conf-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'All' | Equipment['status'])}>
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav className="ps-conf-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'All' | Equipment['status'])}>
           <option value="All">{t('equipmentSection.statusFilterAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

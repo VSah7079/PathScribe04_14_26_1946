@@ -38,7 +38,6 @@ import { decantIdentifier } from '@/types/labels/LabelData';
 import { CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID } from '../quality/mockQaActivityTypeService';
 import { saveCaseChangeFrom } from './cytologyCaseWriteDeps';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 type Actor = { id: string; name: string };
 
@@ -403,6 +402,8 @@ export async function saveCytologySpellingLocaleOverride(input: { caseData: Case
  * The report to print. A signed-out specimen prints its latest signed record
  * exactly as signed; before sign-out, a preview from the final diagnosis's
  * review (or the initial screen). Null when there is nothing to print yet.
+ * Batch 539: the PDF bytes, made by the report renderer; a preview carries the
+ * PRELIMINARY — SUBJECT TO CHANGE watermark. Throws when it can't be made.
  */
 export async function buildCytologyPrintDocument(
   input: { caseData: Case; specimen: any; specimenId: string; reviews: CytologyReviewRecord[]; categories: CytologyCategoryEntry[]; finalDiagnosisReviewId?: string; isPathologist: boolean },
@@ -417,9 +418,24 @@ export async function buildCytologyPrintDocument(
   const signed = input.finalDiagnosisReviewId ? input.reviews.find(r => r.id === input.finalDiagnosisReviewId) : undefined;
   const review = signed ?? screened;
   if (!review) return null;
-  const { caseData, specimen } = input;
+  const content = await cytologyReviewReportContent({ ...input, review }, deps);
+  return deps.renderReportPdf(content, { preview: true });
+}
+
+/**
+ * Batch 533: the report content from one review, as the workspace knows the
+ * case (the print preview before sign-out, and an urgent preliminary report).
+ * Signed by the review's author, at the review's time; the screener is the
+ * specimen's primary screen, if any.
+ */
+export async function cytologyReviewReportContent(
+  input: { caseData: Case; specimen: Parameters<typeof buildCytologyPrintDocument>[0]['specimen']; reviews: CytologyReviewRecord[]; review: CytologyReviewRecord; categories: CytologyCategoryEntry[]; isPathologist: boolean },
+  deps: Pick<CytologyWorkspaceDeps, 'resolveReportLocale'>,
+) {
+  const { caseData, specimen, review } = input;
+  const screened = input.reviews.find(r => r.role === 'primary_screen');
   const screening = specimen?.cytologyScreening ?? {};
-  const content = resolveCytologyReportContent(
+  return resolveCytologyReportContent(
     review,
     input.categories,
     {
@@ -428,7 +444,7 @@ export async function buildCytologyPrintDocument(
       mrn: caseData.patient?.mrn,
       lastMenstrualPeriod: caseData.patient?.lastMenstrualPeriod,
     },
-    { accessionNumber: caseData.accession?.fullAccession ?? caseData.id, orderingProvider: (caseData.order as any)?.requestingProvider },
+    { accessionNumber: caseData.accession?.fullAccession ?? caseData.id, orderingProvider: caseData.order?.requestingProvider },
     {
       typeDescription: specimen?.description ?? '',
       collectedAt: specimen?.collectedAt,
@@ -443,7 +459,7 @@ export async function buildCytologyPrintDocument(
     screened ? { name: screened.recordedBy.userName } : undefined,
     { name: review.recordedBy.userName, isPathologist: input.isPathologist },
     review.recordedAt,
-    await deps.resolveReportLocale((caseData.order as any)?.facilityId),
+    await deps.resolveReportLocale(caseData.order?.facilityId),
   );
-  return deps.renderReportPdf(content);
 }
+

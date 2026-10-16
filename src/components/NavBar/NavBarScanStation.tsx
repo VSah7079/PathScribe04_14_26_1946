@@ -34,12 +34,12 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
+
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
-import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
-import { mockWorkstationGroupService } from '@/services/workstationGroups/mockWorkstationGroupService';
+
 import { resolveBenchRouteForGroup } from '@/services/workstationGroups/resolveStationBenchRoute';
-import { mockActionGroupService } from '@/services/actionGroups/mockActionGroupService';
+import { scanStationService, actionRegistryService, workstationGroupService, actionGroupService } from '@/services';
+
 
 export function NavBarScanStation() {
   const { t } = useTranslation();
@@ -60,7 +60,7 @@ export function NavBarScanStation() {
   const [benchRoute, setBenchRoute] = useState<string | undefined>(undefined);
 
   const loadStations = () => {
-    mockScanStationService.getAll().then(res => {
+    scanStationService.getAll().then(res => {
       if (res.ok) setStations(res.data.filter(s => s.status === 'Active'));
     });
   };
@@ -85,20 +85,20 @@ export function NavBarScanStation() {
   // zero-step way functionalArea tagging already does.
   useEffect(() => {
     if (!effectiveStationId) {
-      mockActionRegistryService.setCurrentStationProfile(undefined);
-      mockActionRegistryService.setCurrentActionGroupActionIds(undefined);
+      actionRegistryService.setCurrentStationProfile(undefined);
+      actionRegistryService.setCurrentActionGroupActionIds(undefined);
       setBenchRoute(undefined);
       return;
     }
-    mockScanStationService.getById(effectiveStationId).then(stationRes => {
+    scanStationService.getById(effectiveStationId).then(stationRes => {
       if (!stationRes.ok || !stationRes.data.workstationGroupId) {
-        mockActionRegistryService.setCurrentStationProfile(undefined);
-        mockActionRegistryService.setCurrentActionGroupActionIds(undefined);
+        actionRegistryService.setCurrentStationProfile(undefined);
+        actionRegistryService.setCurrentActionGroupActionIds(undefined);
         setBenchRoute(undefined);
         return;
       }
-      mockWorkstationGroupService.getById(stationRes.data.workstationGroupId).then(groupRes => {
-        mockActionRegistryService.setCurrentStationProfile(groupRes.ok ? groupRes.data.functionalArea : undefined);
+      workstationGroupService.getById(stationRes.data.workstationGroupId).then(groupRes => {
+        actionRegistryService.setCurrentStationProfile(groupRes.ok ? groupRes.data.functionalArea : undefined);
         // Real fix, found by this app's own inline-CSS/business-logic
         // sweep: delegates to resolveStationBenchRoute.ts's shared
         // Active-gated route rule — the same real "only a real route
@@ -107,14 +107,14 @@ export function NavBarScanStation() {
         // independently-maintained copy of the same gate. Passes the
         // group already fetched above rather than re-fetching it.
         setBenchRoute(resolveBenchRouteForGroup(groupRes));
-        if (!groupRes.ok) { mockActionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
+        if (!groupRes.ok) { actionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
 
         const actionGroupIds = [groupRes.data.defaultActionGroupId, ...(groupRes.data.allowedActionGroupIds ?? [])].filter((id): id is string => !!id);
-        if (actionGroupIds.length === 0) { mockActionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
+        if (actionGroupIds.length === 0) { actionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
 
-        Promise.all(actionGroupIds.map(id => mockActionGroupService.getById(id))).then(results => {
+        Promise.all(actionGroupIds.map(id => actionGroupService.getById(id))).then(results => {
           const flattened = results.filter(r => r.ok).flatMap(r => r.ok ? r.data.actionIds : []);
-          mockActionRegistryService.setCurrentActionGroupActionIds(flattened);
+          actionRegistryService.setCurrentActionGroupActionIds(flattened);
         });
       });
     });

@@ -13,11 +13,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockCytologyQcRuleService } from '../../../services/cytologyQc/mockCytologyQcRuleService';
+
 import { resolveQcRuleDraftValidation } from '../../../services/cytologyQc/resolveQcRuleDraftValidation';
 import { JURISDICTION_LABELS, type Jurisdiction } from '../../../types/systemConfig';
 import type { CytologyQcRule, QcRuleCriteria, QcSamplingLogic, QcPeerReviewPriorityTier } from '../../../types/cytologyQc/CytologyQcRule';
 import type { NewCytologyQcRule } from '../../../services/cytologyQc/ICytologyQcRuleService';
+import { cytologyQcRuleService } from '@/services';
 
 type Draft = NewCytologyQcRule;
 
@@ -109,7 +110,7 @@ const RuleModal: React.FC<{
           </label>
 
           <h3 className="ps-conf-form-section-title">{t('cytologyQcRules.section.samplingLogic')}</h3>
-          <select className="ps-conf-input" value={draft.samplingLogic.type}
+          <select aria-label={t('cytologyQcRules.section.samplingLogic')} className="ps-conf-input" value={draft.samplingLogic.type}
             onChange={e => {
               const type = e.target.value as QcSamplingLogic['type'];
               const next: QcSamplingLogic = type === 'percentage' ? { type, ratePercent: 10 }
@@ -233,7 +234,7 @@ const CytologyQcRulesSection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; rule?: CytologyQcRule } | null>(null);
 
   const refresh = () => {
-    mockCytologyQcRuleService.getAll().then(res => { if (res.ok) setRules(res.data); });
+    cytologyQcRuleService.getAll().then(res => { if (res.ok) setRules(res.data); });
   };
 
   useEffect(() => { refresh(); }, []);
@@ -246,22 +247,22 @@ const CytologyQcRulesSection: React.FC = () => {
 
   const handleSave = async (draft: Draft) => {
     if (modal?.mode === 'edit' && modal.rule) {
-      await mockCytologyQcRuleService.update(modal.rule.id, draft);
+      await cytologyQcRuleService.update(modal.rule.id, draft);
     } else {
-      await mockCytologyQcRuleService.add(draft);
+      await cytologyQcRuleService.add(draft);
     }
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (rule: CytologyQcRule) => {
-    if (rule.active) await mockCytologyQcRuleService.deactivate(rule.id);
-    else await mockCytologyQcRuleService.reactivate(rule.id);
+    if (rule.active) await cytologyQcRuleService.deactivate(rule.id);
+    else await cytologyQcRuleService.reactivate(rule.id);
     refresh();
   };
 
   const handleDuplicate = async (rule: CytologyQcRule) => {
-    const result = await mockCytologyQcRuleService.duplicate(rule.id, t('common.copyOfName', { name: rule.name }));
+    const result = await cytologyQcRuleService.duplicate(rule.id, t('common.copyOfName', { name: rule.name }));
     if (result.ok) setModal({ mode: 'edit', rule: result.data });
     refresh();
   };

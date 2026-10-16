@@ -2,17 +2,21 @@
 import { describe, it, expect } from 'vitest';
 import { resolveAgeFromDateOfBirth } from './resolveAgeFromDateOfBirth';
 
+// Batch 504: "today" is a local date (new Date(2026, 8, 4)). These used new Date('2026-09-04'),
+// UTC midnight, which is 3 September in the Americas; the old code read the birth date
+// shifted the same way, so the two errors cancelled and hid the bug.
+
 describe('resolveAgeFromDateOfBirth', () => {
   it('a real, already-passed birthday this year computes the correct, current age', () => {
-    expect(resolveAgeFromDateOfBirth('1990-01-01', new Date('2026-09-04'))).toBe(36);
+    expect(resolveAgeFromDateOfBirth('1990-01-01', new Date(2026, 8, 4))).toBe(36);
   });
 
   it('a real birthday not yet reached this year is one year less', () => {
-    expect(resolveAgeFromDateOfBirth('1990-12-31', new Date('2026-09-04'))).toBe(35);
+    expect(resolveAgeFromDateOfBirth('1990-12-31', new Date(2026, 8, 4))).toBe(35);
   });
 
   it('a real birthday exactly today counts as having occurred', () => {
-    expect(resolveAgeFromDateOfBirth('1990-09-04', new Date('2026-09-04'))).toBe(36);
+    expect(resolveAgeFromDateOfBirth('1990-09-04', new Date(2026, 8, 4))).toBe(36);
   });
 
   it('no real date of birth on record: undefined, not a guessed default', () => {

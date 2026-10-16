@@ -36,6 +36,7 @@ import { mockUserService } from '../users/mockUserService';
 import { mockRoleService } from '../roles/mockRoleService';
 import { isCytotechOnly } from '../participationTypes/cytotechParticipationRules';
 import { mockParticipationTypeService } from '../participationTypes/mockParticipationTypeService';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'cases';
 
@@ -69,7 +70,6 @@ function isoDaysAgo(days: number): string {
  *  can't express. */
 function isoHoursAgo(hours: number): string {
   const d = new Date();
-  // eslint-disable-next-line no-restricted-properties -- see real, honest justification above isoYearsAgo
   d.setHours(d.getHours() - hours);
   return d.toISOString();
 }
@@ -4057,14 +4057,14 @@ const MOCK_VERSION = '61'; // bumped (Batch 469): A26-4663 gains a still-pending
 // Previous: '45'; // bumped: real, new Northern Ireland demo case (S26-9401) added at the new Lagan Valley Women's Health Centre facility (c-ni-lagan-valley) — real reflex-triggered pathway.
 const VERSION_KEY  = 'pathscribe_mock_cases_version';
 
-const storedVersion = localStorage.getItem(VERSION_KEY);
+const storedVersion = dataStorage.getItem(VERSION_KEY);
 if (storedVersion !== MOCK_VERSION) {
   // Stale data — wipe and re-seed from MOCK_CASES
-  localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-  localStorage.setItem(VERSION_KEY, MOCK_VERSION);
+  dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+  dataStorage.setItem(VERSION_KEY, MOCK_VERSION);
 }
 
-const stored = localStorage.getItem('pathscribe_mock_' + STORAGE_KEY);
+const stored = dataStorage.getItem('pathscribe_mock_' + STORAGE_KEY);
 let CASES: Case[] = stored ? JSON.parse(stored) : null;
 if (!CASES) {
   // Batch 455: plus the demo baseline (services/cases/demoBaselineCases.ts).
@@ -4077,10 +4077,27 @@ if (!CASES) {
 // so this tab's version checks (and its next save) see that save instead of
 // writing its own older copy over it. The demo's stand-in for the API server
 // being the one copy (in production every read comes from the server).
+// Batch 572: and tell an open case report which cases another tab changed (the demo's stand-in for the
+// hub's `caseReport` topic, LIVE_UPDATES_SIGNALR.md §14; with an API server the browser keeps no case copy).
+const casesChangedElsewhere = new Set<(caseIds: string[]) => void>();
+/** Batch 572: cases whose version another tab of this browser moved on (demo only). */
+export function changedCaseIds(before: readonly Case[], after: readonly Case[]): string[] {
+  const was = new Map(before.map(c => [c.id, c.version ?? 0]));
+  return after.filter(c => c.version !== undefined && was.get(c.id) !== c.version).map(c => c.id);
+}
+export function subscribeCasesChangedElsewhere(listener: (caseIds: string[]) => void): () => void {
+  casesChangedElsewhere.add(listener);
+  return () => { casesChangedElsewhere.delete(listener); };
+}
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', e => {
     if (e.key === 'pathscribe_mock_' + STORAGE_KEY && e.newValue) {
-      try { CASES = JSON.parse(e.newValue); } catch { /* keep this tab's copy */ }
+      try {
+        const before = CASES;
+        CASES = JSON.parse(e.newValue);
+        const ids = changedCaseIds(before ?? [], CASES);
+        if (ids.length) casesChangedElsewhere.forEach(l => l(ids));
+      } catch { /* keep this tab's copy */ }
     }
   });
 }
@@ -4150,6 +4167,7 @@ Rules:
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
       configOverride: await resolveAiConfigOverrideForClient(caseData.order?.facilityId),
+      context: { feature: 'synoptic-suggestions', facilityId: caseData.order?.facilityId },
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
@@ -4254,6 +4272,7 @@ Rules:
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
       configOverride: await resolveAiConfigOverrideForClient(input.facilityId),
+      context: { feature: 'template-suggestions', facilityId: input.facilityId },
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean) as Array<{
@@ -4414,6 +4433,7 @@ Rules:
       // unlimited.
       maxTokens: 4096,
       configOverride: await resolveAiConfigOverrideForClient(facilityId),
+      context: { feature: 'grossing', facilityId: facilityId },
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
@@ -4562,6 +4582,7 @@ Rules:
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
       configOverride: await resolveAiConfigOverrideForClient(input.caseContext?.facilityId),
+      context: { feature: 'grossing', facilityId: input.caseContext?.facilityId },
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean) as Array<{
@@ -4697,6 +4718,7 @@ Rules:
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
       configOverride: await resolveAiConfigOverrideForClient(input.facilityId),
+      context: { feature: 'grossing', facilityId: input.facilityId },
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean) as Array<{
@@ -4820,12 +4842,12 @@ const FEEDBACK_KEY = 'pathscribe_ai_feedback';
 
 export function recordAiFeedback(entry: AiFeedbackEntry): void {
   try {
-    const raw = localStorage.getItem(FEEDBACK_KEY);
+    const raw = dataStorage.getItem(FEEDBACK_KEY);
     const log: AiFeedbackEntry[] = raw ? JSON.parse(raw) : [];
     log.push(entry);
     // Keep last 500 entries to avoid unbounded growth
     if (log.length > 500) log.splice(0, log.length - 500);
-    localStorage.setItem(FEEDBACK_KEY, JSON.stringify(log));
+    dataStorage.setItem(FEEDBACK_KEY, JSON.stringify(log));
     console.info('[PathScribe AI] Feedback recorded:', entry.action, entry.fieldId,
       entry.action === 'overridden'
         ? `AI said "${entry.aiValue}" → user chose "${entry.userValue}"`
@@ -4841,7 +4863,7 @@ export function recordAiFeedback(entry: AiFeedbackEntry): void {
  *  and the call sites that were missing, not this function. */
 export function getAiFeedbackLog(): AiFeedbackEntry[] {
   try {
-    const raw = localStorage.getItem(FEEDBACK_KEY);
+    const raw = dataStorage.getItem(FEEDBACK_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
@@ -4876,10 +4898,10 @@ export interface ClaimResult {
 }
 
 function loadClaims(): Record<string, { userId: string; expiresAt: number }> {
-  try { return JSON.parse(localStorage.getItem(CLAIM_STORE_KEY) ?? '{}'); } catch { return {}; }
+  try { return JSON.parse(dataStorage.getItem(CLAIM_STORE_KEY) ?? '{}'); } catch { return {}; }
 }
 function saveClaims(claims: Record<string, { userId: string; expiresAt: number }>): void {
-  try { localStorage.setItem(CLAIM_STORE_KEY, JSON.stringify(claims)); } catch {}
+  try { dataStorage.setItem(CLAIM_STORE_KEY, JSON.stringify(claims)); } catch {}
 }
 
 /** Attempt to claim a pool case before showing accept/pass prompt */
@@ -4956,7 +4978,7 @@ export async function claimPoolCase(caseId: string, userId: string): Promise<Cla
 // all, so it can't create that cycle either way. Same real drift risk
 // this whole change closes, just found in one more place.
 
-async function getCaseAnyMode(caseId: string): Promise<Case | undefined> {
+async function getCaseAnyMode(caseId: string): Promise<Case | null | undefined> {
   if (isOrchCaseId(caseId)) return mockOrchestratorCaseService.getCase(caseId);
   return CASES.find((c: any) => c.id === caseId);
 }

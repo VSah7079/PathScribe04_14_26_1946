@@ -11,6 +11,7 @@ import type { IGrossImagingVendorService, GrossImagingVendorEntry, NewGrossImagi
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { linkFieldProblem } from '../links/externalLink';
 
 const STORAGE_KEY = 'grossImagingVendorDictionary';
 
@@ -63,6 +64,8 @@ const grossImagingVendorServiceUnchecked: IGrossImagingVendorService = {
 
   async add(entry: NewGrossImagingVendorEntry) {
     await delay();
+    // Batch 549: a link field that isn't an https link is refused here as well as in the editor (links only, Pete, Oct 13, 2026).
+    if (linkFieldProblem(entry.baseUrl)) return err('invalidLink: baseUrl must be an https link');
     const maxOrder = _cache.reduce((m, e) => Math.max(m, e.sortOrder), 0);
     const created: GrossImagingVendorEntry = { ...entry, id: 'gross-imaging-custom-' + Date.now(), isSystem: false, sortOrder: maxOrder + 1 };
     _cache = [..._cache, created];
@@ -72,6 +75,7 @@ const grossImagingVendorServiceUnchecked: IGrossImagingVendorService = {
 
   async update(id: ID, changes: Partial<GrossImagingVendorEntry>) {
     await delay();
+    if (linkFieldProblem(changes.baseUrl)) return err('invalidLink: baseUrl must be an https link');
     const idx = _cache.findIndex(e => e.id === id);
     if (idx === -1) return err(`GrossImagingVendorEntry ${id} not found`);
     const { isSystem: _ignored, ...safeChanges } = changes as any;

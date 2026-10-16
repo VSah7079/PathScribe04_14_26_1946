@@ -1,6 +1,5 @@
 import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router";
 import { useTranslation, Trans } from 'react-i18next';
 import { buildPoolGroupRows, splitPoolRowsByUrgency, computeRestrictedPoolKeys, type PoolDividerRow, type SubspecialtyForRestrictionCheck } from './poolGrouping';
 import { buildAmendmentGroupRows, type AmendmentDividerRow } from './amendmentGrouping';
@@ -8,7 +7,7 @@ import { buildAutopsyGroupRows, type AutopsyDividerRow } from './autopsyGrouping
 import AutopsyWorklistBadges from './AutopsyWorklistBadges';
 import type { AmendmentType } from '@/types/reports/AmendmentRecord';
 import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
-import { storageGet, storageSet } from '@/services/mockStorage';
+import { getUiPreference, setUiPreference } from '@/utils/uiPreferences';
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystemConfig } from "@/contexts/SystemConfigContext";
 import { getFacilityDateParts } from '@/utils/facilityTime';
@@ -34,6 +33,7 @@ import type { ParticipationTypeRecord } from '@/services/participationTypes/IPar
 import { openComposeTo } from '@/utils/openComposeTo';
 import { setCaseOpenedFrom } from '@/utils/search/searchSession';
 import { getPersonalSetting, setPersonalSetting } from '@/services/userSettings/personalSettings';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -515,7 +515,6 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   preserveOrder = false,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const openCasePage = useOpenCase();
   const { user } = useAuth();
   const { config } = useSystemConfig();
@@ -550,26 +549,27 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // across re-renders, not the display label). Pools restricted for this
   // user start collapsed the first time they're seen; explicit user
   // toggles afterward are respected and not re-defaulted. Sticky: persisted
-  // per-user via storageGet/storageSet, the same pattern used elsewhere in
-  // this app for sticky UI preferences - a manually-expanded pool survives
+  // per-user as a display preference (utils/uiPreferences.ts; Batch 506 moved
+  // it there from the mock-storage helpers, so a remembered state from before
+  // that resets once) - a manually-expanded pool survives
   // a reload instead of silently re-collapsing back to the default.
   const collapseStorageKey = `worklist_pool_collapse_${user?.id ?? 'anon'}`;
   const [collapsedPoolKeys, setCollapsedPoolKeys] = useState<Set<string>>(
-    () => new Set(storageGet<string[]>(collapseStorageKey, []))
+    () => new Set(getUiPreference<string[]>(collapseStorageKey, []))
   );
   const seenRestrictedStorageKey = `worklist_pool_seen_restricted_${user?.id ?? 'anon'}`;
   const seenRestrictedKeysRef = useRef<Set<string>>(
-    new Set(storageGet<string[]>(seenRestrictedStorageKey, []))
+    new Set(getUiPreference<string[]>(seenRestrictedStorageKey, []))
   );
   useEffect(() => {
     const newlyRestricted = Array.from(restrictedPoolKeys).filter(k => !seenRestrictedKeysRef.current.has(k));
     if (newlyRestricted.length === 0) return;
     newlyRestricted.forEach(k => seenRestrictedKeysRef.current.add(k));
-    storageSet(seenRestrictedStorageKey, Array.from(seenRestrictedKeysRef.current));
+    setUiPreference(seenRestrictedStorageKey, Array.from(seenRestrictedKeysRef.current));
     setCollapsedPoolKeys(prev => {
       const next = new Set(prev);
       newlyRestricted.forEach(k => next.add(k));
-      storageSet(collapseStorageKey, Array.from(next));
+      setUiPreference(collapseStorageKey, Array.from(next));
       return next;
     });
   }, [restrictedPoolKeys, collapseStorageKey, seenRestrictedStorageKey]);
@@ -578,7 +578,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
     setCollapsedPoolKeys(prev => {
       const next = new Set(prev);
       if (next.has(poolKey)) next.delete(poolKey); else next.add(poolKey);
-      storageSet(collapseStorageKey, Array.from(next));
+      setUiPreference(collapseStorageKey, Array.from(next));
       return next;
     });
   }, [collapseStorageKey]);
@@ -610,14 +610,15 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   const [pedRequestedIds, setPedRequestedIds] = React.useState<Set<string>>(new Set());
   const [orchRequestedIds, setOrchRequestedIds] = React.useState<Set<string>>(new Set());
 
+  const accessRequestUserId = (user as any)?.id as string | undefined;
   const refreshAccessRequestState = React.useCallback(() => {
-    const userId = (user as any)?.id;
+    const userId = accessRequestUserId;
     if (!userId) return;
     pendingAccessRequestsFor(userId).then(pending => {
       setPedRequestedIds(new Set(pending.filter(r => r.type === 'pediatric' && r.caseId).map(r => r.caseId!)));
       setOrchRequestedIds(new Set(pending.filter(r => r.type === 'orchestration' && r.caseId).map(r => r.caseId!)));
     }).catch(() => {});
-  }, [(user as any)?.id]);
+  }, [accessRequestUserId]);
 
   React.useEffect(() => { refreshAccessRequestState(); }, [refreshAccessRequestState]);
 
@@ -744,10 +745,9 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
               className={`wl-staff-chip${isPrimary ? ' wl-staff-chip--primary' : ''}`}
               title={getStaffRoleLabel(p)}
             >
-              {/* "RES" itself is a compact domain abbreviation (like
-                  MRN/DOB elsewhere in this file), not translated — only
-                  its tooltip is real UI copy. */}
-              {isResident && <span className="wl-staff-chip__badge" title={t('worklistTable.staffChip.residentBadgeTitle')}>RES</span>}
+              {/* Batch 513 (PS-269): the resident badge is a language-
+                  specific abbreviation (RES / INT / AA / AIOS / 전공의). */}
+              {isResident && <span className="wl-staff-chip__badge" title={t('worklistTable.staffChip.residentBadgeTitle')}>{t('worklistTable.staffChip.residentBadge')}</span>}
               <span className="wl-staff-chip__name">{p.staffName}</span>
               <button
                 type="button"
@@ -1023,7 +1023,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
       return true;
     });
-  }, [cases, activeFilter, isUrgentCase, delegatedCaseIds, config.facilityTimezone]);
+  }, [cases, activeFilter, delegatedCaseIds, config.facilityTimezone]);
 /**
    * sortGroup:
    * A helper that applies the current multi-level sortStack to a 
@@ -1070,7 +1070,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       ...sortGroup(normal),
       ...sortGroup(poolCases),
     ];
-  }, [filteredCases, isUrgentCase, sortGroup, preserveOrder]);
+  }, [filteredCases, sortGroup, preserveOrder]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // NAVIGATION & SELECTION
@@ -1110,7 +1110,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
         },
       });
     },
-    [navigate, onBeforeNavigate, finalCases, navSource, activeFilter]
+    [openCasePage, onBeforeNavigate, finalCases, navSource, activeFilter]
   );
 
   /**
@@ -1191,7 +1191,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       prefetchTemplateData(templateId);
       openCase(id);
     },
-    [cases, openCase, onRowSelect, onPoolCaseClick, interceptOpen, isOrchRestricted, isPedRestricted, user, clientThresholds]
+    [cases, openCase, onRowSelect, onPoolCaseClick, interceptOpen, isOrchRestricted, user, clientThresholds]
   );
 // ─────────────────────────────────────────────────────────────────────────────
   // DISPLAY ROW GENERATION (Dividers + Virtualization)
@@ -1266,7 +1266,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
     // t included so these two divider labels re-resolve on a language
     // switch, same "t in deps" convention this sweep already applies to
     // other memoized/effect-computed display strings elsewhere.
-  }, [finalCases, isUrgentCase, restrictedPoolKeys, activeFilter, amendmentTypeByCaseId, branchFilter, t, preserveOrder]);
+  }, [finalCases, restrictedPoolKeys, activeFilter, amendmentTypeByCaseId, branchFilter, t, preserveOrder]);
 
   /**
    * visibleRows:
@@ -1442,8 +1442,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // restricted-pool-membership concept applies here).
                   if ('isAmendmentGroup' in row) {
                     return (
-                      <div key={`div-${row.label}-${rowIndex}`} className="wl-card-divider">
-                        <span className="wl-card-divider__label">{row.label}</span>
+                      <div key={`div-${row.groupKey}-${rowIndex}`} className="wl-card-divider">
+                        <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                         <span className="wl-card-divider__count">{row.count}</span>
                         <div className="wl-card-divider__line" />
                       </div>
@@ -1456,8 +1456,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // "collapsible pool" concept applies here either.
                   if ('isAutopsyGroup' in row) {
                     return (
-                      <div key={`div-${row.label}-${rowIndex}`} className="wl-card-divider">
-                        <span className="wl-card-divider__label">{row.label}</span>
+                      <div key={`div-${row.groupKey}-${rowIndex}`} className="wl-card-divider">
+                        <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                         <span className="wl-card-divider__count">{row.count}</span>
                         <div className="wl-card-divider__line" />
                       </div>
@@ -1470,7 +1470,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     <div
                       key={`div-${row.label}-${rowIndex}`}
                       className={`wl-card-divider${isCollapsible ? ' wl-divider--clickable' : ''}`}
-                      onClick={isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined}
+                      {...pressable(isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined)}
                     >
                       {isCollapsible && (
                         <span className="wl-card-divider__chevron">{isCollapsed ? '▶' : '▼'}</span>
@@ -1520,7 +1520,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   <div
                     key={c.id}
                     className={cardClass}
-                    onClick={() => handleRowClick(c.id)}
+                    {...pressable(() => handleRowClick(c.id))}
                     onMouseEnter={() => setHoveredRow(c.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                   >
@@ -1610,7 +1610,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                             {formatDate(c.patient.dateOfBirth, c.order?.facilityId)}
                             {' '}
                             ({c.patient.dateOfBirth ? formatAge(c.patient.dateOfBirth) : '—'})
-                            <span className="wl-mrn-inline" data-phi="mrn">· MRN {c.patient.mrn ?? '—'}</span>
+                            <span className="wl-mrn-inline" data-phi="mrn">{t('common.patientIds.mrnAfterSeparator', { mrn: c.patient.mrn ?? '—' })}</span>
                           </div>
                         )}
                       </div>
@@ -1803,10 +1803,10 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // treatment as the tablet/card view above.
                   if ('isAmendmentGroup' in row) {
                     return (
-                      <tr key={`div-${row.label}-${rowIndex}`}>
+                      <tr key={`div-${row.groupKey}-${rowIndex}`}>
                         <td colSpan={14} className="wl-td-divider--normal">
                           <div className="wl-card-divider wl-card-divider--flush">
-                            <span className="wl-card-divider__label">{row.label}</span>
+                            <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                             <span className="wl-card-divider__count">{row.count}</span>
                             <div className="wl-card-divider__line" />
                           </div>
@@ -1820,10 +1820,10 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // above.
                   if ('isAutopsyGroup' in row) {
                     return (
-                      <tr key={`div-${row.label}-${rowIndex}`}>
+                      <tr key={`div-${row.groupKey}-${rowIndex}`}>
                         <td colSpan={14} className="wl-td-divider--normal">
                           <div className="wl-card-divider wl-card-divider--flush">
-                            <span className="wl-card-divider__label">{row.label}</span>
+                            <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                             <span className="wl-card-divider__count">{row.count}</span>
                             <div className="wl-card-divider__line" />
                           </div>
@@ -1839,7 +1839,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       <td
                         colSpan={14}
                         className={`${row.isUrgent ? 'wl-td-divider--urgent' : 'wl-td-divider--normal'}${isCollapsible ? ' wl-divider--clickable' : ''}`}
-                        onClick={isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined}
+                        {...pressable(isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined, { role: null })}
                       >
                         <div className="wl-card-divider wl-card-divider--flush">
                           {isCollapsible && (
@@ -1886,7 +1886,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   <tr
                     key={c.id}
                     className={`wl-tr${rowStateClass}${rowBorderClass}`}
-                    onClick={() => handleRowClick(c.id)}
+                    {...pressable(() => handleRowClick(c.id), { role: null })}
                     onMouseEnter={() => setHoveredRow(c.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                   >
@@ -2012,30 +2012,35 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         stopPropagation() fix this file's own
                         openComposeTo button (above) already uses for
                         an identical contained-click-inside-a-clickable-
-                        row situation. */}
-                    <td className="wl-td wl-td-dp" onClick={e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }}>
-                      {(() => {
-                        const badge = resolveDigitalReadinessBadge(wsiSlidesByCaseId?.get(c.id));
-                        if (!badge) return null;
-                        return (
-                          <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewSlideDetails')}>
-                            {badge.summaryText}
-                          </button>
-                        );
-                      })()}
-                    </td>
-                    <td className="wl-td wl-td-dp" onClick={e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }}>
-                      {(() => {
-                        const badge = resolveDpTriageBadge(dpResultByCaseId?.get(c.id));
-                        if (!badge) return null;
-                        return (
-                          <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewAiTriageDetails')}>
-                            <div>{badge.primaryText}</div>
-                            {badge.biomarkerSummary && <div className="wl-dp-badge-sub">{badge.biomarkerSummary}</div>}
-                          </button>
-                        );
-                      })()}
-                    </td>
+                        row situation. Batch 567: the cell is a mouse shortcut only (clickableContainer); the badge
+                        button inside is the one tab stop, and its click reaches this cell's handler. */}
+                    {(() => {
+                      // Batch 567: only a cell with a badge opens the drawer, so the badge (a real button) is always
+                      // there for keyboard users when a click would do something.
+                      const badge = resolveDigitalReadinessBadge(wsiSlidesByCaseId?.get(c.id));
+                      return (
+                        <td className="wl-td wl-td-dp" {...clickableContainer(badge ? (e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }) : undefined)}>
+                          {badge && (
+                            <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewSlideDetails')}>
+                              {badge.summaryText}
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })()}
+                    {(() => {
+                      const badge = resolveDpTriageBadge(dpResultByCaseId?.get(c.id));
+                      return (
+                        <td className="wl-td wl-td-dp" {...clickableContainer(badge ? (e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }) : undefined)}>
+                          {badge && (
+                            <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewAiTriageDetails')}>
+                              <div>{badge.primaryText}</div>
+                              {badge.biomarkerSummary && <div className="wl-dp-badge-sub">{badge.biomarkerSummary}</div>}
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })()}
 
                     {/* Flags */}
                     <td className="wl-td">

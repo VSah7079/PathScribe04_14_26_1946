@@ -13,7 +13,7 @@ import type { IReportVersionService } from './IReportVersionService';
 import { caseRouter } from '../cases/CaseRouter';
 import { organMapFiguresForVersion } from '../organMapping/organMapFigures';
 import { autoFigureVersion, autoOrganMapFigures, reportTranslateFor } from '../organMapping/organMapAutoFigures';
-import { sha256Hex } from '../registrySubmission/sha256';
+import { pdfSha256 } from '../reportDocuments/reportDocuments';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockEncounterService } from '../encounters/mockEncounterService';
 import { getEffectiveScanStationId } from '@/utils/effectiveScanStation';
@@ -80,13 +80,16 @@ export const mockReportVersionService: IReportVersionService = {
     return ok(load().filter(r => r.caseId === caseId).sort((a, b) => a.versionNumber - b.versionNumber));
   },
 
-  async create(record) {
-    const existing = load().filter(r => r.caseId === record.caseId);
+  async create(record, context) {
+    // Batch 558: with the API server, its versions count too (numbering, CORRECTED vs ADDENDUM).
+    const own = load().filter(r => r.caseId === record.caseId);
+    const ownIds = new Set(own.map(r => r.id));
+    const existing = [...own, ...(context?.priorVersions ?? []).filter(r => r.caseId === record.caseId && !ownIds.has(r.id))];
     const patientEncounterSnapshot = await captureSnapshot(record.caseId);
     const newRecord: ReportVersionRecord = {
       ...record,
       id: `ver-${Date.now().toString(36)}`,
-      versionNumber: existing.length + 1,
+      versionNumber: existing.reduce((n, r) => Math.max(n, r.versionNumber), existing.length) + 1,
       createdAt: new Date().toISOString(),
       patientEncounterSnapshot,
       // Real feature, per direct follow-up: "Stamp every saved
@@ -106,7 +109,11 @@ export const mockReportVersionService: IReportVersionService = {
       const figures = [...organMapFiguresForVersion(signed, record.instanceId).filter(f => !autoIds.has(f.instanceId)), ...auto];
       if (figures.length) newRecord.organMapFigures = figures;
     } catch { /* the version is still created */ }
-    if (record.pdfBase64) newRecord.pdfSha256 = sha256Hex(record.pdfBase64);
+    // Batch 558: the hash of the PDF's bytes, as the API server and report documents record it
+    // (it was the hash of the base64 text before; reportVersionPdf.ts still accepts those).
+    if (record.pdfBase64) {
+      try { newRecord.pdfSha256 = pdfSha256(record.pdfBase64); } catch { /* not base64: no hash, the version is still created */ }
+    }
     persist([...load(), newRecord]);
 
     // Real, per direct guidance (Pathology HL7 Outbound Feature Spec,

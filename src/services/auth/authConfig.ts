@@ -7,8 +7,10 @@
 //   VITE_AUTH_MODE            demo (default) → email + password against the
 //                                               demo accounts, plus any SSO
 //                                               providers configured below
-//                             sso            → SSO only. The demo accounts
-//                                               are left out of the bundle.
+//                             sso            → SSO only. Batch 547: set in the
+//                                               deployment's config.json; a server
+//                                               build must use it, and never
+//                                               contains the demo accounts.
 //
 //   One block per SSO provider (<ID> = MICROSOFT, GOOGLE or OIDC):
 //   VITE_AUTH_<ID>_AUTHORITY      the provider's issuer URL (https)

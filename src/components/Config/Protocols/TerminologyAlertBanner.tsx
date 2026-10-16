@@ -20,6 +20,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { TerminologyAlert } from '../../../hooks/useTerminologyAlerts';
+import { clickableContainer } from '@/utils/a11y/pressable';
 
 function alertStyles(severity: 'error' | 'warning') {
   return severity === 'error'
@@ -43,8 +44,10 @@ const AlertRow: React.FC<{
           {alert.system.toUpperCase()} {alert.code}
           {alert.fieldLabel && (
             <span className="ps-termalert-row-field">
-              — {alert.fieldLabel}
-              {alert.optionLabel && ` › "${alert.optionLabel}"`}
+              {/* Batch 568: the punctuation is in the message, so each language sets its own. */}
+              {alert.optionLabel
+                ? t('terminologyAlertBanner.fieldOptionRef', { field: alert.fieldLabel, option: alert.optionLabel })
+                : t('terminologyAlertBanner.fieldRef', { field: alert.fieldLabel })}
             </span>
           )}
         </div>
@@ -104,28 +107,33 @@ export const TerminologyAlertBanner: React.FC<{
   return (
     <div className={`ps-termalert-banner ps-termalert--${hasErrors ? 'error' : 'warning'}`}>
       {/* Header */}
+      {/* Batch 568 (axe nested-interactive): the header holds a button (Re-check), so it isn't a button itself;
+          clicking it still shows or hides the list, and the title is the button that does so (aria-expanded). */}
       <div
-        onClick={() => setCollapsed(c => !c)}
+        {...clickableContainer(() => setCollapsed(c => !c))}
         className="ps-termalert-header"
       >
         <span className="ps-termalert-header-icon">{hasErrors ? '🚫' : '⚠️'}</span>
         <div className="ps-termalert-header-text">
-          <span className="ps-termalert-header-title">
+          <button type="button" className="ps-row-open-btn ps-termalert-header-title" aria-expanded={!collapsed}
+            onClick={e => { e.stopPropagation(); setCollapsed(c => !c); }}>
             {t('terminologyAlertBanner.title')}
-          </span>
+          </button>
           <span className="ps-termalert-header-count">
-            {errorCount > 0   && t('terminologyAlertBanner.deprecatedCodeCount', { count: errorCount })}
-            {errorCount > 0 && warningCount > 0 && ' · '}
-            {warningCount > 0 && t('terminologyAlertBanner.warningCount', { count: warningCount })}
+            {errorCount > 0 && warningCount > 0
+              ? t('terminologyAlertBanner.countsBoth', { errors: t('terminologyAlertBanner.deprecatedCodeCount', { count: errorCount }), warnings: t('terminologyAlertBanner.warningCount', { count: warningCount }) })
+              : errorCount > 0 ? t('terminologyAlertBanner.deprecatedCodeCount', { count: errorCount })
+              : warningCount > 0 ? t('terminologyAlertBanner.warningCount', { count: warningCount }) : null}
           </span>
         </div>
         <button
+          type="button"
           onClick={e => { e.stopPropagation(); onRevalidate(); }}
           className="ps-termalert-recheck-btn"
         >
           ↻ {t('terminologyAlertBanner.recheckButton')}
         </button>
-        <span className={`ps-termalert-chevron${collapsed ? ' ps-termalert-chevron--collapsed' : ''}`}>▾</span>
+        <span aria-hidden="true" className={`ps-termalert-chevron${collapsed ? ' ps-termalert-chevron--collapsed' : ''}`}>▾</span>
       </div>
 
       {/* Alert list */}

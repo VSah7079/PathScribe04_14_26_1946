@@ -27,7 +27,7 @@
 
 import * as net from 'net';
 import { DEFAULT_PRINT_PROTOCOL_PORT } from '@/types/printRouting/PrintDestination';
-import type { PrintDestination } from '@/types/printRouting/PrintDestination';
+import type { NetworkPrintDestination as PrintDestination } from '@/types/printRouting/PrintDestination';
 
 export interface SendPrintJobResult {
   ok: boolean;

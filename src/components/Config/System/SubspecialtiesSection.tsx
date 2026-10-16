@@ -1,15 +1,16 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { subspecialtyService, Subspecialty } from "../../../services";
+import { subspecialtyService, Subspecialty, facilityService } from '@/services';
 import { useSpecimenDictionary } from "./useSpecimenDictionary";
 import { userService } from "../../../services";
 import { checkSubspecialtyReferences } from "../../../services/referenceCheck/referenceCheckService";
 import { StaffUser } from "../Staff/StaffTab";
-import { mockFacilityService } from "../../../services/facilities/mockFacilityService";
+
 import { getActivePerformingLabs } from "../../../utils/performingLabs";
 import type { Facility } from "../../../services/facilities/IFacilityService";
 import { findDuplicate } from "../../../utils/validateUnique";
+import { pressable, switchable } from '@/utils/a11y/pressable';
 
 // ── Badge colours ─────────────────────────────────────────────────────────────
 
@@ -36,12 +37,12 @@ const Avatar = ({ name }: { name: string }) => {
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
 
-const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => {
+const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) => {
   const { t } = useTranslation();
   return (
     <div className="ps-sub-toggle-wrap">
       <div
-        onClick={() => onChange(!value)}
+        {...switchable(value, () => onChange(!value), label ?? t('a11y.fields.active'))}
         className={`ps-sub-toggle-track${value ? ' ps-sub-toggle-track--on' : ' ps-sub-toggle-track--off'}`}
       >
         <div className={`ps-sub-toggle-thumb${value ? ' ps-sub-toggle-thumb--on' : ' ps-sub-toggle-thumb--off'}`} />
@@ -65,7 +66,7 @@ const SearchInput = ({ value, onChange, placeholder }: {
       placeholder={placeholder} className="ps-sub-search-input"
     />
     {value && (
-      <span className="ps-sub-search-clear" onClick={() => onChange("")}>&#10005;</span>
+      <span className="ps-sub-search-clear" {...pressable(() => onChange(""))}>&#10005;</span>
     )}
   </div>
 );
@@ -76,7 +77,7 @@ const CheckRow = ({ label, sub, checked, onChange }: {
   label: string; sub?: string; checked: boolean; onChange: () => void;
 }) => (
   <div
-    onClick={onChange}
+    {...pressable(onChange)}
     className={`ps-sub-check-row${checked ? ' ps-sub-check-row--checked' : ' ps-sub-check-row--unchecked'}`}
   >
     <div className={`ps-sub-check-box${checked ? ' ps-sub-check-box--checked' : ' ps-sub-check-box--unchecked'}`}>
@@ -149,7 +150,7 @@ const SubspecialtiesSection: React.FC = () => {
   useEffect(() => {
     loadSubspecialties();
     userService.getAll().then(res => { if (res.ok) setUsers(res.data); });
-    mockFacilityService.getAll().then(res => { if (res.ok) setAllFacilities(res.data); });
+    facilityService.getAll().then(res => { if (res.ok) setAllFacilities(res.data); });
     getActivePerformingLabs().then(setLabs);
   }, [loadSubspecialties]);
 
@@ -507,7 +508,7 @@ const SubspecialtiesSection: React.FC = () => {
                   <label className="fm-section-label">
                     {t('subspecialtiesSection.modal.nameLabel')} <span className="ps-sub-label-req">*</span>
                   </label>
-                  <input
+                  <input aria-label={t('subspecialtiesSection.modal.nameLabel')}
                     className={`ps-sub-input${nameError ? ' ps-sub-input--error' : ''}`}
                     value={draft.name}
                     onChange={e => { setDraft({ ...draft, name: e.target.value }); setNameError(""); }}
@@ -539,7 +540,7 @@ const SubspecialtiesSection: React.FC = () => {
                 <div className="ps-sub-field">
                   <label className="fm-section-label">{t('subspecialtiesSection.modal.assignmentModeLabel')}</label>
                   <div
-                    onClick={() => setDraft(prev => ({ ...prev, isWorkgroup: !prev.isWorkgroup }))}
+                    {...switchable(draft.isWorkgroup, () => setDraft(prev => ({ ...prev, isWorkgroup: !prev.isWorkgroup })), t('subspecialtiesSection.modal.assignmentModeLabel'))}
                     className={`ps-sub-workgroup-toggle${draft.isWorkgroup ? ' ps-sub-workgroup-toggle--on' : ' ps-sub-workgroup-toggle--off'}`}
                   >
                     <div
@@ -568,7 +569,7 @@ const SubspecialtiesSection: React.FC = () => {
                 {draft.isWorkgroup && (
                   <div className="ps-sub-field">
                     <label className="fm-section-label">{t('subspecialtiesSection.modal.performingLabLabel')}</label>
-                    <select
+                    <select aria-label={t('subspecialtiesSection.modal.performingLabLabel')}
                       className="ps-conf-select"
                       value={draft.performingLabFacilityId}
                       onChange={e => setDraft(prev => ({ ...prev, performingLabFacilityId: e.target.value }))}
@@ -601,7 +602,7 @@ const SubspecialtiesSection: React.FC = () => {
                   <label className="fm-section-label">
                     {t('subspecialtiesSection.modal.descriptionLabel')} <span className="ps-sub-label-opt">{t('common.optional')}</span>
                   </label>
-                  <input
+                  <input aria-label={t('subspecialtiesSection.modal.descriptionLabel')}
                     className="ps-sub-input"
                     value={draft.description}
                     onChange={e => setDraft(prev => ({ ...prev, description: e.target.value }))}

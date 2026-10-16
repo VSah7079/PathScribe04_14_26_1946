@@ -1,9 +1,9 @@
 // Batch 458 (PS-71): versioned case saves.
 import { describe, it, expect, vi } from 'vitest';
-import { updateCaseWithRetry, updateCaseWithRetryOrThrow, overwriteAfterConflict, caseConflictRows, adoptSavedVersion, savePageChange, commitMergeReview, takeUpSavedCase } from './caseWrite';
+import { updateCaseWithRetry, updateCaseWithRetryOrThrow, overwriteAfterConflict, caseConflictRows, adoptSavedVersion, savePageChange, commitMergeReview, takeUpSavedCase, takeUpNewerCase, takeTheirVersion, selectionAfterTakeUp, orchestrationDiagnosticAfterTakeUp } from './caseWrite';
 import { ConcurrencyConflictError } from './ConcurrencyConflictError';
+import type { Case } from '@/types/case/Case';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /** A one-case store that refuses a save made against an old version, like the real one. */
 function store(initial: any) {
   let c = { ...initial };
@@ -69,7 +69,7 @@ describe('overwriteAfterConflict ("Save mine anyway")', () => {
     const s = store({ id: 'C', version: 7 });
     const logAudit = vi.fn();
     const r = await overwriteAfterConflict({ caseId: 'C', caseLabel: 'S26-1', updates: { status: 'x' } as any, changedFields: ['status'], actor },
-      { ...s.deps, enforce: async c => ({ allowed: c !== 'case:edit-conflict:override' }), logAudit } as any);
+      { ...s.deps, enforce: async (c: string) => ({ allowed: c !== 'case:edit-conflict:override' }), logAudit } as any);
     expect(r).toEqual({ ok: false, reason: 'notPermitted' });
     expect(s.saves).toHaveLength(0);
     expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ event: 'Edit conflict overwrite refused' }));
@@ -222,5 +222,78 @@ describe('Batch 458: review before saving over someone else\'s save (Pete: "an o
     expect(r.kind).toBe('review');
     expect(r.review.theirsChanged).toEqual(['participants']);
     expect(s.saves).toHaveLength(0);
+  });
+
+  describe('Batch 575: takeUpNewerCase ("Show their changes", in place)', () => {
+    const saved = { id: 'C', version: 6, synopticReports: [{ instanceId: 'S1', a: 1, b: 'theirs' }], specimens: [{ id: 'A', flag: 'x', note: 'theirs' }], priority: 'routine' } as any;
+    const draftBase = { synopticReports: [{ instanceId: 'S1', a: 1 }] } as any;
+    it('nothing newer (this page\'s own save got there first): stale', () => {
+      expect(takeUpNewerCase({ saved, savedVersion: 6, knownVersion: 6, pageDraft: {}, draftBase: {}, pending: null }).kind).toBe('stale');
+      expect(takeUpNewerCase({ saved, savedVersion: 6, knownVersion: 7, pageDraft: {}, draftBase: {}, pending: null }).kind).toBe('stale');
+    });
+    it('unsaved report text and changes held back by a conflict are merged over theirs, and the held changes rebased', () => {
+      const pending = { parts: { specimens: [{ id: 'A', flag: 'mine' }] }, base: { specimens: [{ id: 'A', flag: 'x' }] } } as any;
+      const r = takeUpNewerCase({ saved, savedVersion: 6, knownVersion: 5, pageDraft: { synopticReports: [{ instanceId: 'S1', a: 2 }] } as any, draftBase, pending });
+      expect(r.kind).toBe('shown');
+      if (r.kind !== 'shown') return;
+      expect(r.adoptVersion).toBe(6);
+      expect(r.show.synopticReports).toEqual([{ instanceId: 'S1', a: 2, b: 'theirs' }]);
+      expect((r.show as any).specimens).toEqual([{ id: 'A', flag: 'mine', note: 'theirs' }]);
+      expect(r.pending).toEqual({ parts: { specimens: [{ id: 'A', flag: 'mine', note: 'theirs' }] }, base: { specimens: saved.specimens } });
+      expect(r.draftBase).toEqual({ synopticReports: saved.synopticReports });
+      expect((r.show as any).priority).toBe('routine');
+    });
+    it('their change to something this page holds unsaved: overlap, theirs shown elsewhere, this page\'s kept as typed', () => {
+      const pending = { parts: { specimens: [{ id: 'A', flag: 'mine' }] }, base: { specimens: [{ id: 'A', flag: 'old' }] } } as any;
+      const r = takeUpNewerCase({ saved, savedVersion: 6, knownVersion: 5, pageDraft: {}, draftBase: {}, pending });
+      expect(r.kind).toBe('overlap');
+      expect((r as any).show.specimens).toEqual([{ id: 'A', flag: 'mine' }]);
+      expect((r as any).show.priority).toBe('routine');
+    });
+    it('Orchestration: the saved diagnostic, with only the section-backed text kept from the page', () => {
+      expect(orchestrationDiagnosticAfterTakeUp(
+        { grossDescription: 'theirs', signedOutBy: 'Dr B', reportNarrative: 'old' },
+        { grossDescription: 'mine', reportNarrative: 'mine', signedOutBy: undefined, microscopicDescription: 'm' },
+      )).toEqual({ grossDescription: 'mine', signedOutBy: 'Dr B', reportNarrative: 'mine', microscopicDescription: 'm' });
+    });
+  });
+});
+
+describe('takeTheirVersion (Batch 577: "Use their version" in place of a reload)', () => {
+  const saved = { id: 'c1', version: 7, synopticReports: [{ instanceId: 'i1' }], orchSections: [{ id: 's1', text: 'theirs' }] } as unknown as Case;
+  it('shows the saved case exactly as saved, with its sections and version', () => {
+    const r = takeTheirVersion(saved, 7);
+    expect(r.show).toBe(saved);
+    expect(r.orchSections).toEqual([{ id: 's1', text: 'theirs' }]);
+    expect(r.adoptVersion).toBe(7);
+  });
+  it('a case with no saved sections shows none, as when it is opened', () => {
+    const noSections = { id: 'c1', version: 3 } as unknown as Case;
+    expect(takeTheirVersion(noSections, 3).orchSections).toEqual([]);
+    expect(takeTheirVersion({ ...noSections, orchSections: 'bad' } as unknown as Case, 3).orchSections).toEqual([]);
+  });
+});
+
+describe('selectionAfterTakeUp (Batch 577: what stays open after taking up their version)', () => {
+  const show = {
+    id: 'c1',
+    specimens: [{ id: 'A' }, { id: 'B' }],
+    synopticReports: [{ instanceId: 's1' }, { instanceId: 's2' }],
+    grossingReports: [{ instanceId: 'g1', status: 'finalized' }],
+  } as unknown as Case;
+  const sections = [{ id: 'sec1' }, { id: 'sec2' }];
+  it('keeps everything that still exists', () => {
+    const cur = { specimenId: 'B', reportType: 'synoptic' as const, reportInstanceId: 's2', sectionId: 'sec2' };
+    expect(selectionAfterTakeUp(show, sections, cur)).toEqual(cur);
+  });
+  it('replaces what their save removed as opening the case would', () => {
+    expect(selectionAfterTakeUp(show, sections, { specimenId: 'C', reportType: 'synoptic', reportInstanceId: 's9', sectionId: 'gone' }))
+      .toEqual({ specimenId: 'A', reportType: 'synoptic', reportInstanceId: 's1', sectionId: null });
+    const withDraftGross = { ...show, grossingReports: [{ instanceId: 'g1', status: 'finalized' }, { instanceId: 'g2', status: 'draft' }] } as unknown as Case;
+    expect(selectionAfterTakeUp(withDraftGross, sections, { specimenId: '', reportType: 'grossing', reportInstanceId: 'g9', sectionId: null }))
+      .toEqual({ specimenId: '', reportType: 'grossing', reportInstanceId: 'g2', sectionId: null });
+    const nothing = { id: 'c1' } as unknown as Case;
+    expect(selectionAfterTakeUp(nothing, [], { specimenId: 'A', reportType: 'grossing', reportInstanceId: 'g1', sectionId: 'sec1' }))
+      .toEqual({ specimenId: '', reportType: 'grossing', reportInstanceId: '', sectionId: null });
   });
 });

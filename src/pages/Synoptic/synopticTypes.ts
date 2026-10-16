@@ -7,11 +7,6 @@
 export type FieldType   = 'text' | 'select' | 'comment';
 export type CaseRole    = 'attending' | 'resident';
 
-export const ROLE_META: Record<CaseRole, { label: string; color: string; bg: string; border: string }> = {
-  attending: { label: 'Attending Pathologist', color: '#0369a1', bg: '#e0f2fe', border: '#7dd3fc' },
-  resident:  { label: 'Resident / Fellow',     color: '#065f46', bg: '#d1fae5', border: '#6ee7b7' },
-};
-
 export type CodeSource  = 'system' | 'ai' | 'manual';
 export type SpecimenStatus = 'complete' | 'alert' | 'pending';
 

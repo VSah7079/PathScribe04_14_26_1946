@@ -17,7 +17,6 @@ import { mockCriticalAlertReferenceTokenService } from '../clinical/mockCritical
 import { resolveCriticalAlertReferenceTokenStatus } from '../clinical/ICriticalAlertReferenceTokenService';
 import { mockAbnormalTriggerRuleService } from '../abnormalDetection/mockAbnormalTriggerRuleService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 beforeEach(() => localStorage.clear());
 
 const load = () => loadRegistryExceptions({

@@ -6,7 +6,7 @@
 // search/confirm mechanism can be reused for the new, general,
 // optional Family Relation field too — never a second, parallel
 // implementation of the same real debounced search
-// (mockPatientIndexService.searchPatients(), same 250ms debounce
+// (patientIndexService.searchPatients(), same 250ms debounce
 // convention as OrderLookupModal.tsx). The two real, distinct
 // relationshipType uses (same_person, family_relation) share this one
 // component; only the label/help text/confirm-button copy and which
@@ -16,7 +16,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MasterPatientRecord } from '@/services/patients/IPatientIndexService';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+import { patientIndexService } from '@/services';
+
 
 export interface PatientLinkSearchProps {
   organisationId: string;
@@ -42,7 +43,7 @@ export const PatientLinkSearch: React.FC<PatientLinkSearchProps> = ({
     let cancelled = false;
     setLoading(true);
     const timer = setTimeout(() => {
-      mockPatientIndexService.searchPatients(organisationId, q)
+      patientIndexService.searchPatients(organisationId, q)
         .then(r => { if (!cancelled) setResults(r); })
         .catch(() => { if (!cancelled) setResults([]); })
         .finally(() => { if (!cancelled) setLoading(false); });

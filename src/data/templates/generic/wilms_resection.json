@@ -492,13 +492,13 @@
           "options": [
             {
               "id": "posttherapy_classification_system_opt_1",
-              "label": "Option 1",
+              "label": "NWTS-5 / COG post-chemotherapy staging",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_classification_system_opt_2",
-              "label": "Option 2",
+              "label": "SIOP post-chemotherapy staging",
               "snomed": "",
               "icd": ""
             }
@@ -515,43 +515,37 @@
           "options": [
             {
               "id": "posttherapy_stage_system_a_opt_1",
-              "label": "Option 1",
+              "label": "Stage I — tumour limited to the kidney, completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_a_opt_2",
-              "label": "Option 2",
+              "label": "Stage II — tumour extends beyond the kidney but is completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_a_opt_3",
-              "label": "Option 3",
+              "label": "Stage III — residual non-hematogenous tumour confined to the abdomen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_a_opt_4",
-              "label": "Option 4",
+              "label": "Stage IV — hematogenous metastases (lung, liver, bone, brain) or lymph node metastases outside the abdomen/pelvis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_a_opt_5",
-              "label": "Option 5",
+              "label": "Stage V — bilateral renal involvement at diagnosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_a_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "posttherapy_stage_system_a_opt_7",
-              "label": "Option 7",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -567,67 +561,37 @@
           "options": [
             {
               "id": "posttherapy_stage_system_b_opt_1",
-              "label": "Option 1",
+              "label": "Stage I — tumour limited to the kidney or surrounded by a fibrous pseudocapsule, completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_b_opt_2",
-              "label": "Option 2",
+              "label": "Stage II — tumour extends beyond the kidney/pseudocapsule but is completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_b_opt_3",
-              "label": "Option 3",
+              "label": "Stage III — incomplete excision, residual tumour confined to the abdomen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_b_opt_4",
-              "label": "Option 4",
+              "label": "Stage IV — hematogenous metastases or lymph node metastases outside the abdomino-pelvic region",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_b_opt_5",
-              "label": "Option 5",
+              "label": "Stage V — bilateral renal involvement at diagnosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "posttherapy_stage_system_b_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "posttherapy_stage_system_b_opt_7",
-              "label": "Option 7",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "posttherapy_stage_system_b_opt_8",
-              "label": "Option 8",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "posttherapy_stage_system_b_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "posttherapy_stage_system_b_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "posttherapy_stage_system_b_opt_11",
-              "label": "Option 11",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -649,19 +613,19 @@
           "options": [
             {
               "id": "margin_status_opt_1",
-              "label": "Option 1",
+              "label": "Not involved",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_opt_2",
-              "label": "Option 2",
+              "label": "Involved",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -677,31 +641,31 @@
           "options": [
             {
               "id": "closest_margin_opt_1",
-              "label": "Option 1",
+              "label": "Renal vein margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margin_opt_2",
-              "label": "Option 2",
+              "label": "Ureteral margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margin_opt_3",
-              "label": "Option 3",
+              "label": "Soft tissue (perinephric) margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margin_opt_4",
-              "label": "Option 4",
+              "label": "Adrenal margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "closest_margin_opt_5",
-              "label": "Option 5",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -726,49 +690,49 @@
           "options": [
             {
               "id": "margins_involved_opt_1",
-              "label": "Option 1",
+              "label": "Renal vein margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_2",
-              "label": "Option 2",
+              "label": "Ureteral margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_3",
-              "label": "Option 3",
+              "label": "Soft tissue (perinephric) margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_4",
-              "label": "Option 4",
+              "label": "Adrenal margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_5",
-              "label": "Option 5",
+              "label": "Renal artery margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_6",
-              "label": "Option 6",
+              "label": "Capsular surface",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_7",
-              "label": "Option 7",
+              "label": "Other soft tissue margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_8",
-              "label": "Option 8",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -790,19 +754,19 @@
           "options": [
             {
               "id": "ln_status_opt_1",
-              "label": "Option 1",
+              "label": "No regional lymph node metastasis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ln_status_opt_2",
-              "label": "Option 2",
+              "label": "Regional lymph node metastasis present",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ln_status_opt_3",
-              "label": "Option 3",
+              "label": "Not applicable (no nodes submitted)",
               "snomed": "",
               "icd": ""
             }
@@ -845,37 +809,37 @@
           "options": [
             {
               "id": "distant_metastasis_opt_1",
-              "label": "Option 1",
+              "label": "No distant metastasis identified",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_2",
-              "label": "Option 2",
+              "label": "Liver",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_3",
-              "label": "Option 3",
+              "label": "Lung",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_4",
-              "label": "Option 4",
+              "label": "Bone",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_5",
-              "label": "Option 5",
+              "label": "Brain",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_6",
-              "label": "Option 6",
+              "label": "Other distant site",
               "snomed": "",
               "icd": ""
             }
@@ -898,13 +862,13 @@
           "options": [
             {
               "id": "staging_system_opt_1",
-              "label": "Option 1",
+              "label": "NWTS-5 / COG staging",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "staging_system_opt_2",
-              "label": "Option 2",
+              "label": "SIOP staging",
               "snomed": "",
               "icd": ""
             }
@@ -921,37 +885,37 @@
           "options": [
             {
               "id": "stage_system_a_opt_1",
-              "label": "Option 1",
+              "label": "Stage I — tumour limited to the kidney, completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_a_opt_2",
-              "label": "Option 2",
+              "label": "Stage II — tumour extends beyond the kidney but is completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_a_opt_3",
-              "label": "Option 3",
+              "label": "Stage III — residual non-hematogenous tumour confined to the abdomen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_a_opt_4",
-              "label": "Option 4",
+              "label": "Stage IV — hematogenous metastases (lung, liver, bone, brain) or lymph node metastases outside the abdomen/pelvis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_a_opt_5",
-              "label": "Option 5",
+              "label": "Stage V — bilateral renal involvement at diagnosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_a_opt_6",
-              "label": "Option 6",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -967,31 +931,31 @@
           "options": [
             {
               "id": "stage_system_b_opt_1",
-              "label": "Option 1",
+              "label": "Stage I — tumour limited to the kidney or surrounded by a fibrous pseudocapsule, completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_b_opt_2",
-              "label": "Option 2",
+              "label": "Stage II — tumour extends beyond the kidney/pseudocapsule but is completely resected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_b_opt_3",
-              "label": "Option 3",
+              "label": "Stage III — incomplete excision, residual tumour confined to the abdomen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_b_opt_4",
-              "label": "Option 4",
+              "label": "Stage IV — hematogenous metastases or lymph node metastases outside the abdomino-pelvic region",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_system_b_opt_5",
-              "label": "Option 5",
+              "label": "Stage V — bilateral renal involvement at diagnosis",
               "snomed": "",
               "icd": ""
             }

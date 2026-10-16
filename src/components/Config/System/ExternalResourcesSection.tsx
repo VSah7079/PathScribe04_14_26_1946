@@ -16,7 +16,7 @@
 // in the organisation; 'lab' resources layer on top, visible only at
 // the specific performing lab they're tied to. Per a direct requirement:
 // the actual viewer-facing resolution (services/externalResources/
-// mockExternalResourceService.ts's resolveForViewer) only ever returns
+// externalResourceService.ts's resolveForViewer) only ever returns
 // what's relevant to a given viewer — this admin screen intentionally
 // shows everything for the organisation regardless of scope, since an
 // admin managing the list needs to see the whole picture, not the
@@ -25,12 +25,14 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockExternalResourceService } from '@/services/externalResources/mockExternalResourceService';
+
 import type { ExternalResource, ExternalResourceCategory, ExternalResourceScope } from '@/services/externalResources/IExternalResourceService';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { getActivePerformingLabs } from '@/utils/performingLabs';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import ConfirmModal from '../../Common/ConfirmModal';
+import { externalResourceService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const CATEGORY_LABEL_KEY: Record<ExternalResourceCategory, string> = {
   protocols: 'externalResourcesSection.categoryLabels.protocols',
@@ -67,7 +69,7 @@ const ExternalResourcesSection: React.FC = () => {
   const loadResources = React.useCallback(async () => {
     if (!organisationId) { setLoading(false); return; }
     setLoading(true);
-    const list = await mockExternalResourceService.listForOrganisation(organisationId);
+    const list = await externalResourceService.listForOrganisation(organisationId);
     setResources(list);
     setLoading(false);
   }, [organisationId]);
@@ -100,7 +102,7 @@ const ExternalResourcesSection: React.FC = () => {
     if (draft.scope === 'lab' && !draft.facilityId) { setError(t('externalResourcesSection.errors.labRequired')); return; }
 
     if (draft.id) {
-      await mockExternalResourceService.update(draft.id, {
+      await externalResourceService.update(draft.id, {
         title: draft.title.trim(),
         url: parsedUrl.toString(),
         category: draft.category,
@@ -108,7 +110,7 @@ const ExternalResourcesSection: React.FC = () => {
         facilityId: draft.scope === 'lab' ? draft.facilityId : undefined,
       });
     } else {
-      await mockExternalResourceService.create({
+      await externalResourceService.create({
         title: draft.title.trim(),
         url: parsedUrl.toString(),
         category: draft.category,
@@ -123,7 +125,7 @@ const ExternalResourcesSection: React.FC = () => {
 
   const handleDeleteConfirmed = async () => {
     if (!deleteTarget) return;
-    await mockExternalResourceService.remove(deleteTarget.id);
+    await externalResourceService.remove(deleteTarget.id);
     setDeleteTarget(null);
     loadResources();
   };
@@ -146,7 +148,7 @@ const ExternalResourcesSection: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="ps-extres-loading">{t('externalResourcesSection.loading')}</div>
+        <LoadingState variant="inline" className="ps-extres-loading" label={t('externalResourcesSection.loading')} />
       ) : resources.length === 0 ? (
         <div className="ps-extres-empty">
           {t('externalResourcesSection.emptyState')}
@@ -189,7 +191,7 @@ const ExternalResourcesSection: React.FC = () => {
             <div className="ps-extres-modal-body">
               <div>
                 <label className="ps-conf-label ps-conf-label--block">{t('externalResourcesSection.modal.titleField')}</label>
-                <input
+                <input aria-label={t('externalResourcesSection.modal.titleField')}
                   className="ps-conf-input"
                   value={draft.title}
                   onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
@@ -198,7 +200,7 @@ const ExternalResourcesSection: React.FC = () => {
               </div>
               <div>
                 <label className="ps-conf-label ps-conf-label--block">{t('externalResourcesSection.modal.urlField')}</label>
-                <input
+                <input aria-label={t('externalResourcesSection.modal.urlField')}
                   className="ps-conf-input"
                   value={draft.url}
                   onChange={e => setDraft(d => ({ ...d, url: e.target.value }))}

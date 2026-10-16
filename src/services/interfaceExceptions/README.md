@@ -51,7 +51,7 @@ real exception (`eventType: 'unmapped_order_code'`) from
 Crosswalk has no match in any coding system tried, alongside — not
 instead of — its existing auto-create-and-continue fallback; then a
 new conditional panel in `InterfaceExceptionReviewModal.tsx` below for
-that `eventType`.
+that `eventType`. *(Since done: `mockOrderIntakeService.ts` raises `unmapped_order_code` exceptions, and `InterfaceExceptionReviewModal.tsx` resolves them with Map & Link — see below; checked in the Batch 496 README audit.)*
 
 ## Files
 

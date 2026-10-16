@@ -11,6 +11,7 @@
 
 import { storageGet, storageSet } from '../mockStorage';
 import { permitConfigChange } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 export interface RetentionPolicy {
   aiSuggestionDays:   number;
@@ -32,7 +33,7 @@ const STORAGE_KEY = 'pathscribe_retention_policy';
 // policy saved before Batch 428 (under the bare key) is read from there until
 // it is saved again.
 function legacyPolicy(): Partial<RetentionPolicy> {
-  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : {}; } catch { return {}; }
+  try { const raw = dataStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : {}; } catch { return {}; }
 }
 
 export function loadRetentionPolicy(): RetentionPolicy {

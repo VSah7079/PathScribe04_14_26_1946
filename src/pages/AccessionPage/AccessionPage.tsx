@@ -47,7 +47,7 @@ import {
   evaluateGrossingTemplateAssignment, facilityService, departmentService, userService, clinicalHistoryDictionaryService,
   accessionOutboundQueueService, molecularOrderOutboundQueueService, interfaceEngineService, patientIndexService,
   encounterService, caseMaskService, actionRegistryService, masterPaymentTypeService, jurisdictionPaymentMappingService,
-  fieldRequirementService, resolveFieldRequirements, missingRequiredFields, type ResolvedFieldRequirement,
+  fieldRequirementService, resolveFieldRequirements, missingRequiredFields, type ResolvedFieldRequirement, missingClinicalHistory,
 } from '@/services';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { formatList } from '@/utils/formatList';
@@ -119,7 +119,7 @@ import { priorityService } from '@/services';
 import type { PriorityLevel } from '@/services';
 import type { CasePriority } from '@/services/cases/ICaseService';
 import { SuffixSelect } from '@/components/Common/SuffixSelect';
-import { formatFullDisplayName } from '@/utils/personName';
+import { formatDisplayNameForLanguage } from '@/utils/personName';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { getHospitalIdForOrganisation, getOrganisationDisplayName, getOrganisationByHospitalId, resolveMpiScopeEnterpriseId } from '@/services/organisation/organisationService';
@@ -146,6 +146,7 @@ import { AUTOPSY_ORGAN_TO_SECTION } from '@/types/autopsy/AutopsyOrganCode';
 import { classifyAutopsyOrganCodeFromSiteText } from '@/services/autopsy/classifyAutopsyOrganCodeFromSiteText';
 import { AUTOPSY_ORGAN_LABEL_KEY } from './autopsyOrganLabelKeys';
 import { formatConsentingRelativePriorityHint } from '@/services/autopsy/formatConsentingRelativePriorityHint';
+import { pressable } from '@/utils/a11y/pressable';
 
 /** Real, UI-presentation-only grouping for the Autopsy organ picker
  *  below — deliberately kept out of AutopsyOrganCode.ts itself, which
@@ -1772,10 +1773,18 @@ const AccessionPage: React.FC = () => {
     assignedPathologist: assignedTo, clinicalIndication,
     specimenDescription: specimens.map(s => s.description), collectedAt: specimens.map(s => s.collectedAt), processedAt: specimens.map(s => s.processedAt),
   });
+  // Batch 528 (PS-359): the organisation's clinical-history requirements, for cytology and FNA cases only.
+  // Batch 530 (Pete, Oct 11: no hard blocks at intake): missing clinical history is
+  // flagged, never blocks accessioning; it can be added later (grossing, report, sign-out).
+  const [historyRequirements, setHistoryRequirements] = useState<ResolvedFieldRequirement[]>(() => resolveFieldRequirements('clinicalHistory'));
+  useEffect(() => { void fieldRequirementService.forSession('clinicalHistory').then(setHistoryRequirements); }, [user?.id]);
+  const missingHistoryFields = missingClinicalHistory(historyRequirements, clinicalHistoryEntries, specimens.map(s => s.clinicalHistory), cytologyRelevant);
   const missingCaseFields = missingFields.filter(f => f.group !== 'specimens');
   const missingSpecimenFields = missingFields.filter(f => f.group === 'specimens');
-  const missingCaseLabel = formatList(missingCaseFields.map(f => t(`fieldRequirements.fields.accession.${f.id}`)), i18n.language);
-  const missingAllLabel = formatList(missingFields.map(f => t(`fieldRequirements.fields.accession.${f.id}`)), i18n.language);
+  const fieldName = (f: ResolvedFieldRequirement) => t(`fieldRequirements.fields.${f.group === 'clinicalHistoryEntries' ? 'clinicalHistory' : 'accession'}.${f.id}`);
+  const missingCaseLabel = formatList(missingCaseFields.map(fieldName), i18n.language);
+  const missingAllLabel = formatList(missingFields.map(fieldName), i18n.language);
+  const missingHistoryLabel = formatList(missingHistoryFields.map(fieldName), i18n.language);
   const isFieldRequired = (id: string) => fieldRequirements.some(f => f.id === id && f.required);
   const caseInfoValid = missingCaseFields.length === 0;
   const specimensValid = specimens.length > 0 && missingSpecimenFields.length === 0
@@ -1829,10 +1838,10 @@ const AccessionPage: React.FC = () => {
   useEffect(() => {
     if (intakeType !== 'outside') return;
     setOutsidePatientData(d => ({ ...d, accountBillingType: selectedFacility?.defaultAccountBillingType ?? d.accountBillingType }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real,
     // deliberate: only re-derive on an actual client identity change
     // (clientId) or mode change (intakeType), not on every
     // selectedFacility object identity change from unrelated re-renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-derive only on a real client or intake-mode change, not on every new selectedFacility object (see above)
   }, [clientId, intakeType]);
 
   // Patient ID field label/format follows the selected client's
@@ -2468,7 +2477,7 @@ const AccessionPage: React.FC = () => {
         caseWriteDeps,
       ).then(r => { if (r.ok === false && r.reason === 'conflict') console.error('[Accession] Ordering physician link not saved: the case kept changing.'); });
 
-      async function refineGrossingTemplatesInBackground() {
+      const refineGrossingTemplatesInBackground = async () => {
         try {
           const templateModule = await import('@/services/templates/templateService');
           const allTemplates = await templateModule.listTemplates('published');
@@ -2827,7 +2836,7 @@ const AccessionPage: React.FC = () => {
                 </p>
                 <div className="ps-accession-order-picker">
                   <div className="ps-accession-order-picker-search-wrap">
-                    <input type="text" placeholder={t('accessionPage.importOrder.searchPlaceholder', { format: searchDobFormatHint })}
+                    <input aria-label={t('accessionPage.importOrder.label', { count: pendingOrders.length })} type="text" placeholder={t('accessionPage.importOrder.searchPlaceholder', { format: searchDobFormatHint })}
                       value={orderSearch} onChange={e => setOrderSearch(e.target.value)}
                       onKeyDown={handleOrderSearchKeyDown}
                       className="ps-accession-order-picker-search" disabled={importing} />
@@ -2858,13 +2867,13 @@ const AccessionPage: React.FC = () => {
                     ) : filteredOrders.map(o => (
                       <div key={o.id}
                         className={`ps-accession-order-picker-item ${sourceOrderId === o.id ? 'ps-accession-order-picker-item--selected' : ''} ${importing ? 'ps-accession-order-picker-item--disabled' : ''}`}
-                        onClick={() => !importing && handleImportOrder(o.id)}>
+                        {...pressable(() => !importing && handleImportOrder(o.id))}>
                         <div className="ps-accession-order-picker-main">
                           <strong>{o.externalOrderNumber}</strong>{' — '}
                           <span data-phi="name">{o.patient.firstName} {o.patient.lastName}</span>
-                          {o.patient.mrn && <span data-phi="mrn"> · MRN {o.patient.mrn}</span>}
+                          {o.patient.mrn && <span data-phi="mrn"> {t('common.patientIds.mrnAfterSeparator', { mrn: o.patient.mrn })}</span>}
                         </div>
-                        <div className="ps-accession-order-picker-meta">{o.externalAssigningAuthority} · {o.source.toUpperCase()} · {o.priority ?? 'Routine'}</div>
+                        <div className="ps-accession-order-picker-meta">{t('accessionPage.importOrder.orderMeta', { authority: o.externalAssigningAuthority, source: o.source.toUpperCase(), priority: o.priority === 'STAT' ? 'STAT' : t('accessionPage.importOrder.priorityRoutine') })}</div>
                       </div>
                     ))}
                   </div>
@@ -2951,30 +2960,30 @@ const AccessionPage: React.FC = () => {
             <div className="ps-accession-grid">
               <div>
                 <label className="ps-label">{t('accessionPage.demographics.givenNames')}</label>
-                <input data-phi="name" className="ps-input-dark" value={givenNames} onChange={e => setGivenNames(e.target.value)}
+                <input aria-label={t('accessionPage.demographics.givenNames')} data-phi="name" className="ps-input-dark" value={givenNames} onChange={e => setGivenNames(e.target.value)}
                   placeholder={t('accessionPage.demographics.givenNamesPlaceholder')} />
               </div>
               <div>
                 <label className="ps-label">{t('accessionPage.demographics.familyNames')}</label>
-                <input data-phi="name" className="ps-input-dark" value={familyNames} onChange={e => setFamilyNames(e.target.value)}
+                <input aria-label={t('accessionPage.demographics.familyNames')} data-phi="name" className="ps-input-dark" value={familyNames} onChange={e => setFamilyNames(e.target.value)}
                   placeholder={t('accessionPage.demographics.familyNamesPlaceholder')} />
               </div>
               <div>
                 <label className="ps-label">{t('accessionPage.demographics.preferredName')}</label>
-                <input data-phi="name" className="ps-input-dark" value={preferredName} onChange={e => setPreferredName(e.target.value)}
+                <input aria-label={t('accessionPage.demographics.preferredName')} data-phi="name" className="ps-input-dark" value={preferredName} onChange={e => setPreferredName(e.target.value)}
                   placeholder={t('accessionPage.demographics.preferredNamePlaceholder')} />
               </div>
               <div>
                 <label className="ps-label" htmlFor="accession-prefix">{t('accessionPage.demographics.prefix')}</label>
                 <select id="accession-prefix" className="ps-input-dark" value={namePrefix} onChange={e => setNamePrefix(e.target.value)}>
                   <option value="">{t('accessionPage.demographics.prefixNone')}</option>
-                  <option value="Mr.">Mr.</option>
-                  <option value="Mrs.">Mrs.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Mx.">Mx.</option>
-                  <option value="Dr.">Dr.</option>
-                  <option value="Sir">Sir</option>
-                  <option value="Dame">Dame</option>
+                  <option value="Mr.">{t('common.honorifics.mr')}</option>
+                  <option value="Mrs.">{t('common.honorifics.mrs')}</option>
+                  <option value="Ms.">{t('common.honorifics.ms')}</option>
+                  <option value="Mx.">{t('common.honorifics.mx')}</option>
+                  <option value="Dr.">{t('common.honorifics.dr')}</option>
+                  <option value="Sir">{t('common.honorifics.sir')}</option>
+                  <option value="Dame">{t('common.honorifics.dame')}</option>
                 </select>
               </div>
               <div>
@@ -3111,7 +3120,7 @@ const AccessionPage: React.FC = () => {
                   <div className="ps-accession-specimen-row-3col">
                     <div>
                       <label className="ps-label">{t('accessionPage.autopsy.jurisdiction')}</label>
-                      <select className="ps-conf-select" value={autopsyForm.jurisdiction} onChange={e => setAutopsyForm({ ...autopsyForm, jurisdiction: e.target.value as AutopsyJurisdiction })}>
+                      <select aria-label={t('accessionPage.autopsy.jurisdiction')} className="ps-conf-select" value={autopsyForm.jurisdiction} onChange={e => setAutopsyForm({ ...autopsyForm, jurisdiction: e.target.value as AutopsyJurisdiction })}>
                         <option value="">{t('accessionPage.common.selectEllipsisDots')}</option>
                         {(Object.keys(JURISDICTION_LABELS) as AutopsyJurisdiction[]).map(j => (
                           <option key={j} value={j}>{JURISDICTION_LABELS[j]}</option>
@@ -3120,7 +3129,7 @@ const AccessionPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="ps-label">{t('accessionPage.autopsy.caseAuthority')}</label>
-                      <select className="ps-conf-select" value={autopsyForm.caseAuthority} onChange={e => setAutopsyForm({ ...autopsyForm, caseAuthority: e.target.value as AutopsyCaseAuthority })}>
+                      <select aria-label={t('accessionPage.autopsy.caseAuthority')} className="ps-conf-select" value={autopsyForm.caseAuthority} onChange={e => setAutopsyForm({ ...autopsyForm, caseAuthority: e.target.value as AutopsyCaseAuthority })}>
                         <option value="">{t('accessionPage.common.selectEllipsisDots')}</option>
                         <option value="statutory_judicial">{t('accessionPage.autopsy.authorityMedicolegal')}</option>
                         <option value="hospital_consented">{t('accessionPage.autopsy.authorityHospitalConsented')}</option>
@@ -3132,15 +3141,15 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-specimen-row-3col ps-accession-specimen-row-3col--spaced-10">
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.authorityType')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.authorityType} placeholder={t('accessionPage.autopsy.authorityTypePlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, authorityType: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.authorityType')} className="ps-conf-input" value={autopsyForm.authorityType} placeholder={t('accessionPage.autopsy.authorityTypePlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, authorityType: e.target.value })} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.verbalOrderAt')}</label>
-                        <input type="datetime-local" className="ps-conf-input" value={autopsyForm.verbalOrderReceivedAt} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedAt: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.verbalOrderAt')} type="datetime-local" className="ps-conf-input" value={autopsyForm.verbalOrderReceivedAt} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedAt: e.target.value })} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.verbalOrderFrom')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.verbalOrderReceivedFrom} placeholder={t('accessionPage.autopsy.verbalOrderFromPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedFrom: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.verbalOrderFrom')} className="ps-conf-input" value={autopsyForm.verbalOrderReceivedFrom} placeholder={t('accessionPage.autopsy.verbalOrderFromPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedFrom: e.target.value })} />
                       </div>
                     </div>
                   )}
@@ -3149,11 +3158,11 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-specimen-row-3col ps-accession-specimen-row-3col--spaced-10">
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.consentingRelativeName')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.consentingRelativeName} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeName: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.consentingRelativeName')} className="ps-conf-input" value={autopsyForm.consentingRelativeName} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeName: e.target.value })} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.relationship')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.consentingRelativeRelationship} placeholder={t('accessionPage.autopsy.relationshipPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeRelationship: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.relationship')} className="ps-conf-input" value={autopsyForm.consentingRelativeRelationship} placeholder={t('accessionPage.autopsy.relationshipPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeRelationship: e.target.value })} />
                         {/* Real, per direct follow-up: "it all needs
                             to be wired" — resolveConsentingRelativePriority.ts
                             had zero real UI callers; this is that
@@ -3320,7 +3329,7 @@ const AccessionPage: React.FC = () => {
               )}
               <div className="ps-conf-form-field ps-amendment-physician-picker">
                 <label className="ps-label">{t('accessionPage.provider.requestingProvider')}</label>
-                <input
+                <input aria-label={t('accessionPage.provider.requestingProvider')}
                   className="ps-amendment-physician-search"
                   value={requestingProvider || providerQuery}
                   onChange={e => { setProviderQuery(e.target.value); setRequestingProvider(''); setSelectedProvider(undefined); setShowProviderDropdown(true); }}
@@ -3394,7 +3403,7 @@ const AccessionPage: React.FC = () => {
               </div>
               <div className="ps-accession-field--full">
                 <label className="ps-label">{t('accessionPage.clinicalIndication.label')}</label>
-                <textarea className="ps-input-dark ps-accession-textarea"
+                <textarea aria-label={t('accessionPage.clinicalIndication.label')} className="ps-input-dark ps-accession-textarea"
                   value={clinicalIndication} onChange={e => setClinicalIndication(e.target.value)}
                   placeholder={t('accessionPage.clinicalIndication.placeholder')} />
               </div>
@@ -3459,6 +3468,9 @@ const AccessionPage: React.FC = () => {
             {missingCaseFields.length > 0 && (
               <p className="ps-accession-missing" role="status">{t('fieldRequirements.stillRequired', { fields: missingCaseLabel })}</p>
             )}
+            {missingHistoryFields.length > 0 && (
+              <p className="ps-accession-history-flag" role="status">{t('accessionPage.clinicalHistory.flaggedNotBlocked', { fields: missingHistoryLabel })}</p>
+            )}
           </div>
         )}
 
@@ -3496,7 +3508,7 @@ const AccessionPage: React.FC = () => {
 
                     <div className="ps-accession-specimen-field--wide">
                       <label className="ps-label">{t('accessionPage.specimens.description')}</label>
-                      <input className="ps-input-dark" value={s.description}
+                      <input aria-label={t('accessionPage.specimens.description')} className="ps-input-dark" value={s.description}
                         onChange={e => updateSpecimen(idx, e.target.value)}
                         placeholder={t('accessionPage.specimens.descriptionPlaceholder')} />
                     </div>
@@ -3504,7 +3516,7 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-specimen-row-3col">
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.anatomicSite')}</label>
-                        <input className="ps-input-dark" value={s.anatomicSite}
+                        <input aria-label={t('accessionPage.specimens.anatomicSite')} className="ps-input-dark" value={s.anatomicSite}
                           onChange={e => updateSpecimenField(idx, 'anatomicSite', e.target.value)}
                           placeholder={t('accessionPage.specimens.anatomicSitePlaceholder')} />
                       </div>
@@ -3530,7 +3542,7 @@ const AccessionPage: React.FC = () => {
                             </span>
                           )}
                         </label>
-                        <select className="ps-input-dark" value={s.laterality}
+                        <select aria-label={t('a11y.fields.laterality')} className="ps-input-dark" value={s.laterality}
                           onChange={e => updateSpecimenField(idx, 'laterality', e.target.value)}>
                           <option value="">{t('accessionPage.specimens.lateralityNotSpecified')}</option>
                           <option value="Left">{t('accessionPage.specimens.lateralityLeft')}</option>
@@ -3542,7 +3554,7 @@ const AccessionPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.containerType')}</label>
-                        <select className="ps-input-dark" value={s.containerType}
+                        <select aria-label={t('accessionPage.specimens.containerType')} className="ps-input-dark" value={s.containerType}
                           onChange={e => {
                             const selected = containerTypes.find(c => c.name === e.target.value);
                             updateSpecimenField(idx, 'containerType', e.target.value);
@@ -3572,7 +3584,7 @@ const AccessionPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.fixativeVolume')}</label>
-                        <input type="number" className="ps-input-dark" value={s.fixativeVolumeMl}
+                        <input aria-label={t('accessionPage.specimens.fixativeVolume')} type="number" className="ps-input-dark" value={s.fixativeVolumeMl}
                           onChange={e => updateSpecimenField(idx, 'fixativeVolumeMl', e.target.value)}
                           placeholder={t('accessionPage.specimens.fixativeVolumePlaceholder')} />
                       </div>
@@ -3618,13 +3630,13 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-specimen-row-3col">
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.collectedAt')}</label>
-                        <input className="ps-input-dark" type="datetime-local" value={s.collectedAt}
+                        <input aria-label={t('accessionPage.specimens.collectedAt')} className="ps-input-dark" type="datetime-local" value={s.collectedAt}
                           onChange={e => updateSpecimenField(idx, 'collectedAt', e.target.value)} />
                         <div className="ps-accession-field-hint">{t('accessionPage.specimens.collectedAtHint')}</div>
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.processedAt')}</label>
-                        <input className="ps-input-dark" type="datetime-local" value={s.processedAt}
+                        <input aria-label={t('accessionPage.specimens.processedAt')} className="ps-input-dark" type="datetime-local" value={s.processedAt}
                           onChange={e => updateSpecimenField(idx, 'processedAt', e.target.value)} />
                         <label className="ps-accession-checkbox-row">
                           <input type="checkbox" checked={s.processedAtIsEstimated}
@@ -3634,7 +3646,7 @@ const AccessionPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.receivedAt')}</label>
-                        <input className="ps-input-dark" type="datetime-local" value={s.receivedAt}
+                        <input aria-label={t('accessionPage.specimens.receivedAt')} className="ps-input-dark" type="datetime-local" value={s.receivedAt}
                           onChange={e => updateSpecimenField(idx, 'receivedAt', e.target.value)} />
                       </div>
                     </div>
@@ -3666,14 +3678,14 @@ const AccessionPage: React.FC = () => {
                             separate copy of these fields, so it needs
                             the same update to stay in sync. */}
                         <label className="ps-label">{t('accessionPage.specimens.referralClient')}</label>
-                        <input className="ps-input-dark" value={s.externalIdSource}
+                        <input aria-label={t('accessionPage.specimens.referralClient')} className="ps-input-dark" value={s.externalIdSource}
                           onChange={e => updateSpecimenField(idx, 'externalIdSource', e.target.value)}
                           onBlur={() => checkSpecimenForeignIdCollision(idx)}
                           placeholder={t('accessionPage.specimens.referralClientPlaceholder')} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.referralClientId')}</label>
-                        <input className="ps-input-dark" value={s.externalId}
+                        <input aria-label={t('accessionPage.specimens.referralClientId')} className="ps-input-dark" value={s.externalId}
                           onChange={e => updateSpecimenField(idx, 'externalId', e.target.value)}
                           onBlur={() => checkSpecimenForeignIdCollision(idx)}
                           placeholder={t('accessionPage.specimens.referralClientIdPlaceholder')} />
@@ -3784,7 +3796,7 @@ const AccessionPage: React.FC = () => {
             <div className="ps-card-dark ps-accession-card">
               <h3>{t('accessionPage.readyCard.heading')}</h3>
               <p className="ps-accession-summary-meta" data-phi="name">
-                {formatFullDisplayName({ namePrefix, givenNames, familyNames, preferredName, nameSuffix })}
+                {formatDisplayNameForLanguage({ namePrefix, givenNames, familyNames, preferredName, nameSuffix }, i18n.language)}
                 {preferredName.trim() && ` (${preferredName.trim()})`}
                 {/* Real fix (PS-300 — "Ready to accession count should
                     only count records where required fields have
@@ -3822,7 +3834,7 @@ const AccessionPage: React.FC = () => {
                 <p className="ps-accession-print-hint">
                   {t('accessionPage.labelsCard.hint', { count: justAccessionedCase.specimens.length })} <strong data-phi="accession">{justAccessionedCase.caseData.accession.fullAccession}</strong>.
                 </p>
-                <button className="ps-btn-secondary" onClick={handlePrintLabels}>🖨️ Print Labels</button>
+                <button className="ps-btn-secondary" onClick={handlePrintLabels}>{t('accessionPage.labelsCard.printLabels')}</button>
               </div>
             )}
 
@@ -3895,15 +3907,15 @@ const AccessionPage: React.FC = () => {
               <div className="ps-accession-grid">
                 <div>
                   <label className="ps-label">{t('accessionPage.outsidePatient.facilityAccount')}</label>
-                  <input className="ps-input-dark" disabled value={selectedFacility?.name ?? t('accessionPage.outsidePatient.facilityAccountPlaceholder')} />
+                  <input aria-label={t('accessionPage.outsidePatient.facilityAccount')} className="ps-input-dark" disabled value={selectedFacility?.name ?? t('accessionPage.outsidePatient.facilityAccountPlaceholder')} />
                 </div>
                 <div>
                   <label className="ps-label">{t('accessionPage.outsidePatient.orderingProvider')}</label>
-                  <input className="ps-input-dark" disabled value={requestingProvider || t('accessionPage.outsidePatient.orderingProviderPlaceholder')} />
+                  <input aria-label={t('accessionPage.outsidePatient.orderingProvider')} className="ps-input-dark" disabled value={requestingProvider || t('accessionPage.outsidePatient.orderingProviderPlaceholder')} />
                 </div>
                 <div>
                   <label className="ps-label">{t('accessionPage.outsidePatient.billingType')}</label>
-                  <input className="ps-input-dark" value={outsidePatientData.accountBillingType ?? ''}
+                  <input aria-label={t('accessionPage.outsidePatient.billingType')} className="ps-input-dark" value={outsidePatientData.accountBillingType ?? ''}
                     onChange={e => setOutsidePatientData(d => ({ ...d, accountBillingType: e.target.value }))}
                     placeholder={t('accessionPage.outsidePatient.billingTypePlaceholder')} />
                 </div>
@@ -3922,7 +3934,7 @@ const AccessionPage: React.FC = () => {
               <div className="ps-accession-grid">
                 <div>
                   <label className="ps-label">{t('accessionPage.outsidePatient.primaryJurisdiction')}</label>
-                  <select className="ps-input-dark" value={outsidePatientData.primaryJurisdictionCountryCode ?? ''}
+                  <select aria-label={t('accessionPage.outsidePatient.primaryJurisdiction')} className="ps-input-dark" value={outsidePatientData.primaryJurisdictionCountryCode ?? ''}
                     onChange={e => setOutsidePatientData(d => ({ ...d, primaryJurisdictionCountryCode: e.target.value, primaryJurisdictionMappingId: undefined }))}>
                     <option value="">{t('accessionPage.outsidePatient.select')}</option>
                     {Array.from(new Set(jurisdictionMappings.map(m => m.countryCode))).sort().map(c => (
@@ -3981,7 +3993,7 @@ const AccessionPage: React.FC = () => {
               <div className="ps-accession-grid">
                 <div>
                   <label className="ps-label">{t('accessionPage.outsidePatient.paymentCategory')}</label>
-                  <select className="ps-input-dark" value={outsidePatientData.primaryJurisdictionMappingId ?? ''}
+                  <select aria-label={t('accessionPage.outsidePatient.paymentCategory')} className="ps-input-dark" value={outsidePatientData.primaryJurisdictionMappingId ?? ''}
                     onChange={e => setOutsidePatientData(d => ({ ...d, primaryJurisdictionMappingId: e.target.value }))}
                     disabled={!outsidePatientData.primaryJurisdictionCountryCode}>
                     <option value="">{t('accessionPage.outsidePatient.select')}</option>
@@ -3993,12 +4005,12 @@ const AccessionPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="ps-label">{t('accessionPage.outsidePatient.primaryPayer')}</label>
-                  <input className="ps-input-dark" value={outsidePatientData.primaryPayerName ?? ''}
+                  <input aria-label={t('accessionPage.outsidePatient.primaryPayer')} className="ps-input-dark" value={outsidePatientData.primaryPayerName ?? ''}
                     onChange={e => setOutsidePatientData(d => ({ ...d, primaryPayerName: e.target.value }))} />
                 </div>
                 <div>
                   <label className="ps-label">{t('accessionPage.outsidePatient.coveragePolicy')}</label>
-                  <input className="ps-input-dark" value={outsidePatientData.coveragePolicyNumber ?? ''}
+                  <input aria-label={t('accessionPage.outsidePatient.coveragePolicy')} className="ps-input-dark" value={outsidePatientData.coveragePolicyNumber ?? ''}
                     onChange={e => setOutsidePatientData(d => ({ ...d, coveragePolicyNumber: e.target.value }))} />
                 </div>
               </div>
@@ -4014,7 +4026,7 @@ const AccessionPage: React.FC = () => {
                   <div className="ps-accession-grid">
                     <div>
                       <label className="ps-label">{t('accessionPage.outsidePatient.secondaryCategory')}</label>
-                      <select className="ps-input-dark" value={outsidePatientData.secondaryJurisdictionMappingId ?? ''}
+                      <select aria-label={t('accessionPage.outsidePatient.secondaryCategory')} className="ps-input-dark" value={outsidePatientData.secondaryJurisdictionMappingId ?? ''}
                         onChange={e => setOutsidePatientData(d => ({ ...d, secondaryJurisdictionMappingId: e.target.value }))}>
                         <option value="">{t('accessionPage.outsidePatient.select')}</option>
                         {jurisdictionMappings
@@ -4028,12 +4040,12 @@ const AccessionPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="ps-label">{t('accessionPage.outsidePatient.secondaryPayer')}</label>
-                      <input className="ps-input-dark" value={outsidePatientData.secondaryPayerName ?? ''}
+                      <input aria-label={t('accessionPage.outsidePatient.secondaryPayer')} className="ps-input-dark" value={outsidePatientData.secondaryPayerName ?? ''}
                         onChange={e => setOutsidePatientData(d => ({ ...d, secondaryPayerName: e.target.value }))} />
                     </div>
                     <div>
                       <label className="ps-label">{t('accessionPage.outsidePatient.memberCardId')}</label>
-                      <input className="ps-input-dark" value={outsidePatientData.secondaryMemberId ?? ''}
+                      <input aria-label={t('accessionPage.outsidePatient.memberCardId')} className="ps-input-dark" value={outsidePatientData.secondaryMemberId ?? ''}
                         onChange={e => setOutsidePatientData(d => ({ ...d, secondaryMemberId: e.target.value }))} />
                     </div>
                   </div>

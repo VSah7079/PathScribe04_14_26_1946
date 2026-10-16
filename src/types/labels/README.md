@@ -14,3 +14,7 @@ Real, human-facing label identifiers and physical label-size presets — the sha
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 513 (PS-269)
+
+`LabelData.ts`: `barcodePayloadForStation()` now takes just `{ barcodeCode }` (`Pick<StationLabelData, 'barcodeCode'>`), so the Scan Stations settings screen shows the barcode payload through it instead of writing `STATION:` itself. Same output; no change to label data.

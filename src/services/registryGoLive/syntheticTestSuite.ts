@@ -28,7 +28,6 @@ import { buildScreeningRegistryPayload, decideRegistrySubmission, registryHoldMe
 import { buildCancerRegistryReportPayload } from '../cancerRegistry/buildCancerRegistryReportPayload';
 import type { CancerRegistryDefinition } from '../cancerRegistry/cancerRegistryDefinitions';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const SYNTHETIC_ID_PREFIX = 'SYN-';
 export const SYNTHETIC_SUITE_ID = 'pathscribe-registry-suite-1';
 

@@ -16,6 +16,8 @@ import type { FixativeDictionaryEntry } from '../../../services/protocols/IPathw
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { findDuplicate } from '../../../utils/validateUnique';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Real, persisted enum values stay as data — only the display label
 // each one maps to gets translated, same `XXX_LABEL_KEY` split this
@@ -103,14 +105,14 @@ const ContainerTypeModal: React.FC<ContainerTypeModalProps> = ({ mode, container
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('containerTypesSection.modal.nameLabel')} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('containerTypesSection.modal.nameLabel')} className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
               value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('containerTypesSection.modal.namePlaceholder')} />
             {errors.name && <span className="ps-conf-error-text">{errors.name}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('containerTypesSection.modal.descriptionLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} placeholder={t('containerTypesSection.modal.descriptionPlaceholder')} />
+            <textarea aria-label={t('containerTypesSection.modal.descriptionLabel')} className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} placeholder={t('containerTypesSection.modal.descriptionPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
@@ -122,14 +124,14 @@ const ContainerTypeModal: React.FC<ContainerTypeModalProps> = ({ mode, container
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('containerTypesSection.modal.aplisMappingLabel')}</label>
-            <input className={`ps-conf-input ${errors.aplisMapping ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('containerTypesSection.modal.aplisMappingLabel')} className={`ps-conf-input ${errors.aplisMapping ? 'ps-conf-input--error' : ''}`}
               value={draft.aplisMapping ?? ''} onChange={e => set('aplisMapping', e.target.value)} placeholder={t('containerTypesSection.modal.aplisMappingPlaceholder')} />
             {errors.aplisMapping && <span className="ps-conf-error-text">{errors.aplisMapping}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('containerTypesSection.modal.capacityLabel')}</label>
-            <input type="number" className="ps-conf-input" value={draft.capacityMl ?? ''}
+            <input aria-label={t('containerTypesSection.modal.capacityLabel')} type="number" className="ps-conf-input" value={draft.capacityMl ?? ''}
               onChange={e => set('capacityMl', e.target.value === '' ? undefined : Number(e.target.value))}
               placeholder={t('containerTypesSection.modal.capacityPlaceholder')} />
           </div>
@@ -146,7 +148,7 @@ const ContainerTypeModal: React.FC<ContainerTypeModalProps> = ({ mode, container
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('containerTypesSection.modal.prefilledLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('isPrefilled', !draft.isPrefilled)} className={`ps-conf-toggle-track ${draft.isPrefilled ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.isPrefilled, () => set('isPrefilled', !draft.isPrefilled), t('containerTypesSection.modal.prefilledLabel'))} className={`ps-conf-toggle-track ${draft.isPrefilled ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className="ps-conf-toggle-label">{draft.isPrefilled ? t('containerTypesSection.modal.prefilledYes') : t('containerTypesSection.modal.prefilledNo')}</span>
@@ -165,13 +167,13 @@ const ContainerTypeModal: React.FC<ContainerTypeModalProps> = ({ mode, container
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('containerTypesSection.modal.systemLogicNotesLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={draft.systemLogicNotes ?? ''} onChange={e => set('systemLogicNotes', e.target.value)} placeholder={t('containerTypesSection.modal.systemLogicNotesPlaceholder')} />
+            <textarea aria-label={t('containerTypesSection.modal.systemLogicNotesLabel')} className="ps-conf-input ps-conf-textarea" value={draft.systemLogicNotes ?? ''} onChange={e => set('systemLogicNotes', e.target.value)} placeholder={t('containerTypesSection.modal.systemLogicNotesPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('containerTypesSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('containerTypesSection.modal.statusLabel'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -247,7 +249,7 @@ const ContainerTypesSection: React.FC = () => {
   // adding a new one takes no more effort than duplicating, so the extra
   // button adds clutter without value. Policy: services/duplication/duplicatePolicy.ts.
 
-  if (loading) return <div className="ps-conf-loading">{t('containerTypesSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('containerTypesSection.loading')} />;
 
   return (
     <div>
@@ -264,12 +266,12 @@ const ContainerTypesSection: React.FC = () => {
       <div className="ps-conf-form-row">
         <input data-dirty-ignore data-config-nav type="text" placeholder={t('containerTypesSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('containerTypesSection.filters.statusAll')}</option>
           <option value="Active">{t('containerTypesSection.filters.statusActive')}</option>
           <option value="Inactive">{t('containerTypesSection.filters.statusInactive')}</option>
         </select>
-        <select data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
           <option value="All">{t('containerTypesSection.filters.labAll')}</option>
           <option value="Global">{t('containerTypesSection.filters.labGlobalOnly')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

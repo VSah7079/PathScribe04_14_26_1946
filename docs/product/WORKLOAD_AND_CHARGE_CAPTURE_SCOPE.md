@@ -1,8 +1,15 @@
 # Workload Tracking & Charge Capture — Scoping Notes
 
-Not started. Written up for a future session, per the decision to scope
-this out now rather than build it while cleanup work and the legal query
-are still in flight.
+Originally written as "not started" scoping notes. Thread 1 has since
+been built: a versioned CPT-to-wRVU table with an admin screen
+(Configuration → System, "RVU Code Map"), a per-billing-code Billing
+Dictionary ("Billing Dictionary (Charge Capture)"), rule-based code
+suggestions the pathologist confirms or overrides on the report page's
+billing review tab, permanent `ServiceChargeRecord` snapshots, and real
+wRVU on the Productivity tab. See `src/services/billing/README.md`.
+Thread 2 (AI/NLP suggestions from report text) is still not built.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this said "Not started"; Thread 1 is built in `services/billing/`.*
 
 This covers two related but genuinely separate threads. Pete's own
 framing, worth repeating here since it's the reason they're split:
@@ -20,10 +27,12 @@ whether AI-driven charge capture ever ships. This thread has **no AI
 involved and no billing-adjacent liability** — it's a real data lookup,
 not an inference.
 
-**Current state**: `ProductivityTab.tsx`'s RVU numbers are still 100%
-demo data (`demoRvuByMonth`, `demoRvuTile`), clearly labeled
-(`DemoDataBadge`) since the earlier real-data-audit pass. Case counts
-are real; RVU is not.
+**Current state**: `ProductivityTab.tsx`'s case counts and RVU are both
+real now, computed in `components/Contribution/productivityCalculations.ts`
+(`computeRvuSummary`, `computeMonthlyRvu`) against the versioned RVU
+table in effect on each case's date. `demoRvuByMonth`/`demoRvuTile` no
+longer exist. Peer comparison is still flagged as demo.
+*Corrected in the Batch 496 README audit (Oct 9, 2026): RVU was described as demo data; it is computed from real cases.*
 
 **Why RVU is harder than case counts**: it requires knowing which CPT
 code(s) apply to a case, which case counts alone don't need.

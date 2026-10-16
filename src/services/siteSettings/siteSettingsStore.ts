@@ -20,15 +20,16 @@
 // changes then.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { dataStorage } from '../browserData/dataStorage';
 /** A site-scoped setting, or the fallback when none is saved (or it can't be read). */
 export function readSiteSetting<T>(siteId: string, key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(`${key}:${siteId}`);
+    const raw = dataStorage.getItem(`${key}:${siteId}`);
     return raw === null ? fallback : JSON.parse(raw) as T;
   } catch { return fallback; }
 }
 
 /** Saves a site-scoped setting. */
 export function saveSiteSetting<T>(siteId: string, key: string, value: T): void {
-  try { localStorage.setItem(`${key}:${siteId}`, JSON.stringify(value)); } catch { /* storage unavailable */ }
+  try { dataStorage.setItem(`${key}:${siteId}`, JSON.stringify(value)); } catch { /* storage unavailable */ }
 }

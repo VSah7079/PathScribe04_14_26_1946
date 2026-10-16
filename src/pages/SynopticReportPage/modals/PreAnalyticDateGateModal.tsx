@@ -103,6 +103,7 @@ export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, o
         {field.mode !== 'override' ? (
           <>
             <input
+              aria-label={label}
               type="datetime-local"
               className="ps-input-dark"
               value={field.mode === 'time' ? field.value : ''}
@@ -150,7 +151,7 @@ export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, o
                 {preAnalyticRowUsesOverride(row) && (
                   <div className="ps-fixgate-row-fields">
                     <span className="ps-fixgate-field-label">{t('preAnalyticDateGateModal.overrideCommentLabel')} {star('preAnalyticOverrideComment')}</span>
-                    <input
+                    <input aria-label={t('preAnalyticDateGateModal.overrideCommentLabel')}
                       type="text"
                       className="ps-input-dark ps-fixgate-comment-input"
                       placeholder={t('preAnalyticDateGateModal.commentPlaceholder')}

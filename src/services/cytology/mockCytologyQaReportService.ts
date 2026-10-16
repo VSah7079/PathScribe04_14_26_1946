@@ -25,6 +25,7 @@ import { mockCytologyCategoryService } from './mockCytologyCategoryService';
 import { mockCytologyRegistryOutboundQueueService } from './mockCytologyRegistryOutboundQueueService';
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { mockCytologyWorkloadLedgerService } from './mockCytologyWorkloadLedgerService';
+import { mockCytologyScreeningHoursService } from './mockCytologyScreeningHoursService';
 import { mockCytologyWorkloadCapSettingsService } from './mockCytologyWorkloadCapSettingsService';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
@@ -33,10 +34,10 @@ import { mockFacilityService } from '@/services/facilities/mockFacilityService';
 import { GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaActivityTypeService';
 import { resolveCytologyHistologyCorrelationReport } from './resolveCytologyHistologyCorrelationReport';
 import { isUnsatisfactoryAdequacy } from './classifyCytologyAgreement';
-import { resolveCytologyUnscreenedBacklogReport } from './resolveCytologyUnscreenedBacklogReport';
-import { resolveCytologyPrimaryHpvFailsafeAuditReport } from './resolveCytologyPrimaryHpvFailsafeAuditReport';
-import { resolveCytologyEuComplianceMatrixReport } from './resolveCytologyEuComplianceMatrixReport';
-import { resolveCytologyHpvPositivityMonitorReport, type CytologyHpvIndicationType } from './resolveCytologyHpvPositivityMonitorReport';
+import { resolveCytologyUnscreenedBacklogReport, type CytologyBacklogSpecimenInput } from './resolveCytologyUnscreenedBacklogReport';
+import { resolveCytologyPrimaryHpvFailsafeAuditReport, type CytologyPrimaryHpvFailsafeSpecimenInput } from './resolveCytologyPrimaryHpvFailsafeAuditReport';
+import { resolveCytologyEuComplianceMatrixReport, type CytologyEuComplianceSpecimenInput } from './resolveCytologyEuComplianceMatrixReport';
+import { resolveCytologyHpvPositivityMonitorReport, type CytologyHpvIndicationType, type CytologyHpvPositivitySpecimenInput } from './resolveCytologyHpvPositivityMonitorReport';
 import { mockMolecularQcRunRecordService } from './mockMolecularQcRunRecordService';
 import { mockCytologyProficiencyTestResultService } from './mockCytologyProficiencyTestResultService';
 import { resolveCytologyMolecularQcFailureRateReport } from './resolveCytologyMolecularQcFailureRateReport';
@@ -55,8 +56,10 @@ import {
 import type { CytologySpecimenFinalDiagnosisRef } from './resolveCytologyPeerReviewComparisonPairs';
 import { resolveCytologyCtStatisticalComparisonReport } from './resolveCytologyCtStatisticalComparisonReport';
 import { resolveCytologyAscusHpvReflexReport, type CytologySpecimenHpvContext } from './resolveCytologyAscusHpvReflexReport';
+import { dayStartFromSettings } from './screeningHoursRules';
 import { resolveCytologyWorkloadTrackingReport } from './resolveCytologyWorkloadTrackingReport';
 import { resolveCytologyRegistryTransmissionAuditReport } from './resolveCytologyRegistryTransmissionAuditReport';
+import { resolveCytologyFiveYearRetrospectiveLookbackReport, type CytologyFiveYearLookbackSpecimenInput } from './resolveCytologyFiveYearRetrospectiveLookbackReport';
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
@@ -187,20 +190,24 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
     return ok(resolveCytologyAscusHpvReflexReport(primaryScreenReviews, categories, specimenHpvBySpecimenId));
   },
 
-  async getWorkloadTrackingReport(_scope) {
+  async getWorkloadTrackingReport(_scope, timezone) {
     // Real, honest scope note: workload ledger entries carry no real
     // facility/client field of their own to filter by yet — real,
     // separate follow-on if per-scope workload filtering is wanted;
     // this real report is Enterprise-wide until then, matching the
     // exact real limitation already flagged in Phase 50's own README
     // note about the Enterprise-only cap.
-    const [ledgerRes, capRes] = await Promise.all([
+    const [ledgerRes, capRes, signOffRes] = await Promise.all([
       mockCytologyWorkloadLedgerService.getAll(),
       mockCytologyWorkloadCapSettingsService.get(),
+      // Batch 572 (F7, option C): the end-of-day sign-offs, whose hours count where there is one.
+      mockCytologyScreeningHoursService.getAll(),
     ]);
     const ledgerEntries = ledgerRes.ok ? ledgerRes.data : [];
     const enterpriseCap = capRes.ok ? capRes.data.dailySlideCap : 100;
-    return ok(resolveCytologyWorkloadTrackingReport(ledgerEntries, {}, enterpriseCap));
+    // Batch 574: the lab's day starts at its set hour (a night shift on one date), as it was at the time.
+    const dayStart = dayStartFromSettings(capRes.ok ? capRes.data : null);
+    return ok(resolveCytologyWorkloadTrackingReport(ledgerEntries, {}, enterpriseCap, signOffRes.ok ? signOffRes.data : [], timezone, dayStart));
   },
 
   async getRegistryTransmissionAuditReport(_scope, registryId: RegistryId) {
@@ -222,7 +229,7 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
     const signedOutSpecimenIds = new Set<string>();
     signOutResults.forEach(res => { if (res.ok) for (const s of res.data) signedOutSpecimenIds.add(s.specimenId); });
 
-    const backlogSpecimens = [];
+    const backlogSpecimens: CytologyBacklogSpecimenInput[] = [];
     for (const c of cases) {
       if (!caseMatchesScope(c, scope)) continue;
       for (const sp of c?.specimens ?? []) {
@@ -249,7 +256,7 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
     const UK_JURISDICTIONS = new Set(['GB_EW', 'GB_SCT', 'GB_NIR']);
     const primaryScreenBySpecimenId = new Map(scopedReviews.filter(r => r.role === 'primary_screen').map(r => [r.specimenId, r]));
 
-    const inputs = [];
+    const inputs: CytologyPrimaryHpvFailsafeSpecimenInput[] = [];
     for (const c of Object.values(caseById) as any[]) {
       if (!caseMatchesScope(c, scope)) continue;
       const jurisdiction = jurisdictionByFacilityId[c?.order?.facilityId];
@@ -278,7 +285,7 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
     if (facilitiesRes.ok) for (const f of facilitiesRes.data) jurisdictionByFacilityId[f.id] = f.jurisdiction;
 
     const EU_JURISDICTIONS = new Set(['FR', 'DE', 'NL', 'BE', 'IE']);
-    const inputs = [];
+    const inputs: CytologyEuComplianceSpecimenInput[] = [];
     const countryByCaseId: Record<string, string> = {};
     for (const c of Object.values(caseById) as any[]) {
       if (!caseMatchesScope(c, scope)) continue;
@@ -309,7 +316,7 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
 
   async getHpvPositivityMonitorReport(scope) {
     const { caseById } = await fetchScopedReviewsAndCategories(scope);
-    const inputs = [];
+    const inputs: CytologyHpvPositivitySpecimenInput[] = [];
     for (const c of Object.values(caseById) as any[]) {
       if (!caseMatchesScope(c, scope)) continue;
       const testingSite = c?.order?.facilityId ?? 'Unknown Site';
@@ -366,5 +373,30 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
     const resultsRes = await mockCytologyProficiencyTestResultService.getAll();
     const results = resultsRes.ok ? resultsRes.data : [];
     return ok(resolveCytologyApacProficiencyTestReport(results));
+  },
+
+  // Batch 483 (PS-359 tracker follow-up — "CYT-QA-03 vs CYT-QA-04 report
+  // asymmetry"): CYT-QA-03's trigger/outcome data (retrospectiveReviewFlag,
+  // Specimen.ts) has existed since Phase 58/60 with no aggregate ever
+  // reading it back — same real caseById + caseMatchesScope pattern
+  // getUnscreenedBacklogReport above already uses for a specimen-level
+  // (not QaActivityRecord-based) report.
+  async getFiveYearRetrospectiveLookbackReport(scope) {
+    const { caseById } = await fetchScopedReviewsAndCategories(scope);
+    const specimens: CytologyFiveYearLookbackSpecimenInput[] = [];
+    for (const c of Object.values(caseById) as any[]) {
+      if (!caseMatchesScope(c, scope)) continue;
+      for (const sp of c?.specimens ?? []) {
+        const flag = sp?.retrospectiveReviewFlag;
+        if (!flag) continue;
+        specimens.push({
+          caseId: c.id, specimenId: sp.id, accessionId: c?.accession?.accessionNumber,
+          triggeredByCaseId: flag.triggeredByCaseId, triggeredAt: flag.triggeredAt,
+          outcome: flag.outcome, correctiveAction: flag.correctiveAction,
+          reviewedByName: flag.reviewedByName, reviewedAt: flag.reviewedAt,
+        });
+      }
+    }
+    return ok(resolveCytologyFiveYearRetrospectiveLookbackReport(specimens));
   },
 };

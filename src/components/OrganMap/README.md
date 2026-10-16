@@ -2,7 +2,7 @@
 
 Batch 461: the anatomical map companion on the report page (Pete's "Opt-In Companion").
 
-- `OrganMapPanel.tsx`: the collapsible panel above the synoptic, opened with the **Map** button (open or closed is remembered per user, `reportAnatomicalMapOpen:<userId>` in `utils/uiPreferences`). It shows the map, the legend, and the report image's state ("In the report", "Report image is out of date — insert again", "In the report, locked at sign-out") with **Insert into report** / **Insert again** / **Remove from report** (`CapabilityButton`, `report:organ-map:insert`; the service checks again). An empty presence slot at the top waits for the PS-71 presence banner.
+- `OrganMapPanel.tsx`: the collapsible panel above the synoptic, opened with the **Map** button (open or closed is remembered per user, `reportAnatomicalMapOpen:<userId>` in `utils/uiPreferences`). It shows the map, the legend, and the report image's state ("In the report", "Report image is out of date — insert again", "In the report, locked at sign-out") with **Insert into report** / **Insert again** / **Remove from report** (`CapabilityButton`, `report:organ-map:insert`; the service checks again). *(Batch 573: the empty presence slot is gone; who else has the case open is shown once, above the report's tabs, `pages/SynopticReportPage/components/CasePresenceStrip.tsx`.)*
 - `OrganMapSvg.tsx`: the on-screen drawing. Shapes come from `services/organMapping` (`organMapLayout`); colours are the site's scheme as custom properties on the panel (`organMapSchemeVars` → `--organmap-<key>`), read by the `ps-organmap-*` classes in `pathscribe.css`; a patterned fill is an SVG `fill="url(#…)"` attribute. A sector with a question to jump to is a button: click, Enter or Space asks the page to jump to (and highlight) that synoptic question. Without one (the Configuration preview) sectors are labelled pictures, not tab stops. The short text inside sectors comes translated from `organMapLabels`.
 
 **The map is drawn from the synoptic answers** and has no Save of its own: change an answer and the map changes. The components render only; every decision is in `services/organMapping/` and `pages/SynopticReportPage/hooks/useOrganMap.ts` orchestrates.
@@ -38,3 +38,13 @@ Tests: `MohsStagesInput.test.tsx` (new).
 ## Batch 465b
 
 `OrganMapSvg.tsx`: the outline halo has two layers, a thin dark edge (`ps-organmap-overlay-edge`) outside the white one, for dark themes and print alike.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+New test in `OrganMapPanel.test.tsx` for the PS-491 criterion: every patterned colour is drawn with its pattern, and every outline sits on its white halo and dark edge.
+
+## Batch 573
+
+- `OrganMapPanel.tsx`: the empty presence slot (and its CSS) removed; presence is shown above the report's tabs.

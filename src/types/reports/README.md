@@ -24,3 +24,7 @@ The real report lifecycle beyond the synoptic itself — amendment/addendum, ver
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 558 (PS-539 phase 2d: report versions through the API)
+
+- Batch 558: `ReportVersionRecord.pdfSha256` is the hash of the PDF's bytes (it was the base64 text's); `pdfBase64` is absent on a version the API server lists.

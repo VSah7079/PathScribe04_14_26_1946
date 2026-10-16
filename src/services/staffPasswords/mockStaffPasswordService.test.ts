@@ -26,7 +26,7 @@ describe('staff password service (Batch 448)', () => {
     expect(await svc.verify('Sam@Lab.org ', PW)).toEqual({ result: 'match', staffId: 'S-1', mustChange: false });
     expect(await svc.verify('sam@lab.org', 'wrong password!!')).toEqual({ result: 'wrong' });
     expect(await svc.verify('nobody@lab.org', PW)).toEqual({ result: 'none' });
-  }, 20000);
+  });
 
   it('stores only a hash, and the audit never contains the password', async () => {
     const log = vi.spyOn(mockAuditService, 'logEvent');
@@ -35,7 +35,7 @@ describe('staff password service (Batch 448)', () => {
     const entry = log.mock.calls.find(c => c[0].event === 'STAFF_PASSWORD_SET')![0];
     expect(entry.detail).toContain('must be changed at next sign-in');
     expect(JSON.stringify(log.mock.calls)).not.toContain(PW);
-  }, 20000);
+  });
 
   it('is refused without the permission, and enforces the policy', async () => {
     allowed.value = false;
@@ -50,13 +50,13 @@ describe('staff password service (Batch 448)', () => {
     expect(await svc.changeAtSignIn('sam@lab.org', PW, PW)).toEqual({ ok: false, error: 'sameAsCurrent' });
     expect(await svc.changeAtSignIn('sam@lab.org', PW, 'another long password')).toEqual({ ok: true, data: true });
     expect(await svc.verify('sam@lab.org', 'another long password')).toEqual({ result: 'match', staffId: 'S-1', mustChange: false });
-  }, 30000);
+  });
 
   it('removing it returns the person to "none" (the built-in demo password applies again)', async () => {
     await svc.set('S-1', PW, { mustChange: false });
     expect((await svc.clear('S-1')).ok).toBe(true);
     expect(await svc.verify('sam@lab.org', PW)).toEqual({ result: 'none' });
-  }, 20000);
+  });
 });
 
 describe('Batch 456: common or breached passwords are refused; a new password lifts the sign-in lock', () => {
@@ -68,7 +68,7 @@ describe('Batch 456: common or breached passwords are refused; a new password li
     expect(await svc.set('S-1', 'my pathscribe login', { mustChange: false })).toEqual({ ok: false, error: 'contextWord' });
     await svc.set('S-1', PW, { mustChange: true });
     expect(await svc.changeAtSignIn('sam@lab.org', PW, 'iloveyou12345')).toEqual({ ok: false, error: 'common' });
-  }, 30000);
+  });
 
   it('refuses a breached password when the breach service says so, and audits only that the service was unreachable', async () => {
     const log = vi.spyOn(mockAuditService, 'logEvent');
@@ -78,7 +78,7 @@ describe('Batch 456: common or breached passwords are refused; a new password li
     const entry = log.mock.calls.map(c => c[0]).filter(e => e.event === 'STAFF_PASSWORD_SET').pop()!;
     expect(entry.detail).toContain('could not be reached');
     expect(JSON.stringify(log.mock.calls)).not.toContain(PW);
-  }, 20000);
+  });
 
   it('setting a password from the Staff screen clears that person\'s sign-in lock', async () => {
     const until = new Date(Date.now() + 600_000).toISOString();
@@ -89,5 +89,5 @@ describe('Batch 456: common or breached passwords are refused; a new password li
     expect(browserSignInLockStore.read('sam@lab.org')).toBeNull();
     expect(browserSignInLockStore.read('other@lab.org')).toEqual({ failures: 2, lockedUntil: null });
     expect(log.mock.calls.map(c => c[0]).filter(e => e.event === 'STAFF_PASSWORD_SET').pop()!.detail).toContain('Failed sign-in attempts cleared');
-  }, 20000);
+  });
 });

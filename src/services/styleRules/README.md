@@ -23,3 +23,17 @@ Batch 367 (PS-74): the check behind standing rule 1, **no inline CSS**.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 517 — CSS cleanup (PS-294)
+
+- **Removed the Orchestrator report panel's CSS.** That is the `ps-orch`, `ps-orch2`, `ps-orch3` and `ps-orch4` families: 311 classes, 446 rules, 9 `@keyframes` and 120 comments that described only those rules. Nothing in `src` referenced them; the panel itself is gone.
+- **Removed the `[data-ps-dark]` rules.** Nothing sets that attribute.
+- **Kept the app-wide print isolation rule.** That is `body > *:not(.ps-orch4-shell):not(.ps-mth-overlay):not(.ps-cyto-histo-print-overlay)`: it still hides everything else when printing, so it stays, with a comment.
+- **Removed the exact duplicates the top-level guard can't see.** These were inside `@media print` (`body *`, three copies, now one) and `@keyframes`.
+- **Bug fixed.**
+  - An older second copy of the print isolation rule lacked the `.ps-cyto-histo-print-overlay` exemption.
+  - Because of it, the Cyto-Histologic Correlation print view printed blank.
+  - That copy is removed.
+- **Deleted five stylesheets that nothing loads** (listed in `DELETED_FILES.txt`).
+- **Result.** `pathscribe.css` went from 32,708 to about 30,600 lines.
+- **Follow-up.** The remaining unused classes (about 717, plus 472 to check by hand) are tracked in PS-520.

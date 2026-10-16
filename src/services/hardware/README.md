@@ -10,8 +10,8 @@ architectural discipline worth noting: it deliberately builds on the
 *existing* HL7 pipeline rather than a new, parallel one, specifically
 so nothing here has to guess at vendor-specific field layouts without
 a verified integration guide. The two not-yet-supported event types
-(`dispatchSlideOrder`, `dispatchSpecimenLabel`) throw clear, explicit
-"not yet implemented" errors rather than faking a message-building
+(`dispatchSlideOrder`, `dispatchSpecimenLabel`) return a clear, explicit
+"not yet implemented" error (`ok: false`) rather than faking a message-building
 path that doesn't exist — same honesty standard as the vendor adapter
 layer itself. `resolveModeAOrgContext`'s own comment explicitly
 explains why it does *not* try to resolve a hardware endpoint URL
@@ -28,3 +28,5 @@ mind — not an actual import or call. This is real, planned,
 forward-looking infrastructure for a hardware-triggered
 specimen/order-dispatch flow that hasn't been connected to a caller
 yet, not dead or abandoned code.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the two unsupported methods return `{ ok: false, error }`; they do not throw.*

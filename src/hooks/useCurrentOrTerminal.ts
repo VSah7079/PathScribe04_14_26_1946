@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per the given RFP-APLIS-2026-GLOBAL Intraoperative/Frozen
 // Section Dashboard design brief: "Store the location_id in
-// localStorage or device configuration so if the browser reloads or
+// workstation settings (utils/workstationSettings.ts) or device configuration so if the browser reloads or
 // the terminal restarts, it immediately reconnects to OR-03's live
 // feed without requiring user re-authentication." Mirrors
 // useCurrentScanStation.ts's own real, proven pattern exactly —
@@ -13,12 +13,13 @@
 // specific Location, persisting regardless of who's in the room.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { getWorkstationSetting, setWorkstationSetting } from '@/utils/workstationSettings';
 import { useState, useCallback, useEffect } from 'react';
 
 const STORAGE_KEY = 'pathscribe_current_or_terminal_id';
 
 function readStored(): string | null {
-  try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  return getWorkstationSetting(STORAGE_KEY);
 }
 
 const subscribers = new Set<(id: string | null) => void>();
@@ -35,10 +36,7 @@ export function useCurrentOrTerminal() {
   }, []);
 
   const setTerminalId = useCallback((id: string | null) => {
-    try {
-      if (id) localStorage.setItem(STORAGE_KEY, id);
-      else localStorage.removeItem(STORAGE_KEY);
-    } catch { /* real, honest no-op — a private-browsing session with no real localStorage simply doesn't persist across reloads, never a crash */ }
+    setWorkstationSetting(STORAGE_KEY, id || null);
     subscribers.forEach(fn => fn(id));
   }, []);
 

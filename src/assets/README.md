@@ -1,8 +1,8 @@
 # src/assets/
 
-Empty. Previously contained only `react.svg` — the literal, unmodified
-default Vite/React scaffolding icon (never referenced anywhere in this
-app's real UI), confirmed dead and removed during this review.
+Empty. The only file here was `react.svg`, the unmodified Vite/React
+scaffolding icon, which nothing referenced. Batch 499 removed it and
+listed it in the root `DELETED_FILES.txt` (a delta zip can't delete
+files, so earlier removals never reached the working copy).
 
-No further action needed here unless real static assets get added in
-the future.
+Static assets the app serves live in `public/`.

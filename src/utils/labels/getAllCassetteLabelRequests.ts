@@ -25,7 +25,8 @@ export interface AllCassetteLabelRequests {
 }
 
 export function getAllCassetteLabelRequests(caseData: Case): AllCassetteLabelRequests {
-  const fullAccession = caseData.accession.fullAccession;
+  // Same fallback the scan resolver matches on (resolveMaterialFromScan.ts).
+  const fullAccession = caseData.accession.fullAccession ?? caseData.id;
   const ordinary: CassetteLabelDispatchRequest[] = [];
   for (const specimen of caseData.specimens ?? []) {
     for (const block of specimen.blocks ?? []) {

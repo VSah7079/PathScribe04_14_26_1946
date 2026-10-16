@@ -138,7 +138,7 @@ describe('SlideGridPanel', () => {
     const onReprint = vi.fn();
     grid({ stains: [stain()], onReprint });
     fireEvent.click(screen.getByText('microtomyWorkstation.slideGrid.reprint'));
-    fireEvent.change(screen.getByRole('combobox', { name: '' }) as HTMLSelectElement, { target: { value: 'Jam' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'a11y.fields.reprintReason' }) as HTMLSelectElement, { target: { value: 'Jam' } });
     expect(onReprint).toHaveBeenCalledWith('o1', 'Jam');
   });
 });

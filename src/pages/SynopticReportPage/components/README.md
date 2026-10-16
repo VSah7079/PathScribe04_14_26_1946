@@ -1,6 +1,6 @@
 # pages/SynopticReportPage/components/
 
-Presentational and semi-presentational pieces specific to the case report page — real business logic lives in `../hooks/`, not here. 17 files.
+Presentational and semi-presentational pieces specific to the case report page — real business logic lives in `../hooks/`, not here. 27 component files (plus tests).
 
 ## Layout & navigation
 
@@ -33,6 +33,10 @@ Presentational and semi-presentational pieces specific to the case report page �
 
 - **`MarkersPanel.tsx`** — resolved biomarker values grouped by marker (e.g. all ER-related fields — Status, % Positivity, Intensity — under one card).
 - **`EMRSidecarDrawer.tsx`** — slide-in EMR sidecar drawer (replaces an earlier floating/draggable modal version, now matching the app's standard drawer convention).
+- Added later and described in the batch notes below: `AiReportToolButtons.tsx` (Batch 451), `AutopsyCaseTimeline.tsx`, `DispatchHistoryTimeline.tsx`, `EditConflictDialog.tsx`, `MergeReviewDialog.tsx`, `PeerReviewBanner.tsx` (Batch 439).
+- **`WsiViewerLaunchButton.tsx`** — opens a slide's scan in the external whole-slide-image viewer. Used by `../modals/BlockStainEditorModal.tsx` and the Cytology screening page.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the folder has 27 component files, not 17; listed the ones the sections above left out.*
 
 ## Batch 338 (PS-342): spell checking
 
@@ -177,6 +181,65 @@ New `AutopsyCaseTimeline.tsx`: renders the real, merged timeline `services/autop
 
 `AutopsyCaseTimeline.tsx` gains two more per-kind render cases, now 16 in all: `organ_tag_recorded` (organ name via the existing `AUTOPSY_ORGAN_LABEL_KEY`, plus status) and `gate_overridden` (tier, who, reason). No new component, no new props shape — `buildAutopsyCaseTimeline.ts` already carries the fields these two cases need.
 
+## Batch 483 — HeaderBar: a new "recorded signatures" chip (PS-359 tracker follow-up)
+
+`HeaderBar.tsx` gains `signatureCount`/`onOpenSignatureHistory` props, rendered as a chip in the same row as the existing version/change-history chips, only shown once there's actually something to see — same real gap this section's deficiency/version indicators already closed, now closed for `services/signatures/` too. Opens the new `SignatureHistoryModal.tsx` (see `modals/README.md`'s own Batch 483 entry).
+
+## Batch 492 — BottomActionBar: a real button for "Flag for Tumor Board / MDT" (PS-359 follow-up; real, found-while-testing bug fix)
+
+Real, found-while-testing bug: `showFlagForMdtModal` in `SynopticReportPage.tsx` was only ever set by the `'delegation.tumorBoard'` voice/keyboard action handler — there was no clickable UI entry point for it at all, and Batch 491's own deactivation of `DelegateModal.tsx`'s `'TUMOR_BOARD'` delegation type removed the last (awkward) menu path that used to exist. A pathologist with no reason to know the voice phrase or `F18+PS006` shortcut had no way to reach it by mouse. `BottomActionBar.tsx` gains a new `onFlagForMdt?` prop and a `CapabilityButton` (capability `case:tumor-board:flag`, context `{ caseId }`) next to Flags/Codes — `CapabilityButton` rather than the plain `ActionButton` other delegation-family buttons use here, since this maps to exactly one capability rather than opening a modal with several actions of its own. New CSS class `.ps-bab-action-btn--flag-mdt` (`#EC4899`, distinct from the bar's existing purple/red/teal hues). Full i18n in all 5 locales (`bottomActionBar.actions.flagForMdt{Label,Title}`).
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 495
+
+`BottomActionBar.tsx`: the assist-mode Print button is a `CapabilityButton` for `report:case-report:print` (new `.ps-bab-action-btn--print` modifier carries its colour, replacing the inline `ActionButton` colour). It opens the CoPilot report view, whose own Print is checked in the service.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 512
+
+`Sidebar`: the specimen badge component is `LisSyncBadge`, reading `specimen.lisSyncState`.
+
+## Batch 519 (PS-494)
+
+`RightSynopticPanel.tsx`: a free-text node count shows an inline hint when it isn't a count, "cannot be determined" or "at least N", when it exceeds its limit, and when a total is below the counts it covers (props `exceeds`, `belowSum`).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+`Sidebar` specimen and report rows and the `RightSynopticPanel` field header keep their click and keyboard handling but no button role, because they hold buttons of their own (axe: nested-interactive).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- `ReleaseBufferBanner.tsx` (Batch 555): the countdown's end goes through `services/reportRelease/releaseCountdown.ts` (the page releases, or waits for the server's release).
+
+## Batch 567 (WCAG 2.1 AA, 4.1.2)
+
+- `BillingReviewPanel.tsx`: a pending code's row holds buttons (confirm, override, dismiss), so it is no longer a button; clicking it still selects it, and its code is the button (`aria-current` when selected). The dismiss button has a name.
+- `SequencerPanel.tsx`: a report's preview card holds its own "more fields" control, so it is no longer a button; its name is the button that opens the report.
+
+## Batch 569 (WCAG 2.1 AA, 4.1.2)
+
+- `Sidebar.tsx`: the collapsed rail's "changes to review" dot is a button beside the specimen's button (it was inside it), named with the review hint.
+
+## Batch 572 (PS-539)
+
+- `CaseUpdatedBanner.tsx` (new): "Someone else saved this case" with Reload and Later; shown above the tabs; not a window (click economy); only the message is a polite live region.
+
+## Batch 573 (PS-539)
+
+- `CasePresenceStrip.tsx` (new): each other person with the case open, editing or viewing, with email and call links when known; "You, in another window"; one polite announcement (repeated words are read again). Takes no space when nobody else is there.
+
+## Batch 575
+
+- `CaseUpdatedBanner.tsx`: Show their changes (in place) and Later; after an overlap, a lasting note with "Got it".

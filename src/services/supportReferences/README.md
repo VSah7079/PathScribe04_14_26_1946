@@ -62,3 +62,31 @@ A support analyst must never need a patient's case number. Instead they quote a 
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 495
+
+`supportTicketRules.ts`: `/report-preview/:caseId` added to the known routes, so a support ticket raised from the preview window names the page by its route pattern (the guard test `knows every route in App.tsx` caught it).
+
+## Batch 497
+
+`/report-preview/:caseId` removed from the known routes — the window was retired.
+
+## Batch 518
+
+Added the new route `/batch-management/label-reprint` to the route list for support tickets. The full suite's first Batch 518 run caught the gap.
+
+## Batch 522
+
+Added the new route `/consult` to the route list for support tickets (PS-290).
+
+## Batch 527
+
+The route tests read both `App.tsx` and `SignedInApp.tsx`, where every route after sign-in now lives (PS-486).
+
+## Batch 550 (PS-539 phase 2d)
+
+- `supportTicketRules.ts`: `/my-exports` (the new My exports page) is one of the routes a support reference can name.
+
+## Batch 573
+
+- `caseSupportReference.ts` (new): a case's support reference for the live hub, from the API server (`GET /api/cases/{caseId}/support-reference`, `CASE_API.md` §8) so every user of a case has the same one; the browser's own service in the demo. Used by the `caseReport` notice and presence.

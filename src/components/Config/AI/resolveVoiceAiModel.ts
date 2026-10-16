@@ -18,8 +18,8 @@
 // clinical deployment is a real liability concern, not just a UX one.
 // ─────────────────────────────────────────────────────────────
 
-import { modelService } from '../../../services';
-import { mockValidationStudyService as validationStudyService } from '../../../services/validationStudies/mockValidationStudyService';
+import { modelService, validationStudyService } from '@/services';
+
 import type { AiProviderConfig } from './aiProviderConfig';
 
 /**

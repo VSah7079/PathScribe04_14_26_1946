@@ -37,7 +37,7 @@
 
 import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router';
+import { useLocation } from 'react-router';
 import { useAuth } from './AuthContext';
 import { useEnabledIdentifierFormats } from '../hooks/useEnabledIdentifierFormats';
 
@@ -73,7 +73,6 @@ const MIN_SCAN_LENGTH = 5;
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigate      = useNavigate();
   const openCasePage = useOpenCase();
   const location       = useLocation();
   const enabledFormats = useEnabledIdentifierFormats();
@@ -140,7 +139,7 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // MRN: could navigate to worklist filtered by MRN — placeholder for now
     // if (type === 'mrn') navigate(`/worklist?mrn=${cleaned}`);
 
-  }, [getEnabledPatterns, navigate, location.pathname]);
+  }, [getEnabledPatterns, location.pathname, openCasePage]);
 
   useEffect(() => {
     // Only activate when user is authenticated

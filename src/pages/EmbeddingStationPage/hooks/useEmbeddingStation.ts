@@ -35,7 +35,7 @@
 // scan station comes from @/services rather than the mock directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { caseRouter } from '@/services/cases/CaseRouter';
@@ -92,7 +92,7 @@ export function useEmbeddingStation() {
   const [dictionaryType, setDictionaryType] = useState<{ type?: string; procedure?: string }>({});
   const versionRef = useRef(0);
 
-  const actor = { id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' };
+  const actor = useMemo(() => ({ id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' }), [user?.id, user?.name]);
 
   /** Real, per "Biopsy/Needle Core" alert badges — resolveEmbeddingAlertBadges
    *  needs the linked specimen dictionary entry's real type/procedure,
@@ -182,6 +182,9 @@ export function useEmbeddingStation() {
     const missing = embeddingConfirmMissing({ observedCount: observedCountText, moldSize: block.moldSize, orientationInstructions: orientation }, requirements);
     if (missing.length > 0) return { ok: false, missing };
     const observedCount = parseObservedPieceCount(observedCountText);
+    // The observed count is a locked-required field, so the check above
+    // already refuses an unreadable count; this keeps that explicit.
+    if (observedCount === null) return { ok: false, missing: ['observedPieceCount'] };
     const expected = block.pieceCount;
     let specimen = workItem.specimen;
     if (orientationInstructions !== undefined && orientationInstructions !== (block.orientationInstructions ?? '')) {

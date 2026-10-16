@@ -1,8 +1,10 @@
 # components/Config/
 
 The biggest, most central components folder — every admin/configuration
-screen in PathScribe (analogous to `services/cases/` in scale). 54 files
-across 11 subfolders.
+screen in PathScribe (analogous to `services/cases/` in scale). 170 files
+(not counting READMEs) across 14 subfolders plus `__tests__/`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): was "54 files across 11 subfolders".*
 
 **Maintenance rule:** when a subfolder's *contents* change, update that
 subfolder's own `README.md`. Only touch *this* file if a subfolder's
@@ -29,7 +31,7 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
 | Folder | What it is | Status |
 |---|---|---|
 | [AI/](./AI/README.md) | Provider selection, model config, AI Behavior tab | ✅ Reviewed |
-| [Templates/](./Templates/README.md) | Protocol review queue + lifecycle reviewer | ✅ Reviewed — 1 known bug |
+| [Templates/](./Templates/README.md) | The protocol lifecycle reviewer (`TemplateRenderer.tsx`); the review queue list is in Protocols/ | ✅ Reviewed — known bug since fixed |
 | [NarrativeTemplates/](./NarrativeTemplates/README.md) | AI narrative section config (data only — tab UI deleted) | ✅ Reviewed — dead tab confirmed & removed |
 | [Actions/](./Actions/README.md) | Voice/shortcut action registry editor | ✅ Reviewed |
 | [Macros/](./Macros/README.md) | Text-expansion macro editor | ✅ Reviewed — 1 minor drift risk |
@@ -37,18 +39,23 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
 | [Search/](./Search/README.md) | Configuration page's own search bar | ✅ Reviewed |
 | [Staff/](./Staff/README.md) | Staff directory + role/permission dictionary | ✅ Reviewed — 2 fixes applied |
 | [Terminology/](./Terminology/README.md) | Terminology endpoint config + health monitor | ✅ Reviewed |
-| [System/](./System/README.md) | 30 files — client/case/routing/TAT/session/dictionary admin | ✅ Reviewed — 1 rename, 6 fixes applied |
+| [System/](./System/README.md) | ~100 source files — the System tab's 77 sections in six groups, plus the TAT and Demo tabs | ✅ Reviewed — 1 rename, 6 fixes applied |
 | [Protocols/](./Protocols/README.md) | Protocol registry + review queue + the real template builder | ✅ Reviewed — see TemplateRenderer bug below |
+| [Cytology/](./Cytology/README.md) | Configuration → Cytology tab (12 sections, `cytologySections.ts`) | — |
+| [RegistryGoLive/](./RegistryGoLive/README.md) | Registry test-to-live connection panel, used by the screening and cancer registry screens | — |
+| [Integrations/](./Integrations/README.md) | README only — the old Integrations tab, now System's Integrations group | — |
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): added the Cytology, RegistryGoLive and Integrations folders; System was "30 files"; Templates/ no longer holds the queue list.*
 
 ## Known issues (cross-folder)
 
 - **Macros/index.tsx hardcoded fonts** (Config/) — drift risk vs.
   `services/fonts/` (the real dictionary is `System/FontsSection.tsx`'s
   own data).
-- **Hardcoded `isSuperAdmin={true}`** (System/) — `GoverningBodiesSection`
-  and `TerminologyServicesSection` are never called with a real,
-  role-derived value. See `docs/architecture/ACCESS_CONTROL_PLAN.md` — planned,
-  not blocking, revisit before first real customer deployment.
+- ~~**Hardcoded `isSuperAdmin={true}`**~~ (System/) — closed in Batch 371:
+  `GoverningBodiesSection` edits need `platform:governing-bodies:manage`,
+  and `TerminologyServicesSection` gets the real `useIsSuperAdmin()` value.
+  *(Corrected in the Batch 496 README audit.)*
 - **~9 real service storage keys missing from `DemoResetTab.tsx`**
   (System/) — down from ~13 after this session's `CASE_KEYS` fix; the
   remaining gap was logged in `PRIORITY_FIXES.md` as its own item (that
@@ -137,7 +144,8 @@ This README's own text was also repaired: 46 corrupted characters
   `pathscribe_` prefix (the exact reason this and 8 other keys had gone
   undetected by an earlier, narrower pass).
 - **Session Security — Phase 1 of the Inactivity Timeout & Draft Recovery
-  feature, complete (full spec in `PRIORITY_FIXES.md`).** A real
+  feature, complete (full spec in `PRIORITY_FIXES.md`, since retired —
+  see `docs/ARCHIVE.md`).** A real
   idle-detection timer, honest warning modal, and forced logout, replacing
   what turned out to be nothing at all — `AuthContext.tsx` had zero
   timeout logic anywhere, while `services/auditlog/mockAuditService.ts`
@@ -181,7 +189,9 @@ This README's own text was also repaired: 46 corrupted characters
   auto-persist — marks the case dirty via the existing mechanism so the
   pathologist's normal Save Draft review serves as the actual
   verification step. Full detail in `Common/README.md` and
-  `ClientDictionary/README.md` (the per-client override field).
+  `ClientDictionary/README.md` (the per-client override field; that
+  folder is now `components/FacilityDictionary/` — noted in the Batch 496
+  README audit).
 
 ## Duplicate policy (Batch 317, PS-73)
 
@@ -525,3 +535,104 @@ System → Field Requirements: the Cytology page gains a Correction / addendum g
 
 - System → Field Requirements: an Add-On Orders page.
 - Stain Dictionary: a molecular test lists its approved reference labs and its default lab.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 511 (PS-478): full strict type-checking
+
+See `System/README.md` and `Templates/README.md`.
+
+## Batch 512
+
+See `System/README.md`.
+
+## Batch 513 (PS-269)
+
+See `AI/`, `Macros/`, `Staff/` and `System/`.
+
+## Batch 514 (PS-269)
+
+`System/PhysiciansSection.tsx`: Korean name display and shared title keys (see `System/README.md`).
+
+## Batch 515 (PS-124)
+
+`System/FppeAssignmentsSection.tsx` moved to the QA supervision service.
+
+## Batch 516
+
+`System/`: QA review-field editor (PS-125); Case Flags "Restricts printing" (PS-283).
+
+## Batch 519
+
+`Protocols/`: the Synoptic Editor edits multi-answer and "unless" conditions (PS-493), free-text node counts (PS-494) and cytology narrative settings (PS-273).
+
+## Batch 520
+
+`System/DeliveryRulesSection.tsx`: delivery channels by role, with e-fax and file drop (PS-280).
+
+## Batch 521
+
+`System/DeliveryRulesSection.tsx`: automatic retry waits (PS-281).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 528 (PS-359): Staff editor requirements
+
+`Staff/StaffTab.tsx`: the editor's required fields come from Field Requirements (page Staff). `System/FieldRequirementsSection.tsx` lists the three new pages (Staff, Facility editor, Clinical history) with no change of its own.
+
+## Batch 529 (PS-554)
+
+`System/ClinicalMismatchRulesSection.tsx`: Configuration → System → Clinical Mismatch Rules.
+
+## Batch 533
+
+`Cytology/CytologyComplianceFeaturesSection.tsx`: the section is now "Country and laboratory rules", with a third setting, the signature for urgent cytology preliminary reports (Automatic: required everywhere; `cytologyComplianceSettingKey` words it).
+
+## Batch 536
+
+New: System → AI Instructions (`System/AiInstructionsSection.tsx`, PS-554) and AI Behavior → AI vendor policy (`AI/AiVendorPolicySection.tsx`, PS-558); separation of duties on role and staff saves.
+
+## Batch 543
+
+`Actions/ActionsTab.tsx`: the Action Registry export quotes every text cell with `csvQuoted` and neutralizes formula cells (finding F8). A label with a quote no longer breaks its row.
+
+## Batch 544
+
+`Staff/StaffTab.tsx`: the signature is an https link, not an uploaded image.
+
+## Batch 547
+
+Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `System/`: department logo and gross imaging vendor address must be https links; loading text through `LoadingState`.
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- Batch 553: System → Print routing rules and Site agents (see `System/README.md`). *(Batch 552's Site agents section is also noted there; this folder's note was missed in Batch 552.)*
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: `System/SupportAccessSection.tsx` (an approval past its time reads Expired).
+
+## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
+
+- Batch 557: `AI/HostingRegionsCard.tsx` (where the deployment keeps its data).
+
+## Batch 568 (WCAG 2.1 AA)
+
+- `Protocols/`: the terminology alerts' header and the upload drop zone hold no control inside another.
+
+## Batch 574
+
+- `Cytology/CytologyWorkloadCapSettingsSection.tsx`: "Screening day starts at" (from now on; audited through `services/cytology/saveScreeningDayStart.ts`).

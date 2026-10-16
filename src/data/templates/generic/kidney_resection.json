@@ -318,37 +318,37 @@
           "options": [
             {
               "id": "histologic_grade_opt_1",
-              "label": "Option 1",
+              "label": "WHO/ISUP Grade 1",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_2",
-              "label": "Option 2",
+              "label": "WHO/ISUP Grade 2",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_3",
-              "label": "Option 3",
+              "label": "WHO/ISUP Grade 3",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_4",
-              "label": "Option 4",
+              "label": "WHO/ISUP Grade 4",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_5",
-              "label": "Option 5",
+              "label": "Not applicable (grade not assigned to this histologic type)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histologic_grade_opt_6",
-              "label": "Option 6",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -542,19 +542,19 @@
           "options": [
             {
               "id": "margin_status_opt_1",
-              "label": "Option 1",
+              "label": "Not involved",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_opt_2",
-              "label": "Option 2",
+              "label": "Involved",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -570,61 +570,61 @@
           "options": [
             {
               "id": "margins_involved_opt_1",
-              "label": "Option 1",
+              "label": "Perinephric soft tissue margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_2",
-              "label": "Option 2",
+              "label": "Gerota's fascia margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_3",
-              "label": "Option 3",
+              "label": "Renal parenchymal resection margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_4",
-              "label": "Option 4",
+              "label": "Renal vein margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_5",
-              "label": "Option 5",
+              "label": "Ureteral margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_6",
-              "label": "Option 6",
+              "label": "Vascular (renal artery) margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_7",
-              "label": "Option 7",
+              "label": "Adrenal margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_8",
-              "label": "Option 8",
+              "label": "Collecting system / pelvicalyceal margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_9",
-              "label": "Option 9",
+              "label": "Other soft tissue margin",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margins_involved_opt_10",
-              "label": "Option 10",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -647,19 +647,19 @@
           "options": [
             {
               "id": "lymph_node_status_opt_1",
-              "label": "Option 1",
+              "label": "No regional lymph node metastasis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymph_node_status_opt_2",
-              "label": "Option 2",
+              "label": "Regional lymph node metastasis present",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymph_node_status_opt_3",
-              "label": "Option 3",
+              "label": "Not applicable (no nodes submitted)",
               "snomed": "",
               "icd": ""
             }
@@ -702,19 +702,19 @@
           "options": [
             {
               "id": "distant_metastasis_opt_1",
-              "label": "Option 1",
+              "label": "No distant metastasis identified in this specimen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_2",
-              "label": "Option 2",
+              "label": "Distant metastasis confirmed in this specimen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "distant_metastasis_opt_3",
-              "label": "Option 3",
+              "label": "Not applicable (M status is determined clinically)",
               "snomed": "",
               "icd": ""
             }
@@ -736,19 +736,19 @@
           "options": [
             {
               "id": "modified_classification_opt_1",
-              "label": "Option 1",
+              "label": "y — post-neoadjuvant therapy",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "modified_classification_opt_2",
-              "label": "Option 2",
+              "label": "r — recurrent tumour",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "modified_classification_opt_3",
-              "label": "Option 3",
+              "label": "m — multiple primary tumours",
               "snomed": "",
               "icd": ""
             }
@@ -761,82 +761,59 @@
           "required": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pT",
           "options": [
             {
               "id": "stage_category_a_opt_1",
-              "label": "Option 1",
+              "label": "pT1a — tumour ≤ 4 cm, limited to the kidney",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_2",
-              "label": "Option 2",
+              "label": "pT1b — tumour > 4 cm but ≤ 7 cm, limited to the kidney",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_3",
-              "label": "Option 3",
+              "label": "pT2a — tumour > 7 cm but ≤ 10 cm, limited to the kidney",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_4",
-              "label": "Option 4",
+              "label": "pT2b — tumour > 10 cm, limited to the kidney",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_5",
-              "label": "Option 5",
+              "label": "pT3a — tumour extends into the renal vein/segmental branches, invades the pelvicalyceal system, or invades perirenal and/or renal sinus fat",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_6",
-              "label": "Option 6",
+              "label": "pT3b — tumour extends into the vena cava below the diaphragm",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_7",
-              "label": "Option 7",
+              "label": "pT3c — tumour extends into the vena cava above the diaphragm or invades its wall",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_8",
-              "label": "Option 8",
+              "label": "pT4 — tumour invades beyond Gerota's fascia, including direct extension into the ipsilateral adrenal gland",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "stage_category_a_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "stage_category_a_opt_11",
-              "label": "Option 11",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "stage_category_a_opt_12",
-              "label": "Option 12",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "stage_category_a_opt_13",
-              "label": "Option 13",
+              "label": "pTX — primary tumour cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -852,13 +829,13 @@
           "options": [
             {
               "id": "stage_category_a_suffix_opt_1",
-              "label": "Option 1",
+              "label": "(m) — multiple synchronous tumours",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_a_suffix_opt_2",
-              "label": "Option 2",
+              "label": "Not applicable",
               "snomed": "",
               "icd": ""
             }
@@ -871,28 +848,29 @@
           "required": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pN",
           "options": [
             {
               "id": "stage_category_b_opt_1",
-              "label": "Option 1",
+              "label": "pN0 — no regional lymph node metastasis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_2",
-              "label": "Option 2",
+              "label": "pN1 — metastasis in regional lymph node(s)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_3",
-              "label": "Option 3",
+              "label": "pNX — regional lymph nodes cannot be assessed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_b_opt_4",
-              "label": "Option 4",
+              "label": "Not applicable (no nodes submitted)",
               "snomed": "",
               "icd": ""
             }
@@ -905,16 +883,17 @@
           "required": false,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pM",
           "options": [
             {
               "id": "stage_category_c_opt_1",
-              "label": "Option 1",
+              "label": "pM1 — distant metastasis confirmed in this specimen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "stage_category_c_opt_2",
-              "label": "Option 2",
+              "label": "Not applicable (M status is determined clinically)",
               "snomed": "",
               "icd": ""
             }

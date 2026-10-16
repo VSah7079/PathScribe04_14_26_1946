@@ -88,6 +88,17 @@ export const CAPABILITY_CATALOG = [
   { key: 'screen:cytology-qc-queue:open',    labelId: 'screenCytologyQcQueueOpen',     group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:surgical-qa-worklist:open', labelId: 'screenSurgicalQaWorklistOpen',  group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:my-contributions:open',     labelId: 'screenMyContributionsOpen',     group: 'screens', risk: 'standard', requires: [] },
+  // Batch 488 (Pete): the dedicated bench-contribution page for the four
+  // bench roles (Accessioner, Histotechnologist, Cytotechnologist,
+  // Molecular Technologist) — real accessioning rate, batch throughput/
+  // queue aging, stage-to-stage TAT, and molecular QC/rerun data, never
+  // the pathologist-facing myContributions screen above.
+  { key: 'screen:bench-contributions:open',  labelId: 'screenBenchContributionsOpen',  group: 'screens', risk: 'standard', requires: [] },
+  // Batch 489 (Module 1 of Pete's Tumor Board / MDT Workspace spec): the
+  // dedicated board-nomination workspace (filters by board/status/
+  // presenter/meeting window; the "Flag for MDT" action is a separate
+  // case-level capability, case:tumor-board:flag, below).
+  { key: 'screen:tumor-board:open',          labelId: 'screenTumorBoardOpen',          group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:batch-management:open',     labelId: 'screenBatchManagementOpen',     group: 'screens', risk: 'standard', requires: [] },
   // Pathology Workspace hub
   { key: 'screen:cytology-workspace:open',   labelId: 'screenCytologyWorkspaceOpen',   group: 'screens', risk: 'standard', requires: [] },
@@ -95,6 +106,14 @@ export const CAPABILITY_CATALOG = [
   { key: 'screen:embedding:open',            labelId: 'screenEmbeddingOpen',           group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:slide-distribution:open',   labelId: 'screenSlideDistributionOpen',   group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:molecular:open',            labelId: 'screenMolecularOpen',           group: 'screens', risk: 'standard', requires: [] },
+  // Batch 491: the margin-extraction review queue (Pending
+  // MarginExtractionException records a rule can't evaluate until a
+  // human tags the real distance or dismisses it) — deferred from Batch
+  // 490's own extraction layer. Seeded the same way as the case-level
+  // case:margin-exception:resolve action it gates access to (GROSSERS
+  // only), in the Pathology Workspace hub alongside the other grossing-
+  // adjacent screens.
+  { key: 'screen:margin-exception-review:open', labelId: 'screenMarginExceptionReviewOpen', group: 'screens', risk: 'standard', requires: [] },
   // Quality & Compliance hub
   { key: 'screen:audit-log:open',            labelId: 'screenAuditLogOpen',            group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:quality-assurance:open',    labelId: 'screenQualityAssuranceOpen',    group: 'screens', risk: 'standard', requires: [] },
@@ -115,6 +134,51 @@ export const CAPABILITY_CATALOG = [
   { key: 'case:retention-hold:place',   labelId: 'caseRetentionHoldPlace',    group: 'casework', risk: 'high', requires: [] },
   { key: 'case:retention-hold:release', labelId: 'caseRetentionHoldRelease',  group: 'casework', risk: 'high', requires: [] },
   { key: 'case:delegation:create',      labelId: 'caseDelegationCreate',      group: 'casework', risk: 'high', requires: [] },
+  // Batch 489 (Module 1 of Pete's Tumor Board / MDT Workspace spec):
+  // nominating a case for a board's agenda ("Flag for MDT"). Deliberately
+  // its own capability, not a reuse of case:delegation:create above —
+  // that one also reaches the bench roles (CASE_ACCESS_ROLES), but
+  // flagging a case for multidisciplinary discussion is a clinical/
+  // diagnostic judgment call, seeded only to GROSSERS (Pathologist,
+  // Fellow, Resident, PA) in capabilitySeeds.ts.
+  { key: 'case:tumor-board:flag',       labelId: 'caseTumorBoardFlag',        group: 'casework', risk: 'high', requires: [] },
+  // Batch 490 (margin-distance extraction layer): manually tagging the real
+  // distance for a free-text margin answer the parser couldn't confidently
+  // read (resolveException), or closing the exception with no numeric tag
+  // (dismissException). A judgment call on what the pathologist's own
+  // words mean clinically, same reasoning as case:tumor-board:flag above —
+  // seeded only to GROSSERS in capabilitySeeds.ts, not every case-access role.
+  { key: 'case:margin-exception:resolve', labelId: 'caseMarginExceptionResolve', group: 'casework', risk: 'high', requires: [] },
+  // Batch 491 (PS-359 follow-up; Pete, Oct 8: separate queue management from
+  // clinical dismiss). Moving a listing through its status lifecycle
+  // (Presented/Deferred, or cancelling a manual nomination) — the
+  // clinical/coordinator judgment of where a case stands, never moving a
+  // listing to 'Dismissed' (see case:tumor-board:dismiss below).
+  // Batch 493 (Pete, Oct 8: "a specific permission to schedule these MDT
+  // so that an admin assistant can schedule them in advance"): the real
+  // follow-up the comment above once predicted — board/meeting-date/
+  // meeting-time/presenter assignment moved OUT of this capability and
+  // into the new, narrower case:tumor-board:schedule below, so an admin
+  // can grant a clerical/scheduling-only custom role (e.g. "Admin
+  // Assistant") just that capability through the Role Dictionary, without
+  // also granting this one's status-change authority.
+  { key: 'case:tumor-board:manage',     labelId: 'caseTumorBoardManage',      group: 'casework', risk: 'standard', requires: [] },
+  // Batch 493: the real, specific "schedule an MDT in advance" permission
+  // Pete asked for — board, meeting date/time, and presenter assignment,
+  // split out of case:tumor-board:manage above so a non-clinical
+  // scheduling role can hold exactly this and nothing else (no status
+  // changes, no case-access implications). Seeded to the same case-access
+  // roles as case:tumor-board:manage, so nothing changes for existing
+  // clinical users — this exists so an admin can ALSO grant it, alone, to
+  // a custom role through Config → Staff → Role Dictionary.
+  { key: 'case:tumor-board:schedule',   labelId: 'caseTumorBoardSchedule',    group: 'casework', risk: 'standard', requires: [] },
+  // Overriding an auto-generated Tumor Board flag is the clinical judgment
+  // call Pete's recommendation (Oct 8) called out by name: "An
+  // administrative user should never have the permission to silently
+  // dismiss a clinical quality or tumor board flag." Seeded only to
+  // GROSSERS, same as case:tumor-board:flag above — never the broader
+  // case:tumor-board:manage/case:tumor-board:schedule roles.
+  { key: 'case:tumor-board:dismiss',    labelId: 'caseTumorBoardDismiss',     group: 'casework', risk: 'high', requires: [] },
   // Batch 441: changing a case's team (Case Team), including who its primary pathologist is.
   { key: 'case:team:manage',            labelId: 'caseTeamManage',            group: 'casework', risk: 'high', requires: [] },
   // Batch 417 (Registry Engine SRS v2.1, FR-004.3): recording or removing a
@@ -150,6 +214,8 @@ export const CAPABILITY_CATALOG = [
   // outcome, and recording or dismissing a cyto-histologic correlation
   // (services/cytology/cytologyCaseActions.ts). Adding a QC flag needs none.
   { key: 'cytology:review:record',                labelId: 'cytologyReviewRecord',               group: 'casework', risk: 'high', requires: [] },
+  // Batch 572 (Pete, Oct 14, 2026; F7 option C): confirm or correct your own screening hours at the end of the day (the screening hours record; the supervisor's workload report counts them).
+  { key: 'cytology:screening-hours:sign-off',     labelId: 'cytologyScreeningHoursSignOff',      group: 'casework', risk: 'high', requires: [] },
   { key: 'cytology:final-diagnosis:select',       labelId: 'cytologyFinalDiagnosisSelect',       group: 'casework', risk: 'high', requires: [] },
   { key: 'cytology:qc-flag:remove',               labelId: 'cytologyQcFlagRemove',               group: 'casework', risk: 'high', requires: [] },
   { key: 'cytology:retrospective-review:record',  labelId: 'cytologyRetrospectiveReviewRecord',  group: 'casework', risk: 'high', requires: [] },
@@ -164,6 +230,12 @@ export const CAPABILITY_CATALOG = [
   // pathologist records their own review; plain notes need no permission.
   // Checked in services/cytology/cytologyReviewNotes.ts.
   { key: 'cytology:revision:request',             labelId: 'cytologyRevisionRequest',            group: 'casework', risk: 'high', requires: [] },
+  // Batch 533 (Pete, Oct 12: an urgent per-specimen preliminary; who may send
+  // one is "Configurable"): releasing a cytology specimen's preliminary report
+  // ahead of the case report. No built-in role starts with it (Superadmin
+  // aside, which has every capability): each laboratory grants it in the Role
+  // Dictionary. Checked in services/cytology/releaseCytologyPreliminary.ts.
+  { key: 'cytology:preliminary:release',          labelId: 'cytologyPreliminaryRelease',         group: 'casework', risk: 'high', requires: [] },
 
   // Batch 396: recording a peer-review verdict. Taking a cytology QC review and
   // recording its concurrence or discrepancy (services/cytologyQc/
@@ -187,9 +259,20 @@ export const CAPABILITY_CATALOG = [
   // Batch 439 (PS-145): the pathologist's decision on a clinical-pathologic
   // mismatch suggestion (services/clinical/clinicalMismatchDecision.ts).
   { key: 'case:clinical-mismatch:record', labelId: 'caseClinicalMismatchRecord', group: 'casework', risk: 'high', requires: [] },
+  // Batch 530 (Pete, Oct 11, 2026): adding or reconciling a case's structured
+  // clinical history after accession (grossing, report review, sign-out), so a
+  // case accessioned without one isn't stuck. Pathologist, Fellow, Resident and
+  // PA by default. Checked in services/clinicalHistory/recordClinicalHistoryAfterAccession.ts.
+  { key: 'case:clinical-history:record', labelId: 'caseClinicalHistoryRecord', group: 'casework', risk: 'high', requires: [] },
   // Batch 439 (PS-148): assessing an outside consultant's opinion against the
   // case (services/consultAccess/mockConsultTokenService.ts).
   { key: 'case:outside-consult:assess', labelId: 'caseOutsideConsultAssess',  group: 'casework', risk: 'high', requires: [] },
+  // Batch 515 (PS-290): issuing and revoking an outside consultant's view-only
+  // link to a case (services/consultAccess/mockConsultTokenService.ts).
+  { key: 'case:consult-link:issue',  labelId: 'caseConsultLinkIssue',  group: 'casework', risk: 'high', requires: [] },
+  { key: 'case:consult-link:revoke', labelId: 'caseConsultLinkRevoke', group: 'casework', risk: 'high', requires: [] },
+  // Batch 522 (PS-290): every outside consult link across all cases (Audit Log → Consult links).
+  { key: 'audit:consult-links:view', labelId: 'auditConsultLinksView', group: 'qaOversight', risk: 'high', requires: ['screen:audit-log:open'] },
   // Batch 440 (PS-271 follow-up): a pathologist takes a positive GYN case
   // from the Cytology Review tray and becomes its primary
   // (services/cytology/cytologyQueuesLive.ts).
@@ -238,6 +321,17 @@ export const CAPABILITY_CATALOG = [
   // Batch 461 (organ maps): placing the anatomical map image in the report, or
   // taking it out. Checked in services/organMapping/organMapFigures.ts.
   { key: 'report:organ-map:insert',                labelId: 'reportOrganMapInsert',               group: 'casework', risk: 'standard', requires: [] },
+  // Batch 495 (PS-283 §4.2.4): printing a case report — print, reprint,
+  // print from the preview window, or opening a stored version's PDF. Before,
+  // none of the four was checked. Checked in services/printing/reportPrintGate.ts
+  // with the case and its facility; seeded to every role with case access
+  // (keep today's users). High risk: patient data leaves the app on paper.
+  // Batch 497: the preview window was retired; three print paths remain.
+  { key: 'report:case-report:print',               labelId: 'reportCaseReportPrint',              group: 'casework', risk: 'high', requires: [] },
+  // Batch 516 (PS-283, Pete): printing a case that carries a print-restricting
+  // flag (VIP, confidential consultation). Checked on top of report:case-report:print
+  // (services/printing/reportPrintGate.ts).
+  { key: 'report:restricted-case:print', labelId: 'reportRestrictedCasePrint', group: 'casework', risk: 'high', requires: ['report:case-report:print'] },
   // Batch 458 (PS-71): "Overwrite" on the report page's Edit Conflict dialog:
   // save this session's changes over a newer version someone else saved.
   // Checked in services/cases/caseWrite.ts overwriteAfterConflict.
@@ -337,6 +431,10 @@ export const CAPABILITY_CATALOG = [
   // disposal. Checked in
   // services/autopsy/recordAutopsyOrganRetentionDetail.ts.
   { key: 'autopsy:retention-detail:record', labelId: 'autopsyRetentionDetailRecord', group: 'autopsy', risk: 'high', requires: [] },
+  // Batch 499: choosing the organ-retention tier (and its reason). Was saved
+  // with no check until now (disclosed since Batch 472). Checked in
+  // services/autopsy/recordAutopsyOrganRetentionTier.ts.
+  { key: 'autopsy:retention-tier:record', labelId: 'autopsyRetentionTierRecord', group: 'autopsy', risk: 'high', requires: [] },
 
   // Batch 471 (PS-261 follow-up): reinstating an already-narrowed or
   // revoked hospital consent. Its own capability, never reusing
@@ -381,6 +479,17 @@ export const CAPABILITY_CATALOG = [
   // "nobody by default" the way cytology:qc-review:bypass or
   // autopsy:gross-exam-gate:override are (see capabilitySeeds.ts).
   { key: 'config:inking-validation-mode:manage', labelId: 'configInkingValidationModeManage', group: 'configSystem', risk: 'high', requires: [] },
+
+  // Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic Engine;
+  // PS-519 follow-up). The Administrative Override action at Gate B
+  // (Sign-Out) for a Severity 3 (compliance-critical) margin-ink issue —
+  // Pete's own spec: "Clinical Admin, Lead Pathologist" only, never a
+  // standard pathologist. group: 'casework' (an action on one case, not a
+  // system-wide policy change, unlike config:inking-validation-mode:manage
+  // above), so it is NOT swept in by CONFIG_SECTIONS; seeded explicitly
+  // (capabilitySeeds.ts's INKING_GATE_OVERRIDE) to Admin and Lab Director
+  // only. Checked in services/grossing/recordInkingGateOverride.ts.
+  { key: 'case:inking-gate:override', labelId: 'caseInkingGateOverride', group: 'casework', risk: 'high', requires: [] },
 
   // ── Messaging (Batch 385) ─────────────────────────────────────────────────
   // Sending a message or a reply, and sending a secure email to an outside
@@ -436,6 +545,25 @@ export const CAPABILITY_CATALOG = [
   { key: 'qa:activity-dashboard:export', labelId: 'qaActivityDashboardExport', group: 'qaOversight', risk: 'high', requires: [] },
   // Batch 432 (Pete): marking an Audit Log error resolved. Everyone who opens the Audit Log.
   { key: 'audit:error:resolve', labelId: 'auditErrorResolve', group: 'qaOversight', risk: 'high', requires: [] },
+  // Batch 515 (PS-283): the Print Queue dashboard's actions (Audit Log →
+  // Interfaces): hold or release, cancel, redirect, retry
+  // (services/printing/mockPrintQueueService.ts, redispatchPrintJob.ts).
+  { key: 'print:job:hold',     labelId: 'printJobHold',     group: 'qaOversight', risk: 'high', requires: [] },
+  { key: 'print:job:cancel',   labelId: 'printJobCancel',   group: 'qaOversight', risk: 'high', requires: [] },
+  { key: 'print:job:redirect', labelId: 'printJobRedirect', group: 'qaOversight', risk: 'high', requires: [] },
+  { key: 'print:job:retry',    labelId: 'printJobRetry',    group: 'qaOversight', risk: 'high', requires: [] },
+  // Batch 518 (PS-122): send, resend or simulate a failure for an outbound
+  // interface message (Audit Log → Interfaces → Outbound, every queue).
+  { key: 'interface:outbound:resend', labelId: 'interfaceOutboundResend', group: 'qaOversight', risk: 'high', requires: [] },
+  // Batch 551 (PS-539 phase 2d; MESSAGE_BUS_API.md §4): the API server's background jobs (System Logs →
+  // Server jobs): see the job kinds' health and the dead-lettered jobs; requeue one (delivery, held release,
+  // charge, export and event jobs; interface and print jobs keep their own resend capabilities).
+  // Batch 554 (PS-539 phase 2d): interface monitoring, the engines' listeners and queues (Interfaces → Engines).
+  { key: 'interface:engine-status:view', labelId: 'interfaceEngineStatusView', group: 'qaOversight', risk: 'standard', requires: ['screen:audit-log:open'] },
+  { key: 'jobs:server-job:view', labelId: 'jobsServerJobView', group: 'qaOversight', risk: 'standard', requires: ['screen:audit-log:open'] },
+  { key: 'jobs:server-job:requeue', labelId: 'jobsServerJobRequeue', group: 'qaOversight', risk: 'high', requires: ['jobs:server-job:view'] },
+  // Batch 518 (PS-123): reprint labels for many cases at once (Batch Management → Label reprint).
+  { key: 'label:batch:reprint', labelId: 'labelBatchReprint', group: 'casework', risk: 'high', requires: [] },
   // The binder lists, case by case, the same QA review records the dashboard
   // totals, so anyone who can export it can export the dashboard's figures.
   { key: 'qa:inspection-evidence:export', labelId: 'qaInspectionEvidenceExport', group: 'qaOversight', risk: 'high', requires: ['qa:activity-dashboard:export'] },
@@ -533,6 +661,10 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:ai-behavior:manage', labelId: 'configAiBehaviorManage', group: 'configAi', risk: 'high', requires: [] },
   { key: 'config:ai-provider:manage', labelId: 'configAiProviderManage', group: 'configAi', risk: 'high', requires: [] },
   { key: 'config:ai-model:manage', labelId: 'configAiModelManage', group: 'configAi', risk: 'high', requires: [] },
+  // Batch 536 (PS-558): which AI services and hosting regions each
+  // jurisdiction (or facility) allows. Checked in
+  // services/aiIntegration/aiVendorPolicyService.ts.
+  { key: 'config:ai-vendor-policy:manage', labelId: 'configAiVendorPolicyManage', group: 'configAi', risk: 'high', requires: [] },
   { key: 'config:actions:manage', labelId: 'configActionsManage', group: 'configAi', risk: 'high', requires: [] },
   { key: 'config:voice:manage', labelId: 'configVoiceManage', group: 'configAi', risk: 'high', requires: [] },
   { key: 'config:macros:manage', labelId: 'configMacrosManage', group: 'configAi', risk: 'high', requires: [] },
@@ -544,6 +676,13 @@ export const CAPABILITY_CATALOG = [
   // Batch 452 (PS-156): the cyto-histo correlation window (length and start date).
   // Batch 453 (PS-324): the surgical biopsy-to-resection correlation window.
   { key: 'config:biopsy-resection-correlation:manage', labelId: 'configBiopsyResectionCorrelationManage', group: 'configQuality', risk: 'high', requires: [] },
+  // Batch 491 (PS-359 follow-up): the Tumor Board/MDT auto-flagging rules'
+  // margin-distance thresholds — the enterprise baseline and each
+  // facility's own override, per Pete's confirmed Hybrid Inheritance Model
+  // (Oct 8: "org-wide baseline... facility-level settings inherit... unless
+  // an explicit local override is authorized"). Same configQuality group,
+  // same enterprise+facility-override pattern, as the two lines above.
+  { key: 'config:tumor-board-rules:manage', labelId: 'configTumorBoardRulesManage', group: 'configQuality', risk: 'high', requires: [] },
   // Batch 454: follow-up tracking (the warning period, whether the clinician
   // email is offered, and its wording), per enterprise and facility.
   { key: 'config:follow-up-tracking:manage', labelId: 'configFollowUpTrackingManage', group: 'configQuality', risk: 'high', requires: [] },
@@ -558,6 +697,8 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:subspecialties:manage', labelId: 'configSubspecialtiesManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:specimen-dictionary:manage', labelId: 'configSpecimenDictionaryManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:stain-dictionary:manage', labelId: 'configStainDictionaryManage', group: 'configLab', risk: 'high', requires: [] },
+  // Structured Inking, Module 3 (PS-359 follow-up): the margin ink-colour dictionary resolveInkingValidationSeverity.ts's margin_ink_color_unmapped check validates against.
+  { key: 'config:ink-color:manage', labelId: 'configInkColorManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:processing-protocols:manage', labelId: 'configProcessingProtocolsManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:container-types:manage', labelId: 'configContainerTypesManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:reagent-lots:manage', labelId: 'configReagentLotsManage', group: 'configLab', risk: 'high', requires: [] },
@@ -593,6 +734,23 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:retention-policy:manage', labelId: 'configRetentionPolicyManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:fppe:manage', labelId: 'configFppeManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:cytotech-competency:manage', labelId: 'configCytotechCompetencyManage', group: 'configQuality', risk: 'high', requires: [] },
+  // Batch 529 (PS-554, Pete's decisions of Oct 11, 2026): the clinical-pathologic
+  // mismatch risk rules. Changing them starts with no built-in role (each
+  // hospital grants it, e.g. to its own Pathologist Administrator role);
+  // reading them goes to Pathologist, QA Reviewer and Lab Director (see
+  // CONFIG_NO_DEFAULT_GRANT and MISMATCH_RULES_VIEW in capabilitySeeds.ts).
+  // Checked in services/clinical/clinicalMismatchRuleService.ts.
+  { key: 'config:clinical-mismatch-rules:manage', labelId: 'configClinicalMismatchRulesManage', group: 'configQuality', risk: 'high', requires: ['config:clinical-mismatch-rules:view'] },
+  { key: 'config:clinical-mismatch-rules:view', labelId: 'configClinicalMismatchRulesView', group: 'configQuality', risk: 'standard', requires: [] },
+  // Batch 536 (PS-554, Pete Oct 11): the governed AI instructions for the
+  // mismatch check. Editing starts with no built-in role; approving starts with
+  // Lab Director and is never held by Superadmin; reading goes to Lab Director
+  // and QA Reviewer. Approving and changing the mismatch rules are a
+  // separation of duties (SEPARATION_OF_DUTIES below). Checked in
+  // services/clinical/aiInstructionService.ts.
+  { key: 'config:ai-prompt:view', labelId: 'configAiPromptView', group: 'configQuality', risk: 'standard', requires: [] },
+  { key: 'config:ai-prompt:edit', labelId: 'configAiPromptEdit', group: 'configQuality', risk: 'high', requires: ['config:ai-prompt:view'] },
+  { key: 'config:ai-prompt:approve', labelId: 'configAiPromptApprove', group: 'configQuality', risk: 'high', requires: ['config:ai-prompt:view'] },
   // Printing, labels and benches
   { key: 'config:printers:manage', labelId: 'configPrintersManage', group: 'configOperations', risk: 'high', requires: [] },
   { key: 'config:print-settings:manage', labelId: 'configPrintSettingsManage', group: 'configOperations', risk: 'high', requires: [] },
@@ -612,7 +770,13 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:display-profiles:manage', labelId: 'configDisplayProfilesManage', group: 'configOperations', risk: 'high', requires: [] },
   // Integrations and intake
   { key: 'config:vendor-integrations:manage', labelId: 'configVendorIntegrationsManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  // Batch 552 (PS-539 phase 2d; SITE_AGENT_API.md §2, §3): the site agents (Configuration → System → Site agents):
+  // make an enrolment code or revoke an agent; change the site's agent printers and shares.
+  { key: 'config:site-agents:enroll', labelId: 'configSiteAgentsEnroll', group: 'configIntegrations', risk: 'high', requires: [] },
+  { key: 'config:site-agent-config:manage', labelId: 'configSiteAgentConfigManage', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:crosswalk:manage', labelId: 'configCrosswalkManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  // Batch 517 (PS-143): a lab's secure messaging gateways and their BAA / data processing agreements.
+  { key: 'config:secure-messaging:manage', labelId: 'configSecureMessagingManage', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:migration-mappings:manage', labelId: 'configMigrationMappingsManage', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:assist-polling:manage', labelId: 'configAssistPollingManage', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'assist:lis-message:ingest', labelId: 'assistLisMessageIngest', group: 'configIntegrations', risk: 'high', requires: [] },
@@ -688,6 +852,23 @@ export function isCapabilityKey(key: string): key is CapabilityKey {
 }
 
 export const ALL_CAPABILITY_KEYS: readonly CapabilityKey[] = CAPABILITY_CATALOG.map(c => c.key);
+
+/**
+ * Batch 536 (PS-554; Pete, Oct 11, 2026): pairs of capabilities no one person
+ * may hold together, through one role or several. Changing the mismatch rules
+ * and approving the AI instructions the check uses are separate duties.
+ * Superadmin has no exemption (it doesn't hold the approval at all:
+ * SUPERADMIN_WITHHELD in capabilitySeeds.ts).
+ */
+export const SEPARATION_OF_DUTIES: readonly (readonly [CapabilityKey, CapabilityKey])[] = [
+  ['config:clinical-mismatch-rules:manage', 'config:ai-prompt:approve'],
+];
+
+/** The separation-of-duty pairs these capabilities break (both held). Pure. */
+export function separationOfDutiesConflicts(capabilities: Iterable<string>): (readonly [CapabilityKey, CapabilityKey])[] {
+  const held = new Set(capabilities);
+  return SEPARATION_OF_DUTIES.filter(([a, b]) => held.has(a) && held.has(b));
+}
 
 /** The catalog grouped for display, groups in CAPABILITY_GROUPS order, empty groups left out. */
 export function capabilitiesByGroup(catalog: readonly CapabilityDefinition[] = CAPABILITY_CATALOG): { group: CapabilityGroupId; capabilities: CapabilityDefinition[] }[] {

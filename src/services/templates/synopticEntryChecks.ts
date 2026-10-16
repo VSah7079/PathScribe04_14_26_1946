@@ -15,16 +15,19 @@
 
 import { getTemplateCached } from './templateService';
 import { isVisible, type VisibilityCondition } from './fieldVisibility';
+import { nodeCountBelowSum, textNodeCountExceeds, textNodeCountProblem } from './nodeCountText';
 import { fieldExceedsProblem, partGridCountProblems, partGridRowsOf, sumMismatches, wholeNumberFieldProblem, type PartGridCountProblem, type PartGridField, type PartGridRow, type SumMismatch, type SumOfSpec } from './partGrid';
 import type { Case } from '@/types/case/Case';
 
-type Field = PartGridField & { visibleWhen?: VisibilityCondition; sumOf?: SumOfSpec; wholeNumber?: boolean; notMoreThan?: string };
+type Field = PartGridField & { visibleWhen?: VisibilityCondition; sumOf?: SumOfSpec; wholeNumber?: boolean; notMoreThan?: string; nodeCount?: boolean; atLeastSumOf?: string[] };
 type Section = { visibleWhen?: VisibilityCondition; fields?: Field[] };
 type Answers = Record<string, string | string[]>;
 
 /** A blocking problem: a grid row's (kind 'exceeds' | 'notWhole'), or (Batch 466) a node-count question's own
  *  value that isn't a whole number of 0 or more (kind 'fieldNotWhole'; the row and column fields are empty). */
-export interface SynopticCountBlock extends Omit<PartGridCountProblem, 'kind'> { kind: PartGridCountProblem['kind'] | 'fieldNotWhole' | 'fieldExceeds'; instanceId: string; fieldId: string; fieldLabel: string }
+/** Batch 519 (PS-494): 'fieldNotCount', a free-text node count that isn't a count, "cannot be determined" or
+ *  "at least N"; 'fieldBelowSum', a total below the counts it covers (`limit` is the sum). */
+export interface SynopticCountBlock extends Omit<PartGridCountProblem, 'kind'> { kind: PartGridCountProblem['kind'] | 'fieldNotWhole' | 'fieldExceeds' | 'fieldNotCount' | 'fieldBelowSum'; instanceId: string; fieldId: string; fieldLabel: string }
 export interface SynopticTotalWarning extends SumMismatch { instanceId: string }
 export interface SynopticEntryChecks { blocking: SynopticCountBlock[]; warnings: SynopticTotalWarning[] }
 
@@ -46,6 +49,19 @@ export function synopticEntryChecksFor(instanceId: string, sections: readonly Se
     if (over) {
       const limitField = shown.find(x => x.id === f.notMoreThan);
       blocking.push({ kind: 'fieldExceeds', instanceId, fieldId: f.id, fieldLabel: f.label ?? f.id, rowId: '', rowLabel: '', columnId: '', columnLabel: '', limitColumnId: f.notMoreThan!, limitLabel: limitField?.label ?? f.notMoreThan!, value: over.value, limit: over.limit });
+    }
+    // Batch 519 (PS-494): free-text node counts.
+    const notCount = textNodeCountProblem(f, answers);
+    if (notCount !== undefined) blocking.push({ kind: 'fieldNotCount', instanceId, fieldId: f.id, fieldLabel: f.label ?? f.id, rowId: '', rowLabel: '', columnId: '', columnLabel: '', limitColumnId: '', limitLabel: '', value: Number.NaN, limit: Number.NaN, entered: notCount });
+    const textOver = notCount === undefined ? textNodeCountExceeds(f, answers) : undefined;
+    if (textOver) {
+      const limitField = shown.find(x => x.id === f.notMoreThan);
+      blocking.push({ kind: 'fieldExceeds', instanceId, fieldId: f.id, fieldLabel: f.label ?? f.id, rowId: '', rowLabel: '', columnId: '', columnLabel: '', limitColumnId: f.notMoreThan!, limitLabel: limitField?.label ?? f.notMoreThan!, value: textOver.value, limit: textOver.limit });
+    }
+    const below = nodeCountBelowSum(f, answers);
+    if (below) {
+      const parts = (f.atLeastSumOf ?? []).map(id => shown.find(x => x.id === id)?.label ?? id);
+      blocking.push({ kind: 'fieldBelowSum', instanceId, fieldId: f.id, fieldLabel: f.label ?? f.id, rowId: '', rowLabel: '', columnId: '', columnLabel: '', limitColumnId: '', limitLabel: parts.join(' + '), value: below.value, limit: below.sum });
     }
   }
   const warnings = sumMismatches(shown, answers, parts).map(m => ({ ...m, instanceId }));
@@ -83,6 +99,8 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 /** One blocking count, in words ("Nodes by level, Right level IIa: Nodes positive (3) can't exceed Nodes examined (2)."). */
 export const countBlockMessage = (t: Translate, b: SynopticCountBlock) =>
   b.kind === 'fieldNotWhole' ? t('synopticChecks.fieldNotWhole', { field: b.fieldLabel, value: b.entered })
+    : b.kind === 'fieldNotCount' ? t('synopticChecks.fieldNotCount', { field: b.fieldLabel, value: b.entered })
+    : b.kind === 'fieldBelowSum' ? t('synopticChecks.fieldBelowSum', { field: b.fieldLabel, value: b.value, parts: b.limitLabel, sum: b.limit })
     : b.kind === 'fieldExceeds' ? t('synopticChecks.fieldExceeds', { field: b.fieldLabel, value: b.value, limit: b.limitLabel, limitValue: b.limit })
     : b.kind === 'notWhole' ? t('synopticChecks.cellNotWhole', { field: b.fieldLabel, row: b.rowLabel, column: b.columnLabel, value: b.entered })
       : t('synopticChecks.countExceeds', { field: b.fieldLabel, row: b.rowLabel, column: b.columnLabel, value: b.value, limit: b.limitLabel, limitValue: b.limit });

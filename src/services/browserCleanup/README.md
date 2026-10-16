@@ -10,3 +10,11 @@ Settings that moved to a per-person or lab-wide service are not listed here: the
 
 ---
 *Update this file when a retired key is added or removed.*
+
+## Batch 515
+
+`pathscribe_mock_fppe_assignments` (the retired legacy FPPE store) is removed at start-up.
+
+## Batch 525 (PS-485)
+
+The old clinical keys (`cases`, `orch_cases_v3`, `pathscribe_drafts`, `patientHistoryCache`, `ps_case_masks_v1`, cytology QC assignments …) are **not** on the retired list: the demo still uses them. On a server deployment they are removed at start-up by `browserData/browserKeepList.ts` (`removeBrowserDataCopies`), which keeps only preferences, workstation settings and the session.

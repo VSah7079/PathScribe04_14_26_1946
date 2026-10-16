@@ -46,6 +46,10 @@
 //                   (toxicology specimens to the ME's lab) to demo the new
 //                   custody log; Batch 469 adds a still-pending toxicology
 //                   order on the same specimens, to demo recording its result.
+//   S26-4670..4673  Batch 516: Tumor Board / MDT cases (lung, colon,
+//                   endometrium, pancreas); their board listings, with
+//                   listings on S26-4630, S26-4631 and S26-4642, are in
+//                   services/tumorBoard/tumorBoardDemoSeed.ts
 //   A26-4664        Batch 469: an HTA-governed jurisdiction (England &
 //                   Wales) case with full organ retention consented and a
 //                   tier already on file, disposal not yet recorded — the
@@ -57,7 +61,6 @@
 import type { Case } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const DAY = 86_400_000;
 /** N days before now (seed dates stay relative to today). */
@@ -480,6 +483,59 @@ export const DEMO_BASELINE_CASES: Case[] = [
       hospitalConsent: hospitalConsent('Thomas Carrow', 'spouse', 6, ['Complete autopsy including brain', 'Retention of organs for neuropathology and research']),
       organRetentionTier: 'tier_2_full_organ_retention',
     },
+  },
+
+  // ── Batch 516: Tumor Board / MDT (services/tumorBoard/tumorBoardDemoSeed.ts) ──
+  {
+    // Thoracic MDM: scheduled in two days, Pete presenting.
+    ...base('S26-4670', 'finalized', 7),
+    accession: acc('4670'),
+    patient: patient('PAT-D670', '104670', 'Harold', 'Whitaker', born(67, 1, 22), 'M'),
+    specimens: [
+      { id: 'S26-4670-SP-1', label: 'A', description: 'Lung, right upper lobe, lobectomy', receivedAt: demoDaysAgo(7), collectedAt: demoDaysAgo(7), specimenFlags: [], collection: { bodySite: 'Lung, right upper lobe', laterality: 'Right' } },
+      { id: 'S26-4670-SP-2', label: 'B', description: 'Lymph nodes, station 4R and 7', receivedAt: demoDaysAgo(7), collectedAt: demoDaysAgo(7), specimenFlags: [], collection: { bodySite: 'Mediastinal lymph nodes' } },
+    ],
+    order: order({ requestingProvider: 'Dr. Michael Brown', orderingPhysicianId: 'ph1', clinicalIndication: 'Spiculated 3.1 cm right upper lobe mass, PET avid. Lobectomy with mediastinal lymph node dissection.', receivedDate: demoDaysAgo(7), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' }),
+    diagnostic: { grossDescription: 'Right upper lobe, 182 g, with a 3.0 cm firm grey subpleural mass, 2.4 cm from the bronchial margin.', microscopicDescription: 'Invasive non-mucinous adenocarcinoma, acinar predominant (60%) with solid (25%) and lepidic (15%) components. Visceral pleural invasion PL1. 1 of 6 station 4R lymph nodes involved. pT2a pN2.', ancillaryStudies: 'PD-L1 (22C3) TPS 60%. EGFR, ALK and ROS1 testing sent.' },
+    synopticReports: [],
+    participants: [attending('PATH-001', 'Pete Nimmo', 7)],
+    finalizedAt: demoDaysAgo(4), finalizedBy: 'PATH-001', releasedAt: demoDaysAgo(4),
+  },
+  {
+    // GI MDT: scheduled in two days, no presenter yet (claim it from the workspace).
+    // Flagged by the margin rule (circumferential margin 0.6 mm).
+    ...base('S26-4671', 'finalized', 6),
+    accession: acc('4671'),
+    patient: patient('PAT-D671', '104671', 'Doris', 'Kowalski', born(72, 11, 3), 'F'),
+    specimens: [{ id: 'S26-4671-SP-1', label: 'A', description: 'Colon, right hemicolectomy', receivedAt: demoDaysAgo(6), collectedAt: demoDaysAgo(6), specimenFlags: [], collection: { bodySite: 'Colon, ascending' } }],
+    order: order({ requestingProvider: 'Dr. Robert Williams', orderingPhysicianId: 'ph1', clinicalIndication: 'Ascending colon mass on colonoscopy, biopsy-proven adenocarcinoma.', receivedDate: demoDaysAgo(6), assignedTo: 'PATH-SJ-001', assignedParticipationTypeId: 'primary' }),
+    diagnostic: { grossDescription: 'Right hemicolectomy, 28 cm, with a 4.5 cm ulcerated mass in the ascending colon extending into pericolic fat, 0.6 cm from the circumferential (radial) margin on gross.', microscopicDescription: 'Adenocarcinoma, moderately differentiated, invading through the muscularis propria into pericolic tissue (pT3). Circumferential margin 0.6 mm. Lymphovascular invasion present. 3 of 21 lymph nodes involved (pN1b).', ancillaryStudies: 'Mismatch repair proteins retained (MLH1, PMS2, MSH2, MSH6).' },
+    synopticReports: [],
+    participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 6)],
+    finalizedAt: demoDaysAgo(3), finalizedBy: 'PATH-SJ-001', releasedAt: demoDaysAgo(3),
+  },
+  {
+    // Gyn-Onc: nominated, not yet scheduled (schedule it from the workspace).
+    ...base('S26-4672', 'in-progress', 3),
+    accession: acc('4672'),
+    patient: patient('PAT-D672', '104672', 'Patricia', 'Lindqvist', born(61, 7, 9), 'F'),
+    specimens: [{ id: 'S26-4672-SP-1', label: 'A', description: 'Uterus, cervix, bilateral tubes and ovaries, total hysterectomy and bilateral salpingo-oophorectomy', receivedAt: demoDaysAgo(3), collectedAt: demoDaysAgo(3), specimenFlags: [], collection: { bodySite: 'Uterus' } }],
+    order: order({ requestingProvider: 'Dr. Jennifer Davis', orderingPhysicianId: 'ph2', clinicalIndication: 'Postmenopausal bleeding; endometrial biopsy showed endometrioid carcinoma.', receivedDate: demoDaysAgo(3), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' }),
+    diagnostic: { grossDescription: 'Uterus 142 g with a 3.8 cm exophytic endometrial tumour in the fundus, grossly invading more than half of the myometrium.', microscopicDescription: '', ancillaryStudies: '' },
+    synopticReports: [],
+    participants: [attending('PATH-001', 'Pete Nimmo', 3)],
+  },
+  {
+    // GI MDT: presented a week ago.
+    ...base('S26-4673', 'finalized', 16),
+    accession: acc('4673'),
+    patient: patient('PAT-D673', '104673', 'Leonard', 'Asante', born(64, 4, 28), 'M'),
+    specimens: [{ id: 'S26-4673-SP-1', label: 'A', description: 'Pancreas, duodenum and bile duct, pancreaticoduodenectomy (Whipple)', receivedAt: demoDaysAgo(16), collectedAt: demoDaysAgo(16), specimenFlags: [], collection: { bodySite: 'Pancreas, head' } }],
+    order: order({ requestingProvider: 'Dr. Michael Brown', orderingPhysicianId: 'ph1', clinicalIndication: 'Painless jaundice; 2.8 cm pancreatic head mass.', receivedDate: demoDaysAgo(16), assignedTo: 'PATH-SJ-001', assignedParticipationTypeId: 'primary' }),
+    diagnostic: { grossDescription: 'Whipple specimen with a 2.7 cm firm, poorly circumscribed mass in the pancreatic head abutting the superior mesenteric vein groove.', microscopicDescription: 'Pancreatic ductal adenocarcinoma, moderately differentiated. Perineural invasion present. SMV groove margin 0.8 mm. 2 of 18 lymph nodes involved. pT2 pN1.', ancillaryStudies: '' },
+    synopticReports: [],
+    participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 16)],
+    finalizedAt: demoDaysAgo(12), finalizedBy: 'PATH-SJ-001', releasedAt: demoDaysAgo(12),
   },
 ] as any as Case[];
 

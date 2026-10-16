@@ -35,3 +35,9 @@ Tag the element the message names, usually `data-phi="<kind>"` on the element th
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 516 (PS-72 follow-up)
+
+- `phiRenderAudit.ts` also checks attributes drawn on screen: `title` (tooltips), `placeholder` and `alt`. `aria-label` isn't drawn, so it isn't checked.
+- It found two real gaps: material-tree block and decant tooltips show IDs that carry the accession. Both elements are now tagged `data-phi="accession"`.
+- `scripts/tag-phi.mjs` now says plainly that its count is not the PS-72 measure.

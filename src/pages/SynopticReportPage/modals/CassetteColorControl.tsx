@@ -64,7 +64,7 @@ const CassetteColorControl: React.FC<CassetteColorControlProps> = ({ colorId, ov
         ) : (
           <span className="ps-cassette-color-unresolved">{t('cassetteColorControl.notYetResolved')}</span>
         )}
-        <select
+        <select aria-label={t('a11y.fields.colour')}
           className="ps-conf-select"
           value={colorId ?? ''}
           onChange={e => onChange(e.target.value)}

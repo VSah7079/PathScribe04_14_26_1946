@@ -21,7 +21,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import {
-  supportAccessService, minutesLeft, isLiveGrant, supportRequestQueues, supportWindowParts, SUPPORT_ACCESS_POLICIES, SUPPORT_WINDOW_OPTIONS, SUPPORT_AUDIT_COLUMNS,
+  supportAccessService, minutesLeft, isLiveGrant, effectiveSupportStatus, supportRequestQueues, supportWindowParts, SUPPORT_ACCESS_POLICIES, SUPPORT_WINDOW_OPTIONS, SUPPORT_AUDIT_COLUMNS,
   type SupportAccessPolicy, type SupportAccessRequest, type SupportAccessSettings, type SupportAuditEntry, type ChainCheck,
 } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
@@ -252,7 +252,7 @@ const SupportAccessSection: React.FC = () => {
                 return (
                   <tr key={r.id}>
                     <td className="ps-conf-td">{orgName(r.tenantId)}</td><td className="ps-conf-td">{r.ticketId}</td>
-                    <td className="ps-conf-td"><span className={`ps-supacc-status ps-supacc-status--${r.status}`}>{t(`supportAccess.status.${r.status}`)}</span></td>
+                    <td className="ps-conf-td"><span className={`ps-supacc-status ps-supacc-status--${effectiveSupportStatus(r, now)}`}>{t(`supportAccess.status.${effectiveSupportStatus(r, now)}`)}</span></td>
                     <td className="ps-conf-td">{live ? t('supportAccess.active.minutesLeft', { count: minutesLeft(r.expiresAt, now) }) : '—'}</td>
                     <td className="ps-conf-td"><div className="ps-supacc-row-actions">{live && <button className="ps-conf-btn-secondary" onClick={() => { void end(r.id); }}>{t('supportAccess.support.end')}</button>}</div></td>
                   </tr>

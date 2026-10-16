@@ -41,6 +41,7 @@ import ConfirmModal from '../Common/ConfirmModal';
 import { exportQaReportRows, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { patientIndexService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const ALL_ORGS_VALUE = '__all__';
 
@@ -186,12 +187,12 @@ export const PatientMatchReviewSection: React.FC = () => {
         'MRN': record.mrn,
         'DOB': new Date(record.dateOfBirth).toLocaleDateString(),
         'Flagged': record.createdAt,
-        'Reason': record.reviewReason,
+        'Reason': record.reviewReason ?? '', // toCsv writes undefined as '' anyway
         'From Accession(s)': context,
         'Possible Matches': candidates || 'none',
       };
     });
-    void exportQaReportRows('qa:patient-match-review:export', rows, `patient-match-review-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:patient-match-review:export', rows, `patient-match-review-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(), { organisationId: selectedOrgId });
   };
 
   const candidateCount = confirmNewTarget?.reviewCandidateIds?.length ?? 0;
@@ -273,7 +274,7 @@ export const PatientMatchReviewSection: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="ps-patientmatch-status-text">{t('patientMatchReviewSection.loadingQueue')}</div>
+        <LoadingState variant="inline" className="ps-patientmatch-status-text" label={t('patientMatchReviewSection.loadingQueue')} />
       ) : !selectedOrgId ? (
         <div className="ps-patientmatch-status-text">{t('patientMatchReviewSection.selectOrgPrompt')}</div>
       ) : pending.length === 0 ? (

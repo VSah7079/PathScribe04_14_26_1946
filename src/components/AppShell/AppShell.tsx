@@ -18,15 +18,18 @@
  */
 
 import { useOpenCase } from '@/hooks/useOpenCase';
+import { useDeliveryBackgroundWork } from '@/hooks/useDeliveryBackgroundWork';
+import { useReleaseBackgroundWork } from '@/hooks/useReleaseBackgroundWork';
+import { SecureEmailModal } from '@/components/SecureEmail/SecureEmailModal';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
-import { messageService, actionRegistryService, newMessageMissing, secureEmailMissing, replyMissing, messagingFieldRequired, searchRecipients, findRecipientByName, MESSAGE_NOT_PERMITTED, type MessageRecipient } from '../../services';
+import { messageService, actionRegistryService, newMessageMissing, replyMissing, messagingFieldRequired, searchRecipients, findRecipientByName, MESSAGE_NOT_PERMITTED, type MessageRecipient } from '../../services';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatList } from '@/utils/formatList';
@@ -48,7 +51,7 @@ import LogoutWarningModal from '../Common/LogoutWarningModal';
 import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
 import { useDirtyState } from '../../contexts/DirtyStateContext';
 import '../../pathscribe.css';
-import { getUserGuideBlobUrl, getAdminGuideBlobUrl } from '../../utils/guideAssets';
+import { useGuideAssets } from '@/hooks/useGuideAssets';
 import { formatDate } from '../../utils/formatDate';
 import { useCompanionWindow } from '../../hooks/useCompanionWindow';
 import ConfirmModal from '../Common/ConfirmModal';
@@ -60,6 +63,10 @@ import MyDictionaryModal from '@/components/Profile/MyDictionaryModal';
 import MyVoiceCommandsModal from '@/components/Profile/MyVoiceCommandsModal';
 import BiometricSigningModal from '@/components/Profile/BiometricSigningModal';
 import { biometricService } from '@/services';
+import { RouteErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { useFocusAfterRemoval } from '@/hooks/useFocusAfterRemoval';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 /** Batch 396: a stable empty list, so the link memo doesn't rerun on every render. */
 const NO_ACCESSIONS: string[] = [];
@@ -148,7 +155,7 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ directory, alread
           {pending.map(u => (
             <span key={u.id} className="ps-user-search-chip">
               {u.name}
-              <span onClick={() => toggle(u)} className="ps-user-search-chip-remove">×</span>
+              <span {...pressable(() => toggle(u))} className="ps-user-search-chip-remove">×</span>
             </span>
           ))}
         </div>
@@ -169,7 +176,7 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ directory, alread
               return (
                 <div key={u.id}
                   className={`ps-user-search-item${sel ? ' ps-user-search-item--selected' : ''}`}
-                  onClick={() => toggle(u)}>
+                  {...pressable(() => toggle(u))}>
                   <div className={`ps-user-search-avatar${sel ? ' ps-user-search-avatar--selected' : ''}`}>
                     {sel ? '✓' : avatarInitials(u.name)}
                   </div>
@@ -311,7 +318,7 @@ export const ComposePanel: React.FC<ComposePanelProps> = ({
             {toDropdownOpen && (
               <div className="ps-compose-dropdown">
                 {suggestions.map((u, i) => (
-                  <div key={u.id} className={`ps-compose-dropdown-item${i === toHighlightIdx ? ' highlighted' : ''}`} onMouseDown={e => e.preventDefault()} onClick={() => addRecipient(u)}>
+                  <div key={u.id} className={`ps-compose-dropdown-item${i === toHighlightIdx ? ' highlighted' : ''}`} onMouseDown={e => e.preventDefault()} {...pressable(() => addRecipient(u))}>
                     <div className="ps-compose-dropdown-avatar">{avatarInitials(u.name)}</div>
                     <div>
                       <div className="ps-compose-dropdown-name">{u.name}</div>
@@ -327,7 +334,7 @@ export const ComposePanel: React.FC<ComposePanelProps> = ({
         {/* Subject */}
         <div className="ps-compose-row">
           <span className="ps-compose-label">{t('appShell.compose.subjectLabel')} {star('messageSubject')}</span>
-          <input className="ps-compose-field-input" type="text" placeholder={t('appShell.compose.subjectPlaceholder')} value={subject} onChange={e => onSubjectChange(e.target.value)} />
+          <input aria-label={t('appShell.compose.subjectLabel')} className="ps-compose-field-input" type="text" placeholder={t('appShell.compose.subjectPlaceholder')} value={subject} onChange={e => onSubjectChange(e.target.value)} />
         </div>
 
         {/* Options bar */}
@@ -388,18 +395,30 @@ interface MessageListPanelProps {
   onSecureEmail: () => void;
 }
 
-const MessageListPanel: React.FC<MessageListPanelProps> = ({
+/** Exported for its tests (Batch 567). */
+export const MessageListPanel: React.FC<MessageListPanelProps> = ({
   messages, selectedMsgId, hoveredMsgId, isEditing, selectedIds,
   filterType, loading, isComposing, searchText,
   onHover, onSelect, onToggleCheck, onSoftDelete, onRestore, onPermanentDelete,
   onSearchChange, onBulkMarkRead, onBulkDelete, onEmptyDeleted, onCompose, onSecureEmail,
 }) => {
   const { t } = useTranslation();
+  // Batch 567: the row that has keyboard focus inside it (its actions show, as on hover).
+  const [focusedMsgId, setFocusedMsgId] = useState<string | null>(null);
+  // Batch 569: after a row's own Delete / Restore removes it with focus on it, focus goes to the next message
+  // (or the one before; the list itself when none is left), not to the page.
+  const listRef = useRef<HTMLDivElement>(null);
+  const rememberFocus = useFocusAfterRemoval(messages.map(x => x.id), listRef, 'data-msg-open', [filterType, searchText]);
+  const removeWithFocus = (e: React.MouseEvent<HTMLButtonElement>, id: string, action: (id: string) => void) => {
+    e.stopPropagation();
+    rememberFocus(e, id);
+    action(id);
+  };
   return (
   <div className="ps-msg-sidebar">
-    <div className="ps-msg-list" tabIndex={0} role="region" aria-label={t('appShell.messageList.regionLabel')}>
+    <div ref={listRef} className="ps-msg-list" tabIndex={0} role="region" aria-label={t('appShell.messageList.regionLabel')}>
       {loading ? (
-        <div className="ps-msg-list-status">{t('appShell.messageList.loading')}</div>
+        <LoadingState variant="inline" className="ps-msg-list-status" label={t('appShell.messageList.loading')} />
       ) : messages.length === 0 ? (
         <div className="ps-msg-list-status">
           {filterType === 'deleted' ? t('appShell.messageList.emptyDeleted') : t('appShell.messageList.emptyInbox')}
@@ -418,7 +437,13 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
             className={rowClass}
             onMouseEnter={() => onHover(m.id)}
             onMouseLeave={() => onHover(null)}
-            onClick={() => isEditing ? onToggleCheck(m.id) : onSelect(m.id)}
+            // Batch 567 (axe nested-interactive): the row holds buttons (delete, restore), so it isn't a button
+            // itself. Clicking anywhere on it still opens (or, editing, ticks) the message; the sender's name is
+            // the button keyboard and screen-reader users use. Focus inside the row shows its actions, as hover does
+            // (its own state, so the pointer leaving the row doesn't remove a button that has focus).
+            {...clickableContainer(() => isEditing ? onToggleCheck(m.id) : onSelect(m.id))}
+            onFocus={() => setFocusedMsgId(m.id)}
+            onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusedMsgId(id => (id === m.id ? null : id)); }}
           >
             {/* Checkbox in edit mode */}
             {isEditing && (
@@ -433,18 +458,21 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
             {/* Body */}
             <div className="ps-msg-row-body">
               <div className="ps-msg-row-top">
-                <span className="ps-msg-row-sender">
+                <button type="button" className="ps-row-open-btn ps-msg-row-sender" data-msg-open={m.id}
+                  aria-describedby={`ps-msg-subject-${m.id}`}
+                  {...(isEditing ? { 'aria-pressed': isChecked } : {})}
+                  onClick={e => { e.stopPropagation(); if (isEditing) onToggleCheck(m.id); else onSelect(m.id); }}>
                   {m.senderName}
-                </span>
+                </button>
                 {!isEditing && (
-                  hoveredMsgId === m.id ? (
+                  hoveredMsgId === m.id || focusedMsgId === m.id ? (
                     filterType === 'deleted' ? (
                       <div className="ps-msg-row-hover-actions" onClick={e => e.stopPropagation()}>
-                        <button onClick={e => { e.stopPropagation(); onRestore(m.id); }} className="ps-msg-row-restore-btn">{t('appShell.messageList.restoreButton')}</button>
-                        <button onClick={e => { e.stopPropagation(); onPermanentDelete(m.id); }} className="ps-msg-row-delete-link">{t('appShell.messageList.deleteButton')}</button>
+                        <button type="button" onClick={e => removeWithFocus(e, m.id, onRestore)} className="ps-msg-row-restore-btn">{t('appShell.messageList.restoreButton')}</button>
+                        <button type="button" onClick={e => removeWithFocus(e, m.id, onPermanentDelete)} className="ps-msg-row-delete-link">{t('appShell.messageList.deleteButton')}</button>
                       </div>
                     ) : (
-                      <button onClick={e => { e.stopPropagation(); onSoftDelete(m.id); }} className="ps-msg-row-delete-icon-btn">
+                      <button type="button" aria-label={t('appShell.messageList.deleteButton')} title={t('appShell.messageList.deleteButton')} onClick={e => removeWithFocus(e, m.id, onSoftDelete)} className="ps-msg-row-delete-icon-btn">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                       </button>
                     )
@@ -456,7 +484,7 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
                   )
                 )}
               </div>
-              <div className="ps-msg-row-subject">{m.subject || t('appShell.messageList.noSubject')}</div>
+              <div className="ps-msg-row-subject" id={`ps-msg-subject-${m.id}`}>{m.subject || t('appShell.messageList.noSubject')}</div>
               <div className="ps-msg-row-preview">{m.body}</div>
             </div>
             {!m.isRead && !isEditing && <div className="ps-msg-unread-dot" />}
@@ -623,198 +651,8 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ sendError, message, userId, i
 };
 
 // ── SecureEmailModal ──────────────────────────────────────────────────────────
-// Compose and send a secure external email via NHSMail (demo: the send is simulated in messageService.sendSecureEmail)
-
-interface SecureEmailModalProps {
-  isOpen:        boolean;
-  fromName:      string;
-  fromEmail:     string;
-  prefillTo?:    string;
-  prefillSubject?: string;
-  prefillBody?:  string;
-  onClose:       () => void;
-  /** Called once the simulated send completes — lets the caller log
-   *  the event. Previously declared at the call site but never in
-   *  this interface, and never invoked here either, so the intended
-   *  audit log for sent emails never actually fired. */
-  onSent?:       (to: string, subject: string) => void;
-}
-
-export const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
-  isOpen, fromName, fromEmail, prefillTo = '', prefillSubject = '', prefillBody = '', onClose, onSent,
-}) => {
-  const { t, i18n } = useTranslation();
-  const requirements = useFieldRequirements('messaging');
-  const [to,      setTo]      = React.useState(prefillTo);
-  const [subject, setSubject] = React.useState(prefillSubject);
-  const [body,    setBody]    = React.useState(prefillBody);
-  const [status,  setStatus]  = React.useState<'compose' | 'sending' | 'sent'>('compose');
-  const [sendError, setSendError] = React.useState<string | null>(null);
-  const { has, loading } = useCapabilities();
-  const mayEmail = has('message:secure-email:send');
-
-  // Reset form when modal opens
-  React.useEffect(() => {
-    if (isOpen) {
-      setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose'); setSendError(null);
-    }
-  }, [isOpen, prefillTo, prefillSubject, prefillBody]);
-
-  // Batch 384 (PS-359): what a secure email needs comes from the organisation's Field Requirements.
-  const missing = secureEmailMissing(to, subject, body, requirements);
-  const canSend = missing.length === 0 && mayEmail;
-  const star = (id: string) => messagingFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
-
-  // Batch 385: the send (and its permission check, message:secure-email:send) is messageService.sendSecureEmail.
-  const handleSend = async () => {
-    if (!canSend) return;
-    setStatus('sending');
-    setSendError(null);
-    const result = await messageService.sendSecureEmail({ fromName, fromEmail, to, subject, body });
-    if (result.ok === false) {
-      setStatus('compose');
-      setSendError(t(result.error === MESSAGE_NOT_PERMITTED ? 'appShell.messaging.notPermittedSecureEmail' : 'appShell.messaging.sendFailed'));
-      return;
-    }
-    setStatus('sent');
-    onSent?.(to, subject);
-  };
-
-  // Voice/keyboard "submit secure email": the same Send, with the same check.
-  const sendRef = React.useRef(handleSend);
-  sendRef.current = handleSend;
-  React.useEffect(() => {
-    if (!isOpen) return;
-    return actionRegistryService.onAction((actionId: string) => {
-      if (actionId === 'SECURE_EMAIL_SUBMIT' && status === 'compose') void sendRef.current();
-    });
-  }, [isOpen, status]);
-
-  if (!isOpen) return null;
-
-  return ReactDOM.createPortal(
-    <div className="ps-overlay" onClick={onClose}>
-      <div className="ps-modal-dark ps-modal-dark--secure-email" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="ps-sem-header">
-          <div>
-            <div className="ps-sem-eyebrow">
-              {t('appShell.secureEmailModal.eyebrow')}
-            </div>
-            <div className="ps-sem-title">{t('appShell.secureEmailModal.title')}</div>
-          </div>
-          <button onClick={onClose} className="ps-sem-close-btn">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          </button>
-        </div>
-
-        {status === 'sent' ? (
-          /* ── Sent confirmation ── */
-          <div className="ps-sem-sent">
-            <div className="ps-sem-sent-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div>
-              <div className="ps-sem-sent-title">{t('appShell.secureEmailModal.sentTitle')}</div>
-              <div className="ps-sem-sent-delivered">
-                <Trans i18nKey="appShell.secureEmailModal.deliveredTo" values={{ to }} components={{ strong: <strong className="ps-sem-sent-delivered-strong" /> }} />
-              </div>
-              <div className="ps-sem-sent-notice">{t('appShell.secureEmailModal.encryptedNotice')}</div>
-            </div>
-            <button onClick={onClose} className="ps-sem-sent-close-btn">
-              {t('appShell.secureEmailModal.closeButton')}
-            </button>
-          </div>
-        ) : (
-          /* ── Compose form ── */
-          <div className="ps-sem-form">
-
-            {/* From (read-only) */}
-            <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.fromLabel')}</span>
-              <div className="ps-sem-from-value">
-                {fromName} &lt;{fromEmail}&gt;
-              </div>
-            </div>
-
-            {/* To */}
-            <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.toLabel')} {star('secureEmailTo')}</span>
-              <input
-                type="email"
-                placeholder={t('appShell.secureEmailModal.toPlaceholder')}
-                value={to}
-                onChange={e => setTo(e.target.value)}
-                className="ps-sem-field-input"
-              />
-            </div>
-
-            {/* Subject */}
-            <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.subjectLabel')} {star('secureEmailSubject')}</span>
-              <input
-                type="text"
-                placeholder={t('appShell.secureEmailModal.subjectPlaceholder')}
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                className="ps-sem-field-input"
-              />
-            </div>
-
-            {/* Body */}
-            <textarea
-              placeholder={t('appShell.secureEmailModal.bodyPlaceholder')}
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              rows={7}
-              className="ps-sem-body-textarea"
-            />
-
-            {missing.length > 0 && (
-              <p className="ps-field-still-required" role="status">
-                {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.messaging.${id}`)), i18n.language) })}
-              </p>
-            )}
-
-            {!mayEmail && !loading && <p className="ps-field-still-required" role="status">{t('appShell.messaging.notPermittedSecureEmail')}</p>}
-            {sendError && <p className="ps-field-still-required" role="alert">{sendError}</p>}
-
-            {/* Security notice */}
-            <div className="ps-sem-security-notice">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <span className="ps-sem-security-notice-text">{t('appShell.secureEmailModal.securityNotice')}</span>
-            </div>
-
-            {/* Actions */}
-            <div className="ps-sem-actions">
-              <button onClick={onClose} className="ps-sem-cancel-btn">
-                {t('appShell.secureEmailModal.cancelButton')}
-              </button>
-              <button
-                onClick={handleSend}
-                disabled={!canSend || status === 'sending'}
-                className={`ps-sem-send-btn${canSend ? ' ps-sem-send-btn--enabled' : ''}`}
-              >
-                {status === 'sending' ? (
-                  <>
-                    <div className="ps-sem-spinner" />
-                    {t('appShell.secureEmailModal.sendingButton')}
-                  </>
-                ) : (
-                  <>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    {t('appShell.secureEmailModal.sendButton')}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>,
-    document.body
-  );
-};
+// Batch 517 (PS-143): moved to components/SecureEmail/SecureEmailModal.tsx so
+// the critical-findings flow can open it too.
 
 interface AppShellProps { hideNav?: boolean; }
 
@@ -826,6 +664,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const { user, showBiometricWizard, setShowBiometricWizard } = useAuth();
   // Batch 431: the screen language follows the signed-in person.
   usePersonalLanguage(user?.id);
+  // Batch 521 (PS-281): failed automatic deliveries are retried on schedule while someone is signed in.
+  useDeliveryBackgroundWork(!!user);
+  // Batch 534: held reports go out when their release delay ends, whichever screen is open.
+  useReleaseBackgroundWork(!!user);
   const userInitials = user?.name ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })() : 'DR';
   const handleLogout = useLogout();
   const location = useLocation();
@@ -939,6 +781,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const userGuideWindow  = useCompanionWindow({ windowName: 'ps-user-guide',  preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
   const adminGuideWindow = useCompanionWindow({ windowName: 'ps-admin-guide', preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
   const [aboutOpen, setAboutOpen]             = useState(false);
+  // Batch 505 (PS-475): the guides load when the About menu opens, not at start-up.
+  const guides = useGuideAssets(aboutOpen);
   const [myDictionaryOpen, setMyDictionaryOpen] = useState(false);
   const [myVoiceCommandsOpen, setMyVoiceCommandsOpen] = useState(false);
   // Batch 433: biometric signing (profile menu, and the invitation after sign-in).
@@ -1460,16 +1304,16 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
               <React.Fragment key={crumb.path + i}>
                 {i > 0 && <span className="ps-crumb-sep">{'›'}</span>}
                 {isModal ? (
-                  <span className="ps-crumb-modal">{crumb.label}</span>
+                  <span className="ps-crumb-modal">{PAGE_LABELS[crumb.path] ?? crumb.label}</span>
                 ) : isLast ? (
-                  <span className="ps-crumb-current">{crumb.label}</span>
+                  <span className="ps-crumb-current">{PAGE_LABELS[crumb.path] ?? crumb.label}</span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => guardedNavigate(crumb.path)}
                     className="ps-crumb-link"
                   >
-                    {crumb.label}
+                    {PAGE_LABELS[crumb.path] ?? crumb.label}
                   </button>
                 )}
               </React.Fragment>
@@ -1479,7 +1323,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       )}
       {/* Outlet — flex:1 so it fills remaining height and full width exactly */}
       <div className={`ps-app-outlet-wrap${hideNav ? ' ps-app-outlet-wrap--nav-hidden' : ''}`}>
-        <Outlet />
+        {/* Batch 502 (PS-472): a page that crashes shows a recovery screen; the nav bar and drawers keep working. */}
+        <RouteErrorBoundary pathname={location.pathname}>
+          <Outlet />
+        </RouteErrorBoundary>
       </div>
 
       {/* ── MESSAGES DRAWER — rendered via portal to escape stacking contexts ── */}
@@ -1521,7 +1368,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                             <div
                               key={opt.id}
                               className={`ps-msg-filter-item${filterType === opt.id ? ' ps-msg-filter-item--active' : ''}`}
-                              onClick={() => { setFilterType(opt.id as any); setIsFilterMenuOpen(false); }}
+                              {...pressable(() => { setFilterType(opt.id as any); setIsFilterMenuOpen(false); })}
                             >
                               <span>{opt.label}</span>
                               {filterType === opt.id && <span className="ps-msg-filter-check">✓</span>}
@@ -1560,6 +1407,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                         )}
                         {currentMsg.caseNumber && (
                           <button className="ps-msg-case-link" data-phi="accession" onClick={() => {
+                            // Only rendered when caseNumber is set; re-checked for the closure.
+                            if (!currentMsg.caseNumber) return;
                             setPortalOpen(false);
                             setSessionFlag('ps_reopen_messages', '1');
                             // Real fix, per direct follow-up: "I assume
@@ -1766,7 +1615,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
             <div className="ps-about-menu">
               {/* User Guide */}
               <button
-                onClick={() => { setAboutOpen(false); userGuideWindow.openCompanion(getUserGuideBlobUrl()); }}
+                disabled={!guides} aria-busy={!guides}
+                onClick={() => { if (!guides) return; setAboutOpen(false); userGuideWindow.openCompanion(guides.getUserGuideBlobUrl()); }}
                 className="ps-about-menu-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
@@ -1776,7 +1626,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
               <div className="ps-about-menu-divider" />
               {/* Admin Guide — all users in demo */}
               <button
-                onClick={() => { setAboutOpen(false); adminGuideWindow.openCompanion(getAdminGuideBlobUrl()); }}
+                disabled={!guides} aria-busy={!guides}
+                onClick={() => { if (!guides) return; setAboutOpen(false); adminGuideWindow.openCompanion(guides.getAdminGuideBlobUrl()); }}
                 className="ps-about-menu-item ps-about-menu-item--admin">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>

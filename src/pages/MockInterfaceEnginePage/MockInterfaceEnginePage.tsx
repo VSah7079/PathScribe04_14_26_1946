@@ -24,9 +24,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import '../../pathscribe.css';
-import { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings } from '../../services/mockInterfaceEngine/mockInterfaceEngineSettings';
-import type { MockInterfaceEngineMode, MockInterfaceEngineSettings } from '../../services/mockInterfaceEngine/mockInterfaceEngineSettings';
+import { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings, type MockInterfaceEngineMode, type MockInterfaceEngineSettings } from '@/services';
+
+
 
 const MODE_LABEL_KEY: Record<MockInterfaceEngineMode, string> = {
   always_succeed: 'mockInterfaceEnginePage.modeLabels.alwaysSucceed',
@@ -42,6 +44,11 @@ const MODE_DESCRIPTION_KEY: Record<MockInterfaceEngineMode, string> = {
 
 const MockInterfaceEnginePage: React.FC = () => {
   const { t } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('mockInterfaceEnginePage.title'), '/dev/mock-interface-engine'); }, [pushCrumb, t]);
   const [settings, setSettings] = useState<MockInterfaceEngineSettings>(getMockInterfaceEngineSettings());
   const [workerStatus, setWorkerStatus] = useState<'stopped' | 'starting' | 'running'>('stopped');
 

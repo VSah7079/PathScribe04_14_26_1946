@@ -295,13 +295,13 @@ export function createMolecularOrderEngine(deps: MolecularOrderEngineDeps) {
     }
 
     if (action.type === 'REMOVE_FROM_PLATE') {
-      if (!update([{ orderId: order.orderId, expect: ['PLATE_ASSIGNED'], change: f => { const { plate: _p, ...rest } = f; return { ...rest, status: 'QUEUED' }; } }])) return { ok: false, refused: 'wrongStatus' }; // eslint-disable-line @typescript-eslint/no-unused-vars
+      if (!update([{ orderId: order.orderId, expect: ['PLATE_ASSIGNED'], change: f => { const { plate: _p, ...rest } = f; return { ...rest, status: 'QUEUED' }; } }])) return { ok: false, refused: 'wrongStatus' };
       await audit('MOLECULAR_ORDER_QUEUED', order, `Molecular order ${order.orderId} taken off plate ${order.plate?.plateBarcode ?? ''} and queued again`);
       return { ok: true, view: await queueView() };
     }
 
     // CANCEL: the order, and the add-on slide order it came from.
-    if (!update([{ orderId: order.orderId, expect: ['QUEUED', 'PLATE_ASSIGNED'], change: f => { const { plate: _p2, ...rest } = f; return { ...rest, status: 'CANCELLED', cancelledAt: deps.now(), cancelledBy: deps.actorName() }; } }])) return { ok: false, refused: 'wrongStatus' }; // eslint-disable-line @typescript-eslint/no-unused-vars
+    if (!update([{ orderId: order.orderId, expect: ['QUEUED', 'PLATE_ASSIGNED'], change: f => { const { plate: _p2, ...rest } = f; return { ...rest, status: 'CANCELLED', cancelledAt: deps.now(), cancelledBy: deps.actorName() }; } }])) return { ok: false, refused: 'wrongStatus' };
     if (order.stainOrderId) {
       await deps.changeCase(order.caseId, current => withStainOrder(current, order.stainOrderId!, st => (st.status === 'Cancelled' ? st : { ...st, status: 'Cancelled' as const })));
     }

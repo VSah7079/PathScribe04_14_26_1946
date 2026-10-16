@@ -8,7 +8,8 @@
 // still sitting in QC_PENDING, never yet assigned a reviewer).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ICytologyQcCaseAssignmentService, NewCytologyQcCaseAssignment } from './ICytologyQcCaseAssignmentService';
+import type { ICytologyQcCaseAssignmentService, NewCytologyQcCaseAssignment, QcTriggerChanges } from './ICytologyQcCaseAssignmentService';
+import { isOpenQcAssignment } from './resolveQcAssignmentUpsert';
 import type { CytologyQcCaseAssignment } from '@/types/cytologyQc/CytologyQcRule';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
@@ -71,6 +72,26 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
     _cache = [..._cache, created];
     persist(_cache);
     return ok({ ...created });
+  },
+
+  async applyAdditionalTrigger(id: ID, changes: QcTriggerChanges) {
+    await delay();
+    const idx = _cache.findIndex(a => a.id === id);
+    if (idx === -1) return err(`CytologyQcCaseAssignment ${id} not found`);
+    const current = _cache[idx];
+    if (!isOpenQcAssignment(current)) return err(`CytologyQcCaseAssignment ${id} is ${current.state}; only an open assignment can be upgraded`);
+    const allowed: (keyof QcTriggerChanges)[] = ['priorityTier', 'slaDeadline', 'eligibleReviewerRoles', 'triggerSource', 'matchedRuleId', 'badges', 'selectionReasons', 'history'];
+    const picked = Object.fromEntries(Object.entries(changes).filter(([k]) => (allowed as string[]).includes(k)));
+    const updated: CytologyQcCaseAssignment = { ...current, ...picked };
+    _cache = _cache.map(a => (a.id === id ? updated : a));
+    persist(_cache);
+    const last = updated.history?.[updated.history.length - 1];
+    await mockAuditService.logEvent({
+      type: 'system', event: last?.event === 'upgraded' ? 'Cytology QC Assignment Upgraded' : 'Cytology QC Assignment Selection Reason Added',
+      caseId: current.caseId, user: 'system', confidence: null,
+      detail: `Assignment ${id}: ${last?.detail ?? 'trigger applied'}.`,
+    }).catch(() => {});
+    return ok({ ...updated });
   },
 
   async assignReviewer(id: ID, reviewerId: string) {

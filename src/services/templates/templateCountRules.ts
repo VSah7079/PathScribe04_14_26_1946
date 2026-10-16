@@ -10,15 +10,34 @@
 
 import type { PartGridColumn, SumOfSpec } from './partGrid';
 
-type Field = { id: string; label: string; type: string; columns?: PartGridColumn[]; wholeNumber?: boolean; notMoreThan?: string; sumOf?: SumOfSpec };
+type Field = { id: string; label: string; type: string; columns?: PartGridColumn[]; wholeNumber?: boolean; notMoreThan?: string; sumOf?: SumOfSpec; nodeCount?: boolean; atLeastSumOf?: string[] };
 type TemplateLike = { sections: { fields: Field[] }[] };
 const fieldsOf = (t: TemplateLike) => t.sections.flatMap(s => s.fields);
 /** What a count setting changes on a question. */
 export type CountPatch = { sumOf?: SumOfSpec; columns?: PartGridColumn[] };
 
-/** The numeric questions another numeric question can be limited by (not itself). */
+/** Batch 519 (PS-494): a question that holds a count — numeric, or a free-text node count. */
+const isCountField = (f: Field) => f.type === 'numeric' || (f.type === 'text' && f.nodeCount === true);
+
+/** The count questions another count can be limited by (not itself): numeric questions and, since Batch 519,
+ *  free-text node counts. */
 export const numericFieldChoices = (template: TemplateLike, fieldId: string) =>
-  fieldsOf(template).filter(f => f.type === 'numeric' && f.id !== fieldId).map(f => ({ id: f.id, label: f.label }));
+  fieldsOf(template).filter(f => isCountField(f) && f.id !== fieldId).map(f => ({ id: f.id, label: f.label }));
+
+/** Batch 519 (PS-494): marks or unmarks a text question as a node count; unmarking drops its count limits. */
+export function withNodeCount<F extends Field>(field: F, on: boolean): F {
+  if (on) return { ...field, nodeCount: true };
+  const { nodeCount: _n, notMoreThan: _m, atLeastSumOf: _s, ...rest } = field;
+  return rest as F;
+}
+
+/** Batch 519 (PS-494): adds or removes a count from the ones this total must cover (`atLeastSumOf`). */
+export function withSumPartToggled<F extends Field>(field: F, partId: string): F {
+  const now = field.atLeastSumOf ?? [];
+  const next = now.includes(partId) ? now.filter(x => x !== partId) : [...now, partId];
+  const { atLeastSumOf: _s, ...rest } = field;
+  return (next.length ? { ...rest, atLeastSumOf: next } : rest) as F;
+}
 
 /** The grids with numeric columns, and those columns (what a total can come from). */
 export const gridSumChoices = (template: TemplateLike) =>
@@ -37,7 +56,7 @@ export function withValueSource(field: Field, source: ValueSource, template: Tem
   const g = gridSumChoices(template)[0];
   const sumOf = field.sumOf ?? (g ? { fieldId: g.id, columnId: g.columns[0].id } : undefined);
   if (!sumOf) return {};
-  const { override: _o, ...rest } = sumOf; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { override: _o, ...rest } = sumOf;
   return { sumOf: source === 'gridSumChecked' ? { ...rest, override: true } : rest };
 }
 /** The patch for the grid (its first numeric column) or the column a total comes from. */

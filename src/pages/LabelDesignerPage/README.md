@@ -42,3 +42,17 @@ Selected fields have eight resize handles (pointer capture). Placing, moving, re
 - A moved field keeps its grab point.
 
 Tests: `LabelDesignerPage.test.tsx` (handle resize stops at the edge, handles only on the selected field, typed width capped, out-of-bounds warning, fit and refusal).
+
+## Batch 500 (PS-473)
+
+The canvas barcode renders through `sanitizeSvgMarkup`. The page test passes the sanitiser through (it needs happy-dom for its drag tests, where DOMPurify doesn't work); the sanitiser is tested on real Code 128, DataMatrix and QR SVGs under jsdom.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+The design canvas is a named group (`a11y.labelCanvas`); a click on empty canvas, or Escape, clears the selection. `MmInput` takes a `label`.
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.

@@ -381,7 +381,7 @@ const WorklistPage: React.FC = () => {
     if (state === 'mine') void openCasePage(caseId, 'cytology');
     else setCytologyTake({ caseId });
     return true;
-  }, [cytologyReviewState, navigate]);
+  }, [cytologyReviewState, openCasePage]);
   const confirmCytologyTake = async () => {
     if (!cytologyTake) return;
     const res = await takeCytologyReview(cytologyTake.caseId);
@@ -828,7 +828,7 @@ const WorklistPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_NAV_PREVIOUS_CASE',      prevCase);
       window.removeEventListener('PATHSCRIBE_PAGE_OPEN_RESOURCES',    openResources);
     };
-  }, [filteredCases, selectedIndex, navigate, realCases, selectedCaseId, activeFilter, openCytologyReviewCase]);
+  }, [filteredCases, selectedIndex, navigate, realCases, selectedCaseId, activeFilter, openCytologyReviewCase, allFlags, dpResultByCaseId, openCasePage, user?.id, wsiSlidesByCaseId]);
 
   // Batch 375: hoisted out of the JSX; the table now renders only in the case view, and a hook can't be conditional.
   const handleDisplayOrder = useCallback((ids: string[]) => setDisplayOrder(ids), []);
@@ -878,17 +878,16 @@ const WorklistPage: React.FC = () => {
                     const showBadge = contextFilter === 'outreach';
                     return (
                       <button
-                        className="ps-wl-mode-tile"
+                        type="button"
+                        // Batch 568: on/off colours from modifier classes (pathscribe.css), not values set here.
+                        className={`ps-wl-mode-tile ps-wl-mode-tile--lis${isActive ? ' ps-wl-mode-tile--active' : ''}`}
+                        aria-pressed={isActive}
                         title={isActive ? t('worklistPage.lisTile.currently') : t('worklistPage.lisTile.switch')}
                         onClick={() => { setViewChoice('cases'); setContextFilter('lis'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
-                        style={{
-                          '--tile-bg': isActive ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)',
-                          '--tile-border': isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.14)',
-                        } as React.CSSProperties}
                       >
                         <div className="ps-wl-mode-tile__main">
-                          <div className="ps-wl-mode-tile__label" style={{ '--tile-label-color': isActive ? '#e2e8f0' : '#8899aa' } as React.CSSProperties}>{t('worklistPage.lisCasesLabel')}</div>
-                          <div className="ps-wl-mode-tile__count" style={{ '--tile-count-color': '#e2e8f0' } as React.CSSProperties}>{lisTotalCount}</div>
+                          <div className="ps-wl-mode-tile__label">{t('worklistPage.lisCasesLabel')}</div>
+                          <div className="ps-wl-mode-tile__count">{lisTotalCount}</div>
                         </div>
                         {showBadge && (lisUrgentCount > 0 || lisPoolCount > 0) && (
                           <div className="ps-wl-mode-tile__badges">
@@ -906,18 +905,15 @@ const WorklistPage: React.FC = () => {
                     const poolColor = hasUrgentPool ? '#EF4444' : '#F97316';
                     return (
                       <button
-                        className="ps-wl-mode-tile"
+                        type="button"
+                        className={`ps-wl-mode-tile ps-wl-mode-tile--outreach${isActive ? ' ps-wl-mode-tile--active' : ''}`}
+                        aria-pressed={isActive}
                         title={isActive ? t('worklistPage.outreachTile.currently') : t('worklistPage.outreachTile.switch')}
                         onClick={() => { setViewChoice('cases'); setContextFilter('outreach'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
-                        style={{
-                          '--tile-bg': isActive ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.05)',
-                          '--tile-border': isActive ? '#F59E0B' : 'rgba(245,158,11,0.18)',
-                          '--tile-shadow': isActive ? '0 0 12px rgba(245,158,11,0.4)' : 'none',
-                        } as React.CSSProperties}
                       >
                         <div className="ps-wl-mode-tile__main">
-                          <div className="ps-wl-mode-tile__label" style={{ '--tile-label-color': isActive ? '#F59E0B' : '#8899aa' } as React.CSSProperties}>{t('worklistPage.outreachLabel')}</div>
-                          <div className="ps-wl-mode-tile__count" style={{ '--tile-count-color': '#F59E0B' } as React.CSSProperties}>{orchTotalCount}</div>
+                          <div className="ps-wl-mode-tile__label">{t('worklistPage.outreachLabel')}</div>
+                          <div className="ps-wl-mode-tile__count">{orchTotalCount}</div>
                         </div>
                         {showBadge && (orchUrgentCount > 0 || orchPoolCount > 0) && (
                           <div className="ps-wl-mode-tile__badges">
@@ -1132,6 +1128,7 @@ const WorklistPage: React.FC = () => {
                   return (
                     <button
                       key={tile.key}
+                      aria-pressed={isActive}
                       className="ps-wl-filter-tile"
                       title={isActive ? t('worklistPage.tileTitleActive', { label: tile.label }) : t('worklistPage.tileTitleInactive', { label: tile.label })}
                       onClick={() => { setActiveFilter(isActive ? 'all' : tile.key as any); setSelectedIndex(-1); setSelectedCaseId(null); }}
@@ -1141,7 +1138,7 @@ const WorklistPage: React.FC = () => {
                         '--tile-shadow': isActive ? tile.glow : 'none',
                       } as React.CSSProperties}
                     >
-                      <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa' } as React.CSSProperties}>
+                      <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa', '--tile-label-mix': isActive ? '55%' : '100%' } as React.CSSProperties}>
                         {tile.label}
                       </div>
                       <div className="ps-wl-filter-tile__count" style={{ '--tile-count-color': tile.color } as React.CSSProperties}>

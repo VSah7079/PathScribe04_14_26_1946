@@ -139,3 +139,17 @@ describe('synopticLoader — real enforcement at the actual case-loading path', 
     expect(facilityService.getById).not.toHaveBeenCalled();
   });
 });
+
+describe('Batch 564: an old accession address stays on its own view', () => {
+  it('a grossing link goes to the grossing address, a synoptic link to the synoptic one', async () => {
+    const { caseAddresses } = await import('../services/caseAddresses/caseAddressesInstance');
+    const { grossingLoader } = await import('./synopticLoader');
+    vi.mocked(caseAddresses.caseIdOf).mockResolvedValue({ caseId: 'CASE-9', legacy: true } as never);
+    vi.mocked(caseAddresses.addressOf).mockImplementation(async (_id: string, view: string) => `/case/REF-9/${view}`);
+    const g = await grossingLoader({ params: { caseId: 'S26-9' }, request: new Request('http://x/case/S26-9/grossing?x=1') } as never) as Response;
+    expect(g.headers.get('Location')).toBe('/case/REF-9/grossing?x=1');
+    const s = await synopticLoader({ params: { caseId: 'S26-9' }, request: new Request('http://x/case/S26-9/synoptic') } as never) as Response;
+    expect(s.headers.get('Location')).toBe('/case/REF-9/synoptic');
+  });
+});
+

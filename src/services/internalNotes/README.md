@@ -2,7 +2,9 @@
 
 Lab-internal case notes and management reviews — never included in the generated patient report.
 
-**Pattern:** Standard interface/mock/firestore pattern (post-cleanup).
+**Pattern:** Interface/mock only (post-cleanup); there is no firestore stub in this folder.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the folder has no firestore file.*
 
 ## Files
 

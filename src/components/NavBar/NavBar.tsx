@@ -12,11 +12,14 @@ import LanguageSwitcher from './LanguageSwitcher';
 import CaseSearchBar from '../Search/CaseSearchBar';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
+import { useReadyExportCount } from '@/hooks/useMyExports';
 import { VoiceCommandOverlay } from '../Voice/VoiceCommandOverlay';
 import { VoiceMissPrompt } from '../Voice/VoiceMissPrompt';
 import { isConstrainedMobileDevice, hasDesktopViewOverride, clearDesktopViewOverride } from '../../utils/deviceDetection';
 import { useCompanionWindow } from '@hooks/useCompanionWindow';
 import { checkAiProxyStatus, feedbackSettingsService } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 const VOICE_SHOW_SUCCESS = import.meta.env.DEV;
 
@@ -85,8 +88,8 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
   const [structuredMessagesOk, setStructuredMessagesOk] = useState<boolean | null>(null);
   const [structuredContentOk,   setStructuredContentOk]   = useState<boolean | null>(null);
 
-  const aiProvider = import.meta.env.VITE_AI_PROVIDER   ?? 'structured_messages';
-  const aiModel    = import.meta.env.VITE_AI_MODEL       ?? 'claude-sonnet-4-6';
+  const aiProvider = appEnv().VITE_AI_PROVIDER   ?? 'structured_messages';
+  const aiModel    = appEnv().VITE_AI_MODEL       ?? 'claude-sonnet-4-6';
   const envMode    = import.meta.env.MODE ?? 'development';
   const buildDate  = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -243,6 +246,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
   const messagesLabel = unreadCount > 0 ? t('navBar.messagesUnread', { count: unreadCount }) : t('navBar.messages');
   // Batch 425: registry submissions needing a person (own organisation), for those who can open the worklist.
   const registryExceptionCount = useRegistryExceptionCount();
+  const myExports = useReadyExportCount();
   const [linksOpen, setLinksOpen]                 = useState(false);
   // Reference material, not patient context: closeOnUnmount is false so
   // navigating to another page doesn't shut a protocol page the user is
@@ -360,7 +364,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
             src="/pathscribe-logo-clean.png"
             alt="PathScribe"
             className="ps-nav-logo"
-            onClick={onLogoClick}
+            {...pressable(onLogoClick)}
           />
           <div className="ps-nav-divider" />
           <span data-voice-target="enhancement-request"><EnhancementRequestButton /></span>
@@ -456,6 +460,22 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
                   <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
                 <div className="ps-nav-badge">{registryExceptionCount}</div>
+              </div>
+            </button>
+          )}
+
+          {/* Batch 550 (PS-539 D7): My exports, with the API server only; the badge counts exports ready to download. */}
+          {myExports.viaServer && (
+            <button type="button" className="ps-nav-btn nb-exports-btn" onMouseDown={e => e.preventDefault()}
+              onClick={() => navigate('/my-exports')}
+              aria-label={myExports.ready > 0 ? t('navBar.myExportsReady', { count: myExports.ready }) : t('navBar.myExports')}
+              title={myExports.ready > 0 ? t('navBar.myExportsReady', { count: myExports.ready }) : t('navBar.myExports')}>
+              <div className="nb-messages-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {myExports.ready > 0 && <div className="ps-nav-badge">{myExports.ready}</div>}
               </div>
             </button>
           )}

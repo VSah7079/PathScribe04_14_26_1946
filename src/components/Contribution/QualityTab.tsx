@@ -23,6 +23,8 @@ import {
   ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
+import { pressable } from '@/utils/a11y/pressable';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -520,7 +522,7 @@ const QualityTab: React.FC = () => {
             <div
               key={tt.key}
               className={`ps-quality-summary-tile ps-quality-summary-tile--clickable${isActive ? " ps-quality-summary-tile--active" : ""}`}
-              onClick={() => setActiveTatTile(prev => prev === tt.key ? null : tt.key)}
+              {...pressable(() => setActiveTatTile(prev => prev === tt.key ? null : tt.key))}
             >
               <div className="ps-quality-summary-tile__header">
                 <span className="ps-quality-summary-tile__label">{tatLabel}</span>
@@ -575,7 +577,7 @@ const QualityTab: React.FC = () => {
           return (
             <g transform={`translate(${x},${y})`}>
               {isJan && <line y1={-300} y2={0} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />}
-              <text x={0} y={16} textAnchor="middle" fontSize={11} fill="#64748b">{payload.value}</text>
+              <text x={0} y={16} textAnchor="middle" fontSize={11} fill={CHART_TICK_COLOR}>{payload.value}</text>
             </g>
           );
         };
@@ -641,9 +643,9 @@ const QualityTab: React.FC = () => {
               <LineChart data={trendRows} margin={{ top: 8, right: 24, left: 0, bottom: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="month" tick={<YBTick />} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} height={32} />
-                <YAxis domain={[0, yMax]} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false}
+                <YAxis domain={[0, yMax]} tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false}
                   tickFormatter={(v: number) => fmt(v)} width={46} />
-                <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+                <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
                   if (!active || !payload?.length) return null;
                   const val   = payload[0]?.value as number;
                   const cases = trendRows.find(d => d.month === label)?.cases ?? 0;

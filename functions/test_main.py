@@ -337,6 +337,8 @@ def test_validate_envelope_accepts_every_browser_transaction_type():
     print("test_validate_envelope_accepts_every_browser_transaction_type")
     for t in ('REGISTRY_REPORT', 'CANCER_REGISTRY_REPORT', 'PRINT_JOB', 'CRITICAL_ALERT'):
         check(main.validate_envelope({**VALID_ENVELOPE, "transactionType": t}) is None, f"{t} is accepted (Batch 434: it was refused before)")
+    for t in ('ACCESSION_EVENT', 'REFERRAL_MANIFEST', 'MOLECULAR_ORDER'):
+        check(main.validate_envelope({**VALID_ENVELOPE, "transactionType": t}) is None, f"{t} is accepted (Batch 518, PS-122)")
     check(main.validate_envelope(WSI_ENVELOPE) is None, "a complete WSI_SCAN_MANIFEST is accepted")
 
 
@@ -464,6 +466,210 @@ def test_report_figure_notice_when_not_drawn():
     pdf = main.build_report_pdf({"caseHeader": {"accession": "S26-4463"}, "reportFigures": [{"instanceId": "m1", "notice": True, "fallbackLines": lines}]})
     check(pdf[:4] == b"%PDF", "the report renders with the notice")
 
+# ── Batch 498 (PS-283, PS-333): watermark, revision status, footer reference,
+#    pre-analytic disclaimer. Page text is read back with pypdf (text-only;
+#    needed only by these tests: pip install pypdf).
+
+def _pdf_pages_text(pdf: bytes) -> list[str]:
+    from io import BytesIO as _B
+    from pypdf import PdfReader
+    return [page.extract_text() or '' for page in PdfReader(_B(pdf)).pages]
+
+
+_LONG = dict(PAYLOAD, synopticAnswers=[{"fieldId": f"f{i}", "fieldLabel": f"Element {i}", "displayValue": f"Value {i}"} for i in range(120)])
+
+
+def test_revision_banner_pdf_and_text():
+    print("test_revision_banner_pdf_and_text")
+    amended = dict(_LONG, documentVersion=9, revision={
+        "type": "amendment", "revisionCount": 2,
+        "originalSignOutAt": "01/10/2026, 10:00", "latestRevisionAt": "05/10/2026, 09:00"})
+    pages = _pdf_pages_text(main.build_report_pdf(amended))
+    check(len(pages) > 1, "the long report runs to more than one page (%d)" % len(pages))
+    check("Originally signed out 01/10/2026, 10:00" in pages[0] and "Revised 05/10/2026, 09:00" in pages[0], "page 1 shows the original sign-out and revision dates")
+    check(all("AMENDED REPORT" in p for p in pages), "every page footer says the report was amended")
+    text = main.build_report_text(amended)
+    check("AMENDED REPORT" in text and "Originally signed out 01/10/2026, 10:00" in text, "the text output carries the same revision status")
+    only_latest = dict(PAYLOAD, revision={"type": "addendum", "latestRevisionAt": "05/10/2026"})
+    check("REPORT WITH ADDENDUM" in main.build_report_text(only_latest) and "Revised 05/10/2026" in main.build_report_text(only_latest), "no original date: the latest revision alone")
+    check("AMENDED" not in main.build_report_text(PAYLOAD) and "Revised" not in main.build_report_text(PAYLOAD), "an unrevised report shows no revision status")
+    check("Revised" not in main.build_report_text(dict(PAYLOAD, revision={"type": "unknown", "latestRevisionAt": "x"})), "an unknown revision type is ignored")
+
+
+def test_watermark_on_every_page():
+    print("test_watermark_on_every_page")
+    mark = "PENDING FINAL RELEASE — DO NOT DISTRIBUTE"
+    pages = _pdf_pages_text(main.build_report_pdf(dict(_LONG, watermarkText=mark)))
+    check(all("PENDING FINAL RELEASE" in p for p in pages), "the watermark is on every page (%d)" % len(pages))
+    plain = _pdf_pages_text(main.build_report_pdf(_LONG))
+    check(not any("PENDING FINAL RELEASE" in p for p in plain), "no watermark when none is sent")
+    check(not any("PENDING" in p for p in _pdf_pages_text(main.build_report_pdf(dict(PAYLOAD, watermarkText="   ")))), "a blank watermark draws nothing")
+
+
+def test_footer_reference_on_every_page():
+    print("test_footer_reference_on_every_page")
+    pages = _pdf_pages_text(main.build_report_pdf(dict(_LONG, documentVersion=9)))
+    check(all("Document S26-1001-BX-001 · record version 9" in p for p in pages), "the document reference is on every page")
+    check("Document S26-1001-BX-001 · record version 9" in main.build_report_text(dict(PAYLOAD, documentVersion=9)), "the text output ends with the reference")
+    no_version = _pdf_pages_text(main.build_report_pdf(dict(PAYLOAD, documentVersion="9")))
+    check("Document S26-1001-BX-001" in no_version[0] and "record version" not in no_version[0], "a version that isn't a number is left out")
+    no_accession = dict(PAYLOAD, caseHeader=dict(PAYLOAD["caseHeader"], accession=""))
+    check("Document " not in _pdf_pages_text(main.build_report_pdf(no_accession))[0], "no accession: no reference")
+    odd = dict(PAYLOAD, caseHeader=dict(PAYLOAD["caseHeader"], accession="S26-한글"))
+    odd_pdf = main.build_report_pdf(odd)
+    check(odd_pdf[:4] == b'%PDF' and "Document S26-한글" in main.build_report_text(odd), "an accession the barcode can't encode still renders, with the readable reference")
+
+
+def test_preanalytic_disclaimer():
+    print("test_preanalytic_disclaimer")
+    note = "Collection time entered by administrative override; the original time was not recorded."
+    with_note = dict(PAYLOAD, preAnalyticDisclaimerText=note)
+    check(note[:40] in _pdf_pages_text(main.build_report_pdf(with_note))[0], "the disclaimer is printed in the PDF")
+    check(note in main.build_report_text(with_note), "the disclaimer is in the text output")
+    check("administrative override" not in main.build_report_text(PAYLOAD), "no disclaimer when none is sent")
+    amp = dict(PAYLOAD, preAnalyticDisclaimerText="Time & date <estimated>")
+    check(main.build_report_pdf(amp)[:4] == b'%PDF', "markup characters in the disclaimer don't break the PDF")
+
+
+def test_new_wording_follows_labels():
+    print("test_new_wording_follows_labels")
+    german = dict(PAYLOAD, documentVersion=3, revision={"type": "correction", "originalSignOutAt": "1. Okt. 2026", "latestRevisionAt": "5. Okt. 2026"},
+                  labels={"revisionCorrection": "KORRIGIERTER BEFUND", "revisionDatesWithOriginal": "Erstmals abgezeichnet {{original}} · Überarbeitet {{latest}}",
+                          "documentReference": "Dokument {{accession}} · Datensatzversion {{version}}"})
+    text = main.build_report_text(german)
+    check("KORRIGIERTER BEFUND" in text and "Erstmals abgezeichnet 1. Okt. 2026 · Überarbeitet 5. Okt. 2026" in text, "revision wording in the report language")
+    check("Dokument S26-1001-BX-001 · Datensatzversion 3" in text, "reference wording in the report language")
+
+
+# ── Batch 539 (PS-539 D2): the cytology report template ─────────────────────
+
+def _cyto_doc(**extra):
+    doc = {
+        "title": "Cytology Report — GYN Cervical Screening", "barcode": "C26-00042",
+        "sections": [
+            {"heading": "Patient", "lines": [{"text": "Jane Doe · DOB 01/02/1960 · MRN M-1"}]},
+            {"heading": "Interpretation / Diagnostic Result", "lines": [{"text": "NILM — negative for intraepithelial lesion or malignancy"}]},
+            {"heading": "Sign-Off", "lines": [{"text": "Signed by: Dr A, Pathologist — 12/10/2026 15:00"}]},
+        ],
+        "continuation": "Jane Doe · MRN M-1 · Accession: C26-00042",
+    }
+    doc.update(extra)
+    return doc
+
+
+CYTO = {
+    "template": "cytology", "outputFormat": "pdf", "pageLabel": "Page {{page}} of {{total}}",
+    "metadata": {"title": "Cytology Report — C26-00042", "author": "Dr A", "subject": "Cytology Report", "timestamp": "2026-10-12T15:00:00Z"},
+    "documents": [_cyto_doc()],
+}
+_CYTO_LONG = dict(CYTO, documents=[_cyto_doc(sections=[{"heading": f"Section {i}", "lines": [{"text": "word " * 120}] * 3} for i in range(14)])])
+
+
+def _pdf_fonts(pdf: bytes) -> set:
+    from io import BytesIO
+    from pypdf import PdfReader
+    names = set()
+    for page in PdfReader(BytesIO(pdf)).pages:
+        for f in page["/Resources"]["/Font"].values():
+            names.add(str(f.get_object()["/BaseFont"]))
+    return names
+
+
+def test_cytology_template_draws_the_lines_sent():
+    print("test_cytology_template_draws_the_lines_sent")
+    pdf = main.cytology_report.build_cytology_pdf(CYTO)
+    text = _pdf_pages_text(pdf)[0]
+    for expected in ["Cytology Report — GYN Cervical Screening", "Interpretation / Diagnostic Result", "NILM — negative", "Signed by: Dr A, Pathologist — 12/10/2026 15:00"]:
+        check(expected in text, f"page 1 shows {expected!r}")
+    check(main.cytology_report.CYTOLOGY_TEMPLATE_MARKER.encode() in pdf, "the PDF carries the cytology template marker (Keywords)")
+    banner = dict(CYTO, documents=[_cyto_doc(banner=[{"text": "CORRECTED REPORT", "bold": True, "size": 12}, {"text": "Reason: wrong specimen site", "size": 9}])])
+    check("CORRECTED REPORT" in _pdf_pages_text(main.cytology_report.build_cytology_pdf(banner))[0], "a correction banner is drawn under the title")
+    markup = dict(CYTO, documents=[_cyto_doc(title="Report <b>&</b> more")])
+    check(main.cytology_report.build_cytology_pdf(markup)[:4] == b"%PDF", "markup characters in the text don't break the PDF")
+
+
+def test_cytology_same_bytes_every_time():
+    print("test_cytology_same_bytes_every_time")
+    a = main.cytology_report.build_cytology_pdf(CYTO)
+    b = main.cytology_report.build_cytology_pdf(CYTO)
+    check(a == b, "the same request gives byte-identical PDFs (fixed creation date and document ID)")
+    check(b"D:20261012150000" in a, "the creation date is the signing time, not the clock")
+
+
+def test_cytology_fonts_embedded():
+    print("test_cytology_fonts_embedded")
+    fonts = _pdf_fonts(main.cytology_report.build_cytology_pdf(CYTO))
+    check(fonts and all("LiberationSans" in f for f in fonts), f"only embedded Liberation Sans is used ({sorted(fonts)})")
+    korean = dict(CYTO, language="ko", documents=[_cyto_doc(title="세포병리 보고서")])
+    kfonts = _pdf_fonts(main.cytology_report.build_cytology_pdf(korean))
+    check(kfonts and all("Pretendard" in f for f in kfonts), "a Korean report prints in embedded Pretendard")
+    check(main.cytology_report.MARGIN >= main.cytology_report.MIN_PRINT_MARGIN, "the margin is at least the 0.5 inch printing minimum")
+
+
+def test_cytology_continuation_and_documents():
+    print("test_cytology_continuation_and_documents")
+    pages = _pdf_pages_text(main.cytology_report.build_cytology_pdf(_CYTO_LONG))
+    check(len(pages) >= 3, f"a long report runs onto several pages ({len(pages)})")
+    check("Page" not in pages[0], "page 1 has no continuation line")
+    total = len(pages)
+    check(all(f"Jane Doe · MRN M-1 · Accession: C26-00042 · Page {i + 1} of {total}" in pages[i] for i in range(1, total)), "every later page has the identity line and Page X of Y")
+    cover = {"title": "Cytology Case Report — C26-00042", "sections": [{"heading": "Specimens in this report", "lines": [{"text": "A: Pap", "bold": True}, {"text": "Reported"}]}]}
+    case = dict(_CYTO_LONG, documents=[cover, _CYTO_LONG["documents"][0], _cyto_doc(title="Second specimen")])
+    cpages = _pdf_pages_text(main.cytology_report.build_cytology_pdf(case))
+    check("Specimens in this report" in cpages[0] and "Cytology Report — GYN" in cpages[1], "the cover is its own page; each report starts on a new page")
+    check(f"Page 2 of {total}" in cpages[2], "each document numbers its own pages")
+    check("Second specimen" in cpages[-1] and "Page" not in cpages[-1], "the next document starts again at its first page")
+    addendum = dict(CYTO, documents=[_cyto_doc(sections=CYTO["documents"][0]["sections"] + [{"heading": "Addendum", "newPage": True, "lines": [{"text": "HPV 16 detected."}]}])])
+    apages = _pdf_pages_text(main.cytology_report.build_cytology_pdf(addendum))
+    check(len(apages) == 2 and "Addendum" in apages[1] and "Addendum" not in apages[0], "an addendum the lab prints on its own page starts a new page")
+
+
+def test_cytology_watermark_and_barcode():
+    print("test_cytology_watermark_and_barcode")
+    mark = "PRELIMINARY — SUBJECT TO CHANGE"
+    pages = _pdf_pages_text(main.cytology_report.build_cytology_pdf(dict(_CYTO_LONG, watermarkText=mark)))
+    check(all("PRELIMINARY" in p for p in pages), "an unsigned preview's watermark is on every page")
+    check(not any("PRELIMINARY" in p for p in _pdf_pages_text(main.cytology_report.build_cytology_pdf(CYTO))), "no watermark when none is sent")
+    odd = dict(CYTO, documents=[_cyto_doc(barcode="C26-한글")])
+    check(main.cytology_report.build_cytology_pdf(odd)[:4] == b"%PDF", "an accession Code 128 can't encode still renders")
+
+
+def test_cytology_entrypoint():
+    print("test_cytology_entrypoint")
+    resp = _call_entrypoint(_make_request(CYTO))
+    check(resp.status_code == 200 and resp.headers["Content-Type"] == "application/pdf", "render_report answers a cytology request with a PDF")
+    check(resp.data == main.cytology_report.build_cytology_pdf(CYTO), "the entrypoint returns exactly the template's bytes")
+    check(_call_entrypoint(_make_request(dict(CYTO, documents=[]))).status_code == 400, "no documents: 400")
+    check(_call_entrypoint(_make_request(dict(CYTO, outputFormat="text"))).status_code == 400, "cytology text output is refused: 400")
+    check(main.cytology_report.CYTOLOGY_TEMPLATE_MARKER.encode() not in main.build_report_pdf(PAYLOAD), "a surgical PDF does not carry the cytology marker")
+
+
+def test_cytology_logo_line_breaks_and_mixed_languages():
+    print("test_cytology_logo_line_breaks_and_mixed_languages")
+    import base64 as _b64
+    from io import BytesIO
+    from PIL import Image as _PIL
+    from pypdf import PdfReader
+    buf = BytesIO()
+    _PIL.new("RGB", (120, 40), (20, 60, 140)).save(buf, format="PNG")
+    logo = _b64.b64encode(buf.getvalue()).decode()
+    branded = dict(CYTO, documents=[_cyto_doc(branding={"logoBase64": logo, "lines": [{"text": "Desert Lab", "bold": True}]})])
+    page = PdfReader(BytesIO(main.cytology_report.build_cytology_pdf(branded))).pages[0]
+    check(len(page.images) == 1, "the letterhead logo sent as logoBase64 is drawn")
+    bad = dict(CYTO, documents=[_cyto_doc(branding={"logoBase64": "not-an-image", "lines": [{"text": "Desert Lab"}]})])
+    check(main.cytology_report.build_cytology_pdf(bad)[:4] == b"%PDF", "a logo that can't be read never stops the report")
+    typed = dict(CYTO, documents=[_cyto_doc(sections=[{"heading": "Addendum", "lines": [{"text": "First paragraph.\nSecond paragraph."}]}])])
+    lines = _pdf_pages_text(main.cytology_report.build_cytology_pdf(typed))[0].splitlines()
+    check("First paragraph." in lines and "Second paragraph." in lines, "a line break typed in a field is kept")
+    korean = _cyto_doc(title="세포병리 보고서", language="ko", pageLabel="{{total}}쪽 중 {{page}}쪽")
+    mixed = dict(_CYTO_LONG, documents=[_CYTO_LONG["documents"][0], dict(korean, sections=_CYTO_LONG["documents"][0]["sections"])])
+    reader = PdfReader(BytesIO(main.cytology_report.build_cytology_pdf(mixed)))
+    cr = main.cytology_report
+    check(cr.document_fonts(mixed, mixed["documents"][0]) == cr.LIBERATION and cr.document_fonts(mixed, mixed["documents"][1]) == cr.PRETENDARD,
+          "in a mixed case report, the English specimen keeps Liberation Sans and the Korean one prints in Pretendard")
+    texts = [pg.extract_text() or "" for pg in reader.pages]
+    check(any("Page 2 of" in t for t in texts) and any("쪽 중 2쪽" in t for t in texts), "each document's page label is in its own language")
+
 
 if __name__ == '__main__':
     test_labels_follow_the_report_language()
@@ -475,6 +681,11 @@ if __name__ == '__main__':
     test_combined_workups_pdf()
     test_report_figures_drawn_in_pdf()
     test_report_figure_notice_when_not_drawn()
+    test_revision_banner_pdf_and_text()
+    test_watermark_on_every_page()
+    test_footer_reference_on_every_page()
+    test_preanalytic_disclaimer()
+    test_new_wording_follows_labels()
     test_entrypoint_default_is_pdf()
     test_entrypoint_explicit_pdf_same_as_default()
     test_entrypoint_text_format()
@@ -492,4 +703,11 @@ if __name__ == '__main__':
     test_receive_interface_message_malformed_json()
     test_receive_interface_message_method_not_allowed()
     test_receive_interface_message_storage_failure_returns_clean_500()
+    test_cytology_template_draws_the_lines_sent()
+    test_cytology_same_bytes_every_time()
+    test_cytology_fonts_embedded()
+    test_cytology_continuation_and_documents()
+    test_cytology_watermark_and_barcode()
+    test_cytology_entrypoint()
+    test_cytology_logo_line_breaks_and_mixed_languages()
     print(f"\nALL {PASS_COUNT} REAL CHECKS PASSED")

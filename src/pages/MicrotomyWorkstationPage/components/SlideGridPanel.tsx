@@ -187,6 +187,7 @@ const SlideGridPanel: React.FC<SlideGridPanelProps> = ({
                   {stain.printStatus === 'Printed' && (
                     reprintPromptFor === stain.id ? (
                       <select
+                        aria-label={t('a11y.fields.reprintReason')}
                         className="ps-microtomy-field-select ps-microtomy-field--w120"
                         onChange={e => { if (e.target.value && microtomyReprintMissing(e.target.value, requirements).length === 0) { onReprint(stain.id, e.target.value as typeof MICROTOMY_REPRINT_REASONS[number]); setReprintPromptFor(null); } }}
                         defaultValue=""

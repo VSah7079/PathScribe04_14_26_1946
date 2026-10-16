@@ -66,7 +66,7 @@ rule above depends on) anywhere? **Confirmed directly: it did not.**
   cytology work (which had real, direct research confirming specific
   seed facilities' own jurisdictions), no such research was done here
   to assign this app's existing seed facilities to a specific real
-  cancer registry.
+  cancer registry. *(Since closed: Batch 457 seeds Metro General (`c1`) → `naaccr_us` (`CANCER_REGISTRY_DEMO_OVERRIDES`) — checked in the Batch 496 README audit.)*
 - **`resolveEffectiveCancerRegistrySettings.ts`** — the real, pure
   cascade resolution, mirroring the cytology equivalent exactly.
 - **`buildCancerRegistryReportPayload.ts`** — the real, structured
@@ -112,17 +112,19 @@ deliberately not attempted here given the real risk of modifying that
 file further without a focused, dedicated pass — flagged as real,
 separate, future work.
 
+**Update (checked in the Batch 496 README audit, Oct 9, 2026):** the ICD-O tab in `AddCodeModal.tsx` is no longer a "coming soon" placeholder. It searches through `services/terminologySearch/codeSearchService.ts`'s `searchIcdo`, which queries UMLS for SNOMED CT morphology concepts and stores their SNOMED ids under system `ICDO`. Those are not ICD-O-3 `morphology/behavior` codes (`8500/3`), so `resolveIcdOBehaviorCode.ts` still has nothing it can parse from a searched code. AI code suggestions can also return `ICDO` codes. Real ICD-O-3 capture remains open.
+
 ## Batch 417
 
 The payload's `patient` carries `nationalIdentifiers` (system, value, verification status) when the patient has any; the interface engine picks the one the registry keys on and must not send a `failedChecksum` one. There is still no per-registry identifier choice on this side (the screening definitions have one); that comes with the cancer JCPs.
 
 ## Batch 418
 
-`CancerRegistrySettingsConfig.honoursPatientOptOut` (default false: statutory). `dispatchCancerRegistryReportIfApplicable` evaluates the patient's cancer registry opt-out: excluded with an audit entry where honoured; otherwise sent with "Registry opt-out overridden by statute" on the audit log. No Configuration switch for it yet (the settings screen is on the deployment baseline).
+`CancerRegistrySettingsConfig.honoursPatientOptOut` (default false: statutory). `dispatchCancerRegistryReportIfApplicable` evaluates the patient's cancer registry opt-out: excluded with an audit entry where honoured; otherwise sent with "Registry opt-out overridden by statute" on the audit log. No Configuration switch for it yet (the settings screen is on the deployment baseline). *(Since closed: Configuration → System → Cancer Registry Reporting has the opt-out checkbox, saved through `saveCancerRegistrySettings.ts` (Batch 422) — checked in the Batch 496 README audit.)*
 
 ## Batch 419
 
-Each cancer registry submission carries the payload header (`services/registrySubmission/`), case-level (`specimenId: 'case'`). A second dispatch for the same case is `CORRECTION`, version 2, same master id. `CancerRegistrySettingsConfig.environment` (default `test`); no Configuration control yet (the settings screen is on the deployment baseline). The queue's `retryDispatch` marks a duplicate retry. `CancerRegistryOutboundQueueEntry.errorCode` includes `EXCLUDED_BY_CONSENT`.
+Each cancer registry submission carries the payload header (`services/registrySubmission/`), case-level (`specimenId: 'case'`). A second dispatch for the same case is `CORRECTION`, version 2, same master id. `CancerRegistrySettingsConfig.environment` (default `test`); no Configuration control yet (the settings screen is on the deployment baseline). *(Since superseded: Batch 424 stopped reading `environment`; each registry's go-live is its own record in `services/registryGoLive/` — checked in the Batch 496 README audit.)* The queue's `retryDispatch` marks a duplicate retry. `CancerRegistryOutboundQueueEntry.errorCode` includes `EXCLUDED_BY_CONSENT`.
 
 ## Batch 420: reports are now sent
 

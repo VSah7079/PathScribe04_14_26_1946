@@ -70,7 +70,8 @@ export interface PreAnalyticDateGateConfig {
    *  sent through to the report PDF renderer the same honest way
    *  generateReportPdfSnapshot already sends watermarkText: this
    *  React app can supply the real payload field, but can't itself
-   *  verify the separate PDF service draws it. */
+   *  verify the separate PDF service draws it. (Since Batch 498 render_report in
+   *  functions/main.py — in this repo — prints it in a box before the report body.) */
   disclaimerText: string;
   /** Real, honest disclosure of what PathScribe does NOT yet
    *  automate for this jurisdiction (external incident-logging

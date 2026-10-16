@@ -12,6 +12,8 @@ Every outbound message goes through `dispatchInterfaceMessage(queueEntryId, tran
 
 The engine builds the HL7 (or the vendor's format); PathScribe never does. HTTP 2xx means accepted; anything else is shown to the user as not sent (`DISPATCH_REJECTED`, `DISPATCH_UNREACHABLE`, `DISPATCH_TIMEOUT`) and kept for retry.
 
+With the API server (`INTERFACE_ENGINE_EDGE.md`, Batch 545, decision D6): the API, never the browser, hands the envelope over (pushed to a hosted engine, pulled by an on-site one); a 2xx means *handed over*, and the message is settled by the receiving system's HL7 ACK, with resends, dead letters and alerts.
+
 ## Outbound transactions
 
 <!-- interface-transactions:start -->
@@ -25,9 +27,13 @@ The engine builds the HL7 (or the vendor's format); PathScribe never does. HTTP 
 | `ORDER_CREATED` | A new order | `services/interfaceEngine/buildOrderCreationPayload.ts` | — |
 | `REGISTRY_REPORT` | Screening registry submission | `services/screeningRegistry/submitScreeningRegistryResult.ts` | Acknowledgement (`docs/architecture/REGISTRY_ACKNOWLEDGEMENT_API.md`) |
 | `CANCER_REGISTRY_REPORT` | Cancer registry report | `services/cancerRegistry/dispatchCancerRegistryReportIfApplicable.ts` | Acknowledgement (same) |
-| `PRINT_JOB` | A label for a network printer | `services/printing/attemptPrintDelivery.ts` | `PrintJobStatus` over the live hub (`LIVE_UPDATES_SIGNALR.md` §10) |
+| `PRINT_JOB` | A report PDF for the engine to print (`INTERFACE_ENGINE_HANDOFF` print mode) | `services/printing/attemptPrintDelivery.ts` | Today any 2xx marks the job printed. *(Corrected in Batch 546: this said "a label for a network printer", confirmed by `PrintJobStatus`; network printing on site is the site agent's, `SITE_AGENT_API.md`.)* |
 | `CRITICAL_ALERT` | Post-GA critical alert channels (not yet wired) | `services/clinical/postGaAlertChannels/` | — |
 | `WSI_SCAN_MANIFEST` | The slides loaded in a WSI scan batch, for the slide scanner | `services/cytology/buildWsiScanBatchManifestPayload.ts` | Per-slide scan status (below) |
+| `ACCESSION_EVENT` | An order accessioned, or an accession deficiency (`order.accessioned` / `order.deficiency.created`) (Batch 518) | `pages/AccessionPage` enqueues it; sent or resent from Audit Log → Interfaces → Outbound (`services/interfaceDispatch/outboundQueueActions.ts`) | — |
+| `REFERRAL_MANIFEST` | A referral batch's manifest for the reference lab (Batch 518) | `services/batches/mockBatchService.ts` enqueues it; sent or resent from the Outbound view | Results (`ReferralResultEventPayload`) |
+| `MOLECULAR_ORDER` | A molecular assay order, or an instrument order (`order.molecular` / `order.instrument`) (Batch 518) | `pages/AccessionPage`, Molecular Order Queue; sent or resent from the Outbound view | — |
+| `REPORT_DELIVERY` | A signed report PDF to send by e-fax or to drop as a file (Batch 520, PS-280). The receiving server delivers it (email-to-fax gateway; folder or SFTP target) and answers only once it is delivered: 200, or 503 not set up, 502 delivery failed. Contract: `REPORT_DELIVERY_API.md` | `services/reports/publishReportReleasedEvent.ts` (a delivery rule's fax or file-drop channel), `services/delivery/deliverReport.ts`; resent from the Outbound view | — |
 <!-- interface-transactions:end -->
 
 ## `WSI_SCAN_MANIFEST` (Batch 434)

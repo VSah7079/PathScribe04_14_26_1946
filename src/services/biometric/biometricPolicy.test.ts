@@ -35,5 +35,5 @@ describe('biometric policy and enrolment (Batch 433)', () => {
     sessionId = '1';
     expect((await bio.removeBiometricCredential('1')).ok).toBe(true);
     expect(bio.getCredentialForUser('1')).toBeNull();
-  }, 10000);
+  });
 });

@@ -14,6 +14,7 @@ import { mockFacilityService } from '../facilities/mockFacilityService';
 import { resolvePerformingLabFacilityId, type Facility } from '../facilities/IFacilityService';
 import { resolveReportLanguage, resolveReportDateLocale, type ReportLanguage } from './reportLanguage';
 import { JURISDICTION_LOCALE } from '@/types/systemConfig';
+import { loadLanguage } from '@/i18n/config';
 
 /** The performing lab behind an ordering facility, or undefined if there is none to be found. */
 export async function resolvePerformingLabFacility(facilityId: string | undefined): Promise<Facility | undefined> {
@@ -34,5 +35,8 @@ export function reportLocaleOf(lab: Facility | undefined): string {
 /** The report's language and date format for the lab performing a case ordered from this facility. */
 export async function resolveReportLocaleForFacility(facilityId: string | undefined): Promise<{ language: ReportLanguage; locale: string }> {
   const lab = await resolvePerformingLabFacility(facilityId);
-  return { language: resolveReportLanguage(lab), locale: reportLocaleOf(lab) };
+  const language = resolveReportLanguage(lab);
+  // Batch 505 (PS-475): languages load on demand; the report's may not be the screen's.
+  await loadLanguage(language);
+  return { language, locale: reportLocaleOf(lab) };
 }

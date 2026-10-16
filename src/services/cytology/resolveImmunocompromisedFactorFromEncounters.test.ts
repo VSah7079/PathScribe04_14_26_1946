@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveImmunocompromisedFactorFromEncounters } from './resolveImmunocompromisedFactorFromEncounters';
 
-describe('resolveImmunocompromisedFactorFromEncounters — real, per direct correction (\"maybe from admission icd codes\")', () => {
+describe('resolveImmunocompromisedFactorFromEncounters — real, per direct correction ("maybe from admission icd codes")', () => {
   it('a real patient with NO encounter diagnosis data anywhere gets an honest undefined, never a fabricated false', () => {
     expect(resolveImmunocompromisedFactorFromEncounters([])).toBeUndefined();
     expect(resolveImmunocompromisedFactorFromEncounters([{ diagnoses: [] }])).toBeUndefined();

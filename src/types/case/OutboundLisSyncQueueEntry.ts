@@ -46,6 +46,9 @@ export interface OutboundLisSyncQueueEntry {
   retryCount: number;
   maxRetriesExceeded: boolean;
   lastAttemptAt?: string;
+  /** Batch 538: the stored report document (workup or combined case PDF) this message carries; a retry sends it. */
+  reportDocumentId?: string;
+  pdfSha256?: string;
   /** Batch 426: the workup version this message carries (1 for the first release). */
   workupVersion?: number;
   /** Batch 426: the observations as sent, so the next correction can say what changed. */

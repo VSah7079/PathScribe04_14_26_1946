@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { verifyEngineAuth, claimMessageId, applyEngineCaseUpdate, docCreate, logIntegrationError, raiseSpecimenDeficiency } = vi.hoisted(() => ({
+const { verifyEngineAuth, applyEngineCaseUpdate, docCreate, logIntegrationError, raiseSpecimenDeficiency } = vi.hoisted(() => ({
   verifyEngineAuth: vi.fn(),
-  claimMessageId: vi.fn(),
   applyEngineCaseUpdate: vi.fn(),
   docCreate: vi.fn(),
   logIntegrationError: vi.fn(),
@@ -10,7 +9,6 @@ const { verifyEngineAuth, claimMessageId, applyEngineCaseUpdate, docCreate, logI
 }));
 
 vi.mock('./_lib/verifyEngineAuth', () => ({ verifyEngineAuth }));
-vi.mock('./_lib/idempotency', () => ({ claimMessageId }));
 vi.mock('./_lib/applyEngineCaseUpdate', () => ({ applyEngineCaseUpdate }));
 vi.mock('./_lib/logIntegrationError', () => ({ logIntegrationError }));
 vi.mock('./_lib/raiseSpecimenDeficiency', () => ({ raiseSpecimenDeficiency }));
@@ -34,13 +32,11 @@ function makeRequest(body: unknown, method = 'POST'): Request {
 describe('block-exception webhook handler', () => {
   beforeEach(() => {
     verifyEngineAuth.mockReset();
-    claimMessageId.mockReset();
     applyEngineCaseUpdate.mockReset();
     docCreate.mockReset();
     logIntegrationError.mockReset();
     raiseSpecimenDeficiency.mockReset();
     verifyEngineAuth.mockReturnValue({ ok: true });
-    claimMessageId.mockResolvedValue({ alreadyProcessed: false });
     applyEngineCaseUpdate.mockResolvedValue({ outcome: 'applied', caseId: 'S26-4403' });
     docCreate.mockResolvedValue(undefined);
     raiseSpecimenDeficiency.mockResolvedValue('def-new-id');
@@ -72,12 +68,14 @@ describe('block-exception webhook handler', () => {
     expect(logIntegrationError).toHaveBeenCalledWith(expect.objectContaining({ accessionNumber: 'S26-4403' }));
   });
 
-  it('returns 200 already-processed on a redelivered messageId, without calling applyEngineCaseUpdate', async () => {
-    claimMessageId.mockResolvedValue({ alreadyProcessed: true });
+  it('returns 200 already-processed on a redelivered messageId, with no notification or deficiency', async () => {
+    // Batch 545 (F10): the claim is checked inside the update's transaction.
+    applyEngineCaseUpdate.mockResolvedValue({ outcome: 'already-processed', caseId: 'S26-4403' });
     const res = await handler(makeRequest(validPayload));
     expect(res.status).toBe(200);
     expect((await res.json()).status).toBe('already-processed');
-    expect(applyEngineCaseUpdate).not.toHaveBeenCalled();
+    expect(docCreate).not.toHaveBeenCalled();
+    expect(raiseSpecimenDeficiency).not.toHaveBeenCalled();
   });
 
   it('returns 404 when the case is not found', async () => {
@@ -85,6 +83,8 @@ describe('block-exception webhook handler', () => {
     const res = await handler(makeRequest(validPayload));
     expect(res.status).toBe(404);
     expect(docCreate).not.toHaveBeenCalled();
+    // Batch 545 (F10): the claim is made inside the update's transaction, so a not-found leaves none.
+    expect(applyEngineCaseUpdate).toHaveBeenCalledWith(expect.any(String), expect.any(Function), { messageId: validPayload.messageId, eventType: expect.any(String) });
   });
 
   it('returns 404 when the block is not found on a real case', async () => {
@@ -123,7 +123,7 @@ describe('block-exception webhook handler', () => {
 
   it('uses internalCaseId over accessionNumber when both are present', async () => {
     await handler(makeRequest({ ...validPayload, internalCaseId: 'O26-0029' }));
-    expect(applyEngineCaseUpdate).toHaveBeenCalledWith('O26-0029', expect.any(Function));
+    expect(applyEngineCaseUpdate).toHaveBeenCalledWith('O26-0029', expect.any(Function), expect.objectContaining({ messageId: 'msg-1' }));
   });
 
   it('returns 500 on an unexpected internal error', async () => {

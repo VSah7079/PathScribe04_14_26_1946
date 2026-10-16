@@ -4,7 +4,6 @@
 // config:cytology-compliance:manage, and is audited.
 import type { CytologyComplianceSettings } from './cytologyComplianceFeatures';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface CytologyComplianceSaveDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
   setEnterprise: (settings: CytologyComplianceSettings) => Promise<unknown>;
@@ -13,7 +12,7 @@ export interface CytologyComplianceSaveDeps {
 }
 
 const describe = (s: CytologyComplianceSettings | null) =>
-  s ? `workload cap ${s.workloadCap ?? 'auto'}, 5-year lookback ${s.fiveYearLookback ?? 'auto'}` : 'follows the enterprise';
+  s ? `workload cap ${s.workloadCap ?? 'auto'}, 5-year lookback ${s.fiveYearLookback ?? 'auto'}, preliminary signature ${s.preliminarySignature ?? 'auto'}` : 'follows the enterprise';
 
 /** facilityId null: the enterprise setting. settings null (a facility only): remove its own setting. */
 export async function saveCytologyComplianceFeatures(

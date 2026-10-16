@@ -35,10 +35,12 @@ A command works like a click, with the histology; say the block ("block A", "blo
 
 ## For the administrator
 
-- **Your own Mohs template:** copy PathScribe's in Configuration → Protocols and change the questions (add a stain, rename closures, drop the billing reference). Keep one **Mohs stages** question (field type "Mohs stage map"; it can't be added from scratch, so copy PathScribe's template); PathScribe's marks it required. On that question, **Default histology from** chooses which choice question fills a new positive sector's histology (PathScribe's: Tumour type), or None. If that question is deleted or changed to a non-choice type, the editor shows a warning and the template can't be submitted, resubmitted or published until it is fixed (from the editor or the template list).
+- **Your own Mohs template:** copy PathScribe's in Configuration → Synoptic Library and change the questions (add a stain, rename closures, drop the billing reference). Keep one **Mohs stages** question (field type "Mohs stage map"; it can't be added from scratch, so copy PathScribe's template); PathScribe's marks it required. On that question, **Default histology from** chooses which choice question fills a new positive sector's histology (PathScribe's: Tumour type), or None. If that question is deleted or changed to a non-choice type, the editor shows a warning and the template can't be submitted, resubmitted or published until it is fixed (from the editor or the template list).
 - **Binding:** Configuration → System → Organ maps → Map bindings. PathScribe's template binds itself. A copy binds its first Mohs stages question; pick another there if your copy has more than one.
 - **Colours:** Configuration → System → Organ maps → Colours & patterns. "Residual tumour" and "Perineural invasion" can be set per enterprise, jurisdiction or facility like the other map colours. The preview includes a Mohs map.
 - **Permissions:** the Mohs question is part of the synoptic, so whoever can edit the synoptic can record stages. Colours and bindings need `config:organ-map-scheme:manage` and `config:organ-map-bindings:manage`. No new permission was added.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the template list is the Synoptic Library tab; there is no Configuration → Protocols tab.*
 
 ## What it sends
 

@@ -114,6 +114,17 @@ export const mockOutboundResultQueueService: IOutboundResultQueueService = {
     return ok(updated);
   },
 
+  async recordPdfSha256(id, sha256) {
+    const all = load();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx === -1) return err(`Outbound result queue entry ${id} not found`);
+    if (all[idx].pdfSha256 === sha256) return ok(all[idx]);
+    const next = [...all];
+    next[idx] = { ...all[idx], pdfSha256: sha256 };
+    persist(next);
+    return ok(next[idx]);
+  },
+
   async markSent(id) {
     await delay();
     const all = load();

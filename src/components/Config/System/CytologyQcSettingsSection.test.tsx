@@ -68,7 +68,9 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const card = (titleKey: string) => screen.getByText(titleKey).closest('.ps-cytqc__card') as HTMLElement;
 const rateInputs = (scope: HTMLElement) => within(scope).getAllByRole('spinbutton') as HTMLInputElement[];
-const summary = (neg: number, nonNeg: number) => `cytologyQcSettingsSection.rateSummary ${JSON.stringify({ neg, nonNeg })}`;
+// Batch 512: each rate is rendered on its own (own value or inherited), then combined.
+const own = (value: number) => `cytologyQcSettingsSection.rate.own ${JSON.stringify({ value })}`;
+const summary = (neg: number, nonNeg: number) => `cytologyQcSettingsSection.rateSummaryParts ${JSON.stringify({ neg: own(neg), nonNeg: own(nonNeg) })}`;
 
 describe('Cytology QC Settings section (PS-155)', () => {
   it('shows and saves both enterprise rates', async () => {

@@ -206,6 +206,11 @@ const report  = [];
 console.log(`\n🔍 PathScribe PHI Scanner`);
 console.log(`   Mode: ${WRITE ? (DRY_RUN ? 'dry-run' : 'write') : 'audit'}`);
 console.log(`   Scanning ${files.length} .tsx files in src/\n`);
+// Batch 516 (PS-72): say plainly that this count is not the PS-72 measure.
+if (!WRITE) {
+  console.log('   NOTE: this line-by-line count over-reports (class names, comments, props). The check that');
+  console.log('   decides PS-72 is the structure-aware guard: npx vitest run src/services/phi\n');
+}
 console.log('─'.repeat(80));
 
 for (const file of files) {

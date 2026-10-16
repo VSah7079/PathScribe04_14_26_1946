@@ -1,8 +1,8 @@
 // src/pages/CytologyWorklistPage/components/CytologySynopticFormView.tsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per direct guidance's own confirmed sequencing: renders the 5
-// real, existing CAP/RCPath Non-GYN templates
-// (cytologySynopticTemplateRegistry.ts), with local-state answers and
+// Batch 519 (PS-273): renders the Non-GYN cytology templates the Synoptic
+// Library publishes (cytologySynopticTemplateRegistry.ts; the five PathScribe
+// templates until the library has been read), with local-state answers and
 // an explicit Save action — "matches your Record A New Review
 // paradigm cleanly," per direct guidance's own confirmed Check 3.
 // Real, per direct guidance's own confirmed migration design: every
@@ -15,7 +15,8 @@
 import { pathologyLexiconService } from '@/services';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CYTOLOGY_SYNOPTIC_TEMPLATES, resolveCytologySynopticTemplateById } from '@/services/cytology/cytologySynopticTemplateRegistry';
+import { cytologySynopticTemplateChoices, cytologySynopticTemplateForShortcut, resolveCytologySynopticTemplateById, type CytologySynopticTemplateChoice } from '@/services/cytology/cytologySynopticTemplateRegistry';
+import { refreshCytologySynopticLibrary } from '@/services/cytology/cytologyTemplateLibraryDeps';
 import { resolveSynopticFieldLabel, resolveSynopticOptionLabel, resolveSynopticSectionTitle } from '@/services/cytology/resolveSynopticFieldLabel';
 import { resolveSynopticAnswersValidation } from '@/services/cytology/resolveSynopticAnswersValidation';
 import { resolveUnvalidatedTermKeysInAnswers, resolveTranslationAcknowledgmentIsCurrent } from '@/services/cytology/resolveSynopticTranslationValidation';
@@ -63,8 +64,13 @@ const CytologySynopticFormView: React.FC<CytologySynopticFormViewProps> = ({ ini
   // own; this only drives the explicit click/tap case.
   const [expandedSegmentIndex, setExpandedSegmentIndex] = useState<number | null>(null);
 
+  // Batch 519 (PS-273): the templates are the Synoptic Library's published Non-GYN cytology protocols.
+  const [choices, setChoices] = useState<CytologySynopticTemplateChoice[]>(cytologySynopticTemplateChoices);
   useEffect(() => {
     pathologyLexiconService.getAll().then(res => { if (res.ok) setLexicon(res.data); });
+    let live = true;
+    void refreshCytologySynopticLibrary().then(c => { if (live) setChoices(c); }).catch(() => undefined);
+    return () => { live = false; };
   }, []);
 
   const template = templateId ? resolveCytologySynopticTemplateById(templateId) : undefined;
@@ -129,7 +135,11 @@ const CytologySynopticFormView: React.FC<CytologySynopticFormViewProps> = ({ ini
   // able to trigger a real, attributable acknowledgment on a
   // pathologist's behalf.
   useEffect(() => {
-    const selectTemplate = (id: string) => { setTemplateId(id); setAnswers({}); setMissingFieldIds([]); };
+    const selectTemplate = (rootId: string) => {
+      const id = cytologySynopticTemplateForShortcut(rootId);
+      if (!id) return;
+      setTemplateId(id); setAnswers({}); setMissingFieldIds([]);
+    };
     const listeners: [string, EventListener][] = [
       ['PATHSCRIBE_CYTOLOGY_SELECT_TEMPLATE_THYROID', () => selectTemplate('thyroid_fna_cytology')],
       ['PATHSCRIBE_CYTOLOGY_SELECT_TEMPLATE_PANCREATICOBILIARY', () => selectTemplate('pancreaticobiliary_cytology')],
@@ -161,7 +171,7 @@ const CytologySynopticFormView: React.FC<CytologySynopticFormViewProps> = ({ ini
       return (
         <div key={field.id} className="ps-mb-12">
           {labelNode}
-          <select className="ps-conf-select ps-w-full" value={(answers[field.id] as string) ?? ''} onChange={e => setAnswer(field.id, e.target.value)}>
+          <select aria-label={field.label} className="ps-conf-select ps-w-full" value={(answers[field.id] as string) ?? ''} onChange={e => setAnswer(field.id, e.target.value)}>
             <option value="">— {t('common.select')} —</option>
             {field.options?.map(opt => <option key={opt.id} value={opt.id}>{resolveSynopticOptionLabel(opt, t)}</option>)}
           </select>
@@ -187,7 +197,7 @@ const CytologySynopticFormView: React.FC<CytologySynopticFormViewProps> = ({ ini
       return (
         <div key={field.id} className="ps-mb-12">
           {labelNode}
-          <input type="number" className="ps-conf-input ps-w-full" value={(answers[field.id] as string) ?? ''} onChange={e => setAnswer(field.id, e.target.value)} />
+          <input aria-label={field.label} type="number" className="ps-conf-input ps-w-full" value={(answers[field.id] as string) ?? ''} onChange={e => setAnswer(field.id, e.target.value)} />
         </div>
       );
     }
@@ -203,7 +213,7 @@ const CytologySynopticFormView: React.FC<CytologySynopticFormViewProps> = ({ ini
     return (
       <div key={field.id} className="ps-mb-12">
         {labelNode}
-        <input type="text" className="ps-conf-input ps-w-full" value={(answers[field.id] as string) ?? ''} onChange={e => setAnswer(field.id, e.target.value)} />
+        <input aria-label={field.label} type="text" className="ps-conf-input ps-w-full" value={(answers[field.id] as string) ?? ''} onChange={e => setAnswer(field.id, e.target.value)} />
       </div>
     );
   };
@@ -217,9 +227,11 @@ const CytologySynopticFormView: React.FC<CytologySynopticFormViewProps> = ({ ini
       <label className="ps-cytosynform-label">
         {t('cytologyScreening.synopticDrawer.selectTemplate')}
       </label>
-      <select className="ps-conf-select ps-cytosynform-template-select" value={templateId ?? ''} onChange={e => { setTemplateId(e.target.value || undefined); setAnswers({}); setMissingFieldIds([]); }}>
+      <select aria-label={t('cytologyScreening.synopticDrawer.selectTemplate')} className="ps-conf-select ps-cytosynform-template-select" value={templateId ?? ''} onChange={e => { setTemplateId(e.target.value || undefined); setAnswers({}); setMissingFieldIds([]); }}>
         <option value="">— {t('common.select')} —</option>
-        {CYTOLOGY_SYNOPTIC_TEMPLATES.map(tmpl => <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>)}
+        {choices.map(tmpl => <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>)}
+        {/* A review recorded against a version since retired still shows which template it used. */}
+        {templateId && template && !choices.some(c => c.id === templateId) && <option value={templateId}>{template.name}</option>}
       </select>
 
       {template && template.sections.map(section => (

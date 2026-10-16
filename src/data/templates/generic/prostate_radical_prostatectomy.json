@@ -1,6 +1,6 @@
 {
   "id": "prostate_radical_prostatectomy",
-  "name": "Generic Template — Prostate Radical Prostatectomy",
+  "name": "Generic Template \u2014 Prostate Radical Prostatectomy",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "PROSTATE",
@@ -232,7 +232,7 @@
         },
         {
           "id": "histological_tumour_type_other_specify",
-          "label": "Type — Other (specify)",
+          "label": "Type \u2014 Other (specify)",
           "type": "text",
           "required": false,
           "core": true,
@@ -293,31 +293,31 @@
           "options": [
             {
               "id": "primary_gleason_grade_opt_1",
-              "label": "Option 1",
+              "label": "Pattern 3",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "primary_gleason_grade_opt_2",
-              "label": "Option 2",
+              "label": "Pattern 4",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "primary_gleason_grade_opt_3",
-              "label": "Option 3",
+              "label": "Pattern 5",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "primary_gleason_grade_opt_4",
-              "label": "Option 4",
+              "label": "Not applicable",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "primary_gleason_grade_opt_5",
-              "label": "Option 5",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -335,31 +335,31 @@
           "options": [
             {
               "id": "secondary_gleason_grade_opt_1",
-              "label": "Option 1",
+              "label": "Pattern 3",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "secondary_gleason_grade_opt_2",
-              "label": "Option 2",
+              "label": "Pattern 4",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "secondary_gleason_grade_opt_3",
-              "label": "Option 3",
+              "label": "Pattern 5",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "secondary_gleason_grade_opt_4",
-              "label": "Option 4",
+              "label": "Not applicable",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "secondary_gleason_grade_opt_5",
-              "label": "Option 5",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -377,25 +377,25 @@
           "options": [
             {
               "id": "tertiary_gleason_grade_opt_1",
-              "label": "Option 1",
+              "label": "Pattern 3",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tertiary_gleason_grade_opt_2",
-              "label": "Option 2",
+              "label": "Pattern 4",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tertiary_gleason_grade_opt_3",
-              "label": "Option 3",
+              "label": "Pattern 5",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tertiary_gleason_grade_opt_4",
-              "label": "Option 4",
+              "label": "Not applicable",
               "snomed": "",
               "icd": ""
             }
@@ -404,7 +404,7 @@
         },
         {
           "id": "gleason_score_total",
-          "label": "Score — Total",
+          "label": "Score \u2014 Total",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -413,49 +413,49 @@
           "options": [
             {
               "id": "gleason_score_total_opt_1",
-              "label": "Option 1",
+              "label": "6 (3+3)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_score_total_opt_2",
-              "label": "Option 2",
+              "label": "7 (3+4)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_score_total_opt_3",
-              "label": "Option 3",
+              "label": "7 (4+3)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_score_total_opt_4",
-              "label": "Option 4",
+              "label": "8 (3+5)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_score_total_opt_5",
-              "label": "Option 5",
+              "label": "8 (4+4)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_score_total_opt_6",
-              "label": "Option 6",
+              "label": "8 (5+3)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_score_total_opt_7",
-              "label": "Option 7",
+              "label": "9 (4+5 or 5+4)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_score_total_opt_8",
-              "label": "Option 8",
+              "label": "10 (5+5)",
               "snomed": "",
               "icd": ""
             }
@@ -473,37 +473,37 @@
           "options": [
             {
               "id": "grade_group_opt_1",
-              "label": "Option 1",
+              "label": "Grade Group 1 (Gleason ≤6)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "grade_group_opt_2",
-              "label": "Option 2",
+              "label": "Grade Group 2 (3+4=7)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "grade_group_opt_3",
-              "label": "Option 3",
+              "label": "Grade Group 3 (4+3=7)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "grade_group_opt_4",
-              "label": "Option 4",
+              "label": "Grade Group 4 (8)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "grade_group_opt_5",
-              "label": "Option 5",
+              "label": "Grade Group 5 (9–10)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "grade_group_opt_6",
-              "label": "Option 6",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -688,19 +688,19 @@
           "options": [
             {
               "id": "margin_status_opt_1",
-              "label": "Option 1",
+              "label": "Negative (uninvolved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_opt_2",
-              "label": "Option 2",
+              "label": "Positive (involved)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_status_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -718,19 +718,19 @@
           "options": [
             {
               "id": "margin_extent_opt_1",
-              "label": "Option 1",
+              "label": "Focal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_extent_opt_2",
-              "label": "Option 2",
+              "label": "Multifocal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_extent_opt_3",
-              "label": "Option 3",
+              "label": "Extensive",
               "snomed": "",
               "icd": ""
             }
@@ -748,25 +748,25 @@
           "options": [
             {
               "id": "margin_location_opt_1",
-              "label": "Option 1",
+              "label": "Apex",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_location_opt_2",
-              "label": "Option 2",
+              "label": "Bladder neck",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_location_opt_3",
-              "label": "Option 3",
+              "label": "Posterolateral",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "margin_location_opt_4",
-              "label": "Option 4",
+              "label": "Other",
               "snomed": "",
               "icd": ""
             }
@@ -852,25 +852,28 @@
       "fields": [
         {
           "id": "number_lymph_nodes_examined",
-          "label": "Field 1",
+          "label": "Number of Lymph Nodes Examined",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "nodeCount": true
         },
         {
           "id": "number_positive_lymph_nodes",
-          "label": "Field 2",
+          "label": "Number of Positive Lymph Nodes",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "nodeCount": true,
+          "notMoreThan": "number_lymph_nodes_examined"
         },
         {
           "id": "max_dimension_largest_deposit_mm",
@@ -897,34 +900,35 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pT",
           "options": [
             {
               "id": "t_category_opt_1",
-              "label": "Option 1",
+              "label": "pT2",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "t_category_opt_2",
-              "label": "Option 2",
+              "label": "pT3a",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "t_category_opt_3",
-              "label": "Option 3",
+              "label": "pT3b",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "t_category_opt_4",
-              "label": "Option 4",
+              "label": "pT4",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "t_category_opt_5",
-              "label": "Option 5",
+              "label": "Cannot be assessed (pTX)",
               "snomed": "",
               "icd": ""
             }
@@ -939,22 +943,23 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pN",
           "options": [
             {
               "id": "n_category_opt_1",
-              "label": "Option 1",
+              "label": "pN0",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "n_category_opt_2",
-              "label": "Option 2",
+              "label": "pN1",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "n_category_opt_3",
-              "label": "Option 3",
+              "label": "pNX (not applicable / no nodes submitted)",
               "snomed": "",
               "icd": ""
             }

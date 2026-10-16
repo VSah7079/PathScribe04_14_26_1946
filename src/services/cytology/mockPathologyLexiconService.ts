@@ -18,7 +18,7 @@
 import type { PathologyLexiconEntry } from '@/types/cytology/PathologyLexicon';
 import type { ServiceResult } from '../types';
 
-let _lexicon: PathologyLexiconEntry[] = [];
+const _lexicon: PathologyLexiconEntry[] = [];
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 

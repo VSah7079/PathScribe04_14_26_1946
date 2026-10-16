@@ -28,8 +28,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockSessionTimeoutService } from '../../../services/session/mockSessionTimeoutService';
+
 import BiometricPolicyCard from './BiometricPolicyCard';
+import { sessionTimeoutService } from '@/services';
 
 const PRESET_MINUTES = [5, 10, 15, 20, 30, 60];
 
@@ -40,7 +41,7 @@ const SessionSecuritySection: React.FC = () => {
   const [saved, setSaved]     = useState(false);
 
   useEffect(() => {
-    mockSessionTimeoutService.getOrgDefault().then(res => {
+    sessionTimeoutService.getOrgDefault().then(res => {
       if (res.ok) setMinutes(res.data);
       setLoading(false);
     });
@@ -48,7 +49,7 @@ const SessionSecuritySection: React.FC = () => {
 
   const handleChange = async (value: number) => {
     setMinutes(value);
-    const res = await mockSessionTimeoutService.setOrgDefault(value);
+    const res = await sessionTimeoutService.setOrgDefault(value);
     if (res.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -68,7 +69,7 @@ const SessionSecuritySection: React.FC = () => {
         <div className="ps-session-security__card-label">
           {t('sessionSecurity.idleTimeoutLabel')}
         </div>
-        <select
+        <select aria-label={t('sessionSecurity.idleTimeoutLabel')}
           value={minutes}
           onChange={e => handleChange(Number(e.target.value))}
           disabled={loading}

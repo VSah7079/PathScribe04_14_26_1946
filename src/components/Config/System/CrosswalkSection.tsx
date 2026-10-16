@@ -26,6 +26,7 @@ import { SearchableCombobox } from '@/components/Common/SearchableCombobox';
 import { findDuplicate } from '@/utils/validateUnique';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 import { recordExport } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const CrosswalkSection: React.FC = () => {
   const navigate = useNavigate();
@@ -173,7 +174,7 @@ const CrosswalkSection: React.FC = () => {
     refresh();
   };
 
-  if (loading) return <div className="ps-conf-section-subtitle">{t('crosswalkSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('crosswalkSection.loading')} />;
 
   const pendingCount = entries.filter(e => e.createdBy === 'system').length;
 

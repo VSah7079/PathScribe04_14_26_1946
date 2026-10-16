@@ -10,23 +10,17 @@
 import type { Case } from '@/types/case/Case';
 import type { NonGynCytologyRouting } from './ICytologyRoutingSettingsService';
 import {
-  cytologySpecimenOf, cytologyWorklistRow, effectiveCytologySettingsFor, latestCompletedAiResults,
+  aggregateCytologySpecimenFacts, cytologySpecimenScreeningFacts, cytologySpecimensOf, cytologyWorklistRow,
+  effectiveCytologySettingsFor, latestCompletedAiResults,
   type CytologyRoutingInputs, type CytologyWorklistCase,
 } from './cytologyWorklist';
 import { resolveCaseCytologyWorklistMembership } from './resolveCaseCytologyWorklistMembership';
 import { resolveCaseCytologyTriagePendingMembership } from './resolveCaseCytologyTriagePendingMembership';
 import { resolveCaseCytologyScansCompletedMembership } from './resolveCaseCytologyScansCompletedMembership';
 import { resolveCaseCytologyRecallNeededMembership } from './resolveCaseCytologyRecallNeededMembership';
-import { resolveCytologyQcPoolMembership } from './resolveCytologyQcPoolMembership';
-import { resolveCytologyRetrospectiveReviewPoolMembership } from './resolveCytologyRetrospectiveReviewPoolMembership';
-import { resolveCytologyPostSignOutPeerReviewPoolMembership } from './resolveCytologyPostSignOutPeerReviewPoolMembership';
-import { resolveCytologyHistologyCorrelationPoolMembership } from './resolveCytologyHistologyCorrelationPoolMembership';
-import { resolveCytologyDecantPendingMembership } from './resolveCytologyDecantPendingMembership';
-import { resolveCytologyRoseActiveMembership } from './resolveCytologyRoseActiveMembership';
 import { loadQcRescreenQueue } from './cytologyQueuesLive';
 import { refreshCytologyHistologyCorrelationCandidatesLive } from './cytologyHistologyCorrelationLive';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CytologyWorklistData {
   rows: CytologyWorklistCase[];
@@ -94,26 +88,39 @@ export async function loadCytologyWorklist(viewerId: string): Promise<CytologyWo
     const res = await mockCytologyReviewRecordService.getBySpecimenId(specimenId);
     return res.ok ? res.data : [];
   };
-  const toRow = async (c: Case): Promise<CytologyWorklistCase> => {
-    const { specimen, entry } = cytologySpecimenOf(c, dictById);
-    const screening = specimen?.cytologyScreening;
-    const reviews = specimen?.id && (screening?.qcFlag || screening?.postSignOutPeerReviewFlag) ? await reviewsFor(specimen.id) : [];
-    return cytologyWorklistRow(c, specimen, entry, {
-      isQcPending: !!(specimen?.id && screening?.qcFlag) && resolveCytologyQcPoolMembership(screening.qcFlag, reviews),
-      isRetrospectiveReviewPending: !!screening?.retrospectiveReviewFlag && resolveCytologyRetrospectiveReviewPoolMembership(screening.retrospectiveReviewFlag),
-      isPostSignOutPeerReviewPending: !!(specimen?.id && screening?.postSignOutPeerReviewFlag) && resolveCytologyPostSignOutPeerReviewPoolMembership(screening.postSignOutPeerReviewFlag, reviews),
-      isHistologyCorrelationPending: resolveCytologyHistologyCorrelationPoolMembership(screening?.histologyCorrelationCandidates),
+  // Batch 483 (PS-359 tracker follow-up): a case can carry more than one
+  // cytology/FNA specimen, and the one that's actually QC-flagged (or
+  // awaiting histology correlation, or mid-decant, …) isn't necessarily
+  // the first. Every cytology specimen's own flags are computed and then
+  // OR-ed together (aggregateCytologySpecimenFacts), so the case still
+  // surfaces correctly even when a later specimen is the one that
+  // qualifies. `knownSpecimenId` — the QC/Rescreen queue already knows
+  // exactly which specimen matched — picks that one as the row's
+  // representative specimen (qcReason, specimenId) rather than
+  // re-deriving a possibly different one.
+  const toRow = async (c: Case, knownSpecimenId?: string): Promise<CytologyWorklistCase> => {
+    const perSpecimen = await Promise.all(cytologySpecimensOf(c, dictById).map(async ({ specimen, entry }) => {
+      const screening = specimen?.cytologyScreening;
+      const reviews = specimen?.id && (screening?.qcFlag || screening?.postSignOutPeerReviewFlag) ? await reviewsFor(specimen.id) : [];
+      return cytologySpecimenScreeningFacts(specimen, entry, reviews);
+    }));
+    const agg = aggregateCytologySpecimenFacts(perSpecimen, knownSpecimenId);
+    return cytologyWorklistRow(c, agg.specimen, agg.entry, {
+      isQcPending: agg.isQcPending,
+      isRetrospectiveReviewPending: agg.isRetrospectiveReviewPending,
+      isPostSignOutPeerReviewPending: agg.isPostSignOutPeerReviewPending,
+      isHistologyCorrelationPending: agg.isHistologyCorrelationPending,
       isFollowUpDue: followUpDue.has(c.id),
-      isCellBlockAncillaryPending: resolveCytologyDecantPendingMembership(specimen?.decants),
-      isRoseActive: resolveCytologyRoseActiveMembership(specimen?.roseEvaluations),
+      isCellBlockAncillaryPending: agg.isCellBlockAncillaryPending,
+      isRoseActive: agg.isRoseActive,
       aiScreeningResult: aiByCase.get(c.id),
     });
   };
 
   const qcRefs = await loadQcRescreenQueue(viewerId);
   const [rows, qcRows] = await Promise.all([
-    Promise.all(member(resolveCaseCytologyWorklistMembership).map(toRow)),
-    Promise.all(qcRefs.map(async ref => ({ ...(await toRow(ref.caseData)), ownPrimaryScreen: ref.ownPrimaryScreen }))),
+    Promise.all(member(resolveCaseCytologyWorklistMembership).map(c => toRow(c))),
+    Promise.all(qcRefs.map(async ref => ({ ...(await toRow(ref.caseData, ref.specimenId)), ownPrimaryScreen: ref.ownPrimaryScreen }))),
   ]);
   return {
     rows,

@@ -32,6 +32,7 @@
 // (docs/architecture/AUTHENTICATION_OIDC.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 export type PasswordScreeningProblem = 'common' | 'predictable' | 'contextWord' | 'breached';
 export type BreachCheckOutcome = 'clear' | 'breached' | 'unavailable' | 'off';
 
@@ -157,7 +158,7 @@ let commonCache: Promise<ReadonlySet<string>> | null = null;
 export const defaultPasswordScreeningDeps: PasswordScreeningDeps = {
   loadCommon: () => (commonCache ??= import('./commonPasswords.txt?raw').then(m =>
     new Set(m.default.split(/\r?\n/).map(l => l.trim()).filter(Boolean)))),
-  breached: import.meta.env.VITE_PWNED_CHECK === 'off' || typeof fetch !== 'function'
+  breached: appEnv().VITE_PWNED_CHECK === 'off' || typeof fetch !== 'function'
     ? null
     : createPwnedPasswordCheck({ fetch: (input, init) => fetch(input, init) }),
 };

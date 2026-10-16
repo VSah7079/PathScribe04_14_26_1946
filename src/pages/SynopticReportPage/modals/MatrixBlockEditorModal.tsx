@@ -356,7 +356,7 @@ const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
               <div className="ps-matrixblock-order-bar-title">
                 {t('matrixBlockEditorModal.arrayMapping.orderBarTitle', { count: selectedSpecimenIds.size })}
               </div>
-              <input
+              <input aria-label={t('matrixBlockEditorModal.arrayMapping.orderBarTitle', { count: selectedSpecimenIds.size })}
                 type="text" className="ps-conf-select"
                 placeholder={t('matrixBlockEditorModal.arrayMapping.searchStainsPlaceholder')}
                 value={stainQuery}

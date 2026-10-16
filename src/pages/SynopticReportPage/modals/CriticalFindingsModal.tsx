@@ -26,6 +26,13 @@
 // and who notified are locked as always required; read-back can be required.
 // The check is services/fieldRequirements/reportPageChecks.ts. Record can
 // also be said ("record notification", CRITICAL_NOTIFICATION_RECORD).
+//
+// Batch 517 (PS-143): choosing "Secure email" opens the secure message window
+// pre-filled with the case and the findings (it carries patient data, so only
+// a gateway with its BAA / data processing agreement in force can send it).
+// The notification is recorded once the email is sent; closing the window
+// without sending records nothing. Read-back is a spoken repeat, so it is
+// hidden for email.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -36,6 +43,8 @@ import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatList } from '@/utils/formatList';
 import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
 import type { NotificationMethod } from '@/types/clinical/CriticalResultNotification';
+import { SecureEmailModal } from '@/components/SecureEmail/SecureEmailModal';
+import { criticalFindingEmail } from '@/services/clinical/criticalFindingEmail';
 
 const NOTIFICATION_METHOD_LABEL_KEY: Record<NotificationMethod, string> = {
   verbal_phone: 'amendmentModal.notificationMethod.verbalPhone',
@@ -54,12 +63,16 @@ interface CriticalFindingsModalProps {
    *  may have made the real call, with staff simply transcribing the
    *  event into the record afterward. */
   defaultNotifiedByName?: string;
+  /** Batch 517: the case's accession, for the secure email's subject. */
+  caseReference?: string;
+  /** Batch 517: the sender's address when the lab's gateway has none. */
+  senderEmail?: string;
   onRecord: (input: { clinicianName: string; method: NotificationMethod; readBackConfirmed?: boolean; notifiedByName: string }) => void;
   onAcknowledge: () => void;
 }
 
 export const CriticalFindingsModal: React.FC<CriticalFindingsModalProps> = ({
-  findings, defaultNotifiedByName, onRecord, onAcknowledge,
+  findings, defaultNotifiedByName, caseReference, senderEmail = '', onRecord, onAcknowledge,
 }) => {
   const { t, i18n } = useTranslation();
   const requirements = useFieldRequirements('report');
@@ -68,6 +81,8 @@ export const CriticalFindingsModal: React.FC<CriticalFindingsModalProps> = ({
   const [readBackConfirmed, setReadBackConfirmed] = useState(false);
   const [notifiedByName, setNotifiedByName] = useState(defaultNotifiedByName ?? '');
   const [busy, setBusy] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const byEmail = method === 'secure_email';
 
   const missing = criticalNotificationMissing({ clinicianName, method, notifiedByName, readBackConfirmed }, requirements);
   const canRecord = missing.length === 0;
@@ -75,10 +90,20 @@ export const CriticalFindingsModal: React.FC<CriticalFindingsModalProps> = ({
 
   const handleRecord = async () => {
     if (!canRecord || busy) return;
+    if (byEmail) { setEmailOpen(true); return; }
     setBusy(true);
     await onRecord({ clinicianName: clinicianName.trim(), method: method as NotificationMethod, readBackConfirmed, notifiedByName: notifiedByName.trim() });
     setBusy(false);
   };
+
+  // Batch 517: recorded only once the secure email has gone.
+  const recordEmailSent = async () => {
+    setEmailOpen(false);
+    setBusy(true);
+    await onRecord({ clinicianName: clinicianName.trim(), method: 'secure_email', notifiedByName: notifiedByName.trim() });
+    setBusy(false);
+  };
+  const email = criticalFindingEmail(findings, caseReference, t);
 
   // Voice/keyboard "record notification": the same Record, with the same check.
   const recordRef = useRef(handleRecord);
@@ -106,7 +131,7 @@ export const CriticalFindingsModal: React.FC<CriticalFindingsModalProps> = ({
 
           <div className="ps-conf-form-field ps-mt-16">
             <label className="ps-conf-label">{t('criticalFindingsModal.notifiedByLabel')} {required('criticalNotifiedBy') && <span className="ps-conf-required">*</span>}</label>
-            <input
+            <input aria-label={t('criticalFindingsModal.notifiedByLabel')}
               className="ps-conf-input"
               value={notifiedByName}
               onChange={e => setNotifiedByName(e.target.value)}
@@ -115,7 +140,7 @@ export const CriticalFindingsModal: React.FC<CriticalFindingsModalProps> = ({
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('amendmentModal.notification.clinicianNotifiedLabel')} {required('criticalClinician') && <span className="ps-conf-required">*</span>}</label>
-            <input
+            <input aria-label={t('amendmentModal.notification.clinicianNotifiedLabel')}
               className="ps-conf-input"
               value={clinicianName}
               onChange={e => setClinicianName(e.target.value)}
@@ -131,11 +156,15 @@ export const CriticalFindingsModal: React.FC<CriticalFindingsModalProps> = ({
               ))}
             </select>
           </div>
-          <label className="ps-conf-label ps-flex-row-gap-8 ps-conf-label--clickable">
-            <input type="checkbox" checked={readBackConfirmed} onChange={e => setReadBackConfirmed(e.target.checked)} />
-            {t('criticalFindingsModal.readBackLabel')}
-            {required('criticalReadBack') && <span className="ps-conf-required">*</span>}
-          </label>
+          {byEmail ? (
+            <p className="ps-conf-hint">{t('criticalFindingsModal.secureEmailNote')}</p>
+          ) : (
+            <label className="ps-conf-label ps-flex-row-gap-8 ps-conf-label--clickable">
+              <input type="checkbox" checked={readBackConfirmed} onChange={e => setReadBackConfirmed(e.target.checked)} />
+              {t('criticalFindingsModal.readBackLabel')}
+              {required('criticalReadBack') && <span className="ps-conf-required">*</span>}
+            </label>
+          )}
           {missing.length > 0 && (
             <p className="ps-field-still-required" role="status">
               {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) })}
@@ -147,10 +176,20 @@ export const CriticalFindingsModal: React.FC<CriticalFindingsModalProps> = ({
             {t('criticalFindingsModal.acknowledgeButton')}
           </button>
           <button className="ps-ms-btn-apply" onClick={handleRecord} disabled={busy || !canRecord}>
-            {t('criticalFindingsModal.recordButton')}
+            {t(byEmail ? 'criticalFindingsModal.composeEmailButton' : 'criticalFindingsModal.recordButton')}
           </button>
         </div>
       </div>
+      <SecureEmailModal
+        isOpen={emailOpen}
+        fromName={notifiedByName.trim() || defaultNotifiedByName || ''}
+        fromEmail={senderEmail}
+        prefillSubject={email.subject}
+        prefillBody={email.body}
+        containsPatientData
+        onClose={() => setEmailOpen(false)}
+        onSent={() => { void recordEmailSent(); }}
+      />
     </div>
   );
 };

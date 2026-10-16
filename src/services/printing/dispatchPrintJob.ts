@@ -63,6 +63,7 @@ import { facilityService } from '../index';
 import { mockPrintQueueService } from './mockPrintQueueService';
 import { mockPrintRoutingRuleService } from '../printRouting/mockPrintRoutingRuleService';
 import { resolvePrintDestination } from '../printRouting/resolvePrintDestination';
+import { redirectSiteAllowed } from '../printRouting/printDestinationRules';
 import { resolveRealPrintRoutingContext, type RealPrintRoutingContextOverrides } from '../printRouting/resolveRealPrintRoutingContext';
 import { resolvePrintPresentationOptions } from './resolvePrintPresentationOptions';
 import { attemptPrintDelivery } from './attemptPrintDelivery';
@@ -76,6 +77,8 @@ export interface DispatchPrintJobResult {
    *  made), 'failed' (a real job was queued but the real attempt
    *  itself failed — see the real, persisted PrintJob for detail). */
   outcome: 'not_configured' | 'dispatched' | 'failed';
+  /** Batch 546 (F3): false when retrying can't help (attemptPrintDelivery.ts). */
+  retriable?: boolean;
   jobId?: string;
 }
 
@@ -84,7 +87,7 @@ export async function dispatchPrintJob(
   performingFacilityId: string | undefined,
   reportType: PrintJobReportType,
   priority: 'Routine' | 'Urgent',
-  generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
+  generatePdf?: () => Promise<import('../reportDocuments/reportDocuments').ReportPdf>,
   /** Real, per PS-278 — optional and additive; `source` carries the
    *  same real 'SURGPATH' | 'CYTOLOGY' signal ReportReleasedEvent.source
    *  already does, forwarded through by publishReportReleasedEvent.ts
@@ -130,13 +133,17 @@ export async function dispatchPrintJob(
   let destination: PrintDestination | undefined;
   if (config.mode === 'DIRECT_NETWORK_PRINT') {
     const rulesRes = await mockPrintRoutingRuleService.getActive();
-    const rules = rulesRes.ok ? rulesRes.data : [];
+    // Batch 553: a rule naming another lab's site agent printer is skipped for
+    // this lab's releases (a report prints at the lab that performed it), so
+    // the next matching tier, or the facility's default, applies instead.
+    const rules = (rulesRes.ok ? rulesRes.data : []).filter(r => redirectSiteAllowed({ performingFacilityId }, r.printDestination));
     const resolution = resolvePrintDestination(rules, routingInput);
     destination = resolution.destination ?? config.directNetworkPrintDestination;
   }
 
   const enqueueRes = await mockPrintQueueService.enqueue({
     caseId,
+    performingFacilityId,
     reportType,
     mode: config.mode,
     printerName: config.printerName,
@@ -185,7 +192,7 @@ export async function dispatchPrintJob(
   // in memory, so a later Retry/Redirect (redispatchPrintJob.ts) can
   // genuinely resend without needing to re-render — see PrintJob.pdfBase64's
   // own doc comment for the full, honest account.
-  await mockPrintQueueService.persistRenderedPdf(job.id, pdfResult.pdfBase64);
+  await mockPrintQueueService.persistRenderedPdf(job.id, pdfResult.pdfBase64, { id: pdfResult.documentId, sha256: pdfResult.sha256 });
 
   return attemptPrintDelivery({
     jobId: job.id,

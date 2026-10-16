@@ -134,7 +134,7 @@ describe('AccessionPage persistent contact bleeding (PS-212; three-way since Bat
     expect(byEntry('sp-cyto-pap')?.cytologyScreening).toEqual({ persistentContactBleedingAtCollection: true });
     expect(byEntry('sp-fna-thyroid')?.cytologyScreening).toEqual({ persistentContactBleedingAtCollection: true });
     expect(byEntry('sp-kidney-native-biopsy')?.cytologyScreening).toBeUndefined();
-  }, 20000);
+  });
 
   it('No is recorded as an explicit "no" (false) on the cytology and FNA specimens', async () => {
     const specimens = await accessionPapFnaAndKidney('no');
@@ -142,11 +142,11 @@ describe('AccessionPage persistent contact bleeding (PS-212; three-way since Bat
     expect(byEntry('sp-cyto-pap')?.cytologyScreening).toEqual({ persistentContactBleedingAtCollection: false });
     expect(byEntry('sp-fna-thyroid')?.cytologyScreening).toEqual({ persistentContactBleedingAtCollection: false });
     expect(byEntry('sp-kidney-native-biopsy')?.cytologyScreening).toBeUndefined();
-  }, 20000);
+  });
 
   it('left Not recorded, nothing is recorded on any specimen', async () => {
     const specimens = await accessionPapFnaAndKidney('');
     expect(specimens).toHaveLength(3);
     for (const s of specimens) expect(s.cytologyScreening).toBeUndefined();
-  }, 20000);
+  });
 });

@@ -29,6 +29,8 @@ import { openBatches, closedBatches, openCountByNode } from '@/services/batches/
 import { formatDateTime } from '@/utils/formatDate';
 import NewContainerModal from './NewContainerModal';
 import BatchDetailView from './BatchDetailView';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const STATUS_COLOR: Record<Batch['status'], string> = {
   active: '#38bdf8', reconciling: '#f59e0b', complete: '#34d399', aborted: '#f87171',
@@ -190,6 +192,8 @@ const BatchManagementPage: React.FC = () => {
               return (
                 <button
                   key={node}
+                  type="button"
+                  aria-pressed={isActive}
                   className={`ps-wl-filter-tile ps-wl-filter-tile--hued${isActive ? ' ps-wl-filter-tile--hued-active' : ''}`}
                   title={isActive ? t('batchManagement.filterTileTitleActive', { node: t(`batchManagement.nodes.${node}`) }) : t('batchManagement.filterTileTitle', { node: t(`batchManagement.nodes.${node}`) })}
                   onClick={() => setStageFilter(isActive ? null : node)}
@@ -217,6 +221,7 @@ const BatchManagementPage: React.FC = () => {
                 longer runs through the batch/container model at all
                 (see IBatchService.ts's own header for why). */}
             <button
+              type="button"
               className="ps-wl-filter-tile ps-batch-tile--disposal"
               title={t('batchManagement.disposalTitle')}
               onClick={() => navigate('/batch-management/disposal')}
@@ -224,7 +229,7 @@ const BatchManagementPage: React.FC = () => {
               <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
                 {t('batchManagement.disposalTile')}
               </div>
-              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal">
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal" aria-hidden="true">
                 🗑️
               </div>
               <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--disposal">
@@ -238,6 +243,7 @@ const BatchManagementPage: React.FC = () => {
                 items (DisposalReportPage.tsx), never the disposal
                 action itself. */}
             <button
+              type="button"
               className="ps-wl-filter-tile ps-batch-tile--disposal-report"
               title={t('batchManagement.disposalReportTitle')}
               onClick={() => navigate('/batch-management/disposal-report')}
@@ -245,7 +251,7 @@ const BatchManagementPage: React.FC = () => {
               <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
                 {t('batchManagement.disposalReportTile')}
               </div>
-              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal-report">
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal-report" aria-hidden="true">
                 📊
               </div>
               <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--disposal-report">
@@ -275,6 +281,22 @@ const BatchManagementPage: React.FC = () => {
                 📥
               </div>
               <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--pending-load">
+                {'\u00A0'}
+              </div>
+            </button>
+            {/* Batch 518 (PS-123): reprint labels for many cases at once. */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--label-reprint"
+              title={t('batchManagement.labelReprintTitle')}
+              onClick={() => navigate('/batch-management/label-reprint')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.labelReprintTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--label-reprint">
+                🏷️
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--label-reprint">
                 {'\u00A0'}
               </div>
             </button>
@@ -346,7 +368,7 @@ const BatchManagementPage: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="ps-batch-empty">{t('batchManagement.loading')}</div>
+            <LoadingState variant="inline" className="ps-batch-empty" label={t('batchManagement.loading')} />
           ) : (
             <>
               <div className="ps-batch-section-label">{t('batchManagement.activeSectionLabel', { count: activeBatches.length })}</div>
@@ -355,7 +377,7 @@ const BatchManagementPage: React.FC = () => {
               ) : (
                 <div className="ps-batch-list">
                   {activeBatches.map(b => (
-                    <div key={b.id} className="ps-batch-row" onClick={() => setSelectedBatchId(b.id)}>
+                    <div key={b.id} className="ps-batch-row" {...pressable(() => setSelectedBatchId(b.id))}>
                       <span className="ps-batch-row-status ps-batch-row-status--hued" style={{ '--ps-hue': STATUS_COLOR[b.status] } as React.CSSProperties}>
                         {t(`batchManagement.status.${b.status}`)}
                       </span>
@@ -375,7 +397,7 @@ const BatchManagementPage: React.FC = () => {
                   <div className="ps-batch-section-label">{t('batchManagement.closedSectionLabel', { count: closedList.length })}</div>
                   <div className="ps-batch-list">
                     {closedList.map(b => (
-                      <div key={b.id} className="ps-batch-row ps-batch-row--closed" onClick={() => setSelectedBatchId(b.id)}>
+                      <div key={b.id} className="ps-batch-row ps-batch-row--closed" {...pressable(() => setSelectedBatchId(b.id))}>
                         <span className="ps-batch-row-status ps-batch-row-status--hued" style={{ '--ps-hue': STATUS_COLOR[b.status] } as React.CSSProperties}>
                           {t(`batchManagement.status.${b.status}`)}
                         </span>

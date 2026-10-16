@@ -54,7 +54,6 @@ import { registrySendDecision, type RegistrySendGate } from './registrySendGate'
 import { buildValidationRecord, checkValidationRecord, validationRecordFileName, type ValidationRecordProblem } from './registryValidationRecord';
 import type { SyntheticSubmission } from './syntheticTestSuite';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 type Actor = { id: string; name: string };
 
 /** What the pre-checks and the overlay read from the registry's configuration. */

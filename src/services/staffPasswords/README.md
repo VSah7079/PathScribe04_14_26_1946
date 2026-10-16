@@ -31,3 +31,11 @@ Pete: "In most cases I've simply defined the password in the Staff configuration
 The Staff screen and the change-at-sign-in form show the new errors in all five languages, and both hints mention the rules.
 
 Tests: `passwordScreening.test.ts` and the Batch 456 block in `mockStaffPasswordService.test.ts`.
+
+## Batch 526
+
+Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.
+
+## Batch 547
+
+Password sign-in, and the demo accounts it falls back to, exist only in the demo build (`__DEMO_TOOLS__`). A server build signs in by SSO only.

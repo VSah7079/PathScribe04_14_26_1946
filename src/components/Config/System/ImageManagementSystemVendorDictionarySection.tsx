@@ -22,8 +22,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockImageManagementSystemVendorService } from '../../../services/imageAssociation/mockImageManagementSystemVendorService';
+
 import type { ImageManagementSystemVendorEntry, NewImageManagementSystemVendorEntry, ImsDeploymentModel, ImsAuthMethod } from '../../../services/imageAssociation/IImageManagementSystemVendorService';
+import { imageManagementSystemVendorService } from '@/services';
 
 type Draft = NewImageManagementSystemVendorEntry;
 
@@ -87,7 +88,7 @@ const ImageManagementSystemVendorDictionarySection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: ImageManagementSystemVendorEntry } | null>(null);
 
   const refresh = () => {
-    mockImageManagementSystemVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
+    imageManagementSystemVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
   };
 
   useEffect(() => { refresh(); }, []);
@@ -96,17 +97,17 @@ const ImageManagementSystemVendorDictionarySection: React.FC = () => {
 
   const handleSave = async (draft: Draft) => {
     if (modal?.mode === 'edit' && modal.entry) {
-      await mockImageManagementSystemVendorService.update(modal.entry.id, draft);
+      await imageManagementSystemVendorService.update(modal.entry.id, draft);
     } else {
-      await mockImageManagementSystemVendorService.add(draft);
+      await imageManagementSystemVendorService.add(draft);
     }
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: ImageManagementSystemVendorEntry) => {
-    if (e.active) await mockImageManagementSystemVendorService.deactivate(e.id);
-    else await mockImageManagementSystemVendorService.reactivate(e.id);
+    if (e.active) await imageManagementSystemVendorService.deactivate(e.id);
+    else await imageManagementSystemVendorService.reactivate(e.id);
     refresh();
   };
 

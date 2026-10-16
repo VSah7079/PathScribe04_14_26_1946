@@ -5,15 +5,24 @@ import { saveCytologyComplianceFeatures } from './saveCytologyComplianceFeatures
 
 describe('resolveCytologyComplianceFeatures', () => {
   it('Automatic: on for a US lab, off in every other jurisdiction', () => {
-    expect(resolveCytologyComplianceFeatures('US', null, null)).toEqual({ workloadCap: true, fiveYearLookback: true });
+    expect(resolveCytologyComplianceFeatures('US', null, null)).toEqual({ workloadCap: true, fiveYearLookback: true, preliminarySignature: true });
     for (const j of ['GB_EW', 'GB_SCT', 'IE', 'NL', 'DE', 'FR', 'BE', 'AU', 'NZ', 'KR', 'CA'] as const) {
-      expect(resolveCytologyComplianceFeatures(j, {}, null), j).toEqual({ workloadCap: false, fiveYearLookback: false });
+      expect(resolveCytologyComplianceFeatures(j, {}, null), j).toEqual({ workloadCap: false, fiveYearLookback: false, preliminarySignature: true });
     }
   });
   it('the enterprise can switch each one; a facility\'s own setting wins', () => {
-    expect(resolveCytologyComplianceFeatures('GB_EW', { workloadCap: 'on' }, null)).toEqual({ workloadCap: true, fiveYearLookback: false });
+    expect(resolveCytologyComplianceFeatures('GB_EW', { workloadCap: 'on' }, null)).toEqual({ workloadCap: true, fiveYearLookback: false, preliminarySignature: true });
     expect(resolveCytologyComplianceFeatures('US', { fiveYearLookback: 'off' }, null).fiveYearLookback).toBe(false);
     expect(resolveCytologyComplianceFeatures('US', { workloadCap: 'off' }, { workloadCap: 'auto' }).workloadCap).toBe(true);
+  });
+});
+
+describe('Batch 533: the preliminary report signature', () => {
+  it('Automatic requires it in every jurisdiction; the enterprise or a facility can switch it off', () => {
+    expect(resolveCytologyComplianceFeatures(undefined, null, null).preliminarySignature).toBe(true);
+    expect(resolveCytologyComplianceFeatures('KR', null, null).preliminarySignature).toBe(true);
+    expect(resolveCytologyComplianceFeatures('US', { preliminarySignature: 'off' }, null).preliminarySignature).toBe(false);
+    expect(resolveCytologyComplianceFeatures('US', { preliminarySignature: 'off' }, { preliminarySignature: 'on' }).preliminarySignature).toBe(true);
   });
 });
 

@@ -2,7 +2,9 @@
 
 **NEW (Sep 2026)** — PS-285, second of the PS-284→285→286→287→288 workstation-build sequence. A dedicated, bench-facing surface for the embedding tech: scan a cassette barcode, confirm the piece count against what was recorded at grossing (or one-touch flag a genuine discrepancy), pick a base mold size and record orientation instructions, group split cassettes from one specimen so they're all embedded together, and reprint a damaged/wax-obscured cassette label with a mandatory reason. Built to visually match `MicrotomyWorkstationPage.tsx`/`GrossingScreenPage.tsx` (same header/back-button pattern, same `ps-overlay`/`ps-modal-dark` modal convention, same dark palette) per the same direct visual-consistency guidance PS-284 followed — sibling workstation to sibling workstation.
 
-**Route**: `/workstations/embedding` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group, for the identical reason `MicrotomyWorkstationPage.tsx`'s own README states: an embedding tech works cassette-by-cassette across many cases in a single shift. Lives in the same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx` as Microtomy. Reachable from a new tile on `Home.tsx`.
+**Route**: `/workstations/embedding` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group, for the identical reason `MicrotomyWorkstationPage.tsx`'s own README states: an embedding tech works cassette-by-cassette across many cases in a single shift. Lives in the same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx` as Microtomy. Reached from its tile on the Pathology Workspace hub (`/pathology-workspace`, `PathologyWorkspacePage.tsx`); the route needs `screen:embedding:open`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the tile is on the Pathology Workspace hub, not `Home.tsx` (`PathologyWorkspacePage.tsx`, `App.tsx` ScreenGate `embedding`).*
 
 ## Files
 
@@ -22,7 +24,7 @@
 
 ## Notes
 
-- Built with `useTranslation()` from the start — every visible string goes through the `embeddingStation.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). Only the new `home.embeddingTile.*` strings were converted in the not-yet-fully-converted `Home.tsx`, same precedent as the Microtomy tile before it.
+- Built with `useTranslation()` from the start — every visible string goes through the `embeddingStation.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). Only the new `home.embeddingTile.*` strings were converted in the not-yet-fully-converted `Home.tsx` *(since moved: the tile's strings are now `pathologyWorkspace.embeddingTile.*` on the Pathology Workspace hub — checked in the Batch 496 README audit)*, same precedent as the Microtomy tile before it.
 - **Multi-Cassette / Split-Block Tracking is deliberately the opposite concept from the pre-existing `sharedCassetteId`** (multiple *specimens* sharing one cassette): `splitBlockGroupId` covers one *specimen's* tissue split across several cassettes (A1/A2/A3). The two fields are never conflated or cross-checked against each other in this pass.
 - **Biopsy/Needle Core alert badges are deliberately NOT new stored booleans** — they're derived live from the specimen's own linked `SpecimenEntry.type`/`procedure` (looked up once per work item), never a second, driftable copy of a fact the dictionary entry already states.
 - **"Audit Triggers: routes an alert to the histotechnology supervisor"** is implemented as the real, existing `def-tissue-discrepancy` deficiency landing in the real, existing QA working queue (`QualityAssurancePage.tsx`) supervisors already monitor — not a new, separate paging/notification channel.
@@ -59,3 +61,7 @@ The page follows the organisation's Field Requirements (page "embedding", `servi
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`useEmbeddingStation` refuses an unreadable observed piece count explicitly. The required-field check before it already did, so nothing changes.

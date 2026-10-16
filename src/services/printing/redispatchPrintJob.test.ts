@@ -3,7 +3,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('./mockPrintQueueService', () => ({
   mockPrintQueueService: { getById: vi.fn(), markFailed: vi.fn(), retryDispatch: vi.fn(), redirectPrintJob: vi.fn() },
+  PRINT_JOB_NOT_PERMITTED: 'PRINT_JOB_NOT_PERMITTED',
 }));
+// Batch 515: the user actions check their capability; `allowed` switches the answer.
+const auth = vi.hoisted(() => ({ allowed: true, asked: [] as string[] }));
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async (capability: string) => { auth.asked.push(capability); return { allowed: auth.allowed }; } },
+}));
+
+// Batch 556: the stored document is read through the report document store (and the API server when there is one).
+const documents = vi.hoisted(() => ({ reportDocumentService: { read: vi.fn() } }));
+vi.mock('../reportDocuments/reportDocumentInstance', () => documents);
 vi.mock('./attemptPrintDelivery', () => ({
   attemptPrintDelivery: vi.fn(),
 }));
@@ -18,6 +28,7 @@ const baseJob = {
 };
 
 beforeEach(() => {
+  auth.allowed = true; auth.asked = [];
   vi.mocked(mockPrintQueueService.getById).mockReset();
   vi.mocked(mockPrintQueueService.markFailed).mockReset().mockResolvedValue({ ok: true, data: {} } as any);
   vi.mocked(mockPrintQueueService.retryDispatch).mockReset().mockResolvedValue({ ok: true, data: {} } as any);
@@ -114,5 +125,41 @@ describe('redirectAndRedispatchManyPrintJobs — real, sequential bulk redirect+
     expect(mockPrintQueueService.redirectPrintJob).toHaveBeenCalledWith('job-1', destination, 'admin1');
     expect(mockPrintQueueService.redirectPrintJob).toHaveBeenCalledWith('job-2', destination, 'admin1');
     expect(results).toHaveLength(2);
+  });
+});
+
+describe('redispatchPrintJob — permission (Batch 515, PS-283)', () => {
+  it('a Retry needs print:job:retry; refused, nothing is re-queued or sent', async () => {
+    auth.allowed = false;
+    expect(await redispatchPrintJob('job-1')).toEqual({ outcome: 'refused', jobId: 'job-1' });
+    expect(mockPrintQueueService.retryDispatch).not.toHaveBeenCalled();
+    expect(attemptPrintDelivery).not.toHaveBeenCalled();
+    expect(auth.asked).toEqual(['print:job:retry']);
+  });
+
+  it('a bulk retry checks once', async () => {
+    vi.mocked(mockPrintQueueService.getById).mockResolvedValue({ ok: true, data: baseJob } as any);
+    await redispatchManyPrintJobs(['job-1', 'job-2']);
+    expect(auth.asked).toEqual(['print:job:retry']);
+  });
+
+  it('a redirect the queue service refuses is reported as refused, and nothing is sent', async () => {
+    vi.mocked(mockPrintQueueService.redirectPrintJob).mockResolvedValueOnce({ ok: false, error: 'PRINT_JOB_NOT_PERMITTED' } as any);
+    const res = await redirectAndRedispatchPrintJob('job-1', { protocol: 'RAW_9100', ipAddress: '10.0.0.9' }, 'admin');
+    expect(res).toEqual({ outcome: 'refused', jobId: 'job-1' });
+    expect(attemptPrintDelivery).not.toHaveBeenCalled();
+  });
+});
+
+describe('Batch 556: a stored document the server can\'t give right now', () => {
+  it('keeps the job retryable when the server doesn\'t answer, and fails it for good when the document changed', async () => {
+    vi.mocked(mockPrintQueueService.getById).mockResolvedValue({ ok: true, data: { ...baseJob, pdfBase64: undefined, reportDocumentId: 'rdoc-1' } } as any);
+    documents.reportDocumentService.read.mockResolvedValueOnce({ ok: false, error: 'unavailable' });
+    await redispatchPrintJob('job-1');
+    expect(mockPrintQueueService.markFailed).toHaveBeenLastCalledWith('job-1', expect.objectContaining({ maxRetriesExceeded: false }));
+    documents.reportDocumentService.read.mockResolvedValueOnce({ ok: false, error: 'integrity' });
+    await redispatchPrintJob('job-1');
+    expect(mockPrintQueueService.markFailed).toHaveBeenLastCalledWith('job-1', expect.objectContaining({ maxRetriesExceeded: true }));
+    expect(documents.reportDocumentService.read).toHaveBeenCalledWith('rdoc-1', 'send');
   });
 });

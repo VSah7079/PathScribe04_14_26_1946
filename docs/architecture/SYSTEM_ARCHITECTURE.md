@@ -30,7 +30,7 @@ Report page renders a genuinely different right-hand panel
 
 ## The service layer pattern
 
-The great majority of `src/services/`'s 78 domain folders follow one
+The great majority of `src/services/`'s domain folders (about 170 today) follow one
 real, consistent shape:
 
 - `I<Domain>Service.ts` — the interface (contract).
@@ -53,6 +53,8 @@ with inline `// REAL: fetch(...)` markers rather than a class
 implementing an interface. See `services/README.md` for the full index
 and which domains deviate, and why.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `src/services/` has about 170 folders, not 78.*
+
 ## Firestore migration status
 
 Firestore is real infrastructure, not aspirational — `firestore.rules`
@@ -73,9 +75,15 @@ through PS-36).
 Real optimistic-concurrency conflict detection exists
 (`services/cases/ConcurrencyConflictError.ts`, a real `expectedVersion`
 parameter on `updateCase()`, a real, visible UI warning when a
-conflict is detected) — but it isn't universally applied across every
-save path, and detected conflicts aren't currently audit-logged. See
-PS-71 for the specific, real gaps.
+conflict is detected). Since Batch 458 (PS-71) every case save carries
+its version through `services/cases/caseWrite.ts`
+(`updateCaseWithRetry` for system saves, `overwriteAfterConflict` for
+the person's audited Overwrite, which needs
+`case:edit-conflict:override`), and `caseWriteVersion.guard.test.ts`
+fails on any case save without a version. Server contract:
+`CASE_API.md`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this said versioning wasn't applied to every save path and conflicts weren't audited; both were closed in Batch 458.*
 
 ## AI integration
 
@@ -85,10 +93,12 @@ Two real subsystems, genuinely different in purpose:
   generation and field-suggestion engine
   (`suggestSynopticFields()` with per-field confidence + source-text
   provenance).
-- **`orchestrator/`** — "Layer 2" (context building —
-  `contextBuilder.ts`, `narrativeTemplateRegistry.ts`) and "Layer 3"
+- **`src/orchestrator/`** — "Layer 2" (context building —
+  `contextBuilder.ts`, which resolves the narrative template through
+  the report template's Parts/Assembly; the old
+  `narrativeTemplateRegistry.ts` is retired) and "Layer 3"
   (generation — `orchestratorEngine.ts`) of the actual narrative
-  assembly pipeline.
+  assembly pipeline. *(Corrected in the Batch 496 README audit, Oct 9, 2026: `narrativeTemplateRegistry.ts` no longer exists; see the comment in `contextBuilder.ts`.)*
 
 Provider abstraction (`services/ai/providers/`) supports multiple real
 backends (Anthropic, OpenAI-shape, Azure, Bedrock, Gemini) behind one
@@ -121,10 +131,16 @@ plurality.
 Real, tenant-aware access control exists
 (`services/auth/caseAccessControl.ts`) — this is a client-side-only
 control today (a real server-side query-enforcement layer is a
-separate, tracked backend requirement, not yet built). A second,
-planned-but-not-built layer — platform-level, cross-customer
-restrictions no single customer's admin should be able to touch — is
-scoped in `ACCESS_CONTROL_PLAN.md` in this same folder.
+separate, tracked backend requirement, not yet built). Capabilities
+(`services/authorization/`, PS-355) are checked in the services that do
+the work. The platform-level layer — restrictions no single customer's
+admin should be able to touch — is built in the browser since Batch 371
+(Superadmin is ForMedrixAI support only; `platformOnly` capabilities in
+the `platform:` domain). Its server side, a separate ForMedrix identity
+tenant, is scoped in `ACCESS_CONTROL_PLAN.md` in this same folder and
+not built.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the platform-level layer was described as not built; the browser side has existed since Batch 371.*
 
 ## Where to go next
 

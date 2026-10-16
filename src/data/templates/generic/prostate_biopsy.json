@@ -537,30 +537,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "primary_gleason_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "primary_gleason_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "primary_gleason_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "primary_gleason_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "primary_gleason_grade_opt_1", "label": "Pattern 3", "snomed": "", "icd": "" },
+            { "id": "primary_gleason_grade_opt_2", "label": "Pattern 4", "snomed": "", "icd": "" },
+            { "id": "primary_gleason_grade_opt_3", "label": "Pattern 5", "snomed": "", "icd": "" },
+            { "id": "primary_gleason_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -573,30 +553,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "secondary_gleason_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "secondary_gleason_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "secondary_gleason_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "secondary_gleason_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "secondary_gleason_grade_opt_1", "label": "Pattern 3", "snomed": "", "icd": "" },
+            { "id": "secondary_gleason_grade_opt_2", "label": "Pattern 4", "snomed": "", "icd": "" },
+            { "id": "secondary_gleason_grade_opt_3", "label": "Pattern 5", "snomed": "", "icd": "" },
+            { "id": "secondary_gleason_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -609,42 +569,12 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "gleason_score_total_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "gleason_score_total_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "gleason_score_total_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "gleason_score_total_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "gleason_score_total_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "gleason_score_total_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "gleason_score_total_opt_1", "label": "6 (3+3)", "snomed": "", "icd": "" },
+            { "id": "gleason_score_total_opt_2", "label": "7 (3+4)", "snomed": "", "icd": "" },
+            { "id": "gleason_score_total_opt_3", "label": "7 (4+3)", "snomed": "", "icd": "" },
+            { "id": "gleason_score_total_opt_4", "label": "8", "snomed": "", "icd": "" },
+            { "id": "gleason_score_total_opt_5", "label": "9", "snomed": "", "icd": "" },
+            { "id": "gleason_score_total_opt_6", "label": "10", "snomed": "", "icd": "" }
           ],
           "note": ""
         },
@@ -657,42 +587,12 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "grade_group_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "grade_group_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "grade_group_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "grade_group_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "grade_group_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "grade_group_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "grade_group_opt_1", "label": "Grade Group 1 (Gleason ≤6)", "snomed": "", "icd": "" },
+            { "id": "grade_group_opt_2", "label": "Grade Group 2 (3+4=7)", "snomed": "", "icd": "" },
+            { "id": "grade_group_opt_3", "label": "Grade Group 3 (4+3=7)", "snomed": "", "icd": "" },
+            { "id": "grade_group_opt_4", "label": "Grade Group 4 (8)", "snomed": "", "icd": "" },
+            { "id": "grade_group_opt_5", "label": "Grade Group 5 (9–10)", "snomed": "", "icd": "" },
+            { "id": "grade_group_opt_6", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": ""
         },

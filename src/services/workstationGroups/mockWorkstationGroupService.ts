@@ -4,6 +4,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { WorkstationGroup, IWorkstationGroupService } from './IWorkstationGroupService';
 import { FUNCTIONAL_AREAS_BY_DISCIPLINE } from './IWorkstationGroupService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'workstation_groups';
 
@@ -13,11 +14,11 @@ const STORAGE_KEY = 'workstation_groups';
 // (a real, longstanding gap there had to be fixed retroactively).
 const WORKSTATION_GROUP_VERSION = '1';
 const VERSION_KEY = 'pathscribe_mock_workstation_groups_version';
-if (typeof localStorage !== 'undefined') {
+if (typeof dataStorage !== 'undefined') {
   try {
-    if (localStorage.getItem(VERSION_KEY) !== WORKSTATION_GROUP_VERSION) {
-      localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-      localStorage.setItem(VERSION_KEY, WORKSTATION_GROUP_VERSION);
+    if (dataStorage.getItem(VERSION_KEY) !== WORKSTATION_GROUP_VERSION) {
+      dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+      dataStorage.setItem(VERSION_KEY, WORKSTATION_GROUP_VERSION);
     }
   } catch { /* SSR / sandboxed env — ignore */ }
 }

@@ -32,8 +32,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockConcordanceReviewSettingsService } from '../../../services/qualitySettings/mockConcordanceReviewSettingsService';
+
 import type { ConcordanceReviewOrgConfig } from '../../../services/qualitySettings/IConcordanceReviewSettingsService';
+import { concordanceReviewSettingsService } from '@/services';
 
 // ─── Small reusable toggle (same, local pattern ReleaseBufferSection.tsx/
 //     FontsSection.tsx each already keep their own copy of) ───────────────────
@@ -88,7 +89,7 @@ const ConcordanceReviewSettingsSection: React.FC = () => {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    mockConcordanceReviewSettingsService.getOrgDefault().then(res => {
+    concordanceReviewSettingsService.getOrgDefault().then(res => {
       if (res.ok) setConfig(res.data);
       setLoading(false);
     });
@@ -96,7 +97,7 @@ const ConcordanceReviewSettingsSection: React.FC = () => {
 
   const persist = async (next: ConcordanceReviewOrgConfig) => {
     setConfig(next);
-    const res = await mockConcordanceReviewSettingsService.setOrgDefault(next);
+    const res = await concordanceReviewSettingsService.setOrgDefault(next);
     if (res.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);

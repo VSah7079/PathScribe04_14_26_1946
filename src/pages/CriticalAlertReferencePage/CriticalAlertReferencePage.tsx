@@ -29,9 +29,11 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { useParams } from 'react-router';
-import { mockCriticalAlertReferenceTokenService } from '@/services/clinical/mockCriticalAlertReferenceTokenService';
+
 import { resolveCriticalAlertReferenceTokenStatus } from '@/services/clinical/ICriticalAlertReferenceTokenService';
 import type { CriticalAlertReferenceToken } from '@/services/clinical/ICriticalAlertReferenceTokenService';
+import { criticalAlertReferenceTokenService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const DisclosureBanner: React.FC = () => (
   <div className="ps-critalert-disclosure-banner">
@@ -54,7 +56,7 @@ const CriticalAlertReferencePage: React.FC = () => {
     let cancelled = false;
     if (!token) { setStatus('invalid'); return; }
 
-    mockCriticalAlertReferenceTokenService.resolve(token).then(res => {
+    criticalAlertReferenceTokenService.resolve(token).then(res => {
       if (cancelled) return;
       if (!res.ok) { setStatus('invalid'); return; }
       setRecord(res.data);
@@ -62,7 +64,7 @@ const CriticalAlertReferencePage: React.FC = () => {
       setStatus('ready');
       // Recorded once per real page view, not on every resolve() — same
       // real posture as consultAccess's own recordAccess() doc comment.
-      mockCriticalAlertReferenceTokenService.recordAccess(res.data.id);
+      criticalAlertReferenceTokenService.recordAccess(res.data.id);
     });
 
     return () => { cancelled = true; };
@@ -71,13 +73,13 @@ const CriticalAlertReferencePage: React.FC = () => {
   const handleAcknowledge = async () => {
     if (!record) return;
     setAcknowledging(true);
-    const res = await mockCriticalAlertReferenceTokenService.recordAcknowledged(record.id);
+    const res = await criticalAlertReferenceTokenService.recordAcknowledged(record.id);
     setAcknowledging(false);
     if (res.ok) { setRecord(res.data); setAcknowledged(true); }
   };
 
   if (status === 'loading') {
-    return <div className="ps-critalert-shell"><div className="ps-critalert-card ps-critalert-card--loading">{t('criticalAlertReferencePage.loading')}</div></div>;
+    return <div className="ps-critalert-shell"><LoadingState variant="inline" className="ps-critalert-card ps-critalert-card--loading" label={t('criticalAlertReferencePage.loading')} /></div>;
   }
 
   if (status === 'invalid' || !record) {

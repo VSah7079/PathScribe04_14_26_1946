@@ -22,13 +22,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockCytologyScreeningStrategyService } from '../../../services/cytology/mockCytologyScreeningStrategyService';
-import { mockFacilityCytologyScreeningStrategyOverrideService } from '../../../services/cytology/mockFacilityCytologyScreeningStrategyOverrideService';
-import { mockFacilityService } from '../../../services/facilities/mockFacilityService';
+
 import type { CytologyScreeningStrategy } from '../../../services/cytology/ICytologyScreeningStrategyService';
 import type { FacilityCytologyScreeningStrategyOverride } from '../../../services/cytology/IFacilityCytologyScreeningStrategyOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { cytologyScreeningStrategyService, facilityCytologyScreeningStrategyOverrideService, facilityService } from '@/services';
 
 const STRATEGIES: { id: CytologyScreeningStrategy; labelKey: string }[] = [
   { id: 'co_testing', labelKey: 'cytologyScreeningStrategySection.strategies.coTesting' },
@@ -48,11 +47,11 @@ const CytologyScreeningStrategySection: React.FC = () => {
   useReportConfigDirty(enterpriseDraft !== savedEnterprise || addingFacility !== null);
 
   const refresh = () => {
-    mockCytologyScreeningStrategyService.get().then(r => { if (r.ok) { setEnterpriseDraft(r.data.screeningStrategy); setSavedEnterprise(r.data.screeningStrategy); } });
-    mockFacilityService.getAll().then(r => {
+    cytologyScreeningStrategyService.get().then(r => { if (r.ok) { setEnterpriseDraft(r.data.screeningStrategy); setSavedEnterprise(r.data.screeningStrategy); } });
+    facilityService.getAll().then(r => {
       if (!r.ok) return;
       setFacilities(r.data);
-      Promise.all(r.data.map(f => mockFacilityCytologyScreeningStrategyOverrideService.getForFacility(f.id))).then(overrides => {
+      Promise.all(r.data.map(f => facilityCytologyScreeningStrategyOverrideService.getForFacility(f.id))).then(overrides => {
         setFacilityOverrides(overrides.filter((o): o is { ok: true; data: FacilityCytologyScreeningStrategyOverride } => o.ok && !!o.data).map(o => o.data));
       });
     });
@@ -62,7 +61,7 @@ const CytologyScreeningStrategySection: React.FC = () => {
 
   const saveEnterprise = async () => {
     setSaving(true);
-    await mockCytologyScreeningStrategyService.update({ screeningStrategy: enterpriseDraft });
+    await cytologyScreeningStrategyService.update({ screeningStrategy: enterpriseDraft });
     setSaving(false);
     refresh();
   };
@@ -80,7 +79,7 @@ const CytologyScreeningStrategySection: React.FC = () => {
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">{t('cytologyQcSettingsSection.enterprise.title')}</div>
         <div className="ps-conf-row-actions">
-          <select className="ps-conf-select" value={enterpriseDraft} onChange={e => setEnterpriseDraft(e.target.value as CytologyScreeningStrategy)}>
+          <select aria-label={t('cytologyQcSettingsSection.enterprise.title')} className="ps-conf-select" value={enterpriseDraft} onChange={e => setEnterpriseDraft(e.target.value as CytologyScreeningStrategy)}>
             {STRATEGIES.map(s => (<option key={s.id} value={s.id}>{t(s.labelKey)}</option>))}
           </select>
           <button className="ps-conf-btn-primary" onClick={saveEnterprise} disabled={saving}>{t('common.save')}</button>
@@ -101,7 +100,7 @@ const CytologyScreeningStrategySection: React.FC = () => {
             <span className="ps-conf-value">{facilityName(o.facilityId)}</span>
             <div className="ps-conf-row-actions">
               <span className="ps-conf-value">{o.overrides.screeningStrategy ? strategyLabel(o.overrides.screeningStrategy) : '—'}</span>
-              <button className="ps-conf-btn-secondary" onClick={async () => { await mockFacilityCytologyScreeningStrategyOverrideService.remove(o.facilityId); refresh(); }}>{t('common.remove')}</button>
+              <button className="ps-conf-btn-secondary" onClick={async () => { await facilityCytologyScreeningStrategyOverrideService.remove(o.facilityId); refresh(); }}>{t('common.remove')}</button>
             </div>
           </div>
         ))}
@@ -111,15 +110,15 @@ const CytologyScreeningStrategySection: React.FC = () => {
 
         {addingFacility && (
           <div className="ps-conf-row">
-            <select className="ps-conf-select" value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}>
+            <select aria-label={t('a11y.fields.facility')} className="ps-conf-select" value={addingFacility.facilityId} onChange={e => setAddingFacility({ ...addingFacility, facilityId: e.target.value })}>
               {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
             <div className="ps-conf-row-actions">
-              <select className="ps-conf-select" value={addingFacility.strategy} onChange={e => setAddingFacility({ ...addingFacility, strategy: e.target.value as CytologyScreeningStrategy })}>
+              <select aria-label={t('a11y.fields.screeningStrategy')} className="ps-conf-select" value={addingFacility.strategy} onChange={e => setAddingFacility({ ...addingFacility, strategy: e.target.value as CytologyScreeningStrategy })}>
                 {STRATEGIES.map(s => (<option key={s.id} value={s.id}>{t(s.labelKey)}</option>))}
               </select>
               <button className="ps-conf-btn-primary" onClick={async () => {
-                await mockFacilityCytologyScreeningStrategyOverrideService.create(addingFacility.facilityId, { screeningStrategy: addingFacility.strategy });
+                await facilityCytologyScreeningStrategyOverrideService.create(addingFacility.facilityId, { screeningStrategy: addingFacility.strategy });
                 setAddingFacility(null); refresh();
               }}>{t('common.save')}</button>
               <button className="ps-conf-btn-secondary" onClick={() => setAddingFacility(null)}>{t('common.cancel')}</button>

@@ -52,6 +52,8 @@ vi.mock('@/services', () => ({
 }));
 
 // The Complete grossing button's capability check is CapabilityButton's own concern (tested there).
+// Batch 530: the clinical history line has its own tests (CaseClinicalHistoryBar.test.tsx).
+vi.mock('@/components/ClinicalHistory/CaseClinicalHistoryBar', () => ({ CaseClinicalHistoryBar: () => null }));
 vi.mock('@/components/Common/CapabilityButton', () => ({
   CapabilityButton: ({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) => (
     <button type="button" onClick={onClick} disabled={disabled}>{children}</button>
@@ -73,6 +75,8 @@ vi.mock('./hooks/useGrossingScreen', () => ({
     handleRaiseFixationDeficiency: vi.fn(), specimensWithOpenFixationDeficiency: new Set<string>(),
     // Batch 481 (Structured Inking, Module 2).
     handleRecordMarginInk: vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-1' }),
+    // Structured Inking, Module 3 (PS-359 follow-up).
+    inkColors: [], inkingValidation: { issues: [], blocked: false }, inkingValidationMode: 'WARN_ONLY',
     ...hookOverrides.current,
   }),
 }));
@@ -246,14 +250,22 @@ describe('GrossingScreenPage — Margins & Ink Applications (Batch 481)', () => 
     expect(screen.getByText('grossingScreen.margins.status.pending')).not.toBeNull();
   });
 
+  // Structured Inking, Module 3 (PS-359 follow-up): the margin/ink forms'
+  // free-text colour inputs are now a <select> from the active ink-colour
+  // palette (services/inkColors/) — these tests select by colorCode and
+  // assert the hook still receives both colorCode and the matching colorName.
+  const ACTIVE_INK_COLORS = [
+    { id: 'ink-blue', name: 'Blue', code: '#0000FF', active: true, createdAt: '', updatedAt: '' },
+    { id: 'ink-green', name: 'Green', code: '#00FF00', active: true, createdAt: '', updatedAt: '' },
+  ];
+
   it('submits a new margin with the right input shape, attached to the specimen by default', async () => {
     const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-new' });
-    hookOverrides.current = { handleRecordMarginInk };
+    hookOverrides.current = { handleRecordMarginInk, inkColors: ACTIVE_INK_COLORS };
     await renderGrossingScreen();
     fireEvent.click(screen.getByText(/grossingScreen.margins.addMargin/));
     fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder'), { target: { value: 'Deep' } });
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Blue' } });
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#0000FF' } });
+    fireEvent.change(screen.getByDisplayValue('grossingScreen.margins.selectColorPlaceholder'), { target: { value: '#0000FF' } });
     fireEvent.click(screen.getByText('common.add'));
     await waitFor(() => expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.objectContaining({
       specimenId: 'sp1', blockId: undefined, marginName: 'Deep', colorName: 'Blue', colorCode: '#0000FF', examined: true,
@@ -262,20 +274,19 @@ describe('GrossingScreenPage — Margins & Ink Applications (Batch 481)', () => 
 
   it('submitting a new margin attached to a block passes that blockId', async () => {
     const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-new' });
-    hookOverrides.current = { handleRecordMarginInk };
+    hookOverrides.current = { handleRecordMarginInk, inkColors: ACTIVE_INK_COLORS };
     await renderGrossingScreen();
     fireEvent.click(screen.getByText(/grossingScreen.margins.addMargin/));
     fireEvent.change(screen.getByDisplayValue('grossingScreen.margins.attachToSpecimen'), { target: { value: 'blk-1' } });
     fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder'), { target: { value: 'Deep' } });
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Blue' } });
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#0000FF' } });
+    fireEvent.change(screen.getByDisplayValue('grossingScreen.margins.selectColorPlaceholder'), { target: { value: '#0000FF' } });
     fireEvent.click(screen.getByText('common.add'));
     await waitFor(() => expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.objectContaining({ specimenId: 'sp1', blockId: 'blk-1' })));
   });
 
   it('appends a further ink application to an existing margin, with its marginId, never re-sending the name', async () => {
     const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-1' });
-    hookOverrides.current = { handleRecordMarginInk };
+    hookOverrides.current = { handleRecordMarginInk, inkColors: ACTIVE_INK_COLORS };
     const caseWithMargin = {
       ...TEST_CASE,
       specimens: [{
@@ -285,8 +296,7 @@ describe('GrossingScreenPage — Margins & Ink Applications (Batch 481)', () => 
     };
     await renderGrossingScreen(caseWithMargin);
     fireEvent.click(screen.getByText(/grossingScreen.margins.addInk/));
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Green' } });
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#00FF00' } });
+    fireEvent.change(screen.getByDisplayValue('grossingScreen.margins.selectColorPlaceholder'), { target: { value: '#00FF00' } });
     fireEvent.click(screen.getByText('common.save'));
     await waitFor(() => expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.objectContaining({
       specimenId: 'sp1', marginId: 'margin-1', colorName: 'Green', colorCode: '#00FF00',
@@ -294,17 +304,54 @@ describe('GrossingScreenPage — Margins & Ink Applications (Batch 481)', () => 
     expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.not.objectContaining({ marginName: expect.anything() }));
   });
 
-  it('shows the real error message and leaves the form open when the save fails', async () => {
-    const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: false, error: 'Recording a margin ink application needs the grossing:margin-ink:record permission' });
-    hookOverrides.current = { handleRecordMarginInk };
+  it('shows the refusal, worded from its reason code, and leaves the form open when the save fails', async () => {
+    const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: false, error: 'Recording a margin ink application needs the grossing:margin-ink:record permission', reasonCode: 'notPermitted' });
+    hookOverrides.current = { handleRecordMarginInk, inkColors: ACTIVE_INK_COLORS };
     await renderGrossingScreen();
     fireEvent.click(screen.getByText(/grossingScreen.margins.addMargin/));
     fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder'), { target: { value: 'Deep' } });
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Blue' } });
-    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#0000FF' } });
+    fireEvent.change(screen.getByDisplayValue('grossingScreen.margins.selectColorPlaceholder'), { target: { value: '#0000FF' } });
     fireEvent.click(screen.getByText('common.add'));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('grossing:margin-ink:record'));
+    // Batch 513: the service's English diagnostic is never shown; the reason code is translated.
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('grossingScreen.margins.reason.notPermitted'));
     // The form stays open on failure, not silently reset — its input is still here.
     expect(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder')).not.toBeNull();
+  });
+
+  // Structured Inking, Module 3 (PS-359 follow-up): the severity engine's
+  // own advisory display — pure pass-through of the hook's inkingValidation.
+  it('shows a severity badge for each real issue the hook reports against this margin', async () => {
+    const caseWithMargin = {
+      ...TEST_CASE,
+      specimens: [{
+        ...TEST_CASE.specimens[0],
+        margins: [{ id: 'margin-1', name: 'Deep', examinationStatus: 'pending', inkApplications: [] }],
+      }],
+    };
+    hookOverrides.current = {
+      inkingValidation: {
+        issues: [
+          { severity: 2, code: 'margin_not_examined', specimenId: 'sp1', marginId: 'margin-1', marginName: 'Deep' },
+          { severity: 2, code: 'margin_no_ink_applied', specimenId: 'sp1', marginId: 'margin-1', marginName: 'Deep' },
+        ],
+        blocked: false,
+      },
+    };
+    await renderGrossingScreen(caseWithMargin);
+    expect(screen.getByText('grossingScreen.margins.issues.margin_not_examined')).not.toBeNull();
+    expect(screen.getByText('grossingScreen.margins.issues.margin_no_ink_applied')).not.toBeNull();
+  });
+
+  it('shows the Strict Enforce mode notice when the hook reports it, and Warn & Advisory otherwise', async () => {
+    const caseWithMargin = {
+      ...TEST_CASE,
+      specimens: [{
+        ...TEST_CASE.specimens[0],
+        margins: [{ id: 'margin-1', name: 'Deep', examinationStatus: 'examined', inkApplications: [] }],
+      }],
+    };
+    hookOverrides.current = { inkingValidationMode: 'STRICT_ENFORCE' };
+    await renderGrossingScreen(caseWithMargin);
+    expect(screen.getByText('grossingScreen.margins.validationNotice.strictEnforce')).not.toBeNull();
   });
 });

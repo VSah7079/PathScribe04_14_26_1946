@@ -16,15 +16,16 @@
 export type ValidationStudyGrade = 'PASS' | 'CONDITIONAL PASS' | 'FURTHER REVIEW';
 
 export interface ValidationStudyGradeResult {
+  /** Persisted as ValidationStudy.finalGrade: a stored code, so it stays English. */
   grade: ValidationStudyGrade;
   color: string;
-  /** Feeds only the printed/exported validation report and the
-   *  persisted ValidationStudy.finalGrade — never rendered as
-   *  on-screen UI chrome — so, per this codebase's established
-   *  "exported/persisted data stays English" convention (the same
-   *  one CSV export headers and audit-log text follow), it stays a
-   *  plain English string rather than a translation key. */
-  description: string;
+  /** Batch 514 (Pete, Oct 10, 2026): the printed report is translated, so the
+   *  grade's wording comes from validationStudies.printReport.grade.<key> and
+   *  .gradeDescription.<key> in the reader's language. It used to be English
+   *  description text here, on the reasoning that the report was a compliance
+   *  artifact like the audit log; Pete decided the report follows the user's
+   *  language. The stored grade code above is unchanged. */
+  key: 'pass' | 'conditionalPass' | 'furtherReview';
 }
 
 /**
@@ -44,7 +45,7 @@ export function computeValidationStudyGrade(
 ): ValidationStudyGradeResult {
   const passes = acceptanceRate >= targetAcceptanceRate && editRatio <= targetMaxEditRatio;
   const partial = acceptanceRate >= targetAcceptanceRate * 0.85;
-  if (passes)  return { grade: 'PASS',             color: '#10b981', description: 'Performance meets study targets' };
-  if (partial) return { grade: 'CONDITIONAL PASS', color: '#f59e0b', description: 'Performance approaches targets — extended study recommended' };
-  return        { grade: 'FURTHER REVIEW',         color: '#ef4444', description: 'Performance below targets — review AI configuration' };
+  if (passes)  return { grade: 'PASS',             color: '#10b981', key: 'pass' };
+  if (partial) return { grade: 'CONDITIONAL PASS', color: '#f59e0b', key: 'conditionalPass' };
+  return        { grade: 'FURTHER REVIEW',         color: '#ef4444', key: 'furtherReview' };
 }

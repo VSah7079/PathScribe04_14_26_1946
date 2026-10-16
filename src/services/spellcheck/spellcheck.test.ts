@@ -131,7 +131,7 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     const e = await engine('ko-KR');
     expect(checkText('검체를 생검으로 확인하였으며 adenocarcinoma 소견', e.tiers)).toEqual([]);
     expect(checkText('adenocarcnoma 소견', e.tiers).map(i => i.word)).toEqual(['adenocarcnoma']);
-  }, 30_000);
+  });
 
   it('German (GPL) ships byte-for-byte unmodified, with the full licence texts', () => {
     const pkg = resolve(PUBLIC, '../../node_modules/dictionary-de');
@@ -148,7 +148,7 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     expect(suggestWord('Präparatt', 'latin', de.tiers)).toContain('Präparat');
     // Known gap: German has no medical tier yet, and the general dictionary lacks core terms.
     expect(checkText('Karzinom Adenokarzinom', de.tiers).map(i => i.word)).toEqual(['Karzinom', 'Adenokarzinom']);
-  }, 30_000);
+  });
 
   it('French and Dutch base dictionaries load and check', async () => {
     const fr = await engine('fr-FR');
@@ -156,7 +156,7 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     expect(suggestWord('prélevement', 'latin', fr.tiers)).toContain('prélèvement');
     const nl = await engine('nl-NL');
     expect(checkText('Biopsie van weefsel met carcinoom', nl.tiers)).toEqual([]);
-  }, 30_000);
+  });
 
   it('checks a 5,000-word report quickly, looking each distinct word up only once (AC4)', async () => {
     const e = await engine('en-GB');

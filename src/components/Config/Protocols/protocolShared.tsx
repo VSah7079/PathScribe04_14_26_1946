@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { TemplateApproval } from '../../../services/templates/templatePublishingRules';
 import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
+import { pressable } from '@/utils/a11y/pressable';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -175,8 +176,8 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     lastModified: '2026-07-17', owner: 'System',
   },
   // 19 generic templates below -- registered here for the first time (see
-  // this file's own comment above: these were seeded into editorStore at
-  // module load but never had a PROTOCOL_REGISTRY entry, so they were
+  // this file's own comment above: these were seeded into editorStore
+  // (on demand since Batch 505) but never had a PROTOCOL_REGISTRY entry, so they were
   // reachable only by direct URL, invisible to normal browsing/assignment).
   // Content is genericized placeholder (CAP/RCPath-derived structure, no
   // licensed wording) pending a confirmed CAP/RCPath license -- version
@@ -635,15 +636,15 @@ export const UploadProtocolModal: React.FC<{
             <div className="ps-pshare-pill-desc">{GOVERNING_BODIES.find(g => g.id === govBody)?.desc}</div>
           </div>
 
-          {/* Drop zone */}
+          {/* Drop zone. Batch 568: its hidden file input sits beside it, not inside it (no control inside a button). */}
+          <input id="ps-upload-input" type="file" accept=".json,.xml,.xlsx" className="ps-pshare-hidden-file-input" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
           <div
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            onClick={() => document.getElementById('ps-upload-input')?.click()}
+            {...pressable(() => document.getElementById('ps-upload-input')?.click())}
             className={`ps-pshare-dropzone${dragging ? ' ps-pshare-dropzone--dragging' : file ? ' ps-pshare-dropzone--filled' : ''}`}
           >
-            <input id="ps-upload-input" type="file" accept=".json,.xml,.xlsx" className="ps-pshare-hidden-file-input" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
             {file ? (
               <>
                 <div className="ps-pshare-dropzone-icon">✅</div>
@@ -719,7 +720,7 @@ export const BuildCustomiseModal: React.FC<{
 
           {/* Blank */}
           <div
-            onClick={onBuildBlank}
+            {...pressable(onBuildBlank)}
             className="ps-pshare-scratch-card"
           >
             <div className="ps-pshare-scratch-icon">🧩</div>
@@ -765,7 +766,7 @@ export const BuildCustomiseModal: React.FC<{
                 return (
                   <div
                     key={p.id}
-                    onClick={() => setSelectedTpl(selected ? null : p.id)}
+                    {...pressable(() => setSelectedTpl(selected ? null : p.id))}
                     className={`ps-pshare-template-row${selected ? ' ps-pshare-template-row--selected' : ''}`}
                   >
                     <span className={`ps-pshare-template-source ${sourceBadgeClass(p.source)}`}>{p.source}</span>

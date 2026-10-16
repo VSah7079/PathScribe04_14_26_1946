@@ -17,8 +17,10 @@ Container/batch chain-of-custody for cassettes and slides moving through downstr
 ## Notes
 
 - Retention/disposal does **not** run through this batch/container model at all — see `services/retentionPolicy/README.md`. Disposal is a genuinely different workflow (a computed, scan-to-act queue, not a manually-created batch).
-- `computePendingBatchQueue.ts` follows the same "derive fresh every time, never a separately stored, driftable copy" discipline as `computeActiveRetentionHoldsQueue.ts` and `computeDisposalQueue.ts` in `retentionPolicy/`.
+- `computePendingBatchQueue.ts` follows the same "derive fresh every time, never a separately stored, driftable copy" discipline as `computeDisposalQueue.ts` in `retentionPolicy/`. (There is no separate active-retention-holds queue file; holds are shown per case and enforced by the disposal queue.)
 - **Real, new consumer (PS-288, Sep 2026):** `services/facilityOpsDashboard/` reads active batches across `Processing`/`Decal / Special Processing`/`Checkout`/`Embedding`/`Microtomy / Sectioning`/`Staining`/`Cytology Staining`/`External Referral` for its five real department dashboard views — real `Batch.priority`/`coldChainExcursion` drive that Epic's own high-contrast alerting, and `DecalBatch.ts`'s own `getDecalTimerState` math was generalized (not duplicated) into `computeSlaCountdown.ts` for reuse across every view. Confirmed directly before building: `Batch` has no direct `facilityId` — `services/facilityOpsDashboard/resolveBatchFacilityId.ts` joins through `BatchItem.caseAccession` → `Case.originHospitalId`, falling back to `Batch.stationId` → `ScanStation.facilityId`. Read-only; nothing in this folder's own files changed.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): removed `computeActiveRetentionHoldsQueue.ts`, which does not exist.*
 
 ## Batch 404
 
@@ -61,3 +63,11 @@ When a referral batch is dispatched, its send-out molecular orders are marked se
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+Auto-appended control slides use the case id when a case has no full accession. Control cases always have one, so nothing changes today.
+
+## Batch 526
+
+Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.

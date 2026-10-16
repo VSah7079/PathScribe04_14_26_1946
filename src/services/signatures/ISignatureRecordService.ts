@@ -18,7 +18,7 @@ export type SignatureOutcome = 'signed' | 'finalized' | 'released_for_countersig
 
 /** The record the signature belongs to, where there is one besides the case. */
 export interface SignatureRecordLink {
-  kind: 'report-version' | 'autopsy-snapshot' | 'cytology-sign-out';
+  kind: 'report-version' | 'autopsy-snapshot' | 'cytology-sign-out' | 'cytology-preliminary';
   id?: string;
   tier?: 'PAD' | 'FAD';
 }

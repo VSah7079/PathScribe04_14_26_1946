@@ -19,6 +19,8 @@ declare const __APP_VERSION__: string;
 interface ImportMetaEnv {
   readonly VITE_AI_CUSTOM_ENDPOINT?: string;
   readonly VITE_AI_GATEWAY_REGION?: string;
+  /** Batch 536 (PS-558): the hosting region of the AI service (all but model_gateway). */
+  readonly VITE_AI_HOSTING_REGION?: string;
   readonly VITE_AI_MANAGED_DEPLOYMENT?: string;
   readonly VITE_AI_MANAGED_ENDPOINT?: string;
   readonly VITE_AI_MAX_TOKENS?: string;
@@ -55,12 +57,16 @@ interface ImportMetaEnv {
   // PS-262 (Batch 342): the SignalR hub. See services/liveUpdates/liveUpdateService.ts.
   readonly VITE_LIVE_UPDATES_HUB_URL?: string;
   // Low-consequence by design (raises a public rate limit only); see services/research/README.md.
-  readonly VITE_NCBI_API_KEY?: string;
   readonly VITE_NLM_BASE_URL?: string;
   readonly VITE_REPORT_PDF_ENDPOINT?: string;
   readonly VITE_VOICE_ENABLED?: string;
+  /** Batch 555: the recurring jobs the API server runs (comma-separated, MESSAGE_BUS_API.md §5); the browser stops standing in for those. */
+  readonly VITE_SERVER_JOBS?: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Batch 527 (PS-486): true in the demo build (no API server); demo and developer screens are left out otherwise. */
+declare const __DEMO_TOOLS__: boolean;

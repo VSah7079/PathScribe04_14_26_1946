@@ -22,36 +22,23 @@ import {
   setUserAiConfig,
   clearUserAiConfig,
   PROVIDER_MODELS,
+  modelOptionLabel,
+  aiProviderLabel,
+  aiHostingRegion,
   type AiProviderId,
 } from '@/components/Config/AI/aiProviderConfig';
 import { saveOrgAiProvider } from '@/services/aiConfig/saveAiSettings';
+import { HostingRegionsCard } from './HostingRegionsCard';
+import { aiVendorPolicyService, aiVendorConflicts, type AiVendorRule, type AiVendorRuleScope } from '@/services';
 
-// Real, per this file's own header — these vendor/model labels and their
-// notes deliberately show real, literal vendor and product names (proper
-// nouns), same as any other real, fixed brand vocabulary in this app —
-// never translated in any locale, the same way CAP/RCPath/SNOMED CT etc.
-// stay literal. "Mock — Demo Mode" and "Self-hosted / Custom endpoint" are
-// kept alongside them for the same reason: this whole map is deliberately
-// literal, real reference text an admin needs verbatim to identify which
-// real vendor account/contract they're configuring.
-const PROVIDER_LABELS: Record<AiProviderId, string> = {
-  structured_messages:      'Anthropic (Claude)',
-  chat_completions:         'OpenAI (GPT-4)',
-  chat_completions_managed: 'Azure OpenAI',
-  model_gateway:            'AWS Bedrock',
-  structured_content:       'Google (Gemini)',
-  mock:                     'Mock — Demo Mode',
-  custom:                   'Self-hosted / Custom endpoint',
-};
-
-const PROVIDER_NOTES: Record<AiProviderId, string> = {
-  structured_messages:      'API key managed server-side. Contact PathScribe support to rotate keys.',
-  chat_completions:         'API key managed server-side. Contact PathScribe support to rotate keys.',
-  chat_completions_managed: 'Requires Azure deployment name and endpoint. Key managed server-side.',
-  model_gateway:            'Uses IAM role credentials on the server. No API key needed here.',
-  structured_content:       'API key managed server-side. Contact PathScribe support to rotate keys.',
-  mock:                     'No API connection. Returns instant deterministic responses. Use for demos and offline testing only.',
-  custom:                   'Must be an OpenAI-compatible endpoint. Auth managed server-side.',
+const PROVIDER_NOTE_KEY: Record<AiProviderId, string> = {
+  structured_messages:      'aiProviderSettings.providerNote.serverKey',
+  chat_completions:         'aiProviderSettings.providerNote.serverKey',
+  chat_completions_managed: 'aiProviderSettings.providerNote.azure',
+  model_gateway:            'aiProviderSettings.providerNote.bedrock',
+  structured_content:       'aiProviderSettings.providerNote.serverKey',
+  mock:                     'aiProviderSettings.providerNote.mock',
+  custom:                   'aiProviderSettings.providerNote.custom',
 };
 
 interface AiProviderSettingsProps {
@@ -65,6 +52,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
   onSaved,
 }) => {
   const { t } = useTranslation();
+  const providerLabel = (id: AiProviderId): string => aiProviderLabel(id, t);
   const rawConfig = resolveAiConfig();
   // Guard: if the stored providerId isn't a known key (e.g. after a host
   // migration corrupted / cleared localStorage), fall back to
@@ -78,6 +66,8 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
   const [managedEndpoint, setManagedEndpoint] = useState(current.managedEndpoint ?? '');
   const [managedDeployment, setManagedDeployment] = useState(current.managedDeploymentName ?? '');
   const [gatewayRegion, setGatewayRegion] = useState(current.gatewayRegion ?? 'us-east-1');
+  const [hostingRegion, setHostingRegion] = useState(current.hostingRegion ?? '');
+  const [policy, setPolicy] = useState<{ rules: AiVendorRule[]; scopes: AiVendorRuleScope[]; facilities: { id: string; name: string }[] }>({ rules: [], scopes: [], facilities: [] });
   const [customEndpoint,setCustomEndpoint]= useState(current.customEndpoint ?? '');
   const [saved,         setSaved]         = useState(false);
   const [testResult,    setTestResult]    = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle');
@@ -94,10 +84,18 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
     if (models?.length) setModelId(models[0].id);
   }, [providerId]);
 
+  // Batch 536 (PS-558): the AI vendor policy, to warn before saving a service a served jurisdiction doesn't allow.
+  useEffect(() => {
+    void Promise.all([aiVendorPolicyService.list(), aiVendorPolicyService.served()])
+      .then(([res, served]) => setPolicy({ rules: res.ok ? res.data : [], scopes: served.scopes, facilities: served.facilities }))
+      .catch(() => {});
+  }, []);
+  const conflicts = aiVendorConflicts(policy.rules, policy.scopes, { providerId, region: aiHostingRegion({ providerId, gatewayRegion, hostingRegion }) });
+
   // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
   useReportConfigDirty(draftDiffers(
-    { providerId: current.providerId, modelId: current.modelId, managedEndpoint: current.managedEndpoint ?? '', managedDeployment: current.managedDeploymentName ?? '', gatewayRegion: current.gatewayRegion ?? 'us-east-1', customEndpoint: current.customEndpoint ?? '' },
-    { providerId, modelId, managedEndpoint, managedDeployment, gatewayRegion, customEndpoint },
+    { providerId: current.providerId, modelId: current.modelId, managedEndpoint: current.managedEndpoint ?? '', managedDeployment: current.managedDeploymentName ?? '', gatewayRegion: current.gatewayRegion ?? 'us-east-1', hostingRegion: current.hostingRegion ?? '', customEndpoint: current.customEndpoint ?? '' },
+    { providerId, modelId, managedEndpoint, managedDeployment, gatewayRegion, hostingRegion, customEndpoint },
   ));
 
   const handleSave = async () => {
@@ -107,6 +105,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       managedDeploymentName: managedEndpoint ? managedDeployment : undefined,
       managedEndpoint:       managedEndpoint || undefined,
       gatewayRegion:         gatewayRegion || undefined,
+      hostingRegion:         hostingRegion.trim() || undefined,
       customEndpoint:        customEndpoint || undefined,
     };
 
@@ -133,6 +132,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         system: 'You are a test assistant.',
         prompt: 'Reply with exactly: PathScribe AI connection OK',
         maxTokens: 20,
+        context: { feature: 'connection-test' },
       });
       setTestResult(text.includes('OK') || text.length > 0 ? 'ok' : 'fail');
     } catch (e: any) {
@@ -149,6 +149,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
     setManagedEndpoint(refreshed.managedEndpoint ?? '');
     setManagedDeployment(refreshed.managedDeploymentName ?? '');
     setGatewayRegion(refreshed.gatewayRegion ?? 'us-east-1');
+    setHostingRegion(refreshed.hostingRegion ?? '');
     setCustomEndpoint(refreshed.customEndpoint ?? '');
   };
 
@@ -176,7 +177,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       {/* Active config summary */}
       <div className="ps-aiprovider-active-box">
         <strong>{t('aiProviderSettings.currentlyActive')}</strong>{' '}
-        {PROVIDER_LABELS[current.providerId]} · {current.modelId}
+        {t('aiProviderSettings.activeSummary', { provider: providerLabel(current.providerId), model: current.modelId })}
       </div>
 
       {/* Demo mode banner */}
@@ -189,7 +190,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       {/* Provider selector */}
       <div className="ps-aiprovider-field-group">
         <label className="ps-aiprovider-label">{t('aiProviderSettings.providerLabel')}</label>
-        <select
+        <select aria-label={t('aiProviderSettings.providerLabel')}
           value={providerId}
           onChange={e => setProviderId(e.target.value as AiProviderId)}
           className="ps-aiprovider-input"
@@ -197,25 +198,25 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           {/* Real providers */}
           <optgroup label={t('aiProviderSettings.productionProvidersGroup')}>
             {(['structured_messages', 'chat_completions', 'chat_completions_managed', 'model_gateway', 'structured_content', 'custom'] as AiProviderId[]).map(id => (
-              <option key={id} value={id}>{PROVIDER_LABELS[id]}</option>
+              <option key={id} value={id}>{providerLabel(id)}</option>
             ))}
           </optgroup>
           {/* Mock for demos */}
           <optgroup label={t('aiProviderSettings.developmentDemoGroup')}>
-            <option value="mock">{PROVIDER_LABELS.mock}</option>
+            <option value="mock">{providerLabel('mock')}</option>
           </optgroup>
         </select>
         <p className="ps-aiprovider-hint">
-          {PROVIDER_NOTES[providerId]}
+          {t(PROVIDER_NOTE_KEY[providerId])}
         </p>
       </div>
 
       {/* Model selector */}
       <div className="ps-aiprovider-field-group">
         <label className="ps-aiprovider-label">{t('aiProviderSettings.modelLabel')}</label>
-        <select value={modelId} onChange={e => setModelId(e.target.value)} className="ps-aiprovider-input">
+        <select aria-label={t('aiProviderSettings.modelLabel')} value={modelId} onChange={e => setModelId(e.target.value)} className="ps-aiprovider-input">
           {(PROVIDER_MODELS[providerId] ?? PROVIDER_MODELS['structured_messages']).map(m => (
-            <option key={m.id} value={m.id}>{m.label}</option>
+            <option key={m.id} value={m.id}>{modelOptionLabel(m, t)}</option>
           ))}
         </select>
       </div>
@@ -225,7 +226,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         <>
           <div className="ps-aiprovider-field-group ps-aiprovider-field-group--sm">
             <label className="ps-aiprovider-label">{t('aiProviderSettings.azureEndpointLabel')}</label>
-            <input
+            <input aria-label={t('aiProviderSettings.azureEndpointLabel')}
               type="url" value={managedEndpoint}
               onChange={e => setManagedEndpoint(e.target.value)}
               placeholder="https://my-org.openai.azure.com"
@@ -234,7 +235,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           </div>
           <div className="ps-aiprovider-field-group ps-aiprovider-field-group--sm">
             <label className="ps-aiprovider-label">{t('aiProviderSettings.deploymentNameLabel')}</label>
-            <input
+            <input aria-label={t('aiProviderSettings.deploymentNameLabel')}
               type="text" value={managedDeployment}
               onChange={e => setManagedDeployment(e.target.value)}
               placeholder="my-gpt4-deployment"
@@ -248,7 +249,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       {providerId === 'model_gateway' && (
         <div className="ps-aiprovider-field-group ps-aiprovider-field-group--sm">
           <label className="ps-aiprovider-label">{t('aiProviderSettings.awsRegionLabel')}</label>
-          <input
+          <input aria-label={t('aiProviderSettings.awsRegionLabel')}
             type="text" value={gatewayRegion}
             onChange={e => setGatewayRegion(e.target.value)}
             placeholder="us-east-1"
@@ -257,11 +258,28 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         </div>
       )}
 
+      {/* Batch 536 (PS-558): where the service runs, checked against each jurisdiction's AI vendor policy */}
+      {providerId !== 'model_gateway' && providerId !== 'mock' && (
+        <div className="ps-aiprovider-field-group ps-aiprovider-field-group--sm">
+          <label className="ps-aiprovider-label">{t('aiProviderSettings.hostingRegionLabel')}</label>
+          <input aria-label={t('aiProviderSettings.hostingRegionLabel')}
+            type="text" value={hostingRegion}
+            onChange={e => setHostingRegion(e.target.value)}
+            placeholder="eu-west-1"
+            className="ps-aiprovider-input"
+          />
+          <p className="ps-aiprovider-hint">{t('aiProviderSettings.hostingRegionHint')}</p>
+        </div>
+      )}
+
+      {/* Batch 557: where the deployment keeps its data (database and file storage, from the server), beside the AI region */}
+      <HostingRegionsCard aiRegion={aiHostingRegion({ providerId, gatewayRegion, hostingRegion })} />
+
       {/* Custom endpoint */}
       {providerId === 'custom' && (
         <div className="ps-aiprovider-field-group ps-aiprovider-field-group--sm">
           <label className="ps-aiprovider-label">{t('aiProviderSettings.customEndpointLabel')}</label>
-          <input
+          <input aria-label={t('aiProviderSettings.customEndpointLabel')}
             type="url" value={customEndpoint}
             onChange={e => setCustomEndpoint(e.target.value)}
             placeholder="https://my-llm.hospital.internal/v1"
@@ -270,6 +288,17 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           <p className="ps-aiprovider-hint">
             {t('aiProviderSettings.customEndpointHint')}
           </p>
+        </div>
+      )}
+
+      {/* Batch 536 (PS-558): warned before saving, inline (CLAUDE.md rule 8) */}
+      {conflicts.length > 0 && (
+        <div className="ps-aiprovider-policy-warning" role="alert">
+          {t('aiProviderSettings.policyConflict', {
+            places: conflicts.map(c => (c.scope.facilityId
+              ? t('aiVendorPolicySection.facilityScope', { facility: policy.facilities.find(f => f.id === c.scope.facilityId)?.name ?? c.scope.facilityId, jurisdiction: t(`jurisdictionNames.${c.scope.jurisdiction}`) })
+              : t(`jurisdictionNames.${c.scope.jurisdiction}`))).join(', '),
+          })}
         </div>
       )}
 

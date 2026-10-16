@@ -12,7 +12,6 @@ import type { CytologySignOutRecord } from '@/types/cytology/CytologySignOutReco
 import type { CytologyCategoryEntry, CytologyNomenclatureSystem } from './ICytologyCategoryService';
 import type { DecantType } from '@/types/case/Material';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export type PortResult<T> = { ok: true; data: T } | { ok: false; error?: string };
 
 export interface CytologyWorkspaceDeps {
@@ -71,6 +70,7 @@ export interface CytologyWorkspaceDeps {
   // Material and printing
   resolveDecantCassetteColor: (decantType: DecantType, context: { priority?: string }) => Promise<string | undefined>;
   resolveReportLocale: (facilityId?: string) => Promise<any>;
-  /** Render report content to a PDF document in its own language (the page opens it). */
-  renderReportPdf: (content: any) => Promise<{ output: (kind: 'dataurlnewwindow') => unknown }>;
+  /** Batch 539: report content as the report renderer's PDF, in its own language (the page opens it).
+   *  `preview`: not signed yet, so it carries the PRELIMINARY — SUBJECT TO CHANGE watermark. Throws when it can't be made. */
+  renderReportPdf: (content: any, options?: { preview?: boolean }) => Promise<Uint8Array>;
 }

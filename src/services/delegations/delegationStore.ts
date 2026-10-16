@@ -8,6 +8,7 @@
 // case is delegated, a synoptic is assigned, or a pool case is accepted.
 // ─────────────────────────────────────────────────────────────────────────────
 import type { DelegationRecord } from './IDelegationService';
+import { dataStorage } from '../browserData/dataStorage';
 
 export const DELEGATION_STORE_KEY = 'ps_delegations_v1';
 
@@ -50,13 +51,13 @@ const DELEGATION_SEED: DelegationRecord[] = [
 
 export function loadDelegations(): DelegationRecord[] {
   try {
-    const raw = localStorage.getItem(DELEGATION_STORE_KEY);
+    const raw = dataStorage.getItem(DELEGATION_STORE_KEY);
     return raw ? (JSON.parse(raw) as DelegationRecord[]) : DELEGATION_SEED.map(d => ({ ...d }));
   } catch { return DELEGATION_SEED.map(d => ({ ...d })); }
 }
 
 export function saveDelegations(records: DelegationRecord[]): void {
-  try { localStorage.setItem(DELEGATION_STORE_KEY, JSON.stringify(records)); } catch { /* storage unavailable */ }
+  try { dataStorage.setItem(DELEGATION_STORE_KEY, JSON.stringify(records)); } catch { /* storage unavailable */ }
 }
 
 export function appendDelegation(record: DelegationRecord): void {

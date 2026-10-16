@@ -3,6 +3,7 @@ import type { IDepartmentService, Department } from './IDepartmentService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { linkFieldProblem } from '../links/externalLink';
 
 // ─── Seed data ──────────────────────────────────────────────────────────────
 // One department per existing Grossing Route (protocolShared.tsx's three
@@ -74,6 +75,8 @@ const departmentServiceUnchecked: IDepartmentService = {
 
   async add(department) {
     await delay();
+    // Batch 549: a link field that isn't an https link is refused here as well as in the editor (links only, Pete, Oct 13, 2026).
+    if (linkFieldProblem(department.headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
     const newC: Department = { ...department, id: 'dept-' + Date.now() };
     DEPARTMENTS = [...DEPARTMENTS, newC];
     persist(DEPARTMENTS);
@@ -82,6 +85,7 @@ const departmentServiceUnchecked: IDepartmentService = {
 
   async update(id, changes) {
     await delay();
+    if (linkFieldProblem(changes.headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
     const idx = DEPARTMENTS.findIndex(c => c.id === id);
     if (idx === -1) return err(`Department ${id} not found`);
     DEPARTMENTS = DEPARTMENTS.map(c => c.id === id ? { ...c, ...changes } : c);

@@ -21,14 +21,14 @@ import { SUPPORT_REFERENCE_IN_TEXT } from './supportReferenceRules';
  */
 export const SUPPORT_ROUTE_PATTERNS: readonly string[] = [
   '/', '/login', '/auth/callback/:providerId', '/or-suite-dashboard', '/facility-ops-dashboard',
-  '/consult/:token', '/critical-alert/:token', '/accession', '/worklist', '/pathology-workspace',
+  '/consult', '/consult/:token', '/critical-alert/:token', '/accession', '/worklist', '/pathology-workspace',
   '/quality-compliance', '/cytology-worklist', '/cytology-worklist/:caseId', '/molecular',
   '/molecular-batch/:batchId', '/molecular-rack', '/molecular-rack/:rackId', '/molecular-control-rules',
   '/dev/mock-interface-engine', '/quality-assurance', '/batch-management', '/batch-management/disposal',
-  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log', '/batch-management/wsi-scan',
+  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log', '/batch-management/wsi-scan', '/batch-management/label-reprint',
   '/workstations/microtomy', '/workstations/embedding', '/workstations/slide-distribution', '/add-on-orders',
   '/intraop-queue', '/molecular-order-queue', '/cytology-qc-queue', '/surgical-qa-worklist', '/migration-jobs',
-  '/search', '/audit', '/registry-exceptions', '/configuration', '/contribution', '/case/:caseId/synoptic', '/case/:caseId/grossing',
+  '/search', '/audit', '/registry-exceptions', '/my-exports', '/configuration', '/contribution', '/bench-contributions', '/tumor-board', '/margin-exception-review', '/case/:caseId/synoptic', '/case/:caseId/grossing',
   '/report/:caseId', '/admin/parts/new', '/admin/parts/:partId/edit', '/admin/templates/new',
   '/admin/templates/:templateId/edit', '/template-editor/new', '/template-editor/:templateId',
   '/template-review/:templateId', '/mock-emr', '/wsi-viewer',

@@ -7,7 +7,15 @@ here as their own major tab. Per direct follow-up, reversed: all of
 those sections now live exclusively under `Config/System/index.tsx`,
 as a real, named sixth group ("Integrations") in that file's own
 existing group-tag pattern — not restored to the old, ungrouped flat
-list they lived in pre-PS-85.
+list they lived in pre-PS-85. Three of the 11 (`lis`, `identifiers`,
+`facility_setup`) were later retired outright rather than moved (see
+below); the System Integrations group (`Config/System/systemSections.ts`)
+now lists ten items: Assist LIS Ingestion, Case Mask Configuration, Case
+Routing, Facility Configuration, Order Types & Inbound Rules (crosswalk),
+Outbound Interface Message Preview, Physicians, Routing Rules, Specimen
+Deficiencies and Terminology Services.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): "all of those sections" was too broad; current group membership added.*
 
 **Real, honest history.** This file previously (twice) claimed the
 reversal above was complete when it wasn't — `index.tsx` was still

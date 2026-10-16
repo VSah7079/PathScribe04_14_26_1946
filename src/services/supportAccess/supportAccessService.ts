@@ -31,7 +31,7 @@ import { evaluateCapability } from '../authorization/evaluateCapability';
 import { resolveTenantFacility } from '../auth/resolveTenantFacility';
 import { toCsv } from '@/utils/csv';
 import {
-  SUPPORT_AUDIT_COLUMNS, SUPPORT_AUDIT_GENESIS, activeGrant, approvalExpiry, decisionProblem, expireRequests,
+  SUPPORT_AUDIT_COLUMNS, SUPPORT_AUDIT_GENESIS, activeGrant, approvalExpiry, decisionProblem, expireRequests, isLiveGrant,
   normaliseSupportSettings, requestProblem, supportAccessDecision, supportAuditHashInput, supportAuditRows,
   verifySupportAuditChain,
   type ChainCheck, type DecisionProblem, type RequestProblem, type SupportAccessDecision, type SupportAccessRequest,
@@ -55,6 +55,8 @@ export interface SupportAccessDeps {
   now?: () => Date;
   sha256?: (text: string) => Promise<string>;
   newId?: () => string;
+  /** Batch 555: false with the API server, whose supportAccess.expire job marks run-out approvals (default true). */
+  runServerJobs?: () => boolean;
   /** Starting settings per organisation, used until the organisation saves its own (demo seed data). */
   seedSettings?: Readonly<Record<string, Partial<SupportAccessSettings>>>;
   /** Batch 456: starting requests, used while none are stored (demo seed data;
@@ -112,6 +114,8 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
   /** Marks run-out approvals expired, recording each in its organisation's stream. */
   const expire = async () => {
     const list = readRequests();
+    // An approval past its time is still treated as over (activeRequest checks expiresAt); only the recording is the server's.
+    if (deps.runServerJobs && !deps.runServerJobs()) return list;
     const changed = expireRequests(list, now());
     if (changed.length) {
       writeRequests(list);
@@ -221,7 +225,8 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
       const s = deps.session();
       const list = await expire();
       const r = list.find(x => x.id === requestId);
-      if (!r || !s || r.agentId !== s.id || r.status !== 'approved') return { ok: false };
+      // Batch 555: only access still in force can be ended (an approval past its time is already over).
+      if (!r || !s || r.agentId !== s.id || !isLiveGrant(r, now())) return { ok: false };
       r.status = 'ended'; r.closedAt = now().toISOString();
       writeRequests(list);
       await record({ tenantId: r.tenantId, actorId: s.id, actorName: s.name, ticketId: r.ticketId, action: 'accessEnded', detail: 'Support ended its access.' });
@@ -231,7 +236,7 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
     /** The hospital ends an approval early. */
     async revoke(requestId: string): Promise<{ ok: true } | Refusal<'notFound' | 'notPermitted' | 'otherOrganisation'>> {
       const list = await expire();
-      const r = list.find(x => x.id === requestId && x.status === 'approved');
+      const r = list.find(x => x.id === requestId && isLiveGrant(x, now()));
       if (!r) return { ok: false, reason: 'notFound' };
       const gate = await hospitalGate(r.tenantId, () => deps.authorization.enforce('config:support-access:approve'));
       if (gate) return { ok: false, reason: gate };

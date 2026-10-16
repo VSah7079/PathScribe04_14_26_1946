@@ -9,6 +9,7 @@
         {
             "id": "specimen",
             "title": "Specimen",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "specimen_type",
@@ -106,6 +107,7 @@
         {
             "id": "adequacy",
             "title": "Specimen Adequacy",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "adequacy_status",
@@ -202,6 +204,7 @@
         {
             "id": "diagnostic_category",
             "title": "Paris System Diagnostic Category",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "paris_category",
@@ -277,13 +280,15 @@
                     "note": "Optional (+) — informational: the Paris System is deliberately built around detecting high-grade urothelial carcinoma specifically; LGUN is a distinct, separate category since low-grade lesions are frequently not reliably distinguishable from reactive change on cytology alone. Cite local institutional risk data where available.",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         },
         {
             "id": "cytologic_findings",
             "title": "Cytologic Findings",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cellularity",
@@ -436,6 +441,7 @@
         {
             "id": "ancillary_studies",
             "title": "Ancillary Studies",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "fish_ordered",
@@ -477,13 +483,15 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         },
         {
             "id": "comments",
             "title": "Comment / Correlation",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cystoscopy_correlation",
@@ -493,7 +501,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "Cystoscopy correlation: {value}."
+                    "narrativeSentenceTemplate": "Cystoscopy correlation: {value}.",
+                    "options": []
                 },
                 {
                     "id": "prior_cytology_comparison",
@@ -503,7 +512,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 },
                 {
                     "id": "comment",
@@ -512,7 +522,8 @@
                     "required": false,
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         }

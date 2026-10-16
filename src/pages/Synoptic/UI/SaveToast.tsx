@@ -9,6 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { ToastKind } from '@/utils/toastPolicy';
+import { pressable } from '@/utils/a11y/pressable';
 
 const ICON: Record<ToastKind, string> = { success: '✓', info: 'ℹ', warning: '⚠', error: '✕' };
 
@@ -20,7 +21,7 @@ const SaveToast: React.FC<{ message: string; visible: boolean; kind?: ToastKind;
       className={`ps-save-toast ps-save-toast--${kind}${visible ? ' ps-save-toast--visible' : ''}`}
       role={urgent ? 'alert' : 'status'}
       aria-hidden={!visible}
-      onClick={visible ? onDismiss : undefined}
+      {...pressable(visible ? onDismiss : undefined, { role: null })}
     >
       <span className="ps-save-toast-check" aria-hidden="true">{ICON[kind]}</span>
       <span className="ps-save-toast-text" data-phi={containsPhi ? 'true' : undefined}>{message}</span>

@@ -17,7 +17,6 @@
 
 import { resolveCorrelationWindow, type EffectiveCorrelationRule } from './cytologyHistologyCorrelationWindow';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CorrelationBackfillInput {
   cases: any[];

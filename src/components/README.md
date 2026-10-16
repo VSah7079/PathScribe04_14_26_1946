@@ -7,11 +7,11 @@ cross-linked to that folder's own `README.md` for real detail.
 folder's own `README.md`. Only touch *this* file if a folder's *purpose*
 changes, or a folder is added/removed/split/merged.
 
-## Folder index (27 folders, all reviewed)
+## Folder index (42 folders)
 
 | Folder | What it is |
 |---|---|
-| [Config/](./Config/README.md) | Every admin/configuration screen — 54 files across 11 subfolders, see its own index |
+| [Config/](./Config/README.md) | Every admin/configuration screen — 170 files across 14 subfolders, see its own index |
 | [TemplateBuilder/](./TemplateBuilder/README.md) | Report *layout/assembly* builder — distinct from Config/Protocols/'s synoptic *data-capture* templates |
 | [Editor/](./Editor/README.md) | Tiptap rich text editor + `tiptapBridge/` (AI-integration bridge) |
 | [LiveUpdates/](./LiveUpdates/README.md) | The live-update connection badge for the OR boards and Intraop Queue (PS-262) |
@@ -20,8 +20,8 @@ changes, or a folder is added/removed/split/merged.
 | [Voice/](./Voice/README.md) | Voice dictation settings/controls |
 | [FacilityDictionary/](./FacilityDictionary/README.md) | Facility Configuration table + editor modal (superseded an orphaned `ClientDictionary/` fork, deleted in the i18n sweep's batch 178 — see that folder's own README) |
 | [Contribution/](./Contribution/README.md) | My Contribution dashboard — 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
-| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `SearchableCombobox`, `PatientIdStatusDot`, `LogoutWarningModal`, `SessionExpiryWarningModal`, `DraftRecoveryModal`, `SessionSupersededNotice` |
-| [QualityAssurance/](./QualityAssurance/README.md) | 8 QA/compliance reporting tabs (Countersign Turnaround, Intraop Linkage, Reconciliation, FPPE/Credentialing, Post-Finalization Drift, Patient Match Review, Retention Holds Management Review, Access Request Response) |
+| [Common/](./Common/README.md) | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `SearchableCombobox`, `PatientIdStatusDot`, `LogoutWarningModal`, `SessionExpiryWarningModal`, `DraftRecoveryModal`, `SessionSupersededNotice`, `CapabilityButton`, `ScreenGate`, `ReasonPromptModal` and others (see its README). `Common/Button/` is an empty leftover folder |
+| [QualityAssurance/](./QualityAssurance/README.md) | The Quality Assurance page's tabs and review bars (Countersign Turnaround, Intraop Linkage, Reconciliation, FPPE, Drift Correction, Patient Match Review, Access Request Response, CAPA Recommendations, Cytology QA, Follow-up, Inspection Mode, Enterprise Rollup, QA Dashboard, QA Trend Reviews, the surgical QA case bar). There is no separate Retention Holds tab component |
 | [BarcodeScanner/](./BarcodeScanner/README.md) | Real, camera-based barcode capture (`@zxing/browser`), replacing a previous random-MRN simulator |
 | [Worklist/](./Worklist/README.md) | Case worklist table |
 | [Icons/](./Icons/README.md) | Icon components |
@@ -38,8 +38,23 @@ changes, or a folder is added/removed/split/merged.
 | [AppShell/](./AppShell/README.md) | Global layout shell + the real internal user directory |
 | [SpecimenPicker/](./SpecimenPicker/README.md) | Specimen Dictionary lookup modal (AccessionPage) |
 | [Synoptic/](./Synoptic/README.md) | Synoptic page sidebar wrapper |
-| [Autopsy/](./Autopsy/README.md) | **NEW (Sep 2026)** — Autopsy Pathology Module UI. Real, presentational form components only — no case-creation/routing wiring yet |
+| [Autopsy/](./Autopsy/README.md) | **NEW (Sep 2026)** — Autopsy Pathology Module UI: the authorization-completion and body-release forms, both mounted on the report page (`SynopticReportPage.tsx`); autopsy intake fields live in `pages/AccessionPage/` |
 | [ExternalConsult/](./ExternalConsult/README.md) | **NEW (Sep 2026)** — PS-290, the internal pathologist-facing issuance/management modal for External Consult / Second-Opinion Access — NOT real token security, see the folder's own README |
+| [Billing/](./Billing/README.md) | Billing modals: post-sign-out billing change, applied-code correction, billing correction dialog, charge approval queue, case billing review |
+| [CaseUnavailable/](./CaseUnavailable/README.md) | The one "no access" screen for a case (Batch 396) |
+| [CytologyQc/](./CytologyQc/README.md) | The QC review bar and discrepancy form on the cytology screening page (Batch 396) |
+| [Grossing/](./Grossing/README.md) | The grossing required mark and "needed before grossing can be completed" note (Batch 397) |
+| GrossingHardware/ | `CameraCaptureControl.tsx`, grossing-station camera capture (no README) |
+| [Intraop/](./Intraop/README.md) | The structured verbal report form for frozen results (Batch 399) |
+| OrSuiteDashboard/ | `OrBoardRow.tsx`, one row of the OR Suite dashboard (no README) |
+| [OrganMap/](./OrganMap/README.md) | The anatomical map companion on the report page, and the Mohs stage input (Batch 461+) |
+| [PeerReview/](./PeerReview/README.md) | Peer review request and review forms (PS-144, Batch 439) |
+| [Profile/](./Profile/README.md) | The signed-in person's own lists: My dictionary, My voice commands, Biometric signing (Batch 432) |
+| [Signing/](./Signing/README.md) | The "confirm it's you" step before a signature (Batch 344) |
+| [Support/](./Support/README.md) | Support reference chip and lookup (Batch 364) |
+| [TumorBoard/](./TumorBoard/README.md) | The "Flag for MDT" modal (Batch 489) |
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): index was "27 folders"; added the 13 folders missing from it, and corrected the Config, Common, QualityAssurance and Autopsy rows.*
 
 ## Recent (Sep 2026)
 
@@ -118,7 +133,7 @@ changes, or a folder is added/removed/split/merged.
 
 ## Loose files at `components/` root (Aug 2026)
 
-Three real files sit directly in `components/`, not inside any
+Four real files sit directly in `components/`, not inside any
 subfolder — all part of the same real, global scan-station feature
 (see `hooks/README.md`'s own "Scan station & material scanning"
 section for the hooks these mount):
@@ -140,6 +155,11 @@ section for the hooks these mount):
   Save & Switch / Discard & Switch / Cancel (stay at the current
   station to finish editing). See `useGlobalStationSwitch.ts`'s own
   header for the real guard logic this modal presents.
+- **`DefaultActionOnScanBridge.tsx`** (PS-289) — mounts
+  `useDefaultActionOnScan()` once at the app root (`App.tsx`), the same
+  render-nothing pattern as `MaterialScanTrackingBridge.tsx`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): was "Three real files"; `DefaultActionOnScanBridge.tsx` added.*
 
 ## Naming/structure pass (July 2026)
 
@@ -198,9 +218,10 @@ remains the first real check on your end).
 
 - **Macros/index.tsx hardcoded fonts** (Config/) — drift risk vs.
   `services/fonts/`.
-- **Hardcoded `isSuperAdmin={true}`** (Config/System/) — see
-  `docs/architecture/ACCESS_CONTROL_PLAN.md`. Planned, not blocking, revisit
-  before first real customer deployment.
+- ~~**Hardcoded `isSuperAdmin={true}`**~~ (Config/System/) — closed in
+  Batch 371 (governing bodies need `platform:governing-bodies:manage`;
+  Terminology gets the real `useIsSuperAdmin()`). *(Corrected in the Batch
+  496 README audit.)*
 - **`TemplatePreviewPanel.tsx` still on the old node-list preview shape**
   (TemplateBuilder/) — works correctly today via a real adapter, not
   urgent.
@@ -211,7 +232,9 @@ See `Config/README.md`'s own fixes log for full detail on the Config/
 subfolder work — summarized here for a single cross-folder view:
 
 - `Staff/RoleDictionary.tsx`, `ClientDictionary/ClientTable.tsx` — stale
-  header path comments fixed.
+  header path comments fixed. *(`ClientDictionary/` has since been
+  deleted; `FacilityDictionary/` replaced it — noted in the Batch 496
+  README audit.)*
 - **Orchestrator Mode** — real, previously-nonfunctional toggle rebuilt
   with org default + per-internal-client override
   (`Facility.internalAiOrchestratorEnabled`). Dead `NarrativeTemplatesTab`
@@ -307,7 +330,8 @@ subfolder work — summarized here for a single cross-folder view:
   minimum-necessary reasoning and data-integrity (avoiding a stale
   restore overwriting fresh LIS/EHR data). Local-only restore, no
   auto-persist. Full detail in `Config/README.md`, `Common/README.md`,
-  and `ClientDictionary/README.md` (the per-client override field).
+  and `ClientDictionary/README.md` (the per-client override field; now
+  `FacilityDictionary/README.md`).
 
 ## Batch 353
 
@@ -318,7 +342,7 @@ subfolder work — summarized here for a single cross-folder view:
 
 ## Batch 356
 
-`Config/System/InstrumentsSection.tsx` is new: the instrument list (PS-326).
+`Config/System/InstrumentsSection.tsx` is new: the instrument list (PS-326). *(Since replaced by `EquipmentSection.tsx` in Batch 358.)*
 
 ## Batch 358
 
@@ -713,3 +737,227 @@ No behavior change. `Autopsy/AutopsyAuthorizationCompletionForm.tsx` references 
 ## Batch 477 — Autopsy worklist badges (PS-261 follow-up, Module 5)
 
 **`Worklist/`:** new `AutopsyWorklistBadges.tsx`, rendered in both `WorklistTable.tsx`'s table row (Status cell) and its card layout — case authority, an active ancillary hold, PAD/FAD signed, and a TAT/SLA tooltip for the existing Autopsy branch tab's rows. See `Worklist/README.md` and `services/autopsy/README.md`.
+
+## Batch 483 — Cytology gaps + signature viewer (PS-359 tracker follow-up)
+
+**`QualityAssurance/`:** new "5-Year Retrospective Lookback" tile on `CytologyQaTab.tsx`, closing the CYT-QA-03 vs CYT-QA-04 report asymmetry. See `QualityAssurance/README.md`.
+
+## Batch 484 — Inking sign-out/grossing gate engine + Organisation/Site admin UI (PS-519 follow-up)
+
+**`Config/System/`:** new `InkingValidationModeSection.tsx` — the Organisation/Site admin UI's one real missing piece, a facility-scoped WARN_ONLY/STRICT_ENFORCE picker for `inking_validation_mode`, capability-gated (`config:inking-validation-mode:manage`). See `Config/System/README.md`.
+
+## Batch 489 — Tumor Board / MDT Workspace Module 1 (PS-359 follow-up)
+
+**`TumorBoard/`:** new `FlagForMdtModal.tsx` — the manual "Flag for MDT" action, reached from `SynopticReportPage.tsx`'s sign-out flow. The real fix for `'delegation.tumorBoard'` ("Submit to Tumor Board"), a voice/keyboard action declared in `constants/systemActions.ts` but never wired to any handler anywhere until now. See `services/tumorBoard/README.md`.
+
+## Batch 495
+
+`Autopsy/AutopsyBodyReleaseForm.tsx` shows translated release-gate reasons and errors instead of the service's English text. See [Autopsy/README.md](./Autopsy/README.md).
+
+## Batch 499
+
+- **`Config/System/`:** Organ maps — switching level, template, map type or tab asks before dropping unsaved edits (PS-479).
+- **`FacilityDictionary/`:** `FacilityEditorModal` no longer breaks the rules of hooks (it returned early, before ten hooks).
+- **`EnhancementRequest/`:** the QA feedback button no longer hides itself in production builds; Configuration → System → Feedback decides alone (every built bundle is "production", validation instances included).
+
+## Batch 500
+
+- **`ValidationStudies/`:** the printed validation report escapes the admin-entered values it places in HTML (PS-473).
+
+## Batch 501
+
+- **`Config/System/`:** Cytology QC Rules now take effect at sign-out.
+
+## Batch 502
+
+- **New `ErrorBoundary/`** (PS-472): app, page and panel error boundaries with a translated recovery screen. See [ErrorBoundary/README.md](./ErrorBoundary/README.md).
+- **`AppShell/`:** every page is wrapped in a route boundary.
+
+## Batch 504 (lint to zero, PS-470)
+
+- **`QualityAssurance/`:** trend charts bucket by facility month.
+- **`Contribution/`:** the productivity charts follow a time zone change.
+- **`Worklist/`:** `WorklistTable` dependency lists corrected (no behaviour change).
+- **`Flags/`, `InternalNotes/`, `Config/`:** dependency lists corrected or explained.
+
+See `src/i18n/README.md` Batch 504.
+
+## Batch 505 (PS-475)
+
+`AppShell` loads the user and admin guide PDFs only when the About menu opens (`hooks/useGuideAssets.ts`), which took 5.5 MB out of the first page load. See `AppShell/README.md`.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 511 (PS-478): full strict type-checking
+
+See the Batch 511 notes in `AppShell/`, `Audit/`, `Config/`, `Contribution/`, `FacilityDictionary/`, `Flags/` and `QualityAssurance/`.
+
+## Batch 512
+
+See `Config/System/README.md` (QC override rates show "inherited").
+
+## Batch 513 (PS-269)
+
+See the Batch 513 notes in each folder. Every visible string under `components/` goes through `t()`, guarded by `src/i18n/uiText.guard.test.ts`.
+
+## Batch 514 (PS-269)
+
+- `QualityAssurance/CytologyQaTab.tsx`: numbers in the user's format; percentage points spelled per language.
+- `ValidationStudies/`: the printed report is translated.
+- `Config/System/PhysiciansSection.tsx`: Korean name display.
+
+## Batch 515
+
+- `Config/System/FppeAssignmentsSection.tsx` and `QualityAssurance/FppeTrackingTab.tsx` moved to the QA supervision service (PS-124).
+- `ExternalConsult/`: issuing and revoking links needs a permission (PS-290).
+
+## Batch 516
+
+`Config/System/`: QA review-field editor and the restricts-printing flag setting.
+
+## Batch 517
+
+- **New `SecureEmail/`:** the secure message window, shared by the app shell and the critical-findings flow (PS-143).
+- **FacilityDictionary:** new Printing tab (PS-337) and Secure messaging tab (PS-143).
+
+## Batch 518
+
+**QualityAssurance:** new `QaActivityBoardTab.tsx`, the generic activity board (PS-120).
+
+## Batch 519
+
+**Config/Protocols:** Synoptic Editor conditions (PS-493), node counts (PS-494) and cytology narrative settings (PS-273).
+
+## Batch 520
+
+**Config/System:** Delivery Rules set channels by role, with e-fax and file drop (PS-280).
+
+## Batch 521
+
+**AppShell:** runs the delivery background work (retries, fax transmission reports) while someone is signed in (PS-281). **Config/System:** retry waits.
+
+## Batch 522
+
+**ExternalConsult:** links carry the token after `#`; refusals are translated; the banner wording is corrected (PS-290).
+
+## Batch 523
+
+**ClinicalMismatch (new):** the clinical-pathologic mismatch window, moved from the case report page's modals so the Cytology Workspace and autopsy FAD sign-out use it too (PS-145).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 528 (PS-359): required fields from Field Requirements
+
+`Config/Staff/StaffTab.tsx` and `FacilityDictionary/FacilityEditorModal.tsx` take their required fields from the organisation's Field Requirements, through service checks. Both show stars and a "Still required" line.
+
+## Batch 529 (PS-554)
+
+`Config/System/ClinicalMismatchRulesSection.tsx`: the clinical mismatch risk rules screen.
+
+## Batch 530 (PS-554)
+
+`ClinicalMismatch/`: the inline alert, the one-click decision form and the summary; the window is for high-risk mismatches only.
+
+`ClinicalHistory/CaseClinicalHistoryBar.tsx` (Batch 530): the clinical history line on the report, Cytology Workspace and grossing screens.
+
+## Batch 531
+
+`ClinicalMismatch/`: the earlier decision shown when the alert returns after an edit.
+
+## Batch 533
+
+Configuration → Cytology → Country and laboratory rules: the urgent-preliminary signature setting (`Config/Cytology/CytologyComplianceFeaturesSection.tsx`).
+
+## Batch 534
+
+`ReportRelease/HeldReportsBanner.tsx` (new): one line per report held for the release delay (what, when it goes, who released it), and Recall for that person. The data comes through `hooks/useHeldReports.ts`. Shown on the report page and the Cytology Workspace. `AppShell/AppShell.tsx` starts the background release (`hooks/useReleaseBackgroundWork.ts`).
+
+## Batch 536
+
+Config: AI Instructions and AI vendor policy sections; ClinicalMismatch: the "AI is not available for this jurisdiction" line.
+
+## Batch 543
+
+CSV exports neutralize formula cells (finding F8, `utils/csv.ts`); the disposal report export is audited (F9).
+
+## Batch 544
+
+`QualityAssurance/`: six more QA reports have the facility scope picker. `Config/Staff/`: the signature is a link.
+
+## Batch 547
+
+`RuntimeConfigError/` (new): the screen shown when a deployment's `config.json` is wrong (runtime configuration, `docs/architecture/RUNTIME_CONFIG.md`).
+
+## Batch 548
+
+`Connectivity/` (new): the connection banner. `Common/LoadingState.tsx` and `Common/PageLoader.tsx` (new): waiting states. The 42 screens that showed plain loading text use `LoadingState`: Configuration sections, QA tabs, molecular pages and others.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- The remaining loading texts in components now go through `Common/LoadingState` (block or inline), and the guard covers the whole app.
+- Facility, department and gross imaging vendor editors refuse a logo or address that isn't an https link.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- Batch 553: `Printing/PrintDestinationFields.tsx`; site agent printers in `Config/System` and `FacilityDictionary`. *(Batch 552's `Printing/SiteAgentStatusLine.tsx` and `Config/System/SiteAgentsSection.tsx` weren't noted here in Batch 552.)*
+
+## Batch 554 (PS-539 phase 2d: interface monitoring)
+
+- Batch 554: `Interfaces/EngineStatusLine.tsx` (new folder).
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: `Config/System/SupportAccessSection.tsx`.
+
+## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
+
+- Batch 557: `Config/AI/HostingRegionsCard.tsx`; `RuntimeConfigError` marks problems from the server's `/api/config`.
+
+## Batch 567 (WCAG 2.1 AA)
+
+- Batch 567: `AppShell/` (message rows), `Worklist/WorklistTable.tsx` (digital-pathology cells): no control inside another.
+
+## Batch 568 (WCAG 2.1 AA)
+
+- Batch 568: `Config/Protocols/`, `EnhancementRequest/`, `TemplateBuilder/`: no control inside another; the check is now app-wide (`services/accessibility`).
+
+## Batch 569 (WCAG 2.1 AA)
+
+- Batch 569: `AppShell/` (focus after a keyboard delete in the inbox).
+
+## Batch 570 (WCAG 2.1 AA)
+
+- Batch 570: `AppShell/` (focus after delete through the shared hook); tests for `TemplateBuilder/` and `EnhancementRequest/`.
+
+## Batch 572
+
+- `QualityAssurance/CytologyQaTab.tsx`: the workload report's recorded and signed-off hours.
+
+## Batch 573
+
+- `OrganMap/OrganMapPanel.tsx`: the empty presence slot removed (presence is shown above the report's tabs).
+
+## Batch 574
+
+- `Config/Cytology/`: the start of the screening day. `QualityAssurance/`: correction reasons on the workload report.
+
+## Batch 576
+
+- `Config/Cytology/`: cap checks on the Workload cap screen.
+
+## Batch 578
+
+- `Config/Cytology/`: cap errors beside their field; add pickers without existing overrides.
+
+## Batch 579
+
+- `Common/InlineCommentThread.tsx`: dark, labelled, an Add button; logic in `services/templates/templateReviewWork.ts`.
+- `Config/Templates/TemplateRenderer.tsx`: the reviewer guide; Reset at the end of the row, unavailable in Draft.
+
+## Batch 580
+
+- `Common/README.md`: PS-62, the styled dropdown list and `utils/selectAutoWidth.ts`.

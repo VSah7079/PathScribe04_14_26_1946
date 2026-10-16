@@ -28,10 +28,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockWsiViewerVendorService } from '@/services/digitalPathology/mockWsiViewerVendorService';
+
 import { buildWsiViewerLaunchUrl } from '@/utils/buildWsiViewerLaunchUrl';
 import { useCompanionWindow } from '@/hooks/useCompanionWindow';
 import type { WsiViewerVendorEntry } from '@/services/digitalPathology/IWsiViewerVendorService';
+import { wsiViewerVendorService } from '@/services';
 
 /** Real, per the RFP's own §3.4.1 ask — only shown once a real,
  *  physical slide genuinely exists to scan (coverslipped or beyond);
@@ -65,7 +66,7 @@ export const WsiViewerLaunchButton: React.FC<WsiViewerLaunchButtonProps> = ({
   const { openCompanion } = useCompanionWindow({ windowName, preferredWidth, preferredHeight });
 
   useEffect(() => {
-    mockWsiViewerVendorService.getActive().then(res => {
+    wsiViewerVendorService.getActive().then(res => {
       if (res.ok) {
         setVendors(res.data);
         if (res.data.length > 0) setSelectedVendorId(res.data[0].id);
@@ -88,7 +89,7 @@ export const WsiViewerLaunchButton: React.FC<WsiViewerLaunchButtonProps> = ({
   return (
     <span className="ps-wsi-launch-wrap">
       {vendors.length > 1 && (
-        <select
+        <select aria-label={t('a11y.fields.viewer')}
           className="ps-wsi-launch-select"
           value={selectedVendorId}
           onChange={e => setSelectedVendorId(e.target.value)}

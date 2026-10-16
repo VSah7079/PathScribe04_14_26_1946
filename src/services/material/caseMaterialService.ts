@@ -19,7 +19,6 @@ import { affectedBillingLines, billingLinesOf, billingSummaryForMaterial, type B
 import type { DecantEvent, MaterialChangeKind } from './materialEvents';
 import type { StainType } from '../stains/IStainService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type DecantSaveResult =
   | { ok: true; specimens: any[]; version: number; change: MaterialChangeKind; event: DecantEvent; billing: { changed: BillingLine[]; removedMaterialIds: string[] } }

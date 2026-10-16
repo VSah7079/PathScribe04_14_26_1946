@@ -44,12 +44,14 @@
 //     useAmendmentWorkflow, per the dependency direction above.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
+import type { AuditLogFn } from '@/components/Audit/useAuditLog';
 import { countBlockMessage, findSynopticEntryChecks, totalWarningsMessage } from '@/services/templates/synopticEntryChecks';
 import { useState, useCallback, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSessionUser, canFinalizeCase, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl';
-import { countersignService, userService, fppeAssignmentService, qaSupervisionAssignmentService } from '@/services';
-import { FPPE_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaSupervisionAssignmentService';
+import { countersignService, userService, qaSupervisionAssignmentService, FPPE_ACTIVITY_TYPE_ID, reportReleaseService, serviceChargeService, ncciEditService, billingDeficiencyService, criticalResultNotificationService, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, outboundChargeQueueService, codeReviewPoolService, billingTypeTriggerConfigService } from '@/services';
+
 import { intraoperativeService } from '@/services';
 import { concordanceReviewSettingsService } from '@/services';
 import { dispatchCancerRegistryReportIfApplicable } from '@/services/cancerRegistry/dispatchCancerRegistryReportIfApplicable';
@@ -57,38 +59,38 @@ import { amendmentService, reportVersionService, signatureGate } from '@/service
 import type { SignatureConfirmation } from '@/services/auth/signerConfirmation';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { syncPrimaryAssignee } from '@/services/cases/caseAssignmentSync';
-import { mockReportReleaseService } from '@/services/reportRelease/mockReportReleaseService';
+
 import { publishReportReleasedEvent } from '@/services/reports/publishReportReleasedEvent';
+import { publishReleasedRevision, releasedRevisionDeps } from '@/services/reports/publishReleasedRevision';
 import { finalizedAssistWorkups } from '@/services/reports/assistFinalize';
-import { mockServiceChargeService } from '@/services/billing/mockServiceChargeService';
-import { mockNcciEditService } from '@/services/billing/mockNcciEditService';
-import { mockBillingDeficiencyService } from '@/services/billing/mockBillingDeficiencyService';
+
 import type { BillingDeficiencyType, BillingDeficiencySeverity } from '@/types/billing/BillingDeficiencyRecord';
 import { checkSignOutBillingDeficiencies } from '@/services/billing/checkSignOutBillingDeficiencies';
 import { detectCriticalFindings } from '@/services/clinical/detectCriticalFindings';
 import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
-import { mockCriticalResultNotificationService } from '@/services/clinical/mockCriticalResultNotificationService';
+
 import { dispatchCriticalAlerts } from '@/services/clinical/dispatchCriticalAlerts';
 import { abnormalTriggerRuleService } from '@/services';
 import { evaluateAbnormalTriggerRules, toCriticalFindingFlag } from '@/services/abnormalDetection/evaluateAbnormalTriggerRules';
 import { resolveSyntheticCoding } from '@/services/abnormalDetection/resolveSyntheticCoding';
 import { abnormalDetectionSignalService, qaActivityRecordService } from '@/services';
-import { ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaActivityTypeService';
+
 import { applySurgicalPostSignOutQa } from '@/services/quality/applySurgicalPostSignOutQa';
+import { runMarginRuleEvaluation } from '@/services/tumorBoardRules/runMarginRuleEvaluation';
 import { recordAbnormalDetectionOutcomes, type AbnormalDetectionOutcome } from '@/services/abnormalDetection/recordAbnormalDetectionOutcomes';
 import { resolveActiveStudyId } from '@/services/validationStudies/resolveActiveStudyId';
 import { resolveAnswers } from '@/orchestrator/contextBuilder';
 import { resolveAbnormalDetectionEnabled } from '@/services/abnormalDetection/resolveAbnormalDetectionEnabled';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
-import { mockOutboundChargeQueueService } from '@/services/billing/mockOutboundChargeQueueService';
+
 import { shouldRandomlySampleForCodeReview } from '@/services/billing/shouldRandomlySampleForCodeReview';
-import { mockCodeReviewPoolService } from '@/services/billing/mockCodeReviewPoolService';
+
 import { facilityService } from '@/services';
 import { markFollowUpExpectedLive, followUpMarkFailureKey } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { resolveFinalizeAuthorityContext } from '@/services/auth/resolveFinalizeAuthorityContext';
 import { sweepChargesForOutbox } from '@/services/billing/sweepChargesForOutbox';
-import { mockBillingTypeTriggerConfigService } from '@/services/billing/mockBillingTypeTriggerConfigService';
+
 import { validateChargeMetadata } from '@/services/billing/validateChargeMetadata';
 import { sendEmail } from '@/services/communications/notificationService';
 import { resolveResidentCountersignRequired } from '@/services/cases/resolveResidentCountersignRequired';
@@ -113,8 +115,10 @@ import type { OrchestratorSection } from '../components/OrchestratorSectionEdito
 import type { SigningUser, SetConcurrencyConflict, SendSynopticReportToLisFn, GenerateReportPdfSnapshotFn } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
 import { checkStainQcGate } from './checkStainQcGate';
+import { checkInkingSignOutGate } from './checkInkingSignOutGate';
+import type { InkingGateResult } from '@/services/grossing/evaluateInkingGate';
 import { checkClinicalMismatch, checkPeerReviewGate } from './checkPeerReviewAndMismatch';
-import type { ClinicalMismatchSuggestion, PeerReviewStatus } from '@/services';
+import type { ClinicalMismatchAssessment, PeerReviewStatus } from '@/services';
 import type { StainQcGateBlockingItem } from './checkStainQcGate';
 import { partGridRowsOf, synopticFieldAnswered } from '@/services/templates/partGrid';
 import { findDerivedMarginConflicts, findInvasiveMarginGaps, findMohsBlockGaps, findStaleOrganMapFigures } from '@/services/organMapping/organMapLive';
@@ -161,10 +165,16 @@ interface UseSignOutWorkflowParams {
    *  fixative/pre-analytic gates above. */
   setStainQcGateBlocking: (items: StainQcGateBlockingItem[] | null) => void;
   /** Batch 439 (PS-145): a suggested clinical-pathologic mismatch to decide
-   *  before sign-out (ClinicalMismatchModal). Same resume shape as the gates. */
-  setClinicalMismatch: (suggestion: ClinicalMismatchSuggestion | null) => void;
+   *  before sign-out (ClinicalMismatchModal). Same resume shape as the gates.
+   *  Batch 530 (PS-554): only a high-risk one; a low-risk one is logged. */
+  setClinicalMismatch: (assessment: ClinicalMismatchAssessment | null) => void;
   /** Batch 439 (PS-144): the peer-review gate stopped sign-out (PeerReviewGateModal). */
   setPeerReviewGate: (status: PeerReviewStatus | null) => void;
+  /** Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic Engine;
+   *  PS-519 follow-up). Gate B — null when nothing interrupts sign-out
+   *  (a clean case or Severity-2-only, advisory, never a block); set only
+   *  for BLOCK, OVERRIDE_REQUIRED or PALETTE_UNAVAILABLE (InkingGateModal). */
+  setInkingGateBlocking: (result: InkingGateResult | null) => void;
   setPreAnalyticDateGateSpecimens: (specs: PreAnalyticDateGateSpecimen[] | null) => void;
   setPendingFinalizeArgs: (args: string[]) => void;
   /** Real, per direct guidance (retiring Finalize for Orchestration
@@ -199,7 +209,8 @@ interface UseSignOutWorkflowParams {
   setShowFinalizeModal: (show: boolean) => void;
   openAmendmentDraft: (mode: 'amendment' | 'correction' | 'addendum') => Promise<void>;
   releasePendingAmendmentOrAddendum: () => Promise<string | undefined>;
-  log: (event: string, detail: Record<string, unknown>) => void;
+  // Batch 511 (PS-478): the page's typed audit logger, so each event and its details are checked against the audit catalogue.
+  log: AuditLogFn;
 }
 
 // Real, per direct guidance's own severity categorization for each real
@@ -298,11 +309,11 @@ export function useSignOutWorkflow({
   knownVersionRef, setConcurrencyConflict, sendSynopticReportToLis,
   generateReportPdfSnapshot, isOrchestrationMode, orchSections,
   setCaseSigned, setShowSignOutModal, setPendingReconciliation,
-  countersignFeedback, followUpExpected, specimenDictionary, setFixativeGateSpecimens, setStainQcGateBlocking, setClinicalMismatch, setPeerReviewGate,
+  countersignFeedback, followUpExpected, specimenDictionary, setFixativeGateSpecimens, setStainQcGateBlocking, setClinicalMismatch, setPeerReviewGate, setInkingGateBlocking,
   setPreAnalyticDateGateSpecimens, setPendingActionIsSignOut,
-  setPendingFinalizeArgs, synopticPanelRef, setAlertFieldId, safeSetLeftTab, setAmendmentMode,
+  setPendingFinalizeArgs, synopticPanelRef, setAlertFieldId, safeSetLeftTab,
   setActiveSpecimenId, setActiveReportType,
-  setShowAmendmentModal, setShowFinalizeModal, openAmendmentDraft,
+  setShowFinalizeModal,
   releasePendingAmendmentOrAddendum, log, confirmWarnings,
 }: UseSignOutWorkflowParams) {
   // Real, per direct guidance (PS-105): "If the enterprise level is
@@ -341,6 +352,7 @@ export function useSignOutWorkflow({
     if (caseData?.id) {
       const pendingInstances = (caseData.synopticReports ?? []).filter((r: SynopticReportInstance) => r.pendingAmendmentId);
       const successfulInstanceIds = new Set<string>();
+      const releasedRevisionTypes = new Map<string, 'addendum' | 'amendment' | 'correction'>();
       const failedInstances: string[] = [];
 
       for (const instance of pendingInstances) {
@@ -349,10 +361,21 @@ export function useSignOutWorkflow({
         // It commits immediately; CoPilot still gates on a real,
         // confirmed send before releasing.
         if (caseData.reportingMode !== 'assist') {
-          await amendmentService.release(instance.pendingAmendmentId!, {
+          const released = await amendmentService.release(instance.pendingAmendmentId!, {
             body: `Synoptic instance ${instance.instanceId} corrected and re-signed out.`,
           });
           successfulInstanceIds.add(instance.instanceId);
+          // Batch 535 (bug: the correction was marked released but never sent, and the FINAL
+          // skipped this instance as already sent): it goes out as CORRECTED / ADDENDUM,
+          // through the release delay, recallable by whoever signed (publishReleasedRevision).
+          if (released.ok) {
+            releasedRevisionTypes.set(instance.instanceId, released.data.type);
+            void publishReleasedRevision({
+              caseId: caseData.id, instance: { instanceId: instance.instanceId, templateId: instance.templateId, lastRevisionType: instance.lastRevisionType },
+              record: released.data, releasedBy: { id: signingUser?.id ?? '', name: signingUser?.name ?? signingUser?.id ?? '' },
+              performingFacilityId: caseData.order?.facilityId, previousStatus: caseData.status, generatePdf: generateReportPdfSnapshot,
+            }, releasedRevisionDeps).catch(e => console.error('[useSignOutWorkflow] Correction released at sign-out not sent:', e));
+          }
           continue;
         }
         const sendResult = await sendSynopticReportToLis({
@@ -390,11 +413,18 @@ export function useSignOutWorkflow({
 
       if (successfulInstanceIds.size > 0) {
         const clearedReports = (caseData.synopticReports ?? []).map((r: SynopticReportInstance) =>
-          successfulInstanceIds.has(r.instanceId) ? { ...r, status: 'finalized' as const, pendingAmendmentId: undefined } : r
+          successfulInstanceIds.has(r.instanceId)
+            // Batch 535: the header then shows Final (Corrected / Amended), and the instance is no longer "unlocked for amendment".
+            ? { ...r, status: 'finalized' as const, pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined,
+                ...(releasedRevisionTypes.has(r.instanceId) ? { lastRevisionType: releasedRevisionTypes.get(r.instanceId) } : {}) }
+            : r
         );
-        setCaseData({ ...caseData, synopticReports: clearedReports });
+        // Batch 535: the case's own revision label too (the header reads it).
+        const caseRevision = [...releasedRevisionTypes.values()].pop();
+        const revisionPatch = caseRevision ? { lastRevisionType: caseRevision } : {};
+        setCaseData({ ...caseData, synopticReports: clearedReports, ...revisionPatch });
         try {
-          await caseRouter.updateCase(caseData.id, { synopticReports: clearedReports }, knownVersionRef.current);
+          await caseRouter.updateCase(caseData.id, { synopticReports: clearedReports, ...revisionPatch }, knownVersionRef.current);
           knownVersionRef.current = knownVersionRef.current + 1;
         } catch (e) {
           // Deliberately no override option here — this write finalizes
@@ -645,34 +675,11 @@ export function useSignOutWorkflow({
       // provisional hire currently have an active assignment for this
       // subspecialty), just against the new system, which Stage 3's
       // id-synchronized shadow-write already proved stays a faithful
-      // mirror. Real, deliberate scope: only THIS gate-check moved —
-      // FppeAssignmentsSection.tsx's own list view still reads the old
-      // system as its source of truth (confirmed directly before this
-      // change), so old-system writes below are NOT retired here; that
-      // screen's own migration is a separate, later piece of work.
+      // mirror. Batch 515 (PS-124): the old system is now retired
+      // altogether; every FPPE screen reads this service.
       const activeFppeAssignment = provisionalParticipant && !isAttendingToo
         ? await qaSupervisionAssignmentService.getActiveAssignmentForUser(FPPE_ACTIVITY_TYPE_ID, signingUser?.id ?? '', caseData?.subspecialtyId).then(r => r.ok ? r.data : null).catch(() => null)
         : null;
-      // Real, cheap safety net for this specific cutover — compares the
-      // old system's own answer against the new one on every real
-      // evaluation, logging (never blocking or changing behavior on) a
-      // mismatch. Ids are synchronized since creation time (Stage 3),
-      // so these should never actually disagree; this exists purely to
-      // surface it immediately, on real usage, if they ever do — not
-      // left running indefinitely once the old system is fully retired.
-      if (provisionalParticipant && !isAttendingToo) {
-        fppeAssignmentService.getActiveAssignmentForUser(signingUser?.id ?? '', caseData?.subspecialtyId)
-          .then(r => {
-            const legacyActive = r.ok ? !!r.data : null;
-            const newActive = !!activeFppeAssignment;
-            if (legacyActive !== null && legacyActive !== newActive) {
-              console.warn('[PS-114 drift] FPPE gate disagreement between old and new systems', {
-                userId: signingUser?.id, caseId: caseData?.id, legacyActive, newActive,
-              });
-            }
-          })
-          .catch(() => {});
-      }
 
       const countersignCheck = resolveResidentCountersignRequired({
         participants: caseData?.participants,
@@ -838,6 +845,18 @@ export function useSignOutWorkflow({
         return;
       }
 
+      // Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic
+      // Engine; PS-519 follow-up). Gate B — checked after stain QC, same
+      // ordering principle as every gate above (a later-stage specimen
+      // concern checked after the more foundational ones).
+      const inkingGate = await checkInkingSignOutGate(caseData, signingUser?.role ? [signingUser.role] : []);
+      if (inkingGate) {
+        setInkingGateBlocking(inkingGate);
+        setPendingActionIsSignOut(true);
+        setShowSignOutModal(false);
+        return;
+      }
+
       // Batch 439 (PS-145, PS-144): a clinical-pathologic mismatch to
       // decide, then the peer-review gate where it is switched on. See
       // checkPeerReviewAndMismatch.ts.
@@ -892,10 +911,8 @@ export function useSignOutWorkflow({
         // an increment that silently failed to land there would leave a
         // pathologist who's actually graduated still gated, or vice
         // versa — a real, live-consequence bug a swallowed error could
-        // hide. The old system's own write is now the shadow, kept
-        // alive (not retired) because FppeAssignmentsSection.tsx's own
-        // list view still reads it as its source of truth — confirmed
-        // directly before this change, not assumed.
+        // hide. (Batch 515: the old system's shadow write is gone; the
+        // legacy fppeAssignmentService is retired.)
         const assignmentRes = await qaSupervisionAssignmentService.getActiveAssignmentForUser(FPPE_ACTIVITY_TYPE_ID, provisionalOnThisCase.staffId, caseData?.subspecialtyId).catch(() => null);
         if (assignmentRes?.ok && assignmentRes.data) {
           try {
@@ -903,11 +920,6 @@ export function useSignOutWorkflow({
           } catch (e) {
             console.error('[PS-114] Failed to record case review on the new QaSupervisionAssignment system — the sign-out gate reads from this system, so a silent failure here could leave a graduated pathologist incorrectly gated.', e);
           }
-          // Real, synchronized shadow-write to the old system, using the
-          // same real id (shared since creation time) — kept alive only
-          // for FppeAssignmentsSection.tsx's own still-unmigrated list
-          // view; never awaited in a way that could delay real sign-out.
-          fppeAssignmentService.recordCaseReviewed(assignmentRes.data.id).catch(() => {});
         }
       }
     }
@@ -969,6 +981,37 @@ export function useSignOutWorkflow({
       );
     }
 
+    // Batch 491 (PS-359 follow-up): the Tumor Board auto-flagging rules
+    // engine — the real wiring Batch 490 deliberately left undone (see
+    // services/marginExtraction/README.md's own disclosed "no call site
+    // wired in" gap). Runs the margin-distance extraction layer over
+    // every synoptic instance on this case, then the rule evaluator;
+    // auto-nominates the case for a board when a rule fires and it isn't
+    // on an agenda already (mockTumorBoardService.create()'s own
+    // one-active-listing rule covers a case that already is). Surgical
+    // pathology only — same real scope as applySurgicalPostSignOutQa()
+    // immediately above (this hook never runs for Cytology sign-out).
+    // Fire-and-forget, same posture as every other post-sign-out side
+    // effect in this function: a real failure here must never block or
+    // retroactively undo the case's own, already-successful sign-out.
+    if (caseData?.id) {
+      runMarginRuleEvaluation({
+        caseId: caseData.id,
+        caseAccession: signingCaseRef ?? caseData.id,
+        facilityId: authorityLabId,
+        instances: (caseData.synopticReports ?? []).map((r: SynopticReportInstance) => ({ instanceId: r.instanceId, templateId: r.templateId, answers: r.answers ?? {} })),
+        getTemplateFields: async (templateId: string) => {
+          const detail = await getTemplate(templateId);
+          return (detail.template.sections ?? []).flatMap(s => (s.fields ?? []).map(f => ({ id: f.id, label: f.label, type: f.type })));
+        },
+        byUserId: signingUser?.id ?? 'unknown',
+        byUserName: signingUser?.name ?? 'Unknown User',
+      }).then(result => {
+        if (result.flagged && result.board) {
+          showToast(t('useSignOutWorkflow.toast.autoFlaggedForTumorBoard', { board: t(`tumorBoard.boards.${result.board}`) }));
+        }
+      }).catch(e => console.error('[useSignOutWorkflow] Could not run the Tumor Board auto-flag rule evaluation:', e));
+    }
 
     // Real, per the RFP-APLIS-2026-GLOBAL Broader Cancer Registry
     // Exports gap — per FHIR_DISPATCH_ARCHITECTURE_PLAN.md's own
@@ -993,7 +1036,7 @@ export function useSignOutWorkflow({
     // never assuming the UI's own mode-gated button visibility is the
     // only real protection.
     if (isOrchestrationMode && caseData?.id) {
-      const bufferResolution = await mockReportReleaseService.resolveBufferForCase(caseData);
+      const bufferResolution = await reportReleaseService.resolveBufferForCase(caseData);
       const finalizedAt = new Date().toISOString();
       const patch = {
         status: (bufferResolution.applies ? 'pending-release' : 'finalized') as CaseStatus,
@@ -1012,6 +1055,8 @@ export function useSignOutWorkflow({
         setCaseData({ ...caseData, ...patch } as typeof caseData);
 
         if (bufferResolution.applies) {
+          // Batch 534: released when the buffer ends even if nobody has this page open.
+          trackSignOutBufferLazy(caseData.id, patch.releaseBufferExpiresAt!, signingUser, caseData.order?.facilityId);
           log('sign_out_buffered', {
             caseId: caseData.id,
             accession: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber,
@@ -1031,6 +1076,8 @@ export function useSignOutWorkflow({
             reportType: 'FINAL',
             releasedAt: new Date().toISOString(),
             releasedBy: signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : undefined,
+            // Batch 538: the performing facility, so print and fax route (it was missing here).
+            performingFacilityId: caseData.order?.facilityId,
           }).catch(e =>
             console.error('[useSignOutWorkflow] Real, non-blocking failure dispatching case instances at sign-out (no buffer applied):', e)
           );
@@ -1041,7 +1088,7 @@ export function useSignOutWorkflow({
         showToast(t('useSignOutWorkflow.toast.signedOutBufferFailed'), 'warning');
       }
     }
-  }, [caseData, finalizeSignOut, signingUser, showToast, countersignFeedback, setShowSignOutModal, knownVersionRef, setConcurrencyConflict, setCaseData, setPendingReconciliation, isOrchestrationMode, log, t, i18n.language, confirmWarnings]);
+  }, [caseData, finalizeSignOut, signingUser, showToast, countersignFeedback, setShowSignOutModal, knownVersionRef, setConcurrencyConflict, setCaseData, setPendingReconciliation, isOrchestrationMode, log, t, i18n.language, confirmWarnings, generateReportPdfSnapshot, setClinicalMismatch, setFixativeGateSpecimens, setInkingGateBlocking, setPeerReviewGate, setPendingActionIsSignOut, setPreAnalyticDateGateSpecimens, setStainQcGateBlocking, signingCaseRef, specimenDictionary]);
 
   // ── Build SynopticForReview[] for PreFinalisationModal ─────────────────
   const buildSynopticsForReview = useCallback(async (): Promise<SynopticForReview[]> => {
@@ -1147,8 +1194,8 @@ export function useSignOutWorkflow({
   const fetchBillingDeficiencyFindings = useCallback(async () => {
     if (!caseData?.id) return [];
     const [chargesRes, ncciRes] = await Promise.all([
-      mockServiceChargeService.getChargesForCase(caseData.id),
-      mockNcciEditService.getAll(),
+      serviceChargeService.getChargesForCase(caseData.id),
+      ncciEditService.getAll(),
     ]);
     if (!chargesRes.ok || !ncciRes.ok) return [];
     const specimens = (caseData.specimens ?? []).map((sp: Specimen) => ({
@@ -1207,7 +1254,7 @@ export function useSignOutWorkflow({
         gross:       caseData.diagnostic.grossDescription ?? '',
         microscopic: caseData.diagnostic.microscopicDescription ?? '',
         ancillary:   caseData.diagnostic.ancillaryStudies ?? '',
-      });
+      }, { caseId: caseData.id, facilityId: caseData.order?.facilityId });
       narrativeFindings = res.ok ? res.data.flags : [];
     }
 
@@ -1255,9 +1302,9 @@ export function useSignOutWorkflow({
         subspecialtyId: caseData?.subspecialtyId,
       },
     };
-    import('@/services/validationStudies/mockValidationStudyService')
-      .then(({ mockValidationStudyService }) =>
-        recordAbnormalDetectionOutcomes(input, { signalService: abnormalDetectionSignalService, studyService: mockValidationStudyService }))
+    import('@/services')
+      .then(({ validationStudyService }) =>
+        recordAbnormalDetectionOutcomes(input, { signalService: abnormalDetectionSignalService, studyService: validationStudyService }))
       .catch(e => console.error('[AbnormalDetection] Could not record agreement signals:', e));
   }, [caseData, criticalFindings, signingUser]);
 
@@ -1271,7 +1318,7 @@ export function useSignOutWorkflow({
    *  with the finding as one who explicitly acknowledged it. */
   const handleRecordCriticalNotification = useCallback(async (input: {
     clinicianName: string;
-    method: 'verbal_phone' | 'secure_page' | 'direct_lis_flag';
+    method: NotificationMethod; // Batch 511: the modal offers all five methods, including secure email and fax
     readBackConfirmed?: boolean;
     /** Real, per direct guidance: defaults to the signed-in user in
      *  the modal itself, but genuinely editable — a representative may
@@ -1285,7 +1332,7 @@ export function useSignOutWorkflow({
   }) => {
     if (!caseData?.id) return;
     const findingSummary = criticalFindings.map(f => f.term).join(', ') || 'Critical finding detected at sign-out';
-    await mockCriticalResultNotificationService.recordNotification({
+    await criticalResultNotificationService.recordNotification({
       caseId: caseData.id,
       trigger: 'critical_value',
       findingSummary,
@@ -1328,7 +1375,11 @@ export function useSignOutWorkflow({
         syntheticAbnormalCoding: perRuleMatch?.syntheticCoding ?? resolveSyntheticCoding(highest),
       };
       try {
-        await caseRouter.updateCase(caseData.id, patch, knownVersionRef.current);
+        const expected = knownVersionRef.current;
+        await caseRouter.updateCase(caseData.id, patch, expected);
+        // Batch 572: this save is the page's own, so it moves the known version on (no "someone else saved" notice,
+        // and the next save isn't refused against the version this one replaced).
+        knownVersionRef.current = Math.max(knownVersionRef.current, expected + 1);
         setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
       } catch (e) {
         console.error('[AbnormalDetection] Could not persist confirmed abnormal status:', e);
@@ -1528,6 +1579,15 @@ export function useSignOutWorkflow({
       return false; // abort — do not finalize until the gate is resolved
     }
 
+    // Batch 484: Gate B, same real check as the sibling call site above.
+    const inkingGateFinalize = await checkInkingSignOutGate(caseData, signingUser?.role ? [signingUser.role] : []);
+    if (inkingGateFinalize) {
+      setInkingGateBlocking(inkingGateFinalize);
+      setPendingFinalizeArgs(excludedInstanceIds);
+      setPendingActionIsSignOut(false);
+      return false;
+    }
+
     // Batch 439 (PS-145, PS-144): same two checks as the sibling call site.
     const mismatchFinalize = await checkClinicalMismatch(caseData);
     if (mismatchFinalize) {
@@ -1554,7 +1614,7 @@ export function useSignOutWorkflow({
     // second, separate write. Now async as of Phase 2 — real
     // Enterprise/Facility config resolution needs a real, async
     // facility lookup.
-    const bufferResolution = await mockReportReleaseService.resolveBufferForCase(caseData);
+    const bufferResolution = await reportReleaseService.resolveBufferForCase(caseData);
 
     try {
       // CaseRouter.updateCase is deliberately Promise<void> — it writes to
@@ -1591,6 +1651,8 @@ export function useSignOutWorkflow({
 
       const updated = { ...caseData, ...patch } as typeof caseData;
       setCaseData(updated);
+      // Batch 534: released when the buffer ends even if nobody has this page open.
+      if (bufferResolution.applies) trackSignOutBufferLazy(caseData.id, patch.releaseBufferExpiresAt!, signingUser, caseData.order?.facilityId);
 
       // Batch 426: no release buffer, so the Assist case is released now: its workups go to the LIS
       // (publishReportReleasedEvent → dispatchAssistSynopticResult). With a buffer, its expiry does this.
@@ -1598,6 +1660,7 @@ export function useSignOutWorkflow({
         publishReportReleasedEvent({
           caseId: caseData.id, reportType: 'FINAL', releasedAt: finalizedAt,
           releasedBy: signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : undefined,
+          performingFacilityId: caseData.order?.facilityId,
         }).catch(e => console.error('[useSignOutWorkflow] Non-blocking failure sending the Assist workups to the LIS:', e));
       }
 
@@ -1632,7 +1695,7 @@ export function useSignOutWorkflow({
       (async () => {
         const findings = await fetchBillingDeficiencyFindings();
         if (findings.length === 0) return;
-        await Promise.all(findings.map(f => mockBillingDeficiencyService.raise({
+        await Promise.all(findings.map(f => billingDeficiencyService.raise({
           caseId: caseData.id,
           chargeRecordId: f.chargeRecordId,
           deficiencyType: f.deficiencyType,
@@ -1664,7 +1727,7 @@ export function useSignOutWorkflow({
         const labRes = labId === caseData.originHospitalId ? orderingRes : await facilityService.getById(labId);
         if (!labRes.ok) return;
         if (!shouldRandomlySampleForCodeReview(labRes.data.codeReviewSamplingRatePercent)) return;
-        await mockCodeReviewPoolService.create({
+        await codeReviewPoolService.create({
           caseId: caseData.id,
           caseLabel: caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : undefined,
           source: 'RANDOM_SAMPLE',
@@ -1692,17 +1755,17 @@ export function useSignOutWorkflow({
       // fire-and-forget block, not merged with the billing-deficiency
       // one above - a failure in one must never affect the other.
       (async () => {
-        const chargesRes = await mockServiceChargeService.getChargesForCase(caseData.id);
+        const chargesRes = await serviceChargeService.getChargesForCase(caseData.id);
         if (!chargesRes.ok) return;
-        const alreadyQueuedRes = await mockOutboundChargeQueueService.getByServiceChargeRecordIds(
+        const alreadyQueuedRes = await outboundChargeQueueService.getByServiceChargeRecordIds(
           chargesRes.data.map(c => c.id)
         );
         const alreadyQueuedIds = new Set(alreadyQueuedRes.ok ? alreadyQueuedRes.data.map(e => e.serviceChargeRecordId) : []);
-        const triggerMapRes = await mockBillingTypeTriggerConfigService.getEffectiveTriggerMap(caseData.order?.siteId);
+        const triggerMapRes = await billingTypeTriggerConfigService.getEffectiveTriggerMap(caseData.order?.siteId);
         const toEnqueue = sweepChargesForOutbox(chargesRes.data, 'CASE_SIGNED_OUT', alreadyQueuedIds, triggerMapRes.ok ? triggerMapRes.data : undefined);
         const metadataFailures = validateChargeMetadata(caseData);
         await Promise.all(toEnqueue.map(async f => {
-          const enqueueRes = await mockOutboundChargeQueueService.enqueue({
+          const enqueueRes = await outboundChargeQueueService.enqueue({
             serviceChargeRecordId: f.serviceChargeRecordId,
             caseId: f.caseId,
             specimenId: f.specimenId,
@@ -1710,7 +1773,7 @@ export function useSignOutWorkflow({
             triggerEvent: 'CASE_SIGNED_OUT',
           });
           if (enqueueRes.ok && metadataFailures.length > 0) {
-            await mockOutboundChargeQueueService.markFailed(enqueueRes.data.id, {
+            await outboundChargeQueueService.markFailed(enqueueRes.data.id, {
               errorCode: metadataFailures[0].errorCode,
               errorMessage: metadataFailures[0].errorMessage,
               maxRetriesExceeded: false,
@@ -1732,7 +1795,7 @@ export function useSignOutWorkflow({
       showToast(t('useSignOutWorkflow.toast.finalizationFailed'), 'warning');
       return false;
     }
-  }, [caseData, signingUser, log, showToast, specimenDictionary, knownVersionRef, setCaseData, setConcurrencyConflict, setFixativeGateSpecimens, setStainQcGateBlocking, setPreAnalyticDateGateSpecimens, setPendingFinalizeArgs, fetchBillingDeficiencyFindings, t]);
+  }, [caseData, signingUser, log, showToast, specimenDictionary, knownVersionRef, setCaseData, setConcurrencyConflict, setFixativeGateSpecimens, setStainQcGateBlocking, setPreAnalyticDateGateSpecimens, setPendingFinalizeArgs, fetchBillingDeficiencyFindings, t, setClinicalMismatch, setInkingGateBlocking, setPeerReviewGate, setPendingActionIsSignOut, signingCaseRef]);
 
   // Real feature, per direct follow-up: "Wire evaluateMicroscopicFinalizeGate
   // into handleRequestFinalize." Genuinely case-wide, unlike
@@ -2015,8 +2078,8 @@ export function useSignOutWorkflow({
     // Record the diff between AI-generated text and pathologist's final version
     // for each orchestration section. Stored for future few-shot / fine-tuning.
     if (isOrchestrationMode && orchSections.length > 0) {
-      import('@/services/narrativeSignals/mockNarrativeSignalService').then(
-        async ({ mockNarrativeSignalService, computeEditRatio }) => {
+      import('@/services').then(
+        async ({ narrativeSignalService, computeEditRatio, validationStudyService }) => {
           const { deidentifySignal } = await import('@/services/narrativeSignals/deidentification');
 
           // ── Resolve the active study (if any) covering this case ───────────
@@ -2030,12 +2093,11 @@ export function useSignOutWorkflow({
           // finalization, not stored ahead of time. The lookup is shared with
           // the abnormal-detection agreement signals (resolveActiveStudyId,
           // Batch 318) so both kinds of signal agree on a case's study.
-          const { mockValidationStudyService } = await import('@/services/validationStudies/mockValidationStudyService');
           const resolvedStudyId = await resolveActiveStudyId({
             clientId:       caseData?.order?.facilityId ?? '',
             pathologistId:  signingUser?.id ?? '',
             subspecialtyId: caseData?.subspecialtyId,
-          }, mockValidationStudyService);
+          }, validationStudyService);
 
           const signals = orchSections
             .filter(s => s.aiGenerated || s.text)
@@ -2067,7 +2129,7 @@ export function useSignOutWorkflow({
                 studyId:            resolvedStudyId,
               };
             });
-          mockNarrativeSignalService.recordSignals(signals).then(() => {
+          narrativeSignalService.recordSignals(signals).then(() => {
             console.info(`[PathScribe] Recorded ${signals.length} de-identified signal(s)${resolvedStudyId ? ` for study ${resolvedStudyId}` : ' (no active study match)'}`);
           });
         }
@@ -2092,7 +2154,7 @@ export function useSignOutWorkflow({
       const succeeded = await finalizeCase();
       if (succeeded) await releasePendingAmendmentOrAddendum();
     })();
-  }, [signingCaseRef, showToast, t, setShowFinalizeModal, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal, isOrchestrationMode, orchSections, finalizeCase, releasePendingAmendmentOrAddendum, signingUser, synopticPanelRef, openAmendmentDraft]);
+  }, [signingCaseRef, showToast, t, setShowFinalizeModal, caseData, isOrchestrationMode, orchSections, finalizeCase, releasePendingAmendmentOrAddendum, signingUser, synopticPanelRef]);
 
   // Real, per direct guidance's own confirmed, foundational gap (PS-274):
   // suggestSynopticFields() and AiReviewModal were both already real
@@ -2277,4 +2339,13 @@ export function useSignOutWorkflow({
     handleRecordCriticalNotification,
     handleAcknowledgeCriticalFindings,
   };
+}
+
+/** Batch 534: hands a buffered sign-out to the background release (services/reportRelease/releaseReport.trackSignOutBuffer). */
+function trackSignOutBufferLazy(caseId: string, expiresAt: string, signer: { id?: string; name?: string } | null | undefined, performingFacilityId?: string): void {
+  void Promise.all([import('@/services/reportRelease/releaseReport'), import('@/services/reportRelease/releaseReportDeps')])
+    .then(([{ trackSignOutBuffer }, { releaseReportDeps }]) => trackSignOutBuffer({
+      caseId, expiresAt, releasedBy: { userId: signer?.id ?? '', userName: signer?.name ?? signer?.id ?? '' }, ...(performingFacilityId ? { performingFacilityId } : {}),
+    }, releaseReportDeps))
+    .catch(e => console.error('[useSignOutWorkflow] Buffered sign-out not handed to the background release:', e));
 }

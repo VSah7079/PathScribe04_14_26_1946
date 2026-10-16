@@ -17,6 +17,7 @@ import PubMedTicker from '@/components/Common/PubMedTicker';
 import { visibleTiles, type HomeTileId } from '@/services/screens/screenAccess';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
+import { pressable } from '@/utils/a11y/pressable';
 
 interface Card {
   /** Batch 374: which screen (or hub) the tile opens, for the access check. */
@@ -100,6 +101,22 @@ export default function Home() {
 
     // — Alphabetical from here down —
 
+    // ⭐ New tile — Batch 488 (Pete): the dedicated bench-contribution page
+    // for the four bench roles (Accessioner, Histotechnologist,
+    // Cytotechnologist, Molecular Technologist), replacing the My
+    // Contribution access they were given then had revoked in Batch 486.
+    // Color #7FB800 (lime green): verified by the same computational
+    // colorblind-simulation pass as the rest of this palette (see the
+    // header comment above) against all 8 existing tile colors — the
+    // Wong (2011) 8-color set above is already fully used, so this 9th
+    // color was chosen and checked individually, not drawn from it.
+    {
+      id: 'benchContributions', title: t('home.benchContributionsTile.title'),
+      description: t('home.benchContributionsTile.description'),
+      route: '/bench-contributions',
+      color: '#7FB800',
+      image: '/bench_contributions.webp'
+    },
     // Batch 375 (Pete): Add-On Orders is no longer a tile. It's an action on
     // a case (the report page's block row, "Add-on order"), which opens
     // /add-on-orders with that case already loaded (PS-287's station).
@@ -191,7 +208,29 @@ export default function Home() {
       color: '#D55E00',
       image: '/logs.webp'
     },
-    { id: 'search', title: t('home.searchTile.title'), description: t('home.searchTile.description'), route: '/search', color: '#CC79A7', image: '/search.webp' }
+    { id: 'search', title: t('home.searchTile.title'), description: t('home.searchTile.description'), route: '/search', color: '#CC79A7', image: '/search.webp' },
+    // ⭐ New tile — Batch 489 (Module 1 of Pete's Tumor Board / MDT
+    // Workspace spec). Color #9816D9 (violet): the Wong (2011) 8-color
+    // set plus #7FB800 (Batch 488) already fill out the full palette, so
+    // this 10th color was chosen and verified the same way as #7FB800 —
+    // a from-scratch Brettel/Vienot-style dichromat simulation (sRGB →
+    // linear → LMS → project out the missing cone response → back to
+    // sRGB) against protanopia, deuteranopia and tritanopia, plus a WCAG
+    // contrast check against the page background. With 9 colors already
+    // spread across the hue wheel, the margins are real but tighter than
+    // #7FB800's own: minimum simulated distance ≈34 (deuteranopia, vs.
+    // #38BDF8) and ≈37 (tritanopia, vs. #B24592), vs. ≈89 in normal
+    // vision — still clearly distinct in every simulation, but Pete
+    // should know this is the last color this palette can comfortably
+    // fit; an 11th tile will need either a shape/icon cue or reusing an
+    // existing color (same precedent as #009E73/#D55E00 above).
+    {
+      id: 'tumorBoard', title: t('home.tumorBoardTile.title'),
+      description: t('home.tumorBoardTile.description'),
+      route: '/tumor-board',
+      color: '#9816D9',
+      image: '/tumor_board.webp'
+    }
     // Real, per "Homepage Changes part 1" (direct request): "Move
     // Facilities Ops Dashboards under Configuration." The former
     // Facility Ops Dashboards tile (PS-288, #84CC16 lime) that used to
@@ -233,29 +272,13 @@ export default function Home() {
               return (
                 <div
                   key={card.title}
-                  onClick={() => navigate(card.route)}
+                  {...pressable(() => navigate(card.route))}
                   onMouseEnter={() => setHoveredCard(index)}
                   onMouseLeave={() => setHoveredCard(null)}
                   onFocus={() => setHoveredCard(index)}
                   onBlur={() => setHoveredCard(null)}
-                  // Real, per direct UI-review follow-up ("Fix them
-                  // all" — keyboard accessibility): this was a plain
-                  // <div onClick> — unreachable via Tab, no keyboard
-                  // activation, no visible focus state. role="button"
-                  // + tabIndex + onKeyDown makes it a genuine keyboard
-                  // control (Enter/Space activate, matching real
-                  // <button> semantics); onFocus/onBlur reuse the
-                  // existing hoveredCard state so a keyboard user gets
-                  // the same visible highlight a mouse user already
-                  // does, not a second, separate visual language.
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigate(card.route);
-                    }
-                  }}
+                  // Batch 568: pressable gives the card its button role, tab stop and Enter / Space (the hand-written
+                  // copies of those that sat here are gone); focus shows the same highlight as hover.
                   className={`ps-home-card${hovered ? ' ps-home-card--hovered' : ''}`}
                   style={{ '--card-accent': card.color } as React.CSSProperties}
                 >

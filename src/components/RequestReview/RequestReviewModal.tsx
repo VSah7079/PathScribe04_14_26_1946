@@ -24,13 +24,15 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
-import { mockMessageService } from '@/services/messages/mockMessageService';
-import { informalReviewService } from '@/services';
+
+import { informalReviewService, messageService, codeReviewPoolService } from '@/services';
 import { userService, subspecialtyService } from '@/services';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { ServiceResult } from '@/services/types';
 import { getStaffSubspecialtyDisplay } from '@/utils/staffSubspecialties';
-import { mockCodeReviewPoolService } from '@/services/billing/mockCodeReviewPoolService';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+
 
 interface ReviewerOption { id: string; name: string; role: string; }
 
@@ -42,11 +44,13 @@ interface ReviewerOption { id: string; name: string; role: string; }
 const toReviewerOption = (u: StaffUser, allSubspecialties: import('@/services/subspecialties/ISubspecialtyService').Subspecialty[]): ReviewerOption => ({
   id:   u.id,
   name: `Dr. ${u.firstName} ${u.lastName}`.trim(),
-  role: getStaffSubspecialtyDisplay(u.id, allSubspecialties) || 'Pathologist',
+  // Empty when no subspecialty is assigned; the list shows a translated
+  // "Pathologist" in its place (Batch 513).
+  role: getStaffSubspecialtyDisplay(u.id, allSubspecialties) || '',
 });
 
 // `label` stays a fixed English string on every entry — it composes the
-// message body/subject sent to the colleague (mockMessageService.send
+// message body/subject sent to the colleague (messageService.send
 // below), which is persisted data a different recipient reads later in
 // their own session, not UI re-rendered per viewer's locale. Only
 // `labelKey` (the on-screen type-picker button text) is translated —
@@ -59,7 +63,7 @@ const NOTE_TYPES = [
   { value: 'second_opinion',       label: 'Second Opinion',       labelKey: 'requestReviewModal.noteType.secondOpinion'        },
   // Real, per direct guidance: reuses this same modal/entry point
   // rather than a new button on an already-crowded page. Routes to
-  // the real billing review pool (mockCodeReviewPoolService.ts,
+  // the real billing review pool (codeReviewPoolService.ts,
   // Trigger C) instead of a colleague - every branch below that reads
   // noteType checks for this value specifically.
   { value: 'code_review',          label: 'Code Review',          labelKey: 'requestReviewModal.noteType.codeReview'           },
@@ -151,7 +155,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
     if (!canSend) return;
     if (isCodeReview) {
       setStatus('sending');
-      await mockCodeReviewPoolService.create({
+      await codeReviewPoolService.create({
         caseId,
         caseLabel,
         source: 'MANUAL',
@@ -171,7 +175,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
       ? `${typeLabel} requested for case ${caseId}${caseLabel ? ` (${caseLabel})` : ''}.\n\n${message.trim()}\n\nPlease open the case link below to review the report and leave an internal note.`
       : `${typeLabel} requested for case ${caseId}${caseLabel ? ` (${caseLabel})` : ''}.\n\nPlease open the case link below to review the report and leave an internal note.`;
 
-    await mockMessageService.send({
+    await messageService.send({
       senderId:      fromUserId,
       senderName:    fromUserName,
       recipientId:   selected.id,
@@ -266,12 +270,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
                   <button
                     key={nt.value}
                     onClick={() => setNoteType(nt.value)}
-                    className="rrm-type-btn"
-                    style={{
-                      '--rrm-type-border': noteType === nt.value ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)',
-                      '--rrm-type-bg':     noteType === nt.value ? 'rgba(139,92,246,0.15)' : 'transparent',
-                      '--rrm-type-color':  noteType === nt.value ? '#a78bfa' : '#64748b',
-                    } as React.CSSProperties}
+                    className={`rrm-type-btn${noteType === nt.value ? ' rrm-type-btn--active' : ''}`}
                   >
                     {t(nt.labelKey)}
                   </button>
@@ -291,7 +290,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
             /* Colleague picker */
             <div>
               <div className="fm-eyebrow">{t('requestReviewModal.sendTo')}</div>
-              <input
+              <input aria-label={t('requestReviewModal.sendTo')}
                 type="text"
                 placeholder={t('requestReviewModal.searchColleagues')}
                 value={query}
@@ -300,9 +299,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
               />
               <div className="rrm-colleague-list">
                 {loadingReviewers ? (
-                  <div className="rrm-colleague-empty">
-                    {t('requestReviewModal.loadingColleagues')}
-                  </div>
+                  <LoadingState variant="inline" className="rrm-colleague-empty" label={t('requestReviewModal.loadingColleagues')} />
                 ) : filtered.length === 0 ? (
                   <div className="rrm-colleague-empty">
                     {query ? t('requestReviewModal.noResultsMatching') : t('requestReviewModal.noResultsFound')}
@@ -310,25 +307,17 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
                 ) : filtered.map(r => (
                   <div
                     key={r.id}
-                    onClick={() => setSelectedId(r.id)}
-                    className="rrm-colleague-row"
-                    style={{
-                      '--rrm-row-border': selectedId === r.id ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.06)',
-                      '--rrm-row-bg':     selectedId === r.id ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
-                    } as React.CSSProperties}
+                    {...pressable(() => setSelectedId(r.id))}
+                    className={`rrm-colleague-row${selectedId === r.id ? ' rrm-colleague-row--selected' : ''}`}
                   >
                     <div
                       className="rrm-avatar"
-                      style={{
-                        '--rrm-avatar-bg':    selectedId === r.id ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.08)',
-                        '--rrm-avatar-color': selectedId === r.id ? '#a78bfa' : '#64748b',
-                      } as React.CSSProperties}
                     >
                       {avatarInitials(r.name)}
                     </div>
                     <div className="rrm-colleague-info">
                       <div className="rrm-colleague-name">{r.name}</div>
-                      <div className="rrm-colleague-role">{r.role}</div>
+                      <div className="rrm-colleague-role">{r.role || t('requestReviewModal.defaultColleagueRole')}</div>
                     </div>
                     {selectedId === r.id && (
                       <svg className="rrm-check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -342,7 +331,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
             {/* Optional note */}
             <div>
               <div className="fm-eyebrow">{t('requestReviewModal.additionalContext')} <span className="rrm-optional-label">{t('requestReviewModal.optional')}</span></div>
-              <textarea
+              <textarea aria-label={t('requestReviewModal.additionalContext')}
                 placeholder={t('requestReviewModal.notePlaceholder')}
                 value={message}
                 onChange={e => setMessage(e.target.value)}
@@ -367,13 +356,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
               <button
                 onClick={handleSend}
                 disabled={!canSend || status === 'sending'}
-                className="rrm-send-btn"
-                style={{
-                  '--rrm-send-bg':     canSend ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.04)',
-                  '--rrm-send-border': canSend ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)',
-                  '--rrm-send-color':  canSend ? '#a78bfa' : '#475569',
-                  '--rrm-send-cursor': canSend ? 'pointer' : 'default',
-                } as React.CSSProperties}
+                className={`rrm-send-btn${canSend ? ' rrm-send-btn--ready' : ''}`}
               >
                 {status === 'sending' ? (
                   <>

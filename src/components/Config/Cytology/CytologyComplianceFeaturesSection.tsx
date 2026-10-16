@@ -1,8 +1,10 @@
 // src/components/Config/Cytology/CytologyComplianceFeaturesSection.tsx
 // Batch 415 (PS-359; Pete: the US rules "should be an enabled feature").
-// Configuration → Cytology → Country-specific rules: the CLIA workload cap and
-// the CAP 5-year lookback, each Automatic (on for a US lab, off elsewhere), On
-// or Off, for the enterprise and per facility. Rules are in
+// Configuration → Cytology → Country and laboratory rules: the CLIA workload
+// cap and the CAP 5-year lookback, each Automatic (on for a US lab, off
+// elsewhere), On or Off, for the enterprise and per facility; and (Batch 533)
+// whether an urgent preliminary report needs the electronic signature
+// (Automatic: required everywhere). Rules are in
 // services/cytology/cytologyComplianceFeatures.ts; saves need
 // config:cytology-compliance:manage and are audited.
 
@@ -13,7 +15,7 @@ import { cytologyComplianceFeaturesService, cytologyComplianceSaveDeps, facility
 import { useAuth } from '@contexts/AuthContext';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import type { Facility } from '@/services/facilities/IFacilityService';
-import { CYTOLOGY_COMPLIANCE_FEATURES, type CytologyComplianceSettings, type CytologyFeatureSetting } from '@/services/cytology/cytologyComplianceFeatures';
+import { CYTOLOGY_COMPLIANCE_FEATURES, cytologyComplianceSettingKey, type CytologyComplianceSettings, type CytologyFeatureSetting } from '@/services/cytology/cytologyComplianceFeatures';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const K = 'cytologyCompliance';
@@ -45,7 +47,7 @@ const CytologyComplianceFeaturesSection: React.FC = () => {
         <label key={f} className="ps-compliance-select">
           <span>{t(`${K}.features.${f}.label`)}</span>
           <select className="ps-conf-select" value={value[f] ?? 'auto'} onChange={e => onChange({ ...value, [f]: e.target.value as CytologyFeatureSetting })}>
-            {SETTINGS.map(s => <option key={s} value={s}>{t(`${K}.settings.${s}`)}</option>)}
+            {SETTINGS.map(s => <option key={s} value={s}>{t(`${K}.settings.${cytologyComplianceSettingKey(f, s)}`)}</option>)}
           </select>
         </label>
       ))}
@@ -82,7 +84,7 @@ const CytologyComplianceFeaturesSection: React.FC = () => {
             <span className="ps-conf-value">{facilityName(facilityId)}</span>
             <div className="ps-conf-row-actions">
               <span className="ps-conf-value">
-                {CYTOLOGY_COMPLIANCE_FEATURES.map(f => t(`${K}.summary`, { feature: t(`${K}.features.${f}.label`), setting: t(`${K}.settings.${s[f] ?? 'auto'}`) })).join(t(`${K}.summarySeparator`))}
+                {CYTOLOGY_COMPLIANCE_FEATURES.map(f => t(`${K}.summary`, { feature: t(`${K}.features.${f}.label`), setting: t(`${K}.settings.${cytologyComplianceSettingKey(f, s[f] ?? 'auto')}`) })).join(t(`${K}.summarySeparator`))}
               </span>
               <CapabilityButton capability="config:cytology-compliance:manage" context={{ facilityId }} className="ps-conf-btn-secondary"
                 onClick={async () => { report(await saveCytologyComplianceFeatures(facilityId, null, actor, cytologyComplianceSaveDeps)); refresh(); }}>
@@ -94,7 +96,7 @@ const CytologyComplianceFeaturesSection: React.FC = () => {
         {Object.keys(facilitySettings).length === 0 && !adding && <div className="ps-conf-empty-row">{t('cytologyQcSettingsSection.facility.emptyState')}</div>}
         {adding && (
           <div className="ps-compliance-adding">
-            <select className="ps-conf-select" value={adding.facilityId} onChange={e => setAdding({ ...adding, facilityId: e.target.value })}>
+            <select aria-label={t('a11y.fields.facility')} className="ps-conf-select" value={adding.facilityId} onChange={e => setAdding({ ...adding, facilityId: e.target.value })}>
               {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
             {selects(adding.settings, settings => setAdding({ ...adding, settings }))}

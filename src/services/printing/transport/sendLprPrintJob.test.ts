@@ -52,10 +52,12 @@ describe('sendLprPrintJob', () => {
     // 1. Real "Receive a printer job" command for the real, configured queue.
     expect(all).toContain('\x02lab-3\n');
     // 2. Real "Receive control file" subcommand, naming a real cfA... file.
+    // eslint-disable-next-line no-control-regex -- LPR subcommand byte 0x02
     expect(all).toMatch(/\x02\d+ cfA\d{3}\S+\n/);
     // Real control file content itself — H/P/J/l lines, terminated by a real null byte.
     expect(all).toMatch(/H\S+\nP\S+\nJ[^\n]*\nldfA\d{3}\S*\n\0/);
     // 3. Real "Receive data file" subcommand, naming a real dfA... file, then the real document bytes, then a real null terminator.
+    // eslint-disable-next-line no-control-regex -- LPR subcommand byte 0x03
     expect(all).toMatch(/\x03\d+ dfA\d{3}\S+\n/);
     expect(all).toContain(documentBytes.toString('binary') + '\0');
   });

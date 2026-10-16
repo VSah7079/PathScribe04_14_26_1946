@@ -1,6 +1,8 @@
 # utils/labels/
 
-The whole real label-printing architecture: building label data, rendering it, and dispatching it to a physical printer via one of several real bridge paths (browser print window, QZ Tray, network/Interface Engine). 17 modules, each with its own test file.
+The whole real label-printing architecture: building label data, rendering it, and dispatching it to a physical printer via one of several real bridge paths (browser print window, QZ Tray, network/Interface Engine). 29 modules plus the `pathscribeAgent/` subfolder; 23 have their own test file (no tests for `dispatchContainerLabelPrint.ts`, `dispatchSlideLabel.ts`, `dispatchZplLabel.ts`, `getAllSlideLabelRequests.ts`, `labelPrintAudit.ts`, `printStationLabels.ts`).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): was "17 modules, each with its own test file".*
 
 ## Building label data (pure, no dispatch)
 
@@ -43,6 +45,8 @@ The whole real label-printing architecture: building label data, rendering it, a
   - **`printCassetteSlideLabel.ts`** now sends *Direct via Interface Engine* jobs through `networkPrintJobs.send`, so the user sees the engine's answer and can retry. **Slides now print on that path** (they were refused before), and its messages are translated.
 - **`qzTrayBridge.ts`** (+ `qzTrayBridge.test.ts`) — the QZ Tray bridge path, the most widespread vendor-agnostic browser-to-printer bridge in web-based healthcare/logistics; many labs already run it for another tool's raw ZPL/EPL pass-through. Chosen over building a from-scratch native agent (PS-52) because it's a real, existing, open-source (LGPL 2.1) desktop service with a real JS API — not something needing to be built and gain adoption from zero. Verified safe to add before writing any integration code, not assumed: `qz-tray` (2.2.6) has zero vulnerabilities of its own (confirmed directly — the 21 `npm audit` flags present are all pre-existing, unrelated dependencies), the real `@types/qz-tray` definitions were read before use, and a full production `vite build` was confirmed to bundle it cleanly. See `PrinterBridgeType`'s own doc comment in `services/printerProfiles/IPrinterProfileService.ts` for the full tradeoff reasoning against the other 5 real bridge options.
 
+- Also in this folder: **`dispatchZplLabel.ts`** (raw ZPL to a QZ Tray or PathScribe Agent printer), **`printMolecularLabels.ts`** (+ test) with **`buildMolecularLabelData.ts`** (+ test; see Batch 450), **`simpleZplTemplate.ts`** (+ test; plain-barcode ZPL for container and molecular labels, with `mmToDots`), **`resolveRequisitionStickerSheetLayout.ts`** / **`buildRequisitionStickerSheetZpl.ts`** (+ tests; the requisition sticker sheet's mm-based layout and its ZPL), **`resolveCassetteLabelFitWarning.ts`** / **`resolveSlideLabelFitWarnings.ts`** (+ tests; safety checks for the label layout settings), **`safeBarcodeSvg.ts`** (+ test; see Batch 451) and **`labelPrintAudit.ts`** (see Batch 437). *(Added in the Batch 496 README audit: these files were not in the lists above.)*
+
 ## Batch/reprint support
 
 - **`getAllCassetteLabelRequests.ts`** (+ `getAllCassetteLabelRequests.test.ts`) / **`getAllSlideLabelRequests.ts`** — given a real case, the full list of real cassette/slide label dispatch requests across every specimen — feeds `ManageReprintsModal.tsx`'s bulk "Print All Cassettes for Case [Accession #]" action and the reprint manager generally. `getAllSlideLabelRequests` mirrors `getAllCassetteLabelRequests`'s own pattern one level down (one request per real, ordered stain).
@@ -76,6 +80,19 @@ Tests only: the label print tests allow Configuration changes in a mocked author
 
 `getAllSlideLabelRequests.ts` uses each slide's printed level (`services/material/slideLevels.ts`), so a reprinted label matches its barcode after a reorder.
 
+## Batch 500 (PS-473)
+
+`printLabels.ts` escapes the print window's title. Label fragments were already escaped (`buildLabelHtml.ts`).
+
 ---
 *See [utils/README.md](../README.md) for how this folder fits the whole utils/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+- **Bug fixed:** a patient with no MRN crashed the container-label (ZPL) path. A case with no full accession crashed the HTML label path. Missing MRN and date of birth now print as "Not Recorded" (or are left out, as each label already did for blank values).
+- **Bug fixed:** cassette and slide label requests used `undefined-…` ids for a case without a full accession. They now use the case id, as the scan resolver does.
+
+## Batch 546
+
+`printCassetteSlideLabel.ts`: the header comment is corrected. The workstation agent goes through `dispatchZplLabel.ts`; the comment had said it was refused. Network label printing on site is the site agent's (`docs/architecture/SITE_AGENT_API.md`, `print.label`).

@@ -19,4 +19,4 @@ export { resolveByRoles, resolveTemplateOwner, mergeRecipients } from './recipie
 export { sendSynopticNotification }     from './synopticNotificationService';
 
 // Types
-export type { EmailPayload, Recipient } from './types';
+export type { EmailPayload, EmailAttachment, Recipient } from './types';

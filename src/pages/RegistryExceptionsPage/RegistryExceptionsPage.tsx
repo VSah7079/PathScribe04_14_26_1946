@@ -34,6 +34,7 @@ import { formatDateTime } from '@/utils/formatDate';
 import { screeningRegistryDefinition } from '@/services/screeningRegistry/screeningRegistryDefinitions';
 import { registryExceptionCaseView, registryLabelKey, type RegistryExceptionKind, type RegistryExceptionRow, type RegistryQueueName } from '@/services/registrySubmission/registryExceptions';
 import { useRegistryExceptions, type RegistryExceptionFilter } from './hooks/useRegistryExceptions';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const K = 'registryExceptions';
 const FILTERS: RegistryExceptionFilter[] = ['all', 'rejectedFatal', 'rejectedRecoverable', 'conflict', 'revisedPostAcceptance', 'deliveryFailed', 'ackOverdue', 'attestationRequired', 'held'];
@@ -76,6 +77,7 @@ export default function RegistryExceptionsPage() {
 
   const onExportAudit = async () => {
     const r = await exportAudit(auditQueue === 'all' ? undefined : auditQueue);
+    if (r.viaServer) return; // Batch 550: the export notice says when it is ready, or why not
     if (!r.ok) toast.warning(t(`${K}.audit.notPermitted`));
     else toast.success(t(`${K}.audit.done`, { count: r.rowCount ?? 0 }));
   };
@@ -125,7 +127,7 @@ export default function RegistryExceptionsPage() {
         </div>
       )}
 
-      {loading ? <div className="ps-regx-empty">{t(`${K}.loading`)}</div>
+      {loading ? <LoadingState variant="inline" className="ps-regx-empty" label={t(`${K}.loading`)} />
         : rows.length === 0 ? <div className="ps-regx-empty">{t(filter === 'all' ? `${K}.emptyAll` : `${K}.emptyFilter`)}</div>
           : (
             <div className="ps-table-wrap">

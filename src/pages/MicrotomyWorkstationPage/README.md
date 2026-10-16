@@ -2,7 +2,9 @@
 
 **NEW (Sep 2026)** — PS-284, first of the PS-284→285→286→287→288 workstation-build sequence. A dedicated, bench-facing surface for the microtomy tech: scan a block or a cytology decant/fluid container, see every slide it needs cut and stained, and print/etch labels for them — either on-demand (one slide at a time, as the tech cuts) or as a batch (select several, print them together). Built to visually match `GrossingScreenPage.tsx`/`SynopticReportPage.tsx` (same header/back-button pattern, same `ps-overlay`/`ps-modal-dark` modal convention, same dark palette) per direct guidance, not a new visual language.
 
-**Route**: `/workstations/microtomy` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group. This is a bench-scoped workstation a tech opens once and scans multiple cases through, the same shape as `/batch-management/*`, so it lives in that same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx`. Reachable from a new tile on `Home.tsx`.
+**Route**: `/workstations/microtomy` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group. This is a bench-scoped workstation a tech opens once and scans multiple cases through, the same shape as `/batch-management/*`, so it lives in that same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx`. Reached from the Microtomy tile on the Pathology Workspace hub (`/pathology-workspace`, `PathologyWorkspacePage.tsx`); the route needs `screen:microtomy:open`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the tile is on the Pathology Workspace hub, not `Home.tsx` (`PathologyWorkspacePage.tsx`, `App.tsx` ScreenGate `microtomy`).*
 
 ## Files
 
@@ -19,16 +21,18 @@
 - **`utils/microtomyOperations.ts`** (+ `.test.ts`) — the pure, tested business logic: `computeNextUnprintedStain`, `addMicrotomyStain`/`removeMicrotomyStain` (with required cancel reason once printed — `MICROTOMY_CANCEL_REASONS`), `markStainPrinting`/`markStainPrintResult`, `reprintMicrotomyStain` (required reason — `MICROTOMY_REPRINT_REASONS`), `reorderBlockStains`, `updateStainComment`/`updateBlockComment`, `setBlockAlertFlags`, `updateDecantCytologyFields`, `applyCytologyPrepSuggestions`, `addDecantStain`/`removeDecantStain`.
 - **`services/cytology/computeCytologyPrepSuggestions.ts`** (+ `.test.ts`) — the pure dynamic-preparation-rule engine (the spec's own worked example: >20mL + high yield → 2 ThinPrep, 2 Cell Block, 1 Direct Smear).
 - **`utils/labels/resolveSlideLabelFitWarnings.ts`** (+ `.test.ts`) — mirrors the existing `resolveCassetteLabelFitWarning.ts` for the new `SlideLabelLayoutConfig`.
-- **`services/printSettings/IPrintSettingsService.ts`** — `SlideLabelLayoutConfig` / `DEFAULT_SLIDE_LABEL_LAYOUT`, `PrintSettingsConfig.slideLabelLayout`. See that file's own README for the honest gap (not yet wired into `buildSlideZplTemplate.ts`'s actual ZPL dot coordinates).
+- **`services/printSettings/IPrintSettingsService.ts`** — `SlideLabelLayoutConfig` / `DEFAULT_SLIDE_LABEL_LAYOUT`, `PrintSettingsConfig.slideLabelLayout`. See that file's own README for the honest gap (not yet wired into `buildSlideZplTemplate()`'s actual ZPL dot coordinates, in `utils/labels/zplTemplates.ts`).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `buildSlideZplTemplate` is a function in `utils/labels/zplTemplates.ts`, not its own file; its coordinates are still fixed.*
 - **`types/case/Specimen.ts`** — `StainOrder` extended with `commentPrintsOnLabel`, `printStatus`/`printedAt`/`printedBy`/`printFailureReason`, `levelDepthMicrons`, `pairedControlSlideId`/`isControlSlide`, `preparationMethod`, `lastReprintReason`/`lastReprintOrderedBy`/`lastReprintOrderedAt`/`reprintCount`. `HistologyBlock` extended with `tinyTissue`/`fragile`.
 - **`types/case/Material.ts`** — `Decant` extended with `totalVolumeMl`/`appearance`/`yieldPelletSize`.
 
 ## Notes
 
-- Built with `useTranslation()` from the start — every visible string goes through the `microtomyWorkstation.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). `Home.tsx` did not have any i18n before this change; only the new tile's strings (`home.microtomyTile.*`) were converted — the rest of that file is untouched, same precedent as `GrossingScreenPage.tsx`'s nav button inside the not-yet-converted `SynopticReportPage.tsx`.
+- Built with `useTranslation()` from the start — every visible string goes through the `microtomyWorkstation.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). The tile's strings are now `pathologyWorkspace.microtomyTile.*`, since the tile moved to the Pathology Workspace hub. *(Corrected in the Batch 496 README audit: the earlier `home.microtomyTile.*` keys no longer exist.)*
 - Control-slide pairing (`pairedControlSlideId`/`isControlSlide`) is a deliberate, separate, same-block sibling-slide mechanism — genuinely different from the existing `shouldAutoAppendControl.ts` (a batch/QC-level synthetic-control-CASE mechanism). Reconciling the two is a future design question, not resolved here.
 - `processMicrotomyScan` (pre-existing, in `useGlobalMaterialScanTracking.ts`) already auto-dispatches the honest stub `dispatchSlideLabel` for every Pending-Cut stain when a block is scanned at a "Microtomy / Sectioning" station, regardless of the station's real `supportsPrinting` flag. This page is deliberately the first real place the actual GS1/ZPL `printSlideLabel` path gets used — the two print paths were NOT reconciled in this pass; that stub keeps running exactly as before.
-- Deliberate scope cuts for this pass (ticket is Autopsy-module-scale): no specimen-level scan resolution (MatrixBlock support superseded this cut in Batch 460), schematic (non-decodable) label preview, no `buildSlideZplTemplate.ts` rewiring to the new layout config, no action-registry/voice wiring, no admin editor UI for `SlideLabelLayoutConfig`.
+- Deliberate scope cuts for this pass (ticket is Autopsy-module-scale): no specimen-level scan resolution (MatrixBlock support superseded this cut in Batch 460), schematic (non-decodable) label preview, no `buildSlideZplTemplate` rewiring to the new layout config, no action-registry/voice wiring, no admin editor UI for `SlideLabelLayoutConfig`. *(Since closed: voice/keyboard commands, Batch 388. The ZPL rewiring and admin editor are still open — checked in the Batch 496 README audit.)*
 - **Real fix (foot-pedal follow-up, Sep 2026):** foot-pedal support was originally disclaimed here as out of browser reach — re-verified and found incorrect. `useFootPedal.ts` (Gamepad API + keyboard-emulation capture, already working for `SynopticReportPage.tsx`'s dictation controls) is now wired into this page: Pedal 2 fires the real `handlePrintNext()` — PS-284's own named "Print/Etch Next... physical foot pedal integration" trigger. Configured per-workstation at Config → System → Voice → Foot Pedal.
 
 
@@ -100,3 +104,7 @@
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).

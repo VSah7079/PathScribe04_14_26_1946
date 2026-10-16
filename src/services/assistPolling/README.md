@@ -48,12 +48,14 @@ The admin screen is `components/Config/System/AssistLisPollingSection.tsx` (Conf
 - **The schedule and the inbound endpoints.** Nothing in this app runs on a timer or listens for messages yet.
   - **Schedule:** in production a server-side job calls `runAssistPollNow('scheduled')` every `intervalMinutes`.
   - **Inbound endpoint:** it calls `ingestLisMessageNow` for each HL7 v2 or JSON message.
-  - **Where they go:** beside `api/webhooks/engine/`, which isn't in this working copy.
+  - **Where they go:** beside `api/webhooks/engine/` (at the repo root: the interface-engine webhook handlers, such as `block-exception.ts` and `material-location.ts`). Neither an Assist schedule nor an Assist inbound endpoint exists there yet.
 
   Until then only **Poll now** and **Test an inbound message** run the pipeline.
 - **One LIS per deployment.** The settings are deployment-wide, like Voice. A deployment that polls more than one LIS would need a settings row per LIS connection.
 - **No draft marker in the editor.** `aiDraftSource` (on `SynopticReportInstance`) records which milestone produced a draft, but the report editor doesn't show it yet.
 - **Diagnosis text.** The LIS diagnosis is written to `diagnostic.primaryDiagnosis`, the case's existing diagnosis field.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `api/webhooks/engine/` is in the working copy (repo root); the Assist schedule and endpoint are still not built.*
 
 ## Batch 426 — "keep or update?" and order numbers
 
@@ -80,3 +82,7 @@ The LIS text is merged into the newest case. The AI draft is saved only if the c
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`runAssistPollCycle` types its list of report instances. No behaviour change.

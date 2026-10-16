@@ -83,7 +83,7 @@ The rule lives in `src/services/auth/externalIdentity.ts`; the server must apply
 **Rules:**
 - Authorities must be https (plain http only to this machine, in development).
 - Problems are reported in the browser console as `[auth] …`, and the provider is not offered.
-- These are build-time settings, like the live-update hub's URL. Runtime per-customer configuration is an open item (§8).
+- Since Batch 547 these are set per deployment in its `config.json`, read at start-up, with the same names (`RUNTIME_CONFIG.md`). The build's values are used only when there's no config.json, as in the demo. A server build signs in through the identity provider only: config.json must set `VITE_AUTH_MODE` to `sso`, and the demo accounts aren't in a server build. *(Corrected in Batch 547: this said they were build-time settings.)*
 
 ### Registering the app in Entra ID (hospital IT)
 
@@ -287,6 +287,6 @@ Reactivation (`active: true`) restores the record but not its roles or signing a
 - **Linking accounts by hand:** the Staff screen now shows a person's linked sign-in accounts and can unlink them (Batch 345); adding a link by hand waits for the operations console or SCIM.
 - **Biometric signing** for SSO builds: server-issued WebAuthn challenges. It is simulated today and offered only in demo builds.
 - **OR terminal device tokens** for the hub (`LIVE_UPDATES_SIGNALR.md` §4).
-- **Runtime configuration** of providers per customer, instead of build settings.
+- ~~Runtime configuration of providers per customer~~: done in Batch 547 (`RUNTIME_CONFIG.md`).
 - **Signing out of the provider as well** (`end_session_endpoint`), if a customer wants it.
 - **Demo passwords:** these were in the shipped bundle in plain text until Batch 343, so treat them as known and change them with `scripts/auth/hash-demo-password.mjs`.

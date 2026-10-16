@@ -197,7 +197,7 @@ Saves change single orders under their `RowVersion`, never a whole list. The bro
 
 `SynopticResultSource`: (`InstanceId`, `FieldId`) → `OrderId`, `AssayName`, `Call`, `At`.
 
-**SignalR:** `molecularQueueChanged` goes to the Molecular Workcenter group. `caseChanged` goes to the case group when a question is answered.
+**SignalR:** `molecularQueueChanged` goes to the Molecular Workcenter group. *Batch 562: sent as `DataChanged` with topic `molecularQueue` (`LIVE_UPDATES_SIGNALR.md` §14) to users who can open the Molecular Workcenter; the Order Queue re-reads when it arrives.* `caseChanged` goes to the case group when a question is answered.
 
 ## 7. Send-out orders (Batch 467b)
 

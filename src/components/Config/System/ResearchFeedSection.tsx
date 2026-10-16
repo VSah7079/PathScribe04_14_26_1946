@@ -15,7 +15,7 @@
 // lives with the feed it configures in services/research/.
 //
 // The URL fields are validated against an allow-list (see
-// mockResearchFeedConfigService.ALLOWED_HOSTS). This is not paranoia:
+// researchFeedConfigService.ALLOWED_HOSTS). This is not paranoia:
 // articleUrlTemplate decides where a clinician's browser goes on click,
 // so without a constraint an admin — or anyone who compromises an admin
 // account — could point the dashboard at a phishing host.
@@ -23,17 +23,15 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
-import {
-  mockResearchFeedConfigService,
-  ALLOWED_HOSTS,
-  isAllowedUrl,
-} from '@/services/research/mockResearchFeedConfigService';
+
 import type {
   ResearchFeedConfig,
   ResearchFeedHealth,
 } from '@/services/research/IResearchFeedConfigService';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
+import { researchFeedConfigService, ALLOWED_HOSTS, isAllowedUrl } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const OUTCOME_LABEL_KEY: Record<string, string> = {
   success: 'researchFeedSection.outcomeLabels.success',
@@ -65,10 +63,10 @@ function stalenessStatus(health: ResearchFeedHealth): { key: string; values?: { 
 
 const ResearchFeedSection: React.FC = () => {
   const { t } = useTranslation();
-  const defaults = mockResearchFeedConfigService.getDefaults();
+  const defaults = researchFeedConfigService.getDefaults();
   const [config, setConfig] = useState<ResearchFeedConfig>(defaults);
   const [health, setHealth] = useState<ResearchFeedHealth>(
-    mockResearchFeedConfigService.getHealth(),
+    researchFeedConfigService.getHealth(),
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +76,7 @@ const ResearchFeedSection: React.FC = () => {
   useReportConfigDirty(!!storedConfig && draftDiffers(storedConfig, config));
 
   useEffect(() => {
-    mockResearchFeedConfigService.getConfig().then((c) => {
+    researchFeedConfigService.getConfig().then((c) => {
       setConfig(c);
       setStoredConfig(c);
       setLoading(false);
@@ -108,10 +106,10 @@ const ResearchFeedSection: React.FC = () => {
       setError(t('researchFeedSection.errors.queryEmpty'));
       return;
     }
-    const stored = await mockResearchFeedConfigService.saveConfig(config);
+    const stored = await researchFeedConfigService.saveConfig(config);
     setConfig(stored);
     setStoredConfig(stored);
-    setHealth(mockResearchFeedConfigService.getHealth());
+    setHealth(researchFeedConfigService.getHealth());
     setError(null);
     setSaved(true);
   };
@@ -122,7 +120,7 @@ const ResearchFeedSection: React.FC = () => {
     setError(null);
   };
 
-  if (loading) return <div className="ps-rf-loading">{t('researchFeedSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('researchFeedSection.loading')} />;
 
   const staleness = stalenessStatus(health);
   const outcomeKey = health.lastOutcome ? OUTCOME_LABEL_KEY[health.lastOutcome] : undefined;

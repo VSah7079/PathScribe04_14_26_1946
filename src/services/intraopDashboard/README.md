@@ -210,10 +210,15 @@ correlation flagging between frozen section diagnosis and final
 permanent section histology, with automated discrepancy logging" —
 confirmed directly, this app's own existing Frozen-vs-Final
 correlation (`services/quality/`, `FROZEN_FINAL_ACTIVITY_TYPE_ID`) is
-real and structurally sound, but the actual trigger is genuinely
-manual: a pathologist opens `DiscordanceReconciliationModal.tsx`
-themselves during sign-out. Nothing here automates that trigger — a
-real, separate, later piece of work.
+real and structurally sound. The trigger is automatic at sign-out:
+when a case has a merged intraop specimen with a frozen category
+(not deferred) and the facility's concordance review settings allow
+it, `pages/SynopticReportPage/hooks/useSignOutWorkflow.ts` opens
+`DiscordanceReconciliationModal.tsx` and holds sign-out until it is
+resolved. The pathologist still records the frozen-vs-final call in
+that modal; nothing in this dashboard folder takes part.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the frozen-vs-final reconciliation is triggered automatically at sign-out, not opened by hand.*
 
 ## A real, pre-existing gap found and fixed along the way
 

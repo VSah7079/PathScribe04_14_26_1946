@@ -5,7 +5,6 @@ import { authorizationService } from '../authorization/defaultAuthorizationServi
 import { mockAuditService } from '../auditlog/mockAuditService';
 import type { CaseWriteDeps, OverwriteDeps } from './caseWrite';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const caseWriteDeps: CaseWriteDeps = {
   getCase: id => caseRouter.getCase(id),
   updateCase: (id, updates, expectedVersion) => caseRouter.updateCase(id, updates, expectedVersion),

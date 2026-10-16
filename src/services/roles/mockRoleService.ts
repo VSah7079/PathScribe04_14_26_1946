@@ -2,6 +2,7 @@ import { IRoleService, Role } from './IRoleService';
 import { ServiceResult, ID } from '../types';
 import { DEFAULT_ROLE_PERMISSIONS } from '../../constants/systemActions';
 import { storageGet, storageSet } from '../mockStorage';
+import { BUILT_IN_ROLE_DESCRIPTIONS } from './builtInRoleText';
 import { SYSTEM_ROLE_IDS, mergeBuiltInRoles, renameRoleInList, withCytotechParticipationType, withoutRetiredRoleFields } from './systemRoles';
 import { applyCapabilitySeeds, lockPlatformRoles } from '../authorization/capabilitySeeds';
 import { roleCapabilityProblem } from '../authorization/roleCapabilityRules';
@@ -15,14 +16,14 @@ const SEED_ROLES: Role[] = [
   // PARTICIPATION TYPE ("Resident/Fellow" slot for supervised primary
   // drafting), distinct from this being the Resident ROLE — see Pete's own
   // suggested "Resident / Primary Drafter" alternative workflow.
-  { id: 'pathologist', name: 'Pathologist', description: 'Licensed pathologist with full clinical case access and sign-out authority.',   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'], builtIn: true, participationTypeIds: ['primary', 'grossing', 'attending', 'consultant', 'frozen', 'second_opinion']  },
-  { id: 'resident',    name: 'Resident',    description: 'Pathology resident with case access and co-sign capability.',                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'],    builtIn: true, participationTypeIds: ['grossing', 'consultant', 'resident', 'second_opinion']  },
+  { id: 'pathologist', name: 'Pathologist', description: BUILT_IN_ROLE_DESCRIPTIONS['pathologist'],   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'], builtIn: true, participationTypeIds: ['primary', 'grossing', 'attending', 'consultant', 'frozen', 'second_opinion']  },
+  { id: 'resident',    name: 'Resident',    description: BUILT_IN_ROLE_DESCRIPTIONS['resident'],                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'],    builtIn: true, participationTypeIds: ['grossing', 'consultant', 'resident', 'second_opinion']  },
   // participationTypeIds: ['prelim'] is a BEST GUESS, same caveat as PA's
   // ['grossing'] below — not yet confirmed against the real Participation
   // Types data file. Maps conceptually to a type described in passing as
   // "drafts the [report] under supervision, requires attending [sign-out]"
   // which fits Fellow's pre-sign-out autonomy, but the real id is unverified.
-  { id: 'fellow',      name: 'Fellow',      description: 'Subspecialty fellow with near-attending drafting autonomy. Manages cases independently through a complete draft report; attending still officially signs out.', color: '#4DD0E1', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Fellow'], builtIn: true, participationTypeIds: ['prelim'] },
+  { id: 'fellow',      name: 'Fellow',      description: BUILT_IN_ROLE_DESCRIPTIONS['fellow'], color: '#4DD0E1', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Fellow'], builtIn: true, participationTypeIds: ['prelim'] },
   // NOTE — "PA" = Pathologists' Assistant (PA(ASCP)/AAPA), NOT the
   // general-healthcare "Physician Assistant". Worth keeping that
   // disambiguation in the description shown in the UI, not just here —
@@ -32,9 +33,9 @@ const SEED_ROLES: Role[] = [
   // Participation Type id from the Admin Guide's "Grossing" type — not
   // yet confirmed against the actual Participation Types data file.
   // Verify before relying on this for real case-participation gating.
-  { id: 'pa',          name: "Pathologists' Assistant (PA)", description: "Performs macroscopic examination, grossing, and specimen description. Distinct certified profession (PA(ASCP)/AAPA) — not the general-healthcare 'Physician Assistant.' No microscopic, diagnosis, or sign-out access.", color: '#F28B82', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologists Assistant'], builtIn: true, participationTypeIds: ['grossing'] },
-  { id: 'admin',       name: 'Admin',       description: 'System administrator with configuration access but no clinical case access.',    color: '#FDD663', caseAccess: false, configAccess: true,  permissions: DEFAULT_ROLE_PERMISSIONS['Admin'],       builtIn: true  },
-  { id: 'physician',   name: 'Physician',   description: 'External ordering physician. Directory only — no app access.',                   color: '#C084FC', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Physician'],   builtIn: true  },
+  { id: 'pa',          name: "Pathologists' Assistant (PA)", description: BUILT_IN_ROLE_DESCRIPTIONS['pa'], color: '#F28B82', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologists Assistant'], builtIn: true, participationTypeIds: ['grossing'] },
+  { id: 'admin',       name: 'Admin',       description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.ADMIN],    color: '#FDD663', caseAccess: false, configAccess: true,  permissions: DEFAULT_ROLE_PERMISSIONS['Admin'],       builtIn: true  },
+  { id: 'physician',   name: 'Physician',   description: BUILT_IN_ROLE_DESCRIPTIONS['physician'],                   color: '#C084FC', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Physician'],   builtIn: true  },
   // Real, per direct follow-up on the RFP-APLIS-2026-GLOBAL
   // Intraoperative/Frozen Section Dashboard's own Location-First +
   // Quick Auth design. Same real "directory only — no app access"
@@ -42,30 +43,30 @@ const SEED_ROLES: Role[] = [
   // app; they exist here only to be resolved by quickAuthPin
   // (resolveStaffByQuickAuthPin.ts) and attributed on the OR
   // terminal's own audit log.
-  { id: 'or-staff',    name: 'Or Staff',    description: 'Operating room staff (RN, circulator, surgeon) using the Intraoperative Dashboard\'s quick-auth PIN. Directory only — no general app access.', color: '#93C5FD', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Or Staff'],   builtIn: true  },
+  { id: 'or-staff',    name: 'Or Staff',    description: BUILT_IN_ROLE_DESCRIPTIONS['or-staff'], color: '#93C5FD', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Or Staff'],   builtIn: true  },
   // Built-in template governance roles (Batch 329, PS-63). Fixed ids from
   // systemRoles.ts: the rules find them by id, so renaming one here keeps
   // it working. Drafting: Template Author (Admin inherits). Approving and
   // publishing: Template Approver, Lab Director or Admin.
-  { id: SYSTEM_ROLE_IDS.TEMPLATE_AUTHOR,   name: 'Template Author',   description: 'Drafts and edits synoptic templates and submits them for review. Cannot approve or publish.', color: '#A5B4FC', caseAccess: false, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Template Author'], builtIn: true },
-  { id: SYSTEM_ROLE_IDS.TEMPLATE_APPROVER, name: 'Template Approver', description: 'Reviews, approves and publishes synoptic templates written by others.', color: '#6EE7B7', caseAccess: false, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Template Approver'], builtIn: true },
-  { id: SYSTEM_ROLE_IDS.LAB_DIRECTOR,      name: 'Lab Director',      description: 'Laboratory director. Signs off and publishes synoptic templates written by others.', color: '#FCA5A5', caseAccess: false, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Lab Director'], builtIn: true },
+  { id: SYSTEM_ROLE_IDS.TEMPLATE_AUTHOR,   name: 'Template Author',   description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.TEMPLATE_AUTHOR], color: '#A5B4FC', caseAccess: false, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Template Author'], builtIn: true },
+  { id: SYSTEM_ROLE_IDS.TEMPLATE_APPROVER, name: 'Template Approver', description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.TEMPLATE_APPROVER], color: '#6EE7B7', caseAccess: false, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Template Approver'], builtIn: true },
+  { id: SYSTEM_ROLE_IDS.LAB_DIRECTOR,      name: 'Lab Director',      description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.LAB_DIRECTOR], color: '#FCA5A5', caseAccess: false, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Lab Director'], builtIn: true },
   // PS-355 (Batch 369). QA Reviewer is added alongside someone's main role
   // (a pathologist with QA duties), so it brings no case or configuration
   // access of its own. Superadmin is PathScribe platform support: held only
   // through a support sign-in, never assigned to staff, and granted every
   // capability as a role rather than by a bypass in the check. Their
   // starting capabilities are in services/authorization/capabilitySeeds.ts.
-  { id: SYSTEM_ROLE_IDS.QA_REVIEWER, name: 'QA Reviewer', description: 'Exports quality-assurance reports and report change history. Given alongside a staff member\'s main role.', color: '#FDBA74', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['QA Reviewer'], builtIn: true },
+  { id: SYSTEM_ROLE_IDS.QA_REVIEWER, name: 'QA Reviewer', description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.QA_REVIEWER], color: '#FDBA74', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['QA Reviewer'], builtIn: true },
   // Batch 374 (Pete: Home shows only the tiles a user may open). Bench staff
   // had no built-in role, so no one would hold the bench screens by default.
   // They handle cases (case access) but configure nothing. Their screens are
   // in services/authorization/capabilitySeeds.ts.
-  { id: SYSTEM_ROLE_IDS.ACCESSIONER,            name: 'Accessioner',            description: 'Receives specimens and accessions new cases.', color: '#D9F99D', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Accessioner'], builtIn: true, participationTypeIds: [] },
-  { id: SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST,      name: 'Histotechnologist',      description: 'Processes, embeds, cuts and stains tissue; runs histology batches and slide distribution.', color: '#E879F9', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Histotechnologist'], builtIn: true, participationTypeIds: [] },
-  { id: SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST,       name: 'Cytotechnologist',       description: 'Prepares and screens cytology specimens.', color: '#2DD4BF', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Cytotechnologist'], builtIn: true, participationTypeIds: ['cytotechnologist'] },
-  { id: SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST, name: 'Molecular Technologist', description: 'Runs molecular testing: plates, racks and molecular batches.', color: '#94A3B8', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Molecular Technologist'], builtIn: true, participationTypeIds: [] },
-  { id: SYSTEM_ROLE_IDS.SUPERADMIN,  name: 'Superadmin',  description: 'PathScribe platform support. Held only through a PathScribe support sign-in; cannot be given to staff.', color: '#F472B6', caseAccess: true, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Superadmin'], builtIn: true, assignable: false },
+  { id: SYSTEM_ROLE_IDS.ACCESSIONER,            name: 'Accessioner',            description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.ACCESSIONER], color: '#D9F99D', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Accessioner'], builtIn: true, participationTypeIds: [] },
+  { id: SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST,      name: 'Histotechnologist',      description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST], color: '#E879F9', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Histotechnologist'], builtIn: true, participationTypeIds: [] },
+  { id: SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST,       name: 'Cytotechnologist',       description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST], color: '#2DD4BF', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Cytotechnologist'], builtIn: true, participationTypeIds: ['cytotechnologist'] },
+  { id: SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST, name: 'Molecular Technologist', description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST], color: '#94A3B8', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Molecular Technologist'], builtIn: true, participationTypeIds: [] },
+  { id: SYSTEM_ROLE_IDS.SUPERADMIN,  name: 'Superadmin',  description: BUILT_IN_ROLE_DESCRIPTIONS[SYSTEM_ROLE_IDS.SUPERADMIN], color: '#F472B6', caseAccess: true, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Superadmin'], builtIn: true, assignable: false },
 ];
 
 // Migration (Batch 329): a catalog stored before a built-in role existed

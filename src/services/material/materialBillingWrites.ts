@@ -18,7 +18,6 @@ import { applyDecantChangeLive, type DecantSaveResult } from './caseMaterialServ
 import { materialEventBus } from './materialEvents';
 import { caseRouter } from '../cases/CaseRouter';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface MaterialBillingWriteDeps extends CaseWriteDeps {
   applyDecantChange: (caseId: string, change: DecantChange, expectedVersion: number) => Promise<DecantSaveResult>;

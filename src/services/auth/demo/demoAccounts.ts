@@ -6,8 +6,12 @@
 //
 //   • Passwords are stored as PBKDF2-SHA256 hashes (600,000 iterations,
 //     one random salt each), made with scripts/auth/hash-demo-password.mjs.
-//   • This module is loaded only when VITE_AUTH_MODE is unset or "demo"
-//     (authSession.ts). An "sso" build leaves it out of the bundle entirely.
+//   • This module is loaded only in the demo build (__DEMO_TOOLS__) when
+//     VITE_AUTH_MODE is not "sso" (authSessionInstance.ts). Batch 547: a
+//     server build (npm run build:server) leaves it out of the bundle
+//     entirely, whatever its config.json says; check-production-bundle.mjs
+//     fails the build if it isn't. *(Before Batch 547 an "sso" build left it
+//     out; the mode now comes from config.json at start-up.)*
 //   • The passwords themselves were in the shipped bundle until Batch 343,
 //     so treat them as known.
 //   • Batch 448: these are only the starting passwords. An administrator
@@ -32,6 +36,7 @@
 import type { VoiceProfileId } from '../../../constants/voiceProfiles';
 import type { AppRole } from '../sessionProfile';
 import { verifyPasswordHash, type StoredPasswordHash } from './passwordHash';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 export interface DemoAccount {
   email: string;
@@ -62,7 +67,7 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     password: { iterations: 600000, salt: 'YXOo5/Oho4EMvSOiGgLZtg==', hash: '//aycKGHDWa06Qyt6AKVRslPfOcD6R6WQaGewAFFwKg=' } },
   { email: 'mark.tuthill@hfhs-demo.pathscribe.ai', id: 'PATH-US-002', name: 'Dr. J. Mark Tuthill', role: 'pathologist', initials: 'MT', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: '6RoUd+kv3wAf2w43JBsriw==', hash: 'rx+AoGDty1oJkOjhf3/lG4bbQhbDzqZFzsozm3XeF4o=' } },
-  { email: (import.meta.env.VITE_BABAKHANI_EMAIL ?? 'rossana.babakhani@pathscribe.ai').toLowerCase(), id: 'PATH-RB-001', name: 'Rossana Babakhani', role: 'superadmin', initials: 'RB', voiceProfile: 'EN-US',
+  { email: (appEnv().VITE_BABAKHANI_EMAIL ?? 'rossana.babakhani@pathscribe.ai').toLowerCase(), id: 'PATH-RB-001', name: 'Rossana Babakhani', role: 'superadmin', initials: 'RB', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'odzRFd6XC3lJdcDteGQ4Rg==', hash: 'TBJNaS9kGBSXKTLG1ylG6tuqSeQIJoDSSgvnkVHNU0Q=' } },
   // Batch 374: bench and PA sign-ins, so the Home page's per-role tiles can be
   // demoed. Same password as demo@pathscribe.ai.

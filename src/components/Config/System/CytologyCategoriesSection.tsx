@@ -22,6 +22,7 @@ import type {
   NewCytologyCategoryEntry,
 } from '../../../services/cytology/ICytologyCategoryService';
 import { recordExport } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ─── Small chip helpers ─────────────────────────────────────────────────────
 
@@ -118,7 +119,7 @@ const CategoryModal: React.FC<{
         </h2>
 
         <label className="ps-cytcat-field-label">{t('cytologyCategoriesSection.modal.labelField')}</label>
-        <input value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value })}
+        <input aria-label={t('cytologyCategoriesSection.modal.labelField')} value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value })}
           className="ps-cytcat-field-input" />
 
         {/* Real, per direct guidance on SFCC (France): SFCC has no
@@ -131,32 +132,32 @@ const CategoryModal: React.FC<{
         {draft.nomenclatureSystem === 'bethesda' && (
           <>
             <label className="ps-cytcat-field-label">{t('cytologyCategoriesSection.modal.frenchLabelField')}</label>
-            <input value={draft.labelFr ?? ''} onChange={e => setDraft({ ...draft, labelFr: e.target.value || undefined })}
+            <input aria-label={t('cytologyCategoriesSection.modal.frenchLabelField')} value={draft.labelFr ?? ''} onChange={e => setDraft({ ...draft, labelFr: e.target.value || undefined })}
               className="ps-cytcat-field-input" />
           </>
         )}
 
         <label className="ps-cytcat-field-label">{t('cytologyCategoriesSection.modal.abbreviationField')}</label>
-        <input value={draft.abbreviation ?? ''} onChange={e => setDraft({ ...draft, abbreviation: e.target.value || undefined })}
+        <input aria-label={t('cytologyCategoriesSection.modal.abbreviationField')} value={draft.abbreviation ?? ''} onChange={e => setDraft({ ...draft, abbreviation: e.target.value || undefined })}
           className="ps-cytcat-field-input" />
 
         {section === 'interpretation_result' && (
           <>
             <label className="ps-cytcat-field-label">{t('cytologyCategoriesSection.modal.groupField')}</label>
-            <input value={draft.group ?? ''} onChange={e => setDraft({ ...draft, group: e.target.value || undefined })}
+            <input aria-label={t('cytologyCategoriesSection.modal.groupField')} value={draft.group ?? ''} onChange={e => setDraft({ ...draft, group: e.target.value || undefined })}
               className="ps-cytcat-field-input" />
           </>
         )}
 
         <label className="ps-cytcat-field-label">{t('cytologyCategoriesSection.modal.descriptionField')}</label>
-        <textarea value={draft.description ?? ''} onChange={e => setDraft({ ...draft, description: e.target.value || undefined })}
+        <textarea aria-label={t('cytologyCategoriesSection.modal.descriptionField')} value={draft.description ?? ''} onChange={e => setDraft({ ...draft, description: e.target.value || undefined })}
           rows={2}
           className="ps-cytcat-field-textarea" />
 
         {draft.nomenclatureSystem === 'bethesda' && (
           <>
             <label className="ps-cytcat-field-label">{t('cytologyCategoriesSection.modal.frenchDescriptionField')}</label>
-            <textarea value={draft.descriptionFr ?? ''} onChange={e => setDraft({ ...draft, descriptionFr: e.target.value || undefined })}
+            <textarea aria-label={t('cytologyCategoriesSection.modal.frenchDescriptionField')} value={draft.descriptionFr ?? ''} onChange={e => setDraft({ ...draft, descriptionFr: e.target.value || undefined })}
               rows={2}
               className="ps-cytcat-field-textarea" />
           </>
@@ -169,7 +170,7 @@ const CategoryModal: React.FC<{
         </label>
 
         <label className="ps-cytcat-field-label">{t('cytologyCategoriesSection.modal.severityField')}</label>
-        <select value={draft.suggestedAbnormalSeverity ?? ''} onChange={e => setDraft({ ...draft, suggestedAbnormalSeverity: (e.target.value || undefined) as any })}
+        <select aria-label={t('cytologyCategoriesSection.modal.severityField')} value={draft.suggestedAbnormalSeverity ?? ''} onChange={e => setDraft({ ...draft, suggestedAbnormalSeverity: (e.target.value || undefined) as any })}
           className="ps-conf-select ps-cytcat-select--full">
           <option value="">{t('cytologyCategoriesSection.modal.severityNoneOption')}</option>
           {(Object.keys(SEVERITY_LABEL_KEY) as Array<keyof typeof SEVERITY_LABEL_KEY>).map(s => (
@@ -222,6 +223,7 @@ const CytologyCategoriesSection: React.FC = () => {
     });
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reloads when the nomenclature system changes; refresh() is recreated every render and reads that same system
   useEffect(() => { refresh(); }, [nomenclatureSystem]);
 
   const handleSave = async (draft: Draft) => {
@@ -337,7 +339,7 @@ const CytologyCategoriesSection: React.FC = () => {
           matching this dictionary's own original, real default. */}
       <div className="ps-cytcat-nomenclature-row">
         <label className="ps-cytcat-nomenclature-label">{t('cytologyCategoriesSection.nomenclatureLabel')}</label>
-        <select value={nomenclatureSystem} onChange={e => setNomenclatureSystem(e.target.value as CytologyNomenclatureSystem)}
+        <select aria-label={t('cytologyCategoriesSection.nomenclatureLabel')} value={nomenclatureSystem} onChange={e => setNomenclatureSystem(e.target.value as CytologyNomenclatureSystem)}
           className="ps-cytcat-nomenclature-select">
           {NOMENCLATURE_SYSTEMS.map(s => (<option key={s.id} value={s.id}>{t(s.labelKey)}</option>))}
         </select>
@@ -357,7 +359,7 @@ const CytologyCategoriesSection: React.FC = () => {
         </label>
       </div>
 
-      {loading && <div className="ps-cytcat-empty-state">{t('common.loading')}</div>}
+      {loading && <LoadingState variant="inline" className="ps-cytcat-empty-state" label={t('common.loading')} />}
 
       {!loading && groups.map(group => (
         <div key={group} className="ps-cytcat-group-block">

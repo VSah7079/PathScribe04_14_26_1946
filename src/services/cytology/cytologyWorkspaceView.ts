@@ -23,7 +23,6 @@ import { resolveCytologySynopticTemplateById } from './cytologySynopticTemplateR
 import { resolveUnvalidatedTermKeysInAnswers, resolveTranslationAcknowledgmentIsCurrent } from './resolveSynopticTranslationValidation';
 import { resolveCytologyFiveYearRetrospectiveLookback } from './resolveCytologyFiveYearRetrospectiveLookback';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ── Category pickers ─────────────────────────────────────────────────────────
 

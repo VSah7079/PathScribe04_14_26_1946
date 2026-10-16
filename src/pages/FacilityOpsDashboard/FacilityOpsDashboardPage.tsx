@@ -17,18 +17,21 @@
 // OrSuiteDashboardPage.tsx/App.tsx's own routing comment — a
 // Grossing/Staining/etc. bench display isn't a per-user login either.
 // ─────────────────────────────────────────────────────────────────────────────
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrentDisplayProfile } from '@/hooks/useCurrentDisplayProfile';
-import { mockDisplayProfileService } from '@/services/facilityOpsDashboard/mockDisplayProfileService';
-import { facilityService } from '@/services';
+
+import { facilityService, displayProfileService } from '@/services';
 import type { DisplayProfile } from '@/services/facilityOpsDashboard/IDisplayProfileService';
 import type { DashboardSummary } from '@/services/facilityOpsDashboard/IFacilityOpsDashboardTypes';
 import { DASHBOARD_VIEW_REGISTRY } from './viewRegistry';
 import DashboardSummaryView from './components/DashboardSummaryView';
+import { useLiveData } from '@/hooks/useLiveData';
+import { LIVE_SAFETY_POLL_MS } from '@/services/liveUpdates/liveUpdatePolicy';
+import { dataStaleAfterMs } from '@/services/liveUpdates/dataTopics';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const POLL_INTERVAL_MS = 20_000;
-const STALE_AFTER_MS = POLL_INTERVAL_MS * 2;
 const DEFAULT_CAROUSEL_SECONDS = 20;
 
 // Real, closed gap (per direct follow-up: "the monitors... to be done
@@ -51,7 +54,7 @@ const ProfileSetup: React.FC<{ onBound: (id: string) => void }> = ({ onBound }) 
   const [pendingProfile, setPendingProfile] = useState<DisplayProfile | null>(null);
   const [tokenInput, setTokenInput] = useState('');
   const [tokenError, setTokenError] = useState(false);
-  useEffect(() => { mockDisplayProfileService.getActive().then(res => { if (res.ok) setProfiles(res.data); }); }, []);
+  useEffect(() => { displayProfileService.getActive().then(res => { if (res.ok) setProfiles(res.data); }); }, []);
 
   const handleSelect = (id: string) => {
     if (!id) return;
@@ -107,7 +110,7 @@ const ProfileSetup: React.FC<{ onBound: (id: string) => void }> = ({ onBound }) 
       <div className="ps-opsdash-setup-content">
         <h1>{t('facilityOpsDashboard.bindDisplayTitle')}</h1>
         <p className="ps-opsdash-setup-description">{t('facilityOpsDashboard.bindDisplayDescription')}</p>
-        <select className="ps-opsdash-setup-select" onChange={e => handleSelect(e.target.value)} defaultValue="">
+        <select aria-label={t('facilityOpsDashboard.bindDisplayTitle')} className="ps-opsdash-setup-select" onChange={e => handleSelect(e.target.value)} defaultValue="">
           <option value="">{t('facilityOpsDashboard.selectProfile')}</option>
           {profiles.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -118,13 +121,14 @@ const ProfileSetup: React.FC<{ onBound: (id: string) => void }> = ({ onBound }) 
 };
 
 const LiveClock: React.FC = () => {
+  const { i18n } = useTranslation();
   const [now, setNow] = useState(new Date());
   useEffect(() => { const id = window.setInterval(() => setNow(new Date()), 1000); return () => window.clearInterval(id); }, []);
-  return <div className="ps-opsdash-clock">{now.toLocaleTimeString()}</div>;
+  return <div className="ps-opsdash-clock">{now.toLocaleTimeString(i18n.language)}</div>;
 };
 
 const FacilityOpsDashboardPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { profileId, setProfileId } = useCurrentDisplayProfile();
   const [profile, setProfile] = useState<DisplayProfile | null>(null);
   const [facilityName, setFacilityName] = useState<string>('');
@@ -135,7 +139,7 @@ const FacilityOpsDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!profileId) { setProfile(null); return; }
-    mockDisplayProfileService.getById(profileId).then(res => { if (res.ok) setProfile(res.data); });
+    displayProfileService.getById(profileId).then(res => { if (res.ok) setProfile(res.data); });
   }, [profileId]);
 
   useEffect(() => {
@@ -158,10 +162,14 @@ const FacilityOpsDashboardPage: React.FC = () => {
     return () => window.clearInterval(id);
   }, [assignedViews.length, profile?.carouselIntervalSeconds]);
 
+  // Batch 560: only the latest read is shown, so a slow answer for a view the carousel has left never lands.
+  const readGeneration = useRef(0);
   const refresh = useCallback(async () => {
     if (!currentView || !profile) return;
+    const mine = ++readGeneration.current;
     try {
       const result = await currentView.compute(profile.facilityId);
+      if (mine !== readGeneration.current) return;
       setSummary(result);
       setLastSuccessAt(Date.now());
     } catch {
@@ -173,20 +181,21 @@ const FacilityOpsDashboardPage: React.FC = () => {
 
   useEffect(() => { setSummary(null); refresh(); }, [refresh]);
 
-  useEffect(() => {
-    const id = window.setInterval(refresh, POLL_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [refresh]);
+  // Batch 560: re-read when the live-update hub says this facility's figures changed (topic
+  // `facilityOps`), with a minute's safety poll; without a live connection, every 20 seconds as before.
+  const liveData = useLiveData(refresh, { topic: 'facilityOps', dataKey: profile?.facilityId, pollMs: POLL_INTERVAL_MS });
 
   useEffect(() => {
     const id = window.setInterval(() => setNowTick(Date.now()), 5000);
     return () => window.clearInterval(id);
   }, []);
 
-  const isStale = useMemo(() => !lastSuccessAt || (nowTick - lastSuccessAt) > STALE_AFTER_MS, [lastSuccessAt, nowTick]);
+  // Batch 560: while live, a quiet minute is normal; "out of date" allows for the safety poll.
+  const staleAfterMs = dataStaleAfterMs(liveData.live, POLL_INTERVAL_MS, LIVE_SAFETY_POLL_MS);
+  const isStale = useMemo(() => !lastSuccessAt || (nowTick - lastSuccessAt) > staleAfterMs, [lastSuccessAt, nowTick, staleAfterMs]);
 
   if (!profileId) return <ProfileSetup onBound={setProfileId} />;
-  if (!profile) return <div className="ps-opsdash-loading">{t('facilityOpsDashboard.loadingProfile')}</div>;
+  if (!profile) return <LoadingState label={t('facilityOpsDashboard.loadingProfile')} />;
 
   return (
     <div className="ps-opsdash-page">
@@ -200,7 +209,7 @@ const FacilityOpsDashboardPage: React.FC = () => {
           <LiveClock />
           {isStale && <span className="ps-opsdash-offline-badge">{t('facilityOpsDashboard.offlineStaleBadge')}</span>}
           {lastSuccessAt && !isStale && (
-            <span className="ps-opsdash-updated-note">{t('facilityOpsDashboard.lastUpdated', { time: new Date(lastSuccessAt).toLocaleTimeString() })}</span>
+            <span className="ps-opsdash-updated-note">{t('facilityOpsDashboard.lastUpdated', { time: new Date(lastSuccessAt).toLocaleTimeString(i18n.language) })}</span>
           )}
           {assignedViews.length > 1 && (
             <div className="ps-opsdash-carousel-dots">
@@ -212,7 +221,7 @@ const FacilityOpsDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {summary ? <DashboardSummaryView summary={summary} /> : <div className="ps-opsdash-queue-empty">{t('facilityOpsDashboard.loadingData')}</div>}
+      {summary ? <DashboardSummaryView summary={summary} /> : <LoadingState variant="inline" className="ps-opsdash-queue-empty" label={t('facilityOpsDashboard.loadingData')} />}
     </div>
   );
 };

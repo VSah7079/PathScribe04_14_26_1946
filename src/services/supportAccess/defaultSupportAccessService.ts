@@ -12,9 +12,12 @@ import { mockRoleService } from '../roles/mockRoleService';
 import { mockMessageService } from '../messages/mockMessageService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { createSupportAccessService } from './supportAccessService';
+import { browserRunsServerJob } from '../serverJobs/browserStandIns';
 
 export const supportAccessService = createSupportAccessService({
   authorization: authorizationService,
+  // Batch 555: once the API server runs supportAccess.expire (VITE_SERVER_JOBS), it records the expiries.
+  runServerJobs: () => browserRunsServerJob('supportAccess.expire'),
   session: () => {
     const p = readSessionProfile();
     return p ? { id: p.id, name: p.name, role: p.role, organisationId: p.organisationId } : null;

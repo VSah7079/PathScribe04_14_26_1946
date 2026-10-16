@@ -22,7 +22,7 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { OrganMapSvg } from '@/components/OrganMap/OrganMapSvg';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganMapConfig } from '@/hooks/useOrganMapConfig';
-import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { useConfigNavigationGuard, useReportConfigDirty } from '../configDirtyGuardContext';
 import {
   allowedCoreValues, allowedSectorsValues, bindingProblemInputKey, breastBindableFields, BREAST_CLOCK_VALUES, BREAST_FACE_VALUES, BREAST_FOCI_COLUMNS,
   BREAST_MARGIN_COLUMNS, BREAST_SIDE_VALUES, BREAST_TYPE_VALUES, marginGridRows, withBreastFoci, withBreastFociColumn, withBreastFociValue, withBreastMarginColumn,
@@ -40,7 +40,6 @@ import { MAP_OVERLAYS, MAP_PATTERNS, MAP_STYLE_KEYS, ORGAN_MAP_TYPES, type MapPa
 const K = 'organMapsSection';
 type Tab = 'scheme' | 'bindings';
 type ScopeKind = OrganMapSchemeScope['kind'];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Template = any;
 
 // ── Colours & patterns ──────────────────────────────────────────────────────
@@ -62,6 +61,8 @@ const SchemePanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = ({ 
   const { t } = useTranslation();
   const [kind, setKind] = useState<ScopeKind>('enterprise');
   const [code, setCode] = useState('');
+  // Batch 499 (PS-479): changing level starts a new draft, so it asks first when this one is unsaved.
+  const guard = useConfigNavigationGuard();
   const jurisdictions = useMemo(() => [...new Set(cfg.facilities.map(f => f.jurisdiction).filter((j): j is string => !!j))].sort(), [cfg.facilities]);
   const scope: OrganMapSchemeScope | null = kind === 'enterprise' ? { kind } : code ? (kind === 'jurisdiction' ? { kind, code } : { kind, facilityId: code }) : null;
   const facilityJurisdiction = kind === 'facility' ? cfg.facilities.find(f => f.id === code)?.jurisdiction : undefined;
@@ -106,17 +107,17 @@ const SchemePanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = ({ 
       )}
       <div className="ps-conf-row-actions">
         <label className="ps-conf-label" htmlFor="organmap-scope">{t(`${K}.scheme.scopeLabel`)}</label>
-        <select id="organmap-scope" className="ps-conf-select" value={kind} onChange={e => { setKind(e.target.value as ScopeKind); setCode(''); }}>
+        <select id="organmap-scope" className="ps-conf-select" value={kind} onChange={e => { const next = e.target.value as ScopeKind; guard(() => { setKind(next); setCode(''); }); }}>
           {(['enterprise', 'jurisdiction', 'facility'] as ScopeKind[]).map(k => <option key={k} value={k}>{t(`${K}.scheme.scope.${k}`)}</option>)}
         </select>
         {kind === 'jurisdiction' && (
-          <select className="ps-conf-select" aria-label={t(`${K}.scheme.pickJurisdiction`)} value={code} onChange={e => setCode(e.target.value)}>
+          <select className="ps-conf-select" aria-label={t(`${K}.scheme.pickJurisdiction`)} value={code} onChange={e => { const next = e.target.value; guard(() => setCode(next)); }}>
             <option value="">{t(`${K}.scheme.pickJurisdiction`)}</option>
             {jurisdictions.map(j => <option key={j} value={j}>{t(`jurisdictionNames.${j}`, { defaultValue: j })}</option>)}
           </select>
         )}
         {kind === 'facility' && (
-          <select className="ps-conf-select" aria-label={t(`${K}.scheme.pickFacility`)} value={code} onChange={e => setCode(e.target.value)}>
+          <select className="ps-conf-select" aria-label={t(`${K}.scheme.pickFacility`)} value={code} onChange={e => { const next = e.target.value; guard(() => setCode(next)); }}>
             <option value="">{t(`${K}.scheme.pickFacility`)}</option>
             {cfg.facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
@@ -245,6 +246,8 @@ const ValueSelect: React.FC<{ values: readonly string[]; value: string; label: (
 const BindingsPanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = ({ cfg }) => {
   const { t } = useTranslation();
   const [templateId, setTemplateId] = useState('');
+  // Batch 499 (PS-479): changing template or map type starts a new draft, so it asks first when this one is unsaved.
+  const guard = useConfigNavigationGuard();
   const [template, setTemplate] = useState<Template | null>(null);
   const [draft, setDraftState] = useState<OrganMapBinding | null>(null);
   /** Where editing started (the stored, PathScribe's or an empty binding): Save is offered once the draft differs. */
@@ -280,7 +283,7 @@ const BindingsPanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = (
         : o.problems.map(p => t(`${K}.errors.binding.${p.problem}`, { input: t(`${K}.bindings.${bindingProblemInputKey(p.input, binding?.mapType)}`) })).join(' '));
     if (o.kind === 'saved' && binding) setBase(binding);
     if (o.kind === 'saved' && !binding) {
-      const { [template.id]: _removed, ...others } = cfg.bindings; // eslint-disable-line @typescript-eslint/no-unused-vars
+      const { [template.id]: _removed, ...others } = cfg.bindings;
       startFrom(bindingDraftOf(template, others));
     }
   };
@@ -293,7 +296,7 @@ const BindingsPanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = (
       <p className="ps-conf-field-hint">{t(`${K}.bindings.source`)}</p>
       <div className="ps-conf-row-actions">
         <label className="ps-conf-label" htmlFor="organmap-template">{t(`${K}.bindings.template`)}</label>
-        <select id="organmap-template" className="ps-conf-select" value={templateId} onChange={e => setTemplateId(e.target.value)}>
+        <select id="organmap-template" className="ps-conf-select" value={templateId} onChange={e => { const next = e.target.value; guard(() => setTemplateId(next)); }}>
           <option value="">{t(`${K}.bindings.pickTemplate`)}</option>
           {cfg.templates.map(tp => <option key={tp.id} value={tp.id}>{tp.name}</option>)}
         </select>
@@ -303,7 +306,7 @@ const BindingsPanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = (
         <div className="ps-organmap-config">
           <div className="ps-conf-row-actions">
             <label className="ps-conf-label" htmlFor="organmap-maptype">{t(`${K}.bindings.mapType`)}</label>
-            <select id="organmap-maptype" className="ps-conf-select" value={draft.mapType} onChange={e => startFrom(bindingDraftOf(template, cfg.bindings, e.target.value as OrganMapType))}>
+            <select id="organmap-maptype" className="ps-conf-select" value={draft.mapType} onChange={e => { const next = e.target.value as OrganMapType; guard(() => startFrom(bindingDraftOf(template, cfg.bindings, next))); }}>
               {ORGAN_MAP_TYPES.map(m => <option key={m} value={m}>{t(`organMap.title.${m}`)}</option>)}
             </select>
           </div>
@@ -486,7 +489,7 @@ const BindingsPanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = (
                         </select>
                       </div>
                     ))}
-                    {eneColumn?.options?.length > 0 && (
+                    {eneColumn?.options && eneColumn.options.length > 0 && (
                       <table className="ps-conf-table ps-organmap-config-table">
                         <thead><tr><th>{t(`${K}.bindings.answer`)}</th><th>{t(`${K}.bindings.meaning`)}</th></tr></thead>
                         <tbody>
@@ -529,7 +532,7 @@ const BindingsPanel: React.FC<{ cfg: ReturnType<typeof useOrganMapConfig> }> = (
                           {(grid.columns ?? []).map((c: Template) => <option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
                       </div>
-                      {kind && column?.options?.length > 0 && (
+                      {kind && column?.options && column.options.length > 0 && (
                         <table className="ps-conf-table ps-organmap-config-table">
                           <thead><tr><th>{t(`${K}.bindings.answer`)}</th><th>{t(`${K}.bindings.meaning`)}</th></tr></thead>
                           <tbody>
@@ -608,6 +611,7 @@ const OrganMapsSection: React.FC = () => {
   const { user } = useAuth();
   const cfg = useOrganMapConfig(user?.name ?? user?.id ?? '');
   const [tab, setTab] = useState<Tab>('scheme');
+  const guard = useConfigNavigationGuard();
   return (
     <div className="ps-conf-page">
       <h2 className="ps-conf-section-title">{t(`${K}.title`)}</h2>
@@ -615,7 +619,7 @@ const OrganMapsSection: React.FC = () => {
       <div className="ps-organmap-config-tabs" role="tablist">
         {(['scheme', 'bindings'] as Tab[]).map(id => (
           <button key={id} type="button" role="tab" aria-selected={tab === id}
-            className={`ps-organmap-config-tab${tab === id ? ' ps-organmap-config-tab--active' : ''}`} onClick={() => setTab(id)}>
+            className={`ps-organmap-config-tab${tab === id ? ' ps-organmap-config-tab--active' : ''}`} onClick={() => guard(() => setTab(id))}>
             {t(`${K}.tabs.${id}`)}
           </button>
         ))}

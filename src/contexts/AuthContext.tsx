@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
-import { authSession, authConfig } from "@/services";
+import { authSession, authConfig } from "@/services/signIn";
 import type { SessionProfile } from "@/services/auth/sessionProfile";
 import type { SsoDenialReason } from "@/services/auth/externalIdentity";
 import type { SsoProviderConfig } from "@/services/auth/authConfig";

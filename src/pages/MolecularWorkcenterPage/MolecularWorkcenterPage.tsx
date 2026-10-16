@@ -54,6 +54,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useNavigate, useSearchParams } from 'react-router';
 import '../../pathscribe.css';
 import { equipmentService, equipmentLogService, molecularBatchService, type Equipment, type EquipmentLogEntry } from '@/services';
@@ -70,6 +71,8 @@ import { MolecularOrderQueueTab } from './MolecularOrderQueueTab';
 import { isServiceAlert, serviceStatesById } from '@/services/equipment/equipmentLogRules';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { getFacilityIsoDate } from '@/utils/facilityTime';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const STATUS_LABEL_KEY: Record<MolecularBatchStatus, { key: string; color: string }> = {
   draft:             { key: 'protocolShared.lifecycle.draft',              color: '#9ca3af' },
@@ -77,7 +80,7 @@ const STATUS_LABEL_KEY: Record<MolecularBatchStatus, { key: string; color: strin
   awaiting_results:  { key: 'molecularWorkcenterPage.status.awaitingResults', color: '#f59e0b' },
   completed:         { key: 'auditLog.statusLabels.completed',             color: '#10B981' },
   aborted:           { key: 'batchManagement.status.aborted',              color: '#ef4444' },
-  superseded:        { key: 'molecularWorkcenterPage.status.superseded',   color: '#6b7280' },
+  superseded:        { key: 'molecularWorkcenterPage.status.superseded',   color: '#8794a8' },
 };
 
 type WorkcenterTab = 'orders' | 'worklist' | 'active' | 'history' | 'qc';
@@ -112,6 +115,11 @@ const TAB_LABEL_KEY: Record<WorkcenterTab, string> = {
 
 const MolecularWorkcenterPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('pathologyWorkspace.molecularTile.title'), '/molecular'); }, [pushCrumb, t]);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab');
@@ -165,7 +173,7 @@ const MolecularWorkcenterPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {loading && (<tr><td className="ps-conf-empty-row" colSpan={6}>{t('common.loading')}</td></tr>)}
+              {loading && (<tr><td className="ps-conf-empty-row" colSpan={6}><LoadingState variant="inline" label={t('common.loading')} /></td></tr>)}
               {!loading && filtered.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={6}>{emptyMessage}</td></tr>)}
               {!loading && filtered.map(b => {
                 const status = STATUS_LABEL_KEY[b.status];
@@ -174,7 +182,7 @@ const MolecularWorkcenterPage: React.FC = () => {
                 const instrumentState = instrument ? instrumentStates.get(instrument.id) : undefined;
                 const instrumentAlert = instrumentState && isServiceAlert(instrumentState);
                 return (
-                  <tr key={b.id} className={`ps-conf-tr ps-conf-tr--clickable${instrumentAlert ? ' ps-eqlog-row--alert' : ''}`} onClick={() => navigate(`/molecular-batch/${b.id}`)}>
+                  <tr key={b.id} className={`ps-conf-tr ps-conf-tr--clickable${instrumentAlert ? ' ps-eqlog-row--alert' : ''}`} {...pressable(() => navigate(`/molecular-batch/${b.id}`), { role: null })}>
                     <td className="ps-conf-td">{b.batchBarcode}</td>
                     <td className="ps-conf-td">{b.assayName}</td>
                     <td className="ps-conf-td" title={instrumentAlert ? t('molecularWorkcenterPage.instrumentAlertHint') : undefined}>{instrumentNames.get(b.targetInstrumentId) ?? b.targetInstrumentId}{b.deckSlot ? ` (${b.deckSlot})` : ''}</td>

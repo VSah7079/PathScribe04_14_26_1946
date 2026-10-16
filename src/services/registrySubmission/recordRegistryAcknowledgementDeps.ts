@@ -8,7 +8,6 @@ import type { RegistryRevisionDeps } from './recordRegistryRevision';
 import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
 import { caseRouter } from '../cases/CaseRouter';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const registryAckDeps: RegistryAckDeps = {
   queues: {
     cytology: {

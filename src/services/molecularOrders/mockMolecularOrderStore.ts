@@ -42,7 +42,7 @@ export function loadMolecularOrders(): MolecularOrder[] {
   const stored = storageGet<MolecularOrder[] | null>(STORE_KEY, null);
   const keyed = (list: readonly MolecularOrder[]): Keyed[] => list.map(o => ({ ...o, id: o.orderId }));
   const { records, added } = withMissingSeedRecords(stored ? keyed(stored) : null, keyed(MOLECULAR_ORDER_SEED));
-  const orders = records.map(({ id: _id, ...o }) => o as MolecularOrder); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const orders = records.map(({ id: _id, ...o }) => o as MolecularOrder);
   if (!stored || added > 0) storageSet(STORE_KEY, orders);
   return orders;
 }

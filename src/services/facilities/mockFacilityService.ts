@@ -8,6 +8,8 @@ import { linkFacilitiesToOrganisations } from './facilityHierarchy';
 import { REFERENCE_LAB_SEEDS } from './referenceLabSeeds';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { facilityPrintProblem } from '../printing/facilityReportPrinting';
+import { linkFieldProblem } from '../links/externalLink';
 
 // Facility and IFacilityService now live in IFacilityService.ts — re-exporting
 // here so every existing `import { mockFacilityService, Facility } from
@@ -671,6 +673,17 @@ void (async () => {
   }
 })();
 
+/**
+ * Batch 517 (PS-337): add and update leave report printing alone; only
+ * setPrintSettings (config:print-settings:manage) changes it. Stops a facility
+ * edit from overwriting printing saved meanwhile from the Printing tab, and
+ * someone with only config:facilities:manage from changing printing.
+ */
+function withoutPrintSettings<T extends Partial<Facility>>(input: T): T {
+  const { printDeliveryConfig: _d, printPresentationPreference: _p, ...rest } = input;
+  return rest as T;
+}
+
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
@@ -684,8 +697,11 @@ const facilityServiceUnchecked: IFacilityService = {
     return f ? ok({ ...f }) : err(`Facility ${id} not found`);
   },
 
-  async add(facility) {
+  async add(facilityWithPrint) {
     await delay();
+    // Batch 549: a link field that isn't an https link is refused here as well as in the editor (links only, Pete, Oct 13, 2026).
+    if (linkFieldProblem((facilityWithPrint as { headerLogoUrl?: string }).headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
+    const facility = withoutPrintSettings(facilityWithPrint);
     const nowIso = new Date().toISOString();
     const newF: Facility = withDerivedContactName({ ...facility, id: 'c' + Date.now(), createdAt: nowIso, updatedAt: nowIso });
     MOCK_FACILITIES = [...MOCK_FACILITIES, newF];
@@ -694,8 +710,10 @@ const facilityServiceUnchecked: IFacilityService = {
     return ok({ ...newF });
   },
 
-  async update(id, changes) {
+  async update(id, changesWithPrint) {
     await delay();
+    if (linkFieldProblem((changesWithPrint as { headerLogoUrl?: string }).headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
+    const changes = withoutPrintSettings(changesWithPrint);
     const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
     if (idx === -1) return err(`Facility ${id} not found`);
     MOCK_FACILITIES = MOCK_FACILITIES.map(f => f.id === id ? withDerivedContactName({ ...f, ...changes, updatedAt: new Date().toISOString() }) : f);
@@ -707,6 +725,20 @@ const facilityServiceUnchecked: IFacilityService = {
       void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
     }
     return ok({ ...MOCK_FACILITIES[idx] });
+  },
+
+  async setPrintSettings(id, settings) {
+    await delay();
+    const problem = facilityPrintProblem(settings, id);
+    if (problem) return err(problem);
+    const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
+    if (idx === -1) return err(`Facility ${id} not found`);
+    const next: Facility = { ...MOCK_FACILITIES[idx], updatedAt: new Date().toISOString() };
+    if (settings.printDeliveryConfig) next.printDeliveryConfig = settings.printDeliveryConfig; else delete next.printDeliveryConfig;
+    if (settings.printPresentationPreference) next.printPresentationPreference = settings.printPresentationPreference; else delete next.printPresentationPreference;
+    MOCK_FACILITIES = MOCK_FACILITIES.map((f, i) => (i === idx ? next : f));
+    persist(MOCK_FACILITIES);
+    return ok({ ...next });
   },
 
   async deactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Inactive' }); },
@@ -749,4 +781,6 @@ const facilityServiceUnchecked: IFacilityService = {
 /** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
 export const mockFacilityService: IFacilityService = guardConfigWrites(facilityServiceUnchecked, [
   ['config:facilities:manage', ['add', 'update', 'deactivate', 'reactivate', 'verify']],
+  // Batch 517 (PS-337): report printing has its own permission.
+  ['config:print-settings:manage', ['setPrintSettings']],
 ]);

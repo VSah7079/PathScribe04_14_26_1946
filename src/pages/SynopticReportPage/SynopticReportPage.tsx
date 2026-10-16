@@ -31,6 +31,14 @@ import { useTranslation, Trans } from 'react-i18next';
 import type { DirtySectionId } from '@/services';
 import { loadFollowUpMarkOffer, markFollowUpExpectedAfterSignOutLive, followUpMarkFailureKey, type FollowUpMarkOffer } from '@/services';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
+import { HeldReportsBanner } from '@/components/ReportRelease/HeldReportsBanner';
+import { CaseUpdatedBanner } from './components/CaseUpdatedBanner';
+import { useCaseUpdateNotice } from '@/hooks/useCaseUpdateNotice';
+import { useCasePresence } from '@/hooks/useCasePresence';
+import { casePresenceSelf } from '@/services/liveUpdates/casePresence';
+import { isPersonsDirtySection, isPersonsEdit, isReportEditEvent } from '@/services/cases/caseEditingSignal';
+import { CasePresenceStrip } from './components/CasePresenceStrip';
+import { caseUpdateNoticeDeps } from '@/services/cases/caseUpdateNoticeDeps';
 import AddSynopticModal       from './components/AddSynopticModal';
 import SpecimenEditModal      from './modals/SpecimenEditModal';
 import CreateBiopsyArrayModal from './modals/CreateBiopsyArrayModal';
@@ -52,7 +60,7 @@ import { formatAutopsyTatSlaSummary } from '@/services/autopsy/formatAutopsyTatS
 import { resolveHtaApplicability } from '@/services/autopsy/resolveHtaApplicability';
 import { resolveAutopsyBodyReleaseGate } from '@/services/autopsy/resolveAutopsyBodyReleaseGate';
 import { resolveAutopsyBodyAlreadyReleased } from '@/services/autopsy/resolveAutopsyBodyAlreadyReleased';
-import { resolveRetentionTierConsentCheck, resolveExcludedOrgansPresent } from '@/services/autopsy/resolveAutopsyConsentScopeViolation';
+import { resolveExcludedOrgansPresent } from '@/services/autopsy/resolveAutopsyConsentScopeViolation';
 import { recordAutopsyCustodyTransfer, custodyEventsForToxicologyOrder } from '@/services/autopsy/recordAutopsyCustodyTransfer';
 import { recordAutopsyOrganTag } from '@/services/autopsy/recordAutopsyOrganTag';
 import { recordAutopsyConsentStatusChange } from '@/services/autopsy/recordAutopsyConsentStatusChange';
@@ -61,6 +69,7 @@ import { orderAutopsyToxicology } from '@/services/autopsy/orderAutopsyToxicolog
 import { recordAutopsyToxicologyResult } from '@/services/autopsy/recordAutopsyToxicologyResult';
 import { cancelAutopsyToxicologyOrder } from '@/services/autopsy/cancelAutopsyToxicologyOrder';
 import { recordAutopsyOrganRetentionDetail } from '@/services/autopsy/recordAutopsyOrganRetentionDetail';
+import { recordAutopsyOrganRetentionTier } from '@/services/autopsy/recordAutopsyOrganRetentionTier';
 import { recordAutopsyConsentReinstatement } from '@/services/autopsy/recordAutopsyConsentReinstatement';
 import { AUTOPSY_ORGAN_LABEL_KEY } from '@/pages/AccessionPage/autopsyOrganLabelKeys';
 import { AUTOPSY_ORGAN_TO_SECTION, type AutopsyOrganCode } from '@/types/autopsy/AutopsyOrganCode';
@@ -89,6 +98,7 @@ import { RevisionFeedbackBanner } from './components/RevisionFeedbackBanner';
 import { AmendmentDraftBanner } from './components/AmendmentDraftBanner';
 import RightSynopticPanel, { type RightSynopticPanelHandle, type AiSuggestion } from './components/RightSynopticPanel';
 import { OrganMapPanel } from '@/components/OrganMap/OrganMapPanel';
+import { ErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary';
 import { useOrganMap } from './hooks/useOrganMap';
 import { computeAiSynthesisStatus, type AiSynthesisStatus, type MustHaveFields } from '@/services/templates/aiSynthesisStatus';
 import MicroscopicEntryPanel from './components/MicroscopicEntryPanel';
@@ -137,7 +147,7 @@ import { useSynopticFlags }    from '../Synoptic/useSynopticFlags';
 import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { priorityService } from '@/services';
+import { priorityService, sequenceCaseReports } from '@/services';
 import { getUiPreference, setUiPreference, getSessionFlag } from '@/utils/uiPreferences';
 import { stainTypeService } from '@/services';
 import { computeCaseCodingSummary } from '@/services/billing/codeMapTable';
@@ -150,7 +160,7 @@ import { enforceAppliedCodeCorrection } from '@/services/billing/correctServiceC
 import { actionRegistryService, reportTemplateService, reportReleaseService, evaluateGrossingTemplateAssignment } from '@/services';
 import { auditService, authorizationService, signatureGate } from '@/services';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
-import { adoptSavedVersion, caseConflictRows, overwriteAfterConflict, caseOverwriteDeps, savePageChange, commitMergeReview, takeUpSavedCase, MergeReviewPendingError, caseWriteDeps, type ConflictRow, type MergeReview } from '@/services';
+import { adoptSavedVersion, caseConflictRows, overwriteAfterConflict, caseOverwriteDeps, savePageChange, commitMergeReview, takeUpSavedCase, takeUpNewerCase, takeTheirVersion, selectionAfterTakeUp, orchestrationDiagnosticAfterTakeUp, MergeReviewPendingError, caseWriteDeps, type ConflictRow, type MergeReview } from '@/services';
 import { EditConflictDialog } from './components/EditConflictDialog';
 import { MergeReviewDialog } from './components/MergeReviewDialog';
 import { handleConcurrencyConflict } from './hooks/sharedHookTypes';
@@ -165,23 +175,37 @@ import { resolveMaterialAssetClick } from '@/services/billing/billingMaterialSyn
 import { aiReportToolsVisibility, aiReportToolsInputs } from '@/services/aiIntegration/aiReportTools';
 import { AiReportToolButtons } from './components/AiReportToolButtons';
 import { reportPrintAuditEvent, REPORT_DOCUMENT } from '@/services/printing/reportPrintAudit';
+import { checkReportPrint } from '@/services/printing/reportPrintGate';
+import { resolveReportRevisionStatus } from '@/services/reports/resolveReportRevisionStatus';
+import { buildReportRenderRevision } from '@/services/reports/buildReportRenderRevision';
+import { useReportRevisionStatus } from '@/hooks/useReportRevisionStatus';
 import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { deficiencyTypeService, resolutionTypeService } from '@/services';
 import type { SpecimenDeficiency, DeficiencyType, ResolutionType } from '@/services/deficiencies/IDeficiencyService';
 import { DeficiencyHistoryModal } from './modals/DeficiencyHistoryModal';
 import { VersionHistoryModal } from './modals/VersionHistoryModal';
+import { SignatureHistoryModal } from './modals/SignatureHistoryModal';
+import { signatureRecordService } from '@/services';
+import type { SignatureRecord } from '@/services/signatures/ISignatureRecordService';
 import { BlockStainEditorModal } from './modals/BlockStainEditorModal';
 import type { CaseComment } from '@/types/case/CaseComment';
 import { specimenDeficiencyService } from '@/services';
 import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
 import { FixativeTimeGateModal, type FixativeGateSpecimen, type FixativeResolution } from './modals/FixativeTimeGateModal';
 import { StainQcGateModal } from './modals/StainQcGateModal';
-import { ClinicalMismatchModal } from './modals/ClinicalMismatchModal';
+import { InkingGateModal } from './modals/InkingGateModal';
+import type { InkingGateResult } from '@/services/grossing/evaluateInkingGate';
+import { ClinicalMismatchModal } from '@/components/ClinicalMismatch/ClinicalMismatchModal';
 import { PeerReviewGateModal } from './modals/PeerReviewGateModal';
 import { PeerReviewBanner } from './components/PeerReviewBanner';
 import { usePeerReview } from './hooks/usePeerReview';
-import type { ClinicalMismatchSuggestion, PeerReviewStatus } from '@/services';
+import type { ClinicalMismatchAssessment, PeerReviewStatus } from '@/services';
+import { ClinicalMismatchAlert } from '@/components/ClinicalMismatch/ClinicalMismatchAlert';
+import { CaseClinicalHistoryBar } from '@/components/ClinicalHistory/CaseClinicalHistoryBar';
+import { useClinicalMismatchAlert } from './hooks/useClinicalMismatchAlert';
+import { checkAutopsyClinicalMismatch } from './hooks/checkPeerReviewAndMismatch';
+import { runExport } from '@/services/exports/runExport';
 import type { StainQcGateBlockingItem } from './hooks/checkStainQcGate';
 import { PreAnalyticDateGateModal, type PreAnalyticDateGateSpecimen, type PreAnalyticDateResolution } from './modals/PreAnalyticDateGateModal';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
@@ -201,6 +225,7 @@ import { findingsForField } from '@/services/clinical/findingHighlight';
 import { AiReviewModal }  from './modals/AiReviewModal';
 import { AiNarrativeReviewModal } from './modals/AiNarrativeReviewModal';
 import { DelegateModal }  from '../Synoptic/Delegate/DelegateModal';
+import { FlagForMdtModal } from '@/components/TumorBoard/FlagForMdtModal';
 import CaseTeamModal            from './modals/CaseTeamModal';
 import { PreFinalisationModal } from './modals/PreFinalisationModal';
 import { ProtocolChangeModal }     from './modals/ProtocolChangeModal';
@@ -217,7 +242,8 @@ import SequencerPanel from './components/SequencerPanel';
 import { buildContext, resolveAnswers } from '@/orchestrator/contextBuilder';
 import type { StructuredContext } from '@/orchestrator/contextBuilder';
 import { aiBehaviorService } from '@/services';
-import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
+import { reportRendererUrl } from '@/services/reports/reportRenderer';
+import { revisionAllowedNow } from '@/services/reportRelease/revisionDuringDelay';
 import { useCaseSpellCheck } from '@/hooks/useCaseSpellCheck';
 import { SpellCheckProvider } from '@/components/SpellCheck/SpellCheckContext';
 import type { SpellingLocale } from '@/services/spellcheck/spellingLocales';
@@ -226,6 +252,9 @@ import { recordCaseCharge, recordCaseCredit, recordCaseCodeCorrection, enforceBi
 import { codingWithApproved, codingWithRejected, codingWithOverride, codingWithoutCode, codingWithCorrection, groupApprovalsByUnit, specimensWithBaseCodeAdded, specimensWithBaseCodeRemoved, specimensWithBaseCodeCorrected, specimensWithMatrixCode, matrixSlidesWithEvaluatedCores, type BillingApprovalItem } from '@/services';
 import { partGridRowsOf } from '@/services/templates/partGrid';
 import { reportFiguresWithAuto, reportTranslateFor } from '@/services/organMapping/organMapAutoFigures';
+import { resolveReportWatermarkText, type ReportRenderPurpose } from '@/services/reports/resolveReportWatermark';
+import { escapeHtml, cssString } from '@/services/security/sanitizeHtml';
+import { pressable } from '@/utils/a11y/pressable';
 
 // Batch 445: the default template's stored name. It's saved into the report
 // and draft data in English (data); on screen it's shown translated.
@@ -251,18 +280,8 @@ const GOLD_STANDARD_TEMPLATE_NAME = 'Gold Standard — General Surgical Patholog
 // print falls back to printing from screen) rather than sending the
 // report to http://localhost:8080/. The localhost default and loopback
 // HTTP remain for development only.
-const REPORT_PDF = resolveServiceEndpoint({
-  name: 'report renderer',
-  envVar: 'VITE_REPORT_PDF_ENDPOINT',
-  configured: import.meta.env.VITE_REPORT_PDF_ENDPOINT,
-  devDefault: 'http://localhost:8080/',
-  isProduction: !!import.meta.env.PROD,
-});
-/** The report renderer's URL, or throws its configuration problem. */
-const reportPdfEndpoint = (): string => {
-  if (REPORT_PDF.ok === false) throw new Error(REPORT_PDF.message);
-  return REPORT_PDF.url;
-};
+// Batch 539: the setting and its checks are shared (services/reports/reportRenderer.ts).
+const reportPdfEndpoint = (): string => reportRendererUrl();
 
 // ── AI Synthesis Status — the Gatekeeper Badge. Decided by
 // services/templates/aiSynthesisStatus.ts (PS-329, Batch 437: only the
@@ -377,16 +396,8 @@ const SynopticReportPage: React.FC = () => {
   const [mergeReview, setMergeReview] = useState<MergeReview | null>(null);
   const caseDataRef = useRef<Case | null>(null);
 
-  // Real conflict-resolution actions. "Reload" deliberately does a full page
-  // reload rather than trying to reconstruct orchSections from a fresh fetch
-  // in place — this file's initial-load derivation logic is complex enough
-  // that duplicating it inline risks a subtly wrong reconstruction, and a
-  // full reload guarantees correctness at the cost of losing this session's
-  // own unsaved local changes, which is the whole point of choosing this
-  // option (someone else's saved changes win).
-  const handleConcurrencyReload = () => {
-    window.location.reload();
-  };
+  // Batch 572 (Pete): someone else saved this case while it is open — said at once, not at the next save.
+  const caseUpdate = useCaseUpdateNotice(caseId, () => knownVersionRef.current, caseUpdateNoticeDeps);
   // PS-71 (Batch 458): View changes lists the parts of the case where this
   // copy differs from the version now saved, and which of them Overwrite
   // would replace (only the draft's own parts; everything else stays as saved).
@@ -528,10 +539,22 @@ const SynopticReportPage: React.FC = () => {
   const [activeTab, setActiveTab]       = useState('tumor');
   const { isDirty: hasUnsavedData, setDirty: setHasUnsavedData, pendingPath, confirmNavigate: confirmContextNavigate, cancelNavigate: cancelContextNavigate, registerSaveHandler, registerDiscardHandler } = useDirtyState();
   const [dirtySections, setDirtySections] = useState<Set<DirtySectionId>>(new Set());
+  // Batch 573: who else has this case open (and whether they are editing); others see whether we have unsaved changes.
+  const presenceSelf = useMemo(() => casePresenceSelf(signingUser), [signingUser]);
+  // "Editing" only for the person's own changes, not the page setting itself up (services/cases/caseEditingSignal.ts).
+  const [presenceEditing, setPresenceEditing] = useState(false);
+  const casePresence = useCasePresence(caseId, presenceEditing, presenceSelf, caseUpdateNoticeDeps);
 
+  // Batch 576: when the person first edited this case (null: not yet), for "editing" in presence and the
+  // unsaved-changes warning; see services/cases/caseEditingSignal.ts.
+  const editedAt = React.useRef<number | null>(null);
   const markDirty = React.useCallback((section: DirtySectionId) => {
     setHasUnsavedData(true);
     setDirtySections(prev => new Set(prev).add(section));
+    if (isPersonsDirtySection(section)) {
+      if (editedAt.current === null) editedAt.current = Date.now();
+      setPresenceEditing(true);
+    }
   }, [setHasUnsavedData]);
 
   // Phase 2 (Step B) restore handler -- local-only, no auto-persist (see
@@ -636,8 +659,12 @@ const SynopticReportPage: React.FC = () => {
   const [stainQcGateBlocking, setStainQcGateBlocking] = useState<StainQcGateBlockingItem[] | null>(null);
   // Batch 439 (PS-145, PS-144): a mismatch to decide, or the peer-review
   // gate, stopped sign-out (checkPeerReviewAndMismatch.ts).
-  const [clinicalMismatch, setClinicalMismatch] = useState<ClinicalMismatchSuggestion | null>(null);
+  const [clinicalMismatch, setClinicalMismatch] = useState<ClinicalMismatchAssessment | null>(null);
   const [peerReviewGate, setPeerReviewGate] = useState<PeerReviewStatus | null>(null);
+  // Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic Engine;
+  // PS-519 follow-up). Gate B — checkInkingSignOutGate.ts's own result,
+  // same resume shape as clinicalMismatch/peerReviewGate above.
+  const [inkingGateBlocking, setInkingGateBlocking] = useState<InkingGateResult | null>(null);
   // Real, per direct follow-up: "Begin AutopsyAuthorizationCompletionForm.tsx
   // persistence — hands back updated data, nothing saves it." Investigation
   // found a deeper, real gap this closes: neither this form nor
@@ -788,6 +815,7 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error('[Priority] Failed to persist:', e);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- savePagePatch is declared further down (listing it here would read it before it exists); it only depends on the signing user, who names the audit entry
   }, [caseData, markDirty]);
 
   // ── Deficiency history ──────────────────────────────────────────────────────
@@ -797,6 +825,11 @@ const SynopticReportPage: React.FC = () => {
   // loads; deliberately not re-fetched on every render since deficiency
   // history for an already-loaded case doesn't change from anything this
   // page itself does (both pages only write at accession/sign-out time).
+  // Batch 577 (carried from 575): bumped when the page takes up someone else's saved version (Show their
+  // changes, Use their version, a merge review), so what is read once when the case opens is read again:
+  // deficiencies, versions, signatures, the change log, the follow-up mark, the LIS amendment notice, the
+  // amendment banner, the report's resolved context (preview and PDF) and the synoptic form's answers.
+  const [takenUpKey, setTakenUpKey] = useState(0);
   const [caseDeficiencies, setCaseDeficiencies] = useState<SpecimenDeficiency[]>([]);
   const [deficiencyTypes, setDeficiencyTypes] = useState<DeficiencyType[]>([]);
   const [resolutionTypes, setResolutionTypes] = useState<ResolutionType[]>([]);
@@ -808,7 +841,17 @@ const SynopticReportPage: React.FC = () => {
   // (every sign-out/amendment release creates one), so a load-time-only
   // fetch would miss a version created earlier in the current session.
   const [caseVersions, setCaseVersions] = useState<ReportVersionRecord[]>([]);
+  // Batch 558: the API server's list of versions couldn't be read (the list may be incomplete).
+  const [caseVersionsPartial, setCaseVersionsPartial] = useState(false);
   const [showVersionHistoryModal, setShowVersionHistoryModal] = useState(false);
+  // Batch 483 (PS-359 tracker follow-up — "signature-record viewing screen"):
+  // services/signatures/ has recorded every signature applied to this case
+  // since Batch 345 with no screen ever reading it back. Same real-source
+  // fetch pattern as caseVersions above — this page's own signing/finalize/
+  // release/countersign actions are what create new records, so re-fetch on
+  // load AND whenever the modal opens, not load-time-only.
+  const [caseSignatures, setCaseSignatures] = useState<SignatureRecord[]>([]);
+  const [showSignatureHistoryModal, setShowSignatureHistoryModal] = useState(false);
   const [showBlockEditor, setShowBlockEditor] = useState(false);
   // Real feature, per direct follow-up: "decant-level linking UI. In
   // the same UI we add specimens, blocks stains, protocols?" Real,
@@ -818,12 +861,25 @@ const SynopticReportPage: React.FC = () => {
   const [focusedDecantId, setFocusedDecantId] = useState<string | null>(null);
   useEffect(() => {
     if (!caseData?.id) return;
-    specimenDeficiencyService.getByCaseId(caseData.id).then(res => { if (res.ok) setCaseDeficiencies(res.data); });
-  }, [caseData?.id]);
+    let live = true;
+    specimenDeficiencyService.getByCaseId(caseData.id).then(res => { if (live && res.ok) setCaseDeficiencies(res.data); });
+    return () => { live = false; };
+  }, [caseData?.id, takenUpKey]);
   useEffect(() => {
     if (!caseData?.id) return;
-    reportVersionService.getByCaseId(caseData.id).then(res => { if (res.ok) setCaseVersions(res.data); });
-  }, [caseData?.id, showVersionHistoryModal]);
+    let live = true;
+    reportVersionService.getByCaseId(caseData.id).then(res => {
+      if (!live) return;
+      if (res.ok) { setCaseVersions(res.data); setCaseVersionsPartial(!!res.meta?.partial); } else { setCaseVersions([]); setCaseVersionsPartial(true); }
+    });
+    return () => { live = false; };
+  }, [caseData?.id, showVersionHistoryModal, takenUpKey]);
+  useEffect(() => {
+    if (!caseData?.id) return;
+    let live = true;
+    signatureRecordService.getByCaseId(caseData.id).then(res => { if (live && res.ok) setCaseSignatures(res.data); });
+    return () => { live = false; };
+  }, [caseData?.id, showSignatureHistoryModal, takenUpKey]);
   // Batch 368 (PS-353): the report's change log, refreshed whenever an entry
   // is recorded for this case (the store announces each one).
   const [changeEntries, setChangeEntries] = useState<ReportChangeEntry[]>([]);
@@ -836,7 +892,7 @@ const SynopticReportPage: React.FC = () => {
     const onLogged = (e: Event) => { if ((e as CustomEvent<{ caseId: string }>).detail?.caseId === caseId) refresh(); };
     window.addEventListener(REPORT_CHANGE_LOGGED_EVENT, onLogged);
     return () => window.removeEventListener(REPORT_CHANGE_LOGGED_EVENT, onLogged);
-  }, [caseData?.id]);
+  }, [caseData?.id, takenUpKey]);
   useEffect(() => {
     deficiencyTypeService.getAll().then(res => { if (res.ok) setDeficiencyTypes(res.data); });
     resolutionTypeService.getAll().then(res => { if (res.ok) setResolutionTypes(res.data); });
@@ -1114,7 +1170,7 @@ const SynopticReportPage: React.FC = () => {
     simulateFullMaterialTreeLocationUpdate,
     copilotReportInstances,
     openCopilotReportView,
-  } = useLisIntegration({ caseData, setCaseData, signingUser, showToast });
+  } = useLisIntegration({ caseData, setCaseData, signingUser, showToast, refreshKey: takenUpKey });
 
   // Real fix, per direct follow-up: "the tracking event should occur
   // no matter what page your on in pathscribe, just need access to
@@ -1140,7 +1196,7 @@ const SynopticReportPage: React.FC = () => {
     };
     window.addEventListener(MATERIAL_SCAN_UPDATED_EVENT, listener);
     return () => window.removeEventListener(MATERIAL_SCAN_UPDATED_EVENT, listener);
-  }, [caseData, setCaseData, showToast]);
+  }, [caseData, setCaseData, showToast, tGrossingNav]);
 
   // Real fix, per direct follow-up: "I would like to support both
   // slide engraving and printed labels." Resolved here, once, and
@@ -1201,7 +1257,7 @@ const SynopticReportPage: React.FC = () => {
     if (!specimen || !decant) return;
     const ok = await printDecantContainerLabel(caseData, specimen.label, specimen.description, decant);
     if (!ok) showToast(tGrossingNav('synopticReportPage.toast.decantLabelPrintFailed', { label: `${specimen.label}${decant.label}` }), 'warning');
-  }, [caseData, showToast]);
+  }, [caseData, showToast, tGrossingNav]);
 
 
   // ── Voice action execution — moved further down in this file, see the ──────
@@ -1297,6 +1353,8 @@ const SynopticReportPage: React.FC = () => {
   // For orchestration mode: tab switch that needs unsaved-draft confirmation
   const [pendingTabSwitch,   setPendingTabSwitch]   = useState<string | null>(null);
   const [showDelegateModal, setShowDelegateModal]   = useState(false);
+  // Batch 489: the real fix for the previously-dead 'delegation.tumorBoard' action.
+  const [showFlagForMdtModal, setShowFlagForMdtModal] = useState(false);
   const [delegateReturnTo,  setDelegateReturnTo]    = useState<'team' | null>(null);
   const [showTeamModal,     setShowTeamModal]       = useState(false);
 
@@ -1391,8 +1449,8 @@ const SynopticReportPage: React.FC = () => {
   // Batch 458 (Pete: "an option to abort or accept the changes"): a save that
   // met someone else's newer save in other parts stops here for the person.
   const [mergeReviewBusy, setMergeReviewBusy] = useState(false);
-  /** Take up a newer saved case without losing anything typed and not saved. */
-  const takeUp = useCallback((saved: Case, savedVersion: number, applied: Partial<Case>) => {
+  /** Take up a newer saved case without losing anything typed and not saved. True when it merged cleanly. */
+  const takeUp = useCallback((saved: Case, savedVersion: number, applied: Partial<Case>): boolean => {
     const pageDraft = caseDataRef.current ? caseDraftUpdates(caseDataRef.current, orchSections) : {};
     const take = takeUpSavedCase({ saved, savedVersion, applied, pageDraft, draftBase: draftBaseRef.current });
     setCaseData(prev => (prev ? { ...take.show, ...(isOrchestrationMode && !('diagnostic' in applied) ? { diagnostic: prev.diagnostic } : {}) } as typeof prev : prev));
@@ -1402,7 +1460,98 @@ const SynopticReportPage: React.FC = () => {
       knownVersionRef.current = take.adoptVersion;
       draftBaseRef.current = { ...draftBaseRef.current, ...Object.fromEntries(Object.keys(applied).filter(k => k in pageDraft).map(k => [k, (saved as any)[k]])), ...(take.draftBase ?? {}) };
     }
+    return take.adoptVersion !== null;
   }, [orchSections, isOrchestrationMode]);
+  // Batch 575 (carried from 572): "Someone else saved this case" → Show their changes, in place, without a
+  // reload (which lost unsaved work with the API server). services/cases/caseWrite.ts takeUpNewerCase decides:
+  // this page's unsaved report text AND changes held back by an earlier conflict are merged over theirs; if
+  // they overlap, theirs are shown elsewhere, this page's stay as typed, and the next save asks which to keep
+  // (a lasting note says so). Read from refs, so text typed while the case is being read isn't lost.
+  const orchSectionsRef = useRef(orchSections);
+  orchSectionsRef.current = orchSections;
+  const caseUpdateBusyRef = useRef(false);
+  const [caseUpdateBusy, setCaseUpdateBusy] = useState(false);
+  const [caseUpdateOverlap, setCaseUpdateOverlap] = useState(false);
+  /** Batch 577 (review): keep what is open when it still exists; otherwise choose as opening the case would. */
+  const keepSelectionAfterTakeUp = (show: Case, sections: { id: string }[]) => {
+    const next = selectionAfterTakeUp(show, sections, { specimenId: activeSpecimenId, reportType: activeReportType, reportInstanceId: activeReportInstanceId, sectionId: activeSectionId });
+    if (next.specimenId !== activeSpecimenId) setActiveSpecimenId(next.specimenId);
+    if (next.reportType !== activeReportType) setActiveReportType(next.reportType);
+    if (next.reportInstanceId !== activeReportInstanceId) setActiveReportInstanceId(next.reportInstanceId);
+    if (next.sectionId !== activeSectionId) setActiveSectionId(next.sectionId);
+  };
+  const handleCaseUpdateShow = async () => {
+    if (!caseId || caseUpdateBusyRef.current) return;
+    caseUpdateBusyRef.current = true;
+    setCaseUpdateBusy(true);
+    try {
+      const latest = await caseRouter.getCase(caseId).catch(() => null) as Case | null;
+      if (!latest) { showToast(tGrossingNav('synopticReportPage.caseUpdated.failed'), 'warning'); return; }
+      const current = caseDataRef.current;
+      const r = takeUpNewerCase({
+        saved: latest, savedVersion: latest.version ?? 0, knownVersion: knownVersionRef.current,
+        pageDraft: current ? caseDraftUpdates(current, orchSectionsRef.current) : {},
+        draftBase: draftBaseRef.current, pending: pendingPartsRef.current,
+      });
+      caseUpdate.dismiss(latest.version);
+      if (r.kind === 'stale') return; // this page's own save got there first
+      setCaseData(prev => (prev ? {
+        ...r.show,
+        ...(isOrchestrationMode ? {
+          diagnostic: orchestrationDiagnosticAfterTakeUp(r.show.diagnostic as Record<string, unknown> | undefined, prev.diagnostic as Record<string, unknown> | undefined) as Case['diagnostic'],
+        } : {}),
+      } as typeof prev : prev));
+      const orch = (r.show as unknown as { orchSections?: unknown }).orchSections;
+      if (isOrchestrationMode && Array.isArray(orch)) setOrchSections(orch);
+      // What their save removed can't stay open (services/cases/caseWrite.ts selectionAfterTakeUp).
+      keepSelectionAfterTakeUp(r.show, (isOrchestrationMode && Array.isArray(orch) ? orch : orchSectionsRef.current) as { id: string }[]);
+      setTakenUpKey(k => k + 1);
+      if (r.kind === 'shown') {
+        knownVersionRef.current = Math.max(knownVersionRef.current, r.adoptVersion);
+        draftBaseRef.current = { ...draftBaseRef.current, ...r.draftBase };
+        pendingPartsRef.current = r.pending;
+        setCaseUpdateOverlap(false);
+        showToast(tGrossingNav('synopticReportPage.caseUpdated.shown'), 'info');
+      } else {
+        setCaseUpdateOverlap(true);
+      }
+    } finally {
+      caseUpdateBusyRef.current = false;
+      setCaseUpdateBusy(false);
+    }
+  };
+  // Batch 577 (carried from 575): the Edit Conflict dialog's "Use their version", in place of a reload (a
+  // wait, the tab and place lost, and the draft copy offered back afterwards). The person chose to discard
+  // what this page holds unsaved, so the saved case is shown as opening it would show it
+  // (services/cases/caseWrite.ts takeTheirVersion), the draft copy and held changes are dropped, and the lists
+  // are read again.
+  const handleConcurrencyUseTheirs = async () => {
+    if (!caseId || caseUpdateBusyRef.current) return;
+    caseUpdateBusyRef.current = true;
+    setCaseUpdateBusy(true);
+    try {
+      const latest = await caseRouter.getCase(caseId).catch(() => null) as Case | null;
+      if (!latest) { showToast(tGrossingNav('synopticReportPage.concurrency.useTheirsFailed'), 'warning'); return; }
+      const r = takeTheirVersion(latest, latest.version ?? 0);
+      const sections = r.orchSections as OrchestratorSection[];
+      pendingPartsRef.current = null;
+      knownVersionRef.current = r.adoptVersion;
+      draftBaseRef.current = caseDraftUpdates(r.show, sections);
+      setCaseData(r.show);
+      setOrchSections(sections);
+      keepSelectionAfterTakeUp(r.show, sections);
+      discardDraft();
+      clearDirty();
+      caseUpdate.dismiss(r.adoptVersion);
+      setCaseUpdateOverlap(false);
+      closeConcurrencyConflict();
+      setTakenUpKey(k => k + 1);
+      showToast(tGrossingNav('synopticReportPage.concurrency.useTheirsDone'), 'info');
+    } finally {
+      caseUpdateBusyRef.current = false;
+      setCaseUpdateBusy(false);
+    }
+  };
   const handleMergeReviewSave = async () => {
     if (!mergeReview) return;
     setMergeReviewBusy(true);
@@ -1412,6 +1561,7 @@ const SynopticReportPage: React.FC = () => {
     if (r.ok === false) { showToast(tGrossingNav('synopticReportPage.mergeReview.changedAgain'), 'warning'); return; }
     takeUp(r.saved, r.version, review.parts);
     pendingPartsRef.current = null;
+    setTakenUpKey(k => k + 1);
     // The draft is saved when the review carried it.
     if (Object.keys(review.parts).some(k => k === 'synopticReports' || k === 'orchSections' || k === 'grossingReports')) { discardDraft(); clearDirty(); }
     showToast(tGrossingNav('synopticReportPage.mergeReview.saved'));
@@ -1422,6 +1572,7 @@ const SynopticReportPage: React.FC = () => {
     setMergeReview(null); setConcurrencyConflict(null);
     // Their changes shown, this person's on top, not saved.
     takeUp(review.latest, review.version, review.parts);
+    setTakenUpKey(k => k + 1);
     const pagePartKeys = Object.keys(review.parts).filter(k => !['synopticReports', 'orchSections', 'grossingReports'].includes(k));
     pendingPartsRef.current = pagePartKeys.length
       ? { parts: Object.fromEntries(pagePartKeys.map(k => [k, (review.parts as any)[k]])) as Partial<Case>, base: Object.fromEntries(pagePartKeys.map(k => [k, (review.latest as any)[k]])) as Partial<Case> }
@@ -1581,7 +1732,7 @@ const SynopticReportPage: React.FC = () => {
     // caseData.id (not the whole object) — caseData can get new object
     // identity on unrelated updates without this needing to re-resolve.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseData?.id, isOrchestrationMode, overrideTemplateId]);
+  }, [caseData?.id, isOrchestrationMode, overrideTemplateId, takenUpKey]);
 
   // ── Centre pane header state — template picker, lifted here so it can be
   //    shared between both layout instances (primary + expanded) ───────────
@@ -1689,9 +1840,11 @@ const SynopticReportPage: React.FC = () => {
       // missing, not a broken load. Updates knownVersionRef so a real
       // edit made later in this same session isn't rejected against a
       // version this write has already advanced past.
+      // Batch 572: the write saved version expected + 1; never step back if another save moved past it meanwhile.
       if (!(c as any).firstOpenedAt) {
-        caseRouter.updateCase(caseId, { firstOpenedAt: new Date().toISOString() } as any, knownVersionRef.current)
-          .then(() => { knownVersionRef.current = knownVersionRef.current + 1; })
+        const expected = knownVersionRef.current;
+        caseRouter.updateCase(caseId, { firstOpenedAt: new Date().toISOString() } as any, expected)
+          .then(() => { knownVersionRef.current = Math.max(knownVersionRef.current, expected + 1); })
           .catch(() => {});
       }
       if (c.specimens?.length) setActiveSpecimenId(c.specimens[0].id);
@@ -1788,7 +1941,27 @@ const SynopticReportPage: React.FC = () => {
     } else {
       dirtySetAt.current = null;
     }
+    // Batch 576: saved (nothing unsaved): the next edit is a new one.
+    if (!hasUnsavedData) editedAt.current = null;
+    // Batch 573: what others see in "who else has this case open".
+    setPresenceEditing(isPersonsEdit(hasUnsavedData, dirtySetAt.current, caseLoadedAt.current, editedAt.current));
   }, [hasUnsavedData]);
+
+  // Batch 576: typing or choosing in the synoptic form counts as the person's edit even when its prefill
+  // marked the page unsaved while setting up (other edits are noted in markDirty).
+  const hasUnsavedRef = React.useRef(hasUnsavedData);
+  hasUnsavedRef.current = hasUnsavedData;
+  React.useEffect(() => {
+    editedAt.current = null;
+    const onEdit = (e: Event) => {
+      if (!isReportEditEvent(e.target as Element | null)) return;
+      if (editedAt.current === null) editedAt.current = Date.now();
+      if (hasUnsavedRef.current) setPresenceEditing(true);
+    };
+    document.addEventListener('input', onEdit, true);
+    document.addEventListener('change', onEdit, true);
+    return () => { document.removeEventListener('input', onEdit, true); document.removeEventListener('change', onEdit, true); };
+  }, [caseId]);
 
   // Returns true only when dirty state originated from a real user edit
   // (not from component initialisation shortly after case load).
@@ -1817,12 +1990,10 @@ const SynopticReportPage: React.FC = () => {
   // settled — not attempted here, flagged as a real follow-up if a
   // slower network ever pushes real initialization past this new
   // window too.
-  const shouldWarnDirty = React.useCallback((): boolean => {
-    if (!hasUnsavedData) return false;
-    const likelyInit = dirtySetAt.current !== null &&
-      (dirtySetAt.current - caseLoadedAt.current) < 4000;
-    return !likelyInit;
-  }, [hasUnsavedData]);
+  const shouldWarnDirty = React.useCallback((): boolean => (
+    // Batch 573: the rule moved to services/cases/caseEditingSignal.ts (presence uses it too).
+    isPersonsEdit(hasUnsavedData, dirtySetAt.current, caseLoadedAt.current, editedAt.current)
+  ), [hasUnsavedData]);
 
   // ── Hooks ──────────────────────────────────────────────────
   const {
@@ -1851,7 +2022,7 @@ const SynopticReportPage: React.FC = () => {
     if (!caseData?.id) { setFollowUpOffer({ kind: 'none' }); return; }
     loadFollowUpMarkOffer(caseData.id).then(o => { if (live) setFollowUpOffer(o); }).catch(() => { if (live) setFollowUpOffer({ kind: 'none' }); });
     return () => { live = false; };
-  }, [caseData?.id, caseData?.status]);
+  }, [caseData?.id, caseData?.status, takenUpKey]);
   const handleMarkFollowUpAfterSignOut = useCallback(async () => {
     if (!caseData?.id || !signingUser) return;
     const r = await markFollowUpExpectedAfterSignOutLive(caseData.id, { id: signingUser.id, name: signingUser.name });
@@ -1948,10 +2119,58 @@ const SynopticReportPage: React.FC = () => {
     for (const item of items) recordChargeTransaction(item.specimenId, item.blockId, item.code, postSignoutContext);
   };
 
+  // Batch 579 (carried from 575): a specimen's billing codes (added, removed, corrected; matrix codes applied or
+  // rejected) and the Sequencer's specimen order are saved the moment they're made, like the page's other
+  // specimen changes. Before, they were only held on screen: Save Draft doesn't write specimens, so a reload
+  // lost them and taking up someone else's version replaced them.
+  //   - One at a time, each built on the one before (two quick clicks never meet each other as "someone else").
+  //   - `allOrNothing` (billing codes): unless the change saved, the screen goes back and the caller records
+  //     no charge or credit, so the billing ledger never has a transaction for a code the case doesn't have.
+  //     If someone else saved meanwhile, the person is told to look at their changes and make the change again.
+  const specimenSaveChain = useRef<Promise<unknown>>(Promise.resolve());
+  const saveSpecimensNow = (
+    build: (specimens: NonNullable<Case['specimens']>) => Case['specimens'],
+    opts: { allOrNothing: boolean },
+  ): Promise<'saved' | 'conflict' | 'failed'> => {
+    const run = async (): Promise<'saved' | 'conflict' | 'failed'> => {
+      // Let the page show the previous save first (its version and specimens).
+      await new Promise(r => setTimeout(r, 0));
+      const current = caseDataRef.current;
+      if (!current) return 'failed';
+      const before = current.specimens;
+      const next = build(before ?? []);
+      const heldBefore = pendingPartsRef.current;
+      setCaseData(prev => (prev ? ({ ...prev, specimens: next } as typeof prev) : prev));
+      try {
+        await savePagePatch(current.id, { specimens: next } as Partial<Case>);
+        return 'saved';
+      } catch (e) {
+        const conflict = e instanceof ConcurrencyConflictError;
+        if (opts.allOrNothing) {
+          pendingPartsRef.current = heldBefore;
+          setCaseData(prev => (prev ? ({ ...prev, specimens: before } as typeof prev) : prev));
+          if (conflict) {
+            setConcurrencyConflict(null);
+            setMergeReview(null);
+            showToast(tGrossingNav('synopticReportPage.toast.specimenSaveConflict'), 'warning');
+            return 'conflict';
+          }
+        } else if (conflict) {
+          return 'conflict'; // the Edit Conflict dialog (or the merge review) is open, with the change kept
+        }
+        console.error('[SpecimenSave] Failed to save specimens:', e);
+        showToast(tGrossingNav('synopticReportPage.toast.specimenSaveFailed'), 'warning');
+        return 'failed';
+      }
+    };
+    const result = specimenSaveChain.current.then(run, run);
+    specimenSaveChain.current = result.catch(() => undefined);
+    return result;
+  };
+
   const handleDeleteSpecimenBaseCode = async (specimenId: string, code: string) => {
     if (!(await billingReviewAllowed())) return;
-    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithBaseCodeRemoved(prev.specimens ?? [], specimenId, code) } as typeof prev) : prev));
-    markDirty('billingCodeRemoved');
+    if (await saveSpecimensNow(sp => specimensWithBaseCodeRemoved(sp, specimenId, code), { allOrNothing: true }) !== 'saved') return;
     recordCreditTransaction(specimenId, undefined, code);
   };
 
@@ -1985,8 +2204,7 @@ const SynopticReportPage: React.FC = () => {
     if (blockId) {
       updateBillableMaterial(specimenId, blockId, { coding: codingWithCorrection(findCaseBlock(specimenId, blockId)?.coding, oldCode, newCode, stainOrderId) });
     } else {
-      setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithBaseCodeCorrected(prev.specimens ?? [], specimenId, oldCode, newCode) } as typeof prev) : prev));
-      markDirty('billingCodeCorrected');
+      if (await saveSpecimensNow(sp => specimensWithBaseCodeCorrected(sp, specimenId, oldCode, newCode), { allOrNothing: true }) !== 'saved') return;
     }
 
     if (!isOrchestrationMode) return; // assist mode: RVU-tracking code change only, no financial transaction
@@ -1995,8 +2213,7 @@ const SynopticReportPage: React.FC = () => {
 
   const handleAddSpecimenBaseCode = async (specimenId: string, code: string) => {
     if (!(await billingReviewAllowed())) return;
-    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithBaseCodeAdded(prev.specimens ?? [], specimenId, code) } as typeof prev) : prev));
-    markDirty('billingCodeAdded');
+    if (await saveSpecimensNow(sp => specimensWithBaseCodeAdded(sp, specimenId, code), { allOrNothing: true }) !== 'saved') return;
     recordChargeTransaction(specimenId, undefined, code);
   };
 
@@ -2013,15 +2230,13 @@ const SynopticReportPage: React.FC = () => {
   // Specimen.matrixBlockCoding (not on a block).
   const handleApplyMatrixBillingCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
     if (!(await billingReviewAllowed())) return;
-    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithMatrixCode(prev.specimens ?? [], specimenId, matrixBlockId, code, stainOrderId, 'applied') } as typeof prev) : prev));
-    markDirty('billingCodeAdded');
+    if (await saveSpecimensNow(sp => specimensWithMatrixCode(sp, specimenId, matrixBlockId, code, stainOrderId, 'applied'), { allOrNothing: true }) !== 'saved') return;
     recordChargeTransaction(specimenId, undefined, code);
   };
 
   const handleRejectMatrixBillingCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
     if (!(await billingReviewAllowed())) return;
-    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithMatrixCode(prev.specimens ?? [], specimenId, matrixBlockId, code, stainOrderId, 'rejected') } as typeof prev) : prev));
-    markDirty('billingCodeRejected');
+    await saveSpecimensNow(sp => specimensWithMatrixCode(sp, specimenId, matrixBlockId, code, stainOrderId, 'rejected'), { allOrNothing: true });
   };
 
   // Real gate, per direct request: sign-out checks, using the exact
@@ -2109,7 +2324,7 @@ const SynopticReportPage: React.FC = () => {
     });
     showToast(tGrossingNav('synopticReportPage.toast.intraopMerged', { caseId: caseData.id }), 'success', { containsPhi: true });
     setIntraopMatch(null);
-  }, [intraopMatch, caseData, signingUser, unknownUserName, showToast]);
+  }, [intraopMatch, caseData, signingUser, unknownUserName, showToast, tGrossingNav]);
 
   // Previously an anonymous inline closure on AddOrdersModal's onAddBlock
   // JSX prop — a genuinely separate flow from useSpecimenBlockManagement's
@@ -2166,13 +2381,18 @@ const SynopticReportPage: React.FC = () => {
     markDirty('grossDescription');
     showToast(tGrossingNav('synopticReportPage.toast.blockRecutAdded'));
     setShowAddOrdersModal(false);
-  }, [caseData, setCaseData, knownVersionRef, setConcurrencyConflict, markDirty, showToast, setShowAddOrdersModal]);
+  }, [caseData, setCaseData, setConcurrencyConflict, markDirty, showToast, setShowAddOrdersModal, savePagePatch, tGrossingNav]);
 
   // Previously an anonymous inline closure on AddSynopticModal's onAdd JSX
   // prop — adds new synoptic report instances, and if the case is already
   // finalized, starts a real amendment draft so the triage tile can track
   // it (see handleFinalizeConfirm for where it's actually released).
   const handleAddSynopticReports = useCallback(async (newInstances: any[], updatedCase: Case) => {
+    // Batch 540 (Pete): an addendum to a finalized case waits until its report is out of the release delay.
+    if (caseData?.status === 'finalized' && caseData.id && !(await revisionAllowedNow(caseData.id))) {
+      showToast(tGrossingNav('useAmendmentWorkflow.toast.inReleaseDelay'), 'warning');
+      return;
+    }
     markDirty('synopticReports');
     setActiveReportInstanceId(newInstances[0].instanceId);
     setActiveSpecimenId(newInstances[0].specimenId);
@@ -2208,7 +2428,7 @@ const SynopticReportPage: React.FC = () => {
       // for amendments.
     }
     setCaseData(finalCaseData);
-  }, [markDirty, caseData, signingUser, unknownUserName, setCaseData]);
+  }, [markDirty, caseData, signingUser, unknownUserName, setCaseData, showToast, tGrossingNav]);
 
   // Previously an anonymous inline closure on CaseCommentModal's
   // onAddComment JSX prop — append-only case-level comment.
@@ -2250,7 +2470,7 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error('[CaseComment] Failed to persist:', e);
     }
-  }, [caseData, signingUser, unknownUserName, caseComments, setCaseData, markDirty, knownVersionRef, setConcurrencyConflict]);
+  }, [caseData, signingUser, unknownUserName, caseComments, setCaseData, markDirty, setConcurrencyConflict, savePagePatch]);
 
   // Previously an anonymous inline closure on ReportCommentModal's
   // onAddComment JSX prop — append-only specimen-level comment.
@@ -2288,7 +2508,7 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error('[SpecimenComment] Failed to persist:', e);
     }
-  }, [caseData, signingUser, unknownUserName, activeSpecimenCommentId, setCaseData, markDirty, knownVersionRef, setConcurrencyConflict]);
+  }, [caseData, signingUser, unknownUserName, activeSpecimenCommentId, setCaseData, markDirty, setConcurrencyConflict, savePagePatch]);
 
 
   // PS-282 (Batch 437): every report print is audited (print or reprint,
@@ -2297,91 +2517,154 @@ const SynopticReportPage: React.FC = () => {
   // Pending Release report says its copy carries the watermark (this was a
   // window.confirm in English).
   const [printPlan, setPrintPlan] = useState<PrintPlan | null>(null);
+  // Batch 495 (PS-283 §4.2.2): revision status for the printed report's header.
+  const reportRevisionStatus = useReportRevisionStatus(caseData);
+
+  // Batch 538 (Pete, Oct 12: "the preview matches exactly what gets sent out"): the one payload
+  // the report renderer gets, for the PDF that is released and for the preview and print alike.
+  // Only the watermark depends on why it is rendered (services/reports/resolveReportWatermark.ts):
+  // an unsigned print says PRELIMINARY; the released report never does. Before, print built its
+  // own payload separately.
+  // Batch 538: the report's watermark for a purpose, in the report's language (resolveReportWatermark.ts).
+  // Used by the payload builder and, before it, by printing, so a browser-print fallback after a
+  // failed build still carries PRELIMINARY.
+  const reportWatermarkFor = useCallback(async (purpose: ReportRenderPurpose): Promise<string | undefined> => {
+    if (!caseData) return undefined;
+    const reportT = await reportTranslateFor(caseData.order?.facilityId);
+    return resolveReportWatermarkText(
+      { status: caseData.status, purpose },
+      { releaseBufferText: async () => { const cfg = await reportReleaseService.getOrgDefault(); return cfg.ok ? cfg.data.watermarkText : undefined; }, t: reportT },
+    );
+  }, [caseData]);
+
+  const buildReportRenderPayload = useCallback(async (outputFormat: 'pdf' | 'text', purpose: ReportRenderPurpose = 'final-snapshot') => {
+    if (!caseData) throw new Error('No case data available.');
+    const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '';
+    const patient = caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
+    // Batch 392 (Pete): the report is written in the performing lab's language;
+    // its labels and date of birth go to the renderer in that language.
+    const reportLocale = await resolveReportLocaleForFacility(caseData.order?.facilityId);
+    // Batch 498 (PS-283 §4.2.2): the report's revision status, dates in the report locale.
+    const amendmentsRes = await amendmentService.getByCaseId(caseData.id);
+    const revision = buildReportRenderRevision(
+      resolveReportRevisionStatus(caseData, amendmentsRes.ok ? amendmentsRes.data : []),
+      reportLocale.locale,
+    );
+
+    // Real bug, confirmed directly: resolvedContext is only ever set
+    // when isOrchestrationMode is true (see the useEffect that calls
+    // buildContext — it returns immediately otherwise). That means
+    // every field pulling from it here — bodyAssembly, synopticAnswers
+    // — was silently an empty array for CoPilot, producing a blank
+    // PDF with a real HTTP 200 response, not an error. For CoPilot,
+    // build the answers directly from the case's own synopticReports,
+    // resolving each instance's own template — same resolveAnswers
+    // function Orchestration already uses, not a separate, lesser
+    // implementation.
+    let copilotSynopticAnswers: any[] = [];
+    if (!isOrchestrationMode) {
+      const templateModule = await import('@/services/templates/templateService');
+      const instances = caseData.synopticReports ?? [];
+      const resolved = await Promise.all(instances.map(async (inst: any) => {
+        const detail = await templateModule.getTemplate(inst.templateId);
+        if (!detail) return [];
+        return resolveAnswers(inst.answers ?? {}, detail.template, partGridRowsOf(caseData.specimens));
+      }));
+      copilotSynopticAnswers = resolved.flat();
+    }
+
+    // Real feature, per direct specification: Post-Sign-Out Release
+    // Buffer, Phase 3 (spec §14b — a printed PDF during the buffer window
+    // carries the real, configured watermark). Batch 540 (Pete): a released
+    // PDF ('final-snapshot') never does, since it is what goes out when the
+    // delay ends (resolveReportWatermark.ts). Only fetched when relevant.
+    const watermarkText = await reportWatermarkFor(purpose);
+
+    // Real, per direct guidance's own cross-jurisdiction pre-analytic
+    // compliance research: a mandatory report disclaimer is required
+    // whenever any specimen on this case was signed out on an
+    // administrative-override date (see PreAnalyticDateGateModal /
+    // resolvePreAnalyticDateGateConfig.ts). Same honest posture as
+    // watermarkText above - this app sends the real, resolved,
+    // jurisdiction-specific text to the separate PDF rendering
+    // service, but can't itself verify that service actually draws
+    // it onto the page.
+    const usedPreAnalyticOverride = (caseData.specimens ?? []).some(
+      (sp: any) => sp.collectedAtAdministrativeOverride || sp.receivedAtAdministrativeOverride
+    );
+    const preAnalyticDisclaimerText = usedPreAnalyticOverride
+      ? resolvePreAnalyticDateGateConfig(getOrganisationByHospitalId(caseData.originHospitalId)?.country).disclaimerText
+      : undefined;
+
+    return {
+      templateName: resolvedTemplateName,
+      resolvedBy,
+      institution: getInstitution(caseData.originHospitalId),
+      caseHeader: {
+        accession, patient,
+        mrn: caseData.patient?.mrn ?? '',
+        dob: formatReportDateOfBirth(caseData.patient?.dateOfBirth, reportLocale.locale),
+        referring: caseData.order?.facilityName ?? '',
+        clinician: caseData.order?.requestingProvider ?? '',
+      },
+      bodyAssembly:    resolvedContext?.narrativeTemplate.bodyAssembly ?? [],
+      headerAssembly:  resolvedContext?.narrativeTemplate.headerAssembly ?? [],
+      footerAssembly:  resolvedContext?.narrativeTemplate.footerAssembly ?? [],
+      sections:        orchSections,
+      renderScope:     buildRenderScope(caseData),
+      synopticAnswers: isOrchestrationMode ? (resolvedContext?.synoptics?.flatMap(s => s.answers) ?? []) : copilotSynopticAnswers,
+      // Not read by render_report yet (functions/main.py, in this repo —
+      // Batch 496 audit, PS-333).
+      documentStyle:   resolvedContext?.narrativeTemplate.documentStyle,
+      // Drawn diagonally on every page by render_report since Batch 498.
+      // Absent (not an empty string) for any case that isn't 'pending-release'.
+      watermarkText,
+      // Genuinely absent unless a real administrative override was
+      // used on this case — see this block's own comment above.
+      preAnalyticDisclaimerText,
+      // Real, per direct guidance: the render_report function defaults
+      // to 'pdf' when this is absent — sent explicitly here regardless,
+      // so this payload's own shape states its real intent rather than
+      // relying on the backend's own default matching whatever the
+      // caller happened to mean.
+      outputFormat,
+      // Batch 392: the report's language, and the wording around it in that language.
+      language: reportLocale.language,
+      labels: surgicalReportLabelsFor(reportLocale.language),
+      // Batch 498 (PS-283, PS-333): render_report draws the revision banner and,
+      // next to the accession barcode in the footer, the record version.
+      revision,
+      documentVersion: typeof caseData.version === 'number' ? caseData.version : undefined,
+      // Batch 461: the anatomical maps the pathologist inserted (snapshots, print colours);
+      // Batch 463: and the maps that are part of the report (Mohs), drawn now in the report's language.
+      reportFigures: await reportFiguresWithAuto(caseData, i18nForDates.getFixedT(reportLocale.language) as never),
+    };
+  }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode, i18nForDates, reportWatermarkFor]);
 
   const printReport = useCallback(async (plan: PrintPlan, reason: string) => {
     if (!caseData) { window.print(); return; }
+    // Batch 495 (PS-283 §4.2.4): printing a case report needs
+    // report:case-report:print for the case's facility. Refused: no PDF, no print.
+    // Batch 516: and a VIP/confidential case also needs report:restricted-case:print.
+    const printCheck = await checkReportPrint({ caseId: caseData.id, facilityId: caseData.order?.facilityId ?? null });
+    if (printCheck !== 'allowed') {
+      showToast(tGrossingNav(printCheck === 'restrictedCase' ? 'reportPrint.restrictedCase' : 'reportPrint.notPermitted'), 'warning');
+      return;
+    }
     setIsPrinting(true);
+    // Batch 516: kept for the browser-print fallback below, so it carries the same watermark.
+    let printWatermark: string | undefined;
     const accession = caseData.accession?.fullAccession
       ?? caseData.accession?.accessionNumber ?? '';
     // PS-282 (Batch 451): the entry is built in services/printing/reportPrintAudit.ts.
     const audit = (destination: string, status: 'success' | 'failed' | 'pending', format: 'pdf' | 'html') =>
       void recordDocumentOutput(reportPrintAuditEvent({ action: plan.action, caseRecord: caseData, reason }, { destination, status, format }));
     try {
-      const patient = caseData.patient
-        ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
-      // Amendment/addendum data added to the payload so a server-side
-      // renderer CAN draw the banner — but the ReportLab service that
-      // actually turns this payload into the PDF page is a separate
-      // Python service outside this codebase. This field being present
-      // here does not guarantee it's drawn; that requires a
-      // corresponding update on the PDF generation side, which isn't
-      // something verifiable from this React app.
-      const amendmentRes = caseData.id ? await amendmentService.getByCaseId(caseData.id) : { ok: false as const };
-      const releasedAmendments = amendmentRes.ok ? amendmentRes.data.filter(r => r.status === 'released') : [];
-
-      // Real feature, per direct specification: Post-Sign-Out Release
-      // Buffer. This is a real, separate PDF payload construction from
-      // generateReportPdfSnapshot()'s own — that one already carries
-      // this field (Phase 3); this one, reached only via the
-      // Orchestration print button above, did not until now.
-      let watermarkText: string | undefined;
-      if (caseData.status === 'pending-release') {
-        const cfg = await reportReleaseService.getOrgDefault();
-        if (cfg.ok) watermarkText = cfg.data.watermarkText;
-      }
-
-      // Real, per direct guidance's own cross-jurisdiction pre-analytic
-      // compliance research — same real, honest "sent for the separate
-      // PDF service to draw, can't verify it does" posture as
-      // watermarkText above. See generateReportPdfSnapshot's own
-      // identical computation for the full reasoning.
-      const usedPreAnalyticOverride = (caseData.specimens ?? []).some(
-        (sp: any) => sp.collectedAtAdministrativeOverride || sp.receivedAtAdministrativeOverride
-      );
-      const preAnalyticDisclaimerText = usedPreAnalyticOverride
-        ? resolvePreAnalyticDateGateConfig(getOrganisationByHospitalId(caseData.originHospitalId)?.country).disclaimerText
-        : undefined;
-
-      const payload = {
-        templateName: resolvedTemplateName,
-        resolvedBy,
-        institution: getInstitution(caseData.originHospitalId),
-        caseHeader: {
-          accession,
-          patient,
-          mrn: caseData.patient?.mrn ?? '',
-          dob: caseData.patient?.dateOfBirth
-            ? new Date(caseData.patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
-            : '',
-          referring: caseData.order?.facilityName ?? '',
-          clinician: caseData.order?.requestingProvider ?? '',
-        },
-        // Same data ReportPreviewRenderer already renders on screen — the
-        // PDF and the live preview are built from one resolved context,
-        // not two independently-derived views of the case.
-        bodyAssembly:    resolvedContext?.narrativeTemplate.bodyAssembly ?? [],
-        headerAssembly:  resolvedContext?.narrativeTemplate.headerAssembly ?? [],
-        footerAssembly:  resolvedContext?.narrativeTemplate.footerAssembly ?? [],
-        sections:        orchSections,
-        renderScope:     buildRenderScope(caseData),
-        synopticAnswers: resolvedContext?.synoptics?.flatMap(s => s.answers) ?? [],
-        amendments:      releasedAmendments,
-        // Same caveat as bodyAssembly/sections above: sent so a
-        // server-side renderer CAN draw it, but this React app can't
-        // verify the separate PDF service actually reads it — that's
-        // a corresponding change on that side, not this one.
-        documentStyle:   resolvedContext?.narrativeTemplate.documentStyle,
-        // Same real, honest caveat as documentStyle above — genuinely
-        // absent (not sent as an empty string) for any case that isn't
-        // 'pending-release'.
-        watermarkText,
-        // Genuinely absent unless a real administrative override was
-        // used on this case — see this block's own comment above.
-        preAnalyticDisclaimerText,
-        // Batch 461: the anatomical maps the pathologist inserted (snapshots, print colours);
-        // Batch 463: and the maps that are part of the report (Mohs), drawn now in the report's language.
-        reportFigures: await reportFiguresWithAuto(caseData, await reportTranslateFor(caseData.order?.facilityId)),
-      };
+      // Batch 538 (Pete: the preview must match what is sent): the same payload the released
+      // PDF is made from (buildReportRenderPayload); only the watermark differs, an unsigned print
+      // saying PRELIMINARY — SUBJECT TO CHANGE in the report's language.
+      printWatermark = await reportWatermarkFor('print').catch(() => undefined);
+      const payload = await buildReportRenderPayload('pdf', 'print');
 
       const resp = await fetch(reportPdfEndpoint(), {
         method: 'POST',
@@ -2428,17 +2711,20 @@ const SynopticReportPage: React.FC = () => {
       const winTop    = Math.round((window.screen.availHeight - winHeight) / 2);
       const win = window.open('', '_blank', `width=${winWidth},height=${winHeight},left=${winLeft},top=${winTop}`);
       if (!win) { window.print(); return; }
+      // Batch 516: the fallback page in the report's language too (it was always English).
+      const fallbackLocale = await resolveReportLocaleForFacility(caseData.order?.facilityId);
+      const fallbackT = await reportTranslateFor(caseData.order?.facilityId);
       win.document.write(`<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/>
-<title>${accession} — PathScribe Report</title>
+<html lang="${escapeHtml(fallbackLocale.language)}"><head><meta charset="UTF-8"/>
+<title>${escapeHtml(fallbackT('reportPrintFallback.windowTitle', { accession }))}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt;
          line-height: 1.6; color: #1a1a1a; background: white; }
   @page { size: A4; margin: 18mm 20mm 22mm 20mm;
-    @top-left   { content: "${accession}"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
-    @top-right  { content: "CONFIDENTIAL — CLINICAL RECORD"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
-    @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+    @top-left   { content: "${cssString(accession)}"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+    @top-right  { content: "${cssString(fallbackT('reportPrintFallback.confidential'))}"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+    @bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
   }
   .rp-section-badge { display: none; }
   .rp-section-heading { font-size: 11pt; font-weight: 700; text-transform: uppercase;
@@ -2448,13 +2734,23 @@ const SynopticReportPage: React.FC = () => {
   .rp-section-body p { margin-bottom: 6pt; orphans: 3; widows: 3; }
   .rp-section { margin-bottom: 18pt; }
   .rp-footer-conf, .rp-footer { font-size: 8pt; }
-</style></head><body>${pageEl.outerHTML}</body></html>`);
+  .rp-revision-banner { margin: 8pt 0; padding: 6pt 10pt; border: 1px solid #b45309; font-family: Arial, sans-serif; }
+  .rp-revision-flag { font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .rp-revision-count { margin-left: 8pt; font-weight: 400; text-transform: none; }
+  .rp-revision-dates { font-size: 9pt; }
+  .rp-doc-reference { display: flex; align-items: center; gap: 10pt; margin-top: 6pt; font-family: Arial, sans-serif; }
+  .rp-doc-reference-barcode { display: inline-block; height: 24pt; width: 130pt; }
+  .rp-doc-reference-barcode svg { height: 100%; width: 100%; }
+  .rp-doc-reference-text { font-size: 7.5pt; color: #444; }
+  .rp-print-watermark { position: fixed; top: 45%; left: 0; right: 0; text-align: center; transform: rotate(-30deg);
+    font-family: Arial, sans-serif; font-size: 34pt; font-weight: 700; color: rgba(180, 83, 9, 0.18); pointer-events: none; z-index: 10; }
+</style></head><body>${printWatermark ? `<div class="rp-print-watermark">${escapeHtml(printWatermark)}</div>` : ''}${pageEl.outerHTML}</body></html>`);
       win.document.close();
       win.onload = () => { win.focus(); win.print(); win.close(); };
     } finally {
       setIsPrinting(false);
     }
-  }, [caseData, resolvedContext, orchSections, resolvedTemplateName, resolvedBy, showToast]);
+  }, [caseData, buildReportRenderPayload, reportWatermarkFor, showToast, tGrossingNav]);
 
   const handleOrchPrint = useCallback(async () => {
     if (!caseData) { window.print(); return; }
@@ -2650,6 +2946,14 @@ const SynopticReportPage: React.FC = () => {
           setShowDelegateModal(true);
           break;
 
+        // Batch 489: real fix — this action was declared in
+        // constants/systemActions.ts ("Submit to Tumor Board") and
+        // recognized by voice/keyboard, but never wired to any handler
+        // anywhere in the app until now.
+        case 'delegation.tumorBoard':
+          setShowFlagForMdtModal(true);
+          break;
+
         // Real, per direct follow-up ("the actions list is out of sync...
         // voice control... has to be flawless"): registering this action
         // alone isn't enough — without a real case here, saying "return to
@@ -2759,6 +3063,7 @@ const SynopticReportPage: React.FC = () => {
       }
     });
     return unsubscribe;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- handleReturnToTrainee comes from useSignOutWorkflow further down (listing it here would read it before it exists); caseData, listed, re-subscribes when the case changes
   }, [
     allBlocks.length, handleAdvanceFocusedBlockStatus, handleConfirmTriage, setFocusedBlockIndex,
     openFlagManager, clearDirty, caseData,
@@ -2858,7 +3163,7 @@ const SynopticReportPage: React.FC = () => {
         state: { worklistCaseIds: worklistCases },
       });
     }
-  }, [worklistCases, worklistIndex, navigate]);
+  }, [worklistCases, worklistIndex, openCasePage]);
 
   // Previously an anonymous inline closure on UnsavedWarningModal's
   // onSaveAndLeave JSX prop — saves the draft via the shared
@@ -2987,107 +3292,6 @@ const SynopticReportPage: React.FC = () => {
   // output formats share one real, single source of truth for what
   // gets sent, never two independently maintained copies that could
   // drift out of sync with each other.
-  const buildReportRenderPayload = useCallback(async (outputFormat: 'pdf' | 'text') => {
-    if (!caseData) throw new Error('No case data available.');
-    const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '';
-    const patient = caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
-    // Batch 392 (Pete): the report is written in the performing lab's language;
-    // its labels and date of birth go to the renderer in that language.
-    const reportLocale = await resolveReportLocaleForFacility(caseData.order?.facilityId);
-
-    // Real bug, confirmed directly: resolvedContext is only ever set
-    // when isOrchestrationMode is true (see the useEffect that calls
-    // buildContext — it returns immediately otherwise). That means
-    // every field pulling from it here — bodyAssembly, synopticAnswers
-    // — was silently an empty array for CoPilot, producing a blank
-    // PDF with a real HTTP 200 response, not an error. For CoPilot,
-    // build the answers directly from the case's own synopticReports,
-    // resolving each instance's own template — same resolveAnswers
-    // function Orchestration already uses, not a separate, lesser
-    // implementation.
-    let copilotSynopticAnswers: any[] = [];
-    if (!isOrchestrationMode) {
-      const templateModule = await import('@/services/templates/templateService');
-      const instances = caseData.synopticReports ?? [];
-      const resolved = await Promise.all(instances.map(async (inst: any) => {
-        const detail = await templateModule.getTemplate(inst.templateId);
-        if (!detail) return [];
-        return resolveAnswers(inst.answers ?? {}, detail.template, partGridRowsOf(caseData.specimens));
-      }));
-      copilotSynopticAnswers = resolved.flat();
-    }
-
-    // Real feature, per direct specification: Post-Sign-Out Release
-    // Buffer, Phase 3 (spec §14b — a printed/generated PDF during the
-    // buffer window carries the real, configured watermark). Only
-    // fetched when genuinely relevant — a case that isn't
-    // 'pending-release' never pays this extra lookup.
-    let watermarkText: string | undefined;
-    if (caseData.status === 'pending-release') {
-      const cfg = await reportReleaseService.getOrgDefault();
-      if (cfg.ok) watermarkText = cfg.data.watermarkText;
-    }
-
-    // Real, per direct guidance's own cross-jurisdiction pre-analytic
-    // compliance research: a mandatory report disclaimer is required
-    // whenever any specimen on this case was signed out on an
-    // administrative-override date (see PreAnalyticDateGateModal /
-    // resolvePreAnalyticDateGateConfig.ts). Same honest posture as
-    // watermarkText above - this app sends the real, resolved,
-    // jurisdiction-specific text to the separate PDF rendering
-    // service, but can't itself verify that service actually draws
-    // it onto the page.
-    const usedPreAnalyticOverride = (caseData.specimens ?? []).some(
-      (sp: any) => sp.collectedAtAdministrativeOverride || sp.receivedAtAdministrativeOverride
-    );
-    const preAnalyticDisclaimerText = usedPreAnalyticOverride
-      ? resolvePreAnalyticDateGateConfig(getOrganisationByHospitalId(caseData.originHospitalId)?.country).disclaimerText
-      : undefined;
-
-    return {
-      templateName: resolvedTemplateName,
-      resolvedBy,
-      institution: getInstitution(caseData.originHospitalId),
-      caseHeader: {
-        accession, patient,
-        mrn: caseData.patient?.mrn ?? '',
-        dob: formatReportDateOfBirth(caseData.patient?.dateOfBirth, reportLocale.locale),
-        referring: caseData.order?.facilityName ?? '',
-        clinician: caseData.order?.requestingProvider ?? '',
-      },
-      bodyAssembly:    resolvedContext?.narrativeTemplate.bodyAssembly ?? [],
-      headerAssembly:  resolvedContext?.narrativeTemplate.headerAssembly ?? [],
-      footerAssembly:  resolvedContext?.narrativeTemplate.footerAssembly ?? [],
-      sections:        orchSections,
-      renderScope:     buildRenderScope(caseData),
-      synopticAnswers: isOrchestrationMode ? (resolvedContext?.synoptics?.flatMap(s => s.answers) ?? []) : copilotSynopticAnswers,
-      // Same caveat as bodyAssembly/sections above: sent so a
-      // server-side renderer CAN draw it, but this React app can't
-      // verify the separate PDF service actually reads it — that's
-      // a corresponding change on that side, not this one.
-      documentStyle:   resolvedContext?.narrativeTemplate.documentStyle,
-      // Same real, honest caveat as documentStyle above — genuinely
-      // absent (not sent as an empty string) for any case that isn't
-      // 'pending-release'.
-      watermarkText,
-      // Genuinely absent unless a real administrative override was
-      // used on this case — see this block's own comment above.
-      preAnalyticDisclaimerText,
-      // Real, per direct guidance: the render_report function defaults
-      // to 'pdf' when this is absent — sent explicitly here regardless,
-      // so this payload's own shape states its real intent rather than
-      // relying on the backend's own default matching whatever the
-      // caller happened to mean.
-      outputFormat,
-      // Batch 392: the report's language, and the wording around it in that language.
-      language: reportLocale.language,
-      labels: surgicalReportLabelsFor(reportLocale.language),
-      // Batch 461: the anatomical maps the pathologist inserted (snapshots, print colours);
-      // Batch 463: and the maps that are part of the report (Mohs), drawn now in the report's language.
-      reportFigures: await reportFiguresWithAuto(caseData, i18nForDates.getFixedT(reportLocale.language) as never),
-    };
-  }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode]);
-
   const generateReportPdfSnapshot = useCallback(async (): Promise<{ pdfBase64?: string; generationError?: string }> => {
     try {
       const payload = await buildReportRenderPayload('pdf');
@@ -3195,28 +3399,24 @@ const SynopticReportPage: React.FC = () => {
   });
   const effectiveSpecimenComplexity = useEffectiveSpecimenComplexity(caseData);
 
-  // Previously an anonymous inline closure on SequencerPanel's onSave JSX
-  // prop — reorders specimens and their synoptic reports per the
-  // pathologist's drag-to-reorder choice.
-  const handleSequencerSave = useCallback((specimenOrder: string[], synopticOrders: Record<string, string[]>) => {
-    setCaseData(prev => {
-      if (!prev) return prev;
-      // Reorder specimens
-      const specimenMap = Object.fromEntries((prev.specimens ?? []).map(s => [s.id, s]));
-      const reorderedSpecimens = specimenOrder.map(id => specimenMap[id]).filter(Boolean);
-      // Reorder synoptic reports within each specimen
-      const synopticMap = Object.fromEntries(((prev as any).synopticReports ?? []).map((r: any) => [r.instanceId, r]));
-      const reorderedReports: any[] = [];
-      specimenOrder.forEach(spId => {
-        (synopticOrders[spId] ?? []).forEach(instId => {
-          if (synopticMap[instId]) reorderedReports.push(synopticMap[instId]);
-        });
-      });
-      return { ...prev, specimens: reorderedSpecimens, synopticReports: reorderedReports } as any;
-    });
-    markDirty('reportSequence');
-    showToast(tGrossingNav('synopticReportPage.toast.sequenceSaved'));
-  }, [setCaseData, markDirty, showToast]);
+  // The Sequencer's reorder of specimens and their synoptic reports (services/reportEditing/reportSequence.ts).
+  // Batch 579: the specimen order is saved at once; the reports' order is part of the draft (Save Draft).
+  const handleSequencerSave = async (specimenOrder: string[], synopticOrders: Record<string, string[]>) => {
+    const current = caseDataRef.current;
+    if (!current) return;
+    const next = sequenceCaseReports(current.specimens ?? [], current.synopticReports ?? [], specimenOrder, synopticOrders);
+    if (next.reportsChanged) {
+      setCaseData(prev => (prev ? ({ ...prev, synopticReports: next.synopticReports } as typeof prev) : prev));
+      markDirty('reportSequence');
+    }
+    // Built again inside the save from the page's specimens at that moment (another save may come first).
+    const saved = next.specimensChanged
+      ? await saveSpecimensNow(sp => sequenceCaseReports(sp, [], specimenOrder, {}).specimens, { allOrNothing: false })
+      : null;
+    if (saved === 'conflict' || saved === 'failed') return; // the dialog or a warning has said so
+    if (saved === 'saved') showToast(tGrossingNav(next.reportsChanged ? 'synopticReportPage.toast.sequenceSavedReportsWithDraft' : 'synopticReportPage.toast.sequenceSaved'));
+    else if (next.reportsChanged) showToast(tGrossingNav('synopticReportPage.toast.sequenceReportsWithDraft'));
+  };
 
   // Previously an anonymous inline closure on HeaderBar's onCaseUpdate JSX
   // prop — persists flag updates from the header's LIS-sync editor.
@@ -3239,7 +3439,7 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error(e);
     }
-  }, [setCaseData, knownVersionRef, setConcurrencyConflict]);
+  }, [setCaseData, setConcurrencyConflict, savePagePatch]);
 
   // ── Spell check (PS-342, Batch 338) ─────────────────────────────────────
   // One checker for all of this report's free text: the report editor, the
@@ -3258,7 +3458,7 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error(e);
     }
-  }, [caseData, setCaseData, knownVersionRef, setConcurrencyConflict]);
+  }, [caseData, setCaseData, setConcurrencyConflict, savePagePatch]);
 
   const spellCheck = useCaseSpellCheck({
     caseId: caseData?.id,
@@ -3423,7 +3623,7 @@ const SynopticReportPage: React.FC = () => {
     markDirty('specimens');
     setShowSpecimenEdit(false);
     setEditingSpecimen(null);
-  }, [editingSpecimen, caseData, signingUser, setCaseData, knownVersionRef, setConcurrencyConflict, markDirty, showToast, setShowSpecimenEdit, setEditingSpecimen]);
+  }, [editingSpecimen, caseData, signingUser, setCaseData, setConcurrencyConflict, markDirty, showToast, setShowSpecimenEdit, setEditingSpecimen, savePagePatch, tGrossingNav]);
 
 
 
@@ -3583,7 +3783,7 @@ const SynopticReportPage: React.FC = () => {
         }
       }
     })();
-  }, [caseData?.grossingReports, alertAdminsOfUnresolvedDrift, caseData?.id, signingUser]);
+  }, [caseData?.grossingReports, alertAdminsOfUnresolvedDrift, caseData?.id, signingUser, savePagePatch]);
 
   const {
     finalizeSignOut,
@@ -3618,7 +3818,7 @@ const SynopticReportPage: React.FC = () => {
     generateReportPdfSnapshot, isOrchestrationMode, orchSections,
     setCaseSigned, setShowSignOutModal, setPendingReconciliation,
     countersignFeedback, followUpExpected, specimenDictionary, setFixativeGateSpecimens, setStainQcGateBlocking,
-    setClinicalMismatch, setPeerReviewGate,
+    setClinicalMismatch, setPeerReviewGate, setInkingGateBlocking,
     setPreAnalyticDateGateSpecimens, setPendingActionIsSignOut,
     setPendingFinalizeArgs, synopticPanelRef, setAlertFieldId, safeSetLeftTab, setAmendmentMode,
     setActiveSpecimenId, setActiveReportType,
@@ -3734,7 +3934,7 @@ const SynopticReportPage: React.FC = () => {
       const succeeded = await finalizeCase(args);
       if (succeeded) await releasePendingAmendmentOrAddendum();
     })();
-  }, [caseData, knownVersionRef, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setFixativeGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
+  }, [caseData, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setFixativeGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum, savePagePatch]);
 
   // Real, per PS-289/PS-292's own Gating Strategy — simpler than
   // handleFixativeGateContinue above, since the real confirmation
@@ -3771,9 +3971,19 @@ const SynopticReportPage: React.FC = () => {
     })();
   }, [pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
   const cancelGate = useCallback(() => {
-    setClinicalMismatch(null); setPeerReviewGate(null); setPendingFinalizeArgs([]); setPendingActionIsSignOut(false);
+    setClinicalMismatch(null); setPeerReviewGate(null); setInkingGateBlocking(null); setPendingFinalizeArgs([]); setPendingActionIsSignOut(false);
   }, [setPendingFinalizeArgs, setPendingActionIsSignOut]);
+
+  // Batch 484: after a successful Administrative Override (Severity 3,
+  // Gate B only — Gate A never offers one), resume exactly as
+  // resumeAfterGate does for the mismatch/peer-review gates above.
+  const handleInkingGateOverrideRecorded = useCallback(() => {
+    setInkingGateBlocking(null);
+    resumeAfterGate();
+  }, [resumeAfterGate]);
   const peerReview = usePeerReview(caseData, signingUser?.id);
+  // Batch 530 (PS-554, Gate A): the mismatch check in the background while the report is reviewed.
+  const mismatchAlert = useClinicalMismatchAlert(caseData, orchSections);
 
   // Real, per direct follow-up: "Begin AutopsyAuthorizationCompletionForm.tsx
   // persistence — hands back updated data, nothing saves it." The
@@ -3797,7 +4007,7 @@ const SynopticReportPage: React.FC = () => {
       console.error('[AutopsyAuthCompletion] Failed to persist authorization:', err);
       showToast(tGrossingNav('synopticReportPage.toast.authorizationSaveFailed'), 'warning');
     }
-  }, [caseData, knownVersionRef, setCaseData, showToast, tGrossingNav, setConcurrencyConflict]);
+  }, [caseData, setCaseData, showToast, tGrossingNav, setConcurrencyConflict, savePagePatch]);
 
   // Real, per direct follow-up: "it all needs to be wired" —
   // AutopsyCaseDetails.organRetentionTier had no real UI anywhere to
@@ -3809,36 +4019,27 @@ const SynopticReportPage: React.FC = () => {
   // different success messaging and neither should touch the
   // other's modal state.
   const handleOrganRetentionTierChange = useCallback(async (tier: AutopsyCaseDetails['organRetentionTier'], reasonOverride?: string) => {
-    if (!caseData?.autopsy) return;
-    // Batch 468 (PS-261 §2.4.1/§2.5.1): a hospital-consented case's
-    // retention tier can never exceed what the NOK's consent on file
-    // permits — this is the one real write site for organRetentionTier,
-    // so it's the one real place this is enforced.
-    if (caseData.autopsy.caseAuthority === 'hospital_consented') {
-      const check = resolveRetentionTierConsentCheck(caseData.autopsy.hospitalConsent, tier);
-      if (!check.allowed) {
-        showToast(tGrossingNav(`synopticReportPage.toast.organRetentionConsentRefusal.${check.refusal}`), 'warning');
-        return;
-      }
+    if (!caseData?.id || !caseData.autopsy) return;
+    // Batch 499: saved through recordAutopsyOrganRetentionTier, which checks
+    // autopsy:retention-tier:record, the jurisdiction and the consent on file
+    // (Batch 468), and audits. Before this, the page wrote the tier straight to
+    // the case with no permission check (disclosed since Batch 472). A reason
+    // left undefined keeps the one on file (Batch 472).
+    const result = await recordAutopsyOrganRetentionTier(caseData.id, tier, reasonOverride, signingUserName);
+    if (!result.ok) {
+      const code = result.reasonCode;
+      showToast(
+        code === 'consentRevoked' || code === 'retentionNotPermitted' ? tGrossingNav(`synopticReportPage.toast.organRetentionConsentRefusal.${code}`)
+          : code === 'notPermitted' ? tGrossingNav('synopticReportPage.toast.organRetentionNotPermitted')
+            : tGrossingNav('synopticReportPage.toast.organRetentionSaveFailed'),
+        'warning',
+      );
+      return;
     }
-    // Batch 472 — the reason field shares this same write site: a
-    // tier change keeps whatever reason is already on file unless the
-    // reason field itself is what triggered the save (reasonOverride).
-    const reason = reasonOverride !== undefined ? reasonOverride : caseData.autopsy.organRetentionTierReason;
-    const updatedDetails: AutopsyCaseDetails = { ...caseData.autopsy, organRetentionTier: tier, organRetentionTierReason: reason || undefined };
-    try {
-      await savePagePatch(caseData.id, { autopsy: updatedDetails } as any);
-      setCaseData(prev => prev ? ({ ...prev, autopsy: updatedDetails } as typeof prev) : prev);
-      showToast(tGrossingNav('synopticReportPage.toast.organRetentionRecorded'));
-    } catch (err) {
-      if (err instanceof ConcurrencyConflictError) {
-        setConcurrencyConflict({ actualVersion: err.actualVersion, blockOverride: true });
-        return;
-      }
-      console.error('[AutopsyOrganRetention] Failed to persist organ retention tier:', err);
-      showToast(tGrossingNav('synopticReportPage.toast.organRetentionSaveFailed'), 'warning');
-    }
-  }, [caseData, knownVersionRef, setCaseData, showToast, setConcurrencyConflict]);
+    const saved = result.autopsy;
+    if (saved) setCaseData(prev => prev ? ({ ...prev, autopsy: saved } as typeof prev) : prev);
+    showToast(tGrossingNav('synopticReportPage.toast.organRetentionRecorded'));
+  }, [caseData?.id, caseData?.autopsy, signingUserName, setCaseData, showToast, tGrossingNav]);
 
   // Real, per direct follow-up ("let's get that signing") — the real
   // UI trigger for signAutopsyReport.ts, this codebase's first real
@@ -3846,6 +4047,18 @@ const SynopticReportPage: React.FC = () => {
   // "no inline logic" posture as every other real Autopsy handler in
   // this file — the actual countersign/gate/persist logic all lives
   // in signAutopsyReport.ts itself.
+  // Batch 523 (PS-145, decision 15): before the FAD is signed, the
+  // clinical-pathologic mismatch check runs against the report as on screen
+  // (checkPeerReviewAndMismatch.ts); a suggestion is decided first.
+  const [autopsyMismatch, setAutopsyMismatch] = useState<ClinicalMismatchAssessment | null>(null);
+  const beginAutopsySign = useCallback(async (tier: 'PAD' | 'FAD') => {
+    if (tier === 'FAD' && caseData) {
+      const suggestion = await checkAutopsyClinicalMismatch(caseData, orchSections);
+      if (suggestion) { setAutopsyMismatch(suggestion); return; }
+    }
+    setConfirmingAutopsyTier(tier);
+  }, [caseData, orchSections]);
+
   const handleSignAutopsyReport = useCallback(async (tier: 'PAD' | 'FAD', confirmation: SignatureConfirmation) => {
     if (!caseData?.id || !signingUser?.id) return;
     // Batch 345: check the signature before anything is signed
@@ -3984,7 +4197,7 @@ const SynopticReportPage: React.FC = () => {
       const succeeded = await finalizeCase(args);
       if (succeeded) await releasePendingAmendmentOrAddendum();
     })();
-  }, [caseData, knownVersionRef, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setPreAnalyticDateGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
+  }, [caseData, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setPreAnalyticDateGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum, savePagePatch]);
 
   // Previously an anonymous inline closure on AddCodeModal's
   // onAddToSpecimens JSX prop — merges new ICD/SNOMED/CPT codes into the
@@ -4027,7 +4240,7 @@ const SynopticReportPage: React.FC = () => {
     if (isOrchestrationMode && hasRealChange && isCaseSignedOutForBilling(caseData.status)) {
       const addCount = [...additionsBySpecimen.values()].reduce((n, c) => n + c.length, 0);
       const removeCount = [...removalsBySpecimen.values()].reduce((n, c) => n + c.length, 0);
-      const parts = [];
+      const parts: string[] = [];
       if (addCount) parts.push(`${addCount} code${addCount === 1 ? '' : 's'} added`);
       if (removeCount) parts.push(`${removeCount} code${removeCount === 1 ? '' : 's'} removed`);
       try {
@@ -4097,6 +4310,7 @@ const SynopticReportPage: React.FC = () => {
         }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recordChargeTransaction / recordCreditTransaction are plain functions recreated every render from the same caseData (listed); listing them would rebuild this callback every render
   }, [caseData, knownVersionRef, setConcurrencyConflict, setCaseData, markDirty, isOrchestrationMode, signingUser]);
 
   // ── Orchestrator handlers ──────────────────────────────────
@@ -4217,6 +4431,8 @@ const SynopticReportPage: React.FC = () => {
           onOpenVersionHistory={() => setShowVersionHistoryModal(true)}
           changeCount={changeEntries.length}
           onOpenChangeHistory={() => setShowChangeHistory(true)}
+          signatureCount={caseSignatures.length}
+          onOpenSignatureHistory={() => setShowSignatureHistoryModal(true)}
           focusedBlockId={focusedBlockEntry?.block.id}
           onOpenBlockEditor={() => setShowBlockEditor(true)}
           onCaseUpdate={handleHeaderCaseUpdate}
@@ -4235,7 +4451,7 @@ const SynopticReportPage: React.FC = () => {
           return (
             <div className="ps-alert-banner">
               <div
-                onClick={handleAlertBannerClick}
+                {...pressable(handleAlertBannerClick, { role: null })}
                 className="ps-alert-banner-row"
               >
                 <div className="ps-alert-banner-text">
@@ -4246,8 +4462,9 @@ const SynopticReportPage: React.FC = () => {
                 </div>
                 <span
                   className={`ps-alert-chevron${isAlertExpanded ? ' ps-alert-chevron--expanded' : ''}`}
-                  onClick={e => { e.stopPropagation(); setIsAlertExpanded(a => !a); }}
-                >▼</span>
+                  {...pressable(e => { e.stopPropagation(); setIsAlertExpanded(a => !a); })}
+                  aria-expanded={isAlertExpanded} aria-label={tGrossingNav('a11y.showDetails')}
+                ><span aria-hidden="true">▼</span></span>
               </div>
               {isAlertExpanded && (
                 <div className="ps-alert-banner-detail">
@@ -4380,6 +4597,12 @@ const SynopticReportPage: React.FC = () => {
                 );
               })}
 
+              {/* Batch 577: who else has the case open sits in the tab bar's own row, with the tools, so it
+                  appearing or going never moves the page (it used to add a line above the tabs' content). Both
+                  stay pinned to the right while the tabs scroll underneath on a narrow window. */}
+              <div className="ps-syn-tabbar-end">
+              <CasePresenceStrip presence={casePresence} />
+
               {/* Sequencer + DEV tools — right side of tab bar.
                   Hidden in Orchestration draft mode — these move into the
                   centre Full Report pane's own header there instead, since
@@ -4471,10 +4694,13 @@ const SynopticReportPage: React.FC = () => {
                 </button>
               </div>
               )}
+              </div>
 
             </div>
 
             {/* Tab content */}
+            <CaseUpdatedBanner version={caseUpdate.version} overlap={caseUpdateOverlap} busy={caseUpdateBusy}
+              onShow={() => void handleCaseUpdateShow()} onLater={() => caseUpdate.dismiss()} onOverlapSeen={() => setCaseUpdateOverlap(false)} />
             <div className="ps-syn-tab-content">
               {/* Report Draft — three-column Orchestration layout (O26- cases only)
                   Navigator (foldable) | Full Report (centre, read-only) | Section Editor (right)
@@ -4507,13 +4733,13 @@ const SynopticReportPage: React.FC = () => {
                               <div
                                 key={t.id}
                                 className={`ps-ose-tmpl-option${(overrideTemplateId ?? '') === t.id ? ' ps-ose-tmpl-option--active' : ''}`}
-                                onClick={() => { setOverrideTemplateId(t.id); setShowCentreTemplatePicker(false); }}
+                                {...pressable(() => { setOverrideTemplateId(t.id); setShowCentreTemplatePicker(false); })}
                               >
                                 <span className="ps-ose-tmpl-option-name">{t.name}</span>
                                 {t.specialty && <span className="ps-ose-tmpl-option-meta">{t.specialty}</span>}
                               </div>
                             ))}
-                            <div className="ps-ose-tmpl-option" onClick={() => { setOverrideTemplateId(null); setShowCentreTemplatePicker(false); }}>
+                            <div className="ps-ose-tmpl-option" {...pressable(() => { setOverrideTemplateId(null); setShowCentreTemplatePicker(false); })}>
                               <span className="ps-ose-tmpl-option-name">↺ {tGrossingNav('synopticReportPage.templatePicker.systemResolved')}</span>
                               <span className="ps-ose-tmpl-option-meta">{resolvedTemplateName === GOLD_STANDARD_TEMPLATE_NAME ? tGrossingNav('synopticReportPage.templatePicker.goldStandard') : resolvedTemplateName}</span>
                             </div>
@@ -4543,9 +4769,16 @@ const SynopticReportPage: React.FC = () => {
                       <button className="ps-ose-centre-btn" onClick={() => setShowSequencer(true)} title={tGrossingNav('synopticReportPage.sequencer.title')}>
                         🔀 {tGrossingNav('synopticReportPage.sequencer.button')} ↗
                       </button>
-                      <button className="ps-ose-centre-btn" onClick={handleOrchPrint} disabled={isPrinting} title={tGrossingNav('synopticReportPage.print.buttonTitle')}>
+                      <CapabilityButton
+                        capability="report:case-report:print"
+                        context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+                        className="ps-ose-centre-btn"
+                        onClick={() => { void handleOrchPrint(); }}
+                        disabled={isPrinting}
+                        title={tGrossingNav('synopticReportPage.print.buttonTitle')}
+                      >
                         🖨 {isPrinting ? tGrossingNav('synopticReportPage.print.printing') : tGrossingNav('synopticReportPage.print.button')}
-                      </button>
+                      </CapabilityButton>
                     </div>
                   </div>
                   <div className="ps-ose-centre-pane">
@@ -4561,6 +4794,7 @@ const SynopticReportPage: React.FC = () => {
                       activeSectionId={activeSectionId}
                       onSectionClick={setActiveSectionId}
                       documentStyle={resolvedContext?.narrativeTemplate.documentStyle}
+                      revisionStatus={reportRevisionStatus}
                     />
                   </div>
                 </div>
@@ -4605,7 +4839,7 @@ const SynopticReportPage: React.FC = () => {
                 onSelectReport={(instanceId, specimenId, reportType) => {
                   setActiveReportInstanceId(instanceId);
                   setActiveSpecimenId(specimenId);
-                  setActiveReportType(reportType);
+                  setActiveReportType(reportType ?? 'synoptic'); // the Sequencer lists synoptic reports and omits the type
                 }}
               />
 
@@ -4632,7 +4866,7 @@ const SynopticReportPage: React.FC = () => {
                   </div>
                 )}
                 <AmendmentDraftBanner caseData={caseData} activeReportInstanceId={activeReportInstanceId} onEdit={handleRequestAmendment} />
-                <AmendmentStatusBanner caseId={caseData?.id} synopticReports={caseData?.synopticReports} specimens={caseData?.specimens} />
+                <AmendmentStatusBanner caseId={caseData?.id} synopticReports={caseData?.synopticReports} specimens={caseData?.specimens} refreshKey={takenUpKey} />
 
                 {/* Real, per direct follow-up: "it all needs to be
                     wired" \u2014 resolveAutopsyAccessionStatus.ts had
@@ -4689,9 +4923,11 @@ const SynopticReportPage: React.FC = () => {
                     didn't name). */}
                 {caseData?.autopsy && resolveHtaApplicability(caseData.autopsy.jurisdiction) && (
                   <div className="ps-conf-form-field ps-conf-form-field--narrow">
-                    <label className="ps-conf-label">{tGrossingNav('synopticReportPage.autopsy.organRetentionTier')}</label>
+                    <label className="ps-conf-label" htmlFor="organ-retention-tier">{tGrossingNav('synopticReportPage.autopsy.organRetentionTier')}</label>
                     <select
+                      id="organ-retention-tier"
                       className="ps-conf-select"
+                      disabled={!capabilities.has('autopsy:retention-tier:record', { caseId: caseData.id })}
                       value={caseData.autopsy.organRetentionTier ?? ''}
                       onChange={e => handleOrganRetentionTierChange((e.target.value || undefined) as AutopsyCaseDetails['organRetentionTier'])}
                     >
@@ -4712,6 +4948,7 @@ const SynopticReportPage: React.FC = () => {
                     <input
                       id="organ-retention-tier-reason"
                       className="ps-conf-input"
+                      disabled={!capabilities.has('autopsy:retention-tier:record', { caseId: caseData.id })}
                       value={retentionTierReasonDraft}
                       onChange={e => setRetentionTierReasonDraft(e.target.value)}
                       onBlur={() => {
@@ -5471,7 +5708,7 @@ const SynopticReportPage: React.FC = () => {
                       <div className="ps-lis-triage-title">{tGrossingNav('autopsySignOut.fadReadyTitle')}</div>
                       <p className="ps-lis-triage-summary">{tGrossingNav('autopsySignOut.fadReadySummary', { date: formatDate(caseData.autopsy.padSnapshot.signedAt, i18nForDates.language), name: caseData.autopsy.padSnapshot.signedBy.name })}</p>
                     </div>
-                    <button className="ps-conf-btn-primary" disabled={signingAutopsyTier === 'FAD'} onClick={() => setConfirmingAutopsyTier('FAD')}>
+                    <button className="ps-conf-btn-primary" disabled={signingAutopsyTier === 'FAD'} onClick={() => { void beginAutopsySign('FAD'); }}>
                       {signingAutopsyTier === 'FAD' ? tGrossingNav('autopsySignOut.signing') : tGrossingNav('autopsySignOut.signFad')}
                     </button>
                   </div>
@@ -5512,7 +5749,27 @@ const SynopticReportPage: React.FC = () => {
                   setCaseData={setCaseData}
                   showToast={showToast}
                 />
+                {/* Batch 534 (Pete): preliminaries, corrections, addenda and autopsy reports held for the release delay. */}
+                <HeldReportsBanner caseId={caseData?.id}
+                  user={signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : null}
+                  onRecalled={async () => { if (caseData?.id) { const fresh = await caseRouter.getCase(caseData.id); if (fresh) setCaseData(fresh); } }} />
                 <RevisionFeedbackBanner caseId={caseData?.id} isReturned={(caseData as any)?.status === 'returned'} />
+                {/* Batch 530 (Pete): the clinical history, addable until sign-out; with none, the mismatch check is deferred. */}
+                {caseData && (
+                  <CaseClinicalHistoryBar caseData={caseData}
+                    onSaved={(clinicalHistory, version) => { knownVersionRef.current = adoptSavedVersion(knownVersionRef.current, version); setCaseData(prev => (prev ? { ...prev, order: { ...prev.order, clinicalHistory }, version } : prev)); }} />
+                )}
+                {caseData && mismatchAlert.assessment && (
+                  <ClinicalMismatchAlert
+                    assessment={mismatchAlert.assessment}
+                    caseId={caseData.id}
+                    caseType={caseData.specimens?.[0]?.description || caseData.id}
+                    subspecialtyId={caseData.subspecialtyId}
+                    clinicalIndication={caseData.order?.clinicalIndication}
+                    discipline={caseData.autopsy ? 'autopsy' : 'surgical'}
+                    onRecorded={mismatchAlert.recorded}
+                  />
+                )}
                 {caseData && signingUser && (
                   <PeerReviewBanner
                     caseId={caseData.id}
@@ -5544,7 +5801,7 @@ const SynopticReportPage: React.FC = () => {
                 <button
                   type="button"
                   className="ps-btn-secondary ps-grossing-screen-nav-btn"
-                  onClick={() => void openCasePage(caseData.id, 'grossing')}
+                  onClick={() => { if (caseData) void openCasePage(caseData.id, 'grossing'); }}
                 >
                   {tGrossingNav('grossingScreen.openGrossingScreen')}
                 </button>
@@ -5658,6 +5915,8 @@ const SynopticReportPage: React.FC = () => {
                 </div>
               )}
               {activeReportType === 'synoptic' && mapOpen && organMap.context?.binding && (
+                // Batch 502 (PS-472): a map crash doesn't take down the report.
+                <ErrorBoundary scope="panel" name="panel:organ-map">
                 <OrganMapPanel
                   context={organMap.context}
                   loading={organMap.loading}
@@ -5670,6 +5929,7 @@ const SynopticReportPage: React.FC = () => {
                   onInsert={() => { void organMap.insert(); }}
                   onRemove={() => { void organMap.remove(); }}
                 />
+                </ErrorBoundary>
               )}
               {activeReportType === 'billing' && isOrchestrationMode ? (
                 <BillingReviewPanel
@@ -5707,8 +5967,10 @@ const SynopticReportPage: React.FC = () => {
                   highlightFindings={microscopicFindings}
                 />
               ) : (
+              <ErrorBoundary scope="panel" name="panel:synoptic">
               <RightSynopticPanel
                 ref={synopticPanelRef}
+                reloadKey={takenUpKey}
                 caseData={caseData}
                 activeTab={activeTab}
                 activeReportInstanceId={activeReportInstanceId}
@@ -5725,6 +5987,7 @@ const SynopticReportPage: React.FC = () => {
                 onAiSuggestionsUpdate={setAiSuggestions}
                 onMustHaveFieldsUpdate={setMustHave}
               />
+              </ErrorBoundary>
               )}
             </div>
           </div>
@@ -5754,6 +6017,13 @@ const SynopticReportPage: React.FC = () => {
               showToast(result.error ?? tGrossingNav('synopticReportPage.toast.preliminaryReleaseFailed'), 'warning');
               return;
             }
+            // Batch 534: held for the release delay (recallable from the held-reports line until then).
+            if (result.heldUntil) {
+              const refreshedHeld = await caseRouter.getCase(caseData.id!);
+              if (refreshedHeld) setCaseData(refreshedHeld);
+              showToast(tGrossingNav('synopticReportPage.toast.preliminaryHeld', { time: formatDateTime(result.heldUntil, i18nForDates.language) }));
+              return;
+            }
             if (result.dispatchedCount === 0) {
               showToast(tGrossingNav('synopticReportPage.toast.nothingToRelease'));
               return;
@@ -5770,6 +6040,7 @@ const SynopticReportPage: React.FC = () => {
           
           onHistory={() => setIsSimilarCasesOpen(true)}
           onFlags={() => { openFlagManager(caseData); log('flag_manager_opened', { caseId: caseId ?? '' }); }}
+          onFlagForMdt={() => setShowFlagForMdtModal(true)}
           onDelegate={() => setShowDelegateModal(true)}
           onTeam={() => { setShowTeamModal(true); log('team_modal_opened', { caseId: caseId ?? '' }); }}
           onCodes={() => { setCodesModalTargetSpecimenIndex(null); setShowCodesModal(true); log('codes_modal_opened', { caseId: caseId ?? '' }); }}
@@ -5824,7 +6095,7 @@ const SynopticReportPage: React.FC = () => {
           const tier = showGateOverridePrompt;
           setShowGateOverridePrompt(null);
           setGateOverrideReason(reason);
-          if (tier) setConfirmingAutopsyTier(tier);
+          if (tier) void beginAutopsySign(tier);
         }}
         onCancel={() => setShowGateOverridePrompt(null)}
       />
@@ -5874,7 +6145,8 @@ const SynopticReportPage: React.FC = () => {
           rows={conflictRows}
           onKeepWorking={closeConcurrencyConflict}
           onViewChanges={() => { void handleConcurrencyViewChanges(); }}
-          onReload={handleConcurrencyReload}
+          busy={caseUpdateBusy}
+          onUseTheirs={() => { void handleConcurrencyUseTheirs(); }}
           onSaveMine={() => { void handleConcurrencyForceSave(); }}
         />
       )}
@@ -6273,6 +6545,7 @@ const SynopticReportPage: React.FC = () => {
         <CriticalFindingsModal
           findings={criticalFindings}
           defaultNotifiedByName={signingUser?.name}
+          caseReference={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber}
           onRecord={handleRecordCriticalNotification}
           onAcknowledge={handleAcknowledgeCriticalFindings}
         />
@@ -6307,7 +6580,17 @@ const SynopticReportPage: React.FC = () => {
       {showVersionHistoryModal && (
         <VersionHistoryModal
           versions={caseVersions}
+          facilityId={caseData?.order?.facilityId ?? null}
+          caseId={caseData?.id}
+          versionsPartial={caseVersionsPartial}
           onClose={() => setShowVersionHistoryModal(false)}
+        />
+      )}
+
+      {showSignatureHistoryModal && (
+        <SignatureHistoryModal
+          records={caseSignatures}
+          onClose={() => setShowSignatureHistoryModal(false)}
         />
       )}
 
@@ -6317,8 +6600,11 @@ const SynopticReportPage: React.FC = () => {
           exportContext={{ caseId: caseData.id, facilityId: caseData.order?.facilityId ?? null }}
           onClose={() => setShowChangeHistory(false)}
           onExport={async labels => {
-            const res = await exportChangeLog(caseData.id, changeEntries, { name: signingUser?.name ?? 'unknown' }, labels, { auditService, authorization: authorizationService }, caseData.order?.facilityId ?? null);
-            if (res.ok) downloadCsv(`change-history-${caseData.id}`, res.csv);
+            // Batch 550: through the export service (the API server builds it for this case; the demo builds it here).
+            await runExport('report.change-history', `change-history-${caseData.id}`, { caseId: caseData.id }, async () => {
+              const res = await exportChangeLog(caseData.id, changeEntries, { name: signingUser?.name ?? 'unknown' }, labels, { auditService, authorization: authorizationService }, caseData.order?.facilityId ?? null);
+              if (res.ok) downloadCsv(`change-history-${caseData.id}`, res.csv);
+            }, caseData.order?.facilityId ? { facilityId: caseData.order.facilityId } : {});
           }}
         />
       )}
@@ -6352,6 +6638,20 @@ const SynopticReportPage: React.FC = () => {
         />
       )}
 
+      {autopsyMismatch && caseData && (
+        <ClinicalMismatchModal
+          caseId={caseData.id}
+          accession={caseData.accession?.fullAccession}
+          caseType={caseData.specimens?.[0]?.description || caseData.id}
+          subspecialtyId={caseData.subspecialtyId}
+          clinicalIndication={caseData.order?.clinicalIndication}
+          assessment={autopsyMismatch}
+          discipline="autopsy"
+          onCancel={() => { setAutopsyMismatch(null); setGateOverrideReason(null); }}
+          onContinue={() => { setAutopsyMismatch(null); mismatchAlert.recorded(); setConfirmingAutopsyTier('FAD'); }}
+        />
+      )}
+
       {clinicalMismatch && caseData && (
         <ClinicalMismatchModal
           caseId={caseData.id}
@@ -6359,9 +6659,10 @@ const SynopticReportPage: React.FC = () => {
           caseType={caseData.specimens?.[0]?.description || caseData.id}
           subspecialtyId={caseData.subspecialtyId}
           clinicalIndication={caseData.order?.clinicalIndication}
-          suggestion={clinicalMismatch}
+          assessment={clinicalMismatch}
+          discipline="surgical"
           onCancel={cancelGate}
-          onContinue={() => { setClinicalMismatch(null); resumeAfterGate(); }}
+          onContinue={() => { setClinicalMismatch(null); mismatchAlert.recorded(); resumeAfterGate(); }}
         />
       )}
 
@@ -6385,6 +6686,17 @@ const SynopticReportPage: React.FC = () => {
           signingUserName={signingUser?.name ?? unknownUserName}
           onCancel={() => { setStainQcGateBlocking(null); setPendingFinalizeArgs([]); setPendingActionIsSignOut(false); }}
           onContinue={handleStainQcGateContinue}
+        />
+      )}
+
+      {inkingGateBlocking && caseData && (
+        <InkingGateModal
+          result={inkingGateBlocking}
+          signingUserId={signingUser?.id ?? 'unknown'}
+          signingUserName={signingUser?.name ?? unknownUserName}
+          signingUserRole={signingUser?.role ?? 'unknown'}
+          onCancel={cancelGate}
+          onOverrideRecorded={handleInkingGateOverrideRecorded}
         />
       )}
 
@@ -6567,6 +6879,17 @@ const SynopticReportPage: React.FC = () => {
             specimenDescription: caseData?.specimens?.find(s => s.id === r.specimenId)?.description ?? r.specimenId,
             templateName: r.templateName,
           }))}
+        />
+      )}
+
+      {showFlagForMdtModal && caseData?.id && signingUser && (
+        <FlagForMdtModal
+          caseId={caseData.id}
+          caseAccession={caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? ''}
+          byUserId={signingUser.id}
+          byUserName={signingUser.name}
+          onClose={() => setShowFlagForMdtModal(false)}
+          onFlagged={board => showToast(tGrossingNav('synopticReportPage.toast.flaggedForMdt', { board: tGrossingNav(`tumorBoard.boards.${board}`) }))}
         />
       )}
 

@@ -25,12 +25,12 @@
 // from what the original sign-out actually captured.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { revisionAllowedNow, REVISION_IN_RELEASE_DELAY } from '../reportRelease/revisionDuringDelay';
 import { mockCytologyReviewRecordService } from './mockCytologyReviewRecordService';
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { resolveCytologyReportContent } from './resolveCytologyReportContent';
-import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
+import { publishCytologyRevision } from './publishCytologyRevision';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
 import { resolveCytologyReportLocale } from './resolveCytologyReportLanguage';
 import type { CytologyCategoryEntry } from './ICytologyCategoryService';
 import type { CytologyCategorySelection, CytologyReviewRecord } from '@/types/cytology/CytologyReviewRecord';
@@ -38,6 +38,10 @@ import type { CisoeAScore } from '@/types/cytology/CisoeAScore';
 
 export interface ReleaseCytologyCorrectionResult {
   ok: boolean;
+  /** Batch 540: refused, the case report is still in its release delay (recall it instead). */
+  inReleaseDelay?: boolean;
+  /** Batch 532: whether the case report was reissued (false while the case is still open: it goes out at release). */
+  published?: boolean;
   signOutRecordId?: string;
   /** Batch 390: the corrected review, so the caller can make it the specimen's Final Diagnosis. */
   review?: CytologyReviewRecord;
@@ -79,12 +83,16 @@ export async function releaseCytologyCorrection(
   /** Batch 390 (PS-340): why the report is being corrected. Mandatory, stored on the new sign-out record and printed on the PDF. */
   reason: string,
   generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
+  /** Batch 534: the registry submission that goes out with the reissued report (when the case is released). */
+  registry?: { isGynCytology: boolean; categories: CytologyCategoryEntry[] },
 ): Promise<ReleaseCytologyCorrectionResult> {
   // Batch 390 (PS-340): a correction needs its own permission and a reason.
   const decision = await authorizationService.enforce('cytology:report:correct', { caseId });
   if (!decision.allowed) return { ok: false, notPermitted: true, error: 'Correcting a signed-out cytology report needs the cytology:report:correct permission.' };
   const revisionReason = (reason ?? '').trim();
   if (revisionReason === '') return { ok: false, reasonMissing: true, error: 'A reason for the correction is required.' };
+  // Batch 540 (Pete): not while the case report is still in its release delay; it is recalled instead.
+  if (!(await revisionAllowedNow(caseId))) return { ok: false, inReleaseDelay: true, error: REVISION_IN_RELEASE_DELAY };
 
   // Real, honest requirement — a correction with no real prior sign-out
   // to correct doesn't mean anything. getBySpecimenId returns every
@@ -146,18 +154,18 @@ export async function releaseCytologyCorrection(
     console.error('[releaseCytologyCorrection] Failed to recommend a CAPA for the correction:', e);
   }
 
-  await publishReportReleasedEvent({
+  // Batch 532 (Pete, Oct 12): the whole case report is reissued, once the case has been released.
+  const published = await publishCytologyRevision({
     caseId,
     instanceId: newRecord.id,
     reportType: 'CORRECTED',
-    source: 'CYTOLOGY',
     releasedAt: signedAtIso,
     releasedBy: { id: correctingUser.id, name: correctingUser.name },
     performingFacilityId: order.facilityId,
     previouslyReportedAs,
-    // Batch 390: the corrected report's own PDF, unless the caller supplies one.
-    generatePdf: generatePdf ?? (() => generateCytologyReportPdfSnapshot(newRecord.reportContent ?? reportContent)),
+    ...(generatePdf ? { generatePdf } : {}),
+    ...(registry ? { registry } : {}),
   });
 
-  return { ok: true, signOutRecordId: newRecord.id, review: newReview };
+  return { ok: true, signOutRecordId: newRecord.id, review: newReview, published };
 }

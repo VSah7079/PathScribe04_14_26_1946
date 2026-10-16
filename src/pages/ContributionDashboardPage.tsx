@@ -48,6 +48,8 @@ import type { QaSupervisionAssignmentType } from '@/types/quality/QaSupervisionA
 import { buildSubspecialtyBreakdown, applyExpectedCaseMix, describeSupervisionProgress, buildCaseMixExportRows } from '@components/Contribution/caseMixCalculations';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { beginExport } from '@/services';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { runExport } from '@/services/exports/runExport';
 
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -256,7 +258,8 @@ const TatPerformanceTile: React.FC<{ data: RealTatPerformance }> = ({ data }) =>
 // return — pulled out to a real named component, same standard applied to
 // business logic found embedded in the UI elsewhere in this review.
 
-const TeachingCasesTile: React.FC<{
+/** Exported for its tests (Batch 568). */
+export const TeachingCasesTile: React.FC<{
   teachingRecords: import('@/types/quality/QaActivityRecord').QaActivityRecord[];
   countersignRecords: import('@/types/case/CountersignRecord').CountersignRecord[];
   subspecialties: Subspecialty[];
@@ -294,13 +297,16 @@ const TeachingCasesTile: React.FC<{
   const breakdown = applyExpectedCaseMix(buildSubspecialtyBreakdown(teachingRecords, subspecialties), caseMixTargets, subspecialties);
 
   return (
-    <div className="ps-contrib-tile ps-contrib-tile-clickable" onClick={onOpen}>
+    // Batch 568 (axe nested-interactive): the tile holds a button (Export), so it isn't a button itself; clicking it
+    // still opens the teaching log, and its title is the button that does so.
+    <div className="ps-contrib-tile ps-contrib-tile-clickable" {...clickableContainer(onOpen)}>
       <div className="ps-contrib-tile-header">
         <div>
-          <div className="ps-contrib-tile-title">{t('contributionDashboard.teaching.title')}</div>
+          <button type="button" className="ps-row-open-btn ps-contrib-tile-title" onClick={e => { e.stopPropagation(); onOpen(); }}>{t('contributionDashboard.teaching.title')}</button>
           <div className="ps-contrib-tile-subtitle">{t('contributionDashboard.teaching.subtitle')}</div>
         </div>
         <button
+          type="button"
           className="ps-conf-btn-secondary ps-contrib-export-btn"
           onClick={onExport}
           title={t('contributionDashboard.teaching.exportTitle')}
@@ -423,7 +429,7 @@ const ContributionDashboardPage: React.FC = () => {
         onClick: () => { if (flag.kind === 'deficiency') navigate(`/deficiencies?open=${flag.id}`); else void openCasePage(flag.caseId); },
       })));
     });
-  }, [user?.id]);
+  }, [user?.id, navigate, openCasePage, t]);
 
   // Real fix: replaces mockKpis/mockCaseMixData - see
   // contributionDashboardCalculations.ts for the real transform logic.
@@ -453,7 +459,7 @@ const ContributionDashboardPage: React.FC = () => {
       // TatPerformanceTile's own "weighted across N clients" framing.
       setTatPerformance(computeOrgWideTatPerformance(res.data, tatEntries));
     });
-  }, [user?.id]);
+  }, [user?.id, config.facilityTimezone]);
 
   // Real fix: derives the three real KPI tiles from overviewKpis -
   // formats a null delta (no real prior-30-day baseline to compare
@@ -564,8 +570,11 @@ const ContributionDashboardPage: React.FC = () => {
 
     // PS-282 + PS-357 (Batch 437): checked (contribution:trainee-case-reference:export) and audited.
     const filename = `trainee-case-reference-${new Date().toISOString().slice(0, 10)}.csv`;
-    if (!(await beginExport('trainee-case-reference', { filename, rowCount: rows.length }))) return;
-    downloadCsv(filename, toCsv(rows));
+    // Batch 550: through the export service (the API server builds it from these filters; the demo builds it here).
+    await runExport('contribution.trainee-case-reference', filename, {}, async () => {
+      if (!(await beginExport('trainee-case-reference', { filename, rowCount: rows.length }))) return;
+      downloadCsv(filename, toCsv(rows));
+    });
   };
 
   // ── Progress/case-mix summary export — real, per direct follow-up.
@@ -580,10 +589,13 @@ const ContributionDashboardPage: React.FC = () => {
     const rows = buildCaseMixExportRows(user.id, myCaseMixBreakdown);
     // PS-282 + PS-357 (Batch 437): checked (contribution:case-mix-summary:export) and audited.
     const filename = `case-mix-progress-summary-${new Date().toISOString().slice(0, 10)}.csv`;
-    if (!(await beginExport('case-mix-summary', { filename, rowCount: rows.length }))) return;
-    downloadCsv(filename, toCsv(rows, [
-      'Resident_ID', 'Category_Code', 'Category_Description', 'Logged_Count', 'Enterprise_Target_Goal', 'Variance', 'Concordance_Status', 'Compliance_Status',
-    ]));
+    // Batch 550: through the export service (the API server builds it from these filters; the demo builds it here).
+    await runExport('contribution.case-mix-summary', filename, {}, async () => {
+      if (!(await beginExport('case-mix-summary', { filename, rowCount: rows.length }))) return;
+      downloadCsv(filename, toCsv(rows, [
+        'Resident_ID', 'Category_Code', 'Category_Description', 'Logged_Count', 'Enterprise_Target_Goal', 'Variance', 'Concordance_Status', 'Compliance_Status',
+      ]));
+    });
   };
 
   // ── Active Intraop Sessions — real, previously nothing on this
@@ -618,7 +630,7 @@ const ContributionDashboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="ps-contrib-page" tabIndex={0} role="region" aria-label="Contribution dashboard, scrollable">
+    <div className="ps-contrib-page" tabIndex={0} role="region" aria-label={t('contributionDashboard.scrollRegionLabel')}>
 
       {/* ─── Page Title ──────────────────────────────────────────────────── */}
       <div className="ps-contrib-title-block">
@@ -636,7 +648,7 @@ const ContributionDashboardPage: React.FC = () => {
           <div
             key={tab}
             className={`ps-contrib-tab${activeTab === tab ? ' active' : ''}`}
-            onClick={() => setActiveTab(tab)}
+            {...pressable(() => setActiveTab(tab))}
           >
             {t(TAB_LABEL_KEYS[tab])}
           </div>
@@ -798,7 +810,7 @@ const ContributionDashboardPage: React.FC = () => {
               )}
 
               {/* Active Intraop Sessions */}
-              <div className="ps-contrib-tile ps-contrib-tile-clickable" onClick={() => navigate('/intraop-queue')}>
+              <div className="ps-contrib-tile ps-contrib-tile-clickable" {...pressable(() => navigate('/intraop-queue'))}>
                 <div className="ps-contrib-tile-header">
                   <div>
                     <div className="ps-contrib-tile-title">{t('contributionDashboard.intraop.title')}</div>

@@ -18,13 +18,15 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));
 
 vi.mock('../../services', () => ({
   modelService: { getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   locationService: { listForFacility: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   placeOfServiceCodeService: { getActiveCodes: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+  // Batch 528 (PS-359): the organisation's facility requirements; the defaults here.
+  fieldRequirementService: { forSession: vi.fn(async (page: 'facility') => (await import('../../services/fieldRequirements/fieldRequirementRules')).resolveFieldRequirements(page)) },
 }));
 
 vi.mock('../Config/AI/resolveClientAiModel', () => ({
@@ -211,3 +213,46 @@ describe('FacilityEditorModal — Batch 433: "Charges need billing approval" (en
     expect(s.value).toBe('off');
   });
 });
+
+describe('FacilityEditorModal — Batch 528 (PS-359): the organisation\'s Field Requirements', () => {
+  it('a field the organisation requires gets a star, blocks the save and is listed under "Still required"', async () => {
+    const { fieldRequirementService } = await import('../../services');
+    const { resolveFieldRequirements } = await import('../../services/fieldRequirements/fieldRequirementRules');
+    vi.mocked(fieldRequirementService.forSession).mockResolvedValueOnce(resolveFieldRequirements('facility', { phone: true }));
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="add" onClose={() => {}} onSave={onSave} allFacilities={[]} />);
+    await screen.findByText((_, el) => el?.tagName === 'LABEL' && /facilityEditorModal\.general\.phone\s*\*/.test(el.textContent ?? ''));
+
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.facilityNamePlaceholder'), { target: { value: 'New Clinic' } });
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.assigningAuthorityPlaceholder'), { target: { value: 'NEWC' } });
+    fireEvent.change(screen.getByPlaceholderText('contact@facility.com'), { target: { value: 'new@clinic.com' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain('fieldRequirements.fields.facility.phone');
+
+    fireEvent.change(screen.getByPlaceholderText('555-000-0000'), { target: { value: '555-111-2222' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('Batch 530 (Pete): fax, city, region and postal code are on the General tab and saved', async () => {
+    const { fieldRequirementService } = await import('../../services');
+    const { resolveFieldRequirements } = await import('../../services/fieldRequirements/fieldRequirementRules');
+    vi.mocked(fieldRequirementService.forSession).mockResolvedValueOnce(resolveFieldRequirements('facility', { postalCode: true }));
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="add" onClose={() => {}} onSave={onSave} allFacilities={[]} />);
+    await screen.findByText((_, el) => el?.tagName === 'LABEL' && /facilityEditorModal\.general\.postalCode\s*\*/.test(el.textContent ?? ''));
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.facilityNamePlaceholder'), { target: { value: 'New Clinic' } });
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.assigningAuthorityPlaceholder'), { target: { value: 'NEWC' } });
+    fireEvent.change(screen.getByPlaceholderText('contact@facility.com'), { target: { value: 'new@clinic.com' } });
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.fax'), { target: { value: '520-555-0100' } });
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.city'), { target: { value: 'Tucson' } });
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.region'), { target: { value: 'AZ' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.postalCode'), { target: { value: '85701' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ fax: '520-555-0100', city: 'Tucson', state: 'AZ', zip: '85701' });
+  });
+});
+

@@ -48,3 +48,27 @@ Every settings section reports unsaved changes (an enterprise value not yet save
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 533
+
+`CytologyComplianceFeaturesSection.tsx`: now "Country and laboratory rules", with a third setting, the signature for an urgent cytology preliminary report (Automatic: required everywhere; Off lets it go without a signature). The Automatic wording per setting comes from `cytologyComplianceSettingKey`.
+
+## Batch 574
+
+- `CytologyWorkloadCapSettingsSection.tsx`: "Screening day starts at" (hours in the user's locale; applies from now on; a refused or failed save says so; audited via `services/cytology/saveScreeningDayStart.ts`).
+
+## Batch 576
+
+- `CytologyWorkloadCapSettingsSection.tsx`: caps 1–100; an out-of-range or failed save is said.
+
+## Batch 578
+
+- `CytologyWorkloadCapSettingsSection.tsx`: a cap that isn't saved is said beside its own field (only that field marked invalid); the add pickers offer only facilities and staff without an override, and "+ Add Override" is unavailable, with a note, when nobody is left.

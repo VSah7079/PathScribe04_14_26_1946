@@ -32,17 +32,17 @@ documented adapter) previewing an assembled Template.
   Template-editing — they only care about `TemplateNode[]`. No issues.
   **Real addition:** a Performing Lab selector in the metadata panel,
   editing the new `ReportPart.performingLabFacilityId` field.
-- **`TemplateCanvas.tsx`** (725 lines) — The drag/drop node canvas, all 18
+- **`TemplateCanvas.tsx`** (~745 lines) — The drag/drop node canvas, all 18
   node types. No issues found; not read line-by-line given its size and
   that nothing surfaced at the architecture level — worth a dedicated pass
   if it's touched for a feature change.
-- **`TemplateInspector.tsx`** (776 lines) — Right-panel property editor
+- **`TemplateInspector.tsx`** (~900 lines) — Right-panel property editor
   for all 18 node types. Same note as `TemplateCanvas.tsx` — no issues
   found, not exhaustively read.
 - **`TemplatePalette.tsx`** — Drag source for new nodes. Own header
   documents real, tested WCAG AA contrast ratios for every color used —
   good practice, no issues.
-- **`TemplateAssemblyPage.tsx`** (758 lines) — The real Template editor:
+- **`TemplateAssemblyPage.tsx`** (~950 lines) — The real Template editor:
   ordered `AssemblySlot`s, drag-to-reorder, page-zone validation
   (`validateAssembly`). **See Notes — the OldTemplate adapter, verified
   correct, not a bug.** **Real fix ("Parts Library... should also be
@@ -60,7 +60,7 @@ documented adapter) previewing an assembled Template.
   lab selected shows every part unfiltered, same "no filter" convention
   the Workstation & Hardware group-level selector already established;
   a specific lab shows that lab's own parts plus every Global one.
-- **`TemplatePreviewPanel.tsx`** (573 lines) — Word-style paginated
+- **`TemplatePreviewPanel.tsx`** (~560 lines) — Word-style paginated
   preview, auto-pagination, sticky page-size preference. Consumes the
   adapter output from `TemplateAssemblyPage.tsx` — see Notes.
 - **`RoutingRulesTab.tsx`** — Client override / physician preference /
@@ -76,6 +76,8 @@ documented adapter) previewing an assembled Template.
   directly against the already-loaded `clients` list, so an admin
   testing "what template does Facility X get" sees the real Enterprise
   fallback exercised too, not just Pass 0's own direct lookup.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): line counts for the four large files updated.*
 
 ## Notes
 
@@ -147,3 +149,33 @@ Filter boxes are marked `data-dirty-ignore` (PS-128).
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `TemplateInspector`: "e.g." placeholders are translated; field paths stay literal. `TemplatePreviewPanel`: the sample department and DOB label are translated, and the date follows the user's locale (it was fixed to en-GB).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+`TemplateInspector`: `Toggle` is a named switch; `Sel` takes `ariaLabel` (15 callers pass their visible label).
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 568 (WCAG 2.1 AA, 4.1.2)
+
+- `TemplateCanvas.tsx`: a field's row holds buttons (show contents, remove), so it is no longer a button. Clicking it still selects the field; its name is the button (`aria-current` when selected), as wide as its text so the rest of the row still starts a drag. Keyboard focus inside a row shows Remove, as hover does; Remove is named with the field ("Remove Margin"); the show-contents button says whether it is open (`aria-expanded`).
+
+## Batch 570
+
+- `NodeCard` exported for its tests (`TemplateCanvas.nodeRow.test.tsx`: the name selects once, the row is no button, Remove and show-contents do only their own jobs).

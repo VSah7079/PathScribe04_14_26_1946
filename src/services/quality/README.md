@@ -19,7 +19,7 @@ Generic services for PS-108's real QA Activity Framework.
 - **New activity type, Cytology & Cervical Screening module Phase 3 (Sep 2026), corrected**: `GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID` ("GYN Cytology Secondary Screening") — records one real secondary screening event (renamed from an original, QC-only name once direct follow-up corrected the model: the underlying role is always Cytotechnologist, but a case can have multiple secondary screening events for different real reasons — the standard random-sample or targeted-high-risk QC rescreen, or a senior/lead cytotechnologist's own Secondary Reviewer look — captured on the event's own `trigger` field). One `QaActivityRecord` per event, via this same, existing framework, exactly as Frozen/Final and Cytology-Histology Correlation already do, rather than a third, parallel tracking system. `services/cytology/resolveCytologySecondaryScreeningConcordance.ts` computes the real, structured comparison (`addedByEvent`/`missedByEvent`) between the primary screen and one secondary screening event. Same corrected, deliberate posture as Abnormal/Critical Finding Confirmation above: **no `capaTriggerRule`** — a single discordant event is real, valuable audit trail, not an automatic CAPA trigger. A genuinely recurring discordance pattern for one screener is PS-147's own, real, later scope.
 - **`components/Contribution/QualityTab.tsx`'s discordant-case list** reads from here via `getAll()` and `qualityCalculations.ts`'s `reconciliationRecordsToDiscordantCases`.
 - **Real migration history (PS-113):** this app used to have a separate `mockReconciliationService.ts`/`ReconciliationRecord.ts`/`IReconciliationService.ts` system — Discordance's original, real implementation. Migrated in stages: the generic model was built and validated (Stage 3, including a real dual-write so nothing broke mid-migration), all 5 real readers moved over (Stage 4), then the old system — genuinely dead at that point, confirmed via a comprehensive, fresh search before deleting anything — was retired and deleted outright (Stage 5; first release, no real production history to preserve). `reconciliationRecordMapping.ts`, the shared function that made the migration itself possible, was deleted alongside it once its last real callers (the seed computation and the modal's dual-write) were gone.
-- **Real, higher-stakes migration for PS-114 (Stage 4, done — gate-check cutover complete):** unlike PS-113's own real consumers (all reporting/dashboard reads), the old FPPE system's real consumers include `useSignOutWorkflow.ts` — a real gate-check and a real mutation firing during actual sign-out, not just displaying data afterward. Given the real risk of a naive migration (dual-writing independent, unsynchronized ids for a record that gets mutated repeatedly over an assignment's real, ongoing lifetime — unlike PS-113's simple, append-only writes), Stage 3 deliberately kept the old system as the sole, authoritative source for every real read and every real gate-check decision, adding only a real, id-synchronized shadow-write. **Stage 4 cuts the actual gate-check over**: the provisional-hire redirect (release-for-countersign, reviewer resolved from `supervisorUserId`) and the case-count increment now both read from `qaSupervisionAssignmentService` first — the increment's own write to the new system is properly awaited and its failure surfaced (`console.error`), not silently swallowed, since the gate now depends on that system staying accurate. A real, deliberate, temporary safety net runs alongside every gate evaluation: the old system's own answer is still fetched in parallel and compared, logging (never blocking or altering behavior on) any disagreement — meant to catch a real drift immediately during the transition, not left running once the old system is fully retired. **What's still NOT migrated, on purpose:** `FppeAssignmentsSection.tsx`'s own list view still reads `fppeAssignmentService.getAll()` as its source of truth (confirmed directly before this change) — old-system writes (`create`/`graduate`/`recordCaseReviewed`) stay alive as the now-secondary shadow specifically to keep that screen accurate. Migrating that screen's own reads, then retiring the old system outright, is a real, separate, later piece of work.
+- **Real, higher-stakes migration for PS-114 (Stage 4, done — gate-check cutover complete):** unlike PS-113's own real consumers (all reporting/dashboard reads), the old FPPE system's real consumers include `useSignOutWorkflow.ts` — a real gate-check and a real mutation firing during actual sign-out, not just displaying data afterward. Given the real risk of a naive migration (dual-writing independent, unsynchronized ids for a record that gets mutated repeatedly over an assignment's real, ongoing lifetime — unlike PS-113's simple, append-only writes), Stage 3 deliberately kept the old system as the sole, authoritative source for every real read and every real gate-check decision, adding only a real, id-synchronized shadow-write. **Stage 4 cuts the actual gate-check over**: the provisional-hire redirect (release-for-countersign, reviewer resolved from `supervisorUserId`) and the case-count increment now both read from `qaSupervisionAssignmentService` first — the increment's own write to the new system is properly awaited and its failure surfaced (`console.error`), not silently swallowed, since the gate now depends on that system staying accurate. A real, deliberate, temporary safety net runs alongside every gate evaluation: the old system's own answer is still fetched in parallel and compared, logging (never blocking or altering behavior on) any disagreement — meant to catch a real drift immediately during the transition, not left running once the old system is fully retired. **What's still NOT migrated, on purpose:** `FppeAssignmentsSection.tsx`'s own list view still reads `fppeAssignmentService.getAll()` as its source of truth (confirmed directly before this change) — old-system writes (`create`/`graduate`/`recordCaseReviewed`) stay alive as the now-secondary shadow specifically to keep that screen accurate. Migrating that screen's own reads, then retiring the old system outright, is a real, separate, later piece of work. *(Batch 515, PS-124: the last stage is done. Every FPPE screen reads this service, and the old system, its shadow writes and the drift check are gone.)*
 
 ## Batch 353
 
@@ -128,6 +128,49 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 
 Surgical post-sign-out QA and QA review saves are versioned (`applySurgicalQaAdditions`). A lasting conflict is logged and never blocks sign-out.
 
+## Batch 504 — QA trends by the facility's calendar month
+
+New `facilityMonthlyTrend.ts` (pure, tested): the "last 6 months" behind the QA trend charts, bucketed with `utils/facilityTime.ts`. Six copies of the same loop bucketed stored events by the viewing device's time zone, so an event near midnight at a month boundary landed in the wrong month for anyone reviewing from another time zone. The copies were on the Quality Assurance page and in the Reconciliation, Countersign turnaround, Intra-op linkage, Access requests and QA dashboard views. `resolveQaActivityDashboardReport` takes the facility time zone. `facilityTime.ts` had helpers written for exactly these files; they had never been wired in. `qaTrendRules.windowStart` and `resolveQaEvidenceBinder` move their windows with UTC arithmetic.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 515 (PS-124, PS-147)
+
+- **FPPE moved fully onto the supervision service.** `FppeAssignmentsSection.tsx`, `FppeTrackingTab.tsx` and the Audit Log's FPPE log now read `qaSupervisionAssignmentService` (FPPE activity only). The legacy `fppeAssignmentService` and its type are deleted, and so are the sign-out shadow write and drift check. The legacy browser store is cleared at start-up (`browserCleanup/retiredBrowserKeys.ts`).
+- **New `fppeAssignmentForm.ts`** (+ test): the FPPE screen's decisions — can-create, end condition, FPPE-only split, progress percent, overdue, tracking CSV rows.
+- **Permission per activity (bug fix).** `mockQaSupervisionAssignmentService` checked `config:cytotech-competency:manage` for every create and graduate. FPPE needs `config:fppe:manage`, so the FPPE screen's copies were refused for anyone with FPPE rights alone. The refusal was silent because the shadow write swallowed it. Each activity now checks its own permission; an activity with none is refused. The end-condition check now uses `computeFppeProgress`, the same helper the screens use.
+- **`qaTrendService.pendingCount()`:** the trend-review tile on the QA page shows its count when the page opens (PS-147).
+
+## Batch 516 (PS-125): QA review-field editor
+
+- `qaFieldSchemaRules.ts` (+ test) encodes Pete's schema-evolution rules: a saved field or option can be relabelled or made optional, never removed or retyped; new ones can be added freely.
+- It also checks completeness: labels, unique ids, and options on choice fields.
+- `mockQaActivityTypeService` refuses an `add` or `update` that breaks them, so no screen can break past QA records.
+
+## Batch 518: generic QA activity board (PS-120)
+
+`qaActivityBoard.ts` (+ test) builds one tile and one table per QA activity.
+- **What gets a tile:** every active Standard and Custom activity type. Countersign is added through an adapter over `countersignService` (Pete's accepted default: an adapter, not a data migration).
+- **Table columns** come from the activity's own review fields, with option labels shown instead of ids.
+- **Each tile shows:**
+  - pending work;
+  - work completed in the last 30 days;
+  - turnaround compliance, against the activity's TAT target (the TAT entry whose type is the activity's id, PS-116);
+  - the discrepancy rate.
+- **What a tile can't know shows as "—", never 0:**
+  - pending, for review activities, because nothing selects cases for them yet;
+  - turnaround, for review records, which store when the review was recorded but not when it started.
+
+Screen: Quality Assurance → Activities (`components/QualityAssurance/QaActivityBoardTab.tsx`).
+
+## Batch 530 (PS-554)
+
+- The Clinical-Pathologic Correlation activity type gains Resolution Status, Risk and Reason fields, and the missing "Cause of death" kind. `withSeedFieldsAdded` adds new seed fields and options to a stored copy without changing what's stored.
+- `qaActivityBoard.ts`: that tile's "pending" is the deferred mismatches awaiting secondary review.
+- `reviewQueueCounts.ts`: the Worklist's Surgical QA count includes them.
+
+## Batch 544
+
+`resolveQaEvidenceBinder.ts`: `qaEvidenceBinderExportFilename` takes the scope and names the facility or organisation exported (enterprise-wide keeps the old name).

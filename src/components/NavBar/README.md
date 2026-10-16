@@ -2,7 +2,7 @@
 
 ## Files
 
-- **`NavBar.tsx`** (360 lines) — Top nav bar: search, voice controls,
+- **`NavBar.tsx`** (~500 lines) — Top nav bar: search, voice controls,
   enhancement request button, external reference links (CAP/WHO/
   PathologyOutlines), messaging. Real, correctly wired to
   `AuthContext`/`MessagingContext`. No issues.
@@ -63,3 +63,19 @@ The QA feedback button shows when `feedbackSettingsService.qaButtonShown()` says
 
 - The quick case search shows only to people who may open Search (`screen:search:open`).
 - The credentials under the user's name are theirs, from their staff record. It said "MD, FCAP" for everyone.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 547
+
+Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- A **My exports** button (download icon) with a badge counting exports ready to download, shown only with the API server (`hooks/useMyExports.ts`, `useReadyExportCount`).

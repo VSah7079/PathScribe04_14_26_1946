@@ -57,3 +57,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `fetchGlobalDeficiencies.ts`: a comment pointed to the removed engine-notification poll; updated.

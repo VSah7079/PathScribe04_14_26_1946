@@ -17,13 +17,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { authorizationService, exportQaReport, type QaExportCapability } from '@/services';
 import type { CapabilityContext } from '@/services/authorization/evaluateCapability';
+import { runQaExport } from '@/services/qualityAssurance/runQaExport';
 export { qaScopeContext } from '@/services/qualityAssurance/qaExport';
 
 // Real, per direct follow-up: QaScope and caseMatchesScope moved to
 // services/qualityAssurance/qaScope.ts — a real service must never
 // depend on a type defined in components/. Re-exported here so this
 // file's own seven existing real callers need no import changes.
-import type { QaScope } from '@/services/qualityAssurance/qaScope';
 export type { QaScope } from '@/services/qualityAssurance/qaScope';
 export { caseMatchesScope } from '@/services/qualityAssurance/qaScope';
 
@@ -38,11 +38,9 @@ export { caseMatchesScope } from '@/services/qualityAssurance/qaScope';
  * exactly the kind of thing that silently drifts the next time QaScope
  * changes.
  */
-export function scopeLabel(scope: QaScope): string {
-  if (scope.level === 'enterprise') return 'enterprise';
-  if (scope.level === 'client') return scope.clientId;
-  return scope.organisationId;
-}
+// Batch 544: moved to services/qualityAssurance/qaScopeRows.ts with the
+// scoped-export helpers; re-exported so its callers need no change.
+export { scopeLabel, qaExportFilename } from '@/services/qualityAssurance/qaScopeRows';
 
 /** Exports rows to a CSV file (utils/csv.ts — PS-48 standardized every
  *  manual-maintenance/report export in the app on strict CSV). Callers are
@@ -60,6 +58,10 @@ export function scopeLabel(scope: QaScope): string {
  *  PS-356 (Batch 370): `context` is required so no export forgets facility
  *  scope: `qaScopeContext(scope)` for a tab with a scope switcher, or
  *  `qaScopeContext()` (all facilities) for one without. */
-export function exportQaReportRows(capability: QaExportCapability, rows: Record<string, string | number>[], filename: string, context: CapabilityContext): Promise<unknown> {
-  return exportQaReport(capability, rows, filename, { authorization: authorizationService }, context);
+export function exportQaReportRows(
+  capability: QaExportCapability, rows: Record<string, string | number>[], filename: string, context: CapabilityContext,
+  /** Batch 550: the tab's filters, sent to the API server, which builds the file there (ASYNC_EXPORT_API.md §2a). */
+  parameters: Record<string, unknown> = {},
+): Promise<unknown> {
+  return runQaExport(capability, filename, context, parameters, () => exportQaReport(capability, rows, filename, { authorization: authorizationService }, context));
 }

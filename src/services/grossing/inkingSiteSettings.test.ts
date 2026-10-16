@@ -15,6 +15,7 @@ const store = new Map<string, string>();
 };
 
 import { getInkingValidationMode, setInkingValidationMode } from './inkingSiteSettings';
+import { mockAuditService } from '../auditlog/mockAuditService';
 
 beforeEach(() => {
   localStorage.clear();
@@ -22,22 +23,48 @@ beforeEach(() => {
   enforce.mockResolvedValue({ allowed: true });
 });
 
-describe('inkingSiteSettings', () => {
-  it('defaults to WARN_ONLY for a site with nothing saved', () => {
-    expect(getInkingValidationMode('site-1')).toBe('WARN_ONLY');
+// Structured Inking, Module 3 (PS-359 follow-up): re-scoped from siteId to
+// facilityId (Case.order.facilityId) — see inkingSiteSettings.ts's own
+// header for why. The underlying generic store (siteSettingsStore.ts) is
+// unchanged; only the id this file passes it changed meaning.
+describe('inkingSiteSettings (facility-scoped as of Structured Inking Module 3)', () => {
+  it('defaults to WARN_ONLY for a facility with nothing saved', () => {
+    expect(getInkingValidationMode('facility-1')).toBe('WARN_ONLY');
   });
 
   it('a person without config:inking-validation-mode:manage cannot change it, and nothing is saved', async () => {
     enforce.mockResolvedValue({ allowed: false });
-    const result = await setInkingValidationMode('site-1', 'STRICT_ENFORCE');
+    const result = await setInkingValidationMode('facility-1', 'STRICT_ENFORCE');
     expect(result).toEqual({ ok: false, notPermitted: true });
-    expect(getInkingValidationMode('site-1')).toBe('WARN_ONLY');
+    expect(getInkingValidationMode('facility-1')).toBe('WARN_ONLY');
   });
 
-  it('sets and reads back the mode for the given site only', async () => {
-    const result = await setInkingValidationMode('site-1', 'STRICT_ENFORCE');
+  it('sets and reads back the mode for the given facility only', async () => {
+    const result = await setInkingValidationMode('facility-1', 'STRICT_ENFORCE');
     expect(result).toEqual({ ok: true });
-    expect(getInkingValidationMode('site-1')).toBe('STRICT_ENFORCE');
-    expect(getInkingValidationMode('site-2')).toBe('WARN_ONLY'); // a different site is untouched
+    expect(getInkingValidationMode('facility-1')).toBe('STRICT_ENFORCE');
+    expect(getInkingValidationMode('facility-2')).toBe('WARN_ONLY'); // a different facility is untouched
+  });
+
+  // Batch 484: the first real UI caller surfaced that this capability's
+  // own catalog description already promises "Audited." — now it is.
+  it('records an audit entry only when the mode actually changes, naming the facility, the before/after mode and the actor', async () => {
+    const logEvent = vi.spyOn(mockAuditService, 'logEvent');
+    await setInkingValidationMode('facility-9', 'STRICT_ENFORCE', 'Dr. Admin');
+    expect(logEvent).toHaveBeenCalledTimes(1);
+    const entry = logEvent.mock.calls[0][0];
+    expect(entry.event).toBe('Inking validation mode changed');
+    expect(entry.user).toBe('Dr. Admin');
+    expect(entry.facilityId).toBe('facility-9');
+    expect(entry.detail).toContain('WARN_ONLY to STRICT_ENFORCE');
+    logEvent.mockRestore();
+  });
+
+  it('does not record an audit entry when the mode is set to what it already was', async () => {
+    await setInkingValidationMode('facility-10', 'WARN_ONLY', 'Dr. Admin');
+    const logEvent = vi.spyOn(mockAuditService, 'logEvent');
+    await setInkingValidationMode('facility-10', 'WARN_ONLY', 'Dr. Admin');
+    expect(logEvent).not.toHaveBeenCalled();
+    logEvent.mockRestore();
   });
 });

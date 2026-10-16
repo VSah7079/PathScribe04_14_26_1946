@@ -28,6 +28,15 @@ import type { QaScope } from './qaScope';
  * facility, so someone limited to some facilities can't export it.
  * (An organisation's own facilities aren't resolved here: refusing is the
  * safe reading.)
+ *
+ * Batch 549: resolving an organisation's facilities was tried and taken out
+ * again. The rows of an organisation scope are chosen by the case's origin
+ * hospital (the legacy map in organisationService.ts), while the facility
+ * tree places some of those cases' ordering facilities outside the
+ * organisation, so a check against the tree could pass an export holding
+ * rows from facilities the person isn't assigned to. It waits for the
+ * Organisation-to-Facility migration (one definition of an organisation's
+ * facilities). PS-610.
  */
 export function qaScopeContext(scope?: QaScope): CapabilityContext {
   if (scope?.level === 'client') return { facilityIds: [scope.clientId] };

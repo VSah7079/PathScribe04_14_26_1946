@@ -1,5 +1,7 @@
 # components/Config/System/
 
+*Batch 496 README audit (Oct 9, 2026): this root-level file is a stale Sep 18, 2026 copy of `src/components/Config/System/README.md`, which has moved on since (for example `ClientDictionary` is now `FacilityDictionary`). Read and update that file instead; this copy is not maintained.*
+
 The biggest, most central components folder after Config/ itself — every
 system-wide dictionary/admin screen (32 files — was 28 → 27 after an
 earlier rename → 26 after `specimenTypes.ts`'s relocation → 27 again with
@@ -472,6 +474,7 @@ usually backed by a real `services/` interface/mock pair.
   flow already used. See `services/billing/README.md`
   for the full versioning design and a real, deep TypeScript
   (`strictNullChecks`) issue found and worked around while building this.
+  *Since Batch 511 (PS-478) the app type-checks in full strict mode (`"strict": true`, `strictNullChecks` included), so ordinary `if (res.ok) … else …` narrowing works; the workaround described here is no longer needed.*
 - **`PhysiciansSection.tsx`** — Completed CSS migration (off the deprecated
   `modalStyles.ts` inline-constant pattern, per that file's own header
   marking it deprecated). Later, PS-73/PS-75 rollout: added `physicianCode`

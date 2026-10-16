@@ -18,7 +18,6 @@ import type { CytologyCategoryEntry } from '../cytology/ICytologyCategoryService
 import { submitScreeningRegistryResult, type ScreeningRegistrySubmitDeps, type ScreeningRegistrySubmitOutcome } from './submitScreeningRegistryResult';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CytologyRevisionRegistryDeps extends ScreeningRegistrySubmitDeps {
   getCaseSignOutRecords: (caseId: string) => Promise<Result<CytologySignOutRecord[]>>;

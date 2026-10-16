@@ -208,7 +208,7 @@ export class OrchestratorEngine {
     this.editor    = editor;
     this.context   = context;
     this.callbacks = callbacks;
-    this.provider  = provider ?? AIProviderRegistry.getActive();
+    this.provider  = provider ?? AIProviderRegistry.getActive({ feature: 'narrative', caseId: context.caseId });
   }
 
   // ── run ────────────────────────────────────────────────────

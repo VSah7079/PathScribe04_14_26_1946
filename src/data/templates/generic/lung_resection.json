@@ -362,31 +362,31 @@
           "options": [
             {
               "id": "histologic_grade_opt_1",
-              "label": "Option 1"
+              "label": "Grade 1 — adenocarcinoma, well differentiated (IASLC 2020)"
             },
             {
               "id": "histologic_grade_opt_2",
-              "label": "Option 2"
+              "label": "Grade 2 — adenocarcinoma, moderately differentiated (IASLC 2020)"
             },
             {
               "id": "histologic_grade_opt_3",
-              "label": "Option 3"
+              "label": "Grade 3 — adenocarcinoma, poorly differentiated (IASLC 2020)"
             },
             {
               "id": "histologic_grade_opt_4",
-              "label": "Option 4"
+              "label": "Well differentiated"
             },
             {
               "id": "histologic_grade_opt_5",
-              "label": "Option 5"
+              "label": "Moderately differentiated"
             },
             {
               "id": "histologic_grade_opt_6",
-              "label": "Option 6"
+              "label": "Poorly differentiated"
             },
             {
               "id": "histologic_grade_opt_7",
-              "label": "Option 7"
+              "label": "Cannot be assessed"
             }
           ]
         },
@@ -448,19 +448,19 @@
           "options": [
             {
               "id": "margin_status_invasive_opt_1",
-              "label": "Option 1"
+              "label": "Not involved"
             },
             {
               "id": "margin_status_invasive_opt_2",
-              "label": "Option 2"
+              "label": "Involved"
             },
             {
               "id": "margin_status_invasive_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed"
             },
             {
               "id": "margin_status_invasive_opt_4",
-              "label": "Option 4"
+              "label": "Not applicable"
             }
           ]
         },
@@ -472,31 +472,31 @@
           "options": [
             {
               "id": "margin_status_noninvasive_opt_1",
-              "label": "Option 1"
+              "label": "Bronchial margin"
             },
             {
               "id": "margin_status_noninvasive_opt_2",
-              "label": "Option 2"
+              "label": "Vascular margin"
             },
             {
               "id": "margin_status_noninvasive_opt_3",
-              "label": "Option 3"
+              "label": "Parenchymal (staple line) margin"
             },
             {
               "id": "margin_status_noninvasive_opt_4",
-              "label": "Option 4"
+              "label": "Pleural margin"
             },
             {
               "id": "margin_status_noninvasive_opt_5",
-              "label": "Option 5"
+              "label": "Chest wall margin"
             },
             {
               "id": "margin_status_noninvasive_opt_6",
-              "label": "Option 6"
+              "label": "Other soft tissue margin"
             },
             {
               "id": "margin_status_noninvasive_opt_7",
-              "label": "Option 7"
+              "label": "Cannot be assessed"
             }
           ]
         }
@@ -534,19 +534,19 @@
           "options": [
             {
               "id": "regional_ln_status_opt_1",
-              "label": "Option 1"
+              "label": "No regional lymph node metastasis"
             },
             {
               "id": "regional_ln_status_opt_2",
-              "label": "Option 2"
+              "label": "Regional lymph node metastasis present"
             },
             {
               "id": "regional_ln_status_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed"
             },
             {
               "id": "regional_ln_status_opt_4",
-              "label": "Option 4"
+              "label": "Not applicable (no nodes submitted)"
             }
           ]
         },
@@ -601,15 +601,15 @@
           "options": [
             {
               "id": "tnm_modifiers_opt_1",
-              "label": "Option 1"
+              "label": "y — post-neoadjuvant therapy"
             },
             {
               "id": "tnm_modifiers_opt_2",
-              "label": "Option 2"
+              "label": "r — recurrent tumour"
             },
             {
               "id": "tnm_modifiers_opt_3",
-              "label": "Option 3"
+              "label": "m — multiple primary tumours"
             }
           ]
         },
@@ -618,58 +618,43 @@
           "label": "Category A",
           "type": "dropdown",
           "required": true,
+          "reportingRole": "pT",
           "options": [
             {
               "id": "stage_category_a_opt_1",
-              "label": "Option 1"
+              "label": "pT1a(mi) — minimally invasive adenocarcinoma"
             },
             {
               "id": "stage_category_a_opt_2",
-              "label": "Option 2"
+              "label": "pT1a — tumour ≤ 1 cm"
             },
             {
               "id": "stage_category_a_opt_3",
-              "label": "Option 3"
+              "label": "pT1b — tumour > 1 cm but ≤ 2 cm"
             },
             {
               "id": "stage_category_a_opt_4",
-              "label": "Option 4"
+              "label": "pT1c — tumour > 2 cm but ≤ 3 cm"
             },
             {
               "id": "stage_category_a_opt_5",
-              "label": "Option 5"
+              "label": "pT2a — tumour > 3 cm but ≤ 4 cm, or with visceral pleural invasion / main bronchus involvement"
             },
             {
               "id": "stage_category_a_opt_6",
-              "label": "Option 6"
+              "label": "pT2b — tumour > 4 cm but ≤ 5 cm"
             },
             {
               "id": "stage_category_a_opt_7",
-              "label": "Option 7"
+              "label": "pT3 — tumour > 5 cm but ≤ 7 cm, or with chest wall/pericardial/phrenic nerve invasion, or separate nodule(s) in the same lobe"
             },
             {
               "id": "stage_category_a_opt_8",
-              "label": "Option 8"
+              "label": "pT4 — tumour > 7 cm, or invading mediastinum/diaphragm/great vessels/trachea/esophagus/vertebral body/carina, or separate nodule(s) in a different ipsilateral lobe"
             },
             {
               "id": "stage_category_a_opt_9",
-              "label": "Option 9"
-            },
-            {
-              "id": "stage_category_a_opt_10",
-              "label": "Option 10"
-            },
-            {
-              "id": "stage_category_a_opt_11",
-              "label": "Option 11"
-            },
-            {
-              "id": "stage_category_a_opt_12",
-              "label": "Option 12"
-            },
-            {
-              "id": "stage_category_a_opt_13",
-              "label": "Option 13"
+              "label": "pTX — primary tumour cannot be assessed"
             }
           ]
         },
@@ -678,38 +663,27 @@
           "label": "Category B",
           "type": "dropdown",
           "required": true,
+          "reportingRole": "pN",
           "options": [
             {
               "id": "stage_category_b_opt_1",
-              "label": "Option 1"
+              "label": "pN0 — no regional lymph node metastasis"
             },
             {
               "id": "stage_category_b_opt_2",
-              "label": "Option 2"
+              "label": "pN1 — metastasis in ipsilateral peribronchial and/or hilar nodes"
             },
             {
               "id": "stage_category_b_opt_3",
-              "label": "Option 3"
+              "label": "pN2 — metastasis in ipsilateral mediastinal and/or subcarinal nodes"
             },
             {
               "id": "stage_category_b_opt_4",
-              "label": "Option 4"
+              "label": "pN3 — metastasis in contralateral mediastinal/hilar nodes, or ipsilateral/contralateral scalene or supraclavicular nodes"
             },
             {
               "id": "stage_category_b_opt_5",
-              "label": "Option 5"
-            },
-            {
-              "id": "stage_category_b_opt_6",
-              "label": "Option 6"
-            },
-            {
-              "id": "stage_category_b_opt_7",
-              "label": "Option 7"
-            },
-            {
-              "id": "stage_category_b_opt_8",
-              "label": "Option 8"
+              "label": "pNX — regional lymph nodes cannot be assessed"
             }
           ]
         },
@@ -718,30 +692,31 @@
           "label": "Category C",
           "type": "dropdown",
           "required": false,
+          "reportingRole": "pM",
           "options": [
             {
               "id": "stage_category_c_opt_1",
-              "label": "Option 1"
+              "label": "pM1a — separate tumour nodule(s) in a contralateral lobe, pleural or pericardial nodules, or malignant pleural/pericardial effusion"
             },
             {
               "id": "stage_category_c_opt_2",
-              "label": "Option 2"
+              "label": "pM1b — single extrathoracic metastasis"
             },
             {
               "id": "stage_category_c_opt_3",
-              "label": "Option 3"
+              "label": "pM1c — multiple extrathoracic metastases"
             },
             {
               "id": "stage_category_c_opt_4",
-              "label": "Option 4"
+              "label": "Not applicable (M status is determined clinically)"
             },
             {
               "id": "stage_category_c_opt_5",
-              "label": "Option 5"
+              "label": "pMX — distant metastasis cannot be assessed"
             },
             {
               "id": "stage_category_c_opt_6",
-              "label": "Option 6"
+              "label": "Cannot be assessed"
             }
           ]
         }

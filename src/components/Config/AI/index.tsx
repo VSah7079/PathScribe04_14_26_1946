@@ -6,7 +6,9 @@ import type { AIBehaviorConfig } from '../../../services/aiBehavior/IAIBehaviorS
 import { resolveAiConfig } from './aiProviderConfig';
 import AiProviderSettings from './AiProviderSettings';
 import OrchestratorConfigSection from './OrchestratorConfigSection';
+import AiVendorPolicySection from './AiVendorPolicySection';
 import { useIsAdmin } from '../../../contexts/AuthContext';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // File-by-file cleanup sweep: this file used to carry its own local
 // useIsAdmin(), reading localStorage directly — real, per its own prior
@@ -66,9 +68,7 @@ const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel })
   };
 
   if (loading || !config) return (
-    <div className="ps-conf-loading">
-      {t('aiTab.loading')}
-    </div>
+    <LoadingState label={t('aiTab.loading')} />
   );
 
   return (
@@ -217,6 +217,9 @@ const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel })
           {t('aiTab.providerManagedByAdminNote')}
         </div>
       )}
+
+      {/* ── Batch 536 (PS-558): which AI services and regions each jurisdiction allows ── */}
+      <AiVendorPolicySection />
 
       {/* ── Orchestrator Config (replaces Narrative Templates tab) ── */}
       <OrchestratorConfigSection isAdmin={isAdmin} />

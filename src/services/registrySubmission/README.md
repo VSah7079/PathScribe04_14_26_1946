@@ -83,3 +83,19 @@ Status, beside the transport status on each queue entry (`registryStatus`): `awa
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 538
+
+`sha256.ts` adds `sha256HexBytes` (over raw bytes). `sha256Hex` (over a UTF-8 string) is unchanged. Report documents hash their PDF bytes with it.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- The registry transmission audit export goes through the export service (`registryExceptionsDeps.ts`, with `{ queue }`); with the API server its notice reports the outcome (`viaServer`), so the page doesn't toast a count.
+
+## Batch 551 (PS-539 phase 2d: the Server jobs view)
+
+- Carried over from Batch 550: `exportRegistryTransmissionAudit` doesn't read the queues when exports go through the server (`exportsViaServer`, from `exportService.viaServer`); the server builds the file from the queue.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: the worklist's 72-hour escalation stops in the browser once the server runs `registry.escalateStale` (`loadRegistryExceptions`, `runServerJobs`).

@@ -16,6 +16,7 @@
 
 import { clearPersonalSetting, getPersonalSetting, setPersonalSetting } from '../../../services/userSettings/personalSettings';
 import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 export type AiProviderId =
   | 'structured_messages'     // Anthropic-shaped: system as a separate field, SSE content_block_delta streaming
@@ -27,43 +28,65 @@ export type AiProviderId =
   | 'custom';
 
 // ─── Per-provider model options ───────────────────────────────
-// Labels here are shown directly in the admin configuration dropdown
-// (AiProviderSettings.tsx) — kept as real vendor/model names deliberately,
-// since an admin picking a model needs to know which real model their
-// actual account/contract covers. Only the AiProviderId keys above (an
-// internal type, never shown to users) are protocol-shape-named.
+// Shown in the admin configuration dropdown (AiProviderSettings.tsx).
+// `model` is the real vendor/model name and stays literal in every
+// language: an admin picking a model needs to know which real model their
+// account/contract covers. Batch 513 (PS-269): a qualifier such as
+// "(recommended)" is UI text, so it comes from `labelKey`, an i18n template
+// that wraps the literal name as {{model}} (see modelOptionLabel below).
+// Only the AiProviderId keys above (an internal type, never shown to users)
+// are protocol-shape-named.
 
-export const PROVIDER_MODELS: Record<AiProviderId, { id: string; label: string }[]> = {
+export interface AiModelOption {
+  id: string;
+  /** Literal vendor/model name. */
+  model: string;
+  /** i18n template key with a {{model}} placeholder; omitted = the name alone. */
+  labelKey?: string;
+}
+
+const RECOMMENDED = 'aiProviderSettings.modelOption.recommended';
+const HIGHEST_ACCURACY = 'aiProviderSettings.modelOption.highestAccuracy';
+const FASTEST = 'aiProviderSettings.modelOption.fastest';
+const VIA_BEDROCK = 'aiProviderSettings.modelOption.viaBedrock';
+
+export const PROVIDER_MODELS: Record<AiProviderId, AiModelOption[]> = {
   structured_messages: [
-    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4 (recommended)' },
-    { id: 'claude-opus-4-8',   label: 'Claude Opus 4 (highest accuracy)' },
-    { id: 'claude-haiku-4-5',label: 'Claude Haiku 4.5 (fastest)' },
+    { id: 'claude-sonnet-4-6', model: 'Claude Sonnet 4', labelKey: RECOMMENDED },
+    { id: 'claude-opus-4-8',   model: 'Claude Opus 4', labelKey: HIGHEST_ACCURACY },
+    { id: 'claude-haiku-4-5',  model: 'Claude Haiku 4.5', labelKey: FASTEST },
   ],
   chat_completions: [
-    { id: 'gpt-4o',        label: 'GPT-4o (recommended)' },
-    { id: 'gpt-4-turbo',   label: 'GPT-4 Turbo' },
-    { id: 'gpt-4',         label: 'GPT-4' },
+    { id: 'gpt-4o',        model: 'GPT-4o', labelKey: RECOMMENDED },
+    { id: 'gpt-4-turbo',   model: 'GPT-4 Turbo' },
+    { id: 'gpt-4',         model: 'GPT-4' },
   ],
   chat_completions_managed: [
-    { id: 'gpt-4o',      label: 'GPT-4o (Azure)' },
-    { id: 'gpt-4-turbo', label: 'GPT-4 Turbo (Azure)' },
+    { id: 'gpt-4o',      model: 'GPT-4o (Azure)' },
+    { id: 'gpt-4-turbo', model: 'GPT-4 Turbo (Azure)' },
   ],
   model_gateway: [
-    { id: 'anthropic.claude-sonnet-4-6-v1:0', label: 'Claude Sonnet 4 via Bedrock' },
-    { id: 'anthropic.claude-opus-4-8-v1:0',   label: 'Claude Opus 4 via Bedrock' },
-    { id: 'amazon.nova-pro-v1:0',                    label: 'Amazon Nova Pro' },
+    { id: 'anthropic.claude-sonnet-4-6-v1:0', model: 'Claude Sonnet 4', labelKey: VIA_BEDROCK },
+    { id: 'anthropic.claude-opus-4-8-v1:0',   model: 'Claude Opus 4', labelKey: VIA_BEDROCK },
+    { id: 'amazon.nova-pro-v1:0',             model: 'Amazon Nova Pro' },
   ],
   structured_content: [
-    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (recommended)' },
-    { id: 'gemini-1.5-pro',   label: 'Gemini 1.5 Pro (highest accuracy)' },
+    { id: 'gemini-1.5-flash', model: 'Gemini 1.5 Flash', labelKey: RECOMMENDED },
+    { id: 'gemini-1.5-pro',   model: 'Gemini 1.5 Pro', labelKey: HIGHEST_ACCURACY },
   ],
   mock: [
-    { id: 'mock-v1', label: 'Mock (instant, no API cost — demo only)' },
+    { id: 'mock-v1', model: 'Mock', labelKey: 'aiProviderSettings.modelOption.mockDemo' },
   ],
   custom: [
-    { id: 'custom', label: 'Custom model (set in endpoint config)' },
+    { id: 'custom', model: 'Custom', labelKey: 'aiProviderSettings.modelOption.custom' },
   ],
 };
+
+/** The dropdown text for a model option: the literal name, wrapped in its
+ *  translated qualifier template when it has one. */
+export function modelOptionLabel(option: AiModelOption, t: (key: string, values: { model: string }) => string): string {
+  return option.labelKey ? t(option.labelKey, { model: option.model }) : option.model;
+}
 
 // ─── Config shape ─────────────────────────────────────────────
 
@@ -91,6 +114,14 @@ export interface AiProviderConfig {
    * e.g. 'us-east-1'
    */
   gatewayRegion?: string;
+
+  /**
+   * Batch 536 (PS-558): where the service runs, as the vendor names it
+   * (e.g. 'eu-west-1', 'uksouth', 'europe-west4'), for every service except
+   * model_gateway, whose region is gatewayRegion. Checked against the
+   * jurisdiction's AI vendor policy and recorded with every call.
+   */
+  hostingRegion?: string;
 
   /**
    * Only for custom: full base URL of the OpenAI-compatible endpoint.
@@ -121,20 +152,22 @@ export interface AiProviderConfig {
 //   VITE_AI_MANAGED_ENDPOINT=https://...
 //   VITE_AI_MANAGED_DEPLOYMENT=...
 //   VITE_AI_GATEWAY_REGION=us-east-1
+//   VITE_AI_HOSTING_REGION=eu-west-1        # Batch 536: the region of the other services
 //   VITE_AI_CUSTOM_ENDPOINT=https://...
 
 function envDefaults(): AiProviderConfig {
-  const providerId = (import.meta.env.VITE_AI_PROVIDER ?? 'structured_messages') as AiProviderId;
+  const providerId = (appEnv().VITE_AI_PROVIDER ?? 'structured_messages') as AiProviderId;
 
   return {
     providerId,
-    modelId:              import.meta.env.VITE_AI_MODEL ?? PROVIDER_MODELS[providerId]?.[0]?.id ?? 'claude-sonnet-4-6',
-    proxyUrl:             import.meta.env.VITE_AI_PROXY_URL ?? '/api/ai',
-    managedDeploymentName:import.meta.env.VITE_AI_MANAGED_DEPLOYMENT,
-    managedEndpoint:      import.meta.env.VITE_AI_MANAGED_ENDPOINT,
-    gatewayRegion:        import.meta.env.VITE_AI_GATEWAY_REGION ?? 'us-east-1',
-    customEndpoint:       import.meta.env.VITE_AI_CUSTOM_ENDPOINT,
-    maxTokens:            Number(import.meta.env.VITE_AI_MAX_TOKENS ?? 1000),
+    modelId:              appEnv().VITE_AI_MODEL ?? PROVIDER_MODELS[providerId]?.[0]?.id ?? 'claude-sonnet-4-6',
+    proxyUrl:             appEnv().VITE_AI_PROXY_URL ?? '/api/ai',
+    managedDeploymentName:appEnv().VITE_AI_MANAGED_DEPLOYMENT,
+    managedEndpoint:      appEnv().VITE_AI_MANAGED_ENDPOINT,
+    gatewayRegion:        appEnv().VITE_AI_GATEWAY_REGION ?? 'us-east-1',
+    ...(appEnv().VITE_AI_HOSTING_REGION ? { hostingRegion: appEnv().VITE_AI_HOSTING_REGION } : {}),
+    customEndpoint:       appEnv().VITE_AI_CUSTOM_ENDPOINT,
+    maxTokens:            Number(appEnv().VITE_AI_MAX_TOKENS ?? 1000),
   };
 }
 
@@ -146,6 +179,7 @@ export interface OrgAiConfig {
   managedDeploymentName?: string;
   managedEndpoint?: string;
   gatewayRegion?: string;
+  hostingRegion?: string;
   customEndpoint?: string;
   maxTokens?: number;
   // Note: API keys are NEVER stored here — they live in your backend secrets manager
@@ -241,3 +275,35 @@ export function clearUserAiConfig(): void {
   clearPersonalSetting(USER_OVERRIDE_KEY);
 }
 
+/**
+ * Batch 536 (PS-558): the hosting region a call goes to, or undefined when
+ * it isn't recorded. model_gateway routes by its own region field; the
+ * others use hostingRegion. Pure.
+ */
+export function aiHostingRegion(cfg: Pick<AiProviderConfig, 'providerId' | 'gatewayRegion' | 'hostingRegion'>): string | undefined {
+  const region = cfg.providerId === 'model_gateway' ? cfg.gatewayRegion : cfg.hostingRegion;
+  return region?.trim() ? region.trim() : undefined;
+}
+
+// Batch 513 (PS-269): vendor names stay literal in every language (an admin
+// needs them verbatim to identify the real account/contract, the same way
+// CAP/RCPath/SNOMED CT stay literal); the two non-vendor choices are UI text
+// and come from the locale files. Batch 536: moved here from
+// AiProviderSettings.tsx so the AI vendor policy screen names them the same way.
+export type AiProviderLabel = { name: string } | { labelKey: string };
+export const AI_PROVIDER_LABELS: Record<AiProviderId, AiProviderLabel> = {
+  structured_messages:      { name: 'Anthropic (Claude)' },
+  chat_completions:         { name: 'OpenAI (GPT-4)' },
+  chat_completions_managed: { name: 'Azure OpenAI' },
+  model_gateway:            { name: 'AWS Bedrock' },
+  structured_content:       { name: 'Google (Gemini)' },
+  mock:                     { labelKey: 'aiProviderSettings.providerName.mock' },
+  custom:                   { labelKey: 'aiProviderSettings.providerName.custom' },
+};
+
+/** The name to show for a service. */
+export function aiProviderLabel(id: AiProviderId, t: (key: string) => string): string {
+  const label = AI_PROVIDER_LABELS[id];
+  if (!label) return id;
+  return 'name' in label ? label.name : t(label.labelKey);
+}

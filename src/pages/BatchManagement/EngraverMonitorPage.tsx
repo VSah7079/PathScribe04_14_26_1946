@@ -17,11 +17,10 @@
 // Same real "own dedicated page under Batch Management, poll-based
 // refresh" pattern as PendingBatchQueuePage.tsx — poll rather than a
 // live onSnapshot listener, matching this app's own, already-
-// established convention (see usePendingEngineNotifications.ts's own
-// header for the fuller reasoning).
+// established convention.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
@@ -30,6 +29,9 @@ import type { EngraverDevice } from '@/services/engravers/fetchEngraverDevices';
 import type { EngraverStatus, SupplyWarning, SupplyWarningCode } from '@/types/events/EngraverStatusEventPayload';
 import { cassetteColorService } from '@/services';
 import { formatDateTime } from '@/utils/formatDate';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { useLiveData } from '@/hooks/useLiveData';
+import { engraverStatusCounts } from '@/services/engravers/engraverStatusCounts';
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -86,23 +88,29 @@ const EngraverMonitorPage: React.FC = () => {
     });
   }, []);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    const list = await fetchEngraverDevices();
-    setDevices(list);
-    setLoading(false);
+  // Batch 560: "Refreshing…" shows for a read someone asked for (the button, the first load), not for the
+  // background reads the live-update hub or the timer start. Only the latest read is shown, and none after
+  // the page has closed.
+  const latestRead = useRef(0);
+  const read = useCallback(async (shown: boolean) => {
+    const mine = ++latestRead.current;
+    if (shown) setLoading(true);
+    try {
+      const list = await fetchEngraverDevices();
+      if (mine === latestRead.current) setDevices(list);
+    } finally {
+      if (shown && mine === latestRead.current) setLoading(false);
+    }
   }, []);
+  const refresh = useCallback(() => read(true), [read]);
+  const backgroundRefresh = useCallback(() => read(false), [read]);
 
-  useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [refresh]);
+  useEffect(() => { void refresh(); return () => { latestRead.current += 1; }; }, [refresh]);
+  // Batch 560: re-read when the live-update hub says an engraver changed (topic `engravers`), with a
+  // minute's safety poll; without a live connection, every 30 seconds as before.
+  useLiveData(backgroundRefresh, { topic: 'engravers', pollMs: POLL_INTERVAL_MS });
 
-  const counts = devices.reduce(
-    (acc, d) => ({ ...acc, [d.status]: acc[d.status] + 1 }),
-    { online: 0, engraving: 0, warning: 0, fault: 0, offline: 0 } as Record<EngraverStatus, number>,
-  );
+  const counts = engraverStatusCounts(devices);
 
   return (
     <div className="ps-batch-page">
@@ -132,7 +140,7 @@ const EngraverMonitorPage: React.FC = () => {
 
           <div className="ps-batch-section-label">{t('engraverMonitor.devicesSection', { count: devices.length })}</div>
           {loading && devices.length === 0 ? (
-            <div className="ps-batch-empty">{t('engraverMonitor.loadingDevices')}</div>
+            <LoadingState variant="inline" className="ps-batch-empty" label={t('engraverMonitor.loadingDevices')} />
           ) : devices.length === 0 ? (
             <div className="ps-batch-empty">{t('engraverMonitor.noDevices')}</div>
           ) : (

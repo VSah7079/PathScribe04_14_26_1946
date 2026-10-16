@@ -42,7 +42,9 @@ Server contract: [`docs/architecture/FOLLOW_UP_API.md`](../../../docs/architectu
 
 - The alert sweep runs in the browser when a worklist or the Follow-up tab loads. The server should run it daily (see the API doc).
 - With no API server answering, the mail service never accepts a clinician email, so in the demo it can be drafted but not sent.
-- A follow-up can't be marked "expected" after sign-out. Only the signing pathologist can mark it, at sign-out.
+- (No longer open: since Batch 459 a follow-up can also be marked "expected" after sign-out, from the report page; see below.)
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): marking a follow-up expected after sign-out was built in Batch 459.*
 
 ## Batch 455 — Demo baseline: people, pools, cases and the reset
 
@@ -59,3 +61,7 @@ Before, a surgical case could be marked "follow-up specimen expected" only in th
 - **User Guide:** on a signed-out surgical case, the action bar shows "Mark follow-up expected". Click it, and it changes to "Follow-up expected · due <date>". The case then appears on the Follow-up not received report like any other mark. Without the permission, the button is greyed out and its tooltip says why.
 - **Admin Guide:** the permission is `case:follow-up:expect` (Role Dictionary). The due date comes from the facility's biopsy-to-resection window (Follow-up tracking settings).
 - `followUpLive.test.ts` targets a surgical case only (it had picked up a cytology case when the seed order changed). That fix went out in the Batch 458 zip.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: `sendFollowUpAlertsLive` does nothing once the server runs `followUp.dailyAlerts`.

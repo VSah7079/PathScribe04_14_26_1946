@@ -88,4 +88,10 @@ export interface IAmendmentService {
      *  those - same pattern explanationOfChange above already uses. */
     reasonId?: string;
   }): Promise<ServiceResult<AmendmentRecord>>;
+
+  /** Batch 535 (Pete, Oct 12, 2026: Recall during the release delay "reopens,
+   *  like sign-out"): a released record goes back to draft, nothing was sent.
+   *  What it said stays on the record; the recall is kept in `recalls`. Only a
+   *  released record can be reopened. */
+  reopen(id: string, by: { userId: string; userName: string }): Promise<ServiceResult<AmendmentRecord>>;
 }

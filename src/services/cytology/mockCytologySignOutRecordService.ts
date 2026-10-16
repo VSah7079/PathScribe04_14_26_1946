@@ -12,12 +12,26 @@ const persist = (data: CytologySignOutRecord[]) => storageSet(STORAGE_KEY, data)
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
 export const mockCytologySignOutRecordService: ICytologySignOutRecordService = {
+  // Batch 534: a record recalled within the release delay is no longer a result.
   async getByCaseId(caseId) {
-    return ok(load().filter(r => r.caseId === caseId));
+    return ok(load().filter(r => r.caseId === caseId && !r.recalled));
   },
 
   async getBySpecimenId(specimenId) {
-    return ok(load().filter(r => r.specimenId === specimenId));
+    return ok(load().filter(r => r.specimenId === specimenId && !r.recalled));
+  },
+
+  async getByCaseIdIncludingRecalled(caseId) {
+    return ok(load().filter(r => r.caseId === caseId));
+  },
+
+  async markRecalled(recordId, by, at) {
+    const all = load();
+    const i = all.findIndex(r => r.id === recordId);
+    if (i === -1) return { ok: false, error: 'NOT_FOUND' } as ServiceResult<CytologySignOutRecord>;
+    if (!all[i].recalled) all[i] = { ...all[i], recalled: { at, by } };
+    persist(all);
+    return ok(all[i]);
   },
 
   async create(record) {

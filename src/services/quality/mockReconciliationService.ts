@@ -18,16 +18,17 @@ import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ReconciliationRecord } from '@/types/quality/ReconciliationRecord';
 import type { IReconciliationService } from './IReconciliationService';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'reconciliation_records';
 const RECONCILIATION_VERSION = '3'; // bumped: added real teaching-case seed data (Oliver Pemberton / Paul Carter)
 const VERSION_KEY = 'pathscribe_mock_discordance_version';
 try {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
+  const storedVersion = dataStorage.getItem(VERSION_KEY);
   if (storedVersion !== RECONCILIATION_VERSION) {
-    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-    localStorage.removeItem('pathscribe_mock_discordance_records'); // old key from before the rename
-    localStorage.setItem(VERSION_KEY, RECONCILIATION_VERSION);
+    dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    dataStorage.removeItem('pathscribe_mock_discordance_records'); // old key from before the rename
+    dataStorage.setItem(VERSION_KEY, RECONCILIATION_VERSION);
   }
 } catch { /* SSR / sandboxed env — ignore */ }
 

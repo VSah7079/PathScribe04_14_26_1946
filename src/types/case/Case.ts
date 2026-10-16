@@ -849,7 +849,7 @@ export interface Case {
    *  DiagnosticMetadata — a different field entirely from the one
    *  finalizeCase actually writes at the case root. */
   finalizedAt?: string;
-  finalizedBy?: string;
+  finalizedBy?: string | null; // null when signed out with no signing user (useSignOutWorkflow.ts)
   /** Real feature, per direct follow-up: "How will pathscribe know it
    *  needs to retain the patient's specimen? ... The hold Retention
    *  flag should be also on the accession screen." See
@@ -978,6 +978,10 @@ export interface Case {
     reason: string;
     unsignedSpecimenIds: string[];
   };
+  /** Batch 533 (Pete, Oct 12): urgent preliminary reports sent for single
+   *  cytology specimens before the case report, oldest first. Written once,
+   *  never edited (types/cytology/CytologyPreliminaryRelease.ts). */
+  cytologyPreliminaryReleases?: import('@/types/cytology/CytologyPreliminaryRelease').CytologyPreliminaryRelease[];
   /** Real, flat denormalization of participants — the specific staffIds
    *  currently eligible to finalize this case (active Primary/
    *  Attending), maintained automatically by CaseRouter.ts whenever a

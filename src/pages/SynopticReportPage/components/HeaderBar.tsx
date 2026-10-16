@@ -57,6 +57,7 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
 // ── AI Synthesis Status — the Gatekeeper Badge. One definition, in
 // services/templates/aiSynthesisStatus.ts (Batch 437).
 import type { AiSynthesisStatus } from '@/services/templates/aiSynthesisStatus';
+import { pressable } from '@/utils/a11y/pressable';
 export type { AiSynthesisStatus };
 
 interface HeaderBarProps {
@@ -102,6 +103,12 @@ interface HeaderBarProps {
   /** Batch 368 (PS-353): saves recorded in the report's change log. */
   changeCount?: number;
   onOpenChangeHistory?: () => void;
+  /** Batch 483 (PS-359 tracker follow-up): signature records from
+   *  services/signatures/ — same "real history, zero UI reading it"
+   *  gap as the deficiency/version indicators above, closed the same
+   *  way. */
+  signatureCount?: number;
+  onOpenSignatureHistory?: () => void;
   /** Highlights the matching block chip and shows its status — the
    *  block a Grossing voice command (next/previous/mark grossed) would
    *  currently act on. Undefined outside grossing-relevant contexts. */
@@ -151,7 +158,7 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, changeCount, onOpenChangeHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, changeCount, onOpenChangeHistory, signatureCount, onOpenSignatureHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
   const { t, i18n } = useTranslation();
   // Real fix, found via a direct audit: this used to call the old,
   // superseded getOrchestratorMode() (org-level only, from the now-
@@ -448,16 +455,16 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           <>
             <span
               className="ps-hb-crumb ps-hb-crumb--messages"
-              onClick={() => { clearSessionFlag('ps_reopen_messages'); setShowBackToMessages(false); setPortalOpen(true); navigate(-1); }}
+              {...pressable(() => { clearSessionFlag('ps_reopen_messages'); setShowBackToMessages(false); setPortalOpen(true); navigate(-1); })}
             >
               ← {t('headerBar.breadcrumb.backToMessages')}
             </span>
             <span className="ps-hb-crumb-sep">│</span>
           </>
         )}
-        <span className="ps-hb-crumb" onClick={() => onNavigate('/')}>{t('headerBar.breadcrumb.home')}</span>
+        <span className="ps-hb-crumb" {...pressable(() => onNavigate('/'))}>{t('headerBar.breadcrumb.home')}</span>
         <span className="ps-hb-crumb-sep">›</span>
-        <span className="ps-hb-crumb" onClick={() => onNavigate('/worklist')}>{t('headerBar.breadcrumb.worklist')}</span>
+        <span className="ps-hb-crumb" {...pressable(() => onNavigate('/worklist'))}>{t('headerBar.breadcrumb.worklist')}</span>
         <span className="ps-hb-crumb-sep">›</span>
         <span className="ps-hb-crumb ps-hb-crumb--active">{t('headerBar.breadcrumb.caseReport')}</span>
 
@@ -525,7 +532,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
 
       {/* Version history indicator — real fix, Phase 5: same real gap
           as the deficiency indicator above, closed the same way. */}
-      {((!!versionCount && onOpenVersionHistory) || (!!changeCount && onOpenChangeHistory)) && (
+      {((!!versionCount && onOpenVersionHistory) || (!!changeCount && onOpenChangeHistory) || (!!signatureCount && onOpenSignatureHistory)) && (
         <div className="ps-hb-blocks-row">
           {!!versionCount && onOpenVersionHistory && (
             <button className="ps-hb-version-chip" onClick={onOpenVersionHistory}>
@@ -536,6 +543,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           {!!changeCount && onOpenChangeHistory && (
             <button className="ps-hb-version-chip" onClick={onOpenChangeHistory}>
               📝 {t('headerBar.blocks.changeChip', { count: changeCount })}
+            </button>
+          )}
+          {/* Batch 483 (PS-359 tracker follow-up): signature records. */}
+          {!!signatureCount && onOpenSignatureHistory && (
+            <button className="ps-hb-version-chip" onClick={onOpenSignatureHistory}>
+              🖊 {t('headerBar.blocks.signatureChip', { count: signatureCount })}
             </button>
           )}
         </div>

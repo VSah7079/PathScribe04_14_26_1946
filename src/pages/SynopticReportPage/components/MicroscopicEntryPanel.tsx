@@ -94,6 +94,7 @@ const MicroscopicEntryPanel: React.FC<MicroscopicEntryPanelProps> = ({
   useEffect(() => {
     setText(instance?.text ?? '');
     setEntryMethod(instance?.entryMethod);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- resets the editor only when a different entry is opened or the stored entry changes; not on every keystroke of the text it holds
   }, [specimenId, instance?.instanceId, instance?.updatedAt]);
 
   const { startDictation, phase, dictationTarget } = useVoice();

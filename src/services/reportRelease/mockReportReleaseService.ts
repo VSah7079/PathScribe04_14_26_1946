@@ -2,11 +2,13 @@
 import type { IReportReleaseService, ReleaseBufferResolution, ReportReleaseOrgConfig } from './IReportReleaseService';
 import type { ServiceResult } from '../types';
 import { caseRouter } from '../cases/CaseRouter';
+import { caseVersionOf } from '../cases/caseWrite';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { facilityService } from '../index';
 import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 /** Real, sensible fallback if no org config has been saved yet — matches
  *  direct specification's own stated default (10 minutes, 1-30 range),
@@ -28,7 +30,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
 function readOrgConfig(): ReportReleaseOrgConfig {
   try {
-    const stored = localStorage.getItem(ORG_CONFIG_STORAGE_KEY);
+    const stored = dataStorage.getItem(ORG_CONFIG_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       if (typeof parsed?.enabled === 'boolean' && typeof parsed?.durationMinutes === 'number' && typeof parsed?.bypassForStat === 'boolean') {
@@ -56,7 +58,7 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
 
   async setOrgDefault(config) {
     try {
-      localStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(config));
+      dataStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(config));
     } catch {
       // ignore write failures — same posture as setSessionTimeout's own
     }
@@ -120,7 +122,7 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
         releaseBufferExpiresAt,
         releaseBufferDurationMinutes: input.durationMinutes,
         preReleaseBufferStatus: input.previousStatus,
-      }, current.version);
+      }, caseVersionOf(current));
 
       await mockAuditService.logEvent({
         type: 'system',
@@ -174,7 +176,10 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
         releaseBufferExpiresAt: undefined,
         releaseBufferDurationMinutes: undefined,
         preReleaseBufferStatus: undefined,
-      }, current.version);
+      }, caseVersionOf(current));
+
+      // Batch 534: the background release no longer waits for it.
+      await settleSignOutTracker(caseId, 'recalled');
 
       await mockAuditService.logEvent({
         type: 'system',
@@ -185,6 +190,9 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
         facilityId: current.originHospitalId,
         confidence: null,
       }).catch(() => {});
+
+      // Batch 535: and what was released on it during the buffer and is still held (a correction).
+      await recallRiders(caseId, performedBy);
 
       return { ok: true };
     } catch (e) {
@@ -205,7 +213,7 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
         releaseBufferExpiresAt: undefined,
         releaseBufferDurationMinutes: undefined,
         preReleaseBufferStatus: undefined,
-      }, current.version);
+      }, caseVersionOf(current));
 
       await mockAuditService.logEvent({
         type: 'system',
@@ -226,10 +234,14 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
       // never delay this function's own, more time-sensitive job —
       // flipping the real UI state from "buffered" to "released" for
       // whoever's watching the countdown.
+      // Batch 534: the background release no longer waits for it; and the
+      // performing facility goes with it, so print and fax route as at sign-out.
+      await settleSignOutTracker(caseId, 'released');
       publishReportReleasedEvent({
         caseId,
         reportType: 'FINAL',
         releasedAt: new Date().toISOString(),
+        performingFacilityId: current.order?.facilityId,
         // Real, deliberate: no releasedBy here — this is the release
         // buffer's own automatic expiry, with no human actor at this
         // specific moment (the signing pathologist's own real action
@@ -256,3 +268,23 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
 export const mockReportReleaseService: IReportReleaseService = guardConfigWrites(reportReleaseServiceUnchecked, [
   ['config:release-buffer:manage', ['setOrgDefault']],
 ]);
+
+/** Batch 534: settles the background-release tracker for a case's surgical sign-out buffer (releaseReport.trackSignOutBuffer). */
+async function settleSignOutTracker(caseId: string, status: 'released' | 'recalled'): Promise<void> {
+  const { mockHeldReleaseService } = await import('./mockHeldReleaseService');
+  const res = await mockHeldReleaseService.getByCaseId(caseId).catch(() => null);
+  if (!res?.ok) return;
+  for (const h of res.data.filter(x => x.kind === 'surgical-sign-out' && x.status === 'held')) {
+    await mockHeldReleaseService.settle(h.id, status, new Date().toISOString());
+  }
+}
+
+/** Batch 535: the held corrections and addenda released during this sign-out's buffer go back with it (releaseReport.recallHeldForCase). */
+async function recallRiders(caseId: string, by: { userId: string; userName: string }): Promise<void> {
+  try {
+    const [{ recallHeldForCase }, { releaseReportDeps }] = await Promise.all([import('./releaseReport'), import('./releaseReportDeps')]);
+    await recallHeldForCase(caseId, ['surgical-amendment'], by, releaseReportDeps);
+  } catch (e) {
+    console.error('[reportRelease] Held corrections not recalled with the sign-out:', e);
+  }
+}

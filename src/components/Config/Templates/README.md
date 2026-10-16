@@ -1,15 +1,15 @@
 # components/Config/Templates/
 
-Admin protocol/template review workflow — the review queue list and the
-full-page lifecycle reviewer.
+Admin protocol/template review workflow — the full-page lifecycle
+reviewer. (The review queue list is `Config/Protocols/ReviewQueueSection.tsx`.)
 
 **Pattern:** Standard page-pair (list → detail), plus one confirmed,
 non-trivial open bug (now fixed — see Notes).
 
 ## Files
 
-- **`AdminTemplateList.tsx`** — Template review queue list. Thin, correct —
-  single mock entry today, navigates to `/template-review/:templateId`.
+- ~~**`AdminTemplateList.tsx`**~~ — deleted in Batch 428 (nothing used
+  it); the review queue is `Config/Protocols/ReviewQueueSection.tsx`.
 - **`TemplateRenderer.tsx`** — Full-page protocol reviewer, reached via
   `/template-review/:templateId`. Excellent self-documented lifecycle model
   (draft → in_review → approved → published, with needs_changes as a
@@ -32,6 +32,8 @@ non-trivial open bug (now fixed — see Notes).
   fixed in `AllProtocolsSection.tsx`/`ActiveProtocolsSection.tsx` (see
   `../Protocols/README.md`). Fixed to `#64748b`.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `AdminTemplateList.tsx` was listed as current; it was deleted in Batch 428.*
+
 ## Notes
 
 - **BUG FIXED (July 2026).** `TemplateRenderer.tsx` was fully rewritten to
@@ -51,10 +53,10 @@ non-trivial open bug (now fixed — see Notes).
   the real `types/AuditEvent.ts`, which everything else in the app
   correctly used instead) and `src/templates/mockDcisTemplate.ts` (typed
   against the now-deleted schema). `src/templates/` is now an empty
-  folder. Full before/after schema comparison in
+  folder (since removed entirely). Full before/after schema comparison in
   `../Protocols/README.md`.
-- Not attempted, worth a look separately: `ALLOWED_TRANSITIONS`/
-  `LIFECYCLE_STYLES` don't have an entry for `'deprecated'`
+- Not attempted, worth a look separately: `ALLOWED_TRANSITIONS`
+  (`LIFECYCLE_STYLES` was later replaced by `ps-tmplr-state--*` classes) doesn't have an entry for `'deprecated'`
   (`TemplateStatus = LifecycleState | 'deprecated'` in
   `templateService.ts`) — falls back safely via `??` today, but a
   genuinely deprecated template would just render with draft styling
@@ -90,3 +92,19 @@ non-trivial open bug (now fixed — see Notes).
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`TemplateRenderer`'s three answer handlers return early when there is no template id; they are only reachable once one exists, so nothing changes.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 579
+
+- `TemplateRenderer.tsx` (template review): a "How to review this template" guide (open while In Review; folding remembered; what it says follows the site's Template Review settings); Reset to Draft at the far end of the row, unavailable in Draft; question comments dark and labelled.

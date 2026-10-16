@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { CytologyCategoryEntry } from '@/services/cytology/ICytologyCategoryService';
 import type { CytologyCategorySelection } from '@/types/cytology/CytologyReviewRecord';
+import { pressable } from '@/utils/a11y/pressable';
 
 const entryText = (o: CytologyCategoryEntry) => (o.abbreviation ? `${o.abbreviation} — ${o.label}` : o.label);
 const searchText = (o: CytologyCategoryEntry) => (o.abbreviation ? `${o.abbreviation} ${o.label}` : o.label).toLowerCase();
@@ -56,7 +57,7 @@ export function SingleSearchSelect({ options, value, comment, onChange, onCommen
       {matches.length > 0 && (
         <div className="ps-cytosearch-dropdown">
           {matches.map(o => (
-            <div key={o.id} onClick={() => { onChange(o.id); setQuery(''); }} className="ps-cytosearch-dropdown-item">
+            <div key={o.id} {...pressable(() => { onChange(o.id); setQuery(''); })} className="ps-cytosearch-dropdown-item">
               {entryText(o)}
             </div>
           ))}
@@ -102,7 +103,7 @@ export function MultiSearchSelect({ options, selections, onChange, placeholder, 
         {matches.length > 0 && (
           <div className="ps-cytosearch-dropdown">
             {matches.map(o => (
-              <div key={o.id} onClick={() => add(o.id)} className="ps-cytosearch-dropdown-item">
+              <div key={o.id} {...pressable(() => add(o.id))} className="ps-cytosearch-dropdown-item">
                 {entryText(o)}
               </div>
             ))}

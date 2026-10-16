@@ -115,7 +115,7 @@ Standard federated-identity shape for a vendor/tenant split:
 This slots into the existing `services/` interface/mock/firestore pattern
 naturally: whichever service ends up backing these two screens should
 follow the same swap-in-a-real-backend shape already used elsewhere
-(`firestoreClientService.ts` etc.) — the claim-check becomes part of that
+(`firestoreClientService.ts` etc.) *(Since renamed: there is no `firestoreClientService.ts`; the nearest is `services/clientSLA/firestoreClientSLAService.ts`, and the Firestore stubs are to be replaced by the SQL Server API — checked in the Batch 496 README audit.)* — the claim-check becomes part of that
 service's real (Firestore/Cloud Function) implementation, not the mock.
 
 ## Interim stopgap (also not yet built, cheap to add later)

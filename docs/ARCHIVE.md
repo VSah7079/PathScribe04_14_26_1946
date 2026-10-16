@@ -142,6 +142,7 @@ superseded by whatever the suite reports now), a plain file list
 change log for PS-51/52/53/55 (those tickets' own current state is
 the real source of truth going forward, not a snapshot of what
 changed on one date).
+*(Note: a different `MANIFEST.md` is at the repo root again, a later delivery note about processing-node stage tiles, not the QZ Tray one described here — checked in the Batch 496 README audit.)*
 - Commit: _____
 
 **`scripts.zip`** (root) — a stale duplicate delivery of the real,

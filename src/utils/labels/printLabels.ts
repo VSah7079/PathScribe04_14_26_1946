@@ -23,6 +23,7 @@ import type { LabelSizePreset } from '@/types/labels/LabelSizePreset';
 // t() method, same resources/language as everywhere else in the app.
 import i18n from '@/i18n/config';
 import { auditLabelPrint, browserDialog, type LabelPrintAudit } from './labelPrintAudit';
+import { escapeHtml } from '@/services/security/sanitizeHtml';
 
 const LABEL_STYLES = `
   * { box-sizing: border-box; }
@@ -144,7 +145,7 @@ export function printLabels(labelHtmlFragments: string[], preset: LabelSizePrese
   printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
-<title>${documentTitle}</title>
+<title>${escapeHtml(documentTitle)}</title>
 <style>
   ${LABEL_STYLES}
   @media print { @page { size: ${preset.widthMm}mm ${preset.heightMm}mm; margin: 0; } }

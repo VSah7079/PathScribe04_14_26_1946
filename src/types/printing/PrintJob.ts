@@ -92,6 +92,10 @@ export interface PrintJob {
    *  (`ServiceChargeRecord.approvalStatus`'s own `'HOLD'` literal,
    *  services/billing/), not a fresh "HELD"/"PAUSED" vocabulary. */
   status: 'QUEUED' | 'PRINTING' | 'PRINTED' | 'FAILED' | 'HOLD' | 'CANCELLED';
+  /** Batch 552 (SITE_AGENT_API.md §5): for a PRINTED job sent by the site agent, whether the printer confirmed
+   *  it ('printed', IPP or IPPS) or only took the data ('sent', Raw 9100 or LPR: shown as "Sent to printer").
+   *  Absent on jobs printed another way. */
+  confirmation?: 'printed' | 'sent';
   queuedAt: string;
   /** Real, per the source spec's own Use Case 2 ("If the IP printer
    *  is offline, the LIS Print Spooler holds the job, alerts the LIS
@@ -99,7 +103,9 @@ export interface PrintJob {
    *  electronic HL7 interface") — same real distinction
    *  OutboundResultQueueEntry.errorCode already draws between a
    *  genuine timeout and a genuinely unreachable destination. */
-  errorCode?: 'PRINTER_OFFLINE' | 'PRINTER_UNREACHABLE' | 'PRINT_REJECTED';
+  //  Batch 546 (finding F3): NEEDS_SITE_AGENT, a network print attempted
+  //  somewhere that can't reach a printer (the browser); retrying there can't help.
+  errorCode?: 'PRINTER_OFFLINE' | 'PRINTER_UNREACHABLE' | 'PRINT_REJECTED' | 'NEEDS_SITE_AGENT';
   errorMessage?: string;
   retryCount: number;
   maxRetriesExceeded: boolean;
@@ -137,6 +143,10 @@ export interface PrintJob {
    *  any (re)dispatch once set. Undefined means this job has never
    *  been redirected. */
   redirectedToDestination?: import('@/types/printRouting/PrintDestination').PrintDestination;
+  /** Batch 553: the performing lab (the site) whose release this is. Redirect
+   *  offers that site's agent printers only, so a report never prints at
+   *  another lab. Unset on jobs queued before Batch 553. */
+  performingFacilityId?: string;
   redirectedBy?: string;
   redirectedAt?: string;
 
@@ -152,6 +162,9 @@ export interface PrintJob {
    *  a live re-query of the case (the same, real, "reprint what was
    *  actually queued" semantic any physical print queue already has). */
   pdfBase64?: string;
+  /** Batch 538: the release's report document these bytes are, and their SHA-256. */
+  reportDocumentId?: string;
+  pdfSha256?: string;
 
   /** Real, per PS-279 — mirrors `ReportReleasedEvent.source`
    *  (services/reports/publishReportReleasedEvent.ts), carried onto

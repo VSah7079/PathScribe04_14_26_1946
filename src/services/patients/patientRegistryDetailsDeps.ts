@@ -5,7 +5,6 @@ import { mockPatientIndexService } from './mockPatientIndexService';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockAuditService } from '../auditlog/mockAuditService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const patientRegistryDetailsDeps: PatientRegistryDetailsDeps = {
   resolvePatient: (authority, value) => mockPatientIndexService.resolveByIdentifier(authority, value),
   getPatient: id => mockPatientIndexService.getById(id) as any,

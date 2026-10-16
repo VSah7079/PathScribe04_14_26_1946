@@ -26,7 +26,7 @@ import type { OrganMapType } from './organMapTypes';
 import { isVisible, type VisibilityCondition } from '../templates/fieldVisibility';
 
 export interface OrganMapContext {
-  template: { id: string; name?: string; sections: any[] } | null; // eslint-disable-line @typescript-eslint/no-explicit-any
+  template: { id: string; name?: string; sections: any[] } | null;
   binding: OrganMapBinding | null;
   scheme: ResolvedOrganMapScheme;
 }

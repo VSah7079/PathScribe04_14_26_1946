@@ -18,6 +18,7 @@ import { mockPatientEventBus } from '../events/mockPatientEventBus';
 import { mockEncounterService } from '../encounters/mockEncounterService';
 import { mockOutboundPatientAdtQueueService } from './mockOutboundPatientAdtQueueService';
 import { BREAK_GLASS_MIN_NOTE_LENGTH } from '../../types/patients/BreakGlassReasonCode';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'pathscribe_mpi_records';
 const LINKS_STORAGE_KEY = 'pathscribe_mpi_links';
@@ -26,35 +27,35 @@ const delay = (ms = 60) => new Promise(res => setTimeout(res, ms));
 
 function loadRecords(): MasterPatientRecord[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = dataStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveRecords(records: MasterPatientRecord[]): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch { /* non-critical */ }
 }
 
 function loadLinks(): PatientLink[] {
   try {
-    const raw = localStorage.getItem(LINKS_STORAGE_KEY);
+    const raw = dataStorage.getItem(LINKS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveLinks(links: PatientLink[]): void {
-  try { localStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(links)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(links)); } catch { /* non-critical */ }
 }
 
 function loadIdentifiers(): PatientIdentifier[] {
   try {
-    const raw = localStorage.getItem(IDENTIFIERS_STORAGE_KEY);
+    const raw = dataStorage.getItem(IDENTIFIERS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveIdentifiers(identifiers: PatientIdentifier[]): void {
-  try { localStorage.setItem(IDENTIFIERS_STORAGE_KEY, JSON.stringify(identifiers)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(IDENTIFIERS_STORAGE_KEY, JSON.stringify(identifiers)); } catch { /* non-critical */ }
 }
 
 function normaliseName(s: string): string {

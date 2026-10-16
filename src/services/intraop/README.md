@@ -46,6 +46,11 @@ Events carry ids only (session, specimen, location, facility), never patient dat
 - The log records which fields came from dictation and the engine (`VerbalReportLog.dictation`), and the audit line says they were checked by the pathologist.
 - Pete: logging a verbal report needs no permission of its own; everyone who can use the Intraop page (often on a phone) can log one.
 
+
+## Batch 536 (PS-558)
+
+`defaultVerbalReportDictation.ts` passes its feature and facility to `callAi`, for the jurisdiction's AI vendor policy.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

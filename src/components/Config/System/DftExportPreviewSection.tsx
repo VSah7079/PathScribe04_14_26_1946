@@ -31,14 +31,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockServiceChargeService } from '@/services/billing/mockServiceChargeService';
-import { mockBillingDeficiencyService } from '@/services/billing/mockBillingDeficiencyService';
+
 import { canCaseExportDft } from '@/services/billing/canCaseExportDft';
 import { buildDftP03ForCase } from '@/services/hl7/dftBuilder';
 import { buildJsonWebhookPayload } from '@/services/billing/jsonWebhookBuilder';
 import { permitInterfacePreview } from '@/services/interfacePreview/permitInterfacePreview';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import type { BillingDeficiencyRecord } from '@/types/billing/BillingDeficiencyRecord';
+import { serviceChargeService, billingDeficiencyService } from '@/services';
 
 const DftExportPreviewSection: React.FC = () => {
   const { t } = useTranslation();
@@ -66,8 +66,8 @@ const DftExportPreviewSection: React.FC = () => {
       if (!caseData) { setNotFound(true); return; }
 
       const [chargesRes, deficienciesRes] = await Promise.all([
-        mockServiceChargeService.getChargesForCase(caseId),
-        mockBillingDeficiencyService.getByCaseId(caseId),
+        serviceChargeService.getChargesForCase(caseId),
+        billingDeficiencyService.getByCaseId(caseId),
       ]);
       const charges = chargesRes.ok ? chargesRes.data.filter(c => c.transactionType === 'charge') : [];
       const deficiencies = deficienciesRes.ok ? deficienciesRes.data : [];
@@ -120,7 +120,7 @@ const DftExportPreviewSection: React.FC = () => {
       </div>
 
       <div className="ps-qa-tab-toolbar">
-        <input
+        <input aria-label={t('dftExportPreviewSection.caseIdPlaceholder')}
           className="ps-conf-input ps-dft-export__case-input"
           placeholder={t('dftExportPreviewSection.caseIdPlaceholder')}
           value={caseIdInput}
@@ -186,7 +186,7 @@ const DftExportPreviewSection: React.FC = () => {
                 <h2 className="ps-conf-section-title">{t('dftExportPreviewSection.jsonSection.title')}</h2>
                 <p className="ps-conf-section-subtitle">{t('dftExportPreviewSection.jsonSection.subtitle')}</p>
               </div>
-              <textarea
+              <textarea aria-label={t('dftExportPreviewSection.jsonSection.title')}
                 readOnly
                 className="ps-conf-input ps-dft-export__mono-textarea ps-dft-export__mono-textarea--json"
                 value={result.jsonPayload}
@@ -200,7 +200,7 @@ const DftExportPreviewSection: React.FC = () => {
                 <h2 className="ps-conf-section-title">{t('dftExportPreviewSection.dftSection.title')}</h2>
                 <p className="ps-conf-section-subtitle">{t('dftExportPreviewSection.dftSection.subtitle')}</p>
               </div>
-              <textarea
+              <textarea aria-label={t('dftExportPreviewSection.dftSection.title')}
                 readOnly
                 className="ps-conf-input ps-dft-export__mono-textarea ps-dft-export__mono-textarea--hl7"
                 value={result.dftMessage.split('\r').join('\n')}

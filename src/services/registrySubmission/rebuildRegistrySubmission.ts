@@ -12,7 +12,6 @@ import type { PreparedCancerSubmission } from '../cancerRegistry/dispatchCancerR
 import { registryHoldMessage } from '../screeningRegistry/screeningRegistryEngine';
 import { isSyntheticCaseId } from '../registryGoLive/syntheticTestSuite';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface RebuildDeps {
   getCase: (caseId: string) => Promise<any | null | undefined>;
   /** The sign-out record the entry was built from, and the review its result came from. */

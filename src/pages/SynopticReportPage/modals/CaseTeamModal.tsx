@@ -62,6 +62,8 @@ import type { StaffUser }                from '@/services/users/IUserService';
 import type { Role }                     from '@/services/roles/IRoleService';
 import { useAuth }                       from '@/contexts/AuthContext';
 import { resolveEligibleParticipationTypeIds } from '@/services/cases/resolveClaimParticipationType';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 type DragEligibility = 'eligible' | 'role-ineligible' | 'occupied';
 
@@ -575,7 +577,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
                 <span data-phi="name">{caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : ''}</span>
                 {' · '}
                 <span className="ps-ctm-header-subtitle-hint">{t('caseTeamModal.header.subtitleHint')} </span>
-                <span onClick={() => { onDelegate?.(); }} className="ps-ctm-header-subtitle-link">{t('caseTeamModal.header.subtitleDelegateLink')}</span>
+                <span {...pressable(() => { onDelegate?.(); })} className="ps-ctm-header-subtitle-link">{t('caseTeamModal.header.subtitleDelegateLink')}</span>
               </div>
             </div>
             <button className="ps-research-close" onClick={handleClose} aria-label={t('caseTeamModal.header.closeAriaLabel')}>✕</button>
@@ -596,7 +598,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
               <div className="fm-left fm-left--caseteam">
                 <div className="fm-eyebrow ps-ctm-types-eyebrow">{t('caseTeamModal.body.typesEyebrow')}</div>
                 {loading ? (
-                  <div className="fm-empty"><span className="fm-empty-heading">{t('caseTeamModal.body.loading')}</span></div>
+                  <div className="fm-empty"><LoadingState variant="inline" className="fm-empty-heading" label={t('caseTeamModal.body.loading')} /></div>
                 ) : visibleTypes.length === 0 ? (
                   <div className="fm-empty">
                     <span className="fm-empty-heading">{t('caseTeamModal.body.noTypesConfigured')}</span>
@@ -616,7 +618,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
               <div className="fm-right">
                 <div className="ps-ctm-staffdir-head">
                   <div className="fm-eyebrow ps-ctm-staffdir-eyebrow">{t('caseTeamModal.body.staffDirectoryEyebrow')}</div>
-                  <input
+                  <input aria-label={t('caseTeamModal.body.staffDirectoryEyebrow')}
                     value={search} onChange={e => setSearch(e.target.value)}
                     placeholder={t('caseTeamModal.body.searchPlaceholder')}
                     className="fm-search-input ps-ctm-search-input"

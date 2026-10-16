@@ -26,7 +26,7 @@ Clean otherwise. `firestore.rules` already has a real
 ForMedrix-staff-only write access) — the backend schema anticipated
 this data existing; the frontend fix (this folder) is what actually
 makes use of it once a real Firestore-backed implementation replaces
-the mock.
+the mock. *(Since superseded: production storage is SQL Server behind the ASP.NET Core API server (Pete, Sep 2026), so `firestore.rules` will be replaced rather than extended — checked in the Batch 496 README audit.)*
 
 ## Batch 371
 

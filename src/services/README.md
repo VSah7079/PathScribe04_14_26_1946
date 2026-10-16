@@ -20,6 +20,10 @@ translate from the start; updating an existing page or modal's own UI
 text means converting it to the same real i18n framework as part of
 that change. See `src/i18n/README.md` for the full account.
 
+## First-load size (Batch 505, PS-475)
+
+`loadSize/` holds the guard that keeps large things out of the first page load (locale files, guide PDFs, `pdf-lib`, seed templates) and documents what loads on demand. The real measure is `npm run measure:first-load` after a build: 1.87 MB gzipped now, from 6.69 MB; target 3 MB.
+
 ## Admin guide: label printing routes (Batch 321, PS-52)
 
 [printerProfiles/README.md → "Admin guide: how a site prints labels"](./printerProfiles/README.md#admin-guide-how-a-site-prints-labels) is customer-facing material for the Admin Guide. It covers:
@@ -211,11 +215,15 @@ Most folders here follow the same three-file shape:
 
 Where a folder deviates from this pattern, its own `README.md` explains
 why (e.g. `services/ai/` is a provider-abstraction layer, not a CRUD
-service; `services/grossing/` is deliberately types-only because its real
-logic lives in `services/cases/mockCaseService.ts`; `services/hl7/` is a
+service; `services/grossing/` started as types-only, with its real
+logic in `services/cases/mockCaseService.ts`, and since Batches 480–484
+also holds the grossing-completion and structured-inking rules
+(`grossingCompletion.ts`, `evaluateInkingGate.ts` and others); `services/hl7/` is a
 larger, multi-file scaffolded subsystem; `services/session/` is a small
 resolution module, not a CRUD service — see its own README for why it
 still follows the interface/mock/firestore split despite that).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `grossing/` was described as types-only; it has held grossing-completion and inking rules since Batches 480–484.*
 
 ## Root-level files (not in a subfolder)
 
@@ -238,7 +246,8 @@ still follows the interface/mock/firestore split despite that).
   own `tsconfig.json` (`strictNullChecks: false`), TypeScript does
   **not** narrow `ServiceResult<T>` on `if (!res.ok) { ...res.error }`
   or `if (res.ok) {...} else { ...res.error }` — `res.error` still
-  type-errors as if `res` were the whole union. The real, already-
+  type-errors as if `res` were the whole union.
+  *Since Batch 511 (PS-478) the app type-checks in full strict mode (`"strict": true`, `strictNullChecks` included), so ordinary `if (res.ok) … else …` narrowing works; the workaround described here is no longer needed.* The real, already-
   established workaround elsewhere in this codebase (`services/hl7/
   processInboundWsiScanStatusUpdateEvent.ts`, `NewContainerModal.tsx`'s
   own `if ('error' in res)`) is the one that actually narrows:
@@ -246,15 +255,22 @@ still follows the interface/mock/firestore split despite that).
   Use one of those two forms — never bare `!res.ok` — anywhere the
   branch needs `res.error`.
 - **`mockStorage.ts`** — thin typed `localStorage` wrapper used by nearly
-  every mock service. Becomes unused once Firestore services replace the
-  mocks.
+  every mock service. Becomes unused once services that call the
+  PathScribe API server (SQL Server) replace the mocks.
 - **`enhancementRequestService.ts`** — routes user-submitted enhancement
   requests (Email or Portal/webhook mode). Mock phase logs to console.
 - **`phiSelectors.ts`** — central registry of DOM selectors marking PHI/PII
   elements, used by `useScreenCapture` to redact sensitive data before a
   screenshot is attached to an Enhancement Request or QA Feedback
-  submission. **Tag new PHI-bearing UI with `data-phi="true"` — see this
-  file's own header for how.**
+  submission. **Tag new PHI-bearing UI with `data-phi="<kind>"` (standing
+  rule 5 in `CLAUDE.md`, enforced by `phi/phiTagging.guard.test.ts`).**
+- **`mockSeedMerge.ts`** — `withMissingSeedRecords` / `withSeedFieldBackfill`
+  for demo lists (Batches 357 and 359, below).
+- **`delegationTypeMapper.ts`** — maps a delegation type that doesn't
+  transfer ownership (second opinion, tumor board, teaching and others)
+  to the participation type the delegate gets on the case.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `data-phi="true"` became `data-phi="<kind>"`, `mockStorage.ts`'s replacement is the API server rather than Firestore, and the two unlisted root files were added.*
 
 **REMOVED (July 2026):** `synopticNotificationService.ts` (root-level) —
 this was the item listed here as "STUB, deliberately... Logs to console
@@ -281,7 +297,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [actionRegistry/](./actionRegistry/README.md) | Voice/shortcut action catalog |
 | [ai/](./ai/README.md) | Core AI provider abstraction (Claude/GPT/Bedrock swap layer) |
 | [aiBehavior/](./aiBehavior/README.md) | Admin AI behavior settings (confidence thresholds etc.) |
-| [aiIntegration/](./aiIntegration/README.md) | Higher-level AI features: transcript refine, suggestions, spellcheck |
+| [aiIntegration/](./aiIntegration/README.md) | Higher-level AI features: transcript refine, suggestions (the AI spelling check was retired in Batch 338; see `spellcheck/`) |
 | [assetLocation/](./assetLocation/README.md) | **NEW (Sep 2026)** — governed physical/asset location dictionary (mortuary storage, workstations, archive shelves), following the exact Department/Physician `findOrCreateByName` governance pattern; built to address `MaterialLocation.location`'s own free-text drift risk without losing its real external-system tolerance |
 | [authorization/](./authorization/README.md) | **Batch 369 (PS-355)**: capabilities and the permission check. The catalog, `can()` with the granting role, audit of every high-risk check, day-one grants, dependency planning for the Role Dictionary. No bypass for any role |
 | [auditlog/](./auditlog/README.md) | System-wide audit log (incl. signing-authority facility-override events, Sep 2026) |
@@ -297,7 +313,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [cassetteColors/](./cassetteColors/README.md) | **NEW (August 2026)** — admin-manageable cassette color dictionary (White/Blue/Red/Pink/Green-Mesh/Yellow + custom), fallback policy lives per-color |
 | [cassetteRouting/](./cassetteRouting/README.md) | **NEW (August 2026)** — admin-manageable rules resolving which cassette color an order routes to (protocol/priority/station/facility/case type) |
 | [clientSLA/](./clientSLA/README.md) | Per-client SLA/TAT targets |
-| [clients/](./clients/README.md) | Client (institution) dictionary |
+| clients/ | Removed: replaced by `facilities/` (see below); the folder no longer exists |
 | [clinical/](./clinical/README.md) | **NEW (Sep 2026)** — PS-105: negation-aware AI detection of critical/abnormal narrative findings at sign-out, plus the real, append-only record of how a pathologist actually communicated one |
 | [clinicalHistory/](./clinicalHistory/README.md) | **NEW (Sep 2026)** — Structured Clinical History Dictionary spec's own User Stories 1–2: the real, admin-editable six-category history dictionary and its inbound accession-payload validation/ingestion |
 | [codes/](./codes/README.md) | Terminology system CONFIG (which SNOMED/ICD variants are enabled) |
@@ -305,7 +321,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [communications/](./communications/README.md) | Email/notification transport |
 | [consultAccess/](./consultAccess/README.md) | **NEW (Sep 2026)** — PS-290, External Consult / Second-Opinion Access — scoped, revocable opaque access tokens and Phase 1 Hybrid opinion capture. NOT real token security; read the folder's own README/`IConsultTokenService.ts` header before touching this |
 | [containerTypes/](./containerTypes/README.md) | Specimen container-type dictionary |
-| [cytology/](./cytology/README.md) | **NEW (Sep 2026)** — Phase 1 of the Cytology & Cervical Screening module: real, standard 2014 Bethesda System category dictionary (adequacy, general categorization, interpretation/result) |
+| [cytology/](./cytology/README.md) | **NEW (Sep 2026)** — the Cytology & Cervical Screening module: began (Phase 1) as the 2014 Bethesda System category dictionary; now also screening and review records, QC/rescreen, sign-out and countersign, QA reports and the registry payload builders (about 200 source files) |
 | [deficiencies/](./deficiencies/README.md) | Specimen/requisition deficiency tracking |
 | [delegationTypes/](./delegationTypes/README.md) | Case delegation type dictionary |
 | [diagnosisCodes/](./diagnosisCodes/README.md) | Referring physician's order-time diagnosis code |
@@ -320,12 +336,13 @@ other consumers of the root-level file, deleted it. Full detail in
 | [flags/](./flags/README.md) | Case/specimen flag dictionary |
 | [fonts/](./fonts/README.md) | Editor font dictionary |
 | [governingBodies/](./governingBodies/README.md) | **NEW (August 2026)** — real persistence for the Governing Bodies list (CAP, RCPath, ICCR, RCPA, + custom) |
-| [grossing/](./grossing/README.md) | Grossing template routing (types only, real logic in cases/) |
+| [grossing/](./grossing/README.md) | Grossing template routing types, Complete grossing, and structured inking: margin ink records, severity rules and the inking gates (Batches 480–484) |
 | [grossingRoutingOverrides/](./grossingRoutingOverrides/README.md) | Per-client grossing route exceptions |
 | [grossingHardware/](./grossingHardware/README.md) | **NEW (Sep 2026)** — RFP-APLIS-2026-GLOBAL Story 9 (Grossing Station Hardware Integration): real camera capture via `getUserMedia()`, digital scale bridge architecture, confirmation that speech-to-text gross dictation was already built |
 | [hardware/](./hardware/README.md) | **NEW (August 2026)** — `ModeAInterfaceService`: dispatches hardware/LIS orders through the existing HL7 seam |
 | [hardwareContainers/](./hardwareContainers/README.md) | **NEW (August 2026)** — check-in/check-out registry for semi-permanent, laser-engraved reusable racks/baskets |
-| [hl7/](./hl7/README.md) | Standard HL7 ORM^O01 builder — deliberate pre-integration scaffolding |
+| [hl7/](./hl7/README.md) | HL7 v2: the ORM^O01 and DFT builders, ADT/patient-management parsing, and the inbound event processors (block exceptions, material location, instrument, HPV, molecular and WSI status) |
+| [inkColors/](./inkColors/README.md) | **NEW (Oct 2026)** — Structured Inking Module 3 (PS-359 follow-up): the margin ink-colour admin palette, needed for `resolveInkingValidationSeverity.ts`'s Severity 3 `margin_ink_color_unmapped` check to ever trigger |
 | [interfaceEngine/](./interfaceEngine/README.md) | **NEW (August 2026)** — Category E (Order Creation) dispatch for the JSON/REST interface spec, sent through the generic interface dispatcher; since Batch 318 each send's outcome is stored and listed in the Audit Log's Outbound Dispatches trail (PS-86) |
 | [interfaceExceptions/](./interfaceExceptions/README.md) | **NEW (August 2026)** — real holding queue for inbound ADT/patient-management messages that can't be safely auto-processed (unresolved identity, missing MRG-5) |
 | [internalNotes/](./internalNotes/README.md) | Lab-internal case notes + management reviews |
@@ -381,7 +398,13 @@ other consumers of the root-level file, deleted it. Full detail in
 | [voice/](./voice/README.md) | Voice commands offered to the screen first (Batch 463: the Mohs stage question) |
 | [voicemacro/](./voicemacro/README.md) | Voice-triggered macro dictionary |
 
+**Folders not in the table above** (added after it was last rebuilt; each has its own README except `caseViewTracking/`): [actionGroups/](./actionGroups/README.md) (workstation action groups), [addOnOrders/](./addOnOrders/README.md), [aiConfig/](./aiConfig/README.md), [browserCleanup/](./browserCleanup/README.md), [caseAddresses/](./caseAddresses/README.md) (case references in page addresses), [caseSearch/](./caseSearch/README.md), `caseViewTracking/` (no README), [configDirty/](./configDirty/README.md), [cytologyQc/](./cytologyQc/README.md), [delegations/](./delegations/README.md), [delivery/](./delivery/README.md), [demoReset/](./demoReset/README.md), [deployment/](./deployment/README.md), [deploymentReadiness/](./deploymentReadiness/README.md), [documentRendering/](./documentRendering/README.md), [engravers/](./engravers/README.md), [equipment/](./equipment/README.md), [feedback/](./feedback/README.md), [fieldRequirements/](./fieldRequirements/README.md), [followUp/](./followUp/README.md), [imageAssociation/](./imageAssociation/README.md), [import/](./import/README.md), [interfaceDispatch/](./interfaceDispatch/README.md), [interfacePreview/](./interfacePreview/README.md), [labSettings/](./labSettings/README.md), [liveUpdates/](./liveUpdates/README.md), [marginExtraction/](./marginExtraction/README.md), [material/](./material/README.md), [networkPrint/](./networkPrint/README.md), [organMapping/](./organMapping/README.md), [patientHistory/](./patientHistory/README.md), [patientIdentifiers/](./patientIdentifiers/README.md), [phi/](./phi/README.md), [printRouting/](./printRouting/README.md), [printing/](./printing/README.md), [privacy/](./privacy/README.md), [qualitySettings/](./qualitySettings/README.md), [reagentLots/](./reagentLots/README.md), [reasons/](./reasons/README.md), [registryConsent/](./registryConsent/README.md), [registryGoLive/](./registryGoLive/README.md), [registrySubmission/](./registrySubmission/README.md), [reportAppearance/](./reportAppearance/README.md), [reportChangeLog/](./reportChangeLog/README.md), [reportEditing/](./reportEditing/README.md), [retention/](./retention/README.md), [screeningRegistry/](./screeningRegistry/README.md), [screens/](./screens/README.md), [security/](./security/README.md), [signoutGates/](./signoutGates/README.md), [siteSettings/](./siteSettings/README.md), [specimenCategories/](./specimenCategories/README.md), [spellcheck/](./spellcheck/README.md), [staff/](./staff/README.md), [staffPasswords/](./staffPasswords/README.md), [styleRules/](./styleRules/README.md), [supportAccess/](./supportAccess/README.md), [supportReferences/](./supportReferences/README.md), [tumorBoard/](./tumorBoard/README.md), [tumorBoardRules/](./tumorBoardRules/README.md), [userSettings/](./userSettings/README.md), [worklist/](./worklist/README.md), [workstationGroups/](./workstationGroups/README.md).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `clients/` marked removed; the `aiIntegration/`, `cytology/`, `grossing/` and `hl7/` rows updated to what the folders hold now; the 64 folders missing from the table listed. `src/services/` has 170 folders.*
+
 ## Known issues (as of this review — see PRIORITY_FIXES.md in project root)
+
+*`PRIORITY_FIXES.md` was retired on 2026-08-19; its open items became Jira PS-57 to PS-71 (`docs/ARCHIVE.md`), so the `PRIORITY_FIXES.md #N` references in this section are historical. The two items below are still present as of Oct 9, 2026. (Batch 496 README audit.)*
 
 - `services/stains/firestoreStainService.ts`'s auto-generated stub comment
   names only one of its three real mocks as "the active implementation" —
@@ -586,7 +609,10 @@ other consumers of the root-level file, deleted it. Full detail in
   by hand for the new role, and neither the compiler nor anything
   else would have caught only one being updated. See `facilities/README.md`'s
   own note for the full account; not fixed structurally here, since
-  that's a real, separate refactor of its own.
+  that's a real, separate refactor of its own. *(Since changed:
+  `components/ClientDictionary/` no longer exists, so
+  `FacilityEditorModal.tsx` is the only Facility editor left — checked
+  in the Batch 496 README audit.)*
 
 - **`coldChain/`** — the RFP-APLIS-2026-GLOBAL Reference Laboratory
   Sensor & Cold-Chain Integration gap. A real, admin-editable
@@ -968,7 +994,7 @@ Not yet wired, and disclosed: `deriveEligibleFinalizerIds()`. The repo-root `fir
 
 ## Batch 391: report language
 
-`reports/reportLanguage.ts` (a report is in the performing lab's language; `Facility.reportLanguage` with a jurisdiction default); `documentRendering/printFonts.ts` (Pretendard for Korean PDFs); `cytology/` stores the language at sign-out and words its PDF in it. See those READMEs.
+`reports/reportLanguage.ts` (a report is in the performing lab's language; `Facility.reportLanguage` with a jurisdiction default); `documentRendering/printFonts.ts` (Pretendard for Korean PDFs; removed in Batch 539, the report renderer picks the font: `functions/cytology_report.py`); `cytology/` stores the language at sign-out and words its PDF in it. See those READMEs.
 
 ## Batch 392: report PDFs to the interface engine
 
@@ -976,7 +1002,7 @@ Not yet wired, and disclosed: `deriveEligibleFinalizerIds()`. The repo-root `fir
 
 ## Batch 393: autopsy results and Korean in every report PDF
 
-`reports/resultInstances.ts` (an autopsy report is one result); `documentRendering/printFonts.ts` (`printFontLanguageFor`: Korean or any Hangul uses Pretendard). See those READMEs.
+`reports/resultInstances.ts` (an autopsy report is one result); `documentRendering/printFonts.ts` (`printFontLanguageFor`: Korean or any Hangul uses Pretendard; removed in Batch 539, the same rule now lives in the report renderer). See those READMEs.
 
 ## Batch 395
 
@@ -1459,3 +1485,407 @@ Two new folders: `siteSettings/` (new — the per-site analog of `labSettings/`,
 ## Batch 481 — Structured Inking, Module 2: grossing-screen UI (PS-359 follow-up)
 
 No new service files — `grossing/recordMarginInkApplication.ts` (Batch 480) now has its first real caller. `pages/GrossingScreenPage/hooks/useGrossingScreen.ts` gains `handleRecordMarginInk`, which calls that service and, on success, re-reads the case (the service doesn't hand back the updated case itself). See `grossing/README.md` and `pages/GrossingScreenPage/README.md`.
+
+## Batch 483 — Cytology gaps + signature viewer (PS-359 tracker follow-up)
+
+Three fixes, one addition, all in `cytology/` and `cases/`: (1) a multi-specimen bug where a case's second cytology/FNA specimen could silently never surface its own QC/review requirement; (2) a data-loss bug where a cytology case's second specimen countersign release destroyed the first's still-pending record (`CountersignRecord` gains `specimenId`); (3) the CYT-QA-03 vs CYT-QA-04 report asymmetry, closed with a new `getFiveYearRetrospectiveLookbackReport`; and the signature-record viewer finally reading back what `signatures/` has recorded since Batch 345. See `cytology/README.md` and `cases/README.md`.
+
+## Batch 484 — Inking sign-out/grossing gate engine + Organisation/Site admin UI (PS-519 follow-up)
+
+New `grossing/evaluateInkingGate.ts` (the gate engine — Gate A/Gate B decision logic, fail-closed on an unavailable ink-colour palette, jurisdiction-specific blocking messages across 6 regulatory profiles mapped onto the existing `Jurisdiction` type) and `grossing/recordInkingGateOverride.ts` (the Administrative Override audit path; new capability `case:inking-gate:override`, seeded to Admin and Lab Director only). `grossing/inkingSiteSettings.ts` gains the audit logging its capability description already promised but never implemented. `authorization/capabilityCatalog.ts`/`capabilitySeeds.ts` gain the new capability (234 total now, 54 in the Case work group). Also closes the Organisation/Site admin UI gap down to its one real missing piece, a settings screen for `inking_validation_mode` — see `components/Config/System/README.md`. The genuinely backend-only half of Pete's fuller spec — real `/inking/validate`/`/inking/override` REST endpoints, server-side RBAC on them, and the real `dbo.InkOverrideAuditLog` SQL table — remains open pending the ASP.NET Core/SQL Server API server. See `grossing/README.md` and `authorization/README.md`.
+
+## Batch 485 — completing a cytology specimen's own countersign (PS-359 tracker follow-up)
+
+Closes the deeper gap Batch 483 disclosed but didn't build: `cases/ICountersignService.countersign()`/`.reject()` gain the same `specimenId` scoping `release()` got in Batch 483, plus a new `getForSpecimen()`; `cytology/signOutCytologyCase.ts` now actually calls `countersign()` to close a specimen's own pending record when its sign-out completes, and `Case.status` no longer stays stuck at `pending-countersign` once nothing on the case is genuinely still pending. Also re-verified (and confirmed already built, not missing) a detailed CT-trainee-vs-qualified-CT RBAC question — `resolveResidentCountersignRequired.ts` and `resolveCytologySignOutGate.ts` already handle this status-driven, not by role id. See `cases/README.md` and `cytology/README.md`.
+
+## Batch 486 — My Contribution gap review (PS-359 tracker follow-up)
+
+Investigated Pete's question "did we build a page for Cytotech/Cytotech trainees?" — confirmed no bench role (Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist) has ever had `my-contributions` screen access, and that 4 of its 5 tabs are built entirely around a signing pathologist's own diagnostic/RVU activity regardless. Fixed the one genuinely applicable piece: a Cytotech Competency Assessment supervisor's Mentor tab was always showing an empty case-mix breakdown for their CT trainee, because cytology sign-out creates a `CountersignRecord`, never the `QaActivityRecord` the breakdown read from. `index.ts` now also exports `CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID` (from `quality/mockQaSupervisionAssignmentService.ts`) so UI code can branch on it without a direct mock-service import. See `components/Contribution/README.md` for the fix and the bench-screen-access option that was built, then explicitly reverted by Pete in favor of a dedicated bench-contribution page (next batch).
+
+Also re-verified a "we track all case events for regulatory audit, don't we?" pushback — correcting an earlier, too-narrow answer in this same conversation. Real, structured, per-item data does exist beyond what was first checked: `Case.accessionedAt`/`accessionedBy` (real accessioning-rate basis), `BatchItem.addedAt`/`addedByUserName` on every item of an Embedding/Microtomy/Staining/Molecular batch (real per-item, per-user throughput and stage-to-stage TAT, not just whole-batch `Batch.createdAt`/`completedAt`), `AuditLog` (`auditlog/`, every batch item add/remove/move/complete event, with real timestamp/user/caseId), and `MolecularBatch.cloneAndSupersede()` (a real, user-triggered rerun record with its own reason). The one genuine remaining gap: `StainOrderStatus` already declares `'Recut Requested'`/`'QC Failed'`, and `facilityOpsDashboard/computeStainingIhcSummary.ts` already counts them — but no real action anywhere in the app ever sets a stain to either state, so that particular rework signal is a real, unbuilt workflow gap, not a missing field.
+
+## Batch 488 — screens/authorization wiring for the new Bench Contributions page (PS-359 follow-up)
+
+`screens/screenAccess.ts`: new `ScreenId`/`HomeTileId` `benchContributions`, its own `screen:bench-contributions:open` capability (never reusing `myContributions`'s own — the two screens show genuinely different, role-appropriate metrics), and its own `checks` entry. `authorization/capabilityCatalog.ts`: the matching catalog entry, standard risk, `screens` group. `authorization/capabilitySeeds.ts`: seeded to all four bench roles (Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist) alongside each role's existing screens — the real next step from Batch 486's reverted `myContributions` grant. `docs/architecture/AUTHORIZATION_API.md` and `supportReferences/supportTicketRules.ts`'s route-pattern list both updated to match (two of this app's own consistency guards — `capabilityDocs.guard.test.ts` and `supportTicketRules.test.ts` — caught both before delivery). The real calculation/page work lives in `pages/` — see `pages/README.md`.
+
+## Batch 489 — Tumor Board / MDT Workspace Module 1 (PS-359 follow-up)
+
+New `tumorBoard/`: `ITumorBoardService`/`mockTumorBoardService` — the real board-nomination record (board, meeting date, status, presenter, full audit fields) Pete's spec asks for, built new rather than forced onto the existing generic Flag system or `IDelegationService` (see `tumorBoard/README.md` for the full reasoning). `create()` enforces a new protected action, `case:tumor-board:flag`, seeded only to the grossing roles (Pathologist, Fellow, Resident, PA) — see `authorization/README.md`. `screens/screenAccess.ts` gains the matching `tumorBoard` screen/tile (see `screens/README.md`). `demoReset/demoReset.ts`'s `CASE_KEYS` gains `tumor_board_listings` (caught by its own coverage guard, `DemoResetTab.coverage.test.ts`). The workspace page and "Flag for MDT" modal live in `pages/` and `components/TumorBoard/` — see their own READMEs.
+
+## Batch 490 — margin-distance extraction layer + all ~20 generic templates' clinical content (PS-359 follow-up)
+
+New `marginExtraction/`: `extractMarginDistanceMm` — a pure regex/token parser that reads a free-text margin-distance answer and either confidently normalizes it to millimetres or flags it — plus `IMarginExtractionService`/`mockMarginExtractionService`, which persists a confident parse as a hidden `MarginShadowAttribute` or an unconfident one as a `MarginExtractionException` on a review queue (`resolveException`/`dismissException`). Applies to any `type: 'text'` template field whose id ends in `_mm`/`_cm`; a structured `type: 'numeric'` field with a declared `unit` never needs it. See `marginExtraction/README.md` for the full confidence rules and what's deliberately deferred (no call site wired in yet; that's Batch 491's rule-evaluator work). *(Since closed: Batch 491 — `tumorBoardRules/runMarginRuleEvaluation.ts` calls `extractAndStore()` from sign-out — checked in the Batch 496 README audit.)*
+
+New protected action `case:margin-exception:resolve`, seeded the same way as `case:tumor-board:flag` — see `authorization/README.md`. `demoReset/demoReset.ts`'s `CASE_KEYS` gains `margin_shadow_attributes`/`margin_extraction_exceptions`.
+
+Also this batch: every generic synoptic template (`data/templates/generic/`) had its placeholder dropdown options replaced with real clinical content and `reportingRole` tagging completed — see `data/templates/generic/README.md`'s own Batch 490 entry for the full breakdown; no change to any file in `services/` for that part.
+
+## Batch 491 — Tumor Board Hybrid Inheritance Model; rule evaluator wired at sign-out; margin-exception review queue; three disclosed gaps closed (PS-359 follow-up)
+
+New `tumorBoardRules/`: the two-tier (enterprise/facility) auto-flagging rule config for Tumor Board (`ITumorBoardRuleService`/`mockTumorBoardRuleService`), a pure evaluator (`tumorBoardRuleEvaluation.ts`), and the impure orchestrator wired at sign-out (`runMarginRuleEvaluation.ts`) that finally calls `marginExtraction`'s `extractAndStore()` and, on a rule match, creates a Tumor Board listing with `source: 'Rule'`. See `tumorBoardRules/README.md` for the full design and its deliberate scope narrowing (margin-distance only).
+
+`tumorBoard/`: the Coordinator/Clinical capability split — `case:tumor-board:manage` (broad queue management, `CASE_ACCESS_ROLES`) vs. the new, narrower `case:tumor-board:dismiss` (clinical override with a mandatory reason, GROSSERS only); `update()` refuses a `Dismissed` status transition at the type level and at runtime. Also a real shape-vs-comment correction: `TumorBoardListing`'s `source`/`triggerReason`/dismiss fields, previously only described in a Batch 489 comment as "already there," are now real fields. See `tumorBoard/README.md`.
+
+New protected action `config:tumor-board-rules:manage`, new screen capability `screen:margin-exception-review:open` — see `authorization/README.md`.
+
+**The deferred Batch 490 review-queue UI is built:** `MarginExceptionReviewPage.tsx` (`/margin-exception-review`), in the Pathology Workspace hub. See `marginExtraction/README.md`'s own Batch 491 entry.
+
+**Three disclosed, pre-existing gaps closed, all found while auditing this batch's own additions against established patterns:**
+- `services/index.ts` never exported `mockMarginExtractionService` since Batch 490 — no UI code could reach it without violating CLAUDE.md rule 4. Fixed now that it has real callers.
+- `api/caseFlagsApi.ts`'s hardcoded `appliedBy`/`deletedBy: 'current-user'` (since Batch 452) — now the real signed-in user's name, with the same fallback for callers with no session. See `api/README.md`.
+- `demoReset/demoReset.ts`'s `SETTINGS_KEYS` never had `cytologyHistologyCorrelationSettings`/`facilityCytologyHistologyCorrelationOverrides`/`biopsyResectionCorrelationSettings`/`facilityBiopsyResectionCorrelationOverrides` (since Batch 452/453) — this admin config silently survived every Full Reset. Fixed, alongside the two new real keys this batch adds (`tumor_board_auto_flag_rules`, `facility_tumor_board_rule_overrides`). See `demoReset/README.md`.
+
+Also: `delegationTypes/mockDelegationTypeService.ts`'s `'TUMOR_BOARD'` seed deactivated (`active: false`, not deleted) — the real path is `tumorBoard/` now, not `DelegateModal.tsx`'s generic flow. See `delegationTypes/README.md`.
+
+## Batch 495
+
+- **`printing/`:** `reportPrintGate.ts` (`beginReportPrint`, checks `report:case-report:print`) and `buildReportDocumentReference.ts` (footer Code 128 of the accession + record version). Barrel exports `beginReportPrint`.
+- **`reports/`:** `resolveReportRevisionStatus.ts` — revision status for printed reports (original sign-out vs latest revision).
+- **`authorization/`:** new capability `report:case-report:print`, seeded to case-access roles; `AUTHORIZATION_API.md` totals corrected.
+- **Index:** also exports `migrationJobService` / `migrationRecordResultService` (MigrationJobsPage leaves the deployment baseline; so does ReportPreviewPage). `screens/routeGating.guard.test.ts` and `supportReferences/supportTicketRules.ts` know the new `/report-preview/:caseId` route.
+- **`autopsy/`:** body-release gate reasons are reason codes (translated); `releaseAutopsyBody` returns a `reasonCode`. The folder's "not yet built" list was rewritten — four of its six items had already been built.
+
+## Batch 498
+
+- **`reports/`:** new `buildReportRenderRevision.ts` — the `revision` object sent to the report renderer (type, count, original and latest dates formatted in the report's locale). `surgicalReportLabels.ts` sends seven more `surgicalReportPdf.*` labels (revision banner and footer document reference).
+- **`printing/`, `billing/`, `documentRendering/`, `reportRelease/`:** comments and READMEs corrected — the renderer (`functions/main.py`) now draws the revision banner, the pending-release watermark, the pre-analytic disclaimer and the footer barcode.
+
+## Batch 499
+
+- **`autopsy/`:** new `recordAutopsyOrganRetentionTier.ts` — the tier and its reason, behind new capability `autopsy:retention-tier:record` (the report page used to write it with no check).
+- **`authorization/`:** the new capability, its seeds and `AUTHORIZATION_API.md` row; catalog total 245.
+- **`auditlog/`:** new `auditLogLinks.ts` (the QA page's Failed Dispatches link, and reading `view=` on the Financial tab).
+- **`research/`:** the PubMed feed no longer reads or sends an NCBI key (PS-476).
+- **`security/`:** `envExposure.guard.test.ts` allows no secret-looking `VITE_` name at all, and fails on an NCBI key or an `api_key` parameter in browser code.
+- **`ai/providers/`:** the dead `ClaudeProvider.ts` is removed (listed in `DELETED_FILES.txt`).
+
+## Batch 500
+
+- **`security/`:** new `sanitizeHtml.ts` (DOMPurify): `sanitizeRichHtml`, `sanitizeSvgMarkup`, `escapeHtml`, `cssString`; new `htmlSanitising.guard.test.ts`; XSS payload tests under jsdom (PS-473).
+
+## Batch 501
+
+- **`cytologyQc/`:** the QC Rules engine runs at sign-out; ROSE and rules create or upgrade one open assignment per specimen (`resolveQcAssignmentUpsert.ts`), with selection reasons, history and reviewer pool; `resolveCaseInFormalConsultation.ts`; sampling counters (`mockCytologyQcSamplingStateService.ts`); queue labels (`qcSelectionReasonLabels.ts`). Corrects the Batch 496 finding that the engine was never called.
+- **`cytology/`:** `signOutCytologyCase.ts` wires it in (peer review, then ROSE, then rules).
+- **Index:** exports `cytologyQcRuleService`.
+
+## Batch 502
+
+- **New `errorReporting/`** (PS-472): crash reports scrubbed of patient data, sent to the console and the in-app Error Log, with flood control; global `error` / `unhandledrejection` handlers; QA crash tests. See [errorReporting/README.md](./errorReporting/README.md).
+
+## Batch 503
+
+- **`security/`:** `securityHeaders.guard.test.ts` — the browser security headers (policy in `deploy/security-headers/`).
+
+## Batch 504
+
+- **`quality/`:** `facilityMonthlyTrend.ts` — QA trend charts by facility month (six copies bucketed by the device's time zone).
+- **New `typeSafety/`:** no new explicit `any` (ratchet guard, baseline of 1,710).
+- **`cytology/`, `retentionPolicy/`:** age and date windows corrected (see their READMEs).
+- **`research/`, `batches/`, `molecular/`, `molecularOrders/`, `consultAccess/`:** the date rule's remaining exceptions are explained at the line (bench-printed identifiers, "today" checks).
+
+## Batch 508
+
+`demoReset/`: Full Reset clears every `ps_ui_` display preference. The reset-key check is now an automated guard test.
+
+## Batch 509
+
+`demoReset/`: a test pins which workstation settings Full Reset clears and which it keeps (guide-window positions only).
+
+## Batch 511 (PS-478): full strict type-checking
+
+Services pass full strict type-checking; see the folder notes below and `typeSafety/README.md`.
+
+## Batch 512
+
+New `specimens/` (specimen LIS sync state). `cytology/describeQcOverrideRates.ts` (QC override display).
+
+## Batch 513 (PS-269)
+
+`roles/builtInRoleText.ts`: built-in role descriptions are shown translated until a lab edits them.
+
+## Batch 514 (PS-269)
+
+`validationStudies/`: the printed validation report is built in `buildValidationReportHtml.ts` and printed in the reader's language.
+
+## Batch 515
+
+- **FPPE moved onto the QA supervision service** (PS-124). The legacy `fppeAssignmentService` is deleted, and the supervision service now checks the right permission for each activity.
+- **New permission checks:** Print Queue actions (PS-283) and consult links (PS-290).
+- `qaTrendService.pendingCount()` (PS-147).
+
+## Batch 516
+
+- **Reports:** PRELIMINARY watermark (`reports/resolveReportWatermark.ts`).
+- **Printing:** restricted-case print check (`printing/reportPrintGate.ts`, `flags/`).
+- **QA:** field-schema rules (`quality/qaFieldSchemaRules.ts`).
+- **PHI:** attribute checks (`phi/`).
+- **Demo data:** Tumor Board / MDT (`tumorBoard/tumorBoardDemoSeed.ts`).
+
+## Batch 517
+
+- **New `secureMessaging/`:** each lab's secure messaging gateways and agreements, and the send rules (PS-143).
+- **printing:** `facilityReportPrinting.ts` (PS-337).
+- **facilities:** `setPrintSettings` (PS-337).
+- **messages:** `sendSecureEmail` checks the gateway (PS-143).
+- **clinical:** `criticalFindingEmail.ts` (PS-143).
+- **organisation:** the unused `secureEmailGateway` field is removed.
+- **fieldRequirements:** read-back no longer applies to email.
+- **authorization:** new capability `config:secure-messaging:manage`.
+- **demoReset:** clears `pathscribe_secure_messaging`.
+- **styleRules:** notes on the PS-294 CSS cleanup.
+
+## Batch 518
+
+- **interfaceDispatch:** all seven outbound queues can be sent and resent, with `interface:outbound:resend` checked (PS-122).
+- **New `labels/`:** batch label reprint (PS-123).
+- **quality:** `qaActivityBoard.ts`, the generic QA activity board (PS-120).
+- **authorization:** two new capabilities.
+- **demoReset:** clears the label reprint run log.
+- **supportReferences:** knows the new label reprint route.
+
+## Batch 519
+
+- **templates:** several answers and "unless" in visibility conditions (PS-493); free-text node counts with "cannot be determined" / "at least N" and Breast's sum check (PS-494); `normalizeSynopticTemplate.ts` and `narrativeAuthoring.ts` (PS-273).
+- **cytology:** the synoptic templates come from the Synoptic Library; sign-out reads the review's template before its translation check (PS-273).
+
+## Batch 520
+
+- **delivery:** delivery rules set channels by role (primary, secondary, fallback) over electronic, print, e-fax and file drop; e-fax and file drop are sent through the interface server, which delivers them (PS-280).
+- **interfaceDispatch:** `REPORT_DELIVERY`; the Outbound view's eighth queue.
+- **reports:** the release event runs the channel plan, including fallback.
+- **demoReset:** clears the report delivery queue.
+
+## Batch 521
+
+- **delivery:** automatic retries (default 1, 5, 15 minutes), dead-letter to a delivery exception queue with Admin and Lab Director told, fallback after the retries, fax transmission confirmations (PS-281).
+- **liveUpdates:** the `ReportDeliveryStatus` event.
+- **printing:** automatic print retries.
+
+## Batch 522
+
+- **consultAccess:** cryptographic tokens stored as fingerprints, a consult view limited to the link's scope, opinions bound to the token, expiry recorded, and the cross-case list (PS-290).
+- **authorization:** `audit:consult-links:view`.
+- **screens, supportReferences:** the `/consult` route.
+
+## Batch 523
+
+- **clinical:** the mismatch check by discipline (surgical, cytology, autopsy), with a new kind, `cause-of-death` (PS-145).
+- **cytology:** `cytologyClinicalMismatch.ts`.
+
+## Batch 524 (PS-491): accessibility
+
+New folder `accessibility/` (the app-wide accessibility guard). `clinical/clinicalMismatchInputs.test.ts` type fix (see there).
+
+## Batch 526
+
+Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.
+
+## Batch 527 (PS-486): a lean first load
+
+New `signIn.ts`: what the sign-in path needs (`authSession`, `authConfig`, the staff password service and rules, the lockout notice), without the barrel. The barrel re-exports the staff password service from it, so the choice of implementation stays in one place. `IS_MOCK_BACKEND` is now `__DEMO_TOOLS__`: true in the demo build, false in a server build.
+
+## Batch 528 (PS-359): Staff, Facility editor and Clinical history requirements
+
+Three more Field Requirements pages (`fieldRequirements/`), with their checks in `staff/staffFormChecks.ts`, `facilities/facilityFormChecks.ts` and `clinicalHistory/clinicalHistoryRequirementChecks.ts`, all exported from the barrel.
+
+## Batch 529 (PS-554): the mismatch risk rules
+
+`clinical/clinicalMismatchRules.ts` and `clinical/clinicalMismatchRuleService.ts` (exported from the barrel as `clinicalMismatchRuleService`). Two new capabilities: `config:clinical-mismatch-rules:manage` (no built-in role; kept out of the Configuration sweep by `CONFIG_NO_DEFAULT_GRANT`) and `…:view` (Pathologist, QA Reviewer, Lab Director).
+
+## Batch 530 (PS-554): the mismatch gates
+
+`clinical/clinicalMismatchService.ts` (`assess`, `atSignOut`, `secondaryReviewQueue`) and the resolution statuses in `clinical/clinicalMismatchDecision.ts`. See `clinical/README.md`.
+
+Batch 530 also: `clinicalHistory/recordClinicalHistoryAfterAccession.ts` (new capability `case:clinical-history:record`), and `clinical/clinicalMismatchInputs.mismatchCheckDeferred` (no clinical information → the check is deferred and audited at sign-out).
+
+## Batch 531
+
+The mismatch check re-runs when the compared text changes (`clinical/`); cytology re-send fix (`cytology/dispatchCytologyCaseInstances.ts`).
+
+## Batch 532
+
+Cytology publishes once per accession, when the case closes: one consolidated case report PDF, one ORU message, registry per sample together (`cytology/`, Batch 532). Print/fax/file-drop delivery (`delivery/reportDeliveryDeps.ts`) and the outbound-queue retry (`interfaceDispatch/outboundQueueAdapters.ts`) use the case report. `documentRendering/registerEmbeddedPrintFont.toWinAnsiText`: dashes and curly quotes print in the embedded font.
+
+## Batch 533
+
+Urgent cytology preliminary per specimen (`cytology/releaseCytologyPreliminary.ts`, `dispatchCytologyPreliminary.ts`; capability `cytology:preliminary:release`, no default role; signature configurable). New signing action `cytology-preliminary` (`auth/signerConfirmation.ts`, `signatures/ISignatureRecordService.ts`). `reports/publishReportReleasedEvent.ts` routes a cytology PRELIMINARY; `interfaceDispatch/outboundQueueAdapters.ts` retries it.
+
+## Batch 534
+
+Every report output follows the laboratory's release delay. The exceptions are a resend after a failure, and STAT cases when the STAT bypass is on (Pete, Oct 12). The person who released a report can recall it, which reopens what was released (`reportRelease/`). The cytology releases, surgical preliminaries, corrections and addenda, and autopsy PAD/FAD go through `releaseReport`. A background sweep sends what is due from any open screen, including surgical sign-outs whose page nobody has open.
+
+## Batch 535
+
+Recall reopens surgical corrections and addenda (`reports/IAmendmentService.reopen`) and autopsy PAD/FAD (`reportRelease/heldReleaseActions.ts`). Recalling a sign-out takes back the corrections still held on it. Fix: a correction released at an Orchestration re-sign-out is now sent (`reports/publishReleasedRevision.ts`).
+
+## Batch 536 — governed AI instructions and separation of duties (PS-554); AI vendor policy (PS-558)
+
+- `clinical/aiInstructions.ts`, `aiInstructionService.ts`: the mismatch check's AI instructions as approved versions (`config:ai-prompt:view|edit|approve`).
+- `authorization/`: `SEPARATION_OF_DUTIES`; Superadmin doesn't hold `config:ai-prompt:approve`; role and staff saves refuse both duties together.
+- `aiIntegration/aiVendorPolicy.ts`, `aiVendorPolicyService.ts`, `aiCallPolicy.ts`: allowed AI services and regions per jurisdiction, checked before every `callAi()` and streaming generation, recorded with every call (`config:ai-vendor-policy:manage`).
+
+## Batch 537 — deployment readiness review (PS-539)
+
+`deploymentReadiness/deploymentReadinessReview.guard.test.ts`: every file cited by `docs/architecture/DEPLOYMENT_READINESS_REVIEW.md` must exist.
+
+## Batch 538 — one stored document per release (PS-539 D2)
+
+`reportDocuments/` (new): each released report is stored once with its SHA-256, and every channel and retry sends those bytes. Wired through `reports/`, `cytology/`, `delivery/`, `printing/`, `reportRelease/` and `interfaceDispatch/`.
+
+## Batch 539 — cytology PDFs from the report renderer (PS-539 D2)
+
+`cytology/`: the browser composes a cytology report's lines (`cytologyRenderPayload.ts`) and the report renderer draws them (`functions/cytology_report.py`); preview and release use the same builder. The jsPDF renderer and most of `documentRendering/` are removed. `reports/reportRenderer.ts` shares the renderer's address.
+
+## Batch 540 — no correction or addendum during the release delay
+
+`reportRelease/revisionDuringDelay.ts` (new), enforced by `reports/mockAmendmentService.startDraft` and the cytology correction and addendum services. A released PDF never carries the release-buffer watermark (`reports/resolveReportWatermark.ts`).
+
+## Batch 542 — phase 2c contracts (PS-539)
+
+`exports/` (new): `asyncExportContract.ts`, the wire contract for asynchronous exports (`docs/architecture/ASYNC_EXPORT_API.md`). `deploymentReadiness/phase2cContracts.guard.test.ts` keeps it and `MESSAGE_BUS_API.md` true to the code.
+
+## Batch 543 — CSV formula injection (F8), disposal export audit (F9), file storage contract
+
+`retentionPolicy/exportDisposalReport.ts` now audits the export; `actionRegistry/parseActionRegistryImportCsv.ts` parses lines as CSV. `utils/csv.ts` (outside services) neutralizes formula cells in every CSV the app writes. Contract `docs/architecture/BLOB_STORAGE_API.md`.
+
+## Batch 544 — Images and attachments are links only; single-facility QA exports
+
+`qualityAssurance/qaScopeRows.ts` (new) scopes six more QA reports to one facility; `staff/staffFormChecks.ts` checks the signature link; `quality/resolveQaEvidenceBinder.ts` names the scope in its file; `exports/asyncExportContract.ts` comment; `deploymentReadiness/phase2cContracts.guard.test.ts` guards links only.
+
+## Batch 545 — Interface engine edge contract (D6)
+
+`interfaceEngine/engineEdgeContract.ts` (new): the engine ↔ API contract (`docs/architecture/INTERFACE_ENGINE_EDGE.md`). `deploymentReadiness/` guards it. Outside services, `api/webhooks/engine/` fixes finding F10.
+
+## Batch 546 — Site agent contract (D3); F3 and F4 fixed
+
+`siteAgent/siteAgentContract.ts` (new) is the site agent ↔ API contract (`docs/architecture/SITE_AGENT_API.md`).
+- `printing/`: a network print from the browser fails cleanly, and goes straight to the fallback (F3).
+- `delivery/` and `reports/` pass the "not retriable" flag.
+- `security/` guards the workstation print bridges in the CSP (F4).
+- `deploymentReadiness/` guards the contract.
+
+## Batch 547 — Runtime configuration (phase 2d)
+
+- `runtimeConfig/` (new): a deployment's settings come from its `config.json` at start-up, through `appEnv()`. Every `import.meta.env.VITE_*` read in `services/` now goes through it.
+- `auth/authSessionInstance.ts` and `staffPasswords/mockStaffPasswordService.ts` load the demo accounts only in the demo build (`__DEMO_TOOLS__`), so a server build has none.
+- `loadSize/`: the first-screen check starts from `main.tsx` and `startApp.tsx`.
+
+## Batch 548 — Waiting states and the connection banner (phase 2d)
+
+`connectivity/latencyStates.ts` (new): the rules for loading phases and the connection banner (readiness review §8, §9 item 2).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `links/` (new): the shared https link check (`externalLink.ts`).
+- `reportDocuments/`: one storage entry per document. `reports/`: Assist results carry the sign-out time. `printing/`: translated site-agent failure reason. `liveUpdates/`: `retryNow`.
+- `engravers/fetchNewEngineNotifications.ts` removed (F1).
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `exports/`: the browser's export service (`exportService` in the barrel), its HTTP client and `runExport`. `liveUpdates/`: `ExportStatus`. `auth/sessionEndHooks.ts`. `qualityAssurance/runQaExport.ts`.
+
+## Batch 551 (PS-539 phase 2d: the Server jobs view)
+
+- `serverJobs/` (new): the Server jobs view's contract and service (`serverJobsService` in the barrel). `apiServer/apiServerUrl.ts` (new): the API server's address, checked as sign-in checks it, shared by exports and server jobs.
+- `registrySubmission/`: with exports through the server, the registry audit no longer reads its queues in the browser (carried over from Batch 550).
+
+## Batch 552 (PS-539 phase 2d: site agent screens)
+
+- `siteAgent/`: the Site agents administration (`siteAgentAdminService` in the barrel). `printing/printJobFailureReason.ts`: `printJobStatusKey` ("Sent to printer").
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- Batch 553: `printRouting/printDestinationRules.ts` (site agent printers in routing rules, the facility default and Redirect); `siteAgent` `reportPrinters`, coded revoke reasons, update window.
+
+## Batch 554 (PS-539 phase 2d: interface monitoring)
+
+- Batch 554: `interfaceMonitoring/` (new): the interface engines' listeners and queues (`interfaceMonitoringService` in the barrel); `interface:engine-status:view` in `authorization/` (Admin).
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: `serverJobs/browserStandIns.ts`; each stand-in for a server job stops once the deployment lists it in `VITE_SERVER_JOBS`.
+
+## Batch 556 (PS-539 phase 2d: report documents through the API)
+
+- Batch 556: `reportDocuments/`: with the API server, released documents are read through it (`reportDocumentService` in the barrel; `sentDocumentProblem`). `types.ts`: `ServiceResultMeta.partial`.
+
+## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
+
+- Batch 557: `runtimeConfig/` reads the API server's `/api/config` (a few settings, and the hosting regions).
+
+## Batch 558 (PS-539 phase 2d: report versions through the API)
+
+- Batch 558: `reports/`: with the API server, report versions are listed through it and their PDFs read through it, checked (`reportVersionService`, `reportVersionPdfReader`, `versionHasPdf`, `versionPdfProblem` in the barrel).
+
+## Batch 559 (PS-539 phase 2d: data topics; Batch 558's open items)
+
+- Batch 559: `liveUpdates/` (data topics for push instead of polling, contract and client); `reports/` (a result held when its workup version isn't known; the PDF hash on the queue entry and in the message); `interfaceDispatch/`.
+
+## Batch 560 (PS-539 phase 2d: push instead of polling)
+
+- Batch 560: `liveUpdates/` (whether a topic was taken; read pacing); `engravers/engraverStatusCounts.ts`.
+
+## Batch 561 (PS-539 phase 2d)
+
+- Batch 561: tests for `reports/` and `interfaceDispatch/` (Batch 559's changes).
+
+## Batch 562 (PS-539 phase 2d)
+
+- Batch 562: `liveUpdates/` (`molecularQueue`), `molecularOrders/molecularQueueSelection.ts`, `siteAgent/siteAgentAdmin.ts` (`agentSiteIds`).
+
+## Batch 563 (PS-622)
+
+- Batch 563: `connectivity/pageWaitClock.ts`.
+
+## Batch 566 (PS-539 phase 2d)
+
+- Batch 566: `accessibility/a11yAudit.ts` (`container-without-button`: a `clickableContainer` row must hold a real button).
+
+## Batch 567 (PS-539 phase 2d)
+
+- Batch 567: `accessibility/a11yAudit.ts` (`nestedInteractive`: no control inside another).
+
+## Batch 568 (PS-539 phase 2d)
+
+- Batch 568: `accessibility/a11y.guard.test.ts`: no control inside another, app-wide.
+
+## Batch 569 (PS-539 phase 2d)
+
+- Batch 569: `accessibility/a11yAudit.ts`: comments set aside by the TypeScript parser; "no control inside another" also covers `<button>` and hand-made control roles.
+
+## Batch 571 (PS-539)
+
+- Batch 571: `liveUpdates/dataTopics.ts` header: the live-update decision.
+
+## Batch 572 (PS-539)
+
+- Batch 572: `liveUpdates/` topic `caseReport`; `cases/caseUpdateNotice.ts` and `subscribeCasesChangedElsewhere`; `cytology/` screening hours sign-off, the report's hours columns and the 8-hour cap correction; `authorization/` `cytology:screening-hours:sign-off`.
+
+## Batch 573 (PS-539)
+
+- Batch 573: `liveUpdates/casePresence.ts` and `joinCasePresence` on both transports; `supportReferences/caseSupportReference.ts` (the reference from the API server); `cases/caseEditingSignal.ts`.
+
+## Batch 574
+
+- Batch 574: `cytology/` workload counter figures, the start of the screening day (history, audited save), yesterday's sign-off, correction reasons on the report, edits counted once.
+
+## Batch 575
+
+- Batch 575: `cases/caseWrite.ts` `takeUpNewerCase`: the case report takes another user's save up in place.
+
+## Batch 576
+
+- Batch 576: `cytology/` cap checks and a test clock; `cases/caseEditingSignal.ts` the person's own edits.
+
+## Batch 577
+
+- Batch 577: `cases/caseWrite.ts` `takeTheirVersion`, `selectionAfterTakeUp`.
+
+## Batch 578
+
+- Batch 578: `cytology/cytologyWorkloadCapRules.ts` `cytologyWorkloadCapError`, `withoutCapOverride`; `createMockCytologyWorkloadCapSettingsService(clock)`.
+
+## Batch 579
+
+- Batch 579: `templates/templateReviewWork.ts` `addTemplateQuestionComment`, `toggleTemplateQuestionComment`; `reportEditing/reportSequence.ts` (new) `sequenceCaseReports`.

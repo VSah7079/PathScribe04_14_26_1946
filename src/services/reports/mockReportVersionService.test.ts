@@ -341,7 +341,10 @@ describe('Batch 461: the report version keeps the inserted organ maps and the PD
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.data.organMapFigures).toEqual([expect.objectContaining({ instanceId: 'inst-1', svgSha256: sha256Hex('<svg/>'), pngSha256: sha256Hex('data:image/png;base64,QQ==') })]);
-    expect(r.data.pdfSha256).toBe(sha256Hex('JVBERi0='));
+    // Batch 558: the bytes' hash, as the API server records it.
+    const { pdfSha256 } = await import('../reportDocuments/reportDocuments');
+    expect(r.data.pdfSha256).toBe(pdfSha256('JVBERi0='));
+    expect(r.data.pdfSha256).not.toBe(sha256Hex('JVBERi0='));
   });
 });
 
@@ -365,5 +368,24 @@ describe('Batch 463: a Mohs report version keeps the stage maps drawn at sign-ou
     expect(fig.svg).not.toBe('<svg old/>');
     expect(fig.fingerprint).not.toBe('outdated');
     expect(fig.svgSha256).toHaveLength(64);
+  });
+});
+
+describe('Batch 558: versions the API server holds count when a new one is numbered', () => {
+  it('numbers after them, and an amendment of an instance the server holds is CORRECTED', async () => {
+    const patientRes = await mockPatientIndexService.resolveOrCreatePatient({
+      organisationId: 'ORG-A', mrn: 'MRN-ORU-558', firstName: 'Test', lastName: 'PatientOru558', dateOfBirth: '1980-01-01T00:00:00.000Z',
+    });
+    if (patientRes.outcome !== 'created') throw new Error('setup failed');
+    vi.spyOn(caseRouter, 'getCase').mockResolvedValue({ patient: { id: patientRes.patientId } } as any);
+    const caseId = 'CASE-558-PRIOR';
+    const prior = [1, 2].map(n => ({ id: `srv-${n}`, caseId, versionNumber: n, createdAt: '', mode: 'orchestration', trigger: 'initial_signout', instanceId: 'inst-558', createdBy: { userId: 'u', userName: 'U' } })) as any;
+    const r = await mockReportVersionService.create({ caseId, instanceId: 'inst-558', mode: 'orchestration', trigger: 'amendment', createdBy: { userId: 'u', userName: 'U' } } as any, { priorVersions: prior });
+    expect(r.ok && r.data.versionNumber).toBe(3);
+    await new Promise(res => setTimeout(res, 150)); // the queue's own delay is 80ms
+    const { mockOutboundResultQueueService } = await import('./mockOutboundResultQueueService');
+    const queueRes = await mockOutboundResultQueueService.getByCaseId(caseId);
+    expect(queueRes.ok && queueRes.data.map(e => e.resultState)).toEqual(['CORRECTED']);
+    vi.restoreAllMocks();
   });
 });

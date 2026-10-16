@@ -24,6 +24,12 @@ function setup(allowed: Record<string, boolean> = { 'qa:pathologist-trend:view':
 }
 
 describe('qaTrendService', () => {
+  it('pendingCount evaluates, then counts the open patterns, for the QA page tile (Batch 515, PS-147)', async () => {
+    const { svc, store } = setup();
+    expect(await svc.pendingCount()).toBe(1);
+    expect(store()).toHaveLength(1);
+    expect(await setup({}).svc.pendingCount()).toBeUndefined();
+  });
   it('without the view capability nothing is listed or evaluated', async () => {
     const { svc, store } = setup({});
     expect(await svc.list()).toEqual({ ok: false, error: 'NOT_PERMITTED' });

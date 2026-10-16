@@ -43,6 +43,11 @@ vi.mock('@/pages/Synoptic/useSynopticFlags', () => ({
 }));
 vi.mock('@/components/Flags/FlagManagerModal', () => ({ default: () => null }));
 vi.mock('@/utils/openComposeTo', () => ({ openComposeTo: vi.fn() }));
+// Batch 572: the screening-hours panel has its own tests (ScreeningHoursPanel.test.tsx).
+vi.mock('@/contexts/SystemConfigContext', () => ({ useSystemConfig: () => ({ config: { facilityTimezone: 'America/Phoenix', jurisdiction: 'US' } }) }));
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => false }) }));
+vi.mock('./hooks/useCytologyWorkloadSummary', () => ({ useCytologyWorkloadSummary: () => null }));
+vi.mock('./hooks/useScreeningHoursSignOff', () => ({ useScreeningHoursSignOff: () => ({ today: null, yesterday: null, saving: false, signOff: vi.fn(), reload: vi.fn() }) }));
 
 import CytologyWorklistPage from './CytologyWorklistPage';
 

@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 import kidneyTpl from '@/data/templates/generic/kidney_resection.json';
 import { isVisible, type VisibilityCondition } from './fieldVisibility';
 import {
-  conditionAnswer, conditionMode, conditionTooComplex, isConditionComplete, withAlternative, withAlternativeAdded,
-  withAlternativeRemoved, withConditionAnswer, withConditionField, withConditionMode,
+  conditionAnswer, conditionAnswers, conditionMode, conditionTooComplex, isConditionComplete, withAlternative, withAlternativeAdded,
+  withAlternativeRemoved, withConditionAnswer, withConditionAnswers, withConditionAnswerToggled, withConditionField, withConditionMode,
 } from './conditionEdits';
 import { valueSourceOf, withSumColumn, withValueSource } from './templateCountRules';
 
@@ -59,15 +59,53 @@ describe('building a visibility condition', () => {
     expect(isVisible(c, { proc: 'partial', extra: [] })).toBe(false);
     expect(withAlternativeRemoved(c, 0)).toEqual({ fieldId: 'proc', answerId: '', notAnswerIds: ['partial'] });
   });
-  it('the shipped renal vein margin condition is editable; several answers or nested alternatives stay read-only', () => {
+  it('the shipped renal vein margin condition is editable; only nested alternatives and mixed answer keys stay read-only (Batch 519)', () => {
     const vein = kidneyTpl.sections.flatMap(s => s.fields as { id: string; visibleWhen?: VisibilityCondition }[]).find(f => f.id === 'psmap_ren_veinMargin')!;
     expect(conditionTooComplex(vein.visibleWhen)).toBe(false);
     expect(conditionMode(vein.visibleWhen)).toBe('isNot');
-    expect(conditionTooComplex({ fieldId: 'a', answerId: '', answerIds: ['x', 'y'] })).toBe(true);
-    expect(conditionTooComplex({ fieldId: 'a', answerId: '', notAnswerIds: ['x', 'y'] })).toBe(true);
-    expect(conditionTooComplex({ fieldId: 'a', answerId: 'x', or: [{ fieldId: 'b', answerId: '', notAnswerIds: ['y'] }] })).toBe(true);
+    // PS-493: several answers, and an "unless" alternative, are editable now.
+    expect(conditionTooComplex({ fieldId: 'a', answerId: '', answerIds: ['x', 'y'] })).toBe(false);
+    expect(conditionTooComplex({ fieldId: 'a', answerId: '', notAnswerIds: ['x', 'y'] })).toBe(false);
+    expect(conditionTooComplex({ fieldId: 'a', answerId: 'x', or: [{ fieldId: 'b', answerId: '', notAnswerIds: ['y'] }] })).toBe(false);
+    // Nested alternatives stay read-only (Pete's accepted default); so do answer keys that disagree.
     expect(conditionTooComplex({ fieldId: 'a', answerId: 'x', or: [{ fieldId: 'b', answerId: 'y', or: [{ fieldId: 'c', answerId: 'z' }] }] })).toBe(true);
+    expect(conditionTooComplex({ fieldId: 'a', answerId: 'x', notAnswerIds: ['y'] })).toBe(true);
     expect(conditionTooComplex(undefined)).toBe(false);
+  });
+});
+
+describe('several answers per question, and "unless" on an alternative (Batch 519, PS-493)', () => {
+  const answersFor = (c: VisibilityCondition, v: string | string[]) => isVisible(c, { proc: v });
+  it('ticking answers builds "is any of"; one answer stays answerId; unticking the last empties it', () => {
+    let c: VisibilityCondition = withConditionField({ fieldId: '', answerId: '' }, 'proc');
+    c = withConditionAnswerToggled(c, 'radical');
+    expect(c).toEqual({ fieldId: 'proc', answerId: 'radical' });
+    c = withConditionAnswerToggled(c, 'partial');
+    expect(c).toEqual({ fieldId: 'proc', answerId: '', answerIds: ['radical', 'partial'] });
+    expect(conditionAnswers(c)).toEqual(['radical', 'partial']);
+    expect([answersFor(c, 'radical'), answersFor(c, 'partial'), answersFor(c, 'other'), isVisible(c, {})]).toEqual([true, true, false, false]);
+    expect(answersFor(c, ['other', 'partial'])).toBe(true);
+    c = withConditionAnswerToggled(withConditionAnswerToggled(c, 'radical'), 'partial');
+    expect([c, isConditionComplete(c)]).toEqual([{ fieldId: 'proc', answerId: '' }, false]);
+  });
+  it('"unless any of": hidden for any named answer, shown otherwise and while blank; the answers carry across modes', () => {
+    const c = withConditionMode(withConditionAnswers({ fieldId: 'proc', answerId: '' }, ['partial', 'wedge', 'partial']), 'isNot');
+    expect(c).toEqual({ fieldId: 'proc', answerId: '', notAnswerIds: ['partial', 'wedge'] });
+    expect([answersFor(c, 'partial'), answersFor(c, 'wedge'), answersFor(c, 'radical'), isVisible(c, {})]).toEqual([false, false, true, true]);
+    expect(withConditionMode(c, 'is')).toEqual({ fieldId: 'proc', answerId: '', answerIds: ['partial', 'wedge'] });
+  });
+  it('an alternative can be "unless", with several answers; what the editor builds is what the engine shows', () => {
+    let c: VisibilityCondition = withConditionAnswer({ fieldId: 'proc', answerId: '' }, 'radical');
+    c = withAlternativeAdded(c);
+    let alt = withConditionField(c.or![0], 'extra');
+    alt = withConditionMode(withConditionAnswers(alt, ['vein', 'fat']), 'isNot');
+    c = withAlternative(c, 0, alt);
+    expect(c).toEqual({ fieldId: 'proc', answerId: 'radical', or: [{ fieldId: 'extra', answerId: '', notAnswerIds: ['vein', 'fat'] }] });
+    expect(conditionTooComplex(c)).toBe(false);
+    // Shown when proc is radical, OR unless extra is vein or fat.
+    expect(isVisible(c, { proc: 'radical', extra: ['vein'] })).toBe(true);
+    expect(isVisible(c, { proc: 'partial', extra: ['margin'] })).toBe(true);
+    expect(isVisible(c, { proc: 'partial', extra: ['fat'] })).toBe(false);
   });
 });
 

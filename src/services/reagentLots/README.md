@@ -1,6 +1,8 @@
 # services/reagentLots
 
-Reagent lots. Stain reagent lots (Configuration → System → Reagent lots). `mockReagentLotService.ts`: create / update / deactivate / reactivate.
+Reagent lots. Stain reagent lots (Configuration → System → Reagent & Solution Lots). `mockReagentLotService.ts`: create / update / deactivate / reactivate.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the section's on-screen name is "Reagent & Solution Lots".*
 
 ## Batch 428: Configuration permissions
 

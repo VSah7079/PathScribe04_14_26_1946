@@ -1,9 +1,20 @@
 import { LoaderFunctionArgs, redirect } from "react-router";
 import { openCaseForViewDefault } from "../services/cases/defaultOpenCaseForView";
 import { caseAddresses } from "../services/caseAddresses/caseAddressesInstance";
-import { CASE_ADDRESS_VIEWS } from "../services/caseAddresses/caseAddresses";
+import { CASE_ADDRESS_VIEWS, type CaseView } from "../services/caseAddresses/caseAddresses";
 
-export async function synopticLoader({ params, request }: LoaderFunctionArgs) {
+/**
+ * Batch 564: the case loader for a view. An old accession address is redirected to the same view's
+ * address (it always went to the synoptic page before, so an old grossing link opened the report editor).
+ */
+export function caseViewLoader(view: Extract<CaseView, 'synoptic' | 'grossing'>) {
+  return (args: LoaderFunctionArgs) => loadCase(args, view);
+}
+
+export const synopticLoader = caseViewLoader('synoptic');
+export const grossingLoader = caseViewLoader('grossing');
+
+async function loadCase({ params, request }: LoaderFunctionArgs, view: 'synoptic' | 'grossing') {
   const param = params.caseId;
 
   if (!param) {
@@ -16,7 +27,7 @@ export async function synopticLoader({ params, request }: LoaderFunctionArgs) {
   // before the page opens, so it never becomes the page's address.
   const { caseId, legacy } = await caseAddresses.caseIdOf(param);
   if (legacy) {
-    const address = caseId ? await caseAddresses.addressOf(caseId, "synoptic") : null;
+    const address = caseId ? await caseAddresses.addressOf(caseId, view) : null;
     return redirect(address ? `${address}${new URL(request.url).search}` : "/worklist");
   }
 

@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ConfirmModal from '@/components/Common/ConfirmModal';
 import type { Case, ProtocolChange } from '@/types/case/Case';
-import type { SpecimenLisStatus } from '@/types/case/Specimen';
+import type { SpecimenLisSyncState } from '@/types/case/Specimen';
+import { lisSyncStateNeedsBadge } from '@/services/specimens/resolveSpecimenLisSyncState';
 import type { CaseComment } from '@/types/case/CaseComment';
+import { pressable } from '@/utils/a11y/pressable';
 
 interface SidebarProps {
   caseData: Case | null;
@@ -73,17 +75,16 @@ const StatusDot: React.FC<{ status: DotStatus }> = ({ status }) => {
 };
 
 // ── LIS status badge ─────────────────────────────────────────────────────────
-const LIS_BADGE: Record<Exclude<SpecimenLisStatus, 'lis_owned' | 'local_only'>, { labelKey: string; className: string }> = {
+const LIS_BADGE: Record<Exclude<SpecimenLisSyncState, 'lis_owned' | 'local_only'>, { labelKey: string; className: string }> = {
   pending_sync:  { labelKey: 'sidebar.lisStatus.pendingSync',  className: 'ps-sp-lis-badge ps-sp-lis-badge--pending'  },
   sync_sent:     { labelKey: 'sidebar.lisStatus.syncSent',     className: 'ps-sp-lis-badge ps-sp-lis-badge--sent'     },
   sync_rejected: { labelKey: 'sidebar.lisStatus.syncRejected', className: 'ps-sp-lis-badge ps-sp-lis-badge--rejected' },
 };
 
-const LisStatusBadge: React.FC<{ status?: SpecimenLisStatus }> = ({ status }) => {
+const LisSyncBadge: React.FC<{ state?: SpecimenLisSyncState }> = ({ state }) => {
   const { t } = useTranslation();
-  if (!status || status === 'lis_owned' || status === 'local_only') return null;
-  const badge = LIS_BADGE[status as keyof typeof LIS_BADGE];
-  if (!badge) return null;
+  if (!lisSyncStateNeedsBadge(state)) return null;
+  const badge = LIS_BADGE[state];
   return <span className={badge.className}>{t(badge.labelKey)}</span>;
 };
 
@@ -163,8 +164,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             const isActive = activeSpecimenId === sp.id;
             const hasPendingChange = hasPendingChangeForSpecimen(sp.id);
             return (
+              // Batch 569 (axe nested-interactive): the "changes to review" dot was a button inside the specimen's
+              // button. It sits beside it now, as a button of its own with a name.
+              <span key={sp.id} className="ps-syn-rail-item">
               <button
-                key={sp.id}
+                type="button"
                 className={`ps-syn-rail-btn${isActive ? ' active' : ''}`}
                 onClick={() => {
                   onSelectSpecimen?.(sp.id);
@@ -180,13 +184,13 @@ const Sidebar: React.FC<SidebarProps> = ({
               >
                 <span className="ps-syn-rail-letter">{sp.label}</span>
                 <span className={`ps-status-dot ps-syn-rail-dot${hasAnswers ? ' ps-syn-rail-dot--has-answers' : ''}`} />
-                {hasPendingChange && (
-                  <span
-                    onClick={e => { e.stopPropagation(); onReviewProtocolChanges?.(); }}
-                    className="ps-syn-rail-pending-dot"
-                  />
-                )}
               </button>
+              {hasPendingChange && (
+                <button type="button" className="ps-syn-rail-pending-dot"
+                  aria-label={t('sidebar.specimenRow.reviewHint')} title={t('sidebar.specimenRow.reviewHint')}
+                  onClick={() => onReviewProtocolChanges?.()} />
+              )}
+              </span>
             );
           })}
         </div>
@@ -327,13 +331,12 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div key={specimen.id}>
                 <div
                   className={`ps-syn-specimen-row${isActive ? ' active' : ''}`}
-                  onClick={() => {
+                  // Batch 524 (PS-491): no button role, because the row holds buttons of its own.
+                  {...pressable(() => {
                     if (allRows.length === 0) { onSelectSpecimen?.(specimen.id); onAddSynoptic?.(); }
                     else { toggleExpand(specimen.id); onSelectSpecimen?.(specimen.id); }
-                  }}
+                  }, { role: null })}
                   title={t('sidebar.specimenRow.title', { label: specimen.label, description: specimen.description })}
-                  role="button" tabIndex={0}
-                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleExpand(specimen.id)}
                 >
                   <span className={`ps-syn-expand-arrow${isExpanded ? ' open' : ''}${allRows.length === 0 ? ' hidden' : ''}`}>
                     ▶
@@ -344,7 +347,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <span className="ps-syn-specimen-label-letter">{specimen.label}:</span>{' '}
                       {specimen.description}
                     </div>
-                    <LisStatusBadge status={specimen.lisStatus} />
+                    <LisSyncBadge state={specimen.lisSyncState} />
                   </div>
 
                   {specimenUnverifiedCount > 0 && (
@@ -358,19 +361,19 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                   <span
                     className={`ps-specimen-comment-btn${(specimenComments[specimen.id]?.length ?? 0) > 0 ? ' ps-specimen-comment-btn--active' : ''}`}
-                    onClick={e => { e.stopPropagation(); onOpenSpecimenComment?.(specimen.id); }}
+                    {...pressable(e => { e.stopPropagation(); onOpenSpecimenComment?.(specimen.id); })}
                     title={(specimenComments[specimen.id]?.length ?? 0) > 0 ? t('sidebar.specimenRow.viewAddComment') : t('sidebar.specimenRow.addComment')}
                   >💬</span>
 
                   <span
                     className="ps-specimen-edit-btn"
-                    onClick={e => { e.stopPropagation(); onEditSpecimen?.(specimen.id); }}
+                    {...pressable(e => { e.stopPropagation(); onEditSpecimen?.(specimen.id); })}
                     title={t('sidebar.specimenRow.editDetails')}
                   >✏️</span>
 
                   {hasPendingChangeForSpecimen(specimen.id) && (
                     <span
-                      onClick={e => { e.stopPropagation(); onReviewProtocolChanges?.(); }}
+                      {...pressable(e => { e.stopPropagation(); onReviewProtocolChanges?.(); })}
                       title={t('sidebar.specimenRow.reviewHint')}
                       className="ps-syn-review-badge"
                     >
@@ -408,7 +411,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div
                           key={inst.instanceId}
                           className={`ps-syn-instance-row${isActiveInst ? ' active' : ''}`}
-                          onClick={() => onSelectReport?.(inst.instanceId, specimen.id, inst.reportType)}
+                          {...pressable(() => onSelectReport?.(inst.instanceId, specimen.id, inst.reportType), { role: null })}
                         >
                           <div className="ps-syn-flex-fill">
                             <div className="ps-syn-instance-name">

@@ -23,6 +23,7 @@ import type { NewAuditLog } from '../auditlog/IAuditService';
 import type { ResolvedFieldRequirement } from '../fieldRequirements/fieldRequirementRules';
 import { holdMissing, type HoldKind } from '../fieldRequirements/reportPageChecks';
 import { ConcurrencyConflictError } from './ConcurrencyConflictError';
+import { caseVersionOf } from './caseWrite';
 
 type AnyHold = CaseHold | RetentionHold;
 type HoldList<K extends HoldKind> = K extends 'case' ? CaseHold[] : RetentionHold[];
@@ -46,7 +47,7 @@ const LABEL: Record<HoldKind, string> = { case: 'Case hold', retention: 'Retenti
 export interface HoldDeps {
   authorization: Pick<IAuthorizationService, 'enforce'>;
   getCase: (caseId: string) => Promise<Case | undefined>;
-  updateCase: (caseId: string, patch: Partial<Case>, knownVersion?: number) => Promise<unknown>;
+  updateCase: (caseId: string, patch: Partial<Case>, knownVersion: number) => Promise<unknown>;
   audit: (entry: NewAuditLog) => Promise<unknown>;
   now?: () => string;
 }
@@ -67,7 +68,8 @@ async function save<K extends HoldKind>(
   kind: K, c: Case, holds: AnyHold[], deps: HoldDeps, event: string, detail: string, actor: HoldActor,
 ): Promise<HoldResult<K>> {
   try {
-    await deps.updateCase(c.id, { [FIELD[kind]]: holds } as Partial<Case>, (c as { version?: number }).version);
+    // A case saved before versioning reads as version 0, as every case service treats it.
+    await deps.updateCase(c.id, { [FIELD[kind]]: holds } as Partial<Case>, caseVersionOf(c));
   } catch (e) {
     return { ok: false, reason: e instanceof ConcurrencyConflictError ? 'conflict' : 'failed' };
   }

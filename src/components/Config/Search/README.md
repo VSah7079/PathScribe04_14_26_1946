@@ -45,7 +45,8 @@ original tab-only navigation, a real result rather than nothing.
 - `constants/configSearchIndex.ts` needs to stay in sync with the
   actual Config tabs/sections as they change — each `system`-tabbed
   entry's own `section` value needs to keep matching a real
-  `SystemSection` id in `Config/System/index.tsx`, or it'll silently
+  `SystemSection` id in `Config/System/systemSections.ts` (moved there from
+  `index.tsx` in Batch 431; corrected in the Batch 496 README audit), or it'll silently
   fall back to tab-only navigation again.
 
 ## Batch 430: personal settings per person; view-only fields

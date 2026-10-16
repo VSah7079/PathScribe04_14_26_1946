@@ -37,6 +37,7 @@ import { withMissingSeedRecords } from '../mockSeedMerge';
 import { PRE_SIGN_OUT_PEER_REVIEW_ACTIVITY_TYPE_ID } from './peerReviewRules';
 import { CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID } from './capaRecommendationRules';
 import { OUTSIDE_CONSULT_CORRELATION_ACTIVITY_TYPE_ID } from '../consultAccess/outsideConsultRules';
+import { qaFieldSchemaProblem } from './qaFieldSchemaRules';
 
 const STORAGE_KEY = 'qa_activity_types';
 
@@ -327,12 +328,30 @@ const SEED_TYPES: QaActivityType[] = [
         { id: 'unexpected-malignancy', label: 'Unexpected Malignancy' },
         { id: 'expected-malignancy-absent', label: 'Expected Malignancy Not Found' },
         { id: 'site-or-organ', label: 'Site or Organ Does Not Match' },
+        // Batch 530: autopsy (Batch 523) was missing from the list.
+        { id: 'cause-of-death', label: 'Cause of Death or Major Diagnosis Differs' },
         { id: 'other', label: 'Other' },
       ] },
       { id: 'suggestionSource', label: 'Suggested By', type: 'dropdown', required: false, options: [
         { id: 'ai', label: 'AI Evaluation' },
         { id: 'rule', label: 'Rule-Based Check' },
         { id: 'pathologist', label: 'The Pathologist' },
+      ] },
+      // Batch 530 (PS-554): the resolution status, the risk the rules gave it, and the quick reason.
+      { id: 'resolutionStatus', label: 'Resolution Status', type: 'dropdown', required: false, options: [
+        { id: 'RESOLVED', label: 'Resolved' },
+        { id: 'UNRESOLVED', label: 'Unresolved (corrective action recommended)' },
+        { id: 'DEFERRED', label: 'Deferred to secondary review' },
+        { id: 'LOGGED', label: 'Logged at sign-out (low risk, not reviewed)' },
+      ] },
+      { id: 'risk', label: 'Risk', type: 'dropdown', required: false, options: [
+        { id: 'high', label: 'High (held sign-out)' },
+        { id: 'low', label: 'Low' },
+      ] },
+      { id: 'quickReason', label: 'Reason', type: 'dropdown', required: false, options: [
+        { id: 'expected-variation', label: 'Expected variation' },
+        { id: 'clinical-context-reviewed', label: 'Clinical context reviewed' },
+        { id: 'preop-nonspecific', label: 'Pre-op diagnosis non-specific' },
       ] },
     ],
     teachingOnboardingEnabled: false,
@@ -364,7 +383,23 @@ const SEED_TYPES: QaActivityType[] = [
 
 // Batch 439: standard types added after a browser stored its list still
 // appear (types are deactivated, never deleted, so a missing id is new).
-const load    = (): QaActivityType[] => withMissingSeedRecords(storageGet<QaActivityType[] | null>(STORAGE_KEY, null), SEED_TYPES).records;
+// Batch 530: and fields (or dropdown options) added to a seeded type after it
+// was stored are added to the stored copy; nothing stored is changed.
+export function withSeedFieldsAdded(types: QaActivityType[], seed: readonly QaActivityType[]): QaActivityType[] {
+  return types.map(t => {
+    const s = seed.find(x => x.id === t.id);
+    if (!s) return t;
+    const fields = t.fields.map(f => {
+      const sf = s.fields.find(x => x.id === f.id);
+      if (!sf) return f;
+      const missing = sf.options.filter(o => !f.options.some(x => x.id === o.id));
+      return missing.length ? { ...f, options: [...f.options, ...missing] } : f;
+    });
+    const added = s.fields.filter(sf => !t.fields.some(f => f.id === sf.id));
+    return added.length || fields.some((f, i) => f !== t.fields[i]) ? { ...t, fields: [...fields, ...added] } : t;
+  });
+}
+const load    = (): QaActivityType[] => withSeedFieldsAdded(withMissingSeedRecords(storageGet<QaActivityType[] | null>(STORAGE_KEY, null), SEED_TYPES).records, SEED_TYPES);
 const persist = (data: QaActivityType[]) => storageSet(STORAGE_KEY, data);
 
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
@@ -378,6 +413,8 @@ const qaActivityTypeServiceUnchecked: IQaActivityTypeService = {
   async add(type) {
     if (!type.name.trim()) return err('A real activity name is required.');
     if (type.fields.length === 0) return err('A real activity needs at least one field.');
+    // Batch 516 (PS-125): a complete field set (labels, unique ids, options on choice fields).
+    { const problem = qaFieldSchemaProblem(null, type.fields); if (problem) return err(problem); }
     const types = load();
     const newType: QaActivityType = {
       ...type,
@@ -394,6 +431,10 @@ const qaActivityTypeServiceUnchecked: IQaActivityTypeService = {
     if (idx === -1) return err(`Activity type ${id} not found.`);
     // Batch 428: a standard type can't be switched off or made custom.
     { const refusal = standardQaTypeChangeRefusal(types[idx], changes); if (refusal) return err(refusal); }
+    // Batch 516 (PS-125, Pete): past QA records keep their answers under each
+    // field's id, so a saved field is never removed or retyped and a saved
+    // option is never removed (qaFieldSchemaRules.ts).
+    if (changes.fields) { const problem = qaFieldSchemaProblem(types[idx].fields, changes.fields); if (problem) return err(problem); }
     const updated = { ...types[idx], ...changes };
     const withUpdate = [...types];
     withUpdate[idx] = updated;

@@ -6,7 +6,6 @@ import { mockCancerRegistrySettingsService } from './mockCancerRegistrySettingsS
 import { mockFacilityCancerRegistryOverrideService } from './mockFacilityCancerRegistryOverrideService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const cancerRegistrySettingsDeps: CancerRegistrySettingsDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   updateEnterprise: patch => mockCancerRegistrySettingsService.update(patch),

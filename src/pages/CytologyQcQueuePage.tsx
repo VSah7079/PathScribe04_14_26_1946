@@ -27,7 +27,9 @@ import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { cytologyQcCaseAssignmentService } from '@/services';
+import { cytologyQcCaseAssignmentService, cytologyQcRuleService } from '@/services';
+import { qcSelectionReasonLabel, qcSelectionReasons } from '@/services/cytologyQc/qcSelectionReasonLabels';
+import { formatList } from '@/utils/formatList';
 import { resolveQcQueueTabFilter, type QcQueueTab } from '@/services/cytologyQc/resolveQcQueueTabFilter';
 import { resolveQcSlaStatus, type QcSlaStatus } from '@/services/cytologyQc/resolveQcSlaStatus';
 import { resolvePatientFullDisplayName } from '@/utils/personName';
@@ -41,7 +43,7 @@ const SLA_STATUS_CLASS: Record<QcSlaStatus, string> = {
 };
 
 const CytologyQcQueuePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   // Batch 432: the bypass shows only to people whose role holds it.
   const { has: can } = useCapabilities();
@@ -49,6 +51,8 @@ const CytologyQcQueuePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<QcQueueTab>('all');
   const [queue, setQueue] = useState<CytologyQcCaseAssignment[]>([]);
   const [casesById, setCasesById] = useState<Record<string, Case>>({});
+  // Batch 501: rule names, for "Selected by".
+  const [ruleNames, setRuleNames] = useState<Record<string, string>>({});
   const [now, setNow] = useState(() => new Date().toISOString());
   const [discrepancyTargetId, setDiscrepancyTargetId] = useState<string | null>(null);
 
@@ -64,6 +68,10 @@ const CytologyQcQueuePage: React.FC = () => {
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    void cytologyQcRuleService.getAll().then(r => { if (r.ok) setRuleNames(Object.fromEntries(r.data.map(rule => [rule.id, rule.name]))); });
+  }, []);
+  const list = (items: string[]) => formatList(items, i18n.language);
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date().toISOString()), 30_000);
     return () => window.clearInterval(interval);
@@ -109,7 +117,7 @@ const CytologyQcQueuePage: React.FC = () => {
           return (
             <div key={assignment.id} className="ps-qcqueue-row">
               <div className="ps-qcqueue-row-patient" data-phi="true">
-                {(relatedCase && resolvePatientFullDisplayName(relatedCase.patient)) ?? assignment.caseId}
+                {(relatedCase && resolvePatientFullDisplayName(relatedCase.patient, i18n.language)) ?? assignment.caseId}
                 <span className="ps-qcqueue-row-accession" data-phi="accession">{relatedCase?.accession.accessionNumber}</span>
               </div>
               <div className="ps-qcqueue-row-badges">
@@ -118,6 +126,13 @@ const CytologyQcQueuePage: React.FC = () => {
                 </span>
                 {assignment.badges.map(badge => <span key={badge} className="ps-qcqueue-badge-pill">{badge}</span>)}
                 <span className={`ps-qcqueue-sla-badge ${SLA_STATUS_CLASS[slaStatus]}`}>{t(`cytologyQcQueue.slaStatus.${slaStatus}`)}</span>
+              </div>
+              {/* Batch 501: every trigger that selected the specimen, and the reviewer pool it is routed to. */}
+              <div className="ps-qcqueue-row-selection">
+                <span>{t('cytologyQcQueue.selectedBy.label', { reasons: list(qcSelectionReasons(assignment).map(r => { const l = qcSelectionReasonLabel(r, ruleNames); return t(l.key, l.values); })) })}</span>
+                {!!assignment.eligibleReviewerRoles?.length && (
+                  <span>{t('cytologyQcQueue.selectedBy.reviewerPool', { roles: list(assignment.eligibleReviewerRoles) })}</span>
+                )}
               </div>
               <div className="ps-qcqueue-row-actions">
                 {/* Batch 396 (Pete): open the case to review it (slides, the

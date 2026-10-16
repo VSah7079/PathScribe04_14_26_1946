@@ -19,6 +19,8 @@ import { useFieldRequirements } from '../../../hooks/useFieldRequirements';
 import { CapabilityButton } from '../../../components/Common/CapabilityButton';
 import { getStaffSubspecialtyDisplay } from '../../../utils/staffSubspecialties';
 import type { StaffUser, Subspecialty } from '../../../services';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface Pool {
   id: string;
@@ -61,7 +63,7 @@ const RecipientCard: React.FC<RecipientCardProps> = ({ id, primary, secondary, i
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onClick={onClick}
+      {...pressable(onClick)}
       className={`ps-delegate-recipient-card${isDragging ? ' ps-delegate-recipient-card--dragging' : isSelected ? ' ps-delegate-recipient-card--selected' : ''}`}
       data-dragged={transform ? '' : undefined}
       style={transform ? { '--drag-transform': CSS.Translate.toString(transform) } as React.CSSProperties : undefined}
@@ -98,7 +100,9 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
   return (
     <div
       ref={setNodeRef}
-      onClick={onSelectType}
+      // Batch 567 (axe nested-interactive): the zone can hold a button (clear the recipient), so it isn't a button
+      // itself; clicking it still picks the type, and the type's name is the button for the keyboard.
+      {...clickableContainer(onSelectType)}
       className={`ps-delegate-type-zone${isSelected ? ' ps-delegate-type-zone--selected' : ''}${isOver ? ' ps-delegate-type-zone--over' : ''}`}
       style={{ '--ps-hue': dt.color } as React.CSSProperties}
     >
@@ -112,7 +116,8 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
         <span className="ps-delegate-type-zone-id-badge">
           {dt.id.replace('_', ' ')}
         </span>
-        <span className="ps-delegate-type-zone-label">{dt.label}</span>
+        <button type="button" className="ps-row-open-btn ps-delegate-type-zone-label" aria-pressed={isSelected}
+          onClick={e => { e.stopPropagation(); onSelectType(); }}>{dt.label}</button>
         {isSelected && <span className="ps-delegate-type-zone-check">✓</span>}
       </div>
       <div className="ps-delegate-type-zone-desc">{dt.description}</div>
@@ -123,7 +128,7 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
         selectedRecipientLabel ? (
           <div className="ps-delegate-type-zone-recipient-chip">
             <span className="ps-delegate-type-zone-recipient-label">{selectedRecipientLabel}</span>
-            <button onClick={e => { e.stopPropagation(); onClearRecipient(); }} className="ps-delegate-type-zone-recipient-clear">✕</button>
+            <button type="button" aria-label={t('common.remove')} title={t('common.remove')} onClick={e => { e.stopPropagation(); onClearRecipient(); }} className="ps-delegate-type-zone-recipient-clear">✕</button>
           </div>
         ) : (
           <div className="ps-delegate-type-zone-drop-hint">
@@ -388,7 +393,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                     return (
                       <div
                         key={inst.instanceId}
-                        onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
+                        {...pressable(() => setSelectedInstanceId(isSel ? null : inst.instanceId))}
                         className={`ps-delegate-synoptic-item${isSel ? ' ps-delegate-synoptic-item--selected' : ''}`}
                       >
                         <div className="ps-delegate-synoptic-item-title">{inst.specimenDescription}</div>
@@ -403,7 +408,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
               {noteShown && (
                 <div className="ps-delegate-note-section">
                   <div className="fm-section-label fm-section-label--sm">{t('delegateModal.noteRequired')}</div>
-                  <input
+                  <input aria-label={t('delegateModal.noteRequired')}
                     type="text"
                     placeholder={t('delegateModal.notePlaceholder')}
                     value={note}
@@ -447,7 +452,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
               </div>
 
               <div className="ps-delegate-list">
-                {loading && <div className="ps-delegate-empty">{t('delegateModal.loading')}</div>}
+                {loading && <LoadingState variant="inline" className="ps-delegate-empty" label={t('delegateModal.loading')} />}
 
                 {filter === 'individuals' && !loading && (
                   filteredStaff.length === 0

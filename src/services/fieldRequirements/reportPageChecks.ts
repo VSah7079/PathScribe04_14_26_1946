@@ -140,7 +140,9 @@ export function criticalNotificationMissing(form: CriticalNotificationForm, requ
     criticalClinician: filled(form.clinicianName),
     criticalMethod: filled(form.method),
     criticalNotifiedBy: filled(form.notifiedByName),
-    criticalReadBack: form.readBackConfirmed ? 'yes' : '',
+    // Batch 517 (PS-143): a read-back is a spoken repeat, so it never applies to
+    // a secure email; the notification is recorded once the email is sent.
+    criticalReadBack: form.readBackConfirmed || form.method === 'secure_email' ? 'yes' : '',
   };
   return missingRequiredFields(inGroup(requirements, 'criticalFindings'), values).map(f => f.id);
 }

@@ -5,7 +5,7 @@
 // switches tiles). Decisions are in services/quality/reviewQueueCounts.ts.
 
 import { useEffect, useState } from 'react';
-import { cytologyQcCaseAssignmentService } from '@/services';
+import { cytologyQcCaseAssignmentService, clinicalMismatchService } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { loadReviewQueueCounts, type ReviewQueueCounts } from '@/services/quality/reviewQueueCounts';
 
@@ -17,6 +17,7 @@ export function useReviewQueueCounts(which: { cytologyQc: boolean; surgicalQa: b
     void loadReviewQueueCounts({
       cytologyQcQueueSize: () => cytologyQcCaseAssignmentService.getUnifiedQueue().then(r => (r.ok ? r.data.length : null)),
       listCases: () => caseRouter.getAll().then(r => (r.ok ? r.data : null)),
+      mismatchQueueSize: () => clinicalMismatchService.secondaryReviewQueue().then(q => q.length),
     }, { cytologyQc, surgicalQa }).then(c => { if (!cancelled) setCounts(c); });
     return () => { cancelled = true; };
   }, [cytologyQc, surgicalQa, refreshKey]);

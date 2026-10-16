@@ -35,7 +35,7 @@ export function useMicrotomyBilling(workItem: MicrotomyWorkItem | null, stainTyp
     serviceChargeService.getChargesForCase(caseId).then(r => setCharges(r.ok ? r.data : [])).catch(() => setCharges([]));
   };
   // Reloaded for each case, after each save, and when the full review closes.
-  useEffect(reloadCharges, [caseId, caseData?.version, fullReview]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(reloadCharges, [caseId, caseData?.version, fullReview]);
   useEffect(() => { setFullReview(false); }, [caseId]);
 
   const target: MaterialChargeTarget | null = !workItem ? null

@@ -10,7 +10,7 @@ import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuditLog } from '../components/Audit/useAuditLog';
 import { useIsAdmin, useIsSuperAdmin } from '../contexts/AuthContext';
-import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
+
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import AITab         from '../components/Config/AI/index';
 import ModelsTab     from '../components/Config/Models/index';
@@ -22,7 +22,8 @@ import TATConfigSection from '../components/Config/System/TATConfigSection';
 import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
-import DemoResetTab    from '../components/Config/System/DemoResetTab';
+// Batch 527 (PS-486): the demo reset is built in only in the demo build (__DEMO_TOOLS__).
+const DemoResetTab = __DEMO_TOOLS__ ? React.lazy(() => import('../components/Config/System/DemoResetTab')) : null;
 import ReportTemplatesSection    from '../components/TemplateBuilder/ReportTemplatesSection';
 import ValidationStudiesSection from '../components/ValidationStudies/ValidationStudiesSection';
 import ConfigSearchBar from '../components/Config/Search/ConfigSearchBar';
@@ -37,6 +38,8 @@ import '../pathscribe.css';
 import ConfigRefusalBanner from '../components/Config/ConfigRefusalBanner';
 import ConfigSectionGate from '../components/Config/ConfigSectionGate';
 import { CONFIG_TABS, type ConfigTabId } from '../constants/configSearchIndex';
+import { actionRegistryService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ── Admin permission check ────────────────────────────────────────────────────
 // Validation Studies tab is only visible to admin-tier roles. useIsAdmin/
@@ -68,7 +71,7 @@ const TAB_LABEL_KEYS: Record<TabId, string> = {
   // "D" happens to sort.
   demo:       'configuration.tabs.demo',
 };
-const TAB_ORDER: TabId[] = ['actions', 'ai', 'macros', 'templates', 'staff', 'protocols', 'system', 'cytology', 'tat', 'validation', 'voice', 'demo'];
+const TAB_ORDER: TabId[] = ['actions', 'ai', 'macros', 'templates', 'staff', 'protocols', 'system', 'cytology', 'tat', 'validation', 'voice', ...(__DEMO_TOOLS__ ? ['demo' as TabId] : [])];
 
 function getTabFromSearch(search: string): TabId {
   const t = new URLSearchParams(search).get('tab') as TabId | null;
@@ -83,7 +86,7 @@ function getTabFromSearch(search: string): TabId {
   // session) — a plain /configuration visit should land where an
   // admin actually needs to be most often, not wherever the tab list
   // happened to order things.
-  return t && (VALID_TABS as readonly string[]).includes(t) ? t : 'system';
+  return t && (VALID_TABS as readonly string[]).includes(t) && TAB_ORDER.includes(t) ? t : 'system';
 }
 
 const ConfigurationPage: React.FC = () => {
@@ -203,8 +206,8 @@ const ConfigurationPage: React.FC = () => {
 
   // ── Voice: set context on mount ─────────────────────────────────────────────
   useEffect(() => {
-    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.CONFIGURATION);
-    return () => mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.CONFIGURATION);
+    return () => actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
   }, []);
 
   // ── Voice: tab navigation listeners ────────────────────────────────────────
@@ -271,12 +274,12 @@ const ConfigurationPage: React.FC = () => {
             <div className="ps-cfgpage-locked-title">{t('configuration.adminRequiredTitle')}</div>
             <div className="ps-cfgpage-locked-sub">{t('configuration.adminRequiredSub')}</div>
           </div>;
-      case 'demo':      return <DemoResetTab />;
+      case 'demo':      return DemoResetTab ? <React.Suspense fallback={null}><DemoResetTab /></React.Suspense> : null;
       default:          return null;
     }
   };
 
-  if (!isLoaded) return <div className="ps-cfgpage-loading">{t('configuration.loading')}</div>;
+  if (!isLoaded) return <LoadingState label={t('configuration.loading')} />;
 
   return (
     <div className="ps-cfgpage-shell" ref={pageRootRef}>

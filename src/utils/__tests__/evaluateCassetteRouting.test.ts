@@ -134,7 +134,7 @@ describe('evaluateCassetteRouting', () => {
     expect(result).toBeNull();
   });
 
-  it('an \"auto\" fallback color resolves the real fallback target', () => {
+  it('an "auto" fallback color resolves the real fallback target', () => {
     const colors = [
       makeColor({ id: 'color-blue', fallbackBehavior: 'auto', fallbackColorId: 'color-white' }),
       makeColor({ id: 'color-white', key: 'COLOR_WHITE', displayName: 'White', hexCode: '#F8FAFC' }),
@@ -145,7 +145,7 @@ describe('evaluateCassetteRouting', () => {
     expect(result?.fallbackColor?.displayName).toBe('White');
   });
 
-  it('a \"prompt\" color has no fallbackColor at all — the Engine has nothing to silently substitute', () => {
+  it('a "prompt" color has no fallbackColor at all — the Engine has nothing to silently substitute', () => {
     const colors = [makeColor({ id: 'color-red', fallbackBehavior: 'prompt' })];
     const rule = makeRule({ colorId: 'color-red' });
     const result = evaluateCassetteRouting({}, [rule], [], colors);
@@ -153,7 +153,7 @@ describe('evaluateCassetteRouting', () => {
     expect(result?.fallbackColor).toBeUndefined();
   });
 
-  it('an \"auto\" color with a dangling/unset fallbackColorId still has no fallbackColor — never a guessed substitute', () => {
+  it('an "auto" color with a dangling/unset fallbackColorId still has no fallbackColor — never a guessed substitute', () => {
     const colors = [makeColor({ id: 'color-blue', fallbackBehavior: 'auto', fallbackColorId: undefined })];
     const rule = makeRule({ colorId: 'color-blue' });
     const result = evaluateCassetteRouting({}, [rule], [], colors);

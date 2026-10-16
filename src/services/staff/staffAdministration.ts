@@ -12,6 +12,10 @@
 //                               jurisdictional credentials. It requires
 //                               config:staff:edit.
 //
+// Batch 536 (PS-554): a role change is refused when the person's roles
+// together would carry both duties of a separation-of-duty pair
+// (capabilityCatalog SEPARATION_OF_DUTIES).
+//
 // Before this, anyone signed in could give any staff record, their own
 // included, any role. Every save is checked here (and the check audited);
 // an access change also writes "Staff access changed", and a credential
@@ -21,7 +25,9 @@
 import type { IAuditService } from '../auditlog/IAuditService';
 import type { IAuthorizationService } from '../authorization/authorizationService';
 import type { IUserService, StaffUser } from '../users/IUserService';
+import type { IRoleService } from '../roles/IRoleService';
 import { providerCredentialChangeDetail } from './providerCredentialRules';
+import { personSeparationOfDutiesConflicts } from '../authorization/roleCapabilityRules';
 
 export const STAFF_EDIT_CAPABILITY = 'config:staff:edit';
 export const STAFF_ACCESS_CAPABILITY = 'config:staff-access:assign';
@@ -65,6 +71,8 @@ export function staffAccessChangeDetail(name: string, before: Partial<StaffUser>
 export type SaveStaffResult =
   | { ok: true; user: StaffUser }
   | { ok: false; reason: 'notPermitted'; capability: string }
+  /** Batch 536: the roles together would give this person both duties of a separation-of-duty pair. */
+  | { ok: false; reason: 'separationOfDuties'; pairs: string[] }
   | { ok: false; reason: 'error'; detail: string };
 
 export interface StaffAdministrationDeps {
@@ -72,6 +80,8 @@ export interface StaffAdministrationDeps {
   authorization: Pick<IAuthorizationService, 'enforce'>;
   auditService: Pick<IAuditService, 'logEvent'>;
   actorName: string;
+  /** Batch 536: the role catalog, for the separation-of-duties check on a role change. */
+  roleService?: Pick<IRoleService, 'getAll'>;
 }
 
 export async function saveStaffMember(
@@ -86,6 +96,15 @@ export async function saveStaffMember(
   if (accessChanged) {
     const access = await deps.authorization.enforce('config:staff-access:assign');
     if (!access.allowed) return { ok: false, reason: 'notPermitted', capability: STAFF_ACCESS_CAPABILITY };
+  }
+
+  // Batch 536 (PS-554, Pete): no one may hold both duties of a separation-of-
+  // duty pair through the roles they're given (Superadmin has no exemption).
+  if (deps.roleService && staffAccessChanges(before, input.draft).includes('roles')) {
+    const roles = await deps.roleService.getAll();
+    if (roles.ok === false) return { ok: false, reason: 'error', detail: roles.error };
+    const clash = personSeparationOfDutiesConflicts(input.draft.roles ?? [], roles.data);
+    if (clash.length) return { ok: false, reason: 'separationOfDuties', pairs: clash.map(([a, b]) => `${a} + ${b}`) };
   }
 
   const res = input.mode === 'add' ? await deps.userService.add(input.draft) : await deps.userService.update(input.before.id, input.draft);

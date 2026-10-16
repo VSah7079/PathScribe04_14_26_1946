@@ -1,20 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { verifyEngineAuth, claimMessageId, docCreate, logIntegrationError, raiseSpecimenDeficiency } = vi.hoisted(() => ({
+const { verifyEngineAuth, createWithClaim, logIntegrationError, raiseSpecimenDeficiency } = vi.hoisted(() => ({
   verifyEngineAuth: vi.fn(),
-  claimMessageId: vi.fn(),
-  docCreate: vi.fn(),
+  createWithClaim: vi.fn(),
   logIntegrationError: vi.fn(),
   raiseSpecimenDeficiency: vi.fn(),
 }));
 
 vi.mock('./_lib/verifyEngineAuth', () => ({ verifyEngineAuth }));
-vi.mock('./_lib/idempotency', () => ({ claimMessageId }));
+vi.mock('./_lib/idempotency', () => ({ createWithClaim }));
 vi.mock('./_lib/logIntegrationError', () => ({ logIntegrationError }));
 vi.mock('./_lib/raiseSpecimenDeficiency', () => ({ raiseSpecimenDeficiency }));
-vi.mock('./_lib/firebaseAdmin', () => ({
-  getAdminFirestore: () => ({ collection: () => ({ doc: () => ({ create: docCreate }) }) }),
-}));
 
 import handler from './cassette-dispatch-outcome';
 
@@ -32,14 +28,12 @@ function makeRequest(body: unknown, method = 'POST'): Request {
 describe('cassette-dispatch-outcome webhook handler', () => {
   beforeEach(() => {
     verifyEngineAuth.mockReset();
-    claimMessageId.mockReset();
-    docCreate.mockReset();
+    createWithClaim.mockReset();
     logIntegrationError.mockReset();
     raiseSpecimenDeficiency.mockReset();
     raiseSpecimenDeficiency.mockResolvedValue('def-new-id');
     verifyEngineAuth.mockReturnValue({ ok: true });
-    claimMessageId.mockResolvedValue({ alreadyProcessed: false });
-    docCreate.mockResolvedValue(undefined);
+    createWithClaim.mockResolvedValue({ alreadyProcessed: false });
   });
 
   it('rejects a non-POST method with 405', async () => {
@@ -51,7 +45,7 @@ describe('cassette-dispatch-outcome webhook handler', () => {
     verifyEngineAuth.mockReturnValue({ ok: false, reason: 'bad secret' });
     const res = await handler(makeRequest(validPayload));
     expect(res.status).toBe(401);
-    expect(claimMessageId).not.toHaveBeenCalled();
+    expect(createWithClaim).not.toHaveBeenCalled();
   });
 
   it('rejects invalid JSON with 400', async () => {
@@ -71,20 +65,25 @@ describe('cassette-dispatch-outcome webhook handler', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 200 with status already-processed on a redelivered messageId, and never writes a notification', async () => {
-    claimMessageId.mockResolvedValue({ alreadyProcessed: true });
-    const res = await handler(makeRequest(validPayload));
+  it('returns 200 with status already-processed on a redelivered messageId, and raises nothing', async () => {
+    createWithClaim.mockResolvedValue({ alreadyProcessed: true });
+    const res = await handler(makeRequest({ ...validPayload, outcome: 'error' }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.status).toBe('already-processed');
-    expect(docCreate).not.toHaveBeenCalled();
+    expect(raiseSpecimenDeficiency).not.toHaveBeenCalled();
+  });
+
+  it('Batch 549 (F10): the record and the claim are written together, keyed by the messageId', async () => {
+    await handler(makeRequest(validPayload));
+    expect(createWithClaim).toHaveBeenCalledWith('msg-1', 'cassette-dispatch-outcome', 'pending_engine_notifications', 'msg-1', expect.objectContaining({ caseId: 'CASE-1' }));
   });
 
   it('writes a real record for a non-routine outcome and returns 200', async () => {
     const res = await handler(makeRequest(validPayload));
     expect(res.status).toBe(200);
-    expect(docCreate).toHaveBeenCalledTimes(1);
-    const written = docCreate.mock.calls[0][0];
+    expect(createWithClaim).toHaveBeenCalledTimes(1);
+    const written = createWithClaim.mock.calls[0][4];
     expect(written.eventType).toBe('cassette-dispatch-outcome');
     expect(written.caseId).toBe('CASE-1');
   });
@@ -92,8 +91,8 @@ describe('cassette-dispatch-outcome webhook handler', () => {
   it('also persists a routine "dispatched" outcome, per the real clinical-audit-trail requirement — a complete history needs successes recorded, not just problems', async () => {
     const res = await handler(makeRequest({ ...validPayload, outcome: 'dispatched' }));
     expect(res.status).toBe(200);
-    expect(docCreate).toHaveBeenCalledTimes(1);
-    const written = docCreate.mock.calls[0][0];
+    expect(createWithClaim).toHaveBeenCalledTimes(1);
+    const written = createWithClaim.mock.calls[0][4];
     expect(written.payload.outcome).toBe('dispatched');
   });
 
@@ -117,7 +116,7 @@ describe('cassette-dispatch-outcome webhook handler', () => {
   });
 
   it('returns 500 on an unexpected internal error, never leaking the raw error to the caller', async () => {
-    claimMessageId.mockRejectedValue(new Error('Firestore is down'));
+    createWithClaim.mockRejectedValue(new Error('Firestore is down'));
     const res = await handler(makeRequest(validPayload));
     expect(res.status).toBe(500);
     const body = await res.json();

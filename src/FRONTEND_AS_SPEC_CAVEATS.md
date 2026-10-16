@@ -22,22 +22,26 @@ code's *behavior* without reading *why* it behaves that way.
 
 **This is the most important item in this document, by a wide margin.**
 
-`getSessionUser()` (`src/services/auth/caseAccessControl.ts`, line 95)
+`getSessionUser()` (`src/services/auth/caseAccessControl.ts`, line 104)
 reads the "current user" — including their **role**,
 **organisationId**, and permission flags like
-`canViewCrossTenantQa` — directly out of `localStorage`:
+`canAccessCrossTenantQa` — from the stored session profile, which
+`readSessionProfile()` (`src/services/auth/sessionProfile.ts`) reads
+directly out of `localStorage`:
 
 ```ts
-const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-const parsed = JSON.parse(raw);
-return { id: parsed.id, role: parsed.role, ... };
+const raw = localStorage.getItem(SESSION_PROFILE_STORAGE_KEY);
 ```
 
 Anyone with browser DevTools can edit this value directly and become a
 pathologist, gain cross-tenant QA access, or grant themselves any
-permission flag in the app. There is no password, no token, no
-server-side session, no verification of any kind that the identity in
-`localStorage` is who it claims to be.
+permission flag in the app. Since Batch 343 (PS-60) there is a real
+sign-in step in the browser (SSO through the hospital's OpenID Connect
+provider, or hashed demo passwords in demo builds), but nothing on a
+server verifies the identity afterwards: there is no server-side
+session yet, and the stored profile is trusted as written.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the profile is now read through `readSessionProfile()`, and browser sign-in exists since Batch 343; the trust-boundary warning still stands.*
 
 **What's real and worth keeping**: every *authorization* function
 built on top of this — `resolveCaseAccess`, `canFinalizeCase`,
@@ -84,6 +88,21 @@ these are hard, structural requirements of the real registries, not
 formatting preferences. Before any real registry integration ships,
 the real backend needs a real field for each of these four identifiers,
 captured at accessioning, not synthesized from MRN.
+
+*Since Batch 417 this is largely closed:* national identifiers are
+stored apart from the MRN with their check digits run
+(`services/patientIdentifiers/`), and the screening and cancer registry
+payloads take the registry's identifier from them first
+(`resolveRegistryPatientIdentifier`,
+`services/screeningRegistry/screeningRegistryEngine.ts`), falling back
+to a format-checked MRN only for older records, and holding the
+submission when it is missing or fails its check digit. NICSP (Health +
+Care Number) and NCSR (IHI) are covered. Still open: the CervicalCheck
+(Ireland) and KCCR (Korea) screening definitions name no identifier
+format (`screeningRegistryDefinitions.ts`), so those two still carry the
+MRN.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): national identifiers exist since Batch 417; only CervicalCheck and KCCR still use the MRN.*
 
 ---
 
@@ -134,10 +153,17 @@ wiring cytology sign-out directly into a Cancer Registry dispatch
 branch. The only thing preventing that mistake today is this document
 existing and being read.
 
-If/when a real Cancer Registry dispatch branch is built (it doesn't
-exist yet — see the same planning document), this rule needs to become
-a real, enforced constraint in code — not remain a fact someone has to
-already know to avoid rebuilding it wrong.
+A Cancer Registry dispatch branch now exists
+(`services/cancerRegistry/dispatchCancerRegistryReportIfApplicable.ts`,
+Batches 420–422). It is called only from surgical sign-out
+(`useSignOutWorkflow.ts`) and the registry resend path, and the
+cervical CIS / CIN III exclusion is now coded in
+`resolveCancerRegistryReportability.ts`. But "never from cytology
+sign-out" is still kept only by those call sites and comments, not by a
+type or runtime check, so this rule still needs to become an enforced
+constraint.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the dispatch branch was described as not built; it exists, and the remaining gap is the missing enforcement.*
 
 ---
 
@@ -149,6 +175,14 @@ Diagnosis, including a Cytotechnologist** — there is no enforcement
 that this requires pathologist sign-off, because direct guidance never
 specified who should hold this authority during this app's
 development.
+
+*Update (Batch 410):* choosing the Final Diagnosis now needs the
+`cytology:final-diagnosis:select` capability, checked in the service
+(`services/cytology/cytologyCaseActions.ts`). It is seeded to
+Pathologist, Fellow, Resident and Cytotechnologist (Pete: keep today's
+users), so by default a Cytotechnologist can still set it; a hospital
+can remove it from that role in the Role Dictionary. *(Added in the
+Batch 496 README audit, Oct 9, 2026.)*
 
 This is a real, live gap in the current app, not just a documentation
 note. A real backend should not assume the frontend's current

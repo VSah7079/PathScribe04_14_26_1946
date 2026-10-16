@@ -176,6 +176,27 @@ describe('useLisIntegration — pendingLisNotice restore-on-load', () => {
 
     vi.doUnmock('@/services');
   });
+
+  it('Batch 577: reads the notice again when refreshKey changes (the page took up someone else\'s saved version)', async () => {
+    const getByCaseId = vi.fn()
+      .mockResolvedValueOnce({ ok: true, data: [] })
+      .mockResolvedValue({ ok: true, data: [{ id: 'NOTICE-2', caseId: 'TEST-CASE-001', status: 'pending_review', lisAmendmentSummary: 'Arrived meanwhile', receivedAt: '2026-10-15T00:00:00Z' }] });
+    vi.doMock('@/services', async () => {
+      const actual = await vi.importActual<typeof import('@/services')>('@/services');
+      return { ...actual, lisAmendmentNoticeService: { ...actual.lisAmendmentNoticeService, getByCaseId } };
+    });
+    vi.resetModules();
+    const { useLisIntegration: freshHook } = await import('../useLisIntegration');
+    const caseData = makeTestCase();
+    const props = { caseData, setCaseData: vi.fn(), signingUser: testSigningUser, showToast: vi.fn() };
+    const { result, rerender } = renderHook(({ refreshKey }) => freshHook({ ...props, refreshKey }), { initialProps: { refreshKey: 0 } });
+    await waitFor(() => expect(getByCaseId).toHaveBeenCalledTimes(1));
+    expect(result.current.pendingLisNotice).toBeNull();
+    rerender({ refreshKey: 1 });
+    await waitFor(() => expect(result.current.pendingLisNotice?.id).toBe('NOTICE-2'));
+    expect(getByCaseId).toHaveBeenCalledTimes(2);
+    vi.doUnmock('@/services');
+  });
 });
 
 describe('useLisIntegration — integration tests (real mock services, unmocked)', () => {

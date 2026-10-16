@@ -31,8 +31,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockWsiViewerVendorService } from '../../../services/digitalPathology/mockWsiViewerVendorService';
+
 import type { WsiViewerVendorEntry, NewWsiViewerVendorEntry } from '../../../services/digitalPathology/IWsiViewerVendorService';
+import { wsiViewerVendorService } from '@/services';
 
 type Draft = NewWsiViewerVendorEntry;
 
@@ -87,7 +88,7 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: WsiViewerVendorEntry } | null>(null);
 
   const refresh = () => {
-    mockWsiViewerVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
+    wsiViewerVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
   };
 
   useEffect(() => { refresh(); }, []);
@@ -96,17 +97,17 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
 
   const handleSave = async (draft: Draft) => {
     if (modal?.mode === 'edit' && modal.entry) {
-      await mockWsiViewerVendorService.update(modal.entry.id, draft);
+      await wsiViewerVendorService.update(modal.entry.id, draft);
     } else {
-      await mockWsiViewerVendorService.add(draft);
+      await wsiViewerVendorService.add(draft);
     }
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: WsiViewerVendorEntry) => {
-    if (e.active) await mockWsiViewerVendorService.deactivate(e.id);
-    else await mockWsiViewerVendorService.reactivate(e.id);
+    if (e.active) await wsiViewerVendorService.deactivate(e.id);
+    else await wsiViewerVendorService.reactivate(e.id);
     refresh();
   };
 

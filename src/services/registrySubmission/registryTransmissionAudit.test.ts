@@ -25,7 +25,7 @@ describe('registry transmission audit (Batch 425)', () => {
       exportQaReport,
     });
     expect(r).toEqual({ ok: true, rowCount: 1 });
-    expect(exportQaReport).toHaveBeenCalledWith('qa:registry-transmission-audit:export', [expect.objectContaining({ Case_ID: 'CASE-1' })], 'registry-transmission-audit-2026-10-01.csv');
+    expect(exportQaReport).toHaveBeenCalledWith('qa:registry-transmission-audit:export', [expect.objectContaining({ Case_ID: 'CASE-1' })], 'registry-transmission-audit-2026-10-01.csv', { queue: 'all' });
   });
   it('the badge counts only the user\'s own cases', async () => {
     const held = { id: 'h1', caseId: 'CASE-9', registryId: 'naaccr_us', status: 'FAILED', errorCode: 'REGISTRY_NOT_READY', errorMessage: 'x', queuedAt: '2026-10-01T00:00:00Z', maxRetriesExceeded: false };
@@ -33,5 +33,18 @@ describe('registry transmission audit (Batch 425)', () => {
     const ack = { queues: { cytology: { getAll: async () => ({ ok: true as const, data: [] }), setRegistryStatus: vi.fn(), markFailed: vi.fn() }, cancer: { getAll: async () => ({ ok: true as const, data: [] }), setRegistryStatus: vi.fn(), markFailed: vi.fn() } }, logAudit: () => {}, now: () => new Date('2026-10-01T12:00:00Z') } as any;
     const n = await countRegistryExceptionsForUser({ ack, getAll: { cytology: async () => ({ ok: true, data: [] }), cancer: async () => ({ ok: true, data: [held, mine] as any }) }, visibleCaseIds: async () => new Set(['CASE-1']) });
     expect(n).toBe(1);
+  });
+});
+
+describe('Batch 551 (carried over from 550): with the API server, the browser reads nothing for the file', () => {
+  it('asks the server with the queue and no rows', async () => {
+    const getAll = { cytology: vi.fn(), cancer: vi.fn() };
+    const exportQaReport = vi.fn(async () => ({ ok: true, viaServer: true }));
+    const visibleCaseIds = vi.fn();
+    const r = await exportRegistryTransmissionAudit({ queue: 'cancer', today: '2026-10-13' }, { getAll, visibleCaseIds, exportQaReport, exportsViaServer: true } as never);
+    expect(r).toEqual({ ok: true, viaServer: true });
+    expect(getAll.cytology).not.toHaveBeenCalled();
+    expect(visibleCaseIds).not.toHaveBeenCalled();
+    expect(exportQaReport).toHaveBeenCalledWith('qa:registry-transmission-audit:export', [], 'registry-transmission-audit-cancer-2026-10-13.csv', { queue: 'cancer' });
   });
 });

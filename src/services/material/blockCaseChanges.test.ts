@@ -9,7 +9,6 @@ import {
   updateMatrixBlockParticipantsChange, dissolveMatrixBlockChange,
 } from './blockCaseChanges';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const caseOf = (over: Partial<Case> = {}): Case => ({
   id: 'C1', version: 3,
   accession: { fullAccession: 'S26-1' },

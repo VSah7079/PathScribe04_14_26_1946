@@ -1,6 +1,8 @@
 # pages/BatchManagement/
 
-Cassette/slide chain-of-custody through histology processing nodes, plus the three real, computed queues surfaced as their own tiles/pages alongside it — and, since a later session, a fourth tile of a genuinely different kind (a live device-status dashboard, not a computed "what needs attention" queue).
+Cassette/slide chain-of-custody through histology processing nodes, plus the pages reached from tiles on the Batch Management hub: the Disposal Queue, Disposal Report and Pending Batch Load (computed from live data), Slide scanning, the Engraver Monitor (a live device-status dashboard) and the Equipment log.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the intro listed three queues and a fourth tile; the hub has six page tiles (`BatchManagementPage.tsx` navigate calls).*
 
 ## Files
 
@@ -8,15 +10,20 @@ Cassette/slide chain-of-custody through histology processing nodes, plus the thr
 - **`BatchDetailView.tsx`** — a single batch's manifest, scan-to-add items.
 - **`NewContainerModal.tsx`** — create a new batch (container type, target node, protocol/run parameters, priority, identifier mode disposable vs. reusable rack).
 - **`DisposalQueuePage.tsx`** (`/batch-management/disposal`) — real, computed queue of every specimen/block/slide currently eligible for disposal under retention policy, with direct scan-to-dispose. Backed by `services/retentionPolicy/computeDisposalQueue.ts`.
-- **`DisposalReportPage.tsx`** (`/batch-management/disposal-report`) — **Stain QC Module §2.5 (waste tracking/reporting)**. Read-only compliance report of every item that has genuinely already been disposed (the mirror image of `DisposalQueuePage.tsx` above — reports on the past action, never performs it), filterable by facility/material type/disposal date range, with XLSX export for CAP/CLIA/ISO 15189 audits. Backed by `services/retentionPolicy/computeDisposalReport.ts` — see that file's own header for the full account of what this closed vs. what already existed. i18n'd from the start (`disposalReport.*` keys, all five locales) per the standing rule — see `i18n/README.md`.
+- **`DisposalReportPage.tsx`** (`/batch-management/disposal-report`) — **Stain QC Module §2.5 (waste tracking/reporting)**. Read-only compliance report of every item that has genuinely already been disposed (the mirror image of `DisposalQueuePage.tsx` above — reports on the past action, never performs it), filterable by facility/material type/disposal date range, with CSV export (needs `retention:disposal-report:export`) for CAP/CLIA/ISO 15189 audits. Backed by `services/retentionPolicy/computeDisposalReport.ts` — see that file's own header for the full account of what this closed vs. what already existed. i18n'd from the start (`disposalReport.*` keys, all five locales) per the standing rule — see `i18n/README.md`.
 - **`PendingBatchQueuePage.tsx`** (`/batch-management/pending-load`) — real, computed queue of cassettes/slides printed/engraved but not yet scanned into any active batch, with live search/filter. Backed by `services/batches/computePendingBatchQueue.ts`.
-- **`RetentionHoldsQueuePage.tsx`** (`/batch-management/retention-holds`) — real, computed queue of every case with an active retention hold, oldest-first, click-through to the case to release it there. Backed by `services/retentionPolicy/computeActiveRetentionHoldsQueue.ts`.
+- **Retention holds queue — not built.** Earlier versions of this README listed a `RetentionHoldsQueuePage.tsx` at `/batch-management/retention-holds`, backed by `services/retentionPolicy/computeActiveRetentionHoldsQueue.ts`. Neither file exists and there is no such route or tile. Retention holds are placed and released on the case (`CaseHoldModal`/`RetentionHoldModal`).
 - **`EngraverMonitorPage.tsx`** (`/batch-management/engraver-monitor`) — a real, deliberately thin, read-only device-status surface for the Cassette Engine's own fleet, per a confirmed architectural verdict: PathScribe owns the "Clinical & Workflow Layer" (a coarse status summary), the Engine owns the "Hardware & Fleet Layer" (physical diagnostics, hopper topology, direct hardware controls) — never rebuilt here. KPI counts by status, a device card grid (status badge, real structured supply warnings with color names resolved via `mockCassetteColorService.ts`, a "Launch Engine Diagnostics" link when the Engine provides one), poll-based refresh (matching this app's own established convention — no `onSnapshot` listener anywhere in this codebase). Reads `services/engravers/fetchEngraverDevices.ts` — see that folder's own README, including its real, disclosed gap (no test file exists for it) and the fact that the underlying `engraver_devices` Firestore collection has never actually been reached by a real browser (client Firebase config is still placeholder).
+- **`WsiScanBatchesPage.tsx`** (`/batch-management/wsi-scan`) and **`EquipmentServiceLogPage.tsx`** (`/batch-management/equipment-log`) — see Batch 434 and Batch 429 below.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the retention holds queue page and its service are not in the tree, so it is marked not built; the disposal report exports CSV, not XLSX; the two later hub pages are listed.*
 
 ## Notes
 
-- The three queue pages are deliberately read-only/navigate — the real action (loading into a batch, disposing, releasing a hold) already lives elsewhere (`BatchDetailView`, the disposal scan action, `CaseHoldModal`/`RetentionHoldModal`), so these pages answer "what needs attention" without duplicating the action itself. `EngraverMonitorPage.tsx` is read-only for a different real reason — see its own entry above.
-- None of the three queues are stored/cached — each is derived fresh from real case/batch data every time the page loads, so nothing here can silently drift from reality. `EngraverMonitorPage.tsx` is different again: it reads real, persisted Firestore state (`engraver_devices`) on a poll interval, not a fresh per-load computation — there's nothing to "derive," the Engine's own last-reported status *is* the real, current answer.
+- The queue and report pages (Disposal Queue's list, Disposal Report, Pending Batch Load) are deliberately read-only/navigate, apart from the Disposal Queue's scan-to-dispose — the real action (loading into a batch, releasing a hold) already lives elsewhere (`BatchDetailView`, `CaseHoldModal`/`RetentionHoldModal`), so these pages answer "what needs attention" without duplicating the action itself. `EngraverMonitorPage.tsx` is read-only for a different real reason — see its own entry above.
+- None of the queues are stored/cached — each is derived fresh from real case/batch data every time the page loads, so nothing here can silently drift from reality. `EngraverMonitorPage.tsx` is different again: it reads real, persisted Firestore state (`engraver_devices`) on a poll interval, not a fresh per-load computation — there's nothing to "derive," the Engine's own last-reported status *is* the real, current answer.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the notes no longer count a retention holds queue that does not exist.*
 
 ## Batch 367 (PS-74): no inline CSS
 
@@ -28,7 +35,7 @@ Cassette/slide chain-of-custody through histology processing nodes, plus the thr
 
 ## Batch 369
 
-`DisposalReportPage.tsx` used the Quality Assurance export helper. It now calls `utils/csv.ts` directly, because the waste-tracking report isn't one of the QA report capabilities. Its export isn't gated yet; it's on the PS-357 sweep list.
+`DisposalReportPage.tsx` used the Quality Assurance export helper. It now calls `utils/csv.ts` directly, because the waste-tracking report isn't one of the QA report capabilities. Its export isn't gated yet; it's on the PS-357 sweep list. *(Since closed: the export needs `retention:disposal-report:export`, Batch 407 — checked in the Batch 496 README audit.)*
 
 ## Batch 404 (PS-359): Field Requirements, permissions, demo batches
 
@@ -106,6 +113,48 @@ The rules are in `services/digitalPathology/wsiScanQueue.ts` and `wsiScanBatchWo
 
 Printing a new container's label is audited (PS-282).
 
+## Batch 500 (PS-473)
+
+`NewContainerModal.tsx`: the master barcode SVG renders through `sanitizeSvgMarkup`.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 495 — breadcrumb registered
+
+EquipmentServiceLogPage now registers a breadcrumb (`useBreadcrumb().pushCrumb(...)`) — same gap Batch 492 fixed on the Tumor Board and margin-exception pages: AppShell only shows the breadcrumb bar once there is more than one crumb, so this page had none. It reuses its existing page-title key.
+
+## Batch 518: Label reprint (PS-123)
+
+New tile and page, `LabelReprintPage.tsx` (+ test), at `/batch-management/label-reprint`:
+- Find cases by accession date or accession number range, and untick any to leave out.
+- Choose requisition, container and/or cassette labels. Cassettes also need a printer chosen.
+- Reprint shows "X of Y" progress, then a summary, the labels that failed or were blocked, and "Retry failed".
+- The logic and the `label:batch:reprint` check are in `services/labels/batchLabelReprint.ts`.
+- Accessions shown on the page are tagged `data-phi`.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 543
+
+CSV exports neutralize formula cells (finding F8, `utils/csv.ts`); the disposal report export is audited (F9).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `EngraverMonitorPage.tsx`: a comment pointed to the removed engine-notification poll; updated.
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `DisposalReportPage.tsx`: the export goes through the export service with `{ facilityId, materialType, dateFrom, dateTo }`.
+
+## Batch 560 (PS-539 phase 2d)
+
+- `EngraverMonitorPage.tsx`: re-reads when the hub says an engraver changed (topic `engravers`), every 30 s otherwise; "Refreshing…" only for a read someone asked for; counts from `services/engravers/engraverStatusCounts.ts`.
+
+## Batch 566 (WCAG 2.1 AA)
+
+- `BatchManagementPage.tsx`: the stage tiles say which is on (`aria-pressed`); the Disposal and Disposal report tiles have `type="button"` and their emoji are hidden from screen readers.

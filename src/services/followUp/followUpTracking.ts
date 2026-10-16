@@ -51,7 +51,6 @@ export interface FollowUpCaseInfo {
 }
 
 /** A case as follow-up tracking reads it. `isSurgical` decides a specimen's kind. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toFollowUpCaseInfo(c: any, isSurgical: (specimen: any) => boolean): FollowUpCaseInfo {
   return {
     id: c.id,
@@ -61,7 +60,6 @@ export function toFollowUpCaseInfo(c: any, isSurgical: (specimen: any) => boolea
     finalizedBy: c.finalizedBy ?? undefined,
     orderingPhysicianId: c.order?.orderingPhysicianId,
     requestingProvider: c.order?.requestingProvider,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     specimens: (c.specimens ?? []).map((s: any) => ({
       id: s.id,
       collectedAt: s.collectedAt,

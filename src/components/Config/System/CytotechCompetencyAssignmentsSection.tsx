@@ -30,11 +30,12 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { userService, subspecialtyService, qaSupervisionAssignmentService } from '@/services';
-import { CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaSupervisionAssignmentService';
+import { userService, subspecialtyService, qaSupervisionAssignmentService, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from '@/services';
+
 import type { StaffUser, Subspecialty, Facility } from '@/services';
 import { getActivePerformingLabs } from '@/utils/performingLabs';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const CytotechCompetencyAssignmentsSection: React.FC = () => {
   const { t } = useTranslation();
@@ -116,7 +117,7 @@ const CytotechCompetencyAssignmentsSection: React.FC = () => {
     });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('cytotechCompetencyAssignmentsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('cytotechCompetencyAssignmentsSection.loading')} />;
 
   const facilityFiltered = facilityFilter ? assignments.filter(a => a.facilityId === facilityFilter) : assignments;
   const active = facilityFiltered.filter(a => a.status === 'active');
@@ -135,7 +136,7 @@ const CytotechCompetencyAssignmentsSection: React.FC = () => {
         <div className="ps-conf-form-row ps-mb-16">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('cytotechCompetencyAssignmentsSection.filter.label')}</label>
-            <select data-dirty-ignore data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
+            <select aria-label={t('cytotechCompetencyAssignmentsSection.filter.label')} data-dirty-ignore data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
               <option value="">{t('cytotechCompetencyAssignmentsSection.filter.allFacilities')}</option>
               {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
@@ -179,7 +180,7 @@ const CytotechCompetencyAssignmentsSection: React.FC = () => {
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('cytotechCompetencyAssignmentsSection.form.assessmentsRequiredLabel')}</label>
-            <input className="ps-conf-input" type="number" min={1} value={assessmentCountThreshold} onChange={e => setAssessmentCountThreshold(e.target.value)} />
+            <input aria-label={t('cytotechCompetencyAssignmentsSection.form.assessmentsRequiredLabel')} className="ps-conf-input" type="number" min={1} value={assessmentCountThreshold} onChange={e => setAssessmentCountThreshold(e.target.value)} />
           </div>
           <button className="ps-conf-btn-primary" disabled={!canCreate || creating} onClick={handleCreate}>{t('cytotechCompetencyAssignmentsSection.form.createButton')}</button>
         </div>

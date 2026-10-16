@@ -1,8 +1,14 @@
 # FHIR Dispatch Architecture — Plan
 
-**Status: PLANNED, not built.** Same spirit as any other forward-looking
-plan in this codebase: tracked here so the reasoning survives before the
-real work starts, not written after the fact.
+**Status: decided; nothing FHIR-specific to build in PathScribe.** The
+decision below leaves FHIR shaping to the interface engine. The pieces
+PathScribe does own are built: the Cancer Registry dispatch
+(`services/cancerRegistry/`) and the registry engine that hands
+structured JSON to the interface engine (`services/screeningRegistry/`,
+`services/registrySubmission/`, Batches 414–425). See the status list at
+the end.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the header said "PLANNED, not built"; the dispatch router and registry engine are built.*
 
 ---
 
@@ -152,8 +158,11 @@ trigger rule:
 **Real, direct consequence**: the Cancer Registry branch must never be
 triggered from this app's own cytology sign-out, for cervical findings, at
 any severity. It structurally belongs to surgical pathology (biopsy and
-resection diagnoses) — which does not exist in this app yet — not to a
-missing feature on cytology's own, already-complete registry dispatch.
+resection diagnoses) — which does not exist in this app yet *(Since
+corrected: surgical pathology exists, as the next section says, and
+the Cancer Registry dispatch runs from its sign-out — checked in the
+Batch 496 README audit.)* — not to a missing feature on cytology's own,
+already-complete registry dispatch.
 
 ## ICD-O-3 mapping — deferred, though the earlier premise for that was wrong
 
@@ -178,7 +187,14 @@ searchable but not yet stored in their own, distinct, behavior-aware
 shape. This is a real, concrete, checkable question — not a "wait for a
 module to be built" one — and should be resolved by inspecting the real
 coding storage and flow directly before scoping any Cancer Registry
-dispatch work, rather than assumed either way.
+dispatch work, rather than assumed either way. *(Since closed: ICD-O
+codes are stored per specimen as `Specimen.coding.icdO`
+(`types/case/Specimen.ts`) in their combined "8500/3" form, and
+`services/cancerRegistry/resolveIcdOBehaviorCode.ts` parses the
+behavior digit from the code. Still open: a real ICD-O-3 entry path —
+the code picker's ICD-O search returns SNOMED morphology concepts and
+its hint still says "coming soon" (`addCodeModal.searchHint.icdo`) —
+checked in the Batch 496 README audit.)*
 
 The real, critical clinical finding two sections above — that cytology
 must never drive the Cancer Registry branch, regardless of how mature
@@ -207,7 +223,17 @@ correction and still stands on its own, independent regulatory basis.
   "not started" note recorded here. What remains genuinely unconfirmed is
   narrower: whether ICD-O codes are persisted with real behavior-code
   structure anywhere yet, which needs direct inspection, not assumption.
+  *(Since closed: they are — `Specimen.coding.icdO`, parsed by
+  `resolveIcdOBehaviorCode.ts`; entering a real ICD-O-3 code is still a
+  gap, see above.)*
 - Screening Registries branch: **already real, complete, and needs no
   changes**, per `src/services/cytology/README.md`'s own Phase 39-44 —
   this app's existing cytology registry dispatch (KNCSP/KCCR, CSMS,
   CervicalCheck, PALGA, NCSR) already does exactly the right thing today.
+  *(Since changed: Batch 414 rebuilt this branch as the registry engine
+  in `services/screeningRegistry/`, with 12 screening programmes and 13
+  cancer registries (`services/cancerRegistry/cancerRegistryDefinitions.ts`)
+  as data definitions; the principle above — PathScribe emits structured
+  JSON, the engine owns wire formats — is unchanged.)*
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): ICD-O storage confirmed; screening dispatch now lives in the registry engine.*

@@ -23,7 +23,7 @@ Server contract: [`docs/architecture/AUTHORIZATION_API.md`](../../../docs/archit
   - `capabilityAuditEntry`, the literal-English audit record naming the granting role or the refusal reason.
 
   A PathScribe support sign-in (session role `superadmin`) holds the built-in Superadmin role. A staff record naming that role gets nothing from it. There is no bypass.
-- **`capabilitySeeds.ts`** (pure): the day-one grants (Superadmin gets everything; Admin gets every export plus the Batch 370 administration capabilities; QA Reviewer gets the exports; nobody else gets anything). `applyCapabilitySeeds` offers each built-in role only the seeds it hasn't been offered before (`Role.seededCapabilities`), so an administrator's removal sticks and a new capability still arrives.
+- **`capabilitySeeds.ts`** (pure): the day-one grants. Superadmin gets everything; Admin gets every export, administration and every Configuration capability; Lab Director every Configuration capability but drafting protocols; QA Reviewer the exports. Every built-in role also gets the screens it opens and the actions it already did before each capability existed (Pete's "keep today's users"; see the batch entries below). Least privilege applies to anything new. `applyCapabilitySeeds` offers each built-in role only the seeds it hasn't been offered before (`Role.seededCapabilities`), so an administrator's removal sticks and a new capability still arrives.
 - **`roleCapabilityRules.ts`** (pure):
   - `roleCapabilityProblem`: the role service refuses a save with an unknown key or an unmet requirement.
   - `roleCapabilityChangeAudit`: the "Role capabilities changed" entry.
@@ -34,6 +34,12 @@ Server contract: [`docs/architecture/AUTHORIZATION_API.md`](../../../docs/archit
 
   It reads the session, the staff record and the role catalog fresh on every call.
 - **`defaultAuthorizationService.ts`**: the app instance, exported from `@/services` as `authorizationService`.
+- **`guardConfigWrites.ts`** (Batch 428): wraps a Configuration service so each write method is checked against its capability; `permitConfigChange` does the same for a single action. **`configRefusalLabel.ts`**: the refused capability's name for the refusal banner.
+- **`capabilityToggle.ts`** (Batch 451): the Role Dictionary's click and prompt decisions.
+
+The catalog has 244 capabilities (Batch 495).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): seeds no longer "nobody else gets anything"; added the three later files and the current count.*
 
 ## Facility scope (phase 2, Batch 370)
 
@@ -56,7 +62,11 @@ Actions with no facility dimension (managing roles) aren't affected. Scope never
 | `platform:cross-tenant-cases:view` (Batch 371) | `services/cases/CaseRouter.ts` `getCase`, when support opens another organisation's case |
 | `platform:governing-bodies:manage` (Batch 371) | `services/governingBodies/governingBodyAdministration.ts` `saveGoverningBodies` |
 
+The table above covers phases 1 and 2 only. Every capability since is checked in the service named in its batch entry below; the full list, with the checking service for each, is the "Capability catalog" section of `docs/architecture/AUTHORIZATION_API.md` (kept in step by `capabilityDocs.guard.test.ts`). QA exports are now 16, not 14.
+
 Screens use `hooks/useCapabilities.ts` and `components/Common/CapabilityButton.tsx` to grey out what the user can't do, with the reason in a tooltip.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the table is phase 1–2 only; pointed to the full catalog.*
 
 ## Guard
 
@@ -68,8 +78,10 @@ Screens use `hooks/useCapabilities.ts` and `components/Common/CapabilityButton.t
 
 ## Not done yet
 
-- Everything else that should be a capability: phase 3 (PS-357). That includes the other CSV exports outside Quality Assurance: the waste-tracking (disposal) report, the audit log, billing logs, dictionary exports, contribution and search.
-- API server enforcement: phase 4 (PS-358).
+- Phase 3 (PS-357) continues: capabilities are added action by action (see the batch entries below). The CSV exports this line used to list now have their own: the disposal report (`retention:disposal-report:export`, Batch 407) and the Audit Log's five logs (billing log included), case search and the two My Contributions files (Batch 437, `printing/exportGate.ts`). Configuration dictionary exports are audited but deliberately not separately permitted; they sit behind their Configuration section (`exportGate.ts` header).
+- API server enforcement: phase 4 (PS-358). The API server is not built yet.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the exports listed as not done were done in Batches 407 and 437.*
 
 ## Batch 370 (PS-356): phase 2
 
@@ -404,6 +416,120 @@ Two new capabilities (232 in all):
 
 `AUTHORIZATION_API.md`: 230 → 232; Case work section 51 → 52, Configuration: security and system 8 → 9 (`capabilityDocs.guard.test.ts` enforces this stays in sync).
 
+## Batch 482 — Structured Inking, Module 3 (PS-359 follow-up)
+
+One new capability (233 in all):
+- `config:ink-color:manage` (high risk, `configLab`) — managing the margin ink-colour dictionary (`services/inkColors/`). `group: 'configLab'` means `CONFIG_SECTIONS` sweeps it into Admin's and Lab Director's seeds by default, same as its sibling `config:stain-dictionary:manage` — no `capabilitySeeds.ts` entry needed. Checked in `services/inkColors/mockInkColorService.ts` (via `guardConfigWrites`).
+
+Also: `services/grossing/inkingSiteSettings.ts`'s `config:inking-validation-mode:manage` check (Batch 480, above) now runs against a `facilityId` rather than a Site id — the capability itself is unchanged, only what id its context carries.
+
+`AUTHORIZATION_API.md`: 232 → 233; Configuration: lab dictionaries and case workflow 18 → 19; `CONFIG_SECTIONS` 95 → 96 (`authorization.test.ts`'s day-one-grants test and `capabilityDocs.guard.test.ts` enforce this stays in sync).
+
+## Batch 484 — Structured Inking Sign-Out & Grossing Gate Logic Engine (PS-519 follow-up)
+
+One new capability (234 in all):
+- `case:inking-gate:override` (high risk, `casework`) — the Administrative Override of the Structured Inking sign-out gate (Gate B) for a Severity 3 issue, with a mandatory reason. Pete's own spec names "Clinical Admin, Lead Pathologist" only, never a standard pathologist — mapped onto Admin and Lab Director, the same two roles `config:inking-validation-mode:manage` already trusts. `group: 'casework'`, not a `config*` group, so it is **not** swept in by `CONFIG_SECTIONS`; seeded explicitly (`capabilitySeeds.ts`'s `INKING_GATE_OVERRIDE`) to Admin (explicit array) and Lab Director (per-role conditional) only. Checked in `services/grossing/recordInkingGateOverride.ts`.
+
+`AUTHORIZATION_API.md`: 233 → 234 (now 54 in the Case work group) (`authorization.test.ts`'s day-one-grants test and `capabilityDocs.guard.test.ts` enforce this stays in sync).
+
+## Batch 488 — screen:bench-contributions:open (PS-359 follow-up)
+
+One new capability (235 in all): `screen:bench-contributions:open` (standard risk, `screens` group) — the four bench roles' own dedicated Bench Contributions page, separate from `screen:my-contributions:open` (the two screens show genuinely different, role-appropriate metrics; see `pages/README.md`). Seeded in `capabilitySeeds.ts` to Accessioner, Histotechnologist, Cytotechnologist, and Molecular Technologist, alongside each role's existing screens — the real next step Batch 486 deferred after reverting those four roles' `myContributions` grant. `AUTHORIZATION_API.md` updated to match (`capabilityDocs.guard.test.ts` enforces this stays in sync).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 489 — case:tumor-board:flag, screen:tumor-board:open (Module 1 of Pete's Tumor Board / MDT Workspace spec; PS-359 follow-up)
+
+Two new capabilities (237 in all):
+- `case:tumor-board:flag` (high risk, `casework`) — nominating a case for a board's agenda ("Flag for MDT"), checked in `services/tumorBoard/mockTumorBoardService.ts`'s `create()`. Deliberately its own capability, not a reuse of `case:delegation:create` (which also reaches the bench roles) — this is a clinical/diagnostic judgment call, seeded only to GROSSERS (Pathologist, Fellow, Resident, PA).
+- `screen:tumor-board:open` (standard risk, `screens`) — the dedicated Tumor Board workspace, same seeding (GROSSERS).
+
+`AUTHORIZATION_API.md` updated to match (`capabilityDocs.guard.test.ts` enforces this stays in sync).
+
+## Batch 490 — case:margin-exception:resolve (margin-distance extraction layer; PS-359 follow-up)
+
+One new capability (238 in all): `case:margin-exception:resolve` (high risk, `casework`) — manually tagging the real distance for a margin-distance answer the extraction layer's parser couldn't confidently read, or dismissing it with no numeric tag; checked in `services/marginExtraction/mockMarginExtractionService.ts`'s `resolveException()`/`dismissException()`. Same reasoning as `case:tumor-board:flag` above — a clinical judgment call on what the pathologist's own free text means, seeded only to GROSSERS. `AUTHORIZATION_API.md` updated to match.
+
+## Batch 491 — case:tumor-board:manage/dismiss, config:tumor-board-rules:manage, screen:margin-exception-review:open (Hybrid Inheritance Model + Coordinator/Clinical split; PS-359 follow-up)
+
+Four new capabilities (242 in all):
+- `case:tumor-board:manage` (standard risk, `casework`) — the broad queue-management side of the Coordinator/Clinical split Pete confirmed: scheduling, assigning a presenter, changing a board, cancelling a manual nomination (any `update()` other than the Dismissed status, which `update()` itself refuses). Seeded to `CASE_ACCESS_ROLES` — broader than GROSSERS, since no dedicated Coordinator role exists in this app yet.
+- `case:tumor-board:dismiss` (high risk, `casework`) — the narrow clinical override: closing a listing as Dismissed with a mandatory reason. Seeded only to GROSSERS, same reasoning as `case:tumor-board:flag` and `case:margin-exception:resolve` above.
+- `config:tumor-board-rules:manage` (high risk, `configQuality`) — the two-tier (enterprise/facility) auto-flagging rule config in `services/tumorBoardRules/`. Checked via `guardConfigWrites` on both the enterprise-rule and facility-override services.
+- `screen:margin-exception-review:open` (standard risk, `screens`) — the deferred Batch 490 review-queue screen, now built (`pages/MarginExceptionReviewPage.tsx`). Seeded the same way as the case-level `case:margin-exception:resolve` action it reaches (GROSSERS), in the Pathology Workspace hub.
+
+`AUTHORIZATION_API.md` updated to match (`capabilityDocs.guard.test.ts` enforces this stays in sync).
+
+## Batch 493 — case:tumor-board:schedule, the scheduling/management split (PS-359 follow-up)
+
+One new capability (243 in all): `case:tumor-board:schedule` (standard risk, `casework`) — Pete, Oct 8: *"There should be a specific permission to schedule these MDT so that an admin assistant can schedule them in advance."* Splits `services/tumorBoard/mockTumorBoardService.ts`'s `update()` so board/meeting-date/meeting-time/presenter changes require only this narrower capability, while status changes (Cancel, Presented, Deferred) still require the existing `case:tumor-board:manage`. Seeded in `capabilitySeeds.ts` alongside `case:tumor-board:manage` (`CASE_ACCESS_ROLES`), but — unlike `case:tumor-board:manage` — intended to also be granted on its own to a custom, non-clinical role (an "Admin Assistant") via Config → Staff → Role Dictionary, which this app already supports for any role. `case:tumor-board:manage`'s own catalog description narrowed to "status only" to match. `requiredTumorBoardCapabilitiesFor()` (new, in `mockTumorBoardService.ts`) is the pure decision of which capability (or both) a given `update()` call needs; both are still checked as their own literal `enforce(...)` calls so this folder's own static guard (`capabilities.guard.test.ts`) can still find each one.
+
+`AUTHORIZATION_API.md` updated to match (`capabilityDocs.guard.test.ts` enforces this stays in sync).
+
+## Batch 495 — `report:case-report:print` (PS-283 §4.2.4)
+
+New capability: printing a case report (print, reprint, preview-print, or opening a stored version's PDF). High risk. Checked in `services/printing/reportPrintGate.ts` with the case and its facility; seeded to every case-access role and to hospital roles with case access (keep today's users — before this, anyone who could open a report could print it). The Print buttons on the report page, CoPilot view, preview window and version history are `CapabilityButton`s.
+
+Not yet restricted by case sensitivity (VIP/confidential): there is no such case flag in the data model. Needs a product decision before a capability can gate on it. *(Done in Batch 516: `report:restricted-case:print`.)*
+
+`docs/architecture/AUTHORIZATION_API.md`: row added; its stated total was stale ("232 as of Batch 480" against a catalog that now has 244) and three section counts were behind their tables (Case work 53→59, Configuration: cytology 12→13, Screens 18→21) — all corrected. `authorization.test.ts`'s day-one seed expectation includes the new key.
+
+## Batch 497
+
+`report:case-report:print`'s description no longer mentions printing from the preview window (retired); updated in all five languages and in `AUTHORIZATION_API.md`.
+
+## Batch 499
+
+New capability `autopsy:retention-tier:record` (choosing the autopsy organ-retention tier and its reason), seeded to the same case-access roles as `autopsy:retention-detail:record`, checked in `services/autopsy/recordAutopsyOrganRetentionTier.ts`. The catalog has 245 capabilities.
+
+## Batch 515
+
+Six capabilities, each checked in its service and listed in `docs/architecture/AUTHORIZATION_API.md`:
+- `print:job:hold`, `print:job:cancel`, `print:job:redirect`, `print:job:retry` (PS-283), seeded to the Audit Log roles (`PRINT_QUEUE_ACTIONS`);
+- `case:consult-link:issue`, `case:consult-link:revoke` (PS-290), seeded to the case-access roles (`CONSULT_LINK_ACTIONS`).
+
+`guardConfigWrites.ts` exports `notifyConfigWritten` for services that check a Configuration permission themselves (the QA supervision service picks the permission by activity type).
+
+## Batch 517
+
+- **New capability: `config:secure-messaging:manage`** (configIntegrations; Admin and Lab Director through the configuration seed). It lets a person choose the lab's secure messaging gateways and record their BAA or data processing agreements (PS-143).
+- **Broader use of `config:print-settings:manage`:** it now also covers a facility's report printing (`facilityService.setPrintSettings`, PS-337).
+
+## Batch 518
+
+Two new capabilities:
+- **`interface:outbound:resend`** (qaOversight, Admin; PS-122): send, resend or simulate a failure for an outbound interface message, in any of the seven queues.
+  - Pete's accepted default named Admin and an Interface Analyst, but there is no built-in Interface Analyst role. A hospital can grant the capability to its own role.
+- **`label:batch:reprint`** (casework, Histotechnologist and Admin; PS-123): reprint labels for many cases at once.
+
+## Batch 522
+
+**`audit:consult-links:view`** (qaOversight; requires `screen:audit-log:open`): Audit Log → Consult links, every outside consult link across all cases (PS-290). Seeded to Admin, Lab Director and QA Reviewer.
+
+## Batch 533
+
+`cytology:preliminary:release` (casework, high): sending an urgent cytology preliminary for one specimen. No role starts with it, Superadmin aside (Pete: who may send one is configurable); a test keeps it off every other built-in role and off hospital roles' seeds.
+
+## Batch 536 (PS-554, PS-558)
+
+- New capabilities: `config:ai-prompt:view` (QA Reviewer, Lab Director), `config:ai-prompt:edit` (no built-in role), `config:ai-prompt:approve` (Lab Director), `config:ai-vendor-policy:manage` (Admin, Lab Director).
+- `SEPARATION_OF_DUTIES` / `separationOfDutiesConflicts` (catalog): `config:clinical-mismatch-rules:manage` and `config:ai-prompt:approve` can't be held together. `roleCapabilityRules.roleCapabilityProblem` refuses a role holding both (message starts `SEPARATION_OF_DUTIES`, Superadmin included); `personSeparationOfDutiesConflicts` checks a person's roles together.
+- `capabilitySeeds.ts`: `SUPERADMIN_WITHHELD` / `SUPERADMIN_CAPABILITY_KEYS` (Pete, Oct 11: Superadmin doesn't hold the approval); the Superadmin seed and `lockPlatformRoles` use them.
+
+## Batch 551 (PS-539 phase 2d: the Server jobs view)
+
+- `jobs:server-job:view` and `jobs:server-job:requeue` (requires view), seeded for Admin (`SERVER_JOBS`); checked in `serverJobs/serverJobsService.ts`. `AUTHORIZATION_API.md` updated.
+
+## Batch 552 (PS-539 phase 2d: site agent screens)
+
+- `config:site-agents:enroll` and `config:site-agent-config:manage` (configuration group, so Admin and Lab Director by default), checked in `siteAgent/siteAgentAdminService.ts`; `AUTHORIZATION_API.md` updated; the configuration-section count in `authorization.test.ts` is 101.
+
+## Batch 554 (PS-539 phase 2d: interface monitoring)
+
+- Batch 554: `interface:engine-status:view` (standard; Admin, `INTERFACE_MONITORING` seed), checked in `interfaceMonitoring/interfaceMonitoringService.ts`; `AUTHORIZATION_API.md` updated.
+
+## Batch 572
+
+- `cytology:screening-hours:sign-off` (high; its own seed `CYTOLOGY_SCREENING_HOURS` for Pathologist, Fellow, Resident and Cytotechnologist, not a hospital's own roles), checked in `cytology/mockCytologyScreeningHoursService.ts`; `AUTHORIZATION_API.md` updated.

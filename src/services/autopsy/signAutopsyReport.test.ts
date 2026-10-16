@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Batch 534: no release delay in this test (releaseReport is tested on its own).
+vi.mock('@/services/reportRelease/releaseThroughDelay', () => ({
+  releaseThroughDelay: vi.fn(async (event: any) => {
+    const m = await import('@/services/reports/publishReportReleasedEvent');
+    return { published: await m.publishReportReleasedEvent(event) };
+  }),
+}));
+
 const { getCase, updateCase } = vi.hoisted(() => ({
   getCase: vi.fn(), updateCase: vi.fn(),
 }));

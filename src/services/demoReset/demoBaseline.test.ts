@@ -16,7 +16,6 @@ import { loadDelegations } from '../delegations/delegationStore';
 import { CAPABILITY_SEEDS } from '../authorization/capabilitySeeds';
 import { mockCaseService } from '../cases/mockCaseService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 beforeEach(() => localStorage.clear());
 
 describe('demo sign-ins: a person for every built-in role', () => {

@@ -10,6 +10,6 @@ export function parseVerbalReportDictationDefault(
 ): Promise<VerbalReportDictationProposal> {
   return parseVerbalReportDictation(text, ctx, async opts => {
     const configOverride = await resolveAiConfigOverrideForClient(facilityId);
-    return callAi({ ...opts, configOverride });
+    return callAi({ ...opts, configOverride, context: { feature: 'intraop', facilityId } });
   });
 }

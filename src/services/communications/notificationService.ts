@@ -8,6 +8,11 @@
  * Any feature in pathscribe that needs to send email imports sendEmail()
  * from here. The backend routes POST /api/notifications/email to
  * SendGrid / SES / SMTP per system config.
+ *
+ * Batch 493: EmailPayload.attachments (e.g. a Tumor Board meeting's .ics
+ * calendar invite, base64) passes through this transport unchanged — no
+ * logic here cares about an attachment's content, only the backend
+ * endpoint does.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 

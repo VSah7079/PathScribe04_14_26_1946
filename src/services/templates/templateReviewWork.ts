@@ -15,6 +15,7 @@
 // here: it comes from the template service, which records every transition.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { dataStorage } from '../browserData/dataStorage';
 export interface TemplateQuestionComment {
   id: string;
   author: string;
@@ -29,12 +30,12 @@ const commentsKey = (templateId: string, questionId: string) => `ps_comments_${t
 
 function read<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = dataStorage.getItem(key);
     return raw === null ? fallback : JSON.parse(raw) as T;
   } catch { return fallback; }
 }
 function write(key: string, value: unknown): void {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+  try { dataStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
 }
 
 /** The trial answers saved for a template under review. */
@@ -57,4 +58,60 @@ export function getTemplateQuestionComments(templateId: string, questionId: stri
 /** Saves the comments on one question of a template. */
 export function saveTemplateQuestionComments(templateId: string, questionId: string, comments: TemplateQuestionComment[]): void {
   write(commentsKey(templateId, questionId), comments);
+}
+
+// ── Batch 579 (PS-63 follow-up): adding and resolving comments ─────────────────
+// The comment thread on each question used to decide this itself (trimming, the new
+// record, the audit entry); it now only renders and calls these.
+
+/** What adding or resolving a comment records in the audit log (literal English: audit records aren't UI). */
+export type TemplateCommentAuditEvent = {
+  user: string; category: 'user'; action: 'add_comment' | 'resolve_comment' | 'reopen_comment';
+  templateId: string; questionId: string; commentId: string; newValue?: string; detail: string;
+};
+
+export interface TemplateCommentDeps {
+  log: (event: TemplateCommentAuditEvent) => void;
+  newId?: () => string;
+}
+
+const defaultId = () => (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `c-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+
+/**
+ * Adds a reviewer's comment to a question and records it. Blank text adds nothing (null). Returns the
+ * question's comments as saved.
+ */
+export function addTemplateQuestionComment(
+  input: { templateId: string; questionId: string; author: string; text: string },
+  deps: TemplateCommentDeps,
+): TemplateQuestionComment[] | null {
+  const text = input.text.trim();
+  if (!text) return null;
+  const comment: TemplateQuestionComment = { id: (deps.newId ?? defaultId)(), author: input.author, text, resolved: false };
+  const next = [...getTemplateQuestionComments(input.templateId, input.questionId), comment];
+  saveTemplateQuestionComments(input.templateId, input.questionId, next);
+  deps.log({
+    user: input.author, category: 'user', action: 'add_comment', templateId: input.templateId, questionId: input.questionId,
+    commentId: comment.id, newValue: text, detail: `Added comment: ${text}`,
+  });
+  return next;
+}
+
+/** Marks a comment resolved, or reopens it, and records which. Returns the question's comments as saved. */
+export function toggleTemplateQuestionComment(
+  input: { templateId: string; questionId: string; commentId: string; user: string },
+  deps: TemplateCommentDeps,
+): TemplateQuestionComment[] {
+  const current = getTemplateQuestionComments(input.templateId, input.questionId);
+  const target = current.find(c => c.id === input.commentId);
+  if (!target) return current;
+  const resolved = !target.resolved;
+  const next = current.map(c => (c.id === input.commentId ? { ...c, resolved } : c));
+  saveTemplateQuestionComments(input.templateId, input.questionId, next);
+  deps.log({
+    user: input.user, category: 'user', action: resolved ? 'resolve_comment' : 'reopen_comment',
+    templateId: input.templateId, questionId: input.questionId, commentId: input.commentId,
+    detail: resolved ? 'Comment resolved' : 'Comment reopened',
+  });
+  return next;
 }

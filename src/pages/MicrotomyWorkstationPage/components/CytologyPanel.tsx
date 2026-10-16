@@ -33,7 +33,7 @@ const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, o
       <div className="ps-microtomy-cytology-grid">
         <div>
           <label className="ps-microtomy-field-label">{t('microtomyWorkstation.cytology.volume')}</label>
-          <input
+          <input aria-label={t('microtomyWorkstation.cytology.volume')}
             type="number" min={0} className="ps-microtomy-field-input" value={volumeInput}
             onChange={e => setVolumeInput(e.target.value)}
             onBlur={() => onUpdateFields({ totalVolumeMl: volumeInput === '' ? undefined : Number(volumeInput) })}
@@ -41,7 +41,7 @@ const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, o
         </div>
         <div>
           <label className="ps-microtomy-field-label">{t('microtomyWorkstation.cytology.appearance')}</label>
-          <select
+          <select aria-label={t('microtomyWorkstation.cytology.appearance')}
             className="ps-microtomy-field-select" value={decant.appearance ?? ''}
             onChange={e => onUpdateFields({ appearance: (e.target.value || undefined) as Decant['appearance'] })}
           >
@@ -53,7 +53,7 @@ const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, o
         </div>
         <div>
           <label className="ps-microtomy-field-label">{t('microtomyWorkstation.cytology.yield')}</label>
-          <select
+          <select aria-label={t('microtomyWorkstation.cytology.yield')}
             className="ps-microtomy-field-select" value={decant.yieldPelletSize ?? ''}
             onChange={e => onUpdateFields({ yieldPelletSize: (e.target.value || undefined) as Decant['yieldPelletSize'] })}
           >

@@ -46,6 +46,8 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -508,7 +510,7 @@ const InsertTableModal: React.FC<{ onInsert: (rows: number, cols: number) => voi
       <div className="pse-inserttable-grid" style={{ '--pse-grid-cols': maxC } as React.CSSProperties}>
         {Array.from({ length: maxR }, (_, r) =>
           Array.from({ length: maxC }, (_, c) => (
-            <div key={`${r}-${c}`} onMouseEnter={() => setHovered({ rows: r + 1, cols: c + 1 })} onMouseLeave={() => setHovered(null)} onClick={() => { onInsert(r + 1, c + 1); onClose(); }}
+            <div key={`${r}-${c}`} onMouseEnter={() => setHovered({ rows: r + 1, cols: c + 1 })} onMouseLeave={() => setHovered(null)} {...pressable(() => { onInsert(r + 1, c + 1); onClose(); })}
               className={`pse-inserttable-cell${hovered && r < hovered.rows && c < hovered.cols ? ' pse-inserttable-cell--active' : ''}`} />
           ))
         )}
@@ -593,7 +595,7 @@ const ColorPicker: React.FC<{ onSelect: (color: string | null) => void; onClose:
       <div className="pse-dropdown-section-label">{title}</div>
       <div className="pse-colorpicker-grid">
         {COLORS.map(color => (
-          <div key={color} onClick={() => { onSelect(color); onClose(); }}
+          <div key={color} {...pressable(() => { onSelect(color); onClose(); })}
             className={`pse-colorpicker-swatch${color === '#ffffff' ? ' pse-colorpicker-swatch--outlined' : ''}`}
             style={{ '--swatch-color': color } as React.CSSProperties} />
         ))}
@@ -893,7 +895,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
 
   if (!editor) return (
     <div className="pse-loading-wrap" style={{ '--pse-min-height': minHeight } as React.CSSProperties}>
-      <span className="pse-loading-text">{t('pathScribeEditor.loadingEditor')}</span>
+      <LoadingState variant="inline" className="pse-loading-text" label={t('pathScribeEditor.loadingEditor')} />
     </div>
   );
 
@@ -901,10 +903,10 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
 
   const renderToolbar = () => (
     <div onMouseDown={e => e.stopPropagation()} className="pse-toolbar" style={themeVars(theme)}>
-      <select value={selectedFont} onChange={e => { setSelectedFont(e.target.value); editor.chain().focus().setFontFamily(e.target.value).run(); }} className="pse-toolbar-font-select">
+      <select aria-label={t('a11y.fields.font')} value={selectedFont} onChange={e => { setSelectedFont(e.target.value); editor.chain().focus().setFontFamily(e.target.value).run(); }} className="pse-toolbar-font-select">
         {approvedFonts.map(f => <option key={f} value={f}>{f}</option>)}
       </select>
-      <select value={fontSize} onChange={e => { setFontSize(e.target.value); (editor.chain().focus() as any).setFontSize(`${e.target.value}pt`).run(); }} className="pse-toolbar-size-select">
+      <select aria-label={t('a11y.fields.fontSize')} value={fontSize} onChange={e => { setFontSize(e.target.value); (editor.chain().focus() as any).setFontSize(`${e.target.value}pt`).run(); }} className="pse-toolbar-size-select">
         {['8','9','10','11','12','14','16','18','20','24','28','32','36','48','72'].map(s => <option key={s} value={s}>{s}</option>)}
       </select>
       <Divider />

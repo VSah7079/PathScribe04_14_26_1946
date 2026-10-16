@@ -73,13 +73,18 @@ not folded into this engine.
     adapter from `CytologyScreeningPage.tsx`'s own available data to
     a real `QcEvaluationCaseContext`. Pure — the actual async lookups
     (facility → jurisdiction, category ID → adequacy label) stay in
-    the real call site, not hidden in this function.
+    the real call site, not hidden in this function. (No call site uses
+    it yet; see the safety-net section below.)
 
 ## Admin UI & reviewer UI
 
 - `Config/System/CytologyQcRulesSection.tsx` — the rule builder.
-- `pages/CytologyQcQueuePage.tsx` (`/cytology-qc-queue`) — the real,
-  unified, reviewer-facing Peer Review Queue.
+- `pages/CytologyQcQueuePage.tsx` — the real, unified, reviewer-facing
+  Peer Review Queue. It is shown inside the Worklist
+  (`/worklist?view=cytologyQc`); the old `/cytology-qc-queue` address
+  redirects there.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the queue is a Worklist view now, not its own route.*
 
 ## Real, international seed rule set — 8 rules
 
@@ -158,15 +163,24 @@ pass can fix on its own.
 
 Per direct guidance, given the real risk that any *other*,
 not-yet-identified jurisdiction/role combination could have the same
-kind of silent coverage gap the EU one turned out to have: the real
-migration at `CytologyScreeningPage.tsx`'s own sign-out call site does
-**not** simply retire the old Enterprise/Facility/Staff cascade. It
-checks this engine's own active rules first; only when genuinely
-nothing matches does it fall back to the old mechanism, rather than
-concluding "no rule matched" means "no QC needed." This guarantees no
-jurisdiction or role silently loses coverage it has today while the
-real rule set is still being confirmed against real regulatory
-guidance, country by country.
+kind of silent coverage gap the EU one turned out to have, the plan was
+for the sign-out call site to check this engine's active rules first and
+fall back to the old Enterprise/Facility/Staff cascade only when nothing
+matched.
+
+**What the code does today:** the rule engine is not called at sign-out.
+`resolveQcRuleEvaluation` (and `resolveQcEvaluationContextFromCytologyReview`)
+are used only by their tests; sign-out lives in
+`services/cytology/signOutCytologyCase.ts` and `saveCytologyReview.ts`,
+which select random QC and post-sign-out peer review with the old cascade
+(`resolveEffectiveCytologyQcSettings` + `resolveCytologyRandomQcSelection`).
+The only QC assignments created at sign-out are ROSE discrepancies
+(`resolveNewQcCaseAssignmentFromRoseDiscrepancy`). Rules edited in
+Cytology QC Rules therefore don't yet change which cases are selected.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this section said the engine was checked first at sign-out; it isn't called there.*
+
+*Since Batch 501 the engine IS called at sign-out — not as the "new engine first, old cascade as fallback" plan above, but alongside it (Pete's layered model, Oct 9). See the Batch 501 section below.*
 
 ## Real, completed sign-out gate wiring (Sep 2026)
 
@@ -204,7 +218,7 @@ happens to use.
 - Pete: "I would not want to force the pathologist to go to 2 screens." The screening page now has a QC review bar (`components/CytologyQc/CytologyQcCaseBar.tsx`) with the queue's buttons, and each queue row has **Open Case**.
 - `resolveCytologyQcCaseReview.ts`: which open review a reader can act on for a case, and whether they can take it (not their own sign-out), record the verdict (their review), or see it is taken. `cytologyQcErrorKey` maps service errors to messages.
 - `assignReviewer`, `recordConcurrence` and `recordDiscrepancy` check **`cytology:qc-review:record`** (high risk), seeded to Pathologist and Fellow, the roles that had the queue. A refusal returns `QC_REVIEW_NOT_PERMITTED` (`qcReviewErrors.ts`). The queue used to ignore a failed action; it now shows why.
-- `supervisorBypass` and `escalateForSlaBreach` are unchanged and have no screen yet.
+- `supervisorBypass` and `escalateForSlaBreach` are unchanged and have no screen yet. *(Since closed: Batch 432 below added Escalate and Supervisor bypass to the queue — checked in the Batch 496 README audit.)*
 
 ## Batch 428: Configuration permissions
 
@@ -222,3 +236,22 @@ From the queue: Escalate (an SLA-breached review back to the queue; `cytology:qc
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 501 — the QC Rules engine runs at sign-out (Pete's layered model, Oct 9)
+
+Three mechanisms, in order of precedence, with **one open QC assignment per specimen**:
+1. **ROSE discrepancy** (fixed, always on): top tier (`high_escalation`), 4-hour SLA.
+2. **QC Rules engine** (Configuration → Cytology QC Rules): active rules in priority order; the first that matches and is selected by its sampling creates the assignment with the rule's tier, SLA and reviewer pool (`eligibleReviewerRoles`).
+3. **Peer-review selection** (QC Settings rates, high-risk): stays a **passive flag** on the specimen. It never creates an assignment; when ROSE or a rule also selects the specimen, the flag is recorded as a selection reason.
+
+**Upgrade, never duplicate** (`resolveQcAssignmentUpsert.ts`, pure). A trigger that finds an open assignment (QC_PENDING / QC_IN_REVIEW) for the same specimen upgrades it: higher tier, earlier SLA deadline, the pool of whichever trigger now sets the tier (at equal tiers the existing pool stays unless it had none), ROSE over a rule as the trigger source; the reason is added and a history line written. A weaker trigger only adds its reason. A resolved assignment is left alone, so a new trigger opens a new one. `applyAdditionalTrigger` on the assignment service persists it (trigger fields only; refuses a resolved assignment; audited).
+
+**New fields on `CytologyQcCaseAssignment`:** `eligibleReviewerRoles`, `selectionReasons` (e.g. `["rose_discrepancy", "rule:r-104", "peer_review_flag:random_selection"]`), `history`. Older assignments have none; `qcSelectionReasons()` falls back to the trigger.
+
+**Other new files:**
+- `resolveCaseInFormalConsultation.ts` — spec §2.2's exclusion: an active `pending_consultation` case hold, or an active `consultant` / `second_opinion` participant. Only the Rules engine applies it; ROSE and peer-review selection still apply to such a case.
+- `mockCytologyQcSamplingStateService.ts` — each rule's sampling counters, kept between sign-outs (browser storage in the mock, cleared by Full Reset; the API server must own them in production, `docs/architecture/CYTOLOGY_QC_API.md`).
+- `qcSelectionReasonLabels.ts` — the queue's "Selected by" labels.
+- `resolveQcEvaluationContextFromCytologyReview.ts` now knows an FNA (a specimen with a ROSE evaluation).
+
+**Not done here:** the reviewer pool is stored and shown, but taking a review (`assignReviewer`) still checks only self-review; PathScribe staff records don't carry the reviewer-role codes rules use (`SENIOR_PATHOLOGIST`, `SENIOR_CT`…), so enforcing the pool needs those mapped first. `resolveNewQcCaseAssignmentFromRuleMatch` / `…FromRoseDiscrepancy` are no longer used by sign-out (the upsert builds the record); they remain with their tests.

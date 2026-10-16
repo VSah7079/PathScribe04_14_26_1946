@@ -51,7 +51,6 @@ export function applySurgicalQaAdditions(
   additions: { peerFlag?: { specimenId: string; flag: { reason: string; flaggedAt: string } }; candidates: Map<string, SurgicalCandidateEntry[]> },
 ): Partial<Case> | null {
   let changed = false;
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   const specimens = (current.specimens ?? []).map(s => {
     let next: any = s;
     const pf = additions.peerFlag;
@@ -67,7 +66,6 @@ export function applySurgicalQaAdditions(
     if (next !== s) changed = true;
     return next as Specimen;
   });
-  /* eslint-enable @typescript-eslint/no-explicit-any */
   return changed ? { specimens } : null;
 }
 
@@ -92,7 +90,6 @@ function isSurgicalSpecimen(specimen: Specimen, dictById: Map<string, { type: st
 }
 
 /** When the case was signed out, if it was. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const signedOutAtOf = (c: any): string | undefined => c?.finalizedAt ?? undefined;
 
 function toBiopsySpecimenInfo(caseId: string, specimen: Specimen, signedOutAt?: string): SurgicalBiopsySpecimenInfo | undefined {

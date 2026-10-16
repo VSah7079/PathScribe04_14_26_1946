@@ -43,13 +43,20 @@ import { useSurgicalQaReview } from '@/hooks/useSurgicalQaReview';
 import { SurgicalQaReviewModal } from '@/components/QualityAssurance/SurgicalQaReviewModal';
 import { resolvePatientFullDisplayName } from '@/utils/personName';
 import type { SurgicalQaRow } from '@/services/quality/surgicalQaReview';
+import { useMismatchSecondaryReview } from '@/hooks/useMismatchSecondaryReview';
+import { deferredMismatchDetails } from '@/services/clinical/clinicalMismatchInputs';
+import { ClinicalMismatchDecisionForm } from '@/components/ClinicalMismatch/ClinicalMismatchDecisionForm';
+import { formatDateTime } from '@/utils/formatDate';
 
 const SurgicalQaWorklistPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const openCasePage = useOpenCase();
   const { rows, busy, message, activityTypeFor, record, dismiss } = useSurgicalQaReview();
   const [activeRow, setActiveRow] = useState<SurgicalQaRow | null>(null);
   const activeType = activeRow ? activityTypeFor(activeRow) : undefined;
+  // Batch 530 (PS-554): the secondary review queue (deferred low-risk clinical mismatches).
+  const mismatchQueue = useMismatchSecondaryReview();
+  const [reviewing, setReviewing] = useState<string | null>(null);
 
   return (
     <div className="ps-qcqueue-page">
@@ -60,7 +67,7 @@ const SurgicalQaWorklistPage: React.FC = () => {
         {rows.map((row, i) => (
           <div key={`${row.kind}-${row.caseId}-${row.specimenId}-${i}`} className="ps-qcqueue-row">
             <div className="ps-qcqueue-row-patient" data-phi="true">
-              {resolvePatientFullDisplayName(row.caseData.patient) ?? row.caseData.id}
+              {resolvePatientFullDisplayName(row.caseData.patient, i18n.language) ?? row.caseData.id}
               <span className="ps-qcqueue-row-accession" data-phi="accession">{row.caseData.accession?.accessionNumber}</span>
             </div>
             <div className="ps-qcqueue-row-badges">
@@ -86,6 +93,44 @@ const SurgicalQaWorklistPage: React.FC = () => {
           </div>
         ))}
         {rows.length === 0 && <div className="ps-conf-empty-row">{t('surgicalQaWorklist.emptyRow')}</div>}
+      </div>
+
+      <h2 className="ps-qcqueue-subtitle">{t('surgicalQaWorklist.mismatch.title')}</h2>
+      <p className="ps-conf-field-hint">{t('surgicalQaWorklist.mismatch.description')}</p>
+      <div className="ps-qcqueue-list">
+        {mismatchQueue.queue.map(rec => {
+          const d = deferredMismatchDetails(rec);
+          return (
+            <div key={rec.id} className="ps-qcqueue-row ps-qcqueue-row--stacked">
+              <div className="ps-qcqueue-row-patient">
+                <span className="ps-qcqueue-row-accession" data-phi="accession">{d.caseId}</span>
+              </div>
+              <div className="ps-qcqueue-row-badges">
+                <span className="ps-qcqueue-badge-pill">{t(`clinicalMismatch.kinds.${d.kind}`)}</span>
+                {d.confidence !== undefined && <span className="ps-qcqueue-badge-pill">{t('surgicalQaWorklist.mismatch.confidence', { confidence: d.confidence })}</span>}
+                <span className="ps-specreq-meta">{t('surgicalQaWorklist.mismatch.deferredBy', { name: d.deferredBy ?? '—', date: formatDateTime(d.deferredAt, i18n.language) })}</span>
+              </div>
+              <div className="ps-qcqueue-row-actions">
+                <button className="ps-conf-btn-secondary" onClick={() => void openCasePage(d.caseId, 'report', { state: { returnTo: '/worklist?view=surgicalQa' } })}>
+                  {t('surgicalQaWorklist.openCaseBtn')}
+                </button>
+                <button className="ps-conf-btn-primary" aria-expanded={reviewing === rec.id} onClick={() => setReviewing(r => (r === rec.id ? null : rec.id))}>
+                  {t('surgicalQaWorklist.mismatch.reviewBtn')}
+                </button>
+              </div>
+              {reviewing === rec.id && (
+                <ClinicalMismatchDecisionForm
+                  idPrefix={`mismatch-review-${rec.id}`}
+                  caseId={d.caseId} caseType={d.caseType} subspecialtyId={d.subspecialtyId} clinicalIndication={d.clinicalIndication}
+                  kind={d.kind} source={d.source} confidence={d.confidence} risk="low" discipline={d.discipline} specimenId={d.specimenId}
+                  reviewOf={d.recordId} choices={['RESOLVED', 'UNRESOLVED']}
+                  onRecorded={() => { setReviewing(null); void mismatchQueue.reload(); }}
+                />
+              )}
+            </div>
+          );
+        })}
+        {mismatchQueue.queue.length === 0 && <div className="ps-conf-empty-row">{t('surgicalQaWorklist.mismatch.empty')}</div>}
       </div>
 
       {activeRow && activeType && (

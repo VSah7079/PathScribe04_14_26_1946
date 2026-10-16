@@ -2,7 +2,7 @@
 
 ## Files
 
-- **`useAuditLog.ts`** (463 lines) — Centralized audit logging hook,
+- **`useAuditLog.ts`** (~500 lines) — Centralized audit logging hook,
   used across many folders (confirmed consumer in `ValidationStudies/`,
   `Search/`, and others this session). Auto-stamps user email, UUID,
   timestamp. **FIXED this pass:** the file's top comment was literally
@@ -86,7 +86,23 @@
 
 - `BreakGlassRebindModal.tsx`: the downtime-record picker is tagged; its option text ("name — MRN …") is now translated (`breakGlassRebindModal.downtimeOption`).
 - `InterfaceExceptionReviewModal.tsx`: the case number in each candidate row is tagged.
-- `BreakGlassRebindModal.tsx` and `InterfaceExceptionReviewModal.tsx` still import `mockPatientIndexService` directly: `@/services` doesn't export it yet.
+- `BreakGlassRebindModal.tsx` and `InterfaceExceptionReviewModal.tsx` still import `mockPatientIndexService` directly: `@/services` doesn't export it yet. *(Since changed: `@/services` now exports it as `patientIndexService` (`services/index.ts`); both modals still import the mock directly and remain on the deployment baseline — checked in the Batch 496 README audit.)*
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`useAuditLog.ts` exports `AuditLogFn`, the typed `log` function, so hooks that receive it are checked against the audit catalogue. That found four events the report page logged but the catalogue never listed: `amendment_draft_opened`, `amendment_released`, `grossing_template_change_committed` and `code_review_random_sample`. They were saved with no category and their raw JSON as the detail. They now have a category (`user`; `system` for the random code-review pick) and a readable English detail line.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `BreakGlassRebindModal` and `InterfaceExceptionReviewModal`: the MRN and DOB labels are translated.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

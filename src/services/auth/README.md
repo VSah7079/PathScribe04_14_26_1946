@@ -13,8 +13,10 @@ Two jobs:
 
 ## Notes
 
-- NOTE: services/authorization/ (a similarly-named, EMPTY folder) was found and deleted during the July 2026 review — don't recreate it without a real reason; auth/ is the real, single home for this concern.
+- `services/authorization/` exists again since Batch 369 (PS-355) and is the home for capabilities and `authorizationService.enforce`. This folder keeps sign-in, session roles, case-level access control and signer confirmation. (An earlier, empty `authorization/` folder was deleted in the July 2026 review.)
 - **This module's own documented caveat still applies to the cross-tenant QA fix above**: it's a real, correctly-shaped decision, but it's still a client-side check — a modified client can bypass it. The actual security boundary needs server-side query enforcement (the API server's job: `docs/architecture/CASE_PRIVACY_MODEL.md`, PS-345; the backend-requirements document once cited here was never written, PS-40) — what's built here models the correct shape for the backend team to match, same as every other access decision in this file.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `services/authorization/` is no longer an empty, deleted folder; it holds the capability checks (Batch 369).*
 
 ## Batch 328 (PS-63), reverted in Batch 329
 
@@ -59,7 +61,7 @@ It moved here from `useSignOutWorkflow.ts` so Surgical Pathology, Autopsy and (n
 - `authConfig`, `externalIdentity`, `sessionRole`, `authSession`, `demo/demoAccounts`: unit tests.
 - `sso/ssoClient.integration.test.ts`: the real library against the local provider.
 
-**Still open:** the API server's part, an admin screen for linked accounts, OR terminal device tokens, runtime configuration (`AUTHENTICATION_OIDC.md` §8).
+**Still open:** the API server's part, an admin screen for linked accounts, OR terminal device tokens, runtime configuration (`AUTHENTICATION_OIDC.md` §8). *(Since closed in part: linked accounts are shown and unlinked in Staff → edit, `components/Config/Staff/LinkedSignInAccounts.tsx`, Batch 345 — checked in the Batch 496 README audit.)*
 
 ## Batch 344: confirming who signs
 
@@ -89,7 +91,7 @@ It moved here from `useSignOutWorkflow.ts` so Surgical Pathology, Autopsy and (n
 - `testing/fakeOidcProvider.ts` now records `auth_time` and each `/authorize` request.
 
 **Still open:**
-- **The server must verify each signature itself.** Today the client doesn't send the popup's ID token with the signing request (`AUTHENTICATION_OIDC.md` §5.4).
+- **The server must verify each signature itself.** Today the client doesn't send the popup's ID token with the signing request (`AUTHENTICATION_OIDC.md` §5.4). *(Since closed on the client side: Batch 345 carries the ID token as `SignatureConfirmation.proof` and `signatureEvidence.ts` checks it; cryptographic verification is still the API server's job — checked in the Batch 496 README audit.)*
 - **Real WebAuthn** for biometric signing.
 
 ## Batch 345: the signature checked when it is saved, and stored
@@ -188,3 +190,15 @@ Tests: `signInLockout.test.ts`, and the lockout block in `authSession.test.ts`.
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 533
+
+`signerConfirmation.ts`: signing action `cytology-preliminary` (an urgent cytology preliminary, when the laboratory requires the signature).
+
+## Batch 547
+
+The sign-in mode and providers come from the deployment's `config.json` at start-up (`appEnv()`, `services/runtimeConfig/`). Because of that, the demo accounts are loaded only in the demo build (`__DEMO_TOOLS__`), and a server build never has them. A server build must be set to `sso` (`SSO_REQUIRED`). *(Before, an `sso` build left them out by the build-time setting.)*
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `sessionEndHooks.ts` (new): things held in this window for the signed-in user that must go at sign-out (`onSessionEnd`, `runSessionEndHooks`). `authSession.endSession` calls them through the new `onSessionEnded` dependency; the export service registers its reset, so the next person at a shared workstation never sees the last one's export notices.

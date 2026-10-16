@@ -85,7 +85,7 @@ const ContributionSettingsSection: React.FC = () => {
         <div className="ps-conf-label ps-contrib-settings__label">
           {t('contributionSettings.timezone.label')}
         </div>
-        <select
+        <select aria-label={t('contributionSettings.timezone.label')}
           value={config.facilityTimezone}
           onChange={e => handleTimezoneChange(e.target.value)}
           className="ps-conf-select ps-contrib-settings__select"

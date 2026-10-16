@@ -41,7 +41,7 @@ export function categoryForGradeGroup(gg: number | undefined): MapCategory {
 /** Batch 466d: a map's meta without the keys only the derived margin answers read (they change nothing drawn). */
 const drawnMeta = (meta: Record<string, string> | undefined) => {
   if (!meta) return meta;
-  const { adenomaAtMargin: _a, invasiveCarcinoma: _i, ...rest } = meta; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { adenomaAtMargin: _a, invasiveCarcinoma: _i, ...rest } = meta;
   return rest;
 };
 

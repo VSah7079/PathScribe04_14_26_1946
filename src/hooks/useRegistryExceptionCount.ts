@@ -6,14 +6,14 @@
 // the top nav and the Quality & Compliance tiles to anyone who can open the
 // worklist (screen:registry-exceptions:open); null otherwise, so no badge.
 //
-// Today: read on mount, every minute, and when the window regains focus. With
-// the API server: the server pushes the count over SignalR
-// (ReceiveExceptionCountUpdate, PS-345) and this re-reads on each push, the
-// same way hooks/useLiveIntraopUpdates.ts does, with the minute poll kept as
-// the safety net.
+// Read on mount and when the window regains focus. Batch 560: with the API
+// server's live-update hub, re-read when it says the count changed (topic
+// `registryExceptions`, LIVE_UPDATES_SIGNALR.md §14), with a minute's safety
+// poll; without a live connection, every minute as before (hooks/useLiveData.ts).
 // ─────────────────────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCapabilities } from './useCapabilities';
+import { useLiveData } from './useLiveData';
 import { countRegistryExceptionsForUser } from '@/services/registrySubmission/registryExceptionsService';
 import { registryExceptionsLoadDeps } from '@/services/registrySubmission/registryExceptionsDeps';
 
@@ -23,16 +23,23 @@ export function useRegistryExceptionCount(): number | null {
   const capabilities = useCapabilities();
   const allowed = capabilities.has('screen:registry-exceptions:open');
   const [count, setCount] = useState<number | null>(null);
+  // A read started before the capability went away (or the screen closed) is ignored.
+  const generation = useRef(0);
+
+  const read = useCallback(() => {
+    if (!allowed) return;
+    const mine = generation.current;
+    countRegistryExceptionsForUser(registryExceptionsLoadDeps).then(n => { if (mine === generation.current) setCount(n); }).catch(() => {});
+  }, [allowed]);
 
   useEffect(() => {
     if (!allowed) { setCount(null); return; }
-    let cancelled = false;
-    const read = () => { countRegistryExceptionsForUser(registryExceptionsLoadDeps).then(n => { if (!cancelled) setCount(n); }).catch(() => {}); };
     read();
-    const timer = setInterval(read, REGISTRY_EXCEPTION_POLL_MS);
     window.addEventListener('focus', read);
-    return () => { cancelled = true; clearInterval(timer); window.removeEventListener('focus', read); };
-  }, [allowed]);
+    return () => { generation.current += 1; window.removeEventListener('focus', read); };
+  }, [allowed, read]);
+
+  useLiveData(read, { topic: 'registryExceptions', pollMs: REGISTRY_EXCEPTION_POLL_MS, enabled: allowed });
 
   return count;
 }

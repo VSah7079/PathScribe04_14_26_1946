@@ -21,7 +21,7 @@
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  */
 
-import { EditorTemplate } from '../../components/Config/Protocols/SynopticEditor';
+import type { EditorTemplate } from '../../components/Config/Protocols/SynopticEditor';
 import { PROTOCOL_REGISTRY, Protocol, LifecycleState, notifyRegistryChanged, saveRegistryOverride } from '../../components/Config/Protocols/protocolShared';
 import { getSessionUser } from '../auth/caseAccessControl';
 import { fromLegacyName, formatFullDisplayName } from '../../utils/personName';
@@ -33,6 +33,7 @@ import {
 } from './templatePublishingRules';
 import { roleIdsForNames } from '../roles/systemRoles';
 import { getTemplateGovernanceSettings } from './templateGovernanceSettings';
+import { dataStorage } from '../browserData/dataStorage';
 
 // â”€â”€â”€ Shared types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -128,7 +129,7 @@ const EDITOR_STORE_KEY = 'ps_editor_store_v1';
 
 function loadEditorStoreOverrides(): Record<string, EditorTemplate> {
   try {
-    const raw = localStorage.getItem(EDITOR_STORE_KEY);
+    const raw = dataStorage.getItem(EDITOR_STORE_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
@@ -137,7 +138,7 @@ function saveEditorStoreOverride(id: string, template: EditorTemplate): void {
   try {
     const overrides = loadEditorStoreOverrides();
     overrides[id] = template;
-    localStorage.setItem(EDITOR_STORE_KEY, JSON.stringify(overrides));
+    dataStorage.setItem(EDITOR_STORE_KEY, JSON.stringify(overrides));
   } catch { /* storage unavailable */ }
 }
 
@@ -203,7 +204,8 @@ const GOVERNANCE_MESSAGES: Record<string, string> = {
 
 /** Batch 463b: a template whose Mohs stage question names a missing or
  *  non-choice default-histology source can't go to review or be published. */
-function assertMohsHistologySources(id: string): void {
+async function assertMohsHistologySources(id: string): Promise<void> {
+  await ensureSeedTemplate(id);
   const stored = editorStore.get(id);
   if (stored && mohsTemplateProblems(stored as never).length) throw governanceError('MOHS_HISTOLOGY_SOURCE');
 }
@@ -218,7 +220,8 @@ function governanceError(code: string, extra: { coverage?: number; approvalCount
 }
 
 /** Field-level SNOMED % used by the publish check: from the template's own
- *  content when the editor has it, else the registry's seeded figure. */
+ *  content when the editor has it, else the registry's seeded figure.
+ *  publishTemplate has already loaded the seed (assertMohsHistologySources). */
 function publishCoverage(id: string, entry: Protocol): number {
   const stored = editorStore.get(id);
   if (stored && stored.sections?.some(sec => sec.fields.length > 0)) return calcTemplateCoverage(stored).snomed;
@@ -333,6 +336,7 @@ export async function getTemplate(id: string): Promise<TemplateDetail> {
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
+  await ensureSeedTemplate(id);
   const storedTemplate = editorStore.get(id);
 
   // Fallback: template seeded directly into editorStore but not in PROTOCOL_REGISTRY
@@ -453,7 +457,7 @@ export async function submitForReview(id: string, note?: string): Promise<Submit
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
-  assertMohsHistologySources(id);
+  await assertMohsHistologySources(id);
 
   const ts = now();
   upsertRegistry({ id, status: 'in_review', lastModified: ts.slice(0, 10), reviewNote: note, approvals: [] });
@@ -516,13 +520,14 @@ export async function publishTemplate(id: string, _note?: string, publishedBy?: 
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
 
-  assertMohsHistologySources(id);
+  await assertMohsHistologySources(id);
   const ts = now();
   // PS-63: approver role, no self-publishing (unless the site allows it),
   // enough approvals, and ≥80% SNOMED coverage for diagnostic templates.
   const actor = await currentActor(publishedBy);
   const decision = decidePublish(entry, actor, getTemplateGovernanceSettings(), publishCoverage(id, entry));
   if (decision.ok === false) throw governanceError(decision.code, decision);
+  if (!actor) throw governanceError('NOT_APPROVER'); // decidePublish already refuses a missing actor
 
   upsertRegistry({ id, status: 'published', reviewNote: undefined, lastModified: ts.slice(0, 10), publishedById: actor.id, publishedAt: ts });
 
@@ -617,7 +622,7 @@ export async function resubmitForReview(id: string, _note?: string): Promise<Sub
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
 
-  assertMohsHistologySources(id);
+  await assertMohsHistologySources(id);
   const ts = now();
   upsertRegistry({ id, status: 'in_review', reviewNote: undefined, lastModified: ts.slice(0, 10), approvals: [] });
 
@@ -646,13 +651,14 @@ export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
   }
   PROTOCOL_REGISTRY.splice(idx, 1);
   editorStore.delete(id);
+  deletedSeeds.add(id);
 
   // Remove from localStorage persistence store
   try {
     const { loadRegistryOverrides } = await import('../../components/Config/Protocols/protocolShared');
     const overrides = loadRegistryOverrides();
     delete overrides[id];
-    localStorage.setItem('ps_registry_overrides_v1', JSON.stringify(overrides));
+    dataStorage.setItem('ps_registry_overrides_v1', JSON.stringify(overrides));
   } catch { /* storage unavailable */ }
 
   console.info(`[templateService] Deleted draft: ${id}`);
@@ -903,102 +909,87 @@ export async function validateTerminologyCodes(
 // section counts) is preserved so the editor/validation UI still exercises
 // the same code paths. Restore real CAP-derived content only once a CAP
 // license is confirmed in place.
-// Each is seeded into editorStore at module load so getTemplate() returns
-// real field data during development. Remove when backend API is wired in.
-
-import BREAST_INVASIVE_JSON      from '../../data/templates/generic/breast_invasive.json';
-import BREAST_DCIS_JSON          from '../../data/templates/generic/breast_dcis_resection.json';
-import LUNG_ADENO_JSON           from '../../data/templates/generic/lung_adeno.json';
-import PROSTATE_NEEDLE_JSON      from '../../data/templates/generic/prostate_needle_biopsy.json';
-import COLON_RESECTION_JSON      from '../../data/templates/generic/colon_resection.json';
-import SKIN_MELANOMA_JSON        from '../../data/templates/generic/skin_melanoma_bx.json';
-import PROSTATE_RESECTION_JSON   from '../../data/templates/generic/prostate_resection.json';
-import LUNG_RESECTION_JSON       from '../../data/templates/generic/lung_resection.json';
-import KIDNEY_RESECTION_JSON    from '../../data/templates/generic/kidney_resection.json';
-import KIDNEY_BIOPSY_JSON       from '../../data/templates/generic/kidney_biopsy.json';
-import WILMS_RESECTION_JSON     from '../../data/templates/generic/wilms_resection.json';
-import WILMS_BIOPSY_JSON        from '../../data/templates/generic/wilms_biopsy.json';
-import AUTOPSY_GROSS_EXAM_JSON  from '../../data/templates/Autopsy/autopsy_gross_examination.json';
-// Batch 463: PathScribe's own Mohs synoptic (labs copy and customise it like any other).
-import MOHS_JSON                from '../../data/templates/generic/mohs_micrographic_surgery.json';
-// Batch 465: PathScribe's head and neck synoptics.
-import ORAL_CAVITY_JSON         from '../../data/templates/generic/oral_cavity_resection.json';
-import NECK_DISSECTION_JSON     from '../../data/templates/generic/neck_dissection.json';
-
-// Seed all generic templates (see comment block above)
-editorStore.set('breast_invasive',        BREAST_INVASIVE_JSON   as any);
-editorStore.set('breast_dcis_resection',  BREAST_DCIS_JSON       as any);
-editorStore.set('lung_adeno',             LUNG_ADENO_JSON        as any);
-editorStore.set('prostate_needle_biopsy', PROSTATE_NEEDLE_JSON   as any);
-editorStore.set('colon_resection',        COLON_RESECTION_JSON   as any);
-editorStore.set('skin_melanoma_bx',          SKIN_MELANOMA_JSON       as any);
-editorStore.set('kidney_resection',    KIDNEY_RESECTION_JSON    as unknown as EditorTemplate);
-editorStore.set('kidney_biopsy',       KIDNEY_BIOPSY_JSON       as unknown as EditorTemplate);
-editorStore.set('wilms_resection',     WILMS_RESECTION_JSON     as unknown as EditorTemplate);
-editorStore.set('wilms_biopsy',        WILMS_BIOPSY_JSON        as unknown as EditorTemplate);
-editorStore.set('autopsy_gross_examination', AUTOPSY_GROSS_EXAM_JSON as unknown as EditorTemplate);
-editorStore.set('mohs_micrographic_surgery', MOHS_JSON as unknown as EditorTemplate);
-editorStore.set('oral_cavity_resection',     ORAL_CAVITY_JSON as unknown as EditorTemplate);
-editorStore.set('neck_dissection',           NECK_DISSECTION_JSON as unknown as EditorTemplate);
-editorStore.set('prostate_resection',        PROSTATE_RESECTION_JSON  as any);
-editorStore.set('lung_resection',            LUNG_RESECTION_JSON      as any);
-// Alias — internal protocol ID used by the generic seed template above
-editorStore.set('skin_invasive_melanoma_biopsy', SKIN_MELANOMA_JSON as any);
-
-// UK generic templates (formerly RCPath-derived; see comment block above --
-// same content-licensing cleanup applies. Ids/filenames were also renamed
-// to drop the "rcpath_" prefix and RCPath's internal document numbering,
-// e.g. rcpath_g148_breast_surgical_excision -> breast_surgical_excision.)
-import UK_BREAST_JSON         from '../../data/templates/generic/breast_surgical_excision.json';
-import UK_COLORECTAL_RES_JSON from '../../data/templates/generic/colorectal_resection_b.json';
-import UK_COLORECTAL_LOC_JSON from '../../data/templates/generic/colorectal_local_excision.json';
-import UK_COLORECTAL_FI_JSON  from '../../data/templates/generic/colorectal_further_investigations.json';
-import UK_PROSTATE_BX_JSON    from '../../data/templates/generic/prostate_biopsy.json';
-import UK_PROSTATE_RP_JSON    from '../../data/templates/generic/prostate_radical_prostatectomy.json';
-import UK_PROSTATE_TURP_JSON  from '../../data/templates/generic/prostate_turp_enucleation.json';
-
-editorStore.set('breast_surgical_excision',            UK_BREAST_JSON         as any);
-editorStore.set('colorectal_resection_b',               UK_COLORECTAL_RES_JSON as any);
-editorStore.set('colorectal_local_excision',            UK_COLORECTAL_LOC_JSON as any);
-editorStore.set('colorectal_further_investigations',    UK_COLORECTAL_FI_JSON  as any);
-editorStore.set('prostate_biopsy',                      UK_PROSTATE_BX_JSON   as any);
-editorStore.set('prostate_radical_prostatectomy',       UK_PROSTATE_RP_JSON   as any);
-editorStore.set('prostate_turp_enucleation',            UK_PROSTATE_TURP_JSON as any);
-
-// Grossing Templates
-// NOTE: unlike the generic template imports above, these do NOT rely on the
-// getTemplate() fallback path (the "seeded into editorStore but not in
-// PROTOCOL_REGISTRY" case) — each has an explicit PROTOCOL_REGISTRY entry
-// in protocolShared.tsx (see "Grossing Templates" section there), set to
-// status: 'published' so they show in Active Protocols / are selectable
-// for assignment, the same as any other Base/Custom template. Both files
-// must be kept in sync by id.
 //
-// Three peer templates (Route A/B/C), not one generic + variants — see the
-// "Grossing Templates" comment block in protocolShared.tsx for why there's
-// no parent/child relationship between them; Stage 0's AI assignment picks
-// the right one per specimen, the same way CAP_TO_REPORT picks a Report
-// Template in TemplateRoutingService.ts.
-import GROSSING_STANDARD_TISSUE_JSON from '../../data/templates/Grossing/grossing_standard_tissue.json';
-import GROSSING_FLUID_CYTOLOGY_JSON  from '../../data/templates/Grossing/grossing_fluid_cytology.json';
-import THYROID_FNA_CYTOLOGY_JSON     from '../../data/templates/Cytology/cytology_thyroid_fna_cytology.json';
-import SALIVARY_GLAND_FNA_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_salivary_gland_fna_cytology.json';
-import URINE_CYTOLOGY_JSON           from '../../data/templates/Cytology/cytology_urine_cytology.json';
-import PANCREATICOBILIARY_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_pancreaticobiliary_cytology.json';
-import LYMPH_NODE_FNA_CYTOLOGY_JSON  from '../../data/templates/Cytology/cytology_lymph_node_fna_cytology.json';
-import GROSSING_HISTOLOGY_ONLY_JSON  from '../../data/templates/Grossing/grossing_histology_only.json';
+// Batch 505 (PS-475): seeds load ON DEMAND. They used to be imported
+// statically and put into editorStore at module load, which put about
+// 420 KB of template JSON into every first page load. Now each file is
+// its own small chunk, fetched the first time something asks for that id
+// (ensureSeedTemplate, awaited by every function that reads editorStore).
+// Saved edits still win: hydration below puts them in editorStore first,
+// and a seed never overwrites an id that's already there.
+// Remove when the backend API is wired in.
+//
+// UK generic templates were formerly RCPath-derived (same licensing
+// cleanup; ids and filenames dropped the "rcpath_" prefix and RCPath's
+// document numbering, e.g. rcpath_g148_breast_surgical_excision ->
+// breast_surgical_excision).
+//
+// Grossing templates do NOT rely on the getTemplate() "in editorStore but
+// not in PROTOCOL_REGISTRY" fallback: each has an explicit, published
+// PROTOCOL_REGISTRY entry in protocolShared.tsx ("Grossing Templates"),
+// kept in sync by id. Three peer templates (Route A/B/C), not one generic
+// plus variants: Stage 0's AI assignment picks one per specimen, the way
+// CAP_TO_REPORT picks a Report Template in TemplateRoutingService.ts.
+type SeedLoader = () => Promise<{ default: unknown }>;
+const SEED_TEMPLATE_LOADERS: Record<string, SeedLoader> = {
+  breast_invasive:            () => import('../../data/templates/generic/breast_invasive.json'),
+  breast_dcis_resection:      () => import('../../data/templates/generic/breast_dcis_resection.json'),
+  lung_adeno:                 () => import('../../data/templates/generic/lung_adeno.json'),
+  prostate_needle_biopsy:     () => import('../../data/templates/generic/prostate_needle_biopsy.json'),
+  colon_resection:            () => import('../../data/templates/generic/colon_resection.json'),
+  skin_melanoma_bx:           () => import('../../data/templates/generic/skin_melanoma_bx.json'),
+  // Alias: the internal protocol id for the same generic melanoma template.
+  skin_invasive_melanoma_biopsy: () => import('../../data/templates/generic/skin_melanoma_bx.json'),
+  prostate_resection:         () => import('../../data/templates/generic/prostate_resection.json'),
+  lung_resection:             () => import('../../data/templates/generic/lung_resection.json'),
+  kidney_resection:           () => import('../../data/templates/generic/kidney_resection.json'),
+  kidney_biopsy:              () => import('../../data/templates/generic/kidney_biopsy.json'),
+  wilms_resection:            () => import('../../data/templates/generic/wilms_resection.json'),
+  wilms_biopsy:               () => import('../../data/templates/generic/wilms_biopsy.json'),
+  autopsy_gross_examination:  () => import('../../data/templates/Autopsy/autopsy_gross_examination.json'),
+  // Batch 463: PathScribe's own Mohs synoptic (labs copy and customise it like any other).
+  mohs_micrographic_surgery:  () => import('../../data/templates/generic/mohs_micrographic_surgery.json'),
+  // Batch 465: PathScribe's head and neck synoptics.
+  oral_cavity_resection:      () => import('../../data/templates/generic/oral_cavity_resection.json'),
+  neck_dissection:            () => import('../../data/templates/generic/neck_dissection.json'),
+  // UK generic templates
+  breast_surgical_excision:          () => import('../../data/templates/generic/breast_surgical_excision.json'),
+  colorectal_resection_b:            () => import('../../data/templates/generic/colorectal_resection_b.json'),
+  colorectal_local_excision:         () => import('../../data/templates/generic/colorectal_local_excision.json'),
+  colorectal_further_investigations: () => import('../../data/templates/generic/colorectal_further_investigations.json'),
+  prostate_biopsy:                   () => import('../../data/templates/generic/prostate_biopsy.json'),
+  prostate_radical_prostatectomy:    () => import('../../data/templates/generic/prostate_radical_prostatectomy.json'),
+  prostate_turp_enucleation:         () => import('../../data/templates/generic/prostate_turp_enucleation.json'),
+  // Grossing and cytology templates
+  grossing_standard_tissue:    () => import('../../data/templates/Grossing/grossing_standard_tissue.json'),
+  grossing_fluid_cytology:     () => import('../../data/templates/Grossing/grossing_fluid_cytology.json'),
+  grossing_histology_only:     () => import('../../data/templates/Grossing/grossing_histology_only.json'),
+  thyroid_fna_cytology:        () => import('../../data/templates/Cytology/cytology_thyroid_fna_cytology.json'),
+  salivary_gland_fna_cytology: () => import('../../data/templates/Cytology/cytology_salivary_gland_fna_cytology.json'),
+  urine_cytology:              () => import('../../data/templates/Cytology/cytology_urine_cytology.json'),
+  pancreaticobiliary_cytology: () => import('../../data/templates/Cytology/cytology_pancreaticobiliary_cytology.json'),
+  lymph_node_fna_cytology:     () => import('../../data/templates/Cytology/cytology_lymph_node_fna_cytology.json'),
+};
 
-editorStore.set('grossing_standard_tissue', GROSSING_STANDARD_TISSUE_JSON as any);
-editorStore.set('grossing_fluid_cytology',  GROSSING_FLUID_CYTOLOGY_JSON  as any);
-editorStore.set('thyroid_fna_cytology',     THYROID_FNA_CYTOLOGY_JSON     as any);
-editorStore.set('salivary_gland_fna_cytology', SALIVARY_GLAND_FNA_CYTOLOGY_JSON as any);
-editorStore.set('urine_cytology',           URINE_CYTOLOGY_JSON           as any);
-editorStore.set('pancreaticobiliary_cytology', PANCREATICOBILIARY_CYTOLOGY_JSON as any);
-editorStore.set('lymph_node_fna_cytology',  LYMPH_NODE_FNA_CYTOLOGY_JSON  as any);
-editorStore.set('grossing_histology_only',  GROSSING_HISTOLOGY_ONLY_JSON  as any);
+/** Ids of the seed templates PathScribe ships (loaded on demand). */
+export const SEED_TEMPLATE_IDS: readonly string[] = Object.keys(SEED_TEMPLATE_LOADERS);
 
-// Hydrate from localStorage on module load — merges saved template content
-// on top of the seed data, same timing and same reasoning as
+/** Seeds deleted this session: not fetched again (before Batch 505 a deleted
+ *  seed also stayed gone until the page reloaded). */
+const deletedSeeds = new Set<string>();
+
+/** Puts a seed template's content into editorStore the first time it's needed.
+ *  Never overwrites what's already there (a saved edit, or a draft). */
+async function ensureSeedTemplate(id: string): Promise<void> {
+  if (editorStore.has(id) || deletedSeeds.has(id)) return;
+  const load = SEED_TEMPLATE_LOADERS[id];
+  if (!load) return;
+  const content = (await load()).default as EditorTemplate;
+  if (!editorStore.has(id) && !deletedSeeds.has(id)) editorStore.set(id, content);
+}
+
+// Hydrate from localStorage on module load — saved template content takes
+// precedence over the seed data (ensureSeedTemplate never overwrites it), same timing and same reasoning as
 // protocolShared.tsx's registry hydration: reflects prior-session edits
 // immediately, and restores any template that only ever existed at
 // runtime (never had a hardcoded seed import at all).

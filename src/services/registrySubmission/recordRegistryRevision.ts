@@ -22,7 +22,6 @@ import { isRegistryRevision, parseRegistryRevisionEvent, type RegistryRevision }
 import type { RegistryQueueName } from './registryExceptions';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const REGISTRY_REVISION_DEFICIENCY_TYPE = 'def-registry-revised-post-acceptance';
 

@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 
+vi.mock('@/contexts/SystemConfigContext', () => ({ useSystemConfig: () => ({ config: { facilityTimezone: 'America/Phoenix' } }) }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 const svc = vi.hoisted(() => {
@@ -39,7 +40,7 @@ const svc = vi.hoisted(() => {
     hpvPositiveCount: 7, ascusHpvPosPercent: 46.67, outlierStatus: 'over_calling',
   };
   const workloadRow = {
-    ctUserId: 'CT3', shiftDate: '2026-09-14', hoursScreened: 7.5, manualSlidesCount: 61, imagerSlidesCount: 33,
+    ctUserId: 'CT3', shiftDate: '2026-09-14', hoursScreened: 7.5, recordedHours: 6.5, signedOffHours: 7.5, signOffFlagged: true, signOffStale: false, signOffReasonId: 'microscopeOffScreen', manualSlidesCount: 61, imagerSlidesCount: 33,
     totalEquivSlides: 77.5, maxAllowedVolume: 70, exceedanceFlag: true,
   };
   const transmissionRow = (registryId: string) => ({
@@ -63,6 +64,7 @@ const svc = vi.hoisted(() => {
       // the stub returns one dispatch named after the registry it was asked for.
       getRegistryTransmissionAuditReport: vi.fn(async (_scope: unknown, registryId: string) => ({ ok: true, data: [transmissionRow(registryId)] })),
       getGynCytologySecondaryScreeningAuditReport: vi.fn(async () => ({ ok: true, data: [record] })),
+      getFiveYearRetrospectiveLookbackReport: vi.fn(ok({ rows: [], totalFlagged: 0, pendingCount: 0, completedCount: 0, completedPercent: 0, correctiveActionRatePercent: undefined, byOutcome: { confirmed_negative: 0, screening_error: 0, interpretation_error: 0, sampling_error: 0 } })),
       getHistologyCorrelationReport: vi.fn(ok({ rows: [], totalCorrelated: 0, concordantCount: 0, correlationRatePercent: 0 })),
       getUnscreenedBacklogReport: vi.fn(ok([])),
       getPrimaryHpvFailsafeAuditReport: vi.fn(ok([])),
@@ -149,6 +151,7 @@ const TILES: [string, string, string][] = [
   ['cytologyQaTab.tiles.workload', 'getWorkloadTrackingReport', 'cytologyQaTab.workloadTable.shiftDate'],
   ['cytologyQaTab.tiles.transmission', 'getRegistryTransmissionAuditReport', 'cytologyQaTab.transmissionTable.cytologyResult'],
   ['cytologyQaTab.tiles.secondaryScreeningAudit', 'getGynCytologySecondaryScreeningAuditReport', 'cytologyQaTab.secondaryScreeningTable.trigger'],
+  ['cytologyQaTab.tiles.fiveYearLookback', 'getFiveYearRetrospectiveLookbackReport', 'cytologyQaTab.fiveYearLookbackTable.noneFlaggedYet'],
   ['cytologyQaTab.tiles.histologyCorrelation', 'getHistologyCorrelationReport', 'cytologyQaTab.histologyTable.noCorrelationsYet'],
   ['cytologyQaTab.tiles.unscreenedBacklog', 'getUnscreenedBacklogReport', 'cytologyQaTab.unscreenedBacklogTable.noBacklogYet'],
   ['cytologyQaTab.tiles.ukFailsafe', 'getPrimaryHpvFailsafeAuditReport', 'cytologyQaTab.ukFailsafeTable.noDataYet'],
@@ -224,7 +227,8 @@ describe('CytologyQaTab new report tables show the report figures (PS-204)', () 
     openTile('cytologyQaTab.tiles.workload');
     await screen.findByText('CT3');
     const cells = Array.from(rowOf('CT3').querySelectorAll('td')).map(td => td.textContent);
-    expect(cells).toEqual(['CT3', '2026-09-14', '7.5', '61', '33', '77.5', '70.0', 'cytologyQaTab.exceededBadge']);
+    // Batch 572: the hours that count (signed off, with a flagged correction) beside the recorded hours. Batch 574: the reason.
+    expect(cells).toEqual(['CT3', '09/14/2026', '7.5 cytologyQaTab.workloadTable.signedOffcytologyQaTab.workloadTable.correctionFlaggedcytologyQaTab.workloadTable.correctionReason', '6.5', '61', '33', '77.5', '70.0', 'cytologyQaTab.exceededBadge']);
   });
 
   it('ANZ-QA-01 Registry Transmission Audit: accession, MRN (PHI-tagged), results, timestamp, status, error code', async () => {

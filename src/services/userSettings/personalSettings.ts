@@ -19,6 +19,7 @@
 
 import { storageGet, storageSet, storageClear } from '../mockStorage';
 import { getSessionUser } from '../auth/caseAccessControl';
+import { dataStorage } from '../browserData/dataStorage';
 
 export interface PersonalSettingsDeps {
   /** The signed-in person's id, or undefined. */
@@ -29,7 +30,7 @@ export interface PersonalSettingsDeps {
 
 const currentUserId = () => getSessionUser()?.id;
 const readLegacyDefault = (key: string): string | null => {
-  try { return localStorage.getItem(key); } catch { return null; }
+  try { return dataStorage.getItem(key); } catch { return null; }
 };
 
 /** Where a person's setting is kept (pure). */
@@ -61,12 +62,12 @@ export function getPersonalSetting<T>(legacyKey: string, fallback: T, parse: (ra
 export function setPersonalSetting<T>(legacyKey: string, value: T, deps: PersonalSettingsDeps = {}): void {
   const userId = (deps.userId ?? currentUserId)();
   if (userId) { storageSet(personalSettingKey(legacyKey, userId), value); return; }
-  try { localStorage.setItem(legacyKey, typeof value === 'string' ? value : JSON.stringify(value)); } catch { /* storage unavailable */ }
+  try { dataStorage.setItem(legacyKey, typeof value === 'string' ? value : JSON.stringify(value)); } catch { /* storage unavailable */ }
 }
 
 /** Clears the person's value. */
 export function clearPersonalSetting(legacyKey: string, deps: PersonalSettingsDeps = {}): void {
   const userId = (deps.userId ?? currentUserId)();
   if (userId) { storageClear(personalSettingKey(legacyKey, userId)); return; }
-  try { localStorage.removeItem(legacyKey); } catch { /* storage unavailable */ }
+  try { dataStorage.removeItem(legacyKey); } catch { /* storage unavailable */ }
 }

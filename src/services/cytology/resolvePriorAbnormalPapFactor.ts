@@ -38,7 +38,8 @@ export function resolvePriorAbnormalPapFactor(
   lookbackYears = 5,
 ): boolean {
   const cutoff = new Date(asOfDate);
-  cutoff.setFullYear(cutoff.getFullYear() - lookbackYears);
+  // Batch 504: UTC arithmetic, so the window is the same whatever device runs it.
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - lookbackYears);
 
   return priorReviews.some(r => r.requiresPathologistReview && new Date(r.recordedAt) >= cutoff);
 }

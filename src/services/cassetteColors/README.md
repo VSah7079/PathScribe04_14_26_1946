@@ -1,8 +1,10 @@
 # services/cassetteColors/
 
-The real color dictionary — White, Blue, Red, Pink, Green/Mesh, Yellow, and any admin-added colors — that `services/cassetteRouting/`'s rules reference by key. Fully admin-manageable through Configuration → Cassette Colors: an admin can add a genuinely new color (name, hex, fallback policy) without any code change, and every routing rule referencing it updates automatically.
+The real color dictionary — White, Blue, Red, Pink, Green/Mesh, Yellow, and any admin-added colors — that `services/cassetteRouting/`'s rules reference by key. Fully admin-manageable through Configuration → System → Cassette Colors (Lab Materials & Workflows): an admin can add a genuinely new color (name, hex, fallback policy) without any code change, and every routing rule referencing it updates automatically.
 
 **Pattern:** Standard interface/mock pattern (no firestore stub currently).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the screen is a section of Configuration → System, not its own Configuration tab.*
 
 ## Files
 

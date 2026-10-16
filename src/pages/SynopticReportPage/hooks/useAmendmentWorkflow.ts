@@ -51,6 +51,7 @@
 // from this hook, the same cross-hook pattern used throughout tonight.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { AuditLogFn } from '@/components/Audit/useAuditLog';
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
@@ -61,7 +62,9 @@ import { amendmentService, reportVersionService } from '@/services';
 import { aiBehaviorService } from '@/services';
 import { lisAmendmentNoticeService } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { publishReportReleasedEvent } from '@/services/reports/publishReportReleasedEvent';
+import { releaseThroughDelay } from '@/services/reportRelease/releaseThroughDelay';
+import { REVISION_IN_RELEASE_DELAY } from '@/services/reportRelease/revisionDuringDelay';
+import { caseStatusAfterCorrection } from '@/services/reportRelease/heldReleaseRules';
 import { resolveFinalDiagnosisText } from '@/services/reportTemplates/resolveFinalDiagnosisText';
 import type { VersionHistoryEntry, FieldOverride } from '../modals/AmendmentModal';
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
@@ -88,7 +91,8 @@ interface UseAmendmentWorkflowParams {
   setAmendmentText: (text: string) => void;
   setAmendmentMode: (mode: 'amendment' | 'correction' | 'addendum') => void;
   setShowAmendmentModal: (show: boolean) => void;
-  log: (event: string, detail: Record<string, unknown>) => void;
+  // Batch 511 (PS-478): the page's typed audit logger, so each event and its details are checked against the audit catalogue.
+  log: AuditLogFn;
 }
 
 export function useAmendmentWorkflow({
@@ -167,15 +171,18 @@ export function useAmendmentWorkflow({
           payloadBody: `Addendum synoptic instance ${activeInstance.instanceId} finalized.`,
         });
       } else {
-        publishReportReleasedEvent({
+        // Batch 534 (Pete): after the laboratory's release delay, like every report output.
+        releaseThroughDelay({
           caseId: caseData.id,
           instanceId: activeInstance.instanceId,
           reportType: 'ADDENDUM',
           releasedAt: new Date().toISOString(),
           releasedBy: signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : undefined,
-          performingFacilityId: (caseData as any)?.order?.facilityId,
+          performingFacilityId: caseData.order?.facilityId,
           generatePdf: generateReportPdfSnapshot,
-        }).catch(e => console.error('[useAmendmentWorkflow] Real, non-blocking failure publishing ADDENDUM event:', e));
+        }, { kind: 'surgical-amendment', releasedBy: { userId: signingUser?.id ?? '', userName: signingUser?.name ?? signingUser?.id ?? '' },
+          // Batch 535: what Recall reopens (the addendum, back to draft on its instance).
+          subject: { recordId: activeInstance.pendingAddendumId, instanceId: activeInstance.instanceId, previousStatus: caseData.status, ...(activeInstance.lastRevisionType ? { previousRevisionType: activeInstance.lastRevisionType } : {}) } }).catch(e => console.error('[useAmendmentWorkflow] Real, non-blocking failure publishing ADDENDUM event:', e));
       }
     }
 
@@ -222,9 +229,12 @@ export function useAmendmentWorkflow({
         previouslyReportedAs,
         correctedTo,
       });
+      // Batch 534: a case still in its sign-out buffer stays there (caseStatusAfterCorrection).
+      const freshForStatus = await caseRouter.getCase(caseData.id).catch(() => null);
+      const statusAfter = caseStatusAfterCorrection(freshForStatus?.status ?? caseData.status) as CaseStatus;
       setCaseData(prev => prev ? {
         ...prev,
-        status: 'finalized' as CaseStatus,
+        status: statusAfter,
         lastRevisionType: releasedRevisionType,
         synopticReports: (prev.synopticReports ?? []).map((r: SynopticReportInstance) =>
           r.instanceId === activeReportInstanceId
@@ -234,7 +244,7 @@ export function useAmendmentWorkflow({
       } : prev);
       try {
         await caseRouter.updateCase(caseData.id, {
-          status: 'finalized' as CaseStatus,
+          status: statusAfter,
           lastRevisionType: releasedRevisionType,
           synopticReports: (caseData.synopticReports ?? []).map((r: SynopticReportInstance) =>
             r.instanceId === activeReportInstanceId
@@ -258,16 +268,19 @@ export function useAmendmentWorkflow({
           payloadBody: `Synoptic instance ${activeInstance.instanceId} corrected and re-signed out.`,
         });
       } else {
-        publishReportReleasedEvent({
+        // Batch 534 (Pete): after the laboratory's release delay, like every report output.
+        releaseThroughDelay({
           caseId: caseData.id,
           instanceId: activeInstance.instanceId,
           reportType: 'CORRECTED',
           releasedAt: new Date().toISOString(),
           releasedBy: signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : undefined,
-          performingFacilityId: (caseData as any)?.order?.facilityId,
+          performingFacilityId: caseData.order?.facilityId,
           generatePdf: generateReportPdfSnapshot,
           previouslyReportedAs,
-        }).catch(e => console.error('[useAmendmentWorkflow] Real, non-blocking failure publishing CORRECTED event:', e));
+        }, { kind: 'surgical-amendment', releasedBy: { userId: signingUser?.id ?? '', userName: signingUser?.name ?? signingUser?.id ?? '' },
+          // Batch 535: what Recall reopens (the correction, back to draft on its unlocked instance).
+          subject: { recordId: releasedAmendmentId, instanceId: activeInstance.instanceId, previousStatus: freshForStatus?.status ?? caseData.status, ...(activeInstance.lastRevisionType ? { previousRevisionType: activeInstance.lastRevisionType } : {}) } }).catch(e => console.error('[useAmendmentWorkflow] Real, non-blocking failure publishing CORRECTED event:', e));
       }
     }
 
@@ -612,6 +625,12 @@ export function useAmendmentWorkflow({
       reportInstanceId: activeReportInstanceId ?? undefined,
       specimenId: (caseData.synopticReports ?? []).find((r: SynopticReportInstance) => r.instanceId === activeReportInstanceId)?.specimenId,
     });
+    // Batch 540 (Pete): refused while the report is still in its release delay; it is recalled instead.
+    if (res.ok === false && res.error === REVISION_IN_RELEASE_DELAY) {
+      setShowAmendmentModal(false);
+      showToast(t('useAmendmentWorkflow.toast.inReleaseDelay'), 'warning');
+      return;
+    }
     if (res.ok) {
       setAmendmentDraftId(res.data.id); setAmendmentSequenceNumber(res.data.sequenceNumber);
       // Real, per direct guidance's own follow-up on provenance &
@@ -658,7 +677,7 @@ export function useAmendmentWorkflow({
       await lisAmendmentNoticeService.updateStatus(pendingLisNotice.id, 'synoptic_amended');
       setPendingLisNotice(null);
     }
-  }, [caseData, signingUser, pendingLisNotice, setPendingLisNotice, activeReportInstanceId, log]);
+  }, [caseData, signingUser, pendingLisNotice, setPendingLisNotice, activeReportInstanceId, log, setShowAmendmentModal, showToast, t]);
 
   const handleFieldOverridesConfirmed = useCallback(async (overrides: Record<string, FieldOverride>) => {
     if (!caseData || !activeReportInstanceId) return;

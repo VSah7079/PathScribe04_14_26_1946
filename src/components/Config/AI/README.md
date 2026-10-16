@@ -10,8 +10,9 @@ everything else is UI over it.
 ## Files
 
 - **`aiProviderConfig.ts`** — Defines supported providers and per-provider
-  model lists. 3-tier resolution: user override (localStorage, dev-only) →
-  org setting → env default. API keys never live in the browser, in any
+  model lists. 3-tier resolution: personal override (per person, through
+  `services/userSettings/personalSettings.ts` since Batch 430; no screen sets
+  it today) → org setting (lab settings store) → env default. API keys never live in the browser, in any
   build: every call goes through the `/api/ai/…` proxy routes (Batch 444
   removed the old `VITE_AI_DEV_MODE` direct-call path and the dev key field). **Real rename, this pass:** `AiProviderId`
   values (an internal type, never shown to users) are now named for their
@@ -55,11 +56,15 @@ everything else is UI over it.
   individually in Facility Configuration.
 - **`index.tsx`** — `AITab`, the top-level AI Behavior tab. Mounts
   `AiProviderSettings`, `OrchestratorConfigSection`, and (via prop)
-  `ModelsPanel`. Own `useIsAdmin()` reads role directly from
-  `localStorage['pathscribe_current_user']` rather than `useAuth()`/
-  `AuthContext` (used elsewhere, e.g. `TemplateRenderer.tsx`) — not
-  necessarily wrong, but an inconsistency worth knowing about if this file
-  is touched again.
+  `ModelsPanel`. Uses the shared `useIsAdmin()` from `AuthContext` (its
+  old local copy that read `localStorage` directly is gone).
+- **`resolveClientAiModel.ts`** — which AI model a performing lab's work
+  is drafted with (org default, or the lab's `internalAiModelId` override)
+  and the hard block on setting an override without a passing validation
+  study. Used by `FacilityDictionary/FacilityEditorModal.tsx` and
+  `services/cases/mockCaseService.ts`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `index.tsx` no longer reads `localStorage` for the admin check; the personal override is per person, not localStorage; `resolveClientAiModel.ts` added to this list.*
 - **`resolveVoiceAiModel.ts`** — **NEW.** Voice-specific mirror of
   `resolveClientAiModel.ts`'s hard-block philosophy: `hasPassingValidationForVoiceModel()`
   is the real gate, `resolveVoiceAiConfig()` turns the resolved model into
@@ -131,3 +136,38 @@ AI Provider Settings reports unsaved changes (PS-128). Fixed: on opening, the fo
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way.
+- **Model labels:** `aiProviderConfig.ts` keeps each model's name literal and translates its qualifier through one template key, for example "{{model}} (recommended)". Test: `aiProviderConfig.modelLabels.test.ts`.
+- **Provider help notes:** translated.
+- **Provider names:** "Mock" and "Custom endpoint" are translated; vendor names stay as they are.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+`OrchestratorConfigSection`: the on/off switch now sits beside the collapse button instead of inside it (a control inside a button can't be reached), and is a real `<button role="switch">`. The collapse button says whether it is open (`aria-expanded`).
+
+## Batch 536 (PS-558)
+
+- `AiVendorPolicySection.tsx` (new, in the AI Behavior tab): the AI vendor policy per served jurisdiction and per facility; whether the service in use is allowed there; edit, add a facility rule, remove. Changes go through `aiVendorPolicyService` (`config:ai-vendor-policy:manage`).
+- `AiProviderSettings.tsx`: a **Hosting region** field for every service but Bedrock (whose region field stays) and the demonstration mode; an inline warning before saving a service a served jurisdiction doesn't allow. The connection test passes its feature.
+- `aiProviderConfig.ts`: `hostingRegion` on the config (and `VITE_AI_HOSTING_REGION`), `aiHostingRegion()`, and the vendor labels (`AI_PROVIDER_LABELS`, `aiProviderLabel`) moved here from `AiProviderSettings.tsx`.
+
+## Batch 547
+
+Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
+
+- `HostingRegionsCard.tsx` (Batch 557, new): "Where PathScribe keeps data", the database and file storage regions (from the server's `/api/config`) beside the AI region, shown in `AiProviderSettings.tsx`. Read only.

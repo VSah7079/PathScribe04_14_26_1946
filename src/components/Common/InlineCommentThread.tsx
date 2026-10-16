@@ -1,136 +1,90 @@
-import React, { useEffect, useState } from "react";
+// src/components/Common/InlineCommentThread.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Reviewers' comments on one question of a template under review (the
+// template review screen, TemplateRenderer.tsx).
+//
+// Batch 579 (PS-63 follow-up, "the reviewer screen needs polish"): dark, like
+// the rest of the screen (it was white); the comment box is labelled with the
+// question it belongs to and has an Add button as well as Enter; adding and
+// resolving go through services/templates/templateReviewWork.ts, which saves
+// and audits them (this component used to build the audit entries itself).
+// ─────────────────────────────────────────────────────────────────────────────
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
-import { logEvent } from "../../audit/auditLogger";
-import { getTemplateQuestionComments, saveTemplateQuestionComments, type TemplateQuestionComment } from "@/services/templates/templateReviewWork";
-
-// Batch 431: comments are kept by the template review service (shared with
-// the other reviewers once the API server holds them, PS-345).
-type Comment = TemplateQuestionComment;
+import { logEvent } from '../../audit/auditLogger';
+import {
+  addTemplateQuestionComment, getTemplateQuestionComments, toggleTemplateQuestionComment,
+  type TemplateCommentDeps, type TemplateQuestionComment,
+} from '@/services/templates/templateReviewWork';
 
 interface InlineCommentThreadProps {
-  questionId:  string;
-  templateId:  string;   // passed from parent — no longer hardcoded to DCIS
-  currentUser?: string;
+  questionId: string;
+  templateId: string;
+  /** The question's own label, so the comment box says which question it is for. */
+  questionLabel?: string;
+  currentUser: string;
+  /** Batch 579: the audit log, passed in for tests. */
+  deps?: TemplateCommentDeps;
 }
 
-export const InlineCommentThread: React.FC<InlineCommentThreadProps> = ({
-  questionId,
-  templateId,
-  currentUser = "Dr. Reviewer"
-}) => {
+const defaultDeps: TemplateCommentDeps = { log: event => logEvent(event) };
+
+export const InlineCommentThread: React.FC<InlineCommentThreadProps> = ({ questionId, templateId, questionLabel, currentUser, deps = defaultDeps }) => {
   const { t } = useTranslation();
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [draft, setDraft] = useState("");
+  const [comments, setComments] = useState<TemplateQuestionComment[]>([]);
+  const [draft, setDraft] = useState('');
 
   useEffect(() => {
     setComments(getTemplateQuestionComments(templateId, questionId));
   }, [templateId, questionId]);
 
-  const persist = (next: Comment[]) => {
+  const add = () => {
+    const next = addTemplateQuestionComment({ templateId, questionId, author: currentUser, text: draft }, deps);
+    if (!next) return;
     setComments(next);
-    saveTemplateQuestionComments(templateId, questionId, next);
+    setDraft('');
   };
 
-  // -----------------------------
-  // Add Comment
-  // -----------------------------
-  const handleAdd = () => {
-    const text = draft.trim();
-    if (!text) return;
-
-    const newComment: Comment = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      author: currentUser,
-      text,
-      resolved: false
-    };
-
-    const next = [...comments, newComment];
-    persist(next);
-    setDraft("");
-
-    logEvent({
-      user: currentUser,
-      category: "user",
-      action: "add_comment",
-      templateId,
-      questionId,
-      commentId: newComment.id,
-      newValue: text,
-      detail: `Added comment: ${text}`,
-    });
-  };
-
-  // -----------------------------
-  // Resolve / Reopen Comment
-  // -----------------------------
-  const toggleResolved = (id: string) => {
-    const next = comments.map(c =>
-      c.id === id ? { ...c, resolved: !c.resolved } : c
-    );
-    persist(next);
-
-    const updated = next.find(c => c.id === id);
-
-    logEvent({
-      user: currentUser,
-      category: "user",
-      action: updated?.resolved ? "resolve_comment" : "reopen_comment",
-      templateId,
-      questionId,
-      commentId: id,
-      detail: updated?.resolved ? "Comment resolved" : "Comment reopened",
-    });
-  };
-
-  // -----------------------------
-  // Render
-  //
-  // The "no comments yet" case and the "has comments" case share the
-  // same comment-entry input — rendered once below, with the existing-
-  // comments list shown only when there's something to show.
-  // -----------------------------
+  const label = questionLabel
+    ? t('inlineCommentThread.addCommentLabel', { question: questionLabel })
+    : t('inlineCommentThread.addCommentPlaceholder');
 
   return (
     <div className="ps-inlinecomment-wrap">
       {comments.length > 0 && (
-        <div className="ps-inlinecomment-list">
+        <ul className="ps-inlinecomment-list">
           {comments.map(c => (
-            <div
-              key={c.id}
-              className={`ps-inlinecomment-row${c.resolved ? ' ps-inlinecomment-row--resolved' : ''}`}
-            >
-              <div>
-                <strong>{c.author}</strong>: {c.text}
-                {c.resolved && (
-                  <span className="ps-inlinecomment-resolved-badge">
-                    {t('inlineCommentThread.resolvedBadge')}
-                  </span>
-                )}
+            <li key={c.id} className={`ps-inlinecomment-row${c.resolved ? ' ps-inlinecomment-row--resolved' : ''}`}>
+              <div className="ps-inlinecomment-text">
+                <strong>{c.author}</strong>{t('inlineCommentThread.authorSeparator')}{c.text}
+                {c.resolved && <span className="ps-inlinecomment-resolved-badge">{t('inlineCommentThread.resolvedBadge')}</span>}
               </div>
-
               <button
-                onClick={() => toggleResolved(c.id)}
+                type="button"
+                onClick={() => setComments(toggleTemplateQuestionComment({ templateId, questionId, commentId: c.id, user: currentUser }, deps))}
                 className="ps-inlinecomment-resolve-btn"
               >
-                {c.resolved ? t('inlineCommentThread.reopenButton') : t('deliveryRulesSection.testPanel.resolveButton')}
+                {c.resolved ? t('inlineCommentThread.reopenButton') : t('inlineCommentThread.resolveButton')}
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-
-      <input
-        type="text"
-        placeholder={t('inlineCommentThread.addCommentPlaceholder')}
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === "Enter") handleAdd();
-        }}
-        className="ps-inlinecomment-input"
-      />
+      <div className="ps-inlinecomment-add">
+        <input
+          type="text"
+          aria-label={label}
+          placeholder={t('inlineCommentThread.addCommentPlaceholder')}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          className="ps-inlinecomment-input"
+        />
+        <button type="button" className="ps-inlinecomment-add-btn" onClick={add} disabled={!draft.trim()}>
+          {t('inlineCommentThread.addButton')}
+        </button>
+      </div>
     </div>
   );
 };

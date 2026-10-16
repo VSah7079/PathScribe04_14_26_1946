@@ -31,6 +31,11 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import ReasonPromptModal from '@/components/Common/ReasonPromptModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { ACCESS_REQUEST_DECISION_CAPABILITY } from '@/services/access/accessRequestDecision';
+import { facilityMonthlyTrend, averageHours } from '@/services/quality/facilityMonthlyTrend';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 const hoursBetween = (a: string, b: string) => (new Date(b).getTime() - new Date(a).getTime()) / 3600000;
 
@@ -68,6 +73,8 @@ function accessRequestMatchesScope(r: AccessRequest, scope: QaScope): boolean {
 export const AccessRequestResponseTab: React.FC = () => {
   const { t } = useTranslation();
   const openCasePage = useOpenCase();
+  // Row click handler: only rows that name a case open it.
+  const openCaseHandler = (caseId: string | undefined) => (caseId ? () => void openCasePage(caseId, 'synoptic') : undefined);
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,25 +118,11 @@ export const AccessRequestResponseTab: React.FC = () => {
 
   // Real monthly turnaround trend, last 6 months — same pattern as the
   // other QA tabs' trend charts.
-  const monthlyTrend = useMemo(() => {
-    const months: { month: string; avgHours: number | null; total: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-      const inMonth = resolved.filter(r => {
-        const ts = new Date(r.resolvedAt!).getTime();
-        return ts >= monthStart && ts < monthEnd;
-      });
-      const avgHours = inMonth.length > 0
-        ? +(inMonth.reduce((s, r) => s + hoursBetween(r.requestedAt, r.resolvedAt!), 0) / inMonth.length).toFixed(1)
-        : null;
-      months.push({ month: monthKey, avgHours, total: inMonth.length });
-    }
-    return months;
-  }, [resolved]);
+  const { config: systemConfig } = useSystemConfig();
+  // Batch 504: by the facility's calendar month (services/quality/facilityMonthlyTrend.ts).
+  const monthlyTrend = useMemo(() => facilityMonthlyTrend(resolved, r => r.resolvedAt, inMonth => ({
+    avgHours: averageHours(inMonth, r => r.requestedAt, r => r.resolvedAt!), total: inMonth.length,
+  }), systemConfig.facilityTimezone), [resolved, systemConfig.facilityTimezone]);
 
   const handleExport = () => {
     const rows = scoped.map(r => ({
@@ -142,10 +135,10 @@ export const AccessRequestResponseTab: React.FC = () => {
       'Turnaround Hours': r.resolvedAt ? hoursBetween(r.requestedAt, r.resolvedAt).toFixed(1) : '',
       'Resolved By': r.resolvedByUserName ?? '',
     }));
-    void exportQaReportRows('qa:access-request-response:export', rows, `access-request-response-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+    void exportQaReportRows('qa:access-request-response:export', rows, `access-request-response-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('accessRequestResponseTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('accessRequestResponseTab.loading')} />;
 
   return (
     <div>
@@ -158,9 +151,9 @@ export const AccessRequestResponseTab: React.FC = () => {
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={monthlyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} unit="h" />
-            <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false} width={32} unit="h" />
+            <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -222,7 +215,7 @@ export const AccessRequestResponseTab: React.FC = () => {
           <tbody>
             {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={6}>{t('accessRequestResponseTab.noPendingMessage')}</td></tr>}
             {pending.map(r => (
-              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => void openCasePage(r.caseId, 'synoptic') : undefined}>
+              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} {...pressable(openCaseHandler(r.caseId), { role: null })}>
                 <td className="ps-conf-td">{t(TYPE_LABEL_KEY[r.type])}</td>
                 <td className="ps-conf-td">{r.requestingUserName}</td>
                 <td className="ps-conf-td" data-phi="accession">{r.caseId ?? <span className="ps-conf-td--muted-italic">—</span>}</td>
@@ -255,7 +248,7 @@ export const AccessRequestResponseTab: React.FC = () => {
           <tbody>
             {resolved.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('accessRequestResponseTab.noResolvedMessage')}</td></tr>}
             {resolved.map(r => (
-              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => void openCasePage(r.caseId, 'synoptic') : undefined}>
+              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} {...pressable(openCaseHandler(r.caseId), { role: null })}>
                 <td className="ps-conf-td">{t(TYPE_LABEL_KEY[r.type])}</td>
                 <td className="ps-conf-td">{r.requestingUserName}</td>
                 <td className={`ps-conf-td ${r.status === 'granted' ? 'ps-accessreq-status--granted' : 'ps-accessreq-status--denied'}`}>{t(STATUS_LABEL_KEY[r.status as 'granted' | 'denied'])}</td>

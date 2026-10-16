@@ -76,7 +76,7 @@ export const CytologyReviewForm: React.FC<Props> = ({
       </h2>
 
       <CytologyFieldLabel text={t('cytologyScreening.reviewForm.generalCategorization')} hint={t('cytologyScreening.reviewForm.generalCategorizationHint')} required={req('reviewGeneralCategorization')} />
-      <select value={draft.generalCategorizationId} onChange={e => onDraftChange({ ...draft, generalCategorizationId: e.target.value })}
+      <select aria-label={t('a11y.fields.generalCategorization')} value={draft.generalCategorizationId} onChange={e => onDraftChange({ ...draft, generalCategorizationId: e.target.value })}
         className="ps-conf-select ps-w-full ps-mb-14">
         <option value="">{t('cytologyScreening.reviewForm.noneOption')}</option>
         {generalCategorizationOptions.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}

@@ -37,17 +37,19 @@
 // The language menu now names both French variants.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import i18n from 'i18next';
+// Batch 505 (PS-475): languages load on demand. All five were bundled into
+// the start-up download (about 1.4 MB gzipped of a 6.7 MB first load); now
+// each locale file is its own chunk, and only the person's language (plus
+// English, the fallback) is fetched before the app starts. Switching language
+// fetches the new one first (i18next waits for it before switching); a report
+// written in the performing lab's language loads that language
+// (services/reports/resolveReportLocale.ts calls loadLanguage). This module
+// finishes loading before anything that imports it runs (top-level await), so
+// `t` never shows keys at start-up. Tests load every language, as before.
+
+import i18n, { type BackendModule } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-
-import en from './locales/en.json';
-import fr from './locales/fr.json';
-import de from './locales/de.json';
-import nl from './locales/nl.json';
-import ko from './locales/ko.json';
-import nlBE from './locales/nl-BE.json';
-import frBE from './locales/fr-BE.json';
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr', 'fr-BE', 'de', 'nl', 'nl-BE', 'ko'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -60,22 +62,29 @@ export const REGIONAL_VARIANTS = { 'fr-BE': 'fr', 'nl-BE': 'nl' } as const;
 
 const STORAGE_KEY = 'pathscribe_language';
 
-i18n
+/** One chunk per locale file; nothing is fetched until a language is needed. */
+const LOCALE_LOADERS = import.meta.glob<{ default: Record<string, unknown> }>('./locales/*.json');
+
+const lazyLocales: BackendModule = {
+  type: 'backend',
+  init: () => {},
+  read(language, _namespace, callback) {
+    const load = LOCALE_LOADERS[`./locales/${language}.json`];
+    if (!load) { callback(null, {}); return; }
+    load().then(m => callback(null, m.default)).catch(err => callback(err as Error, null));
+  },
+};
+
+await i18n
+  .use(lazyLocales)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: {
-      en: { translation: en },
-      fr: { translation: fr },
-      de: { translation: de },
-      nl: { translation: nl },
-      ko: { translation: ko },
-      'nl-BE': { translation: nlBE },
-      'fr-BE': { translation: frBE },
-    },
     // A regional variant falls back to its language first, then English.
     fallbackLng: { 'fr-BE': ['fr', 'en'], 'nl-BE': ['nl', 'en'], default: ['en'] },
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
+    // Only these languages are ever requested (no 'en-US' look-ups).
+    load: 'currentOnly',
     detection: {
       // The workstation's last language (for the sign-in page), then the
       // browser's own language. Once someone signs in, their own saved
@@ -90,6 +99,23 @@ i18n
       // string.
       escapeValue: false,
     },
+    // The start-up language is loaded before the app renders (above), and a
+    // language switch loads before it applies, so nothing needs to suspend.
+    react: { useSuspense: false },
   });
+
+/**
+ * Makes sure a language (and the languages it falls back to) is loaded, so
+ * `i18n.getFixedT(language)` translates in it. Call before translating in a
+ * language other than the screen's (a report in the lab's language).
+ */
+export async function loadLanguage(language: string | undefined | null): Promise<void> {
+  if (!language) return;
+  const base = (REGIONAL_VARIANTS as Record<string, string>)[language];
+  await i18n.loadLanguages([language, ...(base ? [base] : []), 'en']);
+}
+
+// Tests translate in every language without asking; load them all, as before.
+if (import.meta.env.MODE === 'test') await i18n.loadLanguages([...SUPPORTED_LANGUAGES]);
 
 export default i18n;

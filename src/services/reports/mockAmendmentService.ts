@@ -32,6 +32,7 @@ import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { AmendmentRecord } from '@/types/reports/AmendmentRecord';
 import type { IAmendmentService } from './IAmendmentService';
+import { dataStorage } from '../browserData/dataStorage';
 
 // Phase 3 helper — reused wherever the "here's what changed since the
 // last signed-out version" confirmation is built (SynopticReportPage's
@@ -60,10 +61,10 @@ const STORAGE_KEY = 'amendment_records';
 const AMENDMENT_VERSION = '7';
 const VERSION_KEY = 'pathscribe_mock_amendment_version';
 try {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
+  const storedVersion = dataStorage.getItem(VERSION_KEY);
   if (storedVersion !== AMENDMENT_VERSION) {
-    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-    localStorage.setItem(VERSION_KEY, AMENDMENT_VERSION);
+    dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    dataStorage.setItem(VERSION_KEY, AMENDMENT_VERSION);
   }
 } catch { /* SSR / sandboxed env — ignore */ }
 
@@ -277,6 +278,10 @@ export const mockAmendmentService: IAmendmentService = {
   },
 
   async startDraft(input) {
+    // Batch 540 (Pete): no correction or addendum while the report is still in its release delay
+    // (reportRelease/revisionDuringDelay.ts); the pathologist recalls it instead.
+    const { revisionAllowedNow, REVISION_IN_RELEASE_DELAY } = await import('../reportRelease/revisionDuringDelay');
+    if (!(await revisionAllowedNow(input.caseId))) return err(REVISION_IN_RELEASE_DELAY);
     const existing = load().filter(r => r.caseId === input.caseId && r.type === input.type);
     const newRecord: AmendmentRecord = {
       // Batch 381: a random suffix, so two drafts opened in the same
@@ -418,6 +423,22 @@ export const mockAmendmentService: IAmendmentService = {
     // recommends a CAPA (linked to a discordance already found on the case,
     // PS-148). Never blocks the release.
     await recommendCapaForRevision(records[idx]);
+    return ok({ ...records[idx] });
+  },
+
+  // Batch 535: Recall within the release delay. The CAPA recommendation made at
+  // release (if any) stays for the QA lead to dismiss: recalling isn't a QA decision.
+  async reopen(id, by) {
+    const records = load();
+    const idx = records.findIndex(r => r.id === id);
+    if (idx === -1) return err(`Amendment/addendum ${id} not found`);
+    const record = records[idx];
+    if (record.status !== 'released') return err('Only a released amendment, correction or addendum can be reopened.');
+    records[idx] = {
+      ...record, status: 'draft', releasedAt: undefined,
+      recalls: [...(record.recalls ?? []), { at: new Date().toISOString(), by, ...(record.releasedAt ? { releasedAt: record.releasedAt } : {}) }],
+    };
+    persist(records);
     return ok({ ...records[idx] });
   },
 };

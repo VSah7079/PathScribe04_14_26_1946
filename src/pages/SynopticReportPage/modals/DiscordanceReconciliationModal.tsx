@@ -225,7 +225,7 @@ export const DiscordanceReconciliationModal: React.FC<Props> = ({ caseId, specim
               {rootCause === 'other' && (
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('discordanceReconciliationModal.explainLabel')} {star('discordanceRootCauseNote')}</label>
-                  <input className="ps-conf-input" value={rootCauseNote} onChange={e => setRootCauseNote(e.target.value)} placeholder={t('discordanceReconciliationModal.explainPlaceholder')} />
+                  <input aria-label={t('discordanceReconciliationModal.explainLabel')} className="ps-conf-input" value={rootCauseNote} onChange={e => setRootCauseNote(e.target.value)} placeholder={t('discordanceReconciliationModal.explainPlaceholder')} />
                 </div>
               )}
               <div className="ps-conf-form-field">

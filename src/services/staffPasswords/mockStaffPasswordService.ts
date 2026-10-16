@@ -33,6 +33,7 @@ import {
 } from './staffPasswordRules';
 import { screenPassword, defaultPasswordScreeningDeps, type PasswordScreeningDeps, type PasswordScreeningProblem, type BreachCheckOutcome } from './passwordScreening';
 import { browserSignInLockStore, type SignInLockStore } from '../auth/signInLockout';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 export const STAFF_PASSWORD_STORAGE_KEY = 'staff_passwords';
 export const STAFF_PASSWORD_NOT_PERMITTED = 'notPermitted';
@@ -85,10 +86,11 @@ async function hashPassword(password: string): Promise<StoredPasswordHash> {
 /** Compared against when no staff record matches, so a wrong email takes as long as a wrong password. */
 const NO_MATCH: StoredPasswordHash = { iterations: PASSWORD_HASH_ITERATIONS, salt: 'uZcBfjDeAK+0yh4OHOhC7Q==', hash: 'EEPiWPbQZ3YGIV+tcrKwZmsgRRhufzkxnVt9WCAquHw=' };
 
-const passwordSignIn = import.meta.env.VITE_AUTH_MODE !== 'sso';
+// Batch 547: never in a server build (__DEMO_TOOLS__ is fixed by the build; see authSessionInstance.ts).
+const passwordSignIn = __DEMO_TOOLS__ && appEnv().VITE_AUTH_MODE !== 'sso';
 
 async function builtInDefault(staffId: string): Promise<boolean> {
-  if (!passwordSignIn) return false;
+  if (!__DEMO_TOOLS__ || !passwordSignIn) return false;
   return (await import('../auth/demo/demoAccounts')).DEMO_ACCOUNTS.some(a => a.id === staffId);
 }
 
@@ -131,7 +133,7 @@ export function createMockStaffPasswordService(deps: { screening?: PasswordScree
 
   /** Every email this person signs in with: their staff email and any built-in demo account's. */
   const signInEmails = async (staffId: string, staffEmail: string | undefined): Promise<string[]> => {
-    const demo = passwordSignIn ? (await import('../auth/demo/demoAccounts')).DEMO_ACCOUNTS.filter(a => a.id === staffId).map(a => a.email) : [];
+    const demo = __DEMO_TOOLS__ && passwordSignIn ? (await import('../auth/demo/demoAccounts')).DEMO_ACCOUNTS.filter(a => a.id === staffId).map(a => a.email) : [];
     return [...new Set([staffEmail ?? '', ...demo].map(e => e.trim().toLowerCase()).filter(Boolean))];
   };
 

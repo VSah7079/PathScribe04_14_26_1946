@@ -23,6 +23,7 @@ store.set('pathscribe-user', JSON.stringify({ id: 'TEST-USER', role: 'superadmin
 
 const { mockReportReleaseService } = await import('./mockReportReleaseService');
 const { caseRouter } = await import('../cases/CaseRouter');
+const { caseVersionOf } = await import('../cases/caseWrite');
 
 let counter = 0;
 function makeCaseId(): string {
@@ -185,7 +186,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       // finalizedBy is set by the real finalizeCase() flow, not
       // startBuffer() itself — set directly here to simulate that real,
       // already-signed state.
-      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, current!.version);
+      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.recall(caseId, { userId: 'TRAINEE-999', userName: 'A Resident' });
       expect(result.ok).toBe(false);
@@ -201,7 +202,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       const caseId = await seedCase({ status: 'in-progress' });
       await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, current!.version);
+      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.recall(caseId, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       expect(result.ok).toBe(true);
@@ -221,7 +222,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       // tests elsewhere: directly manipulate the stored timestamp rather
       // than actually waiting minutes in a real test run.
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, current!.version);
+      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.recall(caseId, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       expect(result.ok).toBe(false);
@@ -260,7 +261,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       const caseId = await seedCase({ status: 'in-progress' });
       await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, current!.version);
+      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.checkAndReleaseIfExpired(caseId);
       expect(result.released).toBe(true);
@@ -281,7 +282,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       const caseId = await seedCase();
       await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, current!.version);
+      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, caseVersionOf(current));
       await mockReportReleaseService.checkAndReleaseIfExpired(caseId);
 
       const auditMod = await import('../auditlog/mockAuditService');
@@ -290,5 +291,18 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       if (!logs.ok) return;
       expect(logs.data.some(l => l.caseId === caseId)).toBe(true);
     });
+  });
+});
+
+describe('Batch 534: the background release tracker', () => {
+  it('a recall settles it, so the background release never sends the recalled report', async () => {
+    const { mockHeldReleaseService } = await import('./mockHeldReleaseService');
+    const caseId = await seedCase({ status: 'in-progress' });
+    await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
+    await mockHeldReleaseService.add({ id: `t-${caseId}`, caseId, kind: 'surgical-sign-out', event: { caseId, reportType: 'FINAL', releasedAt: 'x' }, followUps: [],
+      heldAt: 'x', expiresAt: new Date(Date.now() + 600_000).toISOString(), releasedBy: { userId: 'PATH-001', userName: 'Pete Nimmo' }, status: 'held' });
+    expect((await mockReportReleaseService.recall(caseId, { userId: 'PATH-001', userName: 'Pete Nimmo' })).ok).toBe(true);
+    const res = await mockHeldReleaseService.getByCaseId(caseId);
+    expect(res.ok && res.data[0].status).toBe('recalled');
   });
 });

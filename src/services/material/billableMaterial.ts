@@ -15,7 +15,6 @@
 import { computeCaseCodingSummary, type SpecimenCodingSummary } from '../billing/codeMapTable';
 import type { StainType } from '../stains/IStainService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 type BlockLike = { id: string; label: string; stains?: { id?: string; stainName: string }[]; coding?: { cpt?: any[]; rejectedCpt?: any[] } };
 type SpecimenForBilling = { id: string; label: string; blocks?: BlockLike[]; decants?: (BlockLike & { disposedAt?: string })[] } & Record<string, any>;

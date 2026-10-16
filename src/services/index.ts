@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // services/index.ts
 // ─────────────────────────────────────────────────────────────────────────────
-export const IS_MOCK_BACKEND = true;
+// Batch 527 (PS-486): the demo build only (no API server); see __DEMO_TOOLS__ in vite.config.ts.
+export const IS_MOCK_BACKEND = __DEMO_TOOLS__;
 export { mockUserService          as userService          } from './users/mockUserService';
 export { mockRoleService          as roleService          } from './roles/mockRoleService';
 export { mockParticipationTypeService as participationTypeService } from './participationTypes/mockParticipationTypeService';
@@ -11,12 +12,28 @@ export { mockFlagService          as flagService          } from './flags/mockFl
 // Batch 453: the surgical biopsy-to-resection window, configured the same way.
 export { mockBiopsyResectionCorrelationSettingsService as biopsyResectionCorrelationSettingsService, mockFacilityBiopsyResectionCorrelationOverrideService as facilityBiopsyResectionCorrelationOverrideService } from './quality/biopsyResectionCorrelationSettings';
 export { mockCytologyHistologyCorrelationSettingsService as cytologyHistologyCorrelationSettingsService, mockFacilityCytologyHistologyCorrelationOverrideService as facilityCytologyHistologyCorrelationOverrideService } from './cytology/mockCytologyHistologyCorrelationSettingsService';
+// Batch 491: the Tumor Board auto-flagging rules — enterprise baseline and
+// facility overrides, same two-tier pattern as the two lines above.
+export { mockTumorBoardRuleService as tumorBoardRuleService, mockFacilityTumorBoardRuleOverrideService as facilityTumorBoardRuleOverrideService, mockTumorBoardBatchSettingsService as tumorBoardBatchSettingsService } from './tumorBoardRules/mockTumorBoardRuleService';
+// Batch 490 (margin-distance extraction layer): added to the barrel only
+// now, when Batch 491 gives it a real caller — a disclosed gap in Batch
+// 490 (the service existed but nothing outside services/ could reach it
+// without importing the mock file directly, against CLAUDE.md rule 4).
+export { mockMarginExtractionService as marginExtractionService } from './marginExtraction/mockMarginExtractionService';
 export { resolveLisFlagDefinitionId } from './flags/resolveLisFlagDefinition';
 export { mockContainerTypeService as containerTypeService } from './containerTypes/mockContainerTypeService';
 export { mockIntraoperativeService as intraoperativeService } from './intraop/mockIntraoperativeService';
 export { liveUpdateService } from './liveUpdates/liveUpdateService';
 // Batch 347 (PS-54): network print jobs and the engine's answers.
 export { networkPrintJobs } from './networkPrint/networkPrintJobsInstance';
+// Batch 550 (PS-539 phase 2d): exports through the API server (built in the browser in the demo).
+export { exportService } from './exports/exportTrackerInstance';
+// Batch 551 (PS-539 phase 2d): the API server's background jobs (the Server jobs view).
+export { serverJobsService } from './serverJobs/serverJobsInstance';
+// Batch 554 (PS-539 phase 2d): the interface engines' listeners and queues (Interfaces → Engines).
+export { interfaceMonitoringService } from './interfaceMonitoring/interfaceMonitoringInstance';
+// Batch 552 (PS-539 phase 2d): site agents (enrolment, revoke, printers and shares).
+export { siteAgentAdminService } from './siteAgent/siteAgentAdminInstance';
 // PS-60 (Batch 343): signing in and out (password demo accounts, SSO).
 export { authSession, authConfig, signerConfirmation, signatureGate } from './auth/authSessionInstance';
 // Batch 345: the signature records (one per signature applied to a case).
@@ -39,7 +56,9 @@ export { mockQaSupervisionAssignmentTypeService as qaSupervisionAssignmentTypeSe
 export { mockQaSupervisionAssignmentService as qaSupervisionAssignmentService } from './quality/mockQaSupervisionAssignmentService';
 export { mockAmendmentService as amendmentService } from './reports/mockAmendmentService';
 export { mockCriticalResultNotificationService as criticalResultNotificationService } from './clinical/mockCriticalResultNotificationService';
-export { mockReportVersionService as reportVersionService } from './reports/mockReportVersionService';
+// Batch 558: with the API server, the server's versions too, and their PDFs read through the API.
+export { reportVersionService, reportVersionPdfReader } from './reports/reportVersionInstance';
+export { versionHasPdf, versionPdfProblem, type VersionPdfProblem } from './reports/reportVersionPdf';
 export { mockLisAmendmentNoticeService as lisAmendmentNoticeService } from './reports/mockLisAmendmentNoticeService';
 export { mockInformalReviewService as informalReviewService } from './reports/mockInformalReviewService';
 export { mockAccessRequestService as accessRequestService } from './access/mockAccessRequestService';
@@ -111,9 +130,24 @@ export {
   readProblem as peerReviewReadProblem, resolutionProblem as peerReviewResolutionProblem, requestProblem as peerReviewRequestProblem,
   withdrawProblem as peerReviewWithdrawProblem, peerReviewGateOn, caseSignedOut, gateChoice as peerReviewGateChoice, withGateChoice as withPeerReviewGateChoice, performingLabs as peerReviewPerformingLabs, DEFAULT_PEER_REVIEW_GATE_SETTINGS,
 } from './quality/peerReviewRules';
-export { clinicalMismatchService } from './clinical/clinicalMismatchService';
-export { clinicalMismatchProblem, CLINICAL_MISMATCH_DECISIONS } from './clinical/clinicalMismatchDecision';
-export type { ClinicalMismatchDecision } from './clinical/clinicalMismatchDecision';
+export { clinicalMismatchService, clinicalMismatchSignOutStep } from './clinical/clinicalMismatchService';
+export type { ClinicalMismatchAssessment, ClinicalMismatchSignOutStep } from './clinical/clinicalMismatchService';
+export { clinicalMismatchProblem, CLINICAL_MISMATCH_RESOLUTIONS, CLINICAL_MISMATCH_QUICK_REASONS } from './clinical/clinicalMismatchDecision';
+export type { ClinicalMismatchResolution, ClinicalMismatchQuickReason, ClinicalMismatchRiskLevel } from './clinical/clinicalMismatchDecision';
+// Batch 529 (PS-554): the mismatch risk rules.
+export { mockClinicalMismatchRuleService as clinicalMismatchRuleService } from './clinical/mockClinicalMismatchRuleService';
+// Batch 536 (PS-554, PS-558): the governed AI instructions and the AI vendor policy.
+export { mockAiInstructionService as aiInstructionService } from './clinical/mockAiInstructionService';
+export { AI_INSTRUCTION_DISCIPLINES, MAX_AI_INSTRUCTION_LENGTH, type AiInstructionDiscipline, type AiInstructionVersion } from './clinical/aiInstructions';
+export type { AiInstructionsView, AiInstructionTestResult } from './clinical/aiInstructionService';
+export { mockAiVendorPolicyService as aiVendorPolicyService } from './aiIntegration/mockAiVendorPolicyService';
+export { AI_POLICY_SERVICES, aiVendorConflicts, aiVendorScopeStatuses, parseRegionList, type AiVendorScopeStatus, type AiPolicyService, type AiVendorRule, type AiVendorRuleScope, type AiVendorRefusal } from './aiIntegration/aiVendorPolicy';
+export type { ServedFacility } from './aiIntegration/aiVendorPolicyService';
+export {
+  evaluateClinicalMismatch, applicableRules, newSpecimenRule, clinicalMismatchRuleProblem, clinicalMismatchRuleRemovalProblem,
+  DEFAULT_CLINICAL_MISMATCH_RULES, CLINICAL_MISMATCH_CATEGORIES, CLINICAL_MISMATCH_ACTION_TYPES, DEFAULT_MINIMUM_DISPLAY_THRESHOLD,
+} from './clinical/clinicalMismatchRules';
+export type { ClinicalMismatchRule, ClinicalMismatchActionType, ClinicalMismatchOutcome, ClinicalMismatchRisk, ClinicalMismatchRuleProblem } from './clinical/clinicalMismatchRules';
 export type { ClinicalMismatchSuggestion, ClinicalMismatchKind } from './clinical/detectClinicalPathologicMismatch';
 export { assessmentProblem as outsideConsultAssessmentProblem, OUTSIDE_CONSULT_ASSESSMENTS, reportReleased } from './consultAccess/outsideConsultRules';
 export type { OutsideConsultAssessment } from './consultAccess/outsideConsultRules';
@@ -129,6 +163,11 @@ export { recordDocumentOutput, planReportPrint } from './printing/recordDocument
 export { DESTINATION as DOCUMENT_DESTINATION, printPromptComplete } from './printing/documentOutputAudit';
 export type { DocumentOutputEvent, PrintPlan } from './printing/documentOutputAudit';
 export { beginExport, recordExport, type GatedExport } from './printing/exportGate';
+// Batch 495 (PS-283): the case-report print permission.
+export { beginReportPrint, checkReportPrint, type ReportPrintCheck } from './printing/reportPrintGate';
+// Batch 495: historical-data migration jobs, so MigrationJobsPage reaches them through this index.
+export { mockMigrationJobService as migrationJobService } from './migration/mockMigrationJobService';
+export { mockMigrationRecordResultService as migrationRecordResultService } from './migration/mockMigrationRecordResultService';
 export { mockModelService         as modelService         } from './models/mockModelService';
 export { mockSavedSearchService   as savedSearchService   } from './savedSearches/mockSavedSearchService';
 // Batch 350: server-side case search (filter, sort, count, one page) and CSV export rows.
@@ -136,6 +175,7 @@ export { mockCaseSearchService    as caseSearchService    } from './caseSearch/m
 export { mockActionRegistryService as actionRegistryService } from './actionRegistry/mockActionRegistryService';
 // Batch 396: for the Cytology QC Peer Review Queue (was imported directly from the mock).
 export { mockCytologyQcCaseAssignmentService as cytologyQcCaseAssignmentService } from './cytologyQc/mockCytologyQcCaseAssignmentService';
+export { mockCytologyQcRuleService as cytologyQcRuleService } from './cytologyQc/mockCytologyQcRuleService';
 // Batch 353: TAT targets and case delegations, each behind its own service
 // (they were kept by the TAT settings screen and the demo case service).
 // Batch 358: the equipment register (analysers molecular batches target, and more).
@@ -171,7 +211,6 @@ export type {
 export { mockAuditService         as auditService         } from './auditlog/mockAuditService';
 export { mockCaseService          as caseService          } from './cases/mockCaseService';
 export { mockCountersignService   as countersignService   } from './cases/mockCountersignService';
-export { mockFppeAssignmentService as fppeAssignmentService } from './cases/mockFppeAssignmentService';
 export { mockCodeService          as codeService          } from './codes/mockCodeService';
 // PS-89 (Batch 334): bulk billing-code imports (System → Code Import).
 export { mockCodeImportService    as codeImportService    } from './billing/mockCodeImportService';
@@ -185,6 +224,8 @@ export { mockModifierDictionaryService as modifierDictionaryService } from './bi
 export { mockNcciEditService      as ncciEditService      } from './billing/mockNcciEditService';
 export { mockRvuCodeMapService    as rvuCodeMapService    } from './billing/mockRvuCodeMapService';
 export { mockMessageService       as messageService       } from './messages/mockMessageService';
+// Batch 517 (PS-143): each lab's secure messaging gateways and agreements.
+export { mockSecureMessagingConfigService as secureMessagingConfigService } from './secureMessaging/mockSecureMessagingConfigService';
 export { mockInternalNoteService  as internalNoteService  } from './internalNotes/mockInternalNoteService';
 export { INTERNAL_NOTE_TYPE_LABELS                        } from './internalNotes/IInternalNoteService';
 // resultService removed — the whole discrete-result concept (order,
@@ -255,6 +296,8 @@ export { mockMolecularQcRunRecordService as molecularQcRunRecordService } from '
 export { qcRunsNewestFirst, specimensByMolecularRun, type QcRunSpecimenLink } from './cytology/molecularQcRunLinks';
 export { mockReferralTrackingService as referralTrackingService } from './referral/mockReferralTrackingService';
 export { mockCassetteColorService as cassetteColorService } from './cassetteColors/mockCassetteColorService';
+// Structured Inking, Module 3 (PS-359 follow-up): the margin ink-colour admin palette.
+export { mockInkColorService as inkColorService } from './inkColors/mockInkColorService';
 // Batch 381: the block/stain editor used it by its mock file path.
 export { mockMolecularTargetService as molecularTargetService } from './stains/mockMolecularTargetService';
 // Batch 403: which reference labs perform a molecular/send-out test.
@@ -278,6 +321,10 @@ export { mockReportPartService as reportPartService, onReportPartsChanged } from
 export { mockLabelLayoutService as labelLayoutService } from './labelDesigner/mockLabelLayoutService';
 export { getAiFeedbackLog, type AiFeedbackEntry } from './cases/mockCaseService';
 export { FROZEN_FINAL_ACTIVITY_TYPE_ID } from './quality/mockQaActivityTypeService';
+// Batch 486: so MentorTab.tsx (UI) can tell a Cytotech Competency
+// Assessment supervision apart from an FPPE one without importing the
+// mock service file directly (deployment-neutral UI rule).
+export { CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from './quality/mockQaSupervisionAssignmentService';
 
 // PS-355 (Batch 369): capabilities and the permission check
 // (services/authorization/README.md).
@@ -285,6 +332,7 @@ export { authorizationService } from './authorization/defaultAuthorizationServic
 export { createAuthorizationService, type IAuthorizationService, type AuthorizationDeps } from './authorization/authorizationService';
 export {
   CAPABILITY_CATALOG, CAPABILITY_GROUPS, ALL_CAPABILITY_KEYS, capabilitiesByGroup, capabilityDefinition, isCapabilityKey,
+  SEPARATION_OF_DUTIES, separationOfDutiesConflicts,
   capabilityLabelKey, capabilityDescriptionKey, capabilityGroupKey,
   type CapabilityDefinition, type CapabilityGroupId, type CapabilityKey, type QaExportCapability, type CapabilityRisk,
 } from './authorization/capabilityCatalog';
@@ -299,6 +347,8 @@ export { mockOutboundChargeQueueService as outboundChargeQueueService } from './
 export { mockCodeReviewPoolService as codeReviewPoolService } from './billing/mockCodeReviewPoolService';
 export { mockReasonDictionaryService as reasonDictionaryService } from './reasons/mockReasonDictionaryService';
 export { roleCapabilityChangeAudit, roleCapabilityProblem } from './authorization/roleCapabilityRules';
+// Batch 536: the Superadmin role's capabilities (all but SUPERADMIN_WITHHELD).
+export { SUPERADMIN_CAPABILITY_KEYS } from './authorization/capabilitySeeds';
 
 // Batch 371: the governing-body settings screen took this service directly as a mock.
 export { mockGoverningBodyService as governingBodyService } from './governingBodies/mockGoverningBodyService';
@@ -308,7 +358,7 @@ export { mockGoverningBodyService as governingBodyService } from './governingBod
 export { supportAccessService } from './supportAccess/defaultSupportAccessService';
 export type { ISupportAccessService } from './supportAccess/supportAccessService';
 export {
-  SUPPORT_ACCESS_POLICIES, SUPPORT_WINDOW_OPTIONS, SUPPORT_AUDIT_COLUMNS, minutesLeft, isLiveGrant, supportRequestQueues, supportWindowParts,
+  SUPPORT_ACCESS_POLICIES, SUPPORT_WINDOW_OPTIONS, SUPPORT_AUDIT_COLUMNS, minutesLeft, isLiveGrant, effectiveSupportStatus, supportRequestQueues, supportWindowParts,
   type SupportAccessPolicy, type SupportAccessSettings, type SupportAccessRequest, type SupportAuditEntry, type SupportAuditAction, type ChainCheck,
 } from './supportAccess/supportAccessRules';
 
@@ -362,6 +412,13 @@ export {
 export { messagingFieldRequired, newMessageMissing, secureEmailMissing, replyMissing } from './fieldRequirements/messagingChecks';
 export { cytologyFieldRequired, cytologyReviewMissing, cisoeaMissing, retrospectiveMissing, histologyCorrelationMissing, cytologyCorrectionMissing, cytologyAddendumMissing, RETROSPECTIVE_NO_ACTION_OUTCOME } from './fieldRequirements/cytologyChecks';
 export type { CytologyReviewValues, CisoeAValues } from './fieldRequirements/cytologyChecks';
+// Batch 528 (PS-359): Staff, Facility editor and Clinical history requirements.
+export { checkStaffForm, staffFormValues } from './staff/staffFormChecks';
+export type { StaffFormValues, StaffFormProblem, StaffFormCheck } from './staff/staffFormChecks';
+export { checkFacilityForm, facilityFormValues } from './facilities/facilityFormChecks';
+export type { FacilityFormProblem, FacilityFormCheck } from './facilities/facilityFormChecks';
+export { missingClinicalHistory, clinicalHistoryValues } from './clinicalHistory/clinicalHistoryRequirementChecks';
+export { clinicalHistoryAfterAccessionService } from './clinicalHistory/clinicalHistoryAfterAccessionService';
 export { microtomyFieldRequired, microtomyCommentMissing, microtomyAddStainMissing, microtomyReprintMissing, microtomyCancelMissing } from './fieldRequirements/microtomyChecks';
 // Batch 401: the Embedding station's checks.
 export {
@@ -478,8 +535,17 @@ export { mockSnomedCervicalHistologySeverityMappingService as snomedCervicalHist
 export { mockStaffCytologyQcOverrideService as staffCytologyQcOverrideService } from './cytology/mockStaffCytologyQcOverrideService';
 export { mockStaffCytologyWorkloadCapOverrideService as staffCytologyWorkloadCapOverrideService } from './cytology/mockStaffCytologyWorkloadCapOverrideService';
 export { claimPoolCase, acceptPoolCase, passPoolCase } from './cases/mockCaseService';
+// Batch 572: cases another tab changed (the demo's stand-in for the hub's caseReport topic).
+export { subscribeCasesChangedElsewhere } from './cases/mockCaseService';
+// Batch 572 (F7, option C): screening hours and their end-of-day sign-off.
+export { mockCytologyScreeningHoursService as cytologyScreeningHoursService } from './cytology/mockCytologyScreeningHoursService';
+export type { ScreeningHoursDay, ScreeningHoursCurrentDays } from './cytology/ICytologyScreeningHoursService';
+export { signOffProblem, isCorrection, isSignOffStale, showScreeningHoursPanel, SCREENING_HOURS_FLAG_TOLERANCE_HOURS, screeningDay } from './cytology/screeningHoursRules';
 export { signOutCytologyCase, type CytologySignOutOutcome, type CytologySignOutInput } from './cytology/signOutCytologyCase';
-export { signOutCytologyCaseDeps } from './cytology/signOutCytologyCaseDeps';
+export { signOutCytologyCaseDeps, cytologyPreliminaryDeps } from './cytology/signOutCytologyCaseDeps';
+// Batch 533: urgent cytology preliminary reports.
+export { releaseCytologyPreliminary, preliminarySignatureRequired, cytologyPreliminaryBlock, cytologyPreliminariesFor, type CytologyPreliminaryOutcome } from './cytology/releaseCytologyPreliminary';
+export { CYTOLOGY_PRELIMINARY_REASONS, type CytologyPreliminaryReason } from './cytology/cytologyPreliminaryReasons';
 export { saveCaseTeam, caseTeamUpdates, withAssigneeOnTeam, type SaveCaseTeamResult } from './cases/saveCaseTeam';
 export { caseTeamSaveDeps } from './cases/caseTeamSaveDeps';
 export { mockQaTrendPolicyService as qaTrendPolicyService } from './quality/mockQaTrendPolicyService';
@@ -500,6 +566,7 @@ export { mockSurgicalPeerReviewRiskWeightService as surgicalPeerReviewRiskWeight
 export { checkAiProxyStatus, AI_PROXY_STATUS_ROUTES, type AiProxyStatus } from './aiIntegration/aiProxyStatus';
 // Batch 445: the report page's unsaved-change sections, as ids the dialog translates.
 export { DIRTY_SECTION_IDS, dirtySectionList, type DirtySectionId } from './reportEditing/dirtySections';
+export { sequenceCaseReports, type SequencedCase } from './reportEditing/reportSequence';
 // Batch 446: case pages are addressed by support reference, never by accession.
 export { CASE_ADDRESS_VIEWS, isCaseAddressReference, createCaseAddresses, type CaseView, type CaseAddresses, type CaseIdFromAddress } from './caseAddresses/caseAddresses';
 export { caseAddresses } from './caseAddresses/caseAddressesInstance';
@@ -508,7 +575,8 @@ export { mockFeedbackSettingsService as feedbackSettingsService, FEEDBACK_SETTIN
 export { qaButtonShown, parseEmailList, feedbackSettingsProblem, QA_BUTTON_MODES, DEFAULT_FEEDBACK_SETTINGS, type FeedbackSettings, type QaButtonMode, type FeedbackSettingsProblem } from './feedback/feedbackSettingsRules';
 export { deploymentInstance, type InstanceRole } from './deployment/deploymentInstance';
 // Batch 448: staff sign-in passwords set from the Staff screen.
-export { mockStaffPasswordService as staffPasswordService, STAFF_PASSWORD_STORAGE_KEY, type IStaffPasswordService, type StaffPasswordStatus, type StaffPasswordCheck, type StaffPasswordError } from './staffPasswords/mockStaffPasswordService';
+export { staffPasswordService } from './signIn';
+export { STAFF_PASSWORD_STORAGE_KEY, type IStaffPasswordService, type StaffPasswordStatus, type StaffPasswordCheck, type StaffPasswordError } from './staffPasswords/mockStaffPasswordService';
 export { passwordPolicyProblem, passwordConfirmProblem, staffPasswordState, PASSWORD_MIN_LENGTH, type StaffPasswordState } from './staffPasswords/staffPasswordRules';
 // Batch 456: the sign-in lockout.
 export { signInRefusalNotice, SIGN_IN_LOCK_POLICY, SIGN_IN_LOCK_STORAGE_KEY, type SignInRefusal } from './auth/signInLockout';
@@ -521,7 +589,7 @@ export { dispositionProblem, followUpMarkFailureKey, followUpMarkOffer, MAX_FOLL
 export { FOLLOW_UP_DISPOSITIONS, isOpenFollowUp, needsFollowUpAttention, type FollowUpItem, type FollowUpDisposition, type FollowUpStatus, type FollowUpKind } from './followUp/followUpTypes';
 // Batch 458 (PS-71): versioned case saves and the Edit Conflict dialog.
 export { updateCaseWithRetry, updateCaseWithRetryOrThrow, overwriteAfterConflict, caseConflictRows, adoptSavedVersion, caseVersionOf, CONFLICT_FIELDS, type ConflictRow, type ConflictField, type CaseWriteResult, type OverwriteResult } from './cases/caseWrite';
-export { savePageChange, commitMergeReview, takeUpSavedCase, MergeReviewPendingError, type PageSaveOutcome, type PendingChange, type MergeReview } from './cases/caseWrite';
+export { savePageChange, commitMergeReview, takeUpSavedCase, takeUpNewerCase, takeTheirVersion, selectionAfterTakeUp, orchestrationDiagnosticAfterTakeUp, MergeReviewPendingError, type TheirVersion, type CasePageSelection, type PageSaveOutcome, type PendingChange, type MergeReview } from './cases/caseWrite';
 export { caseWriteDeps, caseOverwriteDeps } from './cases/caseWriteDeps';
 export { saveDraftParts, mergeDraftParts, DRAFT_LIST_KEYS, type DraftSaveResult, type DraftMerge } from './cases/caseWrite';
 // Batch 460: the billing review panel's changes, shared by the report page, the Cytology Workspace and Microtomy.
@@ -547,3 +615,77 @@ export { loadOrganMapContext, organMapConfigDeps, organMapFigureDeps, type Organ
 export { svgToPngDataUrl } from './documentRendering/svgToPng';
 export { organMapDrawingLabels, organMapInlineText, organMapPartsText, organMapSectorName, organMapSectorSummary, organMapLegendLabel, type Translate as OrganMapTranslate } from './organMapping/organMapLabels';
 export { partGridKey, partGridRowsOf, partGridRowValues, partGridHasAnswer, partGridDisplay, isPartGridKey, synopticFieldAnswered, clearSynopticFieldAnswers, type PartGridColumn, type PartGridRow } from './templates/partGrid';
+// Batch 489 (Module 1 of Pete's Tumor Board / MDT Workspace spec): the
+// dedicated board-nomination record (manual "Flag for MDT" + workspace).
+export { mockTumorBoardService as tumorBoardService } from './tumorBoard/mockTumorBoardService';
+export { TUMOR_BOARD_NAMES, TUMOR_BOARD_CASE_STATUSES, TUMOR_BOARD_SOURCES, type TumorBoardName, type TumorBoardCaseStatus, type TumorBoardSource, type TumorBoardListing, type TumorBoardListingFilter, type NewTumorBoardListing, type TumorBoardListingUpdate, type ITumorBoardService } from './tumorBoard/ITumorBoardService';
+
+// ─── Batch 506 (PS-477) ──────────────────────────────────────────────────────
+// What the screens used to import straight from mock files. With these here,
+// no screen imports a mock service (deploymentReadiness.guard.test.ts), so
+// Stage 2 swaps each line for its HTTP service without touching a screen.
+export { MAX_INTERVAL_MINUTES, MIN_INTERVAL_MINUTES, mockAssistPollingService as assistPollingService } from './assistPolling/mockAssistPollingService';
+export { mockBillingTypeTriggerConfigService as billingTypeTriggerConfigService } from './billing/mockBillingTypeTriggerConfigService';
+export type { BillingTypeTriggerMap } from './billing/mockBillingTypeTriggerConfigService';
+export { findSimilarCases, recordAiFeedback, saveReportSuggestions } from './cases/mockCaseService';
+export { mockOnDemandCaseFetchService as onDemandCaseFetchService } from './cases/mockOnDemandCaseFetchService';
+export { mockCassetteRoutingRuleService as cassetteRoutingRuleService } from './cassetteRouting/mockCassetteRoutingRuleService';
+export { mockCriticalAlertDispatchService as criticalAlertDispatchService } from './clinical/mockCriticalAlertDispatchService';
+export { mockNonGynCytologyCategoryService as nonGynCytologyCategoryService } from './cytology/mockNonGynCytologyCategoryService';
+export { mockDeliveryRuleService as deliveryRuleService } from './delivery/mockDeliveryRuleService';
+// Batch 521 (PS-281): delivery retries and the delivery exception queue.
+export { mockDeliveryRetrySettingsService as deliveryRetrySettingsService } from './delivery/mockDeliveryRetrySettingsService';
+export { mockDeliveryRetryService as deliveryRetryService } from './delivery/mockDeliveryRetryService';
+export { deliveryExceptions } from './delivery/deliveryRetries';
+export { parseRetryDelays, retrySettingsProblem, DEFAULT_RETRY_DELAYS_MINUTES } from './delivery/deliveryRetryPolicy';
+export { mockDpVendorService as dpVendorService } from './digitalPathology/mockDpVendorService';
+export { mockWsiViewerVendorService as wsiViewerVendorService } from './digitalPathology/mockWsiViewerVendorService';
+export { mockDraftCacheService as draftCacheService } from './drafts/mockDraftCacheService';
+export { mockDisplayProfileService as displayProfileService } from './facilityOpsDashboard/mockDisplayProfileService';
+export { mockGrossImagingVendorService as grossImagingVendorService } from './imageAssociation/mockGrossImagingVendorService';
+export { mockImageManagementSystemVendorService as imageManagementSystemVendorService } from './imageAssociation/mockImageManagementSystemVendorService';
+export { mockImageUploadService as imageUploadService } from './imageAssociation/mockImageUploadService';
+export { mockLisStagingQueueService as lisStagingQueueService } from './lisIngestion/mockLisStagingQueueService';
+export { mockMigrationFieldMappingService as migrationFieldMappingService } from './migration/mockMigrationFieldMappingService';
+export { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings } from './mockInterfaceEngine/mockInterfaceEngineSettings';
+export type { MockInterfaceEngineMode, MockInterfaceEngineSettings } from './mockInterfaceEngine/mockInterfaceEngineSettings';
+export { mockModelStoreService as modelStoreService } from './models/mockModelStoreService';
+export type { StoreListing } from './models/mockModelStoreService';
+export { mockNarrativeSignalService as narrativeSignalService } from './narrativeSignals/mockNarrativeSignalService';
+export { mockOutboundPatientAdtQueueService as outboundPatientAdtQueueService } from './patients/mockOutboundPatientAdtQueueService';
+export { mockPrintRoutingRuleService as printRoutingRuleService } from './printRouting/mockPrintRoutingRuleService';
+export { mockPrintQueueService as printQueueService } from './printing/mockPrintQueueService';
+export { ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID } from './quality/mockQaActivityTypeService';
+export { FPPE_ACTIVITY_TYPE_ID } from './quality/mockQaSupervisionAssignmentService';
+export { mockOutboundLisSyncQueueService as outboundLisSyncQueueService } from './reports/mockOutboundLisSyncQueueService';
+export { mockOutboundResultQueueService as outboundResultQueueService } from './reports/mockOutboundResultQueueService';
+export { ALLOWED_HOSTS, isAllowedUrl, mockResearchFeedConfigService as researchFeedConfigService } from './research/mockResearchFeedConfigService';
+export { buildRoutingRuleMap, mockRoutingRuleService as routingRuleService } from './routingRules/mockRoutingRuleService';
+export { mockSessionTimeoutService as sessionTimeoutService } from './session/mockSessionTimeoutService';
+export { mockValidationStudyService as validationStudyService } from './validationStudies/mockValidationStudyService';
+export type { AiMatchedCase, PatientHistoryCase } from './cases/mockCaseService';
+export { evaluateSynopticAssignment, evaluateGrossingTemplateFit } from './cases/mockCaseService';
+export { computeEditRatio } from './narrativeSignals/mockNarrativeSignalService';
+
+// Batch 518 (PS-122): every outbound interface queue, and the actions on a
+// failed or waiting message (interface:outbound:resend).
+export { OUTBOUND_QUEUE_TYPES, type OutboundQueueType } from './interfaceDispatch/outboundQueueAdapters';
+export {
+  outboundRows, dispatchOutboundEntry, resendOutboundEntry, simulateOutboundFailure, captureOutboundFailureAsCapa,
+  OUTBOUND_RESEND_CAPABILITY, type OutboundRow, type OutboundActionOutcome,
+} from './interfaceDispatch/outboundQueueActions';
+export { outboundQueueDeps } from './interfaceDispatch/outboundQueueDeps';
+
+// Batch 518 (PS-123): batch label reprint (label:batch:reprint).
+export {
+  casesForReprint, reprintItems, reprintLabels, retryFailedLabels, reprintSummary, REPRINT_LABEL_KINDS,
+  type ReprintLabelKind, type ReprintCaseFilter, type ReprintItem, type LabelReprintRun, type ReprintRefusal,
+} from './labels/batchLabelReprint';
+export { batchLabelReprintDeps } from './labels/batchLabelReprintDeps';
+export { mockLabelReprintRunService as labelReprintRunService } from './labels/mockLabelReprintRunService';
+
+// Batch 538 (Pete, Oct 12): released report documents, stored once with their SHA-256 and sent as is.
+// Batch 556: with the API server, documents are read through it too (reportDocumentInstance.ts).
+export { reportDocumentService } from './reportDocuments/reportDocumentInstance';
+export { sentDocumentProblem, type SentDocumentProblem } from './reportDocuments/reportDocumentService';
+export { shortHash, pdfSha256, type ReportDocument, type ReportDocumentProducer } from './reportDocuments/reportDocuments';

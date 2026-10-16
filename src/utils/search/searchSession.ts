@@ -21,6 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { CaseSearchDraft, CaseSearchSort } from '@/services/caseSearch/caseSearchTypes';
+import { tabDataStorage } from '@/services/browserData/dataStorage';
 
 const LAST_SEARCH_KEY = 'pathscribe:lastSearch';
 const RETURN_KEY = 'pathscribe:searchReturn';
@@ -34,13 +35,13 @@ export interface LastCaseSearch {
 }
 
 function read(key: string): string | null {
-  try { return sessionStorage.getItem(key); } catch { return null; }
+  try { return tabDataStorage.getItem(key); } catch { return null; }
 }
 function write(key: string, value: string): void {
-  try { sessionStorage.setItem(key, value); } catch { /* not remembered */ }
+  try { tabDataStorage.setItem(key, value); } catch { /* not remembered */ }
 }
 function remove(key: string): void {
-  try { sessionStorage.removeItem(key); } catch { /* nothing to remove */ }
+  try { tabDataStorage.removeItem(key); } catch { /* nothing to remove */ }
 }
 
 export function saveLastCaseSearch(search: LastCaseSearch): void {

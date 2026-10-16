@@ -24,5 +24,26 @@ Audit entries:
 - **"Staff access changed"** (`staffAccessChangeDetail`) records roles, facilities and flags, before → after. It is new.
 - **"Staff credentials changed"** is the credentials entry. It moved here from `StaffTab.tsx`.
 
+
+## Batch 536 (PS-554)
+
+`staffAdministration.saveStaffMember` refuses a role change whose roles together carry both duties of a separation-of-duty pair (`separationOfDuties`), when given `roleService` (the Staff screen passes it).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 528: Staff editor requirements (PS-359)
+
+`staffFormChecks.ts` decides what the Staff editor needs before it saves, from the organisation's Field Requirements (page `staff`). Before, `StaffTab.tsx` hard-coded first name, last name and a role. Those three stay locked; an organisation can also require any of the other fields. An email, when given, must look like one. See `services/fieldRequirements/README.md`.
+
+## Batch 544: the signature is a link
+
+Pete, Oct 13, 2026: PathScribe stores links to images, never the images. `staffFormChecks.ts` adds:
+- `isHttpsLink`: https only, a named host, no user name or password.
+- The `invalidLink` problem for a signature that isn't such a link.
+- `signaturePreviewUrl`.
+- `signatureLinkOnOpen`: a signature saved earlier as an image opens empty, with a note, so the record can still be saved.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `staffFormChecks.ts`: `isHttpsLink` moved to `services/links/externalLink.ts`, shared with the logo and imaging address checks; re-exported here, so callers don't change.

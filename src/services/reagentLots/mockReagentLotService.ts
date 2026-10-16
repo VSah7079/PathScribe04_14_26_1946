@@ -3,6 +3,7 @@ import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ReagentLot, IReagentLotService } from './IReagentLotService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'reagent_lots';
 
@@ -14,11 +15,11 @@ const STORAGE_KEY = 'reagent_lots';
 // the seed and finds nothing gates it.
 const REAGENT_LOT_VERSION = '1';
 const VERSION_KEY = 'pathscribe_mock_reagent_lots_version';
-if (typeof localStorage !== 'undefined') {
+if (typeof dataStorage !== 'undefined') {
   try {
-    if (localStorage.getItem(VERSION_KEY) !== REAGENT_LOT_VERSION) {
-      localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-      localStorage.setItem(VERSION_KEY, REAGENT_LOT_VERSION);
+    if (dataStorage.getItem(VERSION_KEY) !== REAGENT_LOT_VERSION) {
+      dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+      dataStorage.setItem(VERSION_KEY, REAGENT_LOT_VERSION);
     }
   } catch { /* SSR / sandboxed env — ignore */ }
 }

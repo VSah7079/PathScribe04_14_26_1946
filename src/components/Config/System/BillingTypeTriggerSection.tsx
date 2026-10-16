@@ -7,7 +7,7 @@
 // BILLING_TYPE_DEFAULT_TRIGGER). This screen is purely
 // presentational - it reads the real, effective trigger map and
 // writes a real, complete override via
-// mockBillingTypeTriggerConfigService.ts; every actual decision
+// billingTypeTriggerConfigService.ts; every actual decision
 // (what the default is, how a partial override merges) lives in that
 // service, never here.
 //
@@ -29,12 +29,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockBillingTypeTriggerConfigService } from '@/services/billing/mockBillingTypeTriggerConfigService';
-import type { BillingTypeTriggerMap } from '@/services/billing/mockBillingTypeTriggerConfigService';
+
 import { BILLING_TYPE_DEFAULT_TRIGGER } from '@/services/billing/codeMapTable';
 import { listAllSites } from '@/services/organisation/organisationService';
 import type { Site } from '@/services/organisation/organisationService';
-import { auditService } from '@/services';
+import { auditService, billingTypeTriggerConfigService, type BillingTypeTriggerMap } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 
 const BILLING_TYPE_LABEL_KEY: Record<keyof BillingTypeTriggerMap, string> = {
@@ -63,9 +62,9 @@ const BillingTypeTriggerSection: React.FC = () => {
 
   const load = () => {
     Promise.all([
-      mockBillingTypeTriggerConfigService.getEffectiveTriggerMap(activeSiteId),
+      billingTypeTriggerConfigService.getEffectiveTriggerMap(activeSiteId),
       listAllSites(),
-      mockBillingTypeTriggerConfigService.getSiteIdsWithOverrides(),
+      billingTypeTriggerConfigService.getSiteIdsWithOverrides(),
     ]).then(([mapRes, sitesRes, siteIdsRes]) => {
       if (mapRes.ok) {
         setTriggerMap(mapRes.data);
@@ -76,6 +75,7 @@ const BillingTypeTriggerSection: React.FC = () => {
       setLoading(false);
     });
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reloads when the viewed site changes; load() is recreated every render and reads that same site
   useEffect(() => { load(); }, [viewingSiteId]);
 
   // Real, English, used only in the persisted audit-trail record below —
@@ -88,7 +88,7 @@ const BillingTypeTriggerSection: React.FC = () => {
     const previous = triggerMap[billingType];
     const next = { ...triggerMap, [billingType]: trigger };
     setTriggerMap(next);
-    const res = await mockBillingTypeTriggerConfigService.setTriggerOverride(next, activeSiteId);
+    const res = await billingTypeTriggerConfigService.setTriggerOverride(next, activeSiteId);
     if (res.ok) {
       setIsOverridden(JSON.stringify(res.data) !== JSON.stringify(BILLING_TYPE_DEFAULT_TRIGGER));
       setSaved(true);
@@ -112,7 +112,7 @@ const BillingTypeTriggerSection: React.FC = () => {
 
   const handleResetToDefault = async () => {
     const previous = { ...triggerMap };
-    const res = await mockBillingTypeTriggerConfigService.resetToDefault(activeSiteId);
+    const res = await billingTypeTriggerConfigService.resetToDefault(activeSiteId);
     if (res.ok) {
       setTriggerMap(res.data);
       setIsOverridden(false);
@@ -140,7 +140,7 @@ const BillingTypeTriggerSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-row-actions">
-        <select value={viewingSiteId} onChange={e => setViewingSiteId(e.target.value)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.site')} value={viewingSiteId} onChange={e => setViewingSiteId(e.target.value)} className="ps-conf-select">
           <option value="">{t('billingTypeTriggerSection.viewingEnterpriseWide')}</option>
           {sites.map(s => (
             <option key={s.id} value={s.id}>
@@ -166,6 +166,7 @@ const BillingTypeTriggerSection: React.FC = () => {
                   <td className="ps-conf-td">{t(BILLING_TYPE_LABEL_KEY[billingType])}</td>
                   <td className="ps-conf-td">
                     <select
+                      aria-label={t(BILLING_TYPE_LABEL_KEY[billingType])}
                       className="ps-conf-select"
                       value={triggerMap[billingType]}
                       disabled={loading}

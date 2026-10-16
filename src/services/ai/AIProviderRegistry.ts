@@ -22,7 +22,9 @@
 // responsibility, not something parsed raw in the browser.
 // ─────────────────────────────────────────────────────────────
 
-import { resolveAiConfig } from '../../components/Config/AI/aiProviderConfig';
+import { resolveAiConfig, aiHostingRegion } from '../../components/Config/AI/aiProviderConfig';
+import type { AiCallContext } from '../aiIntegration/aiCallPolicy';
+import { withAiVendorPolicy } from './withAiVendorPolicy';
 import type { IAIProvider }  from './IAIProvider';
 import { StructuredMessagesProvider }        from './providers/StructuredMessagesProvider';
 import { ChatCompletionsProvider }           from './providers/ChatCompletionsProvider';
@@ -42,7 +44,14 @@ export class AIProviderRegistry {
    *
    * Call this at the start of any AI generation request.
    */
-  static getActive(): IAIProvider {
+  static getActive(context?: AiCallContext): IAIProvider {
+    const provider = AIProviderRegistry.resolveActive();
+    // Batch 536 (PS-558): every generation is checked against the AI vendor
+    // policy of the jurisdiction the work belongs to.
+    return withAiVendorPolicy(provider, { region: aiHostingRegion(resolveAiConfig()) }, context ?? { feature: 'narrative' });
+  }
+
+  private static resolveActive(): IAIProvider {
     const config = resolveAiConfig();
 
     switch (config.providerId) {

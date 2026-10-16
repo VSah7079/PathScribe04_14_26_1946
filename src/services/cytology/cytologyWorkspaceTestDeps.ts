@@ -5,7 +5,6 @@ import type { CytologyWorkspaceDeps } from './cytologyWorkspacePorts';
 
 export const WORKSPACE_NOW = new Date('2026-09-30T18:00:00.000Z');
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export function makeWorkspaceDeps(over: Partial<CytologyWorkspaceDeps> = {}) {
   const updates: { caseId: string; patch: any }[] = [];
   const audit: any[] = [];
@@ -47,7 +46,7 @@ export function makeWorkspaceDeps(over: Partial<CytologyWorkspaceDeps> = {}) {
     logAudit: vi.fn((e: any) => { audit.push(e); }),
     resolveDecantCassetteColor: async () => 'blue',
     resolveReportLocale: async () => 'en',
-    renderReportPdf: vi.fn(async () => ({ output: vi.fn() })),
+    renderReportPdf: vi.fn(async () => new Uint8Array([37, 80, 68, 70])),
     ...over,
   };
   return { deps, updates, audit, qa, ledger };

@@ -15,3 +15,7 @@ Case pages used to be addressed by accession number (`/case/S26-4410/synoptic`).
 - Used by `hooks/useOpenCase.ts` (links), `hooks/useRouteCaseId.ts` (case pages) and `loaders/synopticLoader.ts`.
 - **Links go straight to the reference.** Replacing the accession after arriving would be too late, because browsers record each address a page moves to. An old address that's typed or bookmarked opens once and is replaced at once.
 - `caseAddresses.guard.test.ts` fails if any other file builds a case address by hand, or puts an MRN, patient id, accession or date of birth in an address.
+
+## Batch 527 (PS-486): a lean first load
+
+`addressOf(…, 'emr')` returns no address in a server build (`__DEMO_TOOLS__` false), because the demo EMR window isn't built in. The EMR button then opens the in-page panel.

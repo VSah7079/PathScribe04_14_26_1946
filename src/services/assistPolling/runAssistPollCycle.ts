@@ -24,7 +24,7 @@
 // retried on the next run (up to MAX_ATTEMPTS, then an admin can retry).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Case, ProtocolChange, AiFieldSuggestion } from '@/types/case/Case';
+import type { Case, ProtocolChange, AiFieldSuggestion, SynopticReportInstance } from '@/types/case/Case';
 import type { SynopticEvaluationInput } from '@/services/aiIntegration/IAIIntegrationService';
 import type { NewAuditLog } from '@/services/auditlog/IAuditService';
 import type { LisPollAdapter, LisPushAdapter, StagedLisEvent } from '../lisIngestion/types';
@@ -108,7 +108,7 @@ async function draftCase(
 
   // 2. Fill every draft with what the text supports.
   let fieldsSuggested = 0;
-  const reports = [];
+  const reports: SynopticReportInstance[] = [];
   for (const inst of applied.synopticReports) {
     if (!isFillable(inst)) { reports.push(inst); continue; }
     const fields = await deps.getTemplateFields(inst.templateId);

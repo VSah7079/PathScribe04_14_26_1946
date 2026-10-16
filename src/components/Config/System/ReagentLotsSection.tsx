@@ -12,13 +12,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { reagentLotService } from '../../../services';
-import { mockStainTypeService } from '../../../services/stains/mockStainTypeService';
+import { reagentLotService, stainTypeService } from '@/services';
+
 import type { ReagentLot, ReagentLotQcStatus, RoutineStainComponentType } from '../../../services/reagentLots/IReagentLotService';
 import { ROUTINE_STAIN_COMPONENT_TYPES } from '../../../services/reagentLots/IReagentLotService';
 import type { StainType } from '../../../services/stains/IStainService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const ROUTINE_COMPONENT_LABEL_KEY: Record<RoutineStainComponentType, string> = {
   HEMATOXYLIN: 'reagentLotsSection.routineComponentLabels.HEMATOXYLIN',
@@ -138,26 +140,26 @@ const ReagentLotModal: React.FC<ReagentLotModalProps> = ({ mode, reagentLot, sta
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('reagentLotsSection.modal.lotNumberField')} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.lotNumber ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('reagentLotsSection.modal.lotNumberField')} className={`ps-conf-input ${errors.lotNumber ? 'ps-conf-input--error' : ''}`}
               value={draft.lotNumber} onChange={e => set('lotNumber', e.target.value)} placeholder={t('reagentLotsSection.modal.lotNumberPlaceholder')} />
             {errors.lotNumber && <span className="ps-conf-error-text">{errors.lotNumber}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('reagentLotsSection.modal.expirationDateField')} <span className="ps-conf-required">*</span></label>
-            <input type="date" className={`ps-conf-input ${errors.expirationDate ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('reagentLotsSection.modal.expirationDateField')} type="date" className={`ps-conf-input ${errors.expirationDate ? 'ps-conf-input--error' : ''}`}
               value={draft.expirationDate} onChange={e => set('expirationDate', e.target.value)} />
             {errors.expirationDate && <span className="ps-conf-error-text">{errors.expirationDate}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('reagentLotsSection.modal.receivedDateField')}</label>
-            <input type="date" className="ps-conf-input" value={draft.receivedDate ?? ''} onChange={e => set('receivedDate', e.target.value)} />
+            <input aria-label={t('reagentLotsSection.modal.receivedDateField')} type="date" className="ps-conf-input" value={draft.receivedDate ?? ''} onChange={e => set('receivedDate', e.target.value)} />
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('reagentLotsSection.modal.vendorField')}</label>
-            <input className="ps-conf-input" value={draft.vendor ?? ''} onChange={e => set('vendor', e.target.value)} placeholder={t('reagentLotsSection.modal.vendorPlaceholder')} />
+            <input aria-label={t('reagentLotsSection.modal.vendorField')} className="ps-conf-input" value={draft.vendor ?? ''} onChange={e => set('vendor', e.target.value)} placeholder={t('reagentLotsSection.modal.vendorPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
@@ -179,7 +181,7 @@ const ReagentLotModal: React.FC<ReagentLotModalProps> = ({ mode, reagentLot, sta
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('reagentLotsSection.modal.activeField')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('reagentLotsSection.modal.activeField'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -215,7 +217,7 @@ const ReagentLotsSection: React.FC = () => {
       if (res.ok) setLots(res.data);
       setLoading(false);
     });
-    mockStainTypeService.getAll().then(res => { if (res.ok) setStainTypes(res.data); });
+    stainTypeService.getAll().then(res => { if (res.ok) setStainTypes(res.data); });
     getActivePerformingLabs().then(setLabs);
   }, []);
 
@@ -234,7 +236,7 @@ const ReagentLotsSection: React.FC = () => {
   });
 
   const handleSave = async (draft: Draft) => {
-    const { active, referenceMode, ...rest } = draft;
+    const { active, referenceMode: _referenceMode, ...rest } = draft;
     const payload = { ...rest, status: (active ? 'Active' : 'Inactive') as 'Active' | 'Inactive' };
     if (modal?.mode === 'add') {
       const res = await reagentLotService.create({ ...payload, createdBy: 'current-user' });
@@ -251,7 +253,7 @@ const ReagentLotsSection: React.FC = () => {
     if (res.ok) setLots(prev => prev.map(x => x.id === l.id ? res.data : x));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('reagentLotsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('reagentLotsSection.loading')} />;
 
   return (
     <div>
@@ -268,12 +270,12 @@ const ReagentLotsSection: React.FC = () => {
       <div className="ps-conf-form-row">
         <input data-dirty-ignore data-config-nav type="text" placeholder={t('reagentLotsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('reagentLotsSection.filters.allStatuses')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>
         </select>
-        <select data-dirty-ignore data-config-nav value={qcFilter} onChange={e => setQcFilter(e.target.value as any)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.qcState')} data-dirty-ignore data-config-nav value={qcFilter} onChange={e => setQcFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('reagentLotsSection.filters.allQcStates')}</option>
           {QC_STATUS_OPTIONS.map(s => <option key={s} value={s}>{t(QC_STATUS_LABEL_KEY[s])}</option>)}
         </select>

@@ -18,8 +18,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { defineConfig } from 'vitest/config';
+import { availableParallelism } from 'node:os';
+
+// Batch 526: see maxWorkers below.
+const requestedWorkers = Number(process.env.VITEST_MAX_WORKERS);
+const maxWorkers = requestedWorkers > 0
+  ? requestedWorkers
+  : process.platform === 'win32' ? Math.max(1, Math.floor(availableParallelism() / 2)) : undefined;
 
 export default defineConfig({
+  // Batch 527 (PS-486): tests run as the demo build (see vite.config.ts).
+  define: { __DEMO_TOOLS__: 'true' },
   resolve: {
     tsconfigPaths: true,
   },
@@ -41,6 +50,8 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       'update-267-277/**',
+      // Batch 524 (PS-491): browser tests run with Playwright (npm run test:a11y), not vitest.
+      'e2e/**',
     ],
 
     // Real fix for a real, reported flake — not a code regression.
@@ -79,6 +90,40 @@ export default defineConfig({
     // import one service should not load all of them.)
     hookTimeout: 60000,
     testTimeout: 60000,
+
+    // Batch 487: a different failure mode from the timeouts raised above —
+    // Pete's last full run (Windows laptop, Oct 8, 2026) reported 7 files
+    // that never ran at all: "Failed to start forks worker… Timeout
+    // waiting for worker to respond." That's the pool failing to spin up
+    // a child process in time, not a slow test exceeding hookTimeout/
+    // testTimeout above — those only bound a worker that's already
+    // running. Spawning a new OS process per worker (vitest's default
+    // 'forks' pool) is real, measurable overhead on Windows, worse under
+    // per-process antivirus scanning, and gets worse again as this suite
+    // (1000+ files) spins up many of them close together under full
+    // parallel load. 'threads' workers are an in-process worker_thread,
+    // not a new child process — no process-spawn/antivirus-scan cost per
+    // worker, so there's nothing left to time out on. Nothing in this
+    // suite relies on process isolation (no native modules, no shared
+    // mutable module-level state between test files that forks happened
+    // to paper over — mock services are already re-seeded per test via
+    // beforeEach/localStorage resets). Verified here: full suite still
+    // passes (1000 files / 8562 tests, 0 failures) with this pool: this
+    // sandbox's own hardware doesn't reproduce the worker-startup timeout
+    // either way, so the real confirmation is Pete's next run.
+    pool: 'threads',
+
+    // Batch 526: Pete's run of Oct 11 (Windows laptop) again had workers that
+    // never started ("Failed to start threads worker … Timeout waiting for
+    // worker to respond", 3 files) and 8 tests over their time limit, all of
+    // them the first test in a file that loads the services barrel. The
+    // run's import time added up to 2,041 s across workers in 328 s of wall
+    // time: too many workers starting at once on that machine. On Windows the
+    // suite now uses half the logical cores (vitest's default is all but
+    // one). VITEST_MAX_WORKERS overrides it on any machine. Also removed: 19
+    // per-test limits of 10–30 s in 8 test files, which overrode the 60 s
+    // limit above (three of the timeouts were those).
+    ...(maxWorkers ? { maxWorkers } : {}),
 
     // Batch 456: tests never call the Pwned Passwords service
     // (services/staffPasswords/passwordScreening.ts); its own tests pass a

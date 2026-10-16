@@ -107,7 +107,7 @@ const PendingBatchQueuePage: React.FC = () => {
           </div>
 
           <div className="ps-batch-toolbar">
-            <input
+            <input aria-label={t('pendingBatchQueue.searchPlaceholder')}
               className="ps-batch-lookup-input"
               type="text"
               placeholder={t('pendingBatchQueue.searchPlaceholder')}

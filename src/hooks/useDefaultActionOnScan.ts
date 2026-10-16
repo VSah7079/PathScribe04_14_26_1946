@@ -31,10 +31,9 @@
 import { useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router';
 import { useEffectiveScanStation } from './useEffectiveScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { mockWorkstationGroupService } from '@/services/workstationGroups/mockWorkstationGroupService';
-import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
+
 import type { ScanEvent } from '@/contexts/ScannerProvider';
+import { scanStationService, workstationGroupService, actionRegistryService } from '@/services';
 
 export function useDefaultActionOnScan() {
   const { effectiveStationId } = useEffectiveScanStation();
@@ -52,16 +51,16 @@ export function useDefaultActionOnScan() {
     if (location.pathname.startsWith('/batch-management/disposal')) return;
 
     if (!effectiveStationId) return;
-    const stationRes = await mockScanStationService.getById(effectiveStationId);
+    const stationRes = await scanStationService.getById(effectiveStationId);
     if (!stationRes.ok || !stationRes.data.workstationGroupId) return;
 
-    const groupRes = await mockWorkstationGroupService.getById(stationRes.data.workstationGroupId);
+    const groupRes = await workstationGroupService.getById(stationRes.data.workstationGroupId);
     if (!groupRes.ok || !groupRes.data.defaultActionId) return;
 
-    const action = mockActionRegistryService.getActionById(groupRes.data.defaultActionId);
+    const action = actionRegistryService.getActionById(groupRes.data.defaultActionId);
     if (!action || !action.isActive) return;
 
-    mockActionRegistryService.executeAction(action, scanEvent.raw);
+    actionRegistryService.executeAction(action, scanEvent.raw);
   }, [effectiveStationId, location.pathname]);
 
   useEffect(() => {

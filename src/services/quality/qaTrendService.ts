@@ -20,7 +20,7 @@ import type { ServiceResult } from '../types';
 import type { QaTrendRecommendation, QaTrendPolicySettings } from '@/types/quality/QaTrend';
 import type { NewAuditLog } from '../auditlog/IAuditService';
 import {
-  applyQaTrendDecision, newQaTrendRecommendations, qaTrendCandidates, qaTrendDecisionProblem,
+  applyQaTrendDecision, newQaTrendRecommendations, qaTrendCandidates, qaTrendDecisionProblem, qaTrendPendingCount,
   type QaTrendDecision, type QaTrendDecisionProblem, type TrendCandidate, type TrendRecord,
 } from './qaTrendRules';
 
@@ -44,7 +44,7 @@ export function createQaTrendService(deps: QaTrendDeps) {
   const audit = (event: string, detail: string) =>
     deps.audit({ type: 'user', event, detail, user: deps.actor().userId, caseId: null, confidence: null }).catch(() => {});
 
-  return {
+  const api = {
     async list(): Promise<ServiceResult<QaTrendRecommendation[]>> {
       if (!(await deps.enforce('qa:pathologist-trend:view')).allowed) return { ok: false, error: 'NOT_PERMITTED' };
       return { ok: true, data: deps.load() };
@@ -65,6 +65,17 @@ export function createQaTrendService(deps: QaTrendDeps) {
       return { ok: true, data: { candidates, added } };
     },
 
+    /** Batch 515 (PS-147): the open-pattern count for the QA page's tile, so it
+     *  shows when the page opens, not only after the tab is visited. Runs the
+     *  same evaluation the tab does (patterns found since are recorded and
+     *  audited the same way). Undefined when refused. */
+    async pendingCount(): Promise<number | undefined> {
+      const evaluated = await api.evaluate();
+      if (!evaluated.ok) return undefined;
+      const res = await api.list();
+      return res.ok ? qaTrendPendingCount(res.data) : undefined;
+    },
+
     async decide(id: string, decision: QaTrendDecision): Promise<ServiceResult<QaTrendRecommendation>> {
       if (!(await deps.enforce('qa:pathologist-trend:decide')).allowed) return { ok: false, error: 'NOT_PERMITTED' };
       const all = deps.load();
@@ -78,6 +89,7 @@ export function createQaTrendService(deps: QaTrendDeps) {
       return { ok: true, data: updated };
     },
   };
+  return api;
 }
 
 export type IQaTrendService = ReturnType<typeof createQaTrendService>;

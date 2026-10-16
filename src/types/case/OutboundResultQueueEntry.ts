@@ -56,4 +56,9 @@ export interface OutboundResultQueueEntry {
   retryCount: number;
   maxRetriesExceeded: boolean;
   lastAttemptAt?: string;
+  /** Batch 538: the released report document this message carries; a retry sends the same one. */
+  reportDocumentId?: string;
+  /** Its SHA-256, for the record. Batch 559: also set for a signed version's PDF (no document), and
+   *  updated to the hash of the PDF the last send or retry carried. */
+  pdfSha256?: string;
 }

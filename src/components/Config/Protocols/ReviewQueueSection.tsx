@@ -39,6 +39,7 @@ import {
   CategoryGroup,
   EmptyState,
 } from './ProtocolCardParts';
+import { pressable } from '@/utils/a11y/pressable';
 
 // ─── ProtocolCard ─────────────────────────────────────────────────────────────
 
@@ -64,7 +65,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
 
   return (
     <div
-      onClick={handleCardClick}
+      {...pressable(handleCardClick)}
       className="ps-reviewqueue-card"
       title={actionLabel}
     >

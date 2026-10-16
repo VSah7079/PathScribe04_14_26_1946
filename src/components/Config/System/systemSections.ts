@@ -10,6 +10,8 @@ export type SystemSection =
   | 'subspecialties'
   | 'specimens'
   | 'stains'
+  | 'ink_colors'
+  | 'inking_validation_mode'
   | 'vendor_integrations'
   | 'cytology_qc_rules'
   | 'or_suite_terminals'
@@ -24,6 +26,7 @@ export type SystemSection =
   | 'workstation_groups'
   | 'action_groups'
   | 'scan_stations'
+  | 'site_agents'
   | 'equipment'
   | 'grossing_hardware'
   | 'cassette_routing_rules'
@@ -42,6 +45,7 @@ export type SystemSection =
   | 'contribution_settings'
   | 'qa_config_center'
   | 'biopsy_resection_correlation'
+  | 'tumor_board_rules'
   | 'follow_up_tracking'
   | 'external_resources'
   | 'research_feed'
@@ -76,6 +80,8 @@ export type SystemSection =
   | 'deficiencies'
   | 'revision_reasons'
   | 'peer_review_gate'
+  | 'clinical_mismatch_rules'
+  | 'ai_instructions'
   | 'qa_trend_policy'
   | 'feedback'
   | 'abnormal_trigger_rules'
@@ -125,6 +131,8 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'label_designer',      emoji: '🏷️', labelKey: 'systemTab.sections.labelDesigner'        , group: 'Workstation & Hardware' },
   { id: 'printer_profiles',    emoji: '🖨️', labelKey: 'systemTab.sections.printerProfiles'      , group: 'Workstation & Hardware' },
   { id: 'scan_stations',       emoji: '📍', labelKey: 'systemTab.sections.scanStations'         , group: 'Workstation & Hardware' },
+  // Batch 552 (PS-539 phase 2d): the site agents (enrolment, status, agent printers and shares).
+  { id: 'site_agents',         emoji: '🛰️', labelKey: 'systemTab.sections.siteAgents'           , group: 'Workstation & Hardware' },
   // Batch 358: the equipment register (took over Batch 356's Instruments list).
   { id: 'equipment',           emoji: '🔬', labelKey: 'systemTab.sections.equipment'            , group: 'Workstation & Hardware' },
   // Batch 359: grossing cameras and scales (settings; the device is in the register).
@@ -138,6 +146,13 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'workstation_groups',  emoji: '🗺️', labelKey: 'systemTab.sections.workstationGroups'    , group: 'Lab Materials & Workflows' },
   { id: 'action_groups',       emoji: '⚡', labelKey: 'systemTab.sections.actionGroups'          , group: 'Lab Materials & Workflows' },
   { id: 'stains',              emoji: '🧪', labelKey: 'systemTab.sections.stains'               , group: 'Lab Materials & Workflows' },
+  { id: 'ink_colors',          emoji: '🖊️', labelKey: 'systemTab.sections.inkColors'            , group: 'Lab Materials & Workflows' },
+  // Batch 484 (PS-519 follow-up): the one genuinely missing piece of
+  // "Organisation/Site admin UI" this batch's own research confirmed —
+  // a settings screen for the facility-scoped inking_validation_mode
+  // (services/grossing/inkingSiteSettings.ts), existing since Batch 480
+  // with no UI consumer until now.
+  { id: 'inking_validation_mode', emoji: '🚦', labelKey: 'systemTab.sections.inkingValidationMode', group: 'Lab Materials & Workflows' },
   // Real, per this module's own DP/AI vendor integration plan's final
   // remaining item. Placed in the same real group as the diagnostic
   // catalog above — this is shared, cross-module infrastructure
@@ -206,12 +221,18 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'qa_config_center',    emoji: '✅', labelKey: 'systemTab.sections.qaConfigCenter' , group: 'Administration & Compliance' },
   // Batch 453 (PS-324): the biopsy-to-resection correlation window.
   { id: 'biopsy_resection_correlation', emoji: '⏱', labelKey: 'systemTab.sections.biopsyResectionCorrelation', group: 'Administration & Compliance' },
+  // Batch 491 (PS-359 follow-up): the Tumor Board auto-flagging rules' margin thresholds.
+  { id: 'tumor_board_rules', emoji: '🚩', labelKey: 'systemTab.sections.tumorBoardRules', group: 'Administration & Compliance' },
   // Batch 454: warning period, clinician email on/off and its wording.
   { id: 'follow_up_tracking', emoji: '📬', labelKey: 'systemTab.sections.followUpTracking', group: 'Administration & Compliance' },
   // Batch 438 (PS-146): amendment and correction reasons, and which are clinically significant.
   { id: 'revision_reasons',    emoji: '📝', labelKey: 'systemTab.sections.revisionReasons', group: 'Administration & Compliance' },
   // Batch 439 (PS-144): where sign-out waits for a first-time malignancy's peer review.
   { id: 'peer_review_gate',    emoji: '👥', labelKey: 'systemTab.sections.peerReviewGate', group: 'Administration & Compliance' },
+  // Batch 529 (PS-554): the clinical-pathologic mismatch risk rules.
+  { id: 'clinical_mismatch_rules', emoji: '⚖', labelKey: 'systemTab.sections.clinicalMismatchRules', group: 'Administration & Compliance' },
+  // Batch 536 (PS-554): the governed AI instructions the mismatch check uses.
+  { id: 'ai_instructions', emoji: '📜', labelKey: 'systemTab.sections.aiInstructions', group: 'Administration & Compliance' },
   { id: 'qa_trend_policy',     emoji: '📈', labelKey: 'systemTab.sections.qaTrendPolicy', group: 'Administration & Compliance' },
   { id: 'feedback',            emoji: '🧪', labelKey: 'systemTab.sections.feedback', group: 'Administration & Compliance' },
   { id: 'research_feed',       emoji: '📰', labelKey: 'systemTab.sections.researchFeed'         , group: 'Administration & Compliance' },

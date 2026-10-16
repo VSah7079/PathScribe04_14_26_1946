@@ -25,7 +25,6 @@ import type { RegistrySubmissionHeader } from './registrySubmissionHeader';
 import type { RegistryQueueEntryForWorklist, RegistryQueueName } from './registryExceptions';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** A rebuild of the entry's submission from today's data. */
 export type RegistryRebuild =

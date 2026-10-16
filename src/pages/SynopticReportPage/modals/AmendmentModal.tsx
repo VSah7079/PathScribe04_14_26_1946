@@ -48,6 +48,7 @@ import { getFacilityDateTimeParts } from '@/utils/facilityTime';
 import { initials, avatarColorClass, contactRowsFor } from '@/utils/physicianDisplay';
 import { formatOrdinal } from '@/utils/formatOrdinal';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
+import { pressable } from '@/utils/a11y/pressable';
 // NOTE: verify this import path resolves in your build — your last tsc
 // output showed src/index.ts failing on a physician service import one
 // directory level different from this. If physicianService isn't found,
@@ -381,9 +382,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
                         return (
                           <td
                             key={v.versionNumber}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => setSelectedSource(prev => ({ ...prev, [key]: v.versionNumber }))}
+                            {...pressable(() => setSelectedSource(prev => ({ ...prev, [key]: v.versionNumber })))}
                             className={`ps-amendment-delta-cell${isSelected ? ' ps-amendment-delta-cell--selected' : ''}`}
                           >
                             {formatValue(v.synopticAnswersSnapshot[key], t)}
@@ -473,7 +472,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
             {!isUnlockFlow && (
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('amendmentModal.form.addendumTitleLabel')} {required('addendumTitle') && <span className="ps-conf-required">*</span>}</label>
-                <input className="ps-conf-input" value={addendumTitle} onChange={e => setAddendumTitle(e.target.value)}
+                <input aria-label={t('amendmentModal.form.addendumTitleLabel')} className="ps-conf-input" value={addendumTitle} onChange={e => setAddendumTitle(e.target.value)}
                   placeholder={t('amendmentModal.form.addendumTitlePlaceholder')} />
               </div>
             )}
@@ -513,7 +512,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
                 <label className="ps-conf-label ps-amendment-notification-label">{t('amendmentModal.notification.logLabel')}</label>
                 <div className="ps-conf-form-field ps-amendment-physician-picker">
                   <label className="ps-conf-label">{t('amendmentModal.notification.clinicianNotifiedLabel')} {notificationRequired && <span className="ps-conf-required">*</span>}</label>
-                  <input
+                  <input aria-label={t('amendmentModal.notification.clinicianNotifiedLabel')}
                     className="ps-amendment-physician-search"
                     value={clinicianName || physicianQuery}
                     onChange={e => { setPhysicianQuery(e.target.value); setClinicianName(''); setShowPhysicianDropdown(true); }}
@@ -595,7 +594,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('amendmentModal.notification.dateTimeLabel')}</label>
-                  <input className="ps-input-dark" type="datetime-local" value={notifiedAt} onChange={e => setNotifiedAt(e.target.value)} />
+                  <input aria-label={t('amendmentModal.notification.dateTimeLabel')} className="ps-input-dark" type="datetime-local" value={notifiedAt} onChange={e => setNotifiedAt(e.target.value)} />
                 </div>
                 <p className="ps-intraop-gate-note">{isAmendment ? t('amendmentModal.notification.gateNote') : t('amendmentModal.notification.organisationRequiresNote')}</p>
               </div>

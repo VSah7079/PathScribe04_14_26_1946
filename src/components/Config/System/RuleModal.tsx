@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { RoutingRule, findRoutingRulePriorityConflict } from '../../../services/cases/casePoolAssignmentService';
 import { Subspecialty } from '../../../services/subspecialties/ISubspecialtyService';
+import { pressable, switchable } from '@/utils/a11y/pressable';
 
 // ─── Rule Modal ───────────────────────────────────────────────────────────────
 
@@ -78,7 +79,7 @@ const RuleModal: React.FC<{
                 {t('ruleModal.noPoolsWarning')}
               </div>
             ) : (
-              <select value={subspecialtyId} onChange={e => setSubspecialtyId(e.target.value)} className="ps-conf-select">
+              <select aria-label={t('a11y.fields.subspecialty')} value={subspecialtyId} onChange={e => setSubspecialtyId(e.target.value)} className="ps-conf-select">
                 {pools.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             )}
@@ -91,7 +92,7 @@ const RuleModal: React.FC<{
               {t('ruleModal.keywordsHint')}
             </div>
             <div className="ps-rulemodal__row">
-              <input
+              <input aria-label={t('ruleModal.keywordsLabel')}
                 value={keywordInput}
                 onChange={e => setKeywordInput(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -111,7 +112,7 @@ const RuleModal: React.FC<{
                 {keywords.map(kw => (
                   <span key={kw} className="ps-rulemodal__keyword-chip">
                     {kw}
-                    <span onClick={() => setKeywords(prev => prev.filter(k => k !== kw))}
+                    <span {...pressable(() => setKeywords(prev => prev.filter(k => k !== kw)), { role: null })}
                       role="button" aria-label={t('ruleModal.removeKeywordAriaLabel', { keyword: kw })}
                       className="ps-rulemodal__keyword-remove">x</span>
                   </span>
@@ -124,7 +125,7 @@ const RuleModal: React.FC<{
           <div>
             <label className="ps-rulemodal__label">{t('ruleModal.priorityLabel')}</label>
             <div className="ps-rulemodal__priority-row">
-              <input type="number" min={1} max={999} value={priority}
+              <input aria-label={t('ruleModal.priorityLabel')} type="number" min={1} max={999} value={priority}
                 onChange={e => setPriority(parseInt(e.target.value) || 1)}
                 className="ps-rulemodal__input ps-rulemodal__input--number" />
               <span className="ps-rulemodal__priority-hint">
@@ -136,14 +137,14 @@ const RuleModal: React.FC<{
           {/* Note */}
           <div>
             <label className="ps-rulemodal__label">{t('ruleModal.noteLabel')}</label>
-            <input value={note} onChange={e => setNote(e.target.value)}
+            <input aria-label={t('ruleModal.noteLabel')} value={note} onChange={e => setNote(e.target.value)}
               placeholder={t('ruleModal.notePlaceholder')}
               className="ps-rulemodal__input" />
           </div>
 
           {/* Active toggle */}
           <div className="ps-rulemodal__toggle-row">
-            <div onClick={() => setActive(v => !v)}
+            <div {...switchable(active, () => setActive(v => !v), t('a11y.fields.active'))}
               className={`ps-sub-toggle-track${active ? ' ps-sub-toggle-track--on' : ' ps-sub-toggle-track--off'}`}>
               <div className={`ps-sub-toggle-thumb${active ? ' ps-sub-toggle-thumb--on' : ' ps-sub-toggle-thumb--off'}`} />
             </div>

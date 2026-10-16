@@ -73,6 +73,8 @@ export interface AuthSessionDeps {
   ssoClient: () => ISsoClient;
   /** The API server, when there is one (VITE_API_BASE_URL). */
   apiBaseUrl: string | null;
+  /** Batch 550: clears what this window holds for the user (the export notices). Called by endSession. */
+  onSessionEnded?: () => void;
   userService: Pick<IUserService, 'getAll' | 'update'>;
   roleService: Pick<IRoleService, 'getAll'>;
   auditService: Pick<IAuditService, 'logEvent'>;
@@ -272,6 +274,7 @@ export function createAuthSession(deps: AuthSessionDeps) {
       }
       if (profile?.authMethod === 'sso' && profile.ssoProviderId) void deps.ssoClient().signOut(profile.ssoProviderId);
       deps.profileStore.write(null);
+      deps.onSessionEnded?.();
     },
 
     /** Closing the tab releases the active-session marker (drafts stay). */

@@ -20,108 +20,93 @@
 // never navigates, so a full router isn't needed to exercise its logic.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
-import type { Case } from '@/types/case/Case';
-import type { ConsultToken } from '@/services/consultAccess/IConsultTokenService';
+import type { ConsultCaseView } from '@/services/consultAccess/consultLinkRules';
 
+// Batch 522: links carry the token after `#`; the path form still works.
+const params = vi.hoisted(() => ({ token: undefined as string | undefined }));
 vi.mock('react-router', () => ({
-  useParams: () => ({ token: 'ct_abc123' }),
+  useParams: () => params,
 }));
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
   Trans: ({ i18nKey }: { i18nKey: string }) => i18nKey,
 }));
 
-const { getCase } = vi.hoisted(() => ({ getCase: vi.fn() }));
-
-const { resolve, recordAccess, submitOpinion } = vi.hoisted(() => ({
-  resolve: vi.fn(), recordAccess: vi.fn(), submitOpinion: vi.fn(),
-}));
-// Batch 363: the page reads cases through @/services (caseService), not the mock file.
+const { openConsult, submitOpinion } = vi.hoisted(() => ({ openConsult: vi.fn(), submitOpinion: vi.fn() }));
+// Batch 522: the page asks the token service for the consult view; it reads no case itself.
 vi.mock('@/services', () => ({
-  consultTokenService: { resolve, recordAccess, submitOpinion },
-  caseService: { getCase },
+  consultTokenService: { openConsult, submitOpinion },
 }));
 
-const CASE = {
-  id: 'case-1',
-  accession: { accessionNumber: 'S26-1234' },
-  patient: { firstName: 'Jane', lastName: 'Roe', dateOfBirth: '1980-01-01' },
-  specimens: [{
-    id: 'sp-1', label: 'A', description: 'Left breast, lumpectomy',
-    blocks: [{ id: 'block-1', label: '1', stains: [
-      { id: 'stain-1', stainName: 'H&E' },
-      { id: 'stain-2', stainName: 'ER' },
-    ] }],
-  }],
-} as unknown as Case;
-
-function makeToken(overrides: Partial<ConsultToken> = {}): ConsultToken {
+function makeView(overrides: Partial<ConsultCaseView> = {}): ConsultCaseView {
   return {
-    id: 'ctok-1', token: 'ct_abc123',
-    scope: { caseId: 'case-1', caseAccessionNumber: 'S26-1234' },
-    issuedByUserId: 'u1', issuedByName: 'Dr. Attending',
-    issuedAt: '2026-09-17T00:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z',
-    isActive: true, consultantIdentifier: 'Dr. Jane Reviewer', accessCount: 0,
+    linkId: 'ctok-1', accessionNumber: 'S26-1234',
+    patient: { lastName: 'Roe', firstName: 'Jane', dateOfBirth: '1980-01-01' },
+    specimens: [{ id: 'sp-1', label: 'A', description: 'Left breast, lumpectomy' }],
+    slides: [{ id: 'stain-1', label: 'A-1 · H&E' }, { id: 'stain-2', label: 'A-1 · ER' }],
+    scopedSlideCount: 0, expiresAt: '2099-01-01T00:00:00.000Z', opinionSigned: false,
     ...overrides,
   };
 }
 
-beforeEach(() => {
-  recordAccess.mockResolvedValue({ ok: true, data: makeToken() });
-});
+afterEach(() => { cleanup(); vi.clearAllMocks(); params.token = undefined; window.history.replaceState(null, '', '/'); document.head.querySelectorAll('meta[name="referrer"]').forEach(m => m.remove()); });
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
-
-async function renderPage() {
+async function renderPage(address = '/consult#ct_abc123') {
+  window.history.replaceState(null, '', address);
   const { default: ExternalConsultViewPage } = await import('./ExternalConsultViewPage');
   const utils = render(<ExternalConsultViewPage />);
   await act(async () => {});
   return utils;
 }
 
-describe('ExternalConsultViewPage — real render/behavior coverage', () => {
-  it('an invalid/expired/revoked token shows the one, uniform denial and never fetches the case', async () => {
-    resolve.mockResolvedValue({ ok: false, error: 'This link is invalid or no longer active.' });
+describe('ExternalConsultViewPage', () => {
+  it('an invalid, expired or revoked link shows the one uniform denial', async () => {
+    openConsult.mockResolvedValue({ ok: false, error: 'CONSULT_LINK_INVALID' });
     await renderPage();
-
     expect(await screen.findByText('externalConsultViewPage.invalidLink.title')).not.toBeNull();
-    expect(getCase).not.toHaveBeenCalled();
-    expect(recordAccess).not.toHaveBeenCalled();
   });
 
-  it('a valid Full Case token shows the disclosure banner, the real case/patient data, every slide, and records exactly one access', async () => {
-    resolve.mockResolvedValue({ ok: true, data: makeToken() });
-    getCase.mockResolvedValue(CASE);
-    await renderPage();
+  it('reads the token from after #, removes it from the address bar, and sends no Referer (Batch 522)', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
+    await renderPage('/consult#ct_abc123');
+    expect(openConsult).toHaveBeenCalledWith('ct_abc123');
+    expect(window.location.hash).toBe('');
+    expect(window.location.pathname).toBe('/consult');
+    expect(document.head.querySelector('meta[name="referrer"]')?.getAttribute('content')).toBe('no-referrer');
+  });
 
+  it('still opens a link issued before Batch 522, with the token in the path', async () => {
+    params.token = 'ct_oldstyle';
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
+    await renderPage('/consult/ct_oldstyle');
+    expect(openConsult).toHaveBeenCalledWith('ct_oldstyle');
+  });
+
+  it('shows the banner, the case, the patient and exactly the slides the service returned', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
+    await renderPage();
     expect(await screen.findByText('S26-1234')).not.toBeNull();
-    expect(screen.getByText(/Roe, Jane/)).not.toBeNull();
+    expect(screen.getByText(/externalConsultViewPage\.patientName.*Roe/)).not.toBeNull();
     expect(screen.getByText(/externalConsultViewPage\.dobPrefix/)).not.toBeNull();
     expect(screen.getByText(/externalConsultViewPage\.fullCaseAccess/)).not.toBeNull();
     expect(screen.getByText('A-1 · H&E')).not.toBeNull();
     expect(screen.getByText('A-1 · ER')).not.toBeNull();
     expect(screen.getByText('externalConsultViewPage.disclosureBanner')).not.toBeNull();
-
-    expect(recordAccess).toHaveBeenCalledTimes(1);
-    expect(recordAccess).toHaveBeenCalledWith('ctok-1');
+    expect(openConsult).toHaveBeenCalledTimes(1);
   });
 
-  it('a slide-scoped token only shows the slides actually in scope', async () => {
-    resolve.mockResolvedValue({ ok: true, data: makeToken({ scope: { caseId: 'case-1', caseAccessionNumber: 'S26-1234', slideIds: ['stain-2'] } }) });
-    getCase.mockResolvedValue(CASE);
+  it('a slide-scoped link says so', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView({ scopedSlideCount: 1, slides: [{ id: 'stain-2', label: 'A-1 · ER' }] }) });
     await renderPage();
-
     expect(await screen.findByText(/externalConsultViewPage\.scopedAccess/)).not.toBeNull();
     expect(screen.queryByText('A-1 · H&E')).toBeNull();
-    expect(screen.getByText('A-1 · ER')).not.toBeNull();
   });
 
-  it('submitting an opinion requires text, then calls the real service with the tokenRecord/caseRecord identity', async () => {
-    resolve.mockResolvedValue({ ok: true, data: makeToken() });
-    getCase.mockResolvedValue(CASE);
+  it('an opinion needs text, then goes with the token only; the case and consultant come from the token', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
     submitOpinion.mockResolvedValue({ ok: true, data: { id: 'op-1' } });
     await renderPage();
     await screen.findByText('S26-1234');
@@ -135,10 +120,25 @@ describe('ExternalConsultViewPage — real render/behavior coverage', () => {
     fireEvent.click(screen.getByText('externalConsultViewPage.submitOpinionButton'));
     await act(async () => {});
 
-    expect(submitOpinion).toHaveBeenCalledWith({
-      tokenId: 'ctok-1', caseId: 'case-1', consultantIdentifier: 'Dr. Jane Reviewer',
-      diagnosticCategory: undefined, signedStatus: 'Draft', opinionText: 'Concur with invasive ductal carcinoma.',
-    });
+    expect(submitOpinion).toHaveBeenCalledWith('ct_abc123', { diagnosticCategory: undefined, signedStatus: 'Draft', opinionText: 'Concur with invasive ductal carcinoma.' });
     expect(screen.getByText('externalConsultViewPage.opinionSubmittedConfirmation')).not.toBeNull();
+  });
+
+  it('a link revoked meanwhile: the opinion is refused with a translated reason', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
+    submitOpinion.mockResolvedValue({ ok: false, error: 'CONSULT_LINK_INVALID' });
+    await renderPage();
+    await screen.findByText('S26-1234');
+    fireEvent.change(screen.getByPlaceholderText('externalConsultViewPage.opinionPlaceholder'), { target: { value: 'Late.' } });
+    fireEvent.click(screen.getByText('externalConsultViewPage.submitOpinionButton'));
+    await act(async () => {});
+    expect(screen.getByText('externalConsultViewPage.errors.linkNoLongerActive')).not.toBeNull();
+  });
+
+  it('once a signed opinion is in, the form is replaced by a note', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView({ opinionSigned: true }) });
+    await renderPage();
+    expect(await screen.findByText('externalConsultViewPage.errors.alreadySigned')).not.toBeNull();
+    expect(screen.queryByText('externalConsultViewPage.submitOpinionButton')).toBeNull();
   });
 });

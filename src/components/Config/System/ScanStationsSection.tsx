@@ -25,6 +25,9 @@ import {
   type ScanStation, type ScanStationStatusFilter, type ScanStationDraftValidationErrors, type PrinterProfile, type Facility,
 } from '@/services';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
+import { barcodePayloadForStation } from '@/types/labels/LabelData';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const K = 'scanStationsSection';
 
@@ -90,14 +93,14 @@ const ScanStationModal: React.FC<ScanStationModalProps> = ({ mode, station, labs
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t(`${K}.modal.nameLabel`)} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t(`${K}.modal.nameLabel`)} className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
               value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t(`${K}.modal.namePlaceholder`)} />
             {errors.name && <span className="ps-conf-error-text">{t(`${K}.errors.${errors.name}`)}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t(`${K}.modal.barcodeCodeLabel`)} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.barcodeCode ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t(`${K}.modal.barcodeCodeLabel`)} className={`ps-conf-input ${errors.barcodeCode ? 'ps-conf-input--error' : ''}`}
               value={draft.barcodeCode} onChange={e => set('barcodeCode', e.target.value.toUpperCase())} placeholder={t(`${K}.modal.barcodeCodePlaceholder`)} />
             {errors.barcodeCode ? (
               <span className="ps-conf-error-text">{t(`${K}.errors.${errors.barcodeCode}`)}</span>
@@ -121,7 +124,7 @@ const ScanStationModal: React.FC<ScanStationModalProps> = ({ mode, station, labs
               actually prints. */}
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t(`${K}.modal.printerIpLabel`)}</label>
-            <input className="ps-conf-input" value={draft.printerIp ?? ''} onChange={e => set('printerIp', e.target.value)} placeholder={t(`${K}.modal.printerIpPlaceholder`)} />
+            <input aria-label={t(`${K}.modal.printerIpLabel`)} className="ps-conf-input" value={draft.printerIp ?? ''} onChange={e => set('printerIp', e.target.value)} placeholder={t(`${K}.modal.printerIpPlaceholder`)} />
             <span className="ps-conf-field-hint">{t(`${K}.modal.printerIpHint`)}</span>
           </div>
 
@@ -140,7 +143,7 @@ const ScanStationModal: React.FC<ScanStationModalProps> = ({ mode, station, labs
                 {t(`${K}.modal.supportsEngravingLabel`)}
               </label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('supportsEngraving', !draft.supportsEngraving)} className={`ps-conf-toggle-track ${draft.supportsEngraving ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.supportsEngraving, () => set('supportsEngraving', !draft.supportsEngraving), t(`${K}.modal.supportsEngravingLabel`))} className={`ps-conf-toggle-track ${draft.supportsEngraving ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
               </div>
@@ -150,7 +153,7 @@ const ScanStationModal: React.FC<ScanStationModalProps> = ({ mode, station, labs
                 {t(`${K}.modal.supportsPrintingLabel`)}
               </label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('supportsPrinting', !draft.supportsPrinting)} className={`ps-conf-toggle-track ${draft.supportsPrinting ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.supportsPrinting, () => set('supportsPrinting', !draft.supportsPrinting), t(`${K}.modal.supportsPrintingLabel`))} className={`ps-conf-toggle-track ${draft.supportsPrinting ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
               </div>
@@ -160,7 +163,7 @@ const ScanStationModal: React.FC<ScanStationModalProps> = ({ mode, station, labs
           {draft.supportsPrinting && (
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t(`${K}.modal.printerProfileLabel`)} <span className="ps-conf-required">*</span></label>
-              <select className={`ps-conf-select ${errors.cassetteSlidePrinterProfileId ? 'ps-conf-input--error' : ''}`} value={draft.cassetteSlidePrinterProfileId ?? ''} onChange={e => set('cassetteSlidePrinterProfileId', e.target.value)}>
+              <select aria-label={t(`${K}.modal.printerProfileLabel`)} className={`ps-conf-select ${errors.cassetteSlidePrinterProfileId ? 'ps-conf-input--error' : ''}`} value={draft.cassetteSlidePrinterProfileId ?? ''} onChange={e => set('cassetteSlidePrinterProfileId', e.target.value)}>
                 <option value="">{t(`${K}.modal.printerProfileNoneOption`)}</option>
                 {printerProfiles.map(p => <option key={p.id} value={p.id}>{p.printerId} ({p.model})</option>)}
               </select>
@@ -174,7 +177,7 @@ const ScanStationModal: React.FC<ScanStationModalProps> = ({ mode, station, labs
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t(`${K}.modal.facilityLabel`)} <span className="ps-conf-required">*</span></label>
-            <select className={`ps-conf-select ${errors.facilityId ? 'ps-conf-input--error' : ''}`}
+            <select aria-label={t(`${K}.modal.facilityLabel`)} className={`ps-conf-select ${errors.facilityId ? 'ps-conf-input--error' : ''}`}
               value={draft.facilityId} onChange={e => set('facilityId', e.target.value)}>
               <option value="">{t(`${K}.modal.facilityNoneOption`)}</option>
               {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -186,7 +189,7 @@ const ScanStationModal: React.FC<ScanStationModalProps> = ({ mode, station, labs
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t(`${K}.modal.statusLabel`)}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t(`${K}.modal.statusLabel`))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -257,7 +260,7 @@ const ScanStationsSection: React.FC<{ selectedFacilityId?: string }> = ({ select
     if (res.ok) setStations(prev => prev.map(x => x.id === s.id ? res.data : x));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t(`${K}.loading`)}</div>;
+  if (loading) return <LoadingState label={t(`${K}.loading`)} />;
 
   return (
     <div>
@@ -287,7 +290,7 @@ const ScanStationsSection: React.FC<{ selectedFacilityId?: string }> = ({ select
       <div className="ps-conf-form-row">
         <input data-dirty-ignore data-config-nav type="text" placeholder={t(`${K}.searchPlaceholder`)} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as ScanStationStatusFilter)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as ScanStationStatusFilter)} className="ps-conf-select">
           <option value="All">{t(`${K}.statusFilterAll`)}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>
@@ -310,7 +313,7 @@ const ScanStationsSection: React.FC<{ selectedFacilityId?: string }> = ({ select
                   <td className="ps-conf-td">
                     <div className="ps-conf-identity-name">📍 {s.name}</div>
                   </td>
-                  <td className="ps-conf-td"><code>STATION:{s.barcodeCode}</code></td>
+                  <td className="ps-conf-td"><code>{barcodePayloadForStation(s)}</code></td>
                   <td className="ps-conf-td">{stageLabel(s.workflowStage)}</td>
                   <td className="ps-conf-td">{labs.find(l => l.id === s.facilityId)?.name ?? s.facilityId}</td>
                   <td className="ps-conf-td">

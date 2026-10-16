@@ -90,7 +90,7 @@ function scopeBefore(before: string): string {
 }
 /** True when the text right after the term opens with a post-negation cue. */
 function postNegated(after: string): boolean {
-  let rest = after.replace(/^[\s:\-]+/, '');
+  let rest = after.replace(/^[\s:-]+/, '');
   for (const l of [...LINKING].sort((a, b) => b.length - a.length)) {
     if (rest.startsWith(l + ' ')) { rest = rest.slice(l.length + 1); break; }
   }

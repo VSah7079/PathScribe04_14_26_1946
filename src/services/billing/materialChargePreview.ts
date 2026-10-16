@@ -25,7 +25,6 @@ import type { StainType } from '../stains/IStainService';
 import { billingSummaryForMaterial } from '../material/billableMaterial';
 import { computeMatrixStainBillingUnits } from './codeMapTable';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type MaterialChargeState = 'applied' | 'pending' | 'declined' | 'noCode';
 export type MaterialChargeLedgerStatus = 'charged' | 'awaitingApproval' | 'approved' | 'exported' | 'held' | 'rejected';

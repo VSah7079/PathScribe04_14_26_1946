@@ -43,10 +43,9 @@ function walk(dir: string): string[] {
 
 const FILES = walk(SRC).map(f => ({ rel: relative(SRC, f).split(sep).join('/'), text: code(readFileSync(f, 'utf8')) }));
 
-/** VITE_ variables that look secret but are judged safe to ship, with why. */
-const ALLOWED_SECRET_NAMES: Record<string, string> = {
-  VITE_NCBI_API_KEY: 'raises the public PubMed rate limit only; no billing, no data access (services/research/README.md)',
-};
+/** VITE_ variables that look secret but are judged safe to ship, with why.
+ *  Batch 499 (PS-476): empty. VITE_NCBI_API_KEY was the last one; PubMed is now called without a key. */
+const ALLOWED_SECRET_NAMES: Record<string, string> = {};
 
 /** Whole name segments only, so VITE_AI_MAX_TOKENS (a number) isn't a token. */
 const SECRET_SEGMENTS = new Set(['KEY', 'SECRET', 'PASS', 'PASSWORD', 'TOKEN', 'APIKEY']);
@@ -89,6 +88,11 @@ describe('no key or password in the browser bundle', () => {
   it('no key header set in the browser', () => {
     const header = /['"](?:x-api-key|api-key|x-goog-api-key)['"]\s*\]?\s*[:=,]/i;
     expect(offenders(t => header.test(t))).toEqual([]);
+  });
+
+  it('no provider key is allowed into the bundle at all (PS-476)', () => {
+    expect(Object.keys(ALLOWED_SECRET_NAMES)).toEqual([]);
+    expect(offenders(t => /\bVITE_NCBI_API_KEY\b|[?&]api_key=|\bapi_key\s*:/.test(t))).toEqual([]);
   });
 
   it('the stored AI settings carry no key', () => {

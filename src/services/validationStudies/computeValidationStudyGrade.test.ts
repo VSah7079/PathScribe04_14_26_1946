@@ -43,9 +43,9 @@ describe('computeValidationStudyGrade', () => {
     expect(result.grade).toBe('FURTHER REVIEW');
   });
 
-  it('description text is stable, plain English — persisted/exported data, not on-screen UI copy', () => {
-    expect(computeValidationStudyGrade(0.9, 0.85, 0.1, 0.15).description).toBe('Performance meets study targets');
-    expect(computeValidationStudyGrade(0.9, 0.85, 0.2, 0.15).description).toBe('Performance approaches targets — extended study recommended');
-    expect(computeValidationStudyGrade(0.1, 0.85, 0.0, 0.15).description).toBe('Performance below targets — review AI configuration');
+  it('gives the translation key for the printed report (Batch 514; the stored grade code stays English)', () => {
+    expect(computeValidationStudyGrade(0.9, 0.85, 0.1, 0.15).key).toBe('pass');
+    expect(computeValidationStudyGrade(0.9, 0.85, 0.2, 0.15).key).toBe('conditionalPass');
+    expect(computeValidationStudyGrade(0.1, 0.85, 0.0, 0.15).key).toBe('furtherReview');
   });
 });

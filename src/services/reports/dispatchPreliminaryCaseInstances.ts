@@ -53,6 +53,9 @@ export async function dispatchPreliminaryCaseInstances(
       instanceId: instance.instanceId,
       resultState: 'PRELIMINARY',
       organisationId: (caseData as any)?.patient?.organisationId,
+      ...(prepared.ok && prepared.document ? { reportDocumentId: prepared.document.id, ...(prepared.document.sha256 ? { pdfSha256: prepared.document.sha256 } : {}) } : {}),
+      // Batch 559: a signed version's PDF has no document id; its hash is still recorded.
+      ...(prepared.ok && !prepared.document && prepared.pdfSha256 ? { pdfSha256: prepared.pdfSha256 } : {}),
     });
     if (!enqueueRes.ok) continue;
     dispatchedCount++; // queued, whether sent now or held for retry

@@ -56,6 +56,7 @@ export async function batchHasControlForLot(batch: Pick<Batch, 'items'>, reagent
  *  batchHasControlForLot first. */
 export async function createControlSlideCase(reagentLot: ReagentLot, stainType: StainType, facilityId: string): Promise<{ caseData: Case; slideId: string }> {
   controlSequence += 1;
+  // eslint-disable-next-line no-restricted-properties -- the year printed on a new control slide is the bench's own date
   const year = new Date().getFullYear() % 100;
   const accessionNumber = `CTRL${String(controlSequence).padStart(4, '0')}`;
   const fullAccession = `S${year}-${accessionNumber}-CTL-001`;

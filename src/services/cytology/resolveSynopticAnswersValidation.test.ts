@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { resolveSynopticAnswersValidation } from './resolveSynopticAnswersValidation';
 import type { SynopticTemplate } from '@/types/cytology/SynopticTemplate';
+import { normalizeSynopticTemplate } from '@/services/templates/normalizeSynopticTemplate';
 
-const template: SynopticTemplate = {
+const template: SynopticTemplate = normalizeSynopticTemplate({
   id: 'test', name: 'Test', source: 'Custom', version: '1.0.0', category: 'CYTOLOGY_NONGYN', standard: 'Test Standard',
   sections: [
     {
@@ -12,7 +13,7 @@ const template: SynopticTemplate = {
       ],
     },
   ],
-};
+});
 
 describe('resolveSynopticAnswersValidation', () => {
   it('a real, fully-answered required field passes validation', () => {

@@ -15,7 +15,6 @@
 import type { Decant } from '@/types/case/Material';
 import type { DecantEvent, MaterialChangeKind } from './materialEvents';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type DecantChange =
   | { kind: 'add'; specimenId: string; decant: Decant }

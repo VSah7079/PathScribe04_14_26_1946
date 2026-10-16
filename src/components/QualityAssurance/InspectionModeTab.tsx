@@ -24,14 +24,19 @@
 // strings elsewhere.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useOpenCase } from '@/hooks/useOpenCase';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import { auditService } from '@/services';
+import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
+import type { QaActivityType } from '@/types/quality/QaActivityType';
 import { resolveQaEvidenceBinder, qaEvidenceBinderCsvRows, qaEvidenceBinderExportFilename, type QaEvidenceBinderReport } from '@/services/quality/resolveQaEvidenceBinder';
-import { exportQaReportRows, qaScopeContext } from './qaReportUtils';
+import { exportQaReportRows } from './qaReportUtils';
+import { QaScopeSwitcher } from './QaScopeSwitcher';
+import { useQaCaseScope } from '@/hooks/useQaCaseScope';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { qaActivityRecordService, qaActivityTypeService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const EMPTY_REPORT: QaEvidenceBinderReport = {
   windowMonths: 24, windowStart: new Date().toISOString(), generatedAt: new Date().toISOString(),
@@ -44,7 +49,14 @@ export const InspectionModeTab: React.FC = () => {
   const { t } = useTranslation();
   const openCasePage = useOpenCase();
   const [windowMonths, setWindowMonths] = useState<typeof WINDOW_OPTIONS[number]>(24);
-  const [report, setReport] = useState<QaEvidenceBinderReport>(EMPTY_REPORT);
+  const [records, setRecords] = useState<QaActivityRecord[]>([]);
+  const [types, setTypes] = useState<QaActivityType[]>([]);
+  // Batch 544: one facility, one organisation or all, by each record's case.
+  const qa = useQaCaseScope();
+  const report: QaEvidenceBinderReport = useMemo(
+    () => (types.length || records.length ? resolveQaEvidenceBinder(qa.filter(records, r => r), types, windowMonths) : EMPTY_REPORT),
+    [qa, records, types, windowMonths],
+  );
   const [loading, setLoading] = useState(true);
   const [expandedTypeId, setExpandedTypeId] = useState<string | null>(null);
 
@@ -64,7 +76,8 @@ export const InspectionModeTab: React.FC = () => {
     Promise.all([qaActivityRecordService.getAll(), qaActivityTypeService.getAll()]).then(([recordsRes, typesRes]) => {
       if (cancelled) return;
       if (recordsRes.ok && typesRes.ok) {
-        setReport(resolveQaEvidenceBinder(recordsRes.data, typesRes.data, windowMonths));
+        setRecords(recordsRes.data);
+        setTypes(typesRes.data);
       }
       setLoading(false);
     });
@@ -72,10 +85,10 @@ export const InspectionModeTab: React.FC = () => {
   }, [windowMonths]);
 
   const handleExportAll = () => {
-    void exportQaReportRows('qa:inspection-evidence:export', qaEvidenceBinderCsvRows(report), qaEvidenceBinderExportFilename(windowMonths), qaScopeContext());
+    void exportQaReportRows('qa:inspection-evidence:export', qaEvidenceBinderCsvRows(report), qaEvidenceBinderExportFilename(windowMonths, new Date(), qa.scope), qa.context, { scope: qa.scope, windowMonths });
   };
 
-  if (loading) return <div className="ps-conf-page">{t('inspectionModeTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('inspectionModeTab.loading')} />;
 
   return (
     <div className="ps-conf-page">
@@ -94,7 +107,8 @@ export const InspectionModeTab: React.FC = () => {
         >
           {WINDOW_OPTIONS.map(m => <option key={m} value={m}>{t('inspectionModeTab.monthsOption', { count: m })}</option>)}
         </select>
-        <CapabilityButton capability="qa:inspection-evidence:export" context={qaScopeContext()} className="ps-conf-btn-secondary" onClick={handleExportAll}>{t('inspectionModeTab.downloadButton')}</CapabilityButton>
+        <QaScopeSwitcher scope={qa.scope} onChange={qa.setScope} visibleClientIds={qa.facilityIds(records, r => r)} />
+        <CapabilityButton capability="qa:inspection-evidence:export" context={qa.context} className="ps-conf-btn-secondary" onClick={handleExportAll}>{t('inspectionModeTab.downloadButton')}</CapabilityButton>
       </div>
 
       <div className="ps-conf-card ps-conf-card--spaced">

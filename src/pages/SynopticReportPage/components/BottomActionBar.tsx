@@ -60,6 +60,14 @@ interface BottomActionBarProps {
   onDelegate?: () => void;
   onHistory?: () => void;
   onFlags?: () => void;
+  /** Batch 492: the real, clickable entry point for "Flag for Tumor Board /
+   *  MDT" (case:tumor-board:flag) — until now, `showFlagForMdtModal` in
+   *  SynopticReportPage.tsx was only ever set by the 'delegation.tumorBoard'
+   *  voice/keyboard action, with no button anywhere that opened it. Gated
+   *  with CapabilityButton (not plain ActionButton, unlike Delegate/Flags/
+   *  Team/Codes) because this maps to exactly one capability, not a modal
+   *  offering several actions of its own. */
+  onFlagForMdt?: () => void;
   onCodes?: () => void;
   onTeam?: () => void;
   onNextCase: () => void;
@@ -137,6 +145,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onDelegate,
   onHistory,
   onFlags,
+  onFlagForMdt,
   onCodes,
   onTeam,
   onNextCase,
@@ -322,6 +331,17 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             <ActionButton onClick={() => setConsultOpen(true)} variant="outline" color="#f87171" title={t('bottomActionBar.actions.consultTitle')}>🌐 {t('bottomActionBar.actions.consultLabel')}</ActionButton>
             <ActionButton onClick={() => onHistory?.()} variant="outline" color="#0891B2">📋 {t('bottomActionBar.actions.historyLabel')}</ActionButton>
             <ActionButton onClick={() => onFlags?.()} variant="outline" color="#f59e0b">🚩 {t('bottomActionBar.actions.flagsLabel')}</ActionButton>
+            {onFlagForMdt && (
+              <CapabilityButton
+                capability="case:tumor-board:flag"
+                context={{ caseId: caseData?.id ?? null }}
+                className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--flag-mdt"
+                title={t('bottomActionBar.actions.flagForMdtTitle')}
+                onClick={onFlagForMdt}
+              >
+                ⚕️ {t('bottomActionBar.actions.flagForMdtLabel')}
+              </CapabilityButton>
+            )}
             <ActionButton onClick={() => onCodes?.()} variant="outline" color={codesColor}># {t('bottomActionBar.actions.codesLabel')}</ActionButton>
           </>}
         </div>
@@ -507,9 +527,17 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           </span>
         )}
         {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized || isPendingRelease) && onPrint && (
-          <ActionButton onClick={handlePrintClick} variant="outline" color="#0891B2" title={isPendingRelease ? t('bottomActionBar.print.restrictedTitle') : t('bottomActionBar.print.normalTitle')}>
+          // Batch 495 (PS-283 §4.2.4): greyed without report:case-report:print;
+          // the print itself is checked in services/printing/reportPrintGate.ts.
+          <CapabilityButton
+            capability="report:case-report:print"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--print"
+            title={isPendingRelease ? t('bottomActionBar.print.restrictedTitle') : t('bottomActionBar.print.normalTitle')}
+            onClick={handlePrintClick}
+          >
             🖨 {t('bottomActionBar.print.label')}
-          </ActionButton>
+          </CapabilityButton>
         )}
         {status === 'finalized' && onRequestAmendment && (
           <ActionButton

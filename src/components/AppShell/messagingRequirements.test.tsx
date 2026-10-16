@@ -10,11 +10,20 @@ vi.mock('react-i18next', () => ({
   Trans: ({ i18nKey }: { i18nKey: string }) => <span>{i18nKey}</span>,
   initReactI18next: { type: '3rdParty', init: () => {} },
 }));
-const { listeners, config, sendSecureEmail } = vi.hoisted(() => ({
+const { listeners, config, sendSecureEmail, gateways } = vi.hoisted(() => ({
   listeners: [] as Array<(id: string) => void>,
   config: { subjectRequired: true, allowed: true },
   sendSecureEmail: vi.fn(),
+  // Batch 517 (PS-143): a lab with one gateway covered by a BAA and one not.
+  gateways: { current: null as unknown },
 }));
+const DVMC = {
+  facilityId: 'c-ent-dvmc', defaultGatewayId: 'PAUBOX', gateways: [
+    { gatewayId: 'PAUBOX', enabled: true, senderAddress: 'pathology@dvmc.example.org', agreement: { kind: 'BAA', reference: 'BAA-1', signedOn: '2025-03-01' } },
+    { gatewayId: 'VIRTRU', enabled: true, senderAddress: 'admin@dvmc.example.org' },
+  ],
+};
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1', name: 'Dr. A', organisationId: 'ORG-DVMC' } }) }));
 vi.mock('@/hooks/useCapabilities', () => ({
   useCapabilities: () => ({ loading: false, has: () => config.allowed, decide: () => ({ allowed: config.allowed }) }),
 }));
@@ -26,16 +35,18 @@ vi.mock('@/services', async () => {
     fieldRequirementService: { forSession: vi.fn(async () => rules.resolveFieldRequirements('messaging', config.subjectRequired ? {} : { messageSubject: false, secureEmailSubject: false })) },
     actionRegistryService: { setCurrentContext: vi.fn(), onAction: (cb: (id: string) => void) => { listeners.push(cb); return () => { listeners.splice(listeners.indexOf(cb), 1); }; } },
     messageService: { sendSecureEmail }, caseService: {},
+    secureMessagingConfigService: { forOrganisation: vi.fn(async () => ({ ok: true, data: gateways.current })) },
     MESSAGE_NOT_PERMITTED: 'MESSAGE_NOT_PERMITTED',
     searchRecipients: (list: any[], q: string, ex: string[] = []) => list.filter(u => !ex.includes(u.id) && u.name.toLowerCase().includes(q.toLowerCase())),
     findRecipientByName: () => undefined,
   };
 });
 
-import { ComposePanel, SecureEmailModal } from './AppShell';
+import { ComposePanel } from './AppShell';
+import { SecureEmailModal } from '@/components/SecureEmail/SecureEmailModal';
 
 afterEach(() => { cleanup(); listeners.length = 0; config.subjectRequired = true; config.allowed = true; sendSecureEmail.mockReset(); });
-beforeEach(() => { sendSecureEmail.mockResolvedValue({ ok: true, data: undefined }); });
+beforeEach(() => { sendSecureEmail.mockResolvedValue({ ok: true, data: undefined }); gateways.current = DVMC; });
 
 const recipient = { id: 'u2', name: 'Lab Manager', role: 'Laboratory' };
 function panel(over: Partial<React.ComponentProps<typeof ComposePanel>> = {}) {
@@ -88,6 +99,7 @@ describe('SecureEmailModal and Field Requirements (Batch 384)', () => {
     const onSent = vi.fn();
     render(<SecureEmailModal isOpen fromName="Dr. A" fromEmail="a@example.org" onClose={vi.fn()} onSent={onSent} {...props} />);
     await waitFor(() => expect(listeners.length).toBe(1));
+    await waitFor(() => expect(screen.queryByText(/secureEmailModal\.eyebrow:/)).toBeTruthy());
     return onSent;
   };
   const send = () => screen.getByText('appShell.secureEmailModal.sendButton').closest('button') as HTMLButtonElement;
@@ -105,8 +117,11 @@ describe('SecureEmailModal and Field Requirements (Batch 384)', () => {
     expect(sendSecureEmail).not.toHaveBeenCalled();
     fireEvent.change(screen.getByPlaceholderText('appShell.secureEmailModal.subjectPlaceholder'), { target: { value: 'Subject' } });
     act(() => listeners[0]('SECURE_EMAIL_SUBMIT'));
-    await waitFor(() => expect(onSent).toHaveBeenCalledWith('dr@example.org', 'Subject'));
-    expect(sendSecureEmail).toHaveBeenCalledWith({ fromName: 'Dr. A', fromEmail: 'a@example.org', to: 'dr@example.org', subject: 'Subject', body: 'Text' });
+    await waitFor(() => expect(onSent).toHaveBeenCalledWith('dr@example.org', 'Subject', 'PAUBOX'));
+    expect(sendSecureEmail).toHaveBeenCalledWith({
+      fromName: 'Dr. A', fromEmail: 'pathology@dvmc.example.org', to: 'dr@example.org', subject: 'Subject', body: 'Text',
+      organisationId: 'ORG-DVMC', gatewayId: 'PAUBOX', containsPatientData: true,
+    });
   });
   it('without message:secure-email:send, Send is off and says why (Batch 385)', async () => {
     config.allowed = false;
@@ -123,5 +138,29 @@ describe('SecureEmailModal and Field Requirements (Batch 384)', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('appShell.messaging.notPermittedSecureEmail'));
     expect(onSent).not.toHaveBeenCalled();
     expect(send().disabled).toBe(false);
+  });
+
+  // Batch 517 (PS-143): per-gateway agreements (Pete, Oct 2).
+  it('patient data goes only through a gateway with its agreement; unticking allows the other', async () => {
+    await open({ prefillTo: 'dr@example.org', prefillSubject: 'S', prefillBody: 'Text' });
+    fireEvent.change(screen.getByLabelText('appShell.secureEmailModal.gatewayLabel'), { target: { value: 'VIRTRU' } });
+    expect(send().disabled).toBe(true);
+    expect(screen.getByRole('alert').textContent).toContain('appShell.secureEmailModal.problems.noAgreementForPatientData');
+    fireEvent.click(screen.getByLabelText('appShell.secureEmailModal.containsPatientData'));
+    expect(send().disabled).toBe(false);
+    fireEvent.click(send());
+    await waitFor(() => expect(sendSecureEmail).toHaveBeenCalledWith(expect.objectContaining({ gatewayId: 'VIRTRU', containsPatientData: false })));
+  });
+  it('a caller that sends patient data can\'t untick it, and the covered gateway is preselected', async () => {
+    gateways.current = { ...DVMC, defaultGatewayId: 'VIRTRU' };
+    await open({ prefillTo: 'dr@example.org', prefillSubject: 'S', prefillBody: 'Text', containsPatientData: true });
+    expect((screen.getByLabelText('appShell.secureEmailModal.containsPatientData') as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText('appShell.secureEmailModal.gatewayLabel') as HTMLSelectElement).value).toBe('PAUBOX');
+  });
+  it('a lab with no gateway can\'t send, and says so', async () => {
+    gateways.current = null;
+    render(<SecureEmailModal isOpen fromName="Dr. A" fromEmail="a@example.org" onClose={vi.fn()} prefillTo="dr@example.org" prefillSubject="S" prefillBody="Text" />);
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('problems.noGatewayConfigured'));
+    expect(send().disabled).toBe(true);
   });
 });

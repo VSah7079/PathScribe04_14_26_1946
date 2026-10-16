@@ -70,6 +70,12 @@ describe('deployment readiness: the UI stays deployment-neutral (Batch 330)', ()
     expect(UI_FILES.length).toBeGreaterThan(300);
   });
 
+  // Batch 506 (PS-477): the baseline reached zero. It stays at zero: a new
+  // exception is a design decision for Pete, not something to add here.
+  it('has no exceptions: every baseline list is empty', () => {
+    expect([...MOCK_IMPORT_BASELINE, ...BROWSER_STORAGE_BASELINE, ...FIREBASE_IMPORT_BASELINE]).toEqual([]);
+  });
+
   for (const rule of RULES) {
     const offenders = UI_FILES.filter(f => rule.pattern.test(f.text)).map(f => f.rel);
 

@@ -9,6 +9,7 @@
         {
             "id": "specimen",
             "title": "Specimen",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "procedure",
@@ -184,6 +185,7 @@
         {
             "id": "adequacy",
             "title": "Specimen Adequacy",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "adequacy_status",
@@ -254,6 +256,7 @@
         {
             "id": "diagnostic_category",
             "title": "Diagnostic Category",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "diagnostic_category",
@@ -320,6 +323,7 @@
         {
             "id": "cytologic_findings",
             "title": "Cytologic Findings",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cellularity",
@@ -446,6 +450,7 @@
         {
             "id": "ancillary_studies",
             "title": "Ancillary Studies",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "flow_cytometry_ordered",
@@ -487,7 +492,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 },
                 {
                     "id": "cell_block_ihc",
@@ -519,6 +525,7 @@
         {
             "id": "comments",
             "title": "Comment / Correlation",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "clinical_correlation",
@@ -528,7 +535,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 },
                 {
                     "id": "comment",
@@ -537,7 +545,8 @@
                     "required": false,
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         }

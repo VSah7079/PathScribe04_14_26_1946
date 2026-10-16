@@ -142,7 +142,7 @@ const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
         {mode === 'physical' ? (
           <>
             <p className="ps-slidedist-field-label">{t('slideDistribution.destination.recipient')}{star('readingPathologist')}</p>
-            <input
+            <input aria-label={t('slideDistribution.destination.recipient')}
               type="text" className="ps-slidedist-search-input" value={search} onChange={e => setSearch(e.target.value)}
               placeholder={t('slideDistribution.destination.searchPlaceholder') ?? ''}
             />

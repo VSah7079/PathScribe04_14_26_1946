@@ -14,9 +14,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import '../../../pathscribe.css';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
-import { mockDisplayProfileService } from '../../../services/facilityOpsDashboard/mockDisplayProfileService';
+
 import { DASHBOARD_VIEW_IDS } from '../../../services/facilityOpsDashboard/IDisplayProfileService';
 import type { DisplayProfile, NewDisplayProfile, DashboardViewId } from '../../../services/facilityOpsDashboard/IDisplayProfileService';
+import { displayProfileService } from '@/services';
 
 type Draft = NewDisplayProfile;
 const emptyDraft = (): Draft => ({ name: '', facilityId: '', assignedViews: [], carouselIntervalSeconds: undefined, deviceToken: '', status: 'Active' });
@@ -93,21 +94,21 @@ const DisplayProfilesSection: React.FC = () => {
   const [showInactive, setShowInactive] = useState(false);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: DisplayProfile } | null>(null);
 
-  const refresh = () => { mockDisplayProfileService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
+  const refresh = () => { displayProfileService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
 
   const visible = entries.filter(e => showInactive || e.status === 'Active');
 
   const handleSave = async (draft: Draft) => {
-    if (modal?.mode === 'edit' && modal.entry) await mockDisplayProfileService.update(modal.entry.id, draft);
-    else await mockDisplayProfileService.add(draft);
+    if (modal?.mode === 'edit' && modal.entry) await displayProfileService.update(modal.entry.id, draft);
+    else await displayProfileService.add(draft);
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: DisplayProfile) => {
-    if (e.status === 'Active') await mockDisplayProfileService.deactivate(e.id);
-    else await mockDisplayProfileService.update(e.id, { status: 'Active' });
+    if (e.status === 'Active') await displayProfileService.deactivate(e.id);
+    else await displayProfileService.update(e.id, { status: 'Active' });
     refresh();
   };
 

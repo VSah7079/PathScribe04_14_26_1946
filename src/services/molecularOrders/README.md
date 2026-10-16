@@ -65,3 +65,7 @@ The older outbound order queue (`IMolecularOrderOutboundQueueService`, HPV) is u
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 562
+
+- `molecularQueueSelection.ts` (new): `keepSelectedInView`. Test: `molecularQueueSelection.test.ts`.

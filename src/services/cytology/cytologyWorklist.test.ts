@@ -1,7 +1,8 @@
 // Batch 441: the Cytology Workspace worklist's decisions, moved out of the page.
 import { describe, it, expect } from 'vitest';
 import {
-  availableOrganSites, cytologySpecimenOf, cytologyWorklistRow, cytologyWorklistView, effectiveCytologySettingsFor,
+  aggregateCytologySpecimenFacts, availableOrganSites, cytologySpecimenScreeningFacts, cytologySpecimensOf,
+  cytologyWorklistRow, cytologyWorklistView, effectiveCytologySettingsFor,
   latestCompletedAiResults, simulatedHpvResultEvent, type CytologyWorklistCase,
 } from './cytologyWorklist';
 import type { Case } from '@/types/case/Case';
@@ -36,10 +37,63 @@ describe('rows', () => {
   it('finds the Cytology / FNA specimen and reads GYN, organ site, QC reason, final diagnosis and the CSMS flag', () => {
     const dict = new Map<string, unknown>([['D-H', { type: 'Histology' }], ['D-G', { type: 'Cytology', specimenCategory: 'GYN_CYTOLOGY' }]]);
     const c = { id: 'C1', specimens: [{ id: 'S0', specimenDictionaryEntryId: 'D-H' }, { id: 'S1', specimenDictionaryEntryId: 'D-G', cytologyScreening: { qcFlag: { reason: 'targeted_high_risk' }, finalDiagnosis: 'NILM' } }], caseFlags: [{ flagDefinitionId: 'f36' }] } as unknown as Case;
-    const { specimen, entry } = cytologySpecimenOf(c, dict);
+    const found = cytologySpecimensOf(c, dict);
+    expect(found).toHaveLength(1);
+    const { specimen, entry } = found[0];
     expect(specimen.id).toBe('S1');
     const r = cytologyWorklistRow(c, specimen, entry, facts);
     expect(r).toMatchObject({ specimenId: 'S1', isGynCytology: true, qcReason: 'targeted_high_risk', hasFinalDiagnosis: true, isCsmsQaPending: true });
+  });
+});
+
+describe('Batch 483 — a case with more than one cytology/FNA specimen', () => {
+  const dict = new Map<string, unknown>([
+    ['D-H', { type: 'Histology' }],
+    ['D-FNA-1', { type: 'FNA' }],
+    ['D-FNA-2', { type: 'FNA' }],
+  ]);
+
+  it('cytologySpecimensOf returns every cytology/FNA specimen, not just the first', () => {
+    const c = {
+      id: 'C1',
+      specimens: [
+        { id: 'S0', specimenDictionaryEntryId: 'D-H' },
+        { id: 'S1', specimenDictionaryEntryId: 'D-FNA-1' },
+        { id: 'S2', specimenDictionaryEntryId: 'D-FNA-2' },
+      ],
+    } as unknown as Case;
+    expect(cytologySpecimensOf(c, dict).map(s => s.specimen.id)).toEqual(['S1', 'S2']);
+  });
+
+  it('ORs flags across every specimen — a flag on the SECOND specimen alone still surfaces the case', () => {
+    const first = cytologySpecimenScreeningFacts({ id: 'S1' }, { type: 'FNA' }, []);
+    const second = cytologySpecimenScreeningFacts({ id: 'S2', cytologyScreening: { retrospectiveReviewFlag: { } } }, { type: 'FNA' }, []);
+    expect(first.isRetrospectiveReviewPending).toBe(false);
+    const agg = aggregateCytologySpecimenFacts([first, second]);
+    expect(agg.isRetrospectiveReviewPending).toBe(true);
+  });
+
+  it('represents the row with the specimen that is itself QC-pending, not just the first', () => {
+    const notQc = cytologySpecimenScreeningFacts({ id: 'S1', cytologyScreening: {} }, { type: 'FNA' }, []);
+    const qcPending = cytologySpecimenScreeningFacts({ id: 'S2', cytologyScreening: { qcFlag: { reason: 'qc_random_selection' } } }, { type: 'FNA' }, []);
+    const agg = aggregateCytologySpecimenFacts([notQc, qcPending]);
+    expect(agg.specimen.id).toBe('S2');
+    expect(agg.isQcPending).toBe(true);
+  });
+
+  it('a known specimen id (from the QC/Rescreen queue) wins over the QC-pending guess', () => {
+    const a = cytologySpecimenScreeningFacts({ id: 'S1', cytologyScreening: { qcFlag: { reason: 'qc_random_selection' } } }, { type: 'FNA' }, []);
+    const b = cytologySpecimenScreeningFacts({ id: 'S2' }, { type: 'FNA' }, []);
+    const agg = aggregateCytologySpecimenFacts([a, b], 'S2');
+    expect(agg.specimen.id).toBe('S2');
+  });
+
+  it('falls back to the first specimen when none has any flag, and is a safe no-op with no cytology specimens at all', () => {
+    const plain = cytologySpecimenScreeningFacts({ id: 'S1' }, { type: 'FNA' }, []);
+    expect(aggregateCytologySpecimenFacts([plain]).specimen.id).toBe('S1');
+    const empty = aggregateCytologySpecimenFacts([]);
+    expect(empty.specimen).toBeUndefined();
+    expect(empty.isQcPending).toBe(false);
   });
 });
 

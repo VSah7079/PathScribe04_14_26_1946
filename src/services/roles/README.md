@@ -60,6 +60,15 @@ Four new built-in roles, so each bench screen has a role to hold it by default: 
 - The built-in Cytotechnologist role now lists the `cytotechnologist` participation type. A stored copy with an empty list (the seed before this batch) is filled on load (`systemRoles.withCytotechParticipationType`); a list an administrator set is kept.
 - `roleAdministration.saveRole` refuses the Cytotechnologist role listing a pathologist type (`cytotechPathologistType`). The Role Dictionary shows those types locked for that role.
 
+
+## Batch 536 (PS-554)
+
+`roleAdministration.saveRole` refuses a role that would hold both duties of a separation-of-duty pair (`separationOfDuties`), and, given `userService`, a change that would give someone holding the role and another one both (`separationOfDutiesStaff`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 513 (PS-269)
+
+`builtInRoleText.ts`: the built-in roles' seeded descriptions and their locale keys. `builtInRoleDescriptionKey()` gives a key only while a role still carries the exact seeded text, so a lab's own edit is never replaced by a translation. Test: `builtInRoleText.test.ts`. `mockRoleService` seeds from the same text.

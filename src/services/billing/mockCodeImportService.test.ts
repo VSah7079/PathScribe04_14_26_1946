@@ -103,6 +103,6 @@ describe('mockCodeImportService previews and audit (PS-89, Batch 334)', () => {
       ['Billing code import uploaded', 'Admin A'],
       ['Billing code import rejected', 'Admin B'],
     ]));
-    expect(entries.find((l: any) => l.event === 'Billing code import uploaded').detail).toContain('2 CPT codes submitted for approval (country US, enterprise-wide); 1 row skipped');
+    expect(entries.find((l: any) => l.event === 'Billing code import uploaded')?.detail).toContain('2 CPT codes submitted for approval (country US, enterprise-wide); 1 row skipped');
   });
 });

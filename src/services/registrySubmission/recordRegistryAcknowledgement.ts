@@ -19,7 +19,6 @@ import {
 } from './registryAcknowledgement';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type RegistryQueueName = 'cytology' | 'cancer';
 

@@ -13,7 +13,6 @@ import { screeningRegistryDefinition } from './screeningRegistryDefinitions';
 import { stampCodeMappings, FIRST_TEMPLATE_VERSION } from '../registryGoLive/registryOverlay';
 import { latestRegistryTemplateVersion, registryTemplateHistory } from '../registryGoLive/registryTemplateVersions';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface ScreeningRegistrySettingsDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
   updateEnterprise: (registryId: RegistryId) => Promise<unknown>;

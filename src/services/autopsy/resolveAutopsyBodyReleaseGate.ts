@@ -26,24 +26,36 @@
 //   organRetentionTier directly; kept out of this gate's own blocking
 //   logic to keep its own result shape consistent with
 //   resolveAutopsyGrossExaminationGate.ts's own simple, binary one.
+//
+// Batch 495: blockedReasons used to be hardcoded English sentences,
+// shown as-is by AutopsyBodyReleaseForm.tsx. Batch 479 fixed the same
+// problem in resolveAutopsyGrossExaminationGate.ts and named this file
+// as having it too, but this file was never converted. Now reason codes,
+// same pattern: callers translate via
+// t('autopsyBodyRelease.blockedReasons.<code>').
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 
+export type AutopsyBodyReleaseBlockReason =
+  | 'pad_not_signed'
+  | 'ancillary_hold_active';
+
 export interface AutopsyBodyReleaseGateResult {
   allowed: boolean;
-  blockedReasons: string[];
+  blockedReasons: AutopsyBodyReleaseBlockReason[];
 }
 
 export function resolveAutopsyBodyReleaseGate(caseDetails: AutopsyCaseDetails): AutopsyBodyReleaseGateResult {
-  const blockedReasons: string[] = [];
+  const blockedReasons: AutopsyBodyReleaseBlockReason[] = [];
 
+  // A signed PAD is required; the FAD is not.
   if (!caseDetails.padSnapshot) {
-    blockedReasons.push('Body release requires a real, signed Preliminary Anatomical Diagnosis (PAD) — the final report is not required.');
+    blockedReasons.push('pad_not_signed');
   }
 
   if (caseDetails.ancillaryHold.active) {
-    blockedReasons.push('Body release is blocked while an ancillary hold is active.');
+    blockedReasons.push('ancillary_hold_active');
   }
 
   return {

@@ -45,7 +45,8 @@ export function buildOrderCreationPayload(
 ): OrderCreationEventPayload {
   const patient: OrderCreationPatient = {
     patientDataScope: patientDataScopeFor(mpiOutcome),
-    identifier: caseData.patient.mrn,
+    // The accession page (the only caller) always sets both of these on a new case.
+    identifier: caseData.patient.mrn ?? '',
   };
   if (patient.patientDataScope === 'full') {
     patient.firstName = caseData.patient.givenNames;
@@ -62,7 +63,7 @@ export function buildOrderCreationPayload(
     facilityId: caseData.originHospitalId,
     patient,
     order: {
-      placerOrderNumber: caseData.accession.fullAccession,
+      placerOrderNumber: caseData.accession.fullAccession ?? caseData.id, // the accession page's own fallback
       // Real fix, found while implementing this against the actual
       // codebase: the formal spec's own first draft said 'ASAP', copied
       // from the original ORM^O01 draft without cross-checking this

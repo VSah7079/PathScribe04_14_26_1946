@@ -32,6 +32,12 @@ vi.mock('@/utils/labels/generateBarcodeSvg', async () => {
   return { ...actual, generateBarcodeSvg: barcodeSpy };
 });
 
+// Batch 500: DOMPurify doesn't work under happy-dom (it keeps event handlers
+// and drops ordinary markup there), and this file needs happy-dom for its
+// pointer-drag tests. The sanitiser is passed through here; it is tested on
+// real barcode SVGs under jsdom in services/security/sanitizeHtml.test.ts.
+vi.mock('@/services/security/sanitizeHtml', () => ({ sanitizeSvgMarkup: (s: string) => s }));
+
 import LabelDesignerPage from './LabelDesignerPage';
 
 const field = (id: string, fieldKey: string) => ({ id, fieldKey, xMm: 2, yMm: 2, widthMm: 30, heightMm: 10, fontSizeMm: 2.6 });

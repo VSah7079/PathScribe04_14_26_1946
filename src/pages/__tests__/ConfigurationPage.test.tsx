@@ -79,7 +79,8 @@ const InlineForm = () => {
   return <input aria-label="inline field" value={value} onChange={e => setValue(e.target.value)} />;
 };
 vi.mock('../../components/Config/Macros/index', () => ({
-  default: () => {
+  // Named, so the hooks lint rule sees a component (Batch 504).
+  default: function MockMacrosSection() {
     const { setDirty } = useConfigDirtyGuard();
     const guard = useConfigNavigationGuard();
     const [dialog, setDialog] = useState(false);

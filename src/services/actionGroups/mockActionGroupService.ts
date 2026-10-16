@@ -3,6 +3,7 @@ import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ActionGroup, IActionGroupService } from './IActionGroupService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'action_groups';
 
@@ -10,11 +11,11 @@ const STORAGE_KEY = 'action_groups';
 // convention, built in from day one.
 const ACTION_GROUP_VERSION = '1';
 const VERSION_KEY = 'pathscribe_mock_action_groups_version';
-if (typeof localStorage !== 'undefined') {
+if (typeof dataStorage !== 'undefined') {
   try {
-    if (localStorage.getItem(VERSION_KEY) !== ACTION_GROUP_VERSION) {
-      localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-      localStorage.setItem(VERSION_KEY, ACTION_GROUP_VERSION);
+    if (dataStorage.getItem(VERSION_KEY) !== ACTION_GROUP_VERSION) {
+      dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+      dataStorage.setItem(VERSION_KEY, ACTION_GROUP_VERSION);
     }
   } catch { /* SSR / sandboxed env — ignore */ }
 }

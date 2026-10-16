@@ -39,8 +39,8 @@ export type PhiKind = 'name' | 'dob' | 'mrn' | 'nhs' | 'accession' | 'contact' |
 export interface PhiFinding {
   line: number;
   kind: PhiKind;
-  /** Where it is shown: a JSX child, a form field's value, a Trans value, or a toast message. */
-  where: 'text' | 'field' | 'trans' | 'toast';
+  /** Where it is shown: a JSX child, a form field's value, a Trans value, a toast message, or a visible attribute (tooltip, placeholder, alt; Batch 516). */
+  where: 'text' | 'field' | 'trans' | 'toast' | 'attribute';
   snippet: string;
 }
 
@@ -365,6 +365,9 @@ const FIELD_ATTRIBUTES = new Set(['value', 'defaultValue']);
 const FIELD_ELEMENTS = new Set(['input', 'textarea', 'select']);
 const TOAST_CALLEE = /^(toast(\.(success|error|info|warn|warning|loading))?|showToast)$/;
 
+/** Attributes whose text is drawn on screen (Batch 516). */
+const VISIBLE_ATTRIBUTES = new Set(['title', 'placeholder', 'alt']);
+
 export function auditPhiRendering(fileName: string, text: string): PhiFinding[] {
   const kind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const sf = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, kind);
@@ -393,6 +396,15 @@ export function auditPhiRendering(fileName: string, text: string): PhiFinding[] 
         const k = phiIn(n.initializer.expression, locals);
         if (k && !isCovered(el)) add(n, k, where);
       }
+    }
+    // 2b. Batch 516 (PS-72 follow-up): an attribute the screen shows — a tooltip
+    //     (title), a placeholder or an image's alt text. A tooltip can be open when
+    //     a support screenshot is taken. (aria-label is read aloud, never drawn.)
+    if (ts.isJsxAttribute(n) && n.initializer && ts.isJsxExpression(n.initializer) && n.initializer.expression
+      && VISIBLE_ATTRIBUTES.has(n.name.getText())) {
+      const el = n.parent.parent as ts.JsxOpeningElement | ts.JsxSelfClosingElement;
+      const k = phiIn(n.initializer.expression, locals);
+      if (k && !isCovered(el)) add(n, k, 'attribute');
     }
     // 3. A toast message: the text is rendered by the toast, outside this component.
     if (ts.isCallExpression(n) && TOAST_CALLEE.test(n.expression.getText().replace(/\s/g, '')) && n.arguments.length > 0) {

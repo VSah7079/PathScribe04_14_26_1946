@@ -1,14 +1,19 @@
 # src/data/
 
-Pure JSON data — 27 CAP/RCPath-style synoptic reporting protocol
-templates (breast, prostate, kidney, lung, colon, cytology, and
-grossing templates), organized into `templates/generic/` (both US CAP
-and UK RCPath protocols currently live here despite the folder name),
-`templates/Cytology/`, and `templates/Grossing/`.
+Pure JSON data — 31 synoptic reporting protocol templates (breast,
+prostate, kidney, lung, colon, head and neck, Mohs, Wilms, cytology,
+grossing and autopsy templates), organized into `templates/generic/`
+(22 files; both US CAP and UK RCPath protocols currently live here
+despite the folder name), `templates/Cytology/` (5),
+`templates/Grossing/` (3), and `templates/Autopsy/` (1).
 
-No `.ts` files, no business logic — everything here is data, loaded
-entirely through direct JSON imports in
-`services/templates/templateService.ts`.
+No business logic — everything here is data (the only `.ts` file is
+the test `templates/Autopsy/autopsy_gross_examination.test.ts`). All 31
+files are loaded through direct JSON imports in
+`services/templates/templateService.ts`; the five cytology templates
+are also imported by `services/cytology/cytologySynopticTemplateRegistry.ts`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): 31 templates in four folders (was 27 in three — the Autopsy folder and the Mohs, oral cavity and neck dissection templates were added later).*
 
 ## What was checked
 
@@ -21,7 +26,8 @@ question, not a code-quality one. What *is* in scope, and was checked:
   files are genuinely imported by `templateService.ts` (initially
   looked like only 24 were, but that was just an artifact of a
   truncated `head` command while investigating — a full, uncapped
-  count confirmed all 27).
+  count confirmed all 27). *(Now 31 files, all imported by
+  `templateService.ts` — checked in the Batch 496 README audit.)*
 - **All 27 files parse as valid JSON.** Zero syntax errors.
 - **Zero duplicate template `id` fields** across all 27 files.
 - **Zero duplicate field `id`s within any single template.** Worth
@@ -98,3 +104,11 @@ Lung Adeno's EGFR mutation status is bound to an in-house molecular result (`tem
 ## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
 
 More synoptic questions are filled from molecular results (`templates/generic/`).
+
+## Batch 490 — all ~20 generic templates: real clinical option content + `reportingRole` tagging
+
+Every template in `templates/generic/` had its placeholder dropdown options replaced with real clinical content and semantic staging tags completed — see `templates/generic/README.md`'s own Batch 490 entry for the full breakdown, including the Wilms-tumor staging exception and the disclosed minor gaps.
+
+## Batch 519
+
+`templates/generic/`: lymph node counts in seven templates accept a count, "cannot be determined" or "at least N" (PS-494). `templates/Cytology/`: the five cytology templates are on the shared template model (PS-273).

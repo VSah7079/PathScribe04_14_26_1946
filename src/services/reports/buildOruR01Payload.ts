@@ -23,6 +23,7 @@
 // and the workup's own PDF (synopticResultPayload.ts, workupPdf.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { markWorkupVersionUnknown } from './oruWorkupVersion';
 import { AUTOPSY_REPORT_INSTANCE_ID, isAutopsyCase } from './resultInstances';
 import { caseRouter } from '../cases/CaseRouter';
 import { getTemplate } from '../templates/templateService';
@@ -43,10 +44,11 @@ export interface OruR01Payload {
   instanceId: string;
   accessionNumber?: string;
   patient: {
-    mrn: string;
+    /** Absent when the case has none recorded (sent as-is, never invented). */
+    mrn?: string;
     firstName: string;
     lastName: string;
-    dateOfBirth: string;
+    dateOfBirth?: string;
   };
   /** Real, per the source spec's own Formatted Text (FT) requirement
    *  — narrative sections that don't need any template-assembly
@@ -158,6 +160,10 @@ export interface OruR01Payload {
    *  per real destination, whether to use this (ED) or the narrative
    *  fields above (FT) — never PathScribe's own decision to make. */
   reportPdfBase64?: string;
+  /** Batch 559: the SHA-256 of reportPdfBase64's bytes when PathScribe knows it (a stored report document,
+   *  or a signed version's PDF checked against its hash), so the receiver can check what it got
+   *  (REPORT_DOCUMENT_STORE_API.md §3, "The receiver"). */
+  reportPdfSha256?: string;
   /** Batch 426: the same v1.0.0 structured synoptic result an Assist case sends (synopticResultPayload.ts):
    *  codes with system and version, staging, observations, the workup's id and version, the EMR's order
    *  number (placer) and the accession (filler). No CPT: Orchestration charges go on PathScribe's own
@@ -166,7 +172,7 @@ export interface OruR01Payload {
   /** Batch 426: this workup's own PDF (one PDF per workup), alongside the full report PDF. Best effort:
    *  the full report PDF is the one a result is held for; this one is left out, with the reason, if it
    *  can't be made. */
-  workupPdf?: { documentId: string; contentType: 'application/pdf'; base64: string };
+  workupPdf?: { documentId: string | null; contentType: 'application/pdf'; base64: string }; // null as in header.pdf_document_id
   workupPdfError?: string;
 }
 
@@ -182,6 +188,9 @@ export interface OruR01Payload {
  * pipeline (the same external service, requesting PDF vs. plain-text
  * output respectively), never a second, independent implementation.
  */
+/** Batch 559: the workup's version isn't known (oruWorkupVersion.ts); the payload is marked, and the message held. */
+class WorkupVersionUnknownError extends Error {}
+
 export async function buildOruR01Payload(
   caseId: string,
   instanceId: string,
@@ -241,10 +250,12 @@ export async function buildOruR01Payload(
   // Batch 426: the structured synoptic result and the workup's own PDF.
   // Never allowed to stop the result itself: on any failure the result goes without them, with the reason.
   const workup = instance && resultState !== 'PRELIMINARY'
-    ? await orchestrationWorkup(caseData, instance, resultState).catch(e => ({ result: undefined, pdf: undefined, pdfError: e instanceof Error ? e.message : String(e) }))
+    ? await orchestrationWorkup(caseData, instance, resultState).catch(e => (e instanceof WorkupVersionUnknownError
+      ? { result: undefined, pdf: undefined, pdfError: undefined, versionUnknown: true as const }
+      : { result: undefined, pdf: undefined, pdfError: e instanceof Error ? e.message : String(e) }))
     : undefined;
 
-  return {
+  const payload: OruR01Payload = {
     messageId: `oru-${caseId}-${instanceId}-${Date.now().toString(36)}`,
     eventType: 'ORU_R01',
     resultState,
@@ -297,6 +308,8 @@ export async function buildOruR01Payload(
     ...(workup?.pdf ? { workupPdf: workup.pdf } : {}),
     ...(workup?.pdfError ? { workupPdfError: workup.pdfError } : {}),
   };
+  if (workup && 'versionUnknown' in workup) markWorkupVersionUnknown(payload);
+  return payload;
 }
 
 /** Batch 426: an Orchestration workup's v1.0.0 result and its own PDF. The version is the number of signed
@@ -304,11 +317,15 @@ export async function buildOruR01Payload(
 async function orchestrationWorkup(caseData: any, instance: SynopticReportInstance, resultState: OruResultState) {
   const [detail, versions, { mockUserService }, labels] = await Promise.all([
     getTemplate(instance.templateId).catch(() => null),
-    import('./mockReportVersionService').then(m => m.mockReportVersionService.getByCaseId(caseData.id)).catch(() => null),
+    // Batch 558: with the API server, the server's versions are counted too.
+    import('./reportVersionInstance').then(m => m.reportVersionService.getByCaseId(caseData.id)).catch(() => null),
     import('../users/mockUserService').catch(() => ({ mockUserService: null })),
     import('./resolveReportLocale').then(m => m.resolveReportLocaleForFacility(caseData.order?.facilityId)).catch(() => null),
   ]);
-  const count = versions && versions.ok ? versions.data.filter((v: any) => v.instanceId === instance.instanceId).length : 0;
+  // Batch 559: with the API server, a list that couldn't be read (or was read only in part) would
+  // number the workup too low; the message is held instead (WORKUP_VERSION_UNKNOWN).
+  if (!versions || versions.ok === false || versions.meta?.partial) throw new WorkupVersionUnknownError('the report versions could not all be read');
+  const count = versions.data.filter((v: any) => v.instanceId === instance.instanceId).length;
   const signerId: string = caseData.finalizedBy ?? '';
   const user = signerId && mockUserService ? await mockUserService.getById(signerId).catch(() => null) : null;
   const signedAt: string = caseData.finalizedAt ?? caseData.releasedAt ?? new Date().toISOString();

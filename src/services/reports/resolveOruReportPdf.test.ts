@@ -41,7 +41,18 @@ describe('resolveOruReportPdf (Batch 392)', () => {
     const store = memStore();
     const failing = async () => ({ generationError: 'render service down' });
     const r = await resolveOruReportPdf({ caseId: 'C', instanceId: 'I1', resultState: 'FINAL', generatePdf: failing }, { versions: versions([v({ instanceId: 'I1', pdfBase64: 'SIGNED' })]), store });
-    expect(r).toEqual({ ok: true, pdfBase64: 'SIGNED', source: 'report-version' });
+    expect(r).toMatchObject({ ok: true, pdfBase64: 'SIGNED', source: 'report-version' }); // Batch 559: with its bytes' hash too
+  });
+  it('Batch 538: a release whose render fails never takes the kept PDF (a second preliminary would get the first one\'s)', async () => {
+    const store = memStore();
+    store.data['C|I1|PRELIMINARY'] = 'FIRST-PRELIM';
+    const r = await resolveOruReportPdf({ ...input, generatePdf: async () => ({ generationError: 'render service down' }) }, { versions: versions([]), store });
+    expect(r).toEqual({ ok: false, error: 'The report PDF could not be made: render service down' });
+  });
+  it('Batch 538: a stored document that can\'t be read (or fails its hash) is held, never replaced', async () => {
+    const r = await resolveOruReportPdf({ caseId: 'C', instanceId: 'I1', resultState: 'FINAL', generatePdf: async () => ({ documentId: 'rdoc-1', generationError: 'integrity' }) },
+      { versions: versions([v({ instanceId: 'I1', pdfBase64: 'SIGNED' })]), store: memStore() });
+    expect(r).toEqual({ ok: false, error: 'The report PDF could not be sent: integrity' });
   });
   it('nothing anywhere: not available, with the render error as the reason', async () => {
     const r = await resolveOruReportPdf({ ...input, generatePdf: async () => ({ generationError: 'render service down' }) }, { versions: versions([]), store: memStore() });
@@ -60,8 +71,11 @@ describe('generateOnce / savedReportPdf (Batch 392)', () => {
     expect(generateOnce(undefined)).toBeUndefined();
   });
   it('savedReportPdf gives the newest signed PDF, none for a preliminary', async () => {
-    const vs = versions([v({ versionNumber: 1, pdfBase64: 'OLD' }), v({ versionNumber: 5, instanceId: 'I', pdfBase64: 'NEWEST' }), v({ versionNumber: 6 })]);
+    const vs = versions([v({ versionNumber: 1, pdfBase64: 'OLD' }), v({ versionNumber: 5, instanceId: 'I', pdfBase64: 'NEWEST' })]);
     expect(await savedReportPdf('C', 'FINAL', vs)!()).toEqual({ pdfBase64: 'NEWEST' });
+    // Batch 538: when the newest version has no PDF, an older one is never sent in its place.
+    const failedNewest = versions([v({ versionNumber: 5, pdfBase64: 'OLDER' }), v({ versionNumber: 6 })]);
+    expect((await savedReportPdf('C', 'FINAL', failedNewest)!()).generationError).toContain('newest signed version (6) has no PDF');
     expect(savedReportPdf('C', 'PRELIMINARY', vs)).toBeUndefined();
     expect(await savedReportPdf('C', 'FINAL', versions([]))!()).toEqual({ generationError: 'no signed report PDF has been saved for this case' });
   });

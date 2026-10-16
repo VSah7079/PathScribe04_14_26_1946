@@ -11,8 +11,11 @@
 // pdf-lib is not yet installed anywhere in this project; this file
 // assumes it will be added (see this folder's own README).
 //
-// Real, deliberate scope: this only ever extends
-// generateCytologyReportPdf.ts's own real, in-repo, client-side
+// Batch 539: not used by any report today. It extended the browser's
+// cytology renderer, which is removed (PS-539 D2: the report renderer makes
+// every PDF that leaves PathScribe); no screen sets imageAssociations, and
+// the server's cytology template doesn't draw them yet. Kept for that work.
+// Before Batch 539: it only extended the browser cytology
 // pipeline. The main synoptic report pipeline generates its PDF via
 // an external, source-inaccessible Firebase Cloud Function
 // (SynopticReportPage.tsx's generateReportPdfSnapshot) — this
@@ -34,7 +37,9 @@
 // without a real network call.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import type { PDFDocument } from 'pdf-lib';
+// Batch 505 (PS-475): pdf-lib (about 170 KB gzipped) loads when a PDF is
+// actually built, not with the first page.
 import type { ImageAssociation } from '@/types/imageAssociation/ImageAssociation';
 import { resolveImageAssociationEmbedKind } from './resolveImageAssociationEmbedKind';
 import { resolveAndLogImageUrl } from './logImageFallbackTrigger';
@@ -74,6 +79,7 @@ async function resolveAssetBytes(
  *  here and could not be resolved. */
 async function addPlaceholderPage(doc: PDFDocument, message: string): Promise<void> {
   const page = doc.addPage([612, 792]);
+  const { StandardFonts, rgb } = await import('pdf-lib');
   const font = await doc.embedFont(StandardFonts.Helvetica);
   page.drawText(message, { x: 50, y: 700, size: 12, font, color: rgb(0.6, 0.1, 0.1) });
 }
@@ -99,6 +105,7 @@ export async function embedImageAssociationsIntoPdf(
   imageAssociations: ImageAssociation[],
   fetchAssetBytes: FetchAssetBytes = defaultFetchAssetBytes,
 ): Promise<EmbedImageAssociationsResult> {
+  const { PDFDocument } = await import('pdf-lib');
   const doc = await PDFDocument.load(baseReportBytes);
   const warnings: string[] = [];
 

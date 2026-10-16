@@ -1,6 +1,8 @@
 # BUG: Molecular instruments (`targetInstrumentId`) have no real dictionary entity or station linkage
 
-**Status: FIXED in Batch 356 (PS-326).** See `services/instruments/README.md`. The text below is the original filing, kept for history.
+**Status: FIXED in Batch 356 (PS-326).** See `services/equipment/README.md`: the Batch 356 instrument list (`services/instruments/`, since removed) became the equipment register in Batch 358. A batch's target instrument must be an active analyser (`checkBatchInstrument`, checked in `mockMolecularBatchService.create`), and each analyser carries its lab and optional scan station. The text below is the original filing, kept for history.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): pointer moved from the removed `services/instruments/` to `services/equipment/`; bug confirmed closed in code.*
 
 **Original status: OPEN — filed, not fixed.** Per direct request while reviewing
 the Molecular module: "are the target instruments also [tied] to the

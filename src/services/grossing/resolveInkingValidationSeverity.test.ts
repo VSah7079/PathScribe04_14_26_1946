@@ -53,3 +53,54 @@ describe('resolveInkingValidationSeverity', () => {
     expect(result.issues).toHaveLength(2);
   });
 });
+
+// Structured Inking, Module 3 (PS-359 follow-up): the additive Severity 3
+// check, now that a real ink-colour palette exists (services/inkColors/).
+describe('resolveInkingValidationSeverity — margin_ink_color_unmapped (Structured Inking Module 3)', () => {
+  it('without activeInkColorCodes, behaves exactly as Batch 480 shipped it — never checks colour codes', () => {
+    const specimens = [{ id: 'sp-1', margins: [examinedInked] }];
+    expect(resolveInkingValidationSeverity(specimens, 'STRICT_ENFORCE')).toEqual({ issues: [], blocked: false });
+  });
+
+  it('a margin whose ink application colorCode is in the active palette raises nothing', () => {
+    const specimens = [{ id: 'sp-1', margins: [examinedInked] }];
+    const result = resolveInkingValidationSeverity(specimens, 'WARN_ONLY', { activeInkColorCodes: new Set(['#00AEEF']) });
+    expect(result).toEqual({ issues: [], blocked: false });
+  });
+
+  it('a margin whose ink application colorCode matches nothing in the active palette raises a severity-3 issue and always blocks, even in WARN_ONLY', () => {
+    const specimens = [{ id: 'sp-1', margins: [examinedInked] }];
+    const result = resolveInkingValidationSeverity(specimens, 'WARN_ONLY', { activeInkColorCodes: new Set(['#FFFFFF']) });
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        severity: 3, code: 'margin_ink_color_unmapped', specimenId: 'sp-1', marginId: 'm1',
+        inkApplicationId: 'i1', colorCode: '#00AEEF',
+      }),
+    ]);
+    expect(result.blocked).toBe(true);
+  });
+
+  it('compares the recorded colour code case-insensitively and trimmed against the (caller-normalized) active set', () => {
+    const mixedCaseInked: Margin = {
+      id: 'm3', name: 'Lateral', examinationStatus: 'examined',
+      inkApplications: [{ id: 'i3', colorCode: ' #00aeef ', colorName: 'Blue', appliedAt: '2026-10-01T00:00:00Z', appliedByName: 'Tech A' }],
+    };
+    const specimens = [{ id: 'sp-1', margins: [mixedCaseInked] }];
+    const result = resolveInkingValidationSeverity(specimens, 'WARN_ONLY', { activeInkColorCodes: new Set(['#00AEEF']) });
+    expect(result.issues).toEqual([]);
+  });
+
+  it('a margin with no ink applications at all raises no margin_ink_color_unmapped issue, even with the check enabled', () => {
+    const specimens = [{ id: 'sp-1', margins: [pendingNoInk] }];
+    const result = resolveInkingValidationSeverity(specimens, 'WARN_ONLY', { activeInkColorCodes: new Set(['#00AEEF']) });
+    expect(result.issues.some(i => i.code === 'margin_ink_color_unmapped')).toBe(false);
+  });
+
+  it('checks margins on blocks too, tagging blockId and inkApplicationId', () => {
+    const specimens = [{ id: 'sp-1', margins: [], blocks: [{ id: 'blk-1', margins: [examinedInked] }] }] as any;
+    const result = resolveInkingValidationSeverity(specimens, 'WARN_ONLY', { activeInkColorCodes: new Set(['#FFFFFF']) });
+    expect(result.issues).toEqual([
+      expect.objectContaining({ specimenId: 'sp-1', blockId: 'blk-1', marginId: 'm1', inkApplicationId: 'i1' }),
+    ]);
+  });
+});

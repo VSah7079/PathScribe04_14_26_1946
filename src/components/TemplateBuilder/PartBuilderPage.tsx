@@ -14,12 +14,14 @@ import type { TemplateNode } from '../../types/template';
 import { TemplatePalette }   from './TemplatePalette';
 import { TemplateCanvas, updateNode } from './TemplateCanvas';
 import { TemplateInspector } from './TemplateInspector';
-import { mockReportPartService } from '../../services/reportParts/mockReportPartService';
+
 import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
 import ConfigRefusalBanner from '../Config/ConfigRefusalBanner';
+import { reportPartService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
-const svc = mockReportPartService;
+const svc = reportPartService;
 
 // ── Type config ────────────────────────────────────────────────
 
@@ -133,9 +135,7 @@ const PartBuilderPage: React.FC = () => {
   }
 
   if (loading) return (
-    <div className="ps-partb-loading">
-      {t('partBuilderPage.loadingPart')}
-    </div>
+    <LoadingState label={t('partBuilderPage.loadingPart')} />
   );
 
   if (!part) return (
@@ -158,7 +158,7 @@ const PartBuilderPage: React.FC = () => {
             {tc.icon}
           </div>
           <div className="ps-partb-name-block">
-            <input
+            <input aria-label={t('a11y.fields.name')}
               value={part.name}
               onChange={e => markUnsaved({ ...part, name: e.target.value })}
               className="ps-partb-name-input"
@@ -213,19 +213,19 @@ const PartBuilderPage: React.FC = () => {
             ))}
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.specialtyLabel')}</div>
-              <input value={part.specialty} onChange={e => markUnsaved({ ...part, specialty: e.target.value })}
+              <input aria-label={t('partBuilderPage.specialtyLabel')} value={part.specialty} onChange={e => markUnsaved({ ...part, specialty: e.target.value })}
                 placeholder={t('partBuilderPage.specialtyPlaceholder')} className="ps-partb-meta-input" />
             </div>
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.descriptionLabel')}</div>
-              <input value={part.description ?? ''} onChange={e => markUnsaved({ ...part, description: e.target.value })}
+              <input aria-label={t('partBuilderPage.descriptionLabel')} value={part.description ?? ''} onChange={e => markUnsaved({ ...part, description: e.target.value })}
                 placeholder={t('partBuilderPage.descriptionPlaceholder')} className="ps-partb-meta-input" />
             </div>
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.standardLabel')}</div>
               {/* CAP/RCPath are fixed governing-body vocabulary, kept
                   literal per this app's established convention. */}
-              <select value={part.standard ?? ''} onChange={e => markUnsaved({ ...part, standard: e.target.value as ReportPart['standard'] })}
+              <select aria-label={t('partBuilderPage.standardLabel')} value={part.standard ?? ''} onChange={e => markUnsaved({ ...part, standard: e.target.value as ReportPart['standard'] })}
                 className="ps-partb-meta-select">
                 <option value="">{t('partBuilderPage.standardNone')}</option>
                 <option value="CAP">CAP</option>
@@ -235,7 +235,7 @@ const PartBuilderPage: React.FC = () => {
             </div>
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.performingLabLabel')}</div>
-              <select value={part.performingLabFacilityId ?? ''} onChange={e => markUnsaved({ ...part, performingLabFacilityId: e.target.value || undefined })}
+              <select aria-label={t('partBuilderPage.performingLabLabel')} value={part.performingLabFacilityId ?? ''} onChange={e => markUnsaved({ ...part, performingLabFacilityId: e.target.value || undefined })}
                 className="ps-partb-meta-select">
                 <option value="">{t('partBuilderPage.performingLabGlobalOption')}</option>
                 {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

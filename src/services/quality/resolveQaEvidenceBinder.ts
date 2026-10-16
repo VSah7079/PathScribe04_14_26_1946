@@ -34,6 +34,8 @@
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
 import { JURISDICTION_LABELS, type Jurisdiction } from '@/types/systemConfig';
+import type { QaScope } from '@/services/qualityAssurance/qaScope';
+import { scopeLabel } from '@/services/qualityAssurance/qaScopeRows';
 
 /** Real, verbatim from PS-108's own "Supported Nations & Regulatory Basis"
  *  table — one primary citation per real Jurisdiction enum value this app
@@ -91,7 +93,8 @@ export function resolveQaEvidenceBinder(
   now: Date = new Date(),
 ): QaEvidenceBinderReport {
   const windowStart = new Date(now);
-  windowStart.setMonth(windowStart.getMonth() - windowMonths);
+  // Batch 504: UTC arithmetic, so the window is the same whatever device runs it.
+  windowStart.setUTCMonth(windowStart.getUTCMonth() - windowMonths);
   const windowStartMs = windowStart.getTime();
 
   const inWindow = records.filter(r => new Date(r.recordedAt).getTime() >= windowStartMs);
@@ -167,6 +170,8 @@ export function qaEvidenceBinderCsvRows(report: QaEvidenceBinderReport): Record<
 }
 
 /** PS-121: the binder export's file name, e.g. qa-inspection-evidence-binder-24mo-2026-09-20.csv. */
-export function qaEvidenceBinderExportFilename(windowMonths: number, now: Date = new Date()): string {
-  return `qa-inspection-evidence-binder-${windowMonths}mo-${now.toISOString().slice(0, 10)}.csv`;
+/** Batch 544: names the facility or organisation when one is exported; enterprise-wide keeps the old name. */
+export function qaEvidenceBinderExportFilename(windowMonths: number, now: Date = new Date(), scope: QaScope = { level: 'enterprise' }): string {
+  const scoped = scope.level === 'enterprise' ? '' : `${scopeLabel(scope)}-`;
+  return `qa-inspection-evidence-binder-${windowMonths}mo-${scoped}${now.toISOString().slice(0, 10)}.csv`;
 }

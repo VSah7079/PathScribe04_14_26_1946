@@ -6,7 +6,9 @@
 // role, their own capabilities included: a pathologist could give
 // themselves the QA exports. Now:
 //   • saving needs `config:roles:manage` (checked and audited);
-//   • the capability list must be consistent (roleCapabilityProblem);
+//   • the capability list must be consistent (roleCapabilityProblem), and
+//     since Batch 536 hold no separation-of-duty pair, nor give a person who
+//     holds the role both duties through their other roles;
 //   • a save may not leave the site with no assignable role that can
 //     manage roles (the lockout guard; Superadmin doesn't count, since a
 //     hospital can't give it to anyone);
@@ -18,7 +20,8 @@
 import type { IAuditService } from '../auditlog/IAuditService';
 import type { IRoleService, Role } from './IRoleService';
 import type { IAuthorizationService } from '../authorization/authorizationService';
-import { roleCapabilityChangeAudit, roleCapabilityProblem } from '../authorization/roleCapabilityRules';
+import type { IUserService } from '../users/IUserService';
+import { personSeparationOfDutiesConflicts, roleCapabilityChangeAudit, roleCapabilityProblem, SEPARATION_OF_DUTIES_PROBLEM } from '../authorization/roleCapabilityRules';
 import { cytotechRoleProblem } from '../participationTypes/cytotechParticipationRules';
 
 export const ROLE_MANAGE_CAPABILITY = 'config:roles:manage';
@@ -27,13 +30,15 @@ export type RoleDraft = Omit<Role, 'id'>;
 
 export type SaveRoleResult =
   | { ok: true; role: Role }
-  | { ok: false; reason: 'notPermitted' | 'invalidCapabilities' | 'lastRoleManager' | 'notFound' | 'platformRole' | 'cytotechPathologistType' | 'error'; detail?: string };
+  | { ok: false; reason: 'notPermitted' | 'invalidCapabilities' | 'separationOfDuties' | 'separationOfDutiesStaff' | 'lastRoleManager' | 'notFound' | 'platformRole' | 'cytotechPathologistType' | 'error'; detail?: string };
 
 export interface RoleAdministrationDeps {
   roleService: Pick<IRoleService, 'getAll' | 'add' | 'update'>;
   authorization: Pick<IAuthorizationService, 'enforce'>;
   auditService: Pick<IAuditService, 'logEvent'>;
   actorName: string;
+  /** Batch 536: the staff, so a role change can't give anyone both duties of a separation-of-duty pair. */
+  userService?: Pick<IUserService, 'getAll'>;
 }
 
 /** Whether a catalog still has an assignable role that can manage roles. Pure. */
@@ -58,7 +63,18 @@ export async function saveRole(
 
   // A new or edited role here is always a hospital (assignable) role.
   const problem = roleCapabilityProblem(input.draft.capabilities ?? [], { assignable: true });
-  if (problem) return { ok: false, reason: 'invalidCapabilities', detail: problem };
+  if (problem) return { ok: false, reason: problem.startsWith(SEPARATION_OF_DUTIES_PROBLEM) ? 'separationOfDuties' : 'invalidCapabilities', detail: problem };
+
+  // Batch 536 (PS-554, Pete): nor may the change give a person both duties
+  // through this role and another they hold.
+  if (input.mode === 'edit' && deps.userService) {
+    const after = all.data.map(r => (r.id === input.id ? { ...r, ...input.draft } : r));
+    const users = await deps.userService.getAll();
+    if (users.ok === false) return { ok: false, reason: 'error', detail: users.error };
+    const clash = users.data.find(u => personSeparationOfDutiesConflicts(u.roles ?? [], after).length > 0
+      && personSeparationOfDutiesConflicts(u.roles ?? [], all.data).length === 0);
+    if (clash) return { ok: false, reason: 'separationOfDutiesStaff', detail: [clash.firstName, clash.lastName].filter(Boolean).join(' ') };
+  }
 
   // Batch 441 (Pete: "Cytotechs can not be selected for Pathologist roles").
   if (input.mode === 'edit') {

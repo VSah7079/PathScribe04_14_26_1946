@@ -12,12 +12,10 @@
 // Shown in the External consult window on the case's report page (bottom
 // action bar), signed in as Dr. Sarah Johnson (or anyone who can open it).
 //
-// The bearer string is generated when the seed is first read and stored
-// with it, the way issue() stores one (this mock keeps the token itself,
-// not a hash; see IConsultTokenService.ts's header). It is never written in
-// source, and the screen shows a link only when it is created, so the
-// seeded link can't be opened from the demo: issue a new one to show the
-// consultant's view.
+// Batch 522: like every link, only the fingerprint of a token is stored. The
+// seed's token is random, made when the seed is first read and never kept, so
+// the seeded link can't be opened: issue a new one to show the consultant's
+// view.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ConsultToken } from './IConsultTokenService';
@@ -27,11 +25,11 @@ const HOUR = 3_600_000;
 export const DEMO_CONSULT_TOKEN_ID = 'consult-tok-demo-4602';
 export const DEMO_CONSULT_CASE_ID = 'S26-4602';
 
-export function demoConsultTokens(newToken: () => string, now: number = Date.now()): ConsultToken[] {
+export function demoConsultTokens(tokenHash: string, now: number = Date.now()): ConsultToken[] {
   const issuedAt = now - 2 * HOUR;
   return [{
     id: DEMO_CONSULT_TOKEN_ID,
-    token: newToken(),
+    tokenHash,
     // caseAccessionNumber as the issue window stores it (accession.accessionNumber).
     scope: { caseId: DEMO_CONSULT_CASE_ID, caseAccessionNumber: '4602' },
     issuedByUserId: 'PATH-SJ-001',

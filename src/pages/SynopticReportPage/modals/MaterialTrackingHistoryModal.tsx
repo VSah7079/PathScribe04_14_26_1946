@@ -42,7 +42,7 @@ import {
   resolveAliquotDisplayId, resolveDecantAliquotDisplayId,
 } from '@/utils/materialDisplayId';
 import { fetchDispatchHistoryForCase, type DispatchHistoryEntry } from '@/services/engravers/fetchDispatchHistoryForCase';
-import { mockCassetteColorService } from '@/services/cassetteColors/mockCassetteColorService';
+
 import DispatchHistoryTimeline from '../components/DispatchHistoryTimeline';
 
 interface MaterialTrackingHistoryModalProps {
@@ -51,7 +51,7 @@ interface MaterialTrackingHistoryModalProps {
 }
 
 import { is24HourForLocale } from '@/utils/formatDate';
-import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
+import { recordDocumentOutput, DOCUMENT_DESTINATION, cassetteColorService } from '@/services';
 
 /**
  * Real fix, per direct follow-up: "Maybe time in military style?
@@ -464,7 +464,7 @@ const PrintNode: React.FC<{ item: FlatTreeItem }> = ({ item }) => {
 const MaterialTrackingHistoryModal: React.FC<MaterialTrackingHistoryModalProps> = ({ caseData, onClose }) => {
   const { t } = useTranslation();
   const fullAccession = caseData.accession?.fullAccession ?? caseData.id;
-  const specimens = caseData.specimens ?? [];
+  const specimens = useMemo(() => caseData.specimens ?? [], [caseData.specimens]);
   const [query, setQuery] = useState('');
 
   const flatItems = useMemo(() => buildFlatTree(specimens, fullAccession, query.trim(), t), [specimens, fullAccession, query, t]);
@@ -523,7 +523,7 @@ const MaterialTrackingHistoryModal: React.FC<MaterialTrackingHistoryModalProps> 
     fetchDispatchHistoryForCase(caseData.id).then(setDispatchHistory).catch(err => {
       console.error('[MaterialTrackingHistoryModal] failed to load dispatch history', err);
     });
-    mockCassetteColorService.getAll().then(res => {
+    cassetteColorService.getAll().then(res => {
       if (res.ok) setColorNames(Object.fromEntries(res.data.map(c => [c.key, c.displayName])));
     });
   }, [caseData.id]);

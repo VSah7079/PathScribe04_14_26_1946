@@ -14,6 +14,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CASE_PRIORITY_KEYS, DISTRIBUTION_STATUS_KEYS } from '@/utils/slideDistributionOperations';
 import type { SlideQueueItem } from '../hooks/useSlideDistributionStation';
+import { pressable } from '@/utils/a11y/pressable';
 
 export interface QueuePanelProps {
   queue: SlideQueueItem[];
@@ -49,7 +50,7 @@ const QueuePanel: React.FC<QueuePanelProps> = ({ queue, activeQueueId, onSelect,
             <li
               key={item.queueId}
               className={`ps-slidedist-queue-row${item.queueId === activeQueueId ? ' ps-slidedist-queue-row--active' : ''}`}
-              onClick={() => onSelect(item.queueId)}
+              {...pressable(() => onSelect(item.queueId), { role: null })}
             >
               <div className="ps-slidedist-queue-row-top">
                 <span>

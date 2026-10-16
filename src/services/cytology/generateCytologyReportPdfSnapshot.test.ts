@@ -1,48 +1,36 @@
 // src/services/cytology/generateCytologyReportPdfSnapshot.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-vi.mock('./generateCytologyReportPdfInWorker', () => ({
-  generateCytologyReportPdfInWorker: vi.fn(),
-}));
-
-import { generateCytologyReportPdfInWorker } from './generateCytologyReportPdfInWorker';
+// Batch 539: one cytology report's PDF, made by the report renderer, as { pdfBase64 } or { generationError }.
+import { describe, it, expect, vi } from 'vitest';
 import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
 import type { CytologyReportContent } from '@/types/cytology/CytologyReportContent';
 
-const content = {} as CytologyReportContent; // opaque to this adapter — never inspected here
+const content = {
+  patientName: 'Jane Doe', accessionNumber: 'C26-1', specimenTypeDescription: 'Pap', specimenAdequacy: [], primaryInterpretation: 'NILM',
+  additionalInterpretations: [], recommendations: [], requiresPathologistReview: false,
+  signedBy: { name: 'Dr A', isPathologist: true }, signedAt: '2026-10-12T15:00:00Z',
+} as CytologyReportContent;
+const marked = (extra = '') => new TextEncoder().encode(`%PDF-1.4 ${extra}/Keywords (pathscribe-template:cytology)`);
 
-beforeEach(() => {
-  vi.mocked(generateCytologyReportPdfInWorker).mockReset();
-});
-
-describe('generateCytologyReportPdfSnapshot', () => {
-  it('a real, successful generation returns a real, correct base64 encoding of the real bytes — round-trips exactly', async () => {
-    const original = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52]); // "%PDF-1.4"
-    vi.mocked(generateCytologyReportPdfInWorker).mockResolvedValue(original);
-
-    const result = await generateCytologyReportPdfSnapshot(content);
-    expect(result.pdfBase64).toBeDefined();
-    expect(result.generationError).toBeUndefined();
-
-    const decoded = Uint8Array.from(atob(result.pdfBase64!), c => c.charCodeAt(0));
-    expect(Array.from(decoded)).toEqual(Array.from(original));
+describe('generateCytologyReportPdfSnapshot (Batch 539: the report renderer)', () => {
+  it('posts the cytology payload and returns the bytes as base64', async () => {
+    const post = vi.fn(async () => marked());
+    const result = await generateCytologyReportPdfSnapshot(content, { post });
+    expect(result).toEqual({ pdfBase64: Buffer.from(marked()).toString('base64') });
+    expect(post).toHaveBeenCalledWith(expect.objectContaining({ template: 'cytology', metadata: expect.objectContaining({ timestamp: '2026-10-12T15:00:00Z' }) }));
   });
 
-  it("real, large data (bigger than the real chunk size) still round-trips exactly — the real reason for chunking in the first place", async () => {
-    const large = new Uint8Array(200_000);
-    for (let i = 0; i < large.length; i++) large[i] = i % 256;
-    vi.mocked(generateCytologyReportPdfInWorker).mockResolvedValue(large);
-
-    const result = await generateCytologyReportPdfSnapshot(content);
-    const decoded = Uint8Array.from(atob(result.pdfBase64!), c => c.charCodeAt(0));
-    expect(decoded.length).toBe(large.length);
-    expect(Array.from(decoded)).toEqual(Array.from(large));
+  it('a large PDF converts in chunks, unchanged', async () => {
+    const big = new Uint8Array(200_000).fill(65);
+    big.set(marked(), 0);
+    const result = await generateCytologyReportPdfSnapshot(content, { post: async () => big });
+    expect(Buffer.from(result.pdfBase64!, 'base64').equals(Buffer.from(big))).toBe(true);
   });
 
-  it('a real, thrown failure from the underlying generator returns a real, honest generationError, never throws itself', async () => {
-    vi.mocked(generateCytologyReportPdfInWorker).mockRejectedValue(new Error('real rendering failure'));
-    const result = await generateCytologyReportPdfSnapshot(content);
-    expect(result.pdfBase64).toBeUndefined();
-    expect(result.generationError).toBe('real rendering failure');
+  it('a refusal, or a renderer without the cytology template, is an error, never a blank report', async () => {
+    expect(await generateCytologyReportPdfSnapshot(content, { post: async () => { throw new Error('The report renderer refused the request (503)'); } }))
+      .toEqual({ generationError: 'The report renderer refused the request (503)' });
+    const old = await generateCytologyReportPdfSnapshot(content, { post: async () => new TextEncoder().encode('%PDF-1.4 surgical page') });
+    expect(old.pdfBase64).toBeUndefined();
+    expect(old.generationError).toContain('functions/ deployment needs updating');
   });
 });

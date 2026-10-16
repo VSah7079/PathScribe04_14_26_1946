@@ -35,7 +35,7 @@ export const CASE_STATUS_HUE: Record<CaseStatus, string> = {
   'draft': '#94a3b8', 'accessioned': '#38BDF8', 'gross-complete': '#14B8A6', 'intraoperative-complete': '#A855F7',
   'in-progress': '#0891B2', 'pending-review': '#F59E0B', 'pathologist-review': '#FB7185', 'ai-assisted': '#6366F1',
   'pool': '#F97316', 'claiming': '#F97316', 'accepted': '#22C55E', 'returned': '#B45309', 'pending-countersign': '#a78bfa',
-  'finalizing': '#EC4899', 'finalized': '#10B981', 'pending-release': '#1C8DE3', 'closed': '#64748b',
+  'finalizing': '#EC4899', 'finalized': '#10B981', 'pending-release': '#1C8DE3', 'closed': '#8794a8',
 };
 
 export const CASE_PRIORITY_LABEL_KEY: Record<CasePriority, string> = {

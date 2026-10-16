@@ -15,19 +15,20 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '@/pathscribe.css';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
-import { mockRoutingRuleService, buildRoutingRuleMap }       from '@/services/routingRules/mockRoutingRuleService';
+
 import { traceReportTemplateResolution } from '@/services/reportTemplates/TemplateRoutingService';
-import { mockReportTemplateService }    from '@/services/reportTemplates/mockReportTemplateService';
-import { mockFacilityService }            from '@/services/facilities/mockFacilityService';
+
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { getActivePerformingLabs } from '@/utils/performingLabs';
-import { mockPhysicianService }         from '@/services/physicians/mockPhysicianService';
+
 import { listTemplates as listSynopticProtocols } from '@/services/templates/templateService';
 import { LIFECYCLE_LABEL_KEY, type LifecycleState } from '@/components/Config/Protocols/protocolShared';
 import type { RoutingRule, RoutingRuleType } from '@/services/routingRules/IRoutingRuleService';
 import type { ReportTemplate }          from '@/types/reportPart';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import type { Physician }               from '@/services/physicians/IPhysicianService';
+import { routingRuleService, buildRoutingRuleMap, reportTemplateService, facilityService, physicianService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ── Add/Edit Rule Modal ───────────────────────────────────────────────────────
 
@@ -145,7 +146,7 @@ const RuleModal: React.FC<{
 
           <div>
             <div className="ps-conf-label">{t('routingRulesTab.modal.noteLabel')} ({t('common.optional')})</div>
-            <input
+            <input aria-label={t('routingRulesTab.modal.noteLabel')}
               className="ps-conf-input"
               value={note}
               onChange={e => setNote(e.target.value)}
@@ -287,7 +288,7 @@ const TestPanel: React.FC<{
     // Real, per direct guidance ("Routing Rules should also be tied to
     // a Performing Lab facility"): reuses the exact same
     // buildRoutingRuleMap most-specific-wins resolution the real
-    // service itself uses (mockRoutingRuleService.ts), against these
+    // service itself uses (routingRuleService.ts), against these
     // not-yet-saved draft `rules`, so a lab-specific rule correctly
     // wins over a Global one here too — not a second, simplified
     // implementation that could silently disagree with production.
@@ -401,10 +402,10 @@ const RoutingRulesTab: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     const [rulesRes, templatesRes, facilitiesRes, physiciansRes, protocolsRes] = await Promise.all([
-      mockRoutingRuleService.getAll(),
-      mockReportTemplateService.getAll(),
-      mockFacilityService.getAll(),
-      mockPhysicianService.getAll(),
+      routingRuleService.getAll(),
+      reportTemplateService.getAll(),
+      facilityService.getAll(),
+      physicianService.getAll(),
       listSynopticProtocols().catch(() => []),
     ]);
     if ((rulesRes as any).ok)      setRules((rulesRes as any).data);
@@ -419,13 +420,13 @@ const RoutingRulesTab: React.FC = () => {
 
   const handleSave = async (data: Partial<RoutingRule>) => {
     if (modal?.rule) {
-      await mockRoutingRuleService.update(modal.rule.id, data);
+      await routingRuleService.update(modal.rule.id, data);
       log('validation_routing_rule_updated', {
         entityName:   data.entityName  ?? modal.rule.entityName,
         templateName: data.templateName ?? modal.rule.templateName,
       });
     } else {
-      await mockRoutingRuleService.add({ ...data, createdBy: 'admin' } as any);
+      await routingRuleService.add({ ...data, createdBy: 'admin' } as any);
       log('validation_routing_rule_added', {
         entityName:   data.entityName  ?? '',
         templateName: data.templateName ?? '',
@@ -438,13 +439,13 @@ const RoutingRulesTab: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     const rule = rules.find(r => r.id === id);
-    await mockRoutingRuleService.remove(id);
+    await routingRuleService.remove(id);
     if (rule) log('validation_routing_rule_deleted', { entityName: rule.entityName, ruleType: rule.type });
     load();
   };
 
   const handleToggle = async (rule: RoutingRule) => {
-    await mockRoutingRuleService.update(rule.id, { active: !rule.active });
+    await routingRuleService.update(rule.id, { active: !rule.active });
     load();
   };
 
@@ -452,7 +453,7 @@ const RoutingRulesTab: React.FC = () => {
   const physicianRules = rules.filter(r => r.type === 'physician');
   const protocolRules  = rules.filter(r => r.type === 'protocol');
 
-  if (loading) return <div className="ps-conf-loading">{t('routingRulesTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('routingRulesTab.loading')} />;
 
   return (
     <div className="ps-rr-root">

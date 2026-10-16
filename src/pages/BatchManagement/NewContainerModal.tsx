@@ -49,6 +49,7 @@ import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import { DEFAULT_PRINT_SETTINGS_CONFIG } from '@/services/printSettings/IPrintSettingsService';
 import type { PrintSettingsConfig } from '@/services/printSettings/IPrintSettingsService';
 import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
+import { sanitizeSvgMarkup } from '@/services/security/sanitizeHtml';
 
 interface Props {
   onClose: () => void;
@@ -560,7 +561,7 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
                 <>
                   <div className="ps-batch-barcode-label">{t('newContainerModal.printInstructions')}</div>
                   {barcodeSvg && (
-                    <div className="ps-batch-barcode-svg-wrap" dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
+                    <div className="ps-batch-barcode-svg-wrap" dangerouslySetInnerHTML={{ __html: sanitizeSvgMarkup(barcodeSvg) }} />
                   )}
                 </>
               )}

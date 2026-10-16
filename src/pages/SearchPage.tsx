@@ -82,6 +82,11 @@ import {
 import { suggestSpecimens } from '../utils/search/suggestSpecimens';
 import { filterLookup, groupLookup } from '../utils/search/lookupFilter';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatDisplayNameForLanguage, type PersonNameValue } from '@/utils/personName';
+import { clickableContainer } from '@/utils/a11y/pressable';
+import { useFocusAfterRemoval } from '@/hooks/useFocusAfterRemoval';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { runExport } from '@/services/exports/runExport';
 
 // ─── Picker option shapes ───────────────────────────────────────────────────
 
@@ -528,7 +533,7 @@ const SnomedAxisContent: React.FC<{
     <>
       <LookupSearch value={q} onChange={setQ} placeholder={t(meta.placeholderKey)} />
       {loading
-        ? <div className="ps-searchpage-lookup-loading">{t('common.loading')}</div>
+        ? <LoadingState variant="inline" className="ps-searchpage-lookup-loading" label={t('common.loading')} />
         : <>
             {/* Subgroup filter pills — only shown while searching, clickable to narrow results */}
             {isSearching && subgroups.length > 1 && (
@@ -633,7 +638,7 @@ const CodeLookupContent: React.FC<{
     <>
       <LookupSearch value={q} onChange={setQ} placeholder={t('searchPage.codeLookup.searchPlaceholder', { system })} />
       {loading
-        ? <div className="ps-searchpage-lookup-loading">{t('common.loading')}</div>
+        ? <LoadingState variant="inline" className="ps-searchpage-lookup-loading" label={t('common.loading')} />
         : <>
             {/* Category filter pills — clickable, wrap, highlight active/matched */}
             {allCategories.length > 1 && (
@@ -691,7 +696,13 @@ const SearchPage: React.FC = () => {
   // AccessionPage.tsx use. Batch 350: names are shown as recorded, without
   // an English "Dr." added.
   const [pathologists, setPathologists] = useState<UserStub[]>([]);
-  const [attendings, setAttendings] = useState<UserStub[]>([]);
+  // Batch 514: physician names are kept as name fields and formatted in the
+  // screen's language below (Korean: 이서연 선생님), so a language switch re-renders them.
+  const [attendingRecords, setAttendingRecords] = useState<{ id: string; name: PersonNameValue; secondary: string }[]>([]);
+  const attendings = useMemo<UserStub[]>(
+    () => attendingRecords.map(a => ({ id: a.id, name: formatDisplayNameForLanguage(a.name, i18n.language), secondary: a.secondary })),
+    [attendingRecords, i18n.language],
+  );
   const [facilities, setFacilities] = useState<UserStub[]>([]);
   useEffect(() => {
     Promise.all([userService.getAll(), physicianService.getAll(), facilityService.getAll(), subspecialtyService.getAll()]).then(
@@ -709,10 +720,10 @@ const SearchPage: React.FC = () => {
           );
         }
         if (physicianRes.ok) {
-          setAttendings(
+          setAttendingRecords(
             physicianRes.data.map(p => ({
               id: p.id,
-              name: [p.namePrefix, p.givenNames || p.firstName, p.familyNames || p.lastName].filter(Boolean).join(' '),
+              name: { namePrefix: p.namePrefix, givenNames: p.givenNames || p.firstName || '', familyNames: p.familyNames || p.lastName || '' },
               secondary: p.clientIds.map(cid => realFacilities.find(c => c.id === cid)?.name).filter(Boolean).join(', '),
             }))
           );
@@ -1019,17 +1030,22 @@ const SearchPage: React.FC = () => {
     if (!searchedDraft) return;
     setIsExporting(true); setExportNotice(null);
     try {
-      const res = await caseSearchService.exportRows({ criteria: draftToCriteria(searchedDraft), sort, timeZone });
-      if (res.ok === true) {
-        downloadCsv(
-          caseSearchCsvFilename(facilityDateString(new Date(), timeZone)),
-          buildCaseSearchCsv(res.data.rows, { t, locale: i18n.language, timeZone }),
-        );
-        if (res.data.truncated) setExportNotice(t('searchPage.export.truncated', { count: res.data.rows.length, total: res.data.total }));
-      } else {
-        // Batch 437 (PS-357): refused without search:case-results:export.
-        setExportNotice(res.error === 'EXPORT_NOT_PERMITTED' ? t('searchPage.export.notPermitted') : t('searchPage.export.failed'));
-      }
+      // Batch 550: through the export service. With the API server it builds every match there (up to
+      // 1,000,000 rows) and its notice says when the file is ready; the demo builds it here, as before.
+      const criteria = draftToCriteria(searchedDraft);
+      await runExport('search.case-results', caseSearchCsvFilename(facilityDateString(new Date(), timeZone)), { criteria, sort, timeZone }, async () => {
+        const res = await caseSearchService.exportRows({ criteria, sort, timeZone });
+        if (res.ok === true) {
+          downloadCsv(
+            caseSearchCsvFilename(facilityDateString(new Date(), timeZone)),
+            buildCaseSearchCsv(res.data.rows, { t, locale: i18n.language, timeZone }),
+          );
+          if (res.data.truncated) setExportNotice(t('searchPage.export.truncated', { count: res.data.rows.length, total: res.data.total }));
+        } else {
+          // Batch 437 (PS-357): refused without search:case-results:export.
+          setExportNotice(res.error === 'EXPORT_NOT_PERMITTED' ? t('searchPage.export.notPermitted') : t('searchPage.export.failed'));
+        }
+      });
     } catch {
       setExportNotice(t('searchPage.export.failed'));
     } finally {
@@ -1058,6 +1074,10 @@ const SearchPage: React.FC = () => {
     void runSearch({ draft: d, page: 1 });
   };
 
+  // Batch 570: after a chip's × (from the keyboard) removes it, focus goes to the next chip, or "Save search".
+  const savedChipsRef = useRef<HTMLDivElement|null>(null);
+  const rememberChipFocus = useFocusAfterRemoval(savedSearches.map(x => x.id), savedChipsRef, 'data-saved-open', [],
+    () => savedChipsRef.current?.querySelector<HTMLElement>('.ps-searchpage-save-new-btn, .ps-searchpage-save-input'));
   const handleDeleteSearch = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const res = await savedSearchService.delete(id);
@@ -1161,12 +1181,14 @@ const SearchPage: React.FC = () => {
               <div className="ps-search-title-block-title">{t('searchPage.page.title')}</div>
               <div className="ps-search-title-block-sub">{t('searchPage.page.subtitle')}</div>
             </div>
-            <div className="ps-search-saved-chips">
+            <div className="ps-search-saved-chips" ref={savedChipsRef}>
               {savedSearches.map(s => (
-                <button key={s.id} type="button" onClick={()=>handleLoadSearch(s.id)} className={`ps-searchpage-saved-chip${activeSavedId===s.id ? ' ps-searchpage-saved-chip--active' : ''}`}>
-                  {s.name}
-                  <span onClick={e=>{ void handleDeleteSearch(s.id,e); }} className="ps-searchpage-saved-chip-remove" aria-label={t('searchPage.savedSearch.deleteAria', { name: s.name })}>×</span>
-                </button>
+                // Batch 569 (axe nested-interactive): the chip was a button holding its × button. The chip is a mouse
+                // shortcut now; its name is the button that loads the search, and × is a button of its own.
+                <span key={s.id} {...clickableContainer(() => handleLoadSearch(s.id))} className={`ps-searchpage-saved-chip${activeSavedId===s.id ? ' ps-searchpage-saved-chip--active' : ''}`}>
+                  <button type="button" className="ps-row-open-btn" data-saved-open={s.id} aria-current={activeSavedId===s.id ? 'true' : undefined} onClick={e => { e.stopPropagation(); handleLoadSearch(s.id); }}>{s.name}</button>
+                  <button type="button" className="ps-row-open-btn ps-searchpage-saved-chip-remove" aria-label={t('searchPage.savedSearch.deleteAria', { name: s.name })} title={t('searchPage.savedSearch.deleteAria', { name: s.name })} onClick={e => { rememberChipFocus(e, s.id); void handleDeleteSearch(s.id, e); }}>×</button>
+                </span>
               ))}
               {showSaveInput ? (
                 <div className="ps-searchpage-save-row">
@@ -1332,12 +1354,12 @@ const SearchPage: React.FC = () => {
                     <div className="ps-searchpage-mini-grid">
                       <div>
                         <div className="ps-searchpage-mini-field-label ps-searchpage-mini-field-label--dim">{t('searchPage.demographics.ageMinLabel')}</div>
-                        <input type="number" min={0} max={130} placeholder={t('searchPage.demographics.ageMinPlaceholder')} value={draft.ageMin} onChange={e=>set({ ageMin: e.target.value })}
+                        <input aria-label={t('searchPage.demographics.ageMinLabel')} type="number" min={0} max={130} placeholder={t('searchPage.demographics.ageMinPlaceholder')} value={draft.ageMin} onChange={e=>set({ ageMin: e.target.value })}
                           className="ps-searchpage-filter-input" />
                       </div>
                       <div>
                         <div className="ps-searchpage-mini-field-label ps-searchpage-mini-field-label--dim">{t('searchPage.demographics.ageMaxLabel')}</div>
-                        <input type="number" min={0} max={130} placeholder={t('searchPage.demographics.ageMaxPlaceholder')} value={draft.ageMax} onChange={e=>set({ ageMax: e.target.value })}
+                        <input aria-label={t('searchPage.demographics.ageMaxLabel')} type="number" min={0} max={130} placeholder={t('searchPage.demographics.ageMaxPlaceholder')} value={draft.ageMax} onChange={e=>set({ ageMax: e.target.value })}
                           className="ps-searchpage-filter-input" />
                       </div>
                     </div>
@@ -1581,12 +1603,12 @@ const SearchPage: React.FC = () => {
                       </div>
                       <div className="ps-searchpage-more-group">
                         <div className="ps-searchpage-mini-label">{t('searchPage.moreFilters.payer')}</div>
-                        <input type="text" value={draft.payer} onChange={e=>set({ payer: e.target.value })} className="ps-searchpage-filter-input" placeholder={t('searchPage.moreFilters.payerPlaceholder')} />
+                        <input aria-label={t('searchPage.moreFilters.payer')} type="text" value={draft.payer} onChange={e=>set({ payer: e.target.value })} className="ps-searchpage-filter-input" placeholder={t('searchPage.moreFilters.payerPlaceholder')} />
                       </div>
                       <div className="ps-searchpage-more-group">
                         <div className="ps-searchpage-mini-label">{t('searchPage.moreFilters.cpt')}</div>
                         <div className="ps-searchpage-input-row">
-                          <input type="text" value={cptText} onChange={e=>setCptText(e.target.value)} className="ps-searchpage-filter-input" placeholder={t('searchPage.moreFilters.cptPlaceholder')}
+                          <input aria-label={t('searchPage.moreFilters.cpt')} type="text" value={cptText} onChange={e=>setCptText(e.target.value)} className="ps-searchpage-filter-input" placeholder={t('searchPage.moreFilters.cptPlaceholder')}
                             onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addCpt();}}} />
                           <button type="button" onClick={addCpt} className="ps-searchpage-add-btn" aria-label={t('searchPage.moreFilters.cptAddAria')}>+</button>
                         </div>

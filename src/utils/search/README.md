@@ -48,3 +48,7 @@ The Search page's decisions, kept out of `pages/SearchPage.tsx` (standing rule 2
 ---
 *See [utils/README.md](../README.md) for how this folder fits utils/.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 543
+
+`caseSearchCsv.ts`: cells are written with `csvQuoted` (`utils/csv.ts`), which neutralizes formula cells (finding F8).

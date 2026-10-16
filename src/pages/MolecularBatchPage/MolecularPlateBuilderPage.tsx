@@ -39,6 +39,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useNavigate, useParams } from 'react-router';
 import '../../pathscribe.css';
 import { resolveMolecularReagentLotGating } from '../../services/molecular/resolveMolecularReagentLotGating';
@@ -49,7 +50,7 @@ import {
 } from '../../services/molecular/IMolecularBatchService';
 import type {
   MolecularBatch, MolecularPlateLayout, MolecularReagentLot, MolecularWell, MolecularSampleType,
-  MolecularReagentComponentType, NewMolecularBatch,
+  MolecularReagentComponentType, NewMolecularBatch, MolecularMovementLevel,
 } from '../../services/molecular/IMolecularBatchService';
 import { getSessionUser } from '../../services/auth/caseAccessControl';
 import type { MolecularAssayControlRule } from '../../services/molecular/IMolecularAssayControlRuleService';
@@ -69,12 +70,15 @@ import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { getFacilityIsoDate } from '../../utils/facilityTime';
 import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE, MOLECULAR_BATCH_WELL_SPECIMEN_MISSING, MOLECULAR_BATCH_NOT_PERMITTED, MOLECULAR_BATCH_DECK_SLOT_INVALID } from '../../services/molecular/IMolecularBatchService';
 import { formatList } from '../../utils/formatList';
+import { formatDateTime } from '../../utils/formatDate';
 import { workcenterTabForStatus } from '../MolecularWorkcenterPage/MolecularWorkcenterPage';
 import { resolvePlateWellScan, applyPlateWellScan, nextUnscannedSpecimenWell } from '../../services/molecular/plateWellScan';
 import { resolveMolecularHistoricalTrace } from '../../services/molecular/resolveMolecularHistoricalTrace';
 import { dispatchMolecularWorklist } from '../../services/molecular/dispatchMolecularWorklist';
 import { canStartMolecularDispatch, canConfirmMolecularDispatch, molecularDispatchFeedback } from '../../services/molecular/molecularDispatchPanel';
 import type { StainType } from '../../services/stains/IStainService';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const SAMPLE_TYPE_COLOR: Record<MolecularSampleType, string> = {
   CONTROL_NTC: '#ef4444', CONTROL_PTC_HIGH: '#10B981', CONTROL_PTC_LOW: '#65A30D',
@@ -90,6 +94,12 @@ const SAMPLE_TYPE_LABEL_KEY: Record<MolecularSampleType, string> = {
   CALIBRATOR: 'molecularPlateBuilderPage.sampleType.CALIBRATOR',
   PATIENT_SPECIMEN: 'molecularPlateBuilderPage.sampleType.PATIENT_SPECIMEN',
 };
+const MOVEMENT_LEVEL_LABEL_KEY: Record<MolecularMovementLevel, string> = {
+  primary_vial:   'molecularPlateBuilderPage.movementLevel.primary_vial',
+  secondary_rack: 'molecularPlateBuilderPage.movementLevel.secondary_rack',
+  plate_well:     'molecularPlateBuilderPage.movementLevel.plate_well',
+};
+
 const PLATE_LAYOUT_LABEL_KEY: Record<MolecularPlateLayout, string> = {
   '8_strip': 'molecularPlateBuilderPage.plateLayout.8_strip',
   '12_strip': 'molecularPlateBuilderPage.plateLayout.12_strip',
@@ -106,6 +116,11 @@ const MolecularPlateBuilderPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { batchId } = useParams<{ batchId: string }>();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('molecularPlateBuilderPage.pageTitle'), `/molecular-batch/${batchId}`); }, [pushCrumb, t, batchId]);
   const isNew = batchId === 'new';
   const requirements = useFieldRequirements('molecularBatch');
   const star = (fieldId: string) => molecularFieldRequired(requirements, fieldId) && <span className="ps-conf-required"> *</span>;
@@ -224,6 +239,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
     };
     window.addEventListener('PATHSCRIBE_SCAN', handler);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the handler reads only the armed well, station and plate through functional updates; re-subscribing on those is enough
   }, [armedForScan, selectedWellPos, stationId, stationName]);
 
   // Real, per direct follow-up: "If the scan doesn't work, they need
@@ -402,7 +418,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
     if (actionId === 'MOLECULAR_CREATE_PLATE' && isNew) void createRef.current();
   }), [isNew]);
 
-  if (loading) return <div className="ps-conf-loading">{t('molecularPlateBuilderPage.loading')}</div>;
+  if (loading) return <LoadingState label={t('molecularPlateBuilderPage.loading')} />;
 
   // Batch 451: drawn by grid position (plateGridWells), not list order.
   const displayWells = existingBatch ? plateGridWells(existingBatch.wells, existingBatch.plateLayout) : plateGridWells(wells, plateLayout);
@@ -437,10 +453,10 @@ const MolecularPlateBuilderPage: React.FC = () => {
       {existingBatch?.supersededByBatchId && (
         <div className="mb-banner mb-banner--warning ps-mb-20">
           {t('molecularPlateBuilderPage.supersededBanner', {
-            date: new Date(existingBatch.supersededAt!).toLocaleString(),
+            date: formatDateTime(existingBatch.supersededAt, i18n.language),
             name: existingBatch.supersededByUserName,
             reason: existingBatch.supersededReason,
-          })} <span className="mb-link" onClick={() => navigate(`/molecular-batch/${existingBatch.supersededByBatchId}`)}>{t('molecularPlateBuilderPage.viewReplacementBatch')}</span>
+          })} <span className="mb-link" {...pressable(() => navigate(`/molecular-batch/${existingBatch.supersededByBatchId}`))}>{t('molecularPlateBuilderPage.viewReplacementBatch')}</span>
         </div>
       )}
       {/* Real, per the same guidance — a clone always shows which
@@ -461,7 +477,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
             🧬 {idx === -1 ? full : (
               <>
                 {full.slice(0, idx)}
-                <span className="mb-link" onClick={() => navigate(`/molecular-batch/${existingBatch.clonedFromBatchId}`)}>{linkText}</span>
+                <span className="mb-link" {...pressable(() => navigate(`/molecular-batch/${existingBatch.clonedFromBatchId}`))}>{linkText}</span>
                 {full.slice(idx + linkText.length)}
               </>
             )}
@@ -471,7 +487,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
 
       {existingBatch?.worklistDispatchedAt && (
         <div className="mb-banner mb-banner--success ps-mb-20">
-          {t('molecularPlateBuilderPage.worklistDispatchedAt', { date: new Date(existingBatch.worklistDispatchedAt).toLocaleString() })}
+          {t('molecularPlateBuilderPage.worklistDispatchedAt', { date: formatDateTime(existingBatch.worklistDispatchedAt, i18n.language) })}
         </div>
       )}
 
@@ -602,21 +618,21 @@ const MolecularPlateBuilderPage: React.FC = () => {
             <div key={i} className="mb-reagent-row">
               <div>
                 <label className="ps-label">{t('molecularPlateBuilderPage.componentLabel')}</label>
-                <select className="ps-input-dark" value={lot.componentType} onChange={e => updateReagentLot(i, { componentType: e.target.value as MolecularReagentComponentType })}>
+                <select aria-label={t('molecularPlateBuilderPage.componentLabel')} className="ps-input-dark" value={lot.componentType} onChange={e => updateReagentLot(i, { componentType: e.target.value as MolecularReagentComponentType })}>
                   {MOLECULAR_REAGENT_COMPONENT_TYPES.map(rt => <option key={rt} value={rt}>{t(`molecularPlateBuilderPage.componentType.${rt}`)}</option>)}
                 </select>
               </div>
               <div>
                 <label className="ps-label">{t('molecularPlateBuilderPage.lotNumberLabel')}</label>
-                <input className="ps-input-dark" value={lot.lotNumber} onChange={e => updateReagentLot(i, { lotNumber: e.target.value })} />
+                <input aria-label={t('molecularPlateBuilderPage.lotNumberLabel')} className="ps-input-dark" value={lot.lotNumber} onChange={e => updateReagentLot(i, { lotNumber: e.target.value })} />
               </div>
               <div>
                 <label className="ps-label">{t('molecularPlateBuilderPage.expirationLabel')}</label>
-                <input className="ps-input-dark" type="date" value={lot.expirationDate.slice(0, 10)} onChange={e => updateReagentLot(i, { expirationDate: new Date(e.target.value).toISOString() })} />
+                <input aria-label={t('molecularPlateBuilderPage.expirationLabel')} className="ps-input-dark" type="date" value={lot.expirationDate.slice(0, 10)} onChange={e => updateReagentLot(i, { expirationDate: new Date(e.target.value).toISOString() })} />
               </div>
               <div>
                 <label className="ps-label">{t('molecularPlateBuilderPage.qcStatusLabel')}</label>
-                <select className="ps-input-dark" value={lot.qcStatus} onChange={e => updateReagentLot(i, { qcStatus: e.target.value as MolecularReagentLot['qcStatus'] })}>
+                <select aria-label={t('molecularPlateBuilderPage.qcStatusLabel')} className="ps-input-dark" value={lot.qcStatus} onChange={e => updateReagentLot(i, { qcStatus: e.target.value as MolecularReagentLot['qcStatus'] })}>
                   <option value="signed_off">{t('molecularPlateBuilderPage.qcSignedOff')}</option>
                   <option value="pending">{t('molecularPlateBuilderPage.qcPending')}</option>
                   <option value="failed">{t('molecularPlateBuilderPage.qcFailed')}</option>
@@ -691,7 +707,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
           <div className="mb-well-panel">
             <h4 className="ps-panel-title">{t('molecularPlateBuilderPage.wellHeading', { position: selectedWell.wellPosition })}</h4>
             <label className="ps-label">{t('molecularPlateBuilderPage.sampleTypeLabel')}</label>
-            <select className="ps-input-dark ps-w-full ps-mb-10" value={selectedWell.sampleType ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { sampleType: (e.target.value || undefined) as MolecularSampleType | undefined })}>
+            <select aria-label={t('molecularPlateBuilderPage.sampleTypeLabel')} className="ps-input-dark ps-w-full ps-mb-10" value={selectedWell.sampleType ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { sampleType: (e.target.value || undefined) as MolecularSampleType | undefined })}>
               <option value="">{t('molecularPlateBuilderPage.unassignedOption')}</option>
               {MOLECULAR_SAMPLE_TYPES.map(st => <option key={st} value={st}>{t(SAMPLE_TYPE_LABEL_KEY[st])}</option>)}
             </select>
@@ -699,10 +715,10 @@ const MolecularPlateBuilderPage: React.FC = () => {
             {selectedWell.sampleType && selectedWell.sampleType !== 'PATIENT_SPECIMEN' && (
               <>
                 <label className="ps-label">{t('molecularPlateBuilderPage.controlLotNumberLabel')}{star('controlLotInfo')}</label>
-                <input className="ps-input-dark ps-w-full ps-mb-10" value={selectedWell.controlInfo?.controlLotNumber ?? ''}
+                <input aria-label={t('molecularPlateBuilderPage.controlLotNumberLabel')} className="ps-input-dark ps-w-full ps-mb-10" value={selectedWell.controlInfo?.controlLotNumber ?? ''}
                   onChange={e => updateWell(selectedWell.wellPosition, { controlInfo: { controlId: selectedWell.controlInfo?.controlId ?? e.target.value, controlLotNumber: e.target.value, controlExpirationDate: selectedWell.controlInfo?.controlExpirationDate ?? '', expectedValue: selectedWell.controlInfo?.expectedValue ?? 'NEGATIVE' } })} />
                 <label className="ps-label">{t('molecularPlateBuilderPage.controlExpirationLabel')}{star('controlLotInfo')}</label>
-                <input className="ps-input-dark ps-w-full ps-mb-10" type="date"
+                <input aria-label={t('molecularPlateBuilderPage.controlExpirationLabel')} className="ps-input-dark ps-w-full ps-mb-10" type="date"
                   onChange={e => updateWell(selectedWell.wellPosition, { controlInfo: { controlId: selectedWell.controlInfo?.controlId ?? '', controlLotNumber: selectedWell.controlInfo?.controlLotNumber ?? '', controlExpirationDate: new Date(e.target.value).toISOString(), expectedValue: selectedWell.controlInfo?.expectedValue ?? 'NEGATIVE' } })} />
               </>
             )}
@@ -710,7 +726,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
             {selectedWell.sampleType === 'PATIENT_SPECIMEN' && (
               <>
                 <label className="ps-label">{t('molecularPlateBuilderPage.containerBarcodeLabel')}{star('patientSpecimen')}</label>
-                <input className="ps-input-dark ps-w-full ps-mb-6" value={selectedWell.containerBarcode ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { containerBarcode: e.target.value })} />
+                <input aria-label={t('molecularPlateBuilderPage.containerBarcodeLabel')} className="ps-input-dark ps-w-full ps-mb-6" value={selectedWell.containerBarcode ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { containerBarcode: e.target.value })} />
                 <button className={`ps-btn-small ps-w-full ps-mb-10${armedForScan ? ' ps-btn-small--armed' : ''}`} onClick={() => setArmedForScan(a => !a)}>
                   {armedForScan ? t('molecularPlateBuilderPage.waitingForScan') : t('molecularPlateBuilderPage.scanToFill')}
                 </button>
@@ -733,7 +749,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
                   </div>
                 )}
                 <label className="ps-label">{t('molecularPlateBuilderPage.accessionNumberLabel')}{star('patientSpecimen')}</label>
-                <input className="ps-input-dark ps-w-full ps-mb-10" data-phi="accession" value={selectedWell.accessionNumber ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { accessionNumber: e.target.value })} />
+                <input aria-label={t('molecularPlateBuilderPage.accessionNumberLabel')} className="ps-input-dark ps-w-full ps-mb-10" data-phi="accession" value={selectedWell.accessionNumber ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { accessionNumber: e.target.value })} />
                 {/* Real, direct correction, per direct follow-up + full
                     spec audit: §4.1's own worked example carries a real
                     aliquot_volume_ul for a real patient specimen well,
@@ -742,7 +758,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
                     outbound payload builder, but nothing upstream ever
                     set it for a real, user-created well. */}
                 <label className="ps-label">{t('molecularPlateBuilderPage.aliquotVolumeLabel')}{star('aliquotVolume')}</label>
-                <input className="ps-input-dark ps-w-full ps-mb-10" type="number" min={0} value={selectedWell.aliquotVolumeUl ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { aliquotVolumeUl: e.target.value === '' ? undefined : Number(e.target.value) })} />
+                <input aria-label={t('molecularPlateBuilderPage.aliquotVolumeLabel')} className="ps-input-dark ps-w-full ps-mb-10" type="number" min={0} value={selectedWell.aliquotVolumeUl ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { aliquotVolumeUl: e.target.value === '' ? undefined : Number(e.target.value) })} />
               </>
             )}
           </div>
@@ -829,7 +845,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
                               {trace.movementHistory.length === 0 && <div>{t('molecularPlateBuilderPage.noMovementRecorded')}</div>}
                               {trace.movementHistory.map((m, mi) => (
                                 <div key={mi}>
-                                  {m.fromLevel.replace('_', ' ')} → {m.toLevel.replace('_', ' ')} — {m.byUserName} at {m.stationName} — {new Date(m.at).toLocaleString()}
+                                  {t('molecularPlateBuilderPage.movementLine', { from: t(MOVEMENT_LEVEL_LABEL_KEY[m.fromLevel]), to: t(MOVEMENT_LEVEL_LABEL_KEY[m.toLevel]), user: m.byUserName, station: m.stationName, when: formatDateTime(m.at, i18n.language) })}
                                 </div>
                               ))}
                             </td>

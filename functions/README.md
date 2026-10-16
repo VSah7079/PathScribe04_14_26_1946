@@ -33,5 +33,50 @@ The routing list for the engine is `docs/architecture/INTERFACE_TRANSACTIONS.md`
 
 Production note (Pete, Oct 5, Batch 463): the production report PDF will be rendered by the API server with Microsoft.Playwright / headless Chromium (`docs/architecture/REPORT_RENDERING_SERVICE.md`). This renderer remains the current one until that service exists.
 
+## Batch 498: watermark, revision status, footer barcode, pre-analytic disclaimer (PS-283, PS-333)
+
+The app had been sending `watermarkText`, `amendments`/`revisionStatus` and `preAnalyticDisclaimerText` for several batches; this renderer ignored them (found in the Batch 496 README audit). Now:
+
+- **`watermarkText`** — drawn diagonally three times per page, in translucent red under the text, sized to stay inside the page width. Only sent while a case is in the post-sign-out release buffer.
+- **`revision`** `{type, revisionCount, originalSignOutAt, latestRevisionAt}` — an amber banner after the case header (AMENDED / CORRECTED / REPORT WITH ADDENDUM, with "Originally signed out … · Revised …"), and the revision flag repeated in every page's footer. Dates arrive already written in the report's locale (`services/reports/buildReportRenderRevision.ts`). `amendments` and `revisionStatus` are still sent but not read.
+- **Footer reference on every page** — a Code 128 barcode of `caseHeader.accession` (the scanner already opens a case from it; decoded with zbar in testing) and "Document {{accession}} · record version {{version}}" from `documentVersion`. An accession the barcode can't encode keeps the readable reference.
+- **`preAnalyticDisclaimerText`** — a boxed paragraph before the report body.
+- The text output (`outputFormat: 'text'`) carries the revision lines, the disclaimer and the reference too.
+- New wording comes through `labels` (`revisionAmendment`, `revisionAddendum`, `revisionCorrection`, `revisionDatesWithOriginal`, `revisionDatesLatestOnly`, `documentReference`, `documentReferenceNoVersion`), English fallback in `DEFAULT_LABELS` (kept equal to `en.json` by `surgicalReportLabels.test.ts`).
+
+Still not read: `documentStyle`, `headerAssembly`, `footerAssembly` (template styling and header/footer parts). PDF/A and deterministic re-rendering remain open (PS-333).
+
+Tests: 5 new functions in `test_main.py` read the page text back with **pypdf** (needed only for tests: `pip install pypdf`) — every-page watermark and footer on a multi-page report, revision banner and dates, disclaimer, translated wording, unencodable accession. **113 checks pass** (92 before).
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 518
+
+`receive_interface_message` accepts three new transaction types: `ACCESSION_EVENT`, `REFERRAL_MANIFEST` and `MOLECULAR_ORDER` (PS-122). `test_main.py` covers them; all 116 checks pass.
+
+## Batch 520 (PS-280): report delivery by e-fax and file drop
+
+- **`report_delivery.py` (new).** `receive_interface_message` accepts `REPORT_DELIVERY`: a signed report PDF to fax or drop as a file. The receiver **delivers it** before recording it:
+  - **e-fax** goes through an email-to-fax gateway (SMTP; provider-neutral);
+  - **file drop** writes the PDF plus a JSON metadata file to a named target, either a folder or an SFTP server with host-key checking. Files are written as `.part` and renamed, and nothing is ever overwritten.
+- **Responses.** 200 once delivered; 503 when the channel or target isn't set up here; 502 when the gateway or target refused or couldn't be reached; 422 for an invalid payload. The stored record keeps the PDF's size and SHA-256, not the PDF.
+- **Settings.** Environment variables: `FAX_SMTP_*`, `FAX_FROM_ADDRESS`, `FAX_TO_PATTERN`, `FILE_DROP_TARGETS`. Full contract and the serverless notes: `docs/architecture/REPORT_DELIVERY_API.md`.
+- **Dependency.** `requirements.txt` adds `paramiko` (SFTP).
+- **Tests.** `test_report_delivery.py` (new, 44 checks) runs over real connections: a local SMTP server, a local SFTP server, a temporary folder. Run it with `python test_report_delivery.py`. `test_main.py`'s 116 checks still pass.
+
+## Batch 539 (PS-539 D2): the cytology template
+
+`render_report` takes `"template": "cytology"` and hands the request to **`cytology_report.py`** (new). The browser composes every line of the report in its language (`src/services/cytology/cytologyRenderPayload.ts`); this template lays them out:
+- A4, 15 mm margins, checked at import against the 0.5 inch printing minimum;
+- embedded fonts only: Liberation Sans (`fonts/LiberationSans-*.ttf`, moved from the browser, `fonts/LiberationSans-LICENSE.txt`) or Pretendard for Korean, chosen per document;
+- each document (a case report's first page, then each specimen) on a new page; the accession barcode on each report's first page; a continuation line with "Page X of Y" (in the document's language) on the others;
+- section headings kept with their first line; an addendum on its own page when the lab says so; line breaks typed in a field kept;
+- an optional watermark (an unsigned preview) on every page;
+- the same bytes for the same request: the creation date is the signing time, the document ID is fixed.
+
+Each PDF carries `pathscribe-template:cytology` in its Keywords; the browser refuses a PDF without it, so a release made against an older deployment is held, never sent blank. Text output is not offered for cytology (400).
+
+**Deploy:** this folder must be redeployed (`firebase deploy --only functions`) before the Batch 539 zip is used; until then every cytology preview and release fails with "the report renderer has not been updated" and releases are held for retry. No new Python dependency.
+
+Tests: 7 new functions in `test_main.py` (148 checks pass): the lines drawn, byte-identical output, embedded fonts and margins, continuation lines and per-document page numbering, cover and documents, the addendum page, watermark, an unencodable barcode, the logo, line breaks, mixed languages, and the HTTP entry point.

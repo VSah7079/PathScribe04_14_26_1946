@@ -11,7 +11,12 @@
  *   🐛 bug — submits QA / testing feedback
  *   Routes to QA team email (QA_EMAIL in config), cc's admin
  *   Categories restricted to QA-relevant set
- *   Only rendered in non-production environments unless showInProd=true
+ *   Whether it is shown is decided by Configuration → System → Feedback
+ *   (services/feedback/feedbackSettingsRules.ts qaButtonShown), which NavBar
+ *   reads. Batch 499: the button no longer also hides itself when the build
+ *   mode is 'production'. Every built bundle (`vite build`) is 'production',
+ *   validation instances included, so that check hid the QA button on every
+ *   real deployment whatever the setting said.
  *
  * Drop-in path: src/components/EnhancementRequest/EnhancementRequestButton.tsx
  * ─────────────────────────────────────────────────────────────────────────────
@@ -26,20 +31,13 @@ export type EnhancementButtonMode = 'enhancement' | 'qa';
 
 interface Props {
   mode?:        EnhancementButtonMode;
-  showInProd?:  boolean;  // QA button only — show in production (default: false)
 }
-
-const ENV = import.meta.env.MODE ?? 'development';  // 'development' | 'staging' | 'production'
 
 export const EnhancementRequestButton: React.FC<Props> = ({
   mode = 'enhancement',
-  showInProd = false,
 }) => {
   const { t }            = useTranslation();
   const [open, setOpen] = useState(false);
-
-  // QA button hides in production unless explicitly enabled
-  if (mode === 'qa' && ENV === 'production' && !showInProd) return null;
 
   const isQA    = mode === 'qa';
   const icon    = isQA ? '🐛' : '💡';

@@ -56,6 +56,7 @@ import { ReconciliationTab } from '@/components/QualityAssurance/ReconciliationT
 import { CytologyQaTab } from '@/components/QualityAssurance/CytologyQaTab';
 import { QaDashboardTab } from '@/components/QualityAssurance/QaDashboardTab';
 import { InspectionModeTab } from '@/components/QualityAssurance/InspectionModeTab';
+import { QaActivityBoardTab } from '@/components/QualityAssurance/QaActivityBoardTab';
 import { CountersignTurnaroundTab } from '@/components/QualityAssurance/CountersignTurnaroundTab';
 import { AccessRequestResponseTab } from '@/components/QualityAssurance/AccessRequestResponseTab';
 import { FppeTrackingTab } from '@/components/QualityAssurance/FppeTrackingTab';
@@ -67,8 +68,10 @@ import { useCapabilities } from '@/hooks/useCapabilities';
 import { PatientMatchReviewSection } from '@/components/QualityAssurance/PatientMatchReviewSection';
 import { PatientManagementSection } from '@/components/QualityAssurance/PatientManagementSection';
 import { exportQaReportRows, qaScopeContext } from '@/components/QualityAssurance/qaReportUtils';
+import { QaScopeSwitcher } from '@/components/QualityAssurance/QaScopeSwitcher';
+import { useQaCaseScope } from '@/hooks/useQaCaseScope';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
-import { billingDeficiencyService, outboundChargeQueueService, codeReviewPoolService, caseService, loadFollowUpItems, filterFollowUpItems } from '@/services';
+import { qaTrendService, billingDeficiencyService, outboundChargeQueueService, codeReviewPoolService, caseService, loadFollowUpItems, filterFollowUpItems } from '@/services';
 import { BillingCorrectionDialog } from '@/components/Billing/BillingCorrectionDialog';
 import { ChargeApprovalQueue } from '@/components/Billing/ChargeApprovalQueue';
 import { listChargesAwaitingApproval, type ChargeAwaitingApproval } from '@/services/billing/chargeApproval';
@@ -77,6 +80,10 @@ import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import type { Case } from '@/types/case/Case';
 import type { BillingDeficiencyRecord, BillingDeficiencyType } from '@/types/billing/BillingDeficiencyRecord';
 import type { CodeReviewPoolEntry } from '@/types/billing/CodeReviewPoolEntry';
+import { FAILED_CHARGE_DISPATCHES_LINK } from '@/services/auditlog/auditLogLinks';
+import { facilityMonthlyTrend } from '@/services/quality/facilityMonthlyTrend';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 // Real, per PS-108 (Anatomic Pathology QA Framework): 'qaDashboard' and
 // 'inspection' are the two real subsystems that ticket's own acceptance
@@ -85,7 +92,9 @@ import type { CodeReviewPoolEntry } from '@/types/billing/CodeReviewPoolEntry';
 // own top-level pillars, same real reasoning as 'cytology'/'enterprise'
 // above: genuinely cross-cutting, not naturally owned by Operations/
 // Financials/CAPA Engine, and each has only ever one real tab.
-type Pillar = 'operations' | 'financials' | 'capa' | 'cytology' | 'enterprise' | 'qaDashboard' | 'inspection';
+// Batch 518 (PS-120): 'activities', the generic board: a tile and a table for
+// every QA activity type, and Countersign through an adapter.
+type Pillar = 'operations' | 'financials' | 'capa' | 'cytology' | 'enterprise' | 'qaDashboard' | 'inspection' | 'activities';
 // Real, per direct guidance: "CAPA Engine only ever sees things once
 // they've been escalated or closed" - Operations owns the raw,
 // still-open deficiency list; CAPA Engine only sees items once a
@@ -96,7 +105,7 @@ type Pillar = 'operations' | 'financials' | 'capa' | 'cytology' | 'enterprise' |
 // effectiveness check), just previously shown alongside 'open' items
 // in the same tab. This tab split is what changed, not the lifecycle
 // itself.
-type Tab = 'case-specimen' | 'capa-recommended' | 'trend-reviews' | 'escalated' | 'closed' | 'reviews' | 'intraop-linkage' | 'discordance' | 'countersign' | 'fppe' | 'drift-correction' | 'patient-match-review' | 'patient-management' | 'access-requests' | 'financials-open' | 'financials-resolved' | 'financials-code-review' | 'financials-charge-approval' | 'cytology-qa' | 'enterprise-rollup' | 'qa-dashboard' | 'inspection' | 'follow-up';
+type Tab = 'case-specimen' | 'capa-recommended' | 'trend-reviews' | 'escalated' | 'closed' | 'reviews' | 'intraop-linkage' | 'discordance' | 'countersign' | 'fppe' | 'drift-correction' | 'patient-match-review' | 'patient-management' | 'access-requests' | 'financials-open' | 'financials-resolved' | 'financials-code-review' | 'financials-charge-approval' | 'cytology-qa' | 'enterprise-rollup' | 'qa-dashboard' | 'inspection' | 'follow-up' | 'activities';
 
 // Real, per direct guidance on the QA reorganization: which tabs
 // belong to which pillar. Operations = the raw deficiency list plus
@@ -132,6 +141,7 @@ const PILLAR_TABS: Record<Pillar, Tab[]> = {
   // reasoning. Only ever one real tab each, same as 'cytology'/'enterprise'.
   qaDashboard: ['qa-dashboard'],
   inspection: ['inspection'],
+  activities: ['activities'],
 };
 
 const formatTimestamp = (iso?: string) => {
@@ -604,12 +614,15 @@ const QualityAssurancePage: React.FC = () => {
     // one - confirmed live, clicking the crumb landed back on the
     // stale, first-mounted pillar rather than the current one.
     // Updates the existing entry's path in place instead.
-    const idx = crumbs.findIndex(c => c.label === 'Quality Assurance');
+    // Batch 513 (PS-269): the crumb is found by its path, not its (now
+    // translated) label.
+    const label = t('nav.qualityAssurance');
+    const idx = crumbs.findIndex(c => c.path.startsWith('/quality-assurance'));
     if (idx === -1) {
-      setCrumbs([...crumbs, { label: 'Quality Assurance', path }]);
+      setCrumbs([...crumbs, { label, path }]);
     } else if (crumbs[idx].path !== path) {
       const next = [...crumbs];
-      next[idx] = { label: 'Quality Assurance', path };
+      next[idx] = { label, path };
       setCrumbs(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -645,6 +658,10 @@ const QualityAssurancePage: React.FC = () => {
   const [managementReviews, setManagementReviews] = useState<ManagementReview[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [billingDeficiencies, setBillingDeficiencies] = useState<BillingDeficiencyRecord[]>([]);
+  // Batch 544 (Pete, Oct 13): the deficiency and billing-deficiency lists, their
+  // tile counts and their exports, for one facility or all, by each item's case
+  // (qaScopeRows.ts). Management reviews stay lab-wide.
+  const qa = useQaCaseScope();
   const [resolvingBillingDeficiencyId, setResolvingBillingDeficiencyId] = useState<string | null>(null);
   // Batch 433: the billing correction dialog (from "Start correction", or
   // resolving a deficiency as code corrected / charge reversed).
@@ -673,6 +690,8 @@ const QualityAssurancePage: React.FC = () => {
   }, []);
   const canSeeTrends = useCapabilities().has('qa:pathologist-trend:view');
   useEffect(() => { capaRecommendationService.getPending().then(r => { if (r.ok) setCapaPendingCount(r.data.length); }); }, []);
+  // Batch 515 (PS-147): the trend-review tile's count, as the page opens (before, it stayed blank until the tab was opened).
+  useEffect(() => { if (canSeeTrends) qaTrendService.pendingCount().then(setTrendPendingCount).catch(() => {}); }, [canSeeTrends]);
 
   const loadAll = () => {
     // Real, per direct guidance's own Step 2: merges the mock
@@ -750,7 +769,7 @@ const QualityAssurancePage: React.FC = () => {
       'Verification Due': d.verificationDueDate ?? '',
       'Reopen Count': d.reopenCount ?? 0,
     }));
-    void exportQaReportRows('qa:deficiencies:export', rows, `quality-assurance-active-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:deficiencies:export', rows, qa.filename('quality-assurance-active'), qa.context, { scope: qa.scope, queue: tab === 'escalated' ? 'escalated' : 'open' });
   };
 
   const exportClosed = () => {
@@ -764,9 +783,12 @@ const QualityAssurancePage: React.FC = () => {
       'Reopen Count': d.reopenCount ?? 0,
       'Management Review': d.managementReviewId ?? 'not yet reviewed',
     }));
-    void exportQaReportRows('qa:deficiencies:export', rows, `quality-assurance-closed-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:deficiencies:export', rows, qa.filename('quality-assurance-closed'), qa.context, { scope: qa.scope, queue: 'closed' });
   };
 
+  // Batch 544: still all facilities. A management review is one lab-wide meeting
+  // over closed items that can come from several facilities, so it has no single
+  // facility to export by (ASYNC_EXPORT_API.md §2).
   const exportManagementReviews = () => {
     const rows = [...managementReviews].sort((a, b) => b.reviewedAt.localeCompare(a.reviewedAt)).map(r => ({
       'Reviewed': r.reviewedAt,
@@ -774,15 +796,16 @@ const QualityAssurancePage: React.FC = () => {
       'Items in Scope': r.deficiencyIds.length,
       'Findings': r.findings,
     }));
-    void exportQaReportRows('qa:management-reviews:export', rows, `quality-assurance-management-reviews-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:management-reviews:export', rows, `quality-assurance-management-reviews-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(), {});
   };
 
   // 'closed' stays its own simple status filter, sorted by when raised
   // (matches its prior behavior — a closed-items archive reads
   // naturally most-recent-first, unlike the active queue below).
+  const scopedDeficiencies = useMemo(() => qa.filter(deficiencies, d => ({ caseId: d.caseId })), [qa, deficiencies]);
   const filtered = useMemo(
-    () => deficiencies.filter(d => d.status === tab).sort((a, b) => b.raisedAt.localeCompare(a.raisedAt)),
-    [deficiencies, tab]
+    () => scopedDeficiencies.filter(d => d.status === tab).sort((a, b) => b.raisedAt.localeCompare(a.raisedAt)),
+    [scopedDeficiencies, tab]
   );
   // Real, per direct guidance: split what was one combined "active"
   // view into the two real pillars now own separately - Operations
@@ -791,12 +814,12 @@ const QualityAssurancePage: React.FC = () => {
   // awaiting effectiveness verification). Same real statuses as
   // before, just no longer shown together in one tab.
   const openItems = useMemo(
-    () => deficiencies.filter(d => d.status === 'open'),
-    [deficiencies]
+    () => scopedDeficiencies.filter(d => d.status === 'open'),
+    [scopedDeficiencies]
   );
   const escalatedItems = useMemo(
-    () => deficiencies.filter(d => d.status === 'pending-verification'),
-    [deficiencies]
+    () => scopedDeficiencies.filter(d => d.status === 'pending-verification'),
+    [scopedDeficiencies]
   );
   // Whichever of the two real, split lists the active tab actually
   // needs - case-specimen (Operations) wants openItems, escalated
@@ -812,10 +835,11 @@ const QualityAssurancePage: React.FC = () => {
     () => activeItemsForTab.filter(d => !!d.specimenId).sort((a, b) => a.caseId.localeCompare(b.caseId)),
     [activeItemsForTab]
   );
-  const openCount = deficiencies.filter(d => d.status === 'open').length;
-  const pendingCount = deficiencies.filter(d => d.status === 'pending-verification').length;
-  const closedCount = deficiencies.filter(d => d.status === 'closed').length;
-  const overdueCount = deficiencies.filter(d => d.status === 'pending-verification' && isOverdue(d.verificationDueDate)).length;
+  // The tiles count what the lists show, in the scope picked (Batch 544).
+  const openCount = openItems.length;
+  const pendingCount = escalatedItems.length;
+  const closedCount = scopedDeficiencies.filter(d => d.status === 'closed').length;
+  const overdueCount = escalatedItems.filter(d => isOverdue(d.verificationDueDate)).length;
   const unreviewedClosed = useMemo(
     () => deficiencies.filter(d => d.status === 'closed' && !d.managementReviewId),
     [deficiencies]
@@ -835,6 +859,9 @@ const QualityAssurancePage: React.FC = () => {
     () => billingDeficiencies.filter(d => d.status === 'RESOLVED' || d.status === 'OVERRIDDEN_WITH_JUSTIFICATION'),
     [billingDeficiencies]
   );
+  const billingOpenInScope = useMemo(() => qa.filter(billingDeficienciesOpen, d => ({ caseId: d.caseId })), [qa, billingDeficienciesOpen]);
+  const billingResolvedInScope = useMemo(() => qa.filter(billingDeficienciesResolved, d => ({ caseId: d.caseId })), [qa, billingDeficienciesResolved]);
+  const billingDeficienciesShown = tab === 'financials-open' ? billingOpenInScope : billingResolvedInScope;
   const resolvingBillingDeficiency = billingDeficiencies.find(d => d.id === resolvingBillingDeficiencyId) ?? null;
 
   const handleResolveBillingDeficiency = (resolutionReasonCode: BillingDeficiencyRecord['resolutionReasonCode']) => {
@@ -897,29 +924,12 @@ const QualityAssurancePage: React.FC = () => {
   // Trend: deficiencies closed per month, last 6 months — the actual
   // point of doing a Management Review as a batch rather than per-item
   // is spotting a pattern like this, not re-litigating each record.
-  const trendData = useMemo(() => {
-    const months: { month: string; closed: number; reopened: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-      const closedThisMonth = deficiencies.filter(x => {
-        if (!x.resolvedAt) return false;
-        // Real — renamed from 't' to 'resolvedTime' so it doesn't
-        // shadow this component's own useTranslation() 't'.
-        const resolvedTime = new Date(x.resolvedAt).getTime();
-        return resolvedTime >= monthStart && resolvedTime < monthEnd && x.status === 'closed';
-      });
-      months.push({
-        month: monthKey,
-        closed: closedThisMonth.length,
-        reopened: closedThisMonth.filter(x => (x.reopenCount ?? 0) > 0).length,
-      });
-    }
-    return months;
-  }, [deficiencies]);
+  const { config: systemConfig } = useSystemConfig();
+  // Batch 504: by the facility's calendar month (services/quality/facilityMonthlyTrend.ts).
+  const trendData = useMemo(() => facilityMonthlyTrend(deficiencies.filter(x => x.status === 'closed'), x => x.resolvedAt, closedThisMonth => ({
+    closed: closedThisMonth.length,
+    reopened: closedThisMonth.filter(x => (x.reopenCount ?? 0) > 0).length,
+  }), systemConfig.facilityTimezone), [deficiencies, systemConfig.facilityTimezone]);
 
   const resolvingItem = deficiencies.find(d => d.id === resolvingId) ?? null;
   const containingItem = deficiencies.find(d => d.id === containingId) ?? null;
@@ -1036,9 +1046,9 @@ const QualityAssurancePage: React.FC = () => {
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={trendData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
                 if (!active || !payload?.length) return null;
                 return (
                   <div className="ps-tat-trend__tooltip">
@@ -1080,6 +1090,7 @@ const QualityAssurancePage: React.FC = () => {
           { key: 'enterprise', label: t('qualityAssurance.pillars.enterprise') },
           { key: 'qaDashboard', label: t('qualityAssurance.pillars.qaDashboard') },
           { key: 'inspection', label: t('qualityAssurance.pillars.inspection') },
+          { key: 'activities', label: t('qualityAssurance.pillars.activities') },
         ] as const).map(p => (
           <button
             key={p.key}
@@ -1091,7 +1102,7 @@ const QualityAssurancePage: React.FC = () => {
         ))}
       </div>
 
-      {pillar !== 'cytology' && pillar !== 'enterprise' && pillar !== 'qaDashboard' && pillar !== 'inspection' && (
+      {pillar !== 'cytology' && pillar !== 'enterprise' && pillar !== 'qaDashboard' && pillar !== 'inspection' && pillar !== 'activities' && (
       <div className="ps-qa-tab-tiles">
         {([
           { key: 'case-specimen', label: t('qualityAssurance.tiles.deficiencies'), count: openCount, color: '#EF4444', sublabel: overdueCount > 0 ? t('qualityAssurance.tiles.overdueSublabel', { count: overdueCount }) : undefined },
@@ -1109,8 +1120,8 @@ const QualityAssurancePage: React.FC = () => {
           { key: 'patient-match-review', label: t('qualityAssurance.tiles.patientMatchReview'), count: undefined, color: '#53E2EA', sublabel: undefined },
           { key: 'patient-management', label: t('qualityAssurance.tiles.patientManagement'), count: undefined, color: '#53E2EA', sublabel: undefined },
           { key: 'access-requests', label: t('qualityAssurance.tiles.accessRequests'), count: undefined, color: '#94a3b8', sublabel: undefined },
-          { key: 'financials-open', label: t('qualityAssurance.tiles.billingDeficiencies'), count: billingDeficienciesOpen.length, color: '#EF4444', sublabel: undefined },
-          { key: 'financials-resolved', label: t('qualityAssurance.tiles.resolved'), count: billingDeficienciesResolved.length, color: '#10B981', sublabel: undefined },
+          { key: 'financials-open', label: t('qualityAssurance.tiles.billingDeficiencies'), count: billingOpenInScope.length, color: '#EF4444', sublabel: undefined },
+          { key: 'financials-resolved', label: t('qualityAssurance.tiles.resolved'), count: billingResolvedInScope.length, color: '#10B981', sublabel: undefined },
           { key: 'financials-code-review', label: t('qualityAssurance.tiles.codeReviewPool'), count: codeReviewPending.length, color: '#8B5CF6', sublabel: undefined },
           { key: 'financials-charge-approval', label: t('qualityAssurance.tiles.chargesAwaitingApproval'), count: chargesAwaitingApproval.length, color: '#F59E0B', sublabel: undefined },
         ] as const).filter(tile => (PILLAR_TABS[pillar] as readonly Tab[]).includes(tile.key) && (tile.key !== 'trend-reviews' || canSeeTrends)).map(tile => {
@@ -1118,12 +1129,13 @@ const QualityAssurancePage: React.FC = () => {
           return (
             <button
               key={tile.key}
+              aria-pressed={isActive}
               className={`ps-wl-filter-tile ps-wl-filter-tile--hued${isActive ? ' ps-wl-filter-tile--hued-active' : ''}`}
               title={isActive ? t('qualityAssurance.tiles.showingTitle', { label: tile.label }) : t('qualityAssurance.tiles.viewTitle', { label: tile.label })}
               onClick={() => setTab(tile.key as typeof tab)}
               style={{ '--ps-hue': tile.color } as React.CSSProperties}
             >
-              <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa' } as React.CSSProperties}>
+              <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa', '--tile-label-mix': isActive ? '55%' : '100%' } as React.CSSProperties}>
                 {tile.label}
               </div>
               <div className="ps-wl-filter-tile__count" style={{ '--tile-count-color': tile.color } as React.CSSProperties}>
@@ -1137,15 +1149,16 @@ const QualityAssurancePage: React.FC = () => {
         })}
         {pillar === 'financials' && (
           // Real, per direct guidance: read-only visibility into the
-          // Outbound Charge DLQ (Configuration → Financial & Revenue
-          // Lookups) from right here, rather than merging that
+          // Outbound Charge DLQ (Audit Log → Financial → Outbound DLQ;
+          // Batch 499 fixed the link, which still pointed at its old
+          // Configuration section) from right here, rather than merging that
           // mechanical retry-queue into this clinical-judgment-based
           // QA module. Navigates to Configuration, not a tab switch -
           // this tile has no real tab of its own on this page.
           <button
             className="ps-wl-filter-tile ps-qa-dlq-tile"
             title={t('qualityAssurance.tiles.failedDispatchesTitle')}
-            onClick={() => navigate('/configuration?tab=system&section=outbound_charge_dlq')}
+            onClick={() => navigate(FAILED_CHARGE_DISPATCHES_LINK)}
           >
             <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">{t('qualityAssurance.tiles.failedDispatches')}</div>
             <div className="ps-wl-filter-tile__count ps-qa-dlq-tile-count">{failedDlqCount}</div>
@@ -1209,8 +1222,9 @@ const QualityAssurancePage: React.FC = () => {
           <CapabilityButton capability="billing:applied-code:correct" className="ps-conf-btn-primary" onClick={() => setCorrectionTarget({})}>
             {t('qualityAssurance.financials.startCorrection')}
           </CapabilityButton>
-          <CapabilityButton capability="qa:billing-deficiencies:export" context={qaScopeContext()} className="ps-conf-btn-secondary" onClick={() => void exportQaReportRows('qa:billing-deficiencies:export',
-            (tab === 'financials-open' ? billingDeficienciesOpen : billingDeficienciesResolved).map(d => ({
+          <QaScopeSwitcher scope={qa.scope} onChange={qa.setScope} visibleClientIds={qa.facilityIds(billingDeficiencies, d => ({ caseId: d.caseId }))} />
+          <CapabilityButton capability="qa:billing-deficiencies:export" context={qa.context} className="ps-conf-btn-secondary" onClick={() => void exportQaReportRows('qa:billing-deficiencies:export',
+            billingDeficienciesShown.map(d => ({
               'Case': d.caseId,
               'Type': d.deficiencyType,
               'Severity': d.severity,
@@ -1220,8 +1234,9 @@ const QualityAssurancePage: React.FC = () => {
               'Resolution': d.resolutionReasonCode ?? '',
               'Resolved': d.resolvedAt ?? '',
             })),
-            `quality-assurance-financials-${tab === 'financials-open' ? 'open' : 'resolved'}-${new Date().toISOString().slice(0, 10)}.csv`,
-            qaScopeContext(),
+            qa.filename(`quality-assurance-financials-${tab === 'financials-open' ? 'open' : 'resolved'}`),
+            qa.context,
+            { scope: qa.scope, status: tab === 'financials-open' ? 'open' : 'resolved' },
           )}>{t('qualityAssurance.common.export')}</CapabilityButton>
         </div>
         <div className="ps-conf-table-wrap">
@@ -1236,7 +1251,7 @@ const QualityAssurancePage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {(tab === 'financials-open' ? billingDeficienciesOpen : billingDeficienciesResolved).map(d => (
+                {billingDeficienciesShown.map(d => (
                   <tr key={d.id} className="ps-conf-tr">
                     <td className="ps-conf-td">
                       <button className="ps-conf-btn-row" data-phi="accession" onClick={() => void openCasePage(d.caseId, 'synoptic')}>{d.caseId}</button>
@@ -1260,7 +1275,7 @@ const QualityAssurancePage: React.FC = () => {
                     )}
                   </tr>
                 ))}
-                {(tab === 'financials-open' ? billingDeficienciesOpen : billingDeficienciesResolved).length === 0 && (
+                {billingDeficienciesShown.length === 0 && (
                   <tr><td className="ps-conf-empty-row" colSpan={tab === 'financials-open' ? 7 : 5}>
                     {tab === 'financials-open' ? t('qualityAssurance.financials.noOpen') : t('qualityAssurance.financials.noResolved')}
                   </td></tr>
@@ -1289,6 +1304,7 @@ const QualityAssurancePage: React.FC = () => {
       {tab === 'cytology-qa' && <CytologyQaTab />}
       {tab === 'qa-dashboard' && <QaDashboardTab />}
       {tab === 'inspection' && <InspectionModeTab />}
+      {tab === 'activities' && <QaActivityBoardTab onOpenCase={caseId => void openCasePage(caseId, 'synoptic')} />}
       {tab === 'countersign' && <CountersignTurnaroundTab />}
       {tab === 'fppe' && <FppeTrackingTab />}
       {tab === 'drift-correction' && <DriftCorrectionTab />}
@@ -1307,7 +1323,8 @@ const QualityAssurancePage: React.FC = () => {
 
       {(tab === 'case-specimen' || tab === 'escalated' || tab === 'closed') && (
         <div className="ps-qa-tab-toolbar">
-          <CapabilityButton capability="qa:deficiencies:export" context={qaScopeContext()} className="ps-conf-btn-secondary" onClick={(tab === 'case-specimen' || tab === 'escalated') ? exportActiveQueue : exportClosed}>{t('qualityAssurance.common.export')}</CapabilityButton>
+          <QaScopeSwitcher scope={qa.scope} onChange={qa.setScope} visibleClientIds={qa.facilityIds(deficiencies, d => ({ caseId: d.caseId }))} />
+          <CapabilityButton capability="qa:deficiencies:export" context={qa.context} className="ps-conf-btn-secondary" onClick={(tab === 'case-specimen' || tab === 'escalated') ? exportActiveQueue : exportClosed}>{t('qualityAssurance.common.export')}</CapabilityButton>
           {tab === 'case-specimen' && (
             <button className="ps-conf-btn-primary" onClick={() => setShowRaiseDeficiencyModal(true)}>{t('qualityAssurance.operations.raiseDeficiency')}</button>
           )}

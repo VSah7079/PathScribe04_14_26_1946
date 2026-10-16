@@ -8,7 +8,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts && !('defaultValue' in opts) ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));
 vi.mock('@/components/Common/CapabilityButton', () => ({
-  CapabilityButton: ({ children, onClick, className }: { children: React.ReactNode; onClick: () => void; className: string }) => <button className={className} onClick={onClick}>{children}</button>,
+  CapabilityButton: ({ children, onClick, className, disabled }: { children: React.ReactNode; onClick: () => void; className: string; disabled?: boolean }) => <button className={className} onClick={onClick} disabled={disabled}>{children}</button>,
 }));
 const fakes = vi.hoisted(() => ({
   override: vi.fn(async () => ({ ok: true, data: {} })),
@@ -26,12 +26,13 @@ vi.mock('@/services', async () => {
     peerReviewReadProblem: rules.readProblem, peerReviewResolutionProblem: rules.resolutionProblem,
     peerReviewWithdrawProblem: rules.withdrawProblem, peerReviewRequestProblem: rules.requestProblem,
     caseSignedOut: rules.caseSignedOut,
-    clinicalMismatchProblem: decision.clinicalMismatchProblem, CLINICAL_MISMATCH_DECISIONS: decision.CLINICAL_MISMATCH_DECISIONS,
+    clinicalMismatchProblem: decision.clinicalMismatchProblem, CLINICAL_MISMATCH_QUICK_REASONS: decision.CLINICAL_MISMATCH_QUICK_REASONS,
   };
 });
 
 import { PeerReviewGateModal } from './PeerReviewGateModal';
-import { ClinicalMismatchModal } from './ClinicalMismatchModal';
+import { ClinicalMismatchModal } from '@/components/ClinicalMismatch/ClinicalMismatchModal';
+import { ClinicalMismatchAlert } from '@/components/ClinicalMismatch/ClinicalMismatchAlert';
 import { PeerReviewBanner } from '../components/PeerReviewBanner';
 import type { PeerReviewStatus } from '@/services';
 
@@ -70,18 +71,61 @@ describe('PeerReviewGateModal', () => {
   });
 });
 
-describe('ClinicalMismatchModal', () => {
-  it('a real mismatch needs a note; the decision is recorded, then sign-out continues', async () => {
+// Batch 530 (PS-554): the window opens for a high-risk mismatch only.
+const assessment = (over: Record<string, unknown> = {}) => ({
+  suggestion: { kind: 'unexpected-malignancy' as const, confidence: 82, source: 'ai' as const, explanation: 'Polyp, carcinoma found.', ...over },
+  outcome: { risk: 'high' as const, display: true, holdsSignOut: true, logToQa: true, action: 'block' as const,
+    rule: { id: 'all:unexpected-malignancy', specimenTypeId: null, category: 'unexpected-malignancy' as const, minimumDisplayThreshold: 60, actionThreshold: 70, actionType: 'block' as const } },
+});
+
+describe('ClinicalMismatchModal (Gate B, high risk)', () => {
+  it('says which rule held sign-out; one click records UNRESOLVED with an optional quick reason, then sign-out continues', async () => {
     const onContinue = vi.fn();
-    render(<ClinicalMismatchModal caseId="c1" caseType="Colon" clinicalIndication="Routine polyp" suggestion={{ kind: 'unexpected-malignancy', confidence: 82, source: 'ai', explanation: 'Polyp, carcinoma found.' }} onContinue={onContinue} onCancel={vi.fn()} />);
+    render(<ClinicalMismatchModal caseId="c1" caseType="Colon" clinicalIndication="Routine polyp" assessment={assessment()} onContinue={onContinue} onCancel={vi.fn()} />);
     expect(screen.getByText('Polyp, carcinoma found.')).toBeTruthy();
-    fireEvent.click(screen.getByText('clinicalMismatch.decisions.unresolved'));
-    fireEvent.click(screen.getByText('clinicalMismatch.recordButton'));
-    expect(await screen.findByText('clinicalMismatch.errors.NOTE_REQUIRED')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText(/clinicalMismatch.noteLabel/), { target: { value: 'No explanation from the clinician' } });
-    fireEvent.click(screen.getByText('clinicalMismatch.recordButton'));
+    expect(screen.getByText('clinicalMismatch.why.holds:{"threshold":70}')).toBeTruthy();
+    expect(screen.queryByText('clinicalMismatch.resolutions.DEFERRED')).toBeNull();
+    fireEvent.click(screen.getByText('clinicalMismatch.reasons.clinical-context-reviewed'));
+    fireEvent.click(screen.getByText('clinicalMismatch.resolutions.UNRESOLVED'));
     await waitFor(() => expect(onContinue).toHaveBeenCalled());
-    expect(fakes.record).toHaveBeenCalledWith(expect.objectContaining({ decision: 'unresolved', kind: 'unexpected-malignancy', source: 'ai', confidence: 82 }));
+    expect(fakes.record).toHaveBeenCalledWith(expect.objectContaining({
+      resolution: 'UNRESOLVED', risk: 'high', ruleId: 'all:unexpected-malignancy', quickReason: 'clinical-context-reviewed', kind: 'unexpected-malignancy', source: 'ai', confidence: 82,
+    }));
+  });
+});
+
+describe('ClinicalMismatchModal at cytology sign-out (Batch 523)', () => {
+  it('records the discipline and the specimen with the decision; no note needed', async () => {
+    const onContinue = vi.fn();
+    render(<ClinicalMismatchModal caseId="c1" caseType="Thyroid FNA" assessment={assessment({ kind: 'site-or-organ', confidence: 64, explanation: undefined })} discipline="cytology" specimenId="sp-2" onContinue={onContinue} onCancel={vi.fn()} />);
+    fireEvent.click(screen.getByText('clinicalMismatch.resolutions.RESOLVED'));
+    await waitFor(() => expect(onContinue).toHaveBeenCalled());
+    expect(fakes.record).toHaveBeenLastCalledWith(expect.objectContaining({ resolution: 'RESOLVED', discipline: 'cytology', specimenId: 'sp-2' }));
+  });
+});
+
+describe('ClinicalMismatchAlert (Gate A, inline on the report)', () => {
+  const low = () => {
+    const a = assessment({ kind: 'other', confidence: 62 });
+    return { ...a, outcome: { ...a.outcome, risk: 'low' as const, holdsSignOut: false, action: null } };
+  };
+  it('one line with a badge; Review opens it in place; low risk offers Defer, and deferring records DEFERRED', async () => {
+    const onRecorded = vi.fn();
+    render(<ClinicalMismatchAlert assessment={low()} caseId="c1" caseType="Skin" onRecorded={onRecorded} />);
+    expect(screen.getByText('clinicalMismatch.alert.badge')).toBeTruthy();
+    expect(screen.queryByText('clinicalMismatch.resolutions.DEFERRED')).toBeNull();
+    fireEvent.click(screen.getByText('clinicalMismatch.alert.review'));
+    expect(screen.queryByText('clinicalMismatch.resolutions.UNRESOLVED')).toBeNull();
+    fireEvent.click(screen.getByText('clinicalMismatch.resolutions.DEFERRED'));
+    await waitFor(() => expect(onRecorded).toHaveBeenCalled());
+    expect(fakes.record).toHaveBeenLastCalledWith(expect.objectContaining({ resolution: 'DEFERRED', risk: 'low' }));
+  });
+  it('high risk: says sign-out will ask, and offers Resolved or Unresolved now', () => {
+    render(<ClinicalMismatchAlert assessment={assessment()} caseId="c1" caseType="Colon" onRecorded={vi.fn()} />);
+    expect(screen.getByText(/clinicalMismatch.alert.holdsSignOut/)).toBeTruthy();
+    fireEvent.click(screen.getByText('clinicalMismatch.alert.review'));
+    expect(screen.getByText('clinicalMismatch.resolutions.UNRESOLVED')).toBeTruthy();
+    expect(screen.queryByText('clinicalMismatch.resolutions.DEFERRED')).toBeNull();
   });
 });
 

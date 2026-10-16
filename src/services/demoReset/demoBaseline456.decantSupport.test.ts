@@ -2,7 +2,8 @@
 // Batch 456 (demo baseline): decants and a matrix block on demo cases, a
 // support access request waiting for Desert Valley, and an active outside
 // consult link, each coming back after a Full Reset.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { DEMO_BASELINE_CASES } from '../cases/demoBaselineCases';
 import { mockCaseService } from '../cases/mockCaseService';
 import { withMaterialDemo, DEMO_DECANT_CASE_IDS, DEMO_MATRIX_BLOCK_CASE_ID, DEMO_MATRIX_BLOCK_ID } from '../material/materialDemoSeed';
@@ -23,7 +24,6 @@ import { mockConsultTokenService } from '../consultAccess/mockConsultTokenServic
 import { resolveConsultTokenStatus } from '../consultAccess/IConsultTokenService';
 import { DEMO_CONSULT_CASE_ID, DEMO_CONSULT_TOKEN_ID } from '../consultAccess/consultDemoSeed';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 beforeEach(() => localStorage.clear());
 
 const seededCases = async () => {
@@ -141,19 +141,23 @@ describe('an active outside consult link', () => {
     expect(resolveConsultTokenStatus(tok!)).toBe('Active');
   });
 
-  it('gets its bearer string at seed time (never from source), stored so it stays the same until a reset', async () => {
+  it('stores only a fingerprint of a random token made at seed time (never from source), kept until a reset (Batch 522)', async () => {
     const first = await mockConsultTokenService.getByCaseId(DEMO_CONSULT_CASE_ID);
     const again = await mockConsultTokenService.getByCaseId(DEMO_CONSULT_CASE_ID);
-    const token = first.ok ? first.data[0].token : '';
-    expect(token).toMatch(/^ct_/);
-    expect(again.ok && again.data[0].token).toBe(token);
+    const hash = first.ok ? first.data[0].tokenHash : '';
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(first.ok && 'token' in first.data[0]).toBe(false);
+    expect(again.ok && again.data[0].tokenHash).toBe(hash);
     localStorage.clear(); // a Full Reset
     const after = await mockConsultTokenService.getByCaseId(DEMO_CONSULT_CASE_ID);
-    expect(after.ok && after.data[0].token).not.toBe(token);
+    expect(after.ok && after.data[0].tokenHash).not.toBe(hash);
   });
 
   it('can still be revoked like any issued link', async () => {
-    const r = await mockConsultTokenService.revoke(DEMO_CONSULT_TOKEN_ID, 'PATH-SJ-001');
+    // Batch 515 (PS-290): revoking needs case:consult-link:revoke; this test is about the demo link, not the permission.
+    const allow = vi.spyOn(authorizationService, 'enforce').mockResolvedValue({ allowed: true } as Awaited<ReturnType<typeof authorizationService.enforce>>);
+    const r = await mockConsultTokenService.revoke(DEMO_CONSULT_TOKEN_ID);
+    allow.mockRestore();
     expect(r.ok && resolveConsultTokenStatus(r.data)).toBe('Revoked');
   });
 });

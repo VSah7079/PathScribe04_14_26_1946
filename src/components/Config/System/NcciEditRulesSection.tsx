@@ -50,11 +50,11 @@ const PairEditModal: React.FC<{ pair: NcciPtpEditPair; onSave: (p: NcciPtpEditPa
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('ncciEditRulesSection.modal.columnLabel')}</label>
-            <input className="ps-conf-input" value={`${pair.columnOneCode} / ${pair.columnTwoCode}`} disabled />
+            <input aria-label={t('ncciEditRulesSection.modal.columnLabel')} className="ps-conf-input" value={`${pair.columnOneCode} / ${pair.columnTwoCode}`} disabled />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('ncciEditRulesSection.modal.modifierIndicatorLabel')}</label>
-            <select className="ps-conf-select" value={modifierIndicator} onChange={e => setModifierIndicator(e.target.value as NcciPtpEditPair['modifierIndicator'])}>
+            <select aria-label={t('ncciEditRulesSection.modal.modifierIndicatorLabel')} className="ps-conf-select" value={modifierIndicator} onChange={e => setModifierIndicator(e.target.value as NcciPtpEditPair['modifierIndicator'])}>
               {(Object.keys(MODIFIER_LABEL_KEY) as NcciPtpEditPair['modifierIndicator'][]).map(k => (
                 <option key={k} value={k}>{k} — {t(MODIFIER_LABEL_KEY[k])}</option>
               ))}
@@ -62,7 +62,7 @@ const PairEditModal: React.FC<{ pair: NcciPtpEditPair; onSave: (p: NcciPtpEditPa
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('ncciEditRulesSection.modal.deletionDateLabel')}</label>
-            <input className="ps-conf-input" type="date" value={deletionDate} onChange={e => setDeletionDate(e.target.value)} />
+            <input aria-label={t('ncciEditRulesSection.modal.deletionDateLabel')} className="ps-conf-input" type="date" value={deletionDate} onChange={e => setDeletionDate(e.target.value)} />
           </div>
           <p className="ps-billing-reason-hint">
             {t('ncciEditRulesSection.modal.approvalHint')}
@@ -110,7 +110,7 @@ const NcciEditRulesSection: React.FC = () => {
     setBusy(true);
     const newPairs = pairs.map(p => p.id === pair.id ? pair : p);
     const res = await ncciEditService.importQuarter(
-      newPairs.map(({ id, ...rest }) => rest),
+      newPairs.map(({ id: _id, ...rest }) => rest),
       `Manual edit — ${pair.columnOneCode}/${pair.columnTwoCode}`,
       user?.id ?? 'unknown',
     );

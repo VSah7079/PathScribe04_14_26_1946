@@ -21,7 +21,6 @@ import { cancerRegistryDefinition } from '../cancerRegistry/cancerRegistryDefini
 import { buildRegistrySubmissionHeader, registryContentHash } from '../registrySubmission/registrySubmissionHeader';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const SYNTHETIC_FACILITY = { facilityId: 'SYN-FACILITY', facilityName: 'Synthetic test facility' };
 
 export const registryGoLiveDeps: RegistryGoLiveDeps = {

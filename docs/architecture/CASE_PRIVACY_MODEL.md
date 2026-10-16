@@ -15,7 +15,7 @@ Pete declined the staff-access UI and the send-time recipient check (rules 1 and
 
 | Rule | Where | What |
 |---|---|---|
-| 3, 4 | `src/services/cases/openCaseForView.ts` | The one decision for `/report/:caseId` and `/synoptic/:caseId`. A missing case, another organisation's case, a pool restriction, an Orchestration or pediatric restriction, and an error all return `{ caseData: null }`. |
+| 3, 4 | `src/services/cases/openCaseForView.ts` | The one decision for `/report/:caseId`, `/case/:caseId/synoptic` and `/case/:caseId/grossing` (through `loaders/synopticLoader.ts`). (`/report-preview/:caseId` also used it until that window was retired in Batch 497.) A missing case, another organisation's case, a pool restriction, an Orchestration or pediatric restriction, and an error all return `{ caseData: null }`. |
 | 3, 4 | `src/components/CaseUnavailable/` | The one screen for all of them: "You do not have access rights to case …". |
 | 4 | `CaseRouter.listLinkableAccessions()` and `src/services/messages/linkableCaseAccessions.ts` | The numbers a message may link: only cases the reader can open. A superadmin gets only their own organisation's cases here. Support reaches another organisation's case deliberately, through the support access gate, never from a message link. |
 | — | `src/contexts/MessagingContext.tsx`, `AppShell.tsx` | The inbox belongs to whoever is signed in now. It's cleared on sign-out or account switch, and a reply for an earlier account is dropped. |
@@ -23,6 +23,8 @@ Pete declined the staff-access UI and the send-time recipient check (rules 1 and
 The real reason a case is unavailable is written to the support log (`openCaseForView` → `logUnavailable`) and to the case audit (`CaseRouter.getCase`), never to the screen.
 
 **Enforced by** `src/services/privacy/casePrivacy.guard.test.ts`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): there is no `/synoptic/:caseId` route; the synoptic page is `/case/:caseId/synoptic` (`App.tsx`), and the grossing and report-preview pages use the same check.*
 
 ## For the API server
 

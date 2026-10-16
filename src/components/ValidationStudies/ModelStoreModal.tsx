@@ -13,11 +13,13 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
-import { mockModelStoreService, type StoreListing } from '../../services/models/mockModelStoreService';
+
 import type { AIModel } from '../../services/models/IModelService';
 import { MODEL_VENDOR_LABEL_KEY, modelStoreErrorLabelKey } from '../../services/models/modelLabels';
 import { isServiceOk } from '../../services/types';
 import { formatDate } from '../../utils/formatDate';
+import { modelStoreService, type StoreListing } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface ModelStoreModalProps {
   /** Fired once a download genuinely succeeds, with the new local
@@ -37,12 +39,12 @@ export const ModelStoreModal: React.FC<ModelStoreModalProps> = ({ onDownloaded, 
   /** Distinct from the general `error` state below — this specifically
    *  means "the org itself isn't entitled to browse the store at
    *  all," gating the whole catalog rather than one failed action.
-   *  See mockModelStoreService's checkAuthorization for what a real
+   *  See modelStoreService's checkAuthorization for what a real
    *  implementation of this check would actually verify. */
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    mockModelStoreService.getAvailable().then(res => {
+    modelStoreService.getAvailable().then(res => {
       // Real, direct follow-up (PS-69): this is the exact recurrence site
       // the ticket named ("the UI's own handling of both") — the prior pass
       // fixed ServiceResult's own type (literal `ok: true`/`ok: false`
@@ -65,7 +67,7 @@ export const ModelStoreModal: React.FC<ModelStoreModalProps> = ({ onDownloaded, 
   const handleDownload = async (listing: StoreListing) => {
     setDownloadingId(listing.id);
     setError(null);
-    const res = await mockModelStoreService.download(listing.id);
+    const res = await modelStoreService.download(listing.id);
     setDownloadingId(null);
     // `res.ok === false` (strict equality) already narrows correctly even
     // under strictNullChecks: false — kept as isServiceOk()'s negation for
@@ -98,7 +100,7 @@ export const ModelStoreModal: React.FC<ModelStoreModalProps> = ({ onDownloaded, 
               </p>
 
               {loading && (
-                <div className="msm-loading">{t('modelStoreModal.loadingCatalog')}</div>
+                <LoadingState variant="inline" className="msm-loading" label={t('modelStoreModal.loadingCatalog')} />
               )}
 
               {!loading && listings.length === 0 && (

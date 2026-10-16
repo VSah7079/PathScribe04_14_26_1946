@@ -67,6 +67,8 @@ describe('Case report page: critical findings (Batch 380)', () => {
     const readBack = resolveFieldRequirements('report', { criticalReadBack: true });
     expect(criticalNotificationMissing(form(), readBack)).toEqual(['criticalReadBack']);
     expect(criticalNotificationMissing(form({ readBackConfirmed: true }), readBack)).toEqual([]);
+    // Batch 517 (PS-143): a read-back never applies to a secure email.
+    expect(criticalNotificationMissing(form({ method: 'secure_email' }), readBack)).toEqual([]);
   });
   it('the defaults used before settings load are the page defaults', () => {
     expect(REPORT_DEFAULT_REQUIREMENTS.map(f => [f.id, f.required])).toEqual(defaults.map(f => [f.id, f.required]));

@@ -42,5 +42,21 @@ Each form shows "Still required: …", stars required labels, keeps its button o
 
 `CytologySlideOverDrawer.tsx` takes `wide` for the billing drawer (`.ps-cytology-slideover--wide`).
 
+## Batch 519 (PS-273)
+
+`CytologySynopticFormView.tsx` offers the Synoptic Library's published Non-GYN cytology protocols (a review recorded against a since-retired version still shows it), and its template shortcuts open the current version.
+
 ---
 *See [../README.md](../README.md) for how this folder fits the page.*
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 572
+
+`ScreeningHoursPanel.tsx` (new): one click confirms today's recorded screening hours; Correct opens the figure, a quick-pick reason and a note inline. A sign-off made before more was recorded asks to confirm again.
+
+## Batch 574
+
+`CytologyWorkloadCounter.tsx` (new): slides of the cap, reviews, left now and in a full day, a bar marked at the limit so far, the status in words. `ScreeningHoursPanel.tsx`: `which` (today or yesterday), the lab date in the heading, the note limit and hint, focus to today's heading after yesterday is signed.

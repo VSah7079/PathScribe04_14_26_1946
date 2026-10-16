@@ -50,6 +50,38 @@ Subfolders converted their last inline styles to `pathscribe.css` classes (see e
 
 `useSynopticFlags.ts` builds the Flag Manager's view with `services/flags/caseFlagView.ts` (no `as any`) and reaches its services through `@/services` (PS-57).
 
+## Batch 491 — real `appliedBy`/`deletedBy` (disclosed since Batch 452; PS-359 follow-up)
+
+`useSynopticFlags.ts` now reads the signed-in user itself (`useAuth()`) and passes `user.name` through to `applyFlags`/`deleteFlags` as `byUserName`, closing the hardcoded `'current-user'` gap in `api/caseFlagsApi.ts` (see `api/README.md`). The hook's own public signature and its 3 call sites are unchanged.
+
+## Batch 500 (PS-473)
+
+`Comments/`: comment HTML is sanitised before it is rendered. See [Comments/README.md](./Comments/README.md).
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`AddCodeModal`'s pending-code builder is typed to return `PendingCode | null`, which it already did.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `Codes/AddCodeModal`: SNOMED filter hints are translated (the old unused English labels are removed). `synopticTypes.ts`: the participant label is a key.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 536
+
+`Codes/AddCodeModal.tsx`: the AI coding call is checked against the jurisdiction's AI vendor policy.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `Delegate/`: loading text through `LoadingState`.
+
+## Batch 567 (WCAG 2.1 AA)
+
+- `Codes/AddCodeModal.tsx`, `Delegate/DelegateModal.tsx`: no control inside another.

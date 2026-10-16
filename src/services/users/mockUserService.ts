@@ -2,6 +2,7 @@ import { IUserService, StaffUser } from './IUserService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { withMissingSeedRecords } from '../mockSeedMerge';
+import { dataStorage } from '../browserData/dataStorage';
 
 // ─── Seed data (Updated with standardized Voice Profiles) ─────────────────────
 // organisationId added June 2026 — see IUserService.ts's own doc comment
@@ -74,9 +75,9 @@ const SEED_USERS: StaffUser[] = [
 // Increment USERS_VERSION whenever SEED_USERS is changed.
 const USERS_VERSION = '12'; // bumped: Batch 455 demo baseline (orchestrator access for CT-001, Sarah Johnson, Michelle Nimmo and Rossana Babakhani; James Okafor's demo email). (11: bumped: bench staff (ACC-001, HT-001, CT-001, MT-001) and Michelle Nimmo (PATH-MN-001), Batch 374. (10: Dr. Sarah Johnson, Batch 371.)
 const USERS_VERSION_KEY = 'pathscribe_users_version';
-if (localStorage.getItem(USERS_VERSION_KEY) !== USERS_VERSION) {
-  localStorage.removeItem('pathscribe_mock_pathscribe_users');
-  localStorage.setItem(USERS_VERSION_KEY, USERS_VERSION);
+if (dataStorage.getItem(USERS_VERSION_KEY) !== USERS_VERSION) {
+  dataStorage.removeItem('pathscribe_mock_pathscribe_users');
+  dataStorage.setItem(USERS_VERSION_KEY, USERS_VERSION);
 }
 
 // Batch 443 (Pete): a demo Lab Director, for the Lab Director's screens

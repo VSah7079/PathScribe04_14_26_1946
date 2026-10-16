@@ -4,6 +4,7 @@
 // its export limit, not just the page on screen). Column headings, statuses
 // and priorities are translated; dates use the user's locale (they were
 // English column names and US dates before).
+import { csvQuoted } from '../csv';
 import type { CaseSearchExportRow } from '@/services/caseSearch/caseSearchTypes';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { CasePriority } from '@/services/cases/ICaseService';
@@ -26,7 +27,8 @@ const COLUMNS: ReadonlyArray<[keyof CaseSearchExportRow, string]> = [
   ['flags', 'searchPage.csv.flags'],
 ];
 
-const csvField = (v: string) => `"${v.replace(/"/g, '""')}"`;
+// Batch 543 (F8): every cell quoted, and formula cells neutralized.
+const csvField = csvQuoted;
 
 /**
  * A calendar date in the user's locale. A date-only value (a date of birth)

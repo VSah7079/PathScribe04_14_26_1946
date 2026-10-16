@@ -2,7 +2,9 @@
 
 **NEW (Sep 2026)** — PS-287, fourth of the PS-284→285→286→287→288 workstation-build sequence, and the first one genuinely different in shape from the other three: this is **case-scoped** (search or scan an accession to open the whole case), not block/slide-scoped, and it's **pathologist-initiated**, not tech-scan-to-open. A pathologist reviewing a case places one or more add-on orders (recuts/deep levels, special stains, IHC — single-stain or panel — and molecular/send-out) against any of that case's own real blocks, with real routing, priority, slide media, auto-control pairing, a real-time order tracking dashboard, and a real block-exhaustion exception + pathologist notification loop.
 
-**Route**: `/add-on-orders`. Reachable from a new tile on `Home.tsx`.
+**Route**: `/add-on-orders` (`?case=<support reference>` opens a case directly), behind `screen:add-on-orders:open`. Since Batch 375 there is no Home tile: it opens from the "Add-on order" button in the block row of the report page's header bar (`SynopticReportPage/components/HeaderBar.tsx`), shown to users who may open the screen, with the case already loaded.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the Home tile was removed in Batch 375 (`Home.tsx` comment); the entry point is the header-bar button (`HeaderBar.tsx`, `services/caseAddresses/caseAddresses.ts`).*
 
 ## Scope confirmed before building
 
@@ -37,7 +39,7 @@ The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashb
 
 ## i18n
 
-Built with `useTranslation()`/`t()` from the start. New `addOnOrder.*` namespace (73 leaf keys) plus `home.addOnOrderTile.*` (2 keys), across all five locale files (en/fr/de/nl/ko) — verified programmatically: all five parse as valid JSON, all five have identical key sets, 810 total leaf keys per file.
+Built with `useTranslation()`/`t()` from the start. New `addOnOrder.*` namespace (73 leaf keys) plus `home.addOnOrderTile.*` (2 keys), across all five locale files (en/fr/de/nl/ko) — verified programmatically: all five parse as valid JSON, all five have identical key sets, 810 total leaf keys per file. *(Those counts were taken at PS-287; the files have grown since, and `home.addOnOrderTile.*` went with the Home tile in Batch 375 — checked in the Batch 496 README audit.)*
 
 ## Deliberate scope cuts
 
@@ -81,3 +83,11 @@ Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which address
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 514 (PS-269)
+
+The patient name in the header shows in the screen's language (Korean: full name + 님).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).

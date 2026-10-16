@@ -173,3 +173,30 @@ describe('mockCytologyQcCaseAssignmentService', () => {
   });
 });
 
+
+describe('mockCytologyQcCaseAssignmentService.applyAdditionalTrigger (Batch 501)', () => {
+  it('upgrades an open assignment with the trigger fields only', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) throw new Error('create failed');
+    const r = await svc.applyAdditionalTrigger(created.data.id, {
+      priorityTier: 'high_escalation', selectionReasons: ['rule:rule-1', 'rose_discrepancy'],
+      history: [{ at: 'now', event: 'upgraded', reason: 'rose_discrepancy', detail: 'Upgraded by rose_discrepancy: tier routine_random → high_escalation' }],
+      // not a trigger field: ignored
+      ...({ state: 'FINAL_APPROVED' } as object),
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.priorityTier).toBe('high_escalation');
+    expect(r.data.selectionReasons).toEqual(['rule:rule-1', 'rose_discrepancy']);
+    expect(r.data.state).toBe('QC_PENDING');
+  });
+
+  it('refuses a resolved assignment', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create({ ...newAssignment(), state: 'FINAL_APPROVED' });
+    if (!created.ok) throw new Error('create failed');
+    const r = await svc.applyAdditionalTrigger(created.data.id, { priorityTier: 'high_escalation' });
+    expect(r.ok).toBe(false);
+  });
+});

@@ -78,12 +78,14 @@ other HL7 integration setting in this app is already scoped.
 
 ## Admin UI
 
-`components/ClientDictionary/ClientEditorModal.tsx`'s **Locations**
-tab — edit-mode only, **not** role-gated (a real fix: it was
+`components/FacilityDictionary/FacilityEditorModal.tsx`'s **Locations**
+tab (Configuration → Facilities) — edit-mode only, **not** role-gated (a real fix: it was
 originally gated to `hl7_routing_endpoint`, on the reasoning that a
 facility only needs locations if it's doing HL7 integration; corrected
 after a direct request to also surface Location on the manual
 accession flow, which doesn't require HL7 at all).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the Locations tab is in `FacilityEditorModal.tsx`; `ClientEditorModal.tsx` was deleted in Batch 179.*
 
 **`pages/AccessionPage/AccessionPage.tsx`** also consumes this
 directly — a facility-scoped Location dropdown, right next to the

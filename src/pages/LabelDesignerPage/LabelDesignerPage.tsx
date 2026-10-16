@@ -51,6 +51,9 @@ import {
   PX_PER_MM, RESIZE_HANDLES, pxToMm, moveFieldTo, resizeFieldFromHandle, applyInspectorEdit, clampFieldToLabel, fieldsOutOfBounds,
   LABEL_LAYOUT_OUT_OF_BOUNDS, type ResizeHandle,
 } from '../../services/labelDesigner/labelFieldGeometry';
+import { sanitizeSvgMarkup } from '@/services/security/sanitizeHtml';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Real, per this file's own header — this app's own established
 // default dpi for ZPL export elsewhere (buildRequisitionStickerSheetZpl.ts).
@@ -77,7 +80,7 @@ const SAMPLE_VALUES: Record<string, string> = {
 /** Batch 460: a millimetre box that applies its number on Enter or when it
  *  loses focus, so a half-typed value ("1" on the way to "15") isn't
  *  clamped while the person is still typing. */
-const MmInput: React.FC<{ value: number; step?: number; className: string; onCommit: (n: number) => void }> = ({ value, step, className, onCommit }) => {
+const MmInput: React.FC<{ value: number; step?: number; className: string; label: string; onCommit: (n: number) => void }> = ({ value, step, className, label, onCommit }) => {
   const [draft, setDraft] = useState(String(value));
   useEffect(() => { setDraft(String(value)); }, [value]);
   const commit = () => {
@@ -86,7 +89,7 @@ const MmInput: React.FC<{ value: number; step?: number; className: string; onCom
     onCommit(n);
   };
   return (
-    <input className={className} type="number" step={step} value={draft}
+    <input aria-label={label} className={className} type="number" step={step} value={draft}
       onChange={e => setDraft(e.target.value)} onBlur={commit}
       onKeyDown={e => { if (e.key === 'Enter') commit(); }} />
   );
@@ -281,7 +284,7 @@ const LabelDesignerPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="ps-conf-loading">{t('common.loading')}</div>
+        <LoadingState label={t('common.loading')} />
       ) : (
         <div className="ps-designer-layout">
           {/* Palette */}
@@ -307,7 +310,10 @@ const LabelDesignerPage: React.FC = () => {
               ref={canvasRef}
               onDragOver={e => e.preventDefault()}
               onDrop={handleCanvasDrop}
+              // Batch 524 (PS-491): a named group; a click on empty canvas, or Escape, clears the selection.
+              role="group" aria-label={t('a11y.labelCanvas')} tabIndex={0}
               onClick={() => setSelectedFieldId(null)}
+              onKeyDown={e => { if (e.key === 'Escape') setSelectedFieldId(null); }}
               className="ps-designer-canvas"
               style={{ '--canvas-w': `${widthMm * PX_PER_MM}px`, '--canvas-h': `${heightMm * PX_PER_MM}px` } as React.CSSProperties}>
               {fields.map(f => {
@@ -318,7 +324,7 @@ const LabelDesignerPage: React.FC = () => {
                     key={f.id}
                     draggable
                     onDragStart={e => { e.stopPropagation(); if (resizeRef.current) { e.preventDefault(); return; } handlePlacedFieldDragStart(e, f.id); }}
-                    onClick={e => { e.stopPropagation(); setSelectedFieldId(f.id); }}
+                    {...pressable(e => { e.stopPropagation(); setSelectedFieldId(f.id); })}
                     title={def?.displayName ?? f.fieldKey}
                     data-field-id={f.id}
                     className={`ps-designer-field${isSelected ? ' ps-designer-field--selected' : ''}${outsideIds.has(f.id) ? ' ps-designer-field--outside' : ''}`}
@@ -336,7 +342,7 @@ const LabelDesignerPage: React.FC = () => {
                       // fits and looks right at this real size.
                       <div
                         className="ps-designer-field-barcode-fill"
-                        dangerouslySetInnerHTML={{ __html: safeBarcodeSvg(SAMPLE_VALUES.barcode, LABEL_TYPE_DEFAULT_SYMBOLOGY[labelType], t('labelDesignerPage.barcodeRenderFailed')) }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeSvgMarkup(safeBarcodeSvg(SAMPLE_VALUES.barcode, LABEL_TYPE_DEFAULT_SYMBOLOGY[labelType], t('labelDesignerPage.barcodeRenderFailed'))) }}
                       />
                     ) : (
                       SAMPLE_VALUES[f.fieldKey] ?? f.fieldKey
@@ -377,15 +383,15 @@ const LabelDesignerPage: React.FC = () => {
             {selectedField && (
               <>
                 <label className="ps-label">{t('labelDesignerPage.field.x')}</label>
-                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.xMm} onCommit={n => updateSelectedField({ xMm: n })} />
+                <MmInput label={t('labelDesignerPage.field.x')} className="ps-input-dark ps-w-full-mb-8" value={selectedField.xMm} onCommit={n => updateSelectedField({ xMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.y')}</label>
-                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.yMm} onCommit={n => updateSelectedField({ yMm: n })} />
+                <MmInput label={t('labelDesignerPage.field.y')} className="ps-input-dark ps-w-full-mb-8" value={selectedField.yMm} onCommit={n => updateSelectedField({ yMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.width')}</label>
-                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.widthMm} onCommit={n => updateSelectedField({ widthMm: n })} />
+                <MmInput label={t('labelDesignerPage.field.width')} className="ps-input-dark ps-w-full-mb-8" value={selectedField.widthMm} onCommit={n => updateSelectedField({ widthMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.height')}</label>
-                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.heightMm} onCommit={n => updateSelectedField({ heightMm: n })} />
+                <MmInput label={t('labelDesignerPage.field.height')} className="ps-input-dark ps-w-full-mb-8" value={selectedField.heightMm} onCommit={n => updateSelectedField({ heightMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.fontSize')}</label>
-                <MmInput className="ps-input-dark ps-w-full ps-mb-14" step={0.1} value={selectedField.fontSizeMm} onCommit={n => updateSelectedField({ fontSizeMm: n })} />
+                <MmInput label={t('labelDesignerPage.field.fontSize')} className="ps-input-dark ps-w-full ps-mb-14" step={0.1} value={selectedField.fontSizeMm} onCommit={n => updateSelectedField({ fontSizeMm: n })} />
                 <button className="ps-btn-small" onClick={removeSelectedField}>{t('labelDesignerPage.removeFieldButton')}</button>
               </>
             )}
@@ -414,6 +420,7 @@ const LabelDesignerPage: React.FC = () => {
             />
           </p>
           <textarea
+            aria-label={t('a11y.fields.zplOutput')}
             className="ps-input-dark ps-w-full ps-designer-zpl-textarea"
             readOnly
             value={exportedZpl}

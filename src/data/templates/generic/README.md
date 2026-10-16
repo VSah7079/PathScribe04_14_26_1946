@@ -8,9 +8,14 @@ The main organ-system CAP/RCPath synoptic protocol templates. Both US CAP and UK
 - `colon_resection.json`, `colorectal_further_investigations.json`, `colorectal_local_excision.json`, `colorectal_resection_b.json`
 - `kidney_biopsy.json`, `kidney_resection.json`
 - `lung_adeno.json`, `lung_resection.json`
+- `mohs_micrographic_surgery.json` (PathScribe-authored; see Batch 463 below)
+- `neck_dissection.json`
+- `oral_cavity_resection.json`
 - `prostate_biopsy.json`, `prostate_needle_biopsy.json`, `prostate_radical_prostatectomy.json`, `prostate_resection.json`, `prostate_turp_enucleation.json`
 - `skin_melanoma_bx.json`
 - `wilms_biopsy.json`, `wilms_resection.json`
+
+*(This listing was missing `mohs_micrographic_surgery.json`, `neck_dissection.json`, and `oral_cavity_resection.json` before Batch 490 — a stale gap from when each was added, not a sign they didn't exist; corrected here per CLAUDE.md rule 6.)*
 
 ## Batch 461: Anatomical map (PathScribe)
 
@@ -78,5 +83,27 @@ The placeholder questions `peripheral_margin_involvement`, `deep_margin_involvem
   - Each is bound to its test (`molecularResult`). MSI positive means MSI-H and negative means MSS; MSI-L is entered by hand.
 - **`breast_invasive.json`.** HER2 ISH Status is bound to HER2 FISH (positive = amplified).
 
+## Batch 490 — real clinical option content + `reportingRole` tagging, all ~20 templates
+
+Every template in this folder (except `mohs_micrographic_surgery.json`, `colorectal_further_investigations.json`, and `wilms_biopsy.json`, which needed no changes) had its generic "Option 1/2/3…" placeholders for margin status, grade, and T/N/M staging fields replaced with real AJCC 8th-edition/WHO/CAP-style clinical content, and `reportingRole: 'pT'|'pN'|'pM'` (the tagging mechanism in `services/reports/synopticResultPayload.ts`, unused in any shipped template before this batch) set on the literal/canonical staging field in each template — never a derived-finding field that would collide with it (e.g. `colon_resection.json`'s `local_invasion` keeps real content but no role; its `t_stage` carries `pT` instead). SNOMED/ICD codes were left `""` rather than invented wherever not confidently known.
+
+`wilms_resection.json`'s and `wilms_biopsy.json`'s stage fields (NWTS-5/COG, SIOP Stage I–V) get real content but deliberately no `reportingRole` — that staging scheme isn't AJCC TNM or FIGO, so no value in the closed `SynopticReportingRole` enum correctly describes it.
+
+Disclosed, minor, accepted under time constraints: `prostate_resection.json`'s `stage_category_c` (pM) is only partly filled; `colon_resection.json`'s `stage_category_a`/`stage_category_b` have more placeholder option slots than AJCC categories needed (unused trailing slots left visible rather than deleted); `colorectal_resection_b.json`'s `highest_node_involved` was left untouched (ambiguous).
+
+See `src/i18n/README.md`'s Batch 490 entry for the margin-distance extraction layer this work feeds (`services/marginExtraction/`).
+
+## Batch 519 (PS-494): free-text lymph node counts
+
+Seven templates mark their lymph node counts `nodeCount: true` (free text that takes a whole number, "cannot be determined" or "at least N", in all five UI languages; anything else blocks draft save and sign-out):
+- `breast_invasive.json`: positive categories A, B and C (`number_ln_macrometastases`, `number_ln_micrometastases`, `number_ln_itc`) and the sentinel subset each `notMoreThan` total examined; `total_ln_examined.atLeastSumOf` = A + B + C.
+- `breast_dcis_resection.json`: total examined.
+- `colon_resection.json`, `colorectal_local_excision.json`, `colorectal_resection_b.json`, `lung_adeno.json`, `prostate_radical_prostatectomy.json`: positive `notMoreThan` examined.
+- Labels: lung's examined count is "Total Number Examined"; the prostatectomy's counts are "Number of Lymph Nodes Examined" and "Number of Positive Lymph Nodes" (they were placeholders).
+
+The files keep their original formatting (2-space indent; the five that escape the em dash still do).
+
+**Not changed (known, deliberate):** about 1,500 "Field N" / "Option N" placeholder labels remain across 19 of these templates. They are the generic wording that stands in until a CAP/RCPath content licence is in place (`docs/product/FEATURE_OVERVIEW.md`, corrected in Batch 496); Batch 490 filled margins, grade and TNM only.
+
 ---
-*See [data/README.md](../../README.md) for the full verification notes covering all 27 templates across `data/templates/`.*
+*See [data/README.md](../../README.md) for the full verification notes covering the templates across `data/templates/` (written when there were 27; there are 31 now).*

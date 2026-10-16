@@ -15,7 +15,6 @@ const { applyPoolRouting } = await import('./casePoolAssignmentService');
 const { mockCaseService } = await import('./mockCaseService');
 const { ConcurrencyConflictError } = await import('./ConcurrencyConflictError');
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 async function anAssignedCase(id: string) {

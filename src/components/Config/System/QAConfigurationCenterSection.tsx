@@ -24,15 +24,12 @@
 // (t('common.copyOfName')), and duplicatedFromId set — regardless of which
 // tab it was duplicated from (services/duplication → duplicateQaType).
 //
-// Real, deliberate scope boundary: a QaActivityType's own `fields[]`
-// schema (the dynamic review-capture form) is shown read-only here —
-// Duplicate carries it over byte-for-byte (satisfying this ticket's
-// own "clones an existing activity's full definition" acceptance
-// criterion), but building a full add/remove/reorder field-schema
-// editor is real, separate scope. This matches the ticket's own
-// framing: Duplicate, not a from-scratch wizard, is the primary
-// creation path, so relabeling/reconfiguring an existing field set is
-// the real, common case — not authoring one from nothing.
+// Batch 516 (PS-125): a Custom activity's review fields are edited here
+// (QaFieldSchemaEditor.tsx): add, reorder, relabel, make optional or
+// required, give choice fields options. A field saved before the edit is
+// never removed or retyped (Pete's schema-evolution rules,
+// services/quality/qaFieldSchemaRules.ts). Standard activities' fields stay
+// read-only. Duplicate still copies the fields byte-for-byte.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
@@ -49,6 +46,10 @@ import type { DeficiencyType } from '@/services/deficiencies/IDeficiencyService'
 import { getCurrentJurisdiction } from '@/services/retentionPolicy/RetentionPolicy';
 import { duplicateQaType } from '@/services/duplication/duplicateEntities';
 import SurgicalPeerReviewRiskWeights from './SurgicalPeerReviewRiskWeights';
+import { QaFieldSchemaEditor } from './QaFieldSchemaEditor';
+import { qaFieldSchemaProblem, isQaFieldSchemaProblem } from '@/services/quality/qaFieldSchemaRules';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Batch 432: the standard Surgical Peer Review activity type (mockQaActivityTypeService.ts).
 const SURGICAL_PEER_REVIEW_TYPE_ID = 'qa-activity-surgical-peer-review';
@@ -140,23 +141,26 @@ const QAConfigurationCenterSection: React.FC = () => {
     }
   };
 
-  const handleSave = async (u: UnifiedEntry) => {
+  const handleSave = async (u: UnifiedEntry): Promise<string | null> => {
     if (u.kind === 'review') {
-      const { id, createdAt, ...rest } = u.entry;
+      const { id, createdAt: _createdAt, ...rest } = u.entry;
       const exists = reviewTypes.some(rt => rt.id === id);
       const res = exists ? await qaActivityTypeService.update(id, rest) : await qaActivityTypeService.add(rest);
-      if (res.ok) setReviewTypes(prev => exists ? prev.map(rt => rt.id === res.data.id ? res.data : rt) : [...prev, res.data]);
+      if (!res.ok) return (res as { ok: false; error: string }).error;
+      setReviewTypes(prev => exists ? prev.map(rt => rt.id === res.data.id ? res.data : rt) : [...prev, res.data]);
     } else {
-      const { id, createdAt, ...rest } = u.entry;
+      const { id, createdAt: _createdAt, ...rest } = u.entry;
       const exists = supervisionTypes.some(rt => rt.id === id);
       const res = exists ? await qaSupervisionAssignmentTypeService.update(id, rest) : await qaSupervisionAssignmentTypeService.add(rest);
-      if (res.ok) setSupervisionTypes(prev => exists ? prev.map(rt => rt.id === res.data.id ? res.data : rt) : [...prev, res.data]);
+      if (!res.ok) return (res as { ok: false; error: string }).error;
+      setSupervisionTypes(prev => exists ? prev.map(rt => rt.id === res.data.id ? res.data : rt) : [...prev, res.data]);
     }
     setModal(null);
     setTab('custom'); // a duplicate/new-add always lands in Custom — follow it there
+    return null;
   };
 
-  if (loading) return <div className="ps-conf-section-subtitle">{t('qaConfigurationCenterSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('qaConfigurationCenterSection.loading')} />;
 
   return (
     <div>
@@ -262,7 +266,7 @@ const QAConfigurationCenterSection: React.FC = () => {
                   mode: 'add', unified: {
                     kind: 'review', entry: {
                       id: `qa-activity-${Date.now().toString(36)}`, name: '', description: '', tabScope: 'custom',
-                      fields: [{ id: 'notes', label: 'Notes', type: 'longtext', required: false, options: [] }],
+                      fields: [{ id: 'notes', label: t('qaConfigurationCenterSection.fieldEditor.defaultNotesLabel'), type: 'longtext', required: false, options: [] }],
                       teachingOnboardingEnabled: false, active: true, createdAt: '', createdBy: 'admin',
                     },
                   },
@@ -311,12 +315,17 @@ const ActivityConfigModal: React.FC<{
   duplicateOf?: string;
   deficiencyTypes: DeficiencyType[];
   subspecialties: Subspecialty[];
-  onSave: (u: UnifiedEntry) => void;
+  /** Resolves to the refusal (an error code or message), or null once saved. */
+  onSave: (u: UnifiedEntry) => Promise<string | null>;
   onClose: () => void;
 }> = ({ unified, mode, duplicateOf, deficiencyTypes, subspecialties, onSave, onClose }) => {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<UnifiedEntry>(unified);
   const isStandard = unified.entry.tabScope === 'standard' && mode === 'edit';
+  // Batch 516 (PS-125): the fields as stored before this edit (a review activity being edited).
+  const savedFields = unified.kind === 'review' ? unified.entry.fields : null;
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const fieldProblem = draft.kind === 'review' ? qaFieldSchemaProblem(mode === 'edit' ? savedFields : null, draft.entry.fields) : null;
 
   const setEntry = (patch: Partial<QaActivityType> | Partial<QaSupervisionAssignmentType>) => {
     setDraft(prev => ({ ...prev, entry: { ...prev.entry, ...patch } } as UnifiedEntry));
@@ -359,26 +368,29 @@ const ActivityConfigModal: React.FC<{
             <label className="ps-conf-label">{t('qaConfigurationCenterSection.modal.nameLabel')}</label>
             {isStandard
               ? <p className="ps-conf-identity-name">{draft.entry.name}</p>
-              : <input className="ps-conf-input" value={draft.entry.name} onChange={e => setEntry({ name: e.target.value })} />}
+              : <input aria-label={t('a11y.fields.name')} className="ps-conf-input" value={draft.entry.name} onChange={e => setEntry({ name: e.target.value })} />}
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('qaConfigurationCenterSection.modal.descriptionLabel')}</label>
             {isStandard
               ? <p className="ps-conf-section-subtitle">{draft.entry.description || '—'}</p>
-              : <textarea className="ps-conf-input ps-conf-textarea" value={draft.entry.description ?? ''} onChange={e => setEntry({ description: e.target.value })} />}
+              : <textarea aria-label={t('a11y.fields.description')} className="ps-conf-input ps-conf-textarea" value={draft.entry.description ?? ''} onChange={e => setEntry({ description: e.target.value })} />}
           </div>
 
           {draft.kind === 'review' && (
             <>
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('qaConfigurationCenterSection.modal.reviewFieldsLabel')}</label>
-                <ul>
-                  {/* f.label/f.type are the real, persisted field-schema definition
-                      (admin-authored when the field was created) - left as-is, same
-                      "real dictionary content admins type in" convention as every
-                      other real record's own name/label text in this app. */}
-                  {draft.entry.fields.map(f => <li key={f.id} className="ps-conf-section-subtitle">{f.label} ({f.type}{f.required ? `, ${t('qaConfigurationCenterSection.modal.requiredSuffix')}` : ''})</li>)}
-                </ul>
+                {/* Batch 516 (PS-125): editable for a Custom activity; a field saved
+                    before this edit can be relabelled or made optional, never
+                    removed or retyped (services/quality/qaFieldSchemaRules.ts).
+                    Labels are admin-authored data, shown as typed. */}
+                <QaFieldSchemaEditor
+                  fields={draft.entry.fields}
+                  saved={mode === 'edit' ? savedFields : null}
+                  readOnly={isStandard}
+                  onChange={fields => setEntry({ fields })}
+                />
               </div>
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">
@@ -389,7 +401,7 @@ const ActivityConfigModal: React.FC<{
               </div>
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('qaConfigurationCenterSection.modal.samplingLabel')}</label>
-                <input className="ps-conf-input" type="number" min={0} max={100} value={draft.entry.samplingPercentage ?? ''}
+                <input aria-label={t('qaConfigurationCenterSection.modal.samplingLabel')} className="ps-conf-input" type="number" min={0} max={100} value={draft.entry.samplingPercentage ?? ''}
                   onChange={e => setEntry({ samplingPercentage: e.target.value ? Number(e.target.value) : undefined })} />
                 <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">
                   {t('qaConfigurationCenterSection.modal.samplingHint')}
@@ -410,7 +422,7 @@ const ActivityConfigModal: React.FC<{
                     </label>
                   ))}
                 </div>
-                <select className="ps-conf-select" value={draft.entry.capaTriggerRule?.deficiencyTypeId ?? ''}
+                <select aria-label={t('a11y.fields.deficiencyType')} className="ps-conf-select" value={draft.entry.capaTriggerRule?.deficiencyTypeId ?? ''}
                   onChange={e => setEntry({ capaTriggerRule: { ...draft.entry.capaTriggerRule, deficiencyTypeId: e.target.value || undefined } })}>
                   <option value="">{t('qaConfigurationCenterSection.modal.noDeficiencyOption')}</option>
                   {deficiencyTypes.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -437,7 +449,7 @@ const ActivityConfigModal: React.FC<{
               {caseMixTargets.map((cmt, i) => (
                 <div key={cmt.subspecialtyId} className="ps-conf-form-row--3">
                   <span className="ps-conf-identity-name">{subspecialties.find(s => s.id === cmt.subspecialtyId)?.name ?? cmt.subspecialtyId}</span>
-                  <input
+                  <input aria-label={t('a11y.fields.minimumCount')}
                     className="ps-conf-input"
                     type="number"
                     min={1}
@@ -458,6 +470,7 @@ const ActivityConfigModal: React.FC<{
               ))}
               {unusedSubspecialties.length > 0 && (
                 <select
+                  aria-label={t('qaConfigurationCenterSection.modal.addSubspecialtyOption')}
                   className="ps-conf-select"
                   value=""
                   onChange={e => {
@@ -475,16 +488,21 @@ const ActivityConfigModal: React.FC<{
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('qaConfigurationCenterSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => setEntry({ active: !draft.entry.active })} className={`ps-conf-toggle-track ${draft.entry.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.entry.active, () => setEntry({ active: !draft.entry.active }), t('qaConfigurationCenterSection.modal.statusLabel'))} className={`ps-conf-toggle-track ${draft.entry.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.entry.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.entry.active ? t('common.active') : t('common.inactive')}</span>
             </div>
           </div>
         </div>
+        {saveError && <p className="ps-conf-hint ps-qa-field-editor-problem" role="alert">{saveError}</p>}
         <div className="ps-ms-footer">
           <button className="ps-ms-btn-cancel" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="ps-ms-btn-apply" onClick={() => onSave(draft)}>
+          <button className="ps-ms-btn-apply" disabled={!!fieldProblem} onClick={async () => {
+            // Batch 516: a refused save keeps the dialog open and says why (it used to close silently).
+            const error = await onSave(draft);
+            setSaveError(error ? t(isQaFieldSchemaProblem(error) ? `qaConfigurationCenterSection.fieldEditor.problems.${error}` : 'qaConfigurationCenterSection.fieldEditor.saveFailed') : null);
+          }}>
             {mode === 'add' ? t('qaConfigurationCenterSection.modal.saveButtons.add') : mode === 'duplicate' ? t('qaConfigurationCenterSection.modal.saveButtons.createDuplicate') : t('qaConfigurationCenterSection.modal.saveButtons.saveChanges')}
           </button>
         </div>

@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react';
 import type { MolecularBatch } from '../../services/molecular/IMolecularBatchService';
 import { resolveMolecularWorklistPayload } from '../../services/molecular/resolveMolecularWorklistPayload';
+import { formatDateTime } from '../../utils/formatDate';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
@@ -351,7 +352,8 @@ describe('MolecularPlateBuilderPage (PS-236) — dispatching the worklist', () =
 
     fireEvent.click(confirm());
     await waitFor(() => expect(dispatchMolecularWorklist).toHaveBeenCalledWith(BATCH, 'PLT-HPV-20260906-012', 'LOC-INST-PANTHER_02-SLOT_A1', SESSION, 'station-3'));
-    await waitFor(() => expect(screen.getByText(`${K}worklistDispatchedAt:${JSON.stringify({ date: new Date(dispatchedAt).toLocaleString() })}`)).not.toBeNull());
+    // Batch 513: the timestamp is formatted for the user's language (formatDateTime).
+    await waitFor(() => expect(screen.getByText(`${K}worklistDispatchedAt:${JSON.stringify({ date: formatDateTime(dispatchedAt, 'en') })}`)).not.toBeNull());
     expect(screen.queryByText(`${K}dispatchWorklist`)).toBeNull();
     expect(screen.queryByText(`${K}dispatchPanelTitle`)).toBeNull();
   });
@@ -389,7 +391,9 @@ describe('MolecularPlateBuilderPage (PS-235) — the results table\'s Trace acti
     expect(text).toContain('Ana Ruiz (u7)');
     expect(text).toContain('MASTER_MIX (LOT-7)');
     expect(within(cell).getByText(`${K}traceMovementHistory`)).not.toBeNull();
-    expect(text).toContain('primary vial → plate well — Ana Ruiz at Molecular Bench 3');
+    // Batch 513: one template key, translated level names, locale-formatted time.
+    expect(text).toContain(`${K}movementLine:`);
+    expect(text).toContain(`"from":"${K}movementLevel.primary_vial","to":"${K}movementLevel.plate_well","user":"Ana Ruiz","station":"Molecular Bench 3"`);
 
     fireEvent.click(screen.getByText(`${K}hide`));
     expect(screen.queryByText(`${K}tracePlateUuid`)).toBeNull();

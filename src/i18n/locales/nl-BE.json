@@ -37,6 +37,9 @@
     "fields": {
       "accession": {
         "familyNames": "Familienaam/familienamen"
+      },
+      "staff": {
+        "lastName": "Familienaam"
       }
     }
   },

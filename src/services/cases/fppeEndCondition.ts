@@ -14,7 +14,17 @@
 // the one real source of truth all three call.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { FppeAssignment } from '@/types/case/FppeAssignment';
+import type { QaSupervisionEndCondition } from '@/types/quality/QaSupervisionAssignmentType';
+
+/** What progress needs from a supervision assignment (FPPE or any other
+ *  supervision-style QA activity). Batch 515 (PS-124): typed against the
+ *  generic QaSupervisionAssignment fields now that the legacy FppeAssignment
+ *  type is retired. */
+export interface SupervisionProgressSubject {
+  startedAt: string;
+  endCondition: QaSupervisionEndCondition;
+  casesReviewedCount: number;
+}
 
 export interface FppeProgress {
   /** Days elapsed since the assignment's startedAt, as a real, fractional
@@ -39,7 +49,7 @@ export interface FppeProgress {
   met: boolean;
 }
 
-export function computeFppeProgress(a: FppeAssignment): FppeProgress {
+export function computeFppeProgress(a: SupervisionProgressSubject): FppeProgress {
   const daysSinceStart = (Date.now() - new Date(a.startedAt).getTime()) / 86400000;
 
   if (a.endCondition.type === 'case_count') {

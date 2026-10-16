@@ -1,12 +1,15 @@
 # data/templates/
 
-27 CAP/RCPath-style synoptic reporting protocol templates, split into three subfolders by kind.
+31 synoptic reporting protocol templates, split into four subfolders by kind.
 
 ## Subfolders
 
-- **`generic/`** (18 files) — the main organ-system protocols (breast, prostate, kidney, lung, colon). Both US CAP and UK RCPath protocols currently live here despite the folder name.
-- **`Cytology/`** (5 files) — cytology-specific protocols (FNA, urine).
+- **`generic/`** (22 files) — the main organ-system protocols (breast, prostate, kidney, lung, colon, skin melanoma, Wilms) plus PathScribe-authored Mohs, oral cavity and neck dissection synoptics. Both US CAP and UK RCPath protocols currently live here despite the folder name.
+- **`Cytology/`** (5 files) — cytology-specific protocols (FNA, urine, pancreaticobiliary).
 - **`Grossing/`** (3 files) — grossing-specific templates (fluid cytology, histology-only, standard tissue).
+- **`Autopsy/`** (1 file, plus its test) — `autopsy_gross_examination.json`, the autopsy gross examination template. No README of its own.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): 31 templates, `generic/` has 22, and the `Autopsy/` subfolder was missing from this list.*
 
 ## Batch 461
 
@@ -53,4 +56,8 @@ The PathScribe prostate templates gain the "Anatomical map (PathScribe)" questio
 `generic/`: colorectal molecular questions and breast HER2 ISH bound to molecular results.
 
 ---
-*See [data/README.md](../README.md) for the full verification notes (JSON validity, duplicate-ID checks, schema consistency) covering all 27 files.*
+*See [data/README.md](../README.md) for the full verification notes (JSON validity, duplicate-ID checks, schema consistency) covering the templates (written when there were 27; there are 31 now).*
+
+## Batch 519
+
+`generic/`: free-text lymph node counts in seven templates (PS-494). `Cytology/`: on the shared template model and editable in the Synoptic Library (PS-273).

@@ -8,20 +8,21 @@
 // which Case(s) should actually move — never auto-moves anything.
 //
 // Deliberately conservative: nothing here bypasses
-// mockPatientIndexService.moveCaseToPatient()'s own real safety check
+// patientIndexService.moveCaseToPatient()'s own real safety check
 // (a case must genuinely belong to the claimed source before it can
 // move) — this modal is a human-driven front end for that same real
 // operation, not a second, parallel implementation.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
-import { interfaceExceptionService, orderIntakeService, specimenDictionaryService } from '@/services';
+
+import { interfaceExceptionService, orderIntakeService, specimenDictionaryService, patientIndexService } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import type { InterfaceException } from '@/services/interfaceExceptions/IInterfaceExceptionService';
 import type { MasterPatientRecord } from '@/services/patients/IPatientIndexService';
 import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
 import { SearchableCombobox } from '@/components/Common/SearchableCombobox';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface CaseSummary {
   id: string;
@@ -65,8 +66,8 @@ const InterfaceExceptionReviewModal: React.FC<Props> = ({ exception, requestedBy
     (async () => {
       setLoading(true);
       const [sourceRes, targetRes, allCasesRes] = await Promise.all([
-        exception.sourcePatientId ? mockPatientIndexService.getById(exception.sourcePatientId) : Promise.resolve(undefined),
-        exception.targetPatientId ? mockPatientIndexService.getById(exception.targetPatientId) : Promise.resolve(undefined),
+        exception.sourcePatientId ? patientIndexService.getById(exception.sourcePatientId) : Promise.resolve(undefined),
+        exception.targetPatientId ? patientIndexService.getById(exception.targetPatientId) : Promise.resolve(undefined),
         caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true } as any),
       ]);
       if (cancelled) return;
@@ -114,7 +115,7 @@ const InterfaceExceptionReviewModal: React.FC<Props> = ({ exception, requestedBy
     let movedCount = 0;
     const failures: string[] = [];
     for (const caseId of selectedCaseIds) {
-      const result = await mockPatientIndexService.moveCaseToPatient(caseId, exception.sourcePatientId, exception.targetPatientId, now);
+      const result = await patientIndexService.moveCaseToPatient(caseId, exception.sourcePatientId, exception.targetPatientId, now);
       if (result.moved) movedCount++;
       else failures.push(`${caseId}: ${result.reason ?? 'unknown reason'}`);
     }
@@ -186,7 +187,7 @@ const InterfaceExceptionReviewModal: React.FC<Props> = ({ exception, requestedBy
           <div className="ps-iexc-reason-banner">{exception.reason}</div>
 
           {loading ? (
-            <div className="ps-iexc-loading">{t('interfaceExceptionReviewModal.loadingDetails')}</div>
+            <LoadingState variant="inline" className="ps-iexc-loading" label={t('interfaceExceptionReviewModal.loadingDetails')} />
           ) : (
             <>
               <div className="ps-iexc-patient-row">
@@ -195,7 +196,7 @@ const InterfaceExceptionReviewModal: React.FC<Props> = ({ exception, requestedBy
                   {sourcePatient ? (
                     <>
                       <div className="ps-iexc-patient-name" data-phi="name">{sourcePatient.firstName} {sourcePatient.lastName}</div>
-                      <div className="ps-iexc-patient-meta" data-phi="true">MRN: {sourcePatient.mrn} · DOB: {sourcePatient.dateOfBirth}</div>
+                      <div className="ps-iexc-patient-meta" data-phi="true">{t('common.patientIds.mrnDobLabelled', { mrn: sourcePatient.mrn, dob: sourcePatient.dateOfBirth })}</div>
                     </>
                   ) : (
                     <div className="ps-iexc-patient-unresolved" data-phi="true">
@@ -211,7 +212,7 @@ const InterfaceExceptionReviewModal: React.FC<Props> = ({ exception, requestedBy
                   {targetPatient ? (
                     <>
                       <div className="ps-iexc-patient-name" data-phi="name">{targetPatient.firstName} {targetPatient.lastName}</div>
-                      <div className="ps-iexc-patient-meta" data-phi="true">MRN: {targetPatient.mrn} · DOB: {targetPatient.dateOfBirth}</div>
+                      <div className="ps-iexc-patient-meta" data-phi="true">{t('common.patientIds.mrnDobLabelled', { mrn: targetPatient.mrn, dob: targetPatient.dateOfBirth })}</div>
                     </>
                   ) : (
                     <div className="ps-iexc-patient-unresolved" data-phi="true">

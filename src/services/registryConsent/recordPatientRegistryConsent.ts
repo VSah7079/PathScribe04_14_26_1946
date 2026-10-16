@@ -9,7 +9,6 @@ import type { Patient } from '@/types/case/Patient';
 import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
 import { updateCaseWithRetry } from '../cases/caseWrite';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface RecordRegistryConsentDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
   getCase: (caseId: string) => Promise<{ id: string; patient: Patient; version?: number } | null | undefined>;

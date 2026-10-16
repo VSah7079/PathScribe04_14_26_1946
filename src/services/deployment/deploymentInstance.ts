@@ -17,6 +17,7 @@
 // screen: nothing in the app changes it.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 export type InstanceRole = 'production' | 'validation';
 
 export function instanceRoleFrom(raw: unknown): InstanceRole {
@@ -26,9 +27,8 @@ export function instanceRoleFrom(raw: unknown): InstanceRole {
 /** What a registry payload's environment is on this kind of instance. */
 export const registryEnvironmentFor = (role: InstanceRole): 'test' | 'production' => (role === 'production' ? 'production' : 'test');
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const deploymentInstance = {
-  role: instanceRoleFrom(import.meta.env.VITE_APP_ENV) as InstanceRole,
+  role: instanceRoleFrom(appEnv().VITE_APP_ENV) as InstanceRole,
   /** The PathScribe release running here; a validation record names the release it validated. */
   release: typeof __APP_VERSION__ === 'string' && __APP_VERSION__ ? __APP_VERSION__ : 'unknown',
 };

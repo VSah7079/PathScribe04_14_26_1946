@@ -24,6 +24,19 @@ export interface CountersignRecord {
    *  (a per-subspecialty competency breakdown needs this, not
    *  Department). */
   subspecialtyId?: string;
+  /** Batch 483 (PS-359 tracker follow-up — "Cytology: case-level
+   *  countersign"): set only when the release came from cytology's
+   *  per-specimen sign-out (signOutCytologyCase.ts), never from the
+   *  surgical-pathology or autopsy release flows, which each release the
+   *  whole case's synoptic work in one action and so never needed a
+   *  specimen of their own. A cytology case can carry more than one
+   *  specimen whose countersign needs are released independently, at
+   *  different times, by different residents — without this, a second
+   *  specimen's release (mockCountersignService.release) would replace
+   *  the first specimen's still-pending record outright, discarding its
+   *  snapshot. With it, release() only ever replaces a PRIOR pending
+   *  record for that SAME specimen. */
+  specimenId?: string;
 
   residentId: string;
   residentName: string;

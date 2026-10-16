@@ -6,7 +6,6 @@ import { caseRouter } from '../cases/CaseRouter';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const recordPatientRegistryConsentDeps: RecordRegistryConsentDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   getCase: caseId => caseRouter.getCase(caseId) as any,

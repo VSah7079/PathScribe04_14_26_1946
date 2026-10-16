@@ -17,4 +17,4 @@ review (`hooks/useScreenCapture.ts`, `PRIORITY_FIXES.md` item #34) —
 this mock data file was already set up to support testing it properly,
 which is a good sign for how deliberately that feature was originally
 built, even though the actual bug slipped through until this review's
-empirical pixel-sampling test caught it.
+empirical pixel-sampling test caught it. *(`PRIORITY_FIXES.md` has since been retired (Aug 19, 2026); its open items became Jira PS-57 to PS-71 — see `docs/ARCHIVE.md`. Checked in the Batch 496 README audit.)*

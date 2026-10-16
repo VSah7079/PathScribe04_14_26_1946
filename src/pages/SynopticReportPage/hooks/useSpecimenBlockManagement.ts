@@ -50,7 +50,7 @@ import { UNSTAINED_LABEL } from '@/types/case/Specimen';
 import type { SigningUser, SetConcurrencyConflict } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
 import { useCassetteScanVerification } from './useCassetteScanVerification';
-import { printSettingsService, specimenDeficiencyService, auditService as mockAuditService } from '@/services/index';
+import { printSettingsService, specimenDeficiencyService, auditService } from '@/services/index';
 import type { PrintSettingsConfig, CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import { dispatchCassetteLabel, dispatchMatrixCassetteLabel } from '@/utils/labels/dispatchCassetteLabel';
@@ -299,7 +299,9 @@ export function useSpecimenBlockManagement({
 
   const printCassetteForBlock = useCallback((specimenLabel: string, blockLabel: string) => {
     if (!caseData) return;
-    const cassetteId = cassetteIdentifier(caseData.accession.fullAccession, specimenLabel, blockLabel);
+    // Same fallback the scan resolver matches on (resolveMaterialFromScan.ts).
+    const fullAccession = caseData.accession.fullAccession ?? caseData.id;
+    const cassetteId = cassetteIdentifier(fullAccession, specimenLabel, blockLabel);
     // Real, per direct follow-up flagging a real, confirmed gap: this
     // block's own real tissueDescription (editable via
     // BlockStainEditorModal.tsx) never actually reached the printed
@@ -310,7 +312,7 @@ export function useSpecimenBlockManagement({
       .find(s => s.label === specimenLabel)?.blocks
       ?.find(b => b.label === blockLabel);
     dispatchCassetteLabel({
-      fullAccession: caseData.accession.fullAccession,
+      fullAccession,
       specimenLabel,
       blockLabel,
       cassetteId,
@@ -320,7 +322,7 @@ export function useSpecimenBlockManagement({
     // call above.
     attemptPrintedLabel('cassette', async (printer, gtin, cassetteLabelLayout) => {
       const result = await printCassetteLabel({
-        fullAccession: caseData.accession.fullAccession, specimenLabel, blockLabel, cassetteId,
+        fullAccession, specimenLabel, blockLabel, cassetteId,
         patientName: `${caseData.patient.givenNames} ${caseData.patient.familyNames}`.trim(),
         tissueDescription: block?.tissueDescription,
       }, printer, gtin, cassetteLabelLayout);
@@ -341,7 +343,7 @@ export function useSpecimenBlockManagement({
     if (!caseData) return;
     const matrixBlock = (caseData.matrixBlocks ?? []).find(m => m.id === matrixBlockId);
     if (!matrixBlock) return;
-    const fullAccession = caseData.accession.fullAccession;
+    const fullAccession = caseData.accession.fullAccession ?? caseData.id; // as printCassetteForBlock
     const cassetteId = matrixBlockIdentifier(fullAccession, matrixBlock.label);
     const specimenLabels = matrixBlock.participants.map(p =>
       (caseData.specimens ?? []).find(s => s.id === p.specimenId)?.label ?? '?');
@@ -438,9 +440,10 @@ export function useSpecimenBlockManagement({
   // applies equally here).
   const printSlideForStain = useCallback((specimenLabel: string, blockLabel: string, level: string, stainName: string) => {
     if (!caseData) return;
-    const slideId = slideIdentifier(caseData.accession.fullAccession, specimenLabel, blockLabel, level);
+    const fullAccession = caseData.accession.fullAccession ?? caseData.id; // as printCassetteForBlock
+    const slideId = slideIdentifier(fullAccession, specimenLabel, blockLabel, level);
     dispatchSlideLabel({
-      fullAccession: caseData.accession.fullAccession,
+      fullAccession,
       specimenLabel, blockLabel, level, stainName, slideId,
     }).catch(console.error);
     // Real, purely additive — see attemptPrintedLabel's own doc
@@ -448,7 +451,7 @@ export function useSpecimenBlockManagement({
     // above.
     attemptPrintedLabel('slide', async (printer, gtin, _cassetteLabelLayout) => {
       const result = await printSlideLabel({
-        fullAccession: caseData.accession.fullAccession, specimenLabel, blockLabel, level, stainName, slideId,
+        fullAccession, specimenLabel, blockLabel, level, stainName, slideId,
       }, printer, gtin);
       return result.ok ? { ok: true } : { ok: false, message: (result as { ok: false; message: string }).message };
     }).catch(console.error);
@@ -690,7 +693,7 @@ export function useSpecimenBlockManagement({
         const wasComplete = !!block.externalId && !!block.externalIdSource;
         const isNowComplete = !!mergedExternalId && !!mergedExternalIdSource;
         if (isNowComplete && (!wasComplete || mergedExternalId !== block.externalId)) {
-          mockAuditService.logEvent({
+          auditService.logEvent({
             type: 'system',
             event: 'Foreign ID Bound',
             detail: `Block ${sp?.label ?? ''}${block.label} bound to foreign id "${mergedExternalId}" (source: ${mergedExternalIdSource}).`,
@@ -1018,9 +1021,10 @@ export function useSpecimenBlockManagement({
     // failure here must never block or roll back a block that's
     // already been successfully created and saved above.
     if (printSettings?.defaultPrintBehavior === 'on_demand') {
-      const newCassetteId = cassetteIdentifier(caseData.accession.fullAccession, sp.label, newBlock.label);
+      const fullAccession = caseData.accession.fullAccession ?? caseData.id; // as printCassetteForBlock
+      const newCassetteId = cassetteIdentifier(fullAccession, sp.label, newBlock.label);
       dispatchCassetteLabel({
-        fullAccession: caseData.accession.fullAccession,
+        fullAccession,
         specimenLabel: sp.label,
         blockLabel: newBlock.label,
         cassetteId: newCassetteId,
@@ -1228,7 +1232,7 @@ export function useSpecimenBlockManagement({
         const wasComplete = !!decant.externalId && !!decant.externalIdSource;
         const isNowComplete = !!mergedExternalId && !!mergedExternalIdSource;
         if (isNowComplete && (!wasComplete || mergedExternalId !== decant.externalId)) {
-          mockAuditService.logEvent({
+          auditService.logEvent({
             type: 'system',
             event: 'Foreign ID Bound',
             detail: `Decant ${sp?.label ?? ''}${decant.label} bound to foreign id "${mergedExternalId}" (source: ${mergedExternalIdSource}).`,
@@ -1506,7 +1510,7 @@ export function useSpecimenBlockManagement({
         const wasComplete = !!matrixBlock.externalId && !!matrixBlock.externalIdSource;
         const isNowComplete = !!mergedExternalId && !!mergedExternalIdSource;
         if (isNowComplete && (!wasComplete || mergedExternalId !== matrixBlock.externalId)) {
-          mockAuditService.logEvent({
+          auditService.logEvent({
             type: 'system',
             event: 'Foreign ID Bound',
             detail: `Matrix Block ${matrixBlock.label} bound to foreign id "${mergedExternalId}" (source: ${mergedExternalIdSource}).`,

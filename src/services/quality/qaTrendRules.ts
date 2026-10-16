@@ -58,7 +58,8 @@ export function qaTrendPolicyProblem(p: QaTrendPolicy): QaTrendPolicyProblem | n
 /** The start of a window ending now, months back (calendar months). */
 export function windowStart(now: Date, months: number): Date {
   const d = new Date(now);
-  d.setMonth(d.getMonth() - months);
+  // Batch 504: UTC arithmetic, so the window is the same whatever device runs it.
+  d.setUTCMonth(d.getUTCMonth() - months);
   return d;
 }
 

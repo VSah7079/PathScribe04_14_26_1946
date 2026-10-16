@@ -7,27 +7,31 @@
 //      Clinical-Pathologic Correlation ends the check);
 //   2. PS-144 — the peer-review gate, only where it is switched on.
 // Decisions: services/clinical/detectClinicalPathologicMismatch.ts and
-// services/quality/peerReviewStatus.ts.
+// services/quality/peerReviewStatus.ts. Batch 523: the inputs and the
+// "already decided" rule moved to services/clinical/clinicalMismatchInputs.ts,
+// and the autopsy FAD check is here too.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { clinicalMismatchService, peerReviewStatusFor, qaActivityRecordService, type ClinicalMismatchSuggestion, type PeerReviewStatus } from '@/services';
-import { CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID } from '@/services/quality/capaRecommendationRules';
-import { malignantNow } from '@/services/quality/peerReviewRules';
-import { clinicalHistoryText } from '@/services/clinical/clinicalHistoryText';
+import { clinicalMismatchService, peerReviewStatusFor, type ClinicalMismatchAssessment, type PeerReviewStatus } from '@/services';
+import { autopsyMismatchInput, caseSpecimenTypeIds, surgicalMismatchInput } from '@/services/clinical/clinicalMismatchInputs';
 import type { Case } from '@/types/case/Case';
 
-/** The mismatch suggestion to decide before sign-out, or null. */
-export async function checkClinicalMismatch(caseData: Case): Promise<ClinicalMismatchSuggestion | null> {
-  const records = await qaActivityRecordService.getAll().catch(() => null);
-  if (records?.ok && records.data.some(r => r.caseId === caseData.id && r.activityTypeId === CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID)) return null;
-  const res = await clinicalMismatchService.detect({
-    clinicalIndication: caseData.order?.clinicalIndication ?? '',
-    clinicalHistory: clinicalHistoryText(caseData.order?.clinicalHistory),
-    microscopic: caseData.diagnostic?.microscopicDescription ?? '',
-    diagnosis: caseData.diagnostic?.primaryDiagnosis ?? '',
-    malignantNow: malignantNow(caseData),
-  }).catch(() => null);
-  return res?.ok ? res.data : null;
+// Batch 530 (PS-554): Gate B. Only a high-risk mismatch (a Block rule
+// reached) comes back to be decided; a low-risk one is logged to the QA
+// dashboard and sign-out goes on (clinicalMismatchService.atSignOut).
+const meta = (c: Case, discipline: 'surgical' | 'autopsy') => ({
+  caseType: c.specimens?.[0]?.description || c.id, subspecialtyId: c.subspecialtyId,
+  clinicalIndication: c.order?.clinicalIndication, discipline,
+});
+
+/** The high-risk mismatch to decide before sign-out, or null. */
+export async function checkClinicalMismatch(caseData: Case): Promise<ClinicalMismatchAssessment | null> {
+  return clinicalMismatchService.atSignOut(surgicalMismatchInput(caseData), { caseId: caseData.id }, caseSpecimenTypeIds(caseData), meta(caseData, 'surgical'));
+}
+
+/** Batch 523 (decision 15): the same check before an autopsy's FAD is signed, against the report sections on screen. */
+export async function checkAutopsyClinicalMismatch(caseData: Case, sections?: readonly { label?: string; text?: string }[]): Promise<ClinicalMismatchAssessment | null> {
+  return clinicalMismatchService.atSignOut(autopsyMismatchInput(caseData, sections), { caseId: caseData.id }, caseSpecimenTypeIds(caseData), meta(caseData, 'autopsy'));
 }
 
 /** The peer-review status when it stops sign-out, or null. */

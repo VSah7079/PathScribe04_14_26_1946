@@ -30,7 +30,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { formatFullDisplayName } from '@/utils/personName';
+import { formatDisplayNameForLanguage } from '@/utils/personName';
 import { actionRegistryService } from '@/services';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { CASE_STATUS_LABEL_KEY } from '@/utils/search/caseSearchLabels';
@@ -146,7 +146,7 @@ const AddOnOrderPage: React.FC = () => {
           <h1 className="ps-addon-title">{t('addOnOrder.pageTitle')}</h1>
         </div>
         <div className="ps-addon-search-row">
-          <input
+          <input aria-label={t('addOnOrder.search.placeholder') as string}
             className="ps-addon-scan-input"
             placeholder={t('addOnOrder.search.placeholder') as string}
             value={searchInput}
@@ -162,12 +162,12 @@ const AddOnOrderPage: React.FC = () => {
   }
 
   const caseData = w.caseData;
-  const patientName = formatFullDisplayName({
+  const patientName = formatDisplayNameForLanguage({
     namePrefix: caseData.patient.namePrefix,
     givenNames: caseData.patient.givenNames ?? caseData.patient.firstName,
     familyNames: caseData.patient.familyNames ?? caseData.patient.lastName,
     nameSuffix: caseData.patient.nameSuffix,
-  });
+  }, i18n.language);
   const fullAccession = caseData.accession.fullAccession ?? caseData.accession.accessionNumber;
 
   return (

@@ -39,6 +39,7 @@ import ActiveProtocolsSection from './ActiveProtocolsSection';
 import ReviewQueueSection     from './ReviewQueueSection';
 import AllProtocolsSection    from './AllProtocolsSection';
 import { useConfigNavigationGuard } from '../configDirtyGuardContext';
+import { pressable } from '@/utils/a11y/pressable';
 
 type Section = 'active' | 'review' | 'all';
 
@@ -78,7 +79,7 @@ const ProtocolsTab: React.FC = () => {
           return (
             <div
               key={item.id}
-              onClick={() => guardNav(() => setSection(item.id))}
+              {...pressable(() => guardNav(() => setSection(item.id)))}
               className={`ps-protocols-tab-nav-item${isActive ? ' ps-protocols-tab-nav-item--active' : ''}`}
             >
               <div className={`ps-protocols-tab-nav-item-label${isActive ? ' ps-protocols-tab-nav-item-label--active' : ''}`}>

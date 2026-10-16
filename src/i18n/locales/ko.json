@@ -1,4 +1,68 @@
 {
+  "a11y": {
+    "cellLabel": "{{column}}: {{row}}",
+    "fields": {
+      "active": "활성",
+      "block": "블록",
+      "code": "코드",
+      "colour": "색상",
+      "consultLink": "자문 링크",
+      "dailyCap": "일일 한도",
+      "dateFrom": "시작 날짜",
+      "dateTo": "종료 날짜",
+      "deficiencyType": "결함 유형",
+      "description": "설명",
+      "displayText": "표시 텍스트",
+      "enabled": "사용",
+      "facility": "기관",
+      "font": "글꼴",
+      "fontSize": "글꼴 크기",
+      "generalCategorization": "일반 분류",
+      "inkColour": "잉크 색상",
+      "laterality": "측성",
+      "minimumCount": "최소 개수",
+      "modality": "방식",
+      "name": "이름",
+      "nameSuffix": "이름 접미사",
+      "nomenclatureSystem": "명명 체계",
+      "observedCount": "관찰된 개수",
+      "pageSize": "페이지 크기",
+      "pieceCount": "조각 수",
+      "questionText": "질문 텍스트",
+      "questionType": "질문 유형",
+      "registry": "등록처",
+      "reprintReason": "재인쇄 사유",
+      "resultState": "결과 상태",
+      "reviewMode": "검토 방식",
+      "routing": "라우팅",
+      "scope": "범위",
+      "screeningStrategy": "선별검사 전략",
+      "severityRank": "중증도 순위",
+      "staffMember": "직원",
+      "stain": "염색",
+      "subspecialty": "세부 전문 분야",
+      "suites": "수술실",
+      "title": "제목",
+      "viewer": "뷰어",
+      "width": "너비",
+      "zplOutput": "ZPL 출력"
+    },
+    "filters": {
+      "country": "국가로 필터링",
+      "facility": "기관으로 필터링",
+      "lab": "검사실로 필터링",
+      "level": "수준으로 필터링",
+      "qcState": "QC 상태로 필터링",
+      "role": "역할로 필터링",
+      "site": "사이트로 필터링",
+      "source": "출처로 필터링",
+      "status": "상태로 필터링"
+    },
+    "labelCanvas": "라벨 레이아웃",
+    "messageType": "메시지 유형",
+    "scrollableTable": "스크롤 가능한 표",
+    "showDetails": "세부 정보 보기"
+  },
   "abnormalTriggerRulesSection": {
     "addButton": "+ 트리거 규칙 추가",
     "enterpriseToggle": {
@@ -185,6 +249,7 @@
         "screening": "검진",
         "symptoms": "증상"
       },
+      "flaggedNotBlocked": "임상 병력이 아직 기록되지 않음: {{fields}}. 지금 접수할 수 있으며 병력은 나중에 추가할 수 있습니다. 불일치 검사는 이를 기다립니다.",
       "heading": "구조화된 임상 병력",
       "hint": "Alt+1–6으로 범주 이동 · 입력하여 검색 · Enter로 선택 · Esc로 닫기",
       "historyItem": "병력 항목",
@@ -317,6 +382,8 @@
       "keepTyping": "계속 입력하세요…",
       "label": "오더에서 가져오기 (대기 중 {{count}}건) — 선택 사항",
       "noMatch": "일치하는 대기 오더가 없습니다.",
+      "orderMeta": "{{authority}} · {{source}} · {{priority}}",
+      "priorityRoutine": "일반",
       "search": "검색",
       "searchPlaceholder": "오더 번호, MRN, 환자 이름, 생년월일({{format}}) 또는 시설 코드로 검색…",
       "typeAtLeast2": "대기 중인 오더를 검색하려면 2자 이상 입력하세요."
@@ -640,6 +707,7 @@
     "appliedElsewhere": "다른 곳에 적용됨",
     "appliedNTimes": "{{count}}회 적용됨 — 클릭하여 다른 인스턴스 추가",
     "appliedTimesLabel": "적용됨 ×{{count}}",
+    "applyAgainLabel": "{{applied}}: 다시 적용",
     "applyCode": "코드 적용",
     "applyingTo": "적용 대상:",
     "assistModeNote": "지원 모드: 이는 RVU/생산성 추적 용도로만 CPT 코드를 기록합니다 — 이 케이스의 실제 청구는 LIS에서 관리합니다.",
@@ -1008,6 +1076,83 @@
       "question": "병원 전체의 AI 서술 성능을 찾고 계신가요?"
     }
   },
+  "aiInstructionsSection": {
+    "approved": "승인됨: 이제 검사에 사용됩니다",
+    "disciplineAria": "분야",
+    "disciplines": {
+      "autopsy": "부검",
+      "cytology": "세포병리",
+      "surgical": "외과병리"
+    },
+    "edit": {
+      "count": "{{max}}자 중 {{length}}자",
+      "description": "저장하면 승인 대기 중인 새 버전이 만들어집니다. 여기서는 지침만 변경할 수 있으며, 증례 정보와 검사가 읽는 응답 형식은 고정됩니다.",
+      "label": "AI 지침",
+      "save": "승인 요청으로 저장",
+      "title": "편집"
+    },
+    "history": {
+      "approved": "{{name}}님 승인, {{date}}.",
+      "line": "버전 {{version}}({{status}}): {{editor}}님 편집, {{edited}}.",
+      "rejected": "{{name}}님 반려, {{date}}: {{reason}}",
+      "title": "이력"
+    },
+    "inUse": {
+      "approvedBy": "{{date}}에 {{name}}님이 승인했습니다.",
+      "builtIn": "PathScribe 기본 지침으로, 릴리스와 함께 승인되었습니다.",
+      "title": "사용 중: 버전 {{version}}"
+    },
+    "notPermitted": "현재 역할로는 AI 지침을 볼 수 없습니다.",
+    "pending": {
+      "approve": "승인",
+      "editedBy": "{{date}}에 {{name}}님이 편집했습니다. 승인되기 전에는 검사에 사용되지 않습니다.",
+      "reasonLabel": "반려 사유",
+      "reasonPlaceholder": "사유(반려 시 필수)",
+      "reject": "반려",
+      "title": "승인 대기: 버전 {{version}}",
+      "youEdited": "이 텍스트를 편집하셨으므로 다른 사람이 승인해야 합니다."
+    },
+    "pendingBadge": "승인 대기",
+    "problems": {
+      "CONFIG_NOT_PERMITTED": "저장되지 않음: 현재 역할로는 허용되지 않습니다.",
+      "SELF_APPROVAL": "이 텍스트를 편집하셨으므로 승인할 수 없습니다.",
+      "empty": "먼저 지침을 입력하십시오.",
+      "error": "문제가 발생했습니다. 다시 시도하십시오.",
+      "notFound": "해당 버전이 더 이상 없습니다. 페이지를 새로 고치십시오.",
+      "notPending": "해당 버전은 이미 결정되었습니다.",
+      "reasonRequired": "반려 사유를 입력하십시오.",
+      "tooLong": "지침이 너무 깁니다.",
+      "unchanged": "현재 버전과 달라진 내용이 없습니다."
+    },
+    "rejected": "반려됨",
+    "saved": "승인 요청으로 저장되었습니다",
+    "status": {
+      "approved": "사용 중",
+      "pending": "승인 대기",
+      "rejected": "반려됨",
+      "superseded": "대체됨",
+      "withdrawn": "승인 전 대체됨"
+    },
+    "subtitle": "임상-병리 불일치 검사가 분야별로 무엇을 불일치로 볼지 AI에 알려 주는 지침입니다. 검사는 승인된 텍스트만 사용합니다.",
+    "test": {
+      "description": "저장하거나 승인하기 전에 편집기의 텍스트로 이 예시 증례에 검사를 실행합니다. 예시는 가상의 것이며 자유롭게 수정할 수 있습니다. 증례에는 아무것도 기록되지 않습니다.",
+      "diagnosis": "진단",
+      "findings": "소견",
+      "history": "임상 병력",
+      "indication": "임상 적응증",
+      "malignant": "병리의사가 확인한 악성 소견",
+      "result": {
+        "mismatch": "불일치: {{kind}}(신뢰도 {{confidence}}%). {{explanation}}",
+        "none": "불일치가 발견되지 않았습니다.",
+        "notAllowed": "이 관할 지역에서는 AI를 사용할 수 없습니다. 현재 AI 서비스가 AI 공급업체 정책에서 허용되지 않습니다.",
+        "unavailable": "AI에 연결할 수 없습니다: {{message}}"
+      },
+      "run": "이 텍스트 테스트",
+      "running": "테스트 중…",
+      "title": "테스트"
+    },
+    "title": "AI 지침"
+  },
   "aiNarrativeReviewModal": {
     "discardButton": "폐기",
     "eyebrow": "AI 생성 서술",
@@ -1017,6 +1162,7 @@
     "title": "보고서에 삽입하기 전에 검토하고 편집하세요"
   },
   "aiProviderSettings": {
+    "activeSummary": "{{provider}} · {{model}}",
     "adminHeading": "AI 제공업체 — 조직 설정",
     "adminSubtitle": "이 조직의 모든 사용자에 대한 AI 제공업체를 설정합니다. API 키는 서버 측에서 관리되며 여기서는 입력하지 않습니다.",
     "awsRegionLabel": "AWS 리전",
@@ -1036,9 +1182,31 @@
     "developmentDemoGroup": "개발 및 데모",
     "errorPrefix": "오류: {{message}}",
     "failedButton": "실패",
+    "hostingRegionHint": "공급업체 기준으로 이 서비스가 실행되는 지역입니다. 각 관할 지역의 AI 공급업체 정책과 대조되며 모든 AI 호출과 함께 기록됩니다.",
+    "hostingRegionLabel": "호스팅 지역",
     "modelLabel": "모델",
+    "modelOption": {
+      "custom": "사용자 지정 모델 (엔드포인트 구성에서 설정)",
+      "fastest": "{{model}} (최고 속도)",
+      "highestAccuracy": "{{model}} (최고 정확도)",
+      "mockDemo": "{{model}} (즉시 응답, API 비용 없음 — 데모 전용)",
+      "recommended": "{{model}} (권장)",
+      "viaBedrock": "Bedrock 경유 {{model}}"
+    },
+    "policyConflict": "AI 공급업체 정책에서 다음 지역에 이 서비스 또는 지역을 허용하지 않습니다: {{places}}. 저장하면 해당 지역에서 AI 기능을 사용할 수 없습니다.",
     "productionProvidersGroup": "프로덕션 제공업체",
     "providerLabel": "AI 제공업체",
+    "providerName": {
+      "custom": "자체 호스팅 / 사용자 지정 엔드포인트",
+      "mock": "모의 — 데모 모드"
+    },
+    "providerNote": {
+      "azure": "Azure 배포 이름과 엔드포인트가 필요합니다. 키는 서버에서 관리됩니다.",
+      "bedrock": "서버의 IAM 역할 자격 증명을 사용합니다. 여기에는 API 키가 필요하지 않습니다.",
+      "custom": "OpenAI 호환 엔드포인트여야 합니다. 인증은 서버에서 관리됩니다.",
+      "mock": "API 연결이 없습니다. 즉시 결정론적 응답을 반환합니다. 데모 및 오프라인 테스트에만 사용하세요.",
+      "serverKey": "API 키는 서버에서 관리됩니다. 키를 교체하려면 PathScribe 지원팀에 문의하세요."
+    },
     "saveOrgConfigButton": "조직 구성 저장",
     "saveOverrideButton": "재정의 저장",
     "savedButton": "저장됨",
@@ -1095,6 +1263,49 @@
     "resetToDefaults": "기본값으로 재설정",
     "subtitle": "육안 및 현미경 판독을 지원하는 AI의 동작 방식을 구성합니다.",
     "title": "AI 동작"
+  },
+  "aiVendorPolicySection": {
+    "addFacility": "기관 규칙 추가",
+    "allServices": "모든 서비스",
+    "allowAll": "모든 서비스 허용",
+    "anyRegion": "모든 지역",
+    "chooseFacility": "기관 선택…",
+    "columns": {
+      "actions": "작업",
+      "allowed": "허용",
+      "inUse": "사용 중인 서비스",
+      "where": "관할 지역 또는 기관"
+    },
+    "description": "관할 지역별로 허용되는 AI 서비스와 호스팅 지역이며, 기관별로 추가 제한할 수 있습니다. 모든 AI 호출은 업무의 관할 지역 기준으로 확인되며, 허용되지 않으면 해당 기능은 AI 없이 계속 진행하고 그 사실을 표시합니다. 규칙이 없으면 모든 서비스가 허용됩니다.",
+    "edit": "편집",
+    "editing": "{{where}} 규칙",
+    "facilityNarrows": "기관 규칙은 해당 관할 지역 규칙을 더 제한합니다. 호출은 두 규칙 모두에서 허용되어야 합니다.",
+    "facilityScope": "{{facility}}({{jurisdiction}})",
+    "inUse": "사용 중: {{service}}, 모델 {{model}}, 지역 {{region}}.",
+    "noRule": "규칙 없음: 모든 서비스",
+    "problems": {
+      "CONFIG_NOT_PERMITTED": "저장되지 않음: 현재 역할로는 허용되지 않습니다.",
+      "NOT_FOUND": "해당 규칙이 더 이상 없습니다.",
+      "blankRegion": "비어 있는 지역이 있습니다.",
+      "error": "문제가 발생했습니다. 다시 시도하십시오.",
+      "noServices": "서비스를 하나 이상 허용하거나 규칙을 삭제하십시오.",
+      "regionForDisallowedService": "허용되지 않은 서비스에 지역이 설정되어 있습니다.",
+      "unknownService": "알 수 없는 AI 서비스입니다."
+    },
+    "regionNotRecorded": "기록되지 않음",
+    "regionsFor": "{{service}}: {{regions}}",
+    "regionsHint": "공급업체가 사용하는 지역 이름을 쉼표로 구분하여 입력합니다(예: eu-west-1, uksouth). 비워 두면 모든 지역이 허용됩니다. 지역이 제한된 곳에서는 지역이 기록되지 않은 호출이 거부됩니다.",
+    "regionsLabel": "{{service}} 허용 지역",
+    "remove": "규칙 삭제",
+    "save": "규칙 저장",
+    "saved": "저장됨",
+    "status": {
+      "allowed": "허용됨",
+      "regionNotAllowed": "허용되지 않음: 지역",
+      "regionUnknown": "허용되지 않음: 지역 미기록",
+      "serviceNotAllowed": "허용되지 않음: 서비스"
+    },
+    "title": "AI 공급업체 정책"
   },
   "allProtocolsSection": {
     "openEditorButton": "편집기 열기",
@@ -1295,11 +1506,23 @@
       "bodyPlaceholder": "메시지 본문…",
       "cancelButton": "취소",
       "closeButton": "닫기",
-      "deliveredTo": "NHSMail 보안 릴레이를 통해 <strong>{{to}}</strong>로 전달되었습니다.",
-      "encryptedNotice": "종단 간 암호화 · NHS DSPT 준수 · 감사 로그 기록됨",
-      "eyebrow": "🔒 NHSMail · 보안 외부 이메일",
+      "containsPatientData": "환자 또는 증례 정보 포함",
+      "deliveredTo": "{{gateway}}을(를) 통해 <strong>{{to}}</strong>에게 전달되었습니다.",
+      "encryptedNotice": "전송 중 암호화 · 감사 기록됨",
+      "eyebrow": "🔒 {{gateway}} · 보안 메시지",
+      "eyebrowNoGateway": "🔒 보안 메시지",
       "fromLabel": "보낸 사람",
-      "securityNotice": "이 메시지는 NHSMail 보안 릴레이를 통해 전송됩니다 · 종단 간 암호화 · DSPT 준수",
+      "fromValue": "{{name}} ({{address}})",
+      "gatewayLabel": "발송 경로",
+      "gatewayOption": "{{gateway}} ({{agreement}} 등록됨)",
+      "gatewayOptionNoAgreement": "{{gateway}} ({{agreement}} 없음: 환자 정보 불가)",
+      "problems": {
+        "gatewayNotAvailable": "해당 게이트웨이는 더 이상 검사실에서 사용할 수 없습니다. 다른 게이트웨이를 선택하십시오.",
+        "noAgreementForPatientData": "{{gateway}}에는 유효한 {{agreement}}이(가) 없어 환자 정보를 보낼 수 없습니다. 다른 게이트웨이를 선택하거나, 환자 정보를 빼고 확인란을 해제하십시오.",
+        "noGatewayConfigured": "검사실에 보안 메시지 게이트웨이가 설정되어 있지 않습니다. 관리자가 검사실 기관 설정의 보안 메시지에서 추가할 수 있습니다."
+      },
+      "securityNotice": "{{gateway}} 경유 발송 · {{agreement}} 등록됨 ({{reference}}) · 감사 기록됨",
+      "securityNoticeNoAgreement": "{{gateway}}에 대한 {{agreement}}이(가) 등록되어 있지 않습니다. 이 메시지에 환자 정보를 넣지 마십시오.",
       "sendButton": "안전하게 보내기",
       "sendingButton": "보내는 중…",
       "sentTitle": "메시지가 안전하게 전송되었습니다",
@@ -1307,7 +1530,9 @@
       "subjectPlaceholder": "제목…",
       "title": "새 보안 메시지",
       "toLabel": "받는 사람",
-      "toPlaceholder": "recipient@nhs.net 또는 외부 이메일…"
+      "toPlaceholder": "수신자의 보안 이메일 주소…",
+      "toRecipientIdLabel": "받는 사람 (수신자 ID)",
+      "toRecipientIdPlaceholder": "네트워크 주소록의 수신자 ID…"
     },
     "thread": {
       "baseTemplateLabel": " · 기준: {{name}}",
@@ -1590,6 +1815,7 @@
       "review": "검토",
       "scrollAria": "인터페이스 예외 항목, 스크롤 가능한 표",
       "searchPlaceholder": "이벤트 유형, 사유 검색…",
+      "subTabEngines": "엔진",
       "subTabExceptions": "인터페이스 예외",
       "subTabOutboundDispatches": "발신 전송 내역",
       "subTabOutboundDlq": "발신 인터페이스 DLQ",
@@ -1663,11 +1889,13 @@
     },
     "tabs": {
       "audit": "📋 감사 로그",
+      "consultLinks": "🔗 자문 링크",
       "criticalAlerts": "🚨 위급 알림",
       "errors": "⚠️ 오류 로그",
       "financial": "🧾 재무",
       "interfaces": "🔌 인터페이스 로그",
-      "quality": "✓ 품질 보증"
+      "quality": "✓ 품질 보증",
+      "serverJobs": "서버 작업"
     },
     "typeLabels": {
       "ai": "AI",
@@ -1706,6 +1934,16 @@
   "autopsyBodyRelease": {
     "bannerSummary": "PAD 서명이 완료되었고 보조 검사 보류가 없습니다 — 이제 시신을 인도할 수 있습니다.",
     "bannerTitle": "부검 — 시신 인도 준비 완료",
+    "blockedReasons": {
+      "ancillary_hold_active": "보조 검사 보류가 활성화되어 있는 동안에는 시신 인도가 차단됩니다.",
+      "pad_not_signed": "시신 인도에는 서명된 예비 해부학적 진단(PAD)이 필요합니다. 최종 보고서는 필요하지 않습니다."
+    },
+    "errors": {
+      "caseNotFound": "이 케이스를 찾을 수 없습니다.",
+      "conflict": "인도 내용을 저장하는 동안 케이스가 변경되었습니다. 케이스를 다시 열고 다시 시도하십시오.",
+      "noAutopsyRecord": "이 케이스에는 부검 기록이 없습니다.",
+      "specimenNotFound": "이 케이스에서 시신 검체를 찾을 수 없습니다."
+    },
     "genericError": "문제가 발생했습니다. 다시 시도해 주십시오.",
     "notPermitted": "시신을 인도할 권한이 없습니다.",
     "releasedByLabel": "인도자",
@@ -1912,6 +2150,8 @@
     "filterTileTitleActive": "표시 중: {{node}} — 클릭하여 재설정",
     "itemCount_one": "항목 {{count}}개",
     "itemCount_other": "항목 {{count}}개",
+    "labelReprintTile": "라벨 재인쇄",
+    "labelReprintTitle": "여러 증례의 라벨을 한 번에 재인쇄",
     "loading": "배치를 불러오는 중…",
     "lookupPlaceholder": "마스터 배치 바코드를 스캔하거나 입력하세요…",
     "newContainer": "새 용기",
@@ -1953,6 +2193,50 @@
     },
     "wsiScanTile": "슬라이드 스캔",
     "wsiScanTitle": "슬라이드를 스캐너에 적재하고, 배치를 전송하고, 언로드합니다"
+  },
+  "benchContributions": {
+    "accessioning": {
+      "dailyChartTitle": "일별 접수 처리",
+      "noActivity": "이 기간 동안 접수 활동이 없습니다.",
+      "perActiveHourLabel": "활동 시간당",
+      "title": "접수 처리율",
+      "totalLabel": "접수된 케이스"
+    },
+    "molecularQc": {
+      "controlsEvaluatedLabel": "평가된 대조군",
+      "noActivity": "이 기간 동안 분자 배치가 없습니다.",
+      "passRateLabel": "통과율",
+      "rerunRateLabel": "재시험율",
+      "title": "분자 QC",
+      "totalBatchesLabel": "배치"
+    },
+    "queueAging": {
+      "meanLabel": "평균 적체 시간",
+      "noOpenBatches": "이 노드에 열려 있는 배치가 없습니다.",
+      "oldestLabel": "가장 오래된 열린 배치",
+      "openBatchesLabel": "열려 있는 배치",
+      "title": "대기열 적체 — 전체 담당자"
+    },
+    "scrollRegionLabel": "작업대 기여 현황, 스크롤 가능",
+    "stageTat": {
+      "accessioningStage": "접수",
+      "cytologyTitle": "세포병리",
+      "meanLabel": "평균",
+      "medianLabel": "중앙값",
+      "noSamples": "이 기간 동안 두 단계를 모두 거친 검체가 없습니다.",
+      "sampleCount_one": "검체 {{count}}건",
+      "sampleCount_other": "검체 {{count}}건",
+      "surgicalTitle": "수술",
+      "title": "단계별 TAT"
+    },
+    "subtitle": "본인의 실제 접수, 배치, 분자 QC 활동 — 최근 {{days}}일",
+    "throughput": {
+      "itemsAddedLabel": "추가된 항목",
+      "noActivity": "이 기간 동안 배치 활동이 없습니다.",
+      "title": "내 배치 처리량"
+    },
+    "title": "현장 기여도",
+    "windowLabel": "최근 {{days}}일"
   },
   "billingCorrection": {
     "apply": "수정 저장",
@@ -2160,6 +2444,7 @@
     "collapseFilters": "필터 접기",
     "dateFrom": "시작",
     "dateTo": "종료",
+    "deleteQueryAria": "저장된 쿼리 {{name}} 삭제",
     "expandFilters": "필터 펼치기",
     "exportCsv": "CSV로 내보내기",
     "filtersCount_one": "필터 {{count}}개",
@@ -2473,6 +2758,8 @@
       "consultTitle": "외부 자문/2차 소견 액세스 (데모/파일럷 전용 — 실제 보안이 아님)",
       "delegateLabel": "위임",
       "delegateTitle": "사례 위임",
+      "flagForMdtLabel": "종양위원회",
+      "flagForMdtTitle": "종양위원회(MDT)로 지정",
       "flagsLabel": "플래그",
       "historyLabel": "이력",
       "reviewLabel": "검토 요청",
@@ -2708,6 +2995,10 @@
         "description": "감사 로그 → 청구 로그를 CSV로 다운로드합니다. 환자 이름과 식별자가 포함됩니다. 내보내기는 감사 로그에 기록됩니다.",
         "label": "청구 로그 내보내기"
       },
+      "auditConsultLinksView": {
+        "description": "감사 로그 → 자문 링크: 모든 케이스에서 외부 자문의에게 발급된 모든 링크.",
+        "label": "외부 자문 링크 보기"
+      },
       "auditErrorLogExport": {
         "description": "감사 로그 → 오류 로그를 CSV로 다운로드합니다. 내보내기는 감사 로그에 기록됩니다.",
         "label": "오류 로그 내보내기"
@@ -2756,6 +3047,10 @@
         "description": "보존된 장기 또는 조직이 어떻게, 언제 폐기되었는지 메모와 함께 기록합니다.",
         "label": "보존 장기/조직 폐기 기록"
       },
+      "autopsyRetentionTierRecord": {
+        "description": "등록된 동의 범위 내에서 부검 증례의 장기 또는 조직 보존 등급과 그 사유를 선택합니다.",
+        "label": "장기/조직 보존 등급 기록"
+      },
       "autopsyToxicologyCancel": {
         "description": "아직 보류 중인 사후 독성학 주문을 이유와 함께 취소하고, 아직 해제되지 않았다면 해당 주문으로 시작된 보류를 해제합니다.",
         "label": "독성학 주문 취소"
@@ -2792,9 +3087,21 @@
         "description": "배정된 검사실에서 청구 승인 대기 중인 청구 항목을 승인, 반려, 보류 및 보류 해제합니다. 자신이 작성한 청구 항목은 승인할 수 없습니다.",
         "label": "청구 항목 승인"
       },
+      "caseClinicalHistoryRecord": {
+        "description": "접수 후(육안 검사, 보고서 검토, 서명 시) 증례의 코드화된 임상 병력을 추가하거나 조정합니다. 서명 전까지 가능. 기본: 병리의사, 펠로우, 전공의, PA.",
+        "label": "접수 후 임상 병력 기록"
+      },
       "caseClinicalMismatchRecord": {
-        "description": "임상 소견과 병리 소견 간의 불일치 제안에 대해 결정합니다: 불일치 아님, 해결됨, 미해결(CAPA 권고).",
+        "description": "임상 소견과 병리 소견 간의 불일치 제안에 대해 결정합니다: 해결됨, 미해결(CAPA 권고), 저위험이면 2차 검토로 연기.",
         "label": "임상-병리 불일치 결정"
+      },
+      "caseConsultLinkIssue": {
+        "description": "외부 자문의에게 증례 또는 선택한 슬라이드에 대한 기간 제한 읽기 전용 링크를 제공합니다. 증례의 감사 기록에 남습니다.",
+        "label": "외부 자문 링크 발급"
+      },
+      "caseConsultLinkRevoke": {
+        "description": "외부 자문의의 링크를 만료 전에 비활성화합니다. 증례의 감사 기록에 남습니다.",
+        "label": "외부 자문 링크 취소"
       },
       "caseDecantDelete": {
         "description": "재료 탭에서 증례 재료의 디캔트를 삭제합니다. 청구가 다시 계산됩니다. 감사 기록됨.",
@@ -2823,6 +3130,14 @@
       "caseHoldRelease": {
         "description": "메모를 남기고 케이스 보류를 해제하여 작업을 계속합니다.",
         "label": "케이스 보류 해제"
+      },
+      "caseInkingGateOverride": {
+        "description": "서명을 차단하는 심각도 3(규정 준수 중요) 잉크 문제에 대한 관리자 재정의이며, 사유 입력이 필수입니다. 감사 기록됩니다.",
+        "label": "서명 시 잉크 게이트 재정의"
+      },
+      "caseMarginExceptionResolve": {
+        "description": "추출 레이어가 확실하게 읽지 못한 절제연 거리 응답의 실제 거리를 수동으로 태그하거나, 숫자 값 없이 종료합니다.",
+        "label": "절제연 거리 예외 처리"
       },
       "caseOutsideConsultAssess": {
         "description": "외부 자문의 의견이 증례와 일치하는지, 약간 다른지, 주요 불일치인지 기록합니다. 발행된 보고서에 대한 주요 불일치는 CAPA를 권고합니다.",
@@ -2856,6 +3171,22 @@
         "description": "증례 팀(증례 팀 화면)에 사람을 추가하거나 제거하며, 주 병리의사 지정도 포함합니다. 세포병리사는 병리의사 역할에 배정될 수 없습니다.",
         "label": "증례 팀 변경"
       },
+      "caseTumorBoardDismiss": {
+        "description": "규칙 엔진이 생성한 종양위원회 플래그를 사유와 함께 해제하여 규칙의 판단을 재정의합니다. 대기열 관리가 아닌 임상적 판단입니다.",
+        "label": "종양위원회 플래그 해제"
+      },
+      "caseTumorBoardFlag": {
+        "description": "증례를 종양위원회(MDT) 안건으로 지정합니다.",
+        "label": "종양위원회로 증례 플래그 지정"
+      },
+      "caseTumorBoardManage": {
+        "description": "종양위원회 등재 항목의 상태를 관리합니다: 발표완료 또는 연기로 표시하거나 수동 지정을 취소합니다. 회의 자체 일정 지정(위원회, 날짜/시간, 발표자)은 아래의 별도 권한인 '종양위원회 회의 일정 지정'에 해당합니다.",
+        "label": "종양위원회 대기열 관리"
+      },
+      "caseTumorBoardSchedule": {
+        "description": "종양위원회 회의를 사전에 일정 지정합니다: 위원회, 회의 날짜 및 시간, 발표자를 지정합니다 — 위의 더 넓은 대기열 관리 작업은 포함하지 않습니다. 일정 관리/행정 역할에 필요한 권한입니다.",
+        "label": "종양위원회 회의 일정 지정"
+      },
       "configAbnormalTriggersManage": {
         "description": "이상 결과의 기준을 정하고 탐지 기능을 켜거나 끕니다. 감사 기록됩니다.",
         "label": "이상 결과 규칙 관리"
@@ -2876,9 +3207,25 @@
         "description": "임상 제안을 생성하는 모델을 설정합니다. 감사 기록됩니다.",
         "label": "기본 AI 모델 선택"
       },
+      "configAiPromptApprove": {
+        "description": "편집된 AI 지침 버전을 승인하거나 반려합니다. 자신이 편집한 텍스트는 승인할 수 없습니다. 기본값: 검사실장. 불일치 규칙 변경 권한과 함께 보유할 수 없습니다(직무 분리).",
+        "label": "AI 지침 승인"
+      },
+      "configAiPromptEdit": {
+        "description": "불일치 검사가 AI에 제공하는 지침을 변경합니다. 편집하면 승인 대기 중인 새 버전이 되며, 검사는 계속 승인된 버전을 사용합니다. 기본 역할에는 없으므로 기관의 역할에 부여하십시오.",
+        "label": "AI 지침 편집"
+      },
+      "configAiPromptView": {
+        "description": "임상-병리 불일치 검사가 AI에 제공하는 지침과 그 버전, 승인자를 확인합니다. 기본값: 검사실장, QA 검토자.",
+        "label": "AI 지침 보기"
+      },
       "configAiProviderManage": {
         "description": "검사실이 사용할 AI 서비스와 기본 보고 모드를 선택합니다. 감사 기록됩니다.",
         "label": "AI 서비스 관리"
+      },
+      "configAiVendorPolicyManage": {
+        "description": "관할 지역 또는 기관별로 허용되는 AI 서비스와 호스팅 지역을 설정합니다. 감사 기록됨.",
+        "label": "AI 공급업체 정책 관리"
       },
       "configAssetLocationsManage": {
         "description": "검체 물질과 시신을 보관하는 장소를 추가하고 편집합니다. 감사 기록됩니다.",
@@ -2943,6 +3290,14 @@
       "configCassetteRoutingManage": {
         "description": "카세트 인쇄 및 전달 방식을 변경합니다. 감사 기록됩니다.",
         "label": "카세트 경로 관리"
+      },
+      "configClinicalMismatchRulesManage": {
+        "description": "불일치 종류와 검체 유형별로 검사가 알리고 조치하는 신뢰도와, 서명을 보류(차단)할지, 경고할지, QA에만 기록할지를 설정합니다. 기본 역할에는 없으므로 자체 역할에 부여하십시오.",
+        "label": "임상 불일치 규칙 변경"
+      },
+      "configClinicalMismatchRulesView": {
+        "description": "병리의사가 증례가 보류된 이유를 볼 수 있도록 불일치 규칙을 조회합니다. 기본: 병리의사, QA 검토자, 검사실 책임자.",
+        "label": "임상 불일치 규칙 보기"
       },
       "configConcordanceReviewManage": {
         "description": "검사실의 일치도 검토 기본값을 설정합니다. 감사 기록됩니다.",
@@ -3067,6 +3422,10 @@
       "configGrossingRoutesManage": {
         "description": "일반 경로가 적용되지 않을 때 검체를 육안 검사할 장소를 정합니다. 감사 기록됩니다.",
         "label": "육안 검사 경로 예외 관리"
+      },
+      "configInkColorManage": {
+        "description": "그로싱 시 사용되고 서명 시 검증되는 절제연 잉크 색상을 추가, 수정, 비활성화합니다. 감사 기록됨.",
+        "label": "잉크 색상 사전 관리"
       },
       "configInkingValidationModeManage": {
         "description": "절제연이 검사되지 않았거나 잉킹되지 않은 경우 사이트가 서명 시 경고(기본값)할지 강력히 차단할지 선택합니다. 감사 기록됨.",
@@ -3216,9 +3575,21 @@
         "description": "각 기관이 보고할 자궁경부암 검진 등록 기관을 선택하고, 등록 기관별 코드 매핑과 전송 대신 보류할 항목을 설정합니다. 감사 기록에 남습니다.",
         "label": "검진 등록 기관 보고 관리"
       },
+      "configSecureMessagingManage": {
+        "description": "검사실의 보안 메시지 게이트웨이를 선택하고 게이트웨이별 BAA 또는 개인정보 처리 위탁 계약을 기록합니다. 감사 기록됨.",
+        "label": "보안 메시지 게이트웨이 관리"
+      },
       "configSessionSecurityManage": {
         "description": "모든 사용자의 유휴 로그아웃 시간을 설정합니다. 감사 기록됩니다.",
         "label": "세션 시간 제한 관리"
+      },
+      "configSiteAgentConfigManage": {
+        "description": "사이트 에이전트가 사용하는 프린터와 파일 공유를 추가·변경·삭제합니다. 에이전트 컴퓨터의 병원 허용 목록이 여전히 접근 범위를 결정합니다. 감사 기록됨.",
+        "label": "사이트 에이전트 프린터 및 공유 관리"
+      },
+      "configSiteAgentsEnroll": {
+        "description": "사이트 에이전트 설치용 일회용 등록 코드를 만들고 에이전트를 폐기합니다(즉시 차단). 사이트 시설 기준. 감사 기록됨.",
+        "label": "사이트 에이전트 등록 및 폐기"
       },
       "configSpecimenDictionaryManage": {
         "description": "검체 유형과 기본값을 추가하고 편집합니다. 감사 기록됩니다.",
@@ -3268,6 +3639,10 @@
         "description": "케이스에 적용할 보고서 템플릿을 정합니다. 감사 기록됩니다.",
         "label": "템플릿 배정 규칙 관리"
       },
+      "configTumorBoardRulesManage": {
+        "description": "증례를 종양위원회로 자동 플래그하는 절제연 거리 임계값을 기업 수준과 각 시설별 재정의로 설정합니다. 감사 기록됩니다.",
+        "label": "종양위원회 자동 플래그 규칙 관리"
+      },
       "configValidationStudiesManage": {
         "description": "방법 검증 연구를 생성, 편집, 제출, 활성화, 종료합니다. 감사 기록됩니다.",
         "label": "검증 연구 관리"
@@ -3312,6 +3687,10 @@
         "description": "워크리스트의 세포병리 검토 타일에서 양성 부인과 세포병리 증례를 인수합니다. 본인이 해당 증례의 병리의사가 되며, 세포병리사는 증례에 그대로 남습니다.",
         "label": "양성 부인과 세포병리 증례 검토 인수"
       },
+      "cytologyPreliminaryRelease": {
+        "description": "증례 보고서보다 먼저 검체 하나의 결과를 긴급 예비 보고서로 발송합니다. 기본으로 부여된 역할은 없으며, 검사실이 허용하는 역할에 부여하십시오.",
+        "label": "긴급 세포병리 예비 보고서 발송"
+      },
       "cytologyQcFlagRemove": {
         "description": "세포검사 검체에서 무작위 또는 고위험 QC 표시를 해제합니다. 표시된 동안에는 세포병리사가 재검 없이 서명할 수 없습니다. 모든 해제는 감사 기록에 남습니다.",
         "label": "세포검사 QC 표시 해제"
@@ -3348,6 +3727,10 @@
         "description": "다른 사람의 세포검사 판독에 대한 메모를 수정 필요로 표시합니다. 작성자가 수정하거나 병리과 전문의가 자체 판독을 기록할 때까지 세포병리사는 해당 검체에 서명할 수 없습니다.",
         "label": "세포검사 판독 수정 요청"
       },
+      "cytologyScreeningHoursSignOff": {
+        "description": "하루 동안의 본인 스크리닝 시간을 확인하거나 사유와 함께 수정합니다. 확인된 시간은 스크리닝 시간 기록이 되어 감독자의 업무량 보고서에 반영되며, 큰 수정은 감독자에게 표시됩니다.",
+        "label": "스크리닝 시간 확인"
+      },
       "equipmentMaintenanceRecord": {
         "description": "기기 서비스 기록에 유지보수, 교정, 고장을 기록합니다(배치 관리 → 장비 기록). 감사 기록됩니다.",
         "label": "장비 유지보수 기록"
@@ -3355,6 +3738,26 @@
       "grossingMarginInkRecord": {
         "description": "그로싱 중 수술 절제연에 적용된 잉크를 기록하고 절제연을 검사됨으로 표시합니다.",
         "label": "절제연 잉킹 적용 기록"
+      },
+      "interfaceEngineStatusView": {
+        "description": "감사 로그 → 인터페이스 → 엔진에서 각 병원의 인터페이스 엔진(리스너와 채널, 대기 항목, 최종 실패)을 봅니다. 환자 데이터는 없습니다.",
+        "label": "인터페이스 엔진 보기"
+      },
+      "interfaceOutboundResend": {
+        "description": "모든 대기열에서 실패했거나 대기 중인 발신 인터페이스 메시지를 전송, 재전송하거나 실패를 시뮬레이션합니다. 감사 기록됨.",
+        "label": "인터페이스 메시지 재전송"
+      },
+      "jobsServerJobRequeue": {
+        "description": "최종 실패한 서버 작업(전달, 보류된 공개, 청구, 내보내기, 이벤트)을 다시 보냅니다. 인터페이스 및 인쇄 작업은 각자의 권한으로 인터페이스에서 다시 보냅니다. 감사 기록됨.",
+        "label": "서버 작업 다시 대기열에 넣기"
+      },
+      "jobsServerJobView": {
+        "description": "PathScribe 서버의 백그라운드 작업(대기 또는 실행 중인 작업, 반복 작업, 최종 실패한 작업)을 봅니다(시스템 로그 → 서버 작업). 케이스 번호 외의 환자 정보는 표시되지 않습니다.",
+        "label": "서버 작업 보기"
+      },
+      "labelBatchReprint": {
+        "description": "여러 증례의 의뢰서, 용기, 카세트 라벨을 한 번에 재인쇄합니다. 라벨마다 감사 기록됩니다.",
+        "label": "라벨 일괄 재인쇄"
       },
       "messageSecureEmailSend": {
         "description": "조직 외부 주소로 보안 이메일을 보냅니다.",
@@ -3399,6 +3802,22 @@
       "platformSigningRulesManage": {
         "description": "국가별 국가 서명 규칙을 설정합니다. ForMedrixAI 지원 전용입니다. 감사 기록됩니다.",
         "label": "국가별 서명 규칙 관리"
+      },
+      "printJobCancel": {
+        "description": "인쇄 대기열의 인쇄 작업을 취소하여 인쇄되지 않도록 합니다. 취소한 사람이 기록됩니다.",
+        "label": "인쇄 작업 취소"
+      },
+      "printJobHold": {
+        "description": "감사 로그 → 인터페이스 → 인쇄 대기열에서 대기 중이거나 실패한 인쇄 작업을 보류하거나 해제합니다. 수행자가 기록됩니다.",
+        "label": "인쇄 작업 보류 또는 해제"
+      },
+      "printJobRedirect": {
+        "description": "인쇄 대기열에서 네트워크 인쇄 작업을 다른 프린터로 보냅니다. 새 프린터와 선택한 사람이 기록됩니다.",
+        "label": "인쇄 작업 경로 변경"
+      },
+      "printJobRetry": {
+        "description": "인쇄 대기열에서 실패한 인쇄 작업을 처음 인쇄된 보고서 그대로 다시 보냅니다.",
+        "label": "인쇄 작업 재시도"
       },
       "qaAccessRequestResponseExport": {
         "description": "환자 접근 요청과 응답 소요 시간을 CSV로 다운로드합니다.",
@@ -3504,6 +3923,10 @@
         "description": "합성 테스트 사례(가상 환자만)를 레지스트리 테스트 시스템으로 보냅니다. 검증 인스턴스에서만 가능합니다. 감사 기록됩니다.",
         "label": "레지스트리 테스트 모음 실행"
       },
+      "reportCaseReportPrint": {
+        "description": "케이스 보고서를 인쇄 또는 재인쇄하거나, 저장된 버전의 PDF를 엽니다. 모든 인쇄는 감사 로그에 기록됩니다.",
+        "label": "케이스 보고서 인쇄"
+      },
       "reportChangeHistoryExport": {
         "description": "케이스 보고서의 변경 이력(누가, 언제, 어느 워크스테이션에서 어떤 필드를 변경했는지)을 CSV로 다운로드합니다.",
         "label": "보고서 변경 이력 내보내기"
@@ -3511,6 +3934,10 @@
       "reportOrganMapInsert": {
         "description": "서명 전에 시놉틱 답변으로 그린 해부학적 지도를 보고서에 넣거나 뺍니다. 감사 기록됨.",
         "label": "장기 지도를 보고서에 삽입"
+      },
+      "reportRestrictedCasePrint": {
+        "description": "인쇄를 제한하는 플래그(VIP, 기밀 자문)가 있는 증례를 인쇄, 재인쇄하거나 PDF로 엽니다. \"증례 보고서 인쇄\" 권한도 필요합니다.",
+        "label": "제한 증례 인쇄"
       },
       "retentionDisposalReportExport": {
         "description": "케이스 접수번호가 포함된 폐기물 추적 보고서를 다운로드합니다.",
@@ -3536,6 +3963,10 @@
         "description": "'병리 워크스페이스'에서 '배치 관리' 화면과 타일을 볼 수 있습니다.",
         "label": "'배치 관리' 열기"
       },
+      "screenBenchContributionsOpen": {
+        "description": "'현장 기여도' 화면과 홈 페이지의 타일을 볼 수 있습니다.",
+        "label": "'현장 기여도' 열기"
+      },
       "screenConfigurationOpen": {
         "description": "'구성' 화면과 홈 페이지의 타일을 볼 수 있습니다.",
         "label": "'구성' 열기"
@@ -3555,6 +3986,10 @@
       "screenIntraopQueueOpen": {
         "description": "'수술 중 대기열' 화면과 홈 페이지의 타일을 볼 수 있습니다.",
         "label": "'수술 중 대기열' 열기"
+      },
+      "screenMarginExceptionReviewOpen": {
+        "description": "'병리 워크스페이스'에서 '변연 예외 검토' 화면과 타일을 볼 수 있습니다.",
+        "label": "'변연 예외 검토' 열기"
       },
       "screenMicrotomyOpen": {
         "description": "'병리 워크스페이스'에서 '박절 워크스페이스' 화면과 타일을 볼 수 있습니다.",
@@ -3587,6 +4022,10 @@
       "screenSurgicalQaWorklistOpen": {
         "description": "'작업 목록'에서 '수술 후 서명 완료 QA'을(를) 볼 수 있습니다.",
         "label": "'수술 후 서명 완료 QA' 열기"
+      },
+      "screenTumorBoardOpen": {
+        "description": "'종양위원회' 화면과 홈 페이지의 타일을 볼 수 있습니다.",
+        "label": "'종양위원회' 열기"
       },
       "screenWorklistOpen": {
         "description": "'작업 목록' 화면과 홈 페이지의 타일을 볼 수 있습니다.",
@@ -3628,6 +4067,22 @@
       "noActiveSession": "활성 세션이 없습니다.",
       "notAParticipant": "지정된 주치의/담당의 또는 관리 감독자만 이 증례를 완료할 수 있습니다."
     }
+  },
+  "caseClinicalHistory": {
+    "add": "임상 병력 추가",
+    "caseTarget": "증례",
+    "deferred": "불일치 검사 연기: 임상 정보가 제공되지 않았습니다. 임상 병력을 받으면 추가하십시오.",
+    "edit": "임상 병력 편집",
+    "errors": {
+      "conflict": "저장 중 증례가 변경되었습니다. 다시 시도하십시오.",
+      "notFound": "증례를 찾을 수 없습니다.",
+      "notPermitted": "임상 병력을 기록할 권한이 없습니다.",
+      "signedOut": "증례가 서명되었습니다. 이제 변경하려면 수정 보고가 필요합니다."
+    },
+    "save": "임상 병력 저장",
+    "summaryNone": "임상 병력: 임상 적응증만 있고 코드화 항목 없음.",
+    "summary_one": "임상 병력: 코드화 항목 {{count}}개.",
+    "summary_other": "임상 병력: 코드화 항목 {{count}}개."
   },
   "caseCommentModal": {
     "commentsOnCase_one": "이 케이스에 댓글 {{count}}개",
@@ -4433,34 +4888,111 @@
     "verify": "확인"
   },
   "clinicalMismatch": {
-    "decisions": {
-      "not-a-mismatch": "아니요: 소견이 임상 양상과 일치합니다",
-      "resolved": "예, 해결되었습니다(방법 기재)",
-      "unresolved": "예, 여전히 설명되지 않습니다(CAPA 권고)"
+    "alert": {
+      "badge": "AI가 불일치 가능성 제시",
+      "hide": "숨기기",
+      "holdsSignOut": "서명 시 결정을 요청합니다. 지금 결정할 수 있습니다.",
+      "lowRisk": "서명은 보류되지 않습니다.",
+      "review": "검토",
+      "title": "{{kind}}(신뢰도 {{confidence}}%)."
     },
+    "backToReport": "보고서로 돌아가기",
     "errors": {
       "DECISION_REQUIRED": "답변을 선택하세요.",
-      "NOTE_REQUIRED": "확인 내용을 입력하세요.",
+      "DEFER_HIGH_RISK": "고위험 불일치는 연기할 수 없습니다. 해결됨 또는 미해결을 선택하십시오.",
       "NOT_PERMITTED": "이 내용을 기록할 권한이 없습니다.",
+      "UNKNOWN_REASON": "알 수 없는 사유입니다.",
       "failed": "결정을 저장할 수 없습니다."
     },
+    "highRiskIntro": "검사실 규칙에 따라 이 불일치는 고위험이므로 서명이 결정을 기다립니다. 어느 선택이든 서명을 진행할 수 있습니다.",
     "indication": "임상 적응증: {{indication}}",
-    "intro": "제안일 뿐 소견이 아니며, 판단은 사용자가 합니다. 미해결 불일치만 QA 책임자에게 CAPA를 권고합니다.",
     "kinds": {
+      "cause-of-death": "사망 원인 또는 주요 진단이 임상 진단과 다름",
       "expected-malignancy-absent": "예상된 악성이 발견되지 않음",
       "other": "소견이 임상 양상과 상충함",
       "site-or-organ": "부위 또는 장기가 의뢰와 일치하지 않음",
       "unexpected-malignancy": "예상치 못한 악성"
     },
-    "noteLabel": "확인 내용",
+    "noteLabel": "메모(선택)",
     "notePlaceholder": "예: 임상의가 병력이 오래된 것임을 확인함",
-    "question": "실제 불일치입니까?",
-    "recordButton": "결정 기록",
+    "previousDecision": "마지막 검토 이후 보고서가 변경되었습니다(당시 기록: {{resolution}}). 새 결과가 더 심각하여 다시 표시합니다.",
+    "reasonLabel": "사유(선택)",
+    "reasons": {
+      "clinical-context-reviewed": "임상 맥락 검토함",
+      "expected-variation": "예상된 변이",
+      "preop-nonspecific": "수술 전 진단이 비특이적"
+    },
+    "resolutionHints": {
+      "DEFERRED": "연기: 증례가 2차 검토 대기열로 이동합니다.",
+      "RESOLVED": "해결됨: 불일치가 설명되었습니다.",
+      "UNRESOLVED": "미해결: 서명을 진행할 수 있으며 QA에 시정 조치가 권고됩니다."
+    },
+    "resolutionNames": {
+      "DEFERRED": "연기됨",
+      "LOGGED": "QA용으로 기록됨",
+      "RESOLVED": "해결됨",
+      "UNRESOLVED": "미해결"
+    },
+    "resolutions": {
+      "DEFERRED": "2차 검토로 연기",
+      "RESOLVED": "해결됨",
+      "UNRESOLVED": "미해결"
+    },
     "source": {
       "ai": "AI 평가 제안(신뢰도 {{confidence}}%)",
-      "rule": "규칙 기반 검사 제안(AI 사용 불가, 신뢰도 {{confidence}}%)"
+      "rule": "규칙 기반 검사 제안(AI 사용 불가, 신뢰도 {{confidence}}%)",
+      "ruleJurisdiction": "규칙 기반 검사로 제안됨(이 관할 지역에서는 AI를 사용할 수 없음, 신뢰도 {{confidence}}%)"
     },
-    "title": "임상-병리 상관성"
+    "title": "임상-병리 상관성",
+    "why": {
+      "holds": "서명 보류: 검사실 규칙이 신뢰도 {{threshold}}% 이상인 이 불일치 종류를 차단합니다.",
+      "lowRisk": "검사실 규칙상 저위험: 서명이 보류되지 않습니다. 결정하지 않으면 서명 시 QA용으로 기록됩니다."
+    }
+  },
+  "clinicalMismatchRulesSection": {
+    "actionAria": "{{kind}}, {{specimen}}의 조치",
+    "actionAtAria": "{{kind}}, {{specimen}}의 조치 임계값",
+    "actions": {
+      "block": "차단: 결정 전까지 서명 보류",
+      "log": "기록: QA 대기열만",
+      "warn": "경고: 알림만"
+    },
+    "add": {
+      "button": "규칙 추가",
+      "chooseSpecimen": "검체 유형 선택",
+      "description": "특정 검체 유형에 대해 불일치 종류를 조정합니다. 전체 유형 규칙에서 시작합니다.",
+      "exists": "해당 규칙이 이미 있습니다. 표에서 변경하십시오.",
+      "title": "특정 검체 유형 규칙"
+    },
+    "allSpecimenTypes": "모든 검체 유형",
+    "columns": {
+      "action": "조치",
+      "actionAt": "조치 시작",
+      "display": "알림 시작",
+      "kind": "불일치 종류",
+      "remove": "삭제",
+      "specimenType": "검체 유형"
+    },
+    "displayAria": "{{kind}}, {{specimen}}의 알림 임계값",
+    "fromDisplay": "알림부터",
+    "howItWorks": "표시 임계값 미만이면 알림이 없습니다. 표시 임계값부터 조치 임계값까지는 보고서에 알림이 표시되고 증례가 QA용으로 기록됩니다. 조치 임계값 이상이면 조치가 적용됩니다: 차단은 병리의사가 결정을 기록할 때까지 서명을 보류하고, 경고와 기록은 보류하지 않습니다. 특정 검체 유형의 규칙이 전체 유형 규칙보다 우선합니다.",
+    "notPermitted": "이 규칙을 볼 권한이 없습니다.",
+    "percent": "%",
+    "problems": {
+      "CONFIG_NOT_PERMITTED": "이 규칙을 변경할 권한이 없습니다.",
+      "NOT_FOUND": "이 규칙은 더 이상 존재하지 않습니다.",
+      "actionBelowDisplay": "조치 임계값은 알림 임계값보다 낮을 수 없습니다.",
+      "cannotRemoveDefault": "전체 검체 유형 규칙은 변경할 수 있지만 삭제할 수 없습니다.",
+      "duplicate": "이 불일치 종류와 검체 유형에 대한 규칙이 이미 있습니다.",
+      "thresholdRange": "임계값은 0에서 100 사이의 정수 백분율입니다.",
+      "unknownAction": "알 수 없는 조치입니다.",
+      "unknownCategory": "알 수 없는 불일치 종류입니다."
+    },
+    "remove": "삭제",
+    "removeAria": "{{kind}}, {{specimen}} 규칙 삭제",
+    "saved": "저장됨",
+    "subtitle": "임상적 예상과 병리 소견을 비교하는 검사가 언제 알리고 어떤 불일치가 서명을 보류하는지 정합니다.",
+    "title": "임상 불일치 규칙"
   },
   "codeImportSection": {
     "anyCountry": "모든 국가",
@@ -4644,13 +5176,28 @@
     "done": "완료",
     "duplicate": "복제",
     "edit": "편집",
+    "examplePlaceholder": "예: {{example}}",
     "export": "내보내기",
+    "honorifics": {
+      "dame": "님 (Dame)",
+      "dr": "선생님 (Dr.)",
+      "mr": "님 (Mr.)",
+      "mrs": "님 (Mrs.)",
+      "ms": "님 (Ms.)",
+      "mx": "님 (Mx.)",
+      "sir": "님 (Sir)"
+    },
     "inactive": "비활성",
     "loading": "로딩 중…",
     "next": "다음",
     "no": "아니요",
     "none": "없음",
     "optional": "선택",
+    "patientIds": {
+      "mrnAfterSeparator": "· 등록번호 {{mrn}}",
+      "mrnDob": "등록번호 {{mrn}} · 생년월일 {{dob}}",
+      "mrnDobLabelled": "등록번호: {{mrn}} · 생년월일: {{dob}}"
+    },
     "reactivate": "다시 활성화",
     "remove": "제거",
     "required": "필수",
@@ -4730,6 +5277,9 @@
       "ai-provider": {
         "description": "활성 AI 제공업체로 Anthropic Claude 또는 Google Gemini를 선택합니다."
       },
+      "ai-vendor-policy": {
+        "description": "관할 지역 또는 기관별로 허용되는 AI 서비스와 호스팅 지역, 그리고 현재 사용 중인 서비스의 허용 여부."
+      },
       "cyt-histology-correlation": {
         "description": "비정상 Pap 검사 후 얼마 동안 후속 생검을 세포-조직 상관에 연결할지, 그리고 기간이 채취·접수·서명 중 어디서 시작되는지를 기관·관할 지역·시설별로 설정합니다."
       },
@@ -4739,6 +5289,9 @@
       },
       "cyt-nomenclature": {
         "description": "검사실의 판독 드롭다운이 사용하는 실제 보고 용어를 제어하는 2단계 계층 구조(기업 + 시설)입니다."
+      },
+      "cyt-preliminary-signature": {
+        "description": "긴급 세포병리 예비 보고서에 병리의사의 전자 서명이 필요한지 여부입니다."
       },
       "cyt-registry": {
         "description": "검사실이 서명 완료한 부인과 세포병리 결과를 보고하는 실제 국가 중앙 등록 기관을 제어하는 2단계 계층 구조입니다."
@@ -4780,6 +5333,9 @@
       "staff-sign-in-password": {
         "description": "다른 사람의 로그인 비밀번호를 설정, 재설정 또는 제거합니다. 직원 기록을 연 다음 '로그인 비밀번호'로 이동하세요."
       },
+      "sys-ai-instructions": {
+        "description": "임상-병리 불일치 검사가 AI에 제공하는 분야별 지침: 편집, 예시 증례로 테스트, 승인 및 모든 버전의 이력."
+      },
       "sys-asset-locations": {
         "description": "영안실 보관 슬롯과 실시간 점유율을 포함한 물리적 자산/위치에 대한 관리되는 참조 목록입니다."
       },
@@ -4788,6 +5344,9 @@
       },
       "sys-cancer-registry-settings": {
         "description": "외과병리 서명 보고를 위한 실제 시설별 중앙 암 등록기관 설정(NAACCR, CPAC, COSD, INCa, ADT/GEKID, AIHW, 뉴질랜드 암등록기관, KCCR)입니다 — 세포병리 등록기관 보고와는 진정으로 별개입니다."
+      },
+      "sys-clinical-mismatch-rules": {
+        "description": "임상-병리 불일치 검사가 언제 알리고 어떤 불일치가 서명을 보류하는지: 불일치 종류 및 검체 유형별 임계값과 조치."
       },
       "sys-cytology-categories": {
         "description": "부인과 세포병리를 위한 표준화된 검체 적절성, 일반 분류, 판독/결과 및 임상 권고 용어입니다 — Bethesda, BSCC/RCPath(영국), München III(독일), SFCC(프랑스, 프랑스어로 표기된 Bethesda).",
@@ -4819,6 +5378,9 @@
       },
       "sys-feedback": {
         "description": "QA 피드백 버튼 표시 여부와 QA 피드백 수신자."
+      },
+      "sys-field-requirements": {
+        "description": "조직별로 각 화면이 요구하는 필드: 접수, 육안 검사, 보고서, 직원, 기관 편집기, 임상 병력 등. 식별 및 라우팅 필드는 잠긴 상태로 유지됩니다."
       },
       "sys-flags": {
         "description": "임상적 맥락이나 필요한 조치를 위한 시각적 표식인 증례 및 검체 플래그입니다.",
@@ -4882,6 +5444,9 @@
       "sys-terminology": {
         "description": "SNOMED CT, UMLS 및 기타 용어 서비스의 연결 상태(연결됨/저하됨/오프라인)입니다."
       },
+      "sys-tumor-board-rules": {
+        "description": "사례를 전사 및 시설별로 종양위원회(MDT)에 자동으로 플래그하는 변연 거리 임계값입니다."
+      },
       "sys-wsi-viewer-vendors": {
         "description": "실제로 실행 가능한 전체 슬라이드 이미지 뷰어 플랫폼과 실제 실행 URL 템플릿입니다 — 여기서 공급업체의 실제 뷰어 URL을 구성하면 \"뷰어에서 열기\"가 특정 슬라이드로 이동할 수 있습니다. 통합된 공급업체 연동 화면 내의 한 카테고리입니다.",
         "label": "공급업체 연동 — WSI 뷰어"
@@ -4936,6 +5501,42 @@
       "voice": "음성"
     },
     "title": "구성"
+  },
+  "connectionBanner": {
+    "offline": {
+      "detail": "PathScribe 서버에 연결되어 있지 않습니다. 화면이 최신이 아닐 수 있으며, PathScribe가 계속 연결을 시도합니다.",
+      "title": "오프라인"
+    },
+    "reconnected": {
+      "detail": "연결이 복구되었습니다.",
+      "title": "다시 연결됨"
+    },
+    "reconnecting": {
+      "detail": "실시간 연결이 끊어졌습니다. 다시 연결될 때까지 다른 사용자의 변경 사항이 늦게 나타날 수 있습니다.",
+      "title": "다시 연결하는 중…"
+    }
+  },
+  "consultLinksAudit": {
+    "activeOnly": "유효한 링크만",
+    "columns": {
+      "actions": "작업",
+      "case": "케이스",
+      "consultant": "자문의",
+      "expires": "만료",
+      "issued": "발급",
+      "issuedBy": "발급자",
+      "scope": "범위",
+      "status": "상태",
+      "views": "열람"
+    },
+    "empty": "발급된 자문 링크가 없습니다.",
+    "emptyActive": "유효한 자문 링크가 없습니다.",
+    "hint": "모든 케이스에서 외부 자문의에게 발급된 모든 링크입니다. 링크를 취소하면 즉시 닫히고, 만료된 링크는 자동으로 닫힙니다.",
+    "loading": "불러오는 중…",
+    "notPermitted": "자문 링크를 볼 권한이 없습니다. 역할 사전에서 권한을 부여해 달라고 관리자에게 요청하십시오.",
+    "notViewed": "열람 안 함",
+    "revokedBy": "{{name}}, {{date}}에 취소",
+    "title": "외부 자문 링크"
   },
   "containerTypesSection": {
     "addContainerType": "+ 용기 유형 추가",
@@ -5053,6 +5654,7 @@
       "title": "RVU — 최근 30일",
       "unit": "RVU"
     },
+    "scrollRegionLabel": "기여 대시보드, 스크롤 가능",
     "subtitleRole": "병리의사",
     "tabLabels": {
       "ai": "AI 기여도",
@@ -5122,6 +5724,7 @@
   "copilotReportViewModal": {
     "accessionLabel": "접수번호:",
     "amendedFlag": "수정됨",
+    "clinicianNotifiedDetail": "{{name}} — {{method}}, {{date}}",
     "clinicianNotifiedLabel": "통보된 임상의:",
     "diffTable": {
       "currentlyReported": "현재 보고된 값",
@@ -5146,6 +5749,7 @@
     "synopticCount_one": "종합 소견 {{count}}개",
     "synopticCount_other": "종합 소견 {{count}}개",
     "toolbarTitle": "종합 소견 보고서 — LIS로 전송된 형태",
+    "versionMeta": "{{date}} — {{name}}",
     "versionSelectHint": "인쇄된 보고서에 포함할 버전을 선택하세요. 기본값은 각 보고서의 최신 버전입니다."
   },
   "correctAppliedCodeModal": {
@@ -5320,6 +5924,15 @@
   "criticalFindingsModal": {
     "acknowledgeButton": "기록 없이 확인 처리",
     "clinicianNotifiedPlaceholder": "연락한 담당 의사의 이름",
+    "composeEmailButton": "보안 이메일 작성…",
+    "email": {
+      "closing": "보고서를 확인하시고 수신을 알려 주십시오.",
+      "findingLine": "• {{term}} ({{sourceField}})",
+      "noReference": "(접수 번호 없음)",
+      "opening": "증례 {{reference}} 판독 완료 시 중대 소견이 확인되었습니다:",
+      "quoteLine": "  “{{quote}}”",
+      "subject": "긴급: 중대 소견, 증례 {{reference}}"
+    },
     "findingLabel": "{{term}} — {{sourceField}}",
     "header": "심각한 소견 감지됨",
     "intro": "이 증례의 서술 텍스트에서 즉각적인 의사 소통이 필요할 수 있는 심각한 소견이 발견된 것으로 표시되었습니다. 아래 내용을 검토한 후 실제로 수행한 통보를 기록하거나, 이미 다른 방식으로 처리되었음을 확인 처리하세요.",
@@ -5328,6 +5941,7 @@
     "readBackLabel": "의사가 확인을 위해 소견을 재확인함",
     "recordButton": "통보 기록",
     "requiresUrgentLabel": "긴급 통보 필요",
+    "secureEmailNote": "이메일에는 복창 확인이 적용되지 않습니다. 보안 이메일이 발송되면 통보가 기록됩니다.",
     "sourceQuote": "“{{quote}}”"
   },
   "crosswalkSection": {
@@ -5443,22 +6057,27 @@
         "help": "(미국, CAP): 새로운 고등급 진단 시 지난 5년간 환자의 음성 자궁경부 세포검사를 후향적 재검토 대상으로 표시합니다.",
         "label": "CAP 5년 후향적 재검토"
       },
+      "preliminarySignature": {
+        "help": "(검사실 정책): 검체 하나에 대한 긴급 예비 보고서는 서명 완료와 마찬가지로 병리의사의 전자 서명이 필요합니다. 자동은 모든 지역에서 요구합니다.",
+        "label": "긴급 예비 보고서 서명"
+      },
       "workloadCap": {
         "help": "(미국, 42 CFR § 493.1274): 세포병리사의 비례 일일 슬라이드 한도에 도달하면 판독을 중지하고 대기열을 풀로 되돌립니다. 업무량은 어느 경우든 기록됩니다.",
         "label": "CLIA 일일 업무량 한도"
       }
     },
-    "notPermitted": "국가별 규칙을 변경할 권한이 없습니다.",
+    "notPermitted": "이 규칙을 변경할 권한이 없습니다.",
     "saved": "저장되었습니다.",
     "settings": {
       "auto": "자동 (미국에서 켜짐)",
+      "autoEverywhere": "자동 (모든 지역에서 필수)",
       "off": "꺼짐",
       "on": "켜짐"
     },
-    "subtitle": "일부 국가에만 적용되는 규정입니다. 자동은 미국 검사실에서는 켜고 그 외 지역에서는 끕니다. 검사실은 기관 전체 또는 개별 기관별로 켜거나 끌 수 있습니다.",
+    "subtitle": "일부 국가에서 요구하는 규칙과 검사실 자체의 발행 정책입니다. 각각 기관 전체 또는 개별 기관에 대해 자동, 켜기 또는 끄기로 설정합니다.",
     "summary": "{{feature}}: {{setting}}",
     "summarySeparator": "; ",
-    "title": "국가별 규칙"
+    "title": "국가 및 검사실 규칙"
   },
   "cytologyHistologyCorrelationPrintView": {
     "scopeLine": "범위: {{scope}} — 생성일시 {{date}}",
@@ -5513,6 +6132,11 @@
     "addendum": "추가 보고",
     "addendumBanner": "추가 보고서",
     "adjunctive": "보조 검사 및 통합 결과",
+    "caseContents": "이 보고서의 검체",
+    "caseNotReported": "보고되지 않음. 사유: {{reason}}",
+    "caseReported": "보고됨",
+    "caseSpecimen": "{{label}}: {{description}}",
+    "caseTitle": "세포병리 증례 보고서 — {{accession}}",
     "clia": "CLIA/ISO: {{number}}",
     "collected": "채취: {{date}}",
     "computerAssisted": "컴퓨터 보조 선별검사: {{value}}",
@@ -5530,6 +6154,13 @@
     "no": "아니오",
     "orderingProvider": "의뢰의: {{name}}",
     "patient": "환자",
+    "preliminaryBanner": "예비 보고서",
+    "preliminaryNote": "메모: {{note}}",
+    "preliminaryNotice": "최종 보고서가 아닙니다. 증례 서명이 완료되면 최종 증례 보고서가 발행됩니다.",
+    "preliminaryReasonClinicianRequest": "임상의 요청",
+    "preliminaryReasonCriticalFinding": "중대 소견",
+    "preliminaryReasonUrgentManagement": "긴급 임상 처치에 필요",
+    "preliminaryReleasedBy": "예비 보고서 발행: {{name}}, {{role}}, {{date}}",
     "prepConventional": "일반 도말",
     "prepLiquidBased": "액상 기반",
     "previouslyReported": "이전 보고 내용: {{diagnosis}}",
@@ -5545,6 +6176,37 @@
     "specimenType": "검체 종류",
     "title": "세포검사 보고서 — 부인과 자궁경부 선별검사",
     "yes": "예"
+  },
+  "cytologyPreliminary": {
+    "confirmTitle": "긴급 예비 보고서 서명",
+    "errors": {
+      "alreadySignedOut": "이 검체는 이미 서명이 완료되었습니다.",
+      "caseReleased": "증례 보고서가 이미 발행되었습니다.",
+      "noFinalDiagnosis": "먼저 검체의 최종 진단을 선택하십시오.",
+      "notPermitted": "세포병리 예비 보고서를 발송할 권한이 없습니다.",
+      "notSaved": "예비 보고서를 저장하지 못했습니다. 아무것도 발송되지 않았습니다.",
+      "reasonMissing": "사유를 선택하십시오.",
+      "signatureRefused": "서명이 승인되지 않았습니다.",
+      "signatureRequired": "검사실 정책상 예비 보고서에는 서명이 필요합니다."
+    },
+    "hint": "이 검체의 선택된 최종 진단을 예비로 표시하여 지금 발송합니다. 증례 보고서는 서명 완료 시 발행됩니다.",
+    "history": "{{date}}에 {{name}}이(가) 예비 보고서 발송 ({{reason}})",
+    "historyNote": "메모: {{note}}",
+    "noteLabel": "메모",
+    "notePlaceholder": "메모 (선택)",
+    "reasonLabel": "사유",
+    "reasons": {
+      "clinicianRequest": "임상의 요청",
+      "criticalFinding": "중대 소견",
+      "urgentManagement": "긴급 임상 처치"
+    },
+    "recalledTag": "(회수됨, 발송 안 됨)",
+    "send": "발송",
+    "sending": "발송 중…",
+    "sent": "긴급 예비 보고서를 발송했습니다.",
+    "signAndSend": "서명 후 발송",
+    "startBtn": "긴급 예비 보고서 발송",
+    "title": "긴급 예비 보고서"
   },
   "cytologyQaTab": {
     "apacPtTable": {
@@ -5606,6 +6268,25 @@
     },
     "exceededBadge": "초과",
     "failBadge": "불합격",
+    "fiveYearLookbackTable": {
+      "completedPercent": "완료됨",
+      "completedStatus": "완료됨",
+      "correctiveAction": "시정 조치",
+      "correctiveActionRate": "시정 조치 비율",
+      "noneFlaggedYet": "이 범위에 대해 아직 표시된 검체가 없습니다.",
+      "outcome": "결과",
+      "outcomes": {
+        "confirmed_negative": "음성 확인됨",
+        "interpretation_error": "판독 오류",
+        "sampling_error": "채취 오류",
+        "screening_error": "선별 검사 오류"
+      },
+      "pending": "대기 중",
+      "pendingStatus": "대기 중",
+      "reviewedBy": "검토자",
+      "totalFlagged": "총 표시됨",
+      "triggeredAt": "트리거됨"
+    },
     "headers": {
       "accession": "접수번호",
       "case": "케이스",
@@ -5635,6 +6316,8 @@
       "indication": "적응증",
       "noDataYet": "이 범위에 대해 등록된 데이터가 아직 없습니다.",
       "otherHrPercent": "기타 고위험군 %",
+      "percentagePoints_one": "{{value}}퍼센트포인트",
+      "percentagePoints_other": "{{value}}퍼센트포인트",
       "testingSite": "검사 시설",
       "totalTested": "총 검사 건수",
       "varianceVsMean": "평균 대비 편차"
@@ -5696,6 +6379,7 @@
     "reportTitle": {
       "ctPath": "CT 대 병리의사 상관성",
       "finalDx": "1차 판독과 최종 진단 간 불일치",
+      "fiveYearLookback": "5년 후향적 재검토",
       "highRisk": "표적 / 고위험 재검토",
       "peerReview": "서명 후 동료 검토 상관성",
       "random": "10% 무작위 재검토"
@@ -5716,6 +6400,7 @@
       "ctStats": "CT 통계 비교",
       "euCompliance": "EU 준수",
       "finalDx": "1차 판독 대 최종 진단",
+      "fiveYearLookback": "5년 후향적 재검토",
       "highRisk": "고위험 재검토",
       "histologyCorrelation": "조직학적 상관성",
       "hpvPositivity": "HPV 양성률",
@@ -5773,13 +6458,20 @@
       "unscreenedStatus": "미검사"
     },
     "workloadTable": {
+      "correctionFlagged": "수정 표시됨",
+      "correctionNote": "({{note}})",
+      "correctionReason": "사유: {{reason}}",
       "exceedance": "초과 여부",
       "hoursScreened": "스크리닝 시간",
       "imagerSlides": "이미저 슬라이드",
       "manualSlides": "수동 슬라이드",
       "maxAllowed": "최대 허용치",
       "noLedgerEntriesYet": "이 범위에 대해 등록된 기록이 아직 없습니다.",
+      "notSignedOff": "(미확인)",
+      "recordedHours": "기록된 시간",
       "shiftDate": "근무일",
+      "signOffStale": "(추가 기록 전에 확인됨)",
+      "signedOff": "(확인됨)",
       "totalEquivSlides": "총 환산 슬라이드"
     }
   },
@@ -5813,6 +6505,18 @@
     "recordConcurrenceBtn": "일치 기록",
     "recordDiscrepancyBtn": "불일치 기록",
     "secondaryCodeLabel": "보조 진단 코드",
+    "selectedBy": {
+      "label": "선정 사유: {{reasons}}",
+      "reason": {
+        "ctEscalation": "세포병리사 상향 의뢰",
+        "other": "{{reason}}",
+        "peerReviewRandom": "무작위 동료 검토",
+        "peerReviewTargeted": "고위험 동료 검토",
+        "roseDiscrepancy": "ROSE 불일치",
+        "rule": "규칙: {{name}}"
+      },
+      "reviewerPool": "검토자 그룹: {{roles}}"
+    },
     "severity": {
       "major": "주요",
       "minor": "경미"
@@ -5907,11 +6611,16 @@
       "emptyState": "시설 재정의가 없습니다 — 모든 시설이 조직 기본값을 사용합니다.",
       "title": "시설 재정의"
     },
+    "rate": {
+      "inherited": "상속됨",
+      "inheritedValue": "{{value}}% (상속됨)",
+      "own": "{{value}}%"
+    },
     "ratePair": {
       "negativeLabel": "음성",
       "nonNegativeLabel": "비음성"
     },
-    "rateSummary": "음성 {{neg}}% · 비음성 {{nonNeg}}%",
+    "rateSummaryParts": "음성 {{neg}} · 비음성 {{nonNeg}}",
     "staff": {
       "emptyState": "직원 재정의가 없습니다.",
       "hint": "신규 직원이나 학생에게 더 높은 비율을 지정하세요 — 이는 모든 시설 재정의보다 우선합니다.",
@@ -5962,6 +6671,7 @@
       "addendumReleased": "추가 보고서를 발행했습니다.",
       "correctionReleased": "정정을 발행했습니다.",
       "failed": "보고서를 발행할 수 없습니다. 변경된 내용은 없습니다.",
+      "inReleaseDelay": "이 증례 보고서는 아직 발행 지연 중이어서 전송되지 않았습니다. 변경하려면 회수하거나, 지연이 끝난 후 정정 또는 추가 보고를 하십시오.",
       "notPermitted": "이 항목을 발행할 권한이 없습니다."
     }
   },
@@ -6145,6 +6855,9 @@
     "patientLine": "{{name}} · MRN {{mrn}}",
     "patientUnknown": "알 수 없는 환자",
     "printBtn": "인쇄",
+    "printCaseReportBtn": "증례 보고서 인쇄",
+    "printFailed": "보고서 PDF를 만들 수 없습니다. 다시 시도하고, 계속 실패하면 관리자에게 알리십시오.",
+    "printRendererOutdated": "보고서 렌더러가 아직 세포병리 보고서용으로 업데이트되지 않아 PDF를 만들 수 없습니다. 관리자에게 알리십시오.",
     "qc": {
       "autoHint": "초기 검토가 저장되면 무작위 QC 선정이 자동으로 실행됩니다.",
       "flagBtn": "고위험 QC 표시",
@@ -6395,14 +7108,14 @@
     "signedOut": "보고서 서명이 완료되었습니다.",
     "signedOutBanner": "{{date}}에 {{name}}이(가) 서명했습니다.",
     "signing": "서명 중…",
-    "specimenSignedOut_one": "검체 서명이 완료되었습니다. 케이스 확정 전에 검체 {{count}}개를 더 서명해야 합니다.",
-    "specimenSignedOut_other": "검체 서명이 완료되었습니다. 케이스 확정 전에 검체 {{count}}개를 더 서명해야 합니다."
+    "specimenSignedOut_one": "검체 서명이 완료되었습니다. 검체 {{count}}개를 더 서명해야 하며, 마지막 서명 시 증례 보고서가 발행됩니다.",
+    "specimenSignedOut_other": "검체 서명이 완료되었습니다. 검체 {{count}}개를 더 서명해야 하며, 마지막 서명 시 증례 보고서가 발행됩니다."
   },
   "cytologyTab": {
     "sections": {
       "assistedInstrumentation": "보조 기기 판독",
       "correlationWindow": "상관 기간",
-      "countryRules": "국가별 규칙",
+      "countryRules": "국가 및 검사실 규칙",
       "cytoHistologicCorrelation": "세포-조직 상관관계 (SNOMED)",
       "dailyWorkloadCap": "일일 업무량 상한",
       "nonGynRouting": "비부인과 라우팅",
@@ -6476,6 +7189,41 @@
     },
     "qaComplianceSectionLabel": "QA 및 준수",
     "rowSubtitle": "증례 {{caseId}} · MRN {{mrn}}",
+    "screeningHours": {
+      "cancel": "취소",
+      "change": "변경",
+      "confirm": "{{hours}}시간 확인",
+      "correct": "수정",
+      "errors": {
+        "dateNotAllowed": "날짜가 바뀌어 이 날은 여기에서 더 이상 확인할 수 없습니다. 감독자가 수정할 수 있습니다.",
+        "failed": "시간이 저장되지 않았습니다. 다시 시도하세요.",
+        "hoursInvalid": "0에서 24 사이의 시간을 입력하세요.",
+        "noteRequired": "‘기타’에 대한 메모를 추가하세요.",
+        "noteTooLong": "메모는 200자 이내로 작성하세요.",
+        "reasonRequired": "수정 사유를 선택하세요."
+      },
+      "flaggedNote": "기록된 시간과 {{tolerance}}시간 넘게 차이가 납니다. 감독자에게 표시됩니다.",
+      "hint": "근무를 마칠 때 확인하세요. 이것이 스크리닝 시간 기록입니다.",
+      "hintYesterday": "아직 확인하지 않았습니다(예: 하루 시작 시각을 넘긴 근무). 확인하거나 수정하세요.",
+      "hoursLabel": "오늘 스크리닝한 시간",
+      "hoursLabelYesterday": "그날 스크리닝한 시간",
+      "noteHint": "감독자에게 표시됩니다. 환자 정보를 입력하지 마세요.",
+      "noteLabel": "메모(필수)",
+      "noteOptional": "메모(선택)",
+      "reasonLabel": "수정 사유",
+      "reasons": {
+        "microscopeOffScreen": "화면이 아닌 현미경에서 스크리닝함",
+        "other": "기타",
+        "slideLeftOpen": "자리를 비운 동안 슬라이드가 열려 있었음"
+      },
+      "recorded": "기록됨: {{hours}}시간",
+      "save": "저장",
+      "signedOff": "확인됨: {{time}}에 {{hours}}시간",
+      "signedOffCorrected": "확인됨: {{time}}에 {{hours}}시간 (기록 {{recorded}}시간)",
+      "staleNote": "{{time}}에 {{signed}}시간을 확인했지만 그 후에 스크리닝이 더 기록되었습니다. 다시 확인하세요.",
+      "title": "오늘의 스크리닝 시간",
+      "titleYesterday": "어제의 스크리닝 시간"
+    },
     "subtitle": "배정된 세포병리 증례, 공유 풀, 공유 QC 재검 대기열입니다.",
     "tiles": {
       "assigned": "내 워크리스트",
@@ -6494,9 +7242,37 @@
       "unassignedPool": "미배정 풀"
     },
     "title": "세포병리 워크리스트",
-    "unknownPatient": "알 수 없는 환자"
+    "unknownPatient": "알 수 없는 환자",
+    "workload": {
+      "leftFullDay": "8시간 근무일 기준 {{left}}장 남음",
+      "leftNow": "지금 {{left}}장 남음(현재 한도 {{limit}}, 스크리닝 {{hours}}시간)",
+      "reviews_one": "판독 {{count}}건",
+      "reviews_other": "판독 {{count}}건",
+      "slides": "{{cap}}장 중 {{used}}장 계산됨",
+      "status": {
+        "approaching": "한도에 가까워지고 있습니다",
+        "atLimit": "한도에 도달했습니다. 다음 판독은 한도를 넘습니다",
+        "over": "한도를 넘었습니다"
+      },
+      "title": "내 업무량(최근 24시간)"
+    }
   },
   "cytologyWorkloadCapSettingsSection": {
+    "allFacilitiesHaveOverride": "모든 시설에 이미 재정의가 있습니다. 다시 설정하려면 하나를 제거하세요.",
+    "allStaffHaveOverride": "모든 사용자에게 이미 재정의가 있습니다. 다시 설정하려면 하나를 제거하세요.",
+    "dayStart": {
+      "errors": {
+        "failed": "하루 시작 시각이 저장되지 않았습니다. 다시 시도하세요.",
+        "notPermitted": "이 설정을 변경할 권한이 없습니다."
+      },
+      "fromNowOn": "아직 저장되지 않았습니다. 변경 사항은 지금부터 적용되며, 이전 날짜는 당시 적용된 시각을 유지합니다.",
+      "hint": "근무 종료 시 시간 확인과 업무량 보고서의 날짜에 사용하며, 검사실의 시간대(시스템 설정)를 기준으로 합니다. 기본값은 자정이며, 오전 6시로 하면 오후 10시부터 오전 6시까지의 야간 근무가 하루로 묶입니다. 업무량 한도 자체는 최근 24시간 기준으로 계산되며 이 설정을 사용하지 않습니다.",
+      "title": "스크리닝 하루 시작 시각"
+    },
+    "errors": {
+      "capOutOfRange": "상한은 1에서 100 사이의 정수(슬라이드 수)여야 합니다.",
+      "failed": "상한이 저장되지 않았습니다. 다시 시도하세요."
+    },
     "staffHint": "신입 직원이나 실습생에게는 더 낮은 상한을 지정하십시오 — 이는 시설 재정의보다 우선합니다.",
     "subtitle": "세포기술자가 하루에 판독할 수 있는 실제 최대 부인과 세포병리 슬라이드 수(CLIA 업무량 제한)입니다. 3단계 계층 구조 — 엔터프라이즈 기본값에 시설 및 직원별 재정의를 선택적으로 적용합니다. 직원 재정의가 시설 재정의보다 우선하며, 시설 재정의는 엔터프라이즈 기본값보다 우선합니다.",
     "title": "세포병리 일일 업무량 상한",
@@ -6725,6 +7501,30 @@
     },
     "title": "위임 유형"
   },
+  "deliveryExceptions": {
+    "alert": {
+      "bodyWithFallback_one": "{{reportType}} 보고서를 {{count}}회 시도 후에도 {{channel}}(으)로 전송하지 못했습니다: {{error}}. 규칙의 대체 채널로 전송했습니다. 감사 로그 → 인터페이스 → 발신 → 전송 예외에서 확인하세요.",
+      "bodyWithFallback_other": "{{reportType}} 보고서를 {{count}}회 시도 후에도 {{channel}}(으)로 전송하지 못했습니다: {{error}}. 규칙의 대체 채널로 전송했습니다. 감사 로그 → 인터페이스 → 발신 → 전송 예외에서 확인하세요.",
+      "body_one": "{{reportType}} 보고서를 {{count}}회 시도 후에도 {{channel}}(으)로 전송하지 못했습니다: {{error}}. 감사 로그 → 인터페이스 → 발신 → 전송 예외에서 확인하세요.",
+      "body_other": "{{reportType}} 보고서를 {{count}}회 시도 후에도 {{channel}}(으)로 전송하지 못했습니다: {{error}}. 감사 로그 → 인터페이스 → 발신 → 전송 예외에서 확인하세요.",
+      "sender": "전송 모니터",
+      "subject_one": "{{channel}} 전송이 {{count}}회 시도 후 실패했습니다",
+      "subject_other": "{{channel}} 전송이 {{count}}회 시도 후 실패했습니다"
+    },
+    "columns": {
+      "attempts": "시도 횟수",
+      "case": "증례",
+      "channel": "채널",
+      "fallback": "대체",
+      "lastError": "마지막 오류",
+      "when": "중단 시각"
+    },
+    "empty": "전송 예외가 없습니다.",
+    "fallbackSent": "{{channels}}(으)로 전송함",
+    "hint": "자동 재시도 후에도 실패한 인쇄, 팩스, 파일 전달입니다. 관리자와 검사실 책임자에게 메시지를 보냈습니다. 해당 대기열(인쇄 대기열 또는 아래 보고서 전송)에서 다시 보내세요. 전송에 성공하면 이 목록에서 사라집니다.",
+    "title_one": "전송 예외 ({{count}})",
+    "title_other": "전송 예외 ({{count}})"
+  },
   "deliveryRulesSection": {
     "actionLabels": {
       "dual": "이중 전달",
@@ -6733,6 +7533,16 @@
       "suppress": "보류(수동 수령 대기)"
     },
     "addRuleButton": "+ 규칙 추가",
+    "channelNames": {
+      "ELECTRONIC": "전자 전송 (인터페이스 엔진으로 결과 메시지)",
+      "FAX": "전자 팩스",
+      "FILE_DROP": "파일 전달",
+      "PRINT": "인쇄"
+    },
+    "channels": {
+      "hint": "기본 채널과 보조 채널은 동시에 전송됩니다. 대체 채널은 기본 인쇄, 팩스 또는 파일 전달이 보낼 곳이 없거나 자동 재시도 후에도 실패할 때 전송됩니다.",
+      "title": "전송 채널"
+    },
     "criteriaDescription": {
       "facility": "시설: {{name}}",
       "location": "위치: {{location}}",
@@ -6741,6 +7551,12 @@
       "report": "보고서: {{type}}"
     },
     "fields": {
+      "faxNumber": "팩스 번호",
+      "faxNumberHint": "비워 두면 의뢰 의사에게 팩스를 보냅니다 (의사의 팩스 번호가 없으면 의뢰 기관으로).",
+      "faxNumberPlaceholder": "예: +82 2 1234 5678",
+      "fileDropTarget": "파일 전달 대상",
+      "fileDropTargetHint": "인터페이스 서버에 설정된 대상 이름입니다. 폴더나 SFTP 서버와 로그인 정보는 PathScribe가 아닌 서버에 보관됩니다.",
+      "fileDropTargetPlaceholder": "예: client-a-sftp",
       "orderingFacility": "의뢰 시설",
       "patientLocation": "환자 위치",
       "provider": "제공자",
@@ -6748,8 +7564,6 @@
     },
     "loading": "전달 규칙 로드 중…",
     "modal": {
-      "actionAriaLabel": "작업",
-      "actionLabel": "작업 *",
       "addRuleButton": "규칙 추가",
       "addTitle": "전달 규칙 추가",
       "editTitle": "전달 규칙 편집",
@@ -6764,17 +7578,46 @@
       "reportTypePlaceholder": "— 모든 보고서 유형 —",
       "saveChangesButton": "변경 사항 저장"
     },
+    "problems": {
+      "fallbackWithoutPrimary": "대체 채널에는 기본 채널이 필요합니다.",
+      "faxNumberInvalid": "팩스 번호가 아닙니다 (숫자 7~15자리, + 선택).",
+      "fileDropNeedsTarget": "파일 전달 대상을 입력하세요."
+    },
     "reportTypeLabels": {
       "addendum": "부기",
       "corrected": "정정",
       "final": "최종",
       "preliminary": "예비"
     },
+    "retries": {
+      "hint": "실패한 인쇄, 팩스 또는 파일 전달은 각 대기 시간 후 차례로 다시 시도됩니다. 마지막 시도가 실패하면 전송 예외로 이동하고, 관리자와 검사실 책임자에게 알리며, 규칙의 대체 채널로 전송됩니다.",
+      "label": "자동 재시도: 각 재시도 전 대기 시간(분)",
+      "none": "재시도 없음: 실패한 전송은 바로 전송 예외로 이동합니다.",
+      "placeholder": "1, 5, 15",
+      "problems": {
+        "notWholeMinutes": "정수 분 단위를 쉼표로 구분해 입력하세요.",
+        "outOfRange": "각 대기 시간은 1분에서 1,440분(24시간) 사이여야 합니다.",
+        "tooMany": "재시도는 최대 10회입니다."
+      },
+      "refused": "저장되지 않았습니다: 전송 설정을 변경할 권한이 없습니다.",
+      "save": "재시도 저장",
+      "saved": "재시도 설정을 저장했습니다."
+    },
+    "roles": {
+      "fallback": "대체",
+      "off": "사용 안 함",
+      "primary": "기본",
+      "secondary": "보조"
+    },
     "subtitle": "발행된 보고서를 전자적으로 전송할지, 인쇄할지, 둘 다 할지, 아니면 수동 수령을 위해 보류할지를 제공자, 의뢰 시설, 환자 위치, 보고서 유형에 따라 결정합니다. 가장 구체적인 실제 일치 항목이 우선하며, 일치하는 항목이 없으면 전달은 기본적으로 전자 전용으로 처리됩니다.",
+    "summary": {
+      "none": "전송하지 않음",
+      "role": "{{role}}: {{channels}}"
+    },
     "table": {
       "emptyState": "아직 구성된 전달 규칙이 없습니다 — 모든 케이스는 사양서에 명시된 실제 기본값(전자 전용)으로 처리됩니다.",
       "headers": {
-        "action": "작업",
+        "channels": "채널",
         "criteria": "기준",
         "note": "메모"
       }
@@ -6785,6 +7628,7 @@
       "noRuleMatched": "일치하는 규칙이 없습니다 — 다른 조건이 해당되지 않을 때 적용되는 사양서에 명시된 실제 기본값(전자 전용)입니다.",
       "resolveButton": "결정",
       "resolvedActionLabel": "결정된 작업:",
+      "resolvedPlanLabel": "채널",
       "subtitle": "실제 케이스 세부 정보를 입력하여 어떤 작업이 선택될지와 그 이유를 확인하세요.",
       "title": "🧪 전달 결정 테스트"
     },
@@ -7598,11 +8442,53 @@
     "pageSubtitle": "활성 기기별 유지보수 및 교정 상태입니다. “기록 추가”로 작업 내용을 기록하세요. 장비 추가·변경은 구성 → 시스템 → 장비에서 합니다.",
     "pageTitle": "장비 기록"
   },
+  "errorBoundary": {
+    "appBody": "PathScribe에서 예기치 않은 오류가 발생하여 중지되었습니다. 다시 시도하거나 작업 목록으로 돌아가 새로 시작하십시오.",
+    "backToWorklist": "작업 목록으로 돌아가기",
+    "body": "PathScribe에서 예기치 않은 오류가 발생하여 이 화면을 더 이상 표시하지 않습니다. 앱의 나머지 부분은 계속 작동합니다.",
+    "panel": {
+      "body": "예기치 않은 오류로 이 패널이 중지되었습니다. 페이지의 나머지 부분은 계속 작동합니다.",
+      "title": "이 패널이 작동을 멈췄습니다"
+    },
+    "reference": "지원팀 참조 번호: {{reference}}",
+    "title": "이 화면에서 문제가 발생했습니다",
+    "tryAgain": "다시 시도",
+    "unsavedLost": "오류가 발생했을 때 이 화면에 저장되지 않은 변경 사항이 있었습니다. 손실되었을 수 있으니 화면이 다시 열리면 확인하십시오. 이미 저장한 작업은 안전합니다.",
+    "unsavedMaybeLost": "이미 저장한 작업은 안전합니다. 이 화면에서 아직 저장하지 않은 변경 사항은 손실되었을 수 있습니다."
+  },
   "evaluateMicroscopicFinalizeGate": {
     "incompleteSynopticFields": "이 검체의 종합 소견 템플릿에 아직 완료되지 않은 필수 필드가 있습니다.",
     "noDocumentationAtAll": "이 검체에는 현미경 소견과 종합 소견 템플릿이 모두 없습니다 — 최종 확정 전에 문서를 추가하세요.",
     "requiredForProcedure": "이 시술에는 현미경 소견 서술이 필요합니다.",
     "unsavedDraft": "이 검체의 현미경 소견은 저장되지 않은 초안입니다 — 최종 확정 전에 저장하거나 삭제하세요."
+  },
+  "exports": {
+    "notice": {
+      "dismiss": "닫기",
+      "dismissAria": "이 내보내기 알림 닫기",
+      "download": "다운로드",
+      "myExports": "내 내보내기",
+      "preparing": "내보내기를 준비하고 있습니다. 준비되면 알려 드리며, 계속 작업하셔도 됩니다.",
+      "ready": "내보내기가 준비되었습니다.",
+      "readyRows_one": "내보내기가 준비되었습니다({{count}}행).",
+      "readyRows_other": "내보내기가 준비되었습니다({{count}}행).",
+      "regionLabel": "내보내기"
+    },
+    "problem": {
+      "BUILD_FAILED": "내보내기를 만들 수 없습니다. 다시 시도하고, 다시 실패하면 관리자에게 알리십시오.",
+      "CANCELLED": "이 내보내기는 취소되었습니다.",
+      "EXPIRED": "이 내보내기는 만료되어 파일이 삭제되었습니다. 다시 내보내십시오.",
+      "INVALID_PARAMETERS": "서버가 이 필터를 사용할 수 없습니다. 필터를 바꾸어 다시 시도하십시오.",
+      "NOT_FOUND": "이 내보내기는 더 이상 사용할 수 없습니다.",
+      "NOT_PERMITTED": "이 보고서를 내보낼 권한이 없습니다.",
+      "SIGNED_OUT": "세션이 종료되었습니다. 다시 로그인한 후 다시 내보내십시오.",
+      "TIMED_OUT": "내보내기 시간이 너무 오래 걸려 중지되었습니다. 필터를 좁혀 다시 시도하십시오.",
+      "TOO_MANY_OPEN": "이미 3개의 내보내기를 준비 중입니다. 하나가 끝날 때까지 기다리거나 내 내보내기에서 하나를 취소하십시오.",
+      "TOO_MANY_ROWS": "한 번에 내보내기에는 행이 너무 많습니다. 필터를 좁혀 다시 시도하십시오.",
+      "TOO_MANY_ROWS_count_one": "{{count}}행이 일치하여 한 번에 내보낼 수 있는 양을 넘습니다. 필터를 좁혀 다시 시도하십시오.",
+      "TOO_MANY_ROWS_count_other": "{{count}}행이 일치하여 한 번에 내보낼 수 있는 양을 넘습니다. 필터를 좁혀 다시 시도하십시오.",
+      "UNAVAILABLE": "PathScribe 서버에 연결할 수 없습니다. 잠시 후 다시 시도하십시오."
+    }
   },
   "externalConsultAccessModal": {
     "accessScopeLabel": "접근 범위",
@@ -7615,14 +8501,15 @@
     "copy": "복사",
     "createdTitle": "링크 생성됨",
     "defaultLifespan": "기본 유효 기간: 24시간(해당 기간이 주말을 포함하는 경우 72시간).",
-    "disclosureBody": "이 링크는 서버 측 검증이 없는 불투명하고 서명되지 않은 문자열입니다. 신뢰할 수 있는 데모 환경 외부의 실제 외부 당사자에게 전송하지 마세요. 실제 암호화 토큰 발급은 아직 존재하지 않는 PS-291의 자체 Interface Engine 백엔드에 의존합니다.",
-    "disclosureTitle": "데모/파일럿 전용 — 실제 보안이 아닙니다.",
+    "disclosureBody": "링크의 토큰은 무작위이며 지문만 보관되지만, 아직 PathScribe 서버가 확인하지 않으므로 이 브라우저에서만 열립니다. PathScribe 서버가 자문 링크를 제공하기 전에는 실제 외부 기관에 보내지 마십시오.",
+    "disclosureTitle": "데모 전용 — 아직 PathScribe 서버가 이 링크를 제공하지 않습니다.",
     "done": "완료",
     "expiresAround": "이 링크는 대략 다음 시점에 만료됩니다:",
     "expiresAt": "만료일 {{date}}",
     "eyebrow": "외부 협진 / 2차 의견",
     "fullCase": "전체 케이스",
     "fullCaseOption": "전체 케이스",
+    "issueFailed": "링크를 발급하지 못했습니다.",
     "issueLink": "링크 발급",
     "issueNewLink": "+ 새 협진 링크 발급",
     "issueTitle": "협진 링크 발급",
@@ -7634,6 +8521,7 @@
     "noDirectoryLookupHint": "자유 입력 — 선택할 수 있는 실제 외부 주소록 조회 기능은 없습니다.",
     "noLinksYet": "이 케이스에 대해 아직 발급된 협진 링크가 없습니다.",
     "noSlidesRecorded": "이 케이스에 기록된 슬라이드가 아직 없습니다.",
+    "notPermitted": "자문 링크를 발급할 권한이 없습니다. 관리자에게 역할 사전에서 권한을 부여해 달라고 요청하십시오.",
     "noteHint": "(선택 사항, 내부 전용 — 협진의에게 표시되지 않음)",
     "noteLabel": "노트",
     "notePlaceholder": "예: 심부 경계에 대한 2차 의견을 요청합니다.",
@@ -7685,8 +8573,13 @@
   "externalConsultViewPage": {
     "diagnosticCategoryLabel": "진단 범주 (선택 사항)",
     "diagnosticCategoryPlaceholder": "예: 양성, 악성, 불확정",
-    "disclosureBanner": "<strong>이것은 데모/파일럿 접근 링크이며, 프로덕션 보안 링크가 아닙니다.</strong> 실제 암호화 인증이 아닌 서명되지 않은 불투명 URL에 의존합니다.",
+    "disclosureBanner": "<strong>데모 링크: 아직 PathScribe 서버가 확인하지 않습니다.</strong> 링크를 발급한 브라우저에서만 열립니다. 토큰은 무작위이며 지문 형태로만 보관됩니다.",
     "dobPrefix": "생년월일 {{date}}",
+    "errors": {
+      "alreadySigned": "이 링크로 서명된 의견이 이미 전송되었습니다. 추가할 내용이 있으면 의뢰한 병리의사에게 연락하십시오.",
+      "failed": "의견을 전송하지 못했습니다.",
+      "linkNoLongerActive": "이 링크는 더 이상 유효하지 않아 의견이 전송되지 않았습니다. 의뢰한 병리의사에게 연락하십시오."
+    },
     "eyebrow": "PathScribe 외부 자문",
     "fullCaseAccess": "전체 케이스 접근",
     "invalidLink": {
@@ -7698,9 +8591,13 @@
     "noSlidesInScope": "이 링크의 범위에 슬라이드가 없습니다.",
     "opinionPlaceholder": "진단 소견 / 의견을 입력하세요…",
     "opinionSubmittedConfirmation": "자문 의견이 기록되어 의뢰한 병리의에게 반환되었습니다.",
+    "patientName": "{{lastName}} {{firstName}} 님",
     "requiredOpinionError": "제출하기 전에 의견이 필요합니다.",
     "scopedAccess_one": "범위 지정 접근 — 슬라이드 {{count}}개",
     "scopedAccess_other": "범위 지정 접근 — 슬라이드 {{count}}개",
+    "separator": " · ",
+    "signedIsFinal": "서명된 의견은 최종입니다. 이후 이 링크로는 더 이상 의견을 받지 않습니다.",
+    "specimenLine": "{{label}} — {{description}}",
     "specimensAndSlides": "검체 및 슬라이드",
     "status": {
       "draft": "초안",
@@ -7808,6 +8705,7 @@
       "addressPlaceholder": "123 Main St, 시, 주 우편번호",
       "assigningAuthority": "할당 기관 *",
       "assigningAuthorityPlaceholder": "예: NWOG",
+      "city": "시/군/구",
       "cliaIsoNumber": "CLIA/ISO 인정 번호",
       "cliaIsoNumberHint": "형식 검증 없는 자유 텍스트입니다 — 실제 미국 CLIA 번호와 실제 영국/ISO 인정 번호는 형태가 실제로 다르며, 이 앱에는 둘 중 어느 것도 대조할 검증된 형식 사양이 없습니다.",
       "cliaIsoNumberPlaceholder": "예: 12D3456789(미국 CLIA) 또는 영국/ISO 인정 번호",
@@ -7831,6 +8729,7 @@
       "facilityDetails": "시설 세부정보",
       "facilityName": "시설명 *",
       "facilityNamePlaceholder": "예: Northwest Oncology Group",
+      "fax": "팩스",
       "forceAddendumOnDedicatedPage": "추가기록 페이지 정책",
       "forceAddendumOnDedicatedPageCheckbox": "추가기록을 별도 페이지로 강제",
       "forceAddendumOnDedicatedPageHint": "활성화하면 보고서의 추가기록 텍스트가 보완하는 내용과 페이지를 공유하지 않고 항상 새 페이지에서 시작합니다. 위에서 수행 검사실이 선택된 경우에만 의미가 있습니다.",
@@ -7847,6 +8746,8 @@
       "phone": "전화번호",
       "placeOfServiceCode": "서비스 장소 코드",
       "placeOfServiceCodeHint": "실제 현재 CMS 서비스 장소 코드 집합입니다 — 이 시설 자체의 수행 검사실 특성이 아니라 검체가 실제로 채취되는 환경을 반영합니다.",
+      "postalCode": "우편번호",
+      "region": "시/도",
       "reportLanguage": "보고서 언어",
       "reportLanguageDefault": "관할 지역 기본값 ({{language}})",
       "reportLanguageHint": "이 검사실이 보고서를 작성하는 언어입니다. 보고서 PDF의 항목명, 섹션 제목, 날짜에 적용됩니다. 서명 시 보고서와 함께 저장되며 정정 및 추가 보고서도 같은 언어를 사용합니다. 진단 문구는 사전에서 가져옵니다.",
@@ -7951,7 +8852,9 @@
       "identifierFormats": "식별자 형식",
       "lisIntegration": "LIS 연동",
       "locations": "위치",
+      "printing": "인쇄",
       "reporting": "보고",
+      "secureMessaging": "보안 메시지",
       "spelling": "맞춤법",
       "tat": "처리 시간 및 에스컬레이션"
     },
@@ -7997,6 +8900,110 @@
       "sendoutReference": "송부 및 참조검사실",
       "stainingIhc": "염색 및 IHC"
     }
+  },
+  "facilityPrintingTab": {
+    "delivery": {
+      "enabled": "발행된 보고서 인쇄",
+      "intro": "보고서가 발행될 때 이 검사실이 인쇄하는 방식입니다. 끄면 자동으로 인쇄되지 않습니다.",
+      "mode": "전송 방식",
+      "paperSize": "용지 크기",
+      "paperSizeDefault": "기본값 (Letter)",
+      "printerName": "프린터 이름",
+      "printerNameHint": "검사실 인쇄용 컴퓨터의 QZ Tray에 표시되는 프린터 이름 그대로 입력하십시오.",
+      "title": "보고서 인쇄"
+    },
+    "destination": {
+      "address": "프린터 주소 (IP 또는 호스트 이름)",
+      "intro": "기본 네트워크 프린터 (일치하는 인쇄 라우팅 규칙이 없을 때). 비워 두면 해당 보고서는 엉뚱한 곳에서 인쇄되지 않고 명확한 사유와 함께 실패 처리됩니다.",
+      "name": "표시 이름",
+      "noDefault": "기본값 없음(라우팅 규칙이 일치해야 함)",
+      "path": "프린터 경로",
+      "port": "포트",
+      "portHint": "프로토콜의 표준 포트를 사용하려면 비워 두십시오.",
+      "protocol": "프로토콜",
+      "queue": "대기열 이름"
+    },
+    "duplexModes": {
+      "DUPLEX": "양면",
+      "SIMPLEX": "단면"
+    },
+    "modeHints": {
+      "DIRECT_NETWORK_PRINT": "각 보고서를 네트워크 프린터로 직접 보냅니다. 인쇄 라우팅 규칙이 프린터를 선택하며, 일치하는 규칙이 없으면 아래 프린터를 사용합니다.",
+      "INTERFACE_ENGINE_HANDOFF": "각 보고서를 인터페이스 엔진에 넘기고, 엔진이 검사실 인쇄 서버로 보냅니다.",
+      "NATIVE_QZ_TRAY": "검사실 컴퓨터에서 QZ Tray를 통해 아래 지정한 프린터로 인쇄합니다."
+    },
+    "modes": {
+      "DIRECT_NETWORK_PRINT": "네트워크 프린터 (직접)",
+      "INTERFACE_ENGINE_HANDOFF": "인터페이스 엔진 또는 인쇄 서버",
+      "NATIVE_QZ_TRAY": "QZ Tray (지정 프린터)"
+    },
+    "notPermitted": "인쇄 설정을 변경할 권한이 없습니다.",
+    "paperSizes": {
+      "A4": "A4",
+      "LEGAL": "Legal",
+      "LETTER": "Letter"
+    },
+    "paperSources": {
+      "TRAY_1_LETTERHEAD": "용지함 1 (레터헤드)",
+      "TRAY_2_PLAIN": "용지함 2 (일반)"
+    },
+    "presentation": {
+      "duplex": "인쇄 면",
+      "intro": "이 기관이 의뢰한 증례에 적용됩니다. 기본값: 최종 및 수정 보고서는 레터헤드 용지에 양면, 예비 보고서는 일반 용지에 단면.",
+      "paperSource": "용지함",
+      "reportDefault": "보고서 기본값",
+      "title": "이 의뢰처 보고서의 용지 처리"
+    },
+    "problems": {
+      "agentPrinterOtherSite": "기본 프린터는 이 기관의 사이트 에이전트 프린터 중 하나여야 합니다.",
+      "destinationAddressInvalid": "프린터 주소에는 문자, 숫자, 마침표, 하이픈, 콜론만 사용할 수 있습니다.",
+      "destinationAddressRequired": "네트워크 프린터 주소를 입력하거나 기본 프린터 항목을 비우십시오.",
+      "portOutOfRange": "포트는 1부터 65535까지의 정수여야 합니다.",
+      "printerNameRequired": "프린터 이름을 입력하거나 인쇄를 끄십시오."
+    },
+    "protocols": {
+      "IPP": "IPP",
+      "LPR_LPD": "LPR/LPD",
+      "RAW_9100": "RAW (포트 9100)"
+    },
+    "save": "인쇄 설정 저장",
+    "saveFailed": "인쇄 설정을 저장하지 못했습니다.",
+    "saved": "인쇄 설정이 저장되었습니다."
+  },
+  "facilitySecureMessagingTab": {
+    "add": "추가",
+    "addLabel": "게이트웨이 추가",
+    "addPlaceholder": "게이트웨이 선택…",
+    "agreementInForce": "{{agreement}} 유효",
+    "agreementOnFile": "{{agreement}} 등록",
+    "agreementReference": "계약 참조 번호",
+    "default": "기본값",
+    "enabled": "직원 사용 가능",
+    "expiresOn": "만료일 (선택)",
+    "intro": "이 검사실 직원이 보안 메시지를 보내는 게이트웨이입니다. 환자 정보나 소견은 계약이 등록되어 유효한 게이트웨이로만 보낼 수 있으며, 게이트웨이마다 따로 확인합니다.",
+    "kinds": {
+      "clinicalMessaging": "임상 메시지 네트워크 (수신자 ID)",
+      "email": "보안 이메일"
+    },
+    "noAgreement": "{{agreement}} 없음: 환자 정보 불가",
+    "none": "아직 게이트웨이가 없습니다. 게이트웨이를 추가해야 직원이 보안 메시지를 보낼 수 있습니다.",
+    "notPermitted": "보안 메시지 설정을 변경할 권한이 없습니다.",
+    "problems": {
+      "agreementDateRequired": "계약 서명일을 입력하십시오.",
+      "agreementEndsBeforeStart": "계약 만료일은 서명일보다 앞설 수 없습니다.",
+      "agreementReferenceRequired": "계약 참조 번호를 입력하십시오.",
+      "defaultNotEnabled": "기본 게이트웨이는 직원이 사용할 수 있는 게이트웨이여야 합니다.",
+      "duplicateGateway": "같은 게이트웨이가 두 번 있습니다.",
+      "unknownGateway": "인식할 수 없는 게이트웨이가 있습니다."
+    },
+    "remove": "게이트웨이 제거",
+    "save": "보안 메시지 설정 저장",
+    "saveFailed": "보안 메시지 설정을 저장하지 못했습니다.",
+    "saved": "보안 메시지 설정이 저장되었습니다.",
+    "senderAddress": "검사실 발신 주소",
+    "senderId": "네트워크상의 검사실 ID",
+    "signedOn": "서명일",
+    "title": "보안 메시지 게이트웨이"
   },
   "facilityTable": {
     "activate": "활성화",
@@ -8107,6 +9114,11 @@
         "referralTestRequested": "요청 검사 / 패널",
         "stainingReagentLots": "시약 / 용액 로트"
       },
+      "clinicalHistory": {
+        "caseEntry": "증례 임상 병력",
+        "coded": "코드화된 임상 병력(자유 텍스트 불가)",
+        "specimenEntry": "검체별 임상 병력"
+      },
       "cytology": {
         "cisoeaAdequacy": "A — 적정성",
         "cisoeaComments": "모든 축에 코멘트",
@@ -8137,6 +9149,20 @@
         "observedPieceCount": "관찰된 조직 조각 수",
         "orientationInstructions": "방향 지시사항",
         "reprintReason": "재인쇄 사유"
+      },
+      "facility": {
+        "address": "주소",
+        "assigningAuthority": "할당 기관 코드",
+        "city": "시/군/구",
+        "contactPerson": "담당자",
+        "email": "이메일",
+        "fax": "팩스",
+        "interfaceEndpoint": "인터페이스 엔진 엔드포인트",
+        "name": "기관명",
+        "phone": "전화",
+        "postalCode": "우편번호",
+        "region": "시/도",
+        "sendingFacilityId": "LIS 송신 기관 ID"
       },
       "grossing": {
         "blocks": "블록 최소 1개",
@@ -8271,6 +9297,21 @@
         "slideFolderId": "슬라이드 폴더 ID",
         "slotPosition": "슬롯 위치",
         "trayNumber": "트레이 번호"
+      },
+      "staff": {
+        "credentials": "자격",
+        "email": "이메일",
+        "facilities": "기관",
+        "firstName": "이름",
+        "gmcNumber": "GMC 번호",
+        "lastName": "성",
+        "license": "면허 번호",
+        "middleName": "중간 이름",
+        "npi": "NPI",
+        "phone": "전화",
+        "roles": "역할",
+        "signature": "서명",
+        "subspecialties": "세부 전문 분야"
       }
     },
     "forOrganisation": "{{organisation}} 설정",
@@ -8288,6 +9329,7 @@
       "blocks": "블록",
       "cassetteReprint": "카세트 라벨 재인쇄",
       "cisoea": "CISOE-A 검토",
+      "clinicalHistoryEntries": "임상 병력 항목",
       "comments": "댓글",
       "criticalFindings": "위급 소견",
       "cytologyReview": "세포검사 검토(Bethesda)",
@@ -8295,6 +9337,9 @@
       "delegation": "위임",
       "discordance": "동결절편-최종 진단 대조",
       "embeddingConfirm": "포매 확인",
+      "facilityContact": "연락처",
+      "facilityIdentity": "기관",
+      "facilityInterfaces": "인터페이스",
       "fixation": "고정",
       "histologyCorrelation": "세포-조직 상관관계",
       "holds": "보류",
@@ -8322,12 +9367,19 @@
       "slideLabelReprint": "슬라이드 라벨 재인쇄",
       "slideOrders": "슬라이드 주문",
       "specimenDetails": "검체 추가 또는 편집",
-      "specimens": "검체"
+      "specimens": "검체",
+      "staffAccess": "역할 및 기관",
+      "staffContact": "연락처",
+      "staffIdentity": "이름",
+      "staffProfessional": "전문 정보"
     },
     "hints": {
       "blocksScope": "프로토콜이 있는 모든 검체에 대해 확인 (세포학 표본 제외)",
+      "codedEntriesOnly": "모든 항목은 자유 텍스트가 아닌 임상 병력 사전의 코드여야 합니다.",
       "controlWellsOnly": "대조 및 보정 웰에만 해당됩니다.",
       "criticalNotSurgeonOnly": "중대 결과가 집도의가 아닌 사람에게 전달될 때만",
+      "cytologyCasesOnly": "세포병리 및 FNA 증례에만 해당. 접수 시 표시만 하며 접수를 막지 않습니다. 나중에 추가할 수 있습니다.",
+      "cytologySpecimensOnly": "세포병리 및 FNA 증례에만 해당. 검체가 하나면 증례 항목으로 충분합니다. 접수 시 표시만 하며 접수를 막지 않습니다.",
       "cytologyStainingOnly": "세포학 염색 배치에만 해당됩니다.",
       "decalOnly": "탈회 / 특수 처리 배치에만 해당됩니다.",
       "delegationNoteByType": "위임 유형마다 자체 메모를 요구할 수도 있습니다(위임 유형)",
@@ -8345,6 +9397,8 @@
       "reusableRackOnly": "재사용 랙에만 해당됩니다.",
       "sendOutLinesOnly": "분자/외부 의뢰 항목에만 해당되며, 검사의 승인된 검사실에서 채워집니다.",
       "stainingOnly": "염색 배치에만 해당됩니다.",
+      "whenInterfaceConfigured": "인터페이스 엔진 연결이 설정된 경우에만.",
+      "whenLisRoutingConfigured": "LIS 라우팅이 설정된 경우에만.",
       "withFrozenDiagnosis": "동결절편 진단을 입력한 경우에만 요구"
     },
     "lockReasons": {
@@ -8371,8 +9425,11 @@
       "delegationRouting": "케이스나 보고서를 누구에게 넘길지 정합니다.",
       "discordanceRecord": "최종 진단과 다른 동결절편은 분류하고 설명해야 합니다(CAP, ISO 15189).",
       "externalAddress": "보안 이메일에는 수신자 주소가 필요합니다.",
+      "facilityIdentity": "기관은 의뢰, 보고서 및 라벨에서 이름으로 식별됩니다.",
+      "facilityRouting": "수신 HL7 의뢰는 할당 기관 코드로 기관과 연결되므로 필수이며 고유해야 합니다.",
       "fixationCompliance": "CAP/ASCO 바이오마커 지침에 따라 서명 전에 고정 시간을 기록하거나 확인된 예외가 있어야 합니다.",
       "holdAccountability": "보류는 케이스 작업을 중단시키므로 설정하거나 해제할 때 사유를 기록합니다.",
+      "interfaceRouting": "인터페이스가 설정되면 이 값 없이는 메시지를 전달할 수 없습니다.",
       "intraopMergeTarget": "세션은 정확히 한 증례에 병합됩니다.",
       "intraopReporting": "세션에는 집도의가 기록됩니다. 동결절편 결과는 집도의 또는 권한 있는 수술팀 구성원에게 전달될 수 있으며, 수신자는 보고와 함께 기록됩니다.",
       "materialTraceability": "블록과 슬라이드 변경은 무엇을 왜 바꿨는지 추적할 수 있어야 합니다(ISO 15189).",
@@ -8400,6 +9457,8 @@
       "specimen": "케이스에는 설명이 있는 검체가 최소 하나 필요합니다.",
       "specimenDescription": "모든 검체에는 설명이 필요하며 보고서에 표시됩니다.",
       "specimenIdentity": "라벨, 블록 및 보고서에서 검체를 식별합니다.",
+      "staffAccess": "직원의 권한은 역할에서 정해지므로 최소 하나가 필요합니다.",
+      "staffIdentity": "직원은 증례, 보고서 및 감사 기록에서 이름으로 식별됩니다.",
       "supersedeRecord": "런을 대체하면 사유가 두 런의 기록에 모두 남습니다.",
       "verbalReportRecord": "기록에는 결과를 받은 사람과 그 역할이 있어야 합니다.",
       "wellTraceability": "환자 웰은 결과를 추적할 수 있도록 검체를 명시해야 합니다."
@@ -8411,8 +9470,10 @@
       "accession": "접수",
       "addOnOrder": "추가 주문",
       "batchManagement": "배치 관리",
+      "clinicalHistory": "임상 병력(세포병리)",
       "cytology": "세포검사 스크리닝",
       "embedding": "포매 스테이션",
+      "facility": "기관 편집기",
       "grossing": "육안검사",
       "intraop": "수술중 자문",
       "messaging": "메시지",
@@ -8420,7 +9481,8 @@
       "molecularBatch": "분자 플레이트 구성",
       "molecularRack": "분자 랙 적재",
       "report": "증례 보고서",
-      "slideDistribution": "슬라이드 배분 스테이션"
+      "slideDistribution": "슬라이드 배분 스테이션",
+      "staff": "직원"
     },
     "perBlock": "모든 블록에 대해 확인",
     "perSpecimen": "모든 검체에 대해 확인",
@@ -8498,6 +9560,8 @@
       "nameLabel": "이름",
       "namePlaceholder": "플래그 이름",
       "nameRequiredError": "이름은 필수입니다",
+      "restrictsPrintingHint": "VIP 또는 기밀 증례용: 이 플래그가 있는 증례는 \"제한 증례 인쇄\" 권한이 있는 직원만 인쇄할 수 있습니다.",
+      "restrictsPrintingLabel": "인쇄 제한",
       "saveChangesTitle": "변경 사항 저장",
       "severityLabel": "심각도",
       "statusLabel": "상태"
@@ -8515,6 +9579,22 @@
     },
     "subtitle": "사례 워크플로에 사용되는 관리 및 전산 플래그를 관리합니다",
     "title": "사례 및 표본 플래그"
+  },
+  "flagForMdtModal": {
+    "boardLabel": "위원회",
+    "cancelBtn": "취소",
+    "errors": {
+      "activeListingExists": "이 증례는 이미 종양위원회에 플래그되어 있습니다.",
+      "batchLocked": "이 위원회의 증례 목록은 예정된 회의에 대해 잠겨 있습니다 — 이후 날짜를 선택하세요.",
+      "notPermitted": "증례를 종양위원회에 플래그할 권한이 없습니다.",
+      "presenterNotEligible": "해당 담당자는 종양위원회에서 발표할 자격이 없습니다.",
+      "saveFailed": "이 증례를 종양위원회에 플래그할 수 없습니다 — 다시 시도해 주세요."
+    },
+    "meetingDateHint": "날짜가 아직 정해지지 않았다면 비워 두세요 — 날짜가 정해지기 전까지 증례는 미정 그룹에 표시됩니다.",
+    "meetingDateLabel": "회의 일자",
+    "meetingTimeLabel": "회의 시간",
+    "submitBtn": "종양위원회로 지정",
+    "title": "종양위원회(MDT)로 지정"
   },
   "flagManagerModal": {
     "activeCount_one": "{{count}}개 활성",
@@ -9092,22 +10172,38 @@
       "addMargin": "절제연 추가",
       "attachToBlock": "연결 대상: 블록 {{label}}",
       "attachToSpecimen": "연결 대상: 검체",
-      "colorCodePlaceholder": "잉크 색상 코드",
-      "colorNamePlaceholder": "잉크 색상 이름",
       "empty": "아직 기록된 절제연이 없습니다.",
       "inkEntry": "{{colorName}} ({{colorCode}}) — {{by}}, {{when}}",
+      "issues": {
+        "margin_ink_color_unmapped": "잉크 색상 \"{{colorCode}}\"가 잉크 색상 사전에 없습니다",
+        "margin_no_ink_applied": "잉크가 적용되지 않음",
+        "margin_not_examined": "아직 검사되지 않음"
+      },
       "lateralityPlaceholder": "측성 (선택 사항)",
       "markExamined": "이 절제연을 검사됨으로 표시",
       "namePlaceholder": "절제연 이름 (예: 외측, 심부)",
       "onBlock": "블록 {{label}}에",
       "onSpecimen": "검체에",
       "orientationPlaceholder": "방향 (선택 사항)",
+      "reason": {
+        "blockNotFound": "이 블록이 더 이상 검체에 없습니다. 증례를 다시 불러온 후 다시 시도하세요.",
+        "caseNotFound": "이 증례를 찾을 수 없습니다. 증례를 다시 불러온 후 다시 시도하세요.",
+        "conflict": "다른 사용자가 같은 시간에 이 증례를 변경했습니다. 증례를 다시 불러온 후 다시 시도하세요.",
+        "marginNotFound": "이 절제면은 더 이상 기록되어 있지 않습니다. 증례를 다시 불러온 후 다시 시도하세요.",
+        "notPermitted": "절제면 잉크 표시를 기록할 권한이 없습니다.",
+        "specimenNotFound": "이 검체가 더 이상 증례에 없습니다. 증례를 다시 불러온 후 다시 시도하세요."
+      },
       "saveFailed": "이 절제연 잉킹 적용을 저장할 수 없습니다. 다시 시도하세요.",
+      "selectColorPlaceholder": "잉크 색상 선택",
       "status": {
         "examined": "검사됨",
         "pending": "대기 중"
       },
-      "title": "절제연 및 잉킹 적용"
+      "title": "절제연 및 잉킹 적용",
+      "validationNotice": {
+        "strictEnforce": "잉킹 검증 모드: 엄격 적용 — 아래 문제는 수정될 때까지 서명을 차단합니다.",
+        "warnOnly": "잉킹 검증 모드: 경고 및 권고 — 아래 문제는 서명을 차단하지 않습니다."
+      }
     },
     "noOverrides": "기록된 변경 사항이 없습니다.",
     "noProtocol": "할당된 프로토콜 없음",
@@ -9156,6 +10252,8 @@
       "deficiencyChip_other": "검체 결함 {{count}}건 — 클릭하여 기록 보기",
       "noStainsYet": "아직 염색 없음",
       "priorityOverrideTitle": "우선순위 재정의",
+      "signatureChip_one": "기록된 서명 {{count}}건 — 클릭하여 기록 보기",
+      "signatureChip_other": "기록된 서명 {{count}}건 — 클릭하여 기록 보기",
       "versionChip_one": "서명된 버전 {{count}}건 — 클릭하여 기록 보기",
       "versionChip_other": "서명된 버전 {{count}}건 — 클릭하여 기록 보기"
     },
@@ -9214,6 +10312,36 @@
       "remaining": "{{countdown}} 남음"
     }
   },
+  "heldReports": {
+    "kinds": {
+      "autopsy": "부검 보고서",
+      "cytology-finalize-early": "세포병리 증례 보고서 (조기 종결)",
+      "cytology-late-sign-out": "발행된 증례 보고서에 추가된 세포병리 검체",
+      "cytology-preliminary": "긴급 세포병리 예비 보고서",
+      "cytology-revision": "세포병리 정정 또는 추가 보고",
+      "cytology-sign-out": "세포병리 증례 보고서",
+      "surgical-amendment": "보고서 정정 또는 추가 보고",
+      "surgical-preliminary": "예비 보고서",
+      "surgical-sign-out": "서명 완료 보고서"
+    },
+    "line": "{{type}} – {{what}}: 발행 지연으로 {{time}}까지 보류됨 ({{name}} 발행).",
+    "recall": "회수",
+    "recalled": "회수했습니다. 아무것도 발송되지 않았으며 다시 열렸습니다.",
+    "refused": {
+      "expired": "발행 지연이 끝나 이미 발송되었습니다.",
+      "notFound": "찾을 수 없습니다.",
+      "notHeld": "더 이상 보류 중이 아닙니다.",
+      "notRecallable": "이 보고서는 아직 회수할 수 없습니다.",
+      "notReleaser": "발행한 사람만 회수할 수 있습니다.",
+      "superseded": "이 보고서를 바탕으로 이후 보고서(이 PAD에 대한 FAD)가 이미 서명되었습니다. 그것을 먼저 회수하십시오."
+    },
+    "types": {
+      "ADDENDUM": "추가 보고",
+      "CORRECTED": "정정",
+      "FINAL": "최종",
+      "PRELIMINARY": "예비"
+    }
+  },
   "hl7Notifications": {
     "blockException": "🔬 {{accession}}: 블록 {{block}} {{status}} 보고됨",
     "blockExceptionWithNote": "🔬 {{accession}}: 블록 {{block}} {{status}} 보고됨 — {{note}}",
@@ -9247,6 +10375,10 @@
       "description": "새 검체를 등록하고 육안 검사 템플릿을 지정합니다",
       "title": "접수"
     },
+    "benchContributionsTile": {
+      "description": "접수 처리율 • 배치 처리량 및 대기열 적체 • 단계별 TAT • 분자 QC",
+      "title": "현장 기여도"
+    },
     "configurationTile": {
       "description": "시스템 설정 및 AI 환경설정",
       "title": "구성"
@@ -9276,11 +10408,25 @@
       "title": "검색"
     },
     "systemsOperational": "시스템 정상 작동",
+    "tumorBoardTile": {
+      "description": "증례를 종양위원회(MDT) 안건으로 지정하고 안건 목록을 관리합니다",
+      "title": "종양위원회(MDT)"
+    },
     "welcomeBack": "다시 오신 것을 환영합니다,",
     "worklistTile": {
       "description": "대기 중인 병리 증례를 보고 관리합니다",
       "title": "작업 목록"
     }
+  },
+  "hostingRegions": {
+    "kinds": {
+      "ai": "AI 서비스",
+      "database": "데이터베이스",
+      "files": "파일 저장소(보고서, 내보내기)"
+    },
+    "notReported": "보고되지 않음",
+    "note": "데이터베이스와 파일 저장소 지역은 PathScribe 서버에서 제공되며 여기서 변경할 수 없습니다. '보고되지 않음'은 서버가 제공하지 않았다는 뜻입니다(데모에는 서버가 없습니다).",
+    "title": "PathScribe 데이터 보관 위치"
   },
   "identifierFormatsTab": {
     "barcode": {
@@ -9375,9 +10521,103 @@
     "title": "이미지 관리 시스템",
     "tokenWarning": "이 URL에 인증 토큰을 포함하지 마세요 — 단수복복 토큰은 요쉢 시을 마다 새로 적교되어야 하며 여서 저장되지 않습니다."
   },
+  "inkColorsSection": {
+    "addColorButton": "+ 색상 추가",
+    "emptyState": "아직 등록된 잉크 색상이 없습니다.",
+    "headers": {
+      "actions": "작업",
+      "code": "코드",
+      "color": "색상",
+      "status": "상태"
+    },
+    "loading": "잉크 색상을 불러오는 중...",
+    "modal": {
+      "addColorButton": "색상 추가",
+      "addTitle": "잉크 색상 추가",
+      "codeField": "코드",
+      "codeHint": "서명 시 MarginInkApplication.colorCode와 대조하여 검증됩니다.",
+      "codePlaceholder": "#0000FF",
+      "editTitle": "수정 — {{name}}",
+      "errors": {
+        "codeCollision": "코드 \"{{code}}\"는 이미 \"{{name}}\"에서 사용 중입니다.",
+        "codeRequired": "필수 — 서명 시 검증되는 코드",
+        "nameCollision": "\"{{name}}\" 색상이 이미 존재합니다."
+      },
+      "nameField": "이름",
+      "namePlaceholder": "예: 블루",
+      "saveChangesButton": "변경사항 저장",
+      "statusField": "상태"
+    },
+    "subtitle": "서명 시 MarginInkApplication.colorCode가 대조되는 실제 사전(그로싱 화면의 잉킹 검증 모드 안내 참조)이며, 이 화면의 절제연/잉크 양식이 선택 항목을 가져오는 곳입니다.",
+    "title": "잉크 색상"
+  },
+  "inkingGate": {
+    "advisoryConfirm": {
+      "body_one": "미해결된 절제연 잉킹 문제가 {{count}}건 있습니다. 지금 그로싱을 완료하면 권고 메모가 기록되며, 완료가 차단되지는 않습니다.",
+      "body_other": "미해결된 절제연 잉킹 문제가 {{count}}건 있습니다. 지금 그로싱을 완료하면 권고 메모가 기록되며, 완료가 차단되지는 않습니다.",
+      "confirm": "권고 메모와 함께 진행",
+      "title": "미해결된 절제연 잉킹 문제"
+    },
+    "grossingBlock": {
+      "body": "그로싱을 완료할 수 없습니다: 절제연 잉킹 문제가 규정 준수 중요(심각도 3)이며 이 단계에서는 우회할 수 없습니다.",
+      "title": "그로싱을 완료할 수 없습니다"
+    },
+    "issueCode": {
+      "margin_ink_color_unmapped": "활성 잉크 색상 사전에 없는 잉크 색상 코드",
+      "margin_no_ink_applied": "잉크 적용이 기록되지 않음",
+      "margin_not_examined": "아직 검사됨으로 표시되지 않음"
+    },
+    "issueLine": "검체 {{specimen}}: {{code}}",
+    "overrideModal": {
+      "cancel": "취소",
+      "confirm": "관리자 재정의 기록",
+      "jurisdictionLabel": "해당 규제 참조",
+      "notPermitted": "이 게이트를 재정의할 권한이 없습니다.",
+      "reasonLabel": "재정의 사유",
+      "reasonTextLabel": "추가 세부사항 (선택)",
+      "reasonTextPlaceholder": "감사 기록에 추가할 세부사항을 입력하세요...",
+      "reasons": {
+        "EMERGENCY_INTRAOP_CONSULTATION": "응급 수술 중 협의",
+        "FOREIGN_OBJECT_PRE_INKED": "검체가 이물질로 사전에 잉킹됨",
+        "OTHER": "기타 (아래에 설명)",
+        "SPECIMEN_CONSUMED_UNAVAILABLE": "검체가 소진되어 재잉킹 불가"
+      },
+      "title": "관리자 재정의 — 서명 게이트"
+    },
+    "paletteUnavailable": {
+      "body": "잉크 색상 사전을 읽을 수 없습니다. 다시 사용할 수 있을 때까지 서명 및 그로싱 완료가 차단됩니다 — 자동으로 재시도되지 않습니다."
+    },
+    "signOutBlock": {
+      "overrideButton": "관리자 재정의",
+      "title": "서명을 완료할 수 없습니다"
+    }
+  },
+  "inkingValidationModeSection": {
+    "facilityLabel": "시설",
+    "modeLabel": "잉킹 검증 모드",
+    "modes": {
+      "STRICT_ENFORCE": {
+        "hint": "심각도 2의 절제연 잉킹 문제는 해결될 때까지 그로싱 완료를 차단합니다.",
+        "label": "엄격 적용"
+      },
+      "WARN_ONLY": {
+        "hint": "심각도 2의 절제연 잉킹 문제는 표시되지만 그로싱 완료를 차단하지 않습니다(기본값).",
+        "label": "경고만 표시"
+      }
+    },
+    "notPermitted": "이 설정을 변경할 권한이 없습니다.",
+    "save": "저장",
+    "saved": "저장되었습니다.",
+    "subtitle": "절제연이 검사되지 않았거나 잉킹되지 않은 경우(심각도 2) 이 시설이 경고만 할지(기본값) 그로싱 완료를 차단할지 선택합니다. 심각도 3 문제(매핑되지 않은 잉크 색상 코드)는 이 설정과 관계없이 항상 차단됩니다.",
+    "title": "잉킹 검증 모드"
+  },
   "inlineCommentThread": {
+    "addButton": "추가",
+    "addCommentLabel": "“{{question}}”에 대한 댓글",
     "addCommentPlaceholder": "댓글 추가...",
+    "authorSeparator": ": ",
     "reopenButton": "다시 열기",
+    "resolveButton": "해결",
     "resolvedBadge": "(해결됨)"
   },
   "inspectionModeTab": {
@@ -9403,6 +10643,90 @@
     "totalRecordsLabel": "기간 내 총 기록 수",
     "windowLabel": "기간",
     "windowRange": "기간: {{start}} — {{end}}"
+  },
+  "interfaceEngines": {
+    "apiNotReachable": "PathScribe에 연결할 수 없음: 전달할 메시지 저장 중",
+    "apiReachable": "PathScribe 연결됨",
+    "certExpires": "인증서 만료 {{when}}",
+    "channelProblem": {
+      "backlog": "{{minutes, number}}분 넘게 대기 중",
+      "deadLetters": "처리할 최종 실패",
+      "error": "오류",
+      "paused": "일시 중지, 대기열 유지",
+      "stopped": "중지됨"
+    },
+    "columns": {
+      "channel": "채널",
+      "deadLetters": "최종 실패",
+      "direction": "방향",
+      "oldest": "가장 오래 대기",
+      "queued": "대기",
+      "state": "상태"
+    },
+    "demoNote": "데모에서는 브라우저가 인터페이스 메시지를 직접 처리하므로 모니터링할 인터페이스 엔진이 없습니다.",
+    "direction": {
+      "inbound": "수신(리스너)",
+      "outbound": "송신"
+    },
+    "diskFree": "디스크 여유 {{percent, number}}%",
+    "hosting": {
+      "cloud": "호스팅",
+      "onsite": "현장"
+    },
+    "lastCheckIn": "마지막 확인 {{when}}",
+    "line": "인터페이스 엔진: {{parts}}",
+    "lineParts": {
+      "attention_one": "확인 필요 {{count, number}}",
+      "attention_other": "확인 필요 {{count, number}}",
+      "degraded_one": "성능 저하 {{count, number}}",
+      "degraded_other": "성능 저하 {{count, number}}",
+      "listenersDown_one": "중지된 리스너 {{count, number}}",
+      "listenersDown_other": "중지된 리스너 {{count, number}}",
+      "offline_one": "오프라인 {{count, number}}",
+      "offline_other": "오프라인 {{count, number}}",
+      "online_one": "온라인 {{count, number}}",
+      "online_other": "온라인 {{count, number}}",
+      "queued_one": "대기 메시지 {{count, number}}",
+      "queued_other": "대기 메시지 {{count, number}}"
+    },
+    "loading": "엔진 상태 불러오는 중…",
+    "minutes_one": "{{count, number}}분",
+    "minutes_other": "{{count, number}}분",
+    "neverCheckedIn": "확인 기록 없음",
+    "none": "아직 등록된 인터페이스 엔진이 없습니다.",
+    "number": "{{value, number}}",
+    "openOutbound": "송신 열기",
+    "problem": {
+      "NOT_PERMITTED": "인터페이스 엔진을 볼 권한이 없습니다.",
+      "SIGNED_OUT": "세션이 종료되었습니다. 엔진을 보려면 다시 로그인하십시오.",
+      "UNAVAILABLE": "엔진 상태를 불러올 수 없습니다. 1분 후 다시 시도합니다."
+    },
+    "readOnlyNote": "채널은 엔진 자체에서 시작하거나 중지합니다. 실패한 송신 메시지는 송신에서 다시 보냅니다.",
+    "refresh": "새로 고침",
+    "state": {
+      "error": "오류",
+      "paused": "일시 중지",
+      "started": "시작됨",
+      "stopped": "중지됨"
+    },
+    "status": {
+      "attention": "확인 필요",
+      "degraded": "성능 저하",
+      "offline": "오프라인",
+      "online": "온라인"
+    },
+    "subtitle": "각 병원의 인터페이스 엔진: 리스너 작동 여부, 대기 중인 항목, 실패한 항목. 1분마다 새로 고칩니다.",
+    "title": "인터페이스 엔진",
+    "totals": {
+      "deadLetters_one": "최종 실패 {{count, number}}",
+      "deadLetters_other": "최종 실패 {{count, number}}",
+      "listenersDown_one": "중지된 리스너 {{count, number}}",
+      "listenersDown_other": "중지된 리스너 {{count, number}}",
+      "queued_one": "대기 {{count, number}}",
+      "queued_other": "대기 {{count, number}}"
+    },
+    "version": "버전 {{version}}",
+    "view": "엔진 보기"
   },
   "interfaceExceptionReviewModal": {
     "casesLabel": "원본 환자의 활성 사례 — 대상 환자로 이동할 사례를 선택하세요(해당하는 경우)",
@@ -9438,6 +10762,7 @@
     "deleteNote": "메모 삭제",
     "deleteNoteConfirm": "이 메모를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
     "deleteNoteTitle": "메모 삭제",
+    "dictationLabel": "내부 메모",
     "internalUseOnly": "내부용으로만 사용 — 형식화된 환자 보고서에는 포함되지 않습니다",
     "linkedToThread": "메시지 스레드에 연결됨",
     "listening": "● 듣고 있음…",
@@ -9788,6 +11113,49 @@
     "subtitle": "팔레트에서 캔버스로 필드를 드래그하여 배치하세요. 배치된 필드를 드래그하여 위치를 재조정하세요. 배치된 필드를 클릭하여 정확한 위치와 크기를 편집하세요.",
     "title": "라벨 디자이너"
   },
+  "labelReprint": {
+    "accession": "접수 번호",
+    "accessionFrom": "접수 번호 시작",
+    "accessionTo": "접수 번호 끝",
+    "accessionedFrom": "접수 시작일",
+    "accessionedTo": "접수 종료일",
+    "casesFound_one": "증례 {{count}}건 찾음, {{selected}}건 선택됨.",
+    "casesFound_other": "증례 {{count}}건 찾음, {{selected}}건 선택됨.",
+    "cassettePrinter": "카세트 프린터",
+    "choosePrinter": "프린터 선택…",
+    "find": "증례 찾기",
+    "include": "재인쇄",
+    "includeAria": "이 증례 포함",
+    "intro": "접수 날짜나 번호로 증례를 찾고, 라벨을 선택해 하나씩 재인쇄합니다. 모든 라벨이 감사 기록되며, 실패한 라벨은 다시 인쇄할 수 있습니다.",
+    "kinds": {
+      "cassette": "카세트",
+      "container": "검체 용기",
+      "requisition": "의뢰서"
+    },
+    "labelCount_one": "인쇄할 라벨 {{count}}개.",
+    "labelCount_other": "인쇄할 라벨 {{count}}개.",
+    "labels": "라벨",
+    "noCases": "일치하는 증례가 없습니다. 날짜 범위나 접수 번호 범위를 입력하십시오.",
+    "pageTitle": "라벨 재인쇄",
+    "problemLine": "{{kind}} {{target}}: {{status}}. {{message}}",
+    "progress": "{{total}}개 중 {{done}}개 인쇄 중…",
+    "refusals": {
+      "noCassettePrinter": "먼저 카세트 프린터를 선택하십시오.",
+      "notPermitted": "라벨을 일괄 재인쇄할 권한이 없습니다.",
+      "nothingToPrint": "인쇄할 항목이 없습니다."
+    },
+    "reprint": "라벨 재인쇄",
+    "retryFailed_one": "실패한 라벨 {{count}}개 다시 인쇄",
+    "retryFailed_other": "실패한 라벨 {{count}}개 다시 인쇄",
+    "specimens": "검체",
+    "statuses": {
+      "blocked": "차단됨",
+      "failed": "실패",
+      "pending": "인쇄 안 됨",
+      "printed": "인쇄됨"
+    },
+    "summary": "인쇄 {{printed}}, 실패 {{failed}}, 요청 시 인쇄 제한으로 차단 {{blocked}}."
+  },
   "language": {
     "de": "Deutsch",
     "en": "English",
@@ -9825,6 +11193,9 @@
       "preliminaryDiagnosis": "예비 진단"
     }
   },
+  "links": {
+    "invalidHttpsLink": "https:// 링크를 입력하세요(PathScribe는 이미지가 아닌 이미지 링크를 저장합니다)."
+  },
   "liveUpdates": {
     "hint": {
       "connecting": "실시간 업데이트에 연결하는 중입니다. 그동안 {{seconds}}초마다 새로 고칩니다.",
@@ -9840,6 +11211,11 @@
       "offline": "오프라인",
       "reconnecting": "다시 연결 중…"
     }
+  },
+  "loadingState": {
+    "page": "페이지를 불러오는 중…",
+    "slow": "아직 처리 중입니다… 평소보다 오래 걸리고 있습니다.",
+    "slowPage": "페이지를 아직 불러오는 중입니다… 평소보다 오래 걸리고 있습니다."
   },
   "login": {
     "changePassword": {
@@ -9863,6 +11239,7 @@
       "newPassword": "새 비밀번호",
       "submit": "저장하고 로그인"
     },
+    "colophonLogoAlt": "ForMedrixAI — 정밀함, 배려, 혁신",
     "continueWith": "또는 다음으로 계속",
     "descriptor": "임상 병리 보고",
     "email": "이메일",
@@ -9924,13 +11301,13 @@
   },
   "macroPanel": {
     "confirm": {
-      "deleteMacro": "“{{name}}” 매크를 삭제하시겠습니까?"
+      "deleteMacro": "“{{name}}” 매크로를 삭제하시겠습니까?"
     },
     "editor": {
-      "contentPlaceholder": "여기에 매크 템플릿을 작성하세요 ...",
-      "createMacro": "매크 만들기",
+      "contentPlaceholder": "여기에 매크로 템플릿을 작성하세요 ...",
+      "createMacro": "매크로 만들기",
       "facilityLabel": "시설",
-      "nameLabel": "매크 이름",
+      "nameLabel": "매크로 이름",
       "namePlaceholder": "예: 표준 급진 검사",
       "readOnly": "관리자만 이 매크로를 변경할 수 있습니다.",
       "saveChanges": "변경사항 저장",
@@ -9938,16 +11315,16 @@
       "visibilityLabel": "공개 범위"
     },
     "emptyState": {
-      "body": "목록에서 매크를 선택하여 편집하거나, <1>+ 새로 만들기</1>를 클릭하여 첫 매크 템플릿을 만드세요.",
-      "ctaButton": "+ 새 매크 만들기",
-      "title": "선택된 매크 없음"
+      "body": "목록에서 매크로를 선택하여 편집하거나, <cta>+ 새로 만들기</cta>를 클릭하여 첫 매크로 템플릿을 만드세요.",
+      "ctaButton": "+ 새 매크로 만들기",
+      "title": "선택된 매크로 없음"
     },
     "errors": {
       "couldNotReadFile": "이 파일을 읽을 수 없습니다.",
       "missingFields": "트리거 단축키와 매크로 이름을 모두 입력하세요.",
       "notAllowed": "이 공개 범위로 매크로를 저장할 권한이 없습니다.",
-      "selectDraftFacility": "이 매크가 속할 시설을 선택하세요.",
-      "selectImportFacility": "이 가져온 매크가 속할 시설을 선택하세요.",
+      "selectDraftFacility": "이 매크로가 속할 시설을 선택하세요.",
+      "selectImportFacility": "이 가져온 매크로가 속할 시설을 선택하세요.",
       "triggerFormat": "트리거는 “;”로 시작해야 합니다 (예: ;gs)"
     },
     "group": {
@@ -9959,25 +11336,25 @@
       "foundCount_one": "{{count}}개 항목을 찾았습니다.",
       "foundCount_other": "{{count}}개 항목을 찾았습니다.",
       "importAsLabel": "다음으로 가져오기",
-      "importButton_one": "매크 {{count}}개 가져오기",
-      "importButton_other": "매크 {{count}}개 가져오기",
+      "importButton_one": "매크로 {{count}}개 가져오기",
+      "importButton_other": "매크로 {{count}}개 가져오기",
       "importingLabel": "가져오는 중…",
       "modalTitle": "Word에서 가져오기",
       "noContentPlaceholder": "(텍스트 내용 없음)",
       "noEntriesFound": "이 파일에서 AutoText 또는 빌딩 블록 항목을 찾을 수 없습니다.",
       "okButton": "확인"
     },
-    "loading": "매크를 불러오는 중...",
+    "loading": "매크로를 불러오는 중...",
     "sidebar": {
-      "emptyTier": "아직 {{tier}} 매크가 없습니다.",
+      "emptyTier": "아직 {{tier}} 매크로가 없습니다.",
       "emptyTierCta": "+ 새로 만들기를 클릭하여 만드세요.",
       "hint": "편집 중 트리거 단축키를 입력하고 스페이스바를 누르면 자동으로 확장됩니다.",
       "importButton": "Word에서 가져오기",
       "importButtonTitle": "Word 템플릿에서 AutoText / 빌딩 블록 가져오기 (.dotx/.dotm)",
       "newButton": "+ 새로 만들기",
-      "noFacilitySelected": "위에서 시설을 선택하면 해당 매크가 표시됩니다.",
+      "noFacilitySelected": "위에서 시설을 선택하면 해당 매크로가 표시됩니다.",
       "selectFacility": "시설 선택",
-      "title": "내 매크"
+      "title": "내 매크로"
     },
     "tier": {
       "all": "전체",
@@ -10053,6 +11430,32 @@
     "intro_one": "검토에 아직 포함되지 않은 종료된 결함 {{count}}개 — 기본적으로 모두 포함되며, 이번 세션에 실제로 해당되지 않는 항목은 선택 해제하세요.",
     "intro_other": "검토에 아직 포함되지 않은 종료된 결함 {{count}}개 — 기본적으로 모두 포함되며, 이번 세션에 실제로 해당되지 않는 항목은 선택 해제하세요.",
     "nothingClosed": "마지막 검토 이후 종료된 항목이 없습니다."
+  },
+  "marginExceptionReview": {
+    "dismissBtn": "종료",
+    "dismissModal": {
+      "cancelBtn": "취소",
+      "reasonLabel": "이 필드에 거리를 제공할 수 없는 이유",
+      "submitBtn": "종료",
+      "title": "예외 종료"
+    },
+    "emptyRow": "대기 중인 변연 거리 예외가 없습니다.",
+    "errors": {
+      "notPermitted": "변연 거리 예외를 해결할 권한이 없습니다.",
+      "saveFailed": "저장하지 못했습니다 — 다시 시도해 주세요.",
+      "valueMmInvalid": "0 이상의 변연 거리를 입력하세요."
+    },
+    "openCaseBtn": "사례 열기",
+    "pageTitle": "변연 예외 검토",
+    "reasons": {
+      "empty": "아직 입력된 답변이 없습니다",
+      "noNumericToken": "텍스트에서 숫자를 찾을 수 없습니다",
+      "surroundingText": "숫자가 발견되었지만 이 파서가 신뢰하지 않는 텍스트로 둘러싸여 있습니다"
+    },
+    "resolveBtn": "해결",
+    "subtitle": "추출 레이어가 확신 있게 숫자로 해석하지 못한 변연 거리 자유 텍스트 답변입니다. 실제 거리를 입력하거나 이유를 적어 종료하세요.",
+    "valueMmLabel": "변연 거리 (mm)",
+    "valueMmPlaceholder": "mm"
   },
   "markersPanel": {
     "title": "바이오마커"
@@ -10149,6 +11552,8 @@
       "lost": "분실",
       "pending": "대기 중"
     },
+    "blockTooltip": "{{id}} · {{status}}",
+    "blockTooltipCancelled": "{{id}} · {{status}} — {{reason}}",
     "cancelledBadge": "취소됨",
     "cellBlockOption": "세포 블록",
     "createBiopsyArray": "생검 어레이 만들기",
@@ -10159,6 +11564,7 @@
       "remove": "삭제",
       "removeConfirm": "디캔트 {{label}}을(를) 삭제하시겠습니까? 해당 청구 항목도 삭제됩니다."
     },
+    "decantTooltip": "{{id}} · {{type}}",
     "editBiopsyArrayTooltip": "생검 어레이 {{label}} 편집",
     "entirelySubmittedBadge": "전량 제출됨",
     "entirelySubmittedTooltip": "검체 전량 제출됨 — 육안검사 중 모든 조직이 사용되어 남은 조직이 없습니다.",
@@ -10260,9 +11666,12 @@
     }
   },
   "mentorTab": {
+    "cleanCountersignRateLabel": "수정 없이 부서명된 비율",
+    "concordanceRateLabel": "일치율",
     "countersignedCount_one": "{{count}}건 부서명 완료",
     "countersignedCount_other": "{{count}}건 부서명 완료",
     "noActiveSupervisees": "현재 활성 상태인 피감독자가 없습니다.",
+    "noCytologyCountersignRecords": "아직 세포병리 부서명 기록이 없습니다 — 기록이 생기면 여기에 커버리지가 표시됩니다.",
     "noFrozenSectionRecords": "아직 동결 절편 대조 기록이 없습니다 — 기록이 생기면 여기에 커버리지가 표시됩니다.",
     "ofExpected": "예상 {{target}}건 중 {{total}}건",
     "progressTowardGraduation": "수련 완료를 향한 진행률",
@@ -11005,6 +12414,12 @@
     "lotNumberLabel": "로트 번호",
     "manualEntryPlaceholder": "검체/용기 바코드",
     "manualEntryPrompt": "⌨️ 스캔이 안 되나요? 검체 ID를 직접 입력하세요",
+    "movementLevel": {
+      "plate_well": "플레이트 웰",
+      "primary_vial": "1차 바이알",
+      "secondary_rack": "2차 랙"
+    },
+    "movementLine": "{{from}} → {{to}} — {{station}}에서 {{user}} — {{when}}",
     "newBatchTitle": "새 분자 배치",
     "noDeckSlotRecorded": " (기록된 데크 슬롯 없음)",
     "noInstrumentsHint": "활성 분석기가 없습니다. 관리자가 구성 → 시스템 → 장비에서 추가할 수 있습니다.",
@@ -11013,6 +12428,7 @@
     "notScanned": "— 스캔되지 않음 —",
     "orderHint": "오더 대기열에서 배치되었습니다. 플레이트에서 제거하려면 오더 대기열에서 하세요.",
     "orderLabel": "분자검사 오더",
+    "pageTitle": "분자 배치",
     "plateBarcodeLabel": "플레이트 바코드",
     "plateLabel": "🖨️ 플레이트 라벨",
     "plateLayout": {
@@ -11109,6 +12525,7 @@
     "manualEntryPlaceholder": "튜브 바코드",
     "manualEntryPrompt": "⌨️ 스캔이 안 되나요? 검체 ID를 직접 입력하세요",
     "newRackTitle": "새 추출 랙",
+    "pageTitle": "추출 랙 적재",
     "placement": {
       "assay": "검사",
       "assaySlots": "이 검사의 검체 랙은 {{slots}}에 둡니다.",
@@ -11192,6 +12609,32 @@
       "worklist": "작업 목록 및 플레이트 빌더"
     }
   },
+  "myExports": {
+    "cancel": "취소",
+    "columns": {
+      "actions": "작업",
+      "expires": "삭제 예정",
+      "requested": "요청 시각",
+      "rows": "행",
+      "status": "상태",
+      "title": "내보내기"
+    },
+    "demoNote": "이 데모에서는 내보내기가 바로 다운로드되므로 여기에 표시할 항목이 없습니다. PathScribe 서버를 사용하면 큰 내보내기가 백그라운드에서 준비되어 완료되면 여기에 표시됩니다.",
+    "download": "다운로드",
+    "empty": "최근 7일 동안의 내보내기가 없습니다.",
+    "loading": "내보내기를 불러오는 중…",
+    "refresh": "새로 고침",
+    "status": {
+      "cancelled": "취소됨",
+      "expired": "만료됨",
+      "failed": "실패",
+      "queued": "대기 중",
+      "ready": "준비됨",
+      "running": "준비 중"
+    },
+    "subtitle": "요청한 내보내기입니다. 파일은 7일 동안 보관되며 본인만 다운로드할 수 있습니다.",
+    "title": "내 내보내기"
+  },
   "narrativeEditor": {
     "defaultPlaceholder": "서술형 보고서 작성 시작…"
   },
@@ -11246,6 +12689,9 @@
     "focusedMode": "집중 모드",
     "messages": "메시지",
     "messagesUnread": "메시지, 읽지 않음 {{count}}개",
+    "myExports": "내 내보내기",
+    "myExportsReady_one": "내 내보내기: {{count}}개 다운로드 가능",
+    "myExportsReady_other": "내 내보내기: {{count}}개 다운로드 가능",
     "registryExceptions_one": "레지스트리 예외: 처리가 필요한 제출 {{count}}건",
     "registryExceptions_other": "레지스트리 예외: 처리가 필요한 제출 {{count}}건",
     "switchBackToFocusedMode": "집중 모드로 돌아가기",
@@ -12598,7 +14044,6 @@
     "captured": "✓ 캡처됨",
     "dispatchHeader": "전송",
     "dispatchNow": "지금 전송",
-    "dispatchedSuccess": "✓ 전송되었으며 수신 인터페이스에서 수락되었습니다.",
     "errorHeader": "오류",
     "errorLabel": {
       "dispatchRejected": "전송 거부됨",
@@ -12606,20 +14051,53 @@
       "engineUnreachable": "엔진에 접근할 수 없음",
       "unknown": "알 수 없음"
     },
-    "heldNoPdf": "보류됨: 보고서 PDF를 아직 사용할 수 없습니다. 이후 재시도 시 PDF와 함께 전송됩니다.",
     "maxExceededSuffix": "(최대 횟수 초과)",
     "noFailedDispatches": "실패한 전송이 없습니다.",
     "noQueuedMessages": "대기 중인 메시지가 없습니다.",
+    "outcomes": {
+      "failed": "전송되지 않음: 사유는 오류 열에 있습니다.",
+      "held": "보류됨: 보고서 PDF가 아직 없습니다. 이후 재시도 시 PDF와 함께 전송됩니다.",
+      "notBuildable": "전송되지 않음: 메시지를 만들 수 없습니다 (참조한 환자, 증례 또는 기록이 더 이상 없을 수 있습니다).",
+      "notFound": "해당 메시지가 더 이상 대기열에 없습니다.",
+      "notPermitted": "인터페이스 메시지를 재전송할 권한이 없습니다.",
+      "sent": "✓ 전송되어 인터페이스 엔진이 수락했습니다."
+    },
+    "queueLabel": "대기열",
     "queueType": {
+      "accession": {
+        "identifierColumnLabel": "증례",
+        "kindColumnLabel": "이벤트",
+        "optionLabel": "접수 이벤트 (접수 / 결함)"
+      },
+      "cytologyResult": {
+        "identifierColumnLabel": "증례",
+        "kindColumnLabel": "결과 상태",
+        "optionLabel": "세포병리 결과 (ORU^R01)"
+      },
       "lisSync": {
         "identifierColumnLabel": "증례",
         "kindColumnLabel": "동기화 종류",
         "optionLabel": "지원 모드 LIS 동기화"
       },
+      "molecularOrder": {
+        "identifierColumnLabel": "검체 또는 바코드",
+        "kindColumnLabel": "검사",
+        "optionLabel": "분자 / 장비 오더"
+      },
       "patientAdt": {
         "identifierColumnLabel": "출처 환자",
         "kindColumnLabel": "이벤트 유형",
         "optionLabel": "환자 ADT(A08/A40/A47)"
+      },
+      "referral": {
+        "identifierColumnLabel": "배치 바코드",
+        "kindColumnLabel": "우선순위",
+        "optionLabel": "의뢰 송장"
+      },
+      "reportDelivery": {
+        "identifierColumnLabel": "접수 번호",
+        "kindColumnLabel": "채널 · 보고서",
+        "optionLabel": "보고서 전송 (전자 팩스, 파일 전달)"
       },
       "result": {
         "identifierColumnLabel": "증례",
@@ -12634,11 +14112,13 @@
     "retryDispatch": "전송 재시도",
     "retryHeader": "재시도",
     "sending": "전송 중…",
+    "simulate": {
+      "rejected": "거부 시뮬레이션",
+      "timeout": "시간 초과 시뮬레이션",
+      "unreachable": "연결 불가 시뮬레이션"
+    },
     "simulateHeader": "시뮬레이션",
-    "simulateRejected": "거부 시뮬레이션",
-    "simulateTimeout": "시간 초과 시뮬레이션",
-    "simulateUnreachable": "접근 불가 시뮬레이션",
-    "subtitle": "실패 및 대기 중인 발신 ADT^A08/A40/A47, ORU^R01, 지원 모드 LIS 동기화 전송입니다. 지금 전송 및 전송 재시도는 실제 페이로드를 실제 수신 엔드포인트(receive_interface_message)로 실제로 전송합니다 — 실패 시뮬레이션은 실제로 분리된 테스트 도구로 남아 있으며 실제 전송 시도가 아닙니다.",
+    "subtitle": "일곱 개 대기열 전체의 실패했거나 대기 중인 발신 인터페이스 메시지입니다. 지금 전송과 재전송은 메시지를 인터페이스 엔진으로 보냅니다. 실패 시뮬레이션은 테스트 도구이며 실제로 전송하지 않습니다. 전송하려면 인터페이스 메시지 재전송 권한이 필요합니다.",
     "title": "발신 인터페이스 DLQ"
   },
   "outboundMessagePreviewSection": {
@@ -12941,6 +14421,10 @@
     "embeddingTile": {
       "description": "포매 작업대에서의 카세트 스캔/확인, 조직 조각 수 확인, 몰드 선택 및 불일치 표시",
       "title": "포매 워크스페이스"
+    },
+    "marginExceptionReviewTile": {
+      "description": "추출 레이어가 확신 있게 해석하지 못한 변연 거리 자유 텍스트 답변 — 실제 거리를 입력하거나 이유를 적어 종료하세요",
+      "title": "변연 예외 검토"
     },
     "microtomyTile": {
       "description": "박절기 작업대에서의 실시간 온디맨드 또는 배치 슬라이드 라벨 인쇄, 염색 관리, 세포검사/침전물 준비",
@@ -13428,12 +14912,7 @@
       "preferredContactLabel": "선호 연락 방법",
       "preferredNameLabel": "선호 이름(선택 사항)",
       "preferredNamePlaceholder": "다를 경우 직원이 어떻게 불러야 하는지",
-      "prefixDr": "박사/의사",
       "prefixLabel": "호칭",
-      "prefixMr": "귀하(남)",
-      "prefixMrs": "귀하(기혼 여)",
-      "prefixMs": "귀하(여)",
-      "prefixMx": "귀하",
       "prefixNone": "없음",
       "saveChangesBtn": "변경 사항 저장",
       "smsCarrierAtt": "AT&T",
@@ -13579,6 +15058,53 @@
       "fieldsCount": "{{answered}}/{{total}} 필드"
     }
   },
+  "printDestination": {
+    "address": "주소",
+    "agentNeedsOneSite": "선택한 작업이 둘 이상의 검사실에서 왔으므로 프린터 주소만 지정할 수 있습니다. 사이트 에이전트 프린터를 선택하려면 한 검사실의 작업만 선택하십시오.",
+    "agentNoSite": "이 작업의 검사실이 기록되어 있지 않습니다(사이트 에이전트 프린터 도입 전에 대기열에 추가됨). 프린터 주소만 지정할 수 있습니다.",
+    "atSite": "{{site}}의 {{printer}}",
+    "choosePrinter": "프린터 선택",
+    "chooseSite": "사이트 선택",
+    "kind": "프린터",
+    "kinds": {
+      "agent": "사이트 에이전트 프린터",
+      "network": "프린터 주소(직접 전송)"
+    },
+    "loadingPrinters": "프린터 불러오는 중…",
+    "name": "이름",
+    "networkHint": "이 주소로 직접 전송됩니다. 병원 네트워크 내부의 PathScribe 서버에서만 작동하며, 클라우드에서는 사이트 에이전트 프린터를 사용하십시오.",
+    "noPrinters": "이 사이트의 에이전트에 아직 보고서 프린터가 없습니다.",
+    "openSiteAgents": "사이트 에이전트에서 추가",
+    "path": "IPP 경로",
+    "placeholders": {
+      "address": "예: 10.20.30.40 또는 printer.lab.local",
+      "name": "예: 조직학 접수",
+      "path": "/ipp/print",
+      "port": "프로토콜 기본값",
+      "queue": "lp"
+    },
+    "port": "포트",
+    "printer": "프린터",
+    "printerNotListed": "이 프린터는 더 이상 사이트 목록에 없습니다. 다른 프린터를 선택하십시오.",
+    "printersNotPermitted": "여기에서 이 사이트의 프린터를 볼 권한이 없습니다.",
+    "printersUnavailable": "사이트의 프린터를 불러올 수 없습니다. 잠시 후 다시 시도하십시오.",
+    "problems": {
+      "addressInvalid": "IP 주소나 호스트 이름만 입력하십시오(http:// 또는 경로 제외).",
+      "addressRequired": "프린터 주소를 입력하십시오.",
+      "agentPrinterRequired": "사이트와 해당 에이전트의 프린터 하나를 선택하십시오.",
+      "portOutOfRange": "포트는 1에서 65535 사이의 정수여야 합니다."
+    },
+    "protocol": "프로토콜",
+    "protocols": {
+      "IPP": "IPP",
+      "LPR_LPD": "LPR/LPD",
+      "RAW_9100": "Raw(포트 9100)"
+    },
+    "queue": "LPR 대기열",
+    "scopeFirst": "먼저 위에서 기관을 선택하십시오. 해당 에이전트의 프린터가 표시됩니다.",
+    "site": "사이트(수행 검사실)",
+    "siteFirst": "먼저 사이트를 선택하십시오. 해당 에이전트의 프린터가 표시됩니다."
+  },
   "printLabels": {
     "agent": {
       "disconnected": "인쇄가 확인되기 전에 PathScribe Agent와의 연결이 끊어졌습니다.",
@@ -13634,6 +15160,9 @@
       "DUPLEX": "양면",
       "SIMPLEX": "단면"
     },
+    "failure": {
+      "needsSiteAgent": "네트워크 인쇄에는 PathScribe 사이트 에이전트가 필요합니다. 브라우저에서는 보낼 수 없습니다."
+    },
     "noJobs": "이 필터와 일치하는 인쇄 작업이 없습니다.",
     "paperSource": {
       "TRAY_1_LETTERHEAD": "트레이 1 — 레터헤드",
@@ -13642,10 +15171,8 @@
     "redirect": {
       "cancelForm": "취소",
       "confirm": "리디렉션 및 재시도",
-      "ipAddressLabel": "IP 주소",
-      "portLabel": "포트",
-      "portPlaceholder": "프로토콜 기본값",
-      "protocolLabel": "프로토콜"
+      "notRedirected_one": "작업 {{count}}개가 리디렉션되지 않았습니다. 리디렉션 권한이 없거나 프린터가 해당 검사실에 없습니다.",
+      "notRedirected_other": "작업 {{count}}개가 리디렉션되지 않았습니다. 리디렉션 권한이 없거나 프린터가 해당 검사실에 없습니다."
     },
     "status": {
       "ALL": "모든 상태",
@@ -13654,7 +15181,8 @@
       "HOLD": "보류 중",
       "PRINTED": "인쇄됨",
       "PRINTING": "인쇄 중",
-      "QUEUED": "대기 중"
+      "QUEUED": "대기 중",
+      "SENT_TO_PRINTER": "프린터로 전송됨"
     },
     "subtitle": "대기 중, 보류, 실패, 완료된 인쇄 작업 — 개별 또는 일괄로 보류, 해제, 취소, 재시도 또는 리디렉션합니다.",
     "title": "인쇄 대기열 대시보드"
@@ -13662,9 +15190,15 @@
   "printRoutingRulesSection": {
     "addRuleButton": "+ 규칙 추가",
     "criteriaDescription": {
+      "both": "{{first}} · {{second}}",
       "eventTriggerType": "트리거: {{type}}",
       "matchesEvery": "이 계층의 모든 작업과 일치 (계층 내 최저 우선순위)",
       "specimenCaseType": "검체: {{type}}"
+    },
+    "errors": {
+      "agentPrinterOtherSite": "기관 규칙은 해당 기관의 사이트 에이전트 프린터 중 하나를 사용해야 합니다.",
+      "notPermitted": "해당 사이트의 인쇄 라우팅을 변경할 권한이 없습니다.",
+      "saveFailed": "규칙을 저장할 수 없습니다. 다시 시도하십시오."
     },
     "eventTriggerTypeLabels": {
       "amendedSignout": "정정 판독 확정(정정/추가)",
@@ -13682,34 +15216,19 @@
       "addRuleButton": "규칙 추가",
       "addTitle": "인쇄 라우팅 규칙 추가",
       "destinationSectionTitle": "인쇄 대상",
-      "displayNameLabel": "표시 이름",
-      "displayNamePlaceholder": "예: 수술실 2 동결절편 프린터",
       "editTitle": "인쇄 라우팅 규칙 편집",
       "eventTriggerTypePlaceholder": "— 모든 이벤트 트리거 —",
       "facilityPlaceholder": "— 기관 선택 —",
       "hint": "범위 계층과 범위는 함께 이 규칙이 적용될 수 있는 실제 작업을 결정합니다 — 일치하는 활성 규칙이 있는 가장 구체적인 실제 계층이 그보다 덜 구체적인 모든 계층을 완전히 우선합니다. 검체/케이스 유형과 이벤트 트리거는 해당 계층 내에서 모두 선택적으로 세분화하는 항목입니다. 둘 중 하나를 비워 두면 모든 값과 일치하고, 둘 다 지정하면 동일 계층의 규칙 중 가장 구체적으로 일치합니다.",
-      "ipAddressLabel": "IP 주소",
       "locationPlaceholder": "— 위치 선택 —",
-      "missingDestinationWarning": "⚠ 프로토콜과 IP 주소가 필요합니다.",
       "missingScopeIdWarning": "⚠ 이 계층에는 범위 값이 필요합니다.",
       "noteLabel": "메모",
       "notePlaceholder": "이 규칙이 필요한 이유는 무엇인가요?",
-      "portLabel": "포트",
-      "portPlaceholder": "프로토콜 기본값",
-      "protocolLabel": "프로토콜",
-      "queueNameLabel": "대기열 이름(LPR/LPD)",
-      "queueNamePlaceholder": "기본값: lp",
-      "resourcePathLabel": "리소스 경로(IPP)",
-      "resourcePathPlaceholder": "기본값: /ipp/print",
       "saveChangesButton": "변경 사항 저장",
       "specimenCaseTypePlaceholder": "— 모든 검체/케이스 유형 —",
       "workstationIdPlaceholder": "예: ws-fgh-theatre2-01"
     },
-    "protocolLabels": {
-      "ipp": "IPP",
-      "lprLpd": "LPR/LPD",
-      "raw9100": "RAW / Port 9100"
-    },
+    "scopeDescription": "{{tier}}: {{id}}",
     "scopeTypeLabels": {
       "clientAccount": "고객 계정(의뢰 기관)",
       "facility": "기관(검사 수행 검사실)",
@@ -14223,6 +15742,35 @@
       "idle": "클릭하여 더 최신 논문이 있는지 확인하세요"
     }
   },
+  "qaActivityBoard": {
+    "by": "처리자",
+    "completed": "완료",
+    "completedAt": "완료 일시",
+    "countersign": {
+      "attending": "지도전문의",
+      "changedFields": "변경된 항목",
+      "name": "부서명",
+      "resident": "전공의",
+      "status": "상태",
+      "statuses": {
+        "countersigned": "부서명 완료",
+        "pending": "부서명 대기",
+        "returned": "반려됨"
+      }
+    },
+    "discrepancyRate": "불일치율",
+    "empty": "아직 기록이 없습니다.",
+    "intro": "모든 QA 활동: 대기 중인 작업, 최근 {{days}}일 동안 완료된 작업, TAT 목표 준수율, 불일치율. “—”는 해당 활동이 아직 측정할 수 없음을 뜻합니다. 타일을 선택하면 기록을 볼 수 있습니다.",
+    "loading": "활동을 불러오는 중…",
+    "notYet": "아직 안 됨",
+    "pending": "대기",
+    "scopes": {
+      "adapter": "업무 흐름",
+      "custom": "사용자 정의",
+      "standard": "표준"
+    },
+    "tatCompliance": "TAT 준수"
+  },
   "qaConfigurationCenterSection": {
     "addCustomActivityButton": "+ 사용자 지정 활동 추가",
     "addPicker": {
@@ -14234,6 +15782,47 @@
     "archetypeLabel": {
       "review": "결과 검토",
       "supervision": "감독/배정"
+    },
+    "fieldEditor": {
+      "addField": "필드 추가",
+      "addOption": "선택지 추가",
+      "defaultNotesLabel": "메모",
+      "hintAria": "{{n}}번 필드 안내",
+      "hintPlaceholder": "검토자를 위한 안내(선택 사항)",
+      "labelAria": "{{n}}번 필드 이름",
+      "labelPlaceholder": "필드 이름",
+      "moveDown": "아래로",
+      "moveUp": "위로",
+      "optionAria": "{{n}}번 선택지 이름",
+      "optionPlaceholder": "선택지 이름",
+      "problems": {
+        "blankLabel": "모든 필드에 이름이 있어야 합니다.",
+        "blankOptionLabel": "모든 선택지에 이름이 있어야 합니다.",
+        "choiceWithoutOptions": "선택형 필드에는 선택지가 하나 이상 있어야 합니다.",
+        "duplicateId": "두 필드의 식별자가 같습니다.",
+        "fieldRemoved": "저장된 필드는 삭제할 수 없습니다. 이전 검토의 답변이 저장되어 있습니다. 대신 선택 항목으로 바꾸십시오.",
+        "fieldRetyped": "저장된 필드의 유형은 바꿀 수 없습니다. 이전 검토를 올바르게 읽을 수 없게 됩니다. 대신 새 필드를 추가하십시오.",
+        "noFields": "활동에는 필드가 하나 이상 있어야 합니다.",
+        "optionRemoved": "저장된 선택지는 삭제할 수 없습니다. 이전 검토에서 선택되었을 수 있습니다. 대신 이름을 바꾸십시오."
+      },
+      "readOnlyLine": "{{label}} ({{type}})",
+      "removeField": "필드 삭제",
+      "removeOption": "선택지 삭제",
+      "required": "필수",
+      "requiredTag": "(필수)",
+      "rulesHint": "저장된 필드는 이름을 바꾸거나 선택 항목으로 바꿀 수 있지만, 삭제하거나 다른 유형으로 바꿀 수는 없습니다. 이전 검토의 답변이 해당 필드에 저장되어 있기 때문입니다. 새 필드는 언제든지 추가할 수 있습니다.",
+      "saveFailed": "활동을 저장할 수 없습니다.",
+      "savedFieldNote": "저장된 필드: 이름 변경 또는 선택 항목 전환만 가능",
+      "typeAria": "{{n}}번 필드 유형",
+      "typeLocked": "저장된 필드는 이전 검토를 올바르게 읽을 수 있도록 유형이 유지됩니다.",
+      "types": {
+        "checkboxes": "다중 선택",
+        "dropdown": "드롭다운 목록",
+        "longtext": "긴 텍스트",
+        "numeric": "숫자",
+        "radio": "단일 선택",
+        "text": "짧은 텍스트"
+      }
     },
     "loading": "QA 활동 구성 로드 중…",
     "modal": {
@@ -14250,7 +15839,6 @@
       "noDeficiencyOption": "— 선택된 결함 유형 없음 —",
       "postSignOutOnlyLabel": "보고서 발행 후 검토에만 적용",
       "removeButton": "제거",
-      "requiredSuffix": "필수",
       "reviewFieldsLabel": "검토 필드(복제에서 가져옴 — 여기서는 읽기 전용)",
       "samplingHint": "이 활동에 대해 무작위로 선택되는 해당 사례의 비율입니다. 비워 두면 자동 샘플링이 없습니다.",
       "samplingLabel": "샘플링 비율",
@@ -14594,6 +16182,7 @@
       "title": "✓ 품질 보증"
     },
     "pillars": {
+      "activities": "활동",
       "capa": "CAPA 엔진",
       "cytology": "🔬 세포병리 QA",
       "enterprise": "🌐 전사 통합 보고",
@@ -15369,16 +16958,6 @@
     "finalizedReadOnly": "최종 확정됨 — 읽기 전용",
     "footerNote": "최종 확정 시 LIS로 전송됩니다. 프로토콜에서 정의한 필드는 종양, 절제연 및 생물표지자 탭에 있습니다."
   },
-  "reportPreviewPage": {
-    "close": "✕ 닫기",
-    "closeTitle": "미리보기 닫기",
-    "live": "실시간",
-    "loadingReport": "보고서 로딩 중…",
-    "print": "🖨 인쇄",
-    "printTitle": "인쇄 / PDF로 저장",
-    "standalone": "단독",
-    "updatedAt": "{{time}}에 업데이트됨"
-  },
   "reportPreviewRenderer": {
     "badgeAccepted": "✓ 승인됨",
     "badgeAiDraft": "AI 초안",
@@ -15400,6 +16979,16 @@
     "requiredNotCompleted": "⚠ 필수 — 아직 완료되지 않음",
     "resolvedBy": "{{resolvedBy}}로 확인됨"
   },
+  "reportPrint": {
+    "documentReference": "문서 {{accession}} · 레코드 버전 {{version}}",
+    "documentReferenceNoVersion": "문서 {{accession}}",
+    "notPermitted": "이 케이스 보고서를 인쇄할 권한이 없습니다.",
+    "restrictedCase": "이 증례는 제한 증례(VIP 또는 기밀)입니다. 인쇄하려면 제한 증례 인쇄 권한이 필요합니다."
+  },
+  "reportPrintFallback": {
+    "confidential": "기밀 — 임상 기록",
+    "windowTitle": "{{accession}} — PathScribe 보고서"
+  },
   "reportPrintPrompt": {
     "pendingReleaseWarning": "이 보고서가 최종 발행 대기 중인 동안에는 인쇄가 제한됩니다. 인쇄본에는 \"PENDING FINAL RELEASE\" 워터마크가 표시됩니다.",
     "printButton": "인쇄",
@@ -15410,10 +16999,24 @@
     "reprintButton": "재인쇄",
     "reprintTitle": "보고서 재인쇄"
   },
+  "reportRevision": {
+    "datesLatestOnly": "수정 {{latest}}",
+    "datesWithOriginal": "최초 서명 {{original}} · 수정 {{latest}}",
+    "flag": {
+      "addendum": "추가 보고가 있는 보고서",
+      "amendment": "수정 보고서",
+      "correction": "정정 보고서"
+    },
+    "revisionCount_one": "수정 {{count}}건",
+    "revisionCount_other": "수정 {{count}}건"
+  },
   "reportTemplatesSection": {
     "subtabs": {
       "routingRules": "라우팅 규칙"
     }
+  },
+  "reportWatermark": {
+    "preliminary": "예비 보고서 — 변경될 수 있음"
   },
   "requestReviewModal": {
     "addedToPool": "케이스 {{caseId}}가 청구 검토 풀에 추가되었습니다.",
@@ -15422,6 +17025,7 @@
     "close": "닫기",
     "codeReviewHint": "청구 전문가가 품질보증에서 검토합니다 — 서명 완료를 막지 않습니다.",
     "codeReviewNotice": "서명 완료를 막지 않습니다. 검토 상태와 관계없이 케이스는 정상적으로 서명 완료될 수 있습니다.",
+    "defaultColleagueRole": "병리 전문의",
     "eyebrow": "비공식 검토 요청",
     "loadingColleagues": "동료 목록 불러오는 중…",
     "messageSentBody": "{{name}}에게 케이스 {{caseId}} 링크가 포함된 메시지가 전송되었습니다.",
@@ -15651,6 +17255,24 @@
     }
   },
   "roleDictionary": {
+    "builtInDescriptions": {
+      "accessioner": "검체를 접수하고 새 증례를 등록합니다.",
+      "admin": "구성 접근 권한은 있으나 임상 증례 접근 권한은 없는 시스템 관리자.",
+      "cytotechnologist": "세포병리 검체를 준비하고 선별 검사합니다.",
+      "fellow": "전문의에 준하는 초안 작성 자율성을 가진 세부전문 펠로우. 완성된 초안 보고서까지 증례를 독립적으로 처리하며, 공식 서명은 여전히 담당 전문의가 합니다.",
+      "histotechnologist": "조직을 처리, 포매, 박절, 염색하며 조직 배치와 슬라이드 배포를 수행합니다.",
+      "labDirector": "검사실 책임자. 다른 사람이 작성한 시놉틱 템플릿을 최종 승인하고 게시합니다.",
+      "molecularTechnologist": "분자 검사를 수행합니다: 플레이트, 랙, 분자 배치.",
+      "orStaff": "수술 중 대시보드의 빠른 인증 PIN을 사용하는 수술실 직원(간호사, 순환 간호사, 외과의). 명부 등록만 — 일반 앱 접근 권한 없음.",
+      "pathologist": "모든 임상 증례 접근 권한과 최종 서명 권한을 가진 면허 병리 전문의.",
+      "pathologistsAssistant": "육안 검사, 절편 작업, 검체 기술을 수행합니다. 별도 인증 직종(PA(ASCP)/AAPA)이며 일반 의료의 'Physician Assistant'와 다릅니다. 현미경 판독, 진단, 서명 권한은 없습니다.",
+      "physician": "외부 의뢰 의사. 명부 등록만 — 앱 접근 권한 없음.",
+      "qaReviewer": "품질 보증 보고서와 보고서 변경 이력을 내보냅니다. 직원의 주 역할에 추가로 부여됩니다.",
+      "resident": "증례 접근 권한과 공동 서명 권한을 가진 병리과 전공의.",
+      "superadmin": "PathScribe 플랫폼 지원. PathScribe 지원 로그인으로만 보유하며 직원에게 부여할 수 없습니다.",
+      "templateApprover": "다른 사람이 작성한 시놉틱 템플릿을 검토, 승인, 게시합니다.",
+      "templateAuthor": "시놉틱 템플릿을 작성·편집하고 검토를 요청합니다. 승인하거나 게시할 수 없습니다."
+    },
     "capabilities": {
       "auditedTag": "감사 대상",
       "auditedTitle": "허용 여부와 관계없이 모든 사용이 감사 로그에 기록됩니다.",
@@ -15748,7 +17370,9 @@
       "lastRoleManager": "저장되지 않음: 이후 역할을 관리할 수 있는 역할이 없게 됩니다. 먼저 다른 부여 가능한 역할에 ‘역할 관리’를 주세요.",
       "notFound": "저장되지 않음: 이 역할은 더 이상 존재하지 않습니다.",
       "notPermitted": "저장되지 않음: 내 역할에는 역할 관리가 없습니다.",
-      "platformRole": "저장되지 않음: 이 역할은 ForMedrixAI가 관리합니다."
+      "platformRole": "저장되지 않음: 이 역할은 ForMedrixAI가 관리합니다.",
+      "separationOfDuties": "저장되지 않음: 임상 불일치 규칙 변경과 AI 지침 승인은 분리된 직무이므로 한 역할이 둘 다 가질 수 없습니다.",
+      "separationOfDutiesStaff": "저장되지 않음: 이 변경으로 이 역할과 다른 역할을 함께 가진 사람이 분리된 두 직무(불일치 규칙 변경, AI 지침 승인)를 모두 갖게 됩니다."
     },
     "tabs": {
       "actionReference": "작업 참조",
@@ -15892,6 +17516,28 @@
     "saveEdit": "변경 사항 저장",
     "titleAdd": "라우팅 규칙 추가",
     "titleEdit": "규칙 편집"
+  },
+  "runtimeConfigError": {
+    "fromServer": "(PathScribe 서버의 /api/config)",
+    "help": "IT 팀 또는 ForMedrixAI 지원팀이 웹 서버의 config.json을 수정할 수 있습니다. 수정한 뒤 이 페이지를 다시 불러오세요. 설정은 배포 가이드(RUNTIME_CONFIG.md)에 설명되어 있습니다.",
+    "intro": "이 배포의 구성 파일(config.json)에 아래 문제가 있습니다. 잘못된 설정으로 실행되지 않도록, 문제가 해결될 때까지 PathScribe는 시작되지 않습니다.",
+    "problems": {
+      "ADDRESS_NOT_FROM_SERVER": "서버는 주소를 설정할 수 없습니다. 사이트 보안 정책이 허용하도록 config.json에 넣으십시오.",
+      "API_SERVER_IN_DEMO_BUILD": "데모용 빌드입니다. 데모 계정이 실제 데이터에 접근하지 않도록 PathScribe 서버에 연결할 수 없습니다. 서버용 빌드를 설치하세요.",
+      "API_SERVER_REQUIRED": "이 빌드에는 PathScribe 서버 주소가 필요하지만 설정되어 있지 않습니다.",
+      "INVALID_URL": "웹 주소 또는 /로 시작하는 이 사이트의 경로여야 합니다.",
+      "NOT_AN_OBJECT": "config.json은 설정과 값의 목록(JSON 객체)이어야 합니다.",
+      "NOT_FROM_SERVER": "config.json 또는 빌드만 이 항목을 설정할 수 있습니다(로그인, 인스턴스 역할, 서버가 실행하는 작업 등은 사이트에서 관리합니다). 서버의 /api/config에서 제거하십시오.",
+      "NOT_HTTPS": "이 주소는 https를 사용해야 합니다(일반 http는 개발용 빌드에서 이 컴퓨터로만 허용됩니다).",
+      "NOT_IN_DEMO_BUILD": "데모용 빌드에서는 사용할 수 없습니다. 데모용 빌드는 실제 서버에 접근해서는 안 되며 \"production\"이 될 수 없습니다. 서버용 빌드를 설치하세요.",
+      "NOT_TEXT": "이 설정은 텍스트, 숫자 또는 true나 false여야 합니다.",
+      "NOT_THIS_SITE": "이 경로는 다른 사이트로 연결됩니다. 이 사이트의 경로나 https 주소를 사용하세요.",
+      "SSO_REQUIRED": "서버용 빌드는 ID 공급자를 통해서만 로그인합니다. VITE_AUTH_MODE를 \"sso\"로 설정하고 공급자 설정을 입력하세요.",
+      "TOO_LONG": "값이 너무 깁니다.",
+      "UNKNOWN_SETTING": "PathScribe가 알지 못하는 설정입니다. 철자를 확인하세요.",
+      "UNREADABLE": "config.json이 올바른 JSON이 아닙니다."
+    },
+    "title": "PathScribe를 시작할 수 없습니다: 구성을 수정해야 합니다"
   },
   "rvuCodeMapSection": {
     "activeVersion": {
@@ -16514,6 +18160,24 @@
     "defaultPlaceholder": "검색…",
     "typeToFilterPlaceholder": "입력하여 필터링…"
   },
+  "secureMessaging": {
+    "agreementKinds": {
+      "BAA": "업무 제휴 계약(BAA)",
+      "DPA": "개인정보 처리 위탁 계약"
+    },
+    "gatewayNames": {
+      "ACCURX": "Accurx",
+      "EGRESS": "Egress",
+      "HEALTHLINK": "HealthLink",
+      "KR_HIE": "진료정보교류",
+      "MEDICAL_OBJECTS": "Medical-Objects",
+      "NHSMAIL": "NHSmail",
+      "PAUBOX": "Paubox",
+      "REFERRALNET": "ReferralNet",
+      "VIRTRU": "Virtru",
+      "ZIX": "Zix"
+    }
+  },
   "sequencerPanel": {
     "activeBadge": "활성",
     "closeAriaLabel": "시퀀서 닫기",
@@ -16540,6 +18204,112 @@
     },
     "synopticCount_one": "종합 소견 {{count}}개",
     "synopticCount_other": "종합 소견 {{count}}개"
+  },
+  "serverJobs": {
+    "allKinds": "모든 종류",
+    "attemptsOf": "{{max}}회 중 {{attempts}}회",
+    "columns": {
+      "actions": "작업",
+      "attempts": "시도",
+      "case": "케이스",
+      "deadLetters24h": "최종 실패(24시간)",
+      "error": "마지막 오류",
+      "failedAt": "실패 시각",
+      "kind": "작업 종류",
+      "lastRun": "마지막 실행",
+      "overdue": "가장 오래 지연",
+      "ready": "대기 중",
+      "recurring": "반복 작업",
+      "running": "실행 중",
+      "state": "상태"
+    },
+    "deadLettersHeading": "최종 실패",
+    "demoNote": "이 데모에서는 브라우저가 이 작업을 직접 수행하므로 표시할 서버 작업이 없습니다. PathScribe 서버를 사용하면 백그라운드 작업과 최종 실패한 작업이 여기에 표시됩니다.",
+    "filterKind": "작업 종류 표시",
+    "kinds": {
+      "charge": {
+        "dispatch": "청구"
+      },
+      "delivery": {
+        "attempt": "보고서 전달"
+      },
+      "event": "이벤트 처리",
+      "export": {
+        "build": "내보내기"
+      },
+      "interface": {
+        "dispatch": "인터페이스 메시지"
+      },
+      "print": {
+        "dispatch": "네트워크 인쇄"
+      },
+      "report": {
+        "releaseHeld": "보류된 보고서 공개"
+      }
+    },
+    "kindsHeading": "작업 종류",
+    "loading": "서버 작업을 불러오는 중…",
+    "minutes_one": "{{count}}분",
+    "minutes_other": "{{count}}분",
+    "never": "없음",
+    "noDeadLetters": "최종 실패한 작업이 없습니다.",
+    "none": "없음",
+    "openIn": {
+      "outboundInterfaces": "인터페이스에서 다시 보내기",
+      "printQueue": "인쇄 대기열 열기"
+    },
+    "problem": {
+      "NOT_DEAD_LETTERED": "이 작업은 더 이상 실패 상태가 아닙니다. 이미 다시 대기열에 들어갔을 수 있습니다.",
+      "NOT_FOUND": "이 작업은 더 이상 없습니다.",
+      "NOT_PERMITTED": "이 작업에 대한 권한이 없습니다.",
+      "SIGNED_OUT": "세션이 종료되었습니다. 다시 로그인하십시오.",
+      "UNAVAILABLE": "PathScribe 서버에 연결할 수 없습니다. 잠시 후 다시 시도하십시오.",
+      "WRONG_SCREEN": "이 작업은 인터페이스에서 다시 보내십시오."
+    },
+    "recurring": {
+      "assist": {
+        "pollLis": "LIS 조회(Assist)"
+      },
+      "bus": {
+        "purge": "작업 기록 정리"
+      },
+      "consult": {
+        "expireLinks": "자문 링크 만료"
+      },
+      "cytology": {
+        "histologyCorrelationSweep": "세포-조직 상관",
+        "roseSlaMonitor": "ROSE 소요 시간 모니터"
+      },
+      "delivery": {
+        "retrySweep": "전달 재시도"
+      },
+      "followUp": {
+        "dailyAlerts": "추적 관찰 알림"
+      },
+      "print": {
+        "batchAggregation": "인쇄 배치"
+      },
+      "registry": {
+        "escalateStale": "지연된 등록부 제출"
+      },
+      "release": {
+        "dueSweep": "기한이 된 보류 공개"
+      },
+      "supportAccess": {
+        "expire": "지원 접근 만료"
+      }
+    },
+    "recurringHeading": "반복 작업",
+    "refresh": "새로 고침",
+    "requeue": "다시 대기열에 넣기",
+    "requeued": "다시 대기열에 넣었습니다. 곧 다시 실행됩니다.",
+    "state": {
+      "failed": "마지막 실행 실패",
+      "ok": "정상",
+      "overdue": "지연됨"
+    },
+    "subtitle": "PathScribe 서버의 백그라운드 작업: 전달, 인쇄, 인터페이스 메시지, 보류된 공개, 청구, 내보내기.",
+    "title": "서버 작업"
   },
   "sessionExpiryWarningModal": {
     "body": "한동안 활동이 없었습니다. 보안상의 이유로 <strong>{{mm}}:{{ss}}</strong> 후 세션이 만료됩니다.",
@@ -16655,6 +18425,16 @@
       "viewAddComment": "코멘트 보기 / 추가"
     }
   },
+  "signOutInkingGate": {
+    "blockingMessage": {
+      "ANZ_RCPA": "서명이 차단되었습니다: 절제연 잉킹 문제가 규정 준수 중요이며 NPAAC / RCPA 요건({{citation}})과 충돌합니다.",
+      "CA_IQMH": "서명이 차단되었습니다: 절제연 잉킹 문제가 규정 준수 중요이며 IQMH / OLA 요건({{citation}})과 충돌합니다.",
+      "EU_IVDR": "서명이 차단되었습니다: 절제연 잉킹 문제가 규정 준수 중요이며 EU IVDR 요건({{citation}})과 충돌합니다.",
+      "KR_MFDS": "서명이 차단되었습니다: 절제연 잉킹 문제가 규정 준수 중요이며 KSP / KALM 요건({{citation}})과 충돌합니다.",
+      "UK_RCPATH": "서명이 차단되었습니다: 절제연 잉킹 문제가 규정 준수 중요이며 UKAS / RCPath 요건({{citation}})과 충돌합니다.",
+      "US_CAP": "서명이 차단되었습니다: 절제연 잉킹 문제가 규정 준수 중요이며 CLIA / CAP 요건({{citation}})과 충돌합니다."
+    }
+  },
   "signatureEvidence": {
     "refused": {
       "different_account": "다른 계정으로 서명이 확인되었습니다. 서명되지 않았습니다.",
@@ -16669,6 +18449,48 @@
       "wrong_case": "다른 증례에 대해 서명이 확인되었습니다. 서명되지 않았습니다.",
       "wrong_signer": "이 서명 확인은 다른 사람의 것입니다. 서명되지 않았습니다."
     }
+  },
+  "signatureHistoryModal": {
+    "action": {
+      "autopsyFad": "부검 FAD 서명",
+      "autopsyPad": "부검 PAD 서명",
+      "caseSignOut": "증례 종결",
+      "countersign": "공동서명",
+      "cytologyPreliminary": "세포병리 예비 보고서",
+      "cytologySignOut": "세포병리 종결",
+      "registryGoLive": "레지스트리 실사용 승인",
+      "reportFinalize": "보고서 최종화",
+      "synopticFinalize": "개요 보고서 최종화"
+    },
+    "confirmedByLabel": "확인자:",
+    "emptyState": "이 증례에 기록된 서명이 아직 없습니다.",
+    "header": "서명 기록",
+    "intro_one": "이 증례에 서명 {{count}}건이 기록되었습니다.",
+    "intro_other": "이 증례에 서명 {{count}}건이 기록되었습니다.",
+    "link": {
+      "autopsySnapshot": "부검 보고서 스냅샷에 대해 기록됨",
+      "cytologyPreliminary": "세포병리 예비 보고서에 대해 기록됨",
+      "cytologySignOut": "세포병리 종결에 대해 기록됨",
+      "reportVersion": "서명된 보고서 버전에 대해 기록됨"
+    },
+    "method": {
+      "biometric": "생체 인증",
+      "password": "비밀번호",
+      "sso": "단일 로그인(SSO)"
+    },
+    "outcome": {
+      "finalized": "최종화됨",
+      "released_for_countersign": "공동서명 대기로 전환됨",
+      "signed": "서명됨"
+    },
+    "recordedForLabel": "기록 대상:",
+    "signedByLabel": "서명자:",
+    "ssoProviderLabel": "자격 증명 제공자:",
+    "verifiedBy": {
+      "browser": "브라우저에서 확인됨(서버 확인 대기 중)",
+      "server": "서버에서 확인됨"
+    },
+    "verifiedByLabel": "확인 방식:"
   },
   "signerConfirmation": {
     "attemptsLeft_one": "서명이 잠기기 전까지 {{count}}회 남았습니다.",
@@ -16699,6 +18521,170 @@
     "username": "사용자 이름",
     "usernamePlaceholder": "이메일 주소",
     "waitingForProvider": "로그인 창을 기다리는 중…"
+  },
+  "siteAgents": {
+    "addPickupShare": "가져오기 공유 추가",
+    "addPrinter": "프린터 추가",
+    "addWriteShare": "쓰기 공유 추가",
+    "agentsHeading": "에이전트",
+    "chooseSite": "위의 시설 선택기에서 사이트(검사실)를 선택하면 에이전트, 프린터, 공유가 표시됩니다.",
+    "codeExpires": "이 사이트에 에이전트를 설치할 때 입력하십시오. 한 번만 사용할 수 있고 {{when}}에 만료되며 다시 표시되지 않습니다.",
+    "codeLabel": "등록 코드:",
+    "columns": {
+      "actions": "작업",
+      "certificate": "인증서 만료",
+      "lastSeen": "마지막 확인",
+      "machine": "컴퓨터",
+      "printers": "프린터",
+      "status": "상태",
+      "version": "버전"
+    },
+    "confirmRevoke": "지금 폐기",
+    "copied": "복사됨",
+    "copy": "복사",
+    "copyFailed": "복사할 수 없습니다. 코드를 선택해 직접 복사하십시오.",
+    "demoNote": "이 데모에서는 에이전트가 등록할 수 없어 목록이 비어 있습니다. 단계를 보기 위해 등록 코드를 만들 수 있으며, 사이트의 프린터와 공유 폴더를 설정할 수 있습니다.",
+    "discard": "되돌리기",
+    "done": "완료",
+    "line": "사이트 에이전트 — 온라인: {{online}}, 확인 필요: {{degraded}}, 오프라인: {{offline}}.",
+    "lineLink": "사이트 에이전트 열기",
+    "loading": "사이트 에이전트를 불러오는 중…",
+    "never": "없음",
+    "newCode": "새 등록 코드",
+    "noAgents": "이 사이트에 등록된 에이전트가 아직 없습니다. 등록 코드를 만들어 에이전트 설치 시 입력하십시오.",
+    "noAgentsDemo": "에이전트 없음(이 데모에서는 등록할 수 없음).",
+    "noPrinters": "이 사이트 에이전트의 프린터가 아직 없습니다.",
+    "noShares": "이 사이트 에이전트의 파일 공유가 아직 없습니다.",
+    "notice": {
+      "revoked": "폐기했습니다. 에이전트가 즉시 차단됩니다.",
+      "saved": "저장했습니다. 사이트 에이전트가 즉시 변경을 반영합니다."
+    },
+    "placeholders": {
+      "channel": "엔진 채널 ID",
+      "ippPath": "/ipp/print",
+      "lprQueue": "lp",
+      "pattern": "*.hl7",
+      "revokeNoteOptional": "메모(선택)",
+      "revokeNoteRequired": "메모(기타 선택 시 필수)",
+      "unc": "\\\\fileserver\\pathology$\\inbound"
+    },
+    "printer": {
+      "host": "주소",
+      "id": "프린터 ID",
+      "kind": "종류",
+      "kinds": {
+        "label": "라벨",
+        "report": "보고서"
+      },
+      "name": "이름",
+      "path": "IPP 경로",
+      "port": "포트",
+      "problem": {
+        "hostInvalid": "IP 주소나 호스트 이름을 입력하십시오.",
+        "hostRequired": "주소가 필요합니다.",
+        "idDuplicate": "두 프린터의 ID가 같습니다.",
+        "idRequired": "프린터 ID가 필요합니다.",
+        "ipv6NotSupported": "IPv6 주소는 아직 지원되지 않습니다. IPv4 주소나 호스트 이름을 사용하십시오.",
+        "labelNeedsRaw": "라벨 프린터는 Raw 9100을 사용합니다.",
+        "portInvalid": "포트는 1에서 65535 사이여야 합니다."
+      },
+      "protocol": "프로토콜",
+      "protocols": {
+        "IPP": "IPP",
+        "IPPS": "IPPS(인쇄 확인)",
+        "LPR_LPD": "LPR",
+        "RAW_9100": "Raw 9100"
+      },
+      "queue": "LPR 대기열",
+      "queueOrPath": "대기열 또는 경로"
+    },
+    "printerNote": "IPPS를 권장합니다. 프린터가 보고서 인쇄를 확인합니다. Raw 9100과 LPR은 전송만 확인할 수 있습니다. 에이전트는 병원 IT가 해당 컴퓨터에서 허용한 서브넷과 포트 밖의 프린터를 거부합니다.",
+    "printersHeading": "에이전트 프린터",
+    "problem": {
+      "INVALID": "저장하기 전에 일부 항목을 고쳐야 합니다.",
+      "NOT_FOUND": "해당 에이전트 또는 사이트가 더 이상 없습니다.",
+      "NOT_PERMITTED": "이 작업에 대한 권한이 없습니다.",
+      "SIGNED_OUT": "세션이 종료되었습니다. 다시 로그인하십시오.",
+      "UNAVAILABLE": "PathScribe 서버에 연결할 수 없습니다. 잠시 후 다시 시도하십시오."
+    },
+    "reachable": "{{total}}대 중 {{reachable}}대 연결됨",
+    "remove": "삭제",
+    "revoke": "폐기",
+    "revokeNote": "메모",
+    "revokeReason": "폐기 사유",
+    "revokeReasons": {
+      "compromised": "손상 가능성",
+      "enrolledByMistake": "잘못 등록됨",
+      "movedSite": "다른 사이트로 이동",
+      "other": "기타",
+      "replaced": "장비 교체",
+      "retired": "장비 폐기"
+    },
+    "save": "프린터 및 공유 저장",
+    "share": {
+      "after": {
+        "delete": "삭제",
+        "moveToProcessed": "“processed”로 이동"
+      },
+      "afterHandover": "전달 후",
+      "channel": "엔진 채널",
+      "chooseImport": "가져오기 선택",
+      "credentialRef": "자격 증명 항목 이름(선택)",
+      "deleteWarning": "임상 파일은 전달 후 삭제하지 않는 것이 좋습니다. 보낸 쪽이 사본을 보관하지 않는다면 “processed”에 두십시오.",
+      "directions": {
+        "pickup": "가져오기",
+        "write": "쓰기"
+      },
+      "handTo": "전달 대상",
+      "handToKinds": {
+        "apiImport": "PathScribe 가져오기",
+        "engineChannel": "인터페이스 엔진 채널"
+      },
+      "id": "공유 ID",
+      "importKind": "가져오기",
+      "importKinds": {
+        "orders": "의뢰",
+        "results": "결과"
+      },
+      "maxMb": "최대 파일(MB)",
+      "minStable": "변경 없음(초)",
+      "pattern": "파일 패턴",
+      "problem": {
+        "folderInvalid": "문자, 숫자, 공백, - 또는 _로 된 폴더 이름.",
+        "handToRequired": "파일을 보낼 채널이나 가져오기를 지정하십시오.",
+        "idDuplicate": "두 공유의 ID가 같습니다.",
+        "idRequired": "공유 ID가 필요합니다.",
+        "numbersInvalid": "최소 5초 변경 없음, 최대 파일 1–500MB.",
+        "patternInvalid": "패턴은 파일 이름만 쓸 수 있으며(폴더 불가), PDF와 이미지는 가져오지 않고 링크로 남습니다.",
+        "patternRequired": "가져오기 공유에는 *.hl7 같은 파일 패턴이 필요합니다.",
+        "uncInvalid": "\\\\server\\share\\folder 형식의 경로를 입력하십시오."
+      },
+      "rejectedFolder": "거부된 파일 위치",
+      "unc": "공유 경로"
+    },
+    "shareNote": "공유 폴더 비밀번호는 PathScribe에 입력하지 않습니다. 병원 IT가 에이전트 서비스 계정에 접근 권한을 주거나 자격 증명을 해당 컴퓨터에 저장하며, 여기에는 그 항목의 이름만 입력합니다.",
+    "sharesHeading": "파일 공유",
+    "status": {
+      "degraded": "확인 필요",
+      "offline": "오프라인",
+      "online": "온라인",
+      "revoked": "폐기됨"
+    },
+    "subtitle": "사이트 네트워크에 설치되어 보고서와 라벨을 프린터로 보내고 공유 폴더에 파일을 쓰거나 가져오는 PathScribe 프로그램입니다.",
+    "title": "사이트 에이전트",
+    "unsaved": "저장되지 않은 변경",
+    "updateWindow": {
+      "clear": "시간대 없음",
+      "end": "종료",
+      "note": "사이트 현지 시간입니다. 에이전트는 이 시간대(자정을 넘어도 됨)에만 새 버전을 설치하므로 업무 시간 중 인쇄가 중단되지 않습니다. 시간대가 없으면 서버가 지시할 때 업데이트합니다.",
+      "problem": {
+        "bothRequired": "두 시간을 모두 입력하거나 둘 다 비워 두십시오.",
+        "sameTimes": "시간대의 시작과 종료 시간이 같을 수 없습니다.",
+        "timeInvalid": "02:00과 같은 시간을 사용하십시오."
+      },
+      "start": "업데이트 시간대 시작"
+    },
+    "updatesHeading": "에이전트 업데이트"
   },
   "slideDetailDrawer": {
     "acquisitionLabel": "획득:",
@@ -17176,7 +19162,8 @@
       "facilityPlaceholder": "기관으로 제한…",
       "notPermitted": "저장되지 않음: 내 역할로는 이 변경을 할 수 없습니다.",
       "readOnly": "내 역할에는 역할 및 접근 권한 부여가 없어 이 항목은 읽기 전용입니다.",
-      "saveFailed": "저장되지 않음: 문제가 발생했습니다. 다시 시도하세요."
+      "saveFailed": "저장되지 않음: 문제가 발생했습니다. 다시 시도하세요.",
+      "separationOfDuties": "저장되지 않음: 이 역할들을 함께 부여하면 이 사람이 분리된 두 직무(임상 불일치 규칙 변경, AI 지침 승인)를 모두 갖게 됩니다."
     },
     "linkedAccounts": {
       "accountLine": "계정 {{account}} · {{date}} {{how}} 연결됨",
@@ -17329,10 +19316,11 @@
       },
       "title": "로그인 비밀번호"
     },
-    "signatureUpload": {
+    "signatureLink": {
       "alt": "서명",
-      "formatHint": "PNG, JPG, SVG — 투명 배경 권장",
-      "uploadPrompt": "클릭하여 서명 이미지 업로드"
+      "hint": "병원 자체 시스템에 있는 서명 이미지 링크입니다. PathScribe는 이미지가 아닌 링크만 저장합니다.",
+      "label": "서명 이미지 링크",
+      "placeholder": "https://…"
     },
     "status": {
       "active": "활성",
@@ -17345,7 +19333,9 @@
     },
     "validation": {
       "atLeastOneRole": "하나 이상의 역할이 필요합니다",
-      "invalidEmail": "유효하지 않은 이메일입니다"
+      "invalidEmail": "유효하지 않은 이메일입니다",
+      "invalidLink": "이미지의 https:// 링크를 입력하세요",
+      "signatureNeedsLink": "이 서명은 이미지로 저장되었습니다. 이제 PathScribe는 링크를 저장합니다. 서명 이미지의 https:// 링크를 입력하세요."
     }
   },
   "stainDictionarySection": {
@@ -17780,6 +19770,14 @@
       "failed": "검토를 저장하지 못했습니다. 다시 시도해 주십시오.",
       "notPermitted": "외과병리 QA 검토를 기록할 권한이 없습니다."
     },
+    "mismatch": {
+      "confidence": "신뢰도 {{confidence}}%",
+      "deferredBy": "{{name}}이(가) 연기함, {{date}}",
+      "description": "병리의사가 보고서 검토 중 연기한 저위험 불일치입니다. 해결됨 또는 미해결을 기록하십시오. 미해결은 QA에 시정 조치를 권고합니다.",
+      "empty": "대기 중인 연기된 불일치가 없습니다.",
+      "reviewBtn": "검토",
+      "title": "연기된 임상 불일치(2차 검토)"
+    },
     "notRelevantBtn": "관련 없음",
     "openCaseBtn": "케이스 열기",
     "pageTitle": "수술 후 서명 완료 QA",
@@ -17791,6 +19789,8 @@
     "clinician": "담당의",
     "confidential": "기밀 — 병리 보고서",
     "dob": "생년월일",
+    "documentReference": "문서 {{accession}} · 레코드 버전 {{version}}",
+    "documentReferenceNoVersion": "문서 {{accession}}",
     "figureNotDrawn": "지도 안내: 지도를 이미지로 그릴 수 없었습니다. 지도 내용:",
     "mrn": "환자번호",
     "noContent": "내용 없음",
@@ -17801,6 +19801,11 @@
     "reportTemplate": "보고서 템플릿: {{name}}",
     "requiredNotCompleted": "⚠ 필수 — 아직 작성되지 않음",
     "resolvedBy": " ({{name}} 기준)",
+    "revisionAddendum": "추가 보고가 있는 보고서",
+    "revisionAmendment": "수정 보고서",
+    "revisionCorrection": "정정 보고서",
+    "revisionDatesLatestOnly": "수정 {{latest}}",
+    "revisionDatesWithOriginal": "최초 서명 {{original}} · 수정 {{latest}}",
     "workupAddendum": "추가 보고",
     "workupChanges": "이번 버전의 변경 사항",
     "workupCorrected": "수정됨",
@@ -17813,18 +19818,22 @@
     "workupVersion": "버전"
   },
   "synopticChecks": {
+    "belowSumHint": "{{value}}은(는) 포함하는 수의 합({{sum}})보다 작습니다.",
     "calculatedHint": "표에서 계산됨.",
     "calculatedWhenFilled": "표에 값이 입력되면 표에서 계산됩니다. 그 전까지는 합계를 입력하세요.",
     "cellNotWhole": "{{field}}, {{row}}: {{column}}은(는) 0 이상의 정수여야 합니다({{value}} 입력됨).",
     "continueAnyway": "입력한 대로 계속",
     "countExceeds": "{{field}}, {{row}}: {{column}}({{value}})은(는) {{limit}}({{limitValue}})을(를) 초과할 수 없습니다.",
     "derivedFromMapHint": "장기 지도 절제연 문항에서 계산됨.",
+    "fieldBelowSum": "{{field}} ({{value}})은(는) {{parts}} ({{sum}})보다 작을 수 없습니다.",
     "fieldExceeds": "{{field}}({{value}})은(는) {{limit}}({{limitValue}})을(를) 초과할 수 없습니다.",
     "fieldExceedsHint": "{{value}}은(는) 한도 {{limitValue}}보다 큽니다.",
+    "fieldNotCount": "{{field}}은(는) 0 이상의 정수, “판정 불가” 또는 “최소 N”이어야 합니다 ({{value}} 입력됨).",
     "fieldNotWhole": "{{field}}은(는) 0 이상의 정수여야 합니다({{value}} 입력됨).",
     "goBack": "돌아가서 맞추기",
     "gridEmptyHint": "표에 아직 값이 없습니다.",
     "gridTotalHint": "표의 합계: {{total}}.",
+    "notCountHint": "정수, “판정 불가” 또는 “최소 N”을 입력하십시오 ({{value}}은(는) 해당하지 않음).",
     "notWholeHint": "0 이상의 정수를 입력하세요({{value}} 입력됨).",
     "rowExceeds": "{{row}}: {{column}}({{value}})은(는) {{limit}}({{limitValue}})을(를) 초과할 수 없습니다.",
     "rowNotWhole": "{{row}}: {{column}}은(는) 0 이상의 정수여야 합니다({{value}} 입력됨).",
@@ -17849,6 +19858,7 @@
     "category": {
       "breast": "유방",
       "colon": "결장",
+      "cytologyNonGyn": "비부인과 세포병리",
       "headNeck": "두경부",
       "kidney": "신장",
       "liver": "간",
@@ -17887,13 +19897,14 @@
       "alwaysVisible": "항상 표시",
       "answerIsLabel": "답변이",
       "answerLabel": "답",
+      "answersAnyLabel": "답변이 다음 중 하나",
       "custom": "사용자 지정 조건(템플릿 파일에서 설정)",
       "modeIs": "답이 다음일 때",
       "modeIsNot": "답이 다음이 아닐 때",
       "modeLabel": "표시 조건",
       "noChoiceFieldsWarning": "⚠ 트리거로 사용할 수 있는 드롭다운, 라디오 또는 체크박스 필드가 없습니다",
       "orWhenLabel": "또는 다음 필드가",
-      "pickAnswerOption": "— 답변 선택 —",
+      "pickFieldFirst": "먼저 질문을 선택하십시오.",
       "pickFieldOption": "— 필드 선택 —",
       "removeAlternative": "삭제",
       "removeCustom": "사용자 지정 조건 삭제",
@@ -17925,6 +19936,7 @@
       "changeTypeTooltip": "필드 유형 변경",
       "codingLabel": "필드 수준 코딩",
       "count": {
+        "atLeastSumOf": "다음의 합보다 작을 수 없음",
         "column": "열",
         "decimal": "소수",
         "gridRules": "표 숫자 열의 개수 규칙",
@@ -17932,6 +19944,8 @@
         "gridSumChecked": "직접 입력, 표 합계와 대조",
         "manual": "직접 입력",
         "noLimit": "한도 없음",
+        "nodeCount": "림프절 수 (자유 입력)",
+        "nodeCountHint": "0 이상의 정수, “판정 불가” 또는 “최소 N”만 허용합니다 (영어도 가능). 그 외 입력은 저장과 판독 완료를 막습니다.",
         "notMoreThan": "초과 불가 기준",
         "numberType": "숫자 유형",
         "sumColumn": "열",
@@ -18028,12 +20042,30 @@
       "sourceLabel": "출처 / 관리 기관",
       "stagingEditionLabel": "병기 분류 판",
       "stagingEditionPlaceholder": "예: AJCC 8판",
+      "standardLabel": "보고 체계",
+      "standardPlaceholder": "예: 갑상선 세포병리 보고를 위한 베데스다 체계, 제3판",
       "title": "템플릿 메타데이터",
       "versionLabel": "버전",
       "versionPart": {
         "major": "메이저",
         "minor": "마이너",
         "patch": "패치"
+      }
+    },
+    "narrative": {
+      "noValueWarning": "이 문장에는 {value}가 없어 답변이 서술문에 나타나지 않습니다.",
+      "phraseHint": "이 답변이 서술문에 넣는 문구입니다. 아무것도 추가하지 않는 답변(예: '명시되지 않음')은 비워 두세요.",
+      "phraseLabel": "서술 문구",
+      "phrasePlaceholder": "예: 평가에 적합함",
+      "sentenceHint": "{value}는 선택한 답변의 서술 문구(또는 자유 입력 답변)로 바뀝니다. 비워 두면 이 질문은 문장을 추가하지 않습니다.",
+      "sentenceLabel": "서술 문장",
+      "sentencePlaceholder": "예: 검체는 {value}.",
+      "tierHint": "1단계 질문은 진단 범주를 담습니다. 해당 답변만 용어집 용어를 가리킬 수 있으며, 서명 시 미검증 번역 확인도 이 질문에만 적용됩니다.",
+      "tierLabel": "임상 단계",
+      "tiers": {
+        "none": "설정 안 함",
+        "tier_1_diagnostic_category": "1단계: 진단 범주",
+        "tier_2_descriptive": "2단계: 서술"
       }
     },
     "nav": {
@@ -18379,14 +20411,23 @@
       "tag": "최종 확정 불가",
       "title": "필수 항목 미완료"
     },
+    "caseUpdated": {
+      "failed": "상대방의 변경 사항을 불러오지 못했습니다. 다시 시도하세요.",
+      "gotIt": "확인",
+      "later": "나중에",
+      "message": "증례를 열어 둔 동안 다른 사람이 이 증례를 저장했습니다. 저장하기 전에 상대방의 변경 사항을 표시하세요. 저장하지 않은 내용은 유지됩니다.",
+      "overlap": "다른 사람이 내가 저장하지 않은 부분을 변경했습니다. 상대방의 다른 변경 사항은 표시되고, 내 내용은 입력한 그대로 유지됩니다. 저장할 때 유지할 내용을 선택합니다.",
+      "show": "상대방 변경 사항 표시",
+      "shown": "상대방의 변경 사항이 표시되었습니다. 저장하지 않은 보고서 내용과 보류된 변경 사항은 그 위에 유지됩니다."
+    },
     "concurrency": {
       "body": "이 증례를 연 후 다른 사람이 업데이트했습니다(해당 버전: #{{version}}).",
       "changesNone": "저장된 버전과 더 이상 다른 부분이 없습니다.",
       "changesTitle": "내 사본이 저장된 버전과 다른 부분",
       "colOnSave": "그래도 내 버전을 저장하면",
       "colPart": "증례 항목",
-      "finalizedBlocked": "이 작업은 최종 확정된 보고서에 영향을 주므로 현재 버전에서만 진행할 수 있습니다. 먼저 새로고침하여 변경 사항을 확인하세요.",
-      "hint": "새로고침하여 상대방 버전을 보거나(저장하지 않은 작업은 보존되며 새로고침 후 다시 제공됩니다), 그래도 내 버전을 저장하여 상대방 버전을 덮어쓸 수 있습니다.",
+      "finalizedBlocked": "이 작업은 최종 확정된 보고서에 영향을 주므로 현재 버전에서만 진행할 수 있습니다. 먼저 상대방 버전을 사용하여 변경 사항을 확인하세요(여기에서 저장하지 않은 내용은 삭제됩니다).",
+      "hint": "상대방 버전을 사용하거나(여기에서 저장하지 않은 변경 사항은 삭제됩니다), 그래도 내 버전을 저장하여 상대방 버전을 덮어쓸 수 있습니다.",
       "keepWorking": "계속 작업하고 나중에 결정",
       "keptAsSaved": "저장된 대로 유지됨",
       "notLostYet": "저장하지 않은 변경 사항은 아직 사라지지 않았지만, 지금 저장하면 상대방의 변경 사항을 덮어씁니다.",
@@ -18406,10 +20447,12 @@
         "status": "상태",
         "synopticReports": "시놉틱 보고서"
       },
-      "reload": "상대방 버전 불러오기",
       "replacedByYours": "내 버전으로 대체됨",
       "saveMine": "그래도 내 버전 저장",
       "title": "다른 사람이 이 증례를 변경했습니다",
+      "useTheirs": "상대방 버전 사용",
+      "useTheirsDone": "상대방 버전이 표시되었습니다. 저장하지 않은 변경 사항은 삭제되었습니다.",
+      "useTheirsFailed": "상대방 버전을 불러오지 못했습니다. 다시 시도하세요.",
       "viewChanges": "변경 사항 보기"
     },
     "countersign": {
@@ -18451,6 +20494,24 @@
       "title": "작업하는 동안 다른 사람이 이 증례를 변경했습니다"
     },
     "noSynopticSelected": "선택된 시놉틱 없음",
+    "presence": {
+      "announce": {
+        "editing": "{{name}}님이 이 케이스를 편집하고 있습니다.",
+        "editingSelf": "다른 창에서 이 케이스를 편집하고 있습니다.",
+        "joined": "{{name}}님이 이 케이스를 열었습니다.",
+        "joinedSelf": "다른 창에서 이 케이스를 열어 두었습니다.",
+        "left": "{{name}}님이 더 이상 이 케이스를 열어 두고 있지 않습니다.",
+        "leftSelf": "다른 창에서 더 이상 이 케이스를 열어 두고 있지 않습니다."
+      },
+      "call": "{{phone}} 전화",
+      "callAria": "{{phone}} 전화 ({{name}}님)",
+      "editing": "편집 중",
+      "email": "이메일",
+      "emailAria": "{{name}}님에게 이메일 보내기",
+      "label": "함께 열어 둔 사용자:",
+      "viewing": "보는 중",
+      "youElsewhere": "나(다른 창)"
+    },
     "print": {
       "button": "인쇄",
       "buttonTitle": "보고서 인쇄",
@@ -18517,6 +20578,7 @@
       "draftOverwroteOther": "초안이 저장되었습니다. 다른 사용자가 동시에 한 변경 사항을 현재 버전으로 대체했습니다.",
       "fixationSaveFailed": "고정 시간을 저장할 수 없습니다. 다시 시도하십시오.",
       "fixationTimeRecorded": "고정 시간이 기록되었습니다",
+      "flaggedForMdt": "증례가 {{board}}로 지정되었습니다.",
       "grossingTemplateAssignFailed": "검체가 추가되었지만 육안검사 템플릿을 자동으로 지정할 수 없습니다. 직접 지정하십시오.",
       "intraopMerged": "수술 중 항목이 {{caseId}}에 병합되었습니다",
       "materialScanned": "📍 {{target}}이(가) '{{station}}'에서 스캔되었습니다. 위치가 업데이트되어 엔진으로 전송되었습니다.",
@@ -18525,16 +20587,22 @@
         "consentRevoked": "동의가 철회되었습니다. 조직 또는 장기 보존을 기록할 수 없습니다.",
         "retentionNotPermitted": "등록된 동의서는 조직 또는 장기 보존을 허용하지 않습니다."
       },
+      "organRetentionNotPermitted": "장기 보존 등급을 기록할 권한이 없습니다.",
       "organRetentionRecorded": "장기 보존 등급이 기록되었습니다",
       "organRetentionSaveFailed": "장기 보존 등급을 저장할 수 없습니다. 다시 시도하십시오.",
       "pdfFailedPrintingScreen": "PDF를 만들 수 없습니다({{error}}). 대신 화면을 인쇄합니다.",
       "preAnalyticDatesRecorded": "채취일과 접수일이 기록되었습니다",
       "preAnalyticSaveFailed": "분석 전 날짜를 저장할 수 없습니다. 다시 시도하십시오.",
+      "preliminaryHeld": "예비 보고서가 발행 지연으로 보류되었습니다. {{time}}에 발송됩니다.",
       "preliminaryReleaseFailed": "예비 보고서를 발행할 수 없습니다.",
       "preliminaryReleased_one": "예비 보고서가 발행되었습니다(검체 {{count}}개)",
       "preliminaryReleased_other": "예비 보고서가 발행되었습니다(검체 {{count}}개)",
       "savedMergedParts": "저장되었습니다. 다른 사람도 이 증례를 변경했습니다({{parts}}). 그 변경 사항이 이제 표시됩니다.",
+      "sequenceReportsWithDraft": "보고서 순서가 변경되었습니다. 다음 초안 저장 때 저장됩니다.",
       "sequenceSaved": "순서가 저장되었습니다",
+      "sequenceSavedReportsWithDraft": "검체 순서를 저장했습니다. 보고서 순서는 다음 초안 저장 때 저장됩니다.",
+      "specimenSaveConflict": "저장되지 않음: 그 사이 다른 사람이 이 증례를 저장했습니다. 상대방의 변경 사항을 표시한 뒤 이 변경을 다시 하세요.",
+      "specimenSaveFailed": "검체 변경 사항을 저장하지 못했습니다. 다시 시도하세요.",
       "unknownError": "알 수 없는 오류"
     }
   },
@@ -18607,6 +20675,7 @@
     "sections": {
       "abnormalTriggerRules": "비정상 트리거 규칙",
       "actionGroups": "작업 그룹",
+      "aiInstructions": "AI 지침",
       "assetLocations": "자산 위치 사전",
       "assistLisPolling": "LIS 수신(어시스트 모드)",
       "billingDictionary": "청구 사전(비용 캡처)",
@@ -18618,6 +20687,7 @@
       "cassetteColors": "카세트 색상",
       "cassetteRoutingRules": "카세트 라우팅 규칙",
       "clients": "시설 구성",
+      "clinicalMismatchRules": "임상 불일치 규칙",
       "codeImport": "코드 일괄 가져오기",
       "concordanceReviewSettings": "예비 대 최종 일치도 검토",
       "containerTypes": "용기 유형",
@@ -18642,6 +20712,8 @@
       "governingBodies": "관할 기관",
       "grossingHardware": "육안 검사 하드웨어",
       "grossingRouteOverrides": "그로싱 경로 재정의",
+      "inkColors": "잉크 색상",
+      "inkingValidationMode": "잉킹 검증 모드",
       "intraopCriticalResults": "수술 중 중대 결과",
       "jurisdictionPaymentMappings": "관할 지불 매핑",
       "labelDesigner": "레이블 디자이너",
@@ -18671,12 +20743,14 @@
       "rvuCodeMap": "RVU 코드 매핑(생산성)",
       "scanStations": "스캔 스테이션",
       "sessionSecurity": "세션 보안",
+      "siteAgents": "사이트 에이전트",
       "specimens": "검체 사전",
       "stains": "진단 카탈로그",
       "subspecialties": "세부 전문 분야",
       "supportAccess": "지원 접근",
       "templateGovernance": "템플릿 검토",
       "terminology": "용어 서비스",
+      "tumorBoardRules": "종양위원회 자동 플래그 규칙",
       "vendorIntegrations": "공급업체 통합",
       "workstationGroups": "워크스테이션 그룹"
     }
@@ -18908,6 +20982,7 @@
       "dragSub": "왼쪽 패널에서 항목을 드래그하세요. 이 영역 어디든 놓을 수 있습니다.",
       "releaseHint": "↓ 놓으려면 여기에서 놓으세요"
     },
+    "childrenToggle": "내용 표시",
     "chip": {
       "accessionHash": "접수번호",
       "always": "항상",
@@ -18930,6 +21005,7 @@
     "grid": {
       "empty": "여기에 구성 요소를 놓으세요"
     },
+    "removeNamed": "{{label}} 제거",
     "removeTooltip": "제거",
     "resizeTooltip": "드래그하여 열 너비 조정",
     "zone": {
@@ -19024,11 +21100,13 @@
       "divLabel": "표현식 값",
       "fallbackLabel": "대체 값",
       "hint": "사례 데이터의 값을 삽입하려면 <code>{{field.path}}</code> 구문을 사용하세요.",
+      "templatePlaceholder": "{{name}}, {{age}}세",
       "templateStringLabel": "템플릿 문자열"
     },
     "footer": {
       "contentDivLabel": "콘텐츠",
       "customHtmlLabel": "사용자 지정 HTML",
+      "customHtmlPlaceholder": "<div>{{page}}페이지</div>",
       "divLabel": "바닥글",
       "heightLabel": "높이(px)",
       "pageNumberFormatLabel": "페이지 번호 형식",
@@ -19277,6 +21355,7 @@
       "noItems": "항목 없음",
       "noSynopticData": "기록된 요약 데이터 없음"
     },
+    "footerPatientLine": "{{name}} · 생년월일 {{dob}} · {{accession}}",
     "margins": {
       "bottom": "아래",
       "heading": "여백 (mm)",
@@ -19295,6 +21374,7 @@
         "letter": "미국 · 캐나다"
       }
     },
+    "sampleDepartment": "해부병리과",
     "toolbar": {
       "close": "닫기",
       "contextJson": "컨텍스트 JSON",
@@ -19336,7 +21416,7 @@
     "lifecycleBar": {
       "notAvailableTooltip": "\"{{state}}\" 상태에서는 사용할 수 없습니다",
       "publishedBanner": "🚀 이 프로토콜은 {{goLiveVerb}}되어 보고 워크플로에서 사용 중입니다.",
-      "resetButton": "↺ 재설정",
+      "resetButton": "↺ 초안으로 재설정",
       "transitionLabel": "라이프사이클 전환"
     },
     "loading": "프로토콜 로드 중…",
@@ -19345,7 +21425,7 @@
       "placeholderOptional": "메모 추가(선택 사항)…",
       "placeholderRequired": "수정 사유 입력 필요(권장)…",
       "reset": {
-        "bodyPre": "이 작업은 모든 검토자 주석을 지우고 라이프사이클 상태를 다음으로 되돌립니다:",
+        "bodyPre": "시험 답변과 모든 승인을 지우고 템플릿을 다음 상태로 되돌립니다:",
         "bodySuffix": ". 이 작업은 되돌릴 수 없습니다.",
         "confirmButton": "초안으로 재설정",
         "draftWord": "초안",
@@ -19364,6 +21444,17 @@
       "noTemplateId": "템플릿 ID가 제공되지 않았습니다.",
       "templateNotFound": "템플릿 \"{{templateId}}\"을(를) 찾을 수 없습니다.",
       "unknownError": "알 수 없는 오류입니다."
+    },
+    "reviewGuide": {
+      "coding": "코딩 배지를 확인하세요. 진단용 템플릿은 필드의 {{threshold}}% 이상에 SNOMED 코드가 있어야 게시할 수 있습니다.",
+      "comment": "질문 아래 칸에 댓글을 남기고, 처리된 댓글은 해결로 표시하세요.",
+      "independentSelf_one": "이 기관은 작성자가 자신의 템플릿을 승인할 수 있도록 허용합니다. 승인 {{count}}건이 필요합니다.",
+      "independentSelf_other": "이 기관은 작성자가 자신의 템플릿을 승인할 수 있도록 허용합니다. 서로 다른 사람의 승인 {{count}}건이 필요합니다.",
+      "independent_one": "직접 작성하지 않은 템플릿만 승인하세요. 저장한 적이 없는 사람의 승인 {{count}}건이 필요합니다.",
+      "independent_other": "직접 작성하지 않은 템플릿만 승인하세요. 저장한 적이 없는 서로 다른 사람의 승인 {{count}}건이 필요합니다.",
+      "read": "각 질문을 작성할 병리의사의 입장에서 읽어 보세요. 필드에 답을 입력해 볼 수 있지만, 양식 확인용일 뿐 환자 증례에는 절대 추가되지 않습니다.",
+      "sendBack": "변경이 필요하면 {{needsChanges}}을(를) 선택하고 메모에 내용을 적으세요. 행 끝의 ‘초안으로 재설정’은 템플릿을 초안으로 되돌리고 승인을 지웁니다.",
+      "title": "이 템플릿을 검토하는 방법"
     },
     "state": {
       "approved": "승인됨",
@@ -19426,6 +21517,8 @@
     }
   },
   "templateRequestModal": {
+    "baseOptionMeta_one": "{{source}} · {{count}}개 항목 · v{{version}}",
+    "baseOptionMeta_other": "{{source}} · {{count}}개 항목 · v{{version}}",
     "baseSearchPlaceholder": "게시된 양식 검색…",
     "baseSelectedNote": "관리자가 {{name}}(을)를 기반으로 시작합니다 ({{fields}}개 항목, {{source}} v{{version}})",
     "baseTemplateLabel": "기본 양식",
@@ -19492,9 +21585,12 @@
     "whatHappensNextText": "요청 사항은 내부 메시지로 양식 관리팀에 전달됩니다. 관리팀이 구조화 보고서 라이브러리에서 양식을 제작하며, 표준 거버넌스 워크플로(초안 → 검토 → 승인 → 게시)를 거칩니다. 사용 준비가 완료되면 알림을 받게 됩니다."
   },
   "terminologyAlertBanner": {
+    "countsBoth": "{{errors}} · {{warnings}}",
     "deprecatedCodeCount_one": "지원 중단된 코드 {{count}}건",
     "deprecatedCodeCount_other": "지원 중단된 코드 {{count}}건",
     "dismissTooltip": "이 경고 닫기",
+    "fieldOptionRef": "— {{field}} › \"{{option}}\"",
+    "fieldRef": "— {{field}}",
     "recheckButton": "다시 확인",
     "suggestedReplacements_one": "권장 대체 코드:",
     "suggestedReplacements_other": "권장 대체 코드:",
@@ -19512,7 +21608,7 @@
       "status": "상태"
     },
     "cptCallout": {
-      "description": "CPT 코드는 AMA 라이선스가 적용되며 공개 API로 제공할 수 없습니다. <link>AMA CPT 데이터 라이선스</link>를 확보하고(사용량에 따라 연간 약 3,000~10,000달러) <envVar>{{proxyUrl}}</envVar>에 백엔드 프록시를 구축하세요. 병리의 전문 구성 요소(26 수정자) 청구와 검사실 기술 구성 요소(TC 수정자) 청구 모두 이에 의존합니다.",
+      "description": "CPT 코드는 AMA 라이선스가 적용되며 공개 API로 제공할 수 없습니다. <licence>AMA CPT 데이터 라이선스</licence>를 확보하고(사용량에 따라 연간 약 3,000~10,000달러) <envVar>{{proxyUrl}}</envVar>에 백엔드 프록시를 구축하세요. 병리의 전문 구성 요소(26 수정자) 청구와 검사실 기술 구성 요소(TC 수정자) 청구 모두 이에 의존합니다.",
       "title": "가동 전 CPT 라이선스 필요"
     },
     "header": {
@@ -19567,6 +21663,96 @@
       "testAll": "전체 테스트",
       "testing": "테스트 중…"
     }
+  },
+  "tumorBoard": {
+    "boards": {
+      "Breast MDT": "유방 종양위원회",
+      "GI MDT": "소화기 종양위원회",
+      "Gyn-Onc": "부인종양 위원회",
+      "Thoracic MDM": "흉부 종양위원회"
+    },
+    "dismissModal": {
+      "cancelBtn": "취소",
+      "errors": {
+        "notPermitted": "종양위원회 플래그를 해제할 권한이 없습니다.",
+        "reasonRequired": "플래그를 해제하려면 사유가 필요합니다.",
+        "saveFailed": "이 플래그를 해제할 수 없습니다 — 다시 시도해 주세요."
+      },
+      "reasonLabel": "사유",
+      "submitBtn": "플래그 해제",
+      "title": "종양위원회 플래그 해제"
+    },
+    "emptyRow": "이 필터와 일치하는 증례가 없습니다.",
+    "filters": {
+      "allBoards": "모든 위원회",
+      "allPresenters": "모든 발표자",
+      "allStatuses": "모든 상태",
+      "board": "위원회",
+      "meetingWindow": "회의 기간",
+      "presenter": "발표자",
+      "sortBy": "정렬 기준",
+      "sortByMeetingDate": "회의 일자",
+      "sortByUpdatedAt": "최근 업데이트",
+      "status": "증례 상태"
+    },
+    "meetingWindows": {
+      "all": "전체",
+      "thisMonth": "향후 30일",
+      "thisWeek": "향후 7일",
+      "today": "오늘"
+    },
+    "pageTitle": "종양위원회(MDT)",
+    "printBtn": "인쇄",
+    "row": {
+      "claimBtn": "이 증례 맡기",
+      "claimedBy": "{{name}}님이 배정함",
+      "dismissBtn": "플래그 해제",
+      "meetingDate": "회의 일자",
+      "meetingTime": "회의 시간",
+      "meetingTimeNeedsDate": "먼저 회의 일자를 설정하세요",
+      "noPresenter": "지정된 발표자 없음",
+      "openCaseBtn": "증례 열기",
+      "source": {
+        "Manual": "수동",
+        "Rule": "자동 플래그"
+      }
+    },
+    "session": {
+      "locked": "잠김",
+      "open": "열림",
+      "unassignedCount_one": "미배정 {{count}}건",
+      "unassignedCount_other": "미배정 {{count}}건",
+      "unscheduled": "미정"
+    },
+    "statuses": {
+      "Cancelled": "취소됨",
+      "Deferred": "연기됨",
+      "Dismissed": "기각됨",
+      "Pending Presentation": "발표 대기 중",
+      "Presented": "발표됨"
+    }
+  },
+  "tumorBoardRulesSection": {
+    "activeLabel": "활성",
+    "addOverride": "+ 시설별 재정의 추가",
+    "batchCutoffSubtitle": "위원회 회의 전 증례 목록이 잠기는 시점(시간)입니다 — 이 기간 동안 일정 변경은 거부되지만, 발표자 자가 배정은 회의 당일과 그 이후에도 계속 가능합니다.",
+    "batchCutoffTitle": "배치 잠금 기준",
+    "cutoffHoursLabel": "잠금 기준(회의 전 시간)",
+    "disabled": "비활성화됨",
+    "enterpriseTitle": "전사 기준 정책",
+    "errors": {
+      "cutoffHoursInvalid": "0 또는 양수 시간을 입력하세요.",
+      "facilityRequired": "시설을 선택하세요.",
+      "marginThresholdMmInvalid": "0보다 큰 변연 임계값을 입력하세요.",
+      "notPermitted": "종양위원회 자동 플래그 규칙을 관리할 권한이 없습니다.",
+      "saveFailed": "저장하지 못했습니다 — 다시 시도해 주세요."
+    },
+    "facilityEmpty": "아직 시설별 재정의가 없습니다.",
+    "facilityTitle": "시설별 재정의",
+    "ruleSummary": "< {{mm}}mm",
+    "subtitle": "서명 완료 시 각 위원회에 사례를 자동으로 플래그하는 변연 거리 임계값입니다. 관리자는 특정 시설에 대해 위원회의 임계값을 재정의하거나 비활성화할 수 있습니다.",
+    "thresholdLabel": "변연 임계값 (mm)",
+    "title": "종양위원회 자동 플래그 규칙"
   },
   "ukPatientIdValidation": {
     "checksumMismatch": "체크섬(Modulus 11) 실패 — 체크 자릿수가 일치하지 않습니다",
@@ -19626,6 +21812,7 @@
     "toast": {
       "addendumReleased": "추가 기록이 게시되었습니다",
       "amendmentReleased": "수정 사항이 게시되었습니다",
+      "inReleaseDelay": "이 보고서는 아직 발행 지연 중이어서 전송되지 않았습니다. 변경하려면 회수하거나, 지연이 끝난 후 정정 또는 추가 보고를 하십시오.",
       "reportUnlockedForMode": "{{mode}}을(를) 위해 보고서 잠금이 해제되었습니다 — 종합 소견 필드를 수정한 다음 다시 최종 확정하고 서명하여 전송하세요."
     }
   },
@@ -19712,6 +21899,7 @@
       "aiSuggestionsNeedReview": "이 증례를 최종 확정하려면 아직 검토해야 할 AI 제안이 {{count}}개 있습니다 — 시작 항목 \"{{label}}\"",
       "alreadyPendingRelease": "이 보고서는 이미 배포 대기 중입니다 — 추가 변경이 필요하면 먼저 회수하세요.",
       "answerFieldsBeforeGeneratingNarrative": "소견 텍스트를 생성하기 전에 일부 종합 소견 필드에 답변해 주세요.",
+      "autoFlaggedForTumorBoard": "절제연 거리 규칙에 따라 증례가 {{board}}에 자동으로 플래그 지정되었습니다.",
       "billingItemsFlaggedQa_one": "청구 항목 {{count}}건이 QA 검토 대상으로 표시되었습니다 — 증례는 서명 완료되었으며 차단되지 않았습니다.",
       "billingItemsFlaggedQa_other": "청구 항목 {{count}}건이 QA 검토 대상으로 표시되었습니다 — 증례는 서명 완료되었으며 차단되지 않았습니다.",
       "billingItemsFlaggedStartingWith": "청구 항목 {{count}}건이 표시되었습니다 — 시작 항목: {{note}}",
@@ -19904,6 +22092,53 @@
       "toggle": "작동 방식 — 예시 포함",
       "workedExample": "예시"
     },
+    "printReport": {
+      "deidentification": "본 보고서에는 환자를 식별할 수 있는 정보가 포함되어 있지 않습니다. 집계 통계만 포함됩니다. 신호 수집 시 비식별화가 적용되어 임상 값은 저장 전에 유형별 자리 표시자로 대체됩니다.",
+      "documentTitle": "PathScribe 검증 보고서 — {{name}}",
+      "fields": {
+        "ethicsReference": "윤리위원회 참조번호",
+        "period": "기간",
+        "studyName": "연구명",
+        "validationMode": "검증 모드",
+        "version": "PathScribe 버전"
+      },
+      "footer": "PathScribe v{{version}} · ForMedrixAI · 대외비 검증 보고서 · {{date}}",
+      "generated": "생성일 {{date}} · 대외비 — 승인 없이 배포 금지",
+      "governanceStatement": "AI가 생성한 모든 서술은 검사정보시스템(LIS)에 제출되기 전에 자격을 갖춘 병리과 전문의가 검토하고, 필요한 경우 수정한 후 서명했습니다. PathScribe는 본 연구 기간 내내 자문 모드로 운영되었습니다. 병리과 전문의의 승인 없이 LIS로 전송된 AI 출력은 없습니다. 본 보고서에는 환자 데이터가 포함되지 않습니다. 개별 병리과 전문의의 성과 지표는 본 보고서에 공개되지 않습니다.",
+      "grade": {
+        "conditionalPass": "조건부 적합",
+        "furtherReview": "추가 검토 필요",
+        "pass": "적합"
+      },
+      "gradeDescription": {
+        "conditionalPass": "성능이 목표에 근접합니다 — 연구 기간 연장을 권장합니다",
+        "furtherReview": "성능이 목표에 미달합니다 — AI 구성을 검토하십시오",
+        "pass": "성능이 연구 목표를 충족합니다"
+      },
+      "kpi": {
+        "acceptanceRate": "수용률",
+        "cases": "증례",
+        "meanEditRatio": "평균 수정 비율",
+        "sectionsAnalysed": "분석된 섹션"
+      },
+      "ongoing": "진행 중",
+      "periodRange": "{{start}} — {{end}}",
+      "sections": {
+        "bySection": "3. AI 서술 품질 — 섹션별",
+        "governance": "4. 거버넌스 진술",
+        "overview": "1. 연구 개요",
+        "summary": "2. 요약"
+      },
+      "table": {
+        "acceptance": "수용률",
+        "meanEditRatio": "평균 수정 비율",
+        "section": "섹션",
+        "signals": "신호"
+      },
+      "title": "PathScribe AI 검증 보고서",
+      "validationModeValue": "자문 모드 — AI 출력은 병리과 전문의가 검토하고 서명합니다. AI가 LIS에 직접 제출하지 않습니다.",
+      "versionValue": "v{{version}}"
+    },
     "reports": {
       "acceptanceRate": "승인률",
       "advisoryModeOnly": "자문 모드만",
@@ -19988,6 +22223,35 @@
     "intro_one": "이 케이스에 대해 {{count}}개 버전이 기록되었습니다 — 서명 및 보관됨, 읽기 전용.",
     "intro_other": "이 케이스에 대해 {{count}}개 버전이 기록되었습니다 — 서명 및 보관됨, 읽기 전용.",
     "pdfOpenError": "이 버전의 PDF를 열 수 없습니다.",
+    "pdfProblems": {
+      "integrity": "이 버전의 PDF가 SHA-256 지문과 더 이상 일치하지 않아 표시하지 않습니다. 관리자에게 알리십시오.",
+      "notFound": "이 버전의 PDF를 찾을 수 없습니다.",
+      "notPermitted": "이 버전의 PDF를 열 권한이 없습니다.",
+      "unavailable": "PathScribe 서버에서 이 버전의 PDF를 가져오지 못했습니다. 잠시 후 다시 시도하십시오."
+    },
+    "sentDocuments": {
+      "hash": "SHA-256 {{hash}}",
+      "integrity": "이 문서가 SHA-256 지문과 더 이상 일치하지 않아 표시하지 않습니다. 관리자에게 알리십시오.",
+      "intro": "발행된 각 보고서는 SHA-256 지문과 함께 한 번만 저장됩니다. 해당 발행의 결과 메시지, 인쇄, 팩스, 파일 전송 및 그 재시도는 이 저장된 파일을 전송합니다. \"전송된 그대로 보기\"로 열 수 있습니다.",
+      "line": "{{type}} · {{date}} 발행 · {{producer}}",
+      "listPartial": "PathScribe 서버의 전송 문서 목록을 읽을 수 없어 이 목록이 불완전할 수 있습니다.",
+      "notFound": "이 문서를 찾을 수 없습니다.",
+      "notPermitted": "이 문서를 열 권한이 없습니다.",
+      "producers": {
+        "browser-cytology": "브라우저에서 생성한 세포병리 보고서",
+        "report-renderer": "보고서 렌더러에서 생성",
+        "saved-version": "서명 시 저장된 서명 보고서"
+      },
+      "title": "발행된 문서",
+      "types": {
+        "ADDENDUM": "추가 보고",
+        "CORRECTED": "수정",
+        "FINAL": "최종",
+        "PRELIMINARY": "예비"
+      },
+      "unavailable": "PathScribe 서버에서 문서를 가져올 수 없습니다. 잠시 후 다시 시도하십시오.",
+      "viewAsSent": "전송된 그대로 보기"
+    },
     "signedByLabel": "서명자",
     "snapshotField": {
       "encounterClass": "내원 구분",
@@ -20001,6 +22265,7 @@
       "initialSignout": "최초 서명"
     },
     "versionLabel": "버전 {{number}}",
+    "versionsPartial": "PathScribe 서버의 버전 목록을 읽지 못해 이 목록이 불완전할 수 있습니다.",
     "viewPdfButton": "서명된 PDF 보기"
   },
   "voiceCommandOverlay": {
@@ -20144,8 +22409,17 @@
       "requestPending": "액세스 요청 대기 중 — 시스템 관리자에게 알림이 전송되었습니다.",
       "willReceiveMessage": "액세스가 승인되면 메시지를 받게 됩니다."
     },
+    "amendmentGroup": {
+      "addendum": "추가 보고",
+      "amendmentCorrection": "수정 및 정정",
+      "notice": "LIS 알림 — 검토 대기"
+    },
     "autopsy": {
       "fieldLabel": "검시(부검)"
+    },
+    "autopsyGroup": {
+      "fullyAuthorized": "완전 승인됨",
+      "temporary": "임시 접수 — 승인 대기"
     },
     "card": {
       "accessionPhysicianLabel": "접수번호 · 의사",
@@ -20227,6 +22501,7 @@
     },
     "staffChip": {
       "messageTitle": "{{name}}에게 메시지 보내기",
+      "residentBadge": "전공의",
       "residentBadgeTitle": "전공의/펠로우"
     },
     "statusDot": {

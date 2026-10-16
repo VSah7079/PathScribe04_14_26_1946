@@ -14,6 +14,19 @@ ICD/terminology code application UI for a case or specimen.
 
 `AddCodeModal.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+
+## Batch 536 (PS-558)
+
+`AddCodeModal.tsx`: the AI coding call passes its feature and facility, for the jurisdiction's AI vendor policy.
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 567 (WCAG 2.1 AA, 4.1.2)
+
+- `AddCodeModal.tsx`: AI suggestion rows and search results can hold a button (Move here), so they are no longer buttons. Clicking a row still applies its code; the icon at its end is now a button that does the same ("Apply code"), and once applied the "✓ ×n" mark is the button that applies it again (its name keeps the visible text: `addCodeModal.applyAgainLabel`). A row whose code is on another specimen is no longer an empty tab stop.

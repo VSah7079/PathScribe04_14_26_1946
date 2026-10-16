@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real feature, per direct confirmation, building Phase B of the
 // "Interface Exception & Case-Binding Module": the restricted UI for
-// mockPatientIndexService.breakGlassRebind(). Deliberately gated —
+// patientIndexService.breakGlassRebind(). Deliberately gated —
 // see AuditLogPage.tsx's own admin-only render condition for this
 // modal's trigger — and deliberately friction-heavy for a genuinely
 // rare, exceptional real-world action: select a real, flagged
@@ -17,9 +17,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+
 import type { MasterPatientRecord } from '@/services/patients/IPatientIndexService';
 import { BREAK_GLASS_REASON_CODES, BREAK_GLASS_MIN_NOTE_LENGTH } from '@/types/patients/BreakGlassReasonCode';
+import { patientIndexService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface Props {
   organisationId: string;
@@ -51,7 +53,7 @@ const BreakGlassRebindModal: React.FC<Props> = ({ organisationId, performedBy, o
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const records = await mockPatientIndexService.listDowntimeRecords(organisationId);
+      const records = await patientIndexService.listDowntimeRecords(organisationId);
       if (cancelled) return;
       setDowntimeRecords(records);
       setLoading(false);
@@ -76,7 +78,7 @@ const BreakGlassRebindModal: React.FC<Props> = ({ organisationId, performedBy, o
     let cancelled = false;
     setSearching(true);
     const handle = setTimeout(async () => {
-      const results = await mockPatientIndexService.searchPatients(organisationId, targetQuery);
+      const results = await patientIndexService.searchPatients(organisationId, targetQuery);
       if (cancelled) return;
       setTargetResults(results.filter(r => r.id !== selectedDowntimeId));
       setSearching(false);
@@ -90,7 +92,7 @@ const BreakGlassRebindModal: React.FC<Props> = ({ organisationId, performedBy, o
   const handleConfirm = async () => {
     if (!canSubmit) return;
     setBusy(true);
-    const rebindResult = await mockPatientIndexService.breakGlassRebind({
+    const rebindResult = await patientIndexService.breakGlassRebind({
       downtimePatientId: selectedDowntimeId,
       confirmedPatientId: selectedTargetId,
       reasonCode,
@@ -140,7 +142,7 @@ const BreakGlassRebindModal: React.FC<Props> = ({ organisationId, performedBy, o
           {result ? (
             <div className={result.ok ? 'ps-iexc-result-banner' : 'ps-iexc-reason-banner'}>{result.message}</div>
           ) : loading ? (
-            <div className="ps-iexc-loading">{t('breakGlassRebindModal.loadingDowntimeRecords')}</div>
+            <LoadingState variant="inline" className="ps-iexc-loading" label={t('breakGlassRebindModal.loadingDowntimeRecords')} />
           ) : (
             <>
               <div className="ps-conf-form-field">
@@ -175,7 +177,7 @@ const BreakGlassRebindModal: React.FC<Props> = ({ organisationId, performedBy, o
                             <input type="radio" name="bg-target" checked={selectedTargetId === r.id} onChange={() => setSelectedTargetId(r.id)} disabled={busy} />
                             <div className="ps-iexc-case-info">
                               <div className="ps-iexc-case-id" data-phi="name">{r.lastName}, {r.firstName}</div>
-                              <div className="ps-iexc-case-detail" data-phi="true">MRN {r.mrn} · DOB {r.dateOfBirth}</div>
+                              <div className="ps-iexc-case-detail" data-phi="true">{t('common.patientIds.mrnDob', { mrn: r.mrn, dob: r.dateOfBirth })}</div>
                             </div>
                           </label>
                         ))}

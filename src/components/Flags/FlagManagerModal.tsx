@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
 import "../../pathscribe.css";
 import type { FlagDefinition } from "../../types/FlagDefinition";
+import { pressable } from '@/utils/a11y/pressable';
 
 // ─── Payload types (previously in missing caseFlagsApi) ──────────────────────
 interface ApplyFlagPayload  { caseId: string; flagDefinitionId: string; specimenId?: string; }
@@ -400,7 +401,7 @@ const FlagManagerModal: React.FC<Props> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [localCase, initialCaseData, onApplyFlags, onRemoveFlag, onClose]);
+  }, [localCase, initialCaseData, onApplyFlags, onRemoveFlag, onClose, t]);
 
   const handleClose = useCallback(() => {
     if (isDraftDirty) { setShowDirtyWarn(true); return; }
@@ -689,7 +690,7 @@ const FlagManagerModal: React.FC<Props> = ({
                     <div
                       key={def.id}
                       className={`fm-flag-card${applied ? " applied" : ""}`}
-                      onClick={() => !applied && handleApply(def)}
+                      {...pressable(() => !applied && handleApply(def))}
                     >
                       <div>
                         <span className={`fm-code-chip${applied ? " applied" : ""}`}>

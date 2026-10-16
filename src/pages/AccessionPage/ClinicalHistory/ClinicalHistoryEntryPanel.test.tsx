@@ -24,6 +24,7 @@ import ClinicalHistoryEntryPanel from './ClinicalHistoryEntryPanel';
 // GrossingScreenPage.test.tsx (return the raw key, so assertions target
 // the stable key rather than one locale's translated text).
 vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '3rdParty', init: () => {} },
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 

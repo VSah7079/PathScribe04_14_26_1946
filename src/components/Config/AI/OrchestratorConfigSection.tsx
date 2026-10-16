@@ -138,8 +138,11 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
     <div className="ps-orchcfg-section">
 
       {/* Section header — collapsible */}
+      {/* Batch 524 (PS-491): the on/off switch sits beside the collapse button, not inside it (a control inside a button can't be reached). */}
+      <div className="ps-orchcfg-header">
       <button data-config-nav
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
         className="ps-orchcfg-header-btn"
       >
         <svg
@@ -153,18 +156,20 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
         <span className="ps-orchcfg-header-title">
           {t('orchestratorConfigSection.title')}
         </span>
+      </button>
 
         {isAdmin ? (
-          <span
+          <button
+            type="button"
             role="switch"
             aria-checked={orchestratorOn}
             aria-label={orchestratorOn ? t('orchestratorConfigSection.toggle.ariaLabelOn') : t('orchestratorConfigSection.toggle.ariaLabelOff')}
-            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+            onClick={handleToggle}
             title={t('orchestratorConfigSection.toggle.tooltip')}
             className={`ps-orchcfg-toggle-badge${orchestratorOn ? ' ps-orchcfg-toggle-badge--on' : ''}`}
           >
             {orchestratorOn ? t('orchestratorConfigSection.toggle.badgeOn') : t('orchestratorConfigSection.toggle.badgeOff')}
-          </span>
+          </button>
         ) : (
           <span className={`ps-orchcfg-status-badge${orchestratorOn ? ' ps-orchcfg-status-badge--on' : ''}`}>
             {orchestratorOn ? t('orchestratorConfigSection.toggle.statusOn') : t('orchestratorConfigSection.toggle.statusOff')}
@@ -174,7 +179,7 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
         <span className="ps-orchcfg-steps-summary">
           {t('orchestratorConfigSection.stepsActiveSummary', { enabled: enabledCount, total: cfg.sections.length })}
         </span>
-      </button>
+      </div>
 
       {open && (
         <div className="ps-orchcfg-body">

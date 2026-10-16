@@ -7,7 +7,6 @@ import { mockRoleService } from '../roles/mockRoleService';
 import { mockParticipationTypeService } from '../participationTypes/mockParticipationTypeService';
 import { caseRouter } from './CaseRouter';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const caseTeamSaveDeps: SaveCaseTeamDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   listStaff: async () => { const r = await mockUserService.getAll(); return r.ok ? r.data : []; },

@@ -49,7 +49,7 @@ import { resolveCisoeAValidation } from './resolveCisoeAValidation';
 import { resolveCisoeAToBethesda } from './resolveCisoeAToBethesda';
 import { resolveCisoeAAdequacyToBethesda } from './resolveCisoeAAdequacyToBethesda';
 import { resolveCytologyReviewRequirement } from './resolveCytologyReviewRequirement';
-import { resolveCytologyScuWeight } from './resolveCytologyScuWeight';
+import { resolveCytologyScuWeightAdded } from './resolveCytologyScuWeight';
 import { resolveCytologyWorkloadCapacity, type CytologyWorkloadCapacityStatus } from './resolveCytologyWorkloadCapacity';
 import { resolveEffectiveCytologyWorkloadCap } from './resolveEffectiveCytologyWorkloadCap';
 import { resolveCytologyWorkloadReassignmentCandidates } from './resolveCytologyWorkloadReassignmentCandidates';
@@ -67,7 +67,6 @@ import { reviewNotesAfterSave } from './cytologyReviewNotes';
 import { resolveCytologyComplianceFeatures } from './cytologyComplianceFeatures';
 import type { Jurisdiction } from '@/types/systemConfig';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface SaveCytologyReviewInput {
   form: { kind: 'standard'; draft: Draft } | { kind: 'cisoeA'; draft: CisoeADraft; bethesdaForMapping: CytologyCategoryEntry[] };
@@ -150,7 +149,9 @@ export async function saveCytologyReview(input: SaveCytologyReviewInput, deps: C
   // 2. Workload.
   const existing = input.editingReviewId ? input.reviews.find(r => r.id === input.editingReviewId) : undefined;
   const targetReviewMode: CytologyReviewMode = input.isPathologist ? 'pathologist_review' : input.reviewMode;
-  const capacity = await checkWorkloadCapacity(input, targetReviewMode, deps);
+  // Batch 574: an edit adds only an escalation's extra weight, not the slide again.
+  const addedScu = resolveCytologyScuWeightAdded(existing ? resolveCytologyReviewMode(existing) : undefined, targetReviewMode);
+  const capacity = await checkWorkloadCapacity(input, addedScu, deps);
   let workloadNotice: SaveCytologyReviewOutcome['workloadNotice'] = null;
   if (capacity?.status === 'exceeded') {
     const escalation = !!existing && resolveIsRetroactiveScuEscalation(resolveCytologyReviewMode(existing), targetReviewMode);
@@ -175,7 +176,7 @@ export async function saveCytologyReview(input: SaveCytologyReviewInput, deps: C
     const updated = await deps.updateReview(input.editingReviewId, user.id, fields);
     if (!updated.ok) return { outcome: 'failed', capacity, workloadNotice, validation };
     await patchSpecimen(input, updated.data.id, {}, deps);
-    await recordLedger(input, targetReviewMode, updated.data.id, deps);
+    await recordLedger(input, targetReviewMode, updated.data.id, deps, addedScu);
     return { outcome: 'saved', capacity, workloadNotice, validation, reviewId: updated.data.id, created: false, agreement };
   }
   const created = await deps.createReview({
@@ -193,11 +194,11 @@ export async function saveCytologyReview(input: SaveCytologyReviewInput, deps: C
   }
   const qcFlagApplied = qc?.reason;
   await patchSpecimen(input, created.data.id, qc ? { qcFlag: qc.flag } : {}, deps);
-  await recordLedger(input, targetReviewMode, created.data.id, deps);
+  await recordLedger(input, targetReviewMode, created.data.id, deps, addedScu);
   return { outcome: 'saved', capacity, workloadNotice, validation, reviewId: created.data.id, created: true, qcFlagApplied, agreement };
 }
 
-async function checkWorkloadCapacity(input: SaveCytologyReviewInput, mode: CytologyReviewMode, deps: CytologyWorkspaceDeps): Promise<CytologyWorkloadCapacityStatus | null> {
+async function checkWorkloadCapacity(input: SaveCytologyReviewInput, addedScu: number, deps: CytologyWorkspaceDeps): Promise<CytologyWorkloadCapacityStatus | null> {
   const now = deps.now();
   const facilityId = (input.caseData as any).order?.facilityId as string | undefined;
   // Batch 415: the CLIA cap is a feature (on for a US lab by default, off elsewhere).
@@ -215,7 +216,7 @@ async function checkWorkloadCapacity(input: SaveCytologyReviewInput, mode: Cytol
   const priorSeconds = ledger.data.reduce((sum, e) => sum + e.activeDurationSeconds, 0);
   // Earlier active time plus this session's, or a first review of the day would show no hours and always block.
   const activeHours = (priorSeconds + input.activeScreeningSeconds) / 3600;
-  return resolveCytologyWorkloadCapacity(priorScu + resolveCytologyScuWeight(mode), activeHours, cap.dailySlideCap);
+  return resolveCytologyWorkloadCapacity(priorScu + addedScu, activeHours, cap.dailySlideCap);
 }
 
 /** The reviewer's other pending cytology cases back to the pool (case assignment only; accession status untouched). */
@@ -228,10 +229,11 @@ async function reassignPendingCases(input: SaveCytologyReviewInput, includeCurre
     .catch(e => console.error('Workload reassignment routing failed (non-blocking):', e))));
 }
 
-async function recordLedger(input: SaveCytologyReviewInput, mode: CytologyReviewMode, reviewRecordId: string, deps: CytologyWorkspaceDeps) {
+async function recordLedger(input: SaveCytologyReviewInput, mode: CytologyReviewMode, reviewRecordId: string, deps: CytologyWorkspaceDeps, scuWeight: number) {
+  // The time spent counts either way; the slide only once (an edit adds 0, or an escalation's extra).
   await deps.recordLedgerEntry({
     userId: input.user.id, caseId: input.caseData.id, specimenId: input.specimenId, reviewRecordId,
-    reviewMode: mode, scuWeight: resolveCytologyScuWeight(mode),
+    reviewMode: mode, scuWeight,
     activeDurationSeconds: input.activeScreeningSeconds, completedAt: deps.now().toISOString(),
   });
 }

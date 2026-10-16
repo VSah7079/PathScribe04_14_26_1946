@@ -22,6 +22,8 @@ import type { ISupportReferenceService }                    from './supportRefer
 import type { ICaseService }                                from './cases/ICaseService';
 import { buildEnhancementSubject, buildEnhancementHtml, buildEnhancementText }
                                                             from './communications/emailTemplates/enhancementEmailTemplates';
+import { dataStorage } from './browserData/dataStorage';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,14 +83,14 @@ export interface SubmissionResult {
 
 export function loadEnhancementConfig(): EnhancementRequestConfig {
   try {
-    const raw = localStorage.getItem(CONFIG_KEY);
+    const raw = dataStorage.getItem(CONFIG_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
   return {
     mode:              'email',
     // Enhancement requests — product team
-    emailRecipients:   import.meta.env.VITE_ENHANCEMENT_EMAIL
-                         ? [import.meta.env.VITE_ENHANCEMENT_EMAIL as string]
+    emailRecipients:   appEnv().VITE_ENHANCEMENT_EMAIL
+                         ? [appEnv().VITE_ENHANCEMENT_EMAIL as string]
                          : [],
     // QA / testing feedback: filled from the feedback settings when sending
     // (loadEnhancementConfigForSubmit), Batch 447.
@@ -118,7 +120,7 @@ export async function loadEnhancementConfigForSubmit(
 export function saveEnhancementConfig(config: EnhancementRequestConfig): void {
   // Never persist API key to localStorage
   const safe = { ...config, portalApiKey: '' };
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(safe));
+  dataStorage.setItem(CONFIG_KEY, JSON.stringify(safe));
 }
 
 // ─── Metadata capture ─────────────────────────────────────────────────────────
@@ -154,7 +156,7 @@ export async function captureMetadata(
     userName:    user.name,
     userRole:    user.role,
     timestamp:   new Date().toISOString(),
-    appVersion:  (import.meta.env.VITE_APP_VERSION as string) ?? '1.0.0',
+    appVersion:  (appEnv().VITE_APP_VERSION as string) ?? '1.0.0',
     browser,
     os,
     currentPage: page.pattern,

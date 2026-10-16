@@ -157,7 +157,7 @@ function buildEventsForCase(
   const base = {
     caseId: caseData.id, caseNumber, patientName, patientId,
     signOutDate,
-    signingPathologist: caseData.finalizedBy,
+    signingPathologist: caseData.finalizedBy ?? undefined, // stored as null when signed out with no signing user
     clientId: caseData.order?.facilityId,
     clientName: caseData.order?.facilityName,
   };
@@ -240,7 +240,7 @@ function buildEventsForCase(
     events.push({
       ...base, id: a.id, timestamp: a.releasedAt ?? a.initiatedAt, kind: 'amendment',
       label: `${a.type === 'addendum' ? 'Addendum' : 'Amendment'} released`,
-      detail: a.explanationOfChange,
+      detail: a.explanationOfChange ?? '', // the detail filter calls .toLowerCase() on every entry
       staff: a.authoringPathologist.userName,
     });
   }

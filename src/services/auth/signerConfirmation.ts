@@ -42,6 +42,8 @@ export const SIGNING_ACTIONS = [
   'autopsy-pad', 'autopsy-fad', 'cytology-sign-out',
   // Batch 423: approving a registry's switch to its live register (services/registryGoLive/).
   'registry-go-live',
+  // Batch 533: sending an urgent cytology preliminary report (when the lab requires a signature for it).
+  'cytology-preliminary',
 ] as const;
 export type SigningAction = typeof SIGNING_ACTIONS[number];
 
@@ -55,6 +57,7 @@ export const SIGNING_ACTION_AUDIT_TEXT: Record<SigningAction, string> = {
   'autopsy-fad': 'autopsy FAD signature',
   'cytology-sign-out': 'cytology sign-out',
   'registry-go-live': 'registry live register approval',
+  'cytology-preliminary': 'cytology preliminary report',
 };
 
 export type SignerMethod = 'password' | 'sso' | 'unavailable';

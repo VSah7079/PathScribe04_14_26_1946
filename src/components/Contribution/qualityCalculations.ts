@@ -742,10 +742,10 @@ export function computeTatByClient(
     // performing lab) breakdown would need its own, separate grouping,
     // not a silent guess at "the" lab for this row.
     const targetFirstTouch = resolveTatTargetHours(tatEntries, 'FIRST_TOUCH', {
-      facilityId: client.id, specimenId: null, subspecialtyId: null, urgency: null,
+      facilityId: client.id, specimenId: undefined, subspecialtyId: undefined, urgency: undefined,
     });
     const targetTotal = resolveTatTargetHours(tatEntries, 'TOTAL_CASE', {
-      facilityId: client.id, specimenId: null, subspecialtyId: null, urgency: null,
+      facilityId: client.id, specimenId: undefined, subspecialtyId: undefined, urgency: undefined,
     });
 
     let firstTouchSum = 0, firstTouchCount = 0, firstTouchBreaches = 0;

@@ -68,6 +68,7 @@ import { buildTatEntry } from '@/services/tatConfig/tatConfigRules';
 import { saveTatEntry, toggleTatEntry, deleteTatEntry } from '@/services/tatConfig/tatEntryActions';
 import { isSystemDefaultTatEntryId } from '@/services/tatConfig/systemDefaultTatEntries';
 import { duplicateTatEntry } from '@/services/duplication/duplicateEntities';
+import { switchable } from '@/utils/a11y/pressable';
 
 const TAT_TYPES: TATType[] = [
   'FIRST_TOUCH', 'TOTAL_CASE', 'FROZEN_SECTION',
@@ -441,7 +442,7 @@ const TATModal: React.FC<ModalProps> = ({
           {/* Admin notes — free text, no effect on matching */}
           <div className="ps-sub-field">
             <label className="ps-sub-label">{t('tatConfigSection.modal.notesLabel')} <span className="ps-sub-label-hint">{t('tatConfigSection.modal.notesHint')}</span></label>
-            <input
+            <input aria-label={t('tatConfigSection.modal.notesLabel')}
               className="ps-sub-input"
               value={draft.notes ?? ''}
               placeholder={t('tatConfigSection.modal.notesPlaceholder')}
@@ -454,7 +455,7 @@ const TATModal: React.FC<ModalProps> = ({
             <label className="ps-sub-label">{t('tatConfigSection.modal.statusLabel')}</label>
             <div className="ps-sub-toggle-wrap">
               <div
-                onClick={() => set('active', !draft.active)}
+                {...switchable(draft.active, () => set('active', !draft.active), t('a11y.fields.active'))}
                 className={draft.active ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
               >
                 <div className={draft.active ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
@@ -809,7 +810,7 @@ const TATConfigSection: React.FC = () => {
         <td className="ps-sub-td">
           <div className="ps-sub-toggle-wrap">
             <div
-              onClick={() => toggleActive(e.id)}
+              {...switchable(e.active, () => toggleActive(e.id), t('a11y.cellLabel', { column: t('a11y.fields.active'), row: getTatTypeLabel(e.type, qaActivityTypesById, t) }))}
               className={e.active ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
             >
               <div className={e.active ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
@@ -947,7 +948,7 @@ const TATConfigSection: React.FC = () => {
         </div>
         <label className="ps-sub-toggle-wrap ps-tatconfig__toggle-label">
           <div
-            onClick={() => setShowInactive(v => !v)}
+            {...switchable(showInactive, () => setShowInactive(v => !v), t('common.showInactive'))}
             className={showInactive ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
           >
             <div className={showInactive ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />

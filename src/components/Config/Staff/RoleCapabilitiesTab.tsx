@@ -22,6 +22,7 @@ import {
   capabilityGroupState, planCapabilityClick, planCapabilityGroupClick, type CapabilityToggleOutcome,
 } from '@/services/authorization/capabilityToggle';
 import { DivCheckbox, TriCheckbox } from './roleDictionaryControls';
+import { pressable } from '@/utils/a11y/pressable';
 
 interface Props {
   granted: string[];
@@ -67,7 +68,7 @@ export const RoleCapabilitiesTab: React.FC<Props> = ({ granted, onChange, readOn
           const ts = capabilityGroupState(keys, have);
           const active = g.group === group.group;
           return (
-            <div key={g.group} onClick={() => setGroupId(g.group)}
+            <div key={g.group} {...pressable(() => setGroupId(g.group))}
               className={`ps-rd-cat-item ${active ? 'ps-rd-cat-item--active' : 'ps-rd-cat-item--inactive'}`}>
               <span className={`ps-rd-cat-label ${active ? 'ps-rd-cat-label--active' : 'ps-rd-cat-label--inactive'}`}>{t(capabilityGroupKey(g.group))}</span>
               <span className={`ps-rd-cat-count ps-rd-cat-count--${ts}`}>{n}/{keys.length}</span>
@@ -82,7 +83,7 @@ export const RoleCapabilitiesTab: React.FC<Props> = ({ granted, onChange, readOn
       <div className="ps-rd-action-panel">
         <p className="ps-rd-cap-intro">{t('roleDictionary.capabilities.intro')}</p>
         <div className="ps-rd-action-header">
-          <TriCheckbox state={capabilityGroupState(groupKeys, have)} onClick={toggleGroup} size={18} />
+          <TriCheckbox state={capabilityGroupState(groupKeys, have)} onClick={toggleGroup} size={18} label={t(capabilityGroupKey(group.group))} />
           <span className="ps-rd-action-group-title">{t(capabilityGroupKey(group.group))}</span>
           <span className="ps-rd-action-granted-count">
             {t('roleDictionary.permissions.grantedCount', { granted: groupKeys.filter(k => have.has(k)).length, total: groupKeys.length })}
@@ -94,7 +95,7 @@ export const RoleCapabilitiesTab: React.FC<Props> = ({ granted, onChange, readOn
             const needs = requirementsOf(c.key);
             const neededBy = dependentsOf(c.key);
             return (
-              <div key={c.key} onClick={() => toggle(c.key)} data-capability={c.key}
+              <div key={c.key} {...pressable(() => toggle(c.key))} data-capability={c.key}
                 className={`ps-rd-action-item ${on ? 'ps-rd-action-item--granted' : 'ps-rd-action-item--default'}`}>
                 <DivCheckbox checked={on} size={18} />
                 <div className="ps-rd-flex-1-minw0">

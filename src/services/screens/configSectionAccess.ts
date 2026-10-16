@@ -16,7 +16,7 @@
 
 export const CONFIG_SECTION_CAPABILITIES: Readonly<Record<string, readonly string[]>> = {
   // Configuration tabs
-  'tab:ai':          ['config:ai-behavior:manage', 'config:ai-provider:manage', 'config:ai-model:manage'],
+  'tab:ai':          ['config:ai-behavior:manage', 'config:ai-provider:manage', 'config:ai-model:manage', 'config:ai-vendor-policy:manage'],
   'tab:actions':     ['config:actions:manage'],
   'tab:tat':         ['config:tat-targets:manage'],
   'tab:templates':   ['config:report-template:manage', 'config:report-template:publish', 'config:template-routing:manage'],
@@ -30,6 +30,8 @@ export const CONFIG_SECTION_CAPABILITIES: Readonly<Record<string, readonly strin
   subspecialties:           ['config:subspecialties:manage'],
   specimens:                ['config:specimen-dictionary:manage'],
   stains:                   ['config:stain-dictionary:manage'],
+  ink_colors:               ['config:ink-color:manage'],
+  inking_validation_mode:   ['config:inking-validation-mode:manage'],
   vendor_integrations:      ['config:vendor-integrations:manage'],
   cytology_qc_rules:        ['config:cytology-qc-rules:manage'],
   or_suite_terminals:       ['config:or-suite-terminals:manage'],
@@ -37,6 +39,7 @@ export const CONFIG_SECTION_CAPABILITIES: Readonly<Record<string, readonly strin
   migration_field_mappings: ['config:migration-mappings:manage'],
   protocols:                ['config:processing-protocols:manage'],
   printer_profiles:         ['config:printers:manage'],
+  site_agents:              ['config:site-agents:enroll', 'config:site-agent-config:manage'],
   grossing_route_overrides: ['config:grossing-routes:manage'],
   departments:              ['config:departments:manage'],
   asset_locations:          ['config:asset-locations:manage'],
@@ -85,12 +88,15 @@ export const CONFIG_SECTION_CAPABILITIES: Readonly<Record<string, readonly strin
   deficiencies:             ['config:deficiency-types:manage'],
   revision_reasons:         ['config:revision-reasons:manage'],
   peer_review_gate:         ['config:peer-review:manage'],
+  clinical_mismatch_rules:  ['config:clinical-mismatch-rules:manage'],
+  ai_instructions:          ['config:ai-prompt:edit', 'config:ai-prompt:approve'],
   qa_trend_policy:          ['config:qa-trend-policy:manage'],
   feedback:                 ['config:feedback:manage'],
   abnormal_trigger_rules:   ['config:abnormal-triggers:manage'],
   assist_lis_polling:       ['config:assist-polling:manage', 'assist:lis-message:ingest'],
   qa_config_center:         ['config:qa-types:manage'],
   biopsy_resection_correlation: ['config:biopsy-resection-correlation:manage'],
+  tumor_board_rules: ['config:tumor-board-rules:manage'],
   follow_up_tracking: ['config:follow-up-tracking:manage'],
   organ_maps:         ['config:organ-map-scheme:manage', 'config:organ-map-bindings:manage'],
   // Configuration → Cytology

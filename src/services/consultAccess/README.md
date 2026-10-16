@@ -71,3 +71,32 @@ Opinions came back but were never shown to the pathologist. Now:
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 515 (PS-290): consult link permissions
+
+- `issue` needs `case:consult-link:issue`, and `revoke` needs `case:consult-link:revoke`. Both are checked with the case as context.
+- A refusal returns `CONSULT_LINK_NOT_PERMITTED` (in `IConsultTokenService.ts`) and changes nothing.
+- Before, anyone who could open a case could issue or revoke a link.
+- Seeded to every role with case access (keep today's users) until Pete decides who should hold it. Proposed: Pathologist and Admin.
+
+## Batch 522 (PS-290): real token handling, scoped view, oversight
+
+- **`consultTokenCrypto.ts` (new).** A token is 32 random bytes from `crypto.getRandomValues`, base64url, `ct_` prefix (256 bits; it was `Math.random()` text). Only its SHA-256 fingerprint is stored (`ConsultToken.tokenHash`). `issue()` returns the token once (`IssuedConsultLink`). Records stored before this batch keep only the fingerprint the next time they're read.
+- **`consultLinkRules.ts` (new, pure):**
+  - the link address carries the token after `#` (`consultLinkUrl`), out of server logs;
+  - `buildConsultCaseView`: the accession, the patient, and only the specimens and slides in scope;
+  - one signed opinion per link (`consultOpinionProblem`);
+  - expiry recorded once (`unrecordedExpiries`);
+  - the Audit Log list filter.
+- **Service changes:**
+  - `openConsult(token)` replaces resolve-then-read-the-case-then-recordAccess in the page: one call checks the token, builds the view and records one view;
+  - `submitOpinion(token, draft)` checks the token again and takes the case and consultant from it;
+  - `revoke(id)` takes the revoker from the session and refuses a link that isn't active;
+  - `listAll()` needs the new `audit:consult-links:view`;
+  - `consult.link.expired` is recorded once per link;
+  - refusals are codes (`CONSULT_LINK_INVALID`, `CONSULTANT_REQUIRED`, …) that the screens translate.
+- **Still a mock.** Links live in the issuing browser, so one opens only there. The API server contract is `docs/architecture/CONSULT_ACCESS_API.md` (CA-1 to CA-24), for the India team.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: recording link expiries (`recordExpiries`) stops in the browser once the server runs `consult.expireLinks` (`serverJobs/browserStandIns.ts`). A link's status is still worked out on read.

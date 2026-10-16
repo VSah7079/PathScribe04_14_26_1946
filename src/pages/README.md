@@ -8,7 +8,8 @@ Top-level route pages.
 |---|---|
 | [AccessionPage/](./AccessionPage/README.md) | Case accessioning form + order lookup/intraop-merge/deficiency modals |
 | [AddOnOrderPage/](./AddOnOrderPage/README.md) | **NEW (Sep 2026)** — PS-287, fourth of the PS-284→285→286→287→288 workstation-build sequence: case-scoped, pathologist-initiated add-on orders (recuts, special stains, IHC, molecular/send-out) with routing, auto-control pairing, real-time order tracking, and a block-exhaustion exception/notification loop (`/add-on-orders`) |
-| [BatchManagement/](./BatchManagement/README.md) | Cassette/slide chain-of-custody + the disposal/pending-load/retention-hold computed queues |
+| [BatchManagement/](./BatchManagement/README.md) | Cassette/slide chain-of-custody + the disposal/pending-load computed queues, disposal report, slide scanning, engraver monitor and equipment log |
+| [CytologyWorklistPage/](./CytologyWorklistPage/README.md) | The Cytology Workspace: worklist (`/cytology-worklist`) and screening page (`/cytology-worklist/:caseId`), behind `screen:cytology-workspace:open` |
 | [CriticalAlertReferencePage/](./CriticalAlertReferencePage/README.md) | **NEW (Sep 2026)** — PS-136 follow-up redesign: the public, unauthenticated, zero-PHI landing page (`/critical-alert/:token`) behind the SMS/secure-email "tap to view" reference link — never renders clinical content, see the folder's own README |
 | [EmbeddingStationPage/](./EmbeddingStationPage/README.md) | **NEW (Sep 2026)** — PS-285, second of the PS-284→285→286→287→288 workstation-build sequence: bench-scoped, scan-driven cassette piece-count verification, discrepancy flagging, mold/orientation selection, and split-block tracking (`/workstations/embedding`), visually matching `MicrotomyWorkstationPage/`/`GrossingScreenPage/` |
 | [ExternalConsultViewPage/](./ExternalConsultViewPage/README.md) | **NEW (Sep 2026)** — PS-290, the outside half of External Consult / Second-Opinion Access: a public, unauthenticated route (`/consult/:token`) an outside consultant opens directly, no PathScribe login of their own. NOT real token security — see the folder's own README |
@@ -20,13 +21,18 @@ Top-level route pages.
 | [modals/](./modals/README.md) | Top-level page modals that don't belong to any single page's own folder |
 | [MolecularBatchManagement/](./MolecularBatchManagement/README.md) | Real, read-only molecular QC-run/cytology-specimen association view (external, HL7-sourced) — now the Workcenter's own "QC & Specimen Association" tab |
 | [MolecularBatchPage/](./MolecularBatchPage/README.md) | Plate builder + extraction racks + control rules for the Full Molecular Testing Execution Module |
-| [MolecularWorkcenterPage/](./MolecularWorkcenterPage/README.md) | Real, single `/molecular` entry point (tabs: Worklist & Plate Builder / Active Runs & Batches / History & Archive / QC & Specimen Association), replacing two former, separate tiles |
-| [ReportPreview/](./ReportPreview/README.md) | Orchestration mode's template-driven report preview renderer |
+| [MolecularWorkcenterPage/](./MolecularWorkcenterPage/README.md) | Real, single `/molecular` entry point (tabs: Order Queue / Worklist & Plate Builder / Active Runs & Batches / History & Archive / QC & Specimen Association), replacing two former, separate tiles |
+| [PathologyWorkspacePage/](./PathologyWorkspacePage/README.md) | The Pathology Workspace hub (`/pathology-workspace`): tiles for Cytology, Microtomy, Embedding, Slide Distribution, Molecular, Batch Management and Margin Exception Review |
+| [QualityComplianceHubPage/](./QualityComplianceHubPage/README.md) | The Quality & Compliance hub (`/quality-compliance`): Audit, Quality Assurance and Registry Exceptions |
+| [RegistryExceptionsPage/](./RegistryExceptionsPage/README.md) | Registry submissions needing a person (`/registry-exceptions`) |
+| [ReportPreview/](./ReportPreview/README.md) | Orchestration mode's template-driven report preview renderer, and the detachable preview window (`/report-preview/:caseId`) |
 | [SlideDistributionStationPage/](./SlideDistributionStationPage/README.md) | **NEW (Sep 2026)** — PS-286, third of the PS-284→285→286→287→288 workstation-build sequence: continuous-scan checkout to pathologists or digital-scanner ingestion, with split-destination warnings and exception handling (`/workstations/slide-distribution`) |
 | [Synoptic/](./Synoptic/README.md) | Shared types/hooks extracted from `SynopticReportPage.tsx`, plus Codes/Comments/Delegate/UI subfolders |
 | [SynopticReportPage/](./SynopticReportPage/README.md) | **Central folder** — the core clinical workflow (`/case/:caseId/synoptic`): hooks/components/modals. Sign-out and the case team are jurisdiction-aware (Sep 2026): the performing lab's country decides who may sign out, whose work needs a countersign, and which roles are offered |
 | [system/](./system/README.md) | Admin config pages rendered by `Config/System/index.tsx`'s route switch |
 | [WorklistPage/](./WorklistPage/README.md) | Sortable/filterable case table + its own modals |
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): Batch Management has no retention-hold queue; the Molecular Workcenter has an Order Queue tab; added the four folders the index left out (Cytology, Pathology Workspace, Quality & Compliance, Registry Exceptions) and the preview window route.*
 
 This file also covers the loose files that sit directly in `pages/`
 with no folder of their own — filled in incrementally as the
@@ -435,6 +441,7 @@ with no folder of their own — filled in incrementally as the
   Now/Retry Dispatch are deliberately disabled for it with a clear
   reason shown), and a real `strictNullChecks: false` TypeScript
   gotcha worth remembering for future work in this codebase.
+  *Since Batch 511 (PS-478) the app type-checks in full strict mode (`"strict": true`, `strictNullChecks` included), so ordinary `if (res.ok) … else …` narrowing works; the workaround described here is no longer needed.*
 
   **Real, per direct follow-up ("We are logging interface errors with
   human readable error messaging?" → "continue with the error log
@@ -891,6 +898,8 @@ corresponding update here. Found directly, per a direct question ("have
 we been keeping up with READMEs?"), not caught proactively. Both
 subfolders now have their own real `README.md`, and are named here.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): "every real file is named in its subfolder's README" no longer holds. The audit added missing files to the AccessionPage, BatchManagement, ReportPreview, Synoptic/Comments, SynopticReportPage (and its components, hooks, hooks tests) READMEs. Several later loose files have no entry of their own in this file and are named only in passing in batch notes: `BenchContributionDashboardPage.tsx` (Batch 488), `CriticalAlertAuditSection.tsx`, `PrintQueueDashboardSection.tsx` (both System Logs sections, imported by `AuditLogPage.tsx`), `MigrationJobsPage.tsx` (`/migration-jobs`) and `MockWsiViewerPage.tsx` (`/wsi-viewer`).*
+
 ## React Router 7 (Batch 341, PS-344)
 
 Every file here that used `react-router-dom` now imports the same hooks and components from `react-router` 7 (`react-router-dom` was removed from the project). Nothing else changed: the app had already opted into version 7's behaviour. See `src/i18n/README.md` → Batch 341.
@@ -1022,7 +1031,7 @@ The last inline styles in `pages/` moved into `pathscribe.css` classes. That cov
 
   It takes the billing, reason-dictionary and case services from `@/services` and is off the deployment baseline.
 - **`SynopticReportPage/`**: the change-history export is gated by `report:change-history:export` and passes `authorizationService` to `exportChangeLog`.
-- **`BatchManagement/DisposalReportPage.tsx`**: its export no longer borrows the QA export helper. It isn't gated yet; it's on the PS-357 list.
+- **`BatchManagement/DisposalReportPage.tsx`**: its export no longer borrows the QA export helper. It isn't gated yet; it's on the PS-357 list. *(Since closed: `retention:disposal-report:export`, Batch 407 — checked in the Batch 496 README audit.)*
 
 ## Batch 370 (PS-356)
 
@@ -1039,7 +1048,7 @@ The last inline styles in `pages/` moved into `pathscribe.css` classes. That cov
 
 ## Batch 375
 
-- **`Home.tsx`:** eight tiles now. The Cytology QC and Surgical QA queues moved into the Worklist, Add-On Orders became a case action, and Batch Management moved into the Pathology Workspace.
+- **`Home.tsx`:** eight tiles now. The Cytology QC and Surgical QA queues moved into the Worklist, Add-On Orders became a case action, and Batch Management moved into the Pathology Workspace. *(Since then: Bench Contributions (Batch 488) and Tumor Board (Batch 489) made it ten — checked in the Batch 496 README audit.)*
 - **`WorklistPage/`:** the two peer-review queues are views beside the case list, chosen from header tiles next to LIS Cases and Outreach and shown per screen capability. The file no longer imports mock services directly (off the mock-import baseline); its browser-storage use remains.
 - **`PathologyWorkspacePage.tsx`:** Batch Management tile.
 - **`AddOnOrderPage/`:** `?case=<id>` opens that case straight away.
@@ -1533,3 +1542,350 @@ No behavior change. **SynopticReportPage** and **AccessionPage** both reference 
 ## Batch 481 — Structured Inking Module 2: grossing-screen UI for margins/ink (PS-359 follow-up)
 
 **GrossingScreenPage:** a new "Margins & Ink Applications" section per specimen — lists every recorded margin (on the specimen or a block) with its full ink history, plus inline "+ Add margin" / "+ Add ink application" forms, capability-gated (`grossing:margin-ink:record`), wired to Batch 480's `recordMarginInkApplication.ts`. See [GrossingScreenPage/README.md](./GrossingScreenPage/README.md).
+
+## Batch 482 — Structured Inking, Module 3: severity display + ink-colour palette (PS-359 follow-up)
+
+**GrossingScreenPage:** the severity engine's advisory display Batch 480/481 deferred, now wired in as display-only — a per-margin issue badge list and a per-specimen WARN_ONLY/STRICT_ENFORCE notice — plus the free-text ink-colour inputs on both the "add margin" and "add ink application" forms replaced with a `<select>` drawn from the new ink-colour admin palette (`services/inkColors/`). Unblocked by re-scoping `inkingSiteSettings.ts` from a non-existent `siteId` to `Case.order?.facilityId`, the one real, already-used case→facility link, per Pete's own explicit choice. Does not change what blocks Complete grossing. See [GrossingScreenPage/README.md](./GrossingScreenPage/README.md).
+
+## Batch 483 — Cytology gaps + signature viewer (PS-359 tracker follow-up)
+
+**SynopticReportPage:** new "recorded signatures" chip opens a new, read-only Signature History modal over `services/signatures/` — recorded since Batch 345, never surfaced before. See [SynopticReportPage/README.md](./SynopticReportPage/README.md). Also fixes a cytology multi-specimen worklist/queue bug and a per-specimen countersign data-loss bug — see `services/cytology/README.md` and `services/cases/README.md`.
+
+## Batch 484 — Inking sign-out/grossing gate engine (PS-519 follow-up)
+
+**GrossingScreenPage:** Gate A (Complete grossing) is now actually enforced — Severity 3 hard-blocks, Severity 2 is a dismissible advisory, and a palette that failed to load or wasn't supplied blocks fail-closed, never silently treated as clean. **SynopticReportPage:** a new Gate B (Sign-out) check, with an Administrative Override path for Admin/Lab Director on a Severity 3 issue (mandatory reason code, audited). Drops "Sign-out gate bug" from this batch's scope — no locatable bug was ever found, and Pete's clarifying answer turned out to be further spec detail for the gate engine, not a bug description; needs Pete's own description to proceed. See [GrossingScreenPage/README.md](./GrossingScreenPage/README.md) and [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 488 — new BenchContributionDashboardPage (PS-359 follow-up)
+
+**New page, `/bench-contributions`:** the four bench roles' own dedicated dashboard — real accessioning rate, batch throughput & queue aging (per processing node), stage-to-stage TAT (accessioning → Embedding → Staining; accessioning → Cytology Processing → Cytology Staining), and molecular QC pass/fail & rerun rate, each traced to a real, already-stored field (`Case.accession.accessionedAt`/`accessionedBy`, `Batch`/`BatchItem`, `MolecularBatch.controlsPassed`/`supersededReason`). All math lives in new `benchContributionCalculations.ts` (5 pure functions: `computeAccessioningRate`, `computeBatchThroughputAndAging`, `computeStageToStageTat`, `computeMolecularQcSummary`, plus their shared light `*ForBenchCalc` fixture types — same established convention as `contributionDashboardCalculations.ts`'s own `CaseForDashboardCalc`), 14 tests. The page itself reuses the existing `.ps-contrib-*` tile/KPI CSS classes from `ContributionDashboardPage.tsx` — no new CSS, no inline styles. New route gated by a new `screen:bench-contributions:open` capability (see `services/screens/README.md`, `services/authorization/README.md`), new Home tile (color `#7FB800`, image `/bench_contributions.webp` — a placeholder graphic generated for this batch, not a stock photo; swap it if a real one is supplied later, the way Tumor Board's own tile image was).
+
+## Batch 489 — new TumorBoardWorkspacePage (Module 1 of Pete's Tumor Board / MDT Workspace spec; PS-359 follow-up)
+
+**New page, `/tumor-board`:** the dedicated board-nomination workspace — filterable by Board Selection, Meeting Window (Today/Next 7 days/Next 30 days/All), Case Status (default `Pending Presentation`, per Pete's own spec), and Presenter, sortable by meeting date or last updated. Filter state is sticky per browser (`utils/uiPreferences.ts`, bundled as one object under one key — no precedent yet for a multi-field saved view, so this establishes the pattern). All filtering/sorting/date-window math lives in `services/tumorBoard/tumorBoardWorkspaceFilters.ts` (pure, tested); `hooks/useTumorBoardWorkspace.ts` orchestrates `tumorBoardService`/`caseService`/`userService`. The page itself only renders — no business logic (CLAUDE.md rule 2). The actual "Flag for MDT" nomination happens on the report page at sign-out, not here — see `components/TumorBoard/README.md` and `services/tumorBoard/README.md`. New Home tile, color `#9816D9` (violet) — the 10th colorblind-safe tile color, verified the same way as `#7FB800` (Batch 488); see `Home.tsx`'s own comment for the margins.
+## Batch 491 — new MarginExceptionReviewPage; Tumor Board dismiss/manage split (PS-359 follow-up)
+
+**New page, `/margin-exception-review`:** the deferred Batch 490 review queue for a `Pending` `MarginExtractionException` — every margin-distance free-text answer the extraction layer couldn't confidently parse. Lists each one with its case/patient, field, raw text, and parse-failure reason; lets a pathologist/fellow/resident/PA tag the real distance (Resolve) or close it with a reason (Dismiss), both the existing `case:margin-exception:resolve` capability (`CapabilityButton`, service enforces again). `hooks/useMarginExceptionReview.ts` orchestrates `marginExtractionService`/`caseService`; the page itself only renders. Reached from a new tile in `PathologyWorkspacePage.tsx` (see that folder's own README) rather than a standalone Home tile, since it's a narrower, lower-traffic queue than Tumor Board's own.
+
+**`TumorBoardWorkspacePage.tsx`:** the Coordinator/Clinical capability split Pete confirmed — queue management (status other than Dismissed, presenter, board, meeting date) now needs `case:tumor-board:manage`; closing a listing as Dismissed is a separate action with a mandatory reason, needing the narrower `case:tumor-board:dismiss`, and the plain status dropdown no longer offers "Dismissed" at all. A row also shows a source badge (Manual/Rule) with the trigger reason as its tooltip, since cases can now be auto-flagged by the new rule evaluator (`services/tumorBoardRules/`) as well as the existing manual "Flag for MDT" action. See `services/tumorBoard/README.md`'s own Batch 491 entry.
+
+## Batch 492 — Tumor Board / MDT: real flag button, missing breadcrumbs, naming consistency (PS-359 follow-up; found-while-testing bug fixes)
+
+Pete tried the end-to-end flow and reported two real bugs plus a naming inconsistency. **`SynopticReportPage`:** the only way to open `FlagForMdtModal` was the `'delegation.tumorBoard'` voice/keyboard action — no clickable button existed anywhere, a gap Batch 491's own deactivation of `DelegateModal.tsx`'s `'TUMOR_BOARD'` type made worse by removing the last awkward menu path. `BottomActionBar.tsx` gains a real `CapabilityButton` (`case:tumor-board:flag`) next to Flags/Codes. **`TumorBoardWorkspacePage.tsx`** and **`MarginExceptionReviewPage.tsx`:** neither page ever called `useBreadcrumb().pushCrumb(...)`, unlike every sibling standalone page, so `AppShell.tsx`'s breadcrumb bar (which only renders once `crumbs.length > 1`) stayed silently hidden on both — both now register their existing, already-translated `pageTitle` as a breadcrumb on mount. **Naming:** display text now reads "Tumor Board / MDT" consistently (home tile, page title) in en/de/nl/ko; fr's "RCP" stays alone as the real regional term. See `SynopticReportPage/README.md` and `SynopticReportPage/components/README.md`'s own Batch 492 entries, and `src/i18n/README.md`'s master changelog entry.
+
+Disclosed, not fixed: no notification is sent to a presenter when assigned (no messaging system to send one through yet — new-feature-level, not a patch); the Presenter dropdown's Pathologist/Fellow-only filter is confirmed by-design, not a bug. **Correction (Batch 493, CLAUDE.md rule 6):** the notification claim was wrong — this app already had a real messaging/notification layer (`services/messages/`, `services/communications/`); not checked carefully enough before disclosing. Now wired up: see Batch 493's own entry. The presenter filter was genuinely as-designed at the time; Pete has since asked that it also include Residents, also done in Batch 493.
+
+## Batch 493 — Residents as presenters, meeting time + calendar invites, scheduling permission split (PS-359 follow-up)
+
+Pete, Oct 8: *"Before Action Registry. Residents can be assigned to tumor boards, so should be available for selection. Also, from a workflow perspective, If I assign a future data for a tumor board, I'd want a message, and can we send our an appointment to their calendar?"* Followed by: *"Restrict the formal 'Tumor Board Presenter' assignment field in your system to Attending Pathologists, Fellows, and Residents"* and *"There should be a specific permission to schedule these MDT so that an admin assistant can schedule them in advance."*
+
+**`TumorBoardWorkspacePage.tsx`:** Presenter dropdown now offers Residents alongside Pathologists and Fellows (PA stays excluded). New optional meeting-time input next to the meeting-date one (disabled until a date is set) — left blank, a listing stays a date-only meeting. When a presenter is assigned to a still-future meeting date (or the date/time/presenter is changed on one), the presenter now gets a real in-app message and, when they have an email on file, an emailed calendar invite (`.ics`) they can accept into their own calendar — no patient-identifying information in either. See `services/tumorBoard/README.md`'s own Batch 493 entry for the full design (the notification/invite logic, and why no PHI travels in them).
+
+**Permissions:** scheduling (board, date, time, presenter) is now its own capability, `case:tumor-board:schedule`, separate from the existing `case:tumor-board:manage` (now status-only — Cancel/Presented/Deferred). This is the real fix for "an admin assistant can schedule them in advance": an admin can grant just this narrower capability to a custom, non-clinical role via Config → Staff → Role Dictionary, without also handing out the clinical queue-management authority. See `services/authorization/README.md`'s own Batch 493 entry.
+
+No UI restructuring needed beyond the new time input — every existing handler on this page already changes exactly one field-group per save, so the new two-capability split is transparent to the page itself.
+
+## Batch 494 — TumorBoardWorkspacePage rebuilt as a self-service dashboard (PS-359 follow-up — MDT Self-Service Assignment & Batching redesign)
+
+Pete, Oct 8, right after Batch 493 shipped: *"I'm just not feeling this workflow. This is an adjustment,"* followed by a full written spec replacing up-front presenter assignment with self-service claiming plus a batch-lock cut-off. Full design in `services/tumorBoard/README.md`'s own Batch 494 entry; this page's own changes:
+
+**`TumorBoardWorkspacePage.tsx`** rewritten around `services/tumorBoard/tumorBoardSessionGrouping.ts`'s `groupTumorBoardRowsBySession()` — a session header per board+meetingDate (soonest first; a trailing "Unscheduled" group for date-less rows) replaces the old flat row list, each with a locked/open badge and an unassigned-count badge. A new **Claim** button appears on any unassigned row for a presenter-eligible signed-in user (self-service, alongside — not instead of — the existing admin-assist presenter dropdown); a "Claimed by {{name}}" badge appears once a presenter is set. A new **Print** button (plain `window.print()`) for Pete's "printed hard-copy checklist" — the filter bar and every per-row action/control are hidden from print output via a new `.ps-tb-no-print` class.
+
+**Disclosed-and-fixed UI bug found while rebuilding this page:** every scheduling control below the status dropdown (presenter, meeting date, meeting time) was gated on `case:tumor-board:manage` alone, even though Batch 493 moved exactly those fields to the narrower `case:tumor-board:schedule`. A custom "Admin Assistant" role granted only that capability — the whole point of Batch 493's split — would have hit a server-enforced success but a UI that still showed every one of those controls disabled. Now checks `case:tumor-board:schedule`; only the status dropdown still checks `case:tumor-board:manage`.
+
+**`FlagForMdtModal.tsx`** (`components/TumorBoard/`) gains optional meeting-date/meeting-time fields so a case enters a real batch immediately when flagged — left blank, it still lands in the Unscheduled group. The presenter field itself is never collected here; that stays Null until someone claims the case from the workspace.
+
+## Batch 495 — front-end gap fixes and PS-283 print work
+
+- **`ReportPreview/`:** `/report-preview/:caseId` is now routed (it was a `window.open` target with no route, so the pop-out redirected to `/login`); Print is permission-checked; the renderer draws a revision banner and a footer barcode/document reference. See [ReportPreview/README.md](./ReportPreview/README.md).
+- **Breadcrumbs on ten pages** that never registered one: `BenchContributionDashboardPage`, `MolecularWorkcenterPage`, `MolecularOrderQueuePage`, `MolecularBatchPage/` (plate builder, rack worklist, rack loading, control rules), `BatchManagement/EquipmentServiceLogPage`, `MigrationJobsPage`, `MockInterfaceEnginePage`. Each reuses its existing page-title key (two new keys: `molecularPlateBuilderPage.pageTitle`, `molecularRackLoadingPage.pageTitle`).
+  - **Audit correction:** the gap audit also listed `WorklistPage`, `ConfigurationPage`, `AuditLogPage` and `ContributionDashboardPage`. Those were wrong: `AppShell.tsx`'s `PAGE_LABELS` map already pushes their crumbs, so they were left alone.
+- **`SynopticReportPage/`:** print permission (`report:case-report:print`) on every print path, revision status in the printed header and the orchestration PDF payload. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+*Correction (Batch 496 README audit): nothing in the app opens the preview window today — `usePreviewSender()` / `openPreviewWindow()` (`hooks/usePreviewChannel.ts`) have no callers, so the route works only when its address is opened directly. Restoring a pop-out button in the editor, or retiring the page, is an open decision.*
+
+## Batch 497 — report-preview window retired
+
+`/report-preview/:caseId` and `ReportPreview/ReportPreviewPage.tsx` are removed (Pete: *"Retire it."*). Nothing opened the window, and Pete had already confirmed it as superseded once; the files had come back because a zip can't delete files. `ReportPreview/ReportPreviewRenderer.tsx` stays (the report page uses it). See [ReportPreview/README.md](./ReportPreview/README.md).
+
+## Batch 498 — report PDF: revision banner, watermark, footer barcode, disclaimer
+
+- **`SynopticReportPage/`:** both report PDF requests (the orchestration print and the sign-out snapshot) now send `revision` and `documentVersion`; the orchestration print also sends the report's language and wording, and writes the date of birth in the report's locale (it was fixed to en-GB). The renderer (`functions/main.py`) draws the revision banner, the pending-release watermark on every page, the pre-analytic disclaimer and a footer barcode with the document reference. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 499 — front-end readiness Stage 1, first fixes
+
+- **`QualityAssurancePage.tsx`:** the "Failed Dispatches" tile opened `/configuration?…section=outbound_charge_dlq`, a section that no longer exists (the charge dead-letter queue moved to Audit Log → Financial). It now opens Audit Log → Financial → Outbound DLQ (`services/auditlog/auditLogLinks.ts`).
+- **`AuditLogPage.tsx`:** reads `?tab=financial&view=outbound_dlq|billing_logs` to open a Financial view directly.
+- **`SynopticReportPage/`:** the organ-retention tier is saved through a service with its own capability. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+- **`system/FacilityDictionaryPage`** (unchanged) opens a `FacilityEditorModal` that no longer breaks the rules of hooks.
+
+## Batch 500 — HTML sanitising (PS-473)
+
+Every page that renders HTML from data now sanitises it first (`services/security/sanitizeHtml.ts`): `ReportPreview/ReportPreviewRenderer.tsx` (sections, paragraphs, footer barcode), `Synoptic/Comments/` (case and report comments), `BatchManagement/NewContainerModal.tsx` and `LabelDesignerPage/` (barcode SVGs). Print windows in `SynopticReportPage/` escape the accession in their title and page header.
+
+## Batch 501
+
+- **`CytologyQcQueuePage.tsx`:** each assignment shows what selected it ("Selected by: ROSE discrepancy, Rule: …, Random peer review") and its reviewer pool.
+
+## Batch 502
+
+- **`SynopticReportPage/`:** the organ map and synoptic panels each have an error boundary (PS-472). Every page is also inside the route boundary in `AppShell`.
+
+## Batch 504
+
+- **`SynopticReportPage/`:** sign-out could skip the fixative-time check, or build its PDF snapshot from older text, through stale callback inputs. Fixed, along with the printed age.
+- **`WorklistPage/`:** voice "read flags" fixed.
+- **`QualityAssurancePage.tsx`:** the deficiency trend is by facility month.
+- **`ContributionDashboardPage.tsx`:** follows the facility time zone and language.
+- **`AccessionPage/`, `BatchManagement/`, `MolecularBatchPage/`, `EmbeddingStationPage/`, `MicrotomyWorkstationPage/`:** dependency lists corrected or explained.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 511 (PS-478): full strict type-checking
+
+- **Bug fixed, `WorklistPage.tsx`:** a hook dependency read `user.id` where everything else reads `user?.id`, which could crash the worklist if the user was cleared (during sign-out).
+- Typing only: `AuditLogPage` (case-link clicks, the drift filter), `QualityAssurancePage` (chart tooltip).
+
+## Batch 512
+
+See `SynopticReportPage/README.md` (specimen LIS sync state fix).
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way.
+- **Accession:** "Print Labels" (an existing key that nothing used), the MRN label, title options, and the order picker's "Routine".
+- **Grossing screen:** errors from the grossing hook are reason codes, translated on screen. A refused margin-ink save now shows a translated message instead of the service's English text.
+- **Molecular plate builder:** movement history uses translated level names and a template line, and its timestamps follow the user's locale.
+- **Contribution dashboards:** scroll-region labels (aria-labels) are translated.
+- **Login:** the tagline's alt text is translated.
+- **`OutboundDispatchTrailSection`:** the JSON viewer renders `null` through `JSON.stringify`.
+- **`AuditLogPage`:** the status labels feeding the CSV export stay English.
+- **`Synoptic/Codes/AddCodeModal`:** the SNOMED filter hints are translated.
+
+## Batch 514 (PS-269)
+
+Patient and physician names show in the screen's language (`utils/personName.ts`, `formatDisplayNameForLanguage`). In Korean: full name + 님, or 선생님 for a doctor. Pages: `SearchPage.tsx` (physician picker), `CytologyQcQueuePage.tsx`, `SurgicalQaWorklistPage.tsx`, `TumorBoardWorkspacePage.tsx`, `MarginExceptionReviewPage.tsx`, `AccessionPage/`, `CytologyWorklistPage/`, `AddOnOrderPage/`. The tumor board and margin exception pages now get name fields from their hooks and format them, so a language switch updates them.
+
+## Batch 515
+
+- `PrintQueueDashboardSection.tsx`: action buttons are `CapabilityButton`s for the new `print:job:*` permissions (PS-283).
+- `AuditLogPage.tsx`: the FPPE log reads the QA supervision service (PS-124).
+- `QualityAssurancePage.tsx`: the trend-review tile shows its count when the page opens (PS-147).
+
+## Batch 516
+
+`SynopticReportPage/`: PRELIMINARY watermark on prints before sign-out, restricted-case print check, and PHI-tagged material tooltips.
+
+## Batch 517
+
+- **SynopticReportPage:** critical findings can be sent by secure email (PS-143).
+- **LoginPage:** a comment pointed to `login-brand.css`, a file that was never loaded. It now points to `pathscribe.css`, which the file was deleted in favour of (PS-294).
+
+## Batch 518
+
+- **`OutboundInterfaceDlqSection.tsx`** (Audit Log → Interfaces → Outbound) now covers all seven queues (PS-122).
+  - Its per-queue logic and send flow moved to `services/interfaceDispatch`.
+  - The buttons are `CapabilityButton`s for `interface:outbound:resend`.
+  - Identifiers are tagged `data-phi`, and dates use the user's locale.
+  - It has a test now (`OutboundInterfaceDlqSection.test.tsx`).
+- **`QualityAssurancePage.tsx`** has a new pillar, Activities (PS-120). The existing tabs are unchanged.
+- **BatchManagement:** a new Label reprint tile and page (PS-123).
+
+## Batch 519
+
+**CytologyWorklistPage:** the synoptic templates come from the Synoptic Library (PS-273). **SynopticReportPage:** free-text node counts check "cannot be determined", "at least N" and Breast's sum (PS-494).
+
+## Batch 520
+
+**`OutboundInterfaceDlqSection.tsx`:** an eighth queue, report delivery (e-fax and file drop, PS-280), with resend.
+
+## Batch 521
+
+**`DeliveryExceptionsPanel.tsx` (new):** the delivery exception queue, at the top of the Outbound view (PS-281).
+
+## Batch 522
+
+- **`ConsultLinksAuditSection.tsx` (new):** Audit Log → Consult links. Every outside consult link on every case, with Revoke (PS-290).
+- **`ExternalConsultViewPage/`:** the token is read after `#`, and the page shows only the link's scope.
+
+## Batch 523
+
+**Cytology Workspace** and **case report page (autopsy FAD):** the clinical-pathologic mismatch check now runs before sign-out there too (PS-145).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 526
+
+Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.
+
+## Batch 527 (PS-486): a lean first load
+
+`LoginPage.tsx` imports from `services/signIn.ts`. `ConfigurationPage.tsx`: the Demo Reset tab, and the tab's code, are built in only in the demo build (`__DEMO_TOOLS__`).
+
+## Batch 528 (PS-359): required clinical history
+
+`AccessionPage`: for cytology and FNA cases, the organisation's clinical-history requirements join the Case & Patient check.
+
+## Batch 530 (PS-554)
+
+`SurgicalQaWorklistPage.tsx`: a "Deferred clinical mismatches" section, the secondary review queue; a pathologist records Resolved or Unresolved in place. The report page and the Cytology Workspace: see their READMEs.
+
+## Batch 531
+
+Cytology Workspace: the inline mismatch alert, like the report page.
+
+## Batch 532
+
+Cytology Workspace: Print case report; early finalization releases the consolidated case report (`CytologyWorklistPage/README.md`).
+
+## Batch 533
+
+Cytology Workspace: Send urgent preliminary, per specimen (`CytologyWorklistPage/README.md`). Signature history names the new signing action (`SynopticReportPage/modals/SignatureHistoryModal.tsx`).
+
+## Batch 534
+
+The report page and the Cytology Workspace show reports held for the release delay, with Recall (`components/ReportRelease/HeldReportsBanner.tsx`).
+
+## Batch 535
+
+Report page: Recall for held corrections, addenda and autopsy PAD/FAD. A correction released at re-sign-out is now sent (`SynopticReportPage/README.md`).
+
+## Batch 536
+
+AI calls from pages (coding, critical findings at sign-out) are checked against the jurisdiction's AI vendor policy.
+
+## Batch 538
+
+Report page: print and preview from the same payload as the released PDF; Version History shows the documents sent, with View as sent.
+
+## Batch 539
+
+`CytologyWorklistPage/`: cytology print and preview come from the report renderer. `SynopticReportPage/`: the renderer's address is shared.
+
+## Batch 540
+
+Report page and Cytology Workspace: a correction or addendum can't be started while the report is still in its release delay (recall it instead).
+
+## Batch 543
+
+`AuditLogPage.tsx`, `BillingLogsSection.tsx`: CSV cells are written with `csvQuoted` (`utils/csv.ts`), which neutralizes formula cells (finding F8). The CSV rows are still put together in these pages (pre-existing); moving that into services is left for the export service of phase 2d (`ASYNC_EXPORT_API.md` §7).
+
+## Batch 544
+
+`QualityAssurancePage.tsx`: Deficiencies (active and closed) and Billing deficiencies have the scope picker.
+- Their lists, tile counts and exports follow it (`hooks/useQaCaseScope.ts`).
+- Management reviews stay lab-wide: one review covers closed items from several facilities.
+
+## Batch 547
+
+`LoginPage.tsx` reads `VITE_APP_ENV` through `appEnv()` (runtime configuration).
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `PrintQueueDashboardSection.tsx`: a job that needs the site agent shows that reason in the user's language.
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- **`MyExportsPage.tsx` (new, `/my-exports`):** the signed-in user's exports from the API server.
+  - Columns: status, rows, requested and deleted after.
+  - Download for a ready export, Cancel for one being prepared.
+  - In the demo it explains that exports download straight away.
+- **Through the export service** (the API server builds the file from the screen's filters; the demo builds it in the browser as before):
+  - `AuditLogPage.tsx` (4 logs, typed filters with the facility time zone);
+  - `BillingLogsSection.tsx`;
+  - `ContributionDashboardPage.tsx` (2);
+  - `SearchPage.tsx` (criteria, sort, time zone);
+  - `QualityAssurancePage.tsx` (the deficiencies queue sent as open, escalated or closed).
+
+## Batch 551 (PS-539 phase 2d: the Server jobs view)
+
+- `ServerJobsSection.tsx` (new): System Logs → **Server jobs** (`AuditLogPage.tsx`, a tab shown only with `jobs:server-job:view`; a link to it without the capability opens the Audit tab). Job kinds' health, recurring jobs (overdue judged by the server's time), and the jobs that failed for good, with Requeue (one click) or, for interface and print jobs, a button that opens Interfaces → Outbound or the Print Queue. Case ids tagged `data-phi`. In the demo it says the browser does this work itself.
+
+## Batch 552 (PS-539 phase 2d: site agent screens)
+
+- `PrintQueueDashboardSection.tsx`: a job the site agent could only send (Raw 9100, LPR) shows "Sent to printer" instead of "Printed" (`printJobStatusKey`), and the site agents' status line.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- `PrintQueueDashboardSection.tsx` (Batch 553): Redirect offers the jobs' own lab's agent printers, or a printer address when they come from several labs or an older job's lab isn't recorded. A refused redirect keeps the form open and says how many weren't redirected. Dates use the user's language.
+
+## Batch 554 (PS-539 phase 2d: interface monitoring)
+
+- `InterfaceEnginesSection.tsx` (Batch 554, new): Audit Log → Interfaces → Engines, each engine and its channels, problems first, Open Outbound for dead letters; read only. `AuditLogPage.tsx`: the Engines sub-tab and the engines line, with the capability.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: `InterfaceEnginesSection.tsx` shows counts in the user's number format; `SynopticReportPage` release countdown (see its README).
+
+## Batch 556 (PS-539 phase 2d: report documents through the API)
+
+- Batch 556: `SynopticReportPage/modals/VersionHistoryModal.tsx` (sent documents through the API server).
+
+## Batch 558 (PS-539 phase 2d: report versions through the API)
+
+- Batch 558: `SynopticReportPage/` (Version History reads versions' PDFs through the API server when there is one).
+
+## Batch 560 (PS-539 phase 2d: push instead of polling)
+
+- Batch 560: `FacilityOpsDashboard/`, `BatchManagement/EngraverMonitorPage.tsx` (updated by the live-update hub).
+
+## Batch 562 (PS-539 phase 2d)
+
+- Batch 562: `MolecularWorkcenterPage/MolecularOrderQueueTab.tsx` updated by the live-update hub.
+
+## Batch 566 (WCAG 2.1 AA)
+
+- Batch 566: `CytologyWorklistPage/` (a row's name is the button that opens the case), `WorklistPage/` and `BatchManagement/` (view tiles say which is on).
+
+## Batch 567 (WCAG 2.1 AA)
+
+- Batch 567: `Synoptic/` (add code, delegate) and `SynopticReportPage/` (billing review, sequencer, protocol changes): no control inside another.
+
+## Batch 568 (WCAG 2.1 AA)
+
+- Batch 568: `ContributionDashboardPage.tsx` (the teaching tile opens from its title; `TeachingCasesTile` exported for its test), `Home.tsx` (the cards' keyboard handling comes from `pressable` alone), `WorklistPage/` (view tiles' colours from the stylesheet).
+
+## Batch 569 (WCAG 2.1 AA, 4.1.2)
+
+- `SearchPage.tsx`, `BillingLogsSection.tsx`: a saved search / query chip was a button holding its × button. The chip is a mouse shortcut now; its name is the button that loads it (marked current when loaded; the Billing query's filter summary is its tooltip), and × is a button of its own (named "Delete saved query …": `billingLogs.deleteQueryAria`, new).
+- `SynopticReportPage/components/Sidebar.tsx`: in the collapsed specimen rail, the "changes to review" dot was a button inside the specimen's button; it sits beside it now (`.ps-syn-rail-item`), as a named button, in the same place and size.
+
+## Batch 570 (WCAG 2.1 AA, 2.4.3)
+
+- `SearchPage.tsx`, `BillingLogsSection.tsx`: after a saved search's or query's × (keyboard) removes it, focus goes to the next one, or to "Save search / query" (or its name box when open), via `hooks/useFocusAfterRemoval.ts`. Billing's save-row Cancel (✕) has a name.
+
+## Batch 572
+
+- `SynopticReportPage/`: "Someone else saved this case". `CytologyWorklistPage/`: today's screening hours sign-off.
+
+## Batch 573
+
+- `SynopticReportPage/`: who else has the case open (`components/CasePresenceStrip.tsx`).
+
+## Batch 574
+
+- `CytologyWorklistPage/`: the workload counter; yesterday's screening hours.
+
+## Batch 575
+
+- `SynopticReportPage/`: "Show their changes" in place, without a reload.
+
+## Batch 576
+
+- `SynopticReportPage/`: "editing" follows the person's own edits.
+
+## Batch 577
+
+- `SynopticReportPage/`: "Use their version" in place; lists, preview context and synoptic answers read again after taking up a version; presence in the tab bar.
+
+## Batch 579
+
+- `SynopticReportPage/`: specimen billing codes and the Sequencer's specimen order saved at once (`saveSpecimensNow`); the synoptic form keeps its section after a re-read.

@@ -8,12 +8,18 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { labelStyleVars } from '@/utils/labelStyleVars';
+import { formatDateTime } from '@/utils/formatDate';
+import type { ReportRevisionStatus } from '@/services/reports/resolveReportRevisionStatus';
+import { buildReportDocumentReference } from '@/services/printing/buildReportDocumentReference';
 import type { OrchestratorSection } from '@/pages/SynopticReportPage/components/OrchestratorSectionEditor';
 import type { Case } from '@/types/case/Case';
 import type { BodyPartAssembly, StructuredContext } from '@/orchestrator/contextBuilder';
 import type {
   TemplateNode, SectionNode, ConditionalExpression, ExpressionClause, LabelConfig,
 } from '@/types/template';
+import { escapeHtml, sanitizeRichHtml, sanitizeSvgMarkup } from '@/services/security/sanitizeHtml';
+import { ageFromDateOfBirth } from '@/utils/ageFromDateOfBirth';
+import { pressable } from '@/utils/a11y/pressable';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Generic node-tree rendering — added alongside the existing AI-section
@@ -130,23 +136,10 @@ const FieldRow: React.FC<{
 
 /** Computes whole-years age as of today from an ISO date string. Returns undefined on anything unparseable rather than a wrong number. */
 function computeAge(dateOfBirth: string | undefined): number | undefined {
-  if (!dateOfBirth) return undefined;
-  const dob = new Date(dateOfBirth);
-  if (Number.isNaN(dob.getTime())) return undefined;
-  const now = new Date();
-  // eslint-disable-next-line no-restricted-properties -- Real, honest justification: age-from-DOB compares two dates (now, dob) in the same, consistent local time - inherently viewer-relative, not a real, stored-event facility-timezone concern.
-  let age = now.getFullYear() - dob.getFullYear();
-  // Real, honest justification for both lines below: age-from-DOB
-  // compares two dates (now, dob) in the same, consistent local time -
-  // inherently viewer-relative, not a real, stored-event
-  // facility-timezone concern.
-  const hasNotHadBirthdayYet =
-    // eslint-disable-next-line no-restricted-properties -- see real, honest justification above hasNotHadBirthdayYet
-    now.getMonth() < dob.getMonth() ||
-    // eslint-disable-next-line no-restricted-properties -- see real, honest justification above hasNotHadBirthdayYet
-    (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate());
-  if (hasNotHadBirthdayYet) age -= 1;
-  return age >= 0 ? age : undefined;
+  // Batch 504: from the calendar date written in the date of birth (utils/ageFromDateOfBirth.ts).
+  // The old local-time reading made the age go up a day early in the Americas.
+  const age = ageFromDateOfBirth(dateOfBirth);
+  return age !== undefined && age >= 0 ? age : undefined;
 }
 
 /** Builds the base data scope body Part templates resolve {{paths}} against — the live Case, not StructuredContext. See header comment above for why. */
@@ -227,6 +220,11 @@ interface Props {
   // shared activeSectionId — the right-hand editor then scrolls to match.
   activeSectionId?:       string | null;
   onSectionClick?:        (id: string) => void;
+  /** Batch 495 (PS-283 §4.2.2): the report's revision status (from
+   *  useReportRevisionStatus), drawn as a header banner with the original
+   *  sign-out date and the latest revision date. Part of the document
+   *  itself, so it prints from every path that prints this page. */
+  revisionStatus?: ReportRevisionStatus | null;
 }
 
 // ── Institution data (mirrors OrchestratorReportPanel logic) ─────────────────
@@ -257,8 +255,17 @@ export function getInstitution(originHospitalId?: string) {
 
 const ReportPreviewRenderer: React.FC<Props> = ({
   sections, bodyAssembly = [], headerAssembly = [], footerAssembly = [], structuredContext = null, caseData, templateName, resolvedBy, activeSectionId, onSectionClick, documentStyle,
+  revisionStatus = null,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Batch 495 (PS-283 §4.2.3): the scan-and-correlate footer (Code 128 of the
+  // accession, which the scanner already opens, plus the record version).
+  const caseAccessionKey = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '';
+  const caseVersion = caseData?.version ?? null;
+  const documentReference = useMemo(
+    () => buildReportDocumentReference(caseAccessionKey ? { version: caseVersion, accession: { fullAccession: caseAccessionKey } } : null),
+    [caseAccessionKey, caseVersion],
+  );
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const sectionsById = useMemo(() => new Map(sections.map(s => [s.id, s] as const)), [sections]);
   const baseScope = useMemo(() => buildRenderScope(caseData), [caseData]);
@@ -326,7 +333,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         id={`rp-section-${s.id}`}
         ref={el => { sectionRefs.current[s.id] = el; }}
         className={`rp-section${activeSectionId === s.id ? ' rp-section--active' : ''}`}
-        onClick={() => onSectionClick?.(s.id)}
+        {...pressable(() => onSectionClick?.(s.id))}
       >
         <div className={`rp-section-heading${s.committed ? ' rp-section-heading--accepted' : s.userEdited ? ' rp-section-heading--edited' : ''}`}>
           {s.label}
@@ -335,7 +342,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
           {!s.committed && !s.userEdited && s.aiGenerated && <span className="rp-section-badge rp-section-badge--ai">{t('reportPreviewRenderer.badgeAiDraft')}</span>}
         </div>
         {s.text ? (
-          <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: s.text }} />
+          <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(s.text) }} />
         ) : (
           <div className="rp-section-empty">
             {s.required ? t('reportPreviewRenderer.requiredNotCompleted') : t('reportPreviewRenderer.noContent')}
@@ -397,7 +404,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         if (node.hideIfEmpty && !html) return null;
         return (
           <FieldRow key={key} nodeKey={key} label={node.label} labelConfig={node.labelConfig} defaultPosition="above"
-            value={<span dangerouslySetInnerHTML={{ __html: html || `<span class="rp-node-empty">${node.placeholder ?? '—'}</span>` }} />} />
+            value={<span dangerouslySetInnerHTML={{ __html: html ? sanitizeRichHtml(html) : `<span class="rp-node-empty">${escapeHtml(node.placeholder ?? '—')}</span>` }} />} />
         );
       }
 
@@ -581,6 +588,26 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         )}
       </div>
 
+      {/* ── Revision status (Batch 495, PS-283 §4.2.2) ───────────────────── */}
+      {revisionStatus && (
+        <div className="rp-revision-banner" role="note">
+          <div className="rp-revision-flag">
+            {t(`reportRevision.flag.${revisionStatus.latestType}`)}
+            {revisionStatus.revisionCount > 1 && (
+              <span className="rp-revision-count">{t('reportRevision.revisionCount', { count: revisionStatus.revisionCount })}</span>
+            )}
+          </div>
+          <div className="rp-revision-dates">
+            {revisionStatus.originalSignOutAt
+              ? t('reportRevision.datesWithOriginal', {
+                  original: formatDateTime(revisionStatus.originalSignOutAt, i18n.language),
+                  latest: formatDateTime(revisionStatus.latestRevisionAt, i18n.language),
+                })
+              : t('reportRevision.datesLatestOnly', { latest: formatDateTime(revisionStatus.latestRevisionAt, i18n.language) })}
+          </div>
+        </div>
+      )}
+
       {/* ── Patient / case header ─────────────────────────────────────── */}
       <div className="rp-case-header">
         <div className="rp-case-header-top">
@@ -635,7 +662,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
           sections.map(s => (
             <div key={s.id} id={`rp-section-${s.id}`} className="rp-section">
               <div className="rp-section-heading">{s.label}</div>
-              {s.text ? <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: s.text }} /> : <div className="rp-section-empty">{t('reportPreviewRenderer.noContent')}</div>}
+              {s.text ? <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(s.text) }} /> : <div className="rp-section-empty">{t('reportPreviewRenderer.noContent')}</div>}
             </div>
           ))
         )}
@@ -656,6 +683,18 @@ const ReportPreviewRenderer: React.FC<Props> = ({
             </div>
             <div className="rp-footer-conf">{t('reportPreviewRenderer.confidentialFooter')}</div>
             <div className="rp-footer-right">{inst.name}</div>
+          </div>
+        )}
+        {documentReference && (
+          <div className="rp-doc-reference">
+            {documentReference.barcodeSvg && (
+              <span className="rp-doc-reference-barcode" data-phi="accession" dangerouslySetInnerHTML={{ __html: sanitizeSvgMarkup(documentReference.barcodeSvg) }} />
+            )}
+            <span className="rp-doc-reference-text" data-phi="accession">
+              {documentReference.version !== null
+                ? t('reportPrint.documentReference', { accession: documentReference.accession, version: documentReference.version })
+                : t('reportPrint.documentReferenceNoVersion', { accession: documentReference.accession })}
+            </span>
           </div>
         )}
       </div>

@@ -27,6 +27,10 @@ import { renderHook, act } from '@testing-library/react';
 import '@/i18n/config';
 import { useGrossingCompletion } from '../useGrossingCompletion';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
+import * as serviceChargeMod from '@/services/billing/mockServiceChargeService';
+import * as outboundChargeQueueMod from '@/services/billing/mockOutboundChargeQueueService';
+import * as billingTypeTriggerMod from '@/services/billing/mockBillingTypeTriggerConfigService';
+import * as caseServiceMod from '@/services/cases/mockCaseService';
 import type { Case } from '@/types/case/Case';
 
 vi.mock('@/services/cases/CaseRouter', () => ({
@@ -46,6 +50,15 @@ vi.mock('@/services', () => ({
   authorizationService: { enforce },
   auditService: { logEvent: vi.fn().mockResolvedValue({}) },
   specimenDeficiencyService: { raise: raiseDeficiency },
+  // Batch 506 (PS-477): the hook takes these from the index now instead of
+  // their own files; the test gives it the same modules as before (getters,
+  // because those modules import the index themselves).
+  get serviceChargeService() { return serviceChargeMod.mockServiceChargeService; },
+  get outboundChargeQueueService() { return outboundChargeQueueMod.mockOutboundChargeQueueService; },
+  get billingTypeTriggerConfigService() { return billingTypeTriggerMod.mockBillingTypeTriggerConfigService; },
+  get evaluateSynopticAssignment() { return caseServiceMod.evaluateSynopticAssignment; },
+  get evaluateGrossingTemplateFit() { return (caseServiceMod as Record<string, unknown>).evaluateGrossingTemplateFit; },
+  get generateGrossingFieldSuggestionsFromDictation() { return caseServiceMod.generateGrossingFieldSuggestionsFromDictation; },
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'PA-1', name: 'PA One' } }) }));
 vi.mock('@/hooks/useFieldRequirements', async () => {

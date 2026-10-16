@@ -23,6 +23,14 @@
 
 import '@/i18n/config';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Batch 534: no release delay in this test (releaseReport is tested on its own).
+vi.mock('@/services/reportRelease/releaseThroughDelay', () => ({
+  releaseThroughDelay: vi.fn(async (event: any) => {
+    const m = await import('@/services/reports/publishReportReleasedEvent');
+    return { published: await m.publishReportReleasedEvent(event) };
+  }),
+}));
 import { renderHook, act } from '@testing-library/react';
 import { useAmendmentWorkflow } from '../useAmendmentWorkflow';
 import { publishReportReleasedEvent } from '@/services/reports/publishReportReleasedEvent';
@@ -31,7 +39,7 @@ import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictEr
 import type { Case } from '@/types/case/Case';
 
 vi.mock('@/services/cases/CaseRouter', () => ({
-  caseRouter: { updateCase: vi.fn().mockResolvedValue(undefined) },
+  caseRouter: { updateCase: vi.fn().mockResolvedValue(undefined), getCase: vi.fn().mockResolvedValue(undefined) },
 }));
 vi.mock('@/services/reports/publishReportReleasedEvent', () => ({
   publishReportReleasedEvent: vi.fn().mockResolvedValue({}),
@@ -197,6 +205,19 @@ describe('useAmendmentWorkflow — releasePendingAmendmentOrAddendum', () => {
       caseId: caseData.id, instanceId: 'SR-1', reportType: 'CORRECTED',
     }));
     expect(sendSynopticReportToLis).not.toHaveBeenCalled();
+  });
+
+  it('Batch 535: the held correction carries what Recall reopens (the record, its instance, the status before)', async () => {
+    const { releaseThroughDelay } = await import('@/services/reportRelease/releaseThroughDelay');
+    vi.mocked(releaseThroughDelay).mockClear();
+    const caseData = makeTestCase({
+      reportingMode: 'orchestration' as any, status: 'in-progress' as any,
+      synopticReports: [{ instanceId: 'SR-1', pendingAmendmentId: 'amend-1', answers: {}, lastRevisionType: 'addendum' }] as any,
+    });
+    const { result } = renderHook(() => useAmendmentWorkflow(baseParams({ caseData })));
+    await act(async () => { await result.current.releasePendingAmendmentOrAddendum(); });
+    const hold = vi.mocked(releaseThroughDelay).mock.calls[0][1];
+    expect(hold).toMatchObject({ kind: 'surgical-amendment', subject: { recordId: 'amend-1', instanceId: 'SR-1', previousStatus: 'in-progress', previousRevisionType: 'addendum' } });
   });
 
   it('creates a CoPilot version record with the real PDF snapshot when reportingMode is assist', async () => {

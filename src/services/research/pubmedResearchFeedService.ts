@@ -19,8 +19,11 @@
  *   it is the difference between one slow morning and a self-sustaining
  *   throttle.
  *
- * - VITE_NCBI_API_KEY, when set, raises the shared limit from 3 to 10 req/sec.
- *   Note this key is inlined into the client bundle and is therefore public.
+ * - No API key (Batch 499, PS-476): the browser no longer reads an NCBI
+ *   key, so no provider key ships in the bundle. E-utilities work without
+ *   one at 3 req/sec per IP; the 30-minute park below covers a throttled
+ *   hospital gateway. A keyed, server-side fetch can come with the
+ *   terminology/AI proxy (PS-488).
  *
  * - Endpoints, the article URL template and the search query are NOT
  *   hardcoded here. They come from mockResearchFeedConfigService, so an NCBI
@@ -62,8 +65,11 @@ const CACHE_KEY_BASE = 'pathscribe_pubmed_ticker_cache';
 function isSameLocalDay(a: number, b: number): boolean {
   const da = new Date(a);
   const db = new Date(b);
+  // eslint-disable-next-line no-restricted-properties -- "today's article" is the reader's own day
   return da.getFullYear() === db.getFullYear()
+    // eslint-disable-next-line no-restricted-properties -- as above
     && da.getMonth() === db.getMonth()
+    // eslint-disable-next-line no-restricted-properties -- as above
     && da.getDate() === db.getDate();
 }
 
@@ -99,13 +105,6 @@ interface CacheEnvelope {
    *  calendar day rolls over, same as any other cache entry — a
    *  pinned choice is "for today," not permanent. */
   pinned?: boolean;
-}
-
-function apiKey(): string | undefined {
-  // Batch 444: read by its full name. The old `(import.meta as …).env?.`
-  // form made Vite copy every VITE_ variable in .env into the bundle.
-  const key = import.meta.env.VITE_NCBI_API_KEY;
-  return key && key.trim().length > 0 ? key.trim() : undefined;
 }
 
 /* ------------------------------------------------------------------ cache */
@@ -239,12 +238,10 @@ class RateLimitedError extends Error {}
 
 function buildUrl(baseUrl: string, endpoint: string, params: Record<string, string>): string {
   const url = new URL(`${baseUrl}/${endpoint}`);
-  const key = apiKey();
   Object.entries({
     ...params,
     tool: TOOL,
     email: CONTACT,
-    ...(key ? { api_key: key } : {}),
   }).forEach(([k, v]) => url.searchParams.set(k, v));
   return url.toString();
 }

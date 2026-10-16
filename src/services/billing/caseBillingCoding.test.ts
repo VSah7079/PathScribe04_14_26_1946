@@ -45,9 +45,9 @@ describe('unit coding', () => {
 describe('specimen and matrix coding', () => {
   const specimens = [{ id: 'A', coding: { cpt: ['88305'], icd10: [] } }, { id: 'B' }];
   it('base codes are added, removed and corrected on the one specimen', () => {
-    expect(specimensWithBaseCodeAdded(specimens, 'B', '88112')[1].coding.cpt).toEqual(['88112']);
+    expect(specimensWithBaseCodeAdded(specimens, 'B', '88112')[1].coding?.cpt).toEqual(['88112']);
     expect(specimensWithBaseCodeRemoved(specimens, 'A', '88305')[0].coding).toEqual({ cpt: [], icd10: [] });
-    expect(specimensWithBaseCodeCorrected(specimens, 'A', '88305', '88307')[0].coding.cpt).toEqual(['88307']);
+    expect(specimensWithBaseCodeCorrected(specimens, 'A', '88305', '88307')[0].coding?.cpt).toEqual(['88307']);
     expect(specimensWithBaseCodeAdded(specimens, 'B', 'X')[0]).toBe(specimens[0]);
   });
   it('matrix codes are kept per specimen and matrix block, applied or declined', () => {

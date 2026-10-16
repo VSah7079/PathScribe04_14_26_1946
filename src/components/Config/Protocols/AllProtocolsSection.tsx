@@ -48,6 +48,7 @@ import {
   EmptyState,
 } from './ProtocolCardParts';
 import { matchesStatusFilter } from '@/services/templates/protocolLifecycle';
+import { pressable } from '@/utils/a11y/pressable';
 
 type StatusFilter = 'all' | LifecycleState;
 
@@ -75,7 +76,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
   return (
     <div className="ps-activeprotocols-card">
       <div
-        onClick={() => setOpen(o => !o)}
+        {...pressable(() => setOpen(o => !o))}
         className={`ps-activeprotocols-row${open ? ' ps-activeprotocols-row--open' : ''}`}
       >
         <div className="ps-activeprotocols-cat-bar" style={categoryHueVar(p.category)} />

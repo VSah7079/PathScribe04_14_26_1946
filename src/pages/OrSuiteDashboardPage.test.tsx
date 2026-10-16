@@ -55,6 +55,7 @@ vi.mock('@/services', () => ({
     },
     getState: () => 'local',
     onStateChange: () => () => {},
+    retryNow: () => {},
     onResync: () => () => {},
   },
 }));

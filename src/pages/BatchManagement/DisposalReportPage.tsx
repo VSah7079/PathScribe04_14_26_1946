@@ -35,6 +35,8 @@ import { computeDisposalReport } from '@/services/retentionPolicy/computeDisposa
 import type { DisposalReportRow, DisposalReportFilters } from '@/services/retentionPolicy/computeDisposalReport';
 import type { RetainableMaterialType } from '@/services/retentionPolicy/RetentionPolicy';
 import type { Facility } from '@/services/facilities/IFacilityService';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { runExport } from '@/services/exports/runExport';
 
 const MATERIAL_TYPES: RetainableMaterialType[] = ['block', 'slide', 'wet_tissue'];
 
@@ -96,9 +98,13 @@ const DisposalReportPage: React.FC = () => {
       [t('disposalReport.export.location')]: r.lastKnownLocation ?? '',
     }));
     // Batch 407: its own permission, checked in the service at the report's facility.
-    const res = await exportDisposalReport(exportRows, `waste-tracking-report-${new Date().toISOString().slice(0, 10)}`, facilityId, { authorization: authorizationService });
-    if (!res.ok) toast.error(t('disposalReport.export.notPermitted'));
-  }, [rows, t, i18n.language, facilityId]);
+    // Batch 550: through the export service (the API server builds it from these filters; the demo builds it here).
+    const filename = `waste-tracking-report-${new Date().toISOString().slice(0, 10)}`;
+    await runExport('retention.disposal-report', filename, { facilityId, materialType, dateFrom, dateTo }, async () => {
+      const res = await exportDisposalReport(exportRows, filename, facilityId, { authorization: authorizationService });
+      if (!res.ok) toast.error(t('disposalReport.export.notPermitted'));
+    }, { facilityId });
+  }, [rows, t, i18n.language, facilityId, materialType, dateFrom, dateTo]);
 
   return (
     <div className="ps-batch-page">
@@ -181,7 +187,7 @@ const DisposalReportPage: React.FC = () => {
             <div className="ps-auditlog-tbody">
               {loading ? (
                 <div className="ps-auditlog-empty">
-                  <div className="ps-auditlog-empty-text">{t('disposalReport.loading')}</div>
+                  <LoadingState variant="inline" className="ps-auditlog-empty-text" label={t('disposalReport.loading')} />
                 </div>
               ) : rows.length === 0 ? (
                 <div className="ps-auditlog-empty">

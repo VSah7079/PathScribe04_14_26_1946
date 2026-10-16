@@ -176,3 +176,41 @@ describe('mockAmendmentService.release recommends a CAPA for a clinically signif
     expect(await recsFor('CASE-ADD')).toHaveLength(0);
   });
 });
+
+describe('Batch 535: reopen (Recall within the release delay)', () => {
+  beforeEach(() => { localStorage.clear(); });
+  it('a released record goes back to draft; what it said stays; the recall is kept', async () => {
+    const draft = await mockAmendmentService.startDraft({ caseId: 'CASE-R1', type: 'addendum', authoringPathologist });
+    if (!draft.ok) throw new Error('draft failed');
+    const released = await mockAmendmentService.release(draft.data.id, { addendumTitle: 'Addendum: IHC', body: 'Stains received.', reasonId: 'r1' });
+    if (!released.ok) throw new Error('release failed');
+    const res = await mockAmendmentService.reopen(draft.data.id, { userId: 'user-1', userName: 'Dr. Test' });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toMatchObject({ status: 'draft', body: 'Stains received.', addendumTitle: 'Addendum: IHC' });
+    expect(res.data.releasedAt).toBeUndefined();
+    expect(res.data.recalls).toEqual([{ at: expect.any(String), by: { userId: 'user-1', userName: 'Dr. Test' }, releasedAt: released.data.releasedAt }]);
+  });
+  it('only a released record can be reopened; an unknown one is refused', async () => {
+    const draft = await mockAmendmentService.startDraft({ caseId: 'CASE-R2', type: 'correction', authoringPathologist });
+    if (!draft.ok) throw new Error('draft failed');
+    expect((await mockAmendmentService.reopen(draft.data.id, { userId: 'u', userName: 'U' })).ok).toBe(false);
+    expect((await mockAmendmentService.reopen('nope', { userId: 'u', userName: 'U' })).ok).toBe(false);
+  });
+});
+
+describe('Batch 540: no correction or addendum while the report is in its release delay', () => {
+  it('startDraft is refused while the case\'s original report is held, and allowed once it is out', async () => {
+    const { mockHeldReleaseService } = await import('../reportRelease/mockHeldReleaseService');
+    const { REVISION_IN_RELEASE_DELAY } = await import('../reportRelease/revisionDuringDelay');
+    const by = { userId: 'P1', userName: 'Dr P' };
+    await mockHeldReleaseService.add({
+      id: 'held-540', caseId: 'CASE-540', kind: 'cytology-sign-out', event: { caseId: 'CASE-540', reportType: 'FINAL', releasedAt: 'T' },
+      followUps: [], heldAt: 'T', expiresAt: '2099-01-01T00:00:00Z', releasedBy: by, status: 'held',
+    } as any);
+    const refused = await mockAmendmentService.startDraft({ caseId: 'CASE-540', type: 'addendum', authoringPathologist: by });
+    expect(refused).toEqual({ ok: false, error: REVISION_IN_RELEASE_DELAY });
+    await mockHeldReleaseService.settle('held-540', 'released', 'T2');
+    expect((await mockAmendmentService.startDraft({ caseId: 'CASE-540', type: 'addendum', authoringPathologist: by })).ok).toBe(true);
+  });
+});

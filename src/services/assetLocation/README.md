@@ -13,8 +13,10 @@ Governed, real physical/asset location dictionary — mortuary storage (racks/tr
 
 ## Real, deliberate scope not yet built
 
-- No admin/reviewer UI exists yet for verifying/reconciling autoCreated entries — the governance data model is real and functional, but there's nowhere in the app to actually review it yet.
+- ~~No admin/reviewer UI~~ — built: Configuration → System → Asset Location Dictionary (`components/Config/System/AssetLocationDictionarySection.tsx`) lists entries and verifies autoCreated ones.
 - The "Validation by Exception" / narrativeText-redundancy-style governance UI discussed for the Managed Pathology Lexicon (`services/cytology/`) hasn't been proposed or built for this dictionary.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the admin screen for this dictionary exists.*
 
 ## Batch 428: Configuration permissions
 

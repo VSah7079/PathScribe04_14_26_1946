@@ -7,9 +7,11 @@ Shared, reusable UI primitives used across multiple pages.
 - **`ConfirmModal.tsx`** — **MOVED HERE** (was
   `components/UI/ConfirmModal.tsx`, a whole folder that existed for this
   one file). Reusable dark confirmation dialog, explicitly meant to
-  replace `window.confirm()` throughout the app. Genuinely used — the
-  sole consumer, `Sidebar.tsx`, wires it to the real "Remove Synoptic
-  Report" delete confirmation on the main case reporting page. `UI/` is
+  replace `window.confirm()` throughout the app. Genuinely used — first
+  by `Sidebar.tsx` (the "Remove Synoptic Report" confirmation); about two
+  dozen components and pages import it now (`ConfigurationPage.tsx` among
+  them). *(Corrected in the Batch 496 README audit: it said `Sidebar.tsx`
+  was the sole consumer.)* `UI/` is
   now deleted (was already empty of anything else). See Notes for why
   this file matters beyond its own folder.
 - **`InlineCommentThread.tsx`** — **MOVED HERE** (was
@@ -127,8 +129,9 @@ Shared, reusable UI primitives used across multiple pages.
   dashboard, replacing a static line of marketing copy. Presentation only:
   every piece of logic lives elsewhere (`services/research/` for fetching,
   sanitising, caching and rate-limit backoff; `hooks/useLatestResearch.ts`
-  for the abort-on-unmount lifecycle; `utils/openReferenceWindow.ts` for the
-  popup). This component renders what it is handed and returns `null` when
+  for the abort-on-unmount lifecycle; `hooks/useCompanionWindow.ts` for the
+  popup — `utils/openReferenceWindow.ts` no longer exists; corrected in the
+  Batch 496 README audit). This component renders what it is handed and returns `null` when
   there is nothing, which is also its entire failure mode — no feed, no
   network, no error surface.
   **Worth its own callout on the popup.** The feature spec claimed a sized
@@ -138,12 +141,23 @@ Shared, reusable UI primitives used across multiple pages.
   in the features string does not fix it either — browsers that honour it
   return `null` and discard the width, height and position, so there is no
   sized popup at all. The reference has to be severed after opening
-  (`popup.opener = null`), which is what `openReferenceWindow.ts` does; the
+  (`popup.opener = null`), which is what `useCompanionWindow.ts` now does
+  (`win.opener = null`); the
   anchor's `rel="noopener noreferrer"` remains as the fallback path. Also
   note the click handler only calls `preventDefault()` **if the popup
   actually opened** — enterprise browser policy blocks popups more often than
   consumer Chrome, and an unconditional `preventDefault()` would make the
   link silently do nothing. Modifier-clicks pass through untouched.
+
+- **`CodeSearchModal.tsx`**, **`CptCodeSearchPicker.tsx`** — CPT code search: the picker (first built inside
+  `Config/System/BillingDictionarySection.tsx`) and a roomier modal around it for the report page's
+  billing panel.
+- **`PhiToastMessage.tsx`** — toast content that names a case, tagged `data-phi` so screenshots redact it (PS-72).
+- Also here, documented in the batch entries below: `CapabilityButton.tsx`, `ScreenGate.tsx`,
+  `NationalIdentifierFields.tsx`, `RegistryConsentFields.tsx`, `PatientRegistryDetailsModal.tsx`,
+  `RegistryOptOutBadge.tsx`, `ReasonPromptModal.tsx`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): files missing from this list added; `ConfirmModal` consumers and the PubMed popup helper corrected.*
 
 ## Deleted this pass
 
@@ -181,9 +195,10 @@ Shared, reusable UI primitives used across multiple pages.
   `DraftRecoveryModal.tsx` live here and are documented above, but their
   real dependencies (`hooks/useIdleTimeout.ts`, `hooks/useDraftCache.ts`,
   `services/drafts/`, root-level `ProtectedRoute.tsx`) fall outside any
-  existing README system and are tracked in `PRIORITY_FIXES.md` instead,
+  existing README system and are tracked in `PRIORITY_FIXES.md` instead
+  (retired 2026-08-19; see `docs/ARCHIVE.md`),
   as do `PubMedTicker.tsx`'s (`hooks/useLatestResearch.ts`,
-  `utils/openReferenceWindow.ts` — `services/research/` has its own README),
+  `hooks/useCompanionWindow.ts` — `services/research/` has its own README),
   not duplicated here.
 - **A real bug in `hooks/useIdleTimeout.ts`** (the consumer of
   `SessionExpiryWarningModal.tsx` above) was found and fixed this
@@ -202,7 +217,7 @@ PS-62 asked for the remaining native `<select>` elements in Config/System to get
 - **The count was far off.** The ticket said 18; a fresh count found about 190 in Config/System and about 400 app-wide.
 - **Pete's decision:** keep the browser's own select, which gives keyboard, screen-reader and mobile behaviour for free, and make its open list match the dark theme with CSS. `Dropdown.tsx` and `SearchableCombobox.tsx` stay for the cases they were built for (chips + add-another, search).
 - **What changed:** one app-wide rule set in `pathscribe.css` (near the top, beside the date-input rule). All selects get `color-scheme: dark` and the same dark option and optgroup colours. This replaced four per-class option rules (ps-conf-select, ps-input-dark, ps-specedit-input, ps-st-role-filter) that used four different shades. Checked in the browser on the Accession page, Staff and System: every select's options now compute to the same surface colour and text.
-- **Not used: Chrome/Edge's fully styled open list** (`appearance: base-select`). It was tried and checked in the browser. It sizes each select to its *selected* value instead of its widest option, so toolbars and table columns change width as values are picked, and it changes the arrow glyph and row height. Getting native-like widths back would need a small script measuring every select app-wide. That is Pete's call; it's recorded on PS-62.
+- ~~**Not used: Chrome/Edge's fully styled open list** (`appearance: base-select`).~~ *Batch 580 (Pete, Oct 15, 2026): used, with the width script.* Where the browser draws it (Chrome and Edge 135+), every single-choice dropdown's list is a styled panel, and `utils/selectAutoWidth.ts` gives each dropdown the width of its widest option, as a native one has (`--ps-select-auto-width`, used unless the dropdown sets its own width). Firefox and Safari keep the dark native list and pick the panel up automatically once they support it; Firefox stays a supported browser (Pete). Multi-selects and list boxes keep the native look.
 
 ## Batch 367 (PS-74): no inline CSS
 
@@ -269,3 +284,24 @@ It reads `hooks/useCapabilities.ts` and decides nothing itself. The service behi
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 548
+
+- `LoadingState.tsx` (new): what a screen shows while its data loads. Nothing for 300 ms, then a placeholder with the screen's own text, and "Still working…" from 3 s. It replaces the plain `.ps-conf-loading` text on 42 screens.
+- `PageLoader.tsx` (new): the shared route fallback for `App.tsx` and `SignedInApp.tsx`. The spinner appears after 300 ms, and "still loading this page" after 3 s.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `LoadingState.tsx`: a `variant="inline"` for loading text inside a line, a table cell or a status panel (a `<span>`, same timing). Used for the remaining 56 files' loading text, so every loading text in the app now goes through `LoadingState`.
+
+## Batch 563 (PS-622)
+
+- `PageLoader.tsx`: counts from the shared page wait clock.
+
+## Batch 579
+
+- `InlineCommentThread.tsx`: the template reviewers' question comments: dark, each box labelled with its question, an Add button as well as Enter; adding and resolving through `services/templates/templateReviewWork.ts`, which saves and audits them.

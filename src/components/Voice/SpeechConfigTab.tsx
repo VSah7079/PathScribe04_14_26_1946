@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
-import { Trash2, Plus, Search, Upload, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Search, Upload } from 'lucide-react';
 import { VoiceMacro } from '../../types/voiceMacros';
-import { MockVoiceMacroService } from '../../services/voicemacro/mockVoiceMacroService';
+import { voiceMacroService } from '@/services';
 import { usePathScribeSpeech }   from '../../hooks/usepathscribeSpeech';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Initialize the service instance
-const macroService = new MockVoiceMacroService();
+const macroService = voiceMacroService;
 
 const SpeechConfigTab: React.FC = () => {
   const { t } = useTranslation();
@@ -114,10 +115,7 @@ const SpeechConfigTab: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="sct-loading">
-        <Loader2 size={24} className="animate-spin sct-loading-icon" />
-        <span>{t('speechConfigTab.loadingMacros')}</span>
-      </div>
+      <LoadingState label={t('speechConfigTab.loadingMacros')} />
     );
   }
 
@@ -192,7 +190,7 @@ const SpeechConfigTab: React.FC = () => {
           />
         </div>
 
-        <select data-dirty-ignore data-config-nav
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
           className="sct-status-select"

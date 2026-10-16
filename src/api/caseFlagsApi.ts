@@ -8,7 +8,7 @@ import { updateCaseWithRetryOrThrow } from '../services/cases/caseWrite';
 // Batch 452 (PS-57): the typed view replaces the old `any` mapper here.
 import { toCaseWithFlags as toView } from '../services/flags/caseFlagView';
 
-const toCaseWithFlags = (c: Parameters<typeof toView>[0] | null): CaseWithFlags => {
+const toCaseWithFlags = (c: Parameters<typeof toView>[0] | null | undefined): CaseWithFlags => {
   if (!c) throw new Error('Case not found after the flag change');
   return toView(c);
 };
@@ -30,22 +30,35 @@ export interface ApplyFlagPayload {
   caseId: string;
   flagDefinitionId: string;
   specimenId?: string;
+  // Batch 491 (disclosed Batch-452 gap): who's applying it, from the
+  // caller's own signed-in session. Optional, with a documented fallback
+  // below, so existing callers and tests that don't have a session in
+  // scope keep working unchanged.
+  byUserName?: string;
 }
 
 export interface DeleteFlagPayload {
   caseId: string;
   flagInstanceId: string;
   specimenId?: string;
+  // Batch 491: same convention as ApplyFlagPayload.byUserName above.
+  byUserName?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeInstance(flagDefinitionId: string): FlagInstance {
+// Batch 491: `appliedBy`/`deletedBy` store a display name, the same
+// "name, not a separate id" convention as every other append-only clinical
+// log in this app (e.g. MarginInkApplication.appliedByName,
+// AutopsyOrganTag.recordedByName). 'current-user' is the fallback for a
+// caller with no signed-in session to pass through (e.g. a direct test
+// call), not a real user name.
+function makeInstance(flagDefinitionId: string, byUserName?: string): FlagInstance {
   return {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     flagDefinitionId,
     appliedAt: new Date().toISOString(),
-    appliedBy: 'current-user',
+    appliedBy: byUserName ?? 'current-user',
     source: 'product',
     deletedAt: null,
     deletedBy: null,
@@ -66,7 +79,7 @@ export async function applyFlags(payload: ApplyFlagPayload): Promise<CaseWithFla
   const c = await mockCaseService.getCase(payload.caseId);
   if (!c) throw new Error(`Case ${payload.caseId} not found`);
 
-  const inst = makeInstance(payload.flagDefinitionId);
+  const inst = makeInstance(payload.flagDefinitionId, payload.byUserName);
   const isActive = (f: FlagInstance) => f.flagDefinitionId === payload.flagDefinitionId && !f.deletedAt;
 
   await updateCaseWithRetryOrThrow(payload.caseId, current => {
@@ -96,9 +109,10 @@ export async function deleteFlags(payload: DeleteFlagPayload): Promise<CaseWithF
   if (!c) throw new Error(`Case ${payload.caseId} not found`);
 
   const now = new Date().toISOString();
+  const deletedBy = payload.byUserName ?? 'current-user';
   const markDeleted = (flags: FlagInstance[]) => flags.map(f =>
     f.id === payload.flagInstanceId
-      ? { ...f, deletedAt: now, deletedBy: 'current-user' }
+      ? { ...f, deletedAt: now, deletedBy }
       : f
   );
 

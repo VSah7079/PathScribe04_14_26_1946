@@ -36,6 +36,7 @@
 // require this in most browsers, or they'll be silently rejected/blocked.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { getWorkstationJson, setWorkstationJson } from '@/utils/workstationSettings';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 export type CompanionLaunchResult = 'window' | 'blocked';
@@ -43,7 +44,7 @@ export type CompanionLaunchResult = 'window' | 'blocked';
 export interface UseCompanionWindowOptions {
   /** Unique name for window.open()'s target -- reused so a second click
    *  re-focuses the existing window instead of opening a duplicate.
-   *  Also used to derive this window's localStorage geometry key, so
+   *  Also used to derive this window's saved-geometry key, so
    *  different companion windows (EMR vs. a future DP viewer) remember
    *  their positions independently. */
   windowName: string;
@@ -80,22 +81,17 @@ function storageKeyFor(windowName: string) {
 }
 
 function loadGeometry(windowName: string): WindowGeometry | null {
-  try {
-    const raw = localStorage.getItem(storageKeyFor(windowName));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as WindowGeometry;
-    if (
-      typeof parsed.left !== 'number' || typeof parsed.top !== 'number' ||
-      typeof parsed.width !== 'number' || typeof parsed.height !== 'number'
-    ) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+  const parsed = getWorkstationJson<WindowGeometry | null>(storageKeyFor(windowName), null);
+  if (
+    !parsed ||
+    typeof parsed.left !== 'number' || typeof parsed.top !== 'number' ||
+    typeof parsed.width !== 'number' || typeof parsed.height !== 'number'
+  ) return null;
+  return parsed;
 }
 
 function saveGeometry(windowName: string, g: WindowGeometry) {
-  try { localStorage.setItem(storageKeyFor(windowName), JSON.stringify(g)); } catch { /* ignore quota errors */ }
+  setWorkstationJson(storageKeyFor(windowName), g);
 }
 
 export function useCompanionWindow(options: UseCompanionWindowOptions): UseCompanionWindowResult {
@@ -155,7 +151,7 @@ export function useCompanionWindow(options: UseCompanionWindowOptions): UseCompa
         }
       }
 
-      if (left === undefined) {
+      if (left === undefined || top === undefined) { // always set together
         left = (window.screen.width  - width)  / 2;
         top  = (window.screen.height - height) / 2;
       }

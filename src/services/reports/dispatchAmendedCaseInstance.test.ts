@@ -109,4 +109,12 @@ describe('dispatchAmendedCaseInstance', () => {
       expect(vi.mocked(resolveOruReportPdf).mock.calls[0][0]).toMatchObject({ generatePdf: gen });
     });
   });
+
+  it('Batch 559: a signed version\'s PDF (no report document) records its fingerprint on the queue entry', async () => {
+    vi.mocked(resolveOruReportPdf).mockResolvedValueOnce({ ok: true, pdfBase64: 'PDF', source: 'report-version', sha256: 'f'.repeat(64) });
+    await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED');
+    expect(mockOutboundResultQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ pdfSha256: 'f'.repeat(64) }));
+    expect(vi.mocked(mockOutboundResultQueueService.enqueue).mock.calls[0][0]).not.toHaveProperty('reportDocumentId');
+    expect(dispatchInterfaceMessage).toHaveBeenCalledWith('q-1', 'ORU_R01', expect.objectContaining({ reportPdfSha256: 'f'.repeat(64) }));
+  });
 });

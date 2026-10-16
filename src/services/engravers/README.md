@@ -14,3 +14,15 @@ Both files read `pending_engine_notifications`/`engraver_devices` directly via t
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 549: `fetchNewEngineNotifications.ts` removed
+
+It was used only by `hooks/usePendingEngineNotifications.ts`, which no page mounted (readiness review F1). Both are in `DELETED_FILES.txt`.
+
+## Batch 506 (PS-477): `fetchNewEngineNotifications.ts` (removed in Batch 549)
+
+The Firestore read and the per-type delivery that `hooks/usePendingEngineNotifications.ts` used to do itself. Same query, same handlers. Not in the services index, because that would put the Firebase SDK in the first page load. Firebase leaves the front end in PS-487. Test: `fetchNewEngineNotifications.test.ts`.
+
+## Batch 560
+
+- `engraverStatusCounts.ts` (new): the Engraver Monitor's counts by status. Test: `engraverStatusCounts.test.ts`.

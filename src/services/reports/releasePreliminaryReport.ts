@@ -29,7 +29,6 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { resolveIsFinalStatus } from '../reportTemplates/TemplateRoutingService';
-import { publishReportReleasedEvent } from './publishReportReleasedEvent';
 import { updateCaseWithRetry } from '../cases/caseWrite';
 
 export interface ReleasePreliminaryReportResult {
@@ -40,6 +39,8 @@ export interface ReleasePreliminaryReportResult {
    *  specimen instances at all yet), never conflated with a failure. */
   dispatchedCount: number;
   error?: string;
+  /** Batch 534: held for the laboratory's release delay; when it goes (the person who released it can recall it until then). */
+  heldUntil?: string;
 }
 
 export async function releasePreliminaryReport(
@@ -76,14 +77,18 @@ export async function releasePreliminaryReport(
   // one, real, shared publish point every real release (Preliminary
   // or Final) now goes through, rather than this function owning its
   // own, separate copy of the dispatch logic.
-  const { dispatchedCount = 0 } = await publishReportReleasedEvent({
+  // Batch 534 (Pete: every report output follows the release delay): through releaseReport.
+  const { releaseThroughDelay } = await import('../reportRelease/releaseThroughDelay');
+  const outcome = await releaseThroughDelay({
     caseId,
     reportType: 'PRELIMINARY',
     releasedAt: new Date().toISOString(),
     releasedBy: { id: releasingUser.id, name: releasingUser.name },
-    performingFacilityId: (caseData as any)?.order?.facilityId,
+    performingFacilityId: caseData.order?.facilityId,
     generatePdf,
-  });
+  }, { kind: 'surgical-preliminary', releasedBy: { userId: releasingUser.id, userName: releasingUser.name } });
+  const heldUntil = 'held' in outcome ? outcome.held.expiresAt : undefined;
+  const dispatchedCount = 'published' in outcome ? outcome.published.dispatchedCount ?? 0 : 0;
 
   // Real, deliberate: sets the same, real Preliminary Reviewer
   // Attestation fields the Preliminary template itself already
@@ -93,7 +98,7 @@ export async function releasePreliminaryReport(
   // write path. Deliberately does NOT touch caseData.status at all —
   // per direct guidance, the case stays in whatever in-progress/
   // unverified state it was already in.
-  if (dispatchedCount > 0) {
+  if (dispatchedCount > 0 || heldUntil) {
     // PS-71 (Batch 458): the attestation is applied to the case as read for
     // the save (not the copy read before the dispatch), with its version;
     // on a conflict it is re-applied to the newer case, so a diagnostic
@@ -121,5 +126,5 @@ export async function releasePreliminaryReport(
     }
   }
 
-  return { ok: true, dispatchedCount };
+  return { ok: true, dispatchedCount, ...(heldUntil ? { heldUntil } : {}) };
 }

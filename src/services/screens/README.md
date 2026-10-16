@@ -13,9 +13,13 @@ Case pages (a report, grossing) aren't screens here. A case is reached from a sc
 
 | Screen | Capability | Where |
 |---|---|---|
-| Accession, Worklist, Search, Add-On Orders, Intraop Queue, Cytology QC Peer Review Queue, Surgical Post-Sign-Out QA, My Contribution, Batch Management, Configuration | `screen:accession:open` … `screen:configuration:open` | Home |
-| Cytology, Microtomy, Embedding, Slide Distribution and Molecular Workspaces | `screen:cytology-workspace:open` … `screen:molecular:open` | Pathology Workspace |
-| Audit, Quality Assurance | `screen:audit-log:open`, `screen:quality-assurance:open` | Quality & Compliance |
+| Accession, Worklist, Search, Intraop Queue, My Contribution, Bench Contributions, Tumor Board, Configuration | `screen:accession:open` … `screen:configuration:open` | Home |
+| Cytology QC Peer Review Queue, Surgical Post-Sign-Out QA | `screen:cytology-qc-queue:open`, `screen:surgical-qa-worklist:open` | Views inside the Worklist (Batch 375) |
+| Cytology, Microtomy, Embedding, Slide Distribution and Molecular Workspaces; Batch Management; Margin Exception Review | `screen:cytology-workspace:open` … `screen:molecular:open`, `screen:batch-management:open`, `screen:margin-exception-review:open` | Pathology Workspace |
+| Audit, Quality Assurance, Registry Exceptions | `screen:audit-log:open`, `screen:quality-assurance:open`, `screen:registry-exceptions:open` | Quality & Compliance |
+| Add-On Orders | `screen:add-on-orders:open` | An action on a case (report page), no Home tile (Batch 375) |
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): table updated to `TILE_SCREENS` in `screenAccess.ts` — it still showed the pre-Batch 375 Home tiles and lacked the screens added in Batches 421, 488, 489 and 491.*
 
 Starting grants per built-in role are in `authorization/capabilitySeeds.ts` (`SCREEN_SEEDS`, Pete's matrix of Sep 28, 2026). A hospital's own roles are offered the screens their access implies (`customRoleScreenSeed`), so nobody loses a screen they could open before.
 
@@ -96,3 +100,53 @@ Template Authors and Approvers already hold `screen:configuration:open`, so nobo
 ## Batch 461
 
 `configSectionAccess.ts`: Configuration → System → **Organ maps** (`organ_maps`) opens for `config:organ-map-scheme:manage` or `config:organ-map-bindings:manage`.
+
+## Batch 482 — Structured Inking, Module 3 (PS-359 follow-up)
+
+`configSectionAccess.ts`: Configuration → System → **Ink Colors** (`ink_colors`) opens for `config:ink-color:manage`.
+
+## Batch 484 — PS-519 follow-up
+
+`configSectionAccess.ts`: Configuration → System → **Inking Validation Mode** (`inking_validation_mode`) opens for `config:inking-validation-mode:manage`.
+
+## Batch 488 — new Bench Contributions screen (PS-359 follow-up)
+
+`screenAccess.ts`: new `ScreenId`/`HomeTileId` `benchContributions` (its own `screen:bench-contributions:open` capability, its own `TILE_SCREENS`/`checks` entries) — the four bench roles' own dedicated Home tile and page, separate from `myContributions`. Seeded in `capabilitySeeds.ts` to Accessioner, Histotechnologist, Cytotechnologist, and Molecular Technologist, alongside each role's existing screens.
+
+## Batch 489 — new Tumor Board screen (Module 1 of Pete's Tumor Board / MDT Workspace spec; PS-359 follow-up)
+
+`screenAccess.ts`: new `ScreenId`/`HomeTileId` `tumorBoard` (its own `screen:tumor-board:open` capability, its own `TILE_SCREENS`/`checks` entries) — the dedicated board-nomination workspace and its Home tile. Seeded in `capabilitySeeds.ts` to Pathologist, Fellow, Resident, and PA (the roles that gross/sign out and nominate cases to a board), alongside each role's existing screens.
+
+## Batch 491 — new Margin Exception Review screen; Tumor Board Rules config section (PS-359 follow-up)
+
+`screenAccess.ts`: new `ScreenId` `marginExceptionReview` (its own `screen:margin-exception-review:open` capability, its own `TILE_SCREENS`/`checks` entries) — the deferred Batch 490 margin-extraction review queue. Placed in the **Pathology Workspace** hub (`TILE_SCREENS.pathologyWorkspace`), not given its own standalone Home tile like `tumorBoard`, since it's a narrower, lower-traffic queue. Seeded in `capabilitySeeds.ts` to Pathologist, Fellow, Resident, and PA — the same roles as `tumorBoard` and the case-level `case:margin-exception:resolve` action this screen reaches.
+
+`configSectionAccess.ts`: Configuration → System → **Tumor Board Auto-Flag Rules** (`tumor_board_rules`) opens for `config:tumor-board-rules:manage`.
+
+## Batch 495
+
+`routeGating.guard.test.ts`: `/report-preview/:caseId` added to `OPEN_ROUTES` — it has no screen gate because, like `/report/:caseId`, it runs the per-case access check (`openCaseForViewDefault`). The guard is what surfaced that the preview window lacked that check when its route was first added.
+
+## Batch 497
+
+`/report-preview/:caseId` removed from `OPEN_ROUTES` — the route is gone (window retired).
+
+## Batch 522
+
+`/consult` added to `OPEN_ROUTES`: outside consult links now carry the token after `#` (PS-290). `/consult/:token` stays, for links issued before.
+
+## Batch 527
+
+The route tests read both `App.tsx` and `SignedInApp.tsx`, where every route after sign-in now lives (PS-486).
+
+## Batch 536
+
+`configSectionAccess.ts`: the new AI Instructions section is editable with `config:ai-prompt:edit` or `…:approve`; the AI Behavior tab also with `config:ai-vendor-policy:manage`.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `routeGating.guard.test.ts`: `/my-exports` is an open route, because it lists only the requester's own exports and each download checks the export's capability again on the server.
+
+## Batch 552 (PS-539 phase 2d: site agent screens)
+
+- `configSectionAccess.ts`: `site_agents` opens with either site agent capability.

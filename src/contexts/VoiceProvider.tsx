@@ -2,19 +2,19 @@ import React, {
   createContext, useContext, useState, useRef, useEffect, useCallback,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
+
 import { useSystemConfig } from './SystemConfigContext';
 import { callAi } from '../services/aiIntegration/aiProviderService';
 import { resolveVoiceAiConfig } from '../components/Config/AI/resolveVoiceAiModel';
 import { getSessionUser } from '../services/auth/caseAccessControl';
 import { useAuthOptional } from './AuthContext';
 import { getPersonalSetting, setPersonalSetting } from '../services/userSettings/personalSettings';
-import { MockVoiceMacroService } from '../services/voicemacro/mockVoiceMacroService';
 import { isVoiceMacroVisibleTo, applyVoiceMacroSubstitutions, type VoiceMacro } from '../types/voiceMacros';
 import { getVoiceProfileRecognitionLang, getVoiceProfileLanguage } from '../constants/voiceProfiles';
 import { getPunctuationMapForLanguage } from './punctuationMaps';
 import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 import { offerVoiceCommandToScreen, screenVoiceStatusKey } from '@/services/voice/voiceCommandEvents';
+import { actionRegistryService, voiceMacroService } from '@/services';
 
 export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
 
@@ -102,7 +102,7 @@ async function checkStructuredContentAvailable(): Promise<boolean> {
       setSessionFlag(STRUCTURED_CONTENT_SESSION_KEY, 'false');
       return false;
     }
-    await callAi({ system: 'Reply with: OK', prompt: 'ping', maxTokens: 10, configOverride });
+    await callAi({ system: 'Reply with: OK', prompt: 'ping', maxTokens: 10, configOverride, context: { feature: 'connection-test' } });
     available = true;
   } catch (e: any) {
     // Distinguish "proxy/key genuinely missing" from "rate limited but
@@ -248,7 +248,7 @@ async function refineWithStructuredContent(
       console.warn('[VoiceProvider] No validated voice AI model configured');
       return null;
     }
-    const result = await callAi({ system: VOICE_REFINEMENT_SYSTEM, prompt, configOverride });
+    const result = await callAi({ system: VOICE_REFINEMENT_SYSTEM, prompt, configOverride, context: { feature: 'voice' } });
     return result.text?.trim() || null;
   } catch (e) {
     console.warn('[VoiceProvider] AI refinement failed:', e);
@@ -305,7 +305,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // macros, refreshed once per dictation session (see startDictation
   // below) — never re-fetched per spoken segment, since the LOCAL PATH
   // substitution needs to be near-instant.
-  const voiceMacroServiceRef = useRef(new MockVoiceMacroService());
+  const voiceMacroServiceRef = useRef(voiceMacroService);
   const voiceMacrosRef = useRef<VoiceMacro[]>([]);
   const phaseRef           = useRef<VoicePhase>('standby');
   const commandPhaseRef    = useRef<'ai' | 'local'>('ai');
@@ -348,7 +348,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // was real, stored, admin-editable data that never actually fired
   // anything on a real, physical key press — only voice commands ever
   // called executeAction. This is the real, missing receiving half.
-  // Shares mockActionRegistryService's own getEligibleActions() — the
+  // Shares actionRegistryService's own getEligibleActions() — the
   // exact same isActive + GLOBAL_CATEGORIES-or-current-context rule
   // voice matching already uses — so keyboard and voice can never
   // silently drift apart on which actions are eligible right now.
@@ -364,7 +364,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
       if (isTyping && !hasModifier) return;
 
-      const eligible = mockActionRegistryService.getEligibleActions();
+      const eligible = actionRegistryService.getEligibleActions();
       const matched = eligible.find(a => {
         if (!a.shortcut) return false;
         const sc = parseShortcut(a.shortcut);
@@ -376,7 +376,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
       if (matched) {
         e.preventDefault();
-        mockActionRegistryService.executeAction(matched);
+        actionRegistryService.executeAction(matched);
       }
     };
     window.addEventListener('keydown', handleGlobalShortcut);
@@ -389,7 +389,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const miss = pendingMissRef.current;
       if (!miss || Date.now() > miss.expiresAt) return;
       if (phaseRef.current === 'standby') return;
-      const matched = mockActionRegistryService.getActions().find(a => {
+      const matched = actionRegistryService.getActions().find(a => {
         if (!a.shortcut) return false;
         const sc = parseShortcut(a.shortcut);
         return (
@@ -399,7 +399,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         );
       });
       if (matched) {
-        mockActionRegistryService.confirmMiss(miss.id, matched.id, 'shortcut');
+        actionRegistryService.confirmMiss(miss.id, matched.id, 'shortcut');
         pendingMissRef.current = null;
       }
     };
@@ -493,7 +493,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       dictationTargetRef.current?.onText(localWithLearning);
       setTranscript('');
     }
-  }, [t]);
+  }, [t, accent]);
 
   // ── Speech recognition lifecycle ───────────────────────────────────────────
   useEffect(() => {
@@ -551,18 +551,18 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setTimeout(() => setTranscript(''), 1200);
           continue;
         }
-        const action = mockActionRegistryService.findActionByTrigger(text, getVoiceProfileLanguage(accent));
+        const action = actionRegistryService.findActionByTrigger(text, getVoiceProfileLanguage(accent));
         if (action) {
           pendingMissRef.current = null;
-          mockActionRegistryService.executeAction(action, text);
+          actionRegistryService.executeAction(action, text);
           setTranscript(t('voiceProvider.status.actionExecuted', { label: action.label }));
           setTimeout(() => setTranscript(''), 1200);
         } else {
-          const miss = mockActionRegistryService.recordMiss(text);
+          const miss = actionRegistryService.recordMiss(text);
           pendingMissRef.current = { id: miss.id, expiresAt: Date.now() + MISS_CONFIRMATION_WINDOW_MS };
           setTimeout(() => {
             if (pendingMissRef.current?.id === miss.id) {
-              mockActionRegistryService.dismissMiss(miss.id);
+              actionRegistryService.dismissMiss(miss.id);
               pendingMissRef.current = null;
             }
           }, MISS_CONFIRMATION_WINDOW_MS);

@@ -12,3 +12,15 @@ Tested in `../components/cytologyRevision.test.tsx`.
 
 ---
 *See [../README.md](../README.md) for how this folder fits the page.*
+
+## Batch 540
+
+`useCytologyRevision.ts`: a correction or addendum refused during the release delay shows `cytologyRevision.toasts.inReleaseDelay`.
+
+## Batch 572
+
+`useScreeningHoursSignOff.ts` (new): reads the signed-in person's day and signs it off through `cytologyScreeningHoursService`.
+
+## Batch 574
+
+`useCytologyWorkloadSummary.ts` (new): the counter's figures, read again after a save, every minute and when shown. `useScreeningHoursSignOff.ts`: today and yesterday, read again when shown and every five minutes; `dateNotAllowed` and `noteTooLong` reported.

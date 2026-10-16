@@ -24,12 +24,12 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+
 import { buildAdt08Payload, buildAdt40Payload, buildAdt47Payload } from '@/services/patients/buildPatientAdtPayload';
 import { prepareOruR01Dispatch } from '@/services/reports/prepareOruR01Dispatch';
 import { permitInterfacePreview } from '@/services/interfacePreview/permitInterfacePreview';
 import type { OruResultState } from '@/types/case/OutboundResultQueueEntry';
-import { recordExport } from '@/services';
+import { recordExport, patientIndexService } from '@/services';
 
 type MessageType = 'A08' | 'A40' | 'A47' | 'ORU_R01';
 
@@ -80,19 +80,19 @@ const OutboundMessagePreviewSection: React.FC = () => {
     setBusy(true);
     try {
       if (messageType === 'A08') {
-        const record = await mockPatientIndexService.getById(patientId.trim());
+        const record = await patientIndexService.getById(patientId.trim());
         if (!record) { setError(t('outboundMessagePreviewSection.errors.patientNotFound', { id: patientId.trim() })); return; }
         const result = await buildAdt08Payload(record.id, record.organisationId);
         setPayload(result);
         if (!result) setError(t('outboundMessagePreviewSection.errors.a08NullPayload'));
       } else if (messageType === 'A40') {
-        const prior = await mockPatientIndexService.getById(priorPatientId.trim());
+        const prior = await patientIndexService.getById(priorPatientId.trim());
         if (!prior) { setError(t('outboundMessagePreviewSection.errors.a40PriorNotFound', { id: priorPatientId.trim() })); return; }
         const result = await buildAdt40Payload(prior.id, survivingPatientId.trim(), prior.organisationId, 0, 0);
         setPayload(result);
         if (!result) setError(t('outboundMessagePreviewSection.errors.nullPayloadBothIds'));
       } else if (messageType === 'A47') {
-        const priorRecord = await mockPatientIndexService.getById(a47PriorId.trim());
+        const priorRecord = await patientIndexService.getById(a47PriorId.trim());
         if (!priorRecord) { setError(t('outboundMessagePreviewSection.errors.a47PriorNotFound', { id: a47PriorId.trim() })); return; }
         const result = await buildAdt47Payload(priorRecord.id, a47ConfirmedId.trim(), priorRecord.organisationId, reasonCode.trim(), notes.trim(), 0);
         setPayload(result);
@@ -134,7 +134,7 @@ const OutboundMessagePreviewSection: React.FC = () => {
       </div>
 
       <div className="ps-qa-tab-toolbar ps-qa-tab-toolbar--wrap">
-        <select className="ps-conf-select" value={messageType} onChange={e => { setMessageType(e.target.value as MessageType); reset(); }}>
+        <select aria-label={t('a11y.messageType')} className="ps-conf-select" value={messageType} onChange={e => { setMessageType(e.target.value as MessageType); reset(); }}>
           {(Object.keys(MESSAGE_TYPE_LABEL_KEY) as MessageType[]).map(mt => (
             <option key={mt} value={mt}>{t(MESSAGE_TYPE_LABEL_KEY[mt])}</option>
           ))}
@@ -163,7 +163,7 @@ const OutboundMessagePreviewSection: React.FC = () => {
           <>
             <input className="ps-conf-input" data-phi="accession" placeholder={t('outboundMessagePreviewSection.fields.caseId')} value={caseId} onChange={e => setCaseId(e.target.value)} />
             <input className="ps-conf-input" placeholder={t('outboundMessagePreviewSection.fields.instanceId')} value={instanceId} onChange={e => setInstanceId(e.target.value)} />
-            <select className="ps-conf-select" value={resultState} onChange={e => setResultState(e.target.value as OruResultState)}>
+            <select aria-label={t('a11y.fields.resultState')} className="ps-conf-select" value={resultState} onChange={e => setResultState(e.target.value as OruResultState)}>
               <option value="FINAL">{t('outboundMessagePreviewSection.resultStates.final')}</option>
               <option value="CORRECTED">{t('outboundMessagePreviewSection.resultStates.corrected')}</option>
               <option value="ADDENDUM">{t('outboundMessagePreviewSection.resultStates.addendum')}</option>
@@ -193,7 +193,7 @@ const OutboundMessagePreviewSection: React.FC = () => {
             <h2 className="ps-conf-section-title">{t('outboundMessagePreviewSection.output.title')}</h2>
             <p className="ps-conf-section-subtitle">{t('outboundMessagePreviewSection.output.subtitle')}</p>
           </div>
-          <textarea
+          <textarea aria-label={t('outboundMessagePreviewSection.output.title')}
             readOnly
             className="ps-conf-input ps-dft-export__mono-textarea ps-outbound-preview__mono-textarea--json"
             value={JSON.stringify(payload, null, 2)}

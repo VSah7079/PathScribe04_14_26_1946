@@ -35,8 +35,19 @@ describe('mockCytologyQaReportService — real, per direct follow-up ("mimicking
       mockCytologyQaReportService.getAscusHpvReflexReport({ level: 'enterprise' }),
       mockCytologyQaReportService.getWorkloadTrackingReport({ level: 'enterprise' }),
       mockCytologyQaReportService.getRegistryTransmissionAuditReport({ level: 'enterprise' }, 'ncsr_australia'),
+      mockCytologyQaReportService.getFiveYearRetrospectiveLookbackReport({ level: 'enterprise' }),
     ]);
     for (const r of results) expect(r.ok).toBe(true);
+  });
+
+  // Batch 483 (PS-359 tracker follow-up — "CYT-QA-03 vs CYT-QA-04 report
+  // asymmetry"): CYT-QA-03's own aggregate, closing the gap CYT-QA-04 never had.
+  it('a real, enterprise-scoped CYT-QA-03 report sees at least as many real flagged specimens as any narrower real client scope', async () => {
+    const enterprise = await mockCytologyQaReportService.getFiveYearRetrospectiveLookbackReport({ level: 'enterprise' });
+    const narrowScope = await mockCytologyQaReportService.getFiveYearRetrospectiveLookbackReport({ level: 'client', clientId: 'a-real-client-id-that-does-not-exist' });
+    if (!enterprise.ok || !narrowScope.ok) throw new Error('setup failed');
+    expect(narrowScope.data.totalFlagged).toBe(0);
+    expect(enterprise.data.totalFlagged).toBeGreaterThanOrEqual(narrowScope.data.totalFlagged);
   });
 
   it('a real, enterprise-scoped aggregate report sees at least as many real comparisons as any narrower real client scope', async () => {

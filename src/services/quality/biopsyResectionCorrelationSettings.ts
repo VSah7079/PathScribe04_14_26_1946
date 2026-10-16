@@ -33,7 +33,6 @@ export async function getEffectiveBiopsyResectionRule(facilityId: string | undef
   const override = facilityId ? await mockFacilityBiopsyResectionCorrelationOverrideService.getForFacility(facilityId) : null;
   return resolveEffectiveCorrelationRule(
     settings.ok ? settings.data : null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     facility && facility.ok ? (facility.data as any)?.jurisdiction ?? null : null,
     override && override.ok ? override.data : null,
   );

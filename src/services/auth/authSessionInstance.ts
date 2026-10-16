@@ -3,15 +3,18 @@
 // PS-60 (Batch 343): the app's one authSession, wired to this build's
 // settings and services. Exported from `@/services` as `authSession`.
 //
-// The demo accounts are loaded only when VITE_AUTH_MODE is not exactly
-// "sso". Vite writes the setting into the code at build time, so in an
-// "sso" build the import below is dead code and the accounts module is not
-// in the bundle (checked in Batch 343 by building and searching dist/).
-// Any other unrecognised value still turns password sign-in off
-// (authConfig.ts), it just doesn't strip the module.
+// The demo accounts are loaded only in the demo build (__DEMO_TOOLS__) and
+// when VITE_AUTH_MODE is not exactly "sso". Batch 547: the sign-in mode now
+// comes from config.json at start-up, so it can't strip the module any more;
+// __DEMO_TOOLS__ is fixed by the build, so in a server build every import of
+// the accounts below is dead code and the module is not in the bundle
+// (scripts/check-production-bundle.mjs fails the build if it is). A server
+// build signs in through the identity provider only (config.json must say
+// "sso", services/runtimeConfig/runtimeSettings.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
+import { runSessionEndHooks } from './sessionEndHooks';
 import { mockUserService } from '../users/mockUserService';
 import { mockRoleService } from '../roles/mockRoleService';
 import { mockAuditService } from '../auditlog/mockAuditService';
@@ -21,12 +24,14 @@ import * as markers from '../session/sessionSupersedeService';
 import { resolveAuthConfig } from './authConfig';
 import { createAuthSession } from './authSession';
 import { readSessionProfile, writeSessionProfile } from './sessionProfile';
+import { dataStorage } from '../browserData/dataStorage';
 import { createSsoClient, type ISsoClient } from './sso/ssoClient';
 import { setAccessTokenSource } from './accessTokenSource';
 import { browserSignInLockStore } from './signInLockout';
 import { createSignerConfirmation, type SigningLockState } from './signerConfirmation';
 import { createSignatureGate } from './signatureEvidence';
 import { mockSignatureRecordService } from '../signatures/mockSignatureRecordService';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 const isProduction = !!import.meta.env.PROD;
 
@@ -34,29 +39,29 @@ const isProduction = !!import.meta.env.PROD;
 // as an object made Vite copy every VITE_ variable in .env into the browser
 // bundle, whatever it held (envExposure.guard.test.ts).
 const AUTH_ENV: Record<string, string | undefined> = {
-  VITE_AUTH_MODE: import.meta.env.VITE_AUTH_MODE,
-  VITE_AUTH_MICROSOFT_AUTHORITY: import.meta.env.VITE_AUTH_MICROSOFT_AUTHORITY,
-  VITE_AUTH_MICROSOFT_CLIENT_ID: import.meta.env.VITE_AUTH_MICROSOFT_CLIENT_ID,
-  VITE_AUTH_MICROSOFT_API_SCOPE: import.meta.env.VITE_AUTH_MICROSOFT_API_SCOPE,
-  VITE_AUTH_MICROSOFT_SCOPES: import.meta.env.VITE_AUTH_MICROSOFT_SCOPES,
-  VITE_AUTH_MICROSOFT_LINK_BY_EMAIL: import.meta.env.VITE_AUTH_MICROSOFT_LINK_BY_EMAIL,
-  VITE_AUTH_GOOGLE_AUTHORITY: import.meta.env.VITE_AUTH_GOOGLE_AUTHORITY,
-  VITE_AUTH_GOOGLE_CLIENT_ID: import.meta.env.VITE_AUTH_GOOGLE_CLIENT_ID,
-  VITE_AUTH_GOOGLE_API_SCOPE: import.meta.env.VITE_AUTH_GOOGLE_API_SCOPE,
-  VITE_AUTH_GOOGLE_SCOPES: import.meta.env.VITE_AUTH_GOOGLE_SCOPES,
-  VITE_AUTH_GOOGLE_LINK_BY_EMAIL: import.meta.env.VITE_AUTH_GOOGLE_LINK_BY_EMAIL,
-  VITE_AUTH_OIDC_AUTHORITY: import.meta.env.VITE_AUTH_OIDC_AUTHORITY,
-  VITE_AUTH_OIDC_CLIENT_ID: import.meta.env.VITE_AUTH_OIDC_CLIENT_ID,
-  VITE_AUTH_OIDC_API_SCOPE: import.meta.env.VITE_AUTH_OIDC_API_SCOPE,
-  VITE_AUTH_OIDC_SCOPES: import.meta.env.VITE_AUTH_OIDC_SCOPES,
-  VITE_AUTH_OIDC_LINK_BY_EMAIL: import.meta.env.VITE_AUTH_OIDC_LINK_BY_EMAIL,
+  VITE_AUTH_MODE: appEnv().VITE_AUTH_MODE,
+  VITE_AUTH_MICROSOFT_AUTHORITY: appEnv().VITE_AUTH_MICROSOFT_AUTHORITY,
+  VITE_AUTH_MICROSOFT_CLIENT_ID: appEnv().VITE_AUTH_MICROSOFT_CLIENT_ID,
+  VITE_AUTH_MICROSOFT_API_SCOPE: appEnv().VITE_AUTH_MICROSOFT_API_SCOPE,
+  VITE_AUTH_MICROSOFT_SCOPES: appEnv().VITE_AUTH_MICROSOFT_SCOPES,
+  VITE_AUTH_MICROSOFT_LINK_BY_EMAIL: appEnv().VITE_AUTH_MICROSOFT_LINK_BY_EMAIL,
+  VITE_AUTH_GOOGLE_AUTHORITY: appEnv().VITE_AUTH_GOOGLE_AUTHORITY,
+  VITE_AUTH_GOOGLE_CLIENT_ID: appEnv().VITE_AUTH_GOOGLE_CLIENT_ID,
+  VITE_AUTH_GOOGLE_API_SCOPE: appEnv().VITE_AUTH_GOOGLE_API_SCOPE,
+  VITE_AUTH_GOOGLE_SCOPES: appEnv().VITE_AUTH_GOOGLE_SCOPES,
+  VITE_AUTH_GOOGLE_LINK_BY_EMAIL: appEnv().VITE_AUTH_GOOGLE_LINK_BY_EMAIL,
+  VITE_AUTH_OIDC_AUTHORITY: appEnv().VITE_AUTH_OIDC_AUTHORITY,
+  VITE_AUTH_OIDC_CLIENT_ID: appEnv().VITE_AUTH_OIDC_CLIENT_ID,
+  VITE_AUTH_OIDC_API_SCOPE: appEnv().VITE_AUTH_OIDC_API_SCOPE,
+  VITE_AUTH_OIDC_SCOPES: appEnv().VITE_AUTH_OIDC_SCOPES,
+  VITE_AUTH_OIDC_LINK_BY_EMAIL: appEnv().VITE_AUTH_OIDC_LINK_BY_EMAIL,
 };
 
 export const authConfig = resolveAuthConfig(AUTH_ENV, isProduction);
 for (const problem of authConfig.problems) console.error(`[auth] ${problem}`);
 
 const API_ENV_VAR = 'VITE_API_BASE_URL';
-const configuredApi = import.meta.env.VITE_API_BASE_URL;
+const configuredApi = appEnv().VITE_API_BASE_URL;
 let apiBaseUrl: string | null = null;
 if (configuredApi) {
   const r = resolveServiceEndpoint({ name: 'PathScribe API server', envVar: API_ENV_VAR, configured: configuredApi, devDefault: '', isProduction });
@@ -67,7 +72,7 @@ if (!apiBaseUrl && authConfig.providers.length > 0 && isProduction) {
   console.warn('[auth] No PathScribe API server is configured (VITE_API_BASE_URL), so SSO users are matched to staff in the browser against the demo directory. That is for demonstrations only.');
 }
 
-const verifyDemoCredentials = import.meta.env.VITE_AUTH_MODE !== 'sso'
+const verifyDemoCredentials = __DEMO_TOOLS__ && appEnv().VITE_AUTH_MODE !== 'sso'
   ? async (email: string, password: string) => (await import('./demo/demoAccounts')).verifyDemoCredentials(email, password)
   : null;
 
@@ -75,14 +80,14 @@ const verifyDemoCredentials = import.meta.env.VITE_AUTH_MODE !== 'sso'
 const verifyStaffPassword = verifyDemoCredentials
   ? async (email: string, password: string) => (await import('../staffPasswords/mockStaffPasswordService')).mockStaffPasswordService.verify(email, password)
   : null;
-const demoAccountFor = async (staffId: string) => (await import('./demo/demoAccounts')).DEMO_ACCOUNTS.find(a => a.id === staffId);
+const demoAccountFor = async (staffId: string) => (__DEMO_TOOLS__ ? (await import('./demo/demoAccounts')).DEMO_ACCOUNTS.find(a => a.id === staffId) : undefined);
 
 // Batch 456: the sign-in lockout (signInLockout.ts) and the name the audit
 // gives an email that belongs to an account.
 const accountNameFor = async (email: string): Promise<string | null> => {
   const wanted = email.trim().toLowerCase();
   if (!wanted) return null;
-  if (verifyDemoCredentials) {
+  if (__DEMO_TOOLS__ && verifyDemoCredentials) {
     const account = (await import('./demo/demoAccounts')).DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === wanted);
     if (account) return account.name;
   }
@@ -103,6 +108,7 @@ export const authSession = createAuthSession({
   accountNameFor,
   ssoClient: getSsoClient,
   apiBaseUrl,
+  onSessionEnded: runSessionEndHooks,
   userService: mockUserService,
   roleService: mockRoleService,
   auditService: mockAuditService,
@@ -146,6 +152,7 @@ export const signerConfirmation = createSignerConfirmation({
 // (services/auth/signatureEvidence.ts). The ids already used are the mock
 // server's memory of which confirmations and ID tokens have backed a
 // signature, so none can back two.
+// Batch 525 (PS-485): server data, so dataStorage (memory on a server deployment).
 const SIGNATURE_USED_KEY = 'pathscribe_signature_used';
 const USED_KEEP = 500;
 
@@ -157,16 +164,16 @@ export const signatureGate = createSignatureGate({
   usedStore: {
     read: () => {
       try {
-        const v = JSON.parse(localStorage.getItem(SIGNATURE_USED_KEY) ?? 'null');
+        const v = JSON.parse(dataStorage.getItem(SIGNATURE_USED_KEY) ?? 'null');
         return { confirmationIds: v?.confirmationIds ?? [], tokenHashes: v?.tokenHashes ?? [] };
       } catch { return { confirmationIds: [], tokenHashes: [] }; }
     },
     add: (confirmationId, tokenHash) => {
       try {
-        const v = JSON.parse(localStorage.getItem(SIGNATURE_USED_KEY) ?? 'null') ?? {};
+        const v = JSON.parse(dataStorage.getItem(SIGNATURE_USED_KEY) ?? 'null') ?? {};
         const confirmationIds = [...(v.confirmationIds ?? []), confirmationId].slice(-USED_KEEP);
         const tokenHashes = [...(v.tokenHashes ?? []), ...(tokenHash ? [tokenHash] : [])].slice(-USED_KEEP);
-        localStorage.setItem(SIGNATURE_USED_KEY, JSON.stringify({ confirmationIds, tokenHashes }));
+        dataStorage.setItem(SIGNATURE_USED_KEY, JSON.stringify({ confirmationIds, tokenHashes }));
       } catch { /* storage unavailable */ }
     },
   },

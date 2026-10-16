@@ -35,7 +35,9 @@ export interface CytologyEarlyFinalization {
 
 export async function finalizeCytologyCaseEarly(
   input: { caseData: Case; cytologySpecimenIds: string[]; signedOutSpecimenIds: string[]; reason: string; user: { id: string; name: string } },
-  deps: Pick<CytologyWorkspaceDeps, 'enforce' | 'getCase' | 'updateCase' | 'logAudit' | 'now'>,
+  deps: Pick<CytologyWorkspaceDeps, 'enforce' | 'getCase' | 'updateCase' | 'logAudit' | 'now'>
+    /** Batch 532: release the consolidated case report (releaseFinalizedCytologyCase). */
+    & { releaseCase?: (caseId: string, previousStatus?: string) => Promise<void> },
 ): Promise<'notPermitted' | 'reasonRequired' | 'nothingSignedOut' | 'alreadyComplete' | 'finalized'> {
   const decision = await deps.enforce('cytology:case:finalize', { caseId: input.caseData.id });
   if (!decision.allowed) return 'notPermitted';
@@ -58,5 +60,7 @@ export async function finalizeCytologyCaseEarly(
     detail: `Unsigned specimens: ${remaining.join(', ')}. Reason: ${reason}`,
     user: input.user.name || input.user.id, caseId: input.caseData.accession?.fullAccession ?? input.caseData.id, confidence: null,
   });
+  // Batch 532 (Pete, Oct 12): the case report is released now, listing the unsigned specimens as not reported.
+  await deps.releaseCase?.(input.caseData.id, input.caseData.status).catch(() => {});
   return 'finalized';
 }

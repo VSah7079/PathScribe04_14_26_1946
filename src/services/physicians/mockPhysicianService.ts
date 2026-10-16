@@ -183,7 +183,7 @@ export const physicianServiceUnchecked: IPhysicianService = {
     const newP: Physician = withMirroredNames({
       id: 'ph' + Date.now(), physicianCode: generateAutoPhysicianCode(), givenNames: name.first, familyNames: name.last,
       npi, specialty: 'General', phone: '', fax: '', email: '',
-      preferredContact: 'Fax', clientIds: [], status: 'Unverified',
+      preferredContact: 'Fax', clientIds: [] as string[], status: 'Unverified',
       autoCreated: true, autoCreatedAt: new Date().toISOString().split('T')[0],
     } as Physician);
     MOCK_PHYSICIANS = [...MOCK_PHYSICIANS, newP];

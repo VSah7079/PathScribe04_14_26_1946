@@ -56,6 +56,7 @@ import { LiveStatusBadge } from '@/components/LiveUpdates/LiveStatusBadge';
 import type { OrSuiteTerminal } from '@/services/intraopDashboard/IOrSuiteTerminalService';
 import OrBoardRow from '@/components/OrSuiteDashboard/OrBoardRow';
 import type { Location } from '@/services/locations/ILocationService';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 /** Real, per the spec's own "Counts up continuously in MM:SS format."
  *  Pure — computes elapsed seconds between two real timestamps, never
@@ -107,7 +108,7 @@ const VerbalReportModal: React.FC<{ request: ActiveIntraopRequest; onClose: () =
           <>
             <h2 className="ps-orboard-modal-title">{t('orSuiteDashboard.verifyIdentity')}</h2>
             <p className="ps-orboard-modal-subtitle">{t('orSuiteDashboard.enterPinVerbal')}</p>
-            <input autoFocus type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value)} className="ps-orboard-pin-input" />
+            <input aria-label={t('orSuiteDashboard.enterPinVerbal')} autoFocus type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value)} className="ps-orboard-pin-input" />
             {pinError && <div className="ps-orboard-error">{pinError}</div>}
             <div className="ps-orboard-modal-actions">
               <button className="ps-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
@@ -118,9 +119,9 @@ const VerbalReportModal: React.FC<{ request: ActiveIntraopRequest; onClose: () =
           <>
             <h2 className="ps-orboard-modal-title">{t('orSuiteDashboard.verbalReportBy', { staffName })}</h2>
             <label className="ps-orboard-field-label">{t('orSuiteDashboard.surgeonName')}</label>
-            <input value={surgeonName} onChange={e => setSurgeonName(e.target.value)} className="ps-batch-text-input" />
+            <input aria-label={t('orSuiteDashboard.surgeonName')} value={surgeonName} onChange={e => setSurgeonName(e.target.value)} className="ps-batch-text-input" />
             <label className="ps-orboard-field-label">{t('orSuiteDashboard.noteOptional')}</label>
-            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} className="ps-batch-text-input" />
+            <textarea aria-label={t('orSuiteDashboard.noteOptional')} value={note} onChange={e => setNote(e.target.value)} rows={3} className="ps-batch-text-input" />
             <div className="ps-orboard-modal-actions">
               <button className="ps-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
               <button className="ps-orboard-log-report-btn" disabled={busy || !surgeonName.trim()} onClick={submitReport}>
@@ -185,7 +186,7 @@ const DismissConfirmationModal: React.FC<{ request: ActiveIntraopRequest; onClos
           <>
             <h2 className="ps-orboard-modal-title">{t('orSuiteDashboard.verifyIdentity')}</h2>
             <p className="ps-orboard-modal-subtitle">{t('orSuiteDashboard.enterPinDismiss')}</p>
-            <input autoFocus type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value)} className="ps-orboard-pin-input" />
+            <input aria-label={t('orSuiteDashboard.enterPinDismiss')} autoFocus type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value)} className="ps-orboard-pin-input" />
             {pinError && <div className="ps-orboard-error">{pinError}</div>}
             <div className="ps-orboard-modal-actions">
               <button className="ps-btn-secondary" onClick={onClose}>{t('orSuiteDashboard.cancelDismiss')}</button>
@@ -231,7 +232,7 @@ const TerminalSetup: React.FC<{ onBound: (id: string) => void }> = ({ onBound })
       <div className="ps-orboard-setup-content">
         <h1>{t('orSuiteDashboard.bindDisplayTitle')}</h1>
         <p className="ps-orboard-setup-description">{t('orSuiteDashboard.bindDisplayDescription')}</p>
-        <select className="ps-orboard-setup-select" onChange={e => e.target.value && onBound(e.target.value)} defaultValue="">
+        <select aria-label={t('orSuiteDashboard.bindDisplayTitle')} className="ps-orboard-setup-select" onChange={e => e.target.value && onBound(e.target.value)} defaultValue="">
           <option value="">{t('orSuiteDashboard.selectTerminal')}</option>
           {terminals.map(term => <option key={term.id} value={term.id}>{term.name}</option>)}
         </select>
@@ -247,6 +248,7 @@ const MultiSuiteLocationPicker: React.FC<{ facilityId: string; selected: string[
   useEffect(() => { locationService.listForFacility(facilityId).then(res => { if (res.ok) setLocations(res.data); }); }, [facilityId]);
   return (
     <select
+      aria-label={t('a11y.fields.suites')}
       multiple
       className="ps-orboard-multisuite-select"
       value={selected}
@@ -371,7 +373,7 @@ const OrSuiteDashboardPage: React.FC = () => {
   };
 
   if (!terminalId) return <TerminalSetup onBound={setTerminalId} />;
-  if (!terminal) return <div className="ps-orboard-loading">{t('orSuiteDashboard.loadingTerminal')}</div>;
+  if (!terminal) return <LoadingState label={t('orSuiteDashboard.loadingTerminal')} />;
 
   return (
     <div className="ps-orboard-page">

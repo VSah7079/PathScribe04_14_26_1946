@@ -13,6 +13,7 @@
 
 // v2: UK accession + NHS Number formats became enabled by default, so a v1
 // config saved earlier doesn't keep the old US-only identifier formats.
+import { dataStorage } from '../browserData/dataStorage';
 const VERSION = 'v2';
 
 export const SYSTEM_CONFIG_STORE_KEYS = {
@@ -26,12 +27,12 @@ export type SystemConfigScope = keyof typeof SYSTEM_CONFIG_STORE_KEYS;
 /** The saved settings for a scope, laid over the defaults. */
 export function readStoredConfig<T extends object>(scope: SystemConfigScope, defaults: T): T {
   try {
-    const raw = localStorage.getItem(SYSTEM_CONFIG_STORE_KEYS[scope]);
+    const raw = dataStorage.getItem(SYSTEM_CONFIG_STORE_KEYS[scope]);
     return raw ? { ...defaults, ...JSON.parse(raw) as Partial<T> } : { ...defaults };
   } catch { return { ...defaults }; }
 }
 
 /** Saves the settings for a scope. */
 export function saveStoredConfig<T>(scope: SystemConfigScope, value: T): void {
-  try { localStorage.setItem(SYSTEM_CONFIG_STORE_KEYS[scope], JSON.stringify(value)); } catch { /* storage unavailable */ }
+  try { dataStorage.setItem(SYSTEM_CONFIG_STORE_KEYS[scope], JSON.stringify(value)); } catch { /* storage unavailable */ }
 }

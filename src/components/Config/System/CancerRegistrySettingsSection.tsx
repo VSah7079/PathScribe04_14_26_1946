@@ -97,7 +97,7 @@ export const CancerRegistrySettingsSection: React.FC = () => {
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">{t(`${K}.enterpriseCard.title`)}</div>
         <div className="ps-conf-row-actions">
-          <select className="ps-conf-select" value={draft.registryId} onChange={e => setDraft({ ...draft, registryId: e.target.value as CancerRegistryId })}>{options}</select>
+          <select aria-label={t(`${K}.enterpriseCard.title`)} className="ps-conf-select" value={draft.registryId} onChange={e => setDraft({ ...draft, registryId: e.target.value as CancerRegistryId })}>{options}</select>
         </div>
         {definition && (
           <div className="ps-registry-facts">
@@ -154,11 +154,11 @@ export const CancerRegistrySettingsSection: React.FC = () => {
         {overrides.length === 0 && !adding && <div className="ps-conf-empty-row">{t(`${K}.noOverrides`)}</div>}
         {adding && (
           <div className="ps-conf-row">
-            <select className="ps-conf-select" value={adding.facilityId} onChange={e => setAdding({ ...adding, facilityId: e.target.value })}>
+            <select aria-label={t('a11y.fields.facility')} className="ps-conf-select" value={adding.facilityId} onChange={e => setAdding({ ...adding, facilityId: e.target.value })}>
               {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
             <div className="ps-conf-row-actions">
-              <select className="ps-conf-select" value={adding.registryId} onChange={e => setAdding({ ...adding, registryId: e.target.value as CancerRegistryId })}>{options}</select>
+              <select aria-label={t('a11y.fields.registry')} className="ps-conf-select" value={adding.registryId} onChange={e => setAdding({ ...adding, registryId: e.target.value as CancerRegistryId })}>{options}</select>
               <CapabilityButton capability="config:cancer-registry:manage" className="ps-conf-btn-primary" onClick={() => saveFacility(adding.facilityId, adding.registryId)}>{t(`${K}.save`)}</CapabilityButton>
               <button className="ps-conf-btn-secondary" onClick={() => setAdding(null)}>{t(`${K}.cancel`)}</button>
             </div>

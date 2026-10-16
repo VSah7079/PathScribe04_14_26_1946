@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
-import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
+
 import { SystemAction, PendingMiss } from '../../services/actionRegistry/IActionRegistryService';
 import { useVoice } from '../../contexts/VoiceProvider';
+import { actionRegistryService } from '@/services';
 
 /**
  * Appears briefly when a voice command isn't recognised.
@@ -27,7 +28,7 @@ export const VoiceMissPrompt: React.FC = () => {
   const [visible,    setVisible]    = useState(false);
 
   useEffect(() => {
-    const unsub = mockActionRegistryService.onMissRecorded((m: PendingMiss, c: SystemAction[]) => {
+    const unsub = actionRegistryService.onMissRecorded((m: PendingMiss, c: SystemAction[]) => {
       // Suppress during dictation — word misses are not command misses
       if (phase === 'dictate') return;
       setMiss(m);
@@ -46,12 +47,12 @@ export const VoiceMissPrompt: React.FC = () => {
 
   const confirm = (actionId: string) => {
     if (!miss) return;
-    mockActionRegistryService.confirmMiss(miss.id, actionId, 'manual');
+    actionRegistryService.confirmMiss(miss.id, actionId, 'manual');
     setVisible(false);
   };
 
   const dismiss = () => {
-    if (miss) mockActionRegistryService.dismissMiss(miss.id);
+    if (miss) actionRegistryService.dismissMiss(miss.id);
     setVisible(false);
   };
 
