@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/imageAssociation/
 
 Real, per an uploaded "Architectural & Integration Overview" spec's
@@ -161,6 +163,12 @@ confirmed interface-engine work, not tracked here.
   `resolveImageUrlWithFallback.ts`'s own pure decision logic are both
   genuine backend/infra concerns this sandbox cannot build or verify.
 
+## Batch 609 (part A): images linked to a report
+
+- `caseReportImages.ts`: the links attached to a case's report (kept as records only: no image bytes, per the Oct 13 rule), `attachCaseReportImage` / `removeCaseReportImage` (need `report:case-images:attach`, audited with the link's host only), `applyCaseReportImagesToPdf` / `applyCaseReportImagesToBlob` (fetch each link and add it after the report's pages; never throw).
+- `embedImageAssociationsIntoPdf.ts`: used again; draws one image per page with a caption, flags under 300 DPI, prints the Image Unavailable page for a link that cannot be fetched, keeps the report's metadata.
+- `readImageSize.ts`, `fitImageToReportPage.ts`: format and size of a PNG/JPEG, and the printed size and DPI.
+
 ## Batch 428: Configuration permissions
 
 - `mockImageManagementSystemVendorService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:vendor-integrations:manage`.
@@ -178,3 +186,5 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 539
 
 `embedImageAssociationsIntoPdf.ts` extended the browser's cytology renderer, which is removed (PS-539 D2: the report renderer makes every PDF). Nothing sets `CytologyReportContent.imageAssociations` today and the server's cytology template doesn't draw them, so this file is unused until that work is scheduled.
+
+Batch 616 (part D, PS-502): server versions of GrossImagingVendorService, ImageManagementSystemVendorService, ImageUploadService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/DIGITAL_PATHOLOGY_API.md`.

@@ -12,9 +12,13 @@ import { getPersonalSetting, setPersonalSetting } from '../services/userSettings
 import { isVoiceMacroVisibleTo, applyVoiceMacroSubstitutions, type VoiceMacro } from '../types/voiceMacros';
 import { getVoiceProfileRecognitionLang, getVoiceProfileLanguage } from '../constants/voiceProfiles';
 import { getPunctuationMapForLanguage } from './punctuationMaps';
+import { buildDictationRefinementSystem, spellLocaleForDictation } from '@/services/voice/dictationRefinementPrompt';
+import { spellLangForJurisdiction } from '@/utils/formatDate';
 import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 import { offerVoiceCommandToScreen, screenVoiceStatusKey } from '@/services/voice/voiceCommandEvents';
 import { actionRegistryService, voiceMacroService } from '@/services';
+import { effectiveKey, matchesShortcut, pickShortcutMatch } from '@/services/actionRegistry/shortcutResolution';
+import { GoToPrefix } from '@/components/Common/GoToPrefix';
 
 export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
 
@@ -124,17 +128,6 @@ function norm(s: string) {
   return s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
-function parseShortcut(shortcut: string) {
-  const parts = shortcut.split('+').map(p => p.trim().toLowerCase());
-  return {
-    ctrl:  parts.includes('ctrl'),
-    shift: parts.includes('shift'),
-    alt:   parts.includes('alt'),
-    meta:  parts.includes('meta'),
-    key:   parts.find(p => !['ctrl','shift','alt','meta'].includes(p)) ?? '',
-  };
-}
-
 // ── Punctuation substitution map (real, per-language — see
 //    ./punctuationMaps.ts's own header for the full account of the
 //    real, deliberate French/German/Dutch/Korean additions) ─────────
@@ -215,21 +208,15 @@ function recordDictationCorrection(rawTranscript: string, corrected: string) {
 // reported validation study behind it) and calls it through that same
 // shared path, so voice genuinely isn't locked to any one vendor.
 
-const VOICE_REFINEMENT_SYSTEM =
-  'You are an expert Pathology Transcription Assistant. Refine raw voice ' +
-  'transcripts into professional medical text.\n\n' +
-  'RULES:\n' +
-  '1. Correct phonetic errors (e.g. "Rose" \u2192 "Gross", "Serial" \u2192 "Ciliary").\n' +
-  '2. Format measurements using \'x\' (e.g. "3 x 2 x 1 cm").\n' +
-  '3. Use proper pathology staging capitalization (pT2b, pN0, pM0).\n' +
-  '4. Capitalize the first word and after sentence-ending punctuation.\n' +
-  '5. Preserve punctuation symbols already present (commas, periods etc.).\n' +
-  '6. Return ONLY the refined text. No explanation, no quotes.';
+// Batch 609 (#177, #179): the system prompt is built per dictation language and English
+// spelling convention (services/voice/dictationRefinementPrompt.ts); it used to be one
+// English-only constant that left Australian and Canadian dictation on American spelling.
 
 async function refineWithStructuredContent(
   text: string,
   context: string,
-  learnedCorrections: Record<string, string>
+  learnedCorrections: Record<string, string>,
+  system: string
 ): Promise<string | null> {
   const examples = Object.entries(learnedCorrections)
     .slice(0, 5)
@@ -248,7 +235,7 @@ async function refineWithStructuredContent(
       console.warn('[VoiceProvider] No validated voice AI model configured');
       return null;
     }
-    const result = await callAi({ system: VOICE_REFINEMENT_SYSTEM, prompt, configOverride, context: { feature: 'voice' } });
+    const result = await callAi({ system, prompt, configOverride, context: { feature: 'voice' } });
     return result.text?.trim() || null;
   } catch (e) {
     console.warn('[VoiceProvider] AI refinement failed:', e);
@@ -262,6 +249,11 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { t } = useTranslation();
   const { config } = useSystemConfig();
   const voiceEnabled = config.voiceEnabled ?? true;
+  // Batch 609: read through refs so the long-lived recognition handlers see the current settings.
+  const jurisdictionRef = useRef(config.jurisdiction);
+  jurisdictionRef.current = config.jurisdiction;
+  const englishFuzzyFallbackRef = useRef(config.voiceEnglishFuzzyFallback ?? true);
+  englishFuzzyFallbackRef.current = config.voiceEnglishFuzzyFallback ?? true;
 
   // Probe voice AI refinement availability once on mount
   const [aiAvailable, setAiAvailable] = useState(false);
@@ -363,17 +355,16 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const target = e.target as HTMLElement | null;
       const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
       if (isTyping && !hasModifier) return;
+      // Batch 614: on a Mac, Option+letter types a character (é, ß); on a European keyboard AltGr does. In a text
+      // field that is typing, so it never runs a hotkey there.
+      if (isTyping && effectiveKey(e).producedText) return;
 
       const eligible = actionRegistryService.getEligibleActions();
-      const matched = eligible.find(a => {
-        if (!a.shortcut) return false;
-        const sc = parseShortcut(a.shortcut);
-        return (
-          e.ctrlKey  === sc.ctrl  && e.shiftKey === sc.shift &&
-          e.altKey   === sc.alt   && e.metaKey  === sc.meta  &&
-          e.key.toLowerCase() === sc.key
-        );
-      });
+      // Batch 602: when the key matches the screen's own command and an always-on one, the screen's runs.
+      // The always-on one stays reachable through the "Go to" prefix (Alt+J, then its key).
+      const matched = pickShortcutMatch(eligible.filter(a => {
+        return matchesShortcut(e, a.shortcut);
+      }));
       if (matched) {
         e.preventDefault();
         actionRegistryService.executeAction(matched);
@@ -390,13 +381,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!miss || Date.now() > miss.expiresAt) return;
       if (phaseRef.current === 'standby') return;
       const matched = actionRegistryService.getActions().find(a => {
-        if (!a.shortcut) return false;
-        const sc = parseShortcut(a.shortcut);
-        return (
-          e.ctrlKey  === sc.ctrl  && e.shiftKey === sc.shift &&
-          e.altKey   === sc.alt   && e.metaKey  === sc.meta  &&
-          e.key.toLowerCase() === sc.key
-        );
+        return matchesShortcut(e, a.shortcut);
       });
       if (matched) {
         actionRegistryService.confirmMiss(miss.id, matched.id, 'shortcut');
@@ -475,7 +460,11 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setTranscript(t('voiceProvider.status.refining'));
 
       const context       = dictationTargetRef.current?.context ?? 'Pathology Report';
-      const structuredContentPromise = refineWithStructuredContent(text, context, dictationCorrectionsForCurrentUser());
+      const system        = buildDictationRefinementSystem({
+        language: getVoiceProfileLanguage(accent),
+        spellLocale: spellLocaleForDictation(spellLangForJurisdiction(jurisdictionRef.current), getVoiceProfileRecognitionLang(accent)),
+      });
+      const structuredContentPromise = refineWithStructuredContent(text, context, dictationCorrectionsForCurrentUser(), system);
       const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), STRUCTURED_CONTENT_TIMEOUT_MS));
       const refined        = await Promise.race([structuredContentPromise, timeoutPromise]);
 
@@ -551,7 +540,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setTimeout(() => setTranscript(''), 1200);
           continue;
         }
-        const action = actionRegistryService.findActionByTrigger(text, getVoiceProfileLanguage(accent));
+        const action = actionRegistryService.findActionByTrigger(text, getVoiceProfileLanguage(accent), { englishFuzzyFallback: englishFuzzyFallbackRef.current });
         if (action) {
           pendingMissRef.current = null;
           actionRegistryService.executeAction(action, text);
@@ -657,7 +646,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     toggleVoice, startDictation, stopDictation,
   };
 
-  return <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>;
+  return <VoiceContext.Provider value={value}>{children}<GoToPrefix /></VoiceContext.Provider>;
 };
 
 export const useVoice = () => useContext(VoiceContext)!;

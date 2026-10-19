@@ -15,6 +15,7 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock('@/services', async () => {
   const coding = await import('@/services/billing/caseBillingCoding');
+  const reason = await import('@/services/billing/postSignoutBillingReason');
   return {
     ...coding,
     enforceBillingReview: async (...a: unknown[]) => { m.enforceBillingReview(...a); return m.allowed; },
@@ -24,8 +25,15 @@ vi.mock('@/services', async () => {
     auditBillingSuggestionDeclined: m.auditBillingSuggestionDeclined,
     enforceAppliedCodeCorrection: m.enforceAppliedCodeCorrection,
     isCaseSignedOutForBilling: () => m.signedOut,
+    // The real decision and summary, with the case's sign-out state from the test.
+    postSignoutReasonNeeded: (i: { billed: boolean; status: unknown; hasChange?: boolean }) =>
+      reason.postSignoutReasonNeeded({ ...i, status: m.signedOut ? 'finalized' : 'in-progress' }),
+    specimenBillingChangeSummary: reason.specimenBillingChangeSummary,
   };
 });
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string, v?: Record<string, string>) => (v ? `${key}:${JSON.stringify(v)}` : key) }),
+}));
 
 import { useCaseBillingReview, type CaseBillingWriter } from './useCaseBillingReview';
 
@@ -124,5 +132,49 @@ describe('useCaseBillingReview (verification fixes)', () => {
     const h = setup({ onLedgerChanged: changed });
     await act(() => h.hook.result.current.panelHandlers.onApprove('A', 'b1', '88342'));
     expect(changed).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Oct 15, 2026 (review finding): specimen-level billing changes after sign-out ask for the same reason.
+describe('useCaseBillingReview — specimen-level changes after sign-out', () => {
+  const ADDED = (code: string) => `postSignoutBillingChangeModal.summaryCodeAdded:${JSON.stringify({ code })}`;
+  const REMOVED = (code: string) => `postSignoutBillingChangeModal.summaryCodeRemoved:${JSON.stringify({ code })}`;
+  const ctx = { reasonId: 'psbc-coding-error', comment: 'Wrong base code' };
+
+  it.each([
+    ['adding a base code', (h: ReturnType<typeof setup>) => h.hook.result.current.panelHandlers.onAddBaseCode('A', '88305'), ADDED('88305'), 'charge'],
+    ['removing a base code', (h: ReturnType<typeof setup>) => h.hook.result.current.panelHandlers.onDeleteBaseCode('A', '88305'), REMOVED('88305'), 'credit'],
+    ['applying a matrix code', (h: ReturnType<typeof setup>) => h.hook.result.current.panelHandlers.onApplyMatrixCode('A', 'mb1', '88342', 's1'), ADDED('88342'), 'charge'],
+  ] as const)('%s asks first; cancelling changes nothing; confirming records the reason', async (_label, run, summary, kind) => {
+    m.signedOut = true;
+    const h = setup();
+    let done: Promise<void>;
+    act(() => { done = run(h); });
+    await vi.waitFor(() => expect(h.hook.result.current.postSignoutPrompt).toEqual({ summary }));
+    act(() => h.hook.result.current.cancelPostSignout());
+    await act(() => done!);
+    expect(h.writer.saveSpecimens).not.toHaveBeenCalled();
+    expect(m.recordCaseCharge).not.toHaveBeenCalled();
+    expect(m.recordCaseCredit).not.toHaveBeenCalled();
+
+    act(() => { done = run(h); });
+    await vi.waitFor(() => expect(h.hook.result.current.postSignoutPrompt).not.toBeNull());
+    act(() => h.hook.result.current.confirmPostSignout(ctx));
+    await act(() => done!);
+    expect(h.writer.saveSpecimens).toHaveBeenCalledTimes(1);
+    const recorder = kind === 'charge' ? m.recordCaseCharge : m.recordCaseCredit;
+    expect(recorder).toHaveBeenCalledWith(expect.objectContaining({ specimenId: 'A', blockId: undefined, postSignoutContext: ctx }));
+  });
+
+  it('before sign-out, or on a case not billed here, nothing is asked', async () => {
+    const h = setup();
+    await act(() => h.hook.result.current.panelHandlers.onAddBaseCode('A', '88305'));
+    expect(h.hook.result.current.postSignoutPrompt).toBeNull();
+    expect(m.recordCaseCharge).toHaveBeenCalledWith(expect.objectContaining({ postSignoutContext: undefined }));
+    m.signedOut = true;
+    const assist = setup({ chargesEnabled: false });
+    await act(() => assist.hook.result.current.panelHandlers.onDeleteBaseCode('A', '88305'));
+    expect(assist.hook.result.current.postSignoutPrompt).toBeNull();
+    expect(assist.writer.saveSpecimens).toHaveBeenCalled();
   });
 });

@@ -65,3 +65,10 @@ Before, a surgical case could be marked "follow-up specimen expected" only in th
 ## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
 
 - Batch 555: `sendFollowUpAlertsLive` does nothing once the server runs `followUp.dailyAlerts`.
+
+## Batch 616 (part F, PS-483) — commands, and a server version
+
+- **`IFollowUpService`** is the one way screens and `followUpLive.ts` change or read follow-ups: `loadItems`, `getExpectation`, `markExpected`, `recordDisposition`, `reopen`, `emailClinician`. Command-based (Pete, Oct 18): the server works out the window, status, actor and time; the browser never sends a record, a status, a window or a user id.
+- `mockFollowUpService.ts` is the demo (the old logic from `followUpLive.ts`, unchanged in behaviour); `httpFollowUpService.ts` is the API server's (contract: `docs/architecture/FOLLOW_UP_API.md`, Browser commands); `followUpServiceInstance.ts` chooses.
+- `followUpLive.ts` keeps what only the browser does: the demo alert sweep (a server job once `VITE_SERVER_JOBS` says so) and the clinician email draft.
+- Tests: `httpFollowUpService.test.ts`; the existing tests are unchanged.

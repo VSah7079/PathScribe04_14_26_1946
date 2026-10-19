@@ -264,6 +264,21 @@ describe('buildJsonWebhookPayload — real, per direct follow-up: performingFaci
     expect(payload.performingFacility?.facilityId).toBe('c-fenwick-general');
   });
 
+  it('Batch 605: the facility Place of Service code and its dictionary name are in the payload; absent when not set', async () => {
+    const { mockFacilityService } = await import('@/services/facilities/mockFacilityService');
+    const caseData = {
+      id: 'CASE-FACILITY-POS', patient: undefined as any, participants: [], specimens: [],
+      order: { icd10Codes: [], facilityId: 'c-fenwick-general' } as any,
+    };
+    await mockFacilityService.update('c-fenwick-general', { placeOfServiceCodeId: '81' });
+    const withPos = await buildJsonWebhookPayload(caseData as any, []);
+    expect(withPos.performingFacility?.placeOfServiceCode).toBe('81');
+    expect(typeof withPos.performingFacility?.placeOfServiceName).toBe('string');
+    await mockFacilityService.update('c-fenwick-general', { placeOfServiceCodeId: '' });
+    const without = await buildJsonWebhookPayload(caseData as any, []);
+    expect(without.performingFacility?.placeOfServiceCode).toBeUndefined();
+  });
+
   it('a real, admin-set cliaOrIsoNumber is genuinely reflected in the payload', async () => {
     const { mockFacilityService } = await import('@/services/facilities/mockFacilityService');
     await mockFacilityService.update('c-fenwick-general', { cliaOrIsoNumber: '05D1234567' });
@@ -307,5 +322,31 @@ describe('buildJsonWebhookPayload — real, per direct follow-up: performingFaci
     const payload = await buildJsonWebhookPayload(caseData as any, []);
     expect(payload.performingFacility?.facilityId).toBe('c-fenwick-womens');
     expect(payload.performingFacility?.cliaOrIsoNumber).toBeUndefined();
+  });
+});
+
+describe('buildJsonWebhookPayload — Batch 618 (PS-336): a second facility for the technical component', () => {
+  const caseWith = (technicalComponentFacilityId?: string) => ({
+    id: 'CASE-SPLIT', patient: undefined as any, participants: [], specimens: [],
+    order: { icd10Codes: [], facilityId: 'c-fenwick-general', technicalComponentFacilityId } as any,
+  });
+  const charges = [baseCharge({ id: 'tc', billingType: 'TC' }), baseCharge({ id: 'pro', billingType: '26' })];
+
+  it('sends the technical charge to the technical lab and the professional charge to the reporting lab', async () => {
+    const { mockFacilityService } = await import('@/services/facilities/mockFacilityService');
+    const all = await mockFacilityService.getAll();
+    const other = (all as any).data.find((f: any) => f.id !== 'c-fenwick-general' && !f.isEnterprise && f.roles.includes('performing_lab'));
+    const payload = await buildJsonWebhookPayload(caseWith(other.id) as any, charges);
+    expect(payload.technicalComponentFacility?.facilityId).toBe(other.id);
+    expect(payload.charges.find(c => c.transactionId === 'tc')?.performingFacilityId).toBe(other.id);
+    expect(payload.charges.find(c => c.transactionId === 'pro')?.performingFacilityId).toBe('c-fenwick-general');
+  });
+
+  it('is unchanged for a single-facility case, or when the same lab is named twice', async () => {
+    for (const technical of [undefined, 'c-fenwick-general']) {
+      const payload = await buildJsonWebhookPayload(caseWith(technical) as any, charges);
+      expect(payload.technicalComponentFacility).toBeUndefined();
+      expect(payload.charges.every(c => c.performingFacilityId === 'c-fenwick-general')).toBe(true);
+    }
   });
 });

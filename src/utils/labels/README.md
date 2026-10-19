@@ -96,3 +96,24 @@ Tests only: the label print tests allow Configuration changes in a mocked author
 ## Batch 546
 
 `printCassetteSlideLabel.ts`: the header comment is corrected. The workstation agent goes through `dispatchZplLabel.ts`; the comment had said it was refused. Network label printing on site is the site agent's (`docs/architecture/SITE_AGENT_API.md`, `print.label`).
+
+## Batch 589 — Label fixes (PS-55, PS-478)
+
+- `buildRequisitionLabelData.ts`: `labelPatientName` reads `givenNames`/`familyNames`, `firstName`/`lastName` and `first_name`/`last_name`; a missing patient or name prints blank, never "Patient undefined undefined".
+- `dispatchZplLabel.ts`: opens the QZ Tray connection before printing (the app never did).
+- `labelBridgeNotice.ts`: tells the screen when a label meant for the hardware printer fell back to the browser print window; the report page shows a toast.
+
+## Batch 606 (printing, labels and the site agent)
+
+- `dispatchZplLabel.ts`: `bridgeDispatchesZpl(printer)` says whether a label goes down the printer bridge or to the browser print dialog; BarTender, Zebra Browser Print and Direct via Interface Engine (and the PathScribe Agent with no program running) answer Simulated in the demo (`simulated: true` on the result).
+- `zplTemplates.ts`: `buildSlideZplTemplate(fields, layout?, dpi?)` takes the module size, text position and font from the slide label layout (no layout: the original template). `printSlideLabel` reads the saved Print settings layout when none is passed.
+- Saved Label Designer layouts replace the built-in ZPL and HTML for requisition, specimen, decant, block, slide and molecular labels (`services/labelDesigner/savedLayoutRegistry.ts`).
+- `dispatchSlideLabel.ts`: a per-slide ledger (`wasSlideLabelOutput`, `markSlideLabelOutput`) so the microtomy scan and the workstation print produce one label; a reprint ignores it.
+
+## Batch 615 (part D) — vial and rack/batch labels (PS-360)
+
+- `vialRackZplTemplates.ts`: `buildVialZplTemplate(fields, dpi, size?)` and `buildRackZplTemplate(fields, dpi, size?)` make a Code 128 label of the vial, tube, rack, plate or batch id with text lines under it. The label size defaults to the Label Designer's size for the matching type (vial 1 x 0.5 in, molecular rack 1.5 x 0.5 in, plate and scan batch 2 x 0.75 in) and can be passed in. The bar width steps down (3, 2, 1 dots) until the barcode fits; an id too long even at 1 dot is refused with a reason. Lines that do not fit are dropped from the bottom and counted.
+- `printVialRackLabel.ts`: `printVialLabel` and `printRackLabel`. "Direct via Interface Engine" printers get a `VIAL` or `RACK` payload (template `ZPL-VIAL-V1` / `ZPL-RACK-V1`) through the tracker, so the engine's answer, Retry and the audit work as for slides; QZ Tray and PathScribe Agent printers get the ZPL. A layout saved in the Label Designer for molecular specimen, plate or rack replaces the built-in one; staining racks and scan batches have no Designer type yet.
+- `dispatchNetworkPrintJob.ts`: `buildVialRackNetworkPrintPayload`.
+- Tests: `vialRackZplTemplates.test.ts`, `printVialRackLabel.test.ts`.
+- **Needs from sites:** the label stock sizes and printer resolution actually in use. Until then the Label Designer defaults apply. Which screens call `printVialLabel` and `printRackLabel` is the next step (the molecular batch screens print through `printMolecularLabels.ts` today).

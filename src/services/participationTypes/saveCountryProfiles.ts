@@ -13,6 +13,8 @@ import type { Jurisdiction } from '../../types/systemConfig';
 import { buildCountryProfileAuditEntry, planCountryProfileSave, type CountryProfileChange, type CountryProfileRefusal, type CountryProfileRow } from './countryProfileEditor';
 import { invalidateParticipationTypeLookup } from '../../utils/participationTypeLookup';
 import { permitConfigChange } from '../authorization/guardConfigWrites';
+import { usesApiServer } from '../apiServer/serviceSelection';
+import { participationTypeService } from './participationTypeServiceInstance';
 import { participationTypeServiceUnchecked } from './mockParticipationTypeService';
 
 export type SaveCountryProfilesResult =
@@ -43,7 +45,7 @@ export async function saveCountryProfilesWithAudit(
   }
   // The country profile lives on the participation type record; this change is
   // checked above, so the record is written without the participation-types check.
-  const typeService = deps.typeService ?? participationTypeServiceUnchecked;
+  const typeService = deps.typeService ?? (usesApiServer() ? participationTypeService : participationTypeServiceUnchecked); // the demo's unguarded store: this save checked the permission itself (permitConfigChange); with an API server the server decides
   const plan = planCountryProfileSave({ ...input, nowIso: (input.now ?? (() => new Date().toISOString()))() });
   if (plan.ok === false) return { ok: false, code: plan.code, ...(plan.typeIds ? { typeIds: plan.typeIds } : {}) };
 

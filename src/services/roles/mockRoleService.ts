@@ -5,6 +5,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import { BUILT_IN_ROLE_DESCRIPTIONS } from './builtInRoleText';
 import { SYSTEM_ROLE_IDS, mergeBuiltInRoles, renameRoleInList, withCytotechParticipationType, withoutRetiredRoleFields } from './systemRoles';
 import { applyCapabilitySeeds, lockPlatformRoles } from '../authorization/capabilitySeeds';
+import { applyActionSeeds } from './actionSeeds';
 import { roleCapabilityProblem } from '../authorization/roleCapabilityRules';
 
 const SEED_ROLES: Role[] = [
@@ -76,7 +77,10 @@ const SEED_ROLES: Role[] = [
 const load = () => {
   const stored = storageGet<Role[]>('pathscribe_roles', SEED_ROLES);
   const { roles: merged, added } = mergeBuiltInRoles(stored, SEED_ROLES);
-  const { roles: seeded, changed } = applyCapabilitySeeds(merged);
+  const { roles: seededCaps, changed: capsChanged } = applyCapabilitySeeds(merged);
+  // Batch 600: and the voice and keyboard commands added to the roles list.
+  const { roles: seeded, changed: actionsChanged } = applyActionSeeds(seededCaps);
+  const changed = capsChanged || actionsChanged;
   // Batch 371: Superadmin always holds the whole catalog (ForMedrixAI's, not
   // the hospital's, to change).
   const { roles: locked, changed: relocked } = lockPlatformRoles(seeded);

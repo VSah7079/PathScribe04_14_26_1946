@@ -38,6 +38,7 @@ import { formatList } from '@/utils/formatList';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatDateTime } from '@/utils/formatDate';
 import BatchReasonModal from './BatchReasonModal';
+import { BatchColdChainPanel } from './BatchColdChainPanel';
 import { playScanBeep, playScanErrorTone } from '@/utils/playScanBeep';
 import { getDecalTimerState, formatDecalDuration } from '@/services/batches/DecalBatch';
 import { referralTrackingService } from '@/services';
@@ -460,6 +461,9 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
               </button>
             </div>
           )}
+
+          {/* Batch 610 (#17): readings for the smart container on this batch, with the labelled Simulated reading control. */}
+          <BatchColdChainPanel batch={batch} onBatchUpdated={onBatchUpdated} />
 
           {flash && (
             <div className={`ps-batch-flash ps-batch-flash--${flash.kind}`} data-phi="accession">{flash.text}</div>

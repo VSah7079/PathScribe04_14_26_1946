@@ -22,6 +22,9 @@ export interface StaffUser {
    *  of the facility default; a case's own choice still wins. Null or
    *  absent: use the facility default. */
   spellingLocale?: string | null;
+  /** Batch 608 (#50, #79): the cytology QC reviewer pools this person belongs to
+   *  (matched against a rule's eligibleReviewerRoles). Empty or absent: not in any pool. */
+  qcReviewerRoles?: string[];
   /** Professional credentials suffix (e.g. MD, FCAP, MBChB, FRCPath) */
   credentials?: string;
   /** Real, per direct guidance's own explicit design — sign-out

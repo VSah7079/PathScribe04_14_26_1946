@@ -56,6 +56,19 @@ export const mockAccessRequestService: IAccessRequestService = {
     return resolve(id, 'granted', resolvedByUserId, resolvedByUserName);
   },
 
+  async revoke(id, revokedByUserId, revokedByUserName, reason) {
+    const requests = load();
+    const idx = requests.findIndex(r => r.id === id);
+    if (idx === -1) return err(`Access request ${id} not found`);
+    const r = requests[idx];
+    if (r.type !== 'patient_cases' || r.status !== 'granted') return err('NOT_REVOCABLE');
+    if (r.revokedAt) return err('ALREADY_REVOKED');
+    if (!reason?.trim()) return err('REASON_REQUIRED');
+    requests[idx] = { ...r, revokedAt: new Date().toISOString(), revokedByUserId, revokedByUserName, revokeReason: reason.trim() };
+    persist(requests);
+    return ok({ ...requests[idx] });
+  },
+
   async deny(id, resolvedByUserId, resolvedByUserName, reason) {
     // Batch 432: the same permission as giving that access, and a reason.
     const request = load().find(r => r.id === id);

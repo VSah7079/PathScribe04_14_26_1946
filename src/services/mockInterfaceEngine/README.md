@@ -70,3 +70,7 @@ It is still developer-only, with the same double gate (a development build, and 
 ## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
 
 `simulateMolecularInstrument.ts`: after the mock engine accepts a molecular worklist, it plays the instrument. A few seconds later it reports the call set on the page (`molecularInstrumentCall`: Positive, Negative, off) for each patient sample, with controls as expected and each order id echoed, through `processInboundMolecularRunResults`. Development builds only, like the WSI scanner simulation. The default is `off`, so nothing fills a report unless someone chooses a call.
+
+## Batch 605
+
+`inboundSimulator.ts` builds and runs sample inbound ADT messages and engine events (A01, A08, A40, A24, A47, A43, A45, A50, A34 and others) through the same processors the real inbound path will use. `simulatedEngineReceiver.ts` is the stand-in engine for outbound messages: `simulateEngineReceive` records each message (type, outcome; capped at 200 in `simulatedEngineReceived`), honours the accepted, rejected or timed-out mode, and `isEngineSimulated()` says when it answers (demo, no endpoint configured, mock disabled, setting not off). Everything it shows is labelled Simulated; audit entries hold types and outcomes only.

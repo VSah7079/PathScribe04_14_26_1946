@@ -12,6 +12,7 @@ beforeEach(() => {
 
 describe('processInboundStainingInstrumentStatusEvent \u2014 real, mirrors processInboundCytologyInstrumentStatusEvent.ts', () => {
   it('a real status update for a real Staining batch is applied and persisted', async () => {
+    await import('../batches/batchServiceInstance'); // load order: the instance first, because the mock reaches @/services and so the instance
     const { mockBatchService } = await import('../batches/mockBatchService');
     const { processInboundStainingInstrumentStatusEvent, _resetProcessedStainingInstrumentStatusMessageIdsForTests } = await import('./processInboundStainingInstrumentStatusEvent');
     _resetProcessedStainingInstrumentStatusMessageIdsForTests();
@@ -33,6 +34,7 @@ describe('processInboundStainingInstrumentStatusEvent \u2014 real, mirrors proce
   });
 
   it('a real, honest terminal failure status is recorded exactly as reported, never silently upgraded', async () => {
+    await import('../batches/batchServiceInstance'); // load order: the instance first, because the mock reaches @/services and so the instance
     const { mockBatchService } = await import('../batches/mockBatchService');
     const { processInboundStainingInstrumentStatusEvent, _resetProcessedStainingInstrumentStatusMessageIdsForTests } = await import('./processInboundStainingInstrumentStatusEvent');
     _resetProcessedStainingInstrumentStatusMessageIdsForTests();
@@ -54,6 +56,7 @@ describe('processInboundStainingInstrumentStatusEvent \u2014 real, mirrors proce
   });
 
   it('a real redelivery of the same messageId is a real, honest no-op, never a duplicate write', async () => {
+    await import('../batches/batchServiceInstance'); // load order: the instance first, because the mock reaches @/services and so the instance
     const { mockBatchService } = await import('../batches/mockBatchService');
     const { processInboundStainingInstrumentStatusEvent, _resetProcessedStainingInstrumentStatusMessageIdsForTests } = await import('./processInboundStainingInstrumentStatusEvent');
     _resetProcessedStainingInstrumentStatusMessageIdsForTests();
@@ -83,6 +86,7 @@ describe('processInboundStainingInstrumentStatusEvent \u2014 real, mirrors proce
   });
 
   it('a real status event for a batch on the wrong real processingNode is honestly rejected, never silently applied', async () => {
+    await import('../batches/batchServiceInstance'); // load order: the instance first, because the mock reaches @/services and so the instance
     const { mockBatchService } = await import('../batches/mockBatchService');
     const { processInboundStainingInstrumentStatusEvent, _resetProcessedStainingInstrumentStatusMessageIdsForTests } = await import('./processInboundStainingInstrumentStatusEvent');
     _resetProcessedStainingInstrumentStatusMessageIdsForTests();

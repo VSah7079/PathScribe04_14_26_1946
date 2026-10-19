@@ -22,8 +22,35 @@
 // included, is never held.
 // ─────────────────────────────────────────────────────────────────────────────
 
+//
+// PS-128 review (Oct 15, 2026): Discard also closes a dialog that doesn't
+// close on a backdrop click or Escape (Cassette Colours, most dictionaries):
+// `dismissConfigDialog` presses the dialog's own Cancel or close control,
+// chosen by services/configDirty `pickDismissControl`; the sequence is
+// `discardDialogEdits` there.
+
 import { useEffect, type RefObject } from 'react';
-import { isTrackedEdit, outsideCloseNeedsConfirm, type ConfigDirtyRegistry } from '@/services/configDirty/configDirtyRegistry';
+import { isTrackedEdit, outsideCloseNeedsConfirm, pickDismissControl, type ConfigDirtyRegistry, type DismissControlFacts } from '@/services/configDirty/configDirtyRegistry';
+
+const CLOSE_STYLED = /(^|[\s-])(close-btn|modal-close|close)(\s|$)/;
+
+/** Presses the control that closes `dialog` without saving (its Cancel, or ✕). Returns whether one was found. */
+export function dismissConfigDialog(dialog: object, labels: { cancel: string; close: string }): boolean {
+  if (!(dialog instanceof Element) || !dialog.isConnected) return false;
+  const buttons = [...dialog.querySelectorAll<HTMLElement>('button, [role="button"]')];
+  const facts: DismissControlFacts[] = buttons.map(b => ({
+    text: b.textContent ?? '',
+    ariaLabel: b.getAttribute('aria-label') ?? undefined,
+    title: b.getAttribute('title') ?? undefined,
+    marked: b.hasAttribute('data-dialog-dismiss'),
+    disabled: b instanceof HTMLButtonElement ? b.disabled : b.getAttribute('aria-disabled') === 'true',
+    closeStyled: CLOSE_STYLED.test(b.className),
+  }));
+  const i = pickDismissControl(facts, labels);
+  if (i < 0) return false;
+  buttons[i].click();
+  return true;
+}
 
 const DIALOG_MARKERS = '[role="dialog"], [aria-modal="true"], [data-config-dialog]';
 

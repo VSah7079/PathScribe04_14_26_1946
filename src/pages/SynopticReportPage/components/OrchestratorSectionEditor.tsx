@@ -25,7 +25,7 @@ import '../../../pathscribe.css';
 import NarrativeEditor from '@/components/Editor/NarrativeEditor';
 import { useVoice } from '@/contexts/VoiceProvider';
 import type { PathScribeEditorHandle } from '@/components/Editor/PathScribeEditorRef';
-import type { LabelConfig } from '@/types/template';
+import type { FontUnits, LabelConfig } from '@/types/template';
 import { labelStyleVars } from '@/utils/labelStyleVars';
 import type { Case } from '@/types/case/Case';
 import { facilityService, macroService, voiceMacroService } from '@/services';
@@ -200,6 +200,8 @@ interface Props {
    *  matches what the final report will actually look like, not a
    *  second, independently-derived style. */
   documentStyle?:       { header?: LabelConfig; body?: LabelConfig; footer?: LabelConfig };
+  /** Batch 612: the template's font size units, for a style with none of its own. */
+  fontUnits?:           FontUnits;
 
   // ── Shared active-section state — lifted to SynopticReportPage so the
   //    navigator, centre Full Report pane, and this editor all stay in sync.
@@ -225,14 +227,14 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   onRegenerateSection, lastGeneratedAt, caseData,
   onAcceptAll, activeSectionId, onActiveSectionChange,
   tabWidthChars = 4, onTabWidthChange, onAcceptSection,
-  onGenerateReport, onStartManualEntry, documentStyle, criticalFindings,
+  onGenerateReport, onStartManualEntry, documentStyle, fontUnits, criticalFindings,
 }) => {
   const { t } = useTranslation();
   // PS-323: one stable list per section, so the editors only redraw when
   // the findings actually change.
   const findingsBySection = useMemo(() => {
     const out: Record<string, CriticalFindingFlag[]> = {};
-    for (const s of sections) out[s.id] = findingsForField(criticalFindings, narrativeFieldForSection(s.id));
+    for (const s of sections) out[s.id] = findingsForField(criticalFindings, narrativeFieldForSection(s.id, s.sourcePartId));
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [criticalFindings, sections.map(s => s.id).join('|')]);
@@ -568,7 +570,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
           <div className="ps-ose-section-card-header">
             <span
               className={`ps-ose-section-card-title${section.specimenId ? ' ps-ose-section-card-title--specimen' : ''}`}
-              style={section.specimenId ? labelStyleVars(documentStyle?.body) : undefined}
+              style={section.specimenId ? labelStyleVars(documentStyle?.body, 'label', fontUnits) : undefined}
             >{section.label}</span>
             <span className={`ps-ose-section-card-status ps-ose-section-card-status--${status}`} title={t(meta.titleKey)}>
               {meta.icon} {t(meta.titleKey)}

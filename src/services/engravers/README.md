@@ -26,3 +26,7 @@ The Firestore read and the per-type delivery that `hooks/usePendingEngineNotific
 ## Batch 560
 
 - `engraverStatusCounts.ts` (new): the Engraver Monitor's counts by status. Test: `engraverStatusCounts.test.ts`.
+
+## Batch 605
+
+With the placeholder Firebase key (`firebase/isFirebaseConfigured.ts`), `fetchEngraverDevices` and `fetchDispatchHistoryForCase` return the seeded, labelled-simulated data in `simulatedEngraverData.ts` instead of an error. The Engraver Monitor can filter by organisation.

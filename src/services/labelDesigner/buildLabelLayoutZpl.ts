@@ -28,6 +28,7 @@
 
 import { mmToDots, buildBarcodeCommand } from '../../utils/labels/simpleZplTemplate';
 import { LABEL_TYPE_DEFAULT_SYMBOLOGY } from './ILabelLayoutService';
+import { isFieldVisible } from './labelFieldVisibility';
 import type { LabelLayout, LabelLayoutField, LabelType } from './ILabelLayoutService';
 
 /**
@@ -46,7 +47,7 @@ export function buildLabelLayoutZpl(
 ): string {
   const symbology = LABEL_TYPE_DEFAULT_SYMBOLOGY[labelType];
 
-  const commands = layout.fields.map((field: LabelLayoutField) => {
+  const commands = layout.fields.filter(f => isFieldVisible(f, sampleValues)).map((field: LabelLayoutField) => {
     const xDots = mmToDots(field.xMm, dpi);
     const yDots = mmToDots(field.yMm, dpi);
     const value = sampleValues[field.fieldKey] ?? field.fieldKey;

@@ -41,6 +41,8 @@ import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { GrossingFieldNote, RequiredMark } from '@/components/Grossing/GrossingFieldNote';
 import type { StainType } from '@/services/stains/IStainService';
 import ForeignIdFields from './ForeignIdFields';
+import MaterialCommentThread from '@/components/Common/MaterialCommentThread';
+import { appendMaterialComment, buildMaterialComment } from '@/services/material/materialComments';
 
 const BLOCK_STATUSES = ['Pending', 'Grossed', 'Embedded', 'Exhausted', 'Lost', 'Damaged'] as const;
 // Real, persisted enum values (matrixBlock.status) stay as data — only
@@ -72,11 +74,14 @@ interface MatrixBlockEditorModalProps {
    *  useSpecimenBlockManagement.ts's own handleOrderTargetedMatrixStain
    *  for the real implementation this is always wired to. */
   onOrderTargetedStain: (matrixBlockId: string, targetSpecimenIds: string[], stainName: string) => Promise<{ ok: boolean }>;
+  /** Batch 611 (#10): who a new comment is from. */
+  currentUserId: string;
+  currentUserName: string;
   onClose: () => void;
 }
 
 const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
-  matrixBlock, specimens, fullAccession, onUpdate, onPrintCassette, onEditMembership, onOrderTargetedStain, onClose,
+  matrixBlock, specimens, fullAccession, onUpdate, onPrintCassette, onEditMembership, onOrderTargetedStain, currentUserId, currentUserName, onClose,
 }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('details');
@@ -314,6 +319,18 @@ const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
               🖨️ {t('matrixBlockEditorModal.details.printSecondaryLabel')}
             </button>
           )}
+
+          {/* Batch 611 (#10): the same plain-text comments an ordinary block
+              has. Each one is saved with its author and time, and the save
+              writes an audit entry (useSpecimenBlockManagement). */}
+          <MaterialCommentThread
+            idPrefix={`matrix-${matrixBlock.id}`}
+            comments={matrixBlock.comments}
+            onAdd={text => {
+              const comment = buildMaterialComment({ authorId: currentUserId, authorName: currentUserName, text });
+              if (comment) onUpdate(matrixBlock.id, { comments: appendMaterialComment(matrixBlock.comments, comment) });
+            }}
+          />
         </div>
         )}
 

@@ -4,7 +4,7 @@
 // mock phase) are changed from four Configuration sections. Each field needs
 // that section's capability, checked here before the context applies the
 // change:
-//   voiceEnabled                                   config:voice:manage
+//   voiceEnabled, voiceEnglishFuzzyFallback        config:voice:manage
 //   approvedFonts                                  config:report-appearance:manage
 //   showPeerAveragesToPathologists, facilityTimezone config:contribution-settings:manage
 //   enterprise features.abnormalDetectionEnabled   config:abnormal-triggers:manage
@@ -35,7 +35,7 @@ async function checkAll(checks: ((d: ConfigCheckDeps) => Promise<{ allowed: bool
 export async function permitSystemConfigPatch(patch: Record<string, unknown>, deps?: ConfigCheckDeps): Promise<boolean> {
   const checks: ((d: ConfigCheckDeps) => Promise<{ allowed: boolean }>)[] = [];
   const caps: string[] = [];
-  if ('voiceEnabled' in patch) { checks.push(d => d.enforce('config:voice:manage')); caps.push('config:voice:manage'); }
+  if ('voiceEnabled' in patch || 'voiceEnglishFuzzyFallback' in patch) { checks.push(d => d.enforce('config:voice:manage')); caps.push('config:voice:manage'); }
   if ('approvedFonts' in patch) { checks.push(d => d.enforce('config:report-appearance:manage')); caps.push('config:report-appearance:manage'); }
   if ('showPeerAveragesToPathologists' in patch || 'facilityTimezone' in patch) {
     checks.push(d => d.enforce('config:contribution-settings:manage')); caps.push('config:contribution-settings:manage');

@@ -10,9 +10,9 @@ vi.mock('@/services', () => ({ exportService: {} }));
 import { ExportNotices } from './ExportNotices';
 import type { ExportNotice, ExportTracker } from '@/services/exports/exportTracker';
 
-function fakeTracker(notices: ExportNotice[]): ExportTracker {
+function fakeTracker(notices: ExportNotice[], simulated = false): ExportTracker {
   return {
-    viaServer: true, run: vi.fn(), download: vi.fn(async () => ({ ok: true as const })), cancel: vi.fn(), list: vi.fn(),
+    viaServer: true, simulated, simulation: null, run: vi.fn(), download: vi.fn(async () => ({ ok: true as const })), cancel: vi.fn(), list: vi.fn(),
     dismiss: vi.fn(), reset: vi.fn(), subscribe: () => () => {}, getSnapshot: () => notices,
   };
 }
@@ -23,6 +23,17 @@ const renderAt = (tracker: ExportTracker) => render(
   </MemoryRouter>,
 );
 afterEach(() => cleanup());
+
+describe('ExportNotices, simulated export server (Batch 611, #194)', () => {
+  it('marks a notice Simulated when the export server is the simulated one', () => {
+    renderAt(fakeTracker([{ exportId: 'x1', title: 'audit-log', state: 'preparing' }], true));
+    expect(screen.getByText('exports.notice.simulatedBadge')).toBeTruthy();
+  });
+  it('shows no Simulated mark with the real API server', () => {
+    renderAt(fakeTracker([{ exportId: 'x1', title: 'audit-log', state: 'preparing' }], false));
+    expect(screen.queryByText('exports.notice.simulatedBadge')).toBeNull();
+  });
+});
 
 describe('ExportNotices (Batch 550)', () => {
   it('shows nothing when there are no notices (a quick export, or the demo)', () => {

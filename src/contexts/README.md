@@ -1,3 +1,7 @@
+## Batch 602
+
+`VoiceProvider`: hotkeys resolved with `pickShortcutMatch` (screen command first) and renders `<GoToPrefix />`.
+
 # src/contexts/
 
 App-wide React state — auth, messaging, voice, system config, scanner
@@ -245,3 +249,7 @@ Every visible string here now goes through `t()`, in all five languages, and `sr
 ## Batch 560 (PS-539 phase 2d)
 
 - `MessagingContext.tsx`: the inbox re-reads when the hub says a message arrived (topic `messages`), every 20 s without a live connection. Mounted app-wide, so each signed-in window holds one hub connection while the hub is configured.
+
+## Batch 609 (#177, #179)
+
+`VoiceProvider` builds the AI dictation refinement instructions per language and English spelling (`services/voice/dictationRefinementPrompt.ts`; the lab's jurisdiction decides the spelling) and passes the "English fuzzy fallback" setting (`SystemConfig.voiceEnglishFuzzyFallback`) to `findActionByTrigger`.

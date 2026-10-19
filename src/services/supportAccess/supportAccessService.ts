@@ -50,7 +50,7 @@ export interface SupportAccessDeps {
   enterpriseFacilities: () => Promise<Facility[]>;
   staff: () => Promise<StaffUser[]>;
   roles: () => Promise<Role[]>;
-  notify: (msg: { recipientId: string; recipientName: string; senderId: string; senderName: string; tenantName: string; ticketId: string; reason: string }) => Promise<void>;
+  notify: (msg: { recipientEmail?: string; recipientId: string; recipientName: string; senderId: string; senderName: string; tenantName: string; ticketId: string; reason: string }) => Promise<void>;
   store: { get<T>(key: string, fallback: T): T; set<T>(key: string, value: T): void };
   now?: () => Date;
   sha256?: (text: string) => Promise<string>;
@@ -188,7 +188,7 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
         if (resolveTenantFacility(u.organisationId, facilities)?.id !== input.tenantId) continue;
         const d = evaluateCapability({ userId: u.id, userName: u.email, sessionRole: null, staffRoles: u.roles ?? [] }, 'config:support-access:approve', roles);
         if (!d.allowed) continue;
-        await deps.notify({ recipientId: u.id, recipientName: [u.firstName, u.lastName].filter(Boolean).join(' '), senderId: s.id, senderName: s.name, tenantName: name, ticketId: request.ticketId, reason: request.reason }).catch(() => {});
+        await deps.notify({ recipientEmail: u.email, recipientId: u.id, recipientName: [u.firstName, u.lastName].filter(Boolean).join(' '), senderId: s.id, senderName: s.name, tenantName: name, ticketId: request.ticketId, reason: request.reason }).catch(() => {});
       }
       return { ok: true, request };
     },
@@ -292,6 +292,55 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
     },
 
     tenantName,
+
+    /**
+     * Batch 604: the ticket was closed (SIMULATED: no ticketing system is connected, so the
+     * support agent presses the button the ticketing system would press). Ends every live
+     * approval for that ticket and records it in each organisation's stream.
+     */
+    async closeTicket(ticketId: string): Promise<{ ok: true; ended: number } | Refusal<'notSupport' | 'notFound'>> {
+      const s = deps.session();
+      if (!s || s.role !== 'superadmin') return { ok: false, reason: 'notSupport' };
+      const list = await expire();
+      const id = ticketId.trim();
+      const live = list.filter(r => r.ticketId === id && r.agentId === s.id && isLiveGrant(r, now()));
+      if (live.length === 0) return { ok: false, reason: 'notFound' };
+      for (const r of live) { r.status = 'ended'; r.closedAt = now().toISOString(); }
+      writeRequests(list);
+      for (const r of live) {
+        await record({ tenantId: r.tenantId, actorId: s.id, actorName: s.name, ticketId: id, action: 'ticketClosed', detail: `Ticket ${id} closed (SIMULATED: no ticketing system is connected). Support access ended with it.` });
+      }
+      return { ok: true, ended: live.length };
+    },
+
+    /**
+     * Batch 604: the support agent's own export or configuration change, recorded in the
+     * stream of every organisation they hold live access to. Does nothing for anyone else.
+     */
+    async recordSupportActivity(a: { kind: 'export' | 'configChange'; detail: string }): Promise<void> {
+      const s = deps.session();
+      if (!s || s.role !== 'superadmin') return;
+      for (const r of (await expire()).filter(x => x.agentId === s.id && isLiveGrant(x, now()))) {
+        await record({
+          tenantId: r.tenantId, actorId: s.id, actorName: s.name, ticketId: r.ticketId,
+          action: a.kind === 'export' ? 'supportExport' : 'supportConfigChange', detail: a.detail,
+        });
+      }
+    },
+
+    /** The compliance export as a PDF, itself recorded in the stream. */
+    async exportAuditPdf(tenantId: string):
+      Promise<{ ok: true; bytes: Uint8Array; filename: string } | Refusal<'notPermitted' | 'otherOrganisation'>> {
+      const gate = await hospitalGate(tenantId, () => deps.authorization.enforce('config:support-audit:view'));
+      if (gate) return { ok: false, reason: gate };
+      const entries = readAudit()[tenantId] ?? [];
+      const chain = await verifySupportAuditChain(entries, sha);
+      const s = deps.session()!;
+      const { buildSupportAuditPdf } = await import('./supportAuditPdf');
+      const bytes = await buildSupportAuditPdf({ organisationName: await tenantName(tenantId), exportedBy: s.name, exportedAt: now().toISOString(), chain, entries });
+      await record({ tenantId, actorId: s.id, actorName: s.name, ticketId: null, action: 'auditExported', detail: `Support audit exported as PDF: ${entries.length} entries; chain ${chain.intact === false ? `broken at entry ${chain.brokenAt}` : 'intact'}.` });
+      return { ok: true, bytes, filename: `support-audit-${tenantId}-${now().toISOString().slice(0, 10)}.pdf` };
+    },
   };
 }
 

@@ -42,6 +42,7 @@ import * as ncciEditMod from '@/services/billing/mockNcciEditService';
 import * as billingDeficiencyMod from '@/services/billing/mockBillingDeficiencyService';
 import * as outboundChargeQueueMod from '@/services/billing/mockOutboundChargeQueueService';
 import * as codeReviewPoolMod from '@/services/billing/mockCodeReviewPoolService';
+import * as codePolicyMod from '@/services/coding/mockCodeSystemPolicyService';
 import * as billingTypeTriggerMod from '@/services/billing/mockBillingTypeTriggerConfigService';
 import * as validationStudyMod from '@/services/validationStudies/mockValidationStudyService';
 import * as narrativeSignalMod from '@/services/narrativeSignals/mockNarrativeSignalService';
@@ -86,6 +87,7 @@ vi.mock('@/services', () => ({
   get billingDeficiencyService() { return billingDeficiencyMod.mockBillingDeficiencyService; },
   get outboundChargeQueueService() { return outboundChargeQueueMod.mockOutboundChargeQueueService; },
   get codeReviewPoolService() { return codeReviewPoolMod.mockCodeReviewPoolService; },
+  get codeSystemPolicyService() { return codePolicyMod.mockCodeSystemPolicyService; },
   get billingTypeTriggerConfigService() { return billingTypeTriggerMod.mockBillingTypeTriggerConfigService; },
   get validationStudyService() { return validationStudyMod.mockValidationStudyService; },
   get narrativeSignalService() { return narrativeSignalMod.mockNarrativeSignalService; },

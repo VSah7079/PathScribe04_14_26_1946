@@ -2,7 +2,7 @@
 // Batch 574: what the workload counter reads with (the Cytology Workspace's own inputs, plus every facility's
 // cap override for the worklist), wired once so the pages don't import mock services.
 import { cytologyWorkspaceDeps } from './cytologyWorkspaceDeps';
-import { mockFacilityCytologyWorkloadCapOverrideService } from './mockFacilityCytologyWorkloadCapOverrideService';
+import { facilityCytologyWorkloadCapOverrideService } from './facilityCytologyWorkloadCapOverrideServiceInstance';
 import type { CytologyWorkloadSummaryDeps } from './cytologyWorkloadSummary';
 
 export const cytologyWorkloadSummaryDeps: CytologyWorkloadSummaryDeps = {
@@ -12,7 +12,7 @@ export const cytologyWorkloadSummaryDeps: CytologyWorkloadSummaryDeps = {
   getWorkloadCaps: cytologyWorkspaceDeps.getWorkloadCaps,
   getLedgerInWindow: cytologyWorkspaceDeps.getLedgerInWindow,
   getAllFacilityWorkloadCaps: async () => {
-    const r = await mockFacilityCytologyWorkloadCapOverrideService.getAll();
+    const r = await facilityCytologyWorkloadCapOverrideService.getAll();
     return r.ok ? r.data.map(o => o.overrides) : null;
   },
 };

@@ -15,6 +15,11 @@ describe('scrubClientError (Batch 502, PS-472): no patient data in a crash repor
     expect(scrubMessage('TypeError Failed to fetch JSON from API')).toBe('TypeError Failed to fetch JSON from API');
   });
 
+  it('a message line holding an @ (an e-mail address) is not mistaken for a stack frame (Batch 590)', () => {
+    const stack = 'Error: Cannot reach jane.doe@hospital.example for Jane Doe\n    at render (https://app/assets/x.js:2:3)\nrender@https://app/assets/y.js:4:5\nnative@[native code]';
+    expect(scrubStack(stack)).toEqual(['at render (https://app/assets/x.js:2:3)', 'render@https://app/assets/y.js:4:5']);
+  });
+
   it('keeps only stack frame locations, without query strings', () => {
     const stack = 'TypeError: boom for Jane\n    at render (https://app/assets/index-abc.js?v=Jane:10:5)\n    at Foo (https://app/assets/x.js:2:3)\nnot a frame';
     expect(scrubStack(stack)).toEqual(['at render (https://app/assets/index-abc.js:10:5)', 'at Foo (https://app/assets/x.js:2:3)']);

@@ -17,7 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockCytologyProficiencyTestResultService } from '../cytology/mockCytologyProficiencyTestResultService';
+import { cytologyProficiencyTestResultService } from '../cytology/cytologyProficiencyTestResultServiceInstance';
 import type { CytologyProficiencyTestResultEventPayload } from '@/types/events/CytologyProficiencyTestResultEventPayload';
 
 export interface ProcessInboundCytologyProficiencyTestResultEventResult {
@@ -61,7 +61,7 @@ export async function processInboundCytologyProficiencyTestResultEvent(
     };
   }
 
-  await mockCytologyProficiencyTestResultService.add({
+  await cytologyProficiencyTestResultService.add({
     caseId: caseData.id,
     accessionNumber: payload.accessionNumber,
     provider: payload.provider,

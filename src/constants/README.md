@@ -1,3 +1,15 @@
+## Batch 619 (part Q)
+
+`outboundQueueActionGroup.ts`: the Outbound Queue's six Role Dictionary actions (group F34, `outboundQueue.*`), spread into `ACTION_GROUPS` so `systemActions.ts` (over 1,000 lines) does not grow. `defaultActionGrants.ts` grants them to Admin. Classified in `services/actionRegistry/permissionOnlyActions.ts`.
+
+## Batch 601
+
+`systemActions.ts` gained six groups (89 open/filter/move commands); `defaultActionGrants.ts` grants them (`VIEW_ALL`, `VIEW_BASIC`).
+
+## Batch 600
+
+`systemActions.ts` gained seven groups (60 commands) and `defaultActionGrants.ts` holds what each built-in role starts with. `DEFAULT_ROLE_PERMISSIONS` merges them in.
+
 # src/constants/
 
 Five files — voice/action registries, macros, and a manually-maintained
@@ -218,3 +230,11 @@ Pete: "I was searching for Field Requirements, but the system couldn't find any 
 ## Batch 536
 
 `configSearchIndex.ts`: entries for System → AI Instructions (`sys-ai-instructions`) and the AI vendor policy (`ai-vendor-policy`).
+
+## Batch 595
+
+`configSearchIndex.ts`: the `sys-jurisdiction` entry now opens System → Code Systems (`section: 'code_systems'`); before, it described a setting that had no screen.
+
+- Batch 612 (part A): `configSearchIndex.ts` gains `sys-interface-dictionary`.
+
+- **Batch 617:** `systemActions.ts` gained a group, Related Cases, Case Access, Search Reports & Follow-up (16 entries, keys F33+PS001 to PS016); `defaultActionGrants.ts` has their default grants. The roles list is 371 entries. See `docs/product/ACTIONS_COVERAGE.md`.

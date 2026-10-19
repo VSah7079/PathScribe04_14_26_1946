@@ -14,7 +14,7 @@
 // resolution too.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockSpecimenDictionaryService } from '@/services/specimenDictionary/mockSpecimenDictionaryService';
+import { specimenDictionaryService as mockSpecimenDictionaryService } from '@/services/specimenDictionary/specimenDictionaryServiceInstance';
 
 /** Returns undefined when the specimen has no real, linked dictionary
  *  entry, the dictionary fails to load, or the linked entry has no

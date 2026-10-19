@@ -1,8 +1,8 @@
 // src/services/quality/peerReviewStatusLive.ts
 // Batch 439 (PS-144): loadPeerReviewStatus with the browser's services.
 
-import { mockPeerReviewService } from './mockPeerReviewService';
-import { mockPeerReviewSettingsService } from './mockPeerReviewSettingsService';
+import { peerReviewService } from './peerReviewServiceInstance';
+import { peerReviewSettingsService } from './peerReviewSettingsServiceInstance';
 import { loadPeerReviewStatus, type CaseForPeerReview, type PeerReviewStatus } from './peerReviewStatus';
 import type { PriorCaseForMalignancy } from './peerReviewRules';
 
@@ -22,10 +22,10 @@ async function priorCases(patientId: string, excludeCaseId: string): Promise<Pri
 export function peerReviewStatusFor(caseData: CaseForPeerReview, findings: ReadonlyArray<{ severity: string }> = []): Promise<PeerReviewStatus> {
   return loadPeerReviewStatus(caseData, findings, {
     getForCase: async caseId => {
-      const res = await mockPeerReviewService.getForCase(caseId);
+      const res = await peerReviewService.getForCase(caseId);
       return res.ok ? res.data : { requests: [], overrides: [] };
     },
-    gateOnFor: (facilityId, subspecialtyId) => mockPeerReviewSettingsService.gateOnFor(facilityId, subspecialtyId),
+    gateOnFor: (facilityId, subspecialtyId) => peerReviewSettingsService.gateOnFor(facilityId, subspecialtyId),
     // The ordering facility's performing lab; failing that, the enterprise
     // facility that lists the case's tenant (resolveTenantFacility).
     performingLabFor: async (orderingFacilityId, tenantId) => {

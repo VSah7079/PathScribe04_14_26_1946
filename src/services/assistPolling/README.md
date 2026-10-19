@@ -86,3 +86,11 @@ The LIS text is merged into the newest case. The AI draft is saved only if the c
 ## Batch 511 (PS-478): full strict type-checking
 
 `runAssistPollCycle` types its list of report instances. No behaviour change.
+
+## Batch 605
+
+`simulatedAssistSchedule.ts` runs the Assist LIS poll on its configured interval in the browser (demo only) and records last and next run; `hooks/useSimulatedAssistSchedule.ts` mounts it in the app shell.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`assistPollingService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

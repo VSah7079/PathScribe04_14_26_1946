@@ -50,6 +50,8 @@ export interface ImageAssociation {
    *  declared. See resolveImageUrlWithFallback.ts for the real
    *  resolution logic this feeds into. */
   fallbackUrl?: string;
+  /** Batch 609 (PS-44): printed under the image in the report. Optional. */
+  caption?: string;
   createdAt: string;
   createdBy?: string;
 }

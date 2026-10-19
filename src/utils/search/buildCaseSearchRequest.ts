@@ -10,6 +10,7 @@ import {
   DEFAULT_CASE_SEARCH_PAGE_SIZE, DEFAULT_CASE_SEARCH_SORT, emptyCaseSearchDraft,
   type CaseSearchCriteria, type CaseSearchDraft, type CaseSearchRequest, type CaseSearchSort,
 } from '@/services/caseSearch/caseSearchTypes';
+import { normalizeCriteria, usableCriteria } from '@/services/caseSearch/synopticValueCriteria';
 import type { IdentifierApplicationResult } from '@/utils/detectIdentifierType';
 import { resolveSearchDateRange } from './resolveSearchDateRange';
 
@@ -72,6 +73,8 @@ export function draftToCriteria(d: CaseSearchDraft): CaseSearchCriteria {
     autopsyJurisdictions: list(d.autopsyJurisdictions),
     autopsyAuthorities: list(d.autopsyAuthorities),
     autopsyReports: list(d.autopsyReports),
+    // Batch 613: only complete value filters are sent.
+    synopticValues: list(usableCriteria(d.synopticValues)),
   };
   // Leave out what isn't set, so the request carries only real filters.
   return Object.fromEntries(Object.entries(criteria).filter(([, v]) => v !== undefined)) as CaseSearchCriteria;
@@ -105,6 +108,8 @@ export function normalizeCaseSearchDraft(value: unknown, dateFrom: string, dateT
   // A draft saved without datesChosen had its dates chosen by the user.
   if (typeof v.datesChosen !== 'boolean') out.datesChosen = true;
   // Choices must be ones the page offers (Batch 351).
+  // Batch 613: value filters read back safely, whatever version saved them.
+  out.synopticValues = normalizeCriteria(v.synopticValues);
   if (!(CASE_SEARCH_DATE_BASES as readonly string[]).includes(out.dateBasis as string)) out.dateBasis = base.dateBasis;
   if (!(CASE_SEARCH_PATHOLOGIST_ROLES as readonly string[]).includes(out.pathologistRole as string)) out.pathologistRole = base.pathologistRole;
   return out as unknown as CaseSearchDraft;
@@ -136,7 +141,7 @@ export function countDraftFilters(d: CaseSearchDraft): number {
     d.sexes, d.statuses, d.priorities, d.caseFlagIds, d.specimenFlagIds, d.synopticTemplateIds,
     d.pathologistIds, d.orderingPhysicianIds, d.submittingFacilityIds, d.specimenTerms, d.diagnosisTerms,
     d.snomedCodes, d.icdCodes, d.caseTypes,
-  ].reduce((n, xs) => n + xs.length, 0) + countMoreFilters(d);
+  ].reduce((n, xs) => n + xs.length, 0) + countMoreFilters(d) + usableCriteria(d.synopticValues).length;
   const range = resolveSearchDateRange({ dateFrom: d.dateFrom, dateTo: d.dateTo, datesChosen: d.datesChosen, hasIdentifier: draftHasIdentifier(d) });
   const singles = [d.identifierText.trim(), d.dobFrom || d.dobTo, d.ageMin || d.ageMax, !range.allDates && (d.dateFrom || d.dateTo)].filter(Boolean).length;
   return lists + singles;

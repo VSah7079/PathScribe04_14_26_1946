@@ -1,24 +1,24 @@
 // src/services/registrySubmission/recordRegistryAcknowledgementDeps.ts
 // Batch 420: the real queues the acknowledgement intake and the 72-hour escalation use.
 import type { RegistryAckDeps } from './recordRegistryAcknowledgement';
-import { mockCytologyRegistryOutboundQueueService } from '../cytology/mockCytologyRegistryOutboundQueueService';
-import { mockCancerRegistryOutboundQueueService } from '../cancerRegistry/mockCancerRegistryOutboundQueueService';
+import { cytologyRegistryOutboundQueueService } from '../cytology/cytologyRegistryOutboundQueueServiceInstance';
+import { cancerRegistryOutboundQueueService } from '../cancerRegistry/cancerRegistryOutboundQueueServiceInstance';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import type { RegistryRevisionDeps } from './recordRegistryRevision';
-import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
+import { specimenDeficiencyService as mockSpecimenDeficiencyService } from '../deficiencies/specimenDeficiencyServiceInstance';
 import { caseRouter } from '../cases/CaseRouter';
 
 export const registryAckDeps: RegistryAckDeps = {
   queues: {
     cytology: {
-      getAll: () => mockCytologyRegistryOutboundQueueService.getAll() as any,
-      setRegistryStatus: (id, status, ack) => mockCytologyRegistryOutboundQueueService.setRegistryStatus(id, status, ack),
-      markFailed: (id, f) => mockCytologyRegistryOutboundQueueService.markFailed(id, f),
+      getAll: () => cytologyRegistryOutboundQueueService.getAll() as any,
+      setRegistryStatus: (id, status, ack) => cytologyRegistryOutboundQueueService.setRegistryStatus(id, status, ack),
+      markFailed: (id, f) => cytologyRegistryOutboundQueueService.markFailed(id, f),
     },
     cancer: {
-      getAll: () => mockCancerRegistryOutboundQueueService.getAll() as any,
-      setRegistryStatus: (id, status, ack) => mockCancerRegistryOutboundQueueService.setRegistryStatus(id, status, ack),
-      markFailed: (id, f) => mockCancerRegistryOutboundQueueService.markFailed(id, f),
+      getAll: () => cancerRegistryOutboundQueueService.getAll() as any,
+      setRegistryStatus: (id, status, ack) => cancerRegistryOutboundQueueService.setRegistryStatus(id, status, ack),
+      markFailed: (id, f) => cancerRegistryOutboundQueueService.markFailed(id, f),
     },
   },
   logAudit: event => mockAuditService.logEvent(event),
@@ -31,8 +31,8 @@ export const registryAckDeps: RegistryAckDeps = {
  */
 export const registryRevisionDeps: RegistryRevisionDeps = {
   queues: {
-    cytology: { getAll: () => mockCytologyRegistryOutboundQueueService.getAll() as any, setRegistryRevisions: (id, r) => mockCytologyRegistryOutboundQueueService.setRegistryRevisions(id, r) },
-    cancer: { getAll: () => mockCancerRegistryOutboundQueueService.getAll() as any, setRegistryRevisions: (id, r) => mockCancerRegistryOutboundQueueService.setRegistryRevisions(id, r) },
+    cytology: { getAll: () => cytologyRegistryOutboundQueueService.getAll() as any, setRegistryRevisions: (id, r) => cytologyRegistryOutboundQueueService.setRegistryRevisions(id, r) },
+    cancer: { getAll: () => cancerRegistryOutboundQueueService.getAll() as any, setRegistryRevisions: (id, r) => cancerRegistryOutboundQueueService.setRegistryRevisions(id, r) },
   },
   caseIdForAccession: async accessionId => {
     const all = await caseRouter.getAll(undefined, { bypassAccessControl: true });

@@ -40,6 +40,8 @@ export interface ErrorBoundaryProps {
   resetKey?: string;
   /** For tests: where reports go (default: the app's reporter). */
   report?: (error: unknown, boundary: string) => string | null;
+  /** Called when the boundary starts or stops showing its recovery screen (the shell uses it to show the nav bar). */
+  onErrorChange?: (crashed: boolean) => void;
   children: React.ReactNode;
 }
 
@@ -71,6 +73,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, State> {
     const report = this.props.report ?? ((e, b) => clientErrorReporter.report(e, 'render', b));
     const reference = report(error, this.props.name);
     this.setState({ reference, hadUnsavedChanges: !!this.context?.isDirty });
+    this.props.onErrorChange?.(true);
+  }
+
+  componentDidUpdate(_prevProps: ErrorBoundaryProps, prevState: State): void {
+    if (prevState.error && !this.state.error) this.props.onErrorChange?.(false);
   }
 
   private reset = () => this.setState({ error: null, reference: null, hadUnsavedChanges: false });
@@ -117,6 +124,6 @@ export const ErrorBoundaryFallback: React.FC<{ scope: ErrorBoundaryScope; refere
 };
 
 /** The page inside AppShell: one boundary, cleared when the address changes. */
-export const RouteErrorBoundary: React.FC<{ pathname: string; children: React.ReactNode }> = ({ pathname, children }) => (
-  <ErrorBoundary scope="route" name="route" resetKey={pathname}>{children}</ErrorBoundary>
+export const RouteErrorBoundary: React.FC<{ pathname: string; onErrorChange?: (crashed: boolean) => void; children: React.ReactNode }> = ({ pathname, onErrorChange, children }) => (
+  <ErrorBoundary scope="route" name="route" resetKey={pathname} onErrorChange={onErrorChange}>{children}</ErrorBoundary>
 );

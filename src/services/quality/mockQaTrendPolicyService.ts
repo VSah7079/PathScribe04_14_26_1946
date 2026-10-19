@@ -7,21 +7,17 @@
 // (qaTrendRules.qaTrendPolicyProblem).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ServiceResult } from '../types';
 import type { QaTrendPolicySettings } from '@/types/quality/QaTrend';
 import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { DEFAULT_QA_TREND_POLICY_SETTINGS, qaTrendPolicyChange, qaTrendPolicyProblem } from './qaTrendRules';
+import type { IQaTrendPolicyService } from './IQaTrendPolicyService';
+export type { IQaTrendPolicyService } from './IQaTrendPolicyService';
 
 export const QA_TREND_POLICY_STORAGE_KEY = 'pathscribe_qa_trend_policy';
 
-export interface IQaTrendPolicyService {
-  get(): Promise<ServiceResult<QaTrendPolicySettings>>;
-  /** Refused with the first problem (qaTrendPolicyProblem) when any policy can't work. */
-  save(settings: QaTrendPolicySettings, labName?: (id: string) => string): Promise<ServiceResult<QaTrendPolicySettings>>;
-}
 
 const load = (): QaTrendPolicySettings => {
   const stored = storageGet<Partial<QaTrendPolicySettings>>(QA_TREND_POLICY_STORAGE_KEY, {});

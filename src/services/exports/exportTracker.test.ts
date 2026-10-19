@@ -65,7 +65,7 @@ describe('with the API server', () => {
     const build = vi.fn();
     expect(await tracker.run(input(build))).toEqual({ via: 'server', result: 'downloaded', exportId: 'x1' });
     expect(build).not.toHaveBeenCalled();
-    expect(api.request).toHaveBeenCalledWith({ kind: 'audit.audit-log', format: 'csv', parameters: { from: '2026-10-01' }, title: 'audit-log' });
+    expect(api.request).toHaveBeenCalledWith({ kind: 'audit.audit-log', format: 'csv', parameters: { from: '2026-10-01' }, title: 'audit-log' }, { build: expect.any(Function) });
     expect(openDownload).toHaveBeenCalledWith('https://blob.example/x1?sig', 'audit-log-2026-10-13.csv');
     expect(tracker.getSnapshot()).toEqual([]);
   });
@@ -74,7 +74,7 @@ describe('with the API server', () => {
     const api = fakeApi(['running']);
     const s = setup(api);
     expect(await s.tracker.run({ ...input(), facilityId: 'F1' })).toEqual({ via: 'server', result: 'preparing', exportId: 'x1' });
-    expect(api.request).toHaveBeenCalledWith(expect.objectContaining({ facilityId: 'F1' }));
+    expect(api.request).toHaveBeenCalledWith(expect.objectContaining({ facilityId: 'F1' }), expect.anything());
     expect(api.get).toHaveBeenCalledTimes(6); // every 500 ms for 3 s
     expect(s.tracker.getSnapshot()).toEqual([{ exportId: 'x1', title: 'audit-log', state: 'preparing' }]);
     expect(s.hasSubscription()).toBe(true);

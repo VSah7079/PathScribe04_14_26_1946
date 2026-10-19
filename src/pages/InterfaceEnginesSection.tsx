@@ -36,8 +36,9 @@ const InterfaceEnginesSection: React.FC<{ service?: IInterfaceMonitoringService;
     <div className="ps-ifengines">
       <div className="ps-serverjobs-header">
         <div>
-          <h3 className="ps-serverjobs-heading">{t(`${K}.title`)}</h3>
+          <h3 className="ps-serverjobs-heading">{e.simulated && <span className="ps-conf-badge">{t(`${K}.simulatedBadge`)}</span>} {t(`${K}.title`)}</h3>
           <p className="ps-serverjobs-note">{t(`${K}.subtitle`)}</p>
+          {e.simulated && <p className="ps-serverjobs-note" data-testid="engines-simulated-note">{t(`${K}.simulatedNote`)}</p>}
         </div>
         <button type="button" className="ps-conf-btn-secondary" onClick={() => { void e.reload(); }}>{t(`${K}.refresh`)}</button>
       </div>

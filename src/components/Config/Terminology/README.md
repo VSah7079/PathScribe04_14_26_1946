@@ -53,3 +53,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 547
 
 Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).
+
+**Batch 617 (PS-488):** the NLM base URL here is the demonstration's direct call. With an API address configured the searches use the server's `/api/terminology/nlm/…` routes instead (`services/terminologySearch/nlmLookupRoute.ts`).

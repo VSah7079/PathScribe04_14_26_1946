@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/messages/
 
 Internal secure messaging between staff.
@@ -31,3 +33,7 @@ Tests: `mockMessageService.test.ts`, including the case of one gateway covered a
 ## Batch 526
 
 Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.
+
+## Batch 616 (part E) — server version
+
+API-server version of `Message` (`httpMessageService.ts`, contract `FLAGS_AND_MESSAGES_API.md`), picked by `messageServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

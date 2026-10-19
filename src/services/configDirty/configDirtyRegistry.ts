@@ -96,6 +96,85 @@ export function outsideCloseNeedsConfirm(f: { onBackdrop: boolean; isEscape: boo
   return f.dialogDirty && (f.onBackdrop || f.isEscape);
 }
 
+// ── PS-128 review (Oct 15, 2026): "Discard changes" closes the dialog ────────
+//
+// Batch 438 replayed the held click or key and stopped there. Many editor
+// dialogs (Cassette Colours and most System dictionaries) close only from
+// their own Cancel, not on a backdrop click or Escape, so after Discard the
+// edits were forgotten but the dialog stayed open. Discard now closes it:
+// replay first (so a dialog that closes itself does so exactly as it would
+// have), and when it is still open after that, press its own Cancel (or its
+// close control). One path for every Configuration dialog.
+
+/** What a button inside a dialog looks like, for choosing the one that closes
+ *  it without saving. */
+export interface DismissControlFacts {
+  /** Visible text, trimmed. */
+  text: string;
+  ariaLabel?: string;
+  title?: string;
+  /** Marked `data-dialog-dismiss` by the dialog itself (wins over any guess). */
+  marked: boolean;
+  disabled: boolean;
+  /** Styled as a close control (✕): a `…close-btn` / `…modal-close` / `…-close` class. */
+  closeStyled: boolean;
+}
+
+/**
+ * Which control closes a dialog without saving (pure): a marked one first,
+ * then a button labelled Cancel in the person's language, then a close
+ * control (labelled Close, or styled as one). -1 when there is none.
+ */
+export function pickDismissControl(controls: DismissControlFacts[], labels: { cancel: string; close: string }): number {
+  const usable = controls.map((c, i) => ({ c, i })).filter(x => !x.c.disabled);
+  const norm = (s?: string) => (s ?? '').trim().toLocaleLowerCase();
+  const cancel = norm(labels.cancel);
+  const close = norm(labels.close);
+  const named = (c: DismissControlFacts, label: string) =>
+    !!label && (norm(c.text) === label || norm(c.ariaLabel) === label || norm(c.title) === label);
+  const pick = usable.find(x => x.c.marked)
+    ?? usable.find(x => named(x.c, cancel))
+    ?? usable.find(x => named(x.c, close))
+    ?? usable.find(x => x.c.closeStyled);
+  return pick ? pick.i : -1;
+}
+
+/** How "Discard changes" on an outside close ended. */
+export type DiscardOutcome = 'closedByReplay' | 'closedByDismiss' | 'stillOpen';
+
+/**
+ * "Discard changes" after a backdrop click or Escape (Batch 438 + PS-128
+ * review): forget the dialog's edits, replay the held event, and when the
+ * dialog is still open once the page has rendered, close it with its own
+ * Cancel. A dialog that can't be closed either way keeps counting as unsaved,
+ * so leaving the page still asks. `afterRender` runs its callback once the
+ * page has re-rendered (a timeout in the browser).
+ */
+export function discardDialogEdits(
+  dialog: object,
+  deps: {
+    registry: Pick<ConfigDirtyRegistry, 'forgetDialog' | 'dialogEdited'>;
+    replay: () => void;
+    isOpen: (dialog: object) => boolean;
+    dismiss: (dialog: object) => boolean;
+    afterRender: (fn: () => void) => void;
+    onDone?: (outcome: DiscardOutcome) => void;
+  },
+): void {
+  const { registry, replay, isOpen, dismiss, afterRender, onDone } = deps;
+  registry.forgetDialog(dialog);
+  replay();
+  afterRender(() => {
+    if (!isOpen(dialog)) { onDone?.('closedByReplay'); return; }
+    if (!dismiss(dialog)) { registry.dialogEdited(dialog); onDone?.('stillOpen'); return; }
+    afterRender(() => {
+      if (!isOpen(dialog)) { onDone?.('closedByDismiss'); return; }
+      registry.dialogEdited(dialog);
+      onDone?.('stillOpen');
+    });
+  });
+}
+
 // ── Drafts ───────────────────────────────────────────────────────────────────
 
 function canonical(value: unknown): unknown {

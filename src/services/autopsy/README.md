@@ -26,7 +26,7 @@ Autopsy Pathology Module (PS-261, RFP-APLIS-2026-GLOBAL §3.1.C) — case author
 
 Still open (all front-end, none blocked on a backend):
 
-- **Organ/tissue retention custody chain** (PS-261 §2.4) — retention recipient/location, tier reason and disposal are recorded (Batches 469, 471, 472), but if the recipient or location changes mid-retention there is no chain of those changes.
+- **Organ/tissue retention custody chain** (PS-261 §2.4) — built in Batch 611 (#59): `organRetentionHistory` keeps every retention detail recorded (appended to, never rewritten; the first change seeds it with the earlier single record), the retention panel lists earlier records and the timeline shows each move.
 - **Per-field organ tagging within the gross-exam template** — only whole grossing SECTIONS are organ-derived (`resolveActiveAutopsyGrossingSections.ts`), and only specimens carry an `AutopsyOrganCode`. The consent-scope check (`resolveExcludedOrgansPresent`, Batch 468) works at that granularity; a per-finding hard block isn't representable in the current template data model.
 - **Sub-national jurisdictional appointments** — forensic sign-out authority is checked per country, not per county/state/coroner's area (see the Batch 331 section below).
 - **Three-tier BI/reporting dashboards** (PS-261 §2.6.3) — not started.
@@ -292,3 +292,7 @@ This closes what Batches 472 and 468 disclosed: the tier was saved from the repo
 ## Batch 535
 
 `signAutopsyReport.ts`: the held PAD or FAD records the case status before signing, so Recall can put it back. Recall withdraws the signature's frozen snapshot (`reportRelease/heldReleaseActions.ts`). A PAD can't be recalled once the FAD is signed on it.
+
+## Batch 610 (part A) — turnaround verdict and dashboards (#60, #61, #88, #89)
+
+`resolveAutopsyTatStatus.ts`: clock start = body arrival; target = active Autopsy PAD/FAD entry, else the jurisdiction figure (a range counts to its upper bound); working-day targets skip weekends only (public holidays are not known: a target can only be later than shown); ancillary hold time is added to the deadline; verdicts on track, due soon (last 20%), overdue, met, met late. `dashboard/`: see its README.

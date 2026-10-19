@@ -5,20 +5,20 @@ import type { ReleaseReportDeps } from './releaseReport';
 import type { HeldReleaseActionDeps } from './heldReleaseActions';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockAuditService } from '../auditlog/mockAuditService';
-import { mockReportReleaseService as reportReleaseService } from './mockReportReleaseService';
+import { reportReleaseService } from './reportReleaseInstance';
 import { mockHeldReleaseService } from './mockHeldReleaseService';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
-import { mockCytologySignOutRecordService } from '../cytology/mockCytologySignOutRecordService';
-import { mockCytologyReviewRecordService } from '../cytology/mockCytologyReviewRecordService';
+import { cytologySignOutRecordService } from '../cytology/cytologySignOutRecordServiceInstance';
+import { cytologyReviewRecordService } from '../cytology/cytologyReviewRecordServiceInstance';
 import { heldRecallBlocked, reopenHeldRelease, runHeldReleaseFollowUp } from './heldReleaseActions';
 
 export const heldReleaseActionDeps: HeldReleaseActionDeps = {
   getCase: id => caseRouter.getCase(id),
   updateCase: (id, updates, expectedVersion) => caseRouter.updateCase(id, updates, expectedVersion),
-  markRecordRecalled: (id, by, at) => mockCytologySignOutRecordService.markRecalled(id, by, at),
-  getRecordsIncludingRecalled: id => mockCytologySignOutRecordService.getByCaseIdIncludingRecalled(id),
-  getCaseRecords: id => mockCytologySignOutRecordService.getByCaseId(id),
-  getAllReviews: () => mockCytologyReviewRecordService.getAll() as ReturnType<HeldReleaseActionDeps['getAllReviews']>,
+  markRecordRecalled: (id, by, at) => cytologySignOutRecordService.markRecalled(id, by, at),
+  getRecordsIncludingRecalled: id => cytologySignOutRecordService.getByCaseIdIncludingRecalled(id),
+  getCaseRecords: id => cytologySignOutRecordService.getByCaseId(id),
+  getAllReviews: () => cytologyReviewRecordService.getAll() as ReturnType<HeldReleaseActionDeps['getAllReviews']>,
   submitRegistry: async input => {
     const [{ submitScreeningRegistryResult }, { signOutCytologyCaseDeps }] = await Promise.all([
       import('../screeningRegistry/submitScreeningRegistryResult'), import('../cytology/signOutCytologyCaseDeps'),
@@ -32,7 +32,7 @@ export const heldReleaseActionDeps: HeldReleaseActionDeps = {
     return submitCytologyRevisionToRegistry(input, submitCytologyRevisionToRegistryDeps);
   },
   reopenAmendment: async (id, by) => {
-    const { mockAmendmentService } = await import('../reports/mockAmendmentService');
+    const { amendmentService: mockAmendmentService } = await import('../reports/reportServicesInstance');
     return mockAmendmentService.reopen(id, by);
   },
   now: () => new Date(),

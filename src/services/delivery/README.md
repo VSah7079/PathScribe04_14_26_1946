@@ -84,3 +84,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 556 (PS-539 phase 2d: report documents through the API)
 
 - Batch 556: a delivery's stored document is read through `reportDocuments/reportDocumentInstance.ts` (the API server's store when there is one).
+
+## Batch 617 (part B): server version (PS-514)
+
+The delivery rule, retry setting and retry services now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELIVERY_PRINTING_API.md`.

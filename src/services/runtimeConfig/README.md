@@ -35,3 +35,9 @@ Guards: `runtimeConfig.guard.test.ts` checks that:
   - **Build rules:** checked on the merged settings.
   - **Time limit:** a 5 s limit covers the whole reply.
   - **Hosting regions:** `hosting` (`parseServerHosting`) is kept by `runtimeEnv.ts` (`setServerHosting`, `serverHosting`). `hostingRegions.ts` gives the rows administrators see.
+
+## Batch 590
+
+Two new settings: `VITE_ERROR_MONITORING_DSN` (kind `dsn`: https, public key, project, no password) and `VITE_ERROR_MONITORING_ENV`. See `docs/architecture/ERROR_MONITORING.md`.
+
+**Batch 617:** new deployment setting `VITE_BIOMETRIC_SIGN_IN` (`false` turns biometric sign-in off; server-supplied).

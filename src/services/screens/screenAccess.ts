@@ -25,7 +25,7 @@ export type ScreenId =
   | 'accession' | 'worklist' | 'search' | 'addOnOrders' | 'intraopQueue' | 'cytologyQcQueue' | 'surgicalQaWorklist'
   | 'myContributions' | 'benchContributions' | 'batchManagement' | 'configuration'
   | 'cytologyWorkspace' | 'microtomy' | 'embedding' | 'slideDistribution' | 'molecular'
-  | 'auditLog' | 'qualityAssurance' | 'registryExceptions' | 'tumorBoard' | 'marginExceptionReview';
+  | 'auditLog' | 'qualityAssurance' | 'registryExceptions' | 'tumorBoard' | 'marginExceptionReview' | 'autopsyDashboards' | 'outboundQueue';
 
 export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
   accession: 'screen:accession:open',
@@ -58,6 +58,10 @@ export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
   // Workspace hub (no dedicated Home tile — it's a narrower, grossing-
   // adjacent screen, not a standalone destination like tumorBoard above).
   marginExceptionReview: 'screen:margin-exception-review:open',
+  // Batch 610: the autopsy dashboards, in the Quality & Compliance hub.
+  autopsyDashboards: 'screen:autopsy-dashboards:open',
+  // Batch 619 (PS-800): the one Outbound Queue, in the Quality & Compliance hub.
+  outboundQueue: 'screen:outbound-queue:open',
 };
 
 /**
@@ -97,7 +101,7 @@ export const TILE_SCREENS: Readonly<Record<HomeTileId, readonly ScreenId[]>> = {
   tumorBoard: ['tumorBoard'],
   configuration: ['configuration'],
   pathologyWorkspace: ['cytologyWorkspace', 'microtomy', 'embedding', 'slideDistribution', 'molecular', 'batchManagement', 'marginExceptionReview'],
-  qualityCompliance: ['auditLog', 'qualityAssurance', 'registryExceptions'],
+  qualityCompliance: ['auditLog', 'qualityAssurance', 'registryExceptions', 'autopsyDashboards', 'outboundQueue'],
 };
 
 /** The screens inside each hub, in the hub's tile order. */
@@ -168,6 +172,8 @@ export function createScreenAccessService(deps: { authorization: Pick<IAuthoriza
     registryExceptions: () => a.enforce('screen:registry-exceptions:open'),
     tumorBoard: () => a.enforce('screen:tumor-board:open'),
     marginExceptionReview: () => a.enforce('screen:margin-exception-review:open'),
+    autopsyDashboards: () => a.enforce('screen:autopsy-dashboards:open'),
+    outboundQueue: () => a.enforce('screen:outbound-queue:open'),
   };
   return {
     /** Whether the signed-in user may open this tile (any of its screens) or screen. */

@@ -71,6 +71,18 @@ describe('recordCaseCredit', () => {
     expect(h.saved).toEqual([]);
     expect(h.audit[0].event).toBe('Billing code removed (no charge record found)');
   });
+  // Oct 15, 2026 (review finding): a removal after sign-out keeps its reason in the audit even with no charge to credit.
+  it('the post-sign-out reason is recorded on the credit audit, charge on file or not', async () => {
+    const ctx = { reasonId: 'psbc-coding-error', comment: 'Wrong base code' };
+    const none = deps();
+    await recordCaseCredit({ caseData, specimenId: 'A', code: 'X', user: null, postSignoutContext: ctx }, none.d);
+    expect(none.audit[0].detail).toMatch(/post-sign-out change, reason psbc-coding-error: "Wrong base code"$/);
+    const active = { id: 'chg-1', caseId: 'C1', billingCode: 'X', cptCode: '88305' } as any;
+    const h = deps({ findActiveCharge: async () => ({ ok: true, data: active }) });
+    await recordCaseCredit({ caseData, specimenId: 'A', code: 'X', user: null, postSignoutContext: ctx }, h.d);
+    expect(h.audit[0].detail).toMatch(/post-sign-out change, reason psbc-coding-error: "Wrong base code"$/);
+    expect(h.saved[0].postSignoutChangeReasonId ?? h.saved[0].postSignoutContext?.reasonId).toBe('psbc-coding-error');
+  });
 });
 
 describe('auditBillingSuggestionDeclined', () => {

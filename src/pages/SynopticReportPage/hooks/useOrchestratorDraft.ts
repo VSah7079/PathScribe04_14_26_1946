@@ -35,6 +35,7 @@
 // the named function, same as every other handler in this file.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { orchestratorNarrativeText } from '@/services/clinical/findingHighlight';
 import { countBlockMessage, findSynopticEntryChecks, totalWarningsMessage } from '@/services/templates/synopticEntryChecks';
 import { useEffect, useCallback, useRef, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -287,11 +288,11 @@ export function useOrchestratorDraft({
   // fresh tab switch before that effect's first run lands).
   const syncOrchSectionsToDiagnostic = useCallback(() => {
     if (!isOrchestrationMode || orchSections.length === 0) return;
-    const find = (id: string) => orchSections.find(s => s.id === id)?.text ?? '';
-    // Map known section IDs to diagnostic fields; fall back to concatenated narrative
-    const grossText  = find('gross_description') || find('gross');
-    const microText  = find('microscopic') || find('microscopic_description');
-    const ancText    = find('ancillary_studies') || find('ancillary');
+    // Map sections to diagnostic fields by their stable part id (PS-323; the section id
+    // itself is a fresh UUID), falling back to the older fixed ids.
+    const grossText  = orchestratorNarrativeText(orchSections, 'gross');
+    const microText  = orchestratorNarrativeText(orchSections, 'microscopic');
+    const ancText    = orchestratorNarrativeText(orchSections, 'ancillary');
     // Full narrative: all sections joined for LeftReportPanel's report body
     const fullNarrative = orchSections.map(s => `<h3>${s.label}</h3>${s.text}`).join('');
     setCaseData(prev => {

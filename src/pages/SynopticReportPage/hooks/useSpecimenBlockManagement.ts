@@ -43,6 +43,10 @@ import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock, BlockStatus, StainOrder } from '@/types/case/Specimen';
 import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import type { Decant } from '@/types/case/Material';
+import { deleteBlockInProcessLive, type BlockSaveOutcome } from '@/services/material/deleteBlockInProcess';
+import { invalidateBlockAfterSignOutLive, flagBlockOnAmendedReportLive } from '@/services/material/deleteBlockAfterSignOut';
+import { caseBlockDeletionRefusal } from '@/services/material/blockDeletion';
+import { newMaterialComments } from '@/services/material/materialComments';
 import { useCaseMaterialStore } from './useCaseMaterialStore';
 import { nextDecantLabel, decantRefusalKey } from '@/services/material/materialTree';
 import type { DispatchOutcome } from '@/services/material/caseMaterialStore';
@@ -774,6 +778,72 @@ export function useSpecimenBlockManagement({
     markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.blockCancelled', { label: `${sp.label}${block.label}` }));
   }, [caseData, signingUser, sendMaterialOrderToLis, markDirty, showToast, setCaseData, persistBlockChange, t]);
+
+  // Batch 588 (Pete, Oct 16 2026): deleting a block that is still in process. A soft
+  // delete (the block stays, marked Deleted) that needs material:block:delete-in-process,
+  // checked in services/material/deleteBlockInProcess.ts, which also raises the billing
+  // deficiency and audits. The save goes through this page's own version tracking.
+  // Batch 610 (#11): once the case is signed out the same control invalidates the block instead
+  // (tier 2, material:block:delete-signed-out); on an amended report a pathologist or Quality
+  // Manager can also flag a block Invalidated or Superseded (tier 3, no deletion).
+  const blockDeleteTier: 'in_process' | 'signed_out' = caseData && caseBlockDeletionRefusal(caseData) ? 'signed_out' : 'in_process';
+  const canDeleteBlocks = !!caseData;
+  const canFlagBlocks = !!caseData && !!caseData.lastRevisionType && caseData.lastRevisionType !== 'original';
+  const handleDeleteBlock = useCallback(async (specimenId: string, blockId: string, reasonCode: string, note: string) => {
+    if (!caseData?.id) return;
+    const specimens = caseData.specimens ?? [];
+    const sp = specimens.find((s: Specimen) => s.id === specimenId);
+    const block = sp?.blocks?.find(b => b.id === blockId);
+    if (!sp || !block) return;
+    const saveThis = async (change: CaseChange): Promise<BlockSaveOutcome> => {
+        const first = change(caseData);
+        if (!first) return 'notSaved';
+        setCaseData(prev => prev ? ({ ...prev, ...first, updatedAt: new Date().toISOString() } as typeof prev) : prev);
+        return persistBlockChange(caseData.id, first, change, { specimens }, '[Grossing] Failed to save block deletion:');
+    };
+    const input = { caseId: caseData.id, specimenId, blockId, reasonCode, note, actor: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'unknown' } };
+    if (blockDeleteTier === 'signed_out') {
+      const r = await invalidateBlockAfterSignOutLive(input, saveThis);
+      if (!r.ok) { showToast(t(`blockDeletion.errors.${r.error}`), 'warning'); return; }
+      markDirty('blocks');
+      showToast(t('blockDeletion.toast.invalidated', { label: `${sp.label}${block.label}` }));
+      if (!r.billingFlagRaised) showToast(t('blockDeletion.toast.billingFlagFailedInvalidated'), 'warning');
+      return;
+    }
+    const result = await deleteBlockInProcessLive(
+      input,
+      async change => {
+        const first = change(caseData);
+        if (!first) return 'notSaved';
+        setCaseData(prev => prev ? ({ ...prev, ...first, updatedAt: new Date().toISOString() } as typeof prev) : prev);
+        return persistBlockChange(caseData.id, first, change, { specimens }, '[Grossing] Failed to save block deletion:');
+      },
+    );
+    if (!result.ok) { showToast(t(`blockDeletion.errors.${result.error}`), 'warning'); return; }
+    markDirty('blocks');
+    showToast(t('blockDeletion.toast.deleted', { label: `${sp.label}${block.label}` }));
+    if (!result.billingFlagRaised) showToast(t('blockDeletion.toast.billingFlagFailed'), 'warning');
+  }, [caseData, blockDeleteTier, signingUser, markDirty, showToast, setCaseData, persistBlockChange, t]);
+
+  const handleFlagBlock = useCallback(async (specimenId: string, blockId: string, kind: 'invalidated' | 'superseded', reasonCode: string, note: string) => {
+    if (!caseData?.id) return;
+    const specimens = caseData.specimens ?? [];
+    const sp = specimens.find((s: Specimen) => s.id === specimenId);
+    const block = sp?.blocks?.find(b => b.id === blockId);
+    if (!sp || !block) return;
+    const r = await flagBlockOnAmendedReportLive(
+      { caseId: caseData.id, specimenId, blockId, kind, reasonCode, note, actor: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'unknown' } },
+      async change => {
+        const first = change(caseData);
+        if (!first) return 'notSaved';
+        setCaseData(prev => prev ? ({ ...prev, ...first, updatedAt: new Date().toISOString() } as typeof prev) : prev);
+        return persistBlockChange(caseData.id, first, change, { specimens }, '[Grossing] Failed to save block flag:');
+      },
+    );
+    if (!r.ok) { showToast(t(`blockDeletion.errors.${r.error}`), 'warning'); return; }
+    markDirty('blocks');
+    showToast(t(`blockDeletion.toast.flagged.${kind}`, { label: `${sp.label}${block.label}` }));
+  }, [caseData, signingUser, markDirty, showToast, setCaseData, persistBlockChange, t]);
 
   // Real feature, per direct confirmation: "Create Spare Slide —
   // Generates a new slide ID, links to block, no stain assigned
@@ -1522,12 +1592,27 @@ export function useSpecimenBlockManagement({
       }
     }
 
+    // Batch 611 (#10): a comment added to a matrix block is audited. The entry
+    // names the block only; the comment text can name a patient, so it is not copied.
+    const commentedBlock = changes.comments ? currentMatrixBlocks.find(m => m.id === matrixBlockId) : undefined;
+    const addedComments = commentedBlock ? newMaterialComments(commentedBlock.comments, changes.comments) : [];
+
     const patchedMatrixBlocks = currentMatrixBlocks.map(m => m.id === matrixBlockId ? { ...m, ...changes } : m);
     try {
       await caseRouter.updateCase(caseData.id, { matrixBlocks: patchedMatrixBlocks }, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, matrixBlocks: patchedMatrixBlocks } as typeof prev) : prev);
       markDirty('matrixBlockEdit');
+      for (const c of addedComments) {
+        auditService.logEvent({
+          type: 'system',
+          event: 'Matrix Block Comment Added',
+          detail: `Matrix Block ${commentedBlock?.label ?? ''}: a comment was added.`,
+          user: c.authorId || (signingUser?.id ?? 'unknown'),
+          caseId: caseData.id,
+          confidence: null,
+        }).catch(err => console.error('[Grossing] Failed to log Matrix Block Comment Added audit entry:', err));
+      }
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
       console.error('[Grossing] Failed to update matrix block:', e);
@@ -1609,6 +1694,11 @@ export function useSpecimenBlockManagement({
     handleConfirmTriageChecklistItem,
     handleUpdateBlock,
     handleCancelBlock,
+    handleDeleteBlock,
+    canDeleteBlocks,
+    blockDeleteTier,
+    handleFlagBlock,
+    canFlagBlocks,
     handleCreateSpareSlide,
     handleOrderRestain,
     handleAddBlock,

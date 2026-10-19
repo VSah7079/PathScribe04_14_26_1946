@@ -26,6 +26,8 @@ export interface CaseCoding {
   snomed?: string[];
   loinc?: string[];
   cpt?: string[];
+  /** Batch 607: the same codes with their system release, source and AI detail (services/coding/codedEntry.ts). The lists above stay in step with it; a system they have no list for (OPCS-4) is kept only here. */
+  entries?: import('@/services/coding/codedEntry').CodedEntry[];
 }
 
 export interface AssignmentEvent {
@@ -52,6 +54,9 @@ export interface OrderMetadata {
    */
   priority: "Routine" | "Rush" | "STAT";
   requestingProvider?: string;
+  /** Batch 613: other physicians who receive a copy of the report (HL7 role copy-to), display names. Shown to the signer
+   *  when choosing related cases. The inbound mapping that fills it is interface engine work. */
+  copyToProviders?: string[];
   /**
    * Stable physician ID, distinct from requestingProvider (which is a
    * display name). Feeds TemplateRoutingService's Pass 0b (Physician
@@ -64,6 +69,9 @@ export interface OrderMetadata {
   facilityId?: string;
   /** Cached display name — avoids async lookup on every render */
   facilityName?: string;
+  /** Batch 606 (PS-37): the facility that did the technical component (processing, cutting,
+   *  staining) when it is not the lab reporting the case (a split '26' report). Optional. */
+  technicalComponentFacilityId?: string;
   /**
    * Real feature, per direct confirmation: "add the Client and
    * Location as fields to be seen in the accession page." ID
@@ -816,6 +824,8 @@ export interface Case {
   assignmentHistory?: AssignmentEvent[];
   diagnostic?: DiagnosticMetadata;
   coding?: CaseCoding;
+  /** Batch 611 (#132, #166): set only on a draft case a legacy import created. 'simulated_bulk_import' is the browser-side demo; a server import would use its own kind. */
+  importSource?: { kind: 'simulated_bulk_import'; jobId: string; sourceSystemName: string; importedAt: string };
   // Real, confirmed fix, per direct follow-up (Jira PS-57: "two
   // incompatible flag-tracking systems corrupt each other's data",
   // plus the follow-up "should be able to assign Flags at either a

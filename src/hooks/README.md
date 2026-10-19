@@ -1,3 +1,25 @@
+## Batch 619 (part Q) — Outbound Queue (PS-800)
+- `useOutboundQueue.ts`: loads the Outbound Queue for `OutboundQueuePage` (rows, per-state, deadline and billing counts) and holds the filters, sort, selection and last action result. Which actions a state allows and how a bulk action went come from `services/outboundQueue/outboundQueueView.ts`.
+
+## Batch 613 (part B)
+- `useRelatedCaseCandidates.ts`: the related released cases the user may choose from. `useAmendedRelatedCases.ts`: attached cases amended since sign-out. Both are thin over `src/services/relatedCases/`.
+
+## Batch 610 (part A) — autopsy dashboards, TAT chips (#60, #61, #88, #89)
+
+New `useAutopsyDashboard.ts` (loads cases and TAT entries, holds tier, period, department, case and the Simulated switch for `AutopsyDashboardPage`) and `useTatEntries.ts` (the active TAT entries for the autopsy chip). Decisions live in `services/autopsy/dashboard/` and `services/autopsy/resolveAutopsyTatStatus.ts`.
+
+## Batch 609 (part A)
+
+- `useCaseReportImages.ts`: the Attach images window's state (the images linked to a report, link one, remove one).
+
+## Batch 603
+
+`useDisplayBinding`: the wall display's Display Token (kept in workstation settings) and a standing check, on open, every 60 s and on window focus. A display shows data only while the status is `valid`.
+
+## Batch 602
+
+`useGoToPrefix`: Alt+J (physical J) opens the "Go to" panel, the next key runs the always-on command with that key; Esc, Ctrl/Meta, unknown keys cancel; 3 s timeout. Capture-phase listener, never takes focus.
+
 # src/hooks/
 
 Reusable stateful logic used across pages/components — session
@@ -548,3 +570,20 @@ The rules for both are in `services/connectivity/latencyStates.ts`.
 ## Batch 575
 
 - `useCaseUpdateNotice.ts`: `dismiss(throughVersion)`, so a version the page has taken up never shows the notice again.
+
+## Batch 583
+
+- `useConfigEditTracking.ts`: `dismissConfigDialog` — after Discard replays the held click or Escape, a dialog still open is closed through its own Cancel/Close control (`services/configDirty/configDirtyRegistry.ts`).
+- `useCaseBillingReview.ts`: specimen-level add / remove / apply-block on a signed-out case ask for the post-sign-out reason first (`services/billing/postSignoutBillingReason.ts`).
+
+## Batch 605
+
+Batch 605: `useAutoBlockOrderDispatch` hands newly created blocks to the simulated engine with a toast; `useSimulatedAssistSchedule`.
+
+## Batch 608
+
+- `useCytologyQcActions.ts`: `useMyQcReviewerRoles` (the signed-in person's reviewer pools) feeds the queue and the case bar.
+
+## Batch 612
+
+- `useWorkstationRegistry.ts`: state and actions for the Workstations screen (load, register or change, rotate, revoke, Simulated test, "Use this computer"). A new token is held in memory only until the person presses Done.

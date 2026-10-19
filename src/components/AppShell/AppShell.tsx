@@ -19,6 +19,7 @@
 
 import { useOpenCase } from '@/hooks/useOpenCase';
 import { useDeliveryBackgroundWork } from '@/hooks/useDeliveryBackgroundWork';
+import { useSimulatedAssistSchedule } from '@/hooks/useSimulatedAssistSchedule';
 import { useReleaseBackgroundWork } from '@/hooks/useReleaseBackgroundWork';
 import { SecureEmailModal } from '@/components/SecureEmail/SecureEmailModal';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -62,7 +63,7 @@ import { usePersonalLanguage } from '@/hooks/usePersonalLanguage';
 import MyDictionaryModal from '@/components/Profile/MyDictionaryModal';
 import MyVoiceCommandsModal from '@/components/Profile/MyVoiceCommandsModal';
 import BiometricSigningModal from '@/components/Profile/BiometricSigningModal';
-import { biometricService } from '@/services';
+import { biometricFlow } from '@/services';
 import { RouteErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary';
 import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 import { useFocusAfterRemoval } from '@/hooks/useFocusAfterRemoval';
@@ -656,7 +657,11 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ sendError, message, userId, i
 
 interface AppShellProps { hideNav?: boolean; }
 
-const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
+const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }) => {
+  // PS-472: a page that hides the nav bar (the case report draws its own inside the route) loses it
+  // when it crashes, so the nav bar comes back while the recovery screen shows.
+  const [routeCrashed, setRouteCrashed] = useState(false);
+  const hideNav = hideNavRequested && !routeCrashed;
   const { t } = useTranslation();
   const navigate = useNavigate();
   const openCasePage = useOpenCase();
@@ -666,6 +671,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   usePersonalLanguage(user?.id);
   // Batch 521 (PS-281): failed automatic deliveries are retried on schedule while someone is signed in.
   useDeliveryBackgroundWork(!!user);
+  useSimulatedAssistSchedule(!!user);
   // Batch 534: held reports go out when their release delay ends, whichever screen is open.
   useReleaseBackgroundWork(!!user);
   const userInitials = user?.name ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })() : 'DR';
@@ -787,7 +793,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const [myVoiceCommandsOpen, setMyVoiceCommandsOpen] = useState(false);
   // Batch 433: biometric signing (profile menu, and the invitation after sign-in).
   const [biometricOpen, setBiometricOpen] = useState(false);
-  const biometricEnabled = biometricService.getBiometricPolicy().enabled;
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  useEffect(() => { void biometricFlow.getPolicy().then(p => setBiometricEnabled(p.enabled)); }, []);
   const [systemInfoOpen, setSystemInfoOpen]   = useState(false);
   const [newRecipients, setNewRecipients]     = useState<InternalUser[]>([]);
   const [newToInput,    setNewToInput]        = useState('');
@@ -1324,7 +1331,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {/* Outlet — flex:1 so it fills remaining height and full width exactly */}
       <div className={`ps-app-outlet-wrap${hideNav ? ' ps-app-outlet-wrap--nav-hidden' : ''}`}>
         {/* Batch 502 (PS-472): a page that crashes shows a recovery screen; the nav bar and drawers keep working. */}
-        <RouteErrorBoundary pathname={location.pathname}>
+        <RouteErrorBoundary pathname={location.pathname} onErrorChange={setRouteCrashed}>
           <Outlet />
         </RouteErrorBoundary>
       </div>

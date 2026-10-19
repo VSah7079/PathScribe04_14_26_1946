@@ -11,13 +11,9 @@ import { storageGet, storageSet } from '../mockStorage';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import type { IntraopCriticalResultEntry, NewIntraopCriticalResultEntry } from '@/types/intraop/IntraopCriticalResult';
 import { SEED_INTRAOP_CRITICAL_RESULTS } from './intraopCriticalResultSeeds';
+import type { IIntraopCriticalResultService } from './IIntraopCriticalResultService';
+export type { IIntraopCriticalResultService } from './IIntraopCriticalResultService';
 
-export interface IIntraopCriticalResultService {
-  getAll(): Promise<ServiceResult<IntraopCriticalResultEntry[]>>;
-  add(entry: NewIntraopCriticalResultEntry): Promise<ServiceResult<IntraopCriticalResultEntry>>;
-  update(id: string, changes: Partial<NewIntraopCriticalResultEntry>): Promise<ServiceResult<IntraopCriticalResultEntry>>;
-  setActive(id: string, active: boolean): Promise<ServiceResult<IntraopCriticalResultEntry>>;
-}
 
 export const INTRAOP_CRITICAL_RESULTS_NOT_PERMITTED = 'INTRAOP_CRITICAL_RESULTS_NOT_PERMITTED';
 

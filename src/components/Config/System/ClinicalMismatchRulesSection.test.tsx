@@ -56,4 +56,23 @@ describe('ClinicalMismatchRulesSection', () => {
     expect(await screen.findByText('You don’t have permission to change these rules.')).toBeTruthy();
     expect((await clinicalMismatchRuleService.rulesForCheck())[0].actionType).toBe('block');
   });
+  // Batch 609 (#31): whether a high-risk mismatch holds the release of an amendment, correction or addendum.
+  it('the amendment setting is on by default, and the manage permission turns it off (audited by the service)', async () => {
+    granted.add(VIEW); granted.add(MANAGE);
+    render(<ClinicalMismatchRulesSection />);
+    const box = await screen.findByRole('checkbox', { name: 'A high-risk mismatch holds the release until a decision is recorded' }) as HTMLInputElement;
+    await waitFor(() => expect(box.checked).toBe(true));
+    fireEvent.click(box);
+    await waitFor(async () => expect(await clinicalMismatchRuleService.revisionHoldsRelease()).toBe(false));
+    await waitFor(() => expect(box.checked).toBe(false));
+  });
+
+  it('without the manage permission the setting does not change', async () => {
+    granted.add(VIEW);
+    render(<ClinicalMismatchRulesSection />);
+    const box = await screen.findByRole('checkbox', { name: 'A high-risk mismatch holds the release until a decision is recorded' }) as HTMLInputElement;
+    fireEvent.click(box);
+    await waitFor(async () => expect(await clinicalMismatchRuleService.revisionHoldsRelease()).toBe(true));
+    expect(box.checked).toBe(true);
+  });
 });

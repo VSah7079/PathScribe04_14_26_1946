@@ -72,3 +72,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 578
 
 - `CytologyWorkloadCapSettingsSection.tsx`: a cap that isn't saved is said beside its own field (only that field marked invalid); the add pickers offer only facilities and staff without an override, and "+ Add Override" is unavailable, with a note, when nobody is left.
+
+## Batch 608
+
+- `ScreeningIntervalsCard.tsx`: the per-country, per-age screening interval table, inside Country and laboratory rules.

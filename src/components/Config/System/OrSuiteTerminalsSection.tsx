@@ -19,6 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
+import DisplayTokenModal from './DisplayTokenModal';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
@@ -83,6 +84,7 @@ const OrSuiteTerminalsSection: React.FC = () => {
   const [entries, setEntries] = useState<OrSuiteTerminal[]>([]);
   const [showInactive, setShowInactive] = useState(false);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: OrSuiteTerminal } | null>(null);
+  const [tokenFor, setTokenFor] = useState<OrSuiteTerminal | null>(null);
 
   const refresh = () => { orSuiteTerminalService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
@@ -130,6 +132,7 @@ const OrSuiteTerminalsSection: React.FC = () => {
             </span>
             <div className="ps-conf-row-actions">
               <button className="ps-conf-btn-secondary" onClick={() => toggleActive(e)}>{e.status === 'Active' ? t('orSuiteTerminalsSection.actions.deactivate') : t('orSuiteTerminalsSection.actions.reactivate')}</button>
+              <button className="ps-conf-btn-secondary" onClick={() => setTokenFor(e)}>{t('displayAccess.admin.button')}</button>
               <button className="ps-conf-btn-secondary" onClick={() => setModal({ mode: 'edit', entry: e })}>{t('orSuiteTerminalsSection.actions.edit')}</button>
             </div>
           </div>
@@ -137,6 +140,7 @@ const OrSuiteTerminalsSection: React.FC = () => {
         {visible.length === 0 && <div className="ps-conf-empty-row">{t('orSuiteTerminalsSection.emptyRow')}</div>}
       </div>
 
+      {tokenFor && <DisplayTokenModal kind="or-suite" subjectId={tokenFor.id} displayName={tokenFor.name} onClose={() => setTokenFor(null)} />}
       {modal && <TerminalModal mode={modal.mode} entry={modal.entry} onSave={handleSave} onClose={() => setModal(null)} />}
     </div>
   );

@@ -19,7 +19,7 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
-import { mockClinicalHistoryDictionaryService } from './mockClinicalHistoryDictionaryService';
+import { clinicalHistoryDictionaryService } from './clinicalHistoryDictionaryServiceInstance';
 import { validateClinicalHistoryAccessionPayload } from './validateClinicalHistoryAccessionPayload';
 import type { ClinicalHistoryAccessionEventPayload } from '@/types/events/ClinicalHistoryAccessionEventPayload';
 import type { ClinicalHistoryValidationError } from './validateClinicalHistoryAccessionPayload';
@@ -59,7 +59,7 @@ export async function processInboundClinicalHistoryAccessionEvent(
     return { messageId: payload.messageId, outcome: 'order-not-found' };
   }
 
-  const dictRes = await mockClinicalHistoryDictionaryService.getAll();
+  const dictRes = await clinicalHistoryDictionaryService.getAll();
   const dictionary = dictRes.ok ? dictRes.data : [];
   const validation = validateClinicalHistoryAccessionPayload(payload.clinicalHistory, dictionary);
   if (!validation.valid) {

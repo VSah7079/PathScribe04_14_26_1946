@@ -11,7 +11,7 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { mockLocationService } from '../locations/mockLocationService';
-import { mockDeliveryRuleService } from './mockDeliveryRuleService';
+import { deliveryRuleService } from './deliveryRuleServiceInstance';
 import { resolveDeliveryAction, type DeliveryDecisionResult } from './resolveDeliveryAction';
 import type { ReportReleasedEventType } from '../reports/publishReportReleasedEvent';
 
@@ -29,7 +29,7 @@ export async function resolveRealDeliveryDecision(
     pointOfCare = locationRes?.ok ? locationRes.data.pointOfCare : undefined;
   }
 
-  const rulesRes = await mockDeliveryRuleService.getActive();
+  const rulesRes = await deliveryRuleService.getActive();
   const rules = rulesRes.ok ? rulesRes.data : [];
 
   return resolveDeliveryAction({

@@ -37,6 +37,8 @@ export type CytologyHpvIndicationType = 'primary_screening' | 'co_testing' | 'as
 export interface CytologyHpvPositivitySpecimenInput {
   testingSite: string;
   indicationType: CytologyHpvIndicationType;
+  /** Batch 608 (#51): the assay named on the result; absent when not recorded. */
+  assayName?: string;
   hpvPositive: boolean;
   hpv16Positive: boolean;
   hpv18Or45Positive: boolean;
@@ -46,8 +48,8 @@ export interface CytologyHpvPositivitySpecimenInput {
 export interface CytologyHpvPositivityMonitorRow {
   testingSite: string;
   indicationType: CytologyHpvIndicationType;
-  /** Real, honest undefined — see this file's own header. */
-  testAssayName: undefined;
+  /** Batch 608 (#51): the assay the row's results were run on; undefined when none was recorded. */
+  testAssayName: string | undefined;
   totalHpvTested: number;
   hrHpvPositiveCount: number;
   hrHpvPositivityPercent: number;
@@ -70,20 +72,21 @@ export function resolveCytologyHpvPositivityMonitorReport(
   // keeping separate, not blended into one number.
   const byGroup = new Map<string, CytologyHpvPositivitySpecimenInput[]>();
   for (const sp of specimens) {
-    const key = `${sp.testingSite}|${sp.indicationType}`;
+    const key = `${sp.testingSite}|${sp.indicationType}|${(sp.assayName ?? '').replace(/\|/g, '/')}`;
     const list = byGroup.get(key) ?? [];
     list.push(sp);
     byGroup.set(key, list);
   }
 
   const partial = Array.from(byGroup.entries()).map(([key, group]) => {
-    const [testingSite, indicationType] = key.split('|') as [string, CytologyHpvIndicationType];
+    const [testingSite, indicationType, assay] = key.split('|') as [string, CytologyHpvIndicationType, string];
     const totalHpvTested = group.length;
     const hrHpvPositiveCount = group.filter(sp => sp.hpvPositive).length;
     const hrHpvPositivityPercent = totalHpvTested === 0 ? 0 : (hrHpvPositiveCount / totalHpvTested) * 100;
     return {
       testingSite,
       indicationType,
+      testAssayName: assay || undefined,
       totalHpvTested,
       hrHpvPositiveCount,
       hrHpvPositivityPercent,
@@ -97,7 +100,6 @@ export function resolveCytologyHpvPositivityMonitorReport(
 
   return partial.map(p => ({
     ...p,
-    testAssayName: undefined,
     positivityVarianceFromAggregateMean: p.hrHpvPositivityPercent - aggregateMean,
   }));
 }

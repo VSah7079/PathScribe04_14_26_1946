@@ -501,6 +501,10 @@ per-dictionary detail.
 
 *Added in the Batch 496 README audit (Oct 9, 2026): these files had no entry in this README.*
 
+## Batch 613 (part A) — case search reporting
+
+`search/caseReportLabels.ts` and `search/caseReportCsv.ts` turn a report's ids, codes and ISO dates into words and a CSV.
+
 ## Batch 317 (PS-73)
 
 - **`duplicateEntry.ts`:** `prepareDuplicate(source, nameKey, copyName)` now requires the caller's localized copy-name formatter. Its English `" (Copy)"` default was being saved as data. `preparePersonDuplicate` was removed: its only user was Physicians, which no longer offers Duplicate. Entity-specific copy rules live in `services/duplication/`.
@@ -803,3 +807,21 @@ New folder `a11y/` (`pressable`, `switchable`).
 ## Batch 580
 
 - `selectAutoWidth.ts` (new): where the styled dropdown list is drawn (`appearance: base-select`), gives each single-choice dropdown the width of its widest option (`--ps-select-auto-width`), kept up to date; installed once in `startApp.tsx`. PS-62.
+
+## Batch 583
+
+- `search/caseReturnTarget.ts`: where a case report returns to, from where it was opened.
+
+## Batch 589
+
+`synopticConfirmField.ts` `resolveFieldToConfirm`: which field the Confirm Field shortcut confirms (the one last clicked or typed in, if it still has an unconfirmed AI suggestion). See also `utils/labels/README.md`.
+
+- **`downloadCapture.ts`** (Batch 611, #194): while the simulated export server builds an export, `downloadCsv`, `downloadCSV`, `downloadText` and `downloadJson` hand their file to `captureDownload` instead of saving it; `saveToDevice` is the real save. Test: `downloadCapture.test.ts`.
+
+## Batch 612 (part C)
+
+`labelStyleVars(cfg, prefix, templateUnits)` draws a size in CSS points when the style (or its template) is in points, in pixels otherwise.
+
+## Batch 615 (part D)
+
+`utils/labels/`: vial and rack/batch label templates and printing (PS-360); see its README.

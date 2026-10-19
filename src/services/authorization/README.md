@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/authorization/
 
 Capabilities and the permission check (PS-355, Batch 369). This is the part
@@ -82,6 +84,14 @@ Screens use `hooks/useCapabilities.ts` and `components/Common/CapabilityButton.t
 - API server enforcement: phase 4 (PS-358). The API server is not built yet.
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): the exports listed as not done were done in Batches 407 and 437.*
+
+## Batch 613 (part A) — case search reporting
+
+Two capabilities, both seeded to roles that open Search: `search:case-report:export` (export kind `search.case-report`) and `search:report-schedule:manage` (report schedules).
+
+## Batch 609 (part A)
+
+- New capability `report:case-images:attach` (link and unlink images on a report); seeded for every role with case access.
 
 ## Batch 370 (PS-356): phase 2
 
@@ -533,3 +543,22 @@ Two new capabilities:
 ## Batch 572
 
 - `cytology:screening-hours:sign-off` (high; its own seed `CYTOLOGY_SCREENING_HOURS` for Pathologist, Fellow, Resident and Cytotechnologist, not a hospital's own roles), checked in `cytology/mockCytologyScreeningHoursService.ts`; `AUTHORIZATION_API.md` updated.
+
+## Batch 588 — Deleting a block in process
+
+One new capability: `material:block:delete-in-process`, checked in `services/material/deleteBlockInProcess.ts`: given to the same roles as material disposal; each facility changes this in its role grants. Billing resolves the resulting finding with the permission that already resolves billing deficiencies.
+
+## Batch 595
+
+New capability `config:code-systems:manage` (group `configSystem`, so Admin and Lab Director by default): set the code systems each jurisdiction uses. Checked in `coding/codeSystemPolicyService.ts`; audited `CODE_SYSTEM_POLICY_CHANGED`.
+
+## Batch 610 (part A) — screen:autopsy-dashboards:open
+
+Standard-risk screen capability, seeded with the Quality & Compliance screens (Admin, Lab Director, QA Reviewer).
+
+Batch 611 (#157): `auth:mfa-enrolment:reset` (administration group, high risk; no requirements) resets a colleague's second-factor enrolment in the administrator's own organisation. Seeded to Admin through the administration group. Checked in `services/auth/mfa/mfaService.ts`. `AUTHORIZATION_API.md` and `CAPABILITIES.md` list it (+1 capability).
+
+- Batch 612 (part A): three platform-only capabilities, `platform:interface-dictionary:manage`, `:publish`, `:simulate` (Superadmin only).
+
+
+Batch 616: server version in `httpAuthorizationService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `defaultAuthorizationService.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.

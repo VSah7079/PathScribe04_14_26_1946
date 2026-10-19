@@ -78,11 +78,11 @@ export function specificityScore(e: TatEntryForResolution): number {
  *  third, hand-maintained reimplementation that could (and, before
  *  this fix, already did) silently disagree with the real resolver in
  *  edge cases its own hardcoded priority list didn't cover. */
-export function resolveTatEntry(
-  entries: TatEntryForResolution[],
+export function resolveTatEntry<E extends TatEntryForResolution = TatEntryForResolution>(
+  entries: E[],
   type: string,
   context: TatResolutionContext
-): TatEntryForResolution | null {
+): E | null {
   const matching = entries.filter(e =>
     e.active && e.type === type && e.roleId === null &&
     (e.facilityId === null || e.facilityId === context.facilityId) &&

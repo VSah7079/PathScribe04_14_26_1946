@@ -21,6 +21,8 @@ import { patientIndexService } from '@/services';
 
 export interface PatientLinkSearchProps {
   organisationId: string;
+  /** When given (a cross-tenant admin), these organisations are searched instead of just organisationId. */
+  organisationIds?: string[];
   confirmed: MasterPatientRecord | null;
   onConfirm: (record: MasterPatientRecord | null) => void;
   title: string;
@@ -30,7 +32,7 @@ export interface PatientLinkSearchProps {
 }
 
 export const PatientLinkSearch: React.FC<PatientLinkSearchProps> = ({
-  organisationId, confirmed, onConfirm, title, helpText, confirmButtonLabel, confirmedLabel,
+  organisationId, organisationIds, confirmed, onConfirm, title, helpText, confirmButtonLabel, confirmedLabel,
 }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -43,13 +45,15 @@ export const PatientLinkSearch: React.FC<PatientLinkSearchProps> = ({
     let cancelled = false;
     setLoading(true);
     const timer = setTimeout(() => {
-      patientIndexService.searchPatients(organisationId, q)
+      const orgs = organisationIds && organisationIds.length > 0 ? organisationIds : [organisationId];
+      Promise.all(orgs.map(o => patientIndexService.searchPatients(o, q).catch(() => [] as MasterPatientRecord[])))
+        .then(lists => lists.flat())
         .then(r => { if (!cancelled) setResults(r); })
         .catch(() => { if (!cancelled) setResults([]); })
         .finally(() => { if (!cancelled) setLoading(false); });
     }, 250);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [query, organisationId]);
+  }, [query, organisationId, organisationIds]);
 
   return (
     <div className="ps-accession-outside-section">

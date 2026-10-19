@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/lisIngestion/
 
 **The vendor-agnostic LIS ingestion layer (PS-87, Batch 323)**, built to Pete's design:
@@ -54,3 +56,7 @@ They are echoed on the structured synoptic result.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 616 (part E) — server version
+
+API-server version of `LisStagingQueue` (`httpLisStagingQueueService.ts`, contract `LIS_INGESTION_API.md`), picked by `lisStagingQueueServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

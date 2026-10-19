@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/intraop/
 
 Intraoperative Pre-Check queue — bench-side capture (frozen section, quick gross) before formal LIS accession arrives.
@@ -54,3 +56,13 @@ Events carry ids only (session, specimen, location, facility), never patient dat
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 610 (part A) — specimen urgency
+
+`IntraopSpecimen.urgency` (`STAT` or `ROUTINE`, default STAT) and `setSpecimenUrgency(sessionId, specimenId, urgency)`, so the board can use the STAT or routine frozen section target.
+
+Batch 616 (part D, PS-510): server version of IntraoperativeService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/INTRAOP_OPS_API.md`.
+
+## Batch 617 (part B): server version (PS-514)
+
+The intraoperative critical result service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/EQUIPMENT_MIGRATION_API.md`.

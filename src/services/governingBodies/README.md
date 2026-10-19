@@ -31,3 +31,7 @@ the mock. *(Since superseded: production storage is SQL Server behind the ASP.NE
 ## Batch 371
 
 `governingBodyAdministration.ts`: `saveGoverningBodies` needs `platform:governing-bodies:manage` (Superadmin only). This setting is platform-wide, not a hospital's. `@/services` exports `governingBodyService`.
+
+## Batch 617 (part B): server version (PS-514)
+
+The governing bodies service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/CONFIG_DICTIONARIES_API.md`.

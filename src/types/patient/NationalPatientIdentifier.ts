@@ -27,4 +27,6 @@ export interface NationalPatientIdentifier {
   verifiedAt?: string;
   /** Where the value came from: typed at accession, an HL7 PID-3, a legacy import. */
   source?: 'manual' | 'hl7' | 'import';
+  /** Batch 605: the NHS Number Status Indicator code (PID-32 on an inbound ADT, e.g. '01' = verified). Only for mrn_nhs. */
+  statusCode?: string;
 }

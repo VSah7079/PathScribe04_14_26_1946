@@ -121,6 +121,10 @@ export interface IntraopSpecimen {
   /** e.g. "Specimen A: Left breast, margins" */
   specimenLabel: string;
   arrivalTimestamp: string; // TAT baseline, per specimen — different specimens in the same session can arrive at genuinely different moments
+  /** Batch 610 (#68): which frozen-section target applies (TAT configuration,
+   *  FROZEN_SECTION, STAT or routine). Absent means STAT, the RFP's own 20-minute
+   *  standard, so every specimen recorded before this field existed keeps its clock. */
+  urgency?: 'STAT' | 'ROUTINE';
   milestones: MilestoneEntry[];
   /** Real, per direct follow-up on item 3 of the image/PDF
    *  architecture scoping — confirmed directly that no real gross/

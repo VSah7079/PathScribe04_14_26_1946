@@ -370,3 +370,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 610 (part B)
+
+`PerformanceTargetsTile` (Productivity dashboard: this period against the monthly cases and RVU targets, plus how the last period ended) and `ClientSlaPanel` (per-client service-level results, on the Quality tab and the Productivity dashboard). Both only render rows built by the services.

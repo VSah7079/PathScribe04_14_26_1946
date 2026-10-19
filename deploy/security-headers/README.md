@@ -47,7 +47,7 @@ The headers must be real HTTP headers. `frame-ancestors`, HSTS and `Referrer-Pol
 - **`font-src 'self' data:`**: Inter and Pretendard (Korean) are both bundled.
 - **`connect-src`**: `'self'` plus the deployment's origins, and two public reference services:
   - `eutils.ncbi.nlm.nih.gov` (the PubMed feed);
-  - `clinicaltables.nlm.nih.gov` (terminology look-ups).
+  - `clinicaltables.nlm.nih.gov` (terminology look-ups), **only for the demonstration**. A deployment with the PathScribe API server sets `"terminologyViaServer": true` in its origins file: the server makes those calls (`docs/architecture/TERMINOLOGY_PROXY_API.md`, Batch 617, PS-488) and the policy no longer names the host.
 
   It also allows the workstation print bridges, on the user's own computer only (Batch 546, `WORKSTATION_BRIDGE_ORIGINS`):
   - the workstation agent: `wss://127.0.0.1:9100-9102`, and `https://` on the same ports for the scale;
@@ -91,3 +91,7 @@ The headers must be real HTTP headers. `frame-ancestors`, HSTS and `Referrer-Pol
 - the identity providers also go to `form-action`.
 
 A path on this site needs nothing. See `docs/architecture/RUNTIME_CONFIG.md`.
+
+## Batch 590
+
+`VITE_ERROR_MONITORING_DSN` is one of the config.json addresses added to `connect-src` (only its origin; the key is dropped).

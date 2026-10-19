@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/reportRelease/
 
 Real feature, per direct specification: **Post-Sign-Out Release Buffer**. A
@@ -566,3 +568,5 @@ Why (found in the Batch 538 review): a revision released during the buffer was r
 ## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
 
 - `releaseCountdown.ts` (Batch 555, new): when a held surgical sign-out's countdown ends on the report page, the page releases it, or (once the server runs `release.dueSweep`) reads the case again every 15 s until the server has released it.
+
+Batch 616 (part A, PS-483): `httpReportReleaseService.ts` and `reportReleaseInstance.ts`. The server owns the release clock; `resolveBufferForCase` throws a code rather than assuming no delay; a refused start or recall is `{ ok: false, reason: <code> }`. Contract `REPORTS_API.md` section 3.

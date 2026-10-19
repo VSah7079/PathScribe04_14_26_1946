@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/physicians/
 
 Physician directory — referring/ordering physicians.
@@ -27,3 +29,6 @@ The physician master-file feed from the LIS (`applyPhysicianMasterFileUpdate.ts`
 ## Batch 511 (PS-478): full strict type-checking
 
 `mockPhysicianService` types an empty client list.
+
+
+Batch 616: server version in `httpPhysicianService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `physicianServiceInstance.ts`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.

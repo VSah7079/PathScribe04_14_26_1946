@@ -16,6 +16,8 @@
 // a real transport target exists.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { recordSimulatedPrint, simulationAllowed } from '@/services/printing/simulatedPrint';
+import { dispatchInterfaceMessage } from '@/services/interfaceDispatch/dispatchInterfaceMessage';
 import type { MaterialScanEventPayload } from '@/types/events/MaterialScanEventPayload';
 
 export interface MaterialScanDispatchResult {
@@ -37,6 +39,11 @@ export async function dispatchMaterialScanEvent(payload: MaterialScanEventPayloa
     `[PathScribe] Material scan event dispatch — STUB, no real transport wired yet. ` +
     `Would send: ${payload.rawScanValue} scanned at "${payload.stationName}".`,
   );
+  // Batch 606: labelled Simulated send with a visible result and an audit entry (station name only, no patient data).
+  if (simulationAllowed()) recordSimulatedPrint({ kind: 'scan-event', transport: 'middleware', destination: payload.stationName });
+  // Batch 605: the scan event also goes through the interface dispatch (the simulated engine answers in the demo,
+  // and the message shows in the Outbound Dispatch Trail). A failure here never blocks the bench.
+  try { await dispatchInterfaceMessage(payload.messageId, 'MATERIAL_SCAN_EVENT', payload); } catch { /* never blocks the bench */ }
   return { dispatched: true, method: 'stub' };
 }
 

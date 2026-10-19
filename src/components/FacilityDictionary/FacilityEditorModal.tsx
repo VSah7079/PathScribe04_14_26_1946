@@ -712,6 +712,10 @@ const FacilityEditorModalBody: React.FC<FacilityEditorModalProps> = ({
                     ))}
                   </select>
                 </Field>
+                <Field label={t('facilityEditorModal.general.nationalRegistryId')}>
+                  <input aria-label={t('facilityEditorModal.general.nationalRegistryId')} className="cem-input" value={form.nationalRegistryId ?? ''} onChange={(e) => set("nationalRegistryId", e.target.value)} />
+                  <div className="cem-hint">{t('facilityEditorModal.general.nationalRegistryIdHint')}</div>
+                </Field>
                 <Field label={t('facilityEditorModal.general.specimenLabeling')}>
                   <select aria-label={t('facilityEditorModal.general.specimenLabeling')} className="cem-input" value={form.specimenLabelStyle ?? 'alpha-specimen'} onChange={(e) => set("specimenLabelStyle", e.target.value)}>
                     <option value="alpha-specimen">{t('facilityEditorModal.general.specimenLabelingAlpha')}</option>

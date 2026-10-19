@@ -15,3 +15,7 @@ Batch 554 (PS-539 phase 2d; readiness review §9 item 4; `docs/architecture/INTE
   - read only.
 - **`interfaceMonitoringInstance.ts`:** `interfaceMonitoringService` in `@/services`. In the demo there is no engine (`viaServer` false).
 - **Tests:** `interfaceMonitoring.test.ts`. The status rules themselves are `interfaceEngine/engineEdgeContract.ts` `engineStatus`; since Batch 554 a stopped channel is degraded, and a time that can't be read is offline.
+
+## Batch 605
+
+`simulatedInterfaceMonitoringApi.ts` gives the Interface Engines screen seeded engine status in the demo, labelled Simulated. The engine status line is hidden while simulated.

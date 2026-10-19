@@ -42,11 +42,23 @@ describe('resolveCytologyPrimaryHpvFailsafeAuditReport — real, per direct guid
     expect(row.inadequateCytologyRatePercent).toBe(0);
   });
 
-  it('the real, honest failsafe columns are always undefined, never a fabricated value — no tracking mechanism exists for them', () => {
+  it('Batch 608: with no follow-up recorded the failsafe columns are 0, not invented', () => {
     const [row] = resolveCytologyPrimaryHpvFailsafeAuditReport([
       { jurisdiction: 'GB_EW', hpvPositive: true, cytologyTriagePerformed: true, cytologyTriageInadequate: false },
     ]);
-    expect(row.failsafeDirectColposcopyReferrals).toBeUndefined();
-    expect(row.nonRespondedFailsafeAlerts).toBeUndefined();
+    expect(row.failsafeDirectColposcopyReferrals).toBe(0);
+    expect(row.nonRespondedFailsafeAlerts).toBe(0);
+  });
+
+  it('Batch 608: counts colposcopy referrals, and referrals with no response after 28 days', () => {
+    const base = { jurisdiction: 'GB_EW', hpvPositive: true, cytologyTriagePerformed: true, cytologyTriageInadequate: false };
+    const [row] = resolveCytologyPrimaryHpvFailsafeAuditReport([
+      { ...base, followUp: { action: 'colposcopy_referral', referredAt: '2026-08-01' } },
+      { ...base, followUp: { action: 'colposcopy_referral', referredAt: '2026-08-01', responseAt: '2026-08-20' } },
+      { ...base, followUp: { action: 'colposcopy_referral', referredAt: '2026-10-10' } },
+      { ...base, followUp: { action: 'repeat_hpv' } },
+    ], new Date('2026-10-18'));
+    expect(row.failsafeDirectColposcopyReferrals).toBe(3);
+    expect(row.nonRespondedFailsafeAlerts).toBe(1);
   });
 });

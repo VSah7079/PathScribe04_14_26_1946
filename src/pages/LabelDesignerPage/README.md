@@ -56,3 +56,11 @@ The design canvas is a named group (`a11y.labelCanvas`); a click on empty canvas
 ## Batch 548
 
 Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 589 — Exact canvas (PS-245)
+
+The canvas border sits outside the label's width and height (`box-sizing: content-box`), drops are measured from inside the border, and the Inspector number boxes re-sync after a value is clamped back to the same number. `labelDesignerCanvas.guard.test.ts` checks the CSS.
+
+## Batch 606
+
+Show rules per field (with a preview that treats a chosen field as empty), version history with restore, and export to ZPL, EPL or DPL. Saved layouts are now used by the printed labels (`services/labelDesigner/savedLayoutRegistry.ts`).

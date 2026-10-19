@@ -1,0 +1,162 @@
+﻿
+=== Git version and folder ===
+git version 2.55.0.windows.3
+C:\Users\nimmo\Documents\pathscribe-ai
+
+=== Remotes ===
+origin	https://github.com/ForMedrixAI/ForMedrixAI-UI-PathScribe.git (fetch)
+origin	https://github.com/ForMedrixAI/ForMedrixAI-UI-PathScribe.git (push)
+
+=== Current branch and working tree ===
+Current branch: main
+Uncommitted changed files: 506
+
+=== Default branch on the remote ===
+HEAD branch: main
+
+=== Branches (local and remote) ===
+  backup-before-rebase                        2ba226ed Update READMEs and ARCHIVE.md for this session's work
+* main                                        832f0d8d [origin/main]  Bug Fixes and continued enhancements
+  remotes/origin/HEAD                         -> origin/main
+  remotes/origin/chandan                      7f9a622c WIP API Intg..
+  remotes/origin/development                  67be7c4d commiting the code for loging api integration
+  remotes/origin/devlop                       1d10581e feat: biometric auth, RightSynopticPanel, PreFinalisationModal, action registry (Sessions 4-5)
+  remotes/origin/main                         832f0d8d  Bug Fixes and continued enhancements
+  remotes/origin/user/vivek                   0886bc81 Enhance UI styling for Home page and footer
+  remotes/origin/users/vivek/Css&LayoutfFxing 83fc5842 Add new documentation files for project overview and migration guides
+
+=== Last 5 commits on each of master, main and Development (if present) ===
+
+--- main ---
+832f0d8d 2026-10-15 peternimmo449393   Bug Fixes and continued enhancements
+db32f893 2026-10-07 peternimmo449393   Bug Fixes and Autopsy Support, Inking workflows
+0b1331fc 2026-10-02 peternimmo449393   Bug Fixes and Role Based Permission Fixes
+fe5563c3 2026-09-29 peternimmo449393   Bug Fixes and Role Based Permission Fixes
+374a9066 2026-09-23 peternimmo449393   i18n sweep
+
+--- origin/main ---
+832f0d8d 2026-10-15 peternimmo449393   Bug Fixes and continued enhancements
+db32f893 2026-10-07 peternimmo449393   Bug Fixes and Autopsy Support, Inking workflows
+0b1331fc 2026-10-02 peternimmo449393   Bug Fixes and Role Based Permission Fixes
+fe5563c3 2026-09-29 peternimmo449393   Bug Fixes and Role Based Permission Fixes
+374a9066 2026-09-23 peternimmo449393   i18n sweep
+
+--- origin/Development ---
+67be7c4d 2026-08-10 Jaiprakash Kumar  commiting the code for loging api integration
+4834ba77 2026-07-24 peternimmo449393  Fix RoleDictionary.tsx's stale header path comment (Config/Users -> Config/Staff) -- the last remaining finding from the check-organization.cjs sweep. src/ is now fully clean across pages/, components/, services/, hooks/, and contexts/: zero stale path comments, zero duplicate filenames.
+b176decd 2026-07-24 peternimmo449393  Complete the Demo Reset storage-key audit: add pathscribe_delegation_types_v2, pathscribe_internal_notes_v2 (SETTINGS_KEYS) and pathscribe_drafts (CASE_KEYS, built tonight for Phase 2 draft recovery). Re-ran a full storageGet/storageSet audit across services/ to get an accurate current list rather than trust an earlier session's stale estimate -- confirmed all other real keys already correctly covered (pathscribe_messages via its version-key reseed mechanism, pathscribe_mock_lis_sync_state via the existing prefix catch-all).
+c4edde83 2026-07-24 peternimmo449393  Fix 5 stale header path comments across services/ (aiIntegration, cases, templates, templateSuggestions x2) found via check-organization.cjs -- all confirmed benign (documented renames/folder reorganizations, no functional issues). services/ and pages/ now both fully clean on both checks (stale paths + duplicate filenames).
+c53a7519 2026-07-24 peternimmo449393  Fix synoptic template review notifications, two separate bugs found together via a full organization-check sweep of services/: (1) hooks/useSynopticAudit.ts imported from services/synopticNotificationService.ts, an honestly-labeled STUB that only console-logs -- the real, complete implementation with recipient resolution and email templates lived at services/communications/synopticNotificationService.ts the whole time, correctly exported via its own barrel, just never actually wired to this hook. Fixed the import, deleted the now-fully-dead stub. (2) TemplateRenderer.tsx's real state-transition call passed a generic 'state_transition' action string left over from the old stub's own separate NOTIFY_ON_ACTIONS list -- the real list (types/SynopticAuditEvents.ts) uses specific per-action strings (template.needs_changes, template.approved, etc.), so even with the import fixed, the notify-check would have always failed silently. Both together meant reviewer/author email notifications for real protocol lifecycle transitions (approve/reject/publish) were never actually attempted, with no visible error anywhere -- a real, live bug in an actively-used feature (TemplateRenderer.tsx), not dead code.
+
+--- origin/development ---
+67be7c4d 2026-08-10 Jaiprakash Kumar  commiting the code for loging api integration
+4834ba77 2026-07-24 peternimmo449393  Fix RoleDictionary.tsx's stale header path comment (Config/Users -> Config/Staff) -- the last remaining finding from the check-organization.cjs sweep. src/ is now fully clean across pages/, components/, services/, hooks/, and contexts/: zero stale path comments, zero duplicate filenames.
+b176decd 2026-07-24 peternimmo449393  Complete the Demo Reset storage-key audit: add pathscribe_delegation_types_v2, pathscribe_internal_notes_v2 (SETTINGS_KEYS) and pathscribe_drafts (CASE_KEYS, built tonight for Phase 2 draft recovery). Re-ran a full storageGet/storageSet audit across services/ to get an accurate current list rather than trust an earlier session's stale estimate -- confirmed all other real keys already correctly covered (pathscribe_messages via its version-key reseed mechanism, pathscribe_mock_lis_sync_state via the existing prefix catch-all).
+c4edde83 2026-07-24 peternimmo449393  Fix 5 stale header path comments across services/ (aiIntegration, cases, templates, templateSuggestions x2) found via check-organization.cjs -- all confirmed benign (documented renames/folder reorganizations, no functional issues). services/ and pages/ now both fully clean on both checks (stale paths + duplicate filenames).
+c53a7519 2026-07-24 peternimmo449393  Fix synoptic template review notifications, two separate bugs found together via a full organization-check sweep of services/: (1) hooks/useSynopticAudit.ts imported from services/synopticNotificationService.ts, an honestly-labeled STUB that only console-logs -- the real, complete implementation with recipient resolution and email templates lived at services/communications/synopticNotificationService.ts the whole time, correctly exported via its own barrel, just never actually wired to this hook. Fixed the import, deleted the now-fully-dead stub. (2) TemplateRenderer.tsx's real state-transition call passed a generic 'state_transition' action string left over from the old stub's own separate NOTIFY_ON_ACTIONS list -- the real list (types/SynopticAuditEvents.ts) uses specific per-action strings (template.needs_changes, template.approved, etc.), so even with the import fixed, the notify-check would have always failed silently. Both together meant reviewer/author email notifications for real protocol lifecycle transitions (approve/reject/publish) were never actually attempted, with no visible error anywhere -- a real, live bug in an actively-used feature (TemplateRenderer.tsx), not dead code.
+
+=== How far Development is from master (behind / ahead) ===
+origin/main ... origin/Development  (only-in-first, only-in-second): 52	1
+
+=== Latest delivered batch in the working tree ===
+## Batch 604: Simulated mail, alerts and notices
+## Batch 605: Simulated interface engine: inbound and outbound
+## Batch 606: Printing, labels and the site agent
+## Batch 607: Code systems and coding
+## Batch 608: Cytology and screening
+## Batch 609: Reports, rendering and templates
+## Batch 610: Dashboards, targets and bench workflow
+## Batch 611: Migration, exports, identity and remaining items
+
+Lines that say DELIVERED (last 6):
+Status: DELIVERED (Jira Test PS-769). Entries #30, 40, 75, 81, 94, 97, 121, 122, 152, 159, 160, 191, 192, 193, 196, 197 are now Built (Demo) in the inventory.
+Status: DELIVERED (Jira Test PS-770). All 33 entries are Built (Demo). Note: #107 and #188 send the financial-class payload straight to the simulated engine at sign-out rather than through the outbound charge queue.
+Status: DELIVERED (Jira Test PS-771). All 15 entries are Built (Demo). The Python report renderers (`functions/main.py`, `cytology_report.py`) do not yet read the new page-setup and technical-branding fields (see KNOWN_GAPS).
+- [M] In demo mode, mark network and agent print jobs as delivered through a labelled 'Simulated' transport, with a visible result and audit entry.
+Status: DELIVERED (Jira Test PS-772). All 7 entries are Built (Demo).
+Status: DELIVERED (Jira Test PS-773). All 12 entries are Built (Demo).
+
+=== Xray evidence files present ===
+PathScribe-Batch518-xray.json
+PathScribe-Batch519-xray.json
+PathScribe-Batch520-xray.json
+PathScribe-Batch521-xray.json
+PathScribe-Batch522-xray.json
+PathScribe-Batch523-xray.json
+PathScribe-Batch524-xray.json
+PathScribe-Batch525-xray.json
+PathScribe-Batch527-xray.json
+PathScribe-Batch528-xray.json
+PathScribe-Batch529-xray.json
+PathScribe-Batch530-xray.json
+PathScribe-Batch531-xray.json
+PathScribe-Batch532-xray.json
+PathScribe-Batch533-xray.json
+PathScribe-Batch534-xray.json
+PathScribe-Batch535-xray.json
+PathScribe-Batch536-xray.json
+PathScribe-Batch537-xray.json
+PathScribe-Batch538-xray.json
+PathScribe-Batch539-xray.json
+PathScribe-Batch540-xray.json
+PathScribe-Batch541-xray.json
+PathScribe-Batch542-xray.json
+PathScribe-Batch543-xray.json
+PathScribe-Batch544-xray.json
+PathScribe-Batch545-xray.json
+PathScribe-Batch546-xray.json
+PathScribe-Batch547-xray.json
+PathScribe-Batch548-xray.json
+PathScribe-Batch549-xray.json
+PathScribe-Batch550-xray.json
+PathScribe-Batch551-xray.json
+PathScribe-Batch552-xray.json
+PathScribe-Batch553-xray.json
+PathScribe-Batch554-xray.json
+PathScribe-Batch555-xray.json
+PathScribe-Batch556-xray.json
+PathScribe-Batch557-xray.json
+PathScribe-Batch558-xray.json
+PathScribe-Batch559-xray.json
+PathScribe-Batch560-xray.json
+PathScribe-Batch561-xray.json
+PathScribe-Batch562-xray.json
+PathScribe-Batch563-xray.json
+PathScribe-Batch564-xray.json
+PathScribe-Batch565-xray.json
+PathScribe-Batch566-xray.json
+PathScribe-Batch567-xray.json
+PathScribe-Batch568-xray.json
+PathScribe-Batch569-xray.json
+PathScribe-Batch570-xray.json
+PathScribe-Batch571-xray.json
+PathScribe-Batch572-xray.json
+PathScribe-Batch573-xray.json
+PathScribe-Batch574-xray.json
+PathScribe-Batch575-xray.json
+PathScribe-Batch576-xray.json
+PathScribe-Batch577-xray.json
+PathScribe-Batch578-xray.json
+PathScribe-Batch579-xray.json
+PathScribe-Batch580-xray.json
+PathScribe-Batch581-xray.json
+PathScribe-Batch582-xray.json
+PathScribe-Batch583-xray.json
+PathScribe-Batch584-xray.json
+PathScribe-Batch585-xray.json
+PathScribe-Batch586-xray.json
+PathScribe-Batch587-xray.json
+PathScribe-Batch588-xray.json
+PathScribe-Batch589-xray.json
+PathScribe-Batch600-xray.json
+PathScribe-Batch601-xray.json
+PathScribe-Batch602-xray.json
+PathScribe-Batch603-xray.json
+PathScribe-Batch604-xray.json
+PathScribe-Batch605-xray.json
+PathScribe-Batch606-xray.json
+PathScribe-Batch607-xray.json
+PathScribe-Batch608-xray.json
+
+=== Test count marker (first line of the last vitest summary, if saved) ===
+Run "npx vitest run" yourself and paste the last 6 lines if you want me to compare counts.

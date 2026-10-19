@@ -60,8 +60,8 @@ export async function applyDecantChangeAtomic(caseId: string, change: DecantChan
   return { ok: true, specimens: result.specimens, version: expectedVersion + 1, change: result.change, event: result.event, billing };
 }
 
-/** The atomic call against the app's own services. */
-export async function applyDecantChangeLive(caseId: string, change: DecantChange, expectedVersion: number): Promise<DecantSaveResult> {
+/** The atomic call against the app's own (browser-side) services: the demo's version (Batch 618: `mockCaseMaterialService`). */
+export async function applyDecantChangeInBrowser(caseId: string, change: DecantChange, expectedVersion: number): Promise<DecantSaveResult> {
   const { caseRouter } = await import('../cases/CaseRouter');
   const { authorizationService } = await import('../authorization/defaultAuthorizationService');
   const { stainTypeService } = await import('../index');
@@ -72,4 +72,10 @@ export async function applyDecantChangeLive(caseId: string, change: DecantChange
     enforce: (cap, ctx) => authorizationService.enforce(cap as any, ctx as any),
     now: () => new Date(),
   });
+}
+
+/** The atomic call through the chosen service: the API server's when one is configured, otherwise the demo's (Batch 618). Screens and hooks call this. */
+export async function applyDecantChangeLive(caseId: string, change: DecantChange, expectedVersion: number): Promise<DecantSaveResult> {
+  const { caseMaterialService } = await import('./caseMaterialServiceInstance');
+  return caseMaterialService.applyDecantChange(caseId, change, expectedVersion);
 }

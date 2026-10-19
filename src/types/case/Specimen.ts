@@ -112,7 +112,7 @@ export interface SpecimenContainer {
  * genuinely different real consequences for what a tech can still do
  * with the block, not two labels for the same thing.
  */
-export type BlockStatus = 'Pending' | 'Grossed' | 'Embedded' | 'Exhausted' | 'Cancelled' | 'Lost' | 'Damaged';
+export type BlockStatus = 'Pending' | 'Grossed' | 'Embedded' | 'Exhausted' | 'Cancelled' | 'Lost' | 'Damaged' | 'Deleted' | 'Invalidated';
 export type StainOrderStatus =
   | 'Pending Cut' | 'Cut & Placed' | 'Staining' | 'Coverslipped'
   | 'Ready for Review' | 'Recut Requested' | 'QC Failed' | 'Cancelled';
@@ -638,6 +638,8 @@ export interface AddOnOrderException {
   pathologistResponseByName?: string;
   pathologistResponseAt?: string;
   responseNote?: string;
+  /** Batch 610 (#16): the block's status when 'Block exhausted' was flagged, so a Cancel or Modify answer puts it back. */
+  blockStatusBefore?: BlockStatus;
 }
 
 /** See StainOrder.exceptionEvents's own doc comment (PS-287). */
@@ -675,6 +677,34 @@ export interface AppliedBlockCode {
    *  block-level entry rather than being forced into an attribution
    *  that doesn't apply. */
   stainOrderId?: string;
+}
+
+/** Batch 588: the record of a soft-deleted block. The reason code is from BLOCK_DELETION_REASON_CODES. */
+export interface BlockDeletion {
+  reasonCode: string;
+  note?: string;
+  deletedBy: string;
+  deletedByName: string;
+  deletedAt: string;
+  /** The tier of the delete policy: 'in_process' (before sign-out, status Deleted) or 'signed_out' (after sign-out, status Invalidated; Batch 610). */
+  tier: 'in_process' | 'signed_out';
+  /** Billing codes that were applied to the block and released by the delete. */
+  releasedCodes: string[];
+}
+
+/**
+ * Batch 610 (#11, tier 3): a pathologist or Quality Manager marks a block on an amended report
+ * Invalidated or Superseded. A flag only: the block is not deleted and its status does not change.
+ */
+export interface BlockAmendmentFlag {
+  kind: 'invalidated' | 'superseded';
+  reasonCode: string;
+  note?: string;
+  flaggedBy: string;
+  flaggedByName: string;
+  flaggedAt: string;
+  /** For 'superseded': the block that replaces it, when there is one. */
+  supersededByBlockId?: string;
 }
 
 export interface HistologyBlock {
@@ -887,6 +917,15 @@ export interface HistologyBlock {
   cancelReason?: string;
   cancelledBy?: string;
   cancelledAt?: string;
+  /**
+   * Batch 588 (Pete, Oct 16 2026): a block removed on purpose, as opposed to
+   * Cancelled (a wrong piece in a block). Status moves to 'Deleted'; the block
+   * and its id stay on the case (soft delete) with who, when and why. Set only
+   * by services/material/deleteBlockInProcess.ts.
+   */
+  deletion?: BlockDeletion;
+  /** Batch 610 (#11, tier 3): Invalidated / Superseded flag set on an amended report (no deletion). */
+  amendmentFlag?: BlockAmendmentFlag;
   /** Real feature, per direct follow-up: "As the user scans each
    *  specimen container it gets updated to disposed and comes off the
    *  list." Same real, additive, never-cleared field as
@@ -1408,6 +1447,10 @@ export interface Specimen {
   /** A gross photo of this specimen/container itself, if one exists.
    *  See Material.ts's DigitalAsset — left empty everywhere for now. */
   digitalAssets?: import('./Material').DigitalAsset[];
+  /** Batch 606 (PS-13): gross weight in grams, typed or captured from the scale. */
+  grossWeightG?: number;
+  /** Where grossWeightG came from; 'simulated_scale' is a demonstration reading. */
+  grossWeightSource?: 'scale' | 'simulated_scale' | 'manual';
   /** Optional SNOMED specimen type code */
   snomedTypeCode?: string;
   /** Optional SNOMED anatomic site code */
@@ -1556,6 +1599,13 @@ export interface CytologyScreeningRecord {
    *  (resolveCytologyTriageState.ts) does not depend on this field;
    *  it exists purely for real clinical accuracy and reporting. */
   hpvOrderReason?: 'co_test' | 'ascus_reflex' | 'post_treatment_surveillance';
+  /** Batch 608 (#51, #76): the HPV assay used (commercial name), for the HPV positivity monitor (MOL-QA-01). */
+  hpvAssayName?: string;
+  /** Batch 608 (#51, #76): what was done about a positive HPV result: the failsafe
+   *  trail UK-QA-01 counts. `referredAt` and `responseAt` are dates (YYYY-MM-DD). */
+  hpvFollowUp?: { action: 'colposcopy_referral' | 'repeat_hpv' | 'no_action'; referredAt?: string; responseAt?: string };
+  /** Batch 608 (#52): the liquid-based platform, for the EU compliance matrix (EU-QA-01). */
+  liquidBasedPlatform?: 'ThinPrep' | 'SurePath' | 'other';
   /** Real, per direct guidance: "a separate Batch Management [for
    *  molecular testing]... it will need to associate QA to the
    *  specimens in their test run locations. Using the engine to
@@ -1589,6 +1639,11 @@ export interface CytologyScreeningRecord {
    *  false as if the question had genuinely been asked and answered
    *  "no." */
   persistentContactBleedingAtCollection?: boolean;
+  /** Batch 608 (#47): a prior cervical procedure, recorded at accessioning (the
+   *  procedure half of CytologyHighRiskFactors.priorCervicalProcedureOrBiopsy;
+   *  the diagnosis-history half comes from inbound ADT diagnosis codes). 'none'
+   *  is an explicit "no procedure"; absent means not asked. */
+  priorCervicalProcedure?: 'none' | 'leep' | 'cold_knife_conization' | 'cryotherapy' | 'other_excision_or_biopsy';
   /** Real, per CAP's own mandatory "5-Year Retrospective Lookback"
    *  requirement (CYT-QA-03, per direct guidance's own supplied QA
    *  report specification): whenever a patient is newly diagnosed

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/labelDesigner/ + pages/LabelDesignerPage/
 
 Real, per direct follow-up (PS-245): a real, drag-and-drop label designer,
@@ -175,3 +177,12 @@ Before, anyone who could open Configuration could change this; now each change i
 - Fields can't be dragged, dropped, resized or typed past the label's edge.
 - A layout saved before this check that has a field outside is outlined in red, with a warning and a "Fit to label" button.
 - A moved field keeps the spot where it was grabbed.
+
+## Batch 606
+
+- `savedLayoutRegistry.ts`: reads saved layouts (facility override, enterprise default, else none) so the print paths can use them; `applySavedLayout` (ZPL) and `applySavedLayoutHtml` (browser print) fall back to the built-in output.
+- `labelFieldVisibility.ts`: a field can carry `showWhen` (`present`, `absent`, `equals`).
+- `buildLabelLayoutPrinterCode.ts`: one layout to ZPL, EPL or DPL (EPL/DPL barcode syntax to be checked on the lab printer).
+- `mockLabelLayoutService`: every save keeps a version (`listVersions`, `restoreVersion`; 20 kept per layout; who and when).
+
+Batch 616 (part D, PS-508): server version of LabelLayoutService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/REAGENTS_LABELS_API.md`.

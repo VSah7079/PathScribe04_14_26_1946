@@ -59,6 +59,7 @@ import SlideGridPanel from './components/SlideGridPanel';
 import HardwarePrintPanel from './components/HardwarePrintPanel';
 import CytologyPanel from './components/CytologyPanel';
 import CommentDrawer from './components/CommentDrawer';
+import BlockExhaustedControl from './components/BlockExhaustedControl';
 import BatchProgressModal from './components/BatchProgressModal';
 import { computeNextUnprintedStain, MICROTOMY_CANCEL_REASONS, MICROTOMY_REASON_KEYS } from '@/utils/microtomyOperations';
 import '../../pathscribe.css';
@@ -212,6 +213,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                    <BlockExhaustedControl block={block} onFlag={w.handleFlagBlockExhausted} />
                     {w.workItem.matrixBlock && (
                       <>
                         <div className="ps-microtomy-context-field">{t('microtomyWorkstation.context.matrixCores')}</div>

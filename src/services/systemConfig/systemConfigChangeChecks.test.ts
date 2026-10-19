@@ -15,6 +15,13 @@ describe('system settings changes (Batch 428)', () => {
     expect(await permitSystemConfigPatch({ facilityTimezone: 'UTC' }, d)).toBe(false);
     expect(d.enforce.mock.calls.map(c => c[0])).toEqual(['config:voice:manage', 'config:report-appearance:manage', 'config:contribution-settings:manage']);
   });
+  it('the English fuzzy-match switch (Batch 609) needs config:voice:manage, checked once with the other voice setting', async () => {
+    const denied = deps([]);
+    expect(await permitSystemConfigPatch({ voiceEnglishFuzzyFallback: false }, denied)).toBe(false);
+    const allowed = deps(['config:voice:manage']);
+    expect(await permitSystemConfigPatch({ voiceEnglishFuzzyFallback: false, voiceEnabled: true }, allowed)).toBe(true);
+    expect(allowed.enforce.mock.calls.map(c => c[0])).toEqual(['config:voice:manage']);
+  });
   it('a field no Configuration screen changes needs nothing', async () => {
     const d = deps([]);
     expect(await permitSystemConfigPatch({ somethingElse: 1 }, d)).toBe(true);

@@ -351,6 +351,8 @@ export function flagBlockExhaustion(
   const exception: AddOnOrderException = {
     reason, note, flaggedBy: actor.id, flaggedByName: actor.name, flaggedAt: new Date().toISOString(),
     status: 'pending_pathologist_review',
+    // Batch 610 (#16): remembered so Cancel or Modify can put the block's status back.
+    ...(reason === 'Block exhausted' ? { blockStatusBefore: block.status } : {}),
   };
 
   const stains = block.stains.map(s => s.id !== stainOrderId ? s : {
@@ -415,7 +417,12 @@ export function resolvePathologistException(
   updated.exceptionEvents = appendExceptionEvent(order, eventAction, actor.id, actor.name, eventDetail);
 
   const stains = block.stains.map(s => s.id !== stainOrderId ? s : updated);
-  return { ok: true, specimen: replaceBlockStains(specimen, blockId, stains) };
+  // Batch 610 (#16): Cancel or Modify answers a 'Block exhausted' flag by putting the block's status back (unless
+  // another exhaustion flag on the block is still open). Approve leaves it Exhausted: the block is being used up.
+  const restore = action !== 'approve_destructive_cut' && order.exception.reason === 'Block exhausted' && block.status === 'Exhausted'
+    && order.exception.blockStatusBefore && order.exception.blockStatusBefore !== 'Exhausted'
+    && !stains.some(s => s.id !== stainOrderId && s.exception?.reason === 'Block exhausted' && s.exception.status === 'pending_pathologist_review');
+  return { ok: true, specimen: replaceBlockStains(specimen, blockId, stains, restore ? { status: order.exception.blockStatusBefore } : undefined) };
 }
 
 // ─── Batch 403: reference labs linked to a test ─────────────────────────────

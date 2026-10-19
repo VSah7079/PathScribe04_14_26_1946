@@ -8,7 +8,7 @@
 // Promise.all.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockCassetteRoutingRuleService } from '@/services/cassetteRouting/mockCassetteRoutingRuleService';
+import { cassetteRoutingRuleService as mockCassetteRoutingRuleService } from '@/services/cassetteRouting/cassetteRoutingRuleServiceInstance';
 import { mockCassetteColorService } from '@/services/cassetteColors/mockCassetteColorService';
 import { mockProtocolService } from '@/services/protocols/mockProtocolService';
 import type { CassetteRoutingRule } from '@/services/cassetteRouting/ICassetteRoutingRuleService';

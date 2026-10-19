@@ -28,11 +28,15 @@ import { resolveMigrationCrossValidation } from '@/services/migration/resolveMig
 import type { MigrationJob } from '@/services/migration/IMigrationJobService';
 import type { MigrationRecordResult } from '@/services/migration/IMigrationRecordResultService';
 import { pressable } from '@/utils/a11y/pressable';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { LegacyImportModal } from '@/components/Migration/LegacyImportModal';
 
 const STATUS_COLOR: Record<string, string> = {
   pending: '#94A3B8', running: '#3B82F6', completed: '#22C55E',
   completed_with_errors: '#F59E0B', failed: '#EF4444',
 };
+
+const OUTCOME_COLOR: Record<string, string> = { succeeded: '#22C55E', failed: '#EF4444', needs_review: '#F59E0B' };
 
 const JobDetail: React.FC<{ job: MigrationJob; onClose: () => void }> = ({ job, onClose }) => {
   const { t } = useTranslation();
@@ -47,6 +51,7 @@ const JobDetail: React.FC<{ job: MigrationJob; onClose: () => void }> = ({ job, 
       <div className="ps-conf-modal ps-conf-modal--medium" onClick={e => e.stopPropagation()}>
         <div className="ps-conf-modal-header">{job.sourceSystemName} — {statusLabel}</div>
         <div className="ps-conf-modal-body">
+          {job.simulated && <p className="ps-migration-import-banner" role="note">{t('migrationJobs.simulatedBanner')}</p>}
           <p><strong>{t('migrationJobs.crossValidationLabel')}</strong>{' '}
             {crossValidation.status === 'no_claimed_count' && t('migrationJobs.crossValidationNoClaimedCount')}
             {crossValidation.status === 'reconciled' && t('migrationJobs.crossValidationReconciled', {
@@ -78,7 +83,7 @@ const JobDetail: React.FC<{ job: MigrationJob; onClose: () => void }> = ({ job, 
                 {problemRecords.map(r => (
                   <div key={r.id} className="ps-conf-row">
                     <span className="ps-conf-value">
-                      {r.sourceRecordId}
+                      <span data-phi="accession">{r.sourceRecordId}</span>
                       <span
                         className="ps-migration-record-outcome"
                         style={{ '--tag-color': r.outcome === 'failed' ? '#EF4444' : '#F59E0B' } as React.CSSProperties}
@@ -91,6 +96,27 @@ const JobDetail: React.FC<{ job: MigrationJob; onClose: () => void }> = ({ job, 
               </div>
             </>
           )}
+
+          <h4>{t('migrationJobs.allRecords')}</h4>
+          <div className="ps-conf-card ps-migration-records">
+            {records.map(r => (
+              <div key={r.id} className="ps-conf-row">
+                <span className="ps-conf-value">
+                  <span data-phi="accession">{r.sourceRecordId}</span>
+                  <span
+                    className="ps-migration-record-outcome"
+                    style={{ '--tag-color': OUTCOME_COLOR[r.outcome] } as React.CSSProperties}
+                  >
+                    {t(`migrationJobs.recordOutcome.${r.outcome}`)}
+                  </span>
+                  {r.targetCaseId && (
+                    <span className="ps-migration-record-case">{t('migrationJobs.targetCase', { id: r.targetCaseId })}</span>
+                  )}
+                </span>
+              </div>
+            ))}
+            {records.length === 0 && <div className="ps-conf-empty-row">{t('migrationJobs.noRecords')}</div>}
+          </div>
         </div>
         <div className="ps-conf-modal-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.close')}</button>
@@ -109,6 +135,7 @@ const MigrationJobsPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('migrationJobs.title'), '/migration-jobs'); }, [pushCrumb, t]);
   const [jobs, setJobs] = useState<MigrationJob[]>([]);
   const [detailJob, setDetailJob] = useState<MigrationJob | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const refresh = () => { migrationJobService.getAll().then(res => { if (res.ok) setJobs(res.data); }); };
   useEffect(() => { refresh(); }, []);
@@ -119,6 +146,12 @@ const MigrationJobsPage: React.FC = () => {
       <p className="ps-conf-section-subtitle ps-conf-section-subtitle--spaced">
         {t('migrationJobs.subtitle')}
       </p>
+
+      <div className="ps-migration-toolbar">
+        <CapabilityButton capability="config:migration-mappings:manage" className="ps-conf-btn-primary" onClick={() => setImporting(true)}>
+          {t('migrationJobs.importButton')}
+        </CapabilityButton>
+      </div>
 
       <div className="ps-conf-card">
         {jobs.map(job => {
@@ -133,6 +166,7 @@ const MigrationJobsPage: React.FC = () => {
                 >
                   {t(`migrationJobs.status.${job.status}`)}
                 </span>
+                {job.simulated && <span className="ps-migration-simulated-tag">{t('migrationJobs.simulatedTag')}</span>}
                 {cv.status === 'discrepancy' && (
                   <span className="ps-migration-discrepancy-tag">{t('migrationJobs.crossValidationDiscrepancyBadge')}</span>
                 )}
@@ -145,6 +179,14 @@ const MigrationJobsPage: React.FC = () => {
         })}
         {jobs.length === 0 && <div className="ps-conf-empty-row">{t('migrationJobs.noJobs')}</div>}
       </div>
+
+      {importing && (
+        <LegacyImportModal
+          onClose={() => { setImporting(false); refresh(); }}
+          onFinished={refresh}
+          onOpenJob={job => { setImporting(false); setDetailJob(job); refresh(); }}
+        />
+      )}
 
       {detailJob && <JobDetail job={detailJob} onClose={() => { setDetailJob(null); refresh(); }} />}
     </div>

@@ -43,6 +43,8 @@ export interface MockInterfaceEngineSettings {
   /** Batch 467b: after accepting a molecular worklist, answer for the instrument with this call for every patient
    *  sample (controls as expected), echoing each well's order id. 'off': no results come back. */
   molecularInstrumentCall?: 'POSITIVE' | 'NEGATIVE' | 'off';
+  /** Batch 605: in the demo with no engine address, outbound messages go to the simulated engine (simulatedEngineReceiver.ts). On unless switched off. */
+  simulatedEngine?: boolean;
 }
 
 const STORE_KEY = 'mock_interface_engine_settings';
@@ -52,6 +54,7 @@ const DEFAULT_SETTINGS: MockInterfaceEngineSettings = {
   mode: 'always_succeed',
   failureStatus: 500,
   simulateWsiScanner: true,
+  simulatedEngine: import.meta.env.MODE !== 'test', // unit tests stub fetch themselves
   molecularInstrumentCall: 'off', // nothing fills a report unless someone chooses a call
 };
 

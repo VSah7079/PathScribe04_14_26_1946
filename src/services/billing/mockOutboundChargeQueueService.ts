@@ -46,6 +46,25 @@ export const mockOutboundChargeQueueService: IOutboundChargeQueueService = {
     return ok(newEntry);
   },
 
+  async markSent(id) {
+    await delay();
+    const all = load();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx === -1) return err(`Outbound charge queue entry ${id} not found`);
+    const updated: OutboundChargeQueueEntry = {
+      ...all[idx], status: 'SENT', errorCode: undefined, errorMessage: undefined, maxRetriesExceeded: false, lastAttemptAt: new Date().toISOString(),
+    };
+    const next = [...all];
+    next[idx] = updated;
+    persist(next);
+    auditService.logEvent({
+      type: 'system', event: 'Outbound charge sent',
+      detail: `Charge queue entry ${id} sent to the interface engine (${all[idx].billingType}, ${all[idx].triggerEvent}).`,
+      user: 'system', caseId: all[idx].caseId, confidence: null,
+    }).catch(() => {});
+    return ok(updated);
+  },
+
   async getFailed() {
     await delay();
     return ok(load().filter(e => e.status === 'FAILED'));

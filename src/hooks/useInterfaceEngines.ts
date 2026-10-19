@@ -44,5 +44,5 @@ export function useInterfaceEngines(service: IInterfaceMonitoringService = inter
 
   const views: EngineView[] | null = useMemo(() => (data ? engineViews(data) : null), [data]);
   const counts = useMemo(() => (views ? engineCounts(views) : null), [views]);
-  return { viaServer: service.viaServer, views, counts, serverTime: data?.serverTime ?? null, problem, reload };
+  return { viaServer: service.viaServer, simulated: !!service.simulated, views, counts, serverTime: data?.serverTime ?? null, problem, reload };
 }

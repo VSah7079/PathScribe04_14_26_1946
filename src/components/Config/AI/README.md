@@ -171,3 +171,7 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 ## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
 
 - `HostingRegionsCard.tsx` (Batch 557, new): "Where PathScribe keeps data", the database and file storage regions (from the server's `/api/config`) beside the AI region, shown in `AiProviderSettings.tsx`. Read only.
+
+## Batch 609 (#173)
+
+`resolveClientAiModel.ts`: `resolveAiConfigOverrideForClient` passes the model's `maxTokens` override to the call; `resolveConfidenceThresholdForClient` gives the model's own confidence threshold, else the organisation's. Tests: `resolveClientAiModel.overrides.test.ts`.

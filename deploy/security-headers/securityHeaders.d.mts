@@ -8,7 +8,11 @@ export interface SecurityHeaderOrigins {
   https?: boolean;
   /** Batch 546: false leaves out the loopback workstation print bridges (default: included). */
   workstationBridges?: boolean;
+  /** Batch 617 (PS-488): the API server makes the NLM look-ups, so the policy does not name the NLM host. */
+  terminologyViaServer?: boolean;
 }
+export declare const PUBMED_ORIGINS: string[];
+export declare const TERMINOLOGY_PUBLIC_ORIGINS: string[];
 export declare const PUBLIC_REFERENCE_ORIGINS: string[];
 export declare const WORKSTATION_BRIDGE_ORIGINS: string[];
 export declare const RUNTIME_CONFIG_ORIGIN_KEYS: { connect: string[]; hub: string[]; formAction: string[] };

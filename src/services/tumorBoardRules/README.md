@@ -31,6 +31,14 @@ New `TumorBoardBatchSettings { cutoffHours }` (`DEFAULT_TUMOR_BOARD_BATCH_SETTIN
 - `mockTumorBoardRuleService.ts` — `mockTumorBoardBatchSettingsService` and its load/persist/validate helpers.
 - `tumorBoardBatchSettings.test.ts` — new.
 
+## Batch 610 (#71)
+
+Diagnosis and biomarker criteria rules (`criteriaRuleValidation.ts`, `criteriaRuleEvaluation.ts`, `mockTumorBoardCriteriaRuleService`): a rule of up to 6 criteria lists a signed case for its board when every criterion matches. Facility overrides can now change the board. `runMarginRuleEvaluation` runs both rule kinds.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part C): server versions (PS-514)
+
+The tumor board rule, facility override, batch settings and criteria rule services here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/TUMOR_BOARD_API.md`. The mocks are unchanged.

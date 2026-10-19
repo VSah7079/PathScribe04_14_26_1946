@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 607 \u2014 code-system policy enforcement, case coding, ICD-O-3 table, OPCS-4 notice (unit and component tests)",
+    "description": "Vitest, 2026-10-18: full suite 1259 files; 10,371 tests passed; the one failure (two new storage keys missing from the Full Reset list) was fixed and its tests re-run and passed. firestore.rules.test.ts needs the Firestore emulator (not run). Not run: browser check; WHO ICD-11 mapping, NHS TRUD OPCS-4 feed, proficiency-test provider grades (server side or licence); native-speaker review of fr/de/nl/ko text."
+  },
+  "tests": [
+    {
+      "testKey": "PS-772",
+      "start": "2026-10-18T03:03:00Z",
+      "finish": "2026-10-18T11:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/pages/Synoptic/Codes/Opcs4Notice.test.tsx\nPASSED: src/pages/SynopticReportPage/hooks/__tests__/useSignOutWorkflow.test.ts\nPASSED: src/services/coding/codePolicyEnforcement.test.ts"
+    }
+  ]
+}

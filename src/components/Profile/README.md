@@ -10,3 +10,7 @@ Batch 432. The signed-in person's own lists, opened from the profile menu (click
 
 ---
 *Update this file when a personal list is added here.*
+
+## Batch 611 (part F)
+
+`BiometricSigningModal` shows a **Simulated** note and which prompt (the device's own, or the demonstration one) enrolment used. Test: `BiometricSigningModal.test.tsx`.

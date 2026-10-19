@@ -360,4 +360,22 @@ export const mockEncounterService: IEncounterService = {
     saveEncounters(encounters);
     return { ok: true, data: { encounter: updated, reassigned: true } };
   },
+
+  async changeEncounterNumber(encounterId, newEncounterNumber, eventTimestamp) {
+    await delay();
+    const encounters = loadEncounters();
+    const idx = encounters.findIndex(e => e.id === encounterId);
+    if (idx === -1) return { ok: false, error: `Encounter ${encounterId} not found` };
+    const current = encounters[idx];
+    const next = newEncounterNumber.trim();
+    if (!next) return { ok: true, data: { encounter: current, changed: false, reason: 'No new visit number was given.' } };
+    if (next === current.encounterNumber) return { ok: true, data: { encounter: current, changed: false, reason: 'The visit already has this number.' } };
+    if (encounters.some(e => e.id !== current.id && e.organisationId === current.organisationId && e.encounterNumber === next)) {
+      return { ok: true, data: { encounter: current, changed: false, reason: `Visit number ${next} already belongs to another visit.` } };
+    }
+    const updated: Encounter = { ...current, encounterNumber: next, lastEventAt: eventTimestamp, updatedAt: new Date().toISOString() };
+    encounters[idx] = updated;
+    saveEncounters(encounters);
+    return { ok: true, data: { encounter: updated, changed: true } };
+  },
 };

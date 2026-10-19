@@ -50,6 +50,7 @@
 import i18n, { type BackendModule } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { applyDocumentDirection } from './direction';
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr', 'fr-BE', 'de', 'nl', 'nl-BE', 'ko'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -103,6 +104,11 @@ await i18n
     // language switch loads before it applies, so nothing needs to suspend.
     react: { useSuspense: false },
   });
+
+// Batch 615 (PS-293): <html lang dir> follows the language (a right-to-left
+// language mirrors the layout; see direction.ts).
+applyDocumentDirection(i18n.resolvedLanguage ?? i18n.language);
+i18n.on('languageChanged', lng => { applyDocumentDirection(lng); });
 
 /**
  * Makes sure a language (and the languages it falls back to) is loaded, so

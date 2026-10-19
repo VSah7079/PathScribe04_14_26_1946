@@ -22,13 +22,15 @@ export function resolveEffectiveTumorBoardRules(
 ): EffectiveTumorBoardRule[] {
   return enterpriseRules.map(rule => {
     const override = facilityOverrides.find(o => o.ruleId === rule.id);
-    if (!override || (override.marginThresholdMm === undefined && override.active === undefined)) {
+    if (!override || (override.marginThresholdMm === undefined && override.active === undefined && override.board === undefined)) {
       return { ...rule, source: 'enterprise' };
     }
     return {
       ...rule,
       marginThresholdMm: override.marginThresholdMm ?? rule.marginThresholdMm,
       active: override.active ?? rule.active,
+      // Batch 610 (#71): a facility may route the rule's cases to another board.
+      board: override.board ?? rule.board,
       source: 'facility',
     };
   });

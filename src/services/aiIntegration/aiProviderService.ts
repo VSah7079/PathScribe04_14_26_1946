@@ -28,6 +28,7 @@ import {
   type AiProviderConfig,
   type AiProviderId,
 } from '@/components/Config/AI/aiProviderConfig';
+import { effectiveMaxTokens } from '../models/modelOverrides';
 import { checkAiCall, defaultAiCallPolicyDeps, recordAiCall, type AiCallContext, type AiCallPolicyDeps } from './aiCallPolicy';
 
 export interface AiCallOptions {
@@ -177,11 +178,16 @@ function parseStructuredContentResponse(data: any): string {
 
 // ─── Main entry point ─────────────────────────────────────────
 
-export async function callAi(opts: AiCallOptions): Promise<AiCallResult> {
+export async function callAi(requested: AiCallOptions): Promise<AiCallResult> {
   const cfg: AiProviderConfig = {
     ...resolveAiConfig(),
-    ...opts.configOverride,
+    ...requested.configOverride,
   };
+  // Batch 609 (#173): a model's maxTokens override (Configuration → Models) is a ceiling on
+  // output length: the lower of it and what the caller asked for.
+  const opts: AiCallOptions = requested.configOverride?.maxTokens !== undefined
+    ? { ...requested, maxTokens: effectiveMaxTokens(requested.maxTokens, { configOverrides: { maxTokens: requested.configOverride.maxTokens } }) }
+    : requested;
 
   let request: { url: string; headers: Record<string, string>; body: object };
   let parseResponse: (data: any) => string;

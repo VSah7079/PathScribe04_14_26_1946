@@ -31,6 +31,7 @@ All routes require a signed-in user (bearer token, as for the rest of the API). 
 | `POST /api/ai/custom/chat/completions` | `<custom endpoint>/chat/completions` | `Authorization: Bearer …` |
 | `POST /api/ai/bedrock/invoke`, `/invoke-stream` | AWS Bedrock `InvokeModel` / `InvokeModelWithResponseStream` (body has `modelId`, `region`) | AWS SigV4 (server role); no dev proxy |
 | `GET /api/terminology/umls/…` | `https://uts-ws.nlm.nih.gov/rest/…` | `apiKey` query parameter |
+| `GET /api/terminology/nlm/search-icd10`, `search-icd11`, `search-loinc` | NLM clinical tables (Batch 617; contract in `TERMINOLOGY_PROXY_API.md`) | none today; the server adds a key if NLM requires one |
 
 For the Gemini routes, the model name comes from the browser. Accept only `[A-Za-z0-9._-]+` before putting it into the upstream path; the dev proxy does the same.
 

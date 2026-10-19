@@ -9,6 +9,14 @@ The demo data reset (mock backend only). Moved out of `components/Config/System/
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): removed `executeUserReset` from the current description (deleted in Batch 455) and named the second key-audit test.*
 
+## Batch 613 (part A) — case search reporting
+
+`pathscribe_scheduledReports` (report schedules) is cleared with the other browser data.
+
+## Batch 609 (part A)
+
+- `caseReportImages` (the image links) is in `CASE_KEYS`.
+
 ## Batch 381
 
 `STATE_KEYS` gains the report page's display preferences under their `utils/uiPreferences` names: `ps_ui_reportHeaderCompact`, `ps_ui_reportSidebarCollapsed` and `ps_ui_reportTabWidth`. The old keys stay listed so old values are still cleared.
@@ -141,3 +149,9 @@ The seeded consult link stores only a token fingerprint (Batch 522, PS-290).
 ## Batch 552 (PS-539 phase 2d: site agent screens)
 
 - `site_agent_config` (the demo's site agent printers and shares) is in `SETTINGS_KEYS`.
+
+## Batch 589
+
+`critical_findings_by_case_v1` (flagged critical findings per case) is cleared by the demo reset.
+
+- Batch 612 (part A): Reset demo clears `interfaceDictionaryProfiles` (settings) and `interfaceDictionaryFieldValues` (case data).

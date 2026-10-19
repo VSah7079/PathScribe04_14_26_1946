@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { AIModel, ModelAdoption, ModelCatalogEntry, ModelServiceError } from './IModelService';
+import { validateOverrides } from './modelOverrides';
 
 /** The mock's stand-in for /organisations/{orgId}/adoptedModels:
  *  adoption records grouped by organisationId. */
@@ -41,6 +42,8 @@ export function joinModel(entry: ModelCatalogEntry, adoption: ModelAdoption): AI
     isDefault:       adoption.isDefault,
     notes:           adoption.notes || entry.releaseNotes,
     ...(adoption.retiredDate ? { retiredDate: adoption.retiredDate } : {}),
+    ...(adoption.configOverrides ? { configOverrides: { ...adoption.configOverrides } } : {}),
+    ...(adoption.thresholdOverrides ? { thresholdOverrides: { ...adoption.thresholdOverrides } } : {}),
   };
 }
 
@@ -124,7 +127,7 @@ export function applyDefault(
 }
 
 /** Fields of the joined AIModel that belong to the tenant's adoption. */
-const ADOPTION_FIELDS = ['status', 'isDefault', 'accuracy', 'casesProcessed', 'notes', 'retiredDate'] as const;
+const ADOPTION_FIELDS = ['status', 'isDefault', 'accuracy', 'casesProcessed', 'notes', 'retiredDate', 'configOverrides', 'thresholdOverrides'] as const;
 type AdoptionField = typeof ADOPTION_FIELDS[number];
 
 /** Applies AIModel-shaped changes to an adoption. Changing any catalog
@@ -137,7 +140,19 @@ export function applyModelChanges(
 ): Result<ModelAdoption> {
   const current = joinModel(entry, adoption) as unknown as Record<string, unknown>;
   const next: ModelAdoption = { ...adoption };
+  // Batch 609 (#173): the two override sections are replaced as a pair, validated, and an empty one is removed.
+  if ('configOverrides' in changes || 'thresholdOverrides' in changes) {
+    const checked = validateOverrides({
+      configOverrides: 'configOverrides' in changes ? changes.configOverrides : adoption.configOverrides,
+      thresholdOverrides: 'thresholdOverrides' in changes ? changes.thresholdOverrides : adoption.thresholdOverrides,
+    });
+    if (checked.ok === false) return { ok: false, error: 'INVALID_OVERRIDE' };
+    delete next.configOverrides;
+    delete next.thresholdOverrides;
+    Object.assign(next, checked.value);
+  }
   for (const [key, value] of Object.entries(changes)) {
+    if (key === 'configOverrides' || key === 'thresholdOverrides') continue;
     if ((ADOPTION_FIELDS as readonly string[]).includes(key)) {
       (next as unknown as Record<string, unknown>)[key as AdoptionField] = value;
     } else if (JSON.stringify(current[key]) !== JSON.stringify(value)) {

@@ -15,9 +15,9 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import type { CaseFilterParams, PathologyCase } from '@/services/cases/ICaseService';
 import { mockServiceChargeService, getEffectiveChargeStatus } from './mockServiceChargeService';
-import { mockBillingDeficiencyService } from './mockBillingDeficiencyService';
-import { mockCodeReviewPoolService } from './mockCodeReviewPoolService';
-import { mockOutboundChargeQueueService } from './mockOutboundChargeQueueService';
+import { billingDeficiencyService } from './billingDeficiencyServiceInstance';
+import { codeReviewPoolService } from './codeReviewPoolServiceInstance';
+import { outboundChargeQueueService } from './outboundChargeQueueServiceInstance';
 import { amendmentService, auditService } from '@/services';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import type { BillingDeficiencyRecord } from '@/types/billing/BillingDeficiencyRecord';
@@ -304,9 +304,9 @@ export async function searchBillingAuditLog(filters: BillingAuditLogFilters): Pr
   const perCaseResults = await Promise.all(cappedCases.map(async caseData => {
     const [chargesRes, deficienciesRes, codeReviewsRes, dispatchesRes, amendmentsRes, auditRes] = await Promise.all([
       mockServiceChargeService.getChargesForCase(caseData.id),
-      mockBillingDeficiencyService.getByCaseId(caseData.id),
-      mockCodeReviewPoolService.getByCaseId(caseData.id),
-      mockOutboundChargeQueueService.getByCaseId(caseData.id),
+      billingDeficiencyService.getByCaseId(caseData.id),
+      codeReviewPoolService.getByCaseId(caseData.id),
+      outboundChargeQueueService.getByCaseId(caseData.id),
       amendmentService.getByCaseId(caseData.id),
       auditService.getAuditLogs({ search: caseData.id }),
     ]);

@@ -14,8 +14,21 @@
 // same resolveOrCreatePatient() call that created the Case's own patient.id.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { CodeSystemPolicy } from '../coding/codeSystemPolicy';
+import { orderDiagnosesAllowed } from '../coding/codePolicyEnforcement';
 import type { Case } from '@/types/case/Case';
-import type { OrderCreationEventPayload, OrderCreationPatient } from './IInterfaceEngineService';
+import type { OrderCreationEventPayload, OrderCreationPatient, OrderCreationEncounter } from './IInterfaceEngineService';
+
+/** The case's visit as the payload carries it (Batch 605): the number, class and where the patient is. */
+export function toOrderCreationEncounter(e: { encounterNumber: string; encounterClass?: OrderCreationEncounter['encounterClass']; ward?: string; department?: string; room?: string; bed?: string } | null | undefined): OrderCreationEncounter | undefined {
+  if (!e || !e.encounterNumber) return undefined;
+  const pointOfCare = e.ward || e.department;
+  return {
+    encounterNumber: e.encounterNumber,
+    ...(e.encounterClass ? { encounterClass: e.encounterClass } : {}),
+    ...(pointOfCare ? { location: { pointOfCare, ...(e.room ? { room: e.room } : {}), ...(e.bed ? { bed: e.bed } : {}) } } : {}),
+  };
+}
 
 export type MpiResolutionOutcome = 'matched' | 'created' | 'ambiguous';
 
@@ -42,11 +55,17 @@ export function buildOrderCreationPayload(
   caseData: Case,
   mpiOutcome: MpiResolutionOutcome,
   eventTimestamp: string,
+  /** Batch 605: the resolved visit, when the case has one. */
+  encounter?: OrderCreationEncounter,
+  /** Batch 614 (PS-762): the Code Systems setting; with ICD-10 switched off the message carries no diagnoses. */
+  codePolicy?: { policy: CodeSystemPolicy; today: string },
 ): OrderCreationEventPayload {
   const patient: OrderCreationPatient = {
     patientDataScope: patientDataScopeFor(mpiOutcome),
     // The accession page (the only caller) always sets both of these on a new case.
     identifier: caseData.patient.mrn ?? '',
+    // Batch 605: the identifier's origin organisation, so the engine knows whose MRN this is.
+    ...((caseData.originEnterpriseId || caseData.originHospitalId) ? { assigningAuthority: caseData.originEnterpriseId || caseData.originHospitalId } : {}),
   };
   if (patient.patientDataScope === 'full') {
     patient.firstName = caseData.patient.givenNames;
@@ -62,6 +81,7 @@ export function buildOrderCreationPayload(
     organisationId: caseData.originEnterpriseId,
     facilityId: caseData.originHospitalId,
     patient,
+    ...(encounter ? { encounter } : {}),
     order: {
       placerOrderNumber: caseData.accession.fullAccession ?? caseData.id, // the accession page's own fallback
       // Real fix, found while implementing this against the actual
@@ -76,7 +96,7 @@ export function buildOrderCreationPayload(
         : undefined,
       clinicalIndication: caseData.order.clinicalIndication,
     },
-    diagnoses: caseData.order.icd10Codes?.map((dx, i) => ({
+    diagnoses: (codePolicy ? orderDiagnosesAllowed(caseData.order.icd10Codes, codePolicy.policy, codePolicy.today) : caseData.order.icd10Codes)?.map((dx, i) => ({
       code: dx.code,
       description: dx.description,
       isPrincipal: i === 0, // same real "first is principal" convention as dftBuilder.ts's own DG1 stack

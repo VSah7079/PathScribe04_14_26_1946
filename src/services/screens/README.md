@@ -150,3 +150,13 @@ The route tests read both `App.tsx` and `SignedInApp.tsx`, where every route aft
 ## Batch 552 (PS-539 phase 2d: site agent screens)
 
 - `configSectionAccess.ts`: `site_agents` opens with either site agent capability.
+
+## Batch 595
+
+`configSectionAccess.ts`: the Code Systems section (`code_systems`) is editable with `config:code-systems:manage`.
+
+## Batch 610 (part A) — autopsyDashboards
+
+New `ScreenId` `autopsyDashboards` (`screen:autopsy-dashboards:open`), in the Quality & Compliance hub.
+
+- Batch 612 (part A): `configSectionAccess.ts` gains `PLATFORM_ONLY_SECTIONS` and `configSectionVisible`; the Interface Dictionary section is hidden from anyone without its manage capability.

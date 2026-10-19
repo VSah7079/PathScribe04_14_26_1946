@@ -27,6 +27,8 @@ import {
 export const CLINICAL_MISMATCH_RULES_VIEW = 'config:clinical-mismatch-rules:view';
 export const CLINICAL_MISMATCH_RULES_MANAGE = 'config:clinical-mismatch-rules:manage';
 export const CLINICAL_MISMATCH_RULES_STORAGE_KEY = 'pathscribe_clinical_mismatch_rules';
+/** Batch 609 (#31): whether a Block rule holds the release of an amendment, correction or addendum. */
+export const CLINICAL_MISMATCH_REVISION_HOLD_STORAGE_KEY = 'pathscribe_clinical_mismatch_revision_hold';
 
 export type ClinicalMismatchRuleError = 'CONFIG_NOT_PERMITTED' | 'NOT_FOUND' | ClinicalMismatchRuleProblem;
 
@@ -36,11 +38,24 @@ export interface IClinicalMismatchRuleService {
   save(rule: ClinicalMismatchRule): Promise<ServiceResult<ClinicalMismatchRule[]>>;
   remove(ruleId: string): Promise<ServiceResult<ClinicalMismatchRule[]>>;
   rulesForCheck(): Promise<ClinicalMismatchRule[]>;
+  /**
+   * Batch 609 (#31): the setting for amendments, corrections and addenda. On
+   * (the default), a high-risk mismatch (a Block rule reached) holds the
+   * release until the pathologist decides, as at first sign-out. Off, the
+   * report alert is still shown and the mismatch is logged to the QA
+   * dashboard, but the release is not held. A system read, like rulesForCheck.
+   */
+  revisionHoldsRelease(): Promise<boolean>;
+  /** Needs config:clinical-mismatch-rules:manage; audited (CLINICAL_MISMATCH_RULE_CHANGED). */
+  saveRevisionHoldsRelease(holds: boolean): Promise<ServiceResult<boolean>>;
 }
 
 export interface ClinicalMismatchRuleDeps {
   read(): ClinicalMismatchRule[] | null;
   write(rules: ClinicalMismatchRule[]): void;
+  /** Batch 609: the amendment setting; absent or null means the default (holds). */
+  readRevisionHold?(): boolean | null;
+  writeRevisionHold?(holds: boolean): void;
   enforce(capability: string): Promise<{ allowed: boolean }>;
   audit(entry: NewAuditLog): Promise<unknown>;
   actorName(): string;
@@ -96,5 +111,18 @@ export function createClinicalMismatchRuleService(deps: ClinicalMismatchRuleDeps
       return { ok: true, data: next };
     },
     async rulesForCheck() { return current(); },
+    async revisionHoldsRelease() { return deps.readRevisionHold?.() ?? true; },
+    async saveRevisionHoldsRelease(holds) {
+      if (!permitted(await deps.enforce('config:clinical-mismatch-rules:manage'), CLINICAL_MISMATCH_RULES_MANAGE)) return fail('CONFIG_NOT_PERMITTED');
+      const before = deps.readRevisionHold?.() ?? true;
+      deps.writeRevisionHold?.(holds);
+      if (before !== holds) {
+        await deps.audit({
+          type: 'user', event: 'CLINICAL_MISMATCH_RULE_CHANGED', user: deps.actorName(), caseId: null, confidence: null,
+          detail: `Clinical mismatch check for amendments, corrections and addenda: a high-risk mismatch ${before ? 'holds' : 'does not hold'} the release → ${holds ? 'holds' : 'does not hold'} the release.`,
+        }).catch(() => {});
+      }
+      return { ok: true, data: holds };
+    },
   };
 }

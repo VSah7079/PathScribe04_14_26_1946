@@ -2034,3 +2034,9 @@ copy of the corresponding source code of this dictionary, under the same licence
 
 [en-*, ko-KR] medical tier: PathScribe pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/).
 
+[de-DE] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/de/), pending native-speaker review.
+
+[fr-FR] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/fr/), pending native-speaker review.
+
+[nl-NL] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/nl/), pending native-speaker review.
+

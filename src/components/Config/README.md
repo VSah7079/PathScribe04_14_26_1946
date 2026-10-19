@@ -1,3 +1,11 @@
+## Batch 604
+
+`System/SimulatedMailOutboxSection`: every e-mail the demo would have sent, labelled Simulated (`simulated_mail`, under Integrations; opened with `config:vendor-integrations:manage`). `System/SupportAccessSection` gains Export PDF and the Simulated "Ticket closed" button.
+
+## Batch 603
+
+`System/DisplayTokenModal`: issue, re-issue and revoke the Display Token for a Display Profile or an OR Suite terminal; the token is shown once. Display Profile "Device Token" is now an asset note only.
+
 # components/Config/
 
 The biggest, most central components folder — every admin/configuration
@@ -636,3 +644,9 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 ## Batch 574
 
 - `Cytology/CytologyWorkloadCapSettingsSection.tsx`: "Screening day starts at" (from now on; audited through `services/cytology/saveScreeningDayStart.ts`).
+
+## Batch 595
+
+`System/CodeSystemsSection.tsx`: the Code Systems setting (code systems per jurisdiction, with start dates). See `System/README.md`.
+
+- Batch 612 (part A): System gains Interface Dictionary (ForMedrixAI support only).

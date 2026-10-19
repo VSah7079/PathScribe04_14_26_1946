@@ -1,0 +1,51 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batches 592-600 \u2014 shared HTTP client, coding model, Code Systems screen, dead CSS guard, actions accounting, Role Dictionary commands and default grants (unit, component and guard tests)",
+    "description": "Vitest, 2026-10-16. Full suite after Batch 597: 10103 passed, 33 skipped; only firestore.rules.test.ts fails (needs the Firebase emulator). Batch 599 guard and related folders: 196 passed. Type-check clean. Production build passes. Not run: browser checks of the screens touched by the CSS removal (PS-761); Code Systems wiring and translation review (PS-762)."
+  },
+  "tests": [
+    {
+      "testKey": "PS-756",
+      "start": "2026-10-16T21:00:00Z",
+      "finish": "2026-10-16T22:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/apiServer/apiHttpClient.test.ts"
+    },
+    {
+      "testKey": "PS-757",
+      "start": "2026-10-16T21:00:00Z",
+      "finish": "2026-10-16T22:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/coding/codedEntry.test.ts\nPASSED: src/services/coding/coding.guard.test.ts"
+    },
+    {
+      "testKey": "PS-758",
+      "start": "2026-10-16T21:00:00Z",
+      "finish": "2026-10-16T22:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/coding/codeSystemPolicyService.test.ts\nPASSED: src/components/Config/System/CodeSystemsSection.test.tsx\nPASSED: src/services/authorization/authorization.test.ts"
+    },
+    {
+      "testKey": "PS-759",
+      "start": "2026-10-16T21:00:00Z",
+      "finish": "2026-10-16T22:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/styleRules/unusedCss.guard.test.ts"
+    },
+    {
+      "testKey": "PS-760",
+      "start": "2026-10-16T21:00:00Z",
+      "finish": "2026-10-16T22:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts"
+    },
+    {
+      "testKey": "PS-763",
+      "start": "2026-10-16T22:20:00Z",
+      "finish": "2026-10-16T22:40:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/roles/actionSeeds.test.ts\nPASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts\nPASSED: src/services/actionRegistry/mockActionRegistryService.test.ts"
+    }
+  ]
+}

@@ -14,6 +14,9 @@
 // capsular soft tissue margins (Batch 466b: no vein or ureter — they aren't in
 // the specimen — unless a non-standard margin was added).
 //
+// Batch 618 (PS-492, Pete): and Gerota's fascia and the adrenal gland, which a partial nephrectomy holds only
+// when the extent says beyond Gerota's fascia / contiguous adrenal spread; the perinephric fat always stays.
+//
 // Batch 466c: a partial nephrectomy's drawing leaves out the anatomy its
 // specimen doesn't hold — the renal vein, the vena cava (with the diaphragm
 // line) and the ureter — unless the pathologist reports it: the vein when its
@@ -42,8 +45,10 @@ export type RenalCompartment = typeof RENAL_COMPARTMENTS[number];
 export const RENAL_MARGIN_BOXES: Record<string, string> = { p: 'm_parenchymal', s: 'm_softTissue', v: 'm_vein', u: 'm_ureter' };
 export const RENAL_MARGIN_IDS = Object.values(RENAL_MARGIN_BOXES);
 /** Batch 466c: the anatomy a partial nephrectomy draws only when reported, by letter in the variant
- *  (v renal vein, i vena cava below and above the diaphragm, u ureter). A radical nephrectomy draws it all. */
-export const RENAL_OPTIONAL_ANATOMY: Record<string, readonly RenalCompartment[]> = { v: ['renalVein'], i: ['ivcBelow', 'ivcAbove'], u: ['ureter'] };
+ *  (v renal vein, i vena cava below and above the diaphragm, u ureter). Batch 618 (PS-492, Pete): g Gerota's
+ *  fascia and a adrenal gland too — drawn only when the extent says beyond Gerota's fascia / contiguous adrenal
+ *  (renalAnatomy.ts). The perinephric fat is always drawn. A radical nephrectomy draws it all. */
+export const RENAL_OPTIONAL_ANATOMY: Record<string, readonly RenalCompartment[]> = { v: ['renalVein'], i: ['ivcBelow', 'ivcAbove'], u: ['ureter'], g: ['gerota'], a: ['adrenal'] };
 /** The compartments a variant draws. */
 export function renalCompartmentsDrawn(variant?: string): RenalCompartment[] {
   const { anatomy } = parseVariant(variant);

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/patientHistory/
 
 Real, per direct guidance: rather than a bulk historical-data
@@ -76,3 +78,9 @@ tracked as real, remaining follow-up, not silently assumed done.
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 605
+
+`runHistoryRefreshSweep.ts` refreshes prior-report history for the day's cases (also from the Server Jobs screen) and `destroyHistoryCacheAtSignOut` removes a case's cached history at sign-out.
+
+Batch 616 (part A, PS-503): `httpPatientHistoryServices.ts` and `patientHistoryInstance.ts`. The lookup in the lab or hospital system is made by the server; the MRN goes in the body. Contract `PATIENTS_API.md` section 4.

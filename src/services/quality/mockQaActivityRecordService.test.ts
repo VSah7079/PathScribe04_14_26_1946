@@ -29,11 +29,11 @@ describe('mockQaActivityRecordService', () => {
   // record kept from Stage 2 - 176 total. Verified against the exact,
   // real counts confirmed directly in mockReconciliationService.ts's
   // own source, not assumed.
-  it('seeds the real, full migration (176 records: 175 from Reconciliation + 1 Cytology-Histology)', async () => {
+  it('seeds the real, full migration (181 records: 175 from Reconciliation + 1 Cytology-Histology + 5 demo peer review discordances, PS-147)', async () => {
     const res = await mockQaActivityRecordService.getAll();
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data.length).toBe(176);
+    expect(res.data.length).toBe(181);
   });
 
   it('migrated 10 real discordant, 165 real concordant records under Frozen vs Final (175 total, matching the real Reconciliation seed exactly)', async () => {

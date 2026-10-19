@@ -298,6 +298,8 @@ export interface PatientIdentifier {
   system?: string;
   verificationStatus?: NationalIdentifierVerification;
   verifiedAt?: string;
+  /** Batch 605: NHS Number Status Indicator code from inbound PID-32 (mrn_nhs only). */
+  statusCode?: string;
 }
 
 export interface IPatientIndexService {
@@ -551,6 +553,9 @@ export interface IPatientIndexService {
    *  hospital ever actually sending a real order. Internal callers
    *  (resolveOrCreatePatient) pass source='resolution' explicitly;
    *  defaults to 'manual' for real, direct admin use. */
+  /** Batch 605: the stored NHS Number Status Indicator code for an NHS number (from inbound ADT PID-32), or null. */
+  getNationalIdentifierStatusCode(system: string, value: string): Promise<string | null>;
+
   addIdentifier(patientId: string, assigningAuthority: string, identifierValue: string, source?: 'resolution' | 'manual'): Promise<PatientIdentifier>;
   /** Batch 417: record (or replace, one per system) a national identifier with its verification. */
   recordNationalIdentifier(patientId: string, identifier: NationalPatientIdentifier): Promise<PatientIdentifier>;

@@ -28,6 +28,8 @@ export interface MigrationJob {
   needsReviewCount: number;
   createdByUserId: string;
   createdByUserName: string;
+  /** Batch 611 (#132, #166): true for a job the browser-side file import ran (its draft cases are Simulated bulk import). */
+  simulated?: boolean;
   startedAt?: string;
   completedAt?: string;
   createdAt: string;

@@ -33,6 +33,7 @@ import { isSsoDenialReason } from '@/services/auth/externalIdentity';
 import type { SsoProviderId } from '@/services/auth/authConfig';
 import { staffPasswordService, passwordConfirmProblem, PASSWORD_MIN_LENGTH, signInRefusalNotice } from '@/services/signIn';
 import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
+import MfaSignInStep from '@/components/Auth/MfaSignInStep';
 
 /** Route state LoginPage reads: where the user was going, and why an SSO sign-in was refused. */
 export interface LoginRouteState {
@@ -110,7 +111,7 @@ const MicrosoftIcon = () => (
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const { login, passwordSignInEnabled, ssoProviders, beginSsoSignIn } = useAuth();
+  const { login, passwordSignInEnabled, ssoProviders, beginSsoSignIn, mfa } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const routeState = (location.state ?? {}) as LoginRouteState;
@@ -189,6 +190,12 @@ const LoginPage: React.FC = () => {
       navigate(resolvePostSignInPath(routeState.from), { replace: true });
     } else if (result === 'session_conflict') {
       setShowSessionConflict(true);
+    } else if (result === 'mfa_required') {
+      // Batch 611 (#157): the second-factor step shows in place of the form.
+      setPassword('');
+      setError('');
+    } else if (result === 'mfa_unavailable') {
+      setError(t('login.mfa.unavailable'));
     } else if (result === 'password_change_required') {
       setChanging({ email: overrideEmail ?? email, current: overridePassword ?? password });
       setPassword('');
@@ -232,6 +239,36 @@ const LoginPage: React.FC = () => {
     setNewPw('');
     await attemptLogin(false, signInEmail, next);
   };
+
+  // Batch 611 (#157): a password sign-in waiting for its second factor.
+  if (mfa.pending) {
+    return (
+      <div className="ps-login-page">
+        <div className="ps-login-bg" aria-hidden="true" />
+        <div className="ps-login-wrap">
+          <div className="ps-login-card">
+            <MfaSignInStep
+              mfa={mfa}
+              onSignedIn={() => navigate(resolvePostSignInPath(routeState.from), { replace: true })}
+              onSessionConflict={() => setShowSessionConflict(true)}
+            />
+          </div>
+        </div>
+        <ConfirmModal
+          show={showSessionConflict}
+          title={t('login.sessionConflictTitle')}
+          message={t('login.sessionConflictMessage')}
+          confirmLabel={t('login.signInHere')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            setShowSessionConflict(false);
+            if (mfa.finish(true) === 'success') navigate(resolvePostSignInPath(routeState.from), { replace: true });
+          }}
+          onCancel={() => setShowSessionConflict(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="ps-login-page">

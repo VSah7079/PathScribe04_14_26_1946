@@ -80,7 +80,7 @@ describe('recordAutopsyOrganRetentionDetail', () => {
     expect(logEvent).toHaveBeenCalledWith(expect.objectContaining({ event: 'AUTOPSY_ORGAN_RETENTION_DETAIL_RECORDED', caseId: 'case-1' }));
   });
 
-  it('a second call overwrites the previous record (a single current record, not a log)', async () => {
+  it('a second call replaces the current record and keeps the earlier one in the custody history (Batch 611, #59)', async () => {
     getCase.mockResolvedValue(baseCase({ autopsy: {
       jurisdiction: 'GB_EW', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false },
       organRetentionTier: 'tier_2_full_organ_retention',
@@ -89,6 +89,28 @@ describe('recordAutopsyOrganRetentionDetail', () => {
     await recordAutopsyOrganRetentionDetail('case-1', input, 'Dr. Reed');
     const updates = updateCase.mock.calls[0][1];
     expect(updates.autopsy.organRetentionDetail.recipientName).toBe(input.recipientName);
+    expect(updates.autopsy.organRetentionHistory.map((h: { recipientName: string }) => h.recipientName)).toEqual(['Old Recipient', input.recipientName]);
+  });
+
+  it('the first record starts the history with itself (Batch 611, #59)', async () => {
+    getCase.mockResolvedValue(baseCase());
+    await recordAutopsyOrganRetentionDetail('case-1', input, 'Dr. Reed');
+    const updates = updateCase.mock.calls[0][1];
+    expect(updates.autopsy.organRetentionHistory).toHaveLength(1);
+    expect(updates.autopsy.organRetentionHistory[0]).toBe(updates.autopsy.organRetentionDetail);
+  });
+
+  it('an existing history is only ever added to (Batch 611, #59)', async () => {
+    const a = { recipientName: 'A', location: 'LA', recordedAt: '2026-09-01T00:00:00Z', recordedByName: 'X' };
+    const b = { recipientName: 'B', location: 'LB', recordedAt: '2026-09-02T00:00:00Z', recordedByName: 'Y' };
+    getCase.mockResolvedValue(baseCase({ autopsy: {
+      jurisdiction: 'GB_EW', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false },
+      organRetentionTier: 'tier_2_full_organ_retention', organRetentionDetail: b, organRetentionHistory: [a, b],
+    } as any }));
+    await recordAutopsyOrganRetentionDetail('case-1', input, 'Dr. Reed');
+    const hist = updateCase.mock.calls[0][1].autopsy.organRetentionHistory;
+    expect(hist.slice(0, 2)).toEqual([a, b]);
+    expect(hist).toHaveLength(3);
   });
 
   it('on a conflict, the retention detail is re-applied to the newer case', async () => {

@@ -7,10 +7,13 @@ import { computeCaseCodingSummary } from '@/services/billing/codeMapTable';
 import type { AppliedBlockCode } from '@/types/case/Specimen';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
 import { SignerConfirmationFields } from '@/components/Signing/SignerConfirmationFields';
+import { RelatedCasesSignOutPanel } from '@/components/RelatedCases/RelatedCasesSignOutPanel';
 import { useSignerConfirmation } from '@/hooks/useSignerConfirmation';
 import type { SignatureConfirmation } from '@/services/auth/signerConfirmation';
 
 interface CaseSignOutModalProps {
+  /** Batch 613: lets the signer attach the patient's other released cases. Omitted where there is no patient. */
+  relatedCases?: { caseId: string; patientId: string | undefined; facilityId?: string | null; user: string };
   show: boolean;
   accession: string;
   onClose: () => void;
@@ -61,7 +64,7 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
   onClose, onConfirm, onReject,
   isCountersign, residentName, countersignFeedback, onCountersignFeedbackChange,
   specimens, matrixBlocks = [], onAssignBaseCode,
-  followUpExpected, onFollowUpExpectedChange,
+  followUpExpected, onFollowUpExpectedChange, relatedCases,
 }) => {
   const { t } = useTranslation();
   // Real fix, Piece 3: same self-contained data-fetch pattern this
@@ -204,6 +207,7 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
           </div>
         )}
 
+        {relatedCases && <RelatedCasesSignOutPanel {...relatedCases} />}
         <SignerConfirmationFields signer={signer} onSubmit={confirmAndSign} />
 
         <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">

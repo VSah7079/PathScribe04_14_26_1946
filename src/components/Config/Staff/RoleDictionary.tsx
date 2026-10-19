@@ -25,6 +25,7 @@ import { RoleCapabilitiesTab } from './RoleCapabilitiesTab';
 import { BUILT_IN_ROLE_DESCRIPTIONS, builtInRoleDescriptionKey } from '@/services/roles/builtInRoleText';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { goToRouteOf, isGlobalCategory } from '@/services/actionRegistry/shortcutResolution';
 
 // i18n note (batch 118): DEFAULT_ROLES' own name/description strings
 // are persisted seed data (Batch 513: a built-in role's description is shown
@@ -44,9 +45,12 @@ import { LoadingState } from '@/components/Common/LoadingState';
 // English internal string for the cheat-sheet's own search matching,
 // same as protocolGroup()'s comparison-key precedent — translation
 // happens only at the display site via CHEAT_GROUP_LABEL_KEY below.
-const CHEAT_GROUP_LABEL_KEY: Record<'WORKLIST' | 'SYNOPTIC', string> = {
+const CHEAT_GROUP_LABEL_KEY: Record<'WORKLIST' | 'SYNOPTIC' | 'SYSTEM' | 'NAVIGATION', string> = {
   WORKLIST: 'roleDictionary.cheatsheet.groupWorklist',
   SYNOPTIC: 'roleDictionary.cheatsheet.groupSynoptic',
+  // Batch 614: the always-on commands are listed too, each with its Alt+J route.
+  SYSTEM: 'roleDictionary.cheatsheet.groupAlwaysOn',
+  NAVIGATION: 'roleDictionary.cheatsheet.groupAlwaysOn',
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -62,6 +66,7 @@ export interface Role {
   /** PS-355: catalog capabilities (services/authorization/). Enforced. */
   capabilities?: string[];
   seededCapabilities?: string[];
+  seededActions?: string[];
   /** false: can't be given to staff (Superadmin). */
   assignable?: boolean;
   builtIn: boolean;
@@ -183,10 +188,10 @@ const RoleModal: React.FC<{
     }));
 
     const all = actionRegistryService.getActions()
-      .filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC')
+      .filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC' || isGlobalCategory(a.category))
       .map(a => ({
         ...a,
-        groupTitle: a.category === 'WORKLIST' ? 'Worklist' : 'Synoptic Report',
+        groupTitle: a.category === 'WORKLIST' ? 'Worklist' : a.category === 'SYNOPTIC' ? 'Synoptic Report' : 'Always on',
         permissionId: permissionIdByInternalKey[a.internalKey],
       }));
 
@@ -449,7 +454,7 @@ const RoleModal: React.FC<{
                   placeholder={t('roleDictionary.cheatsheet.searchPlaceholder')}
                   className="ps-conf-input" />
                 <div className="ps-rd-cheat-count">
-                  {t('roleDictionary.cheatsheet.shownCount', { shown: cheatActions.length, total: actionRegistryService.getActions().filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC').length })}
+                  {t('roleDictionary.cheatsheet.shownCount', { shown: cheatActions.length, total: actionRegistryService.getActions().filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC' || isGlobalCategory(a.category)).length })}
                 </div>
               </div>
               <div className="ps-rd-cheat-list">
@@ -464,7 +469,7 @@ const RoleModal: React.FC<{
                   return (
                     <div key={action.id} className={`ps-rd-cheat-item ${granted ? 'ps-rd-cheat-item--granted' : 'ps-rd-cheat-item--default'}`}>
                       <div className="ps-rd-cheat-label-row">
-                        <span className="ps-rd-cheat-group-tag">{t(CHEAT_GROUP_LABEL_KEY[action.category as 'WORKLIST' | 'SYNOPTIC'])}</span>
+                        <span className="ps-rd-cheat-group-tag">{t(CHEAT_GROUP_LABEL_KEY[action.category as 'WORKLIST' | 'SYNOPTIC' | 'SYSTEM' | 'NAVIGATION'])}</span>
                         <span className={`ps-rd-cheat-label ${granted ? 'ps-rd-cheat-label--granted' : 'ps-rd-cheat-label--default'}`}>
                           {action.label}
                         </span>
@@ -489,6 +494,7 @@ const RoleModal: React.FC<{
                       </div>
                       <div className="ps-rd-cheat-shortcut-row">
                         <code className="ps-rd-cheat-shortcut-code">{action.shortcut || '—'}</code>
+                        {goToRouteOf(action) && <span className="ps-rd-cheat-goto-route" data-testid="cheat-goto-route">{t('goToPrefix.route', { key: goToRouteOf(action) })}</span>}
                         <div className="ps-rd-cheat-voice-wrap">
                           {action.voiceTriggers.map(vt => (
                             <span key={vt} className="ps-rd-cheat-voice-chip">{vt}</span>

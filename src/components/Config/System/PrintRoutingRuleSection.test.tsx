@@ -10,6 +10,7 @@ const svc = vi.hoisted(() => ({
   printRoutingRuleService: { getAll: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
   facilityService: { getAll: vi.fn() },
   locationService: { getAll: vi.fn() },
+  workstationRegistryService: { list: vi.fn(async () => ({ ok: true, data: [{ id: 'ws-reg-1', name: 'Grossing Station A', status: 'active' }] })) },
 }));
 vi.mock('@/services', () => svc);
 const agentPrinters = vi.hoisted(() => ({
@@ -87,5 +88,12 @@ describe('PrintRoutingRuleSection: agent printers (Batch 553)', () => {
     fireEvent.click(screen.getByText('printRoutingRulesSection.modal.addRuleButton'));
     expect(await screen.findByText('printRoutingRulesSection.errors.notPermitted')).toBeTruthy();
     expect(screen.getByText('printRoutingRulesSection.modal.addRuleButton')).toBeTruthy(); // still open
+  });
+
+  it('suggests the registered workstations when the rule is for a workstation (Batch 612)', async () => {
+    setup([]); // setup() already renders the section
+    await waitFor(() => expect(svc.workstationRegistryService.list).toHaveBeenCalled());
+    fireEvent.click(await screen.findByText('printRoutingRulesSection.addRuleButton'));
+    await waitFor(() => expect(document.querySelector('#ps-routing-workstations option[value="ws-reg-1"]')).not.toBeNull());
   });
 });

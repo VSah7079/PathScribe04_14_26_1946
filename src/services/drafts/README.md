@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/drafts/
 
 Local caching of in-progress, unsaved user work — Phase 2 of the
@@ -106,3 +108,5 @@ reappeared in the editor. Zero console errors throughout.
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part A, PS-505): `httpDraftCacheService.ts` and `draftCacheInstance.ts`. Drafts live on the server per user on a server build; no draft is `{ ok: true, data: null }`. Contract `ACCESSIONING_API.md` section 3.

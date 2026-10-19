@@ -7,8 +7,8 @@
 // high-contrast alert — exactly the real signal this dashboard's own
 // alerting objective calls for, not a fabricated one.
 
-import { mockBatchService } from '../batches/mockBatchService';
-import { mockReferralTrackingService } from '../referral/mockReferralTrackingService';
+import { batchService } from '../batches/batchServiceInstance';
+import { referralTrackingService } from '../referral/referralTrackingServiceInstance';
 import { buildFacilityLookupMaps } from './buildFacilityLookupMaps';
 import { resolveBatchFacilityId } from './resolveBatchFacilityId';
 import type { DashboardSummary, DashboardAlert, DashboardQueueItem } from './IFacilityOpsDashboardTypes';
@@ -16,8 +16,8 @@ import type { ReferralTransitStatus } from '../referral/IReferralTrackingService
 
 export async function computeSendOutReferenceSummary(facilityId: string | undefined): Promise<DashboardSummary> {
   const [batchesRes, trackingRes, maps] = await Promise.all([
-    mockBatchService.getAll(),
-    mockReferralTrackingService.getAll(),
+    batchService.getAll(),
+    referralTrackingService.getAll(),
     buildFacilityLookupMaps(),
   ]);
 

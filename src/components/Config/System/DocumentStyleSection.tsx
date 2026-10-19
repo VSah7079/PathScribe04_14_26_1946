@@ -55,6 +55,12 @@ import {
 import { saveDocumentStyleDefault } from '@/services/reportAppearance/saveDocumentStyle';
 import type { LabelConfig } from '../../../types/template';
 import { Label, TextInput, Toggle, Sel } from '../../TemplateBuilder/TemplateInspector';
+import { FontSizeField } from '../../Common/FontSizeField';
+import { ConvertToPointsPanel } from '../../Common/ConvertToPointsPanel';
+import { planLabPointsConversion, convertLabStylesToPoints } from '@/services/reportAppearance/convertToPoints';
+import { unitsOf } from '@/services/reportAppearance/fontUnits';
+import { auditService } from '@/services';
+import { useAuth } from '@/contexts/AuthContext';
 import { labelStyleVars } from '@/utils/labelStyleVars';
 import {
   PAGE_SIZES, PAGE_SIZE_REGION_KEY, getLabPageSetup, saveLabPageSetup, type Margins, type PageSetup,
@@ -82,6 +88,7 @@ const CATEGORY_LABEL_KEY = {
 
 const DocumentStyleSection: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [category, setCategory] = useState<'header' | 'body' | 'footer'>('body');
   const [style, setStyle] = useState<LabelConfig>(() => GETTERS[category]());
   const [saved, setSaved] = useState(true);
@@ -141,11 +148,25 @@ const DocumentStyleSection: React.FC = () => {
         <Sel ariaLabel={t('documentStyleSection.fontFamilyLabel')} value={style.fontFamily ?? 'Arial'} onChange={v => update({ ...style, fontFamily: v })}
           options={FONT_FAMILY_OPTIONS} fullWidth />
 
-        <Label>{t('documentStyleSection.fontSizeLabel')}</Label>
-        <TextInput
-          value={String(style.fontSize ?? 10)}
-          onChange={v => update({ ...style, fontSize: parseInt(v) || 10 })}
-          placeholder="10"
+        <FontSizeField
+          style={style}
+          pointsLabel={t('documentStyleSection.fontSizeLabel')}
+          fallbackSize={10}
+          onChange={size => update({ ...style, fontSize: size })}
+        />
+        {(['header', 'body', 'footer'] as const).every(c => unitsOf(GETTERS[c]()) === 'pt') && (
+          <div className="ps-fontunits__note">{t('fontUnits.pointsNote')}</div>
+        )}
+        <ConvertToPointsPanel
+          plan={planLabPointsConversion()}
+          needed={(['header', 'body', 'footer'] as const).some(c => unitsOf(GETTERS[c]()) !== 'pt')}
+          categoryLabel={c => t(CATEGORY_LABEL_KEY[c])}
+          onConvert={async () => {
+            const result = await convertLabStylesToPoints({ auditService, actorName: user?.name ?? '' });
+            if (result.ok === false) return result.code === 'NOT_PERMITTED' ? 'fontUnits.refused' : 'fontUnits.failed';
+            setStyle(GETTERS[category]());
+            return null;
+          }}
         />
 
         <div className="ps-tinsp-row ps-docstyle__toggle-row">

@@ -67,6 +67,10 @@ export interface IIntraoperativeService {
   addDigitalAsset(sessionId: string, specimenId: string, asset: DigitalAsset): Promise<ServiceResult<IntraoperativeEntry>>;
 
   setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string, category?: FrozenCategory): Promise<ServiceResult<IntraoperativeEntry>>;
+  /** Batch 610 (#68): mark a specimen STAT or routine, which decides the
+   *  FROZEN_SECTION target its board clock counts against. Refused once the
+   *  frozen diagnosis has been rendered (the clock has stopped). */
+  setSpecimenUrgency(sessionId: string, specimenId: string, urgency: 'STAT' | 'ROUTINE'): Promise<ServiceResult<IntraoperativeEntry>>;
   /** Real, per the OR Suite Live Board's own dismissal workflow spec —
    *  the real, two-step-confirmed action that removes one specimen's
    *  own row from the active board once its frozen diagnosis has been

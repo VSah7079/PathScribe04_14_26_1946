@@ -25,9 +25,3 @@ export interface EmailPayload {
   attachments?: EmailAttachment[];
   metadata?: Record<string, string>;  // passed through to backend for logging
 }
-
-export interface Recipient {
-  email: string;
-  name?: string;
-  role:  string;
-}

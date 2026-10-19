@@ -5,7 +5,7 @@
 // this app's own other inbound processors.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockReferralTrackingService } from './mockReferralTrackingService';
+import { referralTrackingService } from './referralTrackingServiceInstance';
 import type { ReferralResultEventPayload } from '@/types/events/ReferralResultEventPayload';
 
 export interface ProcessInboundReferralResultEventResult {
@@ -36,12 +36,12 @@ export async function processInboundReferralResultEvent(
     return { messageId: payload.messageId, outcome: 'invalid-payload' };
   }
 
-  const existing = await mockReferralTrackingService.getByBatchId(payload.batchId);
+  const existing = await referralTrackingService.getByBatchId(payload.batchId);
   if (!existing.ok || !existing.data) {
     return { messageId: payload.messageId, outcome: 'tracking-not-found' };
   }
 
-  await mockReferralTrackingService.recordResult(payload.batchId, {
+  await referralTrackingService.recordResult(payload.batchId, {
     resultType: payload.resultType,
     discreteResult: payload.discreteResult,
     pdfAttachmentUrl: payload.pdfAttachmentUrl,

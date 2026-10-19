@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 
 import { validateChargeMetadata } from '@/services/billing/validateChargeMetadata';
 import { simulateDispatchFailure } from '@/services/billing/simulateDispatchFailure';
+import { dispatchQueuedCharge } from '@/services/interfaceDispatch/dispatchCharge';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { auditService, specimenDeficiencyService, outboundChargeQueueService } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
@@ -131,7 +132,9 @@ const OutboundDlqSection: React.FC = () => {
   const handleRetryDispatch = async (entry: OutboundChargeQueueEntry) => {
     setBusyId(entry.id);
     try {
-      await outboundChargeQueueService.retryDispatch(entry.id);
+      const re = await outboundChargeQueueService.retryDispatch(entry.id);
+      // Batch 605: the retry now actually sends (the simulated engine answers in the demo).
+      if (re.ok) await dispatchQueuedCharge(re.data);
       loadAll();
     } finally {
       setBusyId(null);

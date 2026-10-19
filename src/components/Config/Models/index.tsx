@@ -12,7 +12,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { modelService, facilityService } from '../../../services';
+import { modelService, facilityService, aiBehaviorService } from '../../../services';
 import { AIModel, ModelType, ModelStatus } from '../../../services/models/IModelService';
 import { MODEL_VENDOR_LABEL_KEY } from '../../../services/models/modelLabels';
 import { facilitiesPinnedToModel } from '../../../services/models/modelAdoption';
@@ -20,6 +20,7 @@ import type { Facility } from '../../../services/facilities/IFacilityService';
 import { canBecomeDefault } from '../AI/resolveVoiceAiModel';
 import ConfirmModal from '../../Common/ConfirmModal';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { ModelOverridesModal } from './ModelOverridesModal';
 
 const STATUS_LABEL_KEY: Record<ModelStatus, string> = {
   Active:  'common.active',
@@ -51,6 +52,11 @@ const ModelsTab: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+
+  // Batch 609 (#173): per-adoption overrides (output cap, confidence threshold).
+  const [overrideTarget, setOverrideTarget] = useState<AIModel | null>(null);
+  const [orgThreshold, setOrgThreshold] = useState(75);
+  useEffect(() => { void aiBehaviorService.get().then(r => { if (r.ok) setOrgThreshold(r.data.confidenceThreshold ?? 75); }); }, []);
 
   // Batch 432: retire a model (config:ai-model:manage, checked by the service;
   // the default model can't be retired). Confirmed first, naming any
@@ -120,6 +126,9 @@ const ModelsTab: React.FC = () => {
               <tr key={m.id} className={`ps-models-tr${m.status === 'Retired' ? ' ps-models-tr--retired' : ''}`}>
                 <td className="ps-models-td ps-models-td--strong">
                   {m.name} {m.version}
+                  {(m.configOverrides || m.thresholdOverrides) && (
+                    <span className="ps-models-overridden-badge" title={t('modelsTab.overrides.badgeTitle')}>{t('modelsTab.overrides.badge')}</span>
+                  )}
                 </td>
                 <td className="ps-models-td ps-models-td--muted">{t(MODEL_VENDOR_LABEL_KEY[m.vendor])}</td>
                 <td className="ps-models-td ps-models-td--muted">{t(TYPE_LABEL_KEY[m.type])}</td>
@@ -142,9 +151,13 @@ const ModelsTab: React.FC = () => {
                 </td>
                 <td className="ps-models-td">
                   {m.isDefault ? (
-                    <span className="ps-models-default-badge">✓ {t('modelsTab.tableHeaders.default')}</span>
+                    <span className="ps-models-row-actions">
+                      <span className="ps-models-default-badge">✓ {t('modelsTab.tableHeaders.default')}</span>
+                      <button type="button" onClick={() => setOverrideTarget(m)} className="ps-models-set-default-btn">{t('modelsTab.overrides.button')}</button>
+                    </span>
                   ) : m.status !== 'Retired' ? (
                     <span className="ps-models-row-actions">
+                      <button type="button" onClick={() => setOverrideTarget(m)} className="ps-models-set-default-btn">{t('modelsTab.overrides.button')}</button>
                       <button
                         onClick={() => handleSetDefault(m.id)}
                         className="ps-models-set-default-btn"
@@ -162,6 +175,13 @@ const ModelsTab: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {overrideTarget && (
+        <ModelOverridesModal
+          model={overrideTarget}
+          organisationThreshold={orgThreshold}
+          onClose={async saved => { setOverrideTarget(null); if (saved) await load(); }}
+        />
+      )}
       <ConfirmModal
         show={!!retireTarget}
         title={t('modelsTab.retire.confirmTitle')}

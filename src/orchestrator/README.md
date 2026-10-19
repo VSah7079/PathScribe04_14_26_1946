@@ -21,3 +21,7 @@ New tests: `contextBuilder.prelimOverride.test.ts` (a template without a Prelimi
 ## Batch 536 (PS-558)
 
 `orchestratorEngine.ts`: the default provider is `AIProviderRegistry.getActive({ feature: 'narrative', caseId })`, so each section's generation is checked against the case's jurisdiction's AI vendor policy first.
+
+## Batch 612 (part C)
+
+`contextBuilder.ts`: the resolved narrative template carries `fontUnits` next to `documentStyle`.

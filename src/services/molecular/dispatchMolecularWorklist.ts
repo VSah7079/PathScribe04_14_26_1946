@@ -40,9 +40,9 @@
 
 import { resolveMolecularWorklistPayload } from './resolveMolecularWorklistPayload';
 import { resolveMolecularScanVerification } from './resolveMolecularScanVerification';
-import { mockEquipmentService } from '../equipment/mockEquipmentService';
+import { equipmentService } from '../equipment/equipmentServiceInstance';
 import { checkEquipmentStation } from '../equipment/equipmentRules';
-import { mockMolecularBatchService } from './mockMolecularBatchService';
+import { molecularBatchService } from './molecularBatchServiceInstance';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import { resolveTenantFacility } from '../auth/resolveTenantFacility';
 import { resolveLisRoutingForFacility } from '../facilities/IFacilityService';
@@ -86,7 +86,7 @@ export async function dispatchMolecularWorklist(
    *  target instrument's station when both are known. */
   currentStationId?: string | null,
 ): Promise<DispatchMolecularWorklistResult | DispatchMolecularWorklistError> {
-  const instrumentRes = await mockEquipmentService.getByCode(batch.targetInstrumentId);
+  const instrumentRes = await equipmentService.getByCode(batch.targetInstrumentId);
   const stationVerified = checkEquipmentStation(instrumentRes.ok ? instrumentRes.data : undefined, currentStationId);
   const verification = resolveMolecularScanVerification(batch, scannedPlateBarcode, scannedDeckLocationLabel, stationVerified);
   if (!verification.fullyVerified) {
@@ -127,7 +127,7 @@ export async function dispatchMolecularWorklist(
     return { dispatched: false, reason: `PathScribe's own backend rejected this worklist dispatch — HTTP ${response.status}.` };
   }
 
-  await mockMolecularBatchService.updateByUuid(batch.batchUuid, { worklistDispatchedAt: new Date().toISOString() });
+  await molecularBatchService.updateByUuid(batch.batchUuid, { worklistDispatchedAt: new Date().toISOString() });
   // Batch 467: the plate's in-house orders are now running (WORKLIST_DISPATCHED). Loaded lazily: the order engine
   // reads the batch service too.
   const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');

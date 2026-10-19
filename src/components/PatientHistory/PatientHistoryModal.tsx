@@ -15,6 +15,9 @@ import { queryRealPatientHistory } from '@/services/patients/patientHistoryQuery
 import { messageService, userService, type PatientHistoryCase, type AiMatchedCase, findSimilarCases, patientIndexService } from '@/services';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { getPatientCaseAccess } from '@/services/patientCaseAccess/patientCaseAccessService';
+import { RestrictedCasesNotice } from './RestrictedCasesNotice';
+import { PatientSummaryPanel } from '@/components/RelatedCases/PatientSummaryPanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -212,12 +215,16 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
   const hasSufficientIdentifiers = !!mrn && !!dateOfBirth && !!patientId;
   const [history, setHistory] = useState<PatientHistoryCase[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  // Batch 613: the patient's other cases this person may not open (a count, never which) and how many are shown only through a grant.
+  const [hiddenCount, setHiddenCount] = useState(0);
+  const [viaGrantCount, setViaGrantCount] = useState(0);
   // Real, per direct guidance: a genuinely separate list from history
   // above — 'family_relation' linked patients (e.g. newborn/mother,
   // or siblings for cascade molecular testing)
   // are distinct real people, shown as their own cross-reference, not
   // merged case history.
   const [familyRelatedPatients, setFamilyRelatedPatients] = useState<MasterPatientRecord[]>([]);
+  const { user } = useAuth();
 
   // Real fix, from a direct question about how case-searching actually
   // worked: this used to read MOCK_PRIOR_PATHOLOGY[mrn], a hardcoded
@@ -240,10 +247,18 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
       // a real, clinically wrong outcome, not a cosmetic one.
       patientIndexService.getLinkedPatientIds(patientId, 'same_person'),
       caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
+      // Batch 613: which of those the signed-in person may open (their own access, plus any grant). Without a session, none.
+      user ? getPatientCaseAccess().splitPatientHistory(patientId, { id: user.id, name: user.name, role: user.role, organisationId: user.organisationId }, effectiveCurrentCaseId) : null,
     ])
-      .then(([linkedIds, casesRes]) => {
+      .then(([linkedIds, casesRes, split]) => {
         if (!casesRes.ok) { setHistory([]); return; }
-        setHistory(queryRealPatientHistory(casesRes.data as any[], linkedIds, effectiveCurrentCaseId));
+        const all = queryRealPatientHistory(casesRes.data as any[], linkedIds, effectiveCurrentCaseId);
+        setHistory(all.filter(h => split?.visibleIds.has(h.id)));
+        setHiddenCount(split ? split.restrictedCount : all.length);
+        setViaGrantCount(split?.viaGrantCount ?? 0);
+        if (user && split && split.viaGrantCount > 0) {
+          void getPatientCaseAccess().recordGrantedView(patientId, { id: user.id, name: user.name, role: user.role, organisationId: user.organisationId }, effectiveCurrentCaseId);
+        }
       })
       .finally(() => setHistoryLoading(false));
 
@@ -259,7 +274,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
         setFamilyRelatedPatients(records.filter((r): r is MasterPatientRecord => !!r));
       })
       .catch(() => setFamilyRelatedPatients([]));
-  }, [patientId, hasSufficientIdentifiers, effectiveCurrentCaseId]);
+  }, [patientId, hasSufficientIdentifiers, effectiveCurrentCaseId, user]);
 
   const [showCompose, setShowCompose] = useState(false);
   const [composeNote, setComposeNote]  = useState('');
@@ -270,7 +285,6 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
   // every message sent from this modal was actually addressed back to
   // the sender, never to the physician shown on screen. The comment
   // "in real app: look up physician ID" acknowledged this was a stub.
-  const { user } = useAuth();
   const [sent, setSent]                = useState(false);
 
   const physicianName = selectedItem
@@ -398,6 +412,9 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
             {/* Left: Prior Pathology */}
             <div className="ps-ph-panel ps-ph-panel--bordered">
               <div className="ps-ph-panel-title">{t('patientHistoryModal.panel.priorPathology')}</div>
+              {hasSufficientIdentifiers && patientId && <RestrictedCasesNotice patientId={patientId} caseId={effectiveCurrentCaseId ?? ''} />}
+              {hasSufficientIdentifiers && patientId && <PatientSummaryPanel patientId={patientId} patientName={patientName} mrn={mrn} dateOfBirth={dateOfBirth} currentCaseId={effectiveCurrentCaseId} />}
+              {viaGrantCount > 0 && <div className="ps-pca-banner">{t('patientCaseAccess.history.grantBanner', { count: viaGrantCount })}</div>}
               {!hasSufficientIdentifiers ? (
                 <div className="ps-ph-empty-state">
                   {t('patientHistoryModal.insufficientId.body', { missing: t(missingIdentifierKey) })}
@@ -411,6 +428,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
                   <CaseCard key={item.id} item={item} onClick={() => openReport(item, 'history')} />
                 ))
               )}
+              {hiddenCount > 0 && !historyLoading && <div className="ps-pca-banner">{t('patientCaseAccess.history.hiddenNote', { count: hiddenCount })}</div>}
 
               {/* Real, per direct guidance: a genuinely separate
                   section from the case-history list above — real,

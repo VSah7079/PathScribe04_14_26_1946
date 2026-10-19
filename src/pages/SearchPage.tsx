@@ -52,12 +52,18 @@ import { useSpecimenDictionary } from '../components/Config/System/useSpecimenDi
 import type { SpecimenEntry } from '../services/specimenDictionary/specimenTypes';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useEnabledIdentifierFormats } from '../hooks/useEnabledIdentifierFormats';
+import { useCodePolicy } from '@/pages/Synoptic/Codes/useCodePolicy';
+import { systemAllowed } from '@/services/coding/codePolicyEnforcement';
+import { CodeSystemOffNote } from '@/components/Coding/CodeSystemOffNote';
 import { useBreadcrumb }   from '../contexts/BreadcrumbContext';
 import { detectIdentifierType, resolveIdentifierApplication } from '../utils/detectIdentifierType';
 import type { IdentifierType } from '../utils/detectIdentifierType';
 import { deriveLegacyFormats } from '../types/systemConfig';
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { downloadCsv } from '../utils/csv';
+import type { SynopticProtocolInfo } from '../services/caseSearch/ICaseSearchService';
+import { CaseReportPanel } from '../components/Search/Report/CaseReportPanel';
+import { SynopticValueFilters } from '../components/Search/Report/SynopticValueFilters';
 import { getUiPreference, setUiPreference } from '../utils/uiPreferences';
 import {
   addTerm, applyIdentifierToDraft, buildCaseSearchRequest, countDraftFilters, countMoreFilters, draftToCriteria,
@@ -781,6 +787,15 @@ const SearchPage: React.FC = () => {
 
   // Lookup modals
   const [snomedModal,    setSnomedModal]    = useState(false);
+  // Batch 614 (PS-762): the Code Systems setting decides which code systems the filters offer; the Terminology Services toggles still apply too.
+  const codePolicy = useCodePolicy();
+  const snomedOn = systemAllowed('SNOMED', codePolicy.policy, codePolicy.today);
+  const icd10On  = config.terminologyConfig.icd10.active && systemAllowed('ICD10', codePolicy.policy, codePolicy.today);
+  const icd11On  = config.terminologyConfig.icd11.active && systemAllowed('ICD11', codePolicy.policy, codePolicy.today);
+  const icdoOn   = config.terminologyConfig.icdo.active && systemAllowed('ICDO', codePolicy.policy, codePolicy.today);
+  const icdOffByPolicy = ([
+    ['ICD10', config.terminologyConfig.icd10.active], ['ICD11', config.terminologyConfig.icd11.active], ['ICDO', config.terminologyConfig.icdo.active],
+  ] as [string, boolean][]).filter(([sys, cfgOn]) => cfgOn && !systemAllowed(sys, codePolicy.policy, codePolicy.today)).map(([sys]) => sys);
   const [icdModal,       setIcdModal]       = useState(false);
   const [specimenModal,  setSpecimenModal]  = useState(false);
   const [synopticModal,  setSynopticModal]  = useState(false);
@@ -792,6 +807,10 @@ const SearchPage: React.FC = () => {
   // Batch 351: one modal for the simple id/name pickers, and the "More filters" section.
   const [optionModal, setOptionModal] = useState<null | 'subspecialtyIds' | 'performingLabIds' | 'locationIds' | 'autopsyJurisdictions'>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  // Batch 613: the results table, or the report on the same search.
+  const [synopticProtocols, setSynopticProtocols] = useState<SynopticProtocolInfo[]>([]);
+  useEffect(() => { void caseSearchService.listSynopticProtocols().then(r => { if (r.ok) setSynopticProtocols(r.data); }).catch(() => {}); }, []);
+  const [resultsView, setResultsView] = useState<'results' | 'report'>('results');
   const [cptText, setCptText] = useState('');
 
   // Active section (for label intensity)
@@ -1160,6 +1179,10 @@ const SearchPage: React.FC = () => {
         subspecialty:  id => subspecialties.find(x => x.id === id)?.name,
         performingLab: id => performingLabs.find(x => x.id === id)?.name,
         location:      id => locations.find(x => x.id === id)?.name,
+        synopticValue: k => {
+          const field = synopticProtocols.find(p => p.templateId === k.templateId)?.fields.find(f => f.id === k.fieldId);
+          return { field: field?.label, value: field?.options.find(o => o.id === k.value)?.label };
+        },
       }, t, day => formatCalendarDate(day, i18n.language, timeZone))
     : null;
   const range = resultPage ? pageRange(resultPage.page, resultPage.pageSize, resultPage.total) : null;
@@ -1405,6 +1428,14 @@ const SearchPage: React.FC = () => {
                   {draft.synopticTemplateIds.length>0&&<div className="ps-searchpage-pill-row">{draft.synopticTemplateIds.map(id=><Chip key={id} label={templates.find(x=>x.id===id)?.name ?? id} onRemove={()=>removeFrom('synopticTemplateIds', x=>x!==id)} />)}</div>}
                 </div>
 
+                {/* Batch 613: search on what a synoptic report says (grade, size, margin …). */}
+                <div className="ps-svf-section" onMouseEnter={()=>setActiveSection('synopticValues')} onMouseLeave={()=>setActiveSection(s=>s==='synopticValues'?'':s)}>
+                  <div className="ps-searchpage-header-row">
+                    <SectionLabel title={t('searchPage.sections.synopticValues')} active={activeSection==='synopticValues'} />
+                  </div>
+                  <SynopticValueFilters criteria={draft.synopticValues} onChange={synopticValues => set({ synopticValues })} />
+                </div>
+
                 {/* Pathologist: anyone on the case (assigned, participant, signed) */}
                 <div onMouseEnter={()=>setActiveSection('path')} onMouseLeave={()=>setActiveSection(s=>s==='path'?'':s)}>
                   <div className="ps-searchpage-header-row">
@@ -1492,7 +1523,8 @@ const SearchPage: React.FC = () => {
                 {/* SNOMED CT */}
                 <div onMouseEnter={()=>setActiveSection('snomed')} onMouseLeave={()=>setActiveSection(s=>s==='snomed'?'':s)}>
                   <div className="ps-searchpage-section-mb4"><SectionLabel title={t('searchPage.sections.snomedCt')} active={activeSection==='snomed'} /></div>
-                  <div className="ps-searchpage-input-row" ref={snomedRef}>
+                  {!snomedOn && <CodeSystemOffNote systems={['SNOMED']} />}
+                  <div className={`ps-searchpage-input-row${snomedOn ? '' : ' ps-code-hidden'}`} ref={snomedRef}>
                     <div className="ps-searchpage-rel-wrap--flex1">
                       <input type="text" value={snomedQuery} onChange={e=>setSnomedQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="snomed" className="ps-searchpage-filter-input" placeholder={t('searchPage.snomedSection.placeholder')} />
                       {showSnomedDrop&&(
@@ -1518,8 +1550,9 @@ const SearchPage: React.FC = () => {
                 {/* ICD Codes — ICD-10 / ICD-11 / ICD-O */}
                 <div onMouseEnter={()=>setActiveSection('icd')} onMouseLeave={()=>setActiveSection(s=>s==='icd'?'':s)} className="ps-searchpage-icd-section-pb">
                   <div className="ps-searchpage-section-mb4"><SectionLabel title={t('searchPage.sections.icdCodes')} active={activeSection==='icd'} /></div>
+                  <CodeSystemOffNote systems={icdOffByPolicy} />
                   <div className="ps-searchpage-input-row" ref={icdRef}>
-                    <div className="ps-searchpage-rel-wrap--flex1">
+                    <div className={`ps-searchpage-rel-wrap--flex1${icd10On ? '' : ' ps-code-hidden'}`}>
                       <input type="text" value={icdQuery} onChange={e=>setIcdQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="icd" className="ps-searchpage-filter-input" placeholder={t('searchPage.icdSection.placeholder')} />
                       {showIcdDrop&&(
                         <div className={`ps-scroll ${DROPDOWN_CLASS}`}>
@@ -1675,7 +1708,13 @@ const SearchPage: React.FC = () => {
                       : t('searchPage.summary.rangeOfTotal', { from: range.from, to: range.to, count: resultPage.total })}
                   </span>
                 )}
-                {resultPage && (
+                {hasSearched && (
+                  <div className="ps-searchpage-viewtoggle" role="group" aria-label={t('caseReport.view.aria')}>
+                    <button type="button" className={`ps-searchpage-export-btn${resultsView === 'results' ? ' ps-searchpage-viewtoggle--on' : ''}`} aria-pressed={resultsView === 'results'} onClick={() => setResultsView('results')}>{t('caseReport.view.results')}</button>
+                    <button type="button" className={`ps-searchpage-export-btn${resultsView === 'report' ? ' ps-searchpage-viewtoggle--on' : ''}`} aria-pressed={resultsView === 'report'} onClick={() => setResultsView('report')}>{t('caseReport.view.report')}</button>
+                  </div>
+                )}
+                {resultPage && resultsView === 'results' && (
                   <label className="ps-searchpage-sort">
                     <span className="ps-searchpage-sort-label">{t('searchPage.sort.label')}</span>
                     <select className="ps-searchpage-sort-select" value={sortOptionKey(sort)} onChange={e=>changeSort(e.target.value)} disabled={isSearching}>
@@ -1685,7 +1724,7 @@ const SearchPage: React.FC = () => {
                     </select>
                   </label>
                 )}
-                {resultPage && resultPage.total>0 && (
+                {resultPage && resultPage.total>0 && resultsView === 'results' && (
                   <CapabilityButton
                     capability="search:case-results:export"
                     onClick={()=>void handleExportCSV()}
@@ -1721,12 +1760,15 @@ const SearchPage: React.FC = () => {
                 keeps the server's order (preserveOrder): paging and sorting
                 are done by the search service. */}
             <div ref={wrapperRef} className="ps-search-table-wrap">
-              {hasSearched
+              {hasSearched && resultsView === 'report'
+                ? <CaseReportPanel searchedDraft={searchedDraft} timeZone={timeZone} pathologists={pathologists} facilities={facilities} subspecialties={subspecialties}
+                    onLoadSearch={d => { loadDraft(d); setSidebarCollapsed(true); void runSearch({ draft: d, page: 1 }); }} />
+                : hasSearched
                 ? <WorklistTable key={searchGeneration} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} navSource="search" preserveOrder tableHeight={tableHeight} forceCardView flagDefinitions={flagDefinitions} />
                 : <div className="ps-searchpage-no-search">{t('searchPage.summary.noSearchYet')}</div>
               }
             </div>
-            {resultPage && resultPage.pageCount > 1 && (
+            {resultsView === 'results' && resultPage && resultPage.pageCount > 1 && (
               <nav className="ps-searchpage-pager" aria-label={t('searchPage.pager.aria')}>
                 <button type="button" className="ps-searchpage-pager-btn" onClick={()=>goToPage(1)} disabled={isSearching || resultPage.page <= 1}>{t('searchPage.pager.first')}</button>
                 <button type="button" className="ps-searchpage-pager-btn" onClick={()=>goToPage(resultPage.page - 1)} disabled={isSearching || resultPage.page <= 1}>{t('searchPage.pager.previous')}</button>
@@ -1735,7 +1777,7 @@ const SearchPage: React.FC = () => {
                 <button type="button" className="ps-searchpage-pager-btn" onClick={()=>goToPage(resultPage.pageCount)} disabled={isSearching || resultPage.page >= resultPage.pageCount}>{t('searchPage.pager.last')}</button>
               </nav>
             )}
-            {resultPage && resultPage.total > 0 && (
+            {resultsView === 'results' && resultPage && resultPage.total > 0 && (
               <div className="ps-searchpage-pagesize">
                 <label>
                   <span className="ps-searchpage-sort-label">{t('searchPage.pager.perPage')}</span>
@@ -1788,9 +1830,9 @@ const SearchPage: React.FC = () => {
           <IcdModalContent
             selected={draft.icdCodes}
             onToggle={c=>toggleCode('icdCodes', c)}
-            icd10Active={config.terminologyConfig.icd10.active}
-            icd11Active={config.terminologyConfig.icd11.active}
-            icdoActive={config.terminologyConfig.icdo.active}
+            icd10Active={icd10On}
+            icd11Active={icd11On}
+            icdoActive={icdoOn}
           />
         </LookupModal>
       )}

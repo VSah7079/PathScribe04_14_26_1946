@@ -75,6 +75,12 @@
 #     "template": "cytology",   # Batch 539, optional: a cytology report; the whole body is then the
 #                               # cytology request in cytology_report.py, and the rest of this list
 #                               # doesn't apply.
+#     "technicalBranding": {"facilityName","address","city","state","zip"},
+#                               # Batch 618 (PS-336), optional: a split '26' case's technical lab.
+#                               # Sent on a signed-out report only; drawn as one line under the case
+#                               # header ("Technical component performed at ..."). The browser
+#                               # withholds the director and CLIA number from this block, and the
+#                               # renderer never draws them even if sent.
 #     "preAnalyticDisclaimerText": str,
 #                               # Batch 498, optional: the administrative-override disclaimer for a
 #                               # case whose collection/receipt time was entered by override.
@@ -104,6 +110,7 @@ from io import BytesIO
 from firebase_functions import https_fn, options
 
 import report_delivery  # Batch 520 (PS-280): fax and file-drop delivery
+import report_layout  # Batch 609 (PS-35, PS-127): page setup and document style
 import cytology_report  # Batch 539 (PS-539 D2): the cytology report template
 from firebase_functions.options import set_global_options
 # Real, per direct guidance (the real receiving end for PathScribe's real
@@ -213,6 +220,25 @@ LATIN_FONTS = ('Helvetica', 'Helvetica-Bold')
 PRETENDARD_FONTS = ('Pretendard', 'Pretendard-Bold')
 _HANGUL = re.compile('[\u1100-\u11ff\u3130-\u318f\uac00-\ud7a3]')
 _current_fonts = contextvars.ContextVar('report_fonts', default=LATIN_FONTS)
+# Batch 609: the page and the document style of the report being built, held in
+# context variables like the fonts, so the helpers below need no extra argument.
+_current_geometry = contextvars.ContextVar('report_geometry', default=None)
+_current_style = contextvars.ContextVar('report_style', default=None)
+# Batch 612: the template's font size units ("pt" or "legacy_px"), for a label that sets a size
+# but not its own units.
+_current_font_units = contextvars.ContextVar('report_font_units', default=None)
+
+
+def _text_width() -> float:
+    """The width of the text area (A4 with 20 mm margins unless the request set a page)."""
+    geometry = _current_geometry.get()
+    return report_layout.text_width(geometry) if geometry else 170 * mm
+
+
+def _doc_style(category: str) -> dict:
+    """The resolved document style of 'header', 'body' or 'footer' for the report being built."""
+    styles = _current_style.get()
+    return (styles or {}).get(category) or report_layout.style_for({}, category)
 
 
 def _register_pretendard() -> None:
@@ -228,40 +254,49 @@ def _register_pretendard() -> None:
 
 
 def fonts_for(payload: dict) -> tuple:
-    """Pretendard for a Korean report or one containing Hangul; Helvetica otherwise."""
+    """Pretendard for a Korean report or one containing Hangul; otherwise the body's
+    document-style family (Helvetica, Times or Courier, Batch 609), Helvetica by default."""
     if payload.get('language') == 'ko' or _HANGUL.search(json.dumps(payload, ensure_ascii=False)):
         _register_pretendard()
         return PRETENDARD_FONTS
-    return LATIN_FONTS
+    return report_layout.style_for(payload, 'body')['family'] or LATIN_FONTS
 
 
 def _font(bold: bool = False) -> str:
     return _current_fonts.get()[1 if bold else 0]
 
 
-def _build_styles(fonts: tuple):
+def _build_styles(fonts: tuple, body: dict | None = None):
     regular, bold = fonts
+    body = body or {}
     sheet = getSampleStyleSheet()
+    # Batch 609: the body's document style sets the size and weight of the report's text
+    # (the font family is already in `fonts`); without one the sizes are the original ones.
+    value_size = body.get('size_pt') or 11
+    label_size = round(max(6, value_size * 9 / 11), 2) if body.get('size_pt') else 9
+    value_font = bold if body.get('bold') else regular
     for name in ('Normal', 'BodyText', 'Heading1', 'Heading2', 'Heading3', 'Title'):
         if name in sheet:
-            sheet[name].fontName = bold if name.startswith(('Heading', 'Title')) else regular
-    sheet.add(ParagraphStyle(name='RPLabel', fontName=regular, fontSize=9, textColor=colors.HexColor('#475569'), alignment=TA_LEFT))
-    sheet.add(ParagraphStyle(name='RPValue', fontName=regular, fontSize=11, leading=15, alignment=TA_LEFT))
+            sheet[name].fontName = bold if name.startswith(('Heading', 'Title')) else value_font
+    sheet.add(ParagraphStyle(name='RPLabel', fontName=regular, fontSize=label_size, textColor=colors.HexColor('#475569'), alignment=TA_LEFT))
+    sheet.add(ParagraphStyle(name='RPValue', fontName=value_font, fontSize=value_size, leading=round(value_size * 15 / 11, 2), alignment=TA_LEFT))
     sheet.add(ParagraphStyle(name='RPHeading', fontSize=12, fontName=bold, spaceAfter=6, spaceBefore=10))
     sheet.add(ParagraphStyle(name='RPCaption', fontName=regular, fontSize=8, textColor=colors.HexColor('#666666')))
     return sheet
 
 
 class _Styles:
-    """The style sheet for the fonts of the report being built."""
+    """The style sheet for the fonts and body style of the report being built."""
     def __init__(self):
         self._sheets = {}
 
     def __getitem__(self, name):
         fonts = _current_fonts.get()
-        if fonts not in self._sheets:
-            self._sheets[fonts] = _build_styles(fonts)
-        return self._sheets[fonts][name]
+        body = _doc_style('body')
+        key = (fonts, body['size_pt'], body['bold'])
+        if key not in self._sheets:
+            self._sheets[key] = _build_styles(fonts, body)
+        return self._sheets[key][name]
 
 
 _styles = _Styles()
@@ -288,13 +323,28 @@ def _label_style(label_config: dict | None) -> ParagraphStyle:
     if label_config:
         if label_config.get('weight') == 'bold':
             kwargs['fontName'] = _font(True)
-        if label_config.get('fontSize'):
-            kwargs['fontSize'] = label_config['fontSize']
+        units = report_layout.font_units(label_config, {'fontUnits': _current_font_units.get()})
+        size = report_layout.label_size_pt(label_config.get('fontSize'), units)
+        if size:
+            kwargs['fontSize'] = size
     return ParagraphStyle('dyn-label', parent=_styles['RPLabel'], **kwargs)
+
+
+def _with_body_defaults(label_config: dict | None) -> dict | None:
+    """Batch 609: the body's document style cascades to every label that doesn't set its own
+    (case and underline; size and weight are in the style sheet)."""
+    body = _doc_style('body')
+    merged = dict(label_config or {})
+    if body['transform'] and 'transform' not in merged:
+        merged['transform'] = body['transform']
+    if body['underline'] and 'decoration' not in merged:
+        merged['decoration'] = 'underline'
+    return merged or None
 
 
 def field_row(label: str, value: str, label_config: dict | None, default_position: str):
     """Mirrors the <FieldRow> component in ReportPreviewRenderer.tsx."""
+    label_config = _with_body_defaults(label_config)
     position = (label_config or {}).get('position', default_position)
     value_para = Paragraph(str(value) if value else '—', _styles['RPValue'])
 
@@ -687,6 +737,76 @@ def render_children_as_text(nodes: list, scope: dict, sections_by_id: dict) -> l
 # formatted in it. A request without labels gets the English wording used
 # before. Placeholders: {{name}}. Korean needs a Hangul font this renderer
 # doesn't register yet (open; the cytology PDF has Pretendard).
+
+# ── Batch 613: intraoperative diagnosis and attached related cases ──────────────────────────
+# The intraoperative diagnosis is part of the case report, like an addendum. Related cases are the
+# snapshots the pathologist saw and signed with the report; they print exactly as recorded.
+def intraop_lines(payload: dict, labels: dict) -> list:
+    text = (payload.get('intraoperativeDiagnosis') or '').strip()
+    return [(labels['intraopDiagnosis'], text)] if text else []
+
+
+def related_case_blocks(payload: dict, labels: dict) -> list:
+    """One list of (label, value) rows per attached case, in the order the signer saw them."""
+    blocks = []
+    for c in payload.get('relatedCases') or []:
+        rows = [(c.get('accession') or '', labels['relatedCaseReleased'] + ' ' + str(c.get('releasedAt') or '')[:10])]
+        specimens = c.get('specimens') or []
+        if specimens:
+            rows.append((labels['relatedCaseSpecimens'], '; '.join(specimens)))
+        if c.get('intraoperativeDiagnosis'):
+            rows.append((labels['intraopDiagnosis'], c['intraoperativeDiagnosis']))
+        rows.append((labels['relatedCaseDiagnosis'], c.get('diagnosis') or ''))
+        if c.get('signedBy'):
+            rows.append((labels['relatedCaseSignedBy'], c['signedBy']))
+        if c.get('orderingPhysician'):
+            rows.append((labels['relatedCaseOrdering'], c['orderingPhysician']))
+        if c.get('copyToPhysicians'):
+            rows.append((labels['relatedCaseCopyTo'], ', '.join(c['copyToPhysicians'])))
+        if c.get('client'):
+            rows.append((labels['relatedCaseClient'], c['client']))
+        blocks.append(rows)
+    return blocks
+
+
+def _intraop_related_flows(payload: dict, labels: dict, part: str) -> list:
+    """part: 'intraop' (before the body) or 'related' (after it)."""
+    from xml.sax.saxutils import escape
+    out = []
+    if part == 'intraop':
+        for label, text in intraop_lines(payload, labels):
+            out.append(Paragraph('<b>%s</b>' % escape(label), _styles['RPLabel']))
+            out.append(Paragraph(escape(text).replace('\n', '<br/>'), _styles['RPValue']))
+            out.append(Spacer(1, 8))
+        return out
+    blocks = related_case_blocks(payload, labels)
+    if not blocks:
+        return out
+    out.append(Spacer(1, 10))
+    out.append(Paragraph('<b>%s</b>' % escape(labels['relatedCasesTitle']), _styles['RPLabel']))
+    out.append(Paragraph(escape(labels['relatedCasesNotice']), _styles['RPCaption']))
+    for rows in blocks:
+        out.append(Spacer(1, 6))
+        for i, (label, value) in enumerate(rows):
+            out.append(Paragraph(('<b>%s</b> %s' if i else '<b>%s</b>  %s') % (escape(label), escape(value).replace('\n', '<br/>')), _styles['RPValue']))
+    return out
+
+
+def _intraop_related_text(payload: dict, labels: dict, part: str) -> list:
+    lines = []
+    if part == 'intraop':
+        for label, text in intraop_lines(payload, labels):
+            lines += [label, text, '']
+        return lines
+    blocks = related_case_blocks(payload, labels)
+    if blocks:
+        lines += ['', labels['relatedCasesTitle'], labels['relatedCasesNotice']]
+        for rows in blocks:
+            lines.append('')
+            lines += [f'{label}: {value}' if i else f'{label}  {value}' for i, (label, value) in enumerate(rows)]
+    return lines
+
+
 DEFAULT_LABELS = {
     'patient': 'Patient',
     'mrn': 'MRN',
@@ -720,6 +840,19 @@ DEFAULT_LABELS = {
     'revisionDatesLatestOnly': 'Revised {{latest}}',
     'documentReference': 'Document {{accession}} · record version {{version}}',
     'documentReferenceNoVersion': 'Document {{accession}}',
+    # Batch 618 (PS-336): the technical lab of a split case.
+    'technicalComponentAt': 'Technical component performed at: {{facility}}',
+    # Batch 613: the intraoperative diagnosis and the related cases the signer attached.
+    'intraopDiagnosis': 'Intraoperative diagnosis',
+    'relatedCasesTitle': 'Related cases',
+    'relatedCasesNotice': 'Summary of previously released reports. These are not part of the diagnosis of this report; each is identified by its own accession number.',
+    'relatedCaseReleased': 'Released',
+    'relatedCaseSpecimens': 'Specimens',
+    'relatedCaseDiagnosis': 'Diagnosis',
+    'relatedCaseSignedBy': 'Signed out by',
+    'relatedCaseOrdering': 'Ordering physician',
+    'relatedCaseCopyTo': 'Copy to',
+    'relatedCaseClient': 'Client',
 }
 _current_labels = contextvars.ContextVar('report_labels', default=DEFAULT_LABELS)
 
@@ -784,6 +917,22 @@ def disclaimer_text(payload: dict) -> str:
     return text.strip() if isinstance(text, str) else ''
 
 
+def technical_facility_line(payload: dict, labels: dict) -> str:
+    """Batch 618 (PS-336): the one line naming the lab that did the technical component of a
+    split case. Name and address only; a director or CLIA number in the request is ignored."""
+    tb = payload.get('technicalBranding')
+    if not isinstance(tb, dict):
+        return ''
+    name = (tb.get('facilityName') or '').strip()
+    if not name:
+        return ''
+    place = ' '.join(p for p in ((tb.get('state') or '').strip(), (tb.get('zip') or '').strip()) if p)
+    parts = [name, (tb.get('address') or '').strip(), ', '.join(p for p in ((tb.get('city') or '').strip(), place) if p)]
+    facility = ', '.join(p for p in parts if p)
+    template = labels.get('technicalComponentAt') or DEFAULT_LABELS['technicalComponentAt']
+    return template.replace('{{facility}}', facility)
+
+
 def watermark_text(payload: dict) -> str:
     text = payload.get('watermarkText')
     return text.strip() if isinstance(text, str) else ''
@@ -796,7 +945,7 @@ def _revision_banner_flows(payload: dict, labels: dict) -> list:
         return []
     flag_style = ParagraphStyle('rp-revision-flag', parent=_styles['RPLabel'], fontName=_font(True), fontSize=10, textColor=colors.HexColor('#92400e'))
     dates_style = ParagraphStyle('rp-revision-dates', parent=_styles['RPLabel'], fontSize=9, textColor=colors.black)
-    box = Table([[Paragraph(escape(lines[0]), flag_style)], [Paragraph(escape(lines[1]), dates_style)]], colWidths=[170 * mm])
+    box = Table([[Paragraph(escape(lines[0]), flag_style)], [Paragraph(escape(lines[1]), dates_style)]], colWidths=[_text_width()])
     box.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#b45309')),
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fff7ed')),
@@ -812,7 +961,7 @@ def _disclaimer_flows(payload: dict) -> list:
     if not text:
         return []
     style = ParagraphStyle('rp-disclaimer', parent=_styles['RPLabel'], fontSize=9, textColor=colors.black, leading=12)
-    box = Table([[Paragraph(escape(text), style)]], colWidths=[170 * mm])
+    box = Table([[Paragraph(escape(text), style)]], colWidths=[_text_width()])
     box.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#64748b')),
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f1f5f9')),
@@ -822,10 +971,11 @@ def _disclaimer_flows(payload: dict) -> list:
     return [Spacer(1, 6), box, Spacer(1, 6)]
 
 
-def _page_decorator(payload: dict, labels: dict):
+def _page_decorator(payload: dict, labels: dict, footer_flows: list | None = None, footer_base: float = 0.0, inset: float = 0.0):
     """Draws the watermark (every page, under the text) and the footer
     reference (every page: accession barcode, document reference, and the
-    revision flag when the report has been revised)."""
+    revision flag when the report has been revised). Batch 609: and the
+    template's footer part, when it draws something, above the reference."""
     mark = watermark_text(payload)
     reference = document_reference_text(payload, labels)
     accession = ((payload.get('caseHeader') or {}).get('accession') or '').strip()
@@ -849,8 +999,16 @@ def _page_decorator(payload: dict, labels: dict):
                 canvas.rotate(32)
                 canvas.drawCentredString(0, 0, mark)
                 canvas.restoreState()
+        left = doc.leftMargin + inset  # the text's left edge (the frame has its own 6 pt padding)
+        if footer_flows:
+            avail = width - left - (doc.rightMargin + inset)
+            heights = [f.wrap(avail, 10_000)[1] for f in footer_flows]
+            y = footer_base + sum(heights)
+            for f, h in zip(footer_flows, heights):
+                y -= h
+                f.drawOn(canvas, left, y)
         if accession:
-            x = doc.leftMargin
+            x = left
             try:
                 barcode = Code128(accession, barHeight=7 * mm, barWidth=0.28 * mm, humanReadable=False)
                 barcode.drawOn(canvas, x - barcode.lquiet, 8 * mm)
@@ -929,17 +1087,93 @@ def _workup_flows(workup: dict, labels: dict, scope: dict, sections_by_id: dict)
     return flows
 
 
+# Batch 609 (PS-35, PS-127): the margins the report printed with before the lab could
+# set them (top, right, bottom, left, in mm); a request without a page setup keeps them.
+DEFAULT_MARGINS_MM = (18, 20, 22, 20)
+# The footer reference (accession barcode and document reference) is drawn 8 to 18 mm
+# from the bottom edge, so the bottom margin is never below this, whatever the lab sets.
+FOOTER_BAND_MM = 20
+
+
 def build_report_pdf(payload: dict) -> bytes:
     token = _current_fonts.set(fonts_for(payload))
     labels_token = _current_labels.set(report_labels(payload))
+    geometry = report_layout.page_geometry(payload, DEFAULT_MARGINS_MM)
+    geometry_token = _current_geometry.set(geometry)
+    style_token = _current_style.set({c: report_layout.style_for(payload, c) for c in report_layout.CATEGORIES})
+    units_token = _current_font_units.set(payload.get('fontUnits') if payload.get('fontUnits') in report_layout.FONT_UNITS else None)
     try:
         return _build_report_pdf(payload)
     finally:
+        _current_font_units.reset(units_token)
+        _current_style.reset(style_token)
+        _current_geometry.reset(geometry_token)
         _current_labels.reset(labels_token)
         _current_fonts.reset(token)
 
 
-FIGURE_MAX_WIDTH = 170 * mm
+# ── Header and footer parts (Batch 609) ─────────────────────────────────────
+# The template's header and footer Parts (headerAssembly / footerAssembly, one slot
+# each) hold a 'header' or 'footer' node of text lines, or ordinary nodes. They were
+# sent in every request and ignored: the institution block and the confidentiality
+# line were always drawn from fixed fields. Now, when a part draws something, it
+# replaces that fixed text (the preview's rule: ReportPreviewRenderer.tsx).
+
+def _interpolated_line(node: dict, scope: dict) -> str | None:
+    """Mirrors renderTextLine() in ReportPreviewRenderer.tsx."""
+    if node.get('type') == 'expression-value':
+        text = interpolate(node.get('template') or '', scope)
+        return text if text.strip() else (node.get('fallback') or None)
+    if node.get('type') == 'static-label':
+        return node.get('text') or None
+    return None
+
+
+def _category_paragraph(text: str, category: str, size: float, bold: bool, color=colors.black) -> Paragraph:
+    """A line in a category's document style: the style's family, size, weight, case and underline
+    where set, the given size and weight otherwise."""
+    from xml.sax.saxutils import escape
+    style = _doc_style(category)
+    family = style['family'] if style['family'] and _current_fonts.get() == LATIN_FONTS else _current_fonts.get()
+    is_bold = style['bold'] if style['bold'] is not None else bold
+    pt = style['size_pt'] or size
+    body = escape(report_layout.apply_transform(text, style))
+    if style['underline']:
+        body = f'<u>{body}</u>'
+    return Paragraph(body, ParagraphStyle(
+        f'rp-{category}-line', fontName=family[1 if is_bold else 0], fontSize=pt, leading=round(pt * 1.25, 2), textColor=color,
+    ))
+
+
+def _part_flows(parts: list, kind: str, scope: dict, sections_by_id: dict) -> list:
+    """The flowables of a header or footer assembly. Empty when no part draws anything."""
+    flows: list = []
+    for part in sorted(parts or [], key=lambda p: p.get('order', 0)):
+        for node in part.get('nodes') or []:
+            show_when = node.get('showWhen')
+            if show_when and not eval_condition(show_when, scope):
+                continue
+            if node.get('type') in ('header', 'footer'):
+                lines = [ln for ln in (_interpolated_line(c, scope) for c in node.get('children') or []) if ln]
+                for i, line in enumerate(lines):
+                    if kind == 'header':
+                        flows.append(_category_paragraph(line, 'header', 12 if i == 0 else 9, i == 0))
+                    else:
+                        flows.append(_category_paragraph(line, 'footer', 8, False, colors.HexColor('#334155')))
+            else:
+                flows += render_node(node, scope, sections_by_id)
+    return flows
+
+
+def _header_footer_scope(payload: dict, scope: dict) -> dict:
+    """The preview's headerFooterScope: the case scope plus the institution."""
+    inst = payload.get('institution') or {}
+    return {**scope, 'institution': {
+        'name': inst.get('name', ''), 'department': inst.get('dept', ''),
+        'address': inst.get('address', ''), 'phone': inst.get('phone', ''),
+    }}
+
+
 
 
 def figure_notice(fig: dict) -> list:
@@ -953,7 +1187,7 @@ def figure_notice(fig: dict) -> list:
     style = ParagraphStyle('rp-figure-notice', parent=_styles['RPLabel'], textColor=colors.black, leading=11)
     rows = [[Paragraph('<b>%s</b>' % escape(_label('figureNotDrawn')), style)]]
     rows += [[Paragraph(escape(str(line)), style)] for line in (fig.get('fallbackLines') or []) if str(line).strip()]
-    box = Table(rows, colWidths=[FIGURE_MAX_WIDTH])
+    box = Table(rows, colWidths=[_text_width()])
     box.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#b45309')),
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fef3c7')),
@@ -982,7 +1216,7 @@ def figure_flows(payload: dict) -> list:
                 img = Image(BytesIO(data))
                 if w <= 0 or h <= 0:
                     w, h = float(img.imageWidth), float(img.imageHeight)
-                width = min(FIGURE_MAX_WIDTH, w * 0.75)  # CSS px → points
+                width = min(_text_width(), w * 0.75)  # CSS px → points
                 img.drawWidth = width
                 img.drawHeight = width * h / w
                 drawn = [KeepTogether([img, Spacer(1, 10)])]
@@ -997,9 +1231,29 @@ def figure_flows(payload: dict) -> list:
 
 def _build_report_pdf(payload: dict) -> bytes:
     buf = BytesIO()
+    # Batch 609 (PS-35): the lab's page size and margins, and the template's header and
+    # footer parts, are read from the request. Without a page setup it is A4 as before.
+    geometry = _current_geometry.get() or report_layout.page_geometry(payload, DEFAULT_MARGINS_MM)
+    margin_top, margin_right, margin_bottom, margin_left = geometry['margins']
+    margin_bottom = max(margin_bottom, FOOTER_BAND_MM * mm)
+    labels = report_labels(payload)
+    scope, sections_by_id = resolve_scope_and_sections(payload)
+    hf_scope = _header_footer_scope(payload, scope)
+    header_flows = _part_flows(payload.get('headerAssembly'), 'header', hf_scope, sections_by_id)
+    footer_flows = _part_flows(payload.get('footerAssembly'), 'footer', hf_scope, sections_by_id)
+    footer_base = margin_bottom
+    if footer_flows:
+        avail = geometry['size'][0] - margin_left - margin_right
+        margin_bottom += sum(f.wrap(avail, 10_000)[1] for f in footer_flows) + 3 * mm
+
+    # SimpleDocTemplate's frame pads its text by 6 pt. A lab's margin is where the text starts,
+    # so its margins are reduced by the padding; a request without a page setup keeps the
+    # original layout exactly.
+    inset = 6.0 if geometry['from_request'] else 0.0
     doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        topMargin=18 * mm, bottomMargin=22 * mm, leftMargin=20 * mm, rightMargin=20 * mm,
+        buf, pagesize=geometry['size'],
+        topMargin=margin_top - inset, bottomMargin=margin_bottom - inset,
+        leftMargin=margin_left - inset, rightMargin=margin_right - inset,
         title=payload.get('caseHeader', {}).get('accession', 'PathScribe Report'),
     )
 
@@ -1007,18 +1261,30 @@ def _build_report_pdf(payload: dict) -> bytes:
     inst = payload.get('institution') or {}
     header = payload.get('caseHeader') or {}
 
-    if inst.get('name'):
-        flows.append(Paragraph(inst['name'], _styles['RPHeading']))
-    if inst.get('dept'):
-        flows.append(Paragraph(inst['dept'], _styles['RPCaption']))
-    if inst.get('address'):
-        flows.append(Paragraph(inst['address'], _styles['RPCaption']))
+    if header_flows:
+        flows += header_flows
+    else:
+        head = _doc_style('header')
+        if head['size_pt'] or head['bold'] is not None or head['underline'] or head['transform'] or head['family']:
+            small = max(6, round((head['size_pt'] or 12) * 0.8, 2))
+            if inst.get('name'):
+                flows.append(_category_paragraph(inst['name'], 'header', 12, True))
+            for key in ('dept', 'address'):
+                if inst.get(key):
+                    flows.append(Paragraph(report_layout.apply_transform(inst[key], head), ParagraphStyle(
+                        f'rp-header-{key}', parent=_styles['RPCaption'], fontSize=small, leading=round(small * 1.25, 2))))
+        else:
+            if inst.get('name'):
+                flows.append(Paragraph(inst['name'], _styles['RPHeading']))
+            if inst.get('dept'):
+                flows.append(Paragraph(inst['dept'], _styles['RPCaption']))
+            if inst.get('address'):
+                flows.append(Paragraph(inst['address'], _styles['RPCaption']))
     flows.append(Spacer(1, 8))
 
     if header.get('accession'):
         flows.append(Paragraph(header['accession'], _styles['RPHeading']))
 
-    labels = report_labels(payload)
     case_rows = [[k, v] for k, v in case_header_rows(header, labels) if v]
     if case_rows:
         t = Table(case_rows, colWidths=[35 * mm, None])
@@ -1035,14 +1301,20 @@ def _build_report_pdf(payload: dict) -> bytes:
         flows.append(Spacer(1, 4))
         flows.append(Paragraph(caption, _styles['RPCaption']))
 
+    # Batch 618 (PS-336): the technical lab of a split case, on a signed-out report.
+    technical_line = technical_facility_line(payload, labels)
+    if technical_line:
+        from xml.sax.saxutils import escape as _esc
+        flows.append(Spacer(1, 4))
+        flows.append(Paragraph(_esc(technical_line), _styles['RPCaption']))
+
     # Batch 498 (PS-283 §4.2.2): revision status in the report's header area.
     flows += _revision_banner_flows(payload, labels)
     # Batch 498: the pre-analytic override disclaimer, before the body.
     flows += _disclaimer_flows(payload)
 
     flows.append(Spacer(1, 12))
-
-    scope, sections_by_id = resolve_scope_and_sections(payload)
+    flows += _intraop_related_flows(payload, labels, 'intraop')
 
     workup = payload.get('workup')
     for combined in payload.get('workups') or []:
@@ -1077,12 +1349,14 @@ def _build_report_pdf(payload: dict) -> bytes:
         flows.append(Spacer(1, 10))
 
     flows += figure_flows(payload)
+    flows += _intraop_related_flows(payload, labels, 'related')
 
     flows.append(Spacer(1, 16))
-    flows.append(Paragraph(labels['confidential'], _styles['RPCaption']))
+    if not footer_flows:  # a footer part carries its own confidentiality line
+        flows.append(Paragraph(labels['confidential'], _styles['RPCaption']))
 
     # Batch 498: watermark and footer reference on every page.
-    decorate = _page_decorator(payload, labels)
+    decorate = _page_decorator(payload, labels, footer_flows, footer_base, inset)
     doc.build(flows, onFirstPage=decorate, onLaterPages=decorate)
     return buf.getvalue()
 
@@ -1129,6 +1403,11 @@ def _build_report_text(payload: dict) -> str:
         lines.append('')
         lines.append(caption)
 
+    # Batch 618 (PS-336): the technical lab of a split case.
+    technical_line = technical_facility_line(payload, labels)
+    if technical_line:
+        lines.append(technical_line)
+
     # Batch 498: the same revision status and disclaimer as the PDF.
     revision = revision_lines(payload, labels)
     if revision:
@@ -1141,6 +1420,7 @@ def _build_report_text(payload: dict) -> str:
     lines.append('')
 
     scope, sections_by_id = resolve_scope_and_sections(payload)
+    lines += _intraop_related_text(payload, labels, 'intraop')
 
     workup = payload.get('workup')
     for combined in payload.get('workups') or []:
@@ -1173,6 +1453,7 @@ def _build_report_text(payload: dict) -> str:
             lines += render_node_as_text(node, scope, sections_by_id)
         lines.append('')
 
+    lines += _intraop_related_text(payload, labels, 'related')
     lines.append('')
     lines.append(labels['confidential'])
     reference = document_reference_text(payload, labels)
@@ -1321,6 +1602,9 @@ _VALID_TRANSACTION_TYPES = {
     # Batch 520 (PS-280): a signed report PDF to fax or drop as a file; this
     # receiver delivers it (report_delivery.py) and answers with the outcome.
     'REPORT_DELIVERY',
+    # Batch 605: hardware orders, scan events and charges.
+    'BLOCK_ORDER', 'SLIDE_ORDER', 'SPECIMEN_LABEL', 'MATERIAL_SCAN_EVENT',
+    'CHARGE_DFT', 'CHARGE_JSON', 'FINANCIAL_CLASS',
 }
 
 

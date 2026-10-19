@@ -259,3 +259,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 553 (PS-539 phase 2d: site agent printers in routing)
 
 - `FacilityPrintingTab.tsx` (Batch 553): the default network printer can be one of the facility's own site agent printers, picked from its list.
+
+- Batch 608: `FacilityEditorModal.tsx` has a national screening registry ID (`Facility.nationalRegistryId`), shown in the EU compliance matrix.

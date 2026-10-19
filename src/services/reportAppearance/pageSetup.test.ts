@@ -40,3 +40,16 @@ describe('lab page setup', () => {
       .toEqual({ pageSizeId: 'a4', margins: { top: 5, right: 50, bottom: 20, left: 20 } });
   });
 });
+
+
+import { renderPageSetup } from './pageSetup';
+describe('renderPageSetup (Batch 606, PS-36)', () => {
+  it('gives the renderer the page size in millimetres and the margins', () => {
+    expect(renderPageSetup({ pageSizeId: 'letter', margins: { top: 10, right: 11, bottom: 12, left: 13 } })).toEqual({
+      pageSizeId: 'letter', widthMm: 216, heightMm: 279, margins: { top: 10, right: 11, bottom: 12, left: 13 },
+    });
+  });
+  it('an unknown size falls back to A4', () => {
+    expect(renderPageSetup({ pageSizeId: 'nope', margins: { top: 25, right: 20, bottom: 25, left: 20 } }).widthMm).toBe(210);
+  });
+});

@@ -22,6 +22,7 @@ import { mockQaActivityTypeService } from './mockQaActivityTypeService';
 import type { IQaActivityRecordService } from './IQaActivityRecordService';
 import type { QaActivityRecord, QaDiscordanceRootCause } from '@/types/quality/QaActivityRecord';
 import { qaRecordRecommendation, qaRecordSummary } from './capaRecommendationRules';
+import { DEMO_DISCORDANCE_RECORDS } from './demoDiscordanceSeed';
 
 const STORAGE_KEY = 'qa_activity_records';
 
@@ -3649,6 +3650,8 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
 
 const SEED_RECORDS: QaActivityRecord[] = [
   ...MIGRATED_RECONCILIATION_RECORDS,
+  // PS-147: demo peer review discordance (3 minor, 2 major, 3 pathologists).
+  ...DEMO_DISCORDANCE_RECORDS,
   // Cytology-Histology — kept from the earlier illustrative seed,
   // deliberately not covered by the reconciliation migration above -
   // still the one real proof this service genuinely works across

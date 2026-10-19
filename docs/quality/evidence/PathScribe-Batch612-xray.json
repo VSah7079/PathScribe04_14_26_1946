@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 612 \u2014 interface dictionary (message mapper), workstation registry and scope reference, report font sizes in points, dependency patches",
+    "description": "Vitest, 2026-10-18: full suite 1357 files (1352 passed, 4 skipped, 1 failed); 11,087 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Python renderer checks 220 and 44 passed. Not run: browser check; visual check of the points preview. Server side not built: interface engine applying mapping profiles, site agent token check; functions/ must be redeployed."
+  },
+  "tests": [
+    {
+      "testKey": "PS-788",
+      "start": "2026-10-18T22:00:00Z",
+      "finish": "2026-10-18T23:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: functions/test_main.py\nPASSED: src/components/Common/ConvertToPointsPanel.test.tsx\nPASSED: src/components/Common/FontSizeField.test.tsx\nPASSED: src/components/Config/System/InterfaceDictionarySection.test.tsx\nPASSED: src/components/TemplateBuilder/TemplateAssemblyPage.finalDiagnosis.test.tsx\nPASSED: src/components/VendorFields/VendorFieldsPanel.test.tsx\nPASSED: src/services/interfaceDictionary/interfaceDictionary.test.ts\nPASSED: src/services/interfaceDictionary/interfaceDictionaryLocale.test.ts\nPASSED: src/services/reportAppearance/convertToPoints.test.ts\nPASSED: src/services/reportAppearance/fontUnits.test.ts\nPASSED: src/services/reportAppearance/previewPage.test.ts\nPASSED: src/services/serviceResultShape.guard.test.ts\nPASSED: src/utils/labelStyleVars.test.ts\nPASSED: functions/test_main.py (220 checks)\nPASSED: functions/test_report_delivery.py (44 checks)"
+    }
+  ]
+}

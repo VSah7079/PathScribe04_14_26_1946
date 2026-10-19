@@ -185,3 +185,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 499 (PS-476): no key in the browser
 
 `pubmedResearchFeedService.ts` no longer reads `VITE_NCBI_API_KEY` and no longer sends `api_key`. NCBI E-utilities work without a key at 3 requests a second per IP; the 30-minute park after a 429 still covers a throttled hospital gateway. The variable is gone from `vite-env.d.ts` and `.env.example`, and `services/security/envExposure.guard.test.ts` now allows no secret-looking `VITE_` name at all. A keyed, server-side fetch can come with the terminology/AI proxy (PS-488).
+
+## Batch 617 (part C): server versions (PS-514)
+
+The research feed settings service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/REFERRAL_RESEARCH_API.md`. The mocks are unchanged.

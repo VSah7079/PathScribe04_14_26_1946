@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/registryGoLive
 
 Batches 423–424 (Registry Engine SRS v2.1, step 7; PS-359). This folder covers how a registry connection (screening or cancer) moves from Pending through testing to its **live register**, across the two PathScribe instances. The server contract is `docs/architecture/REGISTRY_GO_LIVE_API.md`.
@@ -47,3 +49,7 @@ The instance role comes from `services/deployment/deploymentInstance.ts`. Unset 
 - The engine's own copy of the boundary check.
 - A screen for ForMedrixAI to publish template versions; they ship in a release.
 - Server signing of validation records; the browser uses a SHA-256 digest.
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the registry go-live service) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/REGISTRY_API.md`. The mocks are unchanged.

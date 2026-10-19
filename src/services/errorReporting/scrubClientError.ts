@@ -49,7 +49,9 @@ export function scrubStack(stack: unknown): string[] {
   return String(stack ?? '')
     .split('\n')
     .map(line => line.trim())
-    .filter(line => /^at\s|@/.test(line))
+    // A frame ends in file:line:col. Chrome: "at fn (url:1:2)"; Firefox and Safari: "fn@url:1:2". A message line
+    // that merely contains an "@" (an e-mail address in the thrown text) is not a frame (Batch 590).
+    .filter(line => /^at\s.*:\d+:\d+\)?$/.test(line) || /^[^\s@]*@\S+:\d+:\d+$/.test(line))
     .slice(0, MAX_FRAMES)
     .map(line => line.replace(/\?[^:)\s]*/g, '').replace(/[^\w\s.:/()<>@$-]/g, ''));
 }

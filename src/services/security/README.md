@@ -43,3 +43,5 @@ Sanitising happens when content is displayed; the server must also sanitise on s
 - QZ Tray's secure ports, plus its `ws://` ports on plain http.
 
 It also checks that `workstationBridges: false` leaves them out, and that nothing but the hub and the bridges gets a WebSocket origin.
+
+**Batch 617 (PS-488):** the policy builder takes `terminologyViaServer`; when true `connect-src` leaves out `clinicaltables.nlm.nih.gov` (PubMed stays).

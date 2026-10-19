@@ -33,6 +33,7 @@ export const ExportNotices: React.FC<{ tracker?: ExportTracker }> = ({ tracker =
             <span className="ps-export-notice-dot" aria-hidden="true" />
             <span className="ps-export-notice-body">
               <span className="ps-export-notice-title" data-phi="accession">{n.title}</span>
+              {tracker.simulated && <span className="ps-simulated-badge ps-export-notice-sim">{t('exports.notice.simulatedBadge')}</span>}
               <span className="ps-export-notice-text">{t(message.key, message.values)}</span>
             </span>
             <span className="ps-export-notice-actions">

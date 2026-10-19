@@ -57,6 +57,7 @@ import { getStaffSubspecialtyDisplay } from '@/utils/staffSubspecialties';
 import { participationTypeService } from '@/services';
 import type { ParticipationTypeRecord as ParticipationType } from '@/services/participationTypes/IParticipationTypeService';
 import { resolveCaseTeamParticipationTypes } from '@/services/participationTypes/IParticipationTypeService';
+import TechnicalComponentFacilityField from './TechnicalComponentFacilityField';
 import { resolveCasePerformingLabScope } from '@/services/facilities/resolveCasePerformingLabScope';
 import type { StaffUser }                from '@/services/users/IUserService';
 import type { Role }                     from '@/services/roles/IRoleService';
@@ -655,6 +656,8 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
               )}
             </DragOverlay>
           </DndContext>
+
+          <TechnicalComponentFacilityField caseData={caseData} onUpdated={(updated, version) => onUpdated?.(updated, version)} />
 
           {/* Footer — reuses .fm-footer's existing space-between layout and .fm-footer-status's existing .dirty modifier */}
           <div className="fm-footer">

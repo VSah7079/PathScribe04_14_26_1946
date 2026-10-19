@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/grossingHardware/
 
 Real, per the RFP-APLIS-2026-GLOBAL Story 9 — Grossing Station
@@ -139,3 +141,9 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 606
+
+- `captureGrossWeight.ts` (+ test): the specimen form's Capture weight. Scale agent when configured; a labelled simulated reading in the demo when none answers; never over an unstable reading. Audited (source and grams, no patient data).
+
+Batch 616 (part D, PS-506): server version of GrossingHardwareProfileService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.

@@ -1,3 +1,6 @@
+## Batch 613 (part B)
+`ReportPreviewRenderer` takes `intraoperativeDiagnosis` (drawn after the case header, part of the case report) and `relatedCases` (the section the signer attached, drawn after the body with the shared `RelatedCaseList`).
+
 # pages/ReportPreview/
 
 Renders Orchestration mode's `orchSections` as a formatted clinical report preview.
@@ -63,3 +66,7 @@ Pete, Oct 9: *"Retire it."* `ReportPreviewPage.tsx` (`/report-preview/:caseId`) 
 ## Batch 524 (PS-491): accessibility
 
 Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 612 (part C)
+
+`ReportPreviewRenderer` takes `fontUnits`. In points it draws the page at the lab's paper width and side margins (`--rp-page-w`, `--rp-pad-l/-r`) with sizes in CSS points (1 pt = 1.333 px). A style saved in pixels is drawn in pixels, as before. Vertical margins and page breaks are not drawn in this preview.

@@ -21,3 +21,7 @@ The label builders and printers themselves live in `utils/labels/`. Each printer
 **Still open**
 - Printing on real hardware still needs a manual check.
 - Without a hardware bridge, requisition and container labels open the browser print dialog once per label.
+
+## Batch 617 (part B): server version (PS-514)
+
+The batch label reprint run service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELIVERY_PRINTING_API.md`. The interface (`ILabelReprintRunService`) is new; it was an untyped object.

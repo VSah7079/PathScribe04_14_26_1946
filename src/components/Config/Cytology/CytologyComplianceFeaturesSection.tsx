@@ -17,6 +17,7 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { CYTOLOGY_COMPLIANCE_FEATURES, cytologyComplianceSettingKey, type CytologyComplianceSettings, type CytologyFeatureSetting } from '@/services/cytology/cytologyComplianceFeatures';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { ScreeningIntervalsCard } from './ScreeningIntervalsCard';
 
 const K = 'cytologyCompliance';
 const SETTINGS: CytologyFeatureSetting[] = ['auto', 'on', 'off'];
@@ -110,6 +111,9 @@ const CytologyComplianceFeaturesSection: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Batch 608 (#52): per-country, per-age screening intervals for EU-QA-01's interval adherence. */}
+      <ScreeningIntervalsCard />
     </div>
   );
 };

@@ -28,6 +28,7 @@ import { facilityService, modelService, validationStudyService } from '@/service
 
 import { resolvePerformingLabFacilityId } from '../../../services/facilities/IFacilityService';
 import type { AiProviderConfig } from './aiProviderConfig';
+import { effectiveConfidenceThreshold } from '../../../services/models/modelOverrides';
 
 /**
  * The actual hard-block check: does this exact (clientId, modelId) pair
@@ -116,5 +117,28 @@ export async function resolveAiConfigOverrideForClient(orderingClientId?: string
   if (!modelId) return {};
   const modelRes = await modelService.getById(modelId);
   if (!modelRes.ok) return {};
-  return { providerId: modelRes.data.requestFormat, modelId: modelRes.data.apiModelId };
+  // Batch 609 (#173): the organisation's own output-length cap for this model, when it set one.
+  const maxTokens = modelRes.data.configOverrides?.maxTokens;
+  return {
+    providerId: modelRes.data.requestFormat,
+    modelId: modelRes.data.apiModelId,
+    ...(typeof maxTokens === 'number' ? { maxTokens } : {}),
+  };
+}
+
+/**
+ * Batch 609 (#173): the confidence threshold that applies to this client's AI
+ * suggestions: the threshold override on the model the client's work is drafted
+ * with, else the organisation-wide AI setting passed in. Fails safe to the
+ * organisation setting whenever the model can't be resolved.
+ */
+export async function resolveConfidenceThresholdForClient(orderingClientId: string | undefined, organisationThreshold: number): Promise<number> {
+  try {
+    const modelId = await resolveClientAiModelId(orderingClientId);
+    if (!modelId) return organisationThreshold;
+    const modelRes = await modelService.getById(modelId);
+    return modelRes.ok ? effectiveConfidenceThreshold(organisationThreshold, modelRes.data) : organisationThreshold;
+  } catch {
+    return organisationThreshold;
+  }
 }

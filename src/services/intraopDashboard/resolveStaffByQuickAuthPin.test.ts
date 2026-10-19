@@ -51,3 +51,34 @@ describe('resolveStaffByQuickAuthPin — real, per the given design brief\'s "Fa
     expect(result.outcome).toBe('not-found');
   });
 });
+
+describe('resolveStaffByQuickAuthPin — role stored by name on the Staff screen (PS-262)', () => {
+  it('authenticates a staff member whose role is stored as the name "Or Staff"', async () => {
+    const { userService } = await import('../index');
+    const { resolveStaffByQuickAuthPin } = await import('./resolveStaffByQuickAuthPin');
+    await userService.add({
+      firstName: 'Lisa', lastName: 'Hoffman', email: 'lisa@example.org', roles: ['Or Staff'],
+      npi: '', license: '', phone: '', status: 'Active', quickAuthPin: '4826',
+    });
+    const result = await resolveStaffByQuickAuthPin('4826');
+    expect(result.outcome).toBe('authenticated');
+  });
+
+  it('still refuses a role name that is not OR staff', async () => {
+    const { userService } = await import('../index');
+    const { resolveStaffByQuickAuthPin } = await import('./resolveStaffByQuickAuthPin');
+    await userService.add({
+      firstName: 'Pat', lastName: 'Lee', email: 'pat@example.org', roles: ['Pathologist'],
+      npi: '', license: '', phone: '', status: 'Active', quickAuthPin: '5521',
+    });
+    expect((await resolveStaffByQuickAuthPin('5521')).outcome).toBe('invalid-role');
+  });
+
+  it('matches the role on id or name', async () => {
+    const { staffHasRole } = await import('./resolveStaffByQuickAuthPin');
+    expect(staffHasRole(['or-staff'], 'or-staff', 'Or Staff')).toBe(true);
+    expect(staffHasRole(['Or Staff'], 'or-staff', 'Or Staff')).toBe(true);
+    expect(staffHasRole(['Pathologist'], 'or-staff', 'Or Staff')).toBe(false);
+    expect(staffHasRole(['Or Staff'], 'or-staff', undefined)).toBe(false);
+  });
+});

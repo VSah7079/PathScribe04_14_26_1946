@@ -233,3 +233,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 570
 
 - `MessageListPanel`: the focus move after a delete now comes from `hooks/useFocusAfterRemoval.ts` (shared with the saved-search chips); it also follows a screen reader's click in Firefox, and moves focus only from the page or the pressed button.
+
+## Batch 589
+
+The nav bar returns while the route's recovery screen shows, even on pages that hide it (PS-472).

@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
+import DisplayTokenModal from './DisplayTokenModal';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import '../../../pathscribe.css';
@@ -93,6 +94,7 @@ const DisplayProfilesSection: React.FC = () => {
   const [entries, setEntries] = useState<DisplayProfile[]>([]);
   const [showInactive, setShowInactive] = useState(false);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: DisplayProfile } | null>(null);
+  const [tokenFor, setTokenFor] = useState<DisplayProfile | null>(null);
 
   const refresh = () => { displayProfileService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
@@ -146,6 +148,7 @@ const DisplayProfilesSection: React.FC = () => {
             </span>
             <div className="ps-conf-row-actions">
               <button className="ps-conf-btn-secondary" onClick={() => toggleActive(e)}>{e.status === 'Active' ? t('displayProfiles.deactivate') : t('displayProfiles.reactivate')}</button>
+              <button className="ps-conf-btn-secondary" onClick={() => setTokenFor(e)}>{t('displayAccess.admin.button')}</button>
               <button className="ps-conf-btn-secondary" onClick={() => setModal({ mode: 'edit', entry: e })}>{t('common.edit')}</button>
             </div>
           </div>
@@ -153,6 +156,7 @@ const DisplayProfilesSection: React.FC = () => {
         {visible.length === 0 && <div className="ps-conf-empty-row">{t('displayProfiles.emptyRow')}</div>}
       </div>
 
+      {tokenFor && <DisplayTokenModal kind="facility-ops" subjectId={tokenFor.id} displayName={tokenFor.name} onClose={() => setTokenFor(null)} />}
       {modal && <ProfileModal mode={modal.mode} entry={modal.entry} onSave={handleSave} onClose={() => setModal(null)} />}
     </div>
   );

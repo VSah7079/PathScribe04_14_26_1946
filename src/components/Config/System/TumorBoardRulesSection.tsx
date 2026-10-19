@@ -22,13 +22,17 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { tumorBoardRuleService, facilityTumorBoardRuleOverrideService, facilityService, tumorBoardBatchSettingsService } from '@/services';
-import type { TumorBoardAutoFlagRule, FacilityTumorBoardRuleOverride } from '@/services/tumorBoardRules/ITumorBoardRuleService';
+import { tumorBoardRuleService, facilityTumorBoardRuleOverrideService, facilityService, tumorBoardBatchSettingsService, tumorBoardCriteriaRuleService } from '@/services';
+import { TUMOR_BOARD_NAMES, type TumorBoardName } from '@/services/tumorBoard/ITumorBoardService';
+import type { TumorBoardAutoFlagRule, FacilityTumorBoardRuleOverride, TumorBoardCriteriaRule } from '@/services/tumorBoardRules/ITumorBoardRuleService';
+import TumorBoardCriteriaRulesCard from './TumorBoardCriteriaRulesCard';
 import { DEFAULT_TUMOR_BOARD_BATCH_SETTINGS } from '@/services/tumorBoardRules/ITumorBoardRuleService';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 interface Draft { marginThresholdMm: string; active: boolean; }
+/** Batch 610 (#71): '' keeps the rule's own board. */
+type RouteDraft = TumorBoardName | '';
 const draftOf = (r: Pick<TumorBoardAutoFlagRule, 'marginThresholdMm' | 'active'>): Draft => ({ marginThresholdMm: String(r.marginThresholdMm), active: r.active });
 const isDraftDirty = (draft: Draft, saved: Pick<TumorBoardAutoFlagRule, 'marginThresholdMm' | 'active'>) =>
   draft.marginThresholdMm !== String(saved.marginThresholdMm) || draft.active !== saved.active;
@@ -39,7 +43,9 @@ const TumorBoardRulesSection: React.FC = () => {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [overrides, setOverrides] = useState<FacilityTumorBoardRuleOverride[]>([]);
-  const [addingFacility, setAddingFacility] = useState<{ facilityId: string; ruleId: string; draft: Draft } | null>(null);
+  const [addingFacility, setAddingFacility] = useState<{ facilityId: string; ruleId: string; draft: Draft; route: RouteDraft } | null>(null);
+  const [criteriaRules, setCriteriaRules] = useState<TumorBoardCriteriaRule[]>([]);
+  const [criteriaFormOpen, setCriteriaFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Batch 494: the batching cut-off's own draft/saved pair, same
   // string-while-editing pattern as marginThresholdMm above.
@@ -48,12 +54,13 @@ const TumorBoardRulesSection: React.FC = () => {
 
   const anyDirty = rules.some(r => drafts[r.id] && isDraftDirty(drafts[r.id], r));
   const cutoffDirty = cutoffDraft !== String(cutoffHours);
-  useReportConfigDirty(anyDirty || cutoffDirty || addingFacility !== null);
+  useReportConfigDirty(anyDirty || cutoffDirty || addingFacility !== null || criteriaFormOpen);
 
   const refresh = async () => {
-    const [r, f, o, c] = await Promise.all([
-      tumorBoardRuleService.getAll(), facilityService.getAll(), facilityTumorBoardRuleOverrideService.getAll(), tumorBoardBatchSettingsService.get(),
+    const [r, f, o, c, cr] = await Promise.all([
+      tumorBoardRuleService.getAll(), facilityService.getAll(), facilityTumorBoardRuleOverrideService.getAll(), tumorBoardBatchSettingsService.get(), tumorBoardCriteriaRuleService.getAll(),
     ]);
+    if (cr.ok) setCriteriaRules(cr.data);
     if (r.ok) { setRules(r.data); setDrafts(Object.fromEntries(r.data.map(rule => [rule.id, draftOf(rule)]))); }
     if (f.ok) setFacilities(f.data);
     if (o.ok) setOverrides(o.data);
@@ -77,14 +84,22 @@ const TumorBoardRulesSection: React.FC = () => {
     await showResult(await tumorBoardRuleService.update(rule.id, { marginThresholdMm, active: draft.active }));
   };
 
+  const isCriteriaRuleId = (id: string) => criteriaRules.some(r => r.id === id);
+
   const saveFacilityOverride = async () => {
     if (!addingFacility) return;
+    const forCriteria = isCriteriaRuleId(addingFacility.ruleId);
     const marginThresholdMm = Number(addingFacility.draft.marginThresholdMm);
-    if (!addingFacility.facilityId || !Number.isFinite(marginThresholdMm) || marginThresholdMm <= 0) {
+    if (!addingFacility.facilityId || (!forCriteria && (!Number.isFinite(marginThresholdMm) || marginThresholdMm <= 0))) {
       setError(t('tumorBoardRulesSection.errors.marginThresholdMmInvalid'));
       return;
     }
-    if (await showResult(await facilityTumorBoardRuleOverrideService.set(addingFacility.facilityId, addingFacility.ruleId, { marginThresholdMm, active: addingFacility.draft.active }))) {
+    const changes = {
+      ...(forCriteria ? {} : { marginThresholdMm }),
+      active: addingFacility.draft.active,
+      ...(addingFacility.route ? { board: addingFacility.route } : {}),
+    };
+    if (await showResult(await facilityTumorBoardRuleOverrideService.set(addingFacility.facilityId, addingFacility.ruleId, changes))) {
       setAddingFacility(null);
     }
   };
@@ -99,8 +114,8 @@ const TumorBoardRulesSection: React.FC = () => {
   };
 
   const facilityName = (id: string) => facilities.find(f => f.id === id)?.name ?? id;
-  const ruleLabel = (id: string) => rules.find(r => r.id === id)?.label ?? id;
-  const boardOf = (id: string) => rules.find(r => r.id === id)?.board ?? id;
+  const ruleLabel = (id: string) => rules.find(r => r.id === id)?.label ?? criteriaRules.find(r => r.id === id)?.label ?? id;
+  const boardOf = (id: string) => rules.find(r => r.id === id)?.board ?? criteriaRules.find(r => r.id === id)?.board ?? id;
 
   return (
     <div className="ps-conf-page">
@@ -139,6 +154,8 @@ const TumorBoardRulesSection: React.FC = () => {
         })}
       </div>
 
+      <TumorBoardCriteriaRulesCard rules={criteriaRules} onChanged={refresh} onError={setError} onDirtyChange={setCriteriaFormOpen} />
+
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">{t('tumorBoardRulesSection.batchCutoffTitle')}</div>
         <p className="ps-conf-section-subtitle">{t('tumorBoardRulesSection.batchCutoffSubtitle')}</p>
@@ -161,7 +178,7 @@ const TumorBoardRulesSection: React.FC = () => {
         <div className="ps-conf-row">
           <div className="ps-conf-card-title">{t('tumorBoardRulesSection.facilityTitle')}</div>
           {!addingFacility && rules.length > 0 && (
-            <button className="ps-conf-btn-secondary" onClick={() => setAddingFacility({ facilityId: facilities[0]?.id ?? '', ruleId: rules[0].id, draft: draftOf(rules[0]) })}>
+            <button className="ps-conf-btn-secondary" onClick={() => setAddingFacility({ facilityId: facilities[0]?.id ?? '', ruleId: rules[0].id, draft: draftOf(rules[0]), route: '' })}>
               {t('tumorBoardRulesSection.addOverride')}
             </button>
           )}
@@ -172,6 +189,7 @@ const TumorBoardRulesSection: React.FC = () => {
             <div className="ps-conf-row-actions">
               <span className="ps-conf-value">
                 {o.marginThresholdMm !== undefined ? t('tumorBoardRulesSection.ruleSummary', { mm: o.marginThresholdMm }) : ''}
+                {o.board ? ` ${t('tumorBoardRulesSection.routedTo', { board: t(`tumorBoard.boards.${o.board}`) })}` : ''}
                 {o.active === false ? ` (${t('tumorBoardRulesSection.disabled')})` : ''}
               </span>
               <button className="ps-conf-btn-secondary" onClick={async () => { await showResult(await facilityTumorBoardRuleOverrideService.remove(o.facilityId, o.ruleId)); }}>{t('common.remove')}</button>
@@ -190,19 +208,34 @@ const TumorBoardRulesSection: React.FC = () => {
               value={addingFacility.ruleId}
               onChange={e => {
                 const rule = rules.find(r => r.id === e.target.value);
-                setAddingFacility({ ...addingFacility, ruleId: e.target.value, draft: rule ? draftOf(rule) : addingFacility.draft });
+                setAddingFacility({ ...addingFacility, ruleId: e.target.value, draft: rule ? draftOf(rule) : { ...addingFacility.draft, marginThresholdMm: '' } });
               }}
             >
               {rules.map(r => <option key={r.id} value={r.id}>{t(`tumorBoard.boards.${r.board}`)}</option>)}
+              {criteriaRules.map(r => <option key={r.id} value={r.id}>{t(`tumorBoard.boards.${r.board}`)} — {r.label}</option>)}
             </select>
-            <label className="ps-conf-label" htmlFor="tbr-facility-threshold">{t('tumorBoardRulesSection.thresholdLabel')}</label>
-            <input
-              id="tbr-facility-threshold"
-              className="ps-conf-input ps-corr-days"
-              inputMode="decimal"
-              value={addingFacility.draft.marginThresholdMm}
-              onChange={e => setAddingFacility({ ...addingFacility, draft: { ...addingFacility.draft, marginThresholdMm: e.target.value } })}
-            />
+            <label className="ps-conf-label" htmlFor="tbr-facility-route">{t('tumorBoardRulesSection.routeLabel')}</label>
+            <select
+              id="tbr-facility-route"
+              className="ps-conf-select"
+              value={addingFacility.route}
+              onChange={e => setAddingFacility({ ...addingFacility, route: e.target.value as RouteDraft })}
+            >
+              <option value="">{t('tumorBoardRulesSection.routeDefault')}</option>
+              {TUMOR_BOARD_NAMES.map(b => <option key={b} value={b}>{t(`tumorBoard.boards.${b}`)}</option>)}
+            </select>
+            {!isCriteriaRuleId(addingFacility.ruleId) && (
+              <>
+                <label className="ps-conf-label" htmlFor="tbr-facility-threshold">{t('tumorBoardRulesSection.thresholdLabel')}</label>
+                <input
+                  id="tbr-facility-threshold"
+                  className="ps-conf-input ps-corr-days"
+                  inputMode="decimal"
+                  value={addingFacility.draft.marginThresholdMm}
+                  onChange={e => setAddingFacility({ ...addingFacility, draft: { ...addingFacility.draft, marginThresholdMm: e.target.value } })}
+                />
+              </>
+            )}
             <label className="ps-conf-label" htmlFor="tbr-facility-active">{t('tumorBoardRulesSection.activeLabel')}</label>
             <input
               id="tbr-facility-active"

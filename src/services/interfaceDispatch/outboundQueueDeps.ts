@@ -15,6 +15,7 @@ export const outboundQueueDeps: OutboundActionDeps = {
     const { authorizationService } = await import('../authorization/defaultAuthorizationService');
     return authorizationService.enforce(capability as never, context ?? {});
   },
+  isHeld: async (queue, entryId) => (await import('../outboundQueue/outboundHoldStore')).outboundHoldStore.isHeld(`${queue}:${entryId}`),
   raiseDeficiency: async input => {
     const { specimenDeficiencyService } = await import('../index');
     return specimenDeficiencyService.raise(input);

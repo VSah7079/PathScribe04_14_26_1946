@@ -23,6 +23,8 @@
 // (docs/architecture/AUTHORIZATION_API.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { reportSupportActivity } from '../supportAccess/supportActivity';
+
 export const CONFIG_NOT_PERMITTED = 'CONFIG_NOT_PERMITTED';
 
 // ── Refusals, for the screen ────────────────────────────────────────────────
@@ -114,7 +116,11 @@ export function guardConfigWrites<T extends object>(service: T, rules: ConfigWri
           return { ok: false, error: CONFIG_NOT_PERMITTED };
         }
         const result = await value.apply(target, args);
-        if (writeSucceeded(result)) notifyConfigWritten();
+        if (writeSucceeded(result)) {
+          notifyConfigWritten();
+          // Batch 604: a support agent's own change is also written to the support audit stream.
+          reportSupportActivity({ kind: 'configChange', detail: `Configuration changed: ${String(prop)} (${capability}).` });
+        }
         return result;
       };
     },

@@ -17,7 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { mockReportTemplateService } from './mockReportTemplateService';
-import { mockReportPartService } from '../reportParts/mockReportPartService';
+import { reportPartService as mockReportPartService } from '../reportParts/reportPartServiceInstance';
 import type { TemplateNode } from '@/types/template';
 
 function countDesignatedFields(nodes: TemplateNode[]): number {

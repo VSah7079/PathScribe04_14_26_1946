@@ -1,4 +1,5 @@
 // src/services/printRouting/resolveRealPrintRoutingContext.test.ts
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../cases/CaseRouter', () => ({
@@ -10,17 +11,24 @@ vi.mock('../locations/mockLocationService', () => ({
 vi.mock('./wasCaseFrozenSectioned', () => ({
   wasCaseFrozenSectioned: vi.fn(),
 }));
+vi.mock('../workstationRegistry/workstationRegistryServices', () => ({
+  mockWorkstationRegistryService: { printRoutingInput: vi.fn() },
+}));
 
 import { caseRouter } from '../cases/CaseRouter';
 import { mockLocationService } from '../locations/mockLocationService';
 import { wasCaseFrozenSectioned } from './wasCaseFrozenSectioned';
 import { resolveRealPrintRoutingContext } from './resolveRealPrintRoutingContext';
+import { mockWorkstationRegistryService } from '../workstationRegistry/workstationRegistryServices';
+import { BOUND_WORKSTATION_SETTING } from '../workstationRegistry/workstationRegistryRules';
 
 beforeEach(() => {
   vi.mocked(caseRouter.getCase).mockReset();
   vi.mocked(mockLocationService.getById).mockReset();
   vi.mocked(wasCaseFrozenSectioned).mockReset();
   vi.mocked(wasCaseFrozenSectioned).mockResolvedValue(false);
+  vi.mocked(mockWorkstationRegistryService.printRoutingInput).mockReset();
+  localStorage.removeItem(BOUND_WORKSTATION_SETTING);
 });
 
 describe('resolveRealPrintRoutingContext', () => {
@@ -99,5 +107,31 @@ describe('resolveRealPrintRoutingContext', () => {
     const result = await resolveRealPrintRoutingContext('CASE-1', 'FINAL', 'FAC-1', 'SURGPATH', { workstationId: 'WS-9', userId: 'USER-9' });
     expect(result.workstationId).toBe('WS-9');
     expect(result.userId).toBe('USER-9');
+  });
+});
+
+describe('the registered workstation this browser acts as (Batch 612)', () => {
+  it('fills the workstation tier when the browser is bound to an active registered workstation', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValue({ order: {} } as any);
+    localStorage.setItem(BOUND_WORKSTATION_SETTING, 'ws-abc');
+    vi.mocked(mockWorkstationRegistryService.printRoutingInput).mockResolvedValue({ workstationId: 'ws-abc', facilityId: 'F1' });
+    const result = await resolveRealPrintRoutingContext('CASE-1', 'FINAL', 'FAC-1', 'SURGPATH');
+    expect(mockWorkstationRegistryService.printRoutingInput).toHaveBeenCalledWith('ws-abc');
+    expect(result.workstationId).toBe('ws-abc');
+  });
+
+  it('contributes nothing when the bound workstation is revoked or removed', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValue({ order: {} } as any);
+    localStorage.setItem(BOUND_WORKSTATION_SETTING, 'ws-gone');
+    vi.mocked(mockWorkstationRegistryService.printRoutingInput).mockResolvedValue({});
+    expect((await resolveRealPrintRoutingContext('CASE-1', 'FINAL', 'FAC-1', 'SURGPATH')).workstationId).toBeUndefined();
+  });
+
+  it('does not ask the registry when the browser is not bound, and an explicit workstation still wins', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValue({ order: {} } as any);
+    expect((await resolveRealPrintRoutingContext('CASE-1', 'FINAL', 'FAC-1', 'SURGPATH')).workstationId).toBeUndefined();
+    expect(mockWorkstationRegistryService.printRoutingInput).not.toHaveBeenCalled();
+    localStorage.setItem(BOUND_WORKSTATION_SETTING, 'ws-abc');
+    expect((await resolveRealPrintRoutingContext('CASE-1', 'FINAL', 'FAC-1', 'SURGPATH', { workstationId: 'WS-9' })).workstationId).toBe('WS-9');
   });
 });

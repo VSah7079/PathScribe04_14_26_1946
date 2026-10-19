@@ -130,6 +130,22 @@ export const VERSIONED_KEYS = [
 ];
 
 export const SETTINGS_KEYS = [
+  // Batch 612: registered workstations and their token fingerprints (services/workstationRegistry).
+  'workstationRegistry',
+  // Batch 613 (PS-787): the reporting feed's settings and token fingerprints (services/biFeed).
+  'biFeedSettings',
+  'biFeedTokens',
+  // Batch 611 (#157): second-factor policy, enrolments and failed-code counts (services/auth/mfa/mfaStores.ts).
+  'ps_mfa_policy_v1',
+  'ps_mfa_enrolments_v1',
+  'ps_mfa_locks_v1',
+  // Batch 611 (#189): the Smart Capture prototype switch and production checklist (services/smartCapture).
+  'smartCaptureSettings',
+  // Batch 612: the vendor profiles of the Interface Dictionary (services/interfaceDictionary).
+  'interfaceDictionaryProfiles',
+  // Batch 610 (#87, #164): performance targets and client service levels (services/performanceTargets, services/clientSLA).
+  'performance_targets_v1',
+  'client_sla_v1',
   // Batch 552: the demo's site agent printers and shares (services/siteAgent/siteAgentAdminInstance.ts).
   'site_agent_config',
   // Batch 442: the concordance review settings, written straight to localStorage.
@@ -176,6 +192,9 @@ export const SETTINGS_KEYS = [
   'pathscribe_specimen_crosswalk',
   'pathscribe_specimen_deficiencies',
   'pathscribe_grossing_routing_overrides',
+  'delivery_schedules_v1', // Batch 619 (PS-800)
+  'outbound_holds_v1', // Batch 619 (PS-800): holds, overrides and retractions on the Outbound Queue
+  'billing_release_rules_v1', // Batch 619 (PS-800)
   'pathscribe_incoming_orders',
   'pathscribe_management_reviews',
 
@@ -256,6 +275,8 @@ export const SETTINGS_KEYS = [
   'cytologyNomenclatureSettings', 'cytologyQcSettings', 'cytologyRegistrySettings',
   'cytologyRoutingSettings', 'cytologyScreeningStrategy', 'cytologyWorkloadCapSettings',
   'cytologyInstrumentation', 'nonGynCytologyCategories',
+  // Batch 608: screening intervals (config) and proficiency-test panels.
+  'cytology_screening_intervals_v1', 'cytology_pt_panels_v1',
   'facilityCytologyNomenclatureOverrides', 'facilityCytologyQcOverrides',
   'facilityCytologyRegistryOverrides', 'facilityCytologyRoutingOverrides',
   'facilityCytologyScreeningStrategyOverrides', 'facilityCytologyWorkloadCapOverrides',
@@ -354,7 +375,7 @@ export const SETTINGS_KEYS = [
   // per-facility threshold/active overrides (services/tumorBoardRules/).
   // Real, admin-configured dictionary with a real seed fallback
   // (DEFAULT_TUMOR_BOARD_RULES), same category as every other entry above.
-  'tumor_board_auto_flag_rules', 'facility_tumor_board_rule_overrides',
+  'tumor_board_auto_flag_rules', 'facility_tumor_board_rule_overrides', 'tumor_board_criteria_rules', 'ai_stalled_result_settings',
   // Batch 494 (PS-359 follow-up — MDT Self-Service Assignment & Batching
   // redesign): the one enterprise-wide batch-lock cut-off
   // (tumorBoardBatchSettings), same real admin-configured category as the
@@ -374,6 +395,16 @@ export const SETTINGS_KEYS = [
 ];
 
 export const CASE_KEYS = [
+  // Batch 611 (#189): Smart Capture reviews, one per case (services/smartCapture).
+  'smartCaptureRecords',
+  // Batch 612: the vendor fields applied to cases (services/interfaceDictionary).
+  'interfaceDictionaryFieldValues',
+  // Batch 605: the frozen section code decisions and the simulated engine's received-message log reset with the cases.
+  'frozenSectionSuggestionDecisions', 'simulatedEngineReceived',
+  // Batch 609: the images attached to case reports (links only: no image is stored).
+  'caseReportImages',
+  // Batch 613: the related released cases chosen for a report, and the patient summaries printed (counts only).
+  'relatedCaseAttachments',
   // Batch 442: found by the widened scan in DemoResetTab.coverage.test.ts —
   // written straight to localStorage, so the pathscribe_mock_ sweep missed
   // them: the used-signature memory (signatures reset with their cases) and
@@ -440,7 +471,7 @@ export const CASE_KEYS = [
   // all genuinely accumulate during demo/test usage; none of these
   // are admin-configured dictionaries.
   'access_requests', 'aiScreeningResults', 'batches', 'billing_deficiency_records_v1',
-  'code_review_pool_v1', 'countersign_records', 'critical_result_notifications_v1',
+  'code_review_pool_v1', 'countersign_records', 'critical_findings_by_case_v1', 'critical_result_notifications_v1',
   'critical_alert_dispatches_v1',
   'cytology_review_records', 'cytology_sign_out_records', 'held_report_releases', 'report_documents', 'cytology_workload_ledger_v1', 'cytology_screening_hours_signoff_v1',
   'informal_review_requests', 'migrationJobs', 'migrationRecordResults',
@@ -537,6 +568,8 @@ export const STATE_KEYS = [
   // either way" posture as the pathscribe_participation_types/
   // pathscribe_participation_types_v2 pair in SETTINGS_KEYS above.
   'pathscribe_savedSearches',
+  // Batch 613: report schedules (services/scheduledReports/createScheduledReportService.ts).
+  'pathscribe_scheduledReports',
   // Real, per the same "review the whole system" follow-up — a
   // comment-modal position preference (pages/Synoptic/Comments/
   // CommentModalShell.tsx) and the UI language selection (i18n/

@@ -1,3 +1,6 @@
+## Batch 613 (part B)
+The sign-out modal carries the related cases panel; the render payload carries `intraoperativeDiagnosis` and `relatedCases` (PDF, text and outbound result all come from it); the attachment is frozen when the case reaches pending-release, finalized or closed; `RelatedCasesAmendedNotice` shows beside the restricted-cases notice.
+
 # pages/SynopticReportPage/
 
 The core clinical workflow page — a case's full report/material/sign-out experience, reached at `/case/:caseId/synoptic`.
@@ -37,6 +40,14 @@ The rules themselves live in `services/participationTypes/` (overview:
 `services/README.md` → "Signing authority"). Neither file makes the
 decision itself; `CaseTeamModal.tsx` is guarded by
 `services/participationTypes/standingRules.guard.test.ts`.
+
+## Batch 612 (part C)
+
+The render request carries `fontUnits` (the template's units) next to `documentStyle`; the preview and the section editor take it too.
+
+## Batch 609 (part A)
+
+- Attach images button in the bottom action bar (opens `components/ReportImages/AttachReportImagesModal`); print, preview and release add the linked images after the report's pages; a failure blocks the release (`generationError`).
 
 ## Batch 318 (PS-137)
 
@@ -631,3 +642,25 @@ The renderer's address comes from `services/reports/reportRenderer.ts` (shared w
 ## Batch 579
 
 - `SynopticReportPage.tsx` `saveSpecimensNow`: a specimen's billing codes and the Sequencer's specimen order are saved at once, one at a time; billing codes all or nothing (no charge or credit unless the code saved). `components/RightSynopticPanel.tsx`: a re-read keeps the open section.
+
+## Batch 583
+
+- Breadcrumb and Back target come from `utils/search/caseReturnTarget.ts` ("Search" for a case opened from Search; `HeaderBar.tsx`). The three specimen-level billing handlers ask for the post-sign-out reason before saving, as the case-level path does.
+
+## Batch 588
+
+- `modals/DeleteBlockControl.tsx` (new): **Delete this block** in the block and stain editor, with a reason list and an optional note. `hooks/useSpecimenBlockManagement.ts`: `handleDeleteBlock` and `canDeleteBlocks` (false once the case is signed out, which hides the control).
+
+## Batch 589
+
+Confirm Field shortcut (`RightSynopticPanel`), critical findings from typed Microscopic text and Report Draft sections kept per case, and the printer-not-connected toast. See `hooks/README.md`.
+
+- Batch 608: an autopsy report released for countersign shows `ReturnToTraineeBar`.
+
+- Batch 609 (#31): an addendum is checked for a clinical-pathologic mismatch before release (`checkAddendumMismatch`); a high-risk one opens `ClinicalMismatchModal` first. The report alert on an unlocked amendment says when the release will not be held.
+
+- Batch 612 (part A): the sidebar shows the Vendor fields panel when a vendor sent extra fields.
+
+## Batch 618 (PS-336)
+
+`buildReportRenderPayload` sends `technicalBranding` only when the case is signed out (`technicalBrandingForRender`).

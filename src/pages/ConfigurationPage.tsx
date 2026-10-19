@@ -29,9 +29,9 @@ import ValidationStudiesSection from '../components/ValidationStudies/Validation
 import ConfigSearchBar from '../components/Config/Search/ConfigSearchBar';
 import { resetConfigScroll } from '../utils/resetConfigScroll';
 import { ConfigDirtyGuardContext } from '../components/Config/configDirtyGuardContext';
-import { createConfigDirtyRegistry } from '../services/configDirty/configDirtyRegistry';
+import { createConfigDirtyRegistry, discardDialogEdits } from '../services/configDirty/configDirtyRegistry';
 import { onConfigWritten } from '../services/authorization/guardConfigWrites';
-import { useConfigEditTracking } from '../hooks/useConfigEditTracking';
+import { useConfigEditTracking, dismissConfigDialog } from '../hooks/useConfigEditTracking';
 import { useDirtyState } from '../contexts/DirtyStateContext';
 import ConfirmModal from '../components/Common/ConfirmModal';
 import '../pathscribe.css';
@@ -121,15 +121,19 @@ const ConfigurationPage: React.FC = () => {
   const [outsideClose, setOutsideClose] = useState<{ dialog: object; replay: () => void } | null>(null);
   const handleOutsideClose = useCallback((dialog: object, replay: () => void) => setOutsideClose({ dialog, replay }), []);
   useConfigEditTracking(pageRootRef, registry, handleOutsideClose);
+  // PS-128 review: Discard closes the dialog, with its own Cancel when the
+  // replayed click or key doesn't (services/configDirty discardDialogEdits).
   const handleOutsideCloseDiscard = () => {
     const pending = outsideClose;
     setOutsideClose(null);
     if (!pending) return;
-    registry.forgetDialog(pending.dialog);
-    pending.replay();
-    // A dialog that doesn't close on Escape is still open with its edits:
-    // it stays unsaved, so leaving the page still asks.
-    setTimeout(() => { if ((pending.dialog as Element).isConnected) registry.dialogEdited(pending.dialog); }, 0);
+    discardDialogEdits(pending.dialog, {
+      registry,
+      replay: pending.replay,
+      isOpen: d => (d as Element).isConnected,
+      dismiss: d => dismissConfigDialog(d, { cancel: t('common.cancel'), close: t('common.close') }),
+      afterRender: fn => { setTimeout(fn, 0); },
+    });
   };
   useEffect(() => onConfigWritten(() => registry.configSaved()), [registry]);
 

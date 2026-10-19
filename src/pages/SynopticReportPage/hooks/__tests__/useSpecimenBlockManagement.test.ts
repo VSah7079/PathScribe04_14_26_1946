@@ -53,6 +53,8 @@ import type { Case } from '@/types/case/Case';
 // exercised for real here.
 vi.mock('@/utils/labels/qzTrayBridge', () => ({
   printZplViaQzTray: vi.fn(),
+  isQzTrayConnected: vi.fn(() => true),
+  connectToQzTray: vi.fn(async () => ({ ok: true, data: undefined })),
 }));
 import { printZplViaQzTray } from '@/utils/labels/qzTrayBridge';
 import { printSettingsService } from '@/services/index';

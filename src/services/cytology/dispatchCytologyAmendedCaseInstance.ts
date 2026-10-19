@@ -16,7 +16,7 @@
 import type { GenerateReportPdf } from '../reports/resolveOruReportPdf';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { sendCaseMessage } from './dispatchCytologyCaseInstances';
 import { cytologyCaseIsReleased } from './cytologyCaseReportMessage';
 
@@ -43,7 +43,7 @@ export async function dispatchCytologyAmendedCaseInstance(
   // Non-blocking skip: no organisationId to enqueue against.
   if (!patientRecord) return;
 
-  const recordsRes = await mockCytologySignOutRecordService.getByCaseId(caseId);
+  const recordsRes = await cytologySignOutRecordService.getByCaseId(caseId);
   if (!recordsRes.ok || !recordsRes.data.some(r => r.id === signOutRecordId)) return;
   await sendCaseMessage(caseData, recordsRes.data, (patientRecord as any).organisationId, resultState, signOutRecordId, previouslyReportedAs, generatePdf);
 }

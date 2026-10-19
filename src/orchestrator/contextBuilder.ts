@@ -24,7 +24,7 @@ import type { ReportTemplate } from '../types/reportPart';
 import type { SectionNode, TemplateNode } from '../types/template';
 import { mockReportTemplateService } from '../services/reportTemplates/mockReportTemplateService';
 import { getOrgDocumentStyleDefault, getOrgHeaderStyleDefault, getOrgFooterStyleDefault } from '../components/Config/System/documentStyleConfig';
-import { mockReportPartService } from '../services/reportParts/mockReportPartService';
+import { reportPartService as mockReportPartService } from '../services/reportParts/reportPartServiceInstance';
 import { getTemplate } from '../services/templates/templateService';
 import { partGridDisplay, partGridHasAnswer, partGridRowsFromAnswers, partGridRowsOf, synopticFieldAnswered, type PartGridRow } from '../services/templates/partGrid';
 import { mohsReportWords, mohsStagesDisplay } from '../services/templates/mohsStages';
@@ -203,6 +203,9 @@ export interface TemplateContext {
    *  template hasn't configured one, same "inherit the pre-existing
    *  look" fallback as everywhere else in this resolution chain. */
   documentStyle?: ReportTemplate['documentStyle'];
+  /** Batch 612: the units of the template's font sizes ("pt", or "legacy_px" for a template saved
+   *  before points). A style or label with no units of its own takes this. */
+  fontUnits?: ReportTemplate['fontUnits'];
 }
 
 export interface SignOffContext {
@@ -783,6 +786,7 @@ export async function buildContext(
       body:   resolved.template?.documentStyle?.body   ?? getOrgDocumentStyleDefault(),
       footer: resolved.template?.documentStyle?.footer ?? getOrgFooterStyleDefault(),
     },
+    fontUnits: resolved.template?.fontUnits,
   };
 
   // ── Sign-off ───────────────────────────────────────────────

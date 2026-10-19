@@ -673,6 +673,23 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     return ok({ ...entries[idx] });
   },
 
+  async setSpecimenUrgency(sessionId: string, specimenId: string, urgency: 'STAT' | 'ROUTINE'): Promise<ServiceResult<IntraoperativeEntry>> {
+    const entries = load();
+    const idx = entries.findIndex(e => e.id === sessionId);
+    if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
+    const specIdx = entries[idx].specimens.findIndex(s => s.id === specimenId);
+    if (specIdx === -1) return err(`Specimen ${specimenId} not found in session ${sessionId}`);
+    if (entries[idx].specimens[specIdx].frozenDiagnosisRenderedAt) {
+      return err('The frozen diagnosis has already been rendered, so the clock has stopped and the urgency cannot change.');
+    }
+    const updatedSpecimens = [...entries[idx].specimens];
+    updatedSpecimens[specIdx] = { ...updatedSpecimens[specIdx], urgency };
+    entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
+    persist(entries);
+    announceIntraopChange('specimen.progressed', entries[idx], specimenId);
+    return ok({ ...entries[idx] });
+  },
+
   async dismissFromBoard(sessionId: string, specimenId: string, dismissedByUserId: string, dismissedByUserName: string, surgeonReadbackConfirmed: boolean): Promise<ServiceResult<IntraoperativeEntry>> {
     if (!surgeonReadbackConfirmed) return err('Cannot dismiss — the surgeon read-back confirmation was not checked.');
     const entries = load();

@@ -42,6 +42,12 @@ Export runs the same search and returns up to 5,000 rows. The .NET API server im
 - **Page numbers, not cursors.** Search shows "page 3 of 13" and a total. The internal case list keeps its cursor paging for other callers (`services/cases/`). See the API document for the SQL Server reasoning.
 - **In this build**, step 1 loads every accessible mock case into memory. That is the mock database; the API server does all of it in one query.
 
+## Batch 613 (part A) — case search reporting
+
+- **`synopticValueCriteria.ts`** (+ test): search on synoptic answers. A criterion is `{ templateId, fieldId, operator, value }` with nine operators; a case matches when one of its reports from that protocol has a matching answer; all criteria must match; at most 10. The catalogue of questions is built from the protocol registry (grids and the Mohs map are not searchable). `isNot` needs an answer.
+- **`caseSearchReport.ts`** (+ test): the report engine, pure. Groups by pathologist (signer, else assigned), month (on the search's date basis), diagnosis (spacing and case ignored), facility, case type, status, priority or subspecialty; share; median days accession to sign-out; at most 500 groups (the rest folded into one); a group's cases; list rows with at most 24 columns, standard or `synoptic:<templateId>:<fieldId>`.
+- `ICaseSearchService` gains `report`, `exportReport` (needs `search:case-report:export`, audited as `case-search-report` with counts only) and `listSynopticProtocols`. `loadReferenceData(needs)` loads the protocols' questions only when a search or report uses them. Contract: `docs/architecture/CASE_SEARCH_API.md`.
+
 ## Batch 351: section 3 of the gap analysis
 
 Pete chose "all 15" of the new searchable case data.
@@ -100,3 +106,9 @@ Pete chose "all 15" of the new searchable case data.
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+The mock also exports `loadCasesForSessionUser` and `createMockCaseSearchServiceOver(load)` so scheduled reports can build a report as another recipient (Batch 613 follow-up).
+
+## Batch 617 (part A): server versions (PS-514)
+
+`caseSearchService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_SEARCH_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

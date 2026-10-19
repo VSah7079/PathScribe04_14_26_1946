@@ -18,7 +18,7 @@ import { TemplateInspector } from './TemplateInspector';
 import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
 import ConfigRefusalBanner from '../Config/ConfigRefusalBanner';
-import { reportPartService } from '@/services';
+import { reportPartService, reportTemplateService, finalTemplatesBrokenByPart } from '@/services';
 import { LoadingState } from '@/components/Common/LoadingState';
 
 const svc = reportPartService;
@@ -57,6 +57,8 @@ const PartBuilderPage: React.FC = () => {
   const [showGrid, setShowGrid] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
   const [labs, setLabs] = useState<Facility[]>([]);
+  // Batch 609 (#38): Final templates that would have more than one Final Diagnosis field because of this part.
+  const [brokenTemplates, setBrokenTemplates] = useState<{ id: string; name: string; count: number }[]>([]);
   useEffect(() => { getActivePerformingLabs().then(setLabs); }, []);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -95,6 +97,15 @@ const PartBuilderPage: React.FC = () => {
     }, 1000);
     return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
   }, [saveState, part, partId, navigate]);
+
+  // Checked once a change is saved: the Final templates using this part are looked at as stored.
+  useEffect(() => {
+    if (saveState !== 'saved' || !part?.id || partId === 'new') { return; }
+    let live = true;
+    void reportTemplateService.getAll().then(all => (all.ok ? finalTemplatesBrokenByPart(part.id, all.data) : []))
+      .then(list => { if (live) setBrokenTemplates(list); }).catch(() => { if (live) setBrokenTemplates([]); });
+    return () => { live = false; };
+  }, [saveState, part?.id, partId]);
 
   const markUnsaved = useCallback((updated: ReportPart) => {
     setPart(updated);
@@ -197,6 +208,14 @@ const PartBuilderPage: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {brokenTemplates.length > 0 && (
+        <div className="ps-partb-warn-banner" role="alert">
+          {brokenTemplates.map(b => (
+            <div key={b.id}>{t('partBuilderPage.finalDiagnosisTooMany', { template: b.name, fields: b.count })}</div>
+          ))}
+        </div>
+      )}
 
       {/* ── Settings panel ── */}
       {metaOpen && (

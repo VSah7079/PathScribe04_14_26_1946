@@ -12,7 +12,7 @@
 
 import type { Case } from '@/types/case/Case';
 import type { FlagInstance } from '@/types/flagsRuntime';
-import type { LisSyncPendingFlag } from '../lisSync/mockLisSyncService';
+import type { LisSyncPendingFlag } from '../lisSync/ILisSyncService';
 
 export interface ApplyLisSyncFlagsDeps {
   /** The catalog definition id for a reported flag (resolveLisFlagDefinitionId). */

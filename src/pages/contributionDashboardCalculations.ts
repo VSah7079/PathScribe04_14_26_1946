@@ -564,3 +564,24 @@ export function qualityFlagText(flag: Pick<QualityFlagCandidate, 'kind' | 'name'
     default: return t(flag.specimenLabel ? 'contributionDashboard.qualityFlags.deficiencySpecimen' : 'contributionDashboard.qualityFlags.deficiencyCase', params);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 610 (#87): the dated amounts a person's performance targets are
+// measured against. One entry per case this person signed out: 1 case, and
+// that case's work RVUs. services/performanceTargets/performanceTargetRules.ts
+// turns them into progress for the current and the previous period.
+// ─────────────────────────────────────────────────────────────────────────────
+import type { DatedAmount } from '../services/performanceTargets/performanceTargetRules';
+
+export function computeTargetAmounts(
+  cases: CaseForRvuCalc[],
+  userId: string,
+  versions: RvuTableVersion[] = [],
+  dictionaryEntries: SpecimenEntryForCptResolution[] = [],
+): { cases_monthly: DatedAmount[]; rvu_monthly: DatedAmount[] } {
+  const mine = cases.filter(c => c.order?.assignedTo === userId && c.diagnostic?.finalizedBy === userId && !!c.diagnostic?.issuedDate);
+  return {
+    cases_monthly: mine.map(c => ({ at: c.diagnostic?.issuedDate, amount: 1 })),
+    rvu_monthly: mine.map(c => ({ at: c.diagnostic?.issuedDate, amount: realWorkRvuForCase(c, versions, dictionaryEntries) })),
+  };
+}

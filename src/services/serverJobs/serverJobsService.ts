@@ -25,6 +25,8 @@ export interface IServerJobsApi {
 
 export interface IServerJobsService {
   readonly viaServer: boolean;
+  /** Batch 605: true when the answers come from the browser's sample data (no API server). */
+  readonly simulated?: boolean;
   health(): Promise<ServerJobsResult<ServerJobsHealth>>;
   /** Only the jobs whose facility and case this person may see (the server filters too). */
   deadLetters(kind?: ServerJobKind): Promise<ServerJobsResult<DeadLetteredJob[]>>;
@@ -33,6 +35,8 @@ export interface IServerJobsService {
 
 export interface ServerJobsDeps {
   api: IServerJobsApi | null;
+  /** Batch 605: sample data used only when `api` is null (the demo). */
+  simulatedApi?: IServerJobsApi;
   authorization: Pick<IAuthorizationService, 'enforce' | 'evaluate'>;
 }
 
@@ -40,11 +44,13 @@ export const SERVER_JOBS_VIEW = 'jobs:server-job:view';
 export const SERVER_JOBS_REQUEUE = 'jobs:server-job:requeue';
 
 export function createServerJobsService(deps: ServerJobsDeps): IServerJobsService {
-  const api = deps.api;
+  const api = deps.api ?? deps.simulatedApi ?? null;
+  const simulated = deps.api === null && !!deps.simulatedApi;
   const unavailable = { ok: false as const, error: 'UNAVAILABLE' as const };
   const mayView = async () => (await deps.authorization.enforce('jobs:server-job:view')).allowed;
   return {
     viaServer: api !== null,
+    simulated,
     async health() {
       if (!api) return unavailable;
       if (!(await mayView())) return { ok: false, error: 'NOT_PERMITTED' };

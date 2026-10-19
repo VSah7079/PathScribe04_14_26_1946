@@ -1084,3 +1084,9 @@ For cytology and FNA cases, the organisation's clinical-history requirements (Fi
 ## Batch 530 (Pete: no hard blocks at intake)
 
 Missing clinical history (cytology and FNA, Field Requirements page Clinical history) no longer disables Next: it shows as a note, and the case is accessioned. *(Corrects Batch 528.)*
+
+- Batch 608: the cytology section records a prior cervical procedure.
+
+## Batch 618 (PS-336)
+
+`AccessionTechnicalFacilityField.tsx` (+ test): the optional "Technical component performed by" list; renders nothing unless the intake is outside material or a consultation, so an ordinary accession has no extra click. `AccessionPage.tsx` only holds the choice and puts it on the order (net lines unchanged, per CLAUDE.md rule 10).

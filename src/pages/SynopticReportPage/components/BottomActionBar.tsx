@@ -56,6 +56,8 @@ interface BottomActionBarProps {
    *  only, inside MaterialTreePanel.tsx); now global and always
    *  available here, alongside Save Draft/Finalize. */
   onOpenReprints?: () => void;
+  /** Batch 609 (PS-44): opens the Attach images screen (images printed after the report's pages). */
+  onAttachImages?: () => void;
   
   onDelegate?: () => void;
   onHistory?: () => void;
@@ -141,6 +143,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onMarkFollowUp,
   onPrint,
   onOpenReprints,
+  onAttachImages,
   
   onDelegate,
   onHistory,
@@ -378,6 +381,18 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             </ActionButton>
             <Divider />
           </>
+        )}
+        {/* Batch 609 (PS-44): attach images to the report; greyed without report:case-images:attach. */}
+        {onAttachImages && !isPool && (
+          <CapabilityButton
+            capability="report:case-images:attach"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline"
+            title={t('bottomActionBar.attachImages.title')}
+            onClick={onAttachImages}
+          >
+            🖼️ {t('bottomActionBar.attachImages.label')}
+          </CapabilityButton>
         )}
         {/* Pool case — show Claim button only */}
         {isPool && (

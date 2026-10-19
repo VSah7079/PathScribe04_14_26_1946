@@ -112,8 +112,10 @@ const CriticalAlertAuditSection: React.FC = () => {
                       {r.channels.length === 0
                         ? <span className="ps-conf-hint">{t('criticalAlertsAudit.noChannelsResolved')}</span>
                         : r.channels.map(c => (
-                            <div key={c.channel} className="ps-critaudit-channel-row">
+                            <div key={c.channel} className="ps-critaudit-channel-row" data-testid={`critaudit-channel-${c.channel}`}>
                               {t(CHANNEL_LABEL_KEY[c.channel])}
+                              {c.method === 'stub' && <> <span className="ps-conf-badge" title={t('criticalAlertsAudit.simulatedHint')}>{t('criticalAlertsAudit.simulatedBadge')}</span></>}
+                              <div className="ps-specreq-meta">{c.detail}</div>
                             </div>
                           ))
                       }

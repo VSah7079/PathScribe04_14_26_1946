@@ -12,18 +12,18 @@
 import i18n from '@/i18n/config';
 import type { DeliveryRetryDeps } from './deliveryRetries';
 import { applyReportDeliveryStatus, deliveryExceptionRecipients, runDeliveryRetrySweep } from './deliveryRetries';
-import { mockDeliveryRetryService } from './mockDeliveryRetryService';
-import { mockDeliveryRetrySettingsService } from './mockDeliveryRetrySettingsService';
+import { deliveryRetryService } from './deliveryRetryServiceInstance';
+import { deliveryRetrySettingsService } from './deliveryRetrySettingsServiceInstance';
 import { mockReportDeliveryQueueService } from './mockReportDeliveryQueueService';
 import { DEFAULT_RETRY_DELAYS_MINUTES } from './deliveryRetryPolicy';
 import type { ReportDeliveryStatusEvent } from '../liveUpdates/liveUpdateContract';
 
-const printQueue = async () => (await import('../printing/mockPrintQueueService')).mockPrintQueueService;
+const printQueue = async () => (await import('../printing/printQueueServiceInstance')).printQueueService;
 
 export const deliveryRetryDeps: DeliveryRetryDeps = {
-  records: mockDeliveryRetryService,
+  records: deliveryRetryService,
   async retryDelays() {
-    const r = await mockDeliveryRetrySettingsService.get();
+    const r = await deliveryRetrySettingsService.get();
     return r.ok ? r.data.delaysMinutes : [...DEFAULT_RETRY_DELAYS_MINUTES];
   },
   now: () => new Date(),

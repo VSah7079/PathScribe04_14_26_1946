@@ -1031,12 +1031,12 @@ const AuditLogPage: React.FC = () => {
                 </CapabilityButton>
                 {/* Real feature, per direct confirmation, building
                     Phase B of the "Interface Exception & Case-Binding
-                    Module." Deliberately restricted (isAdmin only) —
+                    Module." Deliberately restricted (patient:break-glass:rebind) —
                     a rare, exceptional tool, not a general action. */}
-                {isAdmin && storedUser?.organisationId && (
-                  <button onClick={() => setBreakGlassOpen(true)} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
+                {storedUser?.organisationId && (
+                  <CapabilityButton capability="patient:break-glass:rebind" onClick={() => setBreakGlassOpen(true)} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
                     {t('auditLog.interfacesTab.mapPatient')}
-                  </button>
+                  </CapabilityButton>
                 )}
               </div>
 
@@ -1284,7 +1284,7 @@ const AuditLogPage: React.FC = () => {
           is a real, serious risk, not a cosmetic one, so an
           unresolvable session simply doesn't render the modal at all
           rather than defaulting to a specific organisation. */}
-      {breakGlassOpen && isAdmin && storedUser?.organisationId && (
+      {breakGlassOpen && storedUser?.organisationId && (
         <BreakGlassRebindModal
           organisationId={storedUser.organisationId}
           performedBy={storedUser.id}

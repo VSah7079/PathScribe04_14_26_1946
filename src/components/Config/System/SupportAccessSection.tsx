@@ -94,6 +94,19 @@ const SupportAccessSection: React.FC = () => {
     await done(r.ok === false ? `supportAccess.refusals.${r.reason}` : 'supportAccess.messages.requested');
   };
   const end = async (id: string) => { await supportAccessService.endAccess(id); await done('supportAccess.messages.ended'); };
+  const closeTicket = async (ticketId: string) => {
+    const r = await supportAccessService.closeTicket(ticketId);
+    await done(r.ok === false ? `supportAccess.refusals.${r.reason}` : 'supportAccess.messages.ticketClosed');
+  };
+  const exportAuditPdf = async () => {
+    if (!myTenant) return;
+    const r = await supportAccessService.exportAuditPdf(myTenant);
+    if (r.ok === false) { await done(`supportAccess.refusals.${r.reason}`); return; }
+    void recordExport('support-access-audit', { filename: r.filename, rowCount: 1, format: 'pdf' });
+    const url = URL.createObjectURL(new Blob([r.bytes as BlobPart], { type: 'application/pdf' }));
+    const a = document.createElement('a'); a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    await load();
+  };
   const exportAudit = async (format: 'csv' | 'json') => {
     if (!myTenant) return;
     const columns = Object.fromEntries(SUPPORT_AUDIT_COLUMNS.map(c => [c, t(`supportAccess.audit.columns.${c}`)])) as Record<(typeof SUPPORT_AUDIT_COLUMNS)[number], string>;
@@ -199,6 +212,7 @@ const SupportAccessSection: React.FC = () => {
             <span className="ps-supacc-audit-exports">
               <CapabilityButton capability="config:support-audit:view" className="ps-conf-btn-secondary" onClick={() => { void exportAudit('csv'); }}>{t('supportAccess.audit.exportCsv')}</CapabilityButton>
               <CapabilityButton capability="config:support-audit:view" className="ps-conf-btn-secondary" onClick={() => { void exportAudit('json'); }}>{t('supportAccess.audit.exportJson')}</CapabilityButton>
+              <CapabilityButton capability="config:support-audit:view" className="ps-conf-btn-secondary" onClick={() => { void exportAuditPdf(); }}>{t('supportAccess.audit.exportPdf')}</CapabilityButton>
             </span>
           </div>
           <p className="ps-supacc-hint">{t('supportAccess.audit.hint')}</p>
@@ -254,7 +268,8 @@ const SupportAccessSection: React.FC = () => {
                     <td className="ps-conf-td">{orgName(r.tenantId)}</td><td className="ps-conf-td">{r.ticketId}</td>
                     <td className="ps-conf-td"><span className={`ps-supacc-status ps-supacc-status--${effectiveSupportStatus(r, now)}`}>{t(`supportAccess.status.${effectiveSupportStatus(r, now)}`)}</span></td>
                     <td className="ps-conf-td">{live ? t('supportAccess.active.minutesLeft', { count: minutesLeft(r.expiresAt, now) }) : '—'}</td>
-                    <td className="ps-conf-td"><div className="ps-supacc-row-actions">{live && <button className="ps-conf-btn-secondary" onClick={() => { void end(r.id); }}>{t('supportAccess.support.end')}</button>}</div></td>
+                    <td className="ps-conf-td"><div className="ps-supacc-row-actions">{live && <button className="ps-conf-btn-secondary" onClick={() => { void end(r.id); }}>{t('supportAccess.support.end')}</button>}
+                      {live && <button className="ps-conf-btn-secondary" title={t('supportAccess.support.ticketClosedHint')} data-testid={`supacc-close-ticket-${r.id}`} onClick={() => { void closeTicket(r.ticketId); }}>{t('supportAccess.support.ticketClosed')}</button>}</div></td>
                   </tr>
                 );
               })}</tbody>

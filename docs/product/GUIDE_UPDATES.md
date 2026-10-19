@@ -1,19 +1,285 @@
-# Guide updates: what changed, for the guides, training, marketing and RFPs
+## Batch 617 (part R): one route style for every server version of a service (PS-488 dev notes)
 
-*Started Oct 11, 2026 (Pete: "make sure we are capturing all the capabilities so that the admin, user, guides, training, marketing teams will know how the system operates. That will simplify the RFP process.").*
+- **Guide row:** in "Server-backed services (HTTP)", add one sentence: every service calls the API server in the same way, so the server team builds and tests one pattern. No screen changes.
+- **Training:** nothing for users or admins. For the server team: `docs/architecture/HTTP_SERVICES_PATTERN.md` section 7 is the single rule; `HTTP_ROUTE_MAPPING.md` lists the earlier path and the current path of each converted call.
+- **Marketing / RFP line:** "A consistent, uniform API: one route and verb convention across all services, enforced by an automated test."
+- **Status:** Built (Demo); waiting on the server side (India team). Supports: ISO 15189 (controlled, documented interfaces), HIPAA (no patient text in URLs).
 
-One entry per batch that changes what someone sees or can do, newest first. The User Guide and Admin Guide are PDFs edited outside this repository (`public/help/`). This file tells their owners what to add. Each entry has:
+## Batch 617 (part C): server versions of 28 more services (PS-514, PS-501)
 
-- **What changed:** in plain words.
-- **Who:** the roles affected.
-- **User Guide / Admin Guide:** the section to add or change.
-- **Training:** what to show.
-- **Marketing / RFP:** one line, and the standards it supports.
-- **Status:** Live, Partial or Planned.
+- **Guide row:** extend "Server-backed services (HTTP)": peer review, CAPA recommendations, QA trend policy, saved searches, scheduled reports, signature records, smart capture, tumor board and its rules, specimen categories, spelling dictionaries, stain dictionaries, subspecialties, system configuration, TAT targets and the workstation registry now have a server version. The row stays Partial: the API server's endpoints are not built.
+- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+- **Status:** Built (Demo); waiting on the server side (India team).
 
-The full capability list by area is [`FEATURE_OVERVIEW.md`](FEATURE_OVERVIEW.md); permissions are in [`../architecture/AUTHORIZATION_API.md`](../architecture/AUTHORIZATION_API.md). Entries before Batch 521 are being backfilled (see the end of this file).
+## Batch 617 (part A): server versions of 29 more services (PS-514)
 
----
+- **Guide row:** extend the "Server-backed services (HTTP)" row: settings and dictionaries (abnormal-finding rules, action groups, AI behaviour, asset locations, assist polling, client SLAs, clinical history terms, delegation types, mismatch rules, code system policy, cytology compliance and lexicon), case workflows (batches, case masks, case search, countersign, on-demand case fetch, consult tokens, codes), critical result notification and alerts, bulk code import and NCCI edits, and the BI feed admin calls now have a server version. The row stays Partial: the API server's endpoints are not built, and more services still have none (see `HTTP_SERVICES_REMAINING.md`).
+- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+- **Training / support:** nothing changes on screen. Nothing that names a patient, and no token, goes in a web address: those calls are sent in the body.
+- **Status:** Built (Demo); waiting on the server side (India team).
+
+## Batch 617 (part B): server versions of 26 more services (PS-514)
+
+- **Guide row:** extend "Server-backed services (HTTP)": delivery rules and retries, print settings and the print queue, label reprint runs, delegations, participation types, internal notes, display access, diagnosis codes, external resources, feedback settings, fonts, governing bodies, performance targets, priorities, equipment, data migration, LIS sync, margin extraction and intraoperative critical results now have a server version. The row stays Partial: the API server's endpoints are not built and the remaining services are listed in `docs/architecture/HTTP_SERVICES_REMAINING.md`.
+- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+- **Training / User Guide / Admin Guide:** no change; screens are unchanged.
+- **Marketing / RFP line:** every configuration and workflow service has a documented server contract (one route per operation) so a hospital's IT team can see exactly what the server must provide.
+- **Standards:** supports the deployment-neutral requirement (public or private cloud); no patient identifiers or display tokens in URLs.
+
+## Batch 617 (part N): terminology look-ups through the server, and a deployment switch for biometric sign-in (PS-488, PS-512)
+
+- **What changed:** with the PathScribe API server configured, ICD-10-CM, ICD-11 and LOINC code searches go to the server (`/api/terminology/nlm/…`), which holds any credentials and caches repeated searches. The browser calls NLM itself only in the demonstration. A server deployment's security policy no longer lists the NLM host (`"terminologyViaServer": true`). Separately, a deployment can set `VITE_BIOMETRIC_SIGN_IN` to `false` to turn biometric sign-in off for everyone while the device checks are being tested; the lab's own policy (Session Security) cannot turn it on then, and says so.
+- **User Guide:** no change to what a pathologist does; a failed search still says the search is unavailable. **Admin Guide:** Session Security shows a note and a disabled switch when the deployment has biometric sign-in off; the deployment sheet gains `terminologyViaServer` and `VITE_BIOMETRIC_SIGN_IN`.
+- **Training:** none for users. IT: set the origins file and the config key as above.
+- **Marketing / RFP:** code lookups for ICD-10-CM, ICD-11 and LOINC run through the customer's own server, so the browser contacts no outside terminology host. Status: built for the browser side (Built (Demo)); the server routes are for the server team and have not been run.
+- **Standards:** supports a strict content security policy (HIPAA technical safeguards, ISO 15189 data control).
+
+## Batch 616 (part F): follow-up tracking by commands, and biometric signing through one flow (PS-483, PS-512)
+
+- Follow-up tracking has a server version that works by commands (Pete's decision, Oct 18). The browser sends "mark this case", "record this outcome", "reopen" or "send this email"; the server works out the window, the status and who did it. Nothing in a request names the person acting.
+- The demonstration works exactly as before: it works the status out from the browser store.
+- Biometric signing (the policy card in Session security, the profile menu's Biometric signing, the invitation after sign-in, and the check at sign-out) now goes through one flow. In the demo it is the labelled Simulated check. With a server address it is the server's challenge and verification, and a browser without WebAuthn cannot use it; the person signs with their password instead.
+- Admin Guide: nothing to configure; the server address decides which is used.
+
+## Batch 616 (part D): server versions of the quality, digital pathology, image, grossing, dictionary, reagent, cold-chain, label and intraoperative services (PS-501, PS-502, PS-506, PS-508, PS-510)
+
+- **Guide row:** extend the "Server-backed services (HTTP)" row: 35 more services have a server version (QA activity records and types, supervision assignments, reconciliations, risk weights, validation studies, deficiencies and management reviews; digital pathology results, vendors and scan batches; image vendors and upload; grossing hardware, routing overrides, cassette routing, specimen dictionary, hardware containers and scan stations; reagent lots, cold-chain storage and readings, label layouts, printer profiles; intraoperative entries, the OR event log, OR terminals and display profiles).
+- **Wording:** same as part A: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+- **Privacy line for RFPs:** no patient text (names, MRNs) is ever in a web address; the intraoperative ADT lookup sends the MRN in the request body.
+- **Not built, say so:** peer review, CAPA recommendations, label reprint runs, equipment and intraoperative critical-result rules still use the browser-side services.
+- **Status:** Built (Demo); waiting on the server side (India team).
+
+## Batch 616 (part E): server versions of the interface, model, protocol, template, routing, macro, flag, message and AI-policy services (PS-509, PS-511, PS-513, PS-515)
+
+- **Guide row:** extend the "Server-backed services (HTTP)" row: 20 more services have a server version (interface exceptions, order-created events, LIS staging queue, AI models and the model store, protocols and the fixative and processing-format dictionaries, template and narrative signals, report templates, routing and print-routing rules, text, voice and stain-order macros, case flags, secure messaging settings, internal messages, AI vendor policy). Still partial: the endpoints are the India team's.
+- **Guide row (new, small):** a server build keeps demonstration screens, demo accounts and the Simulated authenticator out; AI and licensed terminology calls go through the product's own server routes. The public NLM look-up is the one outside host the browser calls itself.
+
+## Batch 616 (part A): server versions of the report, accessioning, patient and encounter services (PS-483, PS-503, PS-505)
+
+- **Guide row:** extend the "Server-backed services (HTTP)" row: amendments, informal reviews, LIS amendment notices, the report release buffer, the report change log, report parts, incoming-order intake, drafts, the patient index, encounters, patient history and the outbound queues now have a server version (14 services). The row stays Partial: the API server's endpoints are not built, and follow-up tracking has no server version yet.
+- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+- **Privacy line for RFPs:** on a server deployment, drafts, patient history and report change history are stored on the server, not in the browser; search terms, identifiers and MRNs never appear in a web address.
+- **Status:** Built (Demo); waiting on the server side (India team).
+
+## Batch 616 (part C): server versions of billing, cytology, molecular and registry services (PS-498, PS-499, PS-500, PS-504)
+
+- **Guide row:** extend the "Server-backed services (HTTP)" row: billing and charge capture, cytology and cytology QC, molecular batches, racks, control rules and the order queue, and registry reporting now have a server version (52 services). The row stays Partial: the API server's endpoints are not built.
+- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+- **Status:** Built (Demo); waiting on the server side (India team).
+
+## Batch 615 (part D): vial and rack labels through the interface engine, right-to-left groundwork (PS-360, PS-293)
+
+- **What users see:** vial and tube labels (aliquots, molecular extracts) and rack, plate and scan-batch labels can now print through a "Direct via Interface Engine" printer, with a Code 128 barcode of the id and a few lines of text. They show up in the same print-job messages as slide and cassette labels, with Retry. Nothing changes on screen for anyone using a QZ Tray or PathScribe Agent printer; those already printed these labels.
+- **Admin Guide:** Printers (label stock sizes come from the Label Designer; a layout saved there for molecular specimen, plate or rack is used). **Needs from each site:** the label stock size and printer resolution, so the layouts fit. An id too long for the label is refused with a message, not printed unreadable.
+- **Right to left (groundwork, not a new language):** the page direction now follows the language, and the layout is built to mirror. No right-to-left language is offered yet; Arabic or Hebrew needs its translations and a native-speaker review first. Identifiers (case, accession, patient numbers) and physical layouts (organ map, plates, label canvas) never mirror.
+- **Training:** none for users. Admins: print a test vial label to the engine printer and check it fits the stock.
+- **Marketing / RFP:** "Every label family (cassette, slide, vial, rack, batch) prints through the lab's interface engine"; "The interface is built for right-to-left languages."
+- **Standards:** CAP and ISO 15189 (specimen and container traceability); WCAG 3.1.2 and 1.3.2 (language and reading order) for the direction work.
+- **Status:** vial and rack labels Built (Demo); right-to-left Partial until a right-to-left language is enabled and reviewed (see the Batch 615 notes in `FRONTEND_COMPLETION_QUEUE.md`).
+
+## Batch 615 (part C): the Code Manager offers a search for each flagged finding (PS-138)
+
+- **What users see:** when a synoptic answer matches an abnormal-detection trigger (for example Margin Status: Positive), the Code Manager shows that finding as a button above the code-system tabs. Pressing it switches to SNOMED, selects the specimen the finding belongs to and fills the search box with the field and value. The search then runs as usual; you can edit the words first.
+- **Nothing is chosen for you:** no search runs until you press the button, and no code is applied until you pick a result.
+- **When it shows:** only while abnormal detection is on for the facility and SNOMED is allowed by the code-system policy. If nothing matched, nothing is shown.
+- **Admin Guide:** Abnormal trigger rules (the rule that matched is the one shown). **User Guide:** Codes.
+- **Training:** answer a protocol question that has a trigger rule, open Codes, press the finding, pick a result.
+- **Marketing / RFP:** "Flagged findings lead straight to a live terminology search; the pathologist picks the code, the system never does."
+- **Standards:** SNOMED CT via UMLS (live search results only); CAP (coding stays a pathologist decision).
+- **Status:** Built (Demo). The search is the existing live terminology search (needs the UMLS key to return results).
+
+## Batch 614 (part A): editor by voice or key, Go to routes, Mac and AltGr
+
+- **Text editor by voice or key:** in a report text box say "make bold", "bullet list", "indent more", "find in text", "replace in text", "insert table", "insert signature line", "next heading", "show ruler" and so on (full list in Configuration → Actions, category Synoptic). Keys are Ctrl+Alt+1 Bold, 2 Italic, 3 Underline, 4 Bullets, 5 Numbered list, 6 Indent more, 7 Indent less, 8 Find, 9 Replace, 0 Select all, Ctrl+Alt+. next heading, Ctrl+Alt+, previous heading, Ctrl+Alt+/ table, Ctrl+Alt+[ signature line, Ctrl+Alt+] ruler, Ctrl+Alt+; formatting marks. They act on the text box that last had the cursor.
+- **Ruler:** Show / Hide Ruler now shows a ruler above the text (centimetre ticks).
+- **Go to routes in the lists:** the Role Dictionary action reference and Configuration → Actions show, for each always-on command, "Alt+J, then X".
+- **Mac and European keyboards:** Option (Mac) and AltGr no longer stop hotkeys working. While you are typing a character in a text box (Option+E for an accent) it is never treated as a hotkey. Not yet tried on a Mac or an AltGr keyboard.
+- **Admin Guide:** Roles (the editor commands), Configuration → Actions. **User Guide:** Report editor, Keyboard and voice.
+
+## Batch 613 (part A): Case search reporting
+
+- **Search on synoptic answers:** Search has a new **Synoptic answers** section. Pick a protocol, one of its questions, a condition and a value (for example Breast, Tumor size, is more than, 2). Choices are the protocol's own. Every filter must match. They appear in the search summary and are kept in saved searches.
+- **Report view:** after a search, press **Report** beside the results. **Group by** pathologist, month, diagnosis, facility, case type, status, priority or subspecialty to see counts, each group's share and the median days to sign-out, with a total. Click a heading to sort; click a group to see its cases. Choose **No grouping** to list the cases with the **Columns** you pick, including answers from synoptic reports, and put them in order.
+- **Save and export:** **Save report** keeps the search, grouping and columns under your name; choose it from Saved reports to run it again. **Export report CSV** downloads the report (the counts per group, or the chosen columns for each case) and is recorded in the audit log.
+- **Schedules:** under **Schedules**, pick a saved report, how often, the time, who receives it, and optionally the last number of days to cover each run. You can run now, pause, resume or delete, and see the last run. **Runs are Simulated in this version: the report is built and its counts kept, but nothing is sent** until the API server runs schedules.
+- **Who:** anyone who opens Search can view reports; exporting needs `search:case-report:export`; schedules need `search:report-schedule:manage`.
+- **Admin Guide:** Roles (the two permissions). **User Guide:** Search.
+- **Training:** search signed-out cases for last month, press Report, group by pathologist, open a group; choose No grouping, add Breast: Grade, export; save the report and schedule it weekly for a colleague, then Run now and read the last run.
+- **Marketing / RFP:** "Ask the system a question across cases, not just one case at a time: how many Grade 3 breast cancers did each pathologist sign out last quarter, and how long did they take?"
+- **Standards:** CAP and ISO 15189 (workload and turnaround monitoring), HIPAA minimum necessary (only cases the user may open are counted; exports are audited and grouped reports hold no patient names).
+- **Status:** Built (Demo). Reports are built in the browser; the server groups in SQL and sends scheduled files (`docs/architecture/CASE_SEARCH_API.md`, `docs/architecture/SCHEDULED_REPORTS_API.md`).
+
+## Batch 613 (part B): Patient summary print and related cases at sign-out
+
+- **Sign-out:** when the patient has other released cases you may open, a notice appears inside the sign-out view. Each case shows its accession, release date, diagnosis, the **ordering physician** and who gets a **copy**. **Nothing is ticked.** Tick the ones that belong in this report; each chosen report is shown in full below the list, exactly as it will print and be sent. If there is nothing to attach, the notice says so and you sign out as before.
+- **Fixed at sign-out:** the chosen reports are part of what you sign. After sign-out they cannot be changed. The printed report, the PDF and the result sent to the LIS carry exactly the section you saw. If a related case is amended later, the report shows a flag naming it; the section on the signed report does not change.
+- **Intraoperative diagnosis:** it is now part of the case report. It prints after the case header on the PDF, the text copy and the result sent out (before, it showed on screen only), and appears in any related case that had one.
+- **Patient summary:** from **Patient History**, tick released cases (or Select all) and press **Print summary**. The sheet is headed as a summary, not a signed report, lists the accession of every case it was compiled from, and is in date order. Only cases you can already open are offered.
+- **Who:** pathologists and fellows attach related cases (`report:related-cases:attach`); every case-access role may print a summary (`patient:summary:print`).
+- **Admin Guide:** Roles (the two permissions). **User Guide:** Sign-out; Patient History.
+- **Training:** open a patient with two released cases, start sign-out on a third, tick one, read the preview, sign out, print the PDF and find the section; open Patient History and print a summary of both; amend the older case and reopen the signed report to see the flag.
+- **Marketing / RFP:** "A pathologist decides which of a patient's earlier reports travel with a new one. What was seen at sign-out is what is printed and sent, and it cannot change afterwards."
+- **Standards:** CAP and ISO 15189 (report content and traceability), HIPAA minimum necessary (only cases the user may open; audit without patient data).
+- **Status:** Built (Demo). The choice is kept in the browser; the server stores it with the signed report version (`docs/architecture/RELATED_CASES_API.md`). The PDF function must be redeployed (`functions/`). Wording in French, German, Dutch and Korean needs native-speaker review.
+
+## Batch 613 (part C): Access to a patient's other cases
+
+- **Patient History and the case workup:** when the patient has other cases you cannot open, a notice says how many (never which). Press **Ask for access**, pick a reason (the last one you used is preselected; "Other" needs a note) and send. No dialog: the request opens inline.
+- **Who decides:** the assigned pathologist of any of those cases, or an administrator. They are told and see **Approve** / **Decline** (a decline needs a reason, which you see) in the same notice. Nobody decides their own request. PathScribe support never does.
+- **Open until revoked:** an approval covers that patient, linked identities included, and stays until a pathologist who may decide, or an administrator, revokes it with a reason (Quality Assurance, Access requests, Patient's other cases in force, or the notice). You are told when it ends.
+- **Ask early:** do it during workup so sign-out is not held up; you do not need to cancel sign-out to ask.
+- **Audit:** request, approve, decline, revoke and each history opened through a grant are logged (counts and accession numbers only, no patient name, no note).
+- **Who:** every case-access role may ask (`patient:other-cases:request-access`); pathologists and administrators decide (`patient:other-cases:decide-access`).
+- **Admin Guide:** Roles, Quality Assurance access requests. **User Guide:** Patient History.
+- **Training:** as one pathologist, open a patient with a case in another pool, ask with "Tumor board preparation"; as the assigned pathologist, approve; as the first, reopen the history; then revoke.
+
+## Batch 613 (part D): Reporting feed for Power BI
+
+- **Configuration → System → Reporting feed (Power BI):** choose which datasets (cases, specimens, billing, quality, workload, audit summaries) and which performing-lab facilities the feed offers; issue a token for each tool (for example "Quality dashboard"); the token is shown once and only a fingerprint is kept. Replace a token (the old one works 24 more hours) or revoke it with a reason. A field catalogue lists every column.
+- **Privacy:** every token is de-identified by default: names, record numbers, birth dates and free text are removed and dates are reduced to the month. An identified token needs a named approver and a reason on record; withdrawing the approval stops identified tokens at once.
+- **Test a pull:** paste a token and choose a dataset to see how the server would answer (accepted, revoked, expired, wrong dataset, not approved, too many requests). It is labelled Simulated and returns no rows.
+- **Who:** Administrators and Lab Directors, with three separate permissions (settings; tokens; identified approval).
+- **Admin Guide:** Configuration, System, Reporting feed. **User Guide:** none.
+- **Training:** switch the feed on for one dataset and one facility, create a token, copy it, paste it into the test, then revoke it and test again.
+- **Marketing / RFP:** "Power BI and other reporting tools read PathScribe through a token-secured reporting API; patient-identifying fields are removed unless a named approver has signed off."
+- **Standards:** none directly; supports quality reporting and data-governance expectations. Every change and pull is audited without row content.
+- **Status:** Built (Demo). The reporting API itself is server work (PS-787, `docs/architecture/BI_FEED_API.md`).
+
+## Batch 611 (part F) — legacy file import (simulated) and biometric prompt (#132, #166, #158)
+
+- **What changed:** *Migration Jobs* has **Import legacy file**: choose the source system (one with saved field mappings), pick a CSV or JSON file, check the preview, and run. Records that map and validate become draft cases marked *Simulated bulk import*; records that need review or fail create nothing; a legacy accession already imported is refused. The job lists every record with its outcome. Separately, the biometric enrolment window and the sign-out panel are labelled *Simulated*, and use the device's own fingerprint or face prompt where the browser offers one.
+- **Admin Guide:** Configuration, Migration, Field mappings (the import needs the mappings' manage permission); Migration Jobs. **User Guide:** Profile menu, Biometric signing; Finalising a report.
+- **Training:** save a field mapping for a source system, import a small CSV, open the job, find a draft case; enrol biometric signing, cancel the device prompt (nothing enrolled), enrol again, sign out with the device prompt, then with the password.
+- **Marketing / RFP:** "Bring a legacy export in as reviewable draft cases, with every record's outcome traced. Biometric sign-out uses the device's own sensor, with the password always available."
+- **Standards:** HIPAA (audit without patient data or file names), 21 CFR Part 11 and EU Annex 11 (the e-signature design, once a server verifies the device signature).
+- **Status:** Built (Demo). Bulk import jobs and OCR in the interface engine, and a server-issued and verified WebAuthn challenge, remain server-side work.
+
+## Batch 611 (part H) — multi-factor sign-in (#157)
+
+- **Second factor, per organisation:** Configuration → System → Session Security has a new *Second factor* card. Choose who is asked (no one, the roles that sign reports, or everyone), how often a signature asks for a fresh code (default 30 minutes) and how long a sign-in's second factor lasts before the session ends (default 12 hours). Saving needs the existing Session Security permission and is audited.
+- **Hospital single sign-on:** your identity provider asks for the second factor. PathScribe checks that its sign-in response says it was used; if the organisation requires it and the provider did not report one, the sign-in is refused with a plain message. At a signature the provider is asked for a fresh sign-in and must report it again.
+- **Demo accounts (Simulated):** after the password, a Simulated authenticator: first time, a secret to add to any authenticator app, the first code, then eight recovery codes shown once; afterwards a code (or a recovery code). A "Show demo code (Simulated)" button shows the code so no phone is needed. Five wrong codes lock codes for 15 minutes; a code works once.
+- **At a signature:** when the last second factor is older than the step-up time, the signature asks for a code (password sessions) or sends the person to the provider again (single sign-on). A wrong password never spends a code.
+- **Lost device:** an administrator with the new permission *Reset a second-factor enrolment* (Admin by default) resets a colleague's enrolment in their own organisation from the same card.
+- **Who:** every user the policy covers; administrators set the policy.
+- **Admin Guide:** Session Security → Second factor; configuring the identity provider to report MFA (`docs/architecture/MFA.md`). **User Guide:** Signing in with a second factor; Signing a report (the code field).
+- **Training:** turn the policy on for Pathologists, sign in as a demo pathologist, enrol, use "Show demo code", then sign a case after 30 minutes and see the fresh-code prompt; reset the enrolment as an administrator.
+- **Marketing / RFP:** "Multi-factor sign-in: we enforce the hospital identity provider's second factor and prove it at every signature; per-organisation policy, step-up before signing, recovery codes, lockout, full audit trail." Supports HIPAA technical safeguards (person or entity authentication), ISO 15189 (access control), WCAG 3.3.
+- **Status:** Built (Demo). The second factor for real staff is the identity provider's; the Simulated authenticator is for demonstration only. The API server must repeat the checks (`docs/architecture/MFA.md`).
+
+## Batch 611 (part E) — simulated export server, matrix block comments, organ retention custody chain (#194, #10, #59)
+
+- **Exports without a server (demo):** with no PathScribe server connected, **My exports** and the export notices now behave like the real thing: a small export is ready at once, a larger one (over 500 rows) shows Preparing for a while, up to 30 seconds, then offers Download. Three open exports per user, Cancel, and the 7-day expiry all work. Everything is marked **Simulated**, and exports disappear at sign-out. A checkbox on My exports makes every export take about 8 seconds so training can show the waiting experience.
+- **Matrix block comments:** the matrix block editor (Details tab) has a Comments list with a one-line box, the same as blocks and stains. Comments are plain text, added with the Add button or Enter, and each one writes a "Matrix Block Comment Added" audit entry (no comment text in the audit).
+- **Organ retention custody chain (UK HTA / NZ cases):** each time the holder or location of retained organs changes, the earlier record is kept. The autopsy retention panel lists "Earlier custody records" under the current one, and the case timeline shows every move. Records are added to, never edited.
+- **Who:** all export users (exports); technologists and pathologists (matrix comments); autopsy staff (custody chain, existing permission `autopsy:retention-detail:record`).
+- **Admin Guide:** none. **User Guide:** My exports (the Simulated label); Matrix block editor (Comments); Autopsy, organ retention (earlier custody records).
+- **Training:** run a large export and watch Preparing turn into Download; add a matrix block comment; record two different holders and see both on the timeline.
+- **Marketing / RFP:** "Exports of any size run in the background with a notification and a download; every move of retained organs is kept in a custody chain."
+- **Status:** exports Built (Demo) (the server itself is a separate team's work); matrix comments Built; custody chain Built.
+
+## Batch 609 (part A): Report PDF layout and images in reports
+
+- **Printed reports follow the lab's settings:** page size and orientation, margins (never below 12.7 mm / 0.5 in, so a printer does not clip text), font family, size, weight, underline and case for the header, body and footer, and the header and footer parts from Configuration, Report Appearance. Before this, the screen preview showed these settings but the printed PDF always used A4 portrait with fixed fonts.
+- **Font sizes are in pixels** on the Document Style screen and print at 0.75 pt per pixel, with a 7 pt floor. A lab that never set a size now prints the 10 px default at 7.5 pt; raise the size if the printed text is smaller than before.
+- **Fonts:** Arial, Helvetica, Calibri and Verdana print in Helvetica; Times New Roman and Georgia in Times; Courier New in Courier. Korean reports keep Pretendard. The cytology report keeps its embedded font and does not use header or footer parts (it has no template).
+- **Header and footer parts** replace the standard institution block (first page) and the confidentiality line (every page, above the barcode band) when they have content. Footer parts carry no page numbers.
+- **Attach images (surgical report page and Cytology Workspace):** a new Attach images button opens a window where you paste an https link to the image in your hospital's own system, pick the type (Gross specimen, Microphotograph, Block face, Other; remembered) and an optional caption, and press Enter. Up to 12 images per report. Images print after the report's own pages, one per page with its caption; an image under 300 DPI at its printed size is flagged but still prints. If a link cannot be reached when the report is made, that page reads "Image Unavailable" instead of the image being left out silently. A corrupt or non-image link stops the release until it is removed.
+- **PathScribe stores no images:** only the link is kept; the image is fetched when the report is made and becomes part of the stored PDF, so a change at the source later does not alter a released report.
+- **Permission:** `report:case-images:attach`, held by every role with case access by default.
+- **Who:** Pathologists, residents, PAs and technologists (images); administrators (report appearance).
+- **Admin Guide:** Configuration, Report Appearance (page setup, Document Style: the px-to-pt rule, font mapping, margin minimum); Roles (the new permission).
+- **User Guide:** Report page and Cytology Workspace: Attach images.
+- **Training:** link an image, add a caption, make a preview PDF, find the image page after the report; remove a link; see "Image Unavailable" when a link is dead.
+- **Standards:** supports PS-276 section 1.1.3 (300 DPI flag for embedded raster images); links-only storage follows the Oct 13 images rule.
+- **Marketing / RFP:** "Printed reports match the lab's layout settings, and gross and microscopic photos from your imaging system print with the report, with a captioned page for each."
+- **Status:** Built (Demo). The browser fetches each link itself, so it works for a host that allows it (CORS) and otherwise prints the Image Unavailable page; with the API server the server fetches the link (private-address blocking and the hospital system's sign-in are server work). The renderer in `functions/` must be redeployed for the layout settings to print.
+
+## Batch 603 — Wall displays need a token; break-glass is a permission; QA export has no MRN
+
+- **Wall displays:** Configuration → Display Profiles, and → OR Suite Terminals, each row has a **Display token** button. Issue a token (choose how long it lasts), copy it (shown once) and enter it on the display when you bind it. Revoke it to blank the display within a minute. Issuing a new token stops the old one at once.
+- **What the displays show:** the OR board shows the surgical case ID and room instead of the patient's name and MRN, including on the dismissal confirmation. The Facility Ops display shows no patient identifiers.
+- **Break-glass rebind:** rebinding a downtime patient identity from the Audit Log needs the new permission **Rebind downtime patient identity** (Admin has it by default). A reason and written justification are still required and audited.
+- **Cytology-histology correlation export:** the MRN column is gone; use the accession numbers. (The printed view still shows MRN.)
+- **Not yet:** the server-side check that refuses a revoked token is Planned; MFA is Planned with the OIDC/Entra work.
+
+## Batch 602 — Hotkeys and voice know the screen you are on
+
+- On a screen, a hotkey or phrase runs that screen's command, even if an always-on command (Configuration, Resources, ...) uses the same key.
+- To reach the always-on command from such a screen, press Alt+J, then its key. A "Go to" panel shows the keys; Esc or 3 seconds of waiting closes it without doing anything.
+- Six default hotkeys changed (Enhancement Request Alt+Y, Testing Feedback Alt+X, Resources Alt+Q, Focus Case Search Alt+Shift+B, Participation Types Alt+Shift+W, Touch Prep Performed Alt+Shift+Y). Keys you customised are kept.
+
+## Batch 601 — Every command can be assigned to a role
+
+- **What changed:** Staff → Roles → Role Dictionary now lists every voice and shortcut command, including the ones that only open a screen, filter or sort a list, move between rows or cancel a window. Six new groups: Go To & Help, Worklist Views & Filters, Search & Messages Views, My Contribution Views, Report Screen Dialogs & Views, Cytology Screen Views.
+- **Starting points:** roles with case screens have all of them on; Admin, Lab Director and QA Reviewer have the going-to and searching ones. Duplicate the nearest role and change what differs. Existing sites receive these once; anything you switch off stays off.
+- **Known:** some hotkeys are shared by two commands that can be active on the same screen; a fix is planned (`ACTIONS_COVERAGE.md`).
+
+## Batch 600 — More commands in the Role Dictionary, with defaults
+
+- **What changed:** Staff → Roles → Role Dictionary lists 60 more commands, in seven new groups: Report Workflow, Case Handling, Orders & Printing, Intraoperative, Cytology Screening, Workstations and Result Dispatch. These are the voice and shortcut commands that save, submit, log, order, print or create something.
+- **Starting points:** every built-in role already has the commands its job uses switched on (for example the Histotechnologist has the microtomy, embedding and slide distribution commands; the Cytotechnologist has the cytology screening commands). Start from the role closest to yours, duplicate it and change what differs.
+- **Existing sites:** built-in roles receive the new commands the next time roles load. A command you switch off stays off. Your own roles are not changed.
+- **Not changed:** what a person may do is still decided by their permissions; these switches control which voice and shortcut commands a role can use.
+
+## Batch 595 — Code Systems setting
+
+- **What changed:** Configuration → System → Code Systems. For each jurisdiction, an administrator sets which code systems (ICD-10, ICD-11, ICD-O, SNOMED CT and others) are off, optional or required, and from what date. The settings are saved and audited. **The Add Code window, sign-out and outbound messages do not use them yet** (Planned), and the screen says so.
+- **User Guide:** none yet. **Admin Guide:** new section "Code Systems" in the jurisdiction chapter (`ADMIN_GUIDE_JURISDICTIONS.md`, section 3.0); Role Dictionary, the new permission "Manage the code systems" (Admin and Lab Director).
+- **Training:** to prepare a region for ICD-11, add an ICD-11 row with a start date; change nothing else.
+- **Marketing / RFP:** "Moving a region from ICD-10 to ICD-11 is a dated setting, not a software upgrade." Say "configurable ahead of the transition"; do not say the coding screens already follow it.
+- **Standards:** ISO 15189 and CAP (controlled, audited configuration); HIPAA (no patient data in the setting).
+
+## Batch 593 — Jurisdiction setup chapter and known-gaps tracker
+
+- **What changed:** documentation only. New Admin Guide source `ADMIN_GUIDE_JURISDICTIONS.md` (give a facility its jurisdiction, then review Country Signing Rules, Jurisdiction Payment Mapping, Governing Bodies and the per-jurisdiction rule screens). New `KNOWN_GAPS.md`, the running release-scope list.
+- **User Guide:** none. **Admin Guide:** new chapter "Setting up and maintaining jurisdictions" (paste from the source file).
+- **Training:** a new region goes live in two steps: set the facility's Jurisdiction on the General tab, then review the four System screens.
+- **Marketing / RFP:** "Thirteen jurisdictions are supported, each with its own signing rules, payment schemes, retention figures, AI-vendor policy and report language." (Adding a country needs a software change.)
+- **Standards:** ISO 15189 and CAP (retention and signing authority by jurisdiction); GDPR and HIPAA (AI hosting-region policy per jurisdiction).
+
+## Batch 589 — Nine app bugs fixed
+
+- **What changed:** a label with no patient prints a blank name; the Confirm Field shortcut confirms the field you are in; Report Draft text and typed Microscopic Descriptions are checked for critical findings, and the highlight is kept when the case is reopened; the Label Designer canvas and width box are exact; the error screen on a case report keeps the navigation bar; an OR PIN set on the Staff screen works; labels sent to a QZ Tray printer connect first and say so when the printer is not connected; the demo has five peer review discordances.
+- **User Guide:** Label printing (printer not connected message); Report Draft and critical findings; Label Designer; keyboard shortcuts (Confirm Field). **Admin Guide:** Staff (OR Staff role and PIN); QZ Tray setup, see `QZ_TRAY_CERTIFICATE_GUIDE.md`.
+- **Training:** if a label opens in the browser print window and a message says the label printer is not connected, check that QZ Tray is running. A flagged finding stays highlighted until the flagged words are removed.
+- **Marketing / RFP:** "Critical findings in the narrative are flagged before sign-out, including text typed by the pathologist, and stay marked when the case is reopened."
+- **Standards:** ISO 15189 and CAP (peer review and CAPA demonstration data); HIPAA (no patient identifiers in the new demo data or the new messages).
+
+## Batch 588 — Deleting a block in process
+
+- **What changed:** the block and stain editor has a **Delete this block** button. Pick a reason (a note is required for Other) and confirm. The block stays on the case, marked Deleted, with who, when and why; its unfinished stains are cancelled and its billing codes released. Billing staff see a "Block deleted" finding under Quality Assurance → Financials → Billing deficiencies and decide whether a credit is due. No message is sent. A new permission, "Delete a block in process", appears in the Role Dictionary.
+- **User Guide:** the block and stain editor (Delete this block); Quality Assurance → Financials (the "Block deleted" finding). **Admin Guide:** Role Dictionary, the new permission. Technician roles hold it by default; each facility can change which roles hold it.
+- **Training:** delete only a block that should not exist (entered in error, duplicate, not needed, processing failure). A wrong piece in a block is still Cancel this block. Once a case is signed out the button is not offered.
+- **Marketing / RFP:** "Blocks are never erased: a deleted block stays on the case, marked Deleted, with who, when and why, and billing is asked to review any credit."
+- **Standards:** ISO 15189 (traceability of records), CAP ANP.11600 (specimen handling documentation), HIPAA audit controls.
+
+## Batches 583 and 584: template e-mails move to the server; dialogs, breadcrumb and billing reasons; more review tests
+- **What changed:**
+  - **Template e-mails (Partial: needs the server, phase 2e).** Submitting, requesting changes, approving and publishing a protocol, and the nightly protocol sync, are designed to e-mail the right people: submitted goes to Template Approvers and Lab Directors; changes requested, approved and published go to everyone who saved the template; sync events go to Admins. Each e-mail is in the recipient's language, sent from a PathScribe address, immediately, with no opt-out in the first release. Nothing is sent in the demo.
+  - **Configuration dialogs:** after a click outside (or Escape) with unsaved edits, "Discard changes" now closes the dialog; before, it forgot the edits but left the dialog open.
+  - **Case breadcrumb:** a case opened from Search shows Home › Search › Case Report and returns to Search.
+  - **Billing after sign-out:** adding, removing or applying a block's code at specimen level on a signed-out case asks for a reason (a picklist plus a required comment), exactly as at case level, and the reason is in the audit entry. Cases billed by the lab's own system (Assist) are not asked.
+- **Who:** template authors, approvers and Lab Directors (e-mails); everyone who configures; billing and coding staff.
+- **User Guide:** the case breadcrumb (Search); the post-sign-out billing reason for specimen-level codes.
+- **Admin Guide:** Protocols → Review: who is e-mailed on each event (when the server exists); Configuration dialogs and unsaved changes.
+- **Training:** change a code on a signed-out specimen and show the reason window; open a case from Search and use the breadcrumb.
+- **Marketing / RFP:** "Every billing change after sign-out is attributed and carries a reason." "Protocol approvals notify the right reviewers in their own language." (the second once the server is live).
+- **Standards:** ISO 15189 (record of changes after release); HIPAA and GDPR (recipients chosen on the server, never a staff e-mail list in the browser).
+- **Status:** dialogs, breadcrumb and billing reason Live; e-mails Partial.
+- **Also, Batches 583 and 584:** twenty more review tests; 34 In Review tickets now have one. Several found real app bugs, listed for decision in `src/i18n/README.md` (Batch 584).
+- **Also, Batch 585:** five more review tests (the "Mixed" tickets PS-60, 269, 292, 474, 475); nothing a user sees changes. 39 In Review tickets now have one.
+- **Also, Batch 586:** four more review tests (PS-63, 277, 283, 342); nothing a user sees changes. 43 In Review tickets now have one.
+- **Also, Batch 587:** six more review tests (PS-73, 89, 146, 327, 341, 470); nothing a user sees changes. 49 In Review tickets now have one.
+
+## Batches 581 and 582: review tests in a real browser
+- **What changed:** nothing on screen. Reviewing a delivered ticket can now be done by running its Playwright test, which follows the ticket's review steps in a real browser (Chrome's engine, or Firefox); ten In Review tickets have one so far.
+- **Who:** the product owner and the QA team.
+- **User Guide / Admin Guide:** none.
+- **Training:** for QA staff: `docs/quality/PLAYWRIGHT_REVIEW_GUIDE.md`.
+- **Marketing / RFP:** "Every delivered change is verified by automated browser tests that follow its acceptance steps."
+- **Standards:** ISO 15189 and CAP expectations for validated software changes (verification evidence per change).
+- **Status:** Live (Chromium); Firefox on request.
 
 ## Batch 580: styled dropdown lists
 - **What changed:** in Chrome and Edge, every dropdown's open list is a styled panel in the app's colours, with the current choice marked; dropdowns keep their usual width. Firefox and Safari keep the dark list until they support the styled one.
@@ -784,5 +1050,227 @@ The full capability list by area is [`FEATURE_OVERVIEW.md`](FEATURE_OVERVIEW.md)
 
 ---
 
+## Batch 604: Simulated mail, alerts and notices
+- **What changed:** With no mail service connected, every e-mail the product would send is kept in a Simulated mail outbox (Configuration, System) instead of being lost or faked: follow-up e-mails, tumor board invites, template lifecycle notices, secure e-mail, support tickets and feedback, and the e-mail leg of critical alerts. Each shows a Simulated label, a notice on screen, and an audit entry. Critical-alert channels show what would have been sent, per channel, labelled Simulated. Support tickets now also warn when the open case's patient name is typed or a screenshot is attached. Support access gains a PDF export of the audit stream, a Simulated "Ticket closed" action that ends the access, and a record of the support agent's own exports and configuration changes.
+- **Who:** Administrators, pathologists, support agents.
+- **Admin Guide:** Simulated mail outbox; Support access (PDF export, ticket closed).
+- **Marketing / RFP:** "No silent failures: anything the demo cannot send is shown, labelled and audited."
+- **Status:** Live in the front end against browser-side services; real sending is the API server's mail service (`/api/notifications/email`, `/api/notifications/template-events`).
+
+---
+
+## Batch 606: Printing, labels and the site agent
+- **What changed:** Every print route the demo cannot reach now answers with a labelled **Simulated** result instead of failing or pretending: BarTender, Zebra Browser Print, Direct via Interface Engine, the PathScribe Agent when no agent program is running, engraving, the label sent when a scan is recorded, and report print jobs for network and site-agent printers. Each simulated print shows a notice, an audit entry, and a row in **Configuration, System, Simulated print log**, which also has a switch that makes simulated prints fail, to try the failure path. A report print job that went the simulated way shows "Simulated: sent to printer" in the print queue. Requisition, container, decant and molecular labels now go down Direct via Interface Engine too. The **slide label layout** (Print settings) now sets the barcode dot size, text position and font of the printed slide label, with a fit check, a preview and a test print. Layouts saved in the **Label Designer** are now used by the printed requisition, specimen, decant, block, slide and molecular labels (ZPL and browser print), a facility override first where the label type allows one, then the enterprise default, then the built-in layout. In the designer, a field can be shown only when another field has a value, is empty, or equals a value, with a preview; every save keeps a version (who and when) that can be restored; and one layout exports to ZPL, EPL and DPL. The specimen form has a **Capture weight** button (the scale agent, a labelled simulated reading in the demo, or typing) and **Capture gross photo**. A slide label is produced once: the scan at microtomy and the Microtomy Workstation print no longer both produce one, and a deliberate reprint always prints. The lab page size and margins are sent in surgical and cytology report render requests. A case can name a **technical component facility**; the surgical report request then carries that lab's letterhead as a second block, without its director or CLIA/ISO number.
+- **Who:** Administrators (printers, layouts, the simulated print log), histotechnicians (slide and block labels, microtomy), grossing staff (weight, photos), pathologists and lab directors (split reports).
+- **User Guide:** Specimen form: Capture weight, Capture gross photo. Case team: technical component facility.
+- **Admin Guide:** Simulated print log; Print settings, Slide label layout; Label Designer (show rules, version history, EPL/DPL export, saved layouts now print).
+- **Training:** try the failure switch, then print a label and see the failed result; change the slide layout and print a test slide label.
+- **Marketing / RFP:** "Label and report printing you can try end to end before a printer is connected: every route shows what would have printed, where, and how many, and says it is simulated."
+- **Status:** Live in the front end; real sending needs the printer vendors' services, the site agent program and the API server (see `KNOWN_GAPS.md`).
+
+---
+
+## Batch 605: Simulated interface engine, inbound and outbound
+- **What changed:** With no interface engine connected, the demo now plays both ends. Inbound: the Mock Interface Engine page runs sample ADT messages (admit, update, merge, link, move, change visit number, move visit) and events, and the result is shown. An unresolved merge, link or move exception can be bound to a patient by hand. Outbound: block, slide and specimen label orders, material scan events, charges and financial-class payloads go to a simulated engine that records them (type and outcome only), shown in an Engine log and in Interfaces, Outbound. Newly created blocks are handed over automatically with a notice; charges and the financial-class payload are sent at sign-out. Also: Interface Engines, Server Jobs and the Assist LIS poll schedule show Simulated status; the Engraver Monitor and dispatch history show seeded Simulated data when no Firebase project is connected (with an organisation filter); the Add Code window accepts a typed ICD-O-3 code (behaviour digit checked) and offers a Simulated ICD-O and ICD-11 lookup; queued registry reports can be handed to a simulated registry; the specimen sync badge settles through a simulated LIS answer; frozen section codes are suggested (unconfirmed) for accept or dismiss; a typed MRN shows the active encounter before submit; the crosswalk can be set per site; cross-organisation merge, link and move need an extra warning and are audited.
+- **Who:** Accessioners, histology, administrators, billing, coders.
+- **Admin Guide:** Mock Interface Engine (Inbound, Engine log, Registry answer); Crosswalk (Site); Engraver Monitor.
+- **Marketing / RFP:** "Every interface can be shown end to end in the demo, clearly labelled Simulated, with nothing silently dropped."
+- **Status:** Live in the front end against browser-side services; real traffic needs the interface engine, the billing engine, the registries and the vendor specifications.
+
+---
+
 ## Backfill still to do
 Batches before 521 are summarised in `FEATURE_OVERVIEW.md`, which was last fully verified in August 2026 with sections added through September. A catch-up pass will verify it against the code and add a guide entry for each capability added since August (Batches ~400–520), in the format above.
+
+## Batch 607: code systems and coding
+
+- **Add Code window:** it shows only the code systems your region allows today (Configuration, System, Code Systems). A system your region requires is marked "Required". A code in a system that is off cannot be added.
+- **Sign-out:** if a required system has no code on the case, sign-out asks first. Going ahead is an override and is written to the audit log (system names only).
+- **Case coding:** a "Case coding" button in the Add Code window lists each code with its system, release, where it came from (entered, AI suggestion, map) and the AI model and confidence. ICD-10 and ICD-11 appear side by side. The ICD-11 column comes from a small sample table and is labelled Simulated.
+- **OPCS-4:** the tab says OPCS-4 needs an NHS TRUD licence. A short reference list is shown, labelled Simulated, and cannot be applied to a case.
+- **ICD-O tab:** searching by code (8500 or 8500/3) or by words (glioblastoma) now finds ICD-O-3 morphology codes with their behaviour from a bundled table.
+- **Outgoing charge messages:** ICD-10 codes are left out when your region has ICD-10 switched off.
+
+## Batch 608: Cytology reviewer pools, QC compliance, Return to Trainee and the QA report columns
+
+- **Reviewer pools:** in Configuration, Staff, each person can be given cytology QC reviewer pools (role codes such as SENIOR_CT or PATHOLOGIST). Leave it empty and a Pathologist counts as PATHOLOGIST. A QC review can be taken or recorded only by someone in the pool named by the rule that selected the case, and never by the person who signed the case out. Anyone else sees a note instead of Assign to Me, and the service refuses the action too.
+- **QC compliance:** the Cytology QC queue has a Compliance view: assignments, resolved reviews, concordant and discrepant counts, the discrepancy rate (a dash until something is resolved), major and minor counts, SLA escalations, supervisor bypasses, and each reviewer's own rate.
+- **Suggested severity:** the Bethesda review on the screening page and each row of the QC queue show a "Suggested" badge (Abnormal, Critical or Malignant) from the interpretation. It is advice only and never blocks sign-out.
+- **Return to Trainee:** on a cytology specimen released for countersign, the attending types feedback (required) and returns it. On an autopsy report released for countersign, the same bar appears. The trainee becomes the owner again, the case shows as returned, and the trainee sees the attending's feedback in a banner.
+- **Prior cervical procedure:** the accession form records a prior cervical procedure (none, LEEP, cold knife conization, cryotherapy, other). A recorded procedure drives the high-risk factor alongside the diagnosis history.
+- **Details for the QA reports:** the screening page records the HPV assay name, the liquid-based platform (ThinPrep or SurePath), and for a positive HPV result the action taken (colposcopy referral with dates). The facility record has a national screening registry ID.
+- **QA reports:** the HPV positivity monitor adds an Assay column. The UK failsafe report counts colposcopy referrals and referrals with no response after 28 days. The EU compliance matrix adds registry IDs, ThinPrep and SurePath counts, and interval adherence from a per-country, per-age interval table (Configuration, Cytology, Country and laboratory rules; the starting values are examples to check against your programme).
+- **Proficiency testing:** the proficiency report has a panel builder. Build the lab's answers to the provider's challenge slides, submit, then apply a Simulated result. It is labelled Simulated, audited without patient data, and not counted in the rates or the consecutive-deficiency rule.
+- **Molecular QC and control wells:** the molecular QC reports follow the selected organisation or facility (a run with no location shows at enterprise level only). Trace works for control and calibrator wells: control ID, lot, expiry, plate, deck and instrument.
+- **Who:** Cytotechnologists, pathologists, cytology QC leads, trainees and attendings, administrators, QA managers.
+- **Admin Guide:** Configuration, Staff (QC reviewer pools); Cytology, Country and laboratory rules (screening intervals); Facilities (national registry ID); Quality Assurance, Cytology QA (proficiency panel).
+- **Marketing / RFP:** "Peer review is limited to the right reviewers, trainees get written feedback when a case is sent back, and the HPV, failsafe and EU reports show the columns auditors ask for."
+- **Status:** Live in the front end against browser-side services. Real PT grades, registry feeds and national interval rules need the provider, the interface engine and programme data (see `KNOWN_GAPS.md`).
+
+---
+
+## Batch 609 (part C): AI model settings, dictation languages and medical spell check
+
+- **Model settings (Configuration, Models):** each model your organisation has adopted has a Settings button. Two settings, both optional (leave blank to use the organisation setting): the longest answer the model may give (50 to 8,000 tokens), and a confidence threshold for this model (0 to 100). A model with settings shows a "custom settings" badge. The longest-answer setting caps every AI call made with that model; the threshold decides which suggestions from that model count as above threshold on the report page and in the header badge. Saving needs the same permission as changing models.
+- **Dictation spelling:** AI refinement of dictated text now follows the lab's spelling: American, British (and Irish), Australian (and New Zealand) or Canadian. Australian and Canadian dictation used to come back in American spelling.
+- **Dictation in French, German, Dutch and Korean:** the refinement instructions are now written for each language: the text stays in that language, with that language's own number and punctuation style. The wording is machine-assisted and needs native-speaker review.
+- **Voice settings (Configuration, System, Voice):** "Match English commands loosely in other languages" (on by default). Turn it off once a language's own commands are in place: a mis-heard French, German, Dutch or Korean phrase is then never run as a near-miss of an English command. Exact English phrases still work. The same page lists the exact instructions sent to the AI for each English spelling and each language, so a native speaker can review them.
+- **Medical spell check:** German, French and Dutch now have a starter list of pathology terms (about 190, 155 and 170), so words such as Karzinom, Adenokarzinom, carcinome épidermoïde and plaveiselcelcarcinoom are no longer flagged. The German general dictionary is unchanged. The lists are a starter set and need native-speaker clinical review; they will be extended from the national SNOMED CT editions once licensed.
+- **Who:** Administrators (model settings, Voice settings), pathologists and technicians who dictate.
+- **Admin Guide:** Configuration, Models (Settings); Configuration, System, Voice (English fuzzy-match switch, instructions by language); Spell check (German, French, Dutch medical lists).
+- **User Guide:** Dictation: spelling follows the lab; commands in other languages.
+- **Marketing / RFP:** "Dictation follows your lab's spelling and language, and each AI model can be tuned for your organisation: answer length and confidence threshold."
+- **Status:** Live in the front end. The AI model catalog and store still run on browser-side demo services; the licensed SNOMED CT, LOINC and SPECIALIST releases (PS-343) and native-speaker review are outside the code.
+
+## Batch 609 (part B): Mismatch check after sign-out, Final Diagnosis rule, template audit and the Upload Protocol check
+
+- **Amendments, corrections and addenda:** the clinical-pathologic mismatch check now runs after first sign-out. While a report is unlocked for an amendment or correction, the same alert as before sign-out appears on the report; the re-sign-out asks again. An addendum's text is checked together with the report's diagnosis before it is released. A decision already recorded still counts: a typo fix, or a finding no worse than what was decided, does not ask again.
+- **The setting:** Configuration, System, Clinical Mismatch Rules has a new card, "Amendments, corrections and addenda". On (the default), a high-risk mismatch (a Block rule) holds the release until the pathologist records Resolved or Unresolved. Off, the alert still shows ("this will not hold the release") and the mismatch is logged to the QA dashboard, but nobody has to stop. Changing it needs the same permission as the rules and is written to the audit log.
+- **Final Diagnosis field:** the Template Builder warns as soon as a Final template has more than one field marked as the Final Diagnosis, and Publish is disabled until only one is left. The Part Builder warns when a saved part leaves a Final template with more than one. Preliminary templates are exempt. Saving a draft is still allowed.
+- **Template lifecycle in the Audit Log:** every step of a synoptic protocol's life now writes an entry: draft saved, submitted, changes requested, resubmitted, approval recorded, published, an older version archived because a new one replaced it, archived, restored, reset to draft, draft deleted. The entry names the protocol, its version and the status change. A reviewer's note text is never copied into the log.
+- **Upload Protocol:** the window reads the file and shows the result straight away. JSON (a PathScribe protocol file, as made by Export JSON) is checked section by section and can be imported as a draft, which then goes through review like any other. XML (CAP eCC / SDC shape) and Excel files are checked for format and reported, but cannot be imported yet. Every result says the same plain thing: unverified against CAP or RCPath, because only the file format was checked.
+- **Who:** Pathologists, laboratory directors, template authors and approvers, QA managers, administrators.
+- **Admin Guide:** Configuration, System, Clinical Mismatch Rules (new card); Configuration, Protocols (Upload Protocol, Review Queue); Template Builder (Assembly and Part Builder); Audit Log (template events).
+- **Marketing / RFP:** "A late amendment is checked against the clinical history just like the first report, a template with two diagnosis fields cannot be published, and every change to a protocol is in the audit trail." ISO 15189 (document control), CAP (amended and corrected reports).
+- **Status:** Live in the front end against browser-side services. The licensed CAP and RCPath protocol content, and importing their XML and Excel files, need the licence and the bodies' sample files (see `KNOWN_GAPS.md`).
+
+## Batch 610 (part A): Autopsy turnaround, Autopsy Dashboards and frozen section targets
+
+- **Autopsy turnaround chip:** the autopsy worklist and the report page show whether the report being worked on (PAD, then FAD) is on track, due soon (last 20% of the window), overdue, met or signed late. The clock starts at body arrival. The target is the jurisdiction figure, or an Autopsy PAD / Autopsy FAD rule from Configuration, TAT. Time on ancillary hold (toxicology, neuropathology) is not counted. Working-day targets skip weekends only; public holidays are not known, so a deadline can be later than shown, never earlier.
+- **Autopsy Dashboards (Quality & Compliance):** Case, Department and Enterprise views of turnaround, consent, organ retention and cause of death, with a period choice. Department lists the reports overdue now; Enterprise compares facilities and jurisdictions. Simulated cases are included by default and labelled Simulated; one switch turns them off.
+- **Frozen section targets (Intraop):** the OR board and queue use the Frozen Section rule from TAT configuration (default 20 minutes, warning at 5). The rule has a new "warn when this many minutes remain" field. Each specimen has a STAT / Routine switch (one click) so the matching target applies.
+- **Who:** Pathologists, autopsy staff, quality managers, laboratory directors, administrators.
+- **Admin Guide:** Configuration, System, TAT (Autopsy PAD, Autopsy FAD, Frozen Section warning time); Quality & Compliance, Autopsy Dashboards (role access `screen:autopsy-dashboards:open`).
+- **User Guide:** Worklist (autopsy chip); Intraop Queue (STAT/Routine switch).
+- **Marketing / RFP:** "Every autopsy shows whether its preliminary and final reports are on time, and quality managers see turnaround, consent, organ retention and cause of death by case, department and enterprise."
+- **Standards:** ISO 15189 (turnaround monitoring), CAP autopsy turnaround expectations, GDPR (consent and retention visible).
+- **Status:** Live in the front end against browser-side services. Cause of death is a category on Simulated cases only until the signed report carries it as data; public holidays need a holiday calendar (see `KNOWN_GAPS.md`).
+
+## Batch 610 (part D): Diagnosis and biomarker tumor board rules, AI discordance report, spoken delegation types
+
+- **Configuration → System → Tumor Board Auto-Flag Rules:** a new card, "Diagnosis and biomarker rules". An administrator adds a rule made of up to six criteria (diagnosis text, a biomarker result, a margin under a distance) and picks the board; a signed case that matches every criterion is listed for that board with the reason. A facility can also override the board for a rule.
+- **Quality Assurance → AI Discordance:** AI results that disagree with the pathologist, results that stalled (no answer within the lab's limit, set on the tab) and the concordance rate by algorithm, with an export (needs `qa:ai-discordance:export`).
+- **Delegate dialog by voice:** saying "request peer review", "formal consultation" or "full transfer" opens the Delegate dialog with Informal Review, Second Opinion or Case Reassignment already chosen. If that type is turned off, the dialog says so.
+- **Delegated work:** when the person a case was delegated to signs it out, the delegation is completed and the case leaves "Delegated to me".
+
+## Batch 610 (part B): Performance targets, client service levels and the jurisdiction overview
+
+- **Configuration → System → Performance Targets:** the cases-per-month and RVU targets (and the TAT and QC rows) are now saved. Change a value and it is kept straight away; add a target of your own (cases, RVUs, percent or hours; daily to yearly); built-in targets cannot be removed. Needs `config:tat-targets:manage`. Each change is in the audit log (numbers only).
+- **Productivity dashboard:** a Targets tile shows this period's cases and RVUs against the monthly targets (Met, On track or Behind) and how last period ended. The old fixed target percentages are gone; a person with no target set sees none.
+- **Configuration → System → Client Service Levels:** for each client (by assigning authority) set the hours to first touch and to the signed report, with optional STAT hours. Cases are measured from the time received. Needs `config:tat-targets:manage`.
+- **Where the service levels show:** a per-client table on the Quality tab and the Productivity dashboard (within, late, average, still open past target), and an "SLA" badge on the worklist for an open case already past its client's target (hover for which target).
+- **Configuration → System → Jurisdiction Overview:** a read-only page, one table per country, gathering the facilities, roles offered, who can sign out, code systems, AI policy, retention rule sources and cancer registries, with a Change link to the screen where each is edited.
+- **Who:** Administrators, laboratory directors, quality managers, pathologists (dashboard and badge).
+- **Admin Guide:** Configuration, System, Performance Targets; Client Service Levels; Jurisdiction Overview.
+- **User Guide:** Productivity dashboard (Targets tile); Quality tab (client service levels); Worklist (SLA badge).
+- **Training:** set a monthly cases target, open the Productivity dashboard and see the tile; give one client a 4 h / 48 h service level and see a late case get the worklist badge.
+- **Marketing / RFP:** "Per-client turnaround commitments are tracked case by case, flagged on the worklist while a case is still open, and reported by client; productivity is measured against targets your laboratory sets."
+- **Standards:** ISO 15189 (turnaround monitoring and review of contracted service levels), CAP (turnaround monitoring).
+- **Status:** Live in the front end against browser-side services (saved in the browser until the API server stores them). Targets are not yet set per pathologist or per facility.
+
+## Batch 611 (part G): Smart Capture charge suggestions (prototype)
+
+- **Billing panel on a case:** a **Smart Capture** button labelled *Prototype, not compliance-reviewed*. It lists suggested charge lines with the rule and evidence behind each; a person accepts or rejects each line; a pathologist confirms; a payload preview shows what would leave; the approved lines can then be exported (to the labelled Simulated engine in the demo). If the case changes after a review it is shown stale and must be made again.
+- **Configuration → System → Smart Capture:** a switch for offering the drawer, and a six-item production checklist (clinical validation, security, privacy, legal, claims and coding policy, real receiving system) that must be fully ticked before an export can go to a real interface engine.
+- **Who:** Pathologists (review, approve, send); administrators and laboratory directors (settings).
+- **Admin Guide:** Configuration, System, Smart Capture; Permissions (four capabilities). **User Guide:** Billing review, Smart Capture drawer. Full description and acceptance criteria: `docs/product/SMART_CAPTURE.md`.
+- **Training:** open a case's Billing panel, open Smart Capture, accept two lines and reject one, tick the confirmation as a pathologist, approve, read the payload preview, export, then change the case and see the review go stale.
+- **Marketing / RFP:** "Suggested charges are always reviewed by a person: every line is accepted or rejected, a pathologist confirms, nothing is sent without that confirmation, and the audit trail records the rule version behind each suggestion. Clearly labelled as a prototype until validated."
+- **Standards:** HIPAA (audit without patient data), CAP and ISO 15189 (reviewed, traceable decisions). The prototype is not compliance-reviewed and says so on screen.
+- **Status:** Built (Demo). The rule set is a stand-in; claims and legal review and the receiving system are on the institution.
+
+## Batch 612 (part C): Report font sizes in points
+
+- **Configuration → System → Document Style:** font sizes are now in **points**, the size that prints (a 10 prints at 10 pt, as in Word), with the printed size shown under the box. The smallest size that prints is 8 pt. The built-in defaults are body 10, header 11 bold and footer 10 pt. A style saved before this change is marked as saved in pixels and prints exactly as it did until the administrator presses **Convert to points**, which lists each size and what it becomes; the numbers stay the same and now mean points, so the text prints larger.
+- **Template Assembly → Style:** the same size box and **Convert to points** for one template. New templates start in points. The label size in the field inspector is also points.
+- **Report preview:** for a template in points the preview is drawn at the paper's real width and side margins, with text at its printed size, so a 10 pt line wraps on screen where it wraps on paper. The preview does not show top and bottom margins or page breaks.
+- **Who:** Administrators (lab styles need the Approved Fonts and Document Style permission); template authors (their own template).
+- **Admin Guide:** Configuration, System, Document Style; Template Assembly, Style panel. **User Guide:** none (what a pathologist sees is the printed report).
+- **Training:** open Document Style, read "Prints at" under the size, press Convert to points, read the list, confirm, and print a report to see the larger text; do the same for one template.
+- **Marketing / RFP:** "Report type sizes are set in points, the unit printers and word processors use, and the screen preview shows the size that will print."
+- **Standards:** none directly (legibility of printed reports). The conversion is written to the audit log.
+- **Status:** Live in the front end and in the report PDF function (redeploy `functions/`). Fonts print as Helvetica, Times or Courier whatever the family chosen (Calibri, Verdana and Georgia are not embedded).
+
+## Batch 612 (part B): Workstation registry and scope reference
+
+- **Configuration → System → Workstations:** register a named computer (for example "Grossing Station A") at a facility, with room, discipline, functional area, point of care and optional report and label printers. A token is shown once when registered or rotated; only a hash is kept. Rotate (the old token works 24 more hours), revoke (with a reason; final), "Use this computer", and a Simulated token test. Last seen and the audit log show activity.
+- **Print routing:** the workstation field in a routing rule suggests the registered workstations, and a computer bound to one uses it automatically.
+- **Configuration → System → Scope reference:** for each setting area, whether it is enterprise-wide, per performing-lab facility, enterprise with a facility override, or in tiers.
+- **Who:** `config:workstations:manage` and `config:workstation-tokens:manage` (Administrators). Everything is audited.
+- **Not yet:** the real agent token check is the backend team's work (`docs/architecture/WORKSTATION_REGISTRY.md`); the browser check is labelled Simulated. Scope reference lists only confirmed areas.
+
+## Batch 612 (part A): Interface Dictionary (Message Mapper) and Vendor fields
+
+- **What changed:** Configuration → System → Interface Dictionary (ForMedrixAI support only; hidden from hospital roles). A vendor profile says where a vendor's own fields sit in its HL7 v2 (including Z-segments), JSON or FHIR messages, and which extension field (`ext.name`) each becomes on the case, with a name shown on the case, a type, a conversion (trim, case, HL7 date to ISO), a code translation, a default and a required flag. A profile goes Draft → Tested (paste a sample message; counts only are kept) → Live; a bad publish is rolled back to the version before (kept as a new version). A mapping onto the case's own structure (patient, order, specimen, diagnosis, report, signature, billing) is refused as it is typed, with the reason; the same screen lists what mapping handles and what needs a code release. On a case, the sidebar shows a read-only **Vendor fields** panel when a vendor sent extra fields, with the vendor and profile version, tagged for redaction, and Simulated in the demo.
+- **Admin Guide:** none for hospital administrators (the screen is not visible to them). Internal support guide: Interface Dictionary. **User Guide:** Case sidebar, Vendor fields (read-only).
+- **Training (ForMedrixAI):** create a profile for ORU^R01, map `ZAB-2` to `ext.lotNumber`, try `patient.mrn` and read the refusal, paste the sample, publish, apply the sample to a case, open the case and find Vendor fields, publish a second version, roll back.
+- **Marketing / RFP:** "Vendor-specific fields (Z-segments, extra JSON/FHIR elements) are onboarded by configuration, tested and versioned with rollback, and can never overwrite the clinical record."
+- **Standards:** HIPAA (audit without message content), ISO 15189 (controlled change with test before release), 21 CFR Part 11 and EU Annex 11 (change control on interfaces).
+- **Status:** Built (Demo). Nothing is received from a vendor in the demo; sample messages are pasted in. The interface engine applying published profiles to live messages is server work (`docs/architecture/INTERFACE_DICTIONARY_API.md`). Wording in French, German, Dutch and Korean needs native-speaker review.
+
+## Batch 613 follow-up — who receives a scheduled report
+
+When you schedule a saved case-search report, PathScribe checks each recipient. If someone cannot see every case in the report, you are asked, right there, whether to **narrow** the report to what they may see (the default) or **skip** them. PathScribe never decides this for you. After each run the schedule shows how many recipients received the full report, a narrowed one, or none. Status: Built (Demo): runs are simulated until the API server runs them.
+
+## Batch 614 (part C): Hotkey and voice clashes
+
+- Seven Intraop commands (start new entry, touch prep performed or skipped, frozen section cut, squash prep, cytology fluid, gross only) now belong to the Intraop category, so they no longer compete with navigation keys on other screens.
+- 52 clashes remain, all settled by the rule that the screen you are on wins. A locked list now makes any new clash fail the build. A short list of choices for you is in HOTKEY_DECISIONS.md, and every command phrase awaiting native-speaker review is in PHRASE_REVIEW_LIST.md.
+
+## Batch 614 (part B): Code Systems setting now applies everywhere
+
+- Switching a code system off in Configuration → System → Code Systems now takes effect on case search, the specimen edit window and the order message, as well as the Add Code window. A screen with a system off shows a short note saying so. A code already on a case in a system that is now off is marked "outside policy" rather than removed.
+- The cytology-histology correlation printout no longer shows the patient MRN, matching the download. The on-screen table still shows it.
+
+## Batch 616 (part B): more of the browser's services can talk to the server
+
+- With a server address configured, the audit log, access checks, staff, roles, facilities, screening-registry settings, access requests, session time-out and the lab dictionaries (departments, locations, container types, ink and cassette colours, physicians, revision reasons) now have server versions. Without one, the demo behaves as before.
+- With a server, the browser asks the server for each access decision and treats any failure to answer as a refusal. Nothing is granted because the server could not be reached.
+- A request to see a patient's other cases is granted, denied or revoked by the person signed in; the browser no longer sends who is doing it.
+- Biometric signing: the screens and the sign-in flow now go through one biometric flow (see Batch 616 part F), so a server deployment uses the server version.
+
+## Batch 617 (part S): the roles list names the newer actions
+
+- Configuration > Staff > Role Dictionary now lists 16 more actions in one group, Related Cases, Case Access, Search Reports & Follow-up: attach related cases, print a patient summary, request, approve, deny or revoke access to a patient's other cases, save, export or schedule a case search report, mark follow-up expected, record, reopen or email about a follow-up, search codes for a flagged finding, and enrol or turn off biometric sign-in.
+- Admin Guide: new built-in roles start with the grants in docs/product/ACTIONS_COVERAGE.md; a grant records whether the role may use the action, the capability decides access.
+- Training and marketing: none of the 16 is a voice command; they are clicks on their own screens.
+
+## Batch 618 (part C): case material saves through the server
+- When the app is connected to a PathScribe server, adding, changing or deleting a decant is saved by one server call that returns the whole updated material tree and the billing lines it affected; without a server (the demonstration) it works as before. A stale version, a refused delete and a tree error each roll the change back on screen.
+- Admin Guide: nothing to configure; the server must honour `CASE_MATERIAL_API.md`.
+- Training and marketing: no change for people using the Material tab.
+
+## Batch 618 (part B): the partial nephrectomy drawing shows only the anatomy the specimen holds
+- On the Anatomical map for Kidney Resection, a partial nephrectomy now always draws the perinephric fat and draws Gerota's fascia only when the extent answer is "Beyond Gerota's fascia", and the adrenal gland only when it is "Ipsilateral adrenal gland, by direct (contiguous) spread" (both pT4). The renal vein, vena cava and ureter rules from Batch 466c are unchanged. A radical nephrectomy is unchanged.
+- Admin Guide: nothing to configure; the rule is built in.
+- Training and marketing: the drawing no longer suggests the specimen contains an adrenal gland or Gerota's fascia that was not sampled (CAP, RCPath, RCPA, ICCR practice).
+- Developers: the size guard (`styleRules/fileSize.guard.test.ts`, PS-497) fails if a source file over 1,000 lines grows, or a new one crosses 1,000; large files are split when a story touches them.
+
+## Batch 618 (part A): a second facility for the technical component (PS-336)
+- Accession screen: for a consultation or outside material, an optional "Technical component performed by" list names the lab that did the processing, cutting and staining when this lab only reads the case. It lists performing labs only. An ordinary case shows no extra field. The Case team window keeps the same list for later changes, and each change is written to the audit log (facility ids only).
+- Billing: the technical charge is released at grossing as before and goes to the technical lab; the professional (-26) line is held to final sign-out and goes to the reporting lab. A case with no second lab, or the same lab twice, is unchanged.
+- Report: once the case is signed out, a line under the case header reads "Technical component performed at: name, address". The lab's director and CLIA number are never printed on it. Drafts do not show it.
+- Admin Guide: nothing to configure; the lab must be an active facility with the performing lab role.
+- Training and marketing: split-billing consultations are recorded once, at accessioning, and the report and the claims name the right lab.
+- Developers: `order.technicalComponentFacilityId` (set at accessioning); `resolveChargeFacilities.ts`; charge payload fields `performingFacilityId` and `technicalComponentFacility` (the DFT message is unchanged); renderer field `technicalBranding` (`functions/main.py`).
+
+## Batch 619 (part S): delivery schedules, set for the enterprise and overridden by performing facility (PS-800)
+- Configuration > System > Delivery Schedules sets when each feed goes out: report delivery, billing, results, admissions (ADT), accession, LIS sync, and each registry on its own. A feed can send immediately, only during set hours, in a batch (daily, weekly or monthly, with a cutoff time), hold until final sign-out, or (registries) send a set time after sign-out. Choose a facility to see which feeds follow the enterprise and which have their own schedule; "Follow the enterprise" removes an override. A "Try a schedule" panel shows whether something would go out at a given time.
+- Registries: default is a short review hold (4 hours) matching the QA and amendment window; an optional reporting deadline in days from sign-out lets the queue flag cases close to it; an amendment re-queues by default.
+- Admin Guide: needs the capability "Manage delivery schedules" (Admin and Lab Director). Registry destinations, required fields and transport stay in each registry's own settings.
+- Training and marketing: PathScribe decides when; the interface engine decides how a message is sent.
+
+## Batch 619 (part B): billing release rules, set for the enterprise and overridden by performing facility (PS-800)
+- Configuration > System > Billing Release sets when a generated charge is released from the Outbound Queue to billing. A charge is still generated at its milestone (the Billing Type Trigger setting: technical at grossing, professional -26 and Global at final sign-out); the rules decide when it then goes. Per billing type (TC, -26, Global) and optionally per case type, ordering site, primary pathologist and amended or original report: release at once, a set number of minutes after the milestone (a review hold), in a daily or weekly batch, or only when a person releases it. The defaults are the previous behaviour: nothing held. Choose a facility to give it rules of its own; without any it follows the enterprise. A "Try a charge" panel shows what the rules would do.
+- Safety: a charge with an unmapped CPT code or a missing technical-component facility is parked for review when the rule says so; the delta charge of an amended report always goes to review; when a case is amended or retracted, its charges that have not gone are cancelled (retracted, with the reason) and the ones already sent are corrected through the existing credit flow. A person can release a held charge at once from the Outbound Queue; it is recorded by user id and audited.
+- Admin Guide: needs the capability "Manage billing release rules" (Admin and Lab Director). Releasing a held charge from the queue uses the queue's own release permission.
+- Training and marketing: the performing laboratory controls when its billing codes and charges are released; PathScribe decides when, the billing interface decides how.
+
+## Batch 619 (part Q): the Outbound Queue, one place for everything PathScribe sends (PS-800)
+- Home > Quality & Compliance > Outbound Queue lists every outbound message: results, admissions (ADT), accession, LIS sync, billing charges, report delivery, cytology results, referrals, molecular orders and registry submissions. Filter by feed, state, facility or accession number; sort by state, reporting deadline, scheduled time or attempts; tiles count each state, overdue and due-soon deadlines, and billing items waiting for review.
+- Actions on the selected messages: Hold (pick a reason; a note is optional), Release, Retry. A message a registry rejected shows only the registry's error codes and a correction due date: fix the data, then Retry and say why it was fixed (resubmit), or Mark not reportable with a reason. For billing: Retract a queued charge (the case was amended or retracted) and Release now ahead of the schedule.
+- A held message is not sent from anywhere, including Audit Log > Interfaces > Outbound. An amended report that is re-queued appears as a new item marked as amending the earlier one.
+- Admin Guide: capabilities "Open Outbound Queue", "Hold outbound messages", "Release held outbound messages", "Mark rejected messages not reportable", "Retract queued charges", "Release charges ahead of schedule" (Admin); retry uses "Resend interface messages". Every action is audited without patient text; release-now records the user id.
+- Training and marketing: one queue for results, billing and registry reporting; deadlines flagged before they are missed; PathScribe decides what and when, the interface engine decides how.
+- Standards: supports the timely, auditable reporting expected for cancer registries (CAP, state and national registries) and HIPAA audit controls.
+

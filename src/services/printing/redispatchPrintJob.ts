@@ -26,7 +26,8 @@
 // print queue already has.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockPrintQueueService, PRINT_JOB_NOT_PERMITTED } from './mockPrintQueueService';
+import { printQueueService } from './printQueueServiceInstance';
+import { PRINT_JOB_NOT_PERMITTED } from './mockPrintQueueService';
 import { attemptPrintDelivery } from './attemptPrintDelivery';
 
 /** A Retry or Redirect's result. 'refused': the person lacks the permission (Batch 515, PS-283). */
@@ -58,7 +59,7 @@ export function retryPrintJobAutomatically(jobId: string): Promise<RedispatchPri
 }
 
 async function redispatchPermitted(jobId: string): Promise<RedispatchPrintJobResult> {
-  const jobRes = await mockPrintQueueService.getById(jobId);
+  const jobRes = await printQueueService.getById(jobId);
   if (!jobRes.ok) {
     return { outcome: 'failed', jobId };
   }
@@ -75,14 +76,14 @@ async function redispatchPermitted(jobId: string): Promise<RedispatchPrintJobRes
     if (!doc.pdfBase64) {
       // Batch 556: the server not answering (or this person not allowed) is not a lasting fault: keep the job retryable.
       const passing = doc.documentError === 'unavailable' || doc.documentError === 'notPermitted';
-      await mockPrintQueueService.markFailed(jobId, { errorCode: 'PRINT_REJECTED', errorMessage: `The release's report document can't be printed: ${doc.generationError}.`, maxRetriesExceeded: !passing });
+      await printQueueService.markFailed(jobId, { errorCode: 'PRINT_REJECTED', errorMessage: `The release's report document can't be printed: ${doc.generationError}.`, maxRetriesExceeded: !passing });
       return { outcome: 'failed', jobId };
     }
     pdfBase64 = doc.pdfBase64;
   }
 
   if (!pdfBase64) {
-    await mockPrintQueueService.markFailed(jobId, {
+    await printQueueService.markFailed(jobId, {
       errorCode: 'PRINT_REJECTED',
       errorMessage: 'No persisted PDF available to retry — this job predates PS-279’s pdfBase64 persistence, or its original dispatch never reached a successfully-rendered PDF.',
       maxRetriesExceeded: true,
@@ -97,7 +98,7 @@ async function redispatchPermitted(jobId: string): Promise<RedispatchPrintJobRes
   // that fails again lands honestly on FAILED with an incremented
   // count rather than silently staying on whatever real status it
   // was in before this call.
-  await mockPrintQueueService.retryDispatch(jobId);
+  await printQueueService.retryDispatch(jobId);
 
   const destination = job.redirectedToDestination ?? job.resolvedDestination;
 
@@ -146,7 +147,7 @@ export async function redirectAndRedispatchPrintJob(
 ): Promise<RedispatchPrintJobResult> {
   // Batch 515: needs print:job:redirect (checked by the queue service) and print:job:retry.
   if (!(await permitRetry())) return { outcome: 'refused', jobId };
-  const redirectRes = await mockPrintQueueService.redirectPrintJob(jobId, destination, redirectedBy);
+  const redirectRes = await printQueueService.redirectPrintJob(jobId, destination, redirectedBy);
   if (!redirectRes.ok) {
     const error = (redirectRes as { ok: false; error: string }).error;
     return error === PRINT_JOB_NOT_PERMITTED ? { outcome: 'refused', jobId } : { outcome: 'failed', jobId, redirectError: error };

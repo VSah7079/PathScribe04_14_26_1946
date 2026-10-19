@@ -1,3 +1,7 @@
+## Batch 604
+
+The secure e-mail alert channel keeps its message in the Simulated mail outbox (`communications/simulatedMailOutbox.ts`). The Critical Alerts audit tab shows each channel's text with a Simulated badge, and sign-out shows a toast saying the alert was recorded but not delivered.
+
 # services/clinical/
 
 PS-105 (Core Abnormal Detection Engine) — real, negation-aware detection of
@@ -251,3 +255,15 @@ The mismatch check is explained for customers and staff in `docs/product/CLINICA
 - `aiInstructionService.ts` / `mockAiInstructionService.ts`: list (`config:ai-prompt:view`), saveDraft (`…:edit`), approve and reject (`…:approve`), test (edit or approve: runs the AI on a sample with a draft, nothing stored), `instructionsForCheck` (system read). Storage: `pathscribe_ai_instructions`. `aiInstructionSamples.ts`: the Test panel's invented sample cases.
 - `detectClinicalPathologicMismatch.ts`: `mismatchPrompt(input, instructions)` takes the governed text; the case data and the JSON answer format stay fixed. The check reads the approved text (PathScribe's own if it can't), records `instructionVersion` on the suggestion, passes the case to `callAi` for the AI vendor policy (never to the AI), and when the policy refuses the call falls back to the rule-based check with `aiNotAvailable: 'jurisdiction'`. `askAiForMismatch` is the AI step on its own (the Test panel).
 - `detectCriticalFindings` takes an optional `{ caseId, facilityId }` for the vendor policy.
+
+## Batch 589 — Critical findings and the narrative (PS-323)
+
+- `narrativeForDetection.ts`: the text the critical-finding check reads at sign-out, now including the Microscopic Description typed for each specimen (on one line, no repeats).
+- `findingHighlight.ts`: `narrativeFieldForSection(sectionId, sourcePartId?)` matches Report Draft sections by their stable part id (`std_body_gross`, `std_body_microscopic`, `std_body_ancillary`); `orchestratorNarrativeText` joins the text of the sections that feed a field.
+- `criticalFindingStore.ts`: flagged findings kept per case (storage key `critical_findings_by_case_v1`, in the demo reset) so the highlight survives a reopen. Presentation data only; the saved report text is never changed.
+
+- Batch 609 (#31): `amendmentMismatch.ts` (pure: `caseHasPendingAmendment`, `addendumMismatchInput`, `revisionStep`, `withReleaseSetting`). `clinicalMismatchService.atRevision` is the sign-out check for an amendment, correction or addendum, with the lab setting deciding whether a high-risk mismatch holds the release; `forRevisionAlert` marks the report alert. `clinicalMismatchRuleService` gained `revisionHoldsRelease` / `saveRevisionHoldsRelease` (manage permission, audited; storage `pathscribe_clinical_mismatch_revision_hold`). Tests: `amendmentMismatch.test.ts`.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`criticalResultNotificationService`, `criticalAlertReferenceTokenService`, `clinicalMismatchRuleService`, `criticalAlertDispatchService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`, `CRITICAL_RESULTS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

@@ -6,7 +6,6 @@
 // API server.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { mockAuditService } from '../auditlog/mockAuditService';
@@ -18,13 +17,8 @@ import {
 
 export const FEEDBACK_SETTINGS_STORAGE_KEY = 'pathscribe_feedback_settings';
 
-export interface IFeedbackSettingsService {
-  get(): Promise<ServiceResult<FeedbackSettings>>;
-  /** Refused with feedbackSettingsProblem's reason when the settings can't work. */
-  save(settings: FeedbackSettings): Promise<ServiceResult<FeedbackSettings>>;
-  /** Whether this instance shows the QA feedback button. */
-  qaButtonShown(): Promise<boolean>;
-}
+import type { IFeedbackSettingsService } from './IFeedbackSettingsService';
+export type { IFeedbackSettingsService } from './IFeedbackSettingsService';
 
 const load = (): FeedbackSettings => ({ ...DEFAULT_FEEDBACK_SETTINGS, ...storageGet<Partial<FeedbackSettings>>(FEEDBACK_SETTINGS_STORAGE_KEY, {}) });
 

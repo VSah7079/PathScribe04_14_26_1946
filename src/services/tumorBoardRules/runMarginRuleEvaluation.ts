@@ -12,13 +12,21 @@
 // a failure here is caught by the caller and never blocks or undoes a
 // sign-out that has already happened.
 // ─────────────────────────────────────────────────────────────────────────────
-import { mockMarginExtractionService } from '../marginExtraction/mockMarginExtractionService';
+import { marginExtractionService } from '../marginExtraction/marginExtractionServiceInstance';
 import type { MarginExtractionFieldLike } from '../marginExtraction/IMarginExtractionService';
-import { mockTumorBoardService } from '../tumorBoard/mockTumorBoardService';
+import { tumorBoardService } from '../tumorBoard/tumorBoardServiceInstance';
 import type { TumorBoardName } from '../tumorBoard/ITumorBoardService';
-import { mockTumorBoardRuleService, mockFacilityTumorBoardRuleOverrideService } from './mockTumorBoardRuleService';
+import { facilityTumorBoardRuleOverrideService } from './facilityTumorBoardRuleOverrideServiceInstance';
+import { tumorBoardCriteriaRuleService } from './tumorBoardCriteriaRuleServiceInstance';
+import { tumorBoardRuleService } from './tumorBoardRuleServiceInstance';
 import { DEFAULT_TUMOR_BOARD_RULES } from './ITumorBoardRuleService';
 import { resolveEffectiveTumorBoardRules, evaluateMarginRules } from './tumorBoardRuleEvaluation';
+import {
+  flattenAnswersForCriteria,
+  resolveEffectiveCriteriaRules,
+  evaluateCriteriaRules,
+  type CriteriaAnswerValue,
+} from './criteriaRuleEvaluation';
 
 export interface SynopticInstanceLike {
   instanceId: string;
@@ -48,6 +56,8 @@ export interface RunMarginRuleEvaluationResult {
   flagged: boolean;
   board?: TumorBoardName;
   triggerReason?: string;
+  /** Batch 610 (#71): which kind of rule flagged the case. */
+  ruleKind?: 'margin' | 'criteria';
 }
 
 /** Runs margin-distance extraction over every synoptic instance of this
@@ -59,40 +69,53 @@ export interface RunMarginRuleEvaluationResult {
  *  Board listing when a rule fires and the case has no active listing yet
  *  — a case already nominated (manually, or by an earlier run of this same
  *  function) is left alone, the same real one-active-listing-per-case rule
- *  mockTumorBoardService.create() already enforces. When more than one
+ *  tumorBoardService.create() already enforces. When more than one
  *  board's rule fires, the first match (enterprise rule order) is used —
  *  only one board can hold the case's active listing at a time. */
 export async function runMarginRuleEvaluation(input: RunMarginRuleEvaluationInput): Promise<RunMarginRuleEvaluationResult> {
   const { caseId, caseAccession, facilityId, instances, getTemplateFields, byUserId, byUserName } = input;
 
+  // Batch 610 (#71): the same pass over the workups also collects each answer with its field label,
+  // for the diagnosis and biomarker rules.
+  const answerValues: CriteriaAnswerValue[] = [];
   for (const instance of instances) {
     const fields = await getTemplateFields(instance.templateId);
     if (fields.length === 0) continue;
-    await mockMarginExtractionService.extractAndStore({ caseId, instanceId: instance.instanceId, fields, answers: instance.answers });
+    await marginExtractionService.extractAndStore({ caseId, instanceId: instance.instanceId, fields, answers: instance.answers });
+    answerValues.push(...flattenAnswersForCriteria(fields, instance.answers));
   }
 
-  const attrsRes = await mockMarginExtractionService.getShadowAttributesForCase(caseId);
-  if (!attrsRes.ok || attrsRes.data.length === 0) return { flagged: false };
+  const attrsRes = await marginExtractionService.getShadowAttributesForCase(caseId);
+  const margins = attrsRes.ok ? attrsRes.data : [];
 
-  const [rulesRes, overridesRes] = await Promise.all([
-    mockTumorBoardRuleService.getAll(),
-    facilityId ? mockFacilityTumorBoardRuleOverrideService.getForFacility(facilityId) : Promise.resolve({ ok: true as const, data: [] }),
+  const [rulesRes, overridesRes, criteriaRes] = await Promise.all([
+    tumorBoardRuleService.getAll(),
+    facilityId ? facilityTumorBoardRuleOverrideService.getForFacility(facilityId) : Promise.resolve({ ok: true as const, data: [] }),
+    tumorBoardCriteriaRuleService.getAll(),
   ]);
   const enterpriseRules = rulesRes.ok ? rulesRes.data : DEFAULT_TUMOR_BOARD_RULES;
   const overrides = overridesRes.ok ? overridesRes.data : [];
   const effectiveRules = resolveEffectiveTumorBoardRules(enterpriseRules, overrides);
+  const effectiveCriteriaRules = resolveEffectiveCriteriaRules(criteriaRes.ok ? criteriaRes.data : [], overrides);
 
-  const matches = evaluateMarginRules(attrsRes.data, effectiveRules);
-  if (matches.length === 0) return { flagged: false };
+  // The margin rules come first (unchanged behaviour); the admin-added rules follow in the order they were made.
+  const marginMatches = margins.length > 0 ? evaluateMarginRules(margins, effectiveRules) : [];
+  const criteriaMatches = evaluateCriteriaRules(answerValues, margins, effectiveCriteriaRules);
+  const first: { board: TumorBoardName; triggerReason: string; ruleKind: 'margin' | 'criteria' } | undefined =
+    marginMatches.length > 0
+      ? { board: marginMatches[0].rule.board, triggerReason: marginMatches[0].triggerReason, ruleKind: 'margin' }
+      : criteriaMatches.length > 0
+        ? { board: criteriaMatches[0].board, triggerReason: criteriaMatches[0].triggerReason, ruleKind: 'criteria' }
+        : undefined;
+  if (!first) return { flagged: false };
 
-  const active = await mockTumorBoardService.getActiveForCase(caseId);
+  const active = await tumorBoardService.getActiveForCase(caseId);
   if (active.ok && active.data) return { flagged: false }; // already on an agenda — never silently re-flag or override it
 
-  const { rule, triggerReason } = matches[0];
-  const created = await mockTumorBoardService.create({
-    caseId, caseAccession, board: rule.board,
+  const created = await tumorBoardService.create({
+    caseId, caseAccession, board: first.board,
     createdByUserId: byUserId, createdByUserName: byUserName,
-    source: 'Rule', triggerReason,
+    source: 'Rule', triggerReason: first.triggerReason,
   });
-  return created.ok ? { flagged: true, board: rule.board, triggerReason } : { flagged: false };
+  return created.ok ? { flagged: true, board: first.board, triggerReason: first.triggerReason, ruleKind: first.ruleKind } : { flagged: false };
 }

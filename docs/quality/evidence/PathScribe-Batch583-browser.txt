@@ -1,0 +1,7 @@
+Batch 583: accessibility run (axe, WCAG 2.1 AA), Playwright in Chromium, 2026-10-15.
+
+e2e/a11y.spec.ts: 15 passed, 5 skipped.
+e2e/a11y.connectivity.spec.ts, e2e/a11y.routes.spec.ts, e2e/a11y.states.spec.ts: 62 passed, 1 failed on the first run.
+The one failure ("Cytology worklist") was a load timeout: the screen heading had not appeared within 15 s on a busy machine. Re-run alone: passed.
+No serious or critical WCAG 2.1 AA violation was reported on any screen.
+Not covered by this run: a screen reader (PS-687, run by the QC team), Firefox (PS-722).

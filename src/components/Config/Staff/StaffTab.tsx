@@ -68,6 +68,7 @@ export interface StaffUser {
   voiceProfile?: string | null;
   /** PS-342 (Batch 338): kept in sync by hand with IUserService.ts's StaffUser. */
   spellingLocale?: string | null;
+  qcReviewerRoles?: string[];
   canViewPediatric?: boolean;
   canViewOrchestration?: boolean;
   /** Real, per direct design brief on the RFP-APLIS-2026-GLOBAL
@@ -144,7 +145,7 @@ type Draft = {
   firstName: string; middleName: string; lastName: string; credentials: string;
   email: string; roles: string[]; npi: string; gmcNumber: string; license: string;
   phone: string; signatureUrl: string; active: boolean;
-  voiceProfile: string; spellingLocale: string; canViewPediatric: boolean; canViewOrchestration: boolean;
+  voiceProfile: string; spellingLocale: string; qcPools: string; canViewPediatric: boolean; canViewOrchestration: boolean;
   /** Real, per direct design brief on the RFP-APLIS-2026-GLOBAL
    *  Intraoperative/Frozen Section Dashboard's own Quick Auth flow —
    *  only meaningful for a real 'Or Staff' user; see
@@ -171,7 +172,7 @@ type Draft = {
 const emptyDraft: Draft = {
   firstName: '', middleName: '', lastName: '', credentials: '', email: '',
   roles: [], npi: '', gmcNumber: '', license: '', phone: '',
-  signatureUrl: '', active: true, voiceProfile: '', spellingLocale: '', canViewPediatric: false,
+  signatureUrl: '', active: true, voiceProfile: '', spellingLocale: '', qcPools: '', canViewPediatric: false,
   canViewOrchestration: false, subspecialtyIds: [], quickAuthPin: '',
   providerCredentials: [], facilityIds: [],
 };
@@ -202,7 +203,7 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
       email: user.email, roles: [...user.roles], npi: user.npi,
       gmcNumber: user.gmcNumber || '', license: user.license, phone: user.phone,
       signatureUrl: signatureLinkOnOpen(user.signatureUrl).value,
-      active: user.status === 'Active', voiceProfile: user.voiceProfile || '', spellingLocale: user.spellingLocale || '',
+      active: user.status === 'Active', voiceProfile: user.voiceProfile || '', spellingLocale: user.spellingLocale || '', qcPools: (user.qcReviewerRoles ?? []).join(', '),
       canViewPediatric: user.canViewPediatric ?? false,
       canViewOrchestration: (user as any).canViewOrchestration ?? false,
       subspecialtyIds: subspecialties.filter(s => s.userIds.includes(user.id)).map(s => s.id),
@@ -405,6 +406,15 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
                 ))}
               </select>
               <span className="ps-conf-hint">{t('staffTab.modal.spellingLocaleHint')}</span>
+            </div>
+          </div>
+
+          {/* Batch 608 (#50, #79): cytology QC reviewer pools. */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label" htmlFor="staff-qc-pools">{t('staffTab.modal.qcPoolsLabel')}</label>
+              <input id="staff-qc-pools" value={draft.qcPools} onChange={e => set('qcPools', e.target.value)} className="ps-conf-input" />
+              <span className="ps-conf-hint">{t('staffTab.modal.qcPoolsHint')}</span>
             </div>
           </div>
 
@@ -631,6 +641,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       status: (draft.active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
       voiceProfile: draft.voiceProfile === '' ? undefined : (draft.voiceProfile as VoiceProfileId),
       spellingLocale: draft.spellingLocale === '' ? null : draft.spellingLocale,
+      qcReviewerRoles: draft.qcPools.trim() === '' ? undefined : draft.qcPools.split(',').map(r => r.trim().toUpperCase()).filter(Boolean),
       quickAuthPin: draft.quickAuthPin === '' ? undefined : draft.quickAuthPin,
       providerCredentials: normalizeProviderCredentials(draft.providerCredentials),
       facilityIds: draft.facilityIds,

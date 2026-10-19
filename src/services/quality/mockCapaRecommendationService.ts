@@ -9,6 +9,7 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import type { CapaRecommendation } from '@/types/quality/CapaRecommendation';
 import { createCapaRecommendationService } from './capaRecommendationService';
+import { DEMO_DISCORDANCE_CAPA_RECOMMENDATIONS } from './demoDiscordanceSeed';
 
 export const CAPA_RECOMMENDATIONS_STORAGE_KEY = 'pathscribe_capa_recommendations';
 
@@ -26,6 +27,8 @@ const SEED: CapaRecommendation[] = [
     summary: 'Released amendment for reason "Pathologic Staging Change", marked clinically significant.',
     status: 'pending', createdBy: 'system', createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
   },
+  // PS-147: the two major peer review discordances (demoDiscordanceSeed.ts).
+  ...DEMO_DISCORDANCE_CAPA_RECOMMENDATIONS,
 ];
 
 const load = () => storageGet<CapaRecommendation[]>(CAPA_RECOMMENDATIONS_STORAGE_KEY, SEED);

@@ -10,6 +10,8 @@ export interface StaffUser {
   role: 'pathologist' | 'admin' | 'lab-tech';
   initials?: string;
   voiceProfile?: string;
+  /** Batch 608: kept in sync by hand with IUserService.ts's StaffUser. */
+  qcReviewerRoles?: string[];
   // This is what's missing and causing the AuthContext errors:
   credentials?: {
     email?: string;

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/models/
 
 The AI models PathScribe calls: a **global catalog** ForMedrixAI publishes once, and each organisation's **adoption** of the models it uses (PS-58, Option 2, per Pete's design decision).
@@ -67,3 +69,11 @@ Choosing, adopting, changing or retiring the lab's AI models needs `config:ai-mo
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 609 (#173): per-adoption overrides
+
+`modelOverrides.ts` (pure): the closed set of overrides an organisation can set on an adopted model: `configOverrides.maxTokens` (50 to 8,000, a ceiling on output length, read by `callAi` through `resolveAiConfigOverrideForClient`) and `thresholdOverrides.confidenceThreshold` (0 to 100, read by `resolveConfidenceThresholdForClient`). `applyModelChanges` validates them and refuses anything else with `INVALID_OVERRIDE`; an empty section clears the override. `AIModel` carries them in the joined view. Edited in Configuration, Models (`ModelOverridesModal`); saving needs `config:ai-model:manage` (the existing `update` check). Tests: `modelOverrides.test.ts`, `mockModelService.test.ts`.
+
+## Batch 616 (part E) — server version
+
+API-server version of `Model` (`httpModelService.ts`, contract `MODELS_API.md`); `ModelStore` (`httpModelStoreService.ts`, contract `MODELS_API.md`), picked by `modelServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

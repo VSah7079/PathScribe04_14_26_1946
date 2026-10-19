@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/deficiencies/
 
 Specimen/requisition deficiency tracking and resolution — modeled deliberately on CoPathPlus's Deficiency+Resolution dictionary pattern.
@@ -61,3 +63,5 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - `fetchGlobalDeficiencies.ts`: a comment pointed to the removed engine-notification poll; updated.
+
+Batch 616 (part D, PS-501): server versions of DeficiencyTypeService, ResolutionTypeService, ManagementReviewService, SpecimenDeficiencyService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/QUALITY_API.md`.

@@ -51,6 +51,9 @@ import { billingSelectionForMaterialBlock, billingHighlightsForSelection, billin
 import { billableMaterialOf } from '@/services/material/billableMaterial';
 import { materialEventBus } from '@/services/material/materialEvents';
 import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import FrozenSectionSuggestions from './FrozenSectionSuggestions';
+import CaseRegistryReportPanel from './CaseRegistryReportPanel';
+import SmartCaptureLauncher from './SmartCaptureLauncher';
 
 interface PendingCode {
   specimenId: string;
@@ -533,6 +536,11 @@ const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
 
   return (
     <div className="ps-billing-review-panel">
+      {/* Batch 605: frozen section CPT suggestions (unconfirmed), accept or dismiss. */}
+      {caseId && <FrozenSectionSuggestions caseId={caseId} />}
+      {caseId && <CaseRegistryReportPanel caseId={caseId} />}
+      {/* Batch 611 (#189): Smart Capture prototype, suggested charge lines for a person to review. */}
+      {caseId && <SmartCaptureLauncher caseId={caseId} />}
       {/* Batch 452: material changes, announced as they happen. */}
       <div className="ps-billing-material-notice" role="status" aria-live="polite">{materialNotice ?? ''}</div>
       <div className="ps-billing-review-panel-header">

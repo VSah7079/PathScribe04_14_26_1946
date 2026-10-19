@@ -84,6 +84,8 @@ vi.mock('../../components/Config/Macros/index', () => ({
     const { setDirty } = useConfigDirtyGuard();
     const guard = useConfigNavigationGuard();
     const [dialog, setDialog] = useState(false);
+    // Like Cassette Colours: closes only from its own Cancel (no backdrop click, no Escape).
+    const [sticky, setSticky] = useState(false);
     const [section, setSection] = useState('one');
     // Like LookupModal: some dialogs close on Escape anywhere in the window.
     useEffect(() => {
@@ -105,6 +107,14 @@ vi.mock('../../components/Config/Macros/index', () => ({
             <input aria-label="dialog field" />
             <input aria-label="dialog filter" type="search" />
             <button onClick={() => setDialog(false)}>close dialog</button>
+          </div>
+        )}
+        <button onClick={() => setSticky(true)}>open sticky dialog</button>
+        {sticky && (
+          <div role="dialog" data-testid="sticky-backdrop">
+            <input aria-label="sticky field" />
+            <button>common.save</button>
+            <button onClick={() => setSticky(false)}>common.cancel</button>
           </div>
         )}
         <InlineForm />
@@ -363,6 +373,23 @@ describe('ConfigurationPage — closing a dialog from outside (Batch 438)', () =
     expect(screen.getByTestId('dialog-backdrop')).toBeTruthy();
     fireEvent.click(screen.getByText('configuration.dirtyGuard.discardButton'));
     expect(screen.queryByTestId('dialog-backdrop')).toBeNull();
+  });
+
+  // PS-128 review (Oct 15, 2026): Discard used to forget the edits and leave such a dialog open.
+  it.each([['a backdrop click'], ['Escape']])('Discard after %s closes a dialog that only closes from its own Cancel', async (how) => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open sticky dialog'));
+    const field = screen.getByLabelText('sticky field');
+    fireEvent.input(field, { target: { value: 'Xyz' } });
+    if (how === 'Escape') { field.focus(); fireEvent.keyDown(field, { key: 'Escape' }); }
+    else fireEvent.click(screen.getByTestId('sticky-backdrop'));
+    expect(screen.getByText('configuration.dirtyGuard.dialogMessage')).toBeTruthy();
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.discardButton'));
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    expect(screen.queryByTestId('sticky-backdrop')).toBeNull();
+    // nothing is left unsaved: another tab goes straight through
+    fireEvent.click(screen.getByText('configuration.tabs.ai'));
+    expect(screen.getByText('AI_TAB')).toBeTruthy();
   });
 
   it('edits are noticed after React has handled them (bubble phase), so the first keystroke is kept', async () => {

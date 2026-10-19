@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createClientErrorReporter, errorLogEntryFor, installGlobalErrorHandlers, newErrorReference } from './clientErrorReporter';
+import { createClientErrorReporter, errorLogEntryFor, installGlobalErrorHandlers, newErrorReference, WINDOW_ERROR_DELAY_MS } from './clientErrorReporter';
 
 function make(now = { t: 0 }) {
   const sink = vi.fn();
@@ -42,6 +42,21 @@ describe('clientErrorReporter (Batch 502, PS-472)', () => {
     expect(sink).toHaveBeenCalledTimes(2);
   });
 
+  it('a development re-throw with an "Uncaught Error:" prefix is not logged a second time (PS-472)', () => {
+    const { reporter, sink } = make();
+    reporter.report(new Error('boom here'), 'render', 'route');
+    expect(reporter.report('Uncaught Error: boom here', 'window-error')).toBeNull();
+    expect(reporter.report(new TypeError('Uncaught TypeError: boom here'), 'window-error')).toBeNull();
+    expect(sink).toHaveBeenCalledTimes(1);
+  });
+
+  it('a different crash is still logged after a boundary report (PS-472)', () => {
+    const { reporter, sink } = make();
+    reporter.report(new Error('first problem'), 'render', 'route');
+    expect(reporter.report('Uncaught Error: second problem', 'window-error')).not.toBeNull();
+    expect(sink).toHaveBeenCalledTimes(2);
+  });
+
   it('a failing sink never breaks reporting', () => {
     const reporter = createClientErrorReporter({ sinks: [() => { throw new Error('sink down'); }, () => Promise.reject(new Error('async down'))], now: () => 0, pathname: () => '/', newReference: () => 'R' });
     expect(() => reporter.report(new Error('x'), 'render')).not.toThrow();
@@ -66,6 +81,24 @@ describe('clientErrorReporter (Batch 502, PS-472)', () => {
     expect(report).toHaveBeenNthCalledWith(2, 'r', 'unhandled-rejection');
     remove();
     expect((win as { removeEventListener: ReturnType<typeof vi.fn> }).removeEventListener).toHaveBeenCalledTimes(2);
+  });
+
+  it('a window error that arrives before the boundary report is not logged as a second entry (PS-472)', () => {
+    const { reporter, sink } = make();
+    const listeners: Record<string, (e: unknown) => void> = {};
+    const win = { addEventListener: (k: string, f: never) => { listeners[k] = f; }, removeEventListener: vi.fn() } as never;
+    installGlobalErrorHandlers(win, reporter);
+    vi.useFakeTimers();
+    try {
+      listeners.error({ error: new Error('dev crash') });            // React sends the window the error first…
+      vi.advanceTimersByTime(WINDOW_ERROR_DELAY_MS - 1);
+      reporter.report(new Error('dev crash'), 'render', 'route');     // …the boundary reports a moment later
+      vi.advanceTimersByTime(5);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(sink).toHaveBeenCalledTimes(1);
+    expect(sink.mock.calls[0][0].source).toBe('render');
   });
 
   it('a reference is short and readable', () => {

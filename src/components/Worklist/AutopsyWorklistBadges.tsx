@@ -20,9 +20,13 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveAutopsyWorklistBadges, resolveAutopsySlaHint, type AutopsyWorklistBadgeKind } from '@/services/autopsy/resolveAutopsyWorklistBadges';
 import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
+import type { AutopsyClockSource } from '@/services/autopsy/resolveAutopsyTatStatus';
+import AutopsyTatChip from '@/components/Autopsy/AutopsyTatChip';
 
 interface Props {
   autopsy: AutopsyCaseDetails | undefined;
+  /** The case row, for the body-arrival time the turnaround verdict counts from (Batch 610, #60). */
+  caseSource: AutopsyClockSource;
 }
 
 const BADGE_HUE: Record<AutopsyWorklistBadgeKind, string> = {
@@ -32,7 +36,7 @@ const BADGE_HUE: Record<AutopsyWorklistBadgeKind, string> = {
   fadSigned: '#34d399',
 };
 
-const AutopsyWorklistBadges: React.FC<Props> = ({ autopsy }) => {
+const AutopsyWorklistBadges: React.FC<Props> = ({ autopsy, caseSource }) => {
   const { t } = useTranslation();
   if (!autopsy) return null;
 
@@ -52,6 +56,8 @@ const AutopsyWorklistBadges: React.FC<Props> = ({ autopsy }) => {
       <span className="wl-autopsy-badge wl-autopsy-badge--sla" style={{ '--ps-hue': '#94a3b8' } as React.CSSProperties} title={slaHint}>
         SLA
       </span>
+      {/* Batch 610 (#60): the verdict against that target: On track / Due soon / Overdue, then Met / Met late. */}
+      <AutopsyTatChip autopsy={autopsy} caseSource={caseSource} />
     </div>
   );
 };

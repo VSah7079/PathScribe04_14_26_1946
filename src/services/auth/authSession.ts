@@ -35,6 +35,7 @@ import { resolveSsoProfileFromApi, resolveSsoProfileLocally, SSO_PROVIDER_AUDIT_
 import { profileNeedsStaffFields, staffSessionFields, type SessionProfile } from './sessionProfile';
 import type { DemoAccount } from './demo/demoAccounts';
 import { deriveSessionRole } from './sessionRole';
+import type { MfaService } from './mfa/mfaService';
 import type { StaffPasswordCheck } from '../staffPasswords/mockStaffPasswordService';
 import {
   SIGN_IN_LOCK_POLICY, currentSignInLock, isSignInLocked, recordSignInFailure, signInLockKey, NO_SIGN_IN_LOCK,
@@ -52,6 +53,8 @@ export interface SessionMarkers {
 }
 
 export interface AuthSessionDeps {
+  /** Batch 611 (#157). Optional: the second-factor rules for single sign-on and for a restored session. */
+  mfa?: Pick<MfaService, 'evaluateSso' | 'sessionStillValid'>;
   config: AuthConfig;
   /** Null when this build has no demo accounts (VITE_AUTH_MODE=sso). */
   verifyDemoCredentials: ((email: string, password: string) => Promise<DemoAccount | null>) | null;
@@ -243,6 +246,16 @@ export function createAuthSession(deps: AuthSessionDeps) {
       // Remember which account this is, for signature confirmation (Batch 344).
       const identity = identityFromClaims(provider, done.claims);
       const profile: SessionProfile = { ...resolved.profile, ssoIssuer: identity?.issuer, ssoSubject: identity?.subject };
+      // Batch 611 (#157): when the organisation requires a second factor, the
+      // provider must have reported one (amr / acr); otherwise no session.
+      if (deps.mfa) {
+        const mfa = deps.mfa.evaluateSso(profile, done.claims as Record<string, unknown>);
+        if (mfa.ok === false) {
+          await client.signOut(providerId);
+          return { ok: false, reason: mfa.reason };
+        }
+        if (mfa.stamp) profile.mfa = mfa.stamp;
+      }
       return { ok: true, profile, returnPath: done.returnPath };
     },
 
@@ -308,6 +321,13 @@ export function createAuthSession(deps: AuthSessionDeps) {
       if (profileNeedsStaffFields(profile)) {
         Object.assign(profile, staffSessionFields(await staffFor(profile.id)));
         deps.profileStore.write(profile);
+      }
+      // Batch 611 (#157): a second factor that has expired (or belongs to
+      // another organisation) ends the session; the person signs in again.
+      if (deps.mfa && !deps.mfa.sessionStillValid(profile)) {
+        if (method === 'sso' && profile.ssoProviderId) void deps.ssoClient().signOut(profile.ssoProviderId);
+        deps.profileStore.write(null);
+        return null;
       }
       return profile;
     },

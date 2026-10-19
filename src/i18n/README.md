@@ -1,4 +1,285 @@
+## Batch 615 (part D) — vial and rack labels, CI workflow, right-to-left groundwork (PS-360, PS-471, PS-293)
 
+- **PS-360 vial and rack/batch labels.** `networkPrint.label.vialRack.*` (error reasons, volume, item count, rack kinds) in all five languages. Text printed on a label comes from these keys, in the user's language.
+- **PS-293 direction.** `src/i18n/direction.ts` (`directionFor`, `applyDocumentDirection`, `RTL_LANGUAGES`); `config.ts` sets `<html lang dir>` at start-up and on every language change. `SUPPORTED_LANGUAGES` is unchanged: to add a right-to-left language, add its locale file and a menu entry, mark its report-language rules, and have a native speaker review the wording. The stylesheet needs nothing more (logical properties, `logicalCss.guard.test.ts`).
+- **PS-471.** `.github/workflows/ci.yml` (see `docs/architecture/DEPLOYMENT_READINESS_REVIEW.md` section 0.5).
+
+## Batch 615 (part C) — Code Manager searches for matched triggers (PS-138)
+
+Two new keys in all five languages: `addCodeModal.triggerHeader` (the label before the matched findings) and `addCodeModal.triggerChipTitle` (the tooltip: "Search SNOMED for “{{query}}”. You choose what is applied."). Native-speaker review of the fr/de/nl/ko text is on `docs/product/PHRASE_REVIEW_LIST.md`.
+
+## Batch 614 (part A) — editor commands, Go to routes
+
+Three new keys in all five languages: `goToPrefix.route` ("Alt+J, then {{key}}", shown under an always-on command's key in Configuration → Actions and beside it in the Role Dictionary action reference), `roleDictionary.cheatsheet.groupAlwaysOn` (the group tag for those commands) and `pathScribeEditor.ruler` (the ruler's accessible name). The 16 text-editor commands' voice phrases (five languages each) are in `mockActionRegistryService.ts`, not in the locale files; fr/de/nl/ko phrases need native review.
+
+## Batch 613 (part A) — case search reporting
+
+157 new keys in all five languages: `searchPage.sections.synopticValues`, `searchPage.synopticValues.*` (the answer filters and their nine conditions), `searchPage.summaryParts.synopticValue.*` (one summary phrase per condition), the `caseReport.*` group (view toggle, group-by names, column names, columns picker, saved reports, export notices, table headings, `schedule.*` including every error code), and two capability labels `capabilities.items.searchCaseReportExport` / `searchReportScheduleManage`. Counts use "Label: {{count}}" wording rather than plural forms. Group names and protocol questions are the organisation's data and are not translated.
+
+## Batch 613 (part B) — related cases and patient summary
+
+51 new keys in all five languages: `relatedCases.errors.*`, `relatedCases.layout.*`, `relatedCases.picker.*`, `relatedCases.signout.*`, `relatedCases.summary.*`, `relatedCases.amended.banner_one/_other`; ten `surgicalReportPdf.*` labels for the report output (`intraopDiagnosis`, `relatedCasesTitle`, `relatedCasesNotice`, `relatedCaseReleased`, `relatedCaseSpecimens`, `relatedCaseDiagnosis`, `relatedCaseSignedBy`, `relatedCaseOrdering`, `relatedCaseCopyTo`, `relatedCaseClient`; these must match `DEFAULT_LABELS` in `functions/main.py`); `capabilities.items.reportRelatedCasesAttach` and `patientSummaryPrint`. Needs native-speaker review in fr, de, nl and ko.
+
+## Batch 613 (part C) — access to a patient's other cases
+
+New keys in all five languages: `patientCaseAccess.*` (the notice, the reason list, approve/decline/revoke, grants, messages, errors, history lines), `accessRequestResponseTab.type.patient_cases`, `accessRequestResponseTab.patientCases.*` (heading, none, revoke dialog), and `capabilities.items.patientOtherCasesRequestAccess` / `patientOtherCasesDecideAccess`. The fr, de, nl and ko text is machine-written and needs native review.
+
+## Batch 613 (part D) — reporting feed
+
+New keys in all five languages: `biFeed.*` (screen, notices, problems, datasets, approval, tokens, form, token panel, pull test, field catalogue), `systemTab.sections.biFeed`, `capabilities.items.configBiFeed*` (three) and `configSearchIndex.entries.sys-bi-feed.description`. Several phrases reuse the Workstations wording. Schema field ids (`case_key`, `mrn`) are not translated.
+
+## Batch 612 (part C) — report font sizes in points (Pete: "7.5 is really too small")
+
+15 new keys in all five languages: `fontUnits.*` (the points and pixel labels, "Prints at", the Convert to points panel and its messages). Changed: `documentStyleSection.fontSizeLabel`, `templateAssemblyPage.fontSizeLabel`, `templateInspector.labelConfig.fontSizeLabel` now say pt; `templateAssemblyPage.styleCategoryDescription` takes a `{{unit}}`.
+
+Font sizes are points. A style or template saved before carries no `units` and is `legacy_px`: it prints as it always did (1 px = 0.75 pt) until an author presses **Convert to points**, which lists each size, keeps the number as points (at least 8) and writes an audit entry. New templates are `fontUnits: 'pt'`; the built-in defaults are body 10, header 11 bold, footer 10 pt. The preview of a template in points is drawn at the paper's real width and side margins in CSS points. The PDF renderers read the same units (`functions/report_layout.py`). New: `services/reportAppearance/{fontUnits,convertToPoints,previewPage}.ts`, `components/Common/{FontSizeField,ConvertToPointsPanel}.tsx`. Shipped test layouts print on the same number of pages at the new defaults as at the old. No new capability: the lab conversion uses `config:report-appearance:manage`.
+
+## Batch 611 (part F) — legacy file import and biometric prompt (#132, #166, #158)
+
+- **Legacy file import:** Migration Jobs gets **Import legacy file** (CSV or JSON, up to 2,000 records, needs `config:migration-mappings:manage`). Each record runs through the saved field mappings and patient matching; a succeeded record becomes a draft case marked *Simulated bulk import*; a second import of the same legacy accession is refused. The file is read in the browser and not kept; the audit entry holds counts and the source system's name only. New strings `migrationImport.*` and `migrationJobs.*` (importButton, simulatedTag, simulatedBanner, allRecords, noRecords, recordOutcome.*, targetCase) in all five languages.
+- **Biometric:** the enrolment window and the sign-out panel now say the check is *Simulated*; where the browser has WebAuthn the device's own fingerprint or face prompt is used with a challenge made in the browser (nothing is verified by a server), otherwise the labelled demonstration prompt. A cancelled prompt enrols nothing; a refused check falls back to the password. Audit entries are labelled Simulated and name no one. New strings `profileMenu.biometric.{simulatedBanner,enrolDeclined,promptDevice,promptSimulated}` and `preFinalisationModal.signing.bioSimulated`.
+
+## Batch 611 (part H) — multi-factor sign-in (#157)
+
+54 new keys in all five languages: `login.mfa.*` (the sign-in step: Simulated label and note, enrolment, recovery codes, errors, attempts left), `login.ssoError.mfa_required`, `signerConfirmation.mfaCode/mfaCodePlaceholder/mfaNote` and three `signerConfirmation.error.mfa_*`, `sessionSecurity.mfa.*` (the policy card and the enrolment list), and the capability text `capabilities.items.authMfaEnrolmentReset`. Korean, French, German and Dutch wording needs native-speaker review (rows in `docs/quality/TRANSLATION_REVIEW.md`).
+
+## Batch 611 (part G) — Smart Capture charge suggestions, prototype (#189)
+
+Added `services/smartCapture/` (rules, states, settings, payload, service, wiring), `SmartCaptureLauncher` in the billing review, and `SmartCaptureSection` in Configuration → System. Four capabilities (`billing:smart-capture:review`, `approve`, `send`; `config:smart-capture:manage`; the third is `send`, not `export`, so it is not an export kind under `ASYNC_EXPORT_API.md`). New `smartCapture.*` strings in all five languages (fr/de/nl/ko need native-speaker review before clinical use), `systemTab.sections.smartCapture` and one search-index description. Storage keys `smartCaptureSettings` and `smartCaptureRecords` are reset by the demo reset. See `docs/product/SMART_CAPTURE.md`.
+
+## Batch 611 (part E) — simulated export server, matrix block comments, retention custody history (#194, #10, #59)
+
+10 new keys in all five languages: `materialComments.*` (5), `myExports.simulatedBadge/simulatedNote/longToggle`, `exports.notice.simulatedBadge`, `synopticReportPage.autopsy.retentionDetail.historyTitle`. Korean, French, German and Dutch wording needs native-speaker review.
+
+## Batch 610 (part B) — performance targets, client service levels, jurisdiction overview (#87, #164, #163)
+
+131 new keys in all five languages: `performanceTargetsSection.*`, `clientSlaSection.*`, `jurisdictionOverviewSection.*`, `performanceTargetsTile.*`, `clientSlaPanel.*`, `worklistTable.slaBreach.*`, `systemTab.sections.performanceTargets|clientSla|jurisdictionOverview` and the three `configSearchIndex.entries.sys-*` descriptions. Plurals use `_one`/`_other` (`rolesOffered`, `ai.facilityRules`). Machine translations; Korean clinical wording needs native-speaker review.
+
+## Batch 610 (part D) — tumor board criteria rules, AI discordance, spoken delegation types (#71, #78, #83)
+
+60 new keys in all five languages: `tumorBoardRulesSection.criteria.*` and related (29), the AI Discordance tab (30) and `delegateModal.refusals.presetUnavailable`. Native-speaker review is still outstanding.
+
+## Batch 610 (part A) — autopsy turnaround, dashboards, frozen section targets (#60, #61, #87, #88, #89)
+
+91 new keys in all five languages: `autopsyDashboard.*`, `autopsyTat.*`, `tatConfigSection.types.autopsyPad|autopsyFad`, `tatConfigSection.modal.warningMinutes*` and `errorWarningInvalid`, `tatConfigSection.warnMinutesShort`, `intraopQueue.specimenCard.urgency*`, `qualityComplianceHub.autopsyDashboardsTile`, and the `screen:autopsy-dashboards:open` capability text. Machine translations; Korean clinical wording needs native-speaker review.
+
+## Batch 609 (part A) — report PDF renderer, images in report PDFs (#35, #127, #44)
+
+New keys in all five languages: `reportImages.*` (the Attach images screen: title, link, type, caption, Add, problems, the "PathScribe does not store images" note), `bottomActionBar.attachImages.*` and `cytologyScreening.attachImagesBtn` / `attachImagesTitle` (the buttons). Machine translations; the clinical wording should get native-speaker review.
+
+## Batch 609 (part B) — mismatch check after sign-out, Final Diagnosis rule, template audit, Upload Protocol check (#31, #38, #39)
+
+New keys in all five languages: `clinicalMismatch.alert.releaseNotHeld`, `clinicalMismatchRulesSection.revision.*`, `templateAssemblyPage.finalDiagnosisTooMany`, `partBuilderPage.finalDiagnosisTooMany`, `protocolShared.uploadModal.importButton`, `protocolShared.uploadModal.check.*` (including one sentence per upload finding code). `protocolShared.uploadModal.warningBody` reworded (an imported protocol is a draft). Machine translations; the clinical wording should get native-speaker review.
+
+## Batch 609 (part C) — AI model settings, dictation spelling and languages, German/French/Dutch medical word lists (#173, #177, #179, #180)
+
+- **Model settings:** `modelsTab.overrides.*` (button, badge, window, help text, errors); `configOverrides.maxTokens` and `thresholdOverrides.confidenceThreshold` on the adoption, validated in `services/models/modelOverrides.ts`, read by `callAi` and `resolveConfidenceThresholdForClient`.
+- **Voice:** `voiceSection.englishFuzzy.*` and `voiceSection.promptReview.*`; `SystemConfig.voiceEnglishFuzzyFallback` (default on), checked with `config:voice:manage`.
+- **Prompts:** `services/voice/dictationRefinementPrompt.ts` builds the AI refinement instructions per language and English spelling. The prompt text itself is an instruction to the AI, shown as data on the Voice page, not translated.
+- **Strings:** fr, de, nl, ko are machine translations; Korean needs native-speaker review. The new non-English prompt wording and the German, French and Dutch word lists (`spellcheck-data/{de,fr,nl}/pathology.dic.txt`) need native-speaker review too.
+
+## Batch 603 — Break-glass permission, QA export without MRN, terminology written down, wall displays (Pete and dev review, Oct 17, 2026)
+
+- **Break-glass:** `patient:break-glass:rebind` (high risk, Admin by default) is checked in `patientIndexService.breakGlassRebind()` and gates the Audit Log button. The reason code and written justification rules are unchanged. Text in all five languages.
+- **QA export:** the cytology-histology correlation download no longer has a Patient MRN column (`cytologyHistologyCorrelationCsvRows`); the accession numbers pair the cases.
+- **Strings:** `capabilities.items.patientBreakGlassRebind.*`. fr, de, nl, ko are machine translations; Korean needs native-speaker review.
+
+## Terminology decisions (as implemented in the code, written down Oct 17, 2026; Pete to confirm)
+
+CLAUDE.md pointed here for these, but the section did not exist. This is what the code and locale files do today, not new rules.
+
+**Medical record number (MRN) label**
+- English: "MRN".
+- French: **IPP** (Identifiant Permanent du Patient) on the patient-facing label, the search placeholder, the "IPP match" and grid columns (`fr.json`: `mrn` keys, `mrnMatch`, `gridMrn`). A few generic places say "Identifiant patient".
+- German: "Patientennr." / "Patientennummer (MRN)". Dutch: "Patiëntnr." / "Patiëntnummer (MRN)". Korean: "MRN", "등록번호(MRN)" or "환자번호". The stored field is `mrn` in every language; only the label changes.
+
+**Percentage-point wording** (`cytologyQaTab.hpvPositivityTable.percentagePoints`, plural keys): English "pp"; French "point(s) de pourcentage"; German "Prozentpunkt(e)"; Dutch "procentpunt(en)"; Korean "퍼센트포인트".
+
+**Titles (honorifics)** (`common.honorifics.*`): the stored value is always the English prefix (Mr., Mrs., Ms., Mx., Dr., Sir, Dame); only the label in the picker is translated.
+- **The Ms. qualifier:** where a language has no separate word for Ms., the picker shows the local title with "(Ms.)" so the choice stays visible: French "Mme (Ms)", German "Frau (Ms.)", Dutch "Mevr. (Ms.)", Korean "님 (Ms.)". Mrs. shows the local title alone.
+
+**Korean names** (`utils/personName.ts`, `formatDisplayNameForLanguage`, Batch 514): a Korean screen shows the full name plus **님** (김민준 님), or **선생님** for a doctor or professor (stored prefix Dr or Prof). Western titles are not shown. A Hangul name is written family name first with no space; other names keep given-then-family order. The stored prefix is unchanged, and English documents still print it. Every other language shows "Dr. Juan García López".
+
+**Not found in the code:** any written rule for other terminology choices. Add them here when decided.
+
+
+## Batch 602 — Screen-wins hotkeys and voice; Go to prefix (Pete, Oct 17, 2026)
+
+New keys `goToPrefix.title` and `goToPrefix.hint` in en, fr, de, nl, ko (fr "Aller à", de "Gehe zu", nl "Ga naar", ko "이동"). Nine duplicate voice phrases removed from fr/de/nl/ko/en. The fr/de/nl/ko text needs native-speaker review.
+
+## Batch 601 — Every voice and hotkey command in the Role Dictionary; hotkey clash guard (Pete, Oct 17, 2026)
+
+- **What changed:** the 89 commands that only open, filter, move, select or cancel are now in the Role Dictionary (six new groups), so all 245 voice and shortcut commands can be granted or withheld by a role. Default grants: case-screen roles get all 89; Admin, Lab Director and QA Reviewer get going-to and searching; Physician, Or Staff and template roles none. Existing sites are offered them once (`Role.seededActions`).
+- **Guard (`actionsCoverage.guard.test.ts`):** every voice command is in the roles list; each has a hotkey and phrases in five languages; the 98 permission-only entries are listed; 67 known hotkey clashes are listed and can only shrink.
+- **Found, not fixed:** 67 pairs of commands share a hotkey while active on the same screen (mostly always-on intraoperative and System commands). Needs Pete's approval of a rule before default hotkeys change (`docs/product/ACTIONS_COVERAGE.md`).
+- **Not changed:** capabilities, text, locale keys. Voice for the 98 permission-only entries needs handlers on their screens first.
+
+## Batch 600 — Role Dictionary: 60 more commands, default grants for every built-in role (Pete, Oct 16, 2026)
+
+- **What changed:** the Role Dictionary gains seven groups (Report Workflow, Case Handling, Orders & Printing, Intraoperative, Cytology Screening, Workstations, Result Dispatch) with the 60 record-changing voice and shortcut commands that had no entry (Batch 599). Each keeps its existing key, and `mockActionRegistryService.ts` now reads it from the roles list (`ACTION_MAP`), so the two lists cannot drift.
+- **Default grants:** `constants/defaultActionGrants.ts`. Customers start from these and change them. Pathologist, Fellow, Resident, PA, Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist, Admin and Lab Director get the commands their job uses; Superadmin gets all; Physician, Or Staff, QA Reviewer and the template roles get none. The matrix is in `docs/product/ACTIONS_COVERAGE.md` and needs Pete's review.
+- **Existing sites:** `services/roles/actionSeeds.ts` offers each built-in role the new commands once (`Role.seededActions`); a removal by an administrator sticks; custom roles and copies are not touched.
+- **Not changed:** capabilities (what a person may actually do is still decided in the services), text, locale keys. Command labels are catalogue data and stay as the other commands are.
+- **Tests:** `actionSeeds.test.ts` (10), `actionsCoverage.guard.test.ts` (now: every command is in the roles list or view-only).
+
+## Batch 599 — Actions list accounting (Pete, Oct 16, 2026)
+
+- **What changed:** no behaviour. New `actionRegistry/actionsCoverage.guard.test.ts` and `docs/product/ACTIONS_COVERAGE.md`. Of 245 voice and shortcut actions, 96 are in the roles list; of the other 149, 89 change nothing and 60 change records and cannot yet be granted by a role.
+- **Decision for Pete:** whether, and with what defaults, to add those 60 to the Role Dictionary.
+- **Not changed:** roles, defaults, capabilities, text, locale keys.
+
+## Batch 598 — Held-back CSS classes checked (PS-520, Pete, Oct 16, 2026)
+
+- **What changed:** documentation only. The 517 CSS classes that code builds from a name prefix or suffix were checked one by one against the values that build them; all are live, none removed. `KNOWN_GAPS.md` marks PS-520 done.
+
+## Batch 597 — Unused CSS, the rest (PS-520, Pete, Oct 16, 2026)
+
+- **What changed:** all 530 remaining unreferenced classes (608 rules) removed from `pathscribe.css`, plus 4 unused animations; 30,494 → 28,146 lines. Where a selector list had a dead member, only that member went. The audit tool gained suffix detection, library-class exemption and `--remove-all`; the guard now requires zero unreferenced classes.
+- **Not changed:** no component, no text, no locale keys.
+- **Kept:** 517 classes whose names code builds from a prefix or suffix (not provable dead by text search).
+- **Please check by eye:** Case Team window, template request window, Patient History (Batch 596) and a few busy screens (worklist, Config, report editor); a removed class can't be proven harmless by reading code.
+
+## Batch 596 — Unused CSS, first slice (PS-520, Pete, Oct 16, 2026)
+
+- **What changed:** 146 unreferenced classes (167 rules) removed from `pathscribe.css`: the old `ps-team-`, `ps-tmpl-`, `ps-part-`, `ps-osn-` and `ps-hist-` families, and the `rp-spin` animation. The diff only removes lines. New `scripts/css-unused-audit.mjs` (audit and `--remove`) and `styleRules/unusedCss.guard.test.ts` (the unreferenced count can only go down: 718 → 572).
+- **Why these:** no class with these prefixes appears anywhere in `src/`, `e2e/` or `index.html`, and each live component was rewritten with a newer prefix (`ps-ctm-`, `trm-`, `ps-plib-`, `ps-ph-`; the Orchestrator panel went in Batch 517).
+- **Not changed:** no component, no text, no locale keys. The production build passes.
+- **Open (PS-520):** 572 unreferenced classes in other families and 486 held back because code builds their names from a prefix; one family per batch. `PS-294` (duplicate rules) is done (Batches 436, 517).
+
+## Batch 595 — Code Systems setting (Pete, Oct 16, 2026)
+
+- **What changed:** Configuration → System → Code Systems (`CodeSystemsSection.tsx`): per jurisdiction, each code system off / optional / required from a date. New `codeSystemPolicyService` (list, save, reset, policyFor, served), capability `config:code-systems:manage` (Admin and Lab Director; audited `CODE_SYSTEM_POLICY_CHANGED`), search entry repointed, sidebar entry. 36 new tests.
+- **Text:** `codeSystemsSection.*`, `systemTab.sections.codeSystems`, the capability text and the search description, in all five languages. **Machine-translated fr / de / nl / ko: needs native-speaker review** (Korean first), with the earlier batches.
+- **Not wired in:** nothing reads the policy yet; the screen says so. Next: the Add Code window, sign-out and outbound messages (shared files; wait for the India team's list).
+- **Edited shared files (small):** `services/index.ts` (exports), `capabilityCatalog.ts`, `configSectionAccess.ts`, `systemSections.ts`, `System/index.tsx`, `configSearchIndex.ts`, the five locale files.
+
+## Batch 594 — One code shape for ICD-10, ICD-11, ICD-O and SNOMED CT (Pete, Oct 16, 2026)
+
+- **What changed:** new `src/services/coding/`: `CodedEntry` (system, release, code, source, AI detail), a per-jurisdiction policy (role off / optional / required, with start dates), and an adapter that reads and writes a case's older `CaseCoding` fields. 16 tests, plus a purity guard. Design: `docs/architecture/DIAGNOSIS_CODING.md`.
+- **Not wired in:** no existing file was edited, so nothing can clash with the India team's changes. No screens, no locale keys.
+- **Source:** Pete's ICD-11 transition requirement: both ICD-10 and ICD-11 during the move, and the AI already suggests codes in the Add Code window, so each code records whether it was typed, mapped, AI-suggested or rule-based.
+- **Open:** wiring into the Add Code window, sign-out and outbound messages; the Config screen; the terminology server and licences (see `docs/product/KNOWN_GAPS.md`).
+
+## Batch 593 — Jurisdiction setup chapter and known-gaps tracker (PS-334, PS-338, Pete, Oct 16, 2026)
+
+- **What changed:** documentation only: `docs/product/ADMIN_GUIDE_JURISDICTIONS.md` and `docs/product/KNOWN_GAPS.md`, with `GUIDE_UPDATES.md`, `docs/product/README.md` and `GETTING_STARTED.md` updated. No code, no locale keys.
+- **Found:** there is no single region screen; a facility gets its Jurisdiction on the General tab of Facility Configuration, and the country rules live on separate System screens. The search entry `sys-jurisdiction` promises a SNOMED CT release / ICD variant setting that has no screen; it is left out of the chapter and listed as a decision.
+
+## Batch 592 — Shared HTTP client for the API server (PS-481, Pete, Oct 16, 2026)
+
+- **What changed:** `services/apiServer/apiHttpClient.ts`: one client for calls to the API server (token, `ServiceResult` results, fixed failure codes, 30-second time-out, no server message text) and `selectByConfiguration` (server version when an address is configured, mock otherwise). 19 tests.
+- **Found:** the app already picks mock or server per service from the API address (`apiServerUrl`); `IS_MOCK_BACKEND` is only the demo-tools flag. The remaining work for PS-481 is moving each service onto the client as its HTTP version is written (PS-482 onward).
+- **No change to screens or text;** no locale keys.
+
+## Batch 589 — Nine app bugs fixed from the "found and not fixed" list (Pete, Oct 16, 2026)
+
+- **Pete's decisions (spreadsheet, Oct 16):** all nine approved. Print a blank when a label has no patient; the Confirm Field shortcut works inside text fields; the highlight disappears when the flagged words are gone; demo data of 5 cases (3 minor, 2 major) across 3 pathologists; self-signed certificate per customer, with a visible failure message and an IT guide for QZ Tray.
+- **PS-344 / PS-477:** audit and error entries get unique ids (`services/auditlog/auditIds.ts`, `crypto.randomUUID` with a fallback), no longer `'al-' + Date.now()`. For the server, the database should also enforce uniqueness with a key (dev team).
+- **PS-55:** `dispatchZplLabel.ts` opens the QZ Tray connection before printing (the app never did, so every QZ print failed with "Not connected"). When a label meant for the hardware printer falls back to the browser print window, a warning toast says so (`utils/labels/labelBridgeNotice.ts`, `useLabelBridgeNotice`). IT guide: `docs/product/QZ_TRAY_CERTIFICATE_GUIDE.md`. Signing requests with the certificate waits on the server (phase 2e).
+- **PS-478:** `labelPatientName` in `buildRequisitionLabelData.ts` reads `givenNames`/`familyNames` and also `firstName`/`lastName` and `first_name`/`last_name`; a missing patient or name prints blank, never "Patient undefined undefined".
+- **PS-66:** the Confirm Field shortcut sent `PATHSCRIBE_CONFIRM_FIELD`, which nothing listened for. `RightSynopticPanel` now confirms the field last clicked or typed in (`utils/synopticConfirmField.ts`). The shortcut already worked inside text fields (modifier keys).
+- **PS-262:** `resolveStaffByQuickAuthPin` identifies the OR Staff role by its id (`or-staff`) and also accepts the role name the Staff screen stores (`staffHasRole`). The Staff screen keeps storing role names, as everywhere else in the app; moving every staff record to ids was not done.
+- **PS-323:** (1) the critical-finding check also reads the Microscopic Description typed for each specimen (`services/clinical/narrativeForDetection.ts`); (2) Report Draft sections are matched by their stable part id (`std_body_gross`, `std_body_microscopic`, `std_body_ancillary`), not the random section id (`narrativeFieldForSection(id, sourcePartId)`, `orchestratorNarrativeText`); (3) flagged findings are kept per case (`services/clinical/criticalFindingStore.ts`, storage key `critical_findings_by_case_v1`, registered in the demo reset) so the highlight is still there after reopening. The highlight still disappears once the flagged words are gone.
+- **PS-245:** the Label Designer canvas border sits outside the label size (`box-sizing: content-box` on `.ps-designer-canvas`), drops are measured from inside the border, and the Inspector number boxes re-sync after a value is clamped back to the same number.
+- **PS-472:** the recovery screen on a case report page now shows the nav bar (`ErrorBoundary` `onErrorChange`, `AppShell`). A development build no longer logs a crash twice: the "Uncaught Error:" re-throw is matched to the crash a boundary already logged (`shadowKeyOf`).
+- **PS-147:** demo discordance data (`services/quality/demoDiscordanceSeed.ts`): 5 post-sign-out peer reviews (3 minor, 2 major) across Pete Nimmo, Paul Carter and Oliver Pemberton, with the two CAPA recommendations the major ones raise. The QA activity record seed is now 181 records. Five cases are too few to trip the pattern rule (20 reviews, 3 majors), so the pattern tile still shows none; the peer review sign-offs and CAPA queue are what this data shows.
+- **Strings:** one new key, `synopticReportPage.toast.labelPrinterNotConnected` (fr, de, nl, ko are machine translations; Korean needs native-speaker review).
+- **Tests:** 46 new tests across 13 files; the review specs for PS-55, 66, 245, 262, 323, 344, 472, 477 and 478 no longer mark these bugs as known failures. Specs: 9 of 10 pass; ps-147 keeps one expected failure.
+- **Tests (Jira):** PS-749 (automated), PS-750 (verification gap)
+- **Not run:** the independent review agent.
+
+## Batch 588 — Deleting a block in process (Pete, Oct 16, 2026)
+
+- **Pete's decisions:** (1) no automatic addendum or amendment after a signed-out delete; (2) each facility chooses which roles may delete, through grants; (3) the billing credit is for billing staff to decide, never automatic; (4) no messages, e-mails or reminders; (5) billing reviews in the **existing Billing deficiencies tab** (Quality Assurance → Financials), not a new queue ("this can't be the first one"). First step: the in-process delete.
+- **Built:** `BlockStatus` gains `Deleted` and `HistologyBlock.deletion`. `services/material/blockDeletion.ts` (pure: the reason list, `blockDeletionInputMissing`, `caseBlockDeletionRefusal`, the soft-delete change) and `deleteBlockInProcess.ts` (needs `material:block:delete-in-process` for the case's facility; saves the soft delete through the report page's own version tracking; raises one billing deficiency; audits). New deficiency type `BLOCK_DELETED` (trigger `BLOCK_DELETION`, detail in `BillingDeficiencyRecord.blockDeleted`: block id, specimen id, reason, released codes, who, when). One new capability, `material:block:delete-in-process` (same default roles as material disposal; each facility changes it in its role grants).
+- **Screen:** the block and stain editor shows **Delete this block** (new `DeleteBlockControl.tsx`): a reason list with the first reason pre-selected, an optional note (required for Other), Delete block / Never mind. Not shown once the case is signed out. A deleted block shows its record (reason, who, when, codes released).
+- **Strings:** `deleted` in the six block-status label groups; `blockDeletion.reasons`, `.control`, `.toast`, `.errors`; the capability's label and description; `qualityAssurance.deficiencyType.blockDeleted`. French, German, Dutch and Korean are machine translations (Korean needs native-speaker review); rows added to `docs/quality/TRANSLATION_REVIEW.md`.
+- **Tests:** `deleteBlockInProcess.test.ts` (13) and `DeleteBlockControl.test.tsx` (5). The permission-seed tests list the new capability.
+- **Reworked during the batch:** a first version added a separate billing credit queue, a second permission (`billing:block-deletion:review`) and a storage key. Pete pointed out billing is already reviewed in Financials, so all three were removed before delivery.
+- **Not built yet:** deleting after sign-out and the amended-report flag (tiers 2 and 3). Server contract: `docs/architecture/BLOCK_DELETION_API.md`.
+- **Tests (Jira):** PS-743 (automated) and PS-744 (verification gap).
+- **Also:** `e2e/review/ps-100.toast-persistence.spec.ts` now waits up to 90 s for the first report on a cold dev server (it failed for Pete at 15 s).
+
+## Batch 587 — Review tests for the "Can automate" tickets, first six (Pete, Oct 16, 2026)
+
+- **Review tests** (`e2e/review/`): PS-73 (duplicate a facility), PS-89 (code import with one bad date), PS-146 (revision reasons and CAPA), PS-327 (the signing-authority unit tests), PS-341 (country signing rules) and PS-470 (lint settings and the explicit-any ratchet). Chromium against the demo: 7 passed.
+- **PS-89 note:** the file needs a Level for each row; the test sets "Level when not in file" to Specimen. PS-73 note: the copy is named "{{name}} (Copy)" (the ticket's "Copy of …" is out of date) and needs an Email and a unique assigning authority.
+- **PS-470 step 1 (lint):** the review specs are clean. The full lint still reports 3 errors in `src/services/serverJobs/serverJobsContract.ts` (`{}` used as a type; file dated Oct 13, not touched here). Carried forward.
+- **Not done in this batch:** PS-261, PS-273, PS-493 (no spec yet, Batch 588); PS-146 steps 3 to 6, PS-327 steps 1 to 6, PS-341 steps 4 to 7, PS-73 steps 4 to 9, PS-89 steps 5 to 7. The independent review agent was not run (usage).
+- **Tests (Jira):** PS-735 (PS-73, 89, 146) and PS-736 (PS-327, 341, 470), both automated and verification gap.
+
+
+
+## Batch 586 — Review tests for the "Mixed" tickets, last four (Pete, Oct 16, 2026)
+
+- **Review tests** (`e2e/review/`): PS-63 (Template Review settings and the admin guide), PS-277 (facility and department report-branding settings), PS-283 (the restricted-printing flag) and PS-342 (medical spell check). Chromium against the demo: 6 passed. Every "Mixed" ticket now has a spec; only the steps a computer can check are covered.
+- **Left with a person (see PS-734):** PS-63 steps 2 to 5 and 7 to 8 (non-author read-only banner, granting Template Author, Save Draft and Submit, the self-approval refusal message, the 80% SNOMED bar) and the clarity of the admin guide; PS-277 steps 3 to 5 and PS-283 steps 1 to 3 (printed and PDF layout, watermark, barcode, revision flag: needs `render_report`, not deployed); PS-283 steps 4, 6, 7 (apply the flag, print as a Lab Director versus a pathologist, Print Queue permissions); PS-342 step 6 (plain text boxes, Staff spelling language) and step 7 (national dictionaries, native review).
+- **PS-277 note:** the ticket says to edit Metro General, but the director, CLIA / ISO number and logo fields appear only for a facility with the Performing Lab role, which Metro General Hospital doesn't have in the demo. The test uses Fenwick General Hospital. The ticket text should say so.
+- **Tests (Jira):** PS-733 (automated) and PS-734 (verification gap).
+
+## Batch 585 — Review tests for the "Mixed" tickets, first five (Pete, Oct 16, 2026)
+
+- **Review tests** (`e2e/review/`): PS-60 (sign-in page and SSO), PS-269 (no English screen text in Korean and French), PS-292 (Release as Preliminary and the delivery rules), PS-474 (security headers for every host) and PS-475 (one language file at a time). Chromium against the demo: 13 passed, 1 skipped (PS-60 step 3 needs `PS_DEMO_PASSWORD`, which the workspace doesn't have, so that step is written but has never run).
+- **Only the parts a computer can check.** PS-60: the real SSO sign-in, the signing popup and the Sign Out dialog with the demo password stay with a person. PS-269: Scan Stations, the Validation Studies report, Korean physician names and clinical wording stay with a person. PS-292: the autopsy PAD release (step 5) is not covered yet. PS-474: the response headers on real hosts. PS-475: the built app's network and the hospital network.
+- **PS-292 note:** the demo's Worklist cases are all LIS "Assist" cases (no Release as Preliminary button); the one native, not-yet-final surgical case is O26-0001, found through the header search. The ticket's example cases S26-4631 and S26-4623 are Assist or absent, so "a closed case has no button" passes for that reason too.
+- **Not done in this batch:** PS-63, PS-277, PS-283 and PS-342 (the other four "Mixed" tickets) have no spec yet; they move to Batch 586. The independent review agent was not run (usage).
+- **Dev note (Oct 16):** `render_report` is not deployed (HTTP 404) and `VITE_REPORT_PDF_ENDPOINT` is not set in Vercel, so report PDFs print from the screen; the PDF steps of PS-277 and PS-283 wait for that. The dev team added the new Vercel URL to the CORS list and restored the `functions` block in `firebase.json`.
+- **Tests (Jira):** PS-731 (automated) and PS-732 (verification gap).
+
+## Batch 584 — Review tests, second ten (Pete, Oct 15, 2026)
+
+- **Review tests** (`e2e/review/`): PS-55 (QZ Tray label printing), PS-58 (model store tenant scoping), PS-87 (Assist: inbound data from the external LIS), PS-262 (OR board sync between windows), PS-278 (print destination routing), PS-279 (print queue dashboard), PS-323 (finding highlight), PS-344 (editor and navigation after the dependency upgrades), PS-473 (HTML sanitising), PS-478 (strict type-check fixes). With Batches 581 to 583, 34 In Review tickets have a review test.
+- **PS-473:** the sanitising checks pass: script and img-onerror payloads in case comments, specimen comments and an AI-written report section are inert, with a `dialog` listener that fails the test if any dialog opens; a Label Designer barcode renders as an SVG.
+- **Real app bugs the review tests found, left unfixed for Pete's decision** (each test is marked as a known bug, so the run stays green and it flips to a failure the day the bug is fixed):
+  1. **Audit entry ids collide** (`mockAuditService.ts`: id is `'al-' + Date.now()`): two entries in the same millisecond share an id, so System Logs logs React duplicate-key errors (36 to 70 per visit; PS-344 step 5; sometimes PS-477).
+  2. **QZ Tray is never connected** (`connectToQzTray()` is only called by tests): cassette and matrix labels fail with "Not connected to QZ Tray"; the decant container label hides the failure and opens a browser print window (PS-55 steps 3 to 4b). The QZ messages are English-only.
+  3. **Container label reads "Patient undefined undefined"** (`buildRequisitionLabelData` reads `givenNames` / `familyNames`; the demo LIS cases have `firstName` / `lastName`) (PS-478 step 4).
+  4. **Confirm Field (Ctrl+Alt+Shift+A) does nothing**: it sends `PATHSCRIBE_CONFIRM_FIELD` and nothing listens (PS-66 step 4).
+  5. **An OR PIN set up on the Staff screen is always refused**: the screen stores the role name "Or Staff", the PIN lookup checks the role id `or-staff`, so nobody set up on screen can dismiss a case or log a verbal report (PS-262 step 3).
+  6. **Typed narrative isn't checked for critical findings** (PS-323): only the case's LIS narrative is read; Report Draft section ids are random, so they never match; and a highlight is lost on reopening until Finalize is pressed again.
+  7. **Label Designer** (PS-245): the Inspector keeps a typed Width that wasn't applied (`MmInput` re-syncs only when the stored value changes), and the canvas is drawn 1 px (0.5 mm) smaller than the label.
+  8. **Error boundaries** (PS-472): after a route crash on the case report the nav bar is gone (AppShell hides it there, the page draws its own); in a dev build each route and synoptic-panel crash is logged twice; the panel recovery boxes carry no "unsaved changes may be lost" wording.
+  9. **Demo data**: no discordance pattern is seeded, so the Discordance Patterns tile is empty (PS-147 step 4); a saved Report Draft shows "Not yet generated" after a reload because the demo template gives its sections new ids on every load; an O26 case shows no "Someone else saved" notice.
+  10. **Smaller**: the QA Configuration Center edit dialog still labels its editable field list "Review Fields (from Duplicate — read-only here)" (PS-125); print-job audit events show the user as "PATH-001"; the Print Queue status filter has no "Sent to printer"; bulk Hold skips printed or cancelled jobs silently (PS-279); with the AI unreachable, Assist's Latest poll still says "AI draft prepared" with zero drafts (PS-87); Manchester Royal Infirmary, Wythenshawe and North Manchester General appear twice in the print routing Test panel's facility lists (PS-278); "Alt+." / "Alt+," / "Alt+V" are also bound to System and Navigation actions (PS-66).
+- **Where the demo or the screens differ from the tickets' steps:** PS-55 needs a GS1 GTIN, a Container Label Printer Profile and a picked scan station, none set in the demo (the test sets them); the model screen is "Model Versions" under AI Behavior (PS-58); PS-278's "same facility" is ambiguous (a Location rule isn't tied to a facility), so the test uses Ward 3 at Desert Valley; PS-279's Report type and Delivery mode show raw codes; PS-344: the Audit Log is "System Logs" and case addresses use the support reference; PS-262: the Intraop Queue is "Intraoperative Entries"; the other window cleared in about 110 ms (asserted under 1.5 s); PS-323: no single case offers both Finalize (S26 cases) and a Report Draft (O26 cases).
+- **Tests (Jira):** PS-729 (automated) and PS-730 (verification gap), filled in below.
+
+## Batch 583 — Template e-mails are the server's job; three small fixes; review tests, first ten (Pete, Oct 15, 2026)
+
+- **Dev review recorded** (Pete and the dev team): e-mail recipients, delivery and language (`docs/architecture/TEMPLATE_NOTIFICATIONS_API.md`); no single sign-on group mapping in the first release, user accounts sync first, bench roles only when mapping arrives (`docs/architecture/AUTHENTICATION_OIDC.md`); the server holds the sign-in tokens and the browser never carries a JWT; Azure SignalR Service for shared SaaS, a Redis backplane for private cloud (`docs/architecture/LIVE_UPDATES_SIGNALR.md`, a deployment matrix). The group-mapping wording in this file (Batch 579) and in `services/roles/README.md` is corrected: single sign-on has existed since Batches 343 to 345; mapping waits for these decisions and the server.
+- **PS-63 e-mails** (`services/communications/`): the browser sends only the event (`POST /api/notifications/template-events`, `templateLifecycleEvent.ts`) and no longer looks up staff e-mail lists (any signed-in browser could read every Admin's address; it also asked for a "clinical_lead" role PathScribe doesn't have) or writes the e-mail text. The server chooses the recipients, writes each e-mail in the recipient's language and sends it. `recipientResolver.ts` and `emailTemplates/synopticEmailTemplates.ts` are deleted (`DELETED_FILES.txt`). Nothing is sent until the server exists (phase 2e).
+- **PS-128:** choosing "Discard changes" after a click outside (or Escape) in a Configuration dialog now closes the dialog; it used to forget the edits and leave the dialog open. One shared fix for every Configuration dialog (`configDirtyRegistry.ts`: `pickDismissControl`, `discardDialogEdits`; `useConfigEditTracking.ts`).
+- **PS-101:** a case opened from Search shows "Home › Search › Case Report" and Back goes to Search (it said "Worklist"). `utils/search/caseReturnTarget.ts`.
+- **Billing after sign-out:** adding, removing or applying a block's code at specimen level on a signed-out case now asks for the same reason as the case-level change and records it in the audit entry (`services/billing/postSignoutBillingReason.ts`, one decision for the case-level save, the report page and the shared billing review). Cancel changes nothing. The reason's comment is required, as at case level (the field requirements lock it); the plan's "optional note" is therefore not met. A removal with no charge on file used to drop the reason from its audit entry; it keeps it now. Not changed: deleting a block-level applied code after sign-out still credits without asking.
+- **Strings (4 keys × 5 languages):** `headerBar.breadcrumb.search`, `headerBar.nav.backToSearchTooltip`, `postSignoutBillingChangeModal.summaryCodeAdded`, `postSignoutBillingChangeModal.summaryCodeRemoved`.
+- **Review tests, first ten** (`e2e/review/`): PS-66 (action registry), PS-78 (messages drawer styling), PS-124 (FPPE assignments), PS-125 (QA field-schema editor), PS-147 (discordance patterns), PS-245 (Label Designer), PS-472 (error boundaries), PS-476 (PubMed ticker, no key), PS-477 (deployment baseline and Full Reset), PS-494 (node counts). PS-101 and PS-128 now check the fixes.
+- **Where the demo or the screens differ from the tickets' steps:** PS-124 step 6 needs "Open Configuration" as well as "Manage FPPE assignments" (the route's screen check); PS-125 can't remove or retype a saved field from the screen (saved fields have no Remove button; the service-side refusal is covered by vitest), and "remove all fields" is possible only before the first save; PS-147 step 6: a pathologist can't open Quality Assurance at all, so there is no tile to hide; PS-66: the labels are "Next Unanswered Field", "Next Required Field", "Mark Block Grossed", the four grossing actions list under Synoptic, and the internal keys appear nowhere on screen (the vitest covers them); PS-494: a published protocol has no Open Editor (New Version opens it); PS-472: the case must be opened from the worklist.
+- **The review run:** the machine ran out of memory when five agents shared it, so some earlier runs crashed; the final runs were clean. The specs wait up to 60 to 120 s for a first page load and use their own sign-in that starts from `/login` (the shared `signIn` sometimes lost the page mid-redirect; `helpers.ts` is unchanged, and should get the same fix).
+- **Tests (Jira):** PS-727 (automated) and PS-728 (verification gap), filled in below.
+
+## Batch 582 — Review tests: organ maps, staff passwords, cytology nomenclature, facility printing
+
+- **Review tests** (`e2e/review/`), each following its ticket's review steps: PS-479 (organ maps ask before a switch drops unsaved edits), PS-363 to PS-368 (staff passwords: policy, hash only, the capability, sign-in replacing the demo password, forced change, access by staff role), PS-328 (no PALGA CISOE-A in the categories dictionary; SFCC is reference-only), PS-337 (Facility Configuration → Printing: refused settings, values kept, General tab doesn't overwrite them).
+- **Helpers** (`e2e/review/helpers.ts`): sign in through the real sign-in page with a password, sign out, the Staff screen's password panel, set and remove a staff password.
+- **The demo password:** three steps (PS-366, PS-368) type the built-in demo password, which is deliberately not in the repository; they run when `PS_DEMO_PASSWORD` is set for the run, and are skipped otherwise (`docs/quality/PLAYWRIGHT_REVIEW_GUIDE.md`).
+- **Found while writing them** (the app is right; the steps or names differ): the organ-map box is the shared "Discard unsaved changes?"; at Enterprise level a colour needs "Override here" first; a refused password action is a greyed-out button with a tooltip, not a message; every seeded Pathologist + Admin is also a demo account, and no Physician-only record exists, so the PS-368 test sets the roles up itself; the printing tab refuses before saving (the button is disabled with the reason).
+- **Tests (Jira):** see Batch 581.
+
+## Batch 581 — Review tests with Playwright (Pete: "Rather than manual testing for the review, can I use Playwright?")
+
+- **The review tests** (`e2e/review/`, new): each spec follows one In Review ticket's "review test plan steps" against the demo, each step a `test.step` named after it, so a pass is that review done; the steps that still need a person are named at the top of each file and in the In Review CSV ("How to review", "Needs a person for"). This batch: PS-102 (Scan Station facility is a list of performing labs, required, follows the group selector), PS-100 (warnings stay until closed, in English and French; short confirmations fade), PS-86 (Audit Log → Outbound Dispatches: columns, filters, payload drawer, and an order accessioned in the test appearing), PS-128 (Configuration asks before any way out with unsaved edits: tab, logo, Escape, backdrop, section, Sign Out, browser close; nothing asked without edits), PS-101 (Case Search: MRN, name, accession, filters, performing lab as two different users, paging restored, export of every match, saved search, header search).
+- **Firefox** (Pete, Oct 15: a supported browser): `playwright.config.ts` has a `firefox` project, used when asked for (`npm run test:e2e:firefox`, `--project=firefox`, or CI), so a plain run stays Chromium and never fails where Firefox isn't installed. It can't run in this sandboxed workspace (no browser downloads); it runs on a workstation after `npx playwright install firefox`.
+- **Scripts:** `test:a11y` (it was documented but missing from package.json; corrected), `test:review`, `test:e2e`, `test:e2e:firefox`, `test:e2e:ui`; an HTML report (`npx playwright show-report`). Results JSON per run kind (`e2e-results/a11y.json`, `review.json`, `firefox.json`).
+- **Guide:** `docs/quality/PLAYWRIGHT_REVIEW_GUIDE.md`, step by step for Windows and PowerShell.
+- **Found while writing them (the steps were out of date; the app is right unless said):**
+  - PS-101: the demo has 118 cases (the steps said 99), "adenocarcinoma" finds 7 (not 2), "Second Opinion Requested" 5 (not 6); performing-lab counts as Pete are 0 for Manchester and Midwest because their support access needs approval in the demo; as a Manchester user the Trust finds 9 and Wythenshawe 3. Opened from Search, the case report's breadcrumb still says "Worklist" (it returns to Search): worth relabelling.
+  - PS-100: the steps' example warning ("narrative before synoptic fields") is no longer a toast (the button is disabled with a tooltip); the test uses a refused AI call instead (answered by the test, so no AI vendor is reached).
+  - PS-86: the demo seeds no outbound dispatches; the test seeds three and also accessions a real order, which does appear (the developer's never-run step 6 works).
+  - PS-128: choosing "Discard changes" after clicking outside the Add Cassette Color dialog leaves the dialog open (its edits are forgotten, but it doesn't close): a small app bug, carried forward.
+  - PS-102: none.
+- **Fixed, found by the review tests: dialogs taller than the window lost their top.** Configuration's dialogs (`.ps-conf-backdrop`, 30 screens) were centred with `align-items: center`, so one taller than the window (the Staff editor at a 900-px window) had its title, × and first fields pushed above the screen, where no scrolling could reach them. They now start below the nav bar and scroll down; short dialogs are still centred (auto margins). Found when the review's fix replaced the staff test's synthetic click with a real one.
+- **Independent check:** 2 high (the Firefox project made a plain run fail where Firefox isn't installed; the PS-100 warning came from a live AI call), mediums (a fixed pause hiding a load race, a synthetic click that could reach a control a person can't, two filter steps that could be skipped silently, a refusal without a control, the e2e README), lows; all fixed. Making the skipped filter step strict showed Macros has no facility filter (the step was dropped; the filter case is Cassette Colors'); making the click real found the dialog bug above.
+- **Tests (Jira):** PS-721 (automated), PS-722 (verification gap) for 581; PS-723 (automated), PS-724 (verification gap) for 582. (PS-719 and PS-720 went to Test Executions.)
 
 ## Batch 580 — Styled dropdown list, native widths (PS-62)
 
@@ -13,7 +294,7 @@
 - **Reviewer guide (PS-63, "the reviewer screen needs polish"):** a short "How to review this template" above the lifecycle bar: read as the pathologist would, trial answers go into no case, comment and resolve, the SNOMED coverage needed to publish, and who may approve as this site has set it (independent reviewers, or self-approval allowed; how many approvals). Open while the template is In Review; folding it is remembered.
 - **Comments:** dark like the rest of the screen (they were white), each box labelled with its question, an Add button as well as Enter. Adding and resolving moved to `services/templates/templateReviewWork.ts` (`addTemplateQuestionComment`, `toggleTemplateQuestionComment`), which saves and audits them; the component used to build the audit entries itself (rule 2). "Resolve" has its own text (it borrowed another screen's; German and Korean were wrong for a comment).
 - **Reset:** at the far end of the row, away from Approve, named "Reset to Draft" as its confirmation is, unavailable in Draft (nothing to reset). Its confirmation now says what it clears: the trial answers and any approvals (it said "all reviewer annotations"; comments are kept).
-- **PS-63's open items (Pete asked, Oct 15):** lifecycle e-mails still have no recipients until the API server's directory exists (phase 2e); identity-provider group mapping waits for single sign-on; the Firestore role stub no longer applies (production is SQL Server, CLAUDE.md), so it is closed rather than built; reviewer-screen polish done here.
+- **PS-63's open items (Pete asked, Oct 15):** lifecycle e-mails still have no recipients until the API server's directory exists (phase 2e); identity-provider group mapping waits for Pete's decisions and the server's directory sync, not for single sign-on (corrected in Batch 583: single sign-on has existed since Batches 343 to 345; this line said it waited for it); the Firestore role stub no longer applies (production is SQL Server, CLAUDE.md), so it is closed rather than built; reviewer-screen polish done here.
 - **Billing codes saved at once (carried from 575):** a specimen's base codes (added, removed, corrected) and matrix codes (applied, rejected) were only held on screen: Save Draft doesn't write specimens, so a reload lost them (not only taking up someone else's version, as 575 said; corrected here). They now save the moment they're made, one at a time, all or nothing: unless the code saved, the screen goes back and no charge or credit is recorded; if someone else saved meanwhile, it says so.
 - **Sequencer:** the specimen order is saved at once; the reports' order is part of the draft (Save Draft), and the message says which. The reorder moved to `services/reportEditing/reportSequence.ts`, which no longer drops a specimen or report the order leaves out.
 - **Synoptic form:** after taking up someone else's version it stays on the section that was open (577 moved it back to the first).
@@ -1126,3 +1407,87 @@ Provider facts were checked against the providers' pages on Oct 12. An independe
 **Xray:** PS-585 (automated) and PS-586 (open points).
 
 **Verified.** Type-check clean; lint clean on the changed file. Full suite: 1,115 files: 1,110 pass, 4 skipped, 1 fails (`firestore.rules.test.ts`, emulator, unrelated); 9,416 tests pass, 32 skipped (+3).
+
+## Batch 612 (workstations and scope reference)
+
+New namespaces `workstationRegistry.*` and `scopeReference.*` in all five languages (en, fr, de, nl, ko), plus `systemTab.sections.workstations` / `scopeReference`, two search descriptions and the two capability labels. Revoke reasons reuse `siteAgents.revokeReasons`. French, German, Dutch and Korean are machine-written and still need native-speaker review.
+
+## Batch 612 (part A) — Interface Dictionary (Message Mapper)
+
+171 new keys in all five languages: `interfaceDictionary.*` (title, subtitle, loading, refusal codes, list, status, versions, editor, types, conversions, problems, test, publish, simulate, notices, scope lists), `vendorFields.*`, `systemTab.sections.interfaceDictionary`, `configSearchIndex.entries.sys-interface-dictionary.description`, and `capabilities.items.platformInterfaceDictionary{Manage,Publish,Simulate}`. Refusal and problem codes map to keys with `codeKey()` (TARGET_CORE_STRUCTURE becomes `targetCoreStructure`); `interfaceDictionaryLocale.test.ts` fails if a code has no text in any language. Simulated: Simulé / Simuliert / Gesimuleerd / 시뮬레이션. French, German, Dutch and Korean wording was written without a native reviewer and needs review before use.
+
+## Batch 613 (part A, follow-up) — recipient access choice
+
+9 new keys under `caseReport.schedule.*` in all five languages: `accessChecking`, `accessCounts`, `accessHint`, `accessLegend`, `accessNarrow`, `accessSkip`, `lastRunAccess`, `error.BAD_RECIPIENT_CHOICE`, `error.RECIPIENT_ACCESS_UNKNOWN`. Needs native-speaker review in fr, de, nl and ko.
+
+## Batch 614 (part B) — Code Systems policy notes
+
+11 new keys in all five languages under `codeSystemsPolicy.*`: `offNote_one`, `offNote_other`, `fallbackNote`, `outsidePolicy`, and `names.{CPT,ICD10,ICD11,ICDO,LOINC,OPCS4,SNOMED}`. Needs native-speaker review (fr, de, nl, ko).
+
+## Batch 616 (part D) — no new strings
+
+The server versions of the quality, digital pathology, image, grossing, dictionary, reagent, cold-chain, label and intraoperative services add no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 616 (part E) — no new strings
+
+The server versions of the interface, model, protocol, template, routing, macro, flag, message and AI-policy services, and the two guard tests, add no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 616 (part C) — no new strings
+
+The server versions of the billing, cytology, molecular and registry services add no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 616 (part B) — no new strings
+
+The server versions of the audit, authorization, staff, role, facility, registry-setting, access-request, session-timeout, biometric and lab-dictionary services add no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 616 (part F) — no new strings
+
+The command-based follow-up server version and moving the biometric screens onto the biometric flow add no text to the interface. Refusals are fixed codes the screens already map.
+
+## Batch 616 (part A) — no new strings
+
+The server versions of the report, accessioning, patient and encounter services add no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 617 (part R) — no new strings
+
+The route standardization of the server versions changes no text on screen. The shared kit gained `kebabCase` and `methodPath`; `httpRoutes.guard.test.ts` enforces the one route style (`docs/architecture/HTTP_SERVICES_PATTERN.md` §7).
+
+## Batch 617 (part N) — one new string
+
+- `sessionSecurity.biometric.offForDeployment` (all five languages): the note under the biometric policy switch when the deployment has biometric sign-in turned off. The fr/de/nl/ko wording was written by Claude and needs native review.
+
+## Batch 617 (part A) — no new strings
+
+The server versions of 29 services (settings, dictionaries, case workflows, critical results) add no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 617 (part C) — no new strings
+
+The server versions of the quality, referral, search, signature, dictionary, tumor board and workstation services add no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 617 (part S) — no new strings
+
+Actions sweep: 16 Role Dictionary entries for the actions Batches 613 to 616 added (related cases, case access, search reports, follow-up, flagged-finding code search, biometric). Labels are English literals like the other roles-list entries; no locale keys, no voice phrases.
+
+## Batch 618 (part C) — no new strings
+
+The server version of case material (PS-482) adds no text to the interface. Failures are fixed codes the screens already handle.
+
+## Batch 618 (part B) — no new strings
+
+The partial nephrectomy drawing (PS-492) and the file-size guard (PS-497) add no text to the interface. The drawing shows fewer shapes, not new words.
+
+## Batch 618 (part A) — second facility for the technical component (PS-336)
+
+New keys, all five languages (en/fr/de/nl/ko): `accessionPage.technicalFacility.{label,none,help}` (the optional Accession field) and `surgicalReportPdf.technicalComponentAt` (the report line, with `{{facility}}` filled by the renderer; added to the report label list in `surgicalReportLabels.ts` and to `DEFAULT_LABELS` in `functions/main.py`). The Case team window's existing `technicalComponentFacility.*` keys are unchanged. Native-speaker review of fr/de/nl/ko still wanted.
+
+## Batch 619 (part S) — delivery schedules (PS-800)
+
+New keys, all five languages (en/fr/de/nl/ko): `deliverySchedulesSection.*` (the screen, the editor, problems, reasons, registry and deadline text), `systemTab.sections.deliverySchedules`, and `capabilities.items.configDeliverySchedulesManage.{label,description}`. Registry names reuse the existing `screeningRegistry.registries.*` and `cancerRegistrySection.registries.*`. Native-speaker review of fr/de/nl/ko still wanted.
+
+## Batch 619 (part B) — billing release rules (PS-800)
+
+New keys, all five languages (en/fr/de/nl/ko): `billingReleaseSection.*` (the screen, the rule editor, problems, reasons, review reasons and the live check), `systemTab.sections.billingRelease`, and `capabilities.items.configBillingReleaseManage.{label,description}`. The editor reuses `deliverySchedulesSection.weekdays.*`, `deliverySchedulesSection.frequencies.*` and the schedule problem texts. Native-speaker review of fr/de/nl/ko still wanted.
+
+## Batch 619 (part Q) — Outbound Queue (PS-800)
+
+New keys, all five languages (en/fr/de/nl/ko): `outboundQueue.*` (the screen: states, feeds, destinations, transports, columns, reason pick-lists for hold, resubmit, not reportable and retract, billing review reasons, summary and refusal lines), `qualityComplianceHub.outboundQueueTile.*`, `outboundInterfaceDlq.outcomes.onHold`, and `capabilities.items.*` for `screen:outbound-queue:open`, `interface:outbound:hold`, `interface:outbound:release`, `interface:outbound:mark-not-reportable`, `interface:outbound:retract` and `interface:outbound:override-release`. Counts use neutral wording ("Changed: {{count}}") so no plural forms are needed. The registry's own message text is never shown, only its fixed error codes. Korean wording needs native review. New files: `services/outboundQueue/`, `pages/OutboundQueuePage/`, `hooks/useOutboundQueue.ts`, `constants/outboundQueueActionGroup.ts` (6 Role Dictionary actions, group F34, Admin), `docs/architecture/OUTBOUND_QUEUE_API.md`.

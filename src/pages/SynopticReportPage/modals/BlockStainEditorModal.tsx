@@ -8,6 +8,8 @@
 // per block. This is that editor.
 // ─────────────────────────────────────────────────────────────
 
+import { DeleteBlockControl } from './DeleteBlockControl';
+import { FlagBlockControl } from './FlagBlockControl';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
@@ -30,6 +32,7 @@ import { buildSecondaryLabelHtml } from '@/utils/labels/buildLabelHtml';
 import { printLabels } from '@/utils/labels/printLabels';
 import { getLabelSizePreset } from '@/types/labels/LabelSizePreset';
 import ForeignIdFields from './ForeignIdFields';
+import SendBlockOrderButton from '@/components/MockInterfaceEngine/SendBlockOrderButton';
 import CassetteColorControl from './CassetteColorControl';
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
 import { DECANT_TYPE_LABEL, type Decant } from '@/types/case/Material';
@@ -330,6 +333,12 @@ interface Props {
    *  not withdrawal of an unfulfilled order. See CancelBlockControl's
    *  own doc comment for the full compliance rationale. */
   onCancelBlock: (specimenId: string, blockId: string, reason: string) => void;
+  /** Batch 588: delete a block in process (soft delete). Undefined once the case is signed out: no control is shown. */
+  onDeleteBlock?: (specimenId: string, blockId: string, reasonCode: string, note: string) => void;
+  /** Batch 610 (#11): which delete applies: 'signed_out' once the case is signed out (Invalidated). */
+  blockDeleteTier?: 'in_process' | 'signed_out';
+  /** Batch 610 (#11): tier 3, given only on an amended report: flag a block Invalidated or Superseded (no deletion). */
+  onFlagBlock?: (specimenId: string, blockId: string, kind: 'invalidated' | 'superseded', reasonCode: string, note: string) => void;
   /** Real feature, per direct confirmation: "Create Spare Slide —
    *  Generates a new slide ID, links to block, no stain assigned
    *  yet." No LIS side-effect — see handleCreateSpareSlide's own doc
@@ -683,7 +692,7 @@ const RestainControl: React.FC<{
   );
 };
 
-export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePriority, fullAccession, onUpdateBlock, onUpdateDecant, onPrintDecantContainerLabel, onSendStainOrder, onCancelBlock, onCreateSpareSlide, onOrderRestain, currentUserId, currentUserName, onClose, initialFocusBlockId, initialFocusDecantId }) => {
+export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePriority, fullAccession, onUpdateBlock, onUpdateDecant, onPrintDecantContainerLabel, onSendStainOrder, onCancelBlock, onDeleteBlock, blockDeleteTier, onFlagBlock, onCreateSpareSlide, onOrderRestain, currentUserId, currentUserName, onClose, initialFocusBlockId, initialFocusDecantId }) => {
   const { t, i18n } = useTranslation();
   // Batch 381 (PS-359): the cancel-block and restain forms' requirements.
   const requirements = useFieldRequirements('report');
@@ -1254,6 +1263,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     >
                       {t('blockStainEditorModal.createSpareSlideButton')}
                     </button>
+                    <SendBlockOrderButton fullAccession={fullAccession} specimenId={specimenId} blockId={block.id} actor={currentUserName} />
                   </>
                 )}
                 {orderingBlockId === block.id && (
@@ -1275,6 +1285,12 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                   requirements={requirements}
                   onCancel={reason => onCancelBlock(specimenId, block.id, reason)}
                 />
+                {(onDeleteBlock || block.status === 'Deleted' || block.status === 'Invalidated') && (
+                  <DeleteBlockControl block={block} tier={blockDeleteTier} onDelete={(code, note) => onDeleteBlock?.(specimenId, block.id, code, note)} />
+                )}
+                {(onFlagBlock || block.amendmentFlag) && (
+                  <FlagBlockControl block={block} onFlag={(kind, code, note) => onFlagBlock?.(specimenId, block.id, kind, code, note)} />
+                )}
               </div>
             ))}
             {blocks.length === 0 && <div className="ps-cmnt-thread-empty">{t('blockStainEditorModal.noBlocksYet')}</div>}

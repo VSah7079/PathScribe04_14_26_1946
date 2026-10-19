@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/users/
 
 Staff user directory — the full user profile (name, roles, NPI, license, department, voice profile) underlying login/staff assignment.
@@ -48,3 +50,7 @@ The demo Lab Director (LD-001) can now be given a sign-in from Staff → edit �
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+- Batch 608: `StaffUser.qcReviewerRoles` (also in `types/index.ts`).
+
+
+Batch 616: server version in `httpUserService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `userServiceInstance.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.

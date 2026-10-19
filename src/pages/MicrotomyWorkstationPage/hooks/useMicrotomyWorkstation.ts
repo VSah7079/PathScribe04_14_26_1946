@@ -30,8 +30,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { printerProfileService, printSettingsService, scanStationService, stainTypeService, slideLevelOf, updateCaseWithRetry, caseWriteDeps } from '@/services';
+import { flagAddOnException, type AddOnActionResult } from '@/services/addOnOrders/addOnOrderActions';
+import { sendEmail } from '@/services/communications/notificationService';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { flagBlockExhaustion } from '@/utils/addOnOrderOperations';
+import { cuttingBlockedByExhaustion } from '@/utils/blockExceptionStates';
+import { userService, printerProfileService, printSettingsService, scanStationService, stainTypeService, slideLevelOf, updateCaseWithRetry, caseWriteDeps } from '@/services';
 import { printSlideLabel } from '@/utils/labels/printCassetteSlideLabel';
+import { wasSlideLabelOutput, markSlideLabelOutput } from '@/utils/labels/dispatchSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { DEFAULT_SLIDE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
@@ -113,6 +119,7 @@ export function useMicrotomyWorkstation() {
   const versionRef = useRef(0);
 
   const actor = useMemo(() => ({ id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' }), [user?.id, user?.name]);
+  const exceptionRequirements = useFieldRequirements('addOnOrder');
 
   const loadStainTypes = useCallback(async () => {
     const res = await stainTypeService.getAll();
@@ -254,7 +261,11 @@ export function useMicrotomyWorkstation() {
 
   /** One slide: Pending → Printing (saved, so progress is honest) →
    *  Printed/Failed. Returns the work item to carry into the next slide. */
-  const dispatchAndRecordPrint = useCallback(async (item: MicrotomyWorkItem, stainId: string): Promise<{ ok: boolean; item: MicrotomyWorkItem; message?: string }> => {
+  const dispatchAndRecordPrint = useCallback(async (item: MicrotomyWorkItem, stainId: string, reprint = false): Promise<{ ok: boolean; item: MicrotomyWorkItem; message?: string }> => {
+    // Batch 610 (#16): a block flagged as exhausted is not cut until the ordering pathologist answers.
+    if (item.kind === 'block' && cuttingBlockedByExhaustion(item.block)) {
+      return { ok: false, item, message: t('microtomyWorkstation.exhausted.cuttingBlocked') };
+    }
     const parentId = item.kind === 'block' ? item.block.id : item.decant.id;
     const printing: Op = sp => (item.kind === 'block' ? markStainPrinting(sp, parentId, stainId) : markDecantStainPrinting(sp, parentId, stainId));
     const marked = await persistOp(item, printing);
@@ -269,12 +280,16 @@ export function useMicrotomyWorkstation() {
     const level = slideLevelOf(stain ?? {}, Math.max(idx, 0));
     const parentLabel = afterPrinting.kind === 'block' ? afterPrinting.block.label : afterPrinting.decant.label;
     const slideId = stain?.displayId ?? `${afterPrinting.specimen.label}${parentLabel}-${level}`;
-    const outcome = 'error' in ctx
+    // Batch 606 (PS-14): a slide whose label was already produced at the scan is not printed twice; a reprint always prints.
+    const alreadyProduced = !reprint && wasSlideLabelOutput(slideId);
+    const outcome = alreadyProduced
+      ? { ok: true as const }
+      : 'error' in ctx
       ? { ok: false as const, message: ctx.error }
       : await printSlideLabel(
           { fullAccession: afterPrinting.caseData.accession?.fullAccession ?? afterPrinting.caseData.id, specimenLabel: afterPrinting.specimen.label, blockLabel: parentLabel, level, stainName: stain?.stainName ?? '', slideId },
-          ctx.printer, ctx.gtin,
-        ).then(r => (r.ok ? { ok: true as const } : { ok: false as const, message: (r as { ok: false; message: string }).message }));
+          ctx.printer, ctx.gtin, ctx.layout,
+        ).then(r => { if (r.ok) markSlideLabelOutput(slideId); return r; }).then(r => (r.ok ? { ok: true as const } : { ok: false as const, message: (r as { ok: false; message: string }).message }));
 
     const result: Op = sp => (afterPrinting.kind === 'block'
       ? markStainPrintResult(sp, parentId, stainId, outcome, actor.id)
@@ -379,7 +394,7 @@ export function useMicrotomyWorkstation() {
     const blockId = workItem.block.id;
     const saved = await persistOp(workItem, sp => reprintMicrotomyStain(sp, blockId, stainId, reason, actor.id));
     // The reprint reason and count are saved before a duplicate label is printed.
-    if (saved?.saved) await dispatchAndRecordPrint(saved.item, stainId);
+    if (saved?.saved) await dispatchAndRecordPrint(saved.item, stainId, true);
   }, [workItem, persistOp, dispatchAndRecordPrint, actor.id]);
 
   const handleReorder = useCallback(async (orderedStainIds: string[]) => {
@@ -400,6 +415,27 @@ export function useMicrotomyWorkstation() {
     const blockId = workItem.block.id;
     await persistOp(workItem, sp => updateBlockComment(sp, blockId, text, actor));
   }, [workItem, persistOp, actor]);
+
+  /** Batch 610 (#16): the tech flags the block as exhausted. Goes through the same action as the Add-On
+   *  Order station: the pathologist is e-mailed (the Simulated outbox when there is no mail server). */
+  const handleFlagBlockExhausted = useCallback(async (note: string): Promise<AddOnActionResult> => {
+    if (!workItem || workItem.kind !== 'block') return { ok: false, failed: true };
+    const blockId = workItem.block.id;
+    const order = workItem.block.stains.find(s => !(s.exception && s.exception.status === 'pending_pathologist_review'));
+    if (!order) return { ok: false, failed: true };
+    try {
+      return await flagAddOnException({ caseData: workItem.caseData, stainOrderId: order.id, reason: 'Block exhausted', note, actor, requirements: exceptionRequirements }, {
+        saveSpecimens: async () => {
+          const saved = await persistOp(workItem, sp => flagBlockExhaustion(sp, blockId, order.id, 'Block exhausted', note.trim() || undefined, actor));
+          if (!saved?.saved) throw new Error('not-saved');
+        },
+        getUserEmail: async id => { const r = await userService.getById(id); return r.ok ? r.data.email : undefined; },
+        sendEmail,
+      });
+    } catch {
+      return { ok: false, failed: true };
+    }
+  }, [workItem, persistOp, actor, exceptionRequirements]);
 
   const handleSetAlertFlags = useCallback(async (flags: { tinyTissue?: boolean; fragile?: boolean; requiresDecal?: boolean }) => {
     if (!workItem || workItem.kind !== 'block') return;
@@ -436,7 +472,7 @@ export function useMicrotomyWorkstation() {
     handlePrintNext, handlePrintSelected,
     handleAddStain, handleAddLevelOfExistingStain, requestRemoveStain, pendingRemoval, confirmPendingRemoval, cancelPendingRemoval,
     handleReprint, handleReorder,
-    handleAddStainComment, handleAddBlockComment, handleSetAlertFlags,
+    handleAddStainComment, handleAddBlockComment, handleSetAlertFlags, handleFlagBlockExhausted,
     handleUpdateCytologyFields, handleApplyPrepSuggestions,
     adoptSavedCase,
     effectiveStationId, actor,

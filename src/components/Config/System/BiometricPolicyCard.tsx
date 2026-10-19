@@ -10,20 +10,22 @@
 // Saved as you change it; the service checks config:session-security:manage.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { biometricService, type BiometricCadence, type BiometricPolicy } from '@/services';
+import { biometricFlow, biometricOffForDeployment, BIOMETRIC_POLICY_DEFAULTS, type BiometricCadence, type BiometricPolicy } from '@/services';
 
 const CADENCES: BiometricCadence[] = ['per_sign_off', 'per_session', 'per_days', 'never'];
 
 export const BiometricPolicyCard: React.FC = () => {
   const { t } = useTranslation();
-  const [policy, setPolicy] = useState<BiometricPolicy>(() => biometricService.getBiometricPolicy());
+  const [policy, setPolicy] = useState<BiometricPolicy>(() => BIOMETRIC_POLICY_DEFAULTS);
+  useEffect(() => { void biometricFlow.getPolicy().then(setPolicy); }, []);
   const [saved, setSaved] = useState(false);
+  const offForDeployment = biometricOffForDeployment();
 
   const save = async (next: BiometricPolicy) => {
-    if (!(await biometricService.saveBiometricPolicy(next))) return;
-    setPolicy(biometricService.getBiometricPolicy());
+    if (!(await biometricFlow.savePolicy(next))) return;
+    setPolicy(await biometricFlow.getPolicy());
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -32,10 +34,11 @@ export const BiometricPolicyCard: React.FC = () => {
     <div className="ps-session-security__card ps-session-security__card--spaced">
       <div className="ps-session-security__card-label">{t('sessionSecurity.biometric.label')}</div>
       <label className="ps-session-security__toggle">
-        <input type="checkbox" checked={policy.enabled} onChange={e => void save({ ...policy, enabled: e.target.checked })} />
+        <input type="checkbox" checked={policy.enabled} disabled={offForDeployment} onChange={e => void save({ ...policy, enabled: e.target.checked })} />
         {' '}{t('sessionSecurity.biometric.enabled')}
       </label>
       <p className="ps-session-security__hint">{t('sessionSecurity.biometric.hint')}</p>
+      {offForDeployment && <p className="ps-session-security__hint">{t('sessionSecurity.biometric.offForDeployment')}</p>}
       {policy.enabled && (
         <>
           <div className="ps-session-security__field-label">{t('sessionSecurity.biometric.cadenceLabel')}</div>

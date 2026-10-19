@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/facilities/
 
 The canonical `Facility` entity — replaces `services/clients/`
@@ -489,3 +491,16 @@ Desert Valley's US demo ordering clients (`c1` to `c5`) now name Desert Valley M
 ## Batch 553 (PS-539 phase 2d: site agent printers in routing)
 
 - Batch 553: `setPrintSettings` checks a site agent default printer is on this facility's own site (`facilityPrintProblem(settings, id)`).
+
+## Batch 606
+
+- `resolveSplitReportBranding.ts` (+ test): the reporting lab's branding plus, when the case names a different technical-component facility (`order.technicalComponentFacilityId`), a second block with the director and CLIA/ISO number withheld. Sent as `technicalBranding` in the surgical report request.
+
+- Batch 608: `Facility.nationalRegistryId`.
+
+
+Batch 616: server version in `httpFacilityService.ts, httpRegistrySettingsService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `facilityServiceInstance.ts, registrySettingsServiceInstance.ts, facilityRegistryOverrideServiceInstance.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.
+
+## Batch 618 (PS-336)
+
+`technicalBrandingForRender` (in `resolveSplitReportBranding.ts`): the technical lab's block is sent to the renderer only once the case is signed out. `technicalFacilityAudit.ts` (+ test): the audit entry for setting, changing or clearing the field (ids only).

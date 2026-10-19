@@ -26,6 +26,7 @@ export const EXPORT_CHECKS = {
   'qa-log':                 async (): Decision => (await authorization()).enforce('audit:qa-log:export'),
   'billing-log':            async (): Decision => (await authorization()).enforce('audit:billing-log:export'),
   'case-search':            async (): Decision => (await authorization()).enforce('search:case-results:export'),
+  'case-search-report':     async (): Decision => (await authorization()).enforce('search:case-report:export'),
   'trainee-case-reference': async (): Decision => (await authorization()).enforce('contribution:trainee-case-reference:export'),
   'case-mix-summary':       async (): Decision => (await authorization()).enforce('contribution:case-mix-summary:export'),
 } as const;
@@ -35,7 +36,7 @@ export type GatedExport = keyof typeof EXPORT_CHECKS;
 export interface ExportFile {
   filename: string;
   rowCount: number;
-  format?: 'csv' | 'json';
+  format?: 'csv' | 'json' | 'pdf';
 }
 
 export interface ExportGateDeps {

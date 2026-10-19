@@ -14,7 +14,9 @@ npm run test:a11y
 
 The config is `playwright.config.ts` at the root. It starts the app with vite on port 5179 (`A11Y_PORT` to change it) and reuses a server already running there. Chromium: Playwright's own (`npx playwright install chromium` once), or the one named in `PLAYWRIGHT_CHROMIUM`. Results also go to `e2e-results/a11y.json`. The full run takes about 9 minutes, most of it the Configuration tabs.
 
-These tests are not part of `npm test` (vitest excludes `e2e/**`). No CI pipeline is set up in this repository yet; when one is, it runs `npm run test:a11y`.
+These tests are not part of `npm test` (vitest excludes `e2e/**`). No CI pipeline is set up in this repository yet; when one is, it runs `npm run test:e2e` and, with Firefox installed, `npm run test:e2e:firefox`.
+
+*Batch 581:* `npm run test:a11y` was documented here but missing from package.json; it is there now, and runs the four accessibility specs (`a11y.spec.ts`, `a11y.routes.spec.ts`, `a11y.states.spec.ts`, `a11y.connectivity.spec.ts`) in Chromium.
 
 The spec does not wait for "network idle": the dev server keeps a socket open, so the page never goes idle and each test would wait out its whole timeout (the cause of the first run hanging).
 
@@ -81,3 +83,27 @@ The spec does not wait for "network idle": the dev server keeps a socket open, s
 ## Batch 579 and 580
 
 - `a11y.states.spec.ts` ("template review and dropdowns (Batches 579 and 580)"): the reviewer guide, a dark labelled comment, Reset last in the row, axe clean; dropdowns styled and within 3 px of the browser's own width, the list opens, axe clean (skipped where the browser draws its own list).
+
+## Batch 581 and 582: review tests (`review/`)
+
+Each spec in `review/` follows one In Review Jira ticket's review steps against the demo, each step a `test.step` named after it, so a pass stands in for doing those steps by hand; the steps that still need a person are listed at the top of the file. Shared sign-in, sign-out and Staff-screen helpers are in `review/helpers.ts`.
+
+*Batches 583 and 584:* twenty more specs (PS-55, 58, 66, 78, 87, 124, 125, 147, 245, 262, 278, 279, 323, 344, 472, 473, 476, 477, 478, 494). A spec that fails on a real app bug is marked `test.fail(true, '<the bug>')` (or `test.fixme` when it fails only some runs): the run stays green, and the day the bug is fixed that test "unexpectedly passes" and fails the run, which is the cue to delete the marker. The bugs are listed in `src/i18n/README.md` (Batch 584). Each spec has its own sign-in that starts from `/login`; the shared `signIn` can lose the page during the redirect.
+*Batch 585:* five more specs for the "Mixed" tickets (PS-60, 269, 292, 474, 475), covering only the steps a computer can check; the rest is named in each spec's header. `ps-474` runs the header generator into a temporary folder; `ps-475` and `ps-269` switch language through the top bar and read the language files the page requests. PS-60 step 3 is skipped unless `PS_DEMO_PASSWORD` is set.
+*Batch 587:* six specs for the "Can automate" tickets (PS-73, 89, 146, 327, 341, 470). `ps-89` writes a temporary CSV and sets the hidden file input; `ps-327` and `ps-470` run vitest or read config files instead of a screen.
+*Batch 586:* the last four "Mixed" specs (PS-63, 277, 283, 342). `ps-342` types into the editor and reads the `.ps-spell` marks, as `ps-344` does; `ps-277` uses a Performing Lab facility (Fenwick General Hospital) because the branding fields show only for one.
+
+| Command | Runs |
+|---|---|
+| `npm run test:review` | the review tests, Chromium |
+| `npm run test:a11y` | the accessibility specs, Chromium |
+| `npm run test:e2e` | everything, Chromium |
+| `npm run test:e2e:firefox` | everything, Firefox (`npx playwright install firefox` once) |
+| `npm run test:e2e:ui` | Playwright's watch-it-run window |
+| `npx playwright show-report` | the HTML report of the last run |
+
+The Firefox project exists only when asked for (`--project=firefox`, `PLAYWRIGHT_FIREFOX=1`, or `CI`), so a plain `npx playwright test` is the Chromium run. Two staff-password tests need the built-in demo password in `PS_DEMO_PASSWORD` and are skipped without it. A beginner's guide for Windows: `docs/quality/PLAYWRIGHT_REVIEW_GUIDE.md`.
+
+## Batch 589
+
+The review specs for PS-55, 66, 245, 262, 323, 344, 472, 477 and 478 no longer mark the fixed bugs as known failures. PS-147 keeps one expected failure (the ticket's "3 major of 20" needs more demo data than Pete chose).

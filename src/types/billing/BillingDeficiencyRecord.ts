@@ -20,16 +20,35 @@ export type BillingDeficiencyType =
   | 'MODIFIER_MISMATCH'           // Professional -26 or Technical -TC component omitted or inverted
   | 'ZERO_FEE_MAPPING_ERROR'      // Active code mapped to $0.00 fee schedule line without explicit override
   | 'MISSING_CHARGE'              // Batch 433: a billable item has no charge (found in a billing audit)
-  | 'POST_SIGNOUT_CORRECTION';    // Batch 433: a correction started without a prior finding (payer denial, tariff rejection…)
+  | 'POST_SIGNOUT_CORRECTION'     // Batch 433: a correction started without a prior finding (payer denial, tariff rejection…)
+  | 'BLOCK_DELETED';              // Batch 588: a block was deleted; billing decides whether a credit is due
 
 export type BillingDeficiencySeverity = 'CRITICAL_REJECTION_RISK' | 'COMPLIANCE_WARNING' | 'REVENUE_LEAKAGE';
 
 export type BillingDeficiencyStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'OVERRIDDEN_WITH_JUSTIFICATION';
 
-export type BillingDeficiencyTrigger = 'AUTO_NCCI_CHECK' | 'AUTO_CROSSWALK_CHECK' | 'MANUAL_BILLING_AUDIT' | 'MANUAL_BILLING_CORRECTION';
+export type BillingDeficiencyTrigger = 'AUTO_NCCI_CHECK' | 'AUTO_CROSSWALK_CHECK' | 'MANUAL_BILLING_AUDIT' | 'MANUAL_BILLING_CORRECTION' | 'BLOCK_DELETION';
 
 export type BillingDeficiencyResolutionReason =
   | 'CODE_CORRECTED' | 'CHARGE_REVERSED' | 'APPROVED_BY_BILLING_ADMIN' | 'PHYSICIAN_ADDENDUM_ADDED';
+
+/**
+ * Batch 588 (Pete, Oct 16 2026): what a 'BLOCK_DELETED' deficiency is about. The block stays on the
+ * case (soft delete), so these ids always resolve. Resolve it as Charge reversed (the credit) or
+ * Approved by billing admin (no credit due), with the existing Resolve dialog.
+ */
+export interface BlockDeletedDetail {
+  blockId: string;
+  specimenId: string;
+  specimenLabel: string;
+  blockLabel: string;
+  reasonCode: string;
+  /** The billing codes that had been applied to the block and were released: the billing impact. */
+  releasedCodes: string[];
+  deletedBy: string;
+  deletedByName: string;
+  deletedAt: string;
+}
 
 export interface BillingDeficiencyRecord {
   id: string;
@@ -50,6 +69,8 @@ export interface BillingDeficiencyRecord {
    *  "88307 billed; specimen dictionary default for this type is
    *  88305" - not a placeholder, the actual real basis for the flag. */
   auditorNotes: string;
+  /** Batch 588: set when deficiencyType is 'BLOCK_DELETED'. */
+  blockDeleted?: BlockDeletedDetail;
   createdAt: string;
   resolvedAt?: string;
   createdBy: string;

@@ -10,7 +10,7 @@
 // has no stored document; its report is made by the report renderer.
 import type { Case } from '@/types/case/Case';
 import type { IReportDocumentService } from '../reportDocuments/reportDocumentService';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { cytologyCaseIsReleased } from './cytologyCaseReportMessage';
 import { resolveCytologyCaseReport } from './resolveCytologyCaseReport';
 import { base64ToBytes } from '../reportDocuments/reportDocuments';
@@ -44,7 +44,7 @@ export async function cytologyCaseReportForPrint(
   if (!cytologyCaseIsReleased(caseData)) return null;
   const sent = await releasedCytologyCaseDocument(caseData.id, documents);
   if (sent) return sent;
-  const records = await mockCytologySignOutRecordService.getByCaseId(caseData.id);
+  const records = await cytologySignOutRecordService.getByCaseId(caseData.id);
   if (!records.ok || !records.data.length) return null;
   const { generateCytologyCaseReportPdf } = await import('./generateCytologyCaseReportPdf');
   return generateCytologyCaseReportPdf(resolveCytologyCaseReport(caseData, records.data, cytologySpecimenIds));

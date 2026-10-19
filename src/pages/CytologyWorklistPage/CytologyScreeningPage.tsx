@@ -48,6 +48,11 @@ import { CytologyReviewForm } from './components/CytologyReviewForm';
 import { CytologyCisoeAForm } from './components/CytologyCisoeAForm';
 import { CytologyRetrospectiveBanner } from './components/CytologyRetrospectiveBanner';
 import { CytologyQcCaseBar } from '@/components/CytologyQc/CytologyQcCaseBar';
+import { resolveCytologyAbnormalSeverity } from '@/services/cytology/resolveCytologyAbnormalSeverity';
+import { allCytologyInterpretationIds } from '@/types/cytology/CytologyReviewRecord';
+import { AdvisorySeverityBadge } from '@/components/CytologyQc/AdvisorySeverityBadge';
+import { CytologyScreeningDetailsCard } from '@/components/CytologyQc/CytologyScreeningDetailsCard';
+import { ReturnToTraineeBar } from '@/components/Common/ReturnToTraineeBar';
 import { CytologyHistologyCandidateBanner } from './components/CytologyHistologyCandidateBanner';
 import { EMPTY_CISOEA_DRAFT, cisoeADraftFromScore, resolveCisoeAPartialFromDraft, type CisoeADraft } from '@/services/cytology/cisoeADraft';
 import { cytologyFieldRequired } from '@/services';
@@ -97,6 +102,7 @@ import { useCaseSpellCheck } from '@/hooks/useCaseSpellCheck';
 import type { SpellingLocale } from '@/services/spellcheck/spellingLocales';
 import { SignatureConfirmModal } from '@/components/Signing/SignatureConfirmModal';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { AttachReportImagesModal } from '@/components/ReportImages/AttachReportImagesModal';
 import { CytologyRevisionActions } from './components/CytologyRevisionActions';
 import { CytologyRevisionPanel } from './components/CytologyRevisionPanel';
 import { useCytologyRevision } from './hooks/useCytologyRevision';
@@ -160,6 +166,7 @@ export default function CytologyScreeningPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [emrOpen, setEmrOpen] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
+  const [showAttachImages, setShowAttachImages] = useState(false); // Batch 609 (PS-44)
   const [showDelegateModal, setShowDelegateModal] = useState(false);
   const [delegateReturnTo, setDelegateReturnTo] = useState<'team' | null>(null);
   // General case flags, alongside this screen's own high-risk QC flag (a different thing).
@@ -295,6 +302,10 @@ export default function CytologyScreeningPage() {
 
   // ── Drafts ─────────────────────────────────────────────────────────────────
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  // Batch 608 (#54): the highest abnormal severity of the Bethesda interpretation being entered. Advisory only.
+  const draftSeverity = useMemo(
+    () => resolveCytologyAbnormalSeverity(allCytologyInterpretationIds({ primaryInterpretationId: draft.primaryInterpretationId, additionalInterpretations: draft.additionalInterpretations }), categories),
+    [draft.primaryInterpretationId, draft.additionalInterpretations, categories]);
   const [baselineDraft, setBaselineDraft] = useState<Draft>(EMPTY_DRAFT);
   const [cisoeADraft, setCisoeADraft] = useState<CisoeADraft>(EMPTY_CISOEA_DRAFT);
   const [cisoeABaselineDraft, setCisoeABaselineDraft] = useState<CisoeADraft>(EMPTY_CISOEA_DRAFT);
@@ -858,6 +869,15 @@ export default function CytologyScreeningPage() {
                 className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal">
                 🖨️ {t('cytologyScreening.printBtn')}
               </button>
+              {/* Batch 609 (PS-44): images printed after the report's pages; greyed without report:case-images:attach. */}
+              <CapabilityButton
+                capability="report:case-images:attach"
+                context={{ caseId: caseData.id, facilityId: caseData.order?.facilityId ?? null }}
+                className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal"
+                title={t('cytologyScreening.attachImagesTitle')}
+                onClick={() => setShowAttachImages(true)}>
+                🖼️ {t('cytologyScreening.attachImagesBtn')}
+              </CapabilityButton>
               {caseReleased && cytologySpecimens.length > 1 && (
                 <button
                   onClick={() => { void handlePrintCaseReport(); }}
@@ -944,6 +964,8 @@ export default function CytologyScreeningPage() {
           {/* Batch 396 (Pete): record the QC peer review verdict here, where
               the slides are reviewed. Back to the queue after the verdict. */}
           <CytologyQcCaseBar caseId={caseId} onRecorded={() => navigate(backTarget)} />
+          {/* Batch 608 (#32, #84): Return to Trainee with feedback, and the trainee's feedback banner. */}
+          <ReturnToTraineeBar caseId={caseData.id} specimenId={specimenId} requireSpecimen user={user?.id ? { id: user.id, name: user.name ?? user.id } : null} onReturned={load} />
 
           {/* Batch 411: one tab per cytology specimen; each is signed out on its own. */}
           <CytologySpecimenTabs caseId={caseData.id} tabs={cytologySpecimens} selectedId={specimenId}
@@ -1189,6 +1211,10 @@ export default function CytologyScreeningPage() {
                 )}
               </div>
 
+              {/* Batch 608 (#51, #52, #76): the details the QA reports read: HPV assay, platform, follow-up. */}
+              <CytologyScreeningDetailsCard screening={currentSpecimen?.cytologyScreening}
+                onSave={async patch => { if (caseData && specimenId) { await patchCytologyScreening(caseData, specimenId, patch, deps); await load(); } }} />
+
               {hasPatientHistory(patientHistory) && (
                 <div className="ps-cytoscreen-card">
                   {fieldLabel(t('cytologyScreening.patientHistory.title'), t('cytologyScreening.patientHistory.subtitle'))}
@@ -1345,6 +1371,11 @@ export default function CytologyScreeningPage() {
                   <button className="ps-cytoscreen-review-action-btn" onClick={() => setRevisingFromReviewId(null)}>{t('cytologyScreening.revise.cancel')}</button>
                 </div>
               )}
+              {draftSeverity && (
+                <div className="ps-cyto-sev-row">
+                  <AdvisorySeverityBadge severity={draftSeverity} />
+                </div>
+              )}
               <CytologyReviewForm
                 draft={draft} onDraftChange={setDraft}
                 editing={!!editingReviewId} saving={saving} roleLabel={roleLabel(resolvedRole)}
@@ -1392,6 +1423,14 @@ export default function CytologyScreeningPage() {
         <CytologySlideOverDrawer wide isOpen={showBillingDrawer && !!caseData} title={t('cytologyScreening.billingDrawer.title')} onClose={() => setShowBillingDrawer(false)}>
           {caseData && <CaseBillingReview caseData={caseData} review={billingReview} selectedMaterialId={currentSpecimen?.decants?.[0]?.id} />}
         </CytologySlideOverDrawer>
+        {showAttachImages && caseData && (
+          <AttachReportImagesModal
+            caseId={caseData.id}
+            accession={caseData.accession?.fullAccession ?? caseData.id}
+            facilityId={caseData.order?.facilityId ?? null}
+            onClose={() => setShowAttachImages(false)}
+          />
+        )}
         <CytologySlideOverDrawer isOpen={showMaterialDrawer} title={t('cytologyScreening.materialBtn')} onClose={() => setShowMaterialDrawer(false)}>
           <CytologyMaterialView
             specimenDescription={currentSpecimen?.description}

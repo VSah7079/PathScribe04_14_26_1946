@@ -144,6 +144,51 @@ def test_placeholder_wording_follows_labels():
     check("Not yet generated" not in text and "No content" not in text, "no English placeholder wording when labels are given")
 
 
+
+RELATED = [{
+    'sourceCaseId': 'C-1', 'accession': 'S26-0001', 'releasedAt': '2026-03-02T10:00:00Z', 'sourceVersion': 3,
+    'specimens': ['A: Skin, left forearm'], 'diagnosis': 'Basal cell carcinoma, nodular',
+    'intraoperativeDiagnosis': 'A: Malignant, margins clear', 'signedBy': 'Dr. Lee',
+    'orderingPhysician': 'Dr. Ng', 'copyToPhysicians': ['Dr. Oh', 'Dr. Pak'], 'client': 'North Clinic',
+}]
+
+
+def test_intraoperative_diagnosis_is_part_of_the_report():
+    print("test_intraoperative_diagnosis_is_part_of_the_report")
+    payload = dict(PAYLOAD, intraoperativeDiagnosis='A: Benign nevus')
+    text = main.build_report_text(payload)
+    check('Intraoperative diagnosis' in text and 'A: Benign nevus' in text, "the intraoperative diagnosis is in the text")
+    check('Intraoperative diagnosis' not in main.build_report_text(PAYLOAD), "nothing is drawn when there is none")
+    check(main.build_report_pdf(payload)[:4] == b'%PDF', "the PDF builds with it")
+
+
+def test_related_cases_print_exactly_as_attached():
+    print("test_related_cases_print_exactly_as_attached")
+    payload = dict(PAYLOAD, relatedCases=RELATED)
+    text = main.build_report_text(payload)
+    for expected in ('Related cases', 'S26-0001', 'Basal cell carcinoma, nodular', 'Dr. Ng', 'Dr. Oh, Dr. Pak', 'North Clinic', 'A: Malignant, margins clear'):
+        check(expected in text, "related case text has " + expected)
+    check('Related cases' not in main.build_report_text(PAYLOAD), "no related block when none attached")
+    check(main.build_report_pdf(payload)[:4] == b'%PDF', "the PDF builds with related cases")
+    german = dict(payload, labels={'relatedCasesTitle': 'Verwandte Fälle', 'relatedCaseDiagnosis': 'Diagnose'})
+    gtext = main.build_report_text(german)
+    check('Verwandte Fälle' in gtext and 'Diagnose:' in gtext, "related case labels follow the report language")
+
+
+def test_technical_lab_line_on_a_split_case():
+    print("test_technical_lab_line_on_a_split_case")
+    tb = {'facilityName': 'Harbor Histology', 'address': '5 Dock Rd', 'city': 'Portland', 'state': 'ME', 'zip': '04101',
+          'directorName': 'Dr. Secret', 'cliaOrIsoNumber': '99D9999999'}
+    text = main.build_report_text(dict(PAYLOAD, technicalBranding=tb))
+    check('Technical component performed at: Harbor Histology, 5 Dock Rd, Portland, ME 04101' in text, "technical lab name and address are printed")
+    check('Dr. Secret' not in text and '99D9999999' not in text, "director and CLIA number are never printed for the technical lab")
+    check('Technical component performed' not in main.build_report_text(PAYLOAD), "no technical line on a single-facility case")
+    check('Technical component performed' not in main.build_report_text(dict(PAYLOAD, technicalBranding={'address': 'x'})), "no line without a facility name")
+    german = main.build_report_text(dict(PAYLOAD, technicalBranding=tb, labels={'technicalComponentAt': 'Technischer Teil erbracht bei: {{facility}}'}))
+    check('Technischer Teil erbracht bei: Harbor Histology' in german, "the line follows the report language")
+    check(main.build_report_pdf(dict(PAYLOAD, technicalBranding=tb))[:4] == b'%PDF', "the PDF builds with a technical lab")
+
+
 def test_pdf_path_unchanged():
     print("test_pdf_path_unchanged")
     pdf_bytes = main.build_report_pdf(PAYLOAD)
@@ -671,6 +716,237 @@ def test_cytology_logo_line_breaks_and_mixed_languages():
     check(any("Page 2 of" in t for t in texts) and any("쪽 중 2쪽" in t for t in texts), "each document's page label is in its own language")
 
 
+
+# ── Batch 609 (PS-35, PS-127): page setup, document style, header and footer parts ──
+
+def _text_runs(pdf: bytes, page_index: int = 0) -> list:
+    """(text, x, y, font size) for each run of text on a page."""
+    from io import BytesIO as _B
+    from pypdf import PdfReader
+    runs: list = []
+
+    def visit(text, cm, tm, font_dict, font_size):
+        if text.strip():
+            x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
+            y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
+            runs.append((text.strip(), x, y, font_size * (tm[0] if tm[0] else 1)))
+
+    PdfReader(_B(pdf)).pages[page_index].extract_text(visitor_text=visit)
+    return runs
+
+
+def _page_size_pt(pdf: bytes) -> tuple:
+    from io import BytesIO as _B
+    from pypdf import PdfReader
+    box = PdfReader(_B(pdf)).pages[0].mediabox
+    return float(box.width), float(box.height)
+
+
+def _approx(a: float, b: float, tol: float = 1.0) -> bool:
+    return abs(a - b) <= tol
+
+
+def test_page_geometry_rules():
+    print("test_page_geometry_rules")
+    rl = main.report_layout
+    mm = 72 / 25.4
+    g = rl.page_geometry({}, (18, 20, 22, 20))
+    check(g['size_id'] == 'a4' and _approx(g['size'][0], 210 * mm, 0.01) and not g['from_request'], "no page setup: A4, as before")
+    check(tuple(round(m / mm) for m in g['margins']) == (18, 20, 22, 20), "no page setup: the report's own margins")
+    setup = {'pageSizeId': 'letter', 'widthMm': 216, 'heightMm': 279, 'margins': {'top': 25, 'right': 20, 'bottom': 25, 'left': 30}}
+    g = rl.page_geometry({'pageSetup': setup}, (18, 20, 22, 20))
+    check(g['size_id'] == 'letter' and _approx(g['size'][1], 279 * mm, 0.01), "a lab page size is used")
+    check(tuple(round(m / mm) for m in g['margins']) == (25, 20, 25, 30), "the lab's margins are used")
+    low = rl.page_geometry({'pageSetup': dict(setup, margins={'top': 5, 'right': 5, 'bottom': 5, 'left': 5})}, (18, 20, 22, 20))
+    check(all(_approx(m / mm, 12.7, 0.01) for m in low['margins']) and low['adjusted'] == ['top', 'right', 'bottom', 'left'],
+          "margins under 0.5 inch print at 0.5 inch (printers clip below it)")
+    check(rl.page_geometry({'pageSetup': {'pageSizeId': 'a3', 'widthMm': 'x', 'heightMm': None}}, (18, 20, 22, 20))['size_id'] == 'a3',
+          "unreadable millimetres fall back to the named size")
+    check(rl.page_geometry({'pageSetup': {'pageSizeId': 'zz', 'widthMm': 5, 'heightMm': 5}}, (18, 20, 22, 20))['size_id'] == 'a4',
+          "an unreadable size falls back to A4, never refuses the report")
+    check(rl.page_geometry({'pageSetup': 'junk'}, (18, 20, 22, 20))['size_id'] == 'a4', "a page setup that isn't an object is ignored")
+    huge = rl.page_geometry({'pageSetup': {'pageSizeId': 'b5', 'margins': {'top': 50, 'right': 50, 'bottom': 50, 'left': 50}}}, (18, 20, 22, 20))
+    check(rl.text_width(huge) > 50 * mm, "margins that would leave no room for text fall back to the defaults")
+
+
+def test_document_style_rules():
+    print("test_document_style_rules")
+    rl = main.report_layout
+    check(rl.style_for({}, 'body') == {'size_pt': None, 'bold': None, 'underline': False, 'transform': None, 'family': None}, "no style: nothing changes")
+    st = rl.style_for({'documentStyle': {'body': {'fontFamily': 'Times New Roman', 'fontSize': 16, 'weight': 'bold', 'decoration': 'underline', 'transform': 'uppercase'}}}, 'body')
+    check(st['size_pt'] == 12 and st['bold'] is True and st['underline'] and st['transform'] == 'uppercase' and st['family'] == ('Times-Roman', 'Times-Bold'),
+          "16 px is 12 pt; weight, underline, case and family are read")
+    check(rl.style_for({'documentStyle': {'body': {'fontSize': 4}}}, 'body')['size_pt'] == 7.0, "nothing prints below 7 pt")
+    check(rl.style_for({'documentStyle': {'body': {'fontFamily': 'Courier New'}}}, 'body')['family'] == ('Courier', 'Courier-Bold'), "Courier New prints as Courier")
+    check(rl.style_for({'documentStyle': {'body': {'fontFamily': 'Calibri'}}}, 'body')['family'] == ('Helvetica', 'Helvetica-Bold'), "Calibri prints as Helvetica")
+    check(rl.style_for({'documentStyle': {'body': {'fontFamily': 'Wingdings'}}}, 'body')['family'] is None, "an unknown family keeps the default")
+    check(rl.style_for({'documentStyle': 'junk'}, 'body')['size_pt'] is None and rl.style_for({'documentStyle': {'body': 5}}, 'body')['bold'] is None, "malformed styles are ignored")
+
+
+def test_surgical_pdf_page_size_and_margins():
+    print("test_surgical_pdf_page_size_and_margins")
+    mm = 72 / 25.4
+    check(_approx(_page_size_pt(main.build_report_pdf(PAYLOAD))[0], 210 * mm), "without a page setup the report is A4")
+    letter = dict(PAYLOAD, pageSetup={'pageSizeId': 'letter', 'widthMm': 216, 'heightMm': 279, 'margins': {'top': 25, 'right': 20, 'bottom': 25, 'left': 30}})
+    pdf = main.build_report_pdf(letter)
+    w, h = _page_size_pt(pdf)
+    check(_approx(w, 216 * mm) and _approx(h, 279 * mm), "a US Letter report is Letter sized (%.0f x %.0f pt)" % (w, h))
+    left = [x for t, x, _, _ in _text_runs(pdf) if 'PathScribe General Hospital' in t][0]
+    check(_approx(left, 30 * mm, 1.5), "text starts at the lab's left margin (%.1f pt, expected %.1f)" % (left, 30 * mm))
+    top = max(y for _, _, y, _ in _text_runs(pdf))
+    check(h - top >= 25 * mm - 1, "the first line is below the lab's top margin")
+    a3 = main.build_report_pdf(dict(PAYLOAD, pageSetup={'pageSizeId': 'a3', 'widthMm': 297, 'heightMm': 420}))
+    check(_approx(_page_size_pt(a3)[0], 297 * mm), "an A3 report is A3 sized")
+    check(main._current_geometry.get() is None and main._current_style.get() is None, "the page and style do not leak past the report")
+    wide = dict(_LONG, revision={"type": "amendment", "revisionCount": 1, "amendedAt": "2026-10-01T10:00:00Z", "originalSignedAt": "2026-09-30T10:00:00Z"},
+                pageSetup={'pageSizeId': 'a3', 'widthMm': 297, 'heightMm': 420, 'margins': {'top': 20, 'right': 20, 'bottom': 25, 'left': 20}})
+    check(main.build_report_pdf(wide)[:4] == b'%PDF', "banners and figures size to the page's text width")
+
+
+def test_surgical_pdf_document_style():
+    print("test_surgical_pdf_document_style")
+    base = main.build_report_pdf(PAYLOAD)
+    styled = dict(PAYLOAD, documentStyle={'body': {'fontFamily': 'Times New Roman', 'fontSize': 20, 'weight': 'normal'},
+                                          'header': {'fontSize': 16, 'weight': 'bold', 'transform': 'uppercase'},
+                                          'footer': {'fontSize': 10}})
+    pdf = main.build_report_pdf(styled)
+    runs = _text_runs(pdf)
+    notes = [r for r in runs if 'Routine excision' in r[0]]
+    check(notes and _approx(notes[0][3], 15, 0.6), "body text prints at the body size (20 px = 15 pt): %s" % (notes[0][3] if notes else None))
+    old = [r for r in _text_runs(base) if 'Routine excision' in r[0]]
+    check(old and _approx(old[0][3], 11, 0.6), "without a style the body keeps its original 11 pt")
+    inst = [r for r in runs if 'PATHSCRIBE GENERAL HOSPITAL' in r[0]]
+    check(inst and _approx(inst[0][3], 12, 0.6), "the institution name takes the header style (upper case, 16 px = 12 pt)")
+    check(b'Times-Roman' in pdf and b'Times-Roman' not in base, "the body family prints as Times")
+    underlined = main.build_report_pdf(dict(PAYLOAD, documentStyle={'body': {'transform': 'uppercase', 'decoration': 'underline'}}))
+    check(any('AGE' in r[0] for r in _text_runs(underlined)), "the body case style reaches the labels")
+    korean = main.build_report_pdf(dict(PAYLOAD, language='ko', documentStyle={'body': {'fontFamily': 'Times New Roman'}}))
+    check(b'Pretendard' in korean and b'Times-Roman' not in korean, "a Korean report stays in Pretendard whatever the family")
+
+
+def _hf_payload(**extra) -> dict:
+    header = {"slotId": "header-p1", "partId": "h1", "partName": "Letterhead", "order": 0, "nodes": [
+        {"type": "header", "scope": "all", "showLogo": True, "children": [
+            {"type": "expression-value", "label": "n", "template": "{{institution.name}}"},
+            {"type": "expression-value", "label": "d", "template": "{{institution.department}}"},
+            {"type": "static-label", "text": "Accredited laboratory"},
+        ]}]}
+    footer = {"slotId": "footer-p1", "partId": "f1", "partName": "Footer", "order": 0, "nodes": [
+        {"type": "footer", "scope": "all", "children": [
+            {"type": "expression-value", "label": "p", "template": "Footer for {{patient.sex}}"},
+            {"type": "static-label", "text": "PART-CONFIDENTIAL NOTICE"},
+        ]}]}
+    return dict(PAYLOAD, headerAssembly=[header], footerAssembly=[footer], **extra)
+
+
+def test_surgical_pdf_header_and_footer_parts():
+    print("test_surgical_pdf_header_and_footer_parts")
+    pdf = main.build_report_pdf(_hf_payload())
+    first = _pdf_pages_text(pdf)[0]
+    check("Accredited laboratory" in first, "the header part's static line is printed")
+    check(first.count("PathScribe General Hospital") == 1, "the header part replaces the fixed institution block (name printed once)")
+    check("PART-CONFIDENTIAL NOTICE" in first and "Footer for F" in first, "the footer part is printed, its expression filled from the case")
+    check("CONFIDENTIAL — PATHOLOGY REPORT" not in first.upper() or "PART-CONFIDENTIAL NOTICE" in first, "the footer part carries the confidentiality line")
+    many = _pdf_pages_text(main.build_report_pdf(_hf_payload(synopticAnswers=_LONG["synopticAnswers"])))
+    check(len(many) > 1 and all("PART-CONFIDENTIAL NOTICE" in p for p in many), "the footer part is on every page (%d)" % len(many))
+    check(all("Accredited laboratory" not in p for p in many[1:]), "the header part is on the first page only")
+    runs = _text_runs(pdf)
+    notice = [r for r in runs if 'PART-CONFIDENTIAL' in r[0]][0]
+    body_low = min(y for t, _, y, _ in runs if 'Routine excision' in t)
+    check(notice[2] < body_low, "the footer part sits below the body")
+    plain = _pdf_pages_text(main.build_report_pdf(PAYLOAD))[0]
+    check("Accredited laboratory" not in plain and plain.count("PathScribe General Hospital") == 1, "without parts the fixed institution block prints, as before")
+    empty = dict(PAYLOAD, headerAssembly=[{"slotId": "h", "partId": "p", "partName": "x", "order": 0, "nodes": [{"type": "header", "scope": "all", "children": []}]}],
+                 footerAssembly=[{"slotId": "f", "partId": "p", "partName": "x", "order": 0, "nodes": [{"type": "footer", "scope": "all", "children": []}]}])
+    pe = _pdf_pages_text(main.build_report_pdf(empty))[0]
+    check("PathScribe General Hospital" in pe and "CONFIDENTIAL" in pe.upper(), "parts that draw nothing fall back to the fixed header and confidentiality line")
+    hidden = _hf_payload()
+    hidden['footerAssembly'][0]['nodes'][0]['showWhen'] = {"clauses": [{"field": "patient.sex", "operator": "==", "value": "M"}]}
+    check("PART-CONFIDENTIAL" not in _pdf_pages_text(main.build_report_pdf(hidden))[0], "a part's showWhen is honoured")
+    check(main.build_report_pdf(_hf_payload(language='ko'))[:4] == b'%PDF', "parts build in a Korean report")
+    styled = _hf_payload(documentStyle={'footer': {'fontSize': 16, 'weight': 'bold'}, 'header': {'fontSize': 20}})
+    sruns = _text_runs(main.build_report_pdf(styled))
+    fr = [r for r in sruns if 'PART-CONFIDENTIAL' in r[0]][0]
+    check(_approx(fr[3], 12, 0.6), "the footer part takes the footer style (16 px = 12 pt)")
+
+
+def test_cytology_page_size_margins_and_style():
+    print("test_cytology_page_size_margins_and_style")
+    mm = 72 / 25.4
+    a4 = main.cytology_report.build_cytology_pdf(CYTO)
+    check(_approx(_page_size_pt(a4)[0], 210 * mm), "without a page setup the cytology report is A4")
+    letter = dict(CYTO, pageSetup={'pageSizeId': 'letter', 'widthMm': 216, 'heightMm': 279, 'margins': {'top': 20, 'right': 20, 'bottom': 20, 'left': 25}})
+    pdf = main.cytology_report.build_cytology_pdf(letter)
+    w, h = _page_size_pt(pdf)
+    check(_approx(w, 216 * mm) and _approx(h, 279 * mm), "a cytology report is the lab's page size")
+    left = min(x for _, x, _, _ in _text_runs(pdf))
+    check(_approx(left, 25 * mm, 1.5), "cytology text starts at the lab's left margin (%.1f)" % left)
+    tight = main.cytology_report.build_cytology_pdf(dict(CYTO, pageSetup={'pageSizeId': 'a4', 'margins': {'top': 5, 'right': 5, 'bottom': 5, 'left': 5}}))
+    left = min(x for _, x, _, _ in _text_runs(tight))
+    check(left >= 12.7 * mm - 1.5, "cytology margins never go below 0.5 inch (%.1f pt)" % left)
+    check(main.cytology_report.build_cytology_pdf(letter) == main.cytology_report.build_cytology_pdf(letter), "the same request still gives the same bytes")
+    styled = dict(CYTO, documentStyle={'header': {'fontSize': 24, 'transform': 'uppercase'}, 'body': {'fontSize': 16}, 'footer': {'fontSize': 12}})
+    sruns = _text_runs(main.cytology_report.build_cytology_pdf(styled))
+    title = [r for r in sruns if 'CYTOLOGY REPORT' in r[0]]
+    check(title and _approx(title[0][3], 18, 0.6), "the title takes the header style (24 px = 18 pt, upper case)")
+    check(any(_approx(r[3], 12, 0.6) and 'NILM' in r[0] for r in sruns), "lines without a size of their own take the body size (16 px = 12 pt)")
+    plain = _text_runs(a4)
+    check(any(_approx(r[3], 10, 0.6) and 'NILM' in r[0] for r in plain), "without a style the lines keep 10 pt")
+    check(b'Liberation' in main.cytology_report.build_cytology_pdf(dict(CYTO, documentStyle={'body': {'fontFamily': 'Courier New'}})), "the cytology font stays the embedded one")
+    multi = dict(CYTO, documents=[_cyto_doc(), _cyto_doc()], pageSetup={'pageSizeId': 'letter', 'widthMm': 216, 'heightMm': 279})
+    check(main.cytology_report.build_cytology_pdf(multi)[:4] == b'%PDF', "a case report builds on the lab's page")
+
+
+def test_font_units_rules():
+    print("test_font_units_rules")
+    rl = main.report_layout
+    pt = lambda size, **extra: rl.style_for({'documentStyle': {'body': dict({'fontSize': size, 'units': 'pt'}, **extra)}}, 'body')['size_pt']
+    check(pt(10) == 10 and pt(11) == 11 and pt(12) == 12, "a style in points prints at the number given (10 is 10 pt)")
+    check(pt(6) == 8.0 and pt(4) == 8.0, "a size in points under 8 prints at 8 pt")
+    check(pt(2) is None and pt(100) is None and pt('x') is None, "a size that is not usable keeps the default")
+    legacy = lambda size, **cfg: rl.style_for({'documentStyle': {'body': dict({'fontSize': size}, **cfg)}}, 'body')['size_pt']
+    check(legacy(10) == 7.5 and legacy(16) == 12 and legacy(4) == 7.0, "a size with no units is pixels, as before (10 px = 7.5 pt, floor 7)")
+    check(legacy(10, units='legacy_px') == 7.5, "legacy_px is the same as no units")
+    check(legacy(10, units='nonsense') == 7.5, "an unknown units value is treated as legacy pixels")
+    inherited = rl.style_for({'fontUnits': 'pt', 'documentStyle': {'body': {'fontSize': 10}}}, 'body')['size_pt']
+    check(inherited == 10, "a style with no units of its own takes the template's units")
+    own = rl.style_for({'fontUnits': 'pt', 'documentStyle': {'body': {'fontSize': 10, 'units': 'legacy_px'}}}, 'body')['size_pt']
+    check(own == 7.5, "a style's own units win over the template's")
+    check(rl.style_for({'fontUnits': 'junk', 'documentStyle': {'body': {'fontSize': 10}}}, 'body')['size_pt'] == 7.5, "an unknown template units value is legacy")
+    check(rl.label_size_pt(9, 'legacy_px') == 9 and rl.label_size_pt(9, 'pt') == 9 and rl.label_size_pt(6, 'pt') == 8.0 and rl.label_size_pt(6, 'legacy_px') == 6,
+          "a label keeps its number as points; in a points template it has the 8 pt floor")
+    check(rl.label_size_pt(0, 'pt') is None and rl.label_size_pt(None, 'pt') is None, "no label size means no override")
+    check(rl.MIN_FONT_PT == 7.0 and rl.MIN_FONT_PT_POINTS == 8.0, "the floors are 7 pt (legacy) and 8 pt (points)")
+
+
+def test_surgical_pdf_points_templates():
+    print("test_surgical_pdf_points_templates")
+    legacy = dict(PAYLOAD, documentStyle={'body': {'fontSize': 10}})
+    points = dict(PAYLOAD, fontUnits='pt', documentStyle={'body': {'fontSize': 10, 'units': 'pt'}})
+    rl = [r for r in _text_runs(main.build_report_pdf(legacy)) if 'Routine excision' in r[0]]
+    rp = [r for r in _text_runs(main.build_report_pdf(points)) if 'Routine excision' in r[0]]
+    check(rl and _approx(rl[0][3], 7.5, 0.6), "a legacy template still prints 10 as 7.5 pt: %s" % (rl[0][3] if rl else None))
+    check(rp and _approx(rp[0][3], 10, 0.6), "the same 10 in a points template prints at 10 pt: %s" % (rp[0][3] if rp else None))
+    small = dict(PAYLOAD, documentStyle={'body': {'fontSize': 6, 'units': 'pt'}})
+    rs = [r for r in _text_runs(main.build_report_pdf(small)) if 'Routine excision' in r[0]]
+    check(rs and _approx(rs[0][3], 8, 0.6), "a body of 6 pt prints at the 8 pt floor")
+    check(main._current_font_units.get() is None, "the template's units do not leak past the report")
+    check(main.build_report_pdf(dict(PAYLOAD, fontUnits='pt'))[:4] == b'%PDF', "a points template with no document style builds")
+    cyto = dict(CYTO, documentStyle={'body': {'fontSize': 12, 'units': 'pt'}, 'header': {'fontSize': 16, 'units': 'pt', 'transform': 'uppercase'}})
+    sruns = _text_runs(main.cytology_report.build_cytology_pdf(cyto))
+    check(any(_approx(r[3], 12, 0.6) and 'NILM' in r[0] for r in sruns), "cytology lines in a points style print at the number given (12 pt)")
+    title = [r for r in sruns if 'CYTOLOGY REPORT' in r[0]]
+    check(title and _approx(title[0][3], 16, 0.6), "the cytology title in a points header prints at 16 pt")
+
+
+def test_entrypoint_reads_page_setup():
+    print("test_entrypoint_reads_page_setup")
+    resp = _call_entrypoint(_make_request(dict(PAYLOAD, pageSetup={'pageSizeId': 'legal', 'widthMm': 216, 'heightMm': 356})))
+    check(resp.status_code == 200 and _approx(_page_size_pt(resp.data)[1], 356 * 72 / 25.4), "render_report prints the page size sent")
+    cyto = _call_entrypoint(_make_request(dict(CYTO, pageSetup={'pageSizeId': 'a3', 'widthMm': 297, 'heightMm': 420})))
+    check(cyto.status_code == 200 and _approx(_page_size_pt(cyto.data)[0], 297 * 72 / 25.4), "the cytology template prints the page size sent")
+
+
 if __name__ == '__main__':
     test_labels_follow_the_report_language()
     test_korean_report_uses_pretendard()
@@ -710,4 +986,16 @@ if __name__ == '__main__':
     test_cytology_watermark_and_barcode()
     test_cytology_entrypoint()
     test_cytology_logo_line_breaks_and_mixed_languages()
+    test_page_geometry_rules()
+    test_document_style_rules()
+    test_surgical_pdf_page_size_and_margins()
+    test_surgical_pdf_document_style()
+    test_surgical_pdf_header_and_footer_parts()
+    test_cytology_page_size_margins_and_style()
+    test_font_units_rules()
+    test_surgical_pdf_points_templates()
+    test_entrypoint_reads_page_setup()
+    test_intraoperative_diagnosis_is_part_of_the_report()
+    test_related_cases_print_exactly_as_attached()
+    test_technical_lab_line_on_a_split_case()
     print(f"\nALL {PASS_COUNT} REAL CHECKS PASSED")

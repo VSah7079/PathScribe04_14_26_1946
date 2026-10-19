@@ -50,7 +50,7 @@ const err = <T>(message: string, _code = 'ERROR'): ServiceResult<T> =>
 // ── Change events ──────────────────────────────────────────────
 
 const CHANGE_EVENT = 'PATHSCRIBE_REPORT_PARTS_CHANGED';
-const notifyChanged = () => window.dispatchEvent(new Event(CHANGE_EVENT));
+export const notifyChanged = () => window.dispatchEvent(new Event(CHANGE_EVENT));
 
 export function onReportPartsChanged(handler: () => void): () => void {
   window.addEventListener(CHANGE_EVENT, handler);

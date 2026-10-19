@@ -6,3 +6,10 @@
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
+
+## Batch 608
+
+- `CytologyQcCompliancePanel.tsx`: the QC compliance report (the queue's Compliance view).
+- `AdvisorySeverityBadge.tsx`: the suggested severity badge (queue rows and the Bethesda review).
+- `CytologyScreeningDetailsCard.tsx`: HPV assay, liquid-based platform and the follow-up on a positive HPV result, saved on the specimen.
+- `CytologyQcCaseBar.tsx` also says when the reader is outside the case's reviewer pool.

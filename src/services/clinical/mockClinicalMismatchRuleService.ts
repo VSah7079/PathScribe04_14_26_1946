@@ -6,11 +6,13 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { notifyConfigRefused } from '../authorization/guardConfigWrites';
 import type { ClinicalMismatchRule } from './clinicalMismatchRules';
-import { CLINICAL_MISMATCH_RULES_STORAGE_KEY, createClinicalMismatchRuleService } from './clinicalMismatchRuleService';
+import { CLINICAL_MISMATCH_REVISION_HOLD_STORAGE_KEY, CLINICAL_MISMATCH_RULES_STORAGE_KEY, createClinicalMismatchRuleService } from './clinicalMismatchRuleService';
 
 export const mockClinicalMismatchRuleService = createClinicalMismatchRuleService({
   read: () => storageGet<ClinicalMismatchRule[] | null>(CLINICAL_MISMATCH_RULES_STORAGE_KEY, null),
   write: rules => storageSet(CLINICAL_MISMATCH_RULES_STORAGE_KEY, rules),
+  readRevisionHold: () => storageGet<boolean | null>(CLINICAL_MISMATCH_REVISION_HOLD_STORAGE_KEY, null),
+  writeRevisionHold: holds => storageSet(CLINICAL_MISMATCH_REVISION_HOLD_STORAGE_KEY, holds),
   enforce: async capability => {
     const { authorizationService } = await import('../authorization/defaultAuthorizationService');
     return authorizationService.enforce(capability);

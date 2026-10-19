@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 
 
 # services/reasons
@@ -15,3 +17,6 @@ New category **SURGEON_UNAVAILABLE**: why a critical intraoperative result went 
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+
+Batch 616: server version in `httpReasonDictionaryService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `reasonDictionaryServiceInstance.ts`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.

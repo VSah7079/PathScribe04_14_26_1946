@@ -6,6 +6,7 @@ import { localToday, secureSendProblem } from '../secureMessaging/secureGatewayR
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockSecureMessagingConfigService } from '../secureMessaging/mockSecureMessagingConfigService';
 import { mockAuditService } from '../auditlog/mockAuditService';
+import { recordSimulatedEmail } from '../communications/simulatedMailOutbox';
 import { dataStorage } from '../browserData/dataStorage';
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
@@ -536,7 +537,12 @@ export const mockMessageService: IMessageService = {
     // Demo: stands in for the gateway's handshake. The real send is PS-332.
     await new Promise(r => setTimeout(r, 1800));
     // The caller logs the sent email (useAuditLog 'secure_email_sent'), as before.
-    void input;
+    // Batch 604: no real gateway transport exists (PS-332), so the message is kept in the labelled
+    // Simulated mail outbox and the Sent screen says it is simulated.
+    recordSimulatedEmail({
+      to: [input.to], subject: input.subject, bodyText: input.body, bodyHtml: '',
+      metadata: { source: 'secure-email', gatewayId: input.gatewayId ?? '', containsPatientData: String(!!input.containsPatientData) },
+    }, input.fromName);
     return ok(undefined);
   },
 

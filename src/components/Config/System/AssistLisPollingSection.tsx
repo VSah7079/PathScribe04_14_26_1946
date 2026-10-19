@@ -30,6 +30,8 @@ import { useConfigDirtyGuard } from '../configDirtyGuardContext';
 import { formatDateTime } from '@/utils/formatDate';
 import { assistPollingService, MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES, lisStagingQueueService } from '@/services';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { scheduleStatus, scheduleStartedAt, SIMULATED_SCHEDULE_TICK_MS } from '@/services/assistPolling/simulatedAssistSchedule';
+import { dataMayPersistInBrowser } from '@/services/browserData/browserDataPolicy';
 
 type PushKind = 'hl7v2' | 'webhook';
 const EXAMPLES: Record<PushKind, string> = { hl7v2: EXAMPLE_HL7_STATUS_MESSAGE, webhook: EXAMPLE_WEBHOOK_BODY };
@@ -55,6 +57,12 @@ const AssistLisPollingSection: React.FC = () => {
     setQueue(q);
   }, []);
   useEffect(() => { load(); }, [load]);
+  // Batch 605: while the demo's simulated schedule runs, keep the last and next run times fresh.
+  useEffect(() => {
+    if (!dataMayPersistInBrowser()) return;
+    const id = setInterval(() => { void load(); }, SIMULATED_SCHEDULE_TICK_MS);
+    return () => clearInterval(id);
+  }, [load]);
 
   const changed = !!state && !!draft && assistSettingsChanged(state.settings, draft);
   useEffect(() => { setDirty(changed); }, [changed, setDirty]);
@@ -96,6 +104,17 @@ const AssistLisPollingSection: React.FC = () => {
       {/* ── Settings ── */}
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">{t('assistLisPolling.settingsCard.title')}</div>
+        {dataMayPersistInBrowser() && (() => {
+          const sch = scheduleStatus(state, scheduleStartedAt());
+          return (
+            <p className="ps-conf-hint" data-testid="assist-simulated-schedule">
+              <span className="ps-conf-badge">{t('assistLisPolling.simulatedSchedule.badge')}</span>{' '}
+              {t('assistLisPolling.simulatedSchedule.explain')}{' '}
+              {t('assistLisPolling.simulatedSchedule.last', { when: sch.lastRunAt ? formatDateTime(sch.lastRunAt, i18n.language) : t('assistLisPolling.simulatedSchedule.never') })}{' '}
+              {t('assistLisPolling.simulatedSchedule.next', { when: sch.nextRunAt ? formatDateTime(sch.nextRunAt, i18n.language) : t('assistLisPolling.simulatedSchedule.off') })}
+            </p>
+          );
+        })()}
         <div className="ps-conf-toggle-row">
           <div
             role="switch"

@@ -107,6 +107,12 @@ describe('PrintQueueDashboardSection', () => {
     expect(screen.getAllByText('printQueueDashboard.status.PRINTED').length).toBeGreaterThan(0);
   });
 
+  it('Batch 606: a job printed through the Simulated transport says "Simulated: sent to printer"', async () => {
+    queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'PRINTED', simulated: true } as never), job({ id: 'j2', status: 'PRINTED', caseId: 'S26-1002' } as never)] });
+    render(<PrintQueueDashboardSection />);
+    expect(await screen.findAllByText('printQueueDashboard.simulatedSent')).toHaveLength(1);
+  });
+
   it('renders a real, loaded job row with its status and gates actions by its real status', async () => {
     queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'FAILED', errorMessage: 'jammed' })] });
     render(<PrintQueueDashboardSection />);

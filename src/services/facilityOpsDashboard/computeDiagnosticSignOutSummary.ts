@@ -8,7 +8,7 @@
 // A batch is included whenever it has at least one real slide for
 // this facility.
 
-import { mockWsiScanBatchService } from '../digitalPathology/mockWsiScanBatchService';
+import { wsiScanBatchService as mockWsiScanBatchService } from '../digitalPathology/wsiScanBatchServiceInstance';
 import { buildFacilityLookupMaps } from './buildFacilityLookupMaps';
 import type { DashboardSummary, DashboardAlert, DashboardQueueItem } from './IFacilityOpsDashboardTypes';
 

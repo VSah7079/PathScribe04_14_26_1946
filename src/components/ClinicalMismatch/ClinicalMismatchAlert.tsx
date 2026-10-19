@@ -42,7 +42,7 @@ export const ClinicalMismatchAlert: React.FC<Props> = ({ assessment, caseId, cas
         <span className="ps-clin-mismatch-alert__badge">{t(`${K}.badge`)}</span>
         <span className="ps-clin-mismatch-alert__text">
           {t(`${K}.title`, { kind: t(`clinicalMismatch.kinds.${assessment.suggestion.kind}`), confidence: assessment.suggestion.confidence })}
-          {' '}{high ? t(`${K}.holdsSignOut`) : t(`${K}.lowRisk`)}
+          {' '}{assessment.releaseNotHeld ? t(`${K}.releaseNotHeld`) : high ? t(`${K}.holdsSignOut`) : t(`${K}.lowRisk`)}
         </span>
         <button type="button" className="ps-conf-btn-secondary" aria-expanded={open} onClick={() => setOpen(o => !o)}>
           {open ? t(`${K}.hide`) : t(`${K}.review`)}

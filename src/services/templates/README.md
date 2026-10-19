@@ -203,3 +203,5 @@ Test files here no longer set their own time limit below the suite's 60 s (`vite
 ## Batch 579
 
 - `templateReviewWork.ts`: `addTemplateQuestionComment` and `toggleTemplateQuestionComment` (save and audit a reviewer's comment; the comment thread only renders).
+
+- Batch 609 (#39): `templateLifecycleAudit.ts` builds the Audit Log entry for each protocol lifecycle step (`TEMPLATE_DRAFT_SAVED`, `_SUBMITTED`, `_CHANGES_REQUESTED`, `_RESUBMITTED`, `_APPROVED`, `_PUBLISHED`, `_SUPERSEDED`, `_ARCHIVED`, `_RESTORED`, `_RESET_TO_DRAFT`, `_DRAFT_DELETED`); `templateService` records them instead of writing to the console. `protocolUploadValidation.ts` checks an uploaded JSON, XML (CAP eCC / SDC) or Excel file and says it is unverified against CAP and RCPath; only a PathScribe JSON protocol is importable (as a draft). Tests: `templateLifecycleAudit.test.ts`, `protocolUploadValidation.test.ts`.

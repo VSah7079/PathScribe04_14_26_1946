@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/digitalPathology/
 
 Real, shared home for computational-pathology/AI vendor integration
@@ -250,6 +252,12 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 
 WSI scan batch stain updates are versioned; the count of slides sent back comes from the save that landed.
 
+## Batch 610 (#78)
+
+`aiStalledResultRule.ts` and `mockAiStalledResultSettingsService` (how long an AI result may wait before it counts as stalled), and `aiQaReportRows.ts` (discordance and concordance rows for the AI Discordance tab).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-502): server versions of AiScreeningResultService, AiStalledResultSettingsService, DpVendorService, WsiScanBatchService, WsiViewerVendorService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/DIGITAL_PATHOLOGY_API.md`.

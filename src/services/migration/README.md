@@ -125,3 +125,14 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 611 (part F) — legacy file import (#132, #166)
+
+- `parseLegacyFile.ts` reads CSV (comma, semicolon or tab; quoted fields) or JSON into flat records, up to `LEGACY_IMPORT_MAX_RECORDS` (2,000).
+- `runLegacyFileImport.ts` (capability `config:migration-mappings:manage`) creates a *simulated* job, runs each record through `processLegacyRecordImport`, creates draft cases for succeeded records (`buildDraftCaseFromMigration.ts`, ids `MIG-…`, `Case.importSource`), refuses a legacy accession already imported, records each result and audits counts only. `importLegacyFile.ts` wires the app's services.
+- The file's text is never kept. Server work: bulk jobs and OCR in the interface engine.
+- Tests: `parseLegacyFile`, `buildDraftCaseFromMigration`, `runLegacyFileImport`, `importLegacyFile`.
+
+## Batch 617 (part B): server version (PS-514)
+
+The migration job, record result and field mapping services now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/EQUIPMENT_MIGRATION_API.md`.

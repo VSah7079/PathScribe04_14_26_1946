@@ -77,7 +77,7 @@ export const CASSETTE_REPRINT_REASON_KEYS: Readonly<Record<CassetteReprintReason
   'Wax Buildup': 'waxBuildup', 'Faded Barcode': 'fadedBarcode', 'Mechanical Jam': 'mechanicalJam', 'Other': 'other',
 };
 export const BLOCK_STATUS_KEYS: Readonly<Record<BlockStatus, string>> = {
-  Pending: 'pending', Grossed: 'grossed', Embedded: 'embedded', Exhausted: 'exhausted', Cancelled: 'cancelled', Lost: 'lost', Damaged: 'damaged',
+  Pending: 'pending', Grossed: 'grossed', Embedded: 'embedded', Exhausted: 'exhausted', Cancelled: 'cancelled', Lost: 'lost', Damaged: 'damaged', Deleted: 'deleted', Invalidated: 'invalidated',
 };
 
 /** Batch 401: the blocks a split-block group can take in with this one (on the same specimen, not already grouped). */

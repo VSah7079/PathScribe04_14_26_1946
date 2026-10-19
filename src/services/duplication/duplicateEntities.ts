@@ -202,9 +202,10 @@ export function duplicateRole<T extends { id: string; name: string; builtIn: boo
   // PS-355: a copy keeps the capabilities (the reason to duplicate) but is an
   // ordinary custom role: assignable to staff even when the source isn't
   // (Superadmin), and with no record of built-in seeds offered.
-  const copy = { ...baseCopy(source, 'name', copyName), builtIn: false } as T & { assignable?: boolean; seededCapabilities?: string[] };
+  const copy = { ...baseCopy(source, 'name', copyName), builtIn: false } as T & { assignable?: boolean; seededCapabilities?: string[]; seededActions?: string[] };
   delete copy.assignable;
   delete copy.seededCapabilities;
+  delete copy.seededActions;
   // Batch 371: a copy is a hospital role, so it can't carry ForMedrixAI
   // platform capabilities (a copy of Superadmin keeps everything else).
   const caps = (copy as { capabilities?: string[] }).capabilities;

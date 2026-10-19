@@ -17,16 +17,26 @@ export type SystemSection =
   | 'or_suite_terminals'
   | 'intraop_critical_results'
   | 'display_profiles'
+  | 'simulated_mail'
+  | 'performance_targets'
+  | 'client_sla'
+  | 'jurisdiction_overview'
   | 'migration_field_mappings'
   | 'cancer_registry_settings'
   | 'departments'
   | 'asset_locations'
+  | 'cold_chain'
+  | 'smart_capture'
+  | 'interface_dictionary'
   | 'container_types'
   | 'reagent_lots'
   | 'workstation_groups'
   | 'action_groups'
   | 'scan_stations'
   | 'site_agents'
+  | 'workstations'
+  | 'bi_feed'
+  | 'scope_reference'
   | 'equipment'
   | 'grossing_hardware'
   | 'cassette_routing_rules'
@@ -41,6 +51,8 @@ export type SystemSection =
   | 'concordance_review_settings'
   | 'template_governance'
   | 'delivery_rules'
+  | 'delivery_schedules'
+  | 'billing_release'
   | 'print_routing_rules'
   | 'contribution_settings'
   | 'qa_config_center'
@@ -67,9 +79,11 @@ export type SystemSection =
   | 'modifier_dictionary'
   | 'participation_types'
   | 'country_signing_rules'
+  | 'code_systems'
   | 'print_settings'
   | 'label_designer'
   | 'printer_profiles'
+  | 'simulated_print'
   | 'terminology'
   | 'crosswalk'
   | 'clients'
@@ -129,10 +143,17 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   // other alphabetized list elsewhere in this app.)
   { id: 'print_settings',      emoji: '🖨️', labelKey: 'systemTab.sections.printSettings'        , group: 'Workstation & Hardware' },
   { id: 'label_designer',      emoji: '🏷️', labelKey: 'systemTab.sections.labelDesigner'        , group: 'Workstation & Hardware' },
+  // Batch 606: every label, report print and scan event the demo simulated.
+  { id: 'simulated_print',     emoji: '🧪', labelKey: 'systemTab.sections.simulatedPrint'       , group: 'Workstation & Hardware' },
   { id: 'printer_profiles',    emoji: '🖨️', labelKey: 'systemTab.sections.printerProfiles'      , group: 'Workstation & Hardware' },
   { id: 'scan_stations',       emoji: '📍', labelKey: 'systemTab.sections.scanStations'         , group: 'Workstation & Hardware' },
   // Batch 552 (PS-539 phase 2d): the site agents (enrolment, status, agent printers and shares).
   { id: 'site_agents',         emoji: '🛰️', labelKey: 'systemTab.sections.siteAgents'           , group: 'Workstation & Hardware' },
+  // Batch 612: registered workstations with tokens and context binding, and the enterprise-versus-facility scope reference.
+  { id: 'workstations',        emoji: '🖥️', labelKey: 'systemTab.sections.workstations'         , group: 'Workstation & Hardware' },
+  // Batch 613 (PS-787): the reporting feed for Power BI and other BI tools.
+  { id: 'bi_feed',            emoji: '📊', labelKey: 'systemTab.sections.biFeed'               , group: 'Integrations' },
+  { id: 'scope_reference',     emoji: '🧭', labelKey: 'systemTab.sections.scopeReference'       , group: 'Administration & Compliance' },
   // Batch 358: the equipment register (took over Batch 356's Instruments list).
   { id: 'equipment',           emoji: '🔬', labelKey: 'systemTab.sections.equipment'            , group: 'Workstation & Hardware' },
   // Batch 359: grossing cameras and scales (settings; the device is in the register).
@@ -181,12 +202,17 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'grossing_route_overrides', emoji: '🔀', labelKey: 'systemTab.sections.grossingRouteOverrides', group: 'Lab Materials & Workflows' },
   { id: 'specimens',           emoji: '🔬', labelKey: 'systemTab.sections.specimens'   , group: 'Lab Materials & Workflows' },
   { id: 'asset_locations',     emoji: '📍', labelKey: 'systemTab.sections.assetLocations', group: 'Lab Materials & Workflows' },
+  // Batch 610: storage units, temperature rules and smart containers (cold chain).
+  // Batch 611: Smart Capture prototype switch and production gate.
+  { id: 'smart_capture',        emoji: '✦', labelKey: 'systemTab.sections.smartCapture', group: 'Lab Materials & Workflows' },
+  { id: 'cold_chain',          emoji: '🥶', labelKey: 'systemTab.sections.coldChain', group: 'Lab Materials & Workflows' },
 
   // ── Clinical Lookups ──
   { id: 'governing_bodies',    emoji: '📋', labelKey: 'systemTab.sections.governingBodies'      , group: 'Clinical Lookups' },
   { id: 'abnormal_trigger_rules', emoji: '🚩', labelKey: 'systemTab.sections.abnormalTriggerRules', group: 'Clinical Lookups' },
   { id: 'participation_types', emoji: '👥', labelKey: 'systemTab.sections.participationTypes'   , group: 'Clinical Lookups' },
   { id: 'country_signing_rules', emoji: '🌐', labelKey: 'systemTab.sections.countrySigningRules', group: 'Clinical Lookups' },
+  { id: 'code_systems',         emoji: '🔢', labelKey: 'systemTab.sections.codeSystems', group: 'Clinical Lookups' },
   { id: 'protocols',           emoji: '🧬', labelKey: 'systemTab.sections.protocols'   , group: 'Clinical Lookups' },
   // Batch 461: anatomical map colours & patterns (by enterprise, jurisdiction, facility) and question bindings.
   { id: 'organ_maps',          emoji: '🗺', labelKey: 'systemTab.sections.organMaps'   , group: 'Clinical Lookups' },
@@ -217,6 +243,9 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'release_buffer',      emoji: '⏳', labelKey: 'systemTab.sections.releaseBuffer', group: 'Administration & Compliance' },
   { id: 'concordance_review_settings', emoji: '⚖', labelKey: 'systemTab.sections.concordanceReviewSettings', group: 'Administration & Compliance' },
   { id: 'delivery_rules', emoji: '📬', labelKey: 'systemTab.sections.deliveryRules', group: 'Administration & Compliance' },
+  // Batch 619 (PS-800): when reports, billing and feeds go out.
+  { id: 'billing_release', emoji: '💲', labelKey: 'systemTab.sections.billingRelease', group: 'Administration & Compliance' },
+  { id: 'delivery_schedules', emoji: '🗓', labelKey: 'systemTab.sections.deliverySchedules', group: 'Administration & Compliance' },
   { id: 'print_routing_rules', emoji: '🖨', labelKey: 'systemTab.sections.printRoutingRules', group: 'Administration & Compliance' },
   { id: 'qa_config_center',    emoji: '✅', labelKey: 'systemTab.sections.qaConfigCenter' , group: 'Administration & Compliance' },
   // Batch 453 (PS-324): the biopsy-to-resection correlation window.
@@ -244,12 +273,20 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
 
   // ── Integrations ──
   // PS-87: Assist-mode LIS polling (settings, Poll now, activity log).
+  // Batch 604: every e-mail the demo would have sent, labelled Simulated.
+  { id: 'simulated_mail', emoji: '📬', labelKey: 'systemTab.sections.simulatedMail', group: 'Integrations' },
+  // Batch 610 (#87, #163, #164): performance targets, client SLAs and the read-only jurisdiction overview.
+  { id: 'performance_targets', emoji: '🎯', labelKey: 'systemTab.sections.performanceTargets', group: 'Administration & Compliance' },
+  { id: 'client_sla', emoji: '⏱️', labelKey: 'systemTab.sections.clientSla', group: 'Administration & Compliance' },
+  { id: 'jurisdiction_overview', emoji: '🗺️', labelKey: 'systemTab.sections.jurisdictionOverview', group: 'Administration & Compliance' },
   { id: 'assist_lis_polling', emoji: '🔄', labelKey: 'systemTab.sections.assistLisPolling', group: 'Integrations' },
   { id: 'case_mask_config', emoji: '🔢', labelKey: 'systemTab.sections.caseMaskConfig', group: 'Integrations' },
   { id: 'case_routing',     emoji: '🔀', labelKey: 'systemTab.sections.caseRouting'           , group: 'Integrations' },
   { id: 'clients',          emoji: '🏥', labelKey: 'systemTab.sections.clients' , group: 'Integrations' },
   { id: 'crosswalk',        emoji: '🧩', labelKey: 'systemTab.sections.crosswalk', group: 'Integrations' },
   { id: 'outbound_message_preview', emoji: '📤', labelKey: 'systemTab.sections.outboundMessagePreview', group: 'Integrations' },
+  // Batch 612: vendor message profiles. Shown to ForMedrixAI staff only (platform:interface-dictionary:manage).
+  { id: 'interface_dictionary', emoji: '🧭', labelKey: 'systemTab.sections.interfaceDictionary', group: 'Integrations' },
   { id: 'physicians',       emoji: '🩻', labelKey: 'systemTab.sections.physicians'             , group: 'Integrations' },
   { id: 'routing_rules',    emoji: '📋', labelKey: 'systemTab.sections.routingRules'          , group: 'Integrations' },
   { id: 'deficiencies',     emoji: '⚠️', labelKey: 'systemTab.sections.deficiencies'  , group: 'Integrations' },

@@ -466,7 +466,7 @@ let ORDERS: IncomingOrder[] = loadOrders();
  *  (can only remove false negatives, never introduce a false
  *  positive — see that file's own header).
  *
- *  Real, disclosed, deliberate scope boundary: does NOT filter by
+ *  (Batch 605: IncomingOrder now has an optional siteId, so a site-scoped entry is preferred. The older note follows.) Does NOT filter by
  *  SpecimenCodeCrosswalkEntry.siteId at all — confirmed directly
  *  before writing this that IncomingOrder has no siteId/organisationId
  *  field anywhere, so there is no real value to match against yet. A
@@ -475,16 +475,21 @@ let ORDERS: IncomingOrder[] = loadOrders();
  *  IncomingOrder itself gains a real site-identifying field — a real,
  *  separate decision (and, per this app's own architecture, one the
  *  interface engine would need to populate) not made here. */
-function findCrosswalkMatch(
+export function findCrosswalkMatch(
   crosswalk: SpecimenCodeCrosswalkEntry[],
   clientId: string,
   externalCode: string,
   codingSystem: OrderCodeCodingSystem | undefined,
+  siteId?: string,
 ): SpecimenCodeCrosswalkEntry | undefined {
   const normalizedTarget = normalizeOrderCode(externalCode);
-  const candidates = crosswalk.filter(
+  const all = crosswalk.filter(
     x => x.clientId === clientId && normalizeOrderCode(x.externalCode) === normalizedTarget
   );
+  // A site-scoped entry applies only to its own site and wins over an organisation-wide entry for that site;
+  // with no site on the order, only organisation-wide entries apply.
+  const siteEntries = siteId ? all.filter(x => x.siteId === siteId) : [];
+  const candidates = siteEntries.length > 0 ? siteEntries : all.filter(x => !x.siteId);
   if (candidates.length === 0) return undefined;
   if (candidates.length === 1) return candidates[0];
 
@@ -597,7 +602,7 @@ const orderIntakeServiceUnchecked: IOrderIntakeService = {
       // guess that loses the actual specimen type. Real, priority-
       // ordered match (findCrosswalkMatch above) — resolves PS-80.
       if (spec.externalSpecimenCode && order.facilityId) {
-        const xwalkMatch = findCrosswalkMatch(CROSSWALK, order.facilityId, spec.externalSpecimenCode, spec.externalCodingSystem);
+        const xwalkMatch = findCrosswalkMatch(CROSSWALK, order.facilityId, spec.externalSpecimenCode, spec.externalCodingSystem, order.siteId);
         const entry = xwalkMatch ? dictionary.find(d => d.id === xwalkMatch.dictionaryEntryId) : undefined;
         if (entry) {
           return {

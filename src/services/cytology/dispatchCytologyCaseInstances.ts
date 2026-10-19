@@ -9,9 +9,9 @@
 // Real, honest structural reason this is its own, separate function
 // rather than a branch inside dispatchCaseInstances.ts: Cytology has
 // no SynopticReportInstance at all — its own real sign-out unit is
-// CytologySignOutRecord (mockCytologySignOutRecordService), dispatched
+// CytologySignOutRecord (cytologySignOutRecordService), dispatched
 // through its own, already-real, separate outbound queue
-// (mockCytologyOutboundResultQueueService) and payload builder
+// (cytologyOutboundResultQueueService) and payload builder
 // (buildCytologyOruR01Payload) — confirmed directly before writing
 // this, not assumed. These were real, working, already-tested
 // implementations before this file existed; this file calls them,
@@ -33,8 +33,8 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
-import { mockCytologyOutboundResultQueueService } from './mockCytologyOutboundResultQueueService';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
+import { cytologyOutboundResultQueueService } from './cytologyOutboundResultQueueServiceInstance';
 // Batch 527 (PS-486): buildCytologyOruR01Payload is loaded when a report is built (it carries the PDF engine).
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { buildCytologyCaseReportMessage, cytologyCaseIsReleased } from './cytologyCaseReportMessage';
@@ -59,10 +59,10 @@ export async function dispatchCytologyCaseInstances(caseId: string, generatePdf?
   // Non-blocking skip: no organisationId to enqueue against.
   if (!patientRecord) return;
 
-  const existing = await mockCytologyOutboundResultQueueService.getByCaseId(caseId).catch(() => null);
+  const existing = await cytologyOutboundResultQueueService.getByCaseId(caseId).catch(() => null);
   if (existing?.ok && existing.data.some(e => e.resultState === 'FINAL')) return;
 
-  const recordsRes = await mockCytologySignOutRecordService.getByCaseId(caseId);
+  const recordsRes = await cytologySignOutRecordService.getByCaseId(caseId);
   if (!recordsRes.ok || !recordsRes.data.length) return;
   const closing = [...recordsRes.data].sort((a, b) => String(a.signedAt).localeCompare(String(b.signedAt))).pop()!;
   await sendCaseMessage(caseData, recordsRes.data, (patientRecord as any).organisationId, 'FINAL', closing.id, undefined, generatePdf);
@@ -83,7 +83,7 @@ export async function sendCaseMessage(
   const doc = generatePdf
     ? await generatePdf().catch((e: unknown): Awaited<ReturnType<GenerateReportPdf>> => ({ generationError: e instanceof Error ? e.message : String(e) }))
     : undefined;
-  const enqueueRes = await mockCytologyOutboundResultQueueService.enqueue({
+  const enqueueRes = await cytologyOutboundResultQueueService.enqueue({
     caseId: caseData.id, signOutRecordId, resultState, scope: 'case', organisationId,
     ...(doc?.documentId ? { reportDocumentId: doc.documentId, ...(doc.sha256 ? { pdfSha256: doc.sha256 } : {}) } : {}),
   });
@@ -94,16 +94,16 @@ export async function sendCaseMessage(
     ...(doc ? { pdf: async () => doc } : {}),
   }).catch((e: unknown) => ({ held: e instanceof Error ? e.message : 'The case report could not be built.' }));
   if ('held' in built) {
-    await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+    await cytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
       errorCode: 'DISPATCH_REJECTED', errorMessage: built.held, maxRetriesExceeded: false,
     });
     return;
   }
   const dispatchResult = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', built.payload as any);
   if (dispatchResult.ok) {
-    await mockCytologyOutboundResultQueueService.markSent(enqueueRes.data.id);
+    await cytologyOutboundResultQueueService.markSent(enqueueRes.data.id);
   } else {
-    await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+    await cytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
       errorCode: (dispatchResult as any).errorCode ?? 'DISPATCH_REJECTED',
       errorMessage: (dispatchResult as any).error ?? 'Unknown dispatch failure.',
       maxRetriesExceeded: false,

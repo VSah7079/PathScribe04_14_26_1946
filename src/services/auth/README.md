@@ -202,3 +202,12 @@ The sign-in mode and providers come from the deployment's `config.json` at start
 ## Batch 550 (PS-539 phase 2d: exports through the server)
 
 - `sessionEndHooks.ts` (new): things held in this window for the signed-in user that must go at sign-out (`onSessionEnd`, `runSessionEndHooks`). `authSession.endSession` calls them through the new `onSessionEnded` dependency; the export service registers its reset, so the next person at a shared workstation never sees the last one's export notices.
+
+## Batch 611 (#157) — multi-factor sign-in (`mfa/`)
+
+- **`mfa/totp.ts`**: RFC 6238 codes (HMAC-SHA1, 6 digits, 30 s, one step either side), base32, `verifyTotp` with replay rejection. Tests: `totp.test.ts` (the RFC vectors).
+- **`mfa/mfaAssurance.ts`**: reads the provider's `amr` / `acr` claims. Test: `mfaAssurance.test.ts`.
+- **`mfa/mfaPolicy.ts`**: the per-organisation policy (off / signing roles / everyone, step-up minutes, session hours) and the session stamp that belongs to one person in one organisation. Test: `mfaPolicy.test.ts`.
+- **`mfa/mfaService.ts`**: policy save (needs `config:session-security:manage`), status at sign-in, Simulated enrolment with recovery codes (hashes only), challenge and step-up with lockout (5 failures, 15 minutes), single sign-on evaluation, session validity, reset (`auth:mfa-enrolment:reset`), audit with no codes or secrets. Test: `mfaService.test.ts`.
+- **`mfa/mfaStores.ts`, `mfa/mfaInstance.ts`**: the browser stores (`ps_mfa_policy_v1`, `ps_mfa_enrolments_v1`, `ps_mfa_locks_v1`, cleared by Full Reset) and the app's instance.
+- **Wired in:** `authSession.ts` (a single sign-on the provider did not back with a second factor is refused with `mfa_required`; a restored session whose second factor expired is dropped), `signerConfirmation.ts` (a signature asks for a fresh code, or for the provider's fresh proof; tests in `signerConfirmation.mfa.test.ts`), `sessionProfile.ts` (`mfa` stamp), `demo/demoAccounts.ts` (`demoMfaSecretFor`). Full account: `docs/architecture/MFA.md`.

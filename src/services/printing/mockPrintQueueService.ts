@@ -120,7 +120,7 @@ const printQueueServiceUnchecked: IPrintQueueService = {
     return ok(updated);
   },
 
-  async markPrinted(id) {
+  async markPrinted(id, options) {
     await delay();
     const all = load();
     const idx = all.findIndex(e => e.id === id);
@@ -129,6 +129,7 @@ const printQueueServiceUnchecked: IPrintQueueService = {
     const updated: PrintJob = {
       ...prior,
       status: 'PRINTED',
+      simulated: options?.simulated,
       errorCode: undefined,
       errorMessage: undefined,
       lastAttemptAt: new Date().toISOString(),

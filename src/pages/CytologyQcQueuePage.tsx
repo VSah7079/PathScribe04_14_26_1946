@@ -18,7 +18,7 @@
 import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect, useCallback } from 'react';
 import { CytologyQcDiscrepancyModal } from '@/components/CytologyQc/CytologyQcDiscrepancyModal';
-import { useCytologyQcActions } from '@/hooks/useCytologyQcActions';
+import { useCytologyQcActions, useMyQcReviewerRoles } from '@/hooks/useCytologyQcActions';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { resolveCytologyQcCaseReview } from '@/services/cytologyQc/resolveCytologyQcCaseReview';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
@@ -27,7 +27,11 @@ import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { cytologyQcCaseAssignmentService, cytologyQcRuleService } from '@/services';
+import { cytologyQcCaseAssignmentService, cytologyQcRuleService, cytologyReviewRecordService, cytologyCategoryService } from '@/services';
+import { AdvisorySeverityBadge } from '@/components/CytologyQc/AdvisorySeverityBadge';
+import { CytologyQcCompliancePanel } from '@/components/CytologyQc/CytologyQcCompliancePanel';
+import { resolveCytologyCaseSeverities } from '@/services/cytology/resolveCytologyCaseSeverities';
+import type { AbnormalSeverity } from '@/services/abnormalDetection/IAbnormalTriggerRuleService';
 import { qcSelectionReasonLabel, qcSelectionReasons } from '@/services/cytologyQc/qcSelectionReasonLabels';
 import { formatList } from '@/utils/formatList';
 import { resolveQcQueueTabFilter, type QcQueueTab } from '@/services/cytologyQc/resolveQcQueueTabFilter';
@@ -53,6 +57,9 @@ const CytologyQcQueuePage: React.FC = () => {
   const [casesById, setCasesById] = useState<Record<string, Case>>({});
   // Batch 501: rule names, for "Selected by".
   const [ruleNames, setRuleNames] = useState<Record<string, string>>({});
+  // Batch 608 (#53, #54): the Compliance view, and each case's advisory severity.
+  const [view, setView] = useState<'queue' | 'compliance'>('queue');
+  const [severities, setSeverities] = useState<Record<string, AbnormalSeverity>>({});
   const [now, setNow] = useState(() => new Date().toISOString());
   const [discrepancyTargetId, setDiscrepancyTargetId] = useState<string | null>(null);
 
@@ -71,6 +78,11 @@ const CytologyQcQueuePage: React.FC = () => {
   useEffect(() => {
     void cytologyQcRuleService.getAll().then(r => { if (r.ok) setRuleNames(Object.fromEntries(r.data.map(rule => [rule.id, rule.name]))); });
   }, []);
+  useEffect(() => {
+    void Promise.all([cytologyReviewRecordService.getAll(), cytologyCategoryService.getAll()]).then(([reviews, cats]) => {
+      if (reviews.ok && cats.ok) setSeverities(resolveCytologyCaseSeverities(reviews.data, cats.data));
+    });
+  }, []);
   const list = (items: string[]) => formatList(items, i18n.language);
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date().toISOString()), 30_000);
@@ -82,6 +94,7 @@ const CytologyQcQueuePage: React.FC = () => {
   // Batch 396: the actions go through the same hook as the case screen's
   // review bar, and a refusal or failure is shown instead of ignored.
   const { busy, message, assignToMe, recordConcurrence, recordDiscrepancy, escalate, bypass } = useCytologyQcActions(refresh);
+  const myPools = useMyQcReviewerRoles(user?.id);
   // Batch 432: escalating an SLA breach, and the supervisor bypass, each with a reason.
   const [escalateTargetId, setEscalateTargetId] = useState<string | null>(null);
   const [bypassTargetId, setBypassTargetId] = useState<string | null>(null);
@@ -98,6 +111,15 @@ const CytologyQcQueuePage: React.FC = () => {
       {message && <div className="ps-qcqueue-error" role="alert">{t(`cytologyQcQueue.error.${message}`)}</div>}
 
       <div className="ps-qcqueue-tabs">
+        {(['queue', 'compliance'] as const).map(v => (
+          <button key={v} className={`ps-qcqueue-tab-btn${view === v ? ' ps-qcqueue-tab-btn--active' : ''}`} onClick={() => setView(v)}>
+            {t(`cytologyQcQueue.view.${v}`)}
+          </button>
+        ))}
+      </div>
+      {view === 'compliance' && <CytologyQcCompliancePanel />}
+      {view === 'queue' && <>
+      <div className="ps-qcqueue-tabs">
         {(['all', 'escalations_discrepancies', 'routine_random'] as QcQueueTab[]).map(tab => (
           <button key={tab} className={`ps-qcqueue-tab-btn${activeTab === tab ? ' ps-qcqueue-tab-btn--active' : ''}`} onClick={() => setActiveTab(tab)}>
             {t(`cytologyQcQueue.tab.${tab}`)}
@@ -109,10 +131,11 @@ const CytologyQcQueuePage: React.FC = () => {
         {visible.map(assignment => {
           const relatedCase = casesById[assignment.caseId];
           const slaStatus = resolveQcSlaStatus(assignment.createdAt, assignment.slaDeadline, now);
+          const suggestedSeverity = severities[assignment.caseId];
           const isAssignedToMe = user && assignment.assignedReviewerId === user.id;
           // Batch 434: Assign to Me and the verdicts follow cytology:qc-review:record
           // and the self-review rule (resolveCytologyQcCaseReview), as on the case's own bar.
-          const review = resolveCytologyQcCaseReview([assignment], user?.id, can('cytology:qc-review:record'));
+          const review = resolveCytologyQcCaseReview([assignment], user?.id, can('cytology:qc-review:record'), myPools);
 
           return (
             <div key={assignment.id} className="ps-qcqueue-row">
@@ -124,6 +147,7 @@ const CytologyQcQueuePage: React.FC = () => {
                 <span className={`ps-qcqueue-tier-badge ps-qcqueue-tier-badge--${assignment.priorityTier}`}>
                   {t(`cytologyQcRules.tier.${assignment.priorityTier}`)}
                 </span>
+                {suggestedSeverity && <AdvisorySeverityBadge severity={suggestedSeverity} />}
                 {assignment.badges.map(badge => <span key={badge} className="ps-qcqueue-badge-pill">{badge}</span>)}
                 <span className={`ps-qcqueue-sla-badge ${SLA_STATUS_CLASS[slaStatus]}`}>{t(`cytologyQcQueue.slaStatus.${slaStatus}`)}</span>
               </div>
@@ -144,6 +168,7 @@ const CytologyQcQueuePage: React.FC = () => {
                   <button className="ps-conf-btn-primary" disabled={busy} onClick={() => void assignToMe(assignment.id)}>{t('cytologyQcQueue.assignToMeBtn')}</button>
                 )}
                 {review.isOwnCase && <span className="ps-qcqueue-assigned-note">{t('cytologyQcQueue.error.selfReview')}</span>}
+                {review.notInPool && <span className="ps-qcqueue-assigned-note">{t('cytologyQcQueue.error.notInPool')}</span>}
                 {review.canRecordVerdict && (
                   <>
                     <button className="ps-conf-btn-primary" disabled={busy} onClick={() => void recordConcurrence(assignment.id)}>{t('cytologyQcQueue.recordConcurrenceBtn')}</button>
@@ -169,6 +194,7 @@ const CytologyQcQueuePage: React.FC = () => {
         })}
         {visible.length === 0 && <div className="ps-conf-empty-row">{t('cytologyQcQueue.emptyRow')}</div>}
       </div>
+      </>}
 
       <ReasonPromptModal
         show={!!escalateTargetId}

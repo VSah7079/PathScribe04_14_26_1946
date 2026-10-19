@@ -137,3 +137,42 @@ describe('the browser and the renderer agree on the request (Batch 539)', () => 
     expect(python).toContain(`CYTOLOGY_TEMPLATE_MARKER = '${'pathscribe-template:cytology'}'`);
   });
 });
+
+
+describe('page setup in the render payload (Batch 606, PS-36)', () => {
+  it('carries the lab page size and margins on a report and on a case report', () => {
+    const pageSetup = { pageSizeId: 'letter', widthMm: 216, heightMm: 279, margins: { top: 20, right: 15, bottom: 20, left: 15 } };
+    expect(buildCytologyReportRenderPayload(content(), L, { pageSetup }).pageSetup).toEqual(pageSetup);
+    const report = { accessionNumber: 'C26-00042', language: 'en', specimens: [{ label: 'A', description: 'x', record: { reportContent: content(), signedAt: '2026-10-12T15:00:00Z', signedBy: { userName: 'Dr A' } } }] } as never;
+    expect(buildCytologyCaseRenderPayload(report, () => L, { pageSetup }).pageSetup).toEqual(pageSetup);
+  });
+  it('defaults to the lab setting (A4 unless configured)', () => {
+    expect(buildCytologyReportRenderPayload(content(), L).pageSetup.widthMm).toBeGreaterThan(0);
+  });
+});
+
+describe('document style and attached images (Batch 609, PS-35, PS-44, PS-127)', () => {
+  const style = (size: number) => ({
+    header: { fontFamily: 'Arial', fontSize: size, fontWeight: 'bold' }, body: { fontFamily: 'Times New Roman', fontSize: size },
+    footer: { fontFamily: 'Courier New', fontSize: size },
+  }) as unknown as import('../reportAppearance/renderDocumentStyle').RenderDocumentStyle;
+
+  it('sends the style it is given, and the lab\'s own when none is given', () => {
+    const given = buildCytologyReportRenderPayload(content(), L, { documentStyle: style(14) });
+    expect(given.documentStyle).toEqual(style(14));
+    const dflt = buildCytologyReportRenderPayload(content(), L, {});
+    expect(Object.keys(dflt.documentStyle).sort()).toEqual(['body', 'footer', 'header']);
+  });
+
+  it('puts the attached images after the report, looked up by its accession', async () => {
+    const applyImages = vi.fn(async (_ref: unknown, pdf: Uint8Array) => ({ bytes: new Uint8Array([...pdf, 1]), embedded: 1, warnings: [], failed: false }));
+    const out = await renderCytologyReportPdf(content(), {}, { post: async () => MARKED, applyImages });
+    expect(applyImages).toHaveBeenCalledWith({ accession: 'C26-00042' }, MARKED);
+    expect(out.length).toBe(MARKED.length + 1);
+  });
+
+  it('holds the report (an error, not a report without its images) when the images could not be added', async () => {
+    const applyImages = async (_r: unknown, pdf: Uint8Array) => ({ bytes: pdf, embedded: 0, warnings: [], failed: true });
+    await expect(renderCytologyReportPdf(content(), {}, { post: async () => MARKED, applyImages })).rejects.toThrow();
+  });
+});

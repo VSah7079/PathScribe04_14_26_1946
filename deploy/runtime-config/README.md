@@ -54,3 +54,7 @@ See `docs/architecture/RUNTIME_CONFIG.md` §5a.
 ## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
 
 - Batch 557: the API server's `/api/config` (what it may set); `config.example.json`'s `VITE_API_BASE_URL` corrected to the server's root.
+
+## Batch 590 (PS-469): error monitoring
+
+`VITE_ERROR_MONITORING_DSN` and `VITE_ERROR_MONITORING_ENV` turn on sending scrubbed crash reports to Sentry or the hospital's own collector. Leave both out for no monitoring (the default). Not in `config.example.json`, so a site opts in on purpose. Re-run the headers generator after setting the address.

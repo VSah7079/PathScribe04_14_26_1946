@@ -23,8 +23,8 @@ import type { ServiceResult } from '../types';
 import { resolveServiceCharge, reverseServiceCharge, type PostSignoutChangeContext } from './resolveServiceCharge';
 import { markAwaitingApproval } from './chargeApproval';
 import { resolveRequireBillingApprovalForCase } from './shouldRequireBillingApproval';
-import { mockBillingRuleService } from './mockBillingRuleService';
-import { mockServiceChargeService } from './mockServiceChargeService';
+import { billingRuleService } from './billingRuleServiceInstance';
+import { serviceChargeService } from './serviceChargeServiceInstance';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { correctServiceCharge } from './correctServiceCharge';
@@ -42,9 +42,9 @@ export interface CaseBillingChargeDeps {
 
 export const caseBillingChargeDeps: CaseBillingChargeDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability, context),
-  getBillingRules: () => mockBillingRuleService.getAll(),
-  saveCharge: record => mockServiceChargeService.saveCharge(record),
-  findActiveCharge: (caseId, specimenId, blockId, code) => mockServiceChargeService.findActiveChargeForSource(caseId, specimenId, blockId, code),
+  getBillingRules: () => billingRuleService.getAll(),
+  saveCharge: record => serviceChargeService.saveCharge(record),
+  findActiveCharge: (caseId, specimenId, blockId, code) => serviceChargeService.findActiveChargeForSource(caseId, specimenId, blockId, code),
   requiresApproval: originHospitalId => resolveRequireBillingApprovalForCase(originHospitalId),
   logAudit: entry => mockAuditService.logEvent(entry as any),
   correctCharge: (caseId, chargeId, newCode, by, ctx) => correctServiceCharge(caseId, chargeId, newCode, by, ctx) as any,
@@ -141,7 +141,7 @@ export async function recordCaseCredit(
   await deps.logAudit({
     type: 'user',
     event: 'Billing code removed (no charge record found)',
-    detail: `${sourceLabel}: ${code} removed - no matching real charge record found to credit`,
+    detail: `${sourceLabel}: ${code} removed - no matching real charge record found to credit${postSignoutNote(postSignoutContext)}`,
     user: who(user), caseId: caseRef(caseData), confidence: null,
   });
   return 'noChargeOnFile';

@@ -9,15 +9,26 @@
 // Why each directive is what it is: deploy/security-headers/README.md.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** @typedef {{ connect?: string[]; hub?: string[]; formAction?: string[]; frame?: string[]; img?: string[]; https?: boolean; workstationBridges?: boolean }} DeploymentOrigins */
+/** @typedef {{ connect?: string[]; hub?: string[]; formAction?: string[]; frame?: string[]; img?: string[]; https?: boolean; workstationBridges?: boolean; terminologyViaServer?: boolean }} DeploymentOrigins */
 
 const uniq = list => [...new Set(list.filter(Boolean))];
 
 /** Origins every deployment talks to from the browser (public reference data). */
-export const PUBLIC_REFERENCE_ORIGINS = [
+export const PUBMED_ORIGINS = [
   'https://eutils.ncbi.nlm.nih.gov',     // PubMed research feed (no key since Batch 499)
-  'https://clinicaltables.nlm.nih.gov',  // NLM clinical tables (terminology look-ups)
 ];
+
+/**
+ * Batch 617 (PS-488): the NLM clinical tables (ICD-10-CM, ICD-11, LOINC look-ups). The demonstration calls
+ * them from the browser. A deployment with the PathScribe API server sets "terminologyViaServer": true in its
+ * origins file: the server makes those calls (docs/architecture/TERMINOLOGY_PROXY_API.md), so the browser
+ * policy no longer names the host.
+ */
+export const TERMINOLOGY_PUBLIC_ORIGINS = [
+  'https://clinicaltables.nlm.nih.gov',
+];
+
+export const PUBLIC_REFERENCE_ORIGINS = [...PUBMED_ORIGINS, ...TERMINOLOGY_PUBLIC_ORIGINS];
 
 /**
  * Batch 546 (finding F4): the workstation print bridges, which listen on the
@@ -60,6 +71,7 @@ export const RUNTIME_CONFIG_ORIGIN_KEYS = {
     'VITE_API_BASE_URL', 'VITE_REPORT_PDF_ENDPOINT', 'VITE_INTERFACE_RECEIVER_ENDPOINT',
     'VITE_AI_PROXY_URL', 'VITE_AI_MANAGED_ENDPOINT', 'VITE_AI_CUSTOM_ENDPOINT',
     'VITE_NLM_BASE_URL', 'VITE_CPT_PROXY_URL', 'VITE_ICD10_PROXY_URL',
+    'VITE_ERROR_MONITORING_DSN',   // Batch 590 (PS-469): the monitoring ingest origin (the key in the address is dropped)
     'VITE_AUTH_MICROSOFT_AUTHORITY', 'VITE_AUTH_GOOGLE_AUTHORITY', 'VITE_AUTH_OIDC_AUTHORITY',
   ],
   hub: ['VITE_LIVE_UPDATES_HUB_URL'],
@@ -89,7 +101,7 @@ export function contentSecurityPolicy(origins = {}) {
   const qzInsecure = origins.https === false
     ? ['localhost', 'localhost.qz.io'].flatMap(h => [8182, 8283, 8384, 8485].map(p => `ws://${h}:${p}`)) : [];
   const bridges = origins.workstationBridges === false ? [] : [...WORKSTATION_BRIDGE_ORIGINS, ...qzInsecure];
-  const connect = uniq(['\'self\'', ...PUBLIC_REFERENCE_ORIGINS, ...(origins.connect ?? []).map(originOf), ...hub, ...bridges]);
+  const connect = uniq(['\'self\'', ...PUBMED_ORIGINS, ...(origins.terminologyViaServer === true ? [] : TERMINOLOGY_PUBLIC_ORIGINS), ...(origins.connect ?? []).map(originOf), ...hub, ...bridges]);
   const directives = [
     ['default-src', ['\'self\'']],
     // No inline script, no eval. 'wasm-unsafe-eval' only lets WebAssembly compile

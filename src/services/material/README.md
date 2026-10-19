@@ -7,6 +7,7 @@ Batch 452 (Pete, Oct 4 2026): a case's material tree on the client, with one sou
 - **`materialEvents.ts`**: `DecantEvent` (`{ parentId, childId, materialType, volumeOrWeight, timestamp }`, Pete's payload), the `MATERIAL_DECANTED` and `MATERIAL_ROLLED_BACK` events, and an in-process bus per case (`materialEventBus`). Across users the same events would travel over SignalR (`docs/architecture/LIVE_UPDATES_SIGNALR.md`).
 - **`materialTree.ts`**: the decant changes (add, update, delete) as one pure reducer over the specimens. A decant comes from its specimen or from another decant (`Decant.parentDecantId`), so it can be split over several levels, for example residual fluid D1 → cell blocks D2 and D3. The reducer refuses a duplicate id or a missing parent. It also refuses to delete a decant that others were split from. `nextDecantLabel` never reuses a label.
 - **`billableMaterial.ts`**: billing derived from the material tree. `billableMaterialOf` adds each specimen's decants to its blocks, in the same shape, so a decant is listed, suggested and coded like a block. IHC first/additional sequencing then runs across blocks and decants together. Also here: `billingLinesOf`, `affectedBillingLines`, and `billableUnitOf` (whether a billing row is a block or a decant).
+- **`ICaseMaterialService.ts`, `mockCaseMaterialService.ts`, `httpCaseMaterialService.ts`, `caseMaterialServiceInstance.ts`** (Batch 618, PS-482): the atomic save as a service. The demo's version runs against the browser-side case, stain and authorization services; the API server's is one `POST /api/material/case-material/apply-decant-change` (`CASE_MATERIAL_API.md`), chosen when an API address is configured. Exported from `@/services` as `caseMaterialService`; `applyDecantChangeLive` calls the chosen one.
 - **`caseMaterialService.ts`**: the atomic save, `applyDecantChangeAtomic(caseId, change, expectedVersion, deps)`.
   - On success it returns the complete updated tree, the new version and the billing lines the change affected.
   - A stale version returns `conflict` with the current version (the 409).
@@ -76,3 +77,11 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 - `addOnOrderOperations` and `grossingScreenOperations` (next level)
 
 Before, Manage Reprints could reprint another slide's barcode after a reorder.
+
+## Batch 588 — Deleting a block in process
+
+- **`blockDeletion.ts`** (pure): the reason list (`BLOCK_DELETION_REASON_CODES`), `blockDeletionInputMissing`, `caseBlockDeletionRefusal`, `blockDeletionRefusal`, and `deleteBlockChange`, the soft delete: status `Deleted`, unfinished stains cancelled, cassette released, applied codes cleared and recorded in `HistologyBlock.deletion`.
+- **`deleteBlockInProcess.ts`**: needs `material:block:delete-in-process` (the case's facility); saves the change (through the report page's own save when given one, otherwise read, change and save with the version, re-applied on a conflict); then raises one `BLOCK_DELETED` billing deficiency and audits. If the deficiency cannot be raised the delete stands and the result says so. `deleteBlockInProcessLive` wires it to the app's services.
+- Tests: `deleteBlockInProcess.test.ts`. Policy: `docs/product/BLOCK_DELETION.md`.
+
+- **`materialComments.ts`** (Batch 611, #10): `buildMaterialComment`, `appendMaterialComment`, `newMaterialComments`: plain-text comments on a matrix block (also used for blocks and stains' shape). The matrix editor's Details tab shows `components/Common/MaterialCommentThread.tsx`; each new comment is audited as `Matrix Block Comment Added` (no text). Test: `materialComments.test.ts`.

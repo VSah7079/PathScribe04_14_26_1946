@@ -20,7 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { physicianService, grossingRoutingOverrideService, specimenDictionaryService } from '../index';
 import { loadRoutingRules } from '../cases/casePoolAssignmentService';
-import { mockTatTargetService } from '../tatConfig/mockTatTargetService';
+import { tatTargetService } from '../tatConfig/tatTargetServiceInstance';
 
 export interface ReferenceSource {
   label: string;
@@ -35,7 +35,7 @@ export interface ReferenceCheckResult {
 // Batch 353: TAT targets come from the TAT target service (they were read
 // from the TAT settings screen's browser storage).
 async function loadTatEntries() {
-  const res = await mockTatTargetService.getAll();
+  const res = await tatTargetService.getAll();
   return res.ok ? res.data : [];
 }
 

@@ -27,8 +27,8 @@
 import type { Case } from '@/types/case/Case';
 import type { MasterPaymentType, GuarantorRequirement } from '@/types/billing/MasterPaymentType';
 import type { JurisdictionPaymentMapping } from '@/types/billing/JurisdictionPaymentMapping';
-import { mockMasterPaymentTypeService } from './mockMasterPaymentTypeService';
-import { mockJurisdictionPaymentMappingService } from './mockJurisdictionPaymentMappingService';
+import { masterPaymentTypeService } from './masterPaymentTypeServiceInstance';
+import { jurisdictionPaymentMappingService } from './jurisdictionPaymentMappingServiceInstance';
 
 export interface FinancialClassCoverage {
   /** Real, per direct guidance: the SPECIFIC local scheme this
@@ -109,8 +109,8 @@ export async function buildFinancialClassPayload(caseData: Case): Promise<Financ
   const outsideData = caseData.order.outsidePatientData;
 
   const [typesRes, mappingsRes] = await Promise.all([
-    mockMasterPaymentTypeService.getAll(),
-    mockJurisdictionPaymentMappingService.getAll(),
+    masterPaymentTypeService.getAll(),
+    jurisdictionPaymentMappingService.getAll(),
   ]);
   const typesById = new Map((typesRes.ok ? typesRes.data : []).map(t => [t.id, t]));
   const mappingsById = new Map((mappingsRes.ok ? mappingsRes.data : []).map(m => [m.id, m]));

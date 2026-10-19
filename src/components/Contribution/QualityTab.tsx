@@ -1,9 +1,11 @@
 // src/components/Contribution/QualityTab.tsx
 import React, { useState, useEffect } from "react";
+import ClientSlaPanel from "./ClientSlaPanel";
+import { buildClientSlaRows, type ClientSlaRow } from "@/services/clientSLA/clientSlaRules";
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import {
-  qaActivityRecordService, facilityService, intraoperativeService, amendmentService, informalReviewService,
+  qaActivityRecordService, facilityService, clientSlaService, intraoperativeService, amendmentService, informalReviewService,
   delegationService, tatTargetService,
 } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
@@ -356,6 +358,8 @@ const QualityTab: React.FC = () => {
   const [realConsultResponse, setRealConsultResponse] = useState<RealGenericTatOutlier[]>([]);
   const [realConsultAwaiting, setRealConsultAwaiting] = useState<RealGenericTatOutlier[]>([]);
   const [realTatByClient, setRealTatByClient] = useState<RealClientTatRow[]>([]);
+  // Batch 610 (#164): how each client's cases did against its SLA (set in Configuration → System → Client SLA).
+  const [clientSlaRows, setClientSlaRows] = useState<ClientSlaRow[]>([]);
   // Real, per direct follow-up ("show a frequency of confirmed
   // discordance to all AI flagged") — this modal only ever opens via
   // the real, automatic detection (confirmed directly: no other
@@ -397,7 +401,8 @@ const QualityTab: React.FC = () => {
       delegationService.list(),
       currentUser ? informalReviewService.getAllForUser(currentUser.id) : Promise.resolve({ ok: true as const, data: [] }),
       tatTargetService.getAll(),
-    ]).then(([allCasesRes, clientRes, intraopRes, delegationsRes, informalReviewsRes, tatRes]) => {
+      clientSlaService.getAll(),
+    ]).then(([allCasesRes, clientRes, intraopRes, delegationsRes, informalReviewsRes, tatRes, slaRes]) => {
       if (cancelled) return;
       const allCases = allCasesRes.ok ? allCasesRes.data : [];
       const facilities = clientRes.ok ? clientRes.data : [];
@@ -405,6 +410,7 @@ const QualityTab: React.FC = () => {
         delegationsRes.ok ? delegationsRes.data : [], informalReviewsRes.ok ? informalReviewsRes.data : [],
       );
       const tatEntries = tatRes.ok ? tatRes.data : [];
+      setClientSlaRows(buildClientSlaRows(allCases, slaRes.ok ? slaRes.data : [], facilities, new Date()));
       const clientNameById = facilityNamesById(facilities);
       const casesWithPerformingLab = withPerformingLabs(allCases, facilities);
       setRealTotalTAT(computeTotalCaseTatOutliers(casesWithPerformingLab, tatEntries, clientNameById));
@@ -924,6 +930,8 @@ const QualityTab: React.FC = () => {
               );
             })}
           </div>
+
+          <ClientSlaPanel rows={clientSlaRows} />
 
           <div className="ps-tat-client__footer">
             <span>{t('qualityTab.byFacility.footerEstimate')}</span>

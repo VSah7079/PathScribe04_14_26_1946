@@ -1,0 +1,45 @@
+// src/services/styleRules/fileSizeBaseline.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 618 (PS-497): the length of every source file over 1,000 lines when the size guard went in
+// (fileSize.guard.test.ts). The numbers only go down: a story that touches one of these files moves the part it
+// changes into its own module and lowers the number. Never raise one.
+// ─────────────────────────────────────────────────────────────────────────────
+export const FILE_SIZE_LIMIT = 1000;
+
+export const FILE_SIZE_BASELINE: Readonly<Record<string, number>> = {
+  'components/AppShell/AppShell.tsx': 1720,
+  'components/Config/Protocols/SynopticEditor.tsx': 1302,
+  'components/Config/System/StainDictionarySection.tsx': 1086,
+  'components/Config/System/TATConfigSection.tsx': 1049,
+  'components/Editor/PathScribeEditor.tsx': 1113,
+  'components/FacilityDictionary/FacilityEditorModal.tsx': 1479,
+  'components/QualityAssurance/CytologyQaTab.tsx': 1177,
+  'components/TemplateBuilder/TemplateAssemblyPage.tsx': 1006,
+  'components/ValidationStudies/ValidationStudiesSection.tsx': 1058,
+  'components/Worklist/WorklistTable.tsx': 2292,
+  'constants/systemActions.ts': 1309,
+  'mock/mockReports.ts': 1104,
+  'pages/AccessionPage/AccessionPage.tsx': 4207,
+  'pages/AuditLogPage.tsx': 1300,
+  'pages/CytologyWorklistPage/CytologyScreeningPage.tsx': 1540,
+  'pages/IntraopQueuePage.tsx': 1195,
+  'pages/QualityAssurancePage.tsx': 1505,
+  'pages/SearchPage.tsx': 1936,
+  'pages/Synoptic/Codes/AddCodeModal.tsx': 1376,
+  'pages/SynopticReportPage/components/BillingReviewPanel.tsx': 1316,
+  'pages/SynopticReportPage/components/RightSynopticPanel.tsx': 1887,
+  'pages/SynopticReportPage/hooks/useSignOutWorkflow.ts': 2388,
+  'pages/SynopticReportPage/hooks/useSpecimenBlockManagement.ts': 1722,
+  'pages/SynopticReportPage/modals/BlockStainEditorModal.tsx': 1437,
+  'pages/SynopticReportPage/SynopticReportPage.tsx': 7182,
+  'pages/WorklistPage/WorklistPage.tsx': 1316,
+  'pathscribe.css': 28674,
+  'services/actionRegistry/mockActionRegistryService.ts': 4213,
+  'services/billing/codeMapTable.ts': 1070,
+  'services/cases/mockCaseService.ts': 6049,
+  'services/cases/mockOrchestratorCaseService.ts': 2001,
+  'services/quality/mockQaActivityRecordService.ts': 3725,
+  'services/templates/templateService.ts': 1011,
+  'types/case/Case.ts': 1067,
+  'types/case/Specimen.ts': 1861,
+};

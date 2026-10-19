@@ -10,31 +10,31 @@ import type { CytologyWorkspaceDeps } from './cytologyWorkspacePorts';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { caseRouter } from '../cases/CaseRouter';
 import { applyPoolRouting } from '../cases/casePoolAssignmentService';
-import { mockSpecimenDictionaryService } from '../specimenDictionary/mockSpecimenDictionaryService';
-import { mockCytologyCategoryService } from './mockCytologyCategoryService';
-import { mockCytologyNomenclatureSettingsService } from './mockCytologyNomenclatureSettingsService';
-import { mockFacilityCytologyNomenclatureOverrideService } from './mockFacilityCytologyNomenclatureOverrideService';
-import { mockCytologyInstrumentationService } from './mockCytologyInstrumentationService';
-import { mockFacilityCytologyInstrumentationOverrideService } from './mockFacilityCytologyInstrumentationOverrideService';
+import { specimenDictionaryService as mockSpecimenDictionaryService } from '../specimenDictionary/specimenDictionaryServiceInstance';
+import { cytologyCategoryService } from './cytologyCategoryServiceInstance';
+import { cytologyNomenclatureSettingsService } from './cytologyNomenclatureSettingsServiceInstance';
+import { facilityCytologyNomenclatureOverrideService } from './facilityCytologyNomenclatureOverrideServiceInstance';
+import { cytologyInstrumentationService } from './cytologyInstrumentationServiceInstance';
+import { facilityCytologyInstrumentationOverrideService } from './facilityCytologyInstrumentationOverrideServiceInstance';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import { mockUserService } from '../users/mockUserService';
-import { mockPathologyLexiconService } from './mockPathologyLexiconService';
-import { mockCytologyQcSettingsService } from './mockCytologyQcSettingsService';
-import { mockFacilityCytologyQcOverrideService } from './mockFacilityCytologyQcOverrideService';
-import { mockStaffCytologyQcOverrideService } from './mockStaffCytologyQcOverrideService';
-import { mockCytologyWorkloadCapSettingsService } from './mockCytologyWorkloadCapSettingsService';
-import { mockFacilityCytologyWorkloadCapOverrideService } from './mockFacilityCytologyWorkloadCapOverrideService';
-import { mockStaffCytologyWorkloadCapOverrideService } from './mockStaffCytologyWorkloadCapOverrideService';
-import { mockCytologyWorkloadLedgerService } from './mockCytologyWorkloadLedgerService';
-import { mockSnomedCervicalHistologySeverityMappingService } from './mockSnomedCervicalHistologySeverityMappingService';
-import { mockCytologyReviewRecordService } from './mockCytologyReviewRecordService';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
-import { mockAiScreeningResultService } from '../digitalPathology/mockAiScreeningResultService';
+import { pathologyLexiconService } from './pathologyLexiconServiceInstance';
+import { cytologyQcSettingsService } from './cytologyQcSettingsServiceInstance';
+import { facilityCytologyQcOverrideService } from './facilityCytologyQcOverrideServiceInstance';
+import { staffCytologyQcOverrideService } from './staffCytologyQcOverrideServiceInstance';
+import { cytologyWorkloadCapSettingsService } from './cytologyWorkloadCapSettingsServiceInstance';
+import { facilityCytologyWorkloadCapOverrideService } from './facilityCytologyWorkloadCapOverrideServiceInstance';
+import { staffCytologyWorkloadCapOverrideService } from './staffCytologyWorkloadCapOverrideServiceInstance';
+import { cytologyWorkloadLedgerService } from './cytologyWorkloadLedgerServiceInstance';
+import { snomedCervicalHistologySeverityMappingService } from './snomedCervicalHistologySeverityMappingServiceInstance';
+import { cytologyReviewRecordService } from './cytologyReviewRecordServiceInstance';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
+import { aiScreeningResultService as mockAiScreeningResultService } from '../digitalPathology/aiScreeningResultServiceInstance';
 import { mockEncounterService } from '../encounters/mockEncounterService';
-import { mockQaActivityRecordService } from '../quality/mockQaActivityRecordService';
+import { qaActivityRecordService as mockQaActivityRecordService } from '../quality/qaActivityRecordServiceInstance';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { resolveDecantCassetteColor } from '@/utils/resolveDecantCassetteColor';
-import { mockCytologyComplianceFeaturesService } from './mockCytologyComplianceFeaturesService';
+import { cytologyComplianceFeaturesService } from './cytologyComplianceFeaturesServiceInstance';
 import { resolveCytologyReportLocale } from './resolveCytologyReportLanguage';
 import { renderCytologyReportPdf } from './renderCytologyPdf';
 import { cytologyPreviewWatermarkFor } from './cytologyPdfLabelsFor';
@@ -59,19 +59,19 @@ export const cytologyWorkspaceDeps: CytologyWorkspaceDeps = {
   returnToCytologyPool: caseData => applyPoolRouting(caseData, '1', 'Cytology'),
 
   getSpecimenDictionary: () => mockSpecimenDictionaryService.getAll() as any,
-  getAllCategories: () => mockCytologyCategoryService.getAll() as any,
-  getCategoriesFor: system => mockCytologyCategoryService.getByNomenclatureSystem(system) as any,
+  getAllCategories: () => cytologyCategoryService.getAll() as any,
+  getCategoriesFor: system => cytologyCategoryService.getByNomenclatureSystem(system) as any,
   getNomenclatureSettings: async facilityId => {
     const [enterprise, facility] = await Promise.all([
-      mockCytologyNomenclatureSettingsService.get(),
-      facilityId ? mockFacilityCytologyNomenclatureOverrideService.getForFacility(facilityId) : none,
+      cytologyNomenclatureSettingsService.get(),
+      facilityId ? facilityCytologyNomenclatureOverrideService.getForFacility(facilityId) : none,
     ]);
     return { enterprise: dataOr(enterprise as any), facility: dataOr(facility as any) };
   },
   getInstrumentationSettings: async facilityId => {
     const [enterprise, facility] = await Promise.all([
-      mockCytologyInstrumentationService.get(),
-      facilityId ? mockFacilityCytologyInstrumentationOverrideService.getForFacility(facilityId) : none,
+      cytologyInstrumentationService.get(),
+      facilityId ? facilityCytologyInstrumentationOverrideService.getForFacility(facilityId) : none,
     ]);
     return { enterprise: dataOr(enterprise as any), facility: dataOr(facility as any) };
   },
@@ -83,37 +83,37 @@ export const cytologyWorkspaceDeps: CytologyWorkspaceDeps = {
     const res = await mockUserService.getById(userId);
     return res.ok ? res.data.providerCredentials : undefined;
   },
-  getPathologyLexicon: () => mockPathologyLexiconService.getAll() as any,
+  getPathologyLexicon: () => pathologyLexiconService.getAll() as any,
   getQcSettings: async (facilityId, userId) => {
     const [enterprise, facility, staff] = await Promise.all([
-      mockCytologyQcSettingsService.get(),
-      mockFacilityCytologyQcOverrideService.getForFacility(facilityId),
-      mockStaffCytologyQcOverrideService.getForStaff(userId),
+      cytologyQcSettingsService.get(),
+      facilityCytologyQcOverrideService.getForFacility(facilityId),
+      staffCytologyQcOverrideService.getForStaff(userId),
     ]);
     return enterprise.ok && facility.ok && staff.ok ? { enterprise: enterprise.data, facility: facility.data, staff: staff.data } : null;
   },
   getWorkloadCaps: async (facilityId, userId) => {
     const [enterprise, facility, staff] = await Promise.all([
-      mockCytologyWorkloadCapSettingsService.get(),
-      facilityId ? mockFacilityCytologyWorkloadCapOverrideService.getForFacility(facilityId) : none,
-      mockStaffCytologyWorkloadCapOverrideService.getForStaff(userId),
+      cytologyWorkloadCapSettingsService.get(),
+      facilityId ? facilityCytologyWorkloadCapOverrideService.getForFacility(facilityId) : none,
+      staffCytologyWorkloadCapOverrideService.getForStaff(userId),
     ]);
     const all = [enterprise, facility, staff] as any[];
     return all.every(r => r.ok) ? { enterprise: all[0].data, facility: all[1].data, staff: all[2].data } : null;
   },
-  getComplianceSettings: facilityId => mockCytologyComplianceFeaturesService.forFacility(facilityId),
-  getSnomedSeverityMapping: () => mockSnomedCervicalHistologySeverityMappingService.getAll() as any,
+  getComplianceSettings: facilityId => cytologyComplianceFeaturesService.forFacility(facilityId),
+  getSnomedSeverityMapping: () => snomedCervicalHistologySeverityMappingService.getAll() as any,
 
-  getReviewsForSpecimen: specimenId => mockCytologyReviewRecordService.getBySpecimenId(specimenId) as any,
-  getAllReviews: () => mockCytologyReviewRecordService.getAll() as any,
-  createReview: input => mockCytologyReviewRecordService.create(input) as any,
-  updateReview: (reviewId, userId, patch) => mockCytologyReviewRecordService.update(reviewId, userId, patch) as any,
-  getSignOutRecords: specimenId => mockCytologySignOutRecordService.getBySpecimenId(specimenId) as any,
-  getCaseSignOutRecords: caseId => mockCytologySignOutRecordService.getByCaseId(caseId) as any,
+  getReviewsForSpecimen: specimenId => cytologyReviewRecordService.getBySpecimenId(specimenId) as any,
+  getAllReviews: () => cytologyReviewRecordService.getAll() as any,
+  createReview: input => cytologyReviewRecordService.create(input) as any,
+  updateReview: (reviewId, userId, patch) => cytologyReviewRecordService.update(reviewId, userId, patch) as any,
+  getSignOutRecords: specimenId => cytologySignOutRecordService.getBySpecimenId(specimenId) as any,
+  getCaseSignOutRecords: caseId => cytologySignOutRecordService.getByCaseId(caseId) as any,
   getAiResults: caseId => mockAiScreeningResultService.getByCaseId(caseId) as any,
 
-  getLedgerInWindow: (userId, start, end) => mockCytologyWorkloadLedgerService.getForUserInWindow(userId, start, end) as any,
-  recordLedgerEntry: entry => mockCytologyWorkloadLedgerService.record(entry),
+  getLedgerInWindow: (userId, start, end) => cytologyWorkloadLedgerService.getForUserInWindow(userId, start, end) as any,
+  recordLedgerEntry: entry => cytologyWorkloadLedgerService.record(entry),
   listEncounters: patientId => mockEncounterService.listForPatient(patientId) as any,
   createQaActivity: record => mockQaActivityRecordService.create(record) as any,
   logAudit: event => mockAuditService.logEvent(event),

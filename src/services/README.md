@@ -1,3 +1,92 @@
+## Batch 618 (part C) — server version of case material (PS-482)
+
+`caseMaterialService` is now a service with a demo version and an API-server version (`services/material/`, `docs/architecture/CASE_MATERIAL_API.md`): one `POST /api/material/case-material/apply-decant-change` returns the whole updated material tree and the affected billing lines. Exported from `@/services`; `applyDecantChangeLive` calls the chosen version. The optimistic store and selection state stay in the browser. Nothing was tried against a real server.
+
+## Batch 617 (part R) — one route style for every server version of a service (PS-488 dev notes, Pete)
+
+- **One route style.** Every server (HTTP) version now uses `/api/<area>/<service>/<method-kebab>`; a read whose arguments are all plain values is `GET` (arguments in the query string), everything else is `POST`; `PUT`, `PATCH` and `DELETE` are no longer used and no id or text is in the path. About 85 services written as REST resources were converted (code, fake-fetch tests, contract docs); the earlier-to-current path of every call is in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+- **Why method routes:** the interface already has one method per action, so the server's route table is the interface's method list; the kit generates the path, so it cannot be misspelt; commands carry what they change in a body, which keeps patient text out of URLs and logs.
+- **Guard:** `apiServer/httpRoutes.guard.test.ts` fails on any other verb or path shape. Three files keep their own contracts (job polling and binary downloads): `exports/httpExportApi.ts`, `reportDocuments/httpReportDocumentService.ts`, `reports/httpReportVersionService.ts`.
+- **Wire changes the server author must know:** an id that was in the path is now in the query string or the body (`update(id, changes)` sends `{ id, changes }`); `deny` and `revoke` still send only the reason (plus `id`); the audit log and error log filters are sent as a body (the value `all` is still left out); a case list sends its filters as a body and ignores a cursor with no page size, as before; the follow-up commands send only the key and the choice.
+- Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team).
+
+## Batch 617 (part C) — server versions of the quality, referral, search, signature, dictionary, tumor board and workstation services (PS-514, PS-501)
+
+- **28 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): peer review, peer-review settings, CAPA recommendations, the QA trend policy, concordance review settings; referral tracking and the research feed settings; saved searches and scheduled reports; signature records and smart capture (and its settings); specimen categories, custom spelling dictionaries, stain types, sectioning protocols, molecular targets, subspecialties, support references, system configuration, TAT targets, workstation groups and the workstation registry; the tumor board and its four rule services. Each is chosen by `<name>ServiceInstance.ts`: the server version with an API server address, the mock without one (the demo is unchanged).
+- Interfaces moved out of mock files into `I<Name>Service.ts` (peer-review settings, QA trend policy, system configuration, intraoperative critical results) and written out for smart capture and its settings, so the mock and the server version share one interface. The old mock files re-export the names, so no import changes.
+- **One convention:** one route per interface method, `/api/<area>/<service>/<method-name>` (`HTTP_SERVICES_PATTERN.md` §7). Contracts: `docs/architecture/QUALITY_SETTINGS_API.md`, `REFERRAL_RESEARCH_API.md`, `SEARCH_REPORTING_API.md`, `SIGNATURES_SMART_CAPTURE_API.md`, `DICTIONARIES_CONFIG_API.md`, `TUMOR_BOARD_API.md`.
+- **Kept in the browser on purpose:** the research feed's `getDefaults`, `getHealth` and `recordHealth` answer from memory (no server call). The spelling dictionary's refusals keep their `code`. A failed peer-review gate check leaves the gate on (fail closed); a failed research-feed settings save throws instead of pretending to save.
+- Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team). `demoReset.ts` still names the mocks on purpose (it resets demo data).
+
+## Batch 617 (part A) — server versions of 29 more services (PS-514)
+
+- **29 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test; 509 tests): settings and dictionaries, case workflows, critical results, bulk code import, case search and the BI feed admin calls. Each is chosen by `<name>ServiceInstance.ts` (the server version with an API server address, the mock without one), so the demo is unchanged. 13 workflow files that imported a mock directly now import the instance.
+- Contracts: `docs/architecture/CONFIG_SERVICES_API.md`, `CASE_WORKFLOWS_API.md`, `CRITICAL_RESULTS_API.md`, and Batch 617 sections in `BILLING_API.md`, `CYTOLOGY_API.md`, `CASE_SEARCH_API.md`, `BI_FEED_API.md`. Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team).
+- Not given a server version, on purpose: the voice and hotkey registry (synchronous, in memory) and the AI instruction service (rules run in the browser).
+
+## Batch 617 (part B) — server versions of the delivery, print, delegation, dictionary, equipment, migration and related services (PS-514)
+
+- **26 more services have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test of every method): delivery rules, delivery retry settings and retries; print settings, facility print settings and the print queue; batch label reprint runs; delegations; participation types; internal notes; display access (tokens); diagnosis codes; external resources; feedback settings; fonts; governing bodies; performance targets; priorities; equipment and its log; data migration jobs, record results and field mappings; LIS sync; margin extraction; intraoperative critical results.
+- **Wiring:** each has an `<name>ServiceInstance.ts` (mock without an API server address, server version with one). `services/index.ts` and the workflow files that imported a mock directly (print dispatch, retries, label printing, scan batches, margin rules, retention, migration) now use the instance. The save of country signing rules keeps the demo's unguarded store because it checks the permission itself; with a server the server decides.
+- **Three interfaces were missing** and are now written: `ILabelReprintRunService`, `ILisSyncService`, `IFeedbackSettingsService` (it lived inside the mock). The mocks now declare them; behaviour is unchanged.
+- **Privacy and safety:** one route per method (`/api/<area>/<service>/<method-name>`, `HTTP_SERVICES_PATTERN.md` section 7). Searches and accession numbers (`diagnosisCodes.search`, `internalNotes.getForCase`) and display tokens (`verify`, issue) travel in a POST body, never a URL. `displayAccess.verify` fails closed: any failure is `invalid`. A plain list is `{ items }`; a method that returns nothing throws a fixed code on refusal.
+- **Contracts:** `docs/architecture/DELIVERY_PRINTING_API.md`, `DELEGATIONS_NOTES_API.md`, `CONFIG_DICTIONARIES_API.md`, `EQUIPMENT_MIGRATION_API.md`. The routes are proposals for the India team.
+- **Not a plain server version:** `interfaceDictionary` (composed in the browser over injected storage; its storage travels through the configuration calls).
+- Screens are unchanged. No new permissions, no new strings. Server side not built: the endpoints themselves.
+
+## Batch 616 (part F) — follow-up tracking by commands, and biometric signing through one flow (PS-483, PS-512)
+
+Follow-up tracking now has a server version that works by commands (`IFollowUpService`): the browser says what the user did and the server works out the window, the status and who did it; the demo works it out locally as before. Biometric enrolment, the sign-out check, the policy card and the invitation after sign-in go through one flow (`biometricFlow`): the labelled Simulated check in the demo, the API server's challenge and verification with an address (no simulated fallback). Contracts: `docs/architecture/FOLLOW_UP_API.md` (Browser commands) and `ACCESS_SESSION_API.md` (3a). Folders: `src/services/followUp/`, `src/services/biometric/`.
+
+## Batch 616 (part D) — server versions of the quality, digital pathology, image, grossing, dictionary, reagent, cold-chain, label and intraoperative services (PS-501, PS-502, PS-506, PS-508, PS-510)
+
+- **35 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test that checks verb, path and body of every method): QA activity records and types, supervision assignments and types, reconciliations, surgical peer-review risk weights, validation studies, deficiency and resolution types, specimen deficiencies, management reviews; AI screening results and settings, digital pathology, viewer, gross imaging and image management vendors, scan batches, image upload; grossing hardware profiles, grossing routing overrides, cassette routing rules, the specimen dictionary, hardware containers, scan stations; reagent lots, storage condition types and units, telemetry readings, label layouts, printer profiles; intraoperative entries, the OR event log, OR suite terminals and display profiles. With an API server address configured the browser uses them; without one it uses the mock, so the demonstration is unchanged.
+- **Wiring:** each service has an `<name>ServiceInstance.ts` (mock or server by configuration). `services/index.ts` and the 20 workflow files that imported a mock directly (sign-out, print dispatch, inbound events, registry, retention and label code) now import the instance, so a server build no longer falls back to a mock behind the screens. Mocks that call other mocks stay as they are (demonstration internals).
+- **Privacy:** no patient text in a URL (the ADT lookup by MRN is a POST); the browser-sent actor names are advisory and the server records the token's user.
+- **Contracts:** `docs/architecture/QUALITY_API.md`, `DIGITAL_PATHOLOGY_API.md`, `GROSSING_ROUTING_API.md`, `REAGENTS_LABELS_API.md`, `INTRAOP_OPS_API.md`.
+- **Not done, and why:** peer review, peer-review settings, CAPA recommendations, QA trend policy, label reprint runs and intraoperative critical results have no interface file (the screens call the mock directly); equipment and the equipment log are PS-514. Firebase stays in place (PS-487). The two demo-only intraoperative methods (seed and advance demo data) answer `NOT_SUPPORTED` on a server. No new permissions, no new strings. Server side not built: the endpoints themselves (India team).
+
+## Batch 616 (part E) — server versions of the interface, model, protocol, template, routing, macro, flag, message and AI-policy services; production-build and same-origin guards (PS-509, PS-511, PS-513, PS-515, PS-486, PS-488)
+
+- **20 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test and an `<name>ServiceInstance.ts` that picks it): interface exceptions, interface engine (order-created events), LIS staging queue, AI models, model store, protocols, fixative and processing-format dictionaries, template suggestion signals, narrative edit signals, report templates, routing rules, print routing rules, text macros, voice macros, stain order macros, case flags, secure messaging settings, internal messages, AI vendor policy. With an API address in `config.json` the server version is used; without one (the demo) nothing changes.
+- **Contracts:** `INTERFACE_EXCEPTIONS_API.md`, `INTERFACE_ENGINE_API.md`, `LIS_INGESTION_API.md`, `MODELS_API.md`, `PROTOCOLS_API.md`, `TEMPLATE_SIGNALS_API.md`, `REPORT_TEMPLATES_API.md`, `ROUTING_API.md`, `MACROS_API.md`, `FLAGS_AND_MESSAGES_API.md`, `AI_VENDOR_POLICY_API.md` in `docs/architecture/`. `HTTP_SERVICES_REMAINING.md` lists what is still the mock (PS-514) and why four services can't be a plain server version.
+- **Guards (PS-486, PS-488):** `services/apiServer/productionBuild.guard.test.ts` fails if a demo screen, demo account or the Simulated authenticator is reachable without `__DEMO_TOOLS__`, if AI or terminology-search code names an outside host, or if the UMLS and AI routes leave `/api`. Finding: the keyless public NLM look-up (SNOMED, ICD-10-CM, ICD-11, LOINC) is still called directly from the browser, allowed by the security headers on purpose; routing it through the API server is Pete's decision.
+- **Known gap (PS-486):** a server build still bundles the mock services, because each service module names its mock when it picks a version. Removing them needs lazy loading per service and is its own piece of work.
+- **Not done, and why:** the voice and hotkey action registry (synchronous and in memory), the interface dictionary and AI instruction services (rules run in the browser over injected storage), live updates (SignalR already), Firebase removal (PS-487: waits on the remaining server versions).
+- **Privacy rule kept:** no patient text in a URL or an error; failures are fixed codes.
+
+## Batch 616 (part A) — server versions of the report, accessioning, patient and encounter services (PS-483, PS-503, PS-505)
+
+- **14 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): amendments, informal reviews, LIS amendment notices, the LIS sync and result queues, the report change log, report parts, the report release buffer, incoming-order intake, drafts, the accession queue, the master patient index, encounters, the patient ADT queue, and patient history (cache and lookup). With an API server address configured the browser uses them; without one it uses the mock, so the demonstration is unchanged (`serverVersions616.guard.test.ts`).
+- **New in the kit:** `required()` (a record that must come back, or a thrown fixed code, for merges and other writes where a quiet default would hide a refusal), `replyShapes.ts` (`{ items }` lists), `outboundQueueRoutes.ts` (the six calls every outbound queue shares) and `httpTestHelpers.ts` (the route-table test).
+- **Privacy rule kept:** nothing that identifies a person (search terms, identifiers, MRNs, encounter numbers) is in a URL; it goes in the POST body.
+- **Contracts:** `docs/architecture/REPORTS_API.md`, `ACCESSIONING_API.md`, `PATIENTS_API.md` (the change log follows the existing `REPORT_CHANGE_LOG_API.md`).
+- **Not done, and why:** follow-up tracking (the browser store saves whole records, the contract is command-based: needs a decision), report versions and documents (already server-backed), synoptic models (PS-511), the inbound HL7 processing and dispatchers (they run on the server in production), clinical-history dictionary (PS-507's group). No new permissions, no new strings. Server side not built: the endpoints themselves (India team).
+
+## Batch 616 (part C) — server versions of the billing, cytology, molecular and registry services (PS-498, PS-499, PS-500, PS-504)
+
+- **52 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): billing and charge capture (10), cytology and cytology QC (33), molecular batches, racks, control rules and the order queue (4), and registry reporting (5). Each is chosen by `<name>ServiceInstance.ts`: with an API server address the server version, without one the mock, so the demo is unchanged.
+- **One convention for wide interfaces:** one route per interface method, `/api/<area>/<service>/<method-name>`; reads are `GET` with the arguments in the query string, writes carry a body. Contract tables: `docs/architecture/BILLING_API.md`, `CYTOLOGY_API.md`, `MOLECULAR_API.md`, `REGISTRY_API.md`; the convention is `HTTP_SERVICES_PATTERN.md` §7.
+- Screens are unchanged. No new permissions, no new strings. Server side not built: the endpoints themselves (India team).
+
+## Batch 615 (part D) — vial and rack labels, CI workflow, right-to-left groundwork (PS-360, PS-471, PS-293)
+
+- **Vial and rack/batch labels** print through the interface engine like slide and cassette labels (`utils/labels/vialRackZplTemplates.ts`, `printVialRackLabel.ts`): Code 128 of the vial or rack id, sized to the label stock and printer resolution.
+- **CI:** `.github/workflows/ci.yml` runs type check, lint, tests, build and the Python report tests on every push to `main` and every pull request. It starts working once the repository is on GitHub (PS-468).
+- **Right to left:** `<html lang dir>` follows the language (`i18n/direction.ts`), and `pathscribe.css` now uses logical properties throughout, so a right-to-left language mirrors the layout. Identifiers and physical layouts (organ map, plates, label canvas) stay left to right. No right-to-left language is enabled yet (needs translations and Pete's go-ahead).
+
+## Batch 613 (part A) — case search reporting
+
+`caseSearch/` gains `synopticValueCriteria.ts` (search on synoptic answers) and `caseSearchReport.ts` (grouping, counts, median turnaround, chosen columns); `caseReports/` (saved report definitions); `scheduledReports/` (schedule rules, service, Simulated runs, audit). New exports kind `search.case-report`.
+
+## Batch 613 (part B) — related cases
+
+`relatedCases/` (rules, attachments frozen at sign-out, loaders, patient summary print) and `reports/intraopDiagnosisForCase.ts` (the intraoperative diagnosis read for report output). Contract: `docs/architecture/RELATED_CASES_API.md`.
+
+## Batch 613 (part D) — reporting feed
+
+`biFeed/` (dataset and field catalogue, rules, service with hashed tokens and the Simulated pull; exported from the barrel). Writes need `config:bi-feed:manage`, `config:bi-feed-tokens:manage` or `config:bi-feed-identified:approve`.
+
 # src/services/ — Master Index
 
 This folder contains every data-access and business-logic service in
@@ -91,7 +180,7 @@ The rules are pure, in `templatePublishingRules.ts`. See [templates/README.md](.
 - **Hub token:** `liveUpdates/` gets the signed-in user's access token through `auth/accessTokenSource.ts`.
 - **Signer confirmation (Batch 344):** `@/services` also exports `signerConfirmation`.
   - **What it does:** every signature confirms who is signing first, with the password again (demo) or the identity provider's sign-in popup (SSO). Five failures lock signing for 15 minutes, and everything is audited.
-  - **Barrel addition:** `biometricService` (the simulated WebAuthn module) is exported too.
+  - **Barrel addition:** `biometricService` (the simulated WebAuthn module) was exported too; Batch 616 (part F) replaced it with `biometricFlow`.
 - **Spec:** `docs/architecture/AUTHENTICATION_OIDC.md` now has the token contract (§5) and SCIM provisioning (§6) for the API server.
 - **Signature check at the save (Batch 345):** `@/services` exports `signatureGate` and `signatureRecordService`.
   - **What it does:** every signed state change checks the confirmation the way the API server will: signer, action, case, 5-minute age, one use, and for SSO the provider's ID token for the same account, freshly authenticated. It then stores a signature record ([`signatures/`](./signatures/README.md)).
@@ -303,6 +392,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [auditlog/](./auditlog/README.md) | System-wide audit log (incl. signing-authority facility-override events, Sep 2026) |
 | [auth/](./auth/README.md) | Case access control + institution/session resolution; `canFinalizeCase()` / countersign resolution are lab- **and** jurisdiction-scoped (Sep 2026). Since Batch 343 also sign-in: demo password accounts and SSO (PS-60) |
 | [signatures/](./signatures/README.md) | Signature records, one per signature applied to a case, with how the signer was confirmed. Append-only (Batch 345, PS-60) |
+| [outboundQueue/](./outboundQueue/README.md) | **NEW (Batch 619, PS-800)** — the one Outbound Queue: ten feeds in one item shape, hold/release/retry/retract/resubmit, registry rejections, reporting-deadline flags, the billing feed adapter, and the server contract `OUTBOUND_QUEUE_API.md` |
 | [autopsy/](./autopsy/README.md) | **NEW (Sep 2026)** — Autopsy Pathology Module (PS-261, RFP-APLIS-2026-GLOBAL §3.1.C): case authority (forensic/hospital-consented), the real legal hard-stop gross-examination gate, temporary accession, mortuary storage occupancy (via `Specimen.locationHistory`, not a parallel mechanism), and jurisdiction-specific consent/HTA rules |
 | [batches/](./batches/README.md) | **NEW (August 2026)** — cassette/slide chain-of-custody through histology processing nodes via container barcode scanning, plus the real, computed pending-batch-load queue |
 | [billing/](./billing/README.md) | **NEW (August 2026)** — real CPT-to-work-RVU mapping table and calculation, workload/productivity tracking only (not a billing system) |
@@ -385,6 +475,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [scanStations/](./scanStations/README.md) | **NEW (August 2026)** — registry of physical scan/work stations (where a tech scans at the bench), facility-scoped |
 | [session/](./session/README.md) | **NEW (July 2026)** — idle-session-timeout resolution (org default + per-performing-lab override) + same-browser session-supersede detection |
 | [departments/](./departments/README.md) | Coarse-grained specimen classification |
+| [smartCapture/](./smartCapture/README.md) | **Batch 611** — Smart Capture charge suggestions, a labelled prototype: fixed rules, review states, production gate, payload, audited |
 | [specimenDictionary/](./specimenDictionary/README.md) | Fine-grained Specimen Dictionary (SpecimenEntry) — the real backend |
 | [stains/](./stains/README.md) | Stain catalog (3 sub-concepts: type/sectioning/order macro) |
 | [subspecialties/](./subspecialties/README.md) | Subspecialty/pool/workgroup dictionary |
@@ -398,7 +489,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [voice/](./voice/README.md) | Voice commands offered to the screen first (Batch 463: the Mohs stage question) |
 | [voicemacro/](./voicemacro/README.md) | Voice-triggered macro dictionary |
 
-**Folders not in the table above** (added after it was last rebuilt; each has its own README except `caseViewTracking/`): [actionGroups/](./actionGroups/README.md) (workstation action groups), [addOnOrders/](./addOnOrders/README.md), [aiConfig/](./aiConfig/README.md), [browserCleanup/](./browserCleanup/README.md), [caseAddresses/](./caseAddresses/README.md) (case references in page addresses), [caseSearch/](./caseSearch/README.md), `caseViewTracking/` (no README), [configDirty/](./configDirty/README.md), [cytologyQc/](./cytologyQc/README.md), [delegations/](./delegations/README.md), [delivery/](./delivery/README.md), [demoReset/](./demoReset/README.md), [deployment/](./deployment/README.md), [deploymentReadiness/](./deploymentReadiness/README.md), [documentRendering/](./documentRendering/README.md), [engravers/](./engravers/README.md), [equipment/](./equipment/README.md), [feedback/](./feedback/README.md), [fieldRequirements/](./fieldRequirements/README.md), [followUp/](./followUp/README.md), [imageAssociation/](./imageAssociation/README.md), [import/](./import/README.md), [interfaceDispatch/](./interfaceDispatch/README.md), [interfacePreview/](./interfacePreview/README.md), [labSettings/](./labSettings/README.md), [liveUpdates/](./liveUpdates/README.md), [marginExtraction/](./marginExtraction/README.md), [material/](./material/README.md), [networkPrint/](./networkPrint/README.md), [organMapping/](./organMapping/README.md), [patientHistory/](./patientHistory/README.md), [patientIdentifiers/](./patientIdentifiers/README.md), [phi/](./phi/README.md), [printRouting/](./printRouting/README.md), [printing/](./printing/README.md), [privacy/](./privacy/README.md), [qualitySettings/](./qualitySettings/README.md), [reagentLots/](./reagentLots/README.md), [reasons/](./reasons/README.md), [registryConsent/](./registryConsent/README.md), [registryGoLive/](./registryGoLive/README.md), [registrySubmission/](./registrySubmission/README.md), [reportAppearance/](./reportAppearance/README.md), [reportChangeLog/](./reportChangeLog/README.md), [reportEditing/](./reportEditing/README.md), [retention/](./retention/README.md), [screeningRegistry/](./screeningRegistry/README.md), [screens/](./screens/README.md), [security/](./security/README.md), [signoutGates/](./signoutGates/README.md), [siteSettings/](./siteSettings/README.md), [specimenCategories/](./specimenCategories/README.md), [spellcheck/](./spellcheck/README.md), [staff/](./staff/README.md), [staffPasswords/](./staffPasswords/README.md), [styleRules/](./styleRules/README.md), [supportAccess/](./supportAccess/README.md), [supportReferences/](./supportReferences/README.md), [tumorBoard/](./tumorBoard/README.md), [tumorBoardRules/](./tumorBoardRules/README.md), [userSettings/](./userSettings/README.md), [worklist/](./worklist/README.md), [workstationGroups/](./workstationGroups/README.md).
+**Folders not in the table above** (added after it was last rebuilt; each has its own README except `caseViewTracking/`): [actionGroups/](./actionGroups/README.md) (workstation action groups), [addOnOrders/](./addOnOrders/README.md), [aiConfig/](./aiConfig/README.md), [browserCleanup/](./browserCleanup/README.md), [caseAddresses/](./caseAddresses/README.md) (case references in page addresses), [caseSearch/](./caseSearch/README.md), `caseViewTracking/` (no README), [configDirty/](./configDirty/README.md), [cytologyQc/](./cytologyQc/README.md), [delegations/](./delegations/README.md), [delivery/](./delivery/README.md), [billingRelease/](./billingRelease/README.md) (when generated charges are released to billing, Batch 619), [deliverySchedules/](./deliverySchedules/README.md) (when feeds and registries go out, Batch 619), [demoReset/](./demoReset/README.md), [deployment/](./deployment/README.md), [deploymentReadiness/](./deploymentReadiness/README.md), [documentRendering/](./documentRendering/README.md), [engravers/](./engravers/README.md), [equipment/](./equipment/README.md), [feedback/](./feedback/README.md), [fieldRequirements/](./fieldRequirements/README.md), [followUp/](./followUp/README.md), [imageAssociation/](./imageAssociation/README.md), [import/](./import/README.md), [interfaceDispatch/](./interfaceDispatch/README.md), [interfacePreview/](./interfacePreview/README.md), [labSettings/](./labSettings/README.md), [liveUpdates/](./liveUpdates/README.md), [marginExtraction/](./marginExtraction/README.md), [material/](./material/README.md), [networkPrint/](./networkPrint/README.md), [organMapping/](./organMapping/README.md), [patientHistory/](./patientHistory/README.md), [patientIdentifiers/](./patientIdentifiers/README.md), [phi/](./phi/README.md), [printRouting/](./printRouting/README.md), [printing/](./printing/README.md), [privacy/](./privacy/README.md), [qualitySettings/](./qualitySettings/README.md), [reagentLots/](./reagentLots/README.md), [reasons/](./reasons/README.md), [registryConsent/](./registryConsent/README.md), [registryGoLive/](./registryGoLive/README.md), [registrySubmission/](./registrySubmission/README.md), [reportAppearance/](./reportAppearance/README.md), [reportChangeLog/](./reportChangeLog/README.md), [reportEditing/](./reportEditing/README.md), [retention/](./retention/README.md), [screeningRegistry/](./screeningRegistry/README.md), [screens/](./screens/README.md), [security/](./security/README.md), [signoutGates/](./signoutGates/README.md), [siteSettings/](./siteSettings/README.md), [specimenCategories/](./specimenCategories/README.md), [spellcheck/](./spellcheck/README.md), [staff/](./staff/README.md), [staffPasswords/](./staffPasswords/README.md), [styleRules/](./styleRules/README.md), [supportAccess/](./supportAccess/README.md), [supportReferences/](./supportReferences/README.md), [tumorBoard/](./tumorBoard/README.md), [tumorBoardRules/](./tumorBoardRules/README.md), [userSettings/](./userSettings/README.md), [worklist/](./worklist/README.md), [workstationGroups/](./workstationGroups/README.md).
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): `clients/` marked removed; the `aiIntegration/`, `cytology/`, `grossing/` and `hl7/` rows updated to what the folders hold now; the 64 folders missing from the table listed. `src/services/` has 170 folders.*
 
@@ -829,6 +920,14 @@ Not yet wired, and disclosed: `deriveEligibleFinalizerIds()`. The repo-root `fir
 
 **Batch 335 cache fix:** `utils/participationTypeLookup.ts` used to cache participation types for the whole session. A saved rule change (country profile or lab override) therefore didn't reach the sign-out check until a reload. Every save now clears the cache.
 
+## Batch 612 (part C) — report font sizes in points
+
+`reportAppearance/`: `fontUnits.ts` (units rules, printed size, preview size, conversion plan), `convertToPoints.ts` (Convert to points for the lab's styles and a template, audited), `previewPage.ts` (the preview page at the paper's width and margins).
+
+## Batch 609 (part A)
+
+- `imageAssociation/caseReportImages.ts`: images linked to a report and added to its PDF; `reportAppearance/renderDocumentStyle.ts`.
+
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 **`phi/`** (new): `phiRenderAudit.ts` finds patient data the UI shows outside a redacted element, and `phiTagging.guard.test.ts` runs it over all of `src/` (no exceptions; the app passes with none). `phiToast.ts` gives services a redacted toast message. `hl7/` notifications use it and are now translated. `deploymentReadiness/`: seven files came off the mock-import baseline.
@@ -1251,7 +1350,7 @@ Actions nothing called are now wired (see `src/i18n/README.md` → Batch 432); t
 
 - `caseSearch/`: search results show their flags (PS-101).
 - `qualityAssurance/`: a QA scope limited to a client finds its cases (PS-356).
-- `styleRules/`: a guard against identical duplicate rules in `pathscribe.css` (PS-294).
+- `styleRules/`: a guard against identical duplicate rules in `pathscribe.css` (PS-294), and (Batches 596-597, PS-520) a guard that there are no unreferenced classes.
 - `auth/`, `organisation/`, `session/`: citations of a backend document that was never written now point at the real ones (PS-40).
 - `cases/`: demo data fixes (Manchester orders' facility; one invalid case status).
 
@@ -1787,7 +1886,7 @@ Recall reopens surgical corrections and addenda (`reports/IAmendmentService.reop
 
 ## Batch 551 (PS-539 phase 2d: the Server jobs view)
 
-- `serverJobs/` (new): the Server jobs view's contract and service (`serverJobsService` in the barrel). `apiServer/apiServerUrl.ts` (new): the API server's address, checked as sign-in checks it, shared by exports and server jobs.
+- `serverJobs/` (new): the Server jobs view's contract and service (`serverJobsService` in the barrel). `apiServer/apiServerUrl.ts` (new): the API server's address, checked as sign-in checks it, shared by exports and server jobs. Batch 592 (PS-481): `apiServer/apiHttpClient.ts`, the shared HTTP client for server-backed services. Batch 594: `coding/`, one code shape and a per-jurisdiction policy for ICD-10, ICD-11, ICD-O and SNOMED CT. Batch 595: its policy service (`codeSystemPolicyService`) and the Code Systems setting; nothing reads the policy yet.
 - `registrySubmission/`: with exports through the server, the registry audit no longer reads its queues in the browser (carried over from Batch 550).
 
 ## Batch 552 (PS-539 phase 2d: site agent screens)
@@ -1889,3 +1988,45 @@ Recall reopens surgical corrections and addenda (`reports/IAmendmentService.reop
 ## Batch 579
 
 - Batch 579: `templates/templateReviewWork.ts` `addTemplateQuestionComment`, `toggleTemplateQuestionComment`; `reportEditing/reportSequence.ts` (new) `sequenceCaseReports`.
+
+## Batch 583
+
+- `communications/`: template lifecycle e-mails are sent as an event to the server (`templateLifecycleEvent.ts`, `postTemplateLifecycleEvent`); `recipientResolver.ts` and the synoptic e-mail template builder are deleted. See `communications/README.md`.
+- `configDirty/`: Discard also closes the dialog (`discardDialogEdits`). `billing/`: `postSignoutBillingReason.ts`.
+
+## Batch 588
+
+- `material/`: `blockDeletion.ts`, `deleteBlockInProcess.ts` (soft delete of an in-process block). `billing/`: deficiency type `BLOCK_DELETED`. `authorization/`: `material:block:delete-in-process`.
+
+## Batch 589
+
+Unique audit ids (`auditlog`), narrative critical findings kept per case (`clinical`), OR PIN role (`intraopDashboard`), demo discordance data (`quality`), one crash one log entry (`errorReporting`).
+
+## Batch 590
+
+`errorReporting` can send scrubbed crash reports to Sentry or a self-hosted collector (PS-469); `runtimeConfig` has two new settings.
+
+- Batch 609 (part B): the mismatch check on amendments, corrections and addenda (lab setting for holding the release), Final Diagnosis rule on publish, template lifecycle in the Audit Log, Upload Protocol file check. See `src/services/clinical/README.md`, `src/services/templates/README.md`, `src/components/Config/Protocols/README.md`.
+
+## Batch 610 (part A) — autopsy turnaround and dashboards, frozen section clock
+
+New `autopsy/resolveAutopsyTatStatus.ts` and `autopsy/dashboard/`; `tatConfig/resolveFrozenSectionClock.ts`; `intraop` specimen urgency (`setSpecimenUrgency`); new screen capability `screen:autopsy-dashboards:open`. See each folder README.
+
+## Batch 610 (part B)
+
+Performance targets and client service levels are saved and judged by `services/performanceTargets` and `services/clientSLA`; `services/jurisdictionOverview` feeds the read-only Jurisdiction Overview. The Productivity dashboard (`ContributionDashboardPage`) shows the Targets tile and client service levels, the Quality tab shows client service levels, and `WorklistPage` passes SLA breaches to the table.
+
+- Batch 611 (part F): `migration/` gains the legacy file import (`importLegacyFile`, exported from the barrel); `biometric/` gains the WebAuthn platform-authenticator prompt, labelled Simulated.
+
+- Batch 612 (part B): `workstationRegistry/` (registered workstations, revocable hashed tokens, context binding for print routing) and `scopeReference/` (enterprise versus facility scope by setting area); both exported from the barrel.
+
+- Batch 612 (part A): `interfaceDictionary/` (vendor profiles, mapping engine, scope guard, extension-field store; exported from the barrel). Writes need the platform-only `platform:interface-dictionary:*` capabilities.
+
+Batch 616 (part B, PS-484, PS-507, PS-512): server versions of audit, authorization, users, roles, facilities, registry settings, access requests, session time-out, biometric (not yet selected by the screens) and the lab dictionaries. Each area's README names its file; contracts are `docs/architecture/STAFF_ADMIN_API.md`, `ACCESS_SESSION_API.md`, `LAB_DICTIONARIES_API.md`.
+
+**Batch 617:** `terminologySearch/nlmLookupRoute.ts` (NLM look-ups through the API server) and `biometric/biometricDeploymentSwitch.ts` (deployment switch for biometric sign-in); `biometricOffForDeployment` is exported from the barrel.
+
+**Batch 618 (part B):** `organMapping/renalAnatomy.ts` (a partial nephrectomy's drawing shows Gerota's fascia and the adrenal only when reported, PS-492); `styleRules/fileSize.guard.test.ts` and `fileSizeBaseline.ts` (a source file over 1,000 lines may not grow, PS-497).
+
+
+**Batch 618 (part A):** `accessioning/resolveTechnicalFacilityOffer.ts`, `billing/resolveChargeFacilities.ts`, `facilities/technicalFacilityAudit.ts` (a second facility for the technical component, PS-336).

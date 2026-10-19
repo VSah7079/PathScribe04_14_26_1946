@@ -69,6 +69,7 @@ const WsiScanBatchesPage = lazy(() => import("./pages/BatchManagement/WsiScanBat
 const LabelReprintPage = lazy(() => import("./pages/BatchManagement/LabelReprintPage"));
 const DisposalQueuePage = lazy(() => import("./pages/BatchManagement/DisposalQueuePage"));
 const DisposalReportPage = lazy(() => import("./pages/BatchManagement/DisposalReportPage"));
+const RetentionHoldsQueuePage = lazy(() => import("./pages/BatchManagement/RetentionHoldsQueuePage"));
 const PendingBatchQueuePage = lazy(() => import("./pages/BatchManagement/PendingBatchQueuePage"));
 const EngraverMonitorPage = lazy(() => import("./pages/BatchManagement/EngraverMonitorPage"));
 const EquipmentServiceLogPage = lazy(() => import("./pages/BatchManagement/EquipmentServiceLogPage"));
@@ -78,6 +79,8 @@ const FacilityOpsDashboardPage = lazy(() => import("./pages/FacilityOpsDashboard
 const MigrationJobsPage = lazy(() => import("./pages/MigrationJobsPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const RegistryExceptionsPage = lazy(() => import("./pages/RegistryExceptionsPage/RegistryExceptionsPage"));
+const AutopsyDashboardPage = lazy(() => import("./pages/AutopsyDashboardPage/AutopsyDashboardPage"));
+const OutboundQueuePage = lazy(() => import("./pages/OutboundQueuePage/OutboundQueuePage"));
 // Batch 550 (PS-539 D7): the signed-in user's exports from the API server.
 const MyExportsPage = lazy(() => import("./pages/MyExportsPage"));
 const ConfigurationPage = lazy(() => import("./pages/ConfigurationPage"));
@@ -206,6 +209,7 @@ const SignedInApp: React.FC = () => (
                           <Route path="/batch-management" element={<ScreenGate screen="batchManagement"><BatchManagementPage /></ScreenGate>} />
                           <Route path="/batch-management/disposal" element={<ScreenGate screen="batchManagement"><DisposalQueuePage /></ScreenGate>} />
                           <Route path="/batch-management/disposal-report" element={<ScreenGate screen="batchManagement"><DisposalReportPage /></ScreenGate>} />
+                          <Route path="/batch-management/retention-holds" element={<ScreenGate screen="batchManagement"><RetentionHoldsQueuePage /></ScreenGate>} />
                           <Route path="/batch-management/pending-load" element={<ScreenGate screen="batchManagement"><PendingBatchQueuePage /></ScreenGate>} />
                           <Route path="/batch-management/engraver-monitor" element={<ScreenGate screen="batchManagement"><EngraverMonitorPage /></ScreenGate>} />
                           <Route path="/batch-management/wsi-scan" element={<ScreenGate screen="batchManagement"><WsiScanBatchesPage /></ScreenGate>} />
@@ -225,6 +229,8 @@ const SignedInApp: React.FC = () => (
                           <Route path="/search" element={<ScreenGate screen="search"><SearchPage /></ScreenGate>} />
                           <Route path="/audit" element={<ScreenGate screen="auditLog"><AuditLogPage /></ScreenGate>} />
                           <Route path="/registry-exceptions" element={<ScreenGate screen="registryExceptions"><RegistryExceptionsPage /></ScreenGate>} />
+                          <Route path="/autopsy-dashboards" element={<ScreenGate screen="autopsyDashboards"><AutopsyDashboardPage /></ScreenGate>} />
+                          <Route path="/outbound-queue" element={<ScreenGate screen="outboundQueue"><OutboundQueuePage /></ScreenGate>} />
                           <Route path="/my-exports" element={<MyExportsPage />} />
                           <Route
                             path="/configuration"

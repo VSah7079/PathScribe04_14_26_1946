@@ -36,6 +36,17 @@
 #   line = {"text": str, "bold": bool, "size": number}   (size defaults to 10 pt; a newline
 #   in the text starts a new line, as typed)
 #
+# Batch 609 (PS-35, PS-127): the request may also carry
+#   "pageSetup": {"pageSizeId", "widthMm", "heightMm", "margins": {top,right,bottom,left}}   # the lab's page
+#   "documentStyle": {"header": LabelConfig, "body": LabelConfig, "footer": LabelConfig}   # see report_layout.py
+# Batch 612: a style's "units" ("pt" or "legacy_px") says what its fontSize is in; points print at
+# the number given (8 pt floor), a size saved before Batch 612 prints as it did (report_layout.py).
+# The page is the lab's size and margins (A4 and 15 mm when absent; margins never below
+# the 0.5 inch minimum). The header style sets the title, section headings and letterhead
+# lines; the body style the report's lines; the footer style the continuation line. The
+# font stays the embedded Liberation Sans or Pretendard whatever the family chosen (PDF/A
+# needs embedded fonts); size, weight, case and underline are applied.
+#
 # Layout (the browser renderer's, kept): A4, 15 mm margins (never below the
 # 0.5 inch minimum, checked at import), section headings kept with their first
 # line, a continuation line and rule on every page after a document's first,
@@ -61,7 +72,6 @@ from xml.sax.saxutils import escape
 from reportlab.graphics.barcode.code128 import Code128
 from reportlab.lib import colors
 from reportlab.lib.fonts import addMapping
-from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
@@ -70,6 +80,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (BaseDocTemplate, Flowable, Frame, Image, NextPageTemplate, PageBreak,
                                 PageTemplate, Paragraph, Spacer)
+
+import report_layout  # Batch 609 (PS-35, PS-127): page setup and document style
 
 CYTOLOGY_TEMPLATE_MARKER = 'pathscribe-template:cytology'
 
@@ -127,11 +139,26 @@ def _style(fonts: tuple, bold: bool, size: float) -> ParagraphStyle:
     )
 
 
-def _line_flow(line: dict, fonts: tuple) -> Paragraph:
-    size = float(line.get('size') or 10)
+def _styled_paragraph(text: str, fonts: tuple, bold: bool, size: float, style: dict | None) -> Paragraph:
+    """A line in a category's document style (Batch 609): the style's size, weight, case and
+    underline where it sets them; the given ones otherwise. The font stays the embedded one."""
+    style = style or {}
+    size = style.get('size_pt') or size
+    bold = style['bold'] if style.get('bold') is not None else bold
+    text = report_layout.apply_transform(text, style)
     # Line breaks typed in a field (an addendum, a note) are kept.
-    text = escape(str(line.get('text') or '')).replace('\r\n', '\n').replace('\n', '<br/>')
-    return Paragraph(text, _style(fonts, bool(line.get('bold')), size))
+    body = escape(str(text)).replace('\r\n', '\n').replace('\n', '<br/>')
+    if style.get('underline'):
+        body = f'<u>{body}</u>'
+    return Paragraph(body, _style(fonts, bold, size))
+
+
+def _line_flow(line: dict, fonts: tuple, style: dict | None = None) -> Paragraph:
+    """One line. An explicit size in the request wins; otherwise the style's size, then 10 pt."""
+    explicit = float(line.get('size') or 0)
+    if explicit and style:
+        style = {**style, 'size_pt': None}
+    return _styled_paragraph(str(line.get('text') or ''), fonts, bool(line.get('bold')), explicit or 10, style)
 
 
 class _DocumentStart(Flowable):
@@ -165,29 +192,31 @@ def _logo_flows(branding: dict) -> list:
         return [Spacer(1, LOGO_MAX_HEIGHT + 2 * mm)]
 
 
-def document_flows(index: int, document: dict, fonts: tuple) -> list:
+def document_flows(index: int, document: dict, fonts: tuple, styles: dict | None = None) -> list:
+    styles = styles or {}
+    head, body = styles.get('header'), styles.get('body')
     flows: list = [_DocumentStart(index, document)]
-    title = _line_flow({'text': document.get('title') or '', 'bold': True, 'size': 14}, fonts)
+    title = _styled_paragraph(document.get('title') or '', fonts, True, 14, {**(head or {}), 'bold': True} if head else None)
     if (document.get('barcode') or '').strip():
         # The title wraps short of the barcode drawn top right.
         title.style = ParagraphStyle('cy-title', parent=title.style, rightIndent=BARCODE_WIDTH + 4 * mm)
     flows += [title, Spacer(1, 2 * mm)]
     banner = document.get('banner') or []
     if banner:
-        flows += [_line_flow(line, fonts) for line in banner]
+        flows += [_line_flow(line, fonts, body) for line in banner]
         flows.append(Spacer(1, 2 * mm))
     branding = document.get('branding') or {}
     if branding:
         flows += _logo_flows(branding)
-        flows += [_line_flow(line, fonts) for line in branding.get('lines') or []]
+        flows += [_line_flow(line, fonts, head) for line in branding.get('lines') or []]
         flows.append(Spacer(1, 2 * mm))
     for section in document.get('sections') or []:
         if section.get('newPage'):
             flows.append(PageBreak())
-        heading = Paragraph(escape(str(section.get('heading') or '')), _style(fonts, True, 11))
+        heading = _styled_paragraph(str(section.get('heading') or ''), fonts, True, 11, {**(head or {}), 'bold': True} if head else None)
         heading.keepWithNext = True  # a heading is never the last line on a page
         flows.append(heading)
-        flows += [_line_flow(line, fonts) for line in section.get('lines') or []]
+        flows += [_line_flow(line, fonts, body) for line in section.get('lines') or []]
         flows.append(Spacer(1, 2 * mm))
     return flows
 
@@ -197,8 +226,11 @@ class _CytologyCanvas(Canvas):
     each document, then draws the barcode on each document's first page and
     the continuation line on the others."""
 
-    def __init__(self, *args, page_label: str = '', timestamp: str | None = None, **kwargs):
+    def __init__(self, *args, page_label: str = '', timestamp: str | None = None, margins: tuple | None = None,
+                 footer_style: dict | None = None, **kwargs):
         super().__init__(*args, **kwargs)
+        self._ps_margins = margins or (MARGIN, MARGIN, MARGIN, MARGIN)  # top, right, bottom, left
+        self._ps_footer_style = footer_style or {}
         self._ps_pages: list = []
         self._ps_document = (0, {})
         self._ps_document_starts_here = False
@@ -234,7 +266,8 @@ class _CytologyCanvas(Canvas):
             probe = Code128(value, barHeight=BARCODE_HEIGHT, humanReadable=False, quiet=0)
             bar = probe.barWidth * BARCODE_WIDTH / probe.width  # the bars fill the 40 mm box
             code = Code128(value, barHeight=BARCODE_HEIGHT, barWidth=bar, humanReadable=False, quiet=0)
-            code.drawOn(self, width - MARGIN - code.width, height - MARGIN - BARCODE_HEIGHT)
+            top, right, _bottom, _left = self._ps_margins
+            code.drawOn(self, width - right - code.width, height - top - BARCODE_HEIGHT)
         except Exception:  # noqa: BLE001 — an accession Code 128 can't encode keeps the printed accession
             pass
 
@@ -245,12 +278,23 @@ class _CytologyCanvas(Canvas):
         width, height = self._pagesize
         label = document.get('pageLabel') or self._ps_page_label
         line = ' · '.join(x for x in [identity, fill(label, {'page': page, 'total': total})] if x)
+        top, right, _bottom, left = self._ps_margins
+        style = self._ps_footer_style
+        line = report_layout.apply_transform(line, style)
+        size = style.get('size_pt') or 8
+        fonts = document.get('_fonts', LIBERATION)
+        font = fonts[1] if style.get('bold') else fonts[0]
         self.saveState()
-        self.setFont(document.get('_fonts', LIBERATION)[0], 8)
+        self.setFont(font, size)
         self.setFillColor(colors.black)
-        self.drawString(MARGIN, height - MARGIN - 4 * mm, line)
+        self.drawString(left, height - top - 4 * mm, line)
+        if style.get('underline'):
+            self.setStrokeColor(colors.black)
+            self.setLineWidth(0.5)
+            self.line(left, height - top - 4 * mm - 1.2, left + self.stringWidth(line, font, size), height - top - 4 * mm - 1.2)
         self.setStrokeColor(colors.Color(180 / 255, 180 / 255, 180 / 255))
-        self.line(MARGIN, height - MARGIN - 6 * mm, width - MARGIN, height - MARGIN - 6 * mm)
+        self.setLineWidth(1)
+        self.line(left, height - top - 6 * mm, width - right, height - top - 6 * mm)
         self.restoreState()
 
 
@@ -315,14 +359,18 @@ def build_cytology_pdf(payload: dict) -> bytes:
     watermark = str(payload.get('watermarkText') or '').strip()
     meta = payload.get('metadata') or {}
     buf = BytesIO()
-    width, height = A4
-    first = Frame(MARGIN, MARGIN, width - 2 * MARGIN, height - 2 * MARGIN, id='first',
+    # Batch 609 (PS-35): the lab's page size and margins, and its document style.
+    geometry = report_layout.page_geometry(payload, (15, 15, 15, 15))
+    width, height = geometry['size']
+    top, right, bottom, left = geometry['margins']
+    styles = {c: report_layout.style_for(payload, c) for c in report_layout.CATEGORIES}
+    first = Frame(left, bottom, width - left - right, height - top - bottom, id='first',
                   leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-    later = Frame(MARGIN, MARGIN, width - 2 * MARGIN, height - 2 * MARGIN - CONTINUATION_HEADER, id='later',
+    later = Frame(left, bottom, width - left - right, height - top - bottom - CONTINUATION_HEADER, id='later',
                   leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
     mark = _watermark(watermark, fonts_for_text(payload.get('language'), watermark))
     doc = BaseDocTemplate(
-        buf, pagesize=A4, leftMargin=MARGIN, rightMargin=MARGIN, topMargin=MARGIN, bottomMargin=MARGIN,
+        buf, pagesize=geometry['size'], leftMargin=left, rightMargin=right, topMargin=top, bottomMargin=bottom,
         title=str(meta.get('title') or ''), author=str(meta.get('author') or ''), subject=str(meta.get('subject') or ''),
         creator='PathScribe', producer='PathScribe report renderer', keywords=CYTOLOGY_TEMPLATE_MARKER, invariant=1,
         initialFontName=LIBERATION[0],
@@ -335,10 +383,11 @@ def build_cytology_pdf(payload: dict) -> bytes:
     for i, document in enumerate(documents):
         if i:
             flows += [NextPageTemplate('first'), PageBreak()]
-        flows += document_flows(i, document, document['_fonts'])
+        flows += document_flows(i, document, document['_fonts'], styles)
 
     def make_canvas(*args, **kwargs):
-        return _CytologyCanvas(*args, page_label=str(payload.get('pageLabel') or ''), timestamp=meta.get('timestamp'), **kwargs)
+        return _CytologyCanvas(*args, page_label=str(payload.get('pageLabel') or ''), timestamp=meta.get('timestamp'),
+                               margins=geometry['margins'], footer_style=styles['footer'], **kwargs)
 
     doc.build(flows, canvasmaker=make_canvas)
     return buf.getvalue()

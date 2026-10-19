@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/cytologyQc/
 
 Real, per the uploaded "Automated Cytopathology QC Assignment Engine"
@@ -254,4 +256,15 @@ Three mechanisms, in order of precedence, with **one open QC assignment per spec
 - `qcSelectionReasonLabels.ts` — the queue's "Selected by" labels.
 - `resolveQcEvaluationContextFromCytologyReview.ts` now knows an FNA (a specimen with a ROSE evaluation).
 
-**Not done here:** the reviewer pool is stored and shown, but taking a review (`assignReviewer`) still checks only self-review; PathScribe staff records don't carry the reviewer-role codes rules use (`SENIOR_PATHOLOGIST`, `SENIOR_CT`…), so enforcing the pool needs those mapped first. `resolveNewQcCaseAssignmentFromRuleMatch` / `…FromRoseDiscrepancy` are no longer used by sign-out (the upsert builds the record); they remain with their tests.
+**Reviewer pool (Batch 608):** now enforced; see the Batch 608 section below. `resolveNewQcCaseAssignmentFromRuleMatch` / `…FromRoseDiscrepancy` are no longer used by sign-out (the upsert builds the record); they remain with their tests.
+
+## Batch 608
+
+- `resolveQcReviewerEligibility.ts`: `resolveQcReviewerPool` (a rule's `eligibleReviewerRoles` against the reviewer's pools; an empty pool admits anyone but the signer) and `effectiveQcReviewerRoles` (a staff member's `qcReviewerRoles`, or PATHOLOGIST for a Pathologist who has none set).
+- `mockCytologyQcCaseAssignmentService.ts`: `assignReviewer`, `recordConcurrence` and `recordDiscrepancy` return `QC_REVIEWER_NOT_IN_POOL` (`qcReviewErrors.ts`) for someone outside the pool.
+- `resolveCytologyQcCaseReview.ts`: takes the reader's pools and returns `notInPool`; `cytologyQcErrorKey` maps the refusal to `notInPool`.
+- `resolveCytologyQcComplianceReport.ts` now has a screen: the Compliance view of the QC queue (`components/CytologyQc/CytologyQcCompliancePanel.tsx`).
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the cytology QC services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/CYTOLOGY_API.md`. The mocks are unchanged.

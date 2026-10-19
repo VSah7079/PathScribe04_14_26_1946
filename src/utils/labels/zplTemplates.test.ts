@@ -1,6 +1,7 @@
 // src/utils/labels/zplTemplates.test.ts
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
+import { DEFAULT_SLIDE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import { buildCassetteZplTemplate, buildSlideZplTemplate, zplEscapeGs1 } from './zplTemplates';
 import { buildGs1DataMatrix } from './gs1DataMatrix';
 import type { Gs1LabelFields } from './gs1DataMatrix';
@@ -122,5 +123,28 @@ describe('zplTemplates — buildSlideZplTemplate, the real, missing slide half o
     });
     const stainLine = zpl.split('\n').find(l => l.includes('H&E'));
     expect(stainLine).not.toContain('^FO1,1');
+  });
+});
+
+describe('buildSlideZplTemplate layout (Batch 606, PS-15 / PS-165)', () => {
+  const fields = {
+    gs1: { raw: '0108', humanReadable: '(01)08', gtin: '08' } as never,
+    fullAccession: 'PS26-1', specimenLabel: 'A', blockLabel: '1', level: 'L1', stainName: 'H&E',
+  };
+  it('keeps the original output when no layout is given', () => {
+    const zpl = buildSlideZplTemplate(fields);
+    expect(zpl).toContain('^BY2');
+    expect(zpl).toContain('^FO70,10^A0N,14,14');
+    expect(zpl).toContain('^FO70,32^A0N,12,12');
+  });
+  it('the default layout reproduces the original output at 300 dpi', () => {
+    expect(buildSlideZplTemplate(fields, DEFAULT_SLIDE_LABEL_LAYOUT, 300)).toBe(buildSlideZplTemplate(fields));
+  });
+  it('a larger module size and font move the text and grow the dots', () => {
+    const zpl = buildSlideZplTemplate(fields, { faceWidthMm: 25, faceHeightMm: 10, moduleSizeMm: 0.3, fontHeightMm: 1.6 }, 300);
+    expect(zpl).toContain('^BY4');
+    expect(zpl).toContain('^BXN,4,');
+    expect(zpl).toContain('^A0N,19,19');
+    expect(zpl).not.toContain('^FO70,10');
   });
 });

@@ -209,3 +209,27 @@ describe('suggestions and pickers', () => {
     expect(groupLookup(items, i => i.cat).map(([k, xs]) => [k, xs.map(x => x.name)])).toEqual([['W', ['C']], ['X', ['A', 'B']]]);
   });
 });
+
+describe('synoptic answer filters in the search page helpers (Batch 613)', () => {
+  const k = { templateId: 'breast', fieldId: 'grade', operator: 'is' as const, value: 'g3' };
+  it('sends only complete filters, and counts them as filters', () => {
+    const d = draft({ synopticValues: [k, { ...k, value: '' }, { ...k, operator: 'answered' as const, fieldId: 'size', value: 'x' }] });
+    expect(draftToCriteria(d).synopticValues).toEqual([k, { templateId: 'breast', fieldId: 'size', operator: 'answered', value: '' }]);
+    expect(countDraftFilters(d) - countDraftFilters(draft())).toBe(2);
+    expect(draftToCriteria(draft()).synopticValues).toBeUndefined();
+  });
+
+  it('reads a saved draft from before this batch (no filters) and a damaged one', () => {
+    expect(normalizeCaseSearchDraft({ patientName: 'x' }, '2026-08-28', '2026-09-27').synopticValues).toEqual([]);
+    expect(normalizeCaseSearchDraft({ synopticValues: 'nope' }, '2026-08-28', '2026-09-27').synopticValues).toEqual([]);
+    expect(normalizeCaseSearchDraft({ synopticValues: [k] }, '2026-08-28', '2026-09-27').synopticValues).toEqual([k]);
+  });
+
+  it('says in the summary what was asked, with the protocol\'s own wording', () => {
+    const parts = describeCaseSearch(draft({ synopticValues: [k, { ...k, operator: 'unanswered', value: '' }] }), {
+      synopticValue: (c: { value: string }) => ({ field: 'Grade', value: c.value === 'g3' ? 'Grade 3' : undefined }),
+    } as never, t, d => d);
+    expect(parts).toContain('searchPage.summaryParts.synopticValue.is{"field":"Grade","value":"Grade 3"}');
+    expect(parts).toContain('searchPage.summaryParts.synopticValue.unanswered{"field":"Grade"}');
+  });
+});

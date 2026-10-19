@@ -5,6 +5,7 @@
 // summary shows people, facilities, flags and protocols, not ids; statuses,
 // priorities and sexes are translated.
 import type { CaseSearchDraft } from '@/services/caseSearch/caseSearchTypes';
+import { operatorNeedsValue, usableCriteria, type SynopticValueCriterion } from '@/services/caseSearch/synopticValueCriteria';
 import { resolveSearchDateRange } from './resolveSearchDateRange';
 import { draftHasIdentifier } from './buildCaseSearchRequest';
 import {
@@ -25,6 +26,8 @@ export interface CaseSearchNameLookups {
   subspecialty(id: string): string | undefined;
   performingLab(id: string): string | undefined;
   location(id: string): string | undefined;
+  /** Batch 613: a value filter's question and answer as the protocol words them. */
+  synopticValue?(k: SynopticValueCriterion): { field?: string; value?: string };
 }
 
 /** Each part of the summary, in order. Empty when no filter is set. */
@@ -85,6 +88,14 @@ export function describeCaseSearch(
   if (d.autopsyJurisdictions.length) parts.push(t('searchPage.summaryParts.autopsyJurisdiction', { list: join(d.autopsyJurisdictions.map(j => t(`jurisdictionNames.${j}`))) }));
   if (d.autopsyAuthorities.length)   parts.push(t('searchPage.summaryParts.autopsyAuthority', { list: labels(d.autopsyAuthorities, AUTOPSY_AUTHORITY_LABEL_KEY) }));
   if (d.autopsyReports.length)       parts.push(t('searchPage.summaryParts.autopsyReport', { list: labels(d.autopsyReports, AUTOPSY_REPORT_LABEL_KEY) }));
+  // Batch 613
+  for (const k of usableCriteria(d.synopticValues)) {
+    const shown = names.synopticValue?.(k) ?? {};
+    parts.push(t(`searchPage.summaryParts.synopticValue.${k.operator}`, {
+      field: shown.field ?? k.fieldId,
+      ...(operatorNeedsValue(k.operator) ? { value: shown.value ?? k.value } : {}),
+    }));
+  }
   return parts;
 }
 

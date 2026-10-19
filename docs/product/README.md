@@ -1,14 +1,23 @@
-# docs/product
+## Capability inventory (Oct 17, 2026)
 
-Product-facing documents.
+`CAPABILITY_INVENTORY.md`: 655 distinct capabilities from a complete read of every README and product/architecture document, each status checked against the code. `CAPABILITIES.md`: the 272 access-control capabilities. These two are the sources for the admin guide, user guide, workflows and the product-guide entry.
 
-- [`FEATURE_OVERVIEW.md`](FEATURE_OVERVIEW.md): what PathScribe does, area by area.
-- [`WORKLOAD_AND_CHARGE_CAPTURE_SCOPE.md`](WORKLOAD_AND_CHARGE_CAPTURE_SCOPE.md): workload and charge capture scope.
-- [`MOHS_GUIDE.md`](MOHS_GUIDE.md) (Batch 463): recording Mohs stages (map, checklist, voice), the stage maps in the report, and what an administrator can change.
-- [`GUIDE_UPDATES.md`](GUIDE_UPDATES.md) (Batch 527): what each batch changed, written for the User and Admin Guide owners, training, marketing and RFP answers. One entry per batch, newest first (CLAUDE.md rule 9).
-- [`REPORT_RELEASE_DELAY.md`](REPORT_RELEASE_DELAY.md) (Batch 534): the release delay on every report output, and Recall, for customers and staff.
-- [`CLINICAL_MISMATCH_CHECK.md`](CLINICAL_MISMATCH_CHECK.md) (Batch 526): the clinical-pathologic mismatch check for customers and staff: what it compares, how it works today, and the approved redesign (PS-554): the workflow, risk rules, sign-out behaviour, governed AI instructions, and who can do what.
-- [`DEMO_GUIDE.md`](DEMO_GUIDE.md) (Batch 455): who to sign in as, and which seeded case to open, for each workflow, including two-person workflows. It also covers what a Full Reset restores. No passwords are written in it.
+## Batch 601
+
+`ACTIONS_COVERAGE.md` rewritten: all voice and shortcut commands are in the Role Dictionary; the 98 permission-only entries and the 67 hotkey clashes are listed.
+`HOTKEY_DECISIONS.md` (new, Batch 614): the hotkey clashes that need your decision, with proposed fixes. `PHRASE_REVIEW_LIST.md` (new): every voice phrase awaiting native-speaker review. Hotkey clashes are now 52, not 67.
+
+## Batch 600
+
+`ACTIONS_COVERAGE.md` now holds the default-grants matrix for the 60 commands added to the Role Dictionary (for Pete's review).
+
+## Batch 599
+
+New `ACTIONS_COVERAGE.md`: how the roles list and the voice and shortcut list relate, and the 60 record-changing actions that a role cannot yet grant (decision pending).
+
+## Batch 588
+
+New `BLOCK_DELETION.md`: the policy for deleting a block in process, after sign-out and on an amended report, and how billing reviews it. The in-process delete is Live; the later tiers are Planned.
 
 ## Batch 455 — Demo baseline
 
@@ -173,3 +182,6 @@ New `GUIDE_UPDATES.md`, with entries for Batches 521–527. `FEATURE_OVERVIEW.md
 ## Batch 580
 
 `GUIDE_UPDATES.md`: styled dropdown lists. `FEATURE_OVERVIEW.md`: supported browsers (Chrome, Edge, Firefox; Pete, Oct 15).
+
+- **`ADMIN_GUIDE_JURISDICTIONS.md`** (Batch 593, PS-334): source text for the Admin Guide chapter on setting up jurisdictions.
+- **`KNOWN_GAPS.md`** (Batch 593, PS-338): the running list of what will and will not be in the release. Update it in every batch that opens or closes a gap.

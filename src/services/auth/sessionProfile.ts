@@ -17,6 +17,7 @@
 import type { VoiceProfileId } from '../../constants/voiceProfiles';
 import type { StaffUser } from '../users/IUserService';
 import { dataMayPersistInBrowser } from '../browserData/browserDataPolicy';
+import type { MfaStamp } from './mfa/mfaPolicy';
 
 export type AppRole = 'pathologist' | 'admin' | 'pathologist-admin' | 'superadmin';
 
@@ -53,6 +54,8 @@ export interface SessionProfile {
    *  check the same person signed in again. */
   ssoIssuer?: string;
   ssoSubject?: string;
+  /** Batch 611 (#157). When this session last satisfied a second factor (no secret, no code). */
+  mfa?: MfaStamp;
 }
 
 export const SESSION_PROFILE_STORAGE_KEY = 'pathscribe-user';
@@ -65,7 +68,7 @@ export const SESSION_PROFILE_STORAGE_KEY = 'pathscribe-user';
  * in authSession.ts, via profileNeedsStaffFields). In the demo the whole
  * profile is stored, as before. The profile holds no patient data either way.
  */
-export const MINIMAL_PROFILE_FIELDS = ['id', 'name', 'email', 'role', 'initials', 'voiceProfile', 'authMethod', 'ssoProviderId', 'ssoIssuer', 'ssoSubject'] as const;
+export const MINIMAL_PROFILE_FIELDS = ['id', 'name', 'email', 'role', 'initials', 'voiceProfile', 'authMethod', 'ssoProviderId', 'ssoIssuer', 'ssoSubject', 'mfa'] as const;
 
 export function minimalSessionProfile(profile: SessionProfile): SessionProfile {
   const out: Record<string, unknown> = {};

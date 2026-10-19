@@ -50,7 +50,7 @@ found zero consumers, so it was deleted as apparently-dead — matching
 several other confirmed-dead duplicate types found elsewhere in this
 review. `tsc` immediately caught what the grep missed: 3 files
 (`services/aiIntegration/IAIIntegrationService.ts`,
-`MockAIIntegrationService.ts`, `PathScribeAIService.ts`) import it
+`PathScribeAIService.ts`, and the since-removed mock AI service) import it
 indirectly through `types/index.ts`'s barrel re-export, a path the
 initial search didn't check. Traced further before just restoring it
 blindly: confirmed `PathScribeAIService` is genuinely instantiated by
@@ -366,3 +366,15 @@ Test only: `voiceMacros.test.ts` adds its macro as the signed-in person's own (s
 ## Batch 574
 
 - `cytology/CytologyScreeningHoursSignOff.ts`: `dayStartHour` on a sign-off; `SCREENING_HOURS_NOTE_MAX`.
+
+## Batch 588
+
+- `case/Specimen.ts`: `BlockStatus` `Deleted`, `BlockDeletion`. `billing/BillingDeficiencyRecord.ts`: type `BLOCK_DELETED`, trigger `BLOCK_DELETION`, `BlockDeletedDetail`.
+
+## Batch 612 (part C)
+
+`LabelConfig.units` (`FontUnits`: `pt` or `legacy_px`) in `template.ts`; `ReportTemplate.fontUnits` in `reportPart.ts`. Missing means `legacy_px` (saved before points).
+
+## Batch 610 (part A) — TATType, TATEntry, IntraopSpecimen
+
+`TATType` gains `AUTOPSY_PAD`/`AUTOPSY_FAD`; `TATEntry.warningMinutes`; `IntraopSpecimen.urgency`.

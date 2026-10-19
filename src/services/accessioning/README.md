@@ -72,3 +72,11 @@ up.
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+- Batch 608: `resolveAccessionSpecimenCytologyScreening` also records the prior cervical procedure (none, LEEP, cold knife conization, cryotherapy, other).
+
+Batch 616 (part A, PS-505): `httpAccessionOutboundQueueService.ts` and `accessionOutboundQueueInstance.ts` (the shared outbound queue calls). Contract `ACCESSIONING_API.md` section 4.
+
+## Batch 618 (PS-336)
+
+`resolveTechnicalFacilityOffer.ts` (+ test): `shouldOfferTechnicalFacility` (outside intake, or a department named Consultation), `technicalFacilityChoices` (active performing labs), `technicalFacilityForOrder` (what is saved on `order.technicalComponentFacilityId`).

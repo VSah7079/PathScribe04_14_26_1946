@@ -10,7 +10,7 @@
 // target is invented for the others.
 
 import { computePendingBatchQueue } from '../batches/computePendingBatchQueue';
-import { mockBatchService } from '../batches/mockBatchService';
+import { batchService } from '../batches/batchServiceInstance';
 import { buildFacilityLookupMaps } from './buildFacilityLookupMaps';
 import { resolveBatchFacilityId } from './resolveBatchFacilityId';
 import { computeSlaCountdown } from './computeSlaCountdown';
@@ -21,7 +21,7 @@ const INTAKE_BATCH_NODES = new Set(['Decal / Special Processing', 'Processing', 
 export async function computeGrossingIntakeSummary(facilityId: string | undefined): Promise<DashboardSummary> {
   const [pendingQueue, batchesRes, maps] = await Promise.all([
     computePendingBatchQueue(facilityId),
-    mockBatchService.getAll(),
+    batchService.getAll(),
     buildFacilityLookupMaps(),
   ]);
 

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/cassetteRouting/
 
 Admin-configurable rules resolving which logical cassette color (`services/cassetteColors/`) an order routes to, based on protocol, priority, origin station, ordering facility, and case type. Fully admin-manageable through Configuration → System → Cassette Routing Rules (Lab Materials & Workflows) — an admin can link any real protocol to any real color and set a priority weight, all without code.
@@ -26,3 +28,5 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-506): server version of CassetteRoutingRuleService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.

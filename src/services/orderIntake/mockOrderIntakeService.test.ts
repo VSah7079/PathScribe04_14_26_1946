@@ -297,3 +297,19 @@ describe('resolveOrder — real requesting-physician resolution, completing PS-8
     expect(resolved.ok).toBe(true);
   });
 });
+
+describe('findCrosswalkMatch: site-scoped entries (Batch 605)', async () => {
+  const { findCrosswalkMatch } = await import('./mockOrderIntakeService');
+  const base = { clientId: 'F1', externalCode: 'BX1', createdAt: '', createdBy: 'admin' };
+  const wide = { ...base, id: 'w', dictionaryEntryId: 'D-WIDE' };
+  const site = { ...base, id: 's', siteId: 'SITE-MRI', dictionaryEntryId: 'D-SITE' };
+  it('prefers the entry for the order site, then the organisation-wide entry', () => {
+    expect(findCrosswalkMatch([wide, site], 'F1', 'BX1', undefined, 'SITE-MRI')?.id).toBe('s');
+    expect(findCrosswalkMatch([wide, site], 'F1', 'BX1', undefined, 'SITE-OTHER')?.id).toBe('w');
+    expect(findCrosswalkMatch([wide, site], 'F1', 'BX1', undefined)?.id).toBe('w');
+  });
+  it('a site-only entry does not match another site or an order with no site', () => {
+    expect(findCrosswalkMatch([site], 'F1', 'BX1', undefined, 'SITE-OTHER')).toBeUndefined();
+    expect(findCrosswalkMatch([site], 'F1', 'BX1', undefined)).toBeUndefined();
+  });
+});

@@ -199,4 +199,16 @@ describe('mockCytologyQcCaseAssignmentService.applyAdditionalTrigger (Batch 501)
     const r = await svc.applyAdditionalTrigger(created.data.id, { priorityTier: 'high_escalation' });
     expect(r.ok).toBe(false);
   });
+
+  it('Batch 608: assigning a reviewer outside the rule pool is refused; a member is accepted', async () => {
+    const { mockCytologyQcCaseAssignmentService } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await mockCytologyQcCaseAssignmentService.create({ ...newAssignment(), caseId: 'case-pool', eligibleReviewerRoles: ['SENIOR_CT'] } as never);
+    if (!created.ok) throw new Error('create failed');
+    // Staff 1 is a Pathologist: PATHOLOGIST pool only.
+    const refused = await mockCytologyQcCaseAssignmentService.assignReviewer(created.data.id, '1');
+    expect(refused).toMatchObject({ ok: false, error: 'CYTOLOGY_QC_REVIEWER_NOT_IN_POOL' });
+    const open = await mockCytologyQcCaseAssignmentService.create({ ...newAssignment(), caseId: 'case-pool-2', eligibleReviewerRoles: ['PATHOLOGIST'] } as never);
+    if (!open.ok) throw new Error('create failed');
+    expect((await mockCytologyQcCaseAssignmentService.assignReviewer(open.data.id, '1')).ok).toBe(true);
+  });
 });

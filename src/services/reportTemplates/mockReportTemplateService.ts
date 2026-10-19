@@ -13,6 +13,7 @@ import { IReportTemplateService } from './IReportTemplateService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { checkTemplateFinalDiagnosis, FINAL_DIAGNOSIS_DESIGNATION_ERROR } from './finalDiagnosisPublishCheck';
 
 // ── Well-known template ID constants ─────────────────────────────────────────
 // Imported by TemplateListTab and other consumers to identify the gold standard.
@@ -737,6 +738,8 @@ const reportTemplateServiceUnchecked: IReportTemplateService = {
     await delay();
     const idx = TEMPLATES.findIndex(t => t.id === id);
     if (idx === -1) return err<ReportTemplate>(`Template ${id} not found`);
+    // Batch 609 (#38): a Final template with more than one Final Diagnosis field can't be published.
+    if (!(await checkTemplateFinalDiagnosis(TEMPLATES[idx])).ok) return err<ReportTemplate>(FINAL_DIAGNOSIS_DESIGNATION_ERROR);
     const updated: ReportTemplate = {
       ...TEMPLATES[idx],
       status:    'published' as const,

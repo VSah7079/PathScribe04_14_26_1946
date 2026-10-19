@@ -1,4 +1,95 @@
+## Batch 602
 
+`evidence/PathScribe-Batch602-xray.json`: screen-wins hotkeys and voice, Alt+J Go to prefix, six hotkey remaps, nine duplicate voice phrases removed. *(Jira Test PS-765.)* Not run: browser check on real keyboards (Mac Option, AltGr, AZERTY); native review of fr/de/nl/ko text.
+
+## Batches 592–601 (catch-up)
+
+`evidence/PathScribe-Batch601-xray.json` covers Batches 592 to 601 (vitest: shared HTTP client, coding model, Code Systems screen, unused CSS guard, actions accounting, Role Dictionary commands and default grants). Full vitest run after 597: 10,103 passed; the only failing file is `firestore.rules.test.ts` (needs the Firebase emulator). Type-check clean; production build passes. Not run: browser checks of the screens touched by the CSS removal, and the Code Systems wiring and translation review. *(Jira gave this catch-up Tests PS-756 to PS-760, PS-763 and PS-764, and the verification-gap Tests PS-761 and PS-762.)* Batches 591, 593 and 598 changed documents only.
+
+## Batch 590
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| PS-469 error monitoring: Sentry as a fail-closed sink of the existing reporter, off unless configured, with the CSP origin | PS-751 (unit tests, guard test) | A real Sentry project (BAA/DPA, source-map upload) is not set up; nothing has been sent to a live collector. PS-752 |
+
+Also fixed: a message line containing an e-mail address could pass into the scrubbed stack (Batch 502 scrubber).
+
+Not run: the independent review agent.
+
+## Batch 589
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Nine app bug fixes from the Batch 583/584 list (PS-55, 66, 147, 245, 262, 323, 344/477, 472, 478) | PS-749 (unit and component tests; the review specs for these tickets no longer expect failures) | PS-750: a person printing to a real QZ Tray printer; the pattern rule with 5 demo cases shows no pattern (needs 20 reviews); the Staff screen still stores role names |
+
+Not run: the independent review agent.
+
+## Batch 588
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Delete a block in process: soft delete, reason, permission per facility, billing deficiency raised, audit, Delete this block control | PS-743 (`deleteBlockInProcess.test.ts`, 13 tests; `DeleteBlockControl.test.tsx`, 5 tests) | PS-744: a person trying the control in the block editor and resolving the "Block deleted" finding in Financials; tiers 2 and 3; a native-speaker check of the French, German, Dutch and Korean text |
+
+Not run: the independent review agent.
+
+## Batch 587
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Review tests: PS-73, PS-89, PS-146 | PS-735 | PS-73 steps 4-9, PS-89 steps 5-7, PS-146 steps 3-6 |
+| Review tests: PS-327, PS-341, PS-470 | PS-736 | PS-327 steps 1-6, PS-341 steps 4-7, PS-470 step 4; 3 older lint errors in serverJobsContract.ts |
+
+Chromium against the demo: 7 passed. `evidence/PathScribe-Batch587-review.txt` and `evidence/PathScribe-Batch587-xray.json`. Not run: the independent review agent.
+
+
+
+## Batch 586
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Review tests: PS-63, PS-277, PS-283, PS-342 | PS-733 | PS-734 (printed and PDF reports, the template author workflow, restricted-case printing by role, plain-text spell check, national dictionaries) |
+
+Chromium against the demo: 6 passed. `evidence/PathScribe-Batch586-review.txt` and `evidence/PathScribe-Batch586-xray.json`. Not run: the independent review agent.
+
+## Batch 585
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Review tests: PS-60, PS-269, PS-292, PS-474, PS-475 | PS-731 | PS-732 (real SSO and the Sign Out dialog, Scan Stations and the Validation Studies report in other languages, Korean wording, the autopsy preliminary release, response headers on real hosts, the built app's network, a hospital network) |
+
+Chromium against the demo: 13 passed, 1 skipped (PS-60 step 3 needs `PS_DEMO_PASSWORD`; written, never run). `evidence/PathScribe-Batch585-review.txt` and `evidence/PathScribe-Batch585-xray.json`. Handover note: [`HANDOVER_REVIEW_TESTS.md`](HANDOVER_REVIEW_TESTS.md). Not run: the independent review agent. PS-63, PS-277, PS-283 and PS-342 are not covered yet (Batch 586).
+
+## Batch 584
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Review tests: PS-55, PS-58, PS-87, PS-262, PS-278, PS-279, PS-323, PS-344, PS-473, PS-478 | PS-729 | PS-730 (real QZ Tray and printers, the live hub, a real LIS and AI, the look in FR/DE/NL/KO, and the app bugs the tests found: PS-55, PS-262, PS-323, PS-344, PS-478 each have a test marked as a known bug) |
+
+Tested together with Batch 583. `evidence/PathScribe-Batch584-review.txt` and `evidence/PathScribe-Batch584-xray.json`. *(Jira gave this batch's Tests PS-729 and PS-730.)*
+
+## Batch 583
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| PS-63 template e-mails (event only; server chooses recipients and language); PS-128 Discard closes the dialog; PS-101 breadcrumb names Search; specimen-level billing change after sign-out asks for a reason; review tests: PS-66, PS-78, PS-124, PS-125, PS-147, PS-245, PS-472, PS-476, PS-477, PS-494 | PS-727 | PS-728 (the e-mails themselves need the server; PS-66, PS-147, PS-245, PS-472 and PS-477 have tests marked as known bugs; the look of the Search crumb and the billing reason window) |
+
+`evidence/PathScribe-Batch583-review.txt`, `evidence/PathScribe-Batch583-browser.txt` (the accessibility run) and `evidence/PathScribe-Batch583-xray.json`. Full vitest run: 9,962 passed and 11 skipped, in 1,187 test files (4 skipped); type-check clean. *(Jira gave this batch's Tests PS-727 and PS-728.)*
+
+## Batch 582
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Review tests: PS-479 organ maps, PS-363 to PS-368 staff passwords, PS-328 cytology nomenclature, PS-337 facility printing | PS-723 | PS-724 (the demo-password steps with `PS_DEMO_PASSWORD`; Firefox; a real print for PS-337) |
+
+Tested together with Batch 581. `evidence/PathScribe-Batch582-review.txt` (the review run, Playwright in Chromium) and `evidence/PathScribe-Batch582-xray.json` (built from that run). *(Jira gave this batch's Tests PS-723 and PS-724.)*
+
+## Batch 581
+
+| Requirement | Automated Test | Open verification points |
+|---|---|---|
+| Review tests: PS-102, PS-100, PS-86, PS-128, PS-101; the Firefox project; the dialog fix found by them | PS-721 | PS-722 (run on a workstation in Chrome and Firefox; the person-only steps each file lists) |
+
+Tested together with Batch 582. `evidence/PathScribe-Batch581-review.txt` (the review run) and `evidence/PathScribe-Batch581-xray.json` (built from it, not from vitest: these batches add browser tests). `evidence/PathScribe-Batch581-browser.txt` (every accessibility spec, with the dialog fix: 78 passed, 5 skipped). Full vitest run: 9,921 passed and 33 skipped, in 1,189 test files; the only failing file is `firestore.rules.test.ts`, which needs the Firebase emulator. Demo and server builds succeed; the demo build's sign-in page loads with no console errors. Firefox wasn't run: the build workspace can't download it. How to run the review tests: `PLAYWRIGHT_REVIEW_GUIDE.md`. *(Jira gave this batch's Tests PS-721 and PS-722; PS-719 and PS-720 are the Test Executions from the 579 and 580 imports.)*
 
 ## Batch 580
 

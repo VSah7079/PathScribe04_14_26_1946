@@ -13,7 +13,7 @@
 // inbound processor in this app already follows.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockMolecularBatchService } from './mockMolecularBatchService';
+import { molecularBatchService } from './molecularBatchServiceInstance';
 import { resolveMolecularRunValidationGating } from './resolveMolecularRunValidationGating';
 import type { MolecularRunResultsPayload, MolecularReviewStatus } from '@/types/events/MolecularRunResultsPayload';
 import type { MolecularBatchStatus } from './IMolecularBatchService';
@@ -47,7 +47,7 @@ export async function processInboundMolecularRunResults(payload: MolecularRunRes
   // review_status alone.
   const reviewStatus = resolveMolecularRunValidationGating(payload.control_validation.controls_passed);
 
-  const res = await mockMolecularBatchService.updateByUuid(batchUuid, {
+  const res = await molecularBatchService.updateByUuid(batchUuid, {
     status: resolveBatchStatus(payload.batch_info.run_status),
     results: payload.results,
     controlsPassed: payload.control_validation.controls_passed,

@@ -200,6 +200,16 @@ As in all of PathScribe, permissions are granted to **roles**, and an administra
 
 ---
 
+## Amendments, corrections and addenda (Batch 609)
+
+The check does not stop at first sign-out.
+
+- **Amendment or correction:** the report is unlocked for editing, and the report page shows the same inline alert as before sign-out while the pathologist works. The re-sign-out asks again, against the revised text.
+- **Addendum:** an addendum is released without unlocking the report, so its text is compared, together with the report's diagnosis, when the pathologist releases it.
+- **Earlier decisions count:** if a decision was recorded on earlier text, only a worse finding (a different kind of mismatch, or high risk when it was not) asks again.
+- **The setting (Configuration → System → Clinical Mismatch Rules, "Amendments, corrections and addenda"):** On (the default), a high-risk mismatch holds the release until Resolved or Unresolved is recorded. Off, the alert says the release will not be held and the mismatch is logged to the QA dashboard at the risk the rules gave it. A low-risk mismatch never holds a release. With no clinical history or indication the check is deferred, as at first sign-out.
+- **Audit:** changing the setting is audited (`CLINICAL_MISMATCH_RULE_CHANGED`, no case or patient detail); decisions and logged mismatches are audited as at sign-out.
+
 ## Questions customers ask
 
 **Does the AI change the report?** No. It only suggests. The pathologist decides and the report is the pathologist's.

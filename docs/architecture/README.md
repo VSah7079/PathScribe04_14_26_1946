@@ -1,8 +1,33 @@
+- **Batch 617 (part R):** `HTTP_SERVICES_PATTERN.md` section 7 is now the single route rule for every server version (`/api/<area>/<service>/<method-kebab>`, `GET` for plain-value reads, `POST` otherwise); `HTTP_ROUTE_MAPPING.md` (new) lists the earlier and current path of every converted call; the `*_API.md` tables carry the current paths.
 
+## Batch 616 (part F) — follow-up tracking by commands, and biometric signing through one flow (PS-483, PS-512)
 
-# docs/architecture
+Follow-up tracking now has a server version that works by commands (`IFollowUpService`): the browser says what the user did and the server works out the window, the status and who did it; the demo works it out locally as before. Biometric enrolment, the sign-out check, the policy card and the invitation after sign-in go through one flow (`biometricFlow`): the labelled Simulated check in the demo, the API server's challenge and verification with an address (no simulated fallback). Contracts: `docs/architecture/FOLLOW_UP_API.md` (Browser commands) and `ACCESS_SESSION_API.md` (3a). Folders: `src/services/followUp/`, `src/services/biometric/`.
 
-Server contracts for the PathScribe API team. Each file is the browser's side of one area, written from the code.
+## Batch 613 (part A) — case search reporting
+
+- `SCHEDULED_REPORTS_API.md` (new): scheduling a saved case-search report: the schedule, the endpoints, how the server runs one as its owner and whether a recipient may see every case in the file (open decision for Pete: narrow or skip), audit and acceptance tests. The browser side runs Simulated.
+- `CASE_SEARCH_API.md`: Reports and synoptic answers (`/api/cases/search/report`, `/export`, the nine answer conditions). `ASYNC_EXPORT_API.md`: export kind `search.case-report` (29 kinds). `AUTHORIZATION_API.md`: the two capabilities.
+
+## Batch 613 (part B)
+
+- `RELATED_CASES_API.md` (new): related cases attached at sign-out (frozen with the signed report version), the intraoperative diagnosis as part of the report, and the Patient summary print: demo behaviour, snapshot shape, and the server calls.
+
+## Batch 611 (part H)
+
+- `MFA.md` (new): multi-factor sign-in. How the identity provider's second factor is read (`amr` / `acr`), the per-organisation policy, the Simulated authenticator for demo accounts, the ten acceptance criteria with the tests that prove each, and what the API server must do instead in production. `AUTHORIZATION_API.md`: one new capability, `auth:mfa-enrolment:reset`.
+
+## Batch 594
+
+- **`DIAGNOSIS_CODING.md`:** one code shape and a per-jurisdiction policy for ICD-10, ICD-11, ICD-O and SNOMED CT side by side. Built in `src/services/coding/`; not wired in yet.
+
+## Batch 591
+
+- `VENDOR_NEUTRAL_EVENTS.md`: why the front end does not wait for Roche (Vantage) and Leica (Cerebro) specifications: one neutral event, the engine maps it; what is open.
+
+## Batch 588
+
+New `BLOCK_DELETION_API.md`: deleting a block in process (soft delete, 409 on a stale version) and the `BLOCK_DELETED` billing deficiency it raises. `AUTHORIZATION_API.md` gains `material:block:delete-in-process`.
 
 ## Batch 444
 
@@ -408,3 +433,28 @@ The requirements are numbered CA-1 to CA-24 for the India team.
 ## Batch 577
 
 - `CASE_API.md` §4: the Edit Conflict dialog's "Use their version" (in place; the server needs nothing new: the case is read with its version).
+
+## Batch 583
+
+- `TEMPLATE_NOTIFICATIONS_API.md` (new): the server contract for template lifecycle e-mails.
+- `AUTHENTICATION_OIDC.md`: the Oct 15 decisions (server-held tokens, user sync now, group mapping rules).
+- `LIVE_UPDATES_SIGNALR.md` §7: the deployment matrix.
+
+## Batch 612 (part A)
+
+- `INTERFACE_DICTIONARY_API.md` (new): vendor profiles, the scope guard, endpoints and what the server must repeat; three new platform-only capabilities in `AUTHORIZATION_API.md`.
+
+- `HTTP_SERVICES_PATTERN.md` (Batch 615, PS-481): how a service gets its server version: the kit, the selection rule and the rules every server version follows.
+- `BILLING_API.md`, `CYTOLOGY_API.md`, `MOLECULAR_API.md`, `REGISTRY_API.md` (Batch 616, PS-498 to PS-504): the API server's calls for the billing, cytology, molecular and registry services, one route per interface method.
+
+- `QUALITY_API.md`, `DIGITAL_PATHOLOGY_API.md`, `GROSSING_ROUTING_API.md`, `REAGENTS_LABELS_API.md`, `INTRAOP_OPS_API.md` (Batch 616 part D, PS-501, PS-502, PS-506, PS-508, PS-510): the API server's calls for 35 services, one table per service (method, verb and path, body, notes). `HTTP_SERVICES_PATTERN.md` §6 lists what is still the mock.
+- Batch 616 (part B): new `STAFF_ADMIN_API.md` (audit, authorization, staff, roles, facilities, registry settings; authorization fails closed), `ACCESS_SESSION_API.md` (access requests, session time-out, biometric sign) and `LAB_DICTIONARIES_API.md` (departments, locations, container types, ink and cassette colours, physicians, reasons).
+
+- Batch 616 (part E): new `INTERFACE_EXCEPTIONS_API.md`, `INTERFACE_ENGINE_API.md`, `LIS_INGESTION_API.md`, `MODELS_API.md`, `PROTOCOLS_API.md`, `TEMPLATE_SIGNALS_API.md`, `REPORT_TEMPLATES_API.md`, `ROUTING_API.md`, `MACROS_API.md`, `FLAGS_AND_MESSAGES_API.md`, `AI_VENDOR_POLICY_API.md` (PS-509, PS-511, PS-513, PS-515: the API server's calls for 20 services), and `HTTP_SERVICES_REMAINING.md` (PS-514: what is still the mock, and why four services can't be a plain server version).
+
+- Batch 616 (part A): new `REPORTS_API.md` (amendments, informal reviews, LIS notices, release buffer, report parts, report-side queues), `ACCESSIONING_API.md` (incoming orders, crosswalk, drafts, accession queue) and `PATIENTS_API.md` (patient index, encounters, patient history, ADT queue; nothing identifying in a URL).
+
+- `TERMINOLOGY_PROXY_API.md` (Batch 617, PS-488): the server routes for the ICD-10-CM, ICD-11 and LOINC look-ups.
+- `DELIVERY_PRINTING_API.md`, `DELEGATIONS_NOTES_API.md`, `CONFIG_DICTIONARIES_API.md`, `EQUIPMENT_MIGRATION_API.md` (Batch 617, PS-514): the API server's calls for 26 more services, one route per interface method.
+- `CONFIG_SERVICES_API.md`, `CASE_WORKFLOWS_API.md`, `CRITICAL_RESULTS_API.md` (Batch 617, PS-514): the API server's calls for 29 more services (settings, dictionaries, case workflows, critical results). `BILLING_API.md`, `CYTOLOGY_API.md`, `CASE_SEARCH_API.md` and `BI_FEED_API.md` gained a Batch 617 section.
+- `QUALITY_SETTINGS_API.md`, `REFERRAL_RESEARCH_API.md`, `SEARCH_REPORTING_API.md`, `SIGNATURES_SMART_CAPTURE_API.md`, `DICTIONARIES_CONFIG_API.md`, `TUMOR_BOARD_API.md`, `LABEL_REPRINT_API.md`, `INTRAOP_CRITICAL_RESULTS_API.md` (Batch 617, PS-514): the API server's calls for those services, one route per interface method.

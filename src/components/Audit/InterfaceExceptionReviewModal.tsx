@@ -23,6 +23,8 @@ import type { MasterPatientRecord } from '@/services/patients/IPatientIndexServi
 import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
 import { SearchableCombobox } from '@/components/Common/SearchableCombobox';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { bindPatientManagementException, BINDABLE_EVENT_TYPES } from '@/services/interfaceExceptions/bindPatientManagementException';
+import { readSessionProfile } from '@/services/auth/sessionProfile';
 
 interface CaseSummary {
   id: string;
@@ -51,6 +53,29 @@ const InterfaceExceptionReviewModal: React.FC<Props> = ({ exception, requestedBy
   const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [resultNote, setResultNote] = useState<string | null>(null);
+  // Batch 605: manual identity binding for an unresolved A40 / A24 / A47.
+  const bindable = (BINDABLE_EVENT_TYPES as readonly string[]).includes(exception.eventType);
+  const [bindQuery, setBindQuery] = useState<{ source: string; target: string }>({ source: '', target: '' });
+  const [bindHits, setBindHits] = useState<{ source: MasterPatientRecord[]; target: MasterPatientRecord[] }>({ source: [], target: [] });
+  const [bindPick, setBindPick] = useState<{ source: string; target: string }>({ source: exception.sourcePatientId ?? '', target: exception.targetPatientId ?? '' });
+  const [bindError, setBindError] = useState<string | null>(null);
+  const bindOrg = exception.organisationId ?? readSessionProfile()?.organisationId ?? '';
+
+  const searchBind = async (side: 'source' | 'target') => {
+    const hits = await patientIndexService.searchPatients(bindOrg, bindQuery[side]);
+    setBindHits(h => ({ ...h, [side]: hits.slice(0, 20) }));
+  };
+
+  const handleBind = async () => {
+    setBusy(true); setBindError(null);
+    const r = await bindPatientManagementException({
+      exceptionId: exception.id, sourcePatientId: bindPick.source || undefined, targetPatientId: bindPick.target || undefined, actor: requestedBy,
+    });
+    setBusy(false);
+    if (!r.ok) { setBindError(r.message); return; }
+    setResultNote(r.message);
+    onResolved();
+  };
   // Real, per the "Map & Link" contextual resolution feature — a real
   // Specimen Dictionary picker for unmapped_order_code exceptions
   // specifically. Kept separate from `busy` above (case-binding's own
@@ -318,7 +343,38 @@ const InterfaceExceptionReviewModal: React.FC<Props> = ({ exception, requestedBy
                 </div>
               )}
 
-              {exception.eventType !== 'A43' && exception.eventType !== 'unmapped_order_code' && (
+              {bindable && !resultNote && (
+                <div className="ps-iexc-bind" data-testid="iexc-bind">
+                  <p>{t('interfaceExceptionReviewModal.bindIntro', { eventType: exception.eventType })}</p>
+                  {(exception.eventType === 'A47' ? ['source'] : ['source', 'target']).map(side => {
+                    const sd = side as 'source' | 'target';
+                    return (
+                      <div key={side} className="ps-mt-12">
+                        <label className="ps-label" htmlFor={`bind-q-${side}`}>{t(`interfaceExceptionReviewModal.bind.${exception.eventType}.${side}`)}</label>
+                        <div className="ps-flex-row-gap-8">
+                          <input id={`bind-q-${side}`} className="ps-input-dark" value={bindQuery[sd]}
+                            onChange={e => setBindQuery(q => ({ ...q, [sd]: e.target.value }))} />
+                          <button className="ps-conf-btn-secondary" onClick={() => searchBind(sd)} disabled={!bindQuery[sd].trim()}>{t('interfaceExceptionReviewModal.bindSearch')}</button>
+                        </div>
+                        <select className="ps-input-dark ps-mt-8" aria-label={t(`interfaceExceptionReviewModal.bind.${exception.eventType}.${side}`)}
+                          value={bindPick[sd]} onChange={e => setBindPick(p => ({ ...p, [sd]: e.target.value }))}>
+                          <option value="">{t('interfaceExceptionReviewModal.bindChoose')}</option>
+                          {bindHits[sd].map(p => <option key={p.id} value={p.id} data-phi="name">{p.lastName}, {p.firstName} - {p.mrn} - {p.dateOfBirth}</option>)}
+                        </select>
+                      </div>
+                    );
+                  })}
+                  {bindError && <div className="ps-iexc-no-cases">{bindError}</div>}
+                  <div className="ps-mt-12">
+                    <button className="ps-conf-btn-primary" onClick={handleBind}
+                      disabled={busy || !bindPick.source || (exception.eventType !== 'A47' && !bindPick.target)}>
+                      {t('interfaceExceptionReviewModal.bindApply', { eventType: exception.eventType })}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {exception.eventType !== 'A43' && exception.eventType !== 'unmapped_order_code' && !bindable && (
                 <div className="ps-iexc-no-cases">
                   {t('interfaceExceptionReviewModal.otherEventTypeNote', { eventType: exception.eventType })}
                 </div>

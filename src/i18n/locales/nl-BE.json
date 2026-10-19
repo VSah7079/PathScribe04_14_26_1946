@@ -82,6 +82,16 @@
       "stepUpRefused": "De bevestiging van uw aanmeldgegevens is geweigerd; probeer opnieuw"
     }
   },
+  "scopeReference": {
+    "entries": {
+      "mfaPolicy": {
+        "name": "Beleid voor tweefactoraanmelding"
+      },
+      "sessionTimeout": {
+        "name": "Tijd tot afmelden bij inactiviteit"
+      }
+    }
+  },
   "sessionExpiryWarningModal": {
     "logOutButton": "Afmelden"
   },

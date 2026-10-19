@@ -75,8 +75,10 @@ const DispatchHistoryTimeline: React.FC<Props> = ({ entries, colorNames }) => {
     return <div className="ps-mth-empty">{t('dispatchHistoryTimeline.emptyState')}</div>;
   }
 
+  const simulated = entries.some(e => String((e.payload as { messageId?: string }).messageId ?? '').startsWith('SIM-'));
   return (
     <div className="ps-dht-list">
+      {simulated && <span className="ps-simulated-badge" data-testid="dispatch-history-simulated">{t('engraverMonitor.simulated')}</span>}
       {entries.map((entry, i) => {
         if (entry.eventType === 'cassette-dispatch-outcome') {
           const { payload } = entry;

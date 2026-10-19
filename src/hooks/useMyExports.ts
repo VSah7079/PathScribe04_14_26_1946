@@ -42,7 +42,7 @@ export function useMyExports(tracker: ExportTracker = exportService) {
     void reload();
   }, [tracker, reload]);
 
-  return { viaServer: tracker.viaServer, jobs, problem, actionProblem, reload, download, cancel };
+  return { viaServer: tracker.viaServer, simulated: tracker.simulated, simulation: tracker.simulation, jobs, problem, actionProblem, reload, download, cancel };
 }
 
 /** Batch 550: for the top bar. Whether exports go through the API server, and how many of this window's are ready to download. */

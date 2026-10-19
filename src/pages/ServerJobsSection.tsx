@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useServerJobs } from '@/hooks/useServerJobs';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { runHistoryRefreshSweep, type HistoryRefreshResult } from '@/services/patientHistory/runHistoryRefreshSweep';
 import { formatDateTime } from '@/utils/formatDate';
 import type { IServerJobsService } from '@/services/serverJobs/serverJobsService';
 import { isKnownJobKind, isKnownRecurringJob, kindNeedsAttention, recurringJobOverdue, requeueRouteFor, deadLetterContext, SERVER_JOB_KINDS, type ServerJobKind } from '@/services/serverJobs/serverJobsContract';
@@ -27,9 +28,12 @@ export type ServerJobsOpenTarget = 'outbound_dlq' | 'print_queue';
 
 export const ServerJobsSection: React.FC<{ service?: IServerJobsService; onOpenInterfaces?: (target: ServerJobsOpenTarget) => void }> = ({ service, onOpenInterfaces }) => {
   const { t, i18n } = useTranslation();
-  const { viaServer, health, jobs, kind, setKind, problem, busyJob, lastRequeue, reload, requeue } = useServerJobs(service);
+  const { viaServer, simulated, health, jobs, kind, setKind, problem, busyJob, lastRequeue, reload, requeue } = useServerJobs(service);
   const kindLabel = (k: string) => (isKnownJobKind(k) ? t(`${K}.kinds.${k}`) : k);
   const recurringLabel = (n: string) => (isKnownRecurringJob(n) ? t(`${K}.recurring.${n}`) : n);
+
+  const [sweep, setSweep] = React.useState<HistoryRefreshResult | null>(null);
+  const [sweeping, setSweeping] = React.useState(false);
 
   if (!viaServer) {
     return (
@@ -48,8 +52,18 @@ export const ServerJobsSection: React.FC<{ service?: IServerJobsService; onOpenI
     <div className="ps-serverjobs">
       <div className="ps-serverjobs-header">
         <div>
-          <h3 className="ps-serverjobs-heading">{t(`${K}.title`)}</h3>
+          <h3 className="ps-serverjobs-heading">{simulated && <span className="ps-conf-badge">{t(`${K}.simulatedBadge`)}</span>} {t(`${K}.title`)}</h3>
           <p className="ps-serverjobs-note">{t(`${K}.subtitle`)}</p>
+          {simulated && <p className="ps-serverjobs-note" data-testid="jobs-simulated-note">{t(`${K}.simulatedNote`)}</p>}
+          {simulated && (
+            <p className="ps-serverjobs-note">
+              <button type="button" className="ps-btn-ghost-dark" disabled={sweeping}
+                onClick={async () => { setSweeping(true); try { setSweep(await runHistoryRefreshSweep()); } finally { setSweeping(false); } }}>
+                {t(`${K}.refreshPriorReports`)}
+              </button>
+              {sweep && <span data-testid="prior-reports-sweep"> {t(`${K}.refreshPriorReportsDone`, { considered: sweep.considered, refreshed: sweep.refreshed })}</span>}
+            </p>
+          )}
         </div>
         <button type="button" className="ps-btn-ghost-dark" onClick={() => { void reload(); }}>{t(`${K}.refresh`)}</button>
       </div>

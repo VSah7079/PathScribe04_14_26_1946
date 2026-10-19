@@ -18,8 +18,8 @@ import { runSessionEndHooks } from './sessionEndHooks';
 import { mockUserService } from '../users/mockUserService';
 import { mockRoleService } from '../roles/mockRoleService';
 import { mockAuditService } from '../auditlog/mockAuditService';
-import { mockDraftCacheService } from '../drafts/mockDraftCacheService';
-import { shouldShowBiometricWizard, verifyBiometric } from '../biometric/mockBiometricService';
+import { draftCacheService as mockDraftCacheService } from '../drafts/draftCacheInstance';
+import { biometricFlow } from '../biometric/biometricFlowInstance';
 import * as markers from '../session/sessionSupersedeService';
 import { resolveAuthConfig } from './authConfig';
 import { createAuthSession } from './authSession';
@@ -30,7 +30,8 @@ import { setAccessTokenSource } from './accessTokenSource';
 import { browserSignInLockStore } from './signInLockout';
 import { createSignerConfirmation, type SigningLockState } from './signerConfirmation';
 import { createSignatureGate } from './signatureEvidence';
-import { mockSignatureRecordService } from '../signatures/mockSignatureRecordService';
+import { signatureRecordService } from '../signatures/signatureRecordServiceInstance';
+import { mfaService } from './mfa/mfaInstance';
 import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 const isProduction = !!import.meta.env.PROD;
@@ -115,7 +116,9 @@ export const authSession = createAuthSession({
   draftCacheService: mockDraftCacheService,
   markers,
   profileStore: { read: readSessionProfile, write: writeSessionProfile },
-  shouldShowBiometricWizard,
+  // Batch 616: whether to invite the person to enrol is asked of biometricFlow by AuthContext after sign-in (it may be the server's answer).
+  shouldShowBiometricWizard: () => false,
+  mfa: mfaService,
 });
 
 setAccessTokenSource(() => authSession.accessToken());
@@ -145,7 +148,13 @@ export const signerConfirmation = createSignerConfirmation({
     lastConfirmed: () => { try { return sessionStorage.getItem(SIGNING_SESSION_KEY); } catch { return null; } },
     markConfirmed: id => { try { sessionStorage.setItem(SIGNING_SESSION_KEY, id); } catch { /* storage unavailable */ } },
   },
-  biometric: { verify: verifyBiometric },
+  biometric: { verify: userId => biometricFlow.verify(userId) },
+  // Batch 611 (#157): a signature asks for a fresh second factor when the policy says so.
+  mfa: {
+    stepUpNeeded: profile => mfaService.stepUpNeeded(profile),
+    challenge: (profile, code) => mfaService.challenge(profile, code, 'step-up'),
+    stepUpWithClaims: (profile, claims) => mfaService.stepUpWithClaims(profile, claims),
+  },
 });
 
 // ── Batch 345: checking each signature when the signed record is saved ────
@@ -159,7 +168,7 @@ const USED_KEEP = 500;
 export const signatureGate = createSignatureGate({
   config: authConfig,
   readProfile: readSessionProfile,
-  recordService: mockSignatureRecordService,
+  recordService: signatureRecordService,
   auditService: mockAuditService,
   usedStore: {
     read: () => {

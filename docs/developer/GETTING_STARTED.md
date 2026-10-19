@@ -92,6 +92,8 @@ this project has established, working patterns for each.
 
 ## Real, known gaps worth knowing about before you hit them
 
+The running release-scope list is `docs/product/KNOWN_GAPS.md` (Batch 593); this section is the developer's short version.
+
 - **Case saves carry their version** — since Batch 458 (PS-71) every
   case save goes through `src/services/cases/caseWrite.ts` with the
   version it was built from, and `caseWriteVersion.guard.test.ts` fails

@@ -4,7 +4,7 @@ import type { ScreeningRegistrySettingsDeps } from './saveScreeningRegistrySetti
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockRegistrySettingsService } from '../facilities/mockRegistrySettingsService';
 import { mockFacilityRegistryOverrideService } from '../facilities/mockFacilityRegistryOverrideService';
-import { mockScreeningRegistryConfigService } from './mockScreeningRegistryConfigService';
+import { screeningRegistryConfigService } from './screeningRegistryConfigServiceInstance';
 import { mockAuditService } from '../auditlog/mockAuditService';
 
 export const screeningRegistrySettingsDeps: ScreeningRegistrySettingsDeps = {
@@ -14,8 +14,8 @@ export const screeningRegistrySettingsDeps: ScreeningRegistrySettingsDeps = {
   createFacilityOverride: (facilityId, registryId) => mockFacilityRegistryOverrideService.create(facilityId, { registryId }),
   updateFacilityOverride: (facilityId, registryId) => mockFacilityRegistryOverrideService.update(facilityId, { registryId }),
   removeFacilityOverride: facilityId => mockFacilityRegistryOverrideService.remove(facilityId),
-  saveConfig: config => mockScreeningRegistryConfigService.save(config),
-  getConfig: async registryId => { const r = await mockScreeningRegistryConfigService.get(registryId); return r.ok ? r.data : undefined; },
+  saveConfig: config => screeningRegistryConfigService.save(config),
+  getConfig: async registryId => { const r = await screeningRegistryConfigService.get(registryId); return r.ok ? r.data : undefined; },
   logAudit: event => mockAuditService.logEvent(event),
   now: () => new Date(),
 };

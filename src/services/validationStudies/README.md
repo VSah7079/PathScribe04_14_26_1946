@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/validationStudies/
 
 Validation Study governance — parallel-run comparison of AI-assisted reporting against existing workflow.
@@ -33,3 +35,5 @@ Activation and a recorded committee approval are stored under the signed-in pers
 
 - **`buildValidationReportHtml.ts`** (+ test): the printed AI validation report, moved out of `ValidationStudiesSection.tsx`. It now prints in the reader's language with dates and percentages in their format (Pete, Oct 10, 2026). It used to be English with an `en-GB` date, on the reasoning that it was a compliance artifact; Pete decided it follows the user's language. Study name, ethics reference and section ids print as recorded, escaped. No inline `style` attributes.
 - **`computeValidationStudyGrade.ts`**: returns a translation `key` (`pass` / `conditionalPass` / `furtherReview`) in place of the English `description`. The grade code stored on the study (`finalGrade`, "PASS") is unchanged.
+
+Batch 616 (part D, PS-501): server version of ValidationStudyService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/QUALITY_API.md`.

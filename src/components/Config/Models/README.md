@@ -28,3 +28,7 @@ Each model that isn't the default has Retire, confirmed first (the message names
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 609 (#173)
+
+`ModelOverridesModal.tsx`: a Settings button on each model row opens a window for the organisation's longest-answer cap and confidence threshold (blank = organisation setting). Rules in `services/models/modelOverrides.ts`; a model with settings shows a "custom settings" badge. Tests: `ModelOverridesModal.test.tsx`.

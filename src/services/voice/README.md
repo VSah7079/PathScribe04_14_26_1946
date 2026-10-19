@@ -6,3 +6,7 @@
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 609 (#177, #179)
+
+`dictationRefinementPrompt.ts` (pure): builds the AI refinement instructions per dictation language (French, German, Dutch, Korean keep their language) and, for English, per spelling convention (US, GB/IE, AU/NZ, CA). `VoiceProvider` and `PathScribeAIService.refineTranscript` both use it; Configuration, System, Voice lists every prompt for review. Tests: `dictationRefinementPrompt.test.ts`.

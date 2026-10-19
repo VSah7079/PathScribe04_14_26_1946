@@ -19,6 +19,7 @@
 export type RuntimeSettingKind =
   | 'endpoint'  // a server's address: https (plain http only to this computer, and only in a development build), as resolveServiceEndpoint takes it
   | 'proxy'     // a path on this site starting with "/", or an https address
+  | 'dsn'       // Batch 590 (PS-469): an error-monitoring address with a public key in it (https://key@host/project)
   | 'text';
 
 export const RUNTIME_SETTINGS = {
@@ -57,7 +58,10 @@ export const RUNTIME_SETTINGS = {
   VITE_NLM_BASE_URL:                 { kind: 'endpoint',  about: 'NLM clinical tables' },
   VITE_CPT_PROXY_URL:                { kind: 'proxy',     about: 'CPT terminology proxy' },
   VITE_ICD10_PROXY_URL:              { kind: 'proxy',     about: 'ICD-10 terminology proxy' },
+  VITE_ERROR_MONITORING_DSN:         { kind: 'dsn',      about: 'Where scrubbed crash reports are sent (a Sentry or self-hosted collector address). Leave out to turn monitoring off (PS-469)' },
+  VITE_ERROR_MONITORING_ENV:         { kind: 'text',     about: 'The deployment name shown with each crash report, e.g. "hospital-a-prod". Monitoring stays off without it (PS-469)' },
   VITE_ENHANCEMENT_EMAIL:            { kind: 'text',     about: 'Where enhancement requests are sent' },
+  VITE_BIOMETRIC_SIGN_IN:            { kind: 'text',     about: 'Biometric sign-in for this deployment ("false" turns it off whatever the lab policy says)', fromServer: true },
   VITE_VOICE_ENABLED:                { kind: 'text',     about: 'Voice commands ("true" or "false")', fromServer: true },
 } as const satisfies Record<string, { kind: RuntimeSettingKind; about: string; notInDemo?: true; fromServer?: true }>;
 
@@ -102,6 +106,21 @@ export function endpointProblem(value: string, isProduction: boolean): RuntimeCo
   return 'INVALID_URL';
 }
 
+/**
+ * Batch 590 (PS-469): what's wrong with an error-monitoring address, or null. https only (plain http
+ * to this computer in a development build), the public key as the user name, no password, no query
+ * string, and a project in the path. The key is public, as the app's own code is.
+ */
+export function monitoringDsnProblem(value: string, isProduction: boolean): RuntimeConfigProblemCode | null {
+  let u: URL;
+  try { u = new URL(value); } catch { return 'INVALID_URL'; }
+  if (u.password || !u.username || u.search || u.hash) return 'INVALID_URL';
+  if (!/^\/([A-Za-z0-9._~-]+\/)*[A-Za-z0-9._~-]+\/?$/.test(u.pathname)) return 'INVALID_URL';
+  if (u.protocol === 'https:') return null;
+  if (u.protocol === 'http:') return !isProduction && LOOPBACK.has(u.hostname) ? null : 'NOT_HTTPS';
+  return 'INVALID_URL';
+}
+
 /** A proxy setting: a path on this site ("/api/ai"), or a server address as above. */
 export function proxyProblem(value: string, isProduction: boolean): RuntimeConfigProblemCode | null {
   if (value.startsWith('/')) {
@@ -138,7 +157,7 @@ export function parseRuntimeConfig(
     if (!text) continue;
     const setting: { kind: RuntimeSettingKind; notInDemo?: true } = RUNTIME_SETTINGS[key as RuntimeSettingKey];
     const isProduction = ctx.isProduction ?? true;
-    const p = setting.kind === 'endpoint' ? endpointProblem(text, isProduction) : setting.kind === 'proxy' ? proxyProblem(text, isProduction) : null;
+    const p = setting.kind === 'endpoint' ? endpointProblem(text, isProduction) : setting.kind === 'proxy' ? proxyProblem(text, isProduction) : setting.kind === 'dsn' ? monitoringDsnProblem(text, isProduction) : null;
     if (p) { problems.push({ key, code: p }); continue; }
     if (ctx.demoBuild && setting.notInDemo && key !== 'VITE_API_BASE_URL') { problems.push({ key, code: 'NOT_IN_DEMO_BUILD' }); continue; }
     if (ctx.demoBuild && key === 'VITE_APP_ENV' && text.toLowerCase() === 'production') { problems.push({ key, code: 'NOT_IN_DEMO_BUILD' }); continue; }

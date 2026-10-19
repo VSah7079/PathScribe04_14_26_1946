@@ -28,6 +28,12 @@ The Search page's decisions, kept out of `pages/SearchPage.tsx` (standing rule 2
 - **`lookupFilter.ts`** (Batch 350): text filter and grouping for the protocol and flag pickers.
 - **`caseSearchUtils.test.ts`**: tests for the Batch 350 files.
 
+## Batch 613 (part A) — case search reporting
+
+- **`caseReportLabels.ts`**: translation keys and lookups for report values (group names, column headings, statuses, dates); shared by the screen and the CSV.
+- **`caseReportCsv.ts`**: the report's CSV (a row per group with a total, or a row per case with the chosen columns); every cell quoted, formula cells neutralised. File name `pathscribe-case-report-<facility date>.csv`.
+- `buildCaseSearchRequest.ts`, `describeCaseSearch.ts`: carry the synoptic answer filters (sent only when complete, counted, shown in the summary).
+
 ## Batch 351
 
 - **`buildCaseSearchRequest.ts`**
@@ -52,3 +58,7 @@ The Search page's decisions, kept out of `pages/SearchPage.tsx` (standing rule 2
 ## Batch 543
 
 `caseSearchCsv.ts`: cells are written with `csvQuoted` (`utils/csv.ts`), which neutralizes formula cells (finding F8).
+
+## Batch 583
+
+- `caseReturnTarget.ts` (new): where a case report's Back and breadcrumb go, and what they say, from where the case was opened (`'search'` → Search; otherwise Worklist). Used by `HeaderBar.tsx` (PS-101).

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/screeningRegistry/
 
 The cervical screening registry engine (Batch 414, PS-359). PathScribe reports signed-out GYN cytology to national and regional screening programmes. Each programme is a **definition**, and each lab supplies a **configuration**. One **engine** decides what to send, and sign-out uses it. A new country means a new definition plus the lab's configuration, not new dispatch code.
@@ -99,3 +101,7 @@ The eligibility flag is written to the newest case, and not at all if it is alre
 
 ---
 *Update this README when a registry is added or a definition's facts change.*
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the screening registry service) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/REGISTRY_API.md`. The mocks are unchanged.

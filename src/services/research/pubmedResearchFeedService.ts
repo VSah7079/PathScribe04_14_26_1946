@@ -26,7 +26,7 @@
  *   terminology/AI proxy (PS-488).
  *
  * - Endpoints, the article URL template and the search query are NOT
- *   hardcoded here. They come from mockResearchFeedConfigService, so an NCBI
+ *   hardcoded here. They come from researchFeedConfigService, so an NCBI
  *   restructure is an admin edit rather than a release — the same lesson
  *   services/externalResources/ was built from. Every outcome is stamped via
  *   recordHealth(), so a permanently dead feed is distinguishable from a
@@ -38,7 +38,7 @@
  */
 
 import type { IResearchFeedService, ResearchArticle } from './IResearchFeedService';
-import { mockResearchFeedConfigService } from './mockResearchFeedConfigService';
+import { researchFeedConfigService } from './researchFeedConfigServiceInstance';
 
 /** Identifies us to NCBI, per their usage guidelines. */
 const TOOL = 'PathScribe';
@@ -323,7 +323,7 @@ export const pubmedResearchFeedService: IResearchFeedService = {
     // URLs and query come from admin config, so an NCBI restructure is an
     // admin edit rather than a release. Every field falls back to its
     // built-in default independently — see the config service.
-    const config = await mockResearchFeedConfigService.getConfig();
+    const config = await researchFeedConfigService.getConfig();
     if (!config.enabled) return null;
 
     const cacheKey = cacheKeyFor(subspecialtyNames);
@@ -357,20 +357,20 @@ export const pubmedResearchFeedService: IResearchFeedService = {
       if (!article) article = await fetchLatestForTerm(config, config.query, signal);
 
       if (!article) {
-        mockResearchFeedConfigService.recordHealth('empty');
+        researchFeedConfigService.recordHealth('empty');
         writeCache(cacheKey, null);
         return null;
       }
 
-      mockResearchFeedConfigService.recordHealth('success');
+      researchFeedConfigService.recordHealth('success');
       writeCache(cacheKey, article);
       return article;
     } catch (error) {
       if (error instanceof RateLimitedError) {
         startBackoff();
-        mockResearchFeedConfigService.recordHealth('rate-limited');
+        researchFeedConfigService.recordHealth('rate-limited');
       } else {
-        mockResearchFeedConfigService.recordHealth('error');
+        researchFeedConfigService.recordHealth('error');
       }
       // Offline, blocked by network policy, timed out, rate limited,
       // malformed payload, or aborted on unmount. All are non-events: the
@@ -397,7 +397,7 @@ export async function setFeaturedArticle(
   subspecialtyNames?: string[],
   signal?: AbortSignal,
 ): Promise<ResearchArticle | null> {
-  const config = await mockResearchFeedConfigService.getConfig();
+  const config = await researchFeedConfigService.getConfig();
   try {
     const summary = await getJson(
       buildUrl(config.apiBaseUrl, 'esummary.fcgi', { db: 'pubmed', id: pmid, retmode: 'json' }),
@@ -442,7 +442,7 @@ export async function refreshFeaturedArticle(
   subspecialtyNames?: string[],
   signal?: AbortSignal,
 ): Promise<ResearchArticle | null> {
-  const config = await mockResearchFeedConfigService.getConfig();
+  const config = await researchFeedConfigService.getConfig();
   if (!config.enabled) return null;
 
   try {
@@ -451,18 +451,18 @@ export async function refreshFeaturedArticle(
     if (!article) article = await fetchLatestForTerm(config, config.query, signal, currentPmid);
 
     if (!article) {
-      mockResearchFeedConfigService.recordHealth('empty');
+      researchFeedConfigService.recordHealth('empty');
       return null;
     }
-    mockResearchFeedConfigService.recordHealth('success');
+    researchFeedConfigService.recordHealth('success');
     writeCache(cacheKeyFor(subspecialtyNames), article, /* pinned */ false);
     return article;
   } catch (error) {
     if (error instanceof RateLimitedError) {
       startBackoff();
-      mockResearchFeedConfigService.recordHealth('rate-limited');
+      researchFeedConfigService.recordHealth('rate-limited');
     } else {
-      mockResearchFeedConfigService.recordHealth('error');
+      researchFeedConfigService.recordHealth('error');
     }
     return null;
   }

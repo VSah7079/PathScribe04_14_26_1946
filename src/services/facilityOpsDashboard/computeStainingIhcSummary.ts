@@ -15,7 +15,7 @@
 // rather than building a name-matching heuristic on top of a known,
 // unreliable join.
 
-import { mockBatchService } from '../batches/mockBatchService';
+import { batchService } from '../batches/batchServiceInstance';
 import { buildFacilityLookupMaps } from './buildFacilityLookupMaps';
 import { resolveBatchFacilityId } from './resolveBatchFacilityId';
 import type { DashboardSummary, DashboardAlert, DashboardQueueItem } from './IFacilityOpsDashboardTypes';
@@ -23,7 +23,7 @@ import type { DashboardSummary, DashboardAlert, DashboardQueueItem } from './IFa
 const NODES = new Set(['Staining', 'Cytology Staining']);
 
 export async function computeStainingIhcSummary(facilityId: string | undefined): Promise<DashboardSummary> {
-  const [batchesRes, maps] = await Promise.all([mockBatchService.getAll(), buildFacilityLookupMaps()]);
+  const [batchesRes, maps] = await Promise.all([batchService.getAll(), buildFacilityLookupMaps()]);
 
   const batches = (batchesRes.ok ? batchesRes.data : [])
     .filter(b => b.status === 'active' && NODES.has(b.processingNode))

@@ -52,9 +52,26 @@ type DividerRow =
 
 type DisplayRow = Case | DividerRow;
 
+/** Batch 610 (#164): the badge for an open case past its client's SLA target. */
+const SlaBadge: React.FC<{ kind: 'firstTouch' | 'total' }> = ({ kind }) => {
+  const { t } = useTranslation();
+  return (
+    <span className="ps-wl-sla-badge" data-testid="wl-sla-breach" title={t(`worklistTable.slaBreach.${kind}`)}>
+      {t('worklistTable.slaBreach.badge')}
+    </span>
+  );
+};
+
+function renderSlaBadge(breaches: ReadonlyMap<string, 'firstTouch' | 'total'> | undefined, c: Case): React.ReactNode {
+  const kind = breaches?.get(c.id);
+  return kind ? <SlaBadge kind={kind} /> : null;
+}
+
 interface WorklistTableProps {
   cases: Case[];
   activeFilter: string;
+  /** Batch 610 (#164): open cases past a client SLA target right now, by case id (which target is past). */
+  slaBreaches?: ReadonlyMap<string, 'firstTouch' | 'total'>;
   /** Real feature, per direct follow-up: "we could segment the filter
    *  results into those subgroups... Amendment and Correction at the
    *  top followed by Addenda." Only meaningful when activeFilter ===
@@ -491,6 +508,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   cases,
   activeFilter,
   amendmentTypeByCaseId,
+  slaBreaches,
   wsiSlidesByCaseId,
   dpResultByCaseId,
   onOpenDpDrawer,
@@ -1644,7 +1662,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       {!isRestricted(c) && (c as any).autopsy && (
                         <div className="wl-card__body-full">
                           <div className="wl-card__field-label">{t('worklistTable.autopsy.fieldLabel')}</div>
-                          <AutopsyWorklistBadges autopsy={(c as any).autopsy} />
+                          <AutopsyWorklistBadges autopsy={c.autopsy} caseSource={c} />
+                          {renderSlaBadge(slaBreaches, c)}
                         </div>
                       )}
 
@@ -2068,7 +2087,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                           and the jurisdiction's TAT/SLA target as a
                           tooltip. Renders nothing for a non-autopsy
                           case. */}
-                      <AutopsyWorklistBadges autopsy={(c as any).autopsy} />
+                      <AutopsyWorklistBadges autopsy={c.autopsy} caseSource={c} />
+                      {renderSlaBadge(slaBreaches, c)}
                     </td>
                   </tr>
                 );

@@ -28,6 +28,7 @@ import type { MaterialComment } from '@/types/case/MaterialComment';
 import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import type { Case } from '@/types/case/Case';
 import { nextSlideLevelNumber } from '@/services/material/slideLevels';
+import { cuttingBlockedByExhaustion } from '@/utils/blockExceptionStates';
 import type { StainType } from '@/services/stains/IStainService';
 import type { CytologyPrepSuggestion } from '@/services/cytology/computeCytologyPrepSuggestions';
 
@@ -185,6 +186,8 @@ export function markStainPrinting(specimen: Specimen, blockId: string, stainId: 
   if (!block) return { ok: false, error: 'Block not found.' };
   // Batch 460: a slide removed meanwhile (on a newer copy of the case) is not printed.
   if (!block.stains.some(s => s.id === stainId)) return { ok: false, error: 'Stain not found.' };
+  // Batch 610 (#16): a block flagged as exhausted is not cut until the pathologist answers.
+  if (cuttingBlockedByExhaustion(block)) return { ok: false, error: 'Block exhausted: cutting is blocked until the ordering pathologist answers.' };
   const updatedStains = block.stains.map(s => s.id !== stainId ? s : { ...s, printStatus: 'Printing' as const, printFailureReason: undefined });
   return { ok: true, specimen: replaceBlockStains(specimen, blockId, updatedStains) };
 }

@@ -41,6 +41,7 @@ export const EXPORT_KINDS = {
   'contribution.case-mix-summary':     { capability: 'contribution:case-mix-summary:export', scope: 'self', formats: ['csv'] },
   'contribution.trainee-case-reference': { capability: 'contribution:trainee-case-reference:export', scope: 'self', formats: ['csv'] },
   'qa.access-request-response':        { capability: 'qa:access-request-response:export', scope: 'facility', formats: ['csv'] },
+  'qa.ai-discordance':                 { capability: 'qa:ai-discordance:export', scope: 'facility', formats: ['csv'] },
   'qa.activity-dashboard':             { capability: 'qa:activity-dashboard:export', scope: 'facility', formats: ['csv'] },
   'qa.billing-deficiencies':           { capability: 'qa:billing-deficiencies:export', scope: 'facility', formats: ['csv'] },
   'qa.countersign-turnaround':         { capability: 'qa:countersign-turnaround:export', scope: 'facility', formats: ['csv'] },
@@ -58,7 +59,9 @@ export const EXPORT_KINDS = {
   'qa.registry-transmission-audit':    { capability: 'qa:registry-transmission-audit:export', scope: 'facility', formats: ['csv'] },
   'report.change-history':             { capability: 'report:change-history:export', scope: 'case', formats: ['csv'] },
   'retention.disposal-report':         { capability: 'retention:disposal-report:export', scope: 'facility', formats: ['csv'] },
+  'retention.holds-queue':            { capability: 'retention:holds-queue:export', scope: 'enterprise', formats: ['csv'] },
   'search.case-results':               { capability: 'search:case-results:export', scope: 'enterprise', formats: ['csv'] },
+  'search.case-report':                { capability: 'search:case-report:export', scope: 'enterprise', formats: ['csv'] },
 } as const satisfies Record<string, ExportKindDefinition>;
 
 export type ExportKind = keyof typeof EXPORT_KINDS;

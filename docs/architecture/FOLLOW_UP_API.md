@@ -1,5 +1,7 @@
 # Follow-up tracking: server contract (Batch 454)
 
+> **Route style (Batch 617).** Every call converted below uses the single route style of `HTTP_SERVICES_PATTERN.md` section 7: `/api/<area>/<service>/<method-kebab>`, `GET` for a plain-value read and `POST` for everything else. The path each call had before is in `HTTP_ROUTE_MAPPING.md` ("earlier path").
+
 This is the browser's side of follow-up tracking, written from `src/services/followUp/`. The browser runs it today on localStorage mocks. The PathScribe API server (ASP.NET Core on SQL Server) takes over storage and the alert job.
 
 ## What it tracks
@@ -55,7 +57,7 @@ The settings are a single enterprise row plus per-facility overrides. Their fiel
 | Method and path | Capability | Notes |
 |---|---|---|
 | `GET /api/follow-ups?filter=attention\|overdue\|dueSoon\|open\|resolved\|all` | the Quality Assurance screen | The items with their status today, limited to cases the caller can open. Whether a follow-up was received is decided over all cases, because the resection may be at another facility. |
-| `POST /api/cases/{caseId}/follow-up-expected` | `case:follow-up:expect` | Called after sign-out. Computes the window with the facility's biopsy-to-resection rule. |
+| `POST /api/follow-up/follow-up/mark-expected` | `case:follow-up:expect` | Called after sign-out. Computes the window with the facility's biopsy-to-resection rule. |
 | `PUT /api/follow-ups/{key}/disposition` `{ value, note? }` | `qa:follow-up:record` | `other` needs a note of 1,000 characters or fewer. |
 | `DELETE /api/follow-ups/{key}/disposition` | `qa:follow-up:record` | Reopens the follow-up. |
 | `POST /api/follow-ups/{key}/clinician-email` `{ to, subject, body }` | `qa:follow-up-clinician:email` | Refused when the facility has it off (`disabled`), when the follow-up isn't due soon or overdue (`notOpen`), for a bad address, or when a `{{placeholder}}` is left in. It sends one email, adds a contact row and audits the send. |
@@ -76,3 +78,20 @@ Nothing is ever sent to a clinician automatically (Pete, Oct 4 2026: "that is up
 ## Email acceptance
 
 `services/communications/notificationService.ts` `sendEmail` now resolves `true` only when `POST /api/notifications/email` accepts the message. The browser records the contact and the audit entry only then. A refusal is audited as `followup.clinician_email_failed`, and the user is told. The server endpoint should do the same: record the contact only after the mail relay accepts the message, and return an error otherwise.
+
+## Browser commands (Batch 616, PS-483; Pete's decision Oct 18, 2026: command-based)
+
+The browser sends COMMANDS. The server works out the window, the status today, who did it and when. The browser never sends a whole record, a status, a window, a user id or a name. (The demo keeps the same commands and works the status out from the browser store.) Service: `IFollowUpService` (`httpFollowUpService.ts`, `mockFollowUpService.ts`).
+
+| Method | Call | Body | Reply | Refusals (fixed codes) |
+|---|---|---|---|---|
+| `loadItems()` | `GET /api/follow-ups?filter=all` | none | `{ items: FollowUpItem[], settings: { enterprise, facilities: { <facilityId>: ... } } }`. Each item carries its status today (`pending`, `dueSoon`, `overdue`, `received`, `closed`), `daysRemaining` / `daysOverdue` and its `record`. The list is limited to cases the caller can open. `settings` are the effective follow-up settings (warning days, clinician email on or off, template) so the screen need not ask again. | `NOT_PERMITTED` |
+| `getExpectation(caseId)` | `GET /api/follow-up/follow-up/get-expectation` | none | the expectation, or `404` (none) | |
+| `markExpected(caseId, { afterSignOut })` | `POST /api/follow-up/follow-up/mark-expected` | `{ "afterSignOut": false }` | the expectation, with the window the server computed from the facility's biopsy-to-resection rule and the case's earliest surgical specimen | `NOT_PERMITTED` (`case:follow-up:expect`), `NO_SURGICAL_SPECIMEN`, `NO_DATE`, `CASE_NOT_FOUND` |
+| `recordDisposition(ref, value, note?)` | `PUT /api/follow-ups/{key}/disposition` | `{ "value": "...", "note": "..." }` (note only when given) | the record, now closed; the server stamps who and when from the token | `NOT_PERMITTED` (`qa:follow-up:record`), `UNKNOWN_DISPOSITION`, `NOTE_REQUIRED`, `NOTE_TOO_LONG` |
+| `reopen(ref)` | `DELETE /api/follow-ups/{key}/disposition` | none | the record without an outcome (reopening one that is open is not an error) | `NOT_PERMITTED` |
+| `emailClinician(ref, { to, subject, body })` | `POST /api/follow-ups/{key}/clinician-email` | `{ to, subject, body }` | the record, with the contact row added only after the mail relay accepted the message | `NOT_PERMITTED` (`qa:follow-up-clinician:email`), `DISABLED`, `NOT_OPEN`, `BAD_ADDRESS`, `PLACEHOLDER_LEFT` |
+
+- The `key` (`<kind>:<caseId>:<specimenId>`) goes in the path, URL-encoded. It holds case and specimen ids and no patient name or MRN.
+- A refusal reaches the screen as `{ ok: false, reason }` with the code in camel case (`NOT_PERMITTED` becomes `notPermitted`), the reasons the screens already map.
+- Not in the browser commands: the daily alert job (server, `followUpAlertsDue`), the settings (`/api/settings/follow-up-tracking`), the export, and the clinician email draft (composed in the browser from the lab's template).

@@ -78,6 +78,22 @@ import { wasCaseFrozenSectioned } from './wasCaseFrozenSectioned';
 import { mapReportTypeToEventTriggerType, type SpecimenCaseType } from '@/types/printRouting/PrintRoutingRule';
 import type { PrintDestinationResolutionInput } from './resolvePrintDestination';
 import type { ReportReleasedEventType } from '../reports/publishReportReleasedEvent';
+import { getWorkstationSetting } from '@/utils/workstationSettings';
+import { BOUND_WORKSTATION_SETTING, type WorkstationRoutingInput } from '../workstationRegistry/workstationRegistryRules';
+import { workstationRegistryService } from '../workstationRegistry/workstationRegistryServiceInstance';
+
+/** Batch 612: the registered workstation this browser has been set to act as (Configuration → System → Workstations), if any. */
+async function boundWorkstationId(): Promise<string | undefined> {
+  const id = getWorkstationSetting(BOUND_WORKSTATION_SETTING);
+  if (!id) return undefined;
+  // Only an active registered workstation counts: a revoked or removed one contributes nothing.
+  try {
+    const input: WorkstationRoutingInput = await workstationRegistryService.printRoutingInput(id);
+    return input?.workstationId;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface RealPrintRoutingContextOverrides {
   /** Real, for a future interactive caller only — see this file's own
@@ -122,7 +138,7 @@ export async function resolveRealPrintRoutingContext(
   }
 
   return {
-    workstationId: overrides?.workstationId,
+    workstationId: overrides?.workstationId ?? await boundWorkstationId(),
     userId: overrides?.userId,
     pointOfCare,
     orderingFacilityId: order?.facilityId,

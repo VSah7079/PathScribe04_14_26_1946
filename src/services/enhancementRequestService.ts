@@ -13,11 +13,13 @@
 
 const CONFIG_KEY = 'ps_enhancement_config_v1';
 
-import { mockFeedbackSettingsService, type IFeedbackSettingsService } from './feedback/mockFeedbackSettingsService';
+import { recordSimulatedEmail } from './communications/simulatedMailOutbox';
+import { feedbackSettingsService } from './feedback/feedbackSettingsServiceInstance';
+import type { IFeedbackSettingsService } from './feedback/IFeedbackSettingsService';
 import { isCaseAddressReference } from './caseAddresses/caseAddresses';
-import { sendEmail }                                        from './communications/notificationService';
+import { sendEmailDetailed }                                from './communications/notificationService';
 import { supportPageOf, caseNumbersIn, findIdentifiersInText, replaceIdentifiers, type IdentifierInText } from './supportReferences/supportTicketRules';
-import { mockSupportReferenceService }                      from './supportReferences/mockSupportReferenceService';
+import { supportReferenceService }                          from './supportReferences/supportReferenceServiceInstance';
 import type { ISupportReferenceService }                    from './supportReferences/ISupportReferenceService';
 import type { ICaseService }                                from './cases/ICaseService';
 import { buildEnhancementSubject, buildEnhancementHtml, buildEnhancementText }
@@ -77,6 +79,8 @@ export interface SubmissionResult {
   messageId?: string;
   ticketUrl?: string;
   error?:     string;
+  /** Batch 604: true when no real mail service or ticket portal took it: the message sits in the Simulated mail outbox. */
+  simulated?: boolean;
 }
 
 // ─── Config persistence ───────────────────────────────────────────────────────
@@ -109,7 +113,7 @@ export function loadEnhancementConfig(): EnhancementRequestConfig {
  * taken from Configuration → System → Feedback.
  */
 export async function loadEnhancementConfigForSubmit(
-  settings: Pick<IFeedbackSettingsService, 'get' | 'qaButtonShown'> = mockFeedbackSettingsService,
+  settings: Pick<IFeedbackSettingsService, 'get' | 'qaButtonShown'> = feedbackSettingsService,
 ): Promise<EnhancementRequestConfig> {
   const base = loadEnhancementConfig();
   const [r, shown] = await Promise.all([settings.get(), settings.qaButtonShown()]);
@@ -132,7 +136,7 @@ export function saveEnhancementConfig(config: EnhancementRequestConfig): void {
 // goes as its support reference (services/supportReferences/).
 export async function captureMetadata(
   user: { id: string; name: string; role: string },
-  deps: { supportReferenceService: ISupportReferenceService; pathname: string } = { supportReferenceService: mockSupportReferenceService, pathname: window.location.pathname },
+  deps: { supportReferenceService: ISupportReferenceService; pathname: string } = { supportReferenceService, pathname: window.location.pathname },
 ): Promise<EnhancementRequestPayload['metadata']> {
   const page = supportPageOf(deps.pathname);
   // Batch 446: case pages are addressed by the reference already; an old
@@ -229,7 +233,7 @@ async function submitViaEmail(
     return { success: false, error: 'No recipients configured.' };
   }
 
-  await sendEmail({
+  const outcome = await sendEmailDetailed({
     to,
     cc,
     subject:  buildEnhancementSubject(payload),
@@ -242,7 +246,8 @@ async function submitViaEmail(
     },
   });
 
-  return { success: true, messageId: `email-${Date.now()}` };
+  if (!outcome.accepted) return { success: false, error: 'The mail service refused the message.' };
+  return { success: true, messageId: `email-${Date.now()}`, simulated: outcome.simulated };
 }
 
 // ─── Portal mode ──────────────────────────────────────────────────────────────
@@ -257,11 +262,13 @@ async function submitViaPortal(
   console.info('[enhancementRequestService] PORTAL submission (mock):', {
     url: config.portalUrl, projectKey: config.portalProjectKey, payload,
   });
-  return {
-    success:   true,
-    messageId: `MOCK-${Math.floor(Math.random() * 9000) + 1000}`,
-    ticketUrl: `${config.portalUrl || 'https://portal.example.com'}/browse/MOCK-1234`,
-  };
+  // Batch 604: no portal is connected, so no ticket link is invented. The request is kept in the
+  // labelled Simulated mail outbox and the screen says it was simulated.
+  recordSimulatedEmail({
+    to: [], subject: buildEnhancementSubject(payload), bodyHtml: buildEnhancementHtml(payload), bodyText: buildEnhancementText(payload),
+    metadata: { source: 'ticket-portal', mode: payload.mode ?? 'enhancement', category: payload.category },
+  }, payload.metadata?.userName ?? 'system');
+  return { success: true, messageId: `SIMULATED-${Math.floor(Math.random() * 9000) + 1000}`, simulated: true };
 
   // ── REAL ──
   // const res = await fetch(config.portalUrl, {

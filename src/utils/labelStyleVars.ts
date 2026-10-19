@@ -15,14 +15,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type React from 'react';
-import type { LabelConfig } from '@/types/template';
+import type { FontUnits, LabelConfig } from '@/types/template';
+import { previewFontSize, unitsOf } from '@/services/reportAppearance/fontUnits';
 
-export function labelStyleVars(cfg?: Partial<LabelConfig>, prefix = 'label'): React.CSSProperties {
-  const vars: Record<string, string> = {};
+// Batch 612: the size is drawn in CSS points when the style (or its template, `templateUnits`) is
+// in points, so the screen is the size the paper will be; a legacy style stays in pixels.
+export function labelStyleVars(cfg?: Partial<LabelConfig>, prefix = 'label', templateUnits?: FontUnits, extraVars?: Record<string, string>): React.CSSProperties {
+  const vars: Record<string, string> = { ...(extraVars ?? {}) };
   if (cfg?.transform && cfg.transform !== 'none') vars[`--${prefix}-transform`] = cfg.transform;
   if (cfg?.weight) vars[`--${prefix}-weight`] = cfg.weight === 'bold' ? '700' : '400';
   if (cfg?.decoration && cfg.decoration !== 'none') vars[`--${prefix}-decoration`] = cfg.decoration;
-  if (cfg?.fontSize) vars[`--${prefix}-size`] = `${cfg.fontSize}px`;
+  const size = previewFontSize(cfg?.fontSize, unitsOf(cfg, templateUnits));
+  if (size) vars[`--${prefix}-size`] = size;
   if (cfg?.fontFamily) vars[`--${prefix}-family`] = cfg.fontFamily;
   return vars as React.CSSProperties;
 }

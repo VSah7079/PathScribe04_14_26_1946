@@ -114,3 +114,7 @@ The rule holds whatever the Role Dictionary lists. It's applied in:
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part B): server version (PS-514)
+
+The participation type service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELEGATIONS_NOTES_API.md`.

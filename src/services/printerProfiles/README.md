@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/printerProfiles/
 
 Registry of real physical label-printer capabilities (ZPL support, DPI, DataMatrix module size, vendor, bridge type) — used to pick the right label template and prevent generating a barcode a given printer can't actually render legibly.
@@ -79,3 +81,5 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-508): server version of PrinterProfileService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/REAGENTS_LABELS_API.md`.

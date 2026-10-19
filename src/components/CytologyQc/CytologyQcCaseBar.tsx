@@ -16,6 +16,7 @@ import { CytologyQcDiscrepancyModal } from './CytologyQcDiscrepancyModal';
 const ERROR_KEY: Record<string, string> = {
   notPermitted: 'cytologyQcQueue.error.notPermitted',
   selfReview: 'cytologyQcQueue.error.selfReview',
+  notInPool: 'cytologyQcQueue.error.notInPool',
   failed: 'cytologyQcQueue.error.failed',
 };
 
@@ -51,6 +52,7 @@ export function CytologyQcCaseBar({ caseId, onRecorded }: CytologyQcCaseBarProps
           )}
           {review.assignedToOther && <span className="ps-qa-case-bar__note">{t('cytologyQcQueue.assignedToOther')}</span>}
           {review.isOwnCase && <span className="ps-qa-case-bar__note">{t('cytologyQcQueue.error.selfReview')}</span>}
+          {review.notInPool && <span className="ps-qa-case-bar__note">{t('cytologyQcQueue.error.notInPool')}</span>}
         </div>
       </div>
       {discrepancyOpen && (

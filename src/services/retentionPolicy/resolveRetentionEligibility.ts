@@ -39,8 +39,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { specimenDictionaryService, departmentService } from '@/services';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { mockGoverningBodyService } from '@/services/governingBodies/mockGoverningBodyService';
+import { scanStationService as mockScanStationService } from '@/services/scanStations/scanStationServiceInstance';
+import { governingBodyService } from '@/services/governingBodies/governingBodyServiceInstance';
 import type { RetentionPolicyVersion } from '@/services/governingBodies/IGoverningBodyService';
 import { calculateRetentionEligibleDate } from './RetentionPolicy';
 import type { RetainableMaterialType, RetentionOverrideDays } from './RetentionPolicy';
@@ -132,7 +132,7 @@ export async function resolveGoverningBodyRetentionDays(
   materialType: RetainableMaterialType,
   finalizedAt: string,
 ): Promise<number | undefined> {
-  const bodies = await mockGoverningBodyService.getAll();
+  const bodies = await governingBodyService.getAll();
   const body = bodies.find(b => b.enabled && b.retentionPolicyVersions?.length && b.jurisdictions?.includes(jurisdiction));
   if (!body?.retentionPolicyVersions) return undefined;
   const version = resolveApplicableRetentionVersion(body.retentionPolicyVersions, new Date(finalizedAt));
@@ -156,7 +156,7 @@ export async function resolveGoverningBodyRetentionDays(
 export async function resolveCurrentGoverningBodyFloor(
   jurisdiction: Jurisdiction,
 ): Promise<Record<RetainableMaterialType, number> | undefined> {
-  const bodies = await mockGoverningBodyService.getAll();
+  const bodies = await governingBodyService.getAll();
   const body = bodies.find(b => b.enabled && b.retentionPolicyVersions?.length && b.jurisdictions?.includes(jurisdiction));
   if (!body?.retentionPolicyVersions) return undefined;
   const now = new Date();

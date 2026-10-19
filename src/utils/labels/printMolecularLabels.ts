@@ -42,10 +42,12 @@ import {
 // real, reproduced test timeout in this file. Importing the specific
 // service files directly avoids paying that cost just to reach two
 // narrow services.
-import { mockPrintSettingsService as printSettingsService } from '@/services/printSettings/mockPrintSettingsService';
-import { mockPrinterProfileService as printerProfileService } from '@/services/printerProfiles/mockPrinterProfileService';
+import { printSettingsService } from '@/services/printSettings/printSettingsServiceInstance';
+import { printerProfileService } from '@/services/printerProfiles/printerProfileServiceInstance';
 import { buildSimpleZplLabel } from './simpleZplTemplate';
-import { dispatchZplLabel } from './dispatchZplLabel';
+import { applySavedLayout, applySavedLayoutHtml, labelValues } from '@/services/labelDesigner/savedLayoutRegistry';
+import type { LabelType } from '@/services/labelDesigner/ILabelLayoutService';
+import { dispatchZplLabel, bridgeDispatchesZpl } from './dispatchZplLabel';
 
 const SPECIMEN_PRESET_ID = 'clsi_standard_specimen';
 const PLATE_AND_RACK_PRESET_ID = 'medium_container';
@@ -58,7 +60,7 @@ const DECK_LOCATION_PRESET_ID = 'clsi_standard_specimen';
  *  on any real failure to look up settings/profile, or a genuinely
  *  unconfigured/unsupported bridge — the caller's own existing
  *  window.print() path remains the real, working fallback either way. */
-async function tryDispatchViaHardwareBridge(barcodePayload: string, textLines: string[], preset: LabelSizePreset): Promise<boolean> {
+async function tryDispatchViaHardwareBridge(barcodePayload: string, textLines: string[], preset: LabelSizePreset, labelType: LabelType, label: object): Promise<boolean> {
   const settingsRes = await printSettingsService.get();
   const profileId = settingsRes.ok ? settingsRes.data.molecularLabelPrinterProfileId : undefined;
   if (!profileId) return false;
@@ -66,9 +68,11 @@ async function tryDispatchViaHardwareBridge(barcodePayload: string, textLines: s
   const profileRes = await printerProfileService.getById(profileId);
   if (!profileRes.ok || !profileRes.data) return false;
   const printer = profileRes.data;
-  if (printer.bridgeType !== 'qz_tray') return false;
+  if (!bridgeDispatchesZpl(printer)) return false;
 
-  const zpl = buildSimpleZplLabel({ barcodePayload, symbology: preset.defaultBarcodeSymbology, textLines, dpi: printer.dpi, widthMm: preset.widthMm, heightMm: preset.heightMm });
+  const builtInZpl = buildSimpleZplLabel({ barcodePayload, symbology: preset.defaultBarcodeSymbology, textLines, dpi: printer.dpi, widthMm: preset.widthMm, heightMm: preset.heightMm });
+  // Batch 606 (PS-26): a layout saved in the label designer replaces the built-in one.
+  const zpl = applySavedLayout(labelType, labelValues(label, barcodePayload), printer.dpi, builtInZpl);
   const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'molecular-label', documentId: barcodePayload });
   return result.ok;
 }
@@ -92,20 +96,20 @@ export async function printMolecularSpecimenLabels(batch: MolecularBatch): Promi
   const settingsRes = await printSettingsService.get();
   if (settingsRes.ok && settingsRes.data.molecularLabelPrinterProfileId) {
     const results = await Promise.all(labels.map(l => tryDispatchViaHardwareBridge(
-      barcodePayloadForMolecularSpecimen(l), molecularSpecimenZplTextLines(l), preset,
+      barcodePayloadForMolecularSpecimen(l), molecularSpecimenZplTextLines(l), preset, 'molecular_specimen', l,
     )));
     if (results.every(Boolean)) return true;
   }
 
-  const htmlFragments = labels.map(l => buildMolecularSpecimenLabelHtml(l, preset));
+  const htmlFragments = labels.map(l => applySavedLayoutHtml('molecular_specimen', labelValues(l, barcodePayloadForMolecularSpecimen(l)), buildMolecularSpecimenLabelHtml(l, preset)));
   return printLabels(htmlFragments, preset, `Specimen Labels — ${batch.batchBarcode}`, { document: 'molecular-specimen-labels', documentId: batch.batchBarcode });
 }
 
 export async function printMolecularPlateLabel(batch: MolecularBatch): Promise<boolean> {
   const preset = getLabelSizePreset(PLATE_AND_RACK_PRESET_ID)!;
   const label = buildMolecularPlateLabelData(batch, new Date().toISOString());
-  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularPlate(label), molecularPlateZplTextLines(label), preset)) return true;
-  const html = buildMolecularPlateLabelHtml(label, preset);
+  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularPlate(label), molecularPlateZplTextLines(label), preset, 'molecular_plate', label)) return true;
+  const html = applySavedLayoutHtml('molecular_plate', labelValues(label, barcodePayloadForMolecularPlate(label)), buildMolecularPlateLabelHtml(label, preset));
   return printLabels([html], preset, `Plate Label — ${label.plateBarcode}`, { document: 'molecular-plate-label', documentId: label.plateBarcode });
 }
 
@@ -121,8 +125,8 @@ export async function printMolecularRackLabel(sequence: number): Promise<boolean
   // under the barcode?"): the ZPL path shows the rack barcode as
   // human-readable text, matching the HTML path and every sibling
   // molecular label (molecularRackZplTextLines).
-  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularRack(label), molecularRackZplTextLines(label), preset)) return true;
-  const html = buildMolecularRackLabelHtml(label, preset);
+  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularRack(label), molecularRackZplTextLines(label), preset, 'molecular_rack', label)) return true;
+  const html = applySavedLayoutHtml('molecular_rack', labelValues(label, barcodePayloadForMolecularRack(label)), buildMolecularRackLabelHtml(label, preset));
   return printLabels([html], preset, `Extraction Rack Label — ${label.rackBarcode}`, { document: 'molecular-rack-label', documentId: label.rackBarcode });
 }
 
@@ -130,7 +134,7 @@ export async function printMolecularDeckLocationLabel(batch: MolecularBatch): Pr
   const label = buildMolecularDeckLocationLabelData(batch, new Date().toISOString());
   if (!label) return false; // real, honest no-op — no real deck slot assigned to this batch yet
   const preset = getLabelSizePreset(DECK_LOCATION_PRESET_ID)!;
-  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularDeckLocation(label), molecularDeckLocationZplTextLines(label), preset)) return true;
-  const html = buildMolecularDeckLocationLabelHtml(label, preset);
+  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularDeckLocation(label), molecularDeckLocationZplTextLines(label), preset, 'molecular_deck_location', label)) return true;
+  const html = applySavedLayoutHtml('molecular_deck_location', labelValues(label, barcodePayloadForMolecularDeckLocation(label)), buildMolecularDeckLocationLabelHtml(label, preset));
   return printLabels([html], preset, `Deck Location Label — ${label.deckLocationLabel}`, { document: 'molecular-deck-location-label', documentId: label.deckLocationLabel });
 }

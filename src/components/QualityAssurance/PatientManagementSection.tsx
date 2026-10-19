@@ -40,7 +40,7 @@ import { listOrganisations } from '@/services/organisation/organisationService';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import type { MasterPatientRecord, PatientLinkRelationshipType } from '@/services/patients/IPatientIndexService';
 import type { Case } from '@/types/case/Case';
-import { patientIndexService } from '@/services';
+import { patientIndexService, auditService as mockAuditService } from '@/services';
 
 type ActiveAction = 'merge' | 'link' | 'move' | null;
 
@@ -140,6 +140,7 @@ export const PatientManagementSection: React.FC = () => {
         })
       : t('patientManagementSection.confirm.moveLabel', { caseId: moveCaseId, sourceFirstName: selectedPatient?.firstName, sourceLastName: selectedPatient?.lastName, targetFirstName: targetPatient?.firstName, targetLastName: targetPatient?.lastName });
 
+  const isCrossTenantTarget = !!(selectedPatient && targetPatient && selectedPatient.organisationId !== targetPatient.organisationId);
   const confirmActionMessage = activeAction === 'merge'
     ? t('patientManagementSection.confirm.mergeMessage')
     : activeAction === 'link'
@@ -150,6 +151,14 @@ export const PatientManagementSection: React.FC = () => {
     if (!selectedPatient || !targetPatient) return;
     setBusy(true);
     try {
+      if (selectedPatient.organisationId !== targetPatient.organisationId) {
+        // Batch 605: a target in another organisation. The audit entry holds ids only, no names.
+        void mockAuditService.logEvent({
+          type: 'system', event: 'Cross-Organisation Patient Action',
+          detail: `${activeAction} from organisation ${selectedPatient.organisationId} (patient ${selectedPatient.id}) to organisation ${targetPatient.organisationId} (patient ${targetPatient.id}) confirmed by a cross-tenant administrator.`,
+          user: user?.id ?? 'unknown', caseId: null, confidence: null,
+        });
+      }
       if (activeAction === 'merge') {
         const result = await patientIndexService.mergeIntoExistingPatient(selectedPatient.id, targetPatient.id);
         setStatusMessage(t('patientManagementSection.status.mergedSuccess', {
@@ -285,6 +294,7 @@ export const PatientManagementSection: React.FC = () => {
             <div className="ps-patientmgmt-linksearch-wrap">
               <PatientLinkSearch
                 organisationId={selectedPatient.organisationId}
+                organisationIds={crossTenant ? searchableOrgIds : undefined}
                 confirmed={targetPatient}
                 onConfirm={setTargetPatient}
                 title={activeAction === 'merge' ? t('patientManagementSection.linkSearch.mergeTitle') : activeAction === 'link' ? t('patientManagementSection.linkSearch.linkTitle') : t('patientManagementSection.linkSearch.moveTitle')}
@@ -305,7 +315,7 @@ export const PatientManagementSection: React.FC = () => {
       <ConfirmModal
         show={confirmOpen}
         title={t('patientManagementSection.confirmModalTitle')}
-        message={<span data-phi="true">{confirmActionLabel} {confirmActionMessage}</span>}
+        message={<span data-phi="true">{confirmActionLabel} {confirmActionMessage}{isCrossTenantTarget && <strong className="ps-conf-hint--danger"> {t('patientManagementSection.crossTenantWarning')}</strong>}</span>}
         confirmLabel={busy ? t('patientManagementSection.workingButton') : t('common.confirm')}
         cancelLabel={t('common.cancel')}
         onConfirm={handleConfirmedAction}

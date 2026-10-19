@@ -49,7 +49,7 @@
 import { caseRouter } from '../cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 import { mockAuditService } from '../auditlog/mockAuditService';
-import { mockAssetLocationDictionaryService } from '../assetLocation/mockAssetLocationDictionaryService';
+import { assetLocationDictionaryService } from '../assetLocation/assetLocationDictionaryServiceInstance';
 import { applyMaterialLocation } from './materialLocationMutation';
 import type { MaterialLocationEventPayload } from '@/types/events/MaterialLocationEventPayload';
 
@@ -148,7 +148,7 @@ export async function processMaterialLocationEvent(payload: MaterialLocationEven
   // fire-and-forget: a real Asset Location Dictionary lookup/auto-
   // create failing or being slow never blocks this event's own real
   // outcome, which has already been decided and returned below.
-  mockAssetLocationDictionaryService.findOrCreateByName(
+  assetLocationDictionaryService.findOrCreateByName(
     payload.location,
     `No exact match for location "${payload.location}" reported by source system ${payload.sourceSystem} on case ${caseData.id}.`,
   ).catch(() => {});

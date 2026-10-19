@@ -158,3 +158,9 @@ CSV exports neutralize formula cells (finding F8, `utils/csv.ts`); the disposal 
 ## Batch 566 (WCAG 2.1 AA)
 
 - `BatchManagementPage.tsx`: the stage tiles say which is on (`aria-pressed`); the Disposal and Disposal report tiles have `type="button"` and their emoji are hidden from screen readers.
+
+
+## Batch 610 (part C)
+
+- `RetentionHoldsQueuePage.tsx` (route `/batch-management/retention-holds`, tile on `BatchManagementPage.tsx`): the active retention holds with case, reason, who and when, a Release action (note required) and CSV export. Services: `services/retentionHolds/`.
+- `BatchColdChainPanel.tsx` (in `BatchDetailView.tsx`): the readings and excursion status of the smart container checked out to the batch, with the labelled Simulated reading control. An excursion holds the batch and raises the CAPA items; the page re-reads the batch to show it. Components: `components/ColdChain/AssetReadingsPanel.tsx`.

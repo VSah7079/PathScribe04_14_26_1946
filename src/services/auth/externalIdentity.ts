@@ -53,7 +53,7 @@ export interface ExternalIdentity {
 /** Why a sign-in was refused. Each has a login.ssoError.<reason> message. */
 export const SSO_DENIAL_REASONS = [
   'not_provisioned', 'inactive', 'ambiguous', 'already_linked', 'no_app_access',
-  'invalid_token', 'provider_error', 'cancelled', 'not_configured', 'server_unavailable',
+  'invalid_token', 'provider_error', 'cancelled', 'not_configured', 'server_unavailable', 'mfa_required',
 ] as const;
 export type SsoDenialReason = typeof SSO_DENIAL_REASONS[number];
 

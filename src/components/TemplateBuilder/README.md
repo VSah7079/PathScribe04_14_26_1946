@@ -179,3 +179,9 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 ## Batch 570
 
 - `NodeCard` exported for its tests (`TemplateCanvas.nodeRow.test.tsx`: the name selects once, the row is no button, Remove and show-contents do only their own jobs).
+
+- Batch 609 (#38): `TemplateAssemblyPage` shows a banner and disables Publish while a Final template has more than one Final Diagnosis field; `PartBuilderPage` warns when a saved part leaves a Final template with more than one. Test: `TemplateAssemblyPage.finalDiagnosis.test.tsx`.
+
+## Batch 612 (part C)
+
+Template Assembly: the template Style panel takes sizes in points (new templates are `fontUnits: 'pt'`); a template saved in pixels shows **Convert to points**. The label size box in the inspector is points.

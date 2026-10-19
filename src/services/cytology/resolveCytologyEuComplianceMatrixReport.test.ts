@@ -42,3 +42,19 @@ describe('resolveCytologyEuComplianceMatrixReport — real, per direct guidance\
     expect(rows[0].internalAuditNonConformityCount).toBe(0);
   });
 });
+
+describe('Batch 608 (#52): registry IDs, platform and interval adherence columns', () => {
+  it('lists distinct registry IDs, counts ThinPrep and SurePath, and carries the adherence percentage', () => {
+    const [row] = resolveCytologyEuComplianceMatrixReport([
+      { countryCode: 'NL', hpvStatus: 'primary', nationalRegistryId: 'NL-77', platform: 'ThinPrep' },
+      { countryCode: 'NL', hpvStatus: 'co_test', nationalRegistryId: 'NL-77', platform: 'SurePath' },
+      { countryCode: 'NL', hpvStatus: 'primary', platform: 'other' },
+    ], {}, { NL: { evaluated: 2, onSchedule: 1, adherencePercent: 50 } });
+    expect(row).toMatchObject({ nationalRegistryIds: ['NL-77'], thinPrepCount: 1, surePathCount: 1, intervalAdherencePercent: 50 });
+  });
+  it('without adherence data the percentage is undefined', () => {
+    const [row] = resolveCytologyEuComplianceMatrixReport([{ countryCode: 'FR', hpvStatus: 'primary' }], {});
+    expect(row.intervalAdherencePercent).toBeUndefined();
+    expect(row.nationalRegistryIds).toEqual([]);
+  });
+});

@@ -277,6 +277,7 @@ const PrintQueueDashboardSection: React.FC = () => {
                   <td className="ps-conf-td">{job.mode}</td>
                   <td className="ps-conf-td">
                     {t(printJobStatusKey(job))}
+                    {job.status === 'PRINTED' && job.simulated && <div className="ps-specreq-meta">{t('printQueueDashboard.simulatedSent')}</div>}
                     {job.status === 'FAILED' && (printJobFailureReasonKey(job) || job.errorMessage) && <div className="ps-specreq-meta">{failureReason(job)}</div>}
                     {job.status === 'HOLD' && job.holdReason && <div className="ps-specreq-meta">{job.holdReason}</div>}
                   </td>

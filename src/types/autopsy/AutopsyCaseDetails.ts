@@ -406,6 +406,12 @@ export interface AutopsyCaseDetails {
    *  'tier_0_no_retention' for an HTA-applicable jurisdiction, same
    *  gate organRetentionDisposal below already uses. */
   organRetentionDetail?: OrganRetentionRecord;
+  /** Batch 611 (#59) — the custody history of retained material: every
+   *  retention detail ever recorded, oldest first, appended to and never
+   *  rewritten (organRetentionDetail stays the current one, the last entry).
+   *  A case recorded before this batch has none until its next change, when
+   *  the earlier detail is seeded in first. */
+  organRetentionHistory?: OrganRetentionRecord[];
   organRetentionDisposal?: OrganRetentionDisposalRecord;
   ancillaryHold: AncillaryHoldState;
   /** Real, per spec §2.4.3/§3.3 — only ever appended to, only ever

@@ -23,7 +23,7 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
-import { mockMolecularQcRunRecordService } from '../cytology/mockMolecularQcRunRecordService';
+import { molecularQcRunRecordService } from '../cytology/molecularQcRunRecordServiceInstance';
 import type { MolecularBatchResultEventPayload } from '@/types/events/MolecularBatchResultEventPayload';
 
 export interface ProcessInboundMolecularBatchEventSpecimenResult {
@@ -58,7 +58,7 @@ export async function processInboundMolecularBatchEvent(payload: MolecularBatchR
   // Real, per-run QC record created first — the batch itself is a
   // real fact independent of whether every one of its specimens
   // resolves cleanly below.
-  const runRes = await mockMolecularQcRunRecordService.add({
+  const runRes = await molecularQcRunRecordService.add({
     runDate: payload.runDate,
     instrumentId: payload.instrumentId,
     assayName: payload.assayName,

@@ -5,18 +5,18 @@
 import type { RegistryGoLiveDeps } from './registryGoLive';
 import { registrySendGate } from './registryGoLive';
 import type { RegistryDomain } from './registryTemplateVersions';
-import { mockRegistryGoLiveService } from './mockRegistryGoLiveService';
+import { registryGoLiveService } from './registryGoLiveServiceInstance';
 import { syntheticCancerSubmissions, syntheticScreeningSubmissions } from './syntheticTestSuite';
 import { deploymentInstance } from '../deployment/deploymentInstance';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { signatureGate } from '../auth/authSessionInstance';
 import { mockAuditService } from '../auditlog/mockAuditService';
-import { mockScreeningRegistryConfigService } from '../screeningRegistry/mockScreeningRegistryConfigService';
+import { screeningRegistryConfigService } from '../screeningRegistry/screeningRegistryConfigServiceInstance';
 import { screeningRegistryDefinition } from '../screeningRegistry/screeningRegistryDefinitions';
 import { registryConfigReadiness } from '../screeningRegistry/screeningRegistryEngine';
-import { mockCytologyCategoryService } from '../cytology/mockCytologyCategoryService';
-import { mockCytologyRegistryOutboundQueueService } from '../cytology/mockCytologyRegistryOutboundQueueService';
-import { mockCancerRegistryOutboundQueueService } from '../cancerRegistry/mockCancerRegistryOutboundQueueService';
+import { cytologyCategoryService } from '../cytology/cytologyCategoryServiceInstance';
+import { cytologyRegistryOutboundQueueService } from '../cytology/cytologyRegistryOutboundQueueServiceInstance';
+import { cancerRegistryOutboundQueueService } from '../cancerRegistry/cancerRegistryOutboundQueueServiceInstance';
 import { cancerRegistryDefinition } from '../cancerRegistry/cancerRegistryDefinitions';
 import { buildRegistrySubmissionHeader, registryContentHash } from '../registrySubmission/registrySubmissionHeader';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
@@ -25,14 +25,14 @@ const SYNTHETIC_FACILITY = { facilityId: 'SYN-FACILITY', facilityName: 'Syntheti
 
 export const registryGoLiveDeps: RegistryGoLiveDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
-  store: mockRegistryGoLiveService,
+  store: registryGoLiveService,
   instance: deploymentInstance,
   readSetup: async (domain, registryId) => {
     if (domain === 'screening') {
       const definition = screeningRegistryDefinition(registryId);
-      const config = await mockScreeningRegistryConfigService.get(registryId as any);
+      const config = await screeningRegistryConfigService.get(registryId as any);
       if (!definition || !config.ok) return {};
-      const categories = await mockCytologyCategoryService.getAll();
+      const categories = await cytologyCategoryService.getAll();
       const readiness = registryConfigReadiness(definition, config.data, categories.ok ? categories.data : []);
       return {
         definition: { specStatus: definition.specStatus, patientIdentifierFormatId: definition.patientIdentifierFormatId, resultCoding: definition.resultCoding },
@@ -45,7 +45,7 @@ export const registryGoLiveDeps: RegistryGoLiveDeps = {
     return definition ? { definition: { specStatus: definition.specStatus, patientIdentifierFormatId: definition.patientIdentifierFormatId } } : {};
   },
   queueEntries: async (domain: RegistryDomain) => {
-    const all = domain === 'screening' ? await mockCytologyRegistryOutboundQueueService.getAll() : await mockCancerRegistryOutboundQueueService.getAll();
+    const all = domain === 'screening' ? await cytologyRegistryOutboundQueueService.getAll() : await cancerRegistryOutboundQueueService.getAll();
     return all.ok ? (all.data as any[]) : [];
   },
   verifyStepUp: async (confirmation, recordId) => {
@@ -56,9 +56,9 @@ export const registryGoLiveDeps: RegistryGoLiveDeps = {
     return { ok: true, stepUp: { method: r.evidence.method, confirmationId: r.evidence.confirmationId, confirmedAt: r.evidence.confirmedAt } };
   },
   restampScreening: async (registryId, version) => {
-    const config = await mockScreeningRegistryConfigService.get(registryId as any);
+    const config = await screeningRegistryConfigService.get(registryId as any);
     if (!config.ok) return;
-    await mockScreeningRegistryConfigService.save({
+    await screeningRegistryConfigService.save({
       ...config.data,
       codeMappings: config.data.codeMappings.map(m => ({ ...m, baselineVersion: version })),
       ...(config.data.requirePatientIdentifier ? { identifierHoldBaselineVersion: version } : {}),
@@ -71,13 +71,13 @@ export const registryGoLiveDeps: RegistryGoLiveDeps = {
       return definition ? syntheticCancerSubmissions(definition, { ...SYNTHETIC_FACILITY, now }) : [];
     }
     const definition = screeningRegistryDefinition(registryId);
-    const config = await mockScreeningRegistryConfigService.get(registryId as any);
+    const config = await screeningRegistryConfigService.get(registryId as any);
     if (!definition || !config.ok) return [];
-    const categories = await mockCytologyCategoryService.getAll();
+    const categories = await cytologyCategoryService.getAll();
     return syntheticScreeningSubmissions(definition, config.data, categories.ok ? (categories.data as any[]) : [], { ...SYNTHETIC_FACILITY, now });
   },
   sendSynthetic: async (domain, registryId, item, templateVersion) => {
-    const queue: any = domain === 'screening' ? mockCytologyRegistryOutboundQueueService : mockCancerRegistryOutboundQueueService;
+    const queue: any = domain === 'screening' ? cytologyRegistryOutboundQueueService : cancerRegistryOutboundQueueService;
     const prior = await queue.getByCaseId(item.caseRef);
     const submission = buildRegistrySubmissionHeader({
       ...SYNTHETIC_FACILITY, caseId: item.caseRef, specimenId: 'SYN-SP1', registryId,

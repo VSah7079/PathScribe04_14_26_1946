@@ -120,6 +120,13 @@ describe('ClinicalMismatchAlert (Gate A, inline on the report)', () => {
     await waitFor(() => expect(onRecorded).toHaveBeenCalled());
     expect(fakes.record).toHaveBeenLastCalledWith(expect.objectContaining({ resolution: 'DEFERRED', risk: 'low' }));
   });
+  it('Batch 609 (#31): on an amendment with the lab setting off, a high-risk mismatch says the release will not be held but still offers a decision', () => {
+    render(<ClinicalMismatchAlert assessment={{ ...assessment(), releaseNotHeld: true }} caseId="c1" caseType="Colon" onRecorded={vi.fn()} />);
+    expect(screen.getByText(/clinicalMismatch.alert.releaseNotHeld/)).toBeTruthy();
+    expect(screen.queryByText(/clinicalMismatch.alert.holdsSignOut/)).toBeNull();
+    fireEvent.click(screen.getByText('clinicalMismatch.alert.review'));
+    expect(screen.getByText('clinicalMismatch.resolutions.UNRESOLVED')).toBeTruthy();
+  });
   it('high risk: says sign-out will ask, and offers Resolved or Unresolved now', () => {
     render(<ClinicalMismatchAlert assessment={assessment()} caseId="c1" caseType="Colon" onRecorded={vi.fn()} />);
     expect(screen.getByText(/clinicalMismatch.alert.holdsSignOut/)).toBeTruthy();

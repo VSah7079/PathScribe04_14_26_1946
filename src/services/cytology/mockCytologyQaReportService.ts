@@ -36,6 +36,10 @@ import { resolveCytologyHistologyCorrelationReport } from './resolveCytologyHist
 import { isUnsatisfactoryAdequacy } from './classifyCytologyAgreement';
 import { resolveCytologyUnscreenedBacklogReport, type CytologyBacklogSpecimenInput } from './resolveCytologyUnscreenedBacklogReport';
 import { resolveCytologyPrimaryHpvFailsafeAuditReport, type CytologyPrimaryHpvFailsafeSpecimenInput } from './resolveCytologyPrimaryHpvFailsafeAuditReport';
+import { loadMolecularOrders } from '../molecularOrders/mockMolecularOrderStore';
+import { mockScreeningIntervalService } from './mockScreeningIntervalService';
+import { resolveScreeningIntervalAdherence, type ScreeningAdherenceInput } from './screeningIntervals';
+import type { MolecularQcRunRecord } from './IMolecularQcRunRecordService';
 import { resolveCytologyEuComplianceMatrixReport, type CytologyEuComplianceSpecimenInput } from './resolveCytologyEuComplianceMatrixReport';
 import { resolveCytologyHpvPositivityMonitorReport, type CytologyHpvIndicationType, type CytologyHpvPositivitySpecimenInput } from './resolveCytologyHpvPositivityMonitorReport';
 import { mockMolecularQcRunRecordService } from './mockMolecularQcRunRecordService';
@@ -82,6 +86,14 @@ async function fetchScopedReviewsAndCategories(scope: QaScope) {
   const categories: CytologyCategoryEntry[] = categoriesRes.ok ? categoriesRes.data : [];
   const scopedReviews = reviews.filter(r => caseMatchesScope(caseById[r.caseId] ?? {}, scope));
   return { scopedReviews, categories, caseById };
+}
+
+/** Batch 608 (#77): a molecular QC run is in scope when it sits at the selected organisation or facility.
+ *  A run with no location is lab-wide: it shows at enterprise level only. */
+export function runMatchesScope(run: Pick<MolecularQcRunRecord, 'organisationId' | 'facilityId'>, scope: QaScope): boolean {
+  if (scope.level === 'enterprise') return true;
+  if (scope.level === 'client') return run.facilityId === scope.clientId;
+  return run.organisationId === scope.organisationId;
 }
 
 /** Each in-scope specimen's chosen Final Diagnosis review (peer review and Batch 459's PS-152 report). */
@@ -269,6 +281,7 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
           hpvPositive: sp.cytologyScreening.hpvResult === 'Positive',
           cytologyTriagePerformed: !!triageReview,
           cytologyTriageInadequate: triageReview ? isUnsatisfactoryAdequacy(triageReview.adequacySelections?.map((s: any) => s.categoryId), categories) : false,
+          followUp: sp.cytologyScreening.hpvFollowUp,
         });
       }
     }
@@ -276,13 +289,24 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
   },
 
   async getEuComplianceMatrixReport(scope) {
-    const [{ caseById }, facilitiesRes, recordsRes] = await Promise.all([
+    const [{ caseById }, facilitiesRes, recordsRes, intervalsRes] = await Promise.all([
       fetchScopedReviewsAndCategories(scope),
       mockFacilityService.getAll(),
       qaActivityRecordService.getAll(),
+      mockScreeningIntervalService.get(),
     ]);
     const jurisdictionByFacilityId: Record<string, string> = {};
-    if (facilitiesRes.ok) for (const f of facilitiesRes.data) jurisdictionByFacilityId[f.id] = f.jurisdiction;
+    const registryIdByFacilityId: Record<string, string | undefined> = {};
+    if (facilitiesRes.ok) for (const f of facilitiesRes.data) { jurisdictionByFacilityId[f.id] = f.jurisdiction; registryIdByFacilityId[f.id] = f.nationalRegistryId; }
+    // Batch 608 (#52): each patient's cytology screens by date, across every case, for interval adherence.
+    type ScreenCase = { patient?: { id?: string }; specimens?: { cytologyScreening?: unknown; collectedAt?: string; receivedAt?: string }[] };
+    const screenDates = (c: ScreenCase): string[] => (c?.specimens ?? []).filter(sp => sp?.cytologyScreening).map(sp => sp.collectedAt ?? sp.receivedAt).filter((d): d is string => !!d);
+    const screensByPatient = new Map<string, string[]>();
+    for (const c of Object.values(caseById) as ScreenCase[]) {
+      const pid = c?.patient?.id;
+      if (pid) screensByPatient.set(pid, [...(screensByPatient.get(pid) ?? []), ...screenDates(c)]);
+    }
+    const adherenceInputs: ScreeningAdherenceInput[] = [];
 
     const EU_JURISDICTIONS = new Set(['FR', 'DE', 'NL', 'BE', 'IE']);
     const inputs: CytologyEuComplianceSpecimenInput[] = [];
@@ -298,7 +322,12 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
         inputs.push({
           countryCode: jurisdiction,
           hpvStatus: hpvOrderReason === 'co_test' ? 'co_test' as const : hpvOrderReason ? 'primary' as const : 'not_applicable' as const,
+          nationalRegistryId: registryIdByFacilityId[c?.order?.facilityId],
+          platform: sp.cytologyScreening.liquidBasedPlatform,
         });
+        const screenedAt: string | undefined = sp.collectedAt ?? sp.receivedAt;
+        const previous = (screensByPatient.get(c?.patient?.id) ?? []).filter(d => screenedAt && d < screenedAt).sort().pop();
+        adherenceInputs.push({ countryCode: jurisdiction, dateOfBirth: c?.patient?.dateOfBirth, screenedAt, previousScreenAt: previous });
       }
     }
 
@@ -311,11 +340,14 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
       nonConformityCountByCountry[country] = (nonConformityCountByCountry[country] ?? 0) + 1;
     }
 
-    return ok(resolveCytologyEuComplianceMatrixReport(inputs, nonConformityCountByCountry));
+    const adherence = resolveScreeningIntervalAdherence(adherenceInputs, intervalsRes.ok ? intervalsRes.data : []);
+    return ok(resolveCytologyEuComplianceMatrixReport(inputs, nonConformityCountByCountry, adherence));
   },
 
   async getHpvPositivityMonitorReport(scope) {
     const { caseById } = await fetchScopedReviewsAndCategories(scope);
+    // Batch 608 (#76): an in-house molecular order names the assay; a name typed on the specimen wins.
+    const orderAssayBySpecimen = new Map(loadMolecularOrders().filter(o => o.assayName).map(o => [o.specimenId, o.assayName]));
     const inputs: CytologyHpvPositivitySpecimenInput[] = [];
     for (const c of Object.values(caseById) as any[]) {
       if (!caseMatchesScope(c, scope)) continue;
@@ -334,6 +366,7 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
         inputs.push({
           testingSite,
           indicationType,
+          assayName: screening.hpvAssayName ?? orderAssayBySpecimen.get(sp.id),
           hpvPositive: screening.hpvResult === 'Positive',
           hpv16Positive: !!genotype?.hpv16,
           hpv18Or45Positive: !!genotype?.hpv18Or45,
@@ -351,15 +384,15 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
   // model — it's real, lab-wide operational data, not scoped clinical
   // data — so _scope is accepted for interface consistency with every
   // other report here, but genuinely has nothing to filter against.
-  async getMolecularQcFailureRateReport(_scope) {
+  async getMolecularQcFailureRateReport(scope) {
     const runsRes = await mockMolecularQcRunRecordService.getAll();
-    const runs = runsRes.ok ? runsRes.data : [];
+    const runs = runsRes.ok ? runsRes.data.filter(r => runMatchesScope(r, scope)) : [];
     return ok(resolveCytologyMolecularQcFailureRateReport(runs));
   },
 
-  async getMolecularLotToLotTrendReport(_scope) {
+  async getMolecularLotToLotTrendReport(scope) {
     const runsRes = await mockMolecularQcRunRecordService.getAll();
-    const runs = runsRes.ok ? runsRes.data : [];
+    const runs = runsRes.ok ? runsRes.data.filter(r => runMatchesScope(r, scope)) : [];
     return ok(resolveCytologyMolecularLotToLotTrendReport(runs));
   },
 

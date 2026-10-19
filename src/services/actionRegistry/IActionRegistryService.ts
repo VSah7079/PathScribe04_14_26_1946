@@ -2,6 +2,7 @@
 // IActionRegistryService.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { TriggerPoolOptions } from './voiceTriggerPool';
 import type { VoiceProfileLanguage } from '@/constants/voiceProfiles';
 
 /**
@@ -67,7 +68,9 @@ export interface IActionRegistryService {
   // ─── Core Action Management ──────────────────────────────────────────────
   getActions(): SystemAction[];
   getActionById(id: SystemActionId): SystemAction | undefined;
-  findActionByTrigger(transcript: string, language?: VoiceProfileLanguage): SystemAction | undefined;
+  /** `options.englishFuzzyFallback` (default true; Batch 609, #179): false keeps a non-English
+   *  profile's fuzzy step to its own language's phrases (exact English phrases still match). */
+  findActionByTrigger(transcript: string, language?: VoiceProfileLanguage, options?: TriggerPoolOptions): SystemAction | undefined;
   updateAction(id: SystemActionId, updates: Partial<SystemAction>): Promise<void>;
   setCurrentContext(context: string): void;
   /** Real, per PS-289's own comment thread — set the moment a

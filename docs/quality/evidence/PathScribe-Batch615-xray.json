@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 615 \u2014 HTTP service pattern, CI workflow, vial/rack labels, RTL groundwork, flagged-finding code search",
+    "description": "Vitest, 2026-10-18: full suite 1391 files (1386 passed, 4 skipped, 1 failed); 11,349 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Python checks 233 and 44 passed. Not run: browser check."
+  },
+  "tests": [
+    {
+      "testKey": "PS-792",
+      "start": "2026-10-19T00:00:00Z",
+      "finish": "2026-10-19T02:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/i18n/direction.test.ts\nPASSED: src/pages/Synoptic/Codes/AddCodeModal.triggers.test.tsx\nPASSED: src/services/abnormalDetection/triggerCodeQueries.test.ts\nPASSED: src/services/apiServer/httpServiceKit.test.ts\nPASSED: src/services/apiServer/serviceSelection.test.ts\nPASSED: src/services/cases/httpCaseService.test.ts\nPASSED: src/services/deploymentReadiness/ciWorkflow.guard.test.ts\nPASSED: src/services/styleRules/logicalCss.guard.test.ts\nPASSED: src/utils/labels/printVialRackLabel.test.ts\nPASSED: src/utils/labels/vialRackZplTemplates.test.ts"
+    }
+  ]
+}

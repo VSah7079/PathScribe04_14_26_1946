@@ -13,6 +13,8 @@
 // come from services/organMapping via hooks/useOrganMap.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { MarginInkChip } from '@/components/Common/MarginInkChip';
+import type { MarginInkEntry } from '@/services/grossing/marginInkLabels';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
@@ -29,6 +31,8 @@ interface Props {
   context: OrganMapContext | null;
   loading: boolean;
   payload: OrganMapPayload | null;
+  /** Batch 610 (#9): the ink colour recorded on each margin at grossing, shown by the margin's name in the legend. */
+  marginInk?: MarginInkEntry[];
   figureState: OrganMapReportState;
   busy: boolean;
   caseId?: string;
@@ -38,7 +42,7 @@ interface Props {
   onRemove: () => void;
 }
 
-export const OrganMapPanel: React.FC<Props> = ({ context, loading, payload, figureState, busy, caseId, facilityId, onSectorClick, onInsert, onRemove }) => {
+export const OrganMapPanel: React.FC<Props> = ({ context, loading, payload, figureState, busy, caseId, facilityId, marginInk, onSectorClick, onInsert, onRemove }) => {
   const { t } = useTranslation();
   const scheme = context?.scheme.scheme;
   const capContext = { caseId: caseId ?? null, facilityId: facilityId ?? null };
@@ -71,6 +75,15 @@ export const OrganMapPanel: React.FC<Props> = ({ context, loading, payload, figu
                     {usesPatternFill(l.pattern) && <path d="M 0 12 L 12 0 M 4 12 L 16 0" className={l.kind === 'overlay' ? `ps-organmap-overlay-ink ps-organmap-stroke--${l.key}` : 'ps-organmap-ink'} />}
                   </svg>
                   {organMapLegendLabel(t, scheme, l.key, payload.mapType)}
+                </li>
+              ))}
+            </ul>
+          )}
+          {marginInk && marginInk.length > 0 && (
+            <ul className="ps-organmap-legend ps-organmap-legend--margin-ink" aria-label={t('marginInk.legendTitle')}>
+              {marginInk.map(m => (
+                <li key={m.marginId} className="ps-organmap-legend-item">
+                  <span className="ps-organmap-legend-margin-name">{m.name}</span> <MarginInkChip ink={m} />
                 </li>
               ))}
             </ul>

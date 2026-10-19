@@ -58,9 +58,20 @@ export function isServerOutcome(outcome: unknown): outcome is Extract<RunExportO
 
 export type DownloadOutcome = { ok: true } | { ok: false; problem: ExportProblem };
 
+/** Batch 611 (#194): the controls of the simulated export server (the demo only). */
+export interface ExportSimulation {
+  /** True while "Simulate a long export" is on: every export takes a few seconds to build. */
+  longBuilds(): boolean;
+  setLongBuilds(on: boolean): void;
+}
+
 export interface ExportTracker {
-  /** True when exports go through the API server; false in the demo. */
+  /** True when exports go through an export server: the API server, or the simulated one in the demo. */
   readonly viaServer: boolean;
+  /** Batch 611: true when that server is the simulated one (the demo), whose files are built here and kept in memory. */
+  readonly simulated: boolean;
+  /** Batch 611: the simulated server's controls; null with the real API server. */
+  readonly simulation: ExportSimulation | null;
   run(input: RunExportInput): Promise<RunExportOutcome>;
   /** Fetches a fresh download link and starts the download (the capability is checked again by the server). */
   download(exportId: string): Promise<DownloadOutcome>;
@@ -75,8 +86,10 @@ export interface ExportTracker {
 }
 
 export interface ExportTrackerDeps {
-  /** The API server's export endpoints, or null with no API server (the demo). */
+  /** The API server's export endpoints, the simulated export server in the demo (Batch 611), or null (the browser builds and downloads). */
   api: IExportApi | null;
+  /** Batch 611: `api` is the simulated export server (labelled Simulated on screen). */
+  simulation?: ExportSimulation | null;
   /** ExportStatus events for the signed-in user (liveUpdateService.subscribeExports). */
   subscribeStatus: (onEvent: (event: ExportStatusEvent) => void) => { unsubscribe(): void };
   /** Starts the browser's download of a signed link; false when the link isn't one it may follow. */
@@ -214,7 +227,7 @@ export function createExportTracker(deps: ExportTrackerDeps): ExportTracker {
     const req = await server.request({
       kind: input.kind, format: 'csv', parameters: input.parameters, title: input.title,
       ...(input.facilityId ? { facilityId: input.facilityId } : {}),
-    });
+    }, { build: input.buildInBrowser });
     if (gen !== generation) return { via: 'server', result: 'failed', problem: 'SIGNED_OUT' };
     if (req.ok === false) {
       const problem = req.error.code;
@@ -254,6 +267,8 @@ export function createExportTracker(deps: ExportTrackerDeps): ExportTracker {
 
   return {
     viaServer: api !== null,
+    simulated: !!deps.simulation,
+    simulation: deps.simulation ?? null,
 
     async run(input) {
       if (!api) {

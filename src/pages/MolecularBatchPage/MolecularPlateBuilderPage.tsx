@@ -817,7 +817,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
                 <tbody>
                   {(existingBatch.results ?? []).map((r, i) => {
                     const isExpanded = expandedTraceWellPos === r.well_position;
-                    const trace = isExpanded ? resolveMolecularHistoricalTrace([existingBatch], { accessionNumber: r.accession_number }) : null;
+                    const trace = isExpanded ? resolveMolecularHistoricalTrace([existingBatch], r.accession_number ? { accessionNumber: r.accession_number } : { wellPosition: r.well_position }) : null;
                     return (
                       <React.Fragment key={i}>
                         <tr className="ps-conf-tr">
@@ -836,6 +836,9 @@ const MolecularPlateBuilderPage: React.FC = () => {
                         {isExpanded && trace && (
                           <tr>
                             <td colSpan={7} className="mb-trace-cell">
+                              {trace.control && (
+                                <div><strong>{t('molecularPlateBuilderPage.traceControl')}</strong> {t('molecularPlateBuilderPage.traceControlLine', { id: trace.control.controlId, lot: trace.control.controlLotNumber, expiry: trace.control.controlExpirationDate })}</div>
+                              )}
                               <div><strong>{t('molecularPlateBuilderPage.tracePlateUuid')}</strong> {trace.plateUuid}</div>
                               <div><strong>{t('molecularPlateBuilderPage.tracePlateBarcode')}</strong> {trace.plateBarcode}</div>
                               <div><strong>{t('molecularPlateBuilderPage.traceDeckLocation')}</strong> {trace.targetInstrumentId}{trace.deckSlot ? ` / ${trace.deckSlot}` : t('molecularPlateBuilderPage.noDeckSlotRecorded')}</div>

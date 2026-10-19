@@ -29,9 +29,9 @@ import { updateCaseWithRetry } from '../cases/caseWrite';
 export type ScanBatchRefusal = ScanLoadRefusal | 'NOT_PERMITTED' | 'SCANNER_NOT_FOUND' | 'BATCH_NOT_FOUND' | 'NOT_LOADED' | 'STILL_SCANNING' | 'SAVE_FAILED';
 
 async function deps() {
-  const [{ mockWsiScanBatchService }, { mockEquipmentService }, { caseRouter }, { authorizationService }, { getSessionUser }, { mockAuditService }, { dispatchInterfaceMessage }, { buildWsiScanBatchManifestPayload }] = await Promise.all([
+  const [{ mockWsiScanBatchService }, { equipmentService }, { caseRouter }, { authorizationService }, { getSessionUser }, { mockAuditService }, { dispatchInterfaceMessage }, { buildWsiScanBatchManifestPayload }] = await Promise.all([
     import('./mockWsiScanBatchService'),
-    import('../equipment/mockEquipmentService'),
+    import('../equipment/equipmentServiceInstance'),
     import('../cases/CaseRouter'),
     import('../authorization/defaultAuthorizationService'),
     import('../auth/caseAccessControl'),
@@ -39,7 +39,7 @@ async function deps() {
     import('../interfaceDispatch/dispatchInterfaceMessage'),
     import('../cytology/buildWsiScanBatchManifestPayload'),
   ]);
-  return { batches: mockWsiScanBatchService, equipment: mockEquipmentService, caseRouter, authorizationService, getSessionUser, audit: mockAuditService, dispatchInterfaceMessage, buildWsiScanBatchManifestPayload };
+  return { batches: mockWsiScanBatchService, equipment: equipmentService, caseRouter, authorizationService, getSessionUser, audit: mockAuditService, dispatchInterfaceMessage, buildWsiScanBatchManifestPayload };
 }
 type Deps = Awaited<ReturnType<typeof deps>>;
 

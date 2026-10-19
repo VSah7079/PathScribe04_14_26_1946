@@ -14,11 +14,11 @@ import { registryAckDeps } from './recordRegistryAcknowledgementDeps';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { caseRouter } from '../cases/CaseRouter';
 import { getSessionUser } from '../auth/caseAccessControl';
-import { mockCytologyRegistryOutboundQueueService } from '../cytology/mockCytologyRegistryOutboundQueueService';
-import { mockCancerRegistryOutboundQueueService } from '../cancerRegistry/mockCancerRegistryOutboundQueueService';
-import { mockCytologySignOutRecordService } from '../cytology/mockCytologySignOutRecordService';
-import { mockCytologyReviewRecordService } from '../cytology/mockCytologyReviewRecordService';
-import { mockCytologyCategoryService } from '../cytology/mockCytologyCategoryService';
+import { cytologyRegistryOutboundQueueService } from '../cytology/cytologyRegistryOutboundQueueServiceInstance';
+import { cancerRegistryOutboundQueueService } from '../cancerRegistry/cancerRegistryOutboundQueueServiceInstance';
+import { cytologySignOutRecordService } from '../cytology/cytologySignOutRecordServiceInstance';
+import { cytologyReviewRecordService } from '../cytology/cytologyReviewRecordServiceInstance';
+import { cytologyCategoryService } from '../cytology/cytologyCategoryServiceInstance';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { signOutCytologyCaseDeps } from '../cytology/signOutCytologyCaseDeps';
 import { prepareScreeningRegistrySubmission, submitScreeningRegistryResult } from '../screeningRegistry/submitScreeningRegistryResult';
@@ -26,10 +26,10 @@ import { dispatchCancerRegistryReportIfApplicable, prepareCancerRegistrySubmissi
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { registrySendGateCheck } from '../registryGoLive/registryGoLiveDeps';
 import type { RegistryCapaDeps } from './captureRegistryExceptionAsCapa';
-import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
+import { specimenDeficiencyService as mockSpecimenDeficiencyService } from '../deficiencies/specimenDeficiencyServiceInstance';
 
-const cyto = mockCytologyRegistryOutboundQueueService;
-const cancer = mockCancerRegistryOutboundQueueService;
+const cyto = cytologyRegistryOutboundQueueService;
+const cancer = cancerRegistryOutboundQueueService;
 
 /** Batch 425: the cases the signed-in user can see (the case router's own organisation and facility filter).
  *  Kept for a minute per user: the nav badge polls, and every case search is audited. On the API server
@@ -75,12 +75,12 @@ export const registryTransmissionExportDeps: RegistryTransmissionExportDeps = {
 const rebuildDeps: RebuildDeps = {
   getCase: caseId => caseRouter.getCase(caseId),
   getSignOutRecordAndReview: async (caseId, signOutRecordId) => {
-    const [records, reviews] = await Promise.all([mockCytologySignOutRecordService.getByCaseId(caseId), mockCytologyReviewRecordService.getByCaseId(caseId)]);
+    const [records, reviews] = await Promise.all([cytologySignOutRecordService.getByCaseId(caseId), cytologyReviewRecordService.getByCaseId(caseId)]);
     const record = records.ok ? records.data.find(r => r.id === signOutRecordId) : undefined;
     const review = record && reviews.ok ? reviews.data.find(r => r.id === record.reviewRecordId) : undefined;
     return record && review ? { record, review } : null;
   },
-  getCategories: async () => { const r = await mockCytologyCategoryService.getAll(); return r.ok ? r.data : []; },
+  getCategories: async () => { const r = await cytologyCategoryService.getAll(); return r.ok ? r.data : []; },
   prepareScreening: input => prepareScreeningRegistrySubmission(input, signOutCytologyCaseDeps),
   prepareCancer: (caseData, facilityId, facilityName) => prepareCancerRegistrySubmission(caseData, facilityId, facilityName),
   sendGate: (queue, registryId, synthetic) => registrySendGateCheck(queue === 'cytology' ? 'screening' : 'cancer', registryId, synthetic),

@@ -31,12 +31,15 @@ export type OutboundActionOutcome =
   | 'notBuildable'   // the message couldn't be built (a referenced record is gone); FAILED
   | 'marked'         // a simulated failure was recorded
   | 'notPermitted'   // no interface:outbound:resend
+  | 'onHold'         // a person held it on the Outbound Queue screen (Batch 619); release it first
   | 'notFound';      // no such entry in that queue
 
 export interface OutboundActionDeps {
   adapter: (queue: OutboundQueueType) => Promise<OutboundQueueAdapter>;
   dispatch: (entryId: string, type: InterfaceTransactionType, payload: object) => Promise<InterfaceDispatchResult>;
   enforce: (capability: string, context?: { caseId?: string }) => Promise<{ allowed: boolean }>;
+  /** Batch 619 (PS-800): whether the Outbound Queue screen holds this message. Absent means nothing is held. */
+  isHeld?: (queue: OutboundQueueType, entryId: string) => Promise<boolean>;
   raiseDeficiency: (input: { caseId: string; deficiencyTypeId: string; comment: string; raisedBy: string }) => Promise<unknown>;
 }
 
@@ -74,6 +77,7 @@ export async function dispatchOutboundEntry(queue: OutboundQueueType, entryId: s
   const entry = await findEntry(adapter, entryId);
   if (!entry) return 'notFound';
   if (!(await permitted(deps, adapter, entry))) return 'notPermitted';
+  if (await deps.isHeld?.(queue, entryId)) return 'onHold';
   return send(adapter, entry, deps);
 }
 
@@ -83,6 +87,7 @@ export async function resendOutboundEntry(queue: OutboundQueueType, entryId: str
   const entry = await findEntry(adapter, entryId);
   if (!entry) return 'notFound';
   if (!(await permitted(deps, adapter, entry))) return 'notPermitted';
+  if (await deps.isHeld?.(queue, entryId)) return 'onHold';
   await adapter.retryDispatch(entry.id);
   return send(adapter, entry, deps);
 }

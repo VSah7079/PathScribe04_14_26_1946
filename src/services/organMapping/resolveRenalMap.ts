@@ -21,12 +21,16 @@
 //   site sets another), so the status always follows the measurement.
 // • Batch 466c: a partial nephrectomy's drawing leaves out the renal vein, the
 //   vena cava and the ureter unless they're reported (a non-standard margin, or
-//   carcinoma in the vein or vena cava); their sectors go with them.
+//   carcinoma in the vein or vena cava); their sectors go with them. Batch 618
+//   (PS-492, Pete): the same for Gerota's fascia and the adrenal gland, drawn only
+//   when the extent says "beyond Gerota's fascia" / "contiguous adrenal"; the
+//   perinephric fat always stays.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ChoiceBinding, FieldInputsBinding, NumberBinding } from './organMapBindings';
 import { RENAL_COMPARTMENTS, RENAL_HALVES, RENAL_POLES, renalCompartmentsDrawn, renalVariant, type RenalCompartment } from './renalGeometry';
 import { chosen, numberOr, sectorOf, type Answers } from './mapResolveShared';
+import { partialRenalAnatomy } from './renalAnatomy';
 import { marginInvolved, type OrganMapThresholds } from './organMapScheme';
 import type { MapCategory, OrganMapScheme, OrganMapSector } from './organMapTypes';
 
@@ -106,11 +110,9 @@ export function resolveRenalResection(binding: FieldInputsBinding, answers: Answ
     p: parenchymal.sector, s: soft.sector, v: status('m_vein', vein, 'veinMargin'), u: status('m_ureter', ureter, 'ureterMargin'),
   };
   const margins = [...boxes].map(b => sectorFor[b]);
-  // Batch 466c: a partial nephrectomy draws the vein, vena cava and ureter only when reported (renalGeometry).
-  const ivc = involvedCompartments.has('ivcBelow') || involvedCompartments.has('ivcAbove');
-  const anatomy = partial
-    ? `${boxes.includes('v') || ivc || involvedCompartments.has('renalVein') ? 'v' : ''}${ivc ? 'i' : ''}${boxes.includes('u') ? 'u' : ''}`
-    : undefined;
+  // Batch 466c / 618: a partial nephrectomy draws the vein, vena cava, ureter, Gerota's fascia and adrenal only when
+  // reported (renalAnatomy.ts, renalGeometry); the perinephric fat always.
+  const anatomy = partial ? partialRenalAnatomy({ boxes, involved: involvedCompartments }) : undefined;
   const variant = renalVariant(partial ? 'partial' : procedure, side, boxes, anatomy);
   const drawn = new Set<string>(renalCompartmentsDrawn(variant));
   const compartments = allCompartments.filter(c => drawn.has(c.id));

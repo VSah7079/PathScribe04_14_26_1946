@@ -1,3 +1,4 @@
+import { recordSimulatedPrint, simulationAllowed } from '@/services/printing/simulatedPrint';
 // src/utils/labels/dispatchSlideLabel.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Real feature, per direct follow-up: "I think I would expect to
@@ -36,6 +37,14 @@ export interface SlideLabelDispatchResult {
 
 const DISPATCHED_LOG: SlideLabelDispatchRequest[] = [];
 
+// Batch 606 (PS-14): a slide label is produced once. The scan at microtomy
+// (this file) and the Microtomy Workstation print (printSlideLabel) both
+// consult and update this ledger, so one slide never gets two labels. A
+// deliberate reprint ignores it.
+const OUTPUT_LEDGER = new Set<string>();
+export const wasSlideLabelOutput = (slideId: string): boolean => OUTPUT_LEDGER.has(slideId);
+export const markSlideLabelOutput = (slideId: string): void => { OUTPUT_LEDGER.add(slideId); };
+
 /**
  * Real, honest stand-in for the real slide-label print dispatch.
  * Never throws — same posture as dispatchCassetteLabel.ts and every
@@ -47,11 +56,16 @@ const DISPATCHED_LOG: SlideLabelDispatchRequest[] = [];
 export async function dispatchSlideLabel(
   request: SlideLabelDispatchRequest,
 ): Promise<SlideLabelDispatchResult> {
+  if (wasSlideLabelOutput(request.slideId)) {
+    return { dispatched: false, method: 'stub' };
+  }
+  markSlideLabelOutput(request.slideId);
   DISPATCHED_LOG.push(request);
   console.info(
     `[PathScribe] Slide label dispatch — STUB, no real print pipeline wired yet (SCRUM-41 still open). ` +
     `Would print: ${request.slideId}`,
   );
+  if (simulationAllowed()) recordSimulatedPrint({ kind: 'engrave', transport: 'slide printer', destination: 'slide printer / engraver' });
   return { dispatched: true, method: 'stub' };
 }
 
@@ -66,4 +80,5 @@ export function getDispatchedSlideLabels(): readonly SlideLabelDispatchRequest[]
  *  (not a class), so tests need a way to clear it between cases. */
 export function _resetDispatchedSlideLabelsForTests(): void {
   DISPATCHED_LOG.length = 0;
+  OUTPUT_LEDGER.clear();
 }

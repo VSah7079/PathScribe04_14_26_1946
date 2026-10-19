@@ -36,7 +36,7 @@ export interface NetworkPrintTargetPrinter {
 /** Batch 347 (PS-54): which label this is. Absent means a cassette (the
  *  only kind before Batch 347), so an engine built to the first version of
  *  this contract keeps working. */
-export type NetworkPrintLabelType = 'CASSETTE' | 'SLIDE';
+export type NetworkPrintLabelType = 'CASSETTE' | 'SLIDE' | 'VIAL' | 'RACK';
 
 export interface NetworkPrintLabelData {
   labelType?: NetworkPrintLabelType;
@@ -48,7 +48,12 @@ export interface NetworkPrintLabelData {
    *  gs1DataMatrix.ts's own buildGs1DataMatrix(), never hand-assembled
    *  inline. Contains a real, non-printing GS (0x1D) separator — see
    *  that module's own header. */
-  gs1DataMatrix: string;
+  gs1DataMatrix?: string;
+  /** Vial and rack labels only (Batch 615, PS-360): the plain Code 128 id
+   *  printed on the label, the label kind for racks, and the ZPL PathScribe
+   *  built. An engine may send `zpl` to the printer as it is. For these
+   *  labels `accessionNumber` and `patientName` can be empty. */
+  vialRack?: { barcode: string; rackKind?: 'staining_rack' | 'molecular_plate' | 'molecular_rack' | 'wsi_batch'; lines: string[]; zpl: string };
   /** Slide labels only (Batch 347): the level and stain printed on the slide. */
   slide?: { level: string; stainName: string };
 }

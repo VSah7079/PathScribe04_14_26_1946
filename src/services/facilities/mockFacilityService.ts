@@ -335,6 +335,11 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
     address: '1234 Desert Blvd, Phoenix, AZ 85001', phone: '', fax: '', email: '',
     roles: ['performing_lab'], isEnterprise: true, jurisdiction: 'US', reporting: defaultReporting(),
     legacyTenantIds: ['ORG-DVMC', 'HOSP-001', 'HOSP-002', 'HOSP-003'],
+    // Batch 606: printing is on for the demo lab so released reports flow through the labelled Simulated network transport.
+    printDeliveryConfig: {
+      enabled: true, mode: 'DIRECT_NETWORK_PRINT', paperSize: 'LETTER',
+      directNetworkPrintDestination: { protocol: 'IPP', ipAddress: '10.20.30.40', displayName: 'Histology LaserJet (demo)' },
+    },
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     tatFirstTouchHours: null, tatTotalHours: null,
     escalationTargets: [], escalationPriority: 'high',

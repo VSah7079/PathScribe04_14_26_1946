@@ -7,7 +7,7 @@
 // person's who pressed "Check now", so it uses the catalog unchecked.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { LisSyncPendingFlag } from '../lisSync/mockLisSyncService';
+import type { LisSyncPendingFlag } from '../lisSync/ILisSyncService';
 import { flagServiceUnchecked } from './mockFlagService';
 
 export async function resolveLisFlagDefinitionId(pf: LisSyncPendingFlag): Promise<string> {

@@ -83,3 +83,9 @@ Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`)
 ## Batch 561 (PS-539 phase 2d)
 
 - Test: `outboundResultRetry.test.ts` (a retried result held while its workup version isn't known; the retry's PDF hash recorded).
+
+## Batch 605
+
+`dispatchInterfaceMessage` sends to the simulated engine when `isEngineSimulated()`. New types: BLOCK_ORDER, SLIDE_ORDER, SPECIMEN_LABEL, MATERIAL_SCAN_EVENT, CHARGE_DFT, CHARGE_JSON, FINANCIAL_CLASS (mirrored in `functions/main.py` and `docs/architecture/INTERFACE_TRANSACTIONS.md`). `dispatchHardwareOrders.ts` builds and sends block, slide and specimen label orders; `dispatchCharge.ts` sends queued charges at sign-out (`dispatchQueuedChargesForCase`), from the DFT preview, and the financial-class payload.
+
+**Batch 619 (PS-800):** `outboundQueueActions.ts` gained `isHeld` (a dependency) and the outcome `onHold`: Dispatch Now and Retry refuse a message held on the Outbound Queue screen (`services/outboundQueue/`).

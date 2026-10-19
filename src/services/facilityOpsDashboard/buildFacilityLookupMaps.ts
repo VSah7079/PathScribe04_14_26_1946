@@ -7,7 +7,7 @@
 // rather than five separate, independent case/station fetches.
 
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
+import { scanStationService as mockScanStationService } from '@/services/scanStations/scanStationServiceInstance';
 import type { PathologyCase } from '@/services/cases/ICaseService';
 
 export interface FacilityLookupMaps {

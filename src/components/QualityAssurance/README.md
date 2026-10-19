@@ -336,6 +336,10 @@ CYT-QA-03 (5-Year Retrospective Lookback) had its trigger/outcome data for a whi
 
 The trend charts in `ReconciliationTab`, `CountersignTurnaroundTab`, `IntraopLinkageTab`, `AccessRequestResponseTab` and `QaDashboardTab` bucket by the facility's calendar month (`services/quality/facilityMonthlyTrend.ts`), not the viewing device's.
 
+## Batch 610 (#78)
+
+`AiDiscordanceTab.tsx`: AI versus pathologist discordance, stalled AI results and concordance by algorithm, with export under `qa:ai-discordance:export`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
@@ -406,3 +410,12 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 ## Batch 574
 
 - `CytologyQaTab.tsx`: the workload report shows a correction's reason and note (the note tagged `data-phi`), dates in the user's format.
+
+## Batch 608
+
+- `ProficiencyPanelCard.tsx`: the PT panel builder and the Simulated graded result, on the APAC proficiency report.
+- `CytologyQaTab.tsx`: Assay (MOL-QA-01), colposcopy referrals and non-response (UK-QA-01), registry IDs, ThinPrep, SurePath and interval adherence (EU-QA-01).
+
+Batch 613: `AccessRequestResponseTab.tsx` handles requests of type `patient_cases` (Approve / Decline through `services/patientCaseAccess`) and lists the active grants the signed-in person may revoke.
+
+Batch 614: the cytology-histology correlation printout no longer carries the patient MRN (accession numbers only), the same rule as the download; the on-screen table keeps it, tagged `data-phi`.

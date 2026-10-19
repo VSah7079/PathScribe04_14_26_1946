@@ -243,3 +243,17 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 575
 
 - `CaseUpdatedBanner.tsx`: Show their changes (in place) and Later; after an overlap, a lasting note with "Got it".
+
+## Batch 583
+
+- `HeaderBar.tsx`: the breadcrumb's second crumb and the compact header's back button use `caseReturnTarget` (Search or Worklist); strings `headerBar.breadcrumb.search`, `headerBar.nav.backToSearchTooltip`.
+
+## Batch 612 (part C)
+
+`OrchestratorSectionEditor` takes `fontUnits` so a specimen title uses the template's units.
+
+## Batch 611 (part G)
+
+`SmartCaptureLauncher.tsx`: the Smart Capture prototype drawer in `BillingReviewPanel` (suggested lines with rule and evidence, accept/reject, pathologist confirmation, payload preview, export). Labelled *Prototype, not compliance-reviewed*.
+
+- Batch 612 (part A): `Sidebar.tsx` mounts `VendorFieldsPanel` after the add-synoptic button.

@@ -353,4 +353,15 @@ export interface IEncounterService {
     targetPatientId: string,
     eventTimestamp: string
   ): Promise<ServiceResult<{ encounter: Encounter; reassigned: boolean; reason?: string }>>;
+
+  /**
+   * Batch 605 (ADT^A50, Change Visit Number): the visit keeps its identity and its
+   * cases; only the visit number changes. Refused (reassigned/changed false, with the
+   * reason) when the new number already belongs to another visit in the organisation.
+   */
+  changeEncounterNumber(
+    encounterId: string,
+    newEncounterNumber: string,
+    eventTimestamp: string
+  ): Promise<ServiceResult<{ encounter: Encounter; changed: boolean; reason?: string }>>;
 }

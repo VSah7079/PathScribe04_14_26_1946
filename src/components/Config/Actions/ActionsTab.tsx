@@ -7,6 +7,7 @@ import { SystemAction } from '../../../services/actionRegistry/IActionRegistrySe
 import { toTitleCase } from '../../../utils/formatLabel';
 import { WORKSTATION_DISCIPLINES, FUNCTIONAL_AREAS_BY_DISCIPLINE } from '../../../services/workstationGroups/IWorkstationGroupService';
 import { resolveShortcutConflict, suggestAlternateShortcut } from '../../../services/actionRegistry/resolveShortcutConflict';
+import { goToRouteOf, shortcutFromPress } from '../../../services/actionRegistry/shortcutResolution';
 import { parseActionRegistryImportCsv, type ActionImportRowOutcome } from '../../../services/actionRegistry/parseActionRegistryImportCsv';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
@@ -105,28 +106,10 @@ export const ActionsTab: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
 
-    const parts: string[] = [];
-    if (e.ctrlKey)  parts.push('Ctrl');
-    if (e.altKey)   parts.push('Alt');
-    if (e.shiftKey) parts.push('Shift');
-    if (e.metaKey)  parts.push('Meta');
-
-    const key = e.key;
-    // Ignore standalone modifier keys
-    if (['Control','Alt','Shift','Meta'].includes(key)) return;
-
-    // Normalise key names
-    const keyMap: Record<string,string> = {
-      ' ': 'Space', 'ArrowUp': 'ArrowUp', 'ArrowDown': 'ArrowDown',
-      'ArrowLeft': 'ArrowLeft', 'ArrowRight': 'ArrowRight',
-      'Enter': 'Enter', 'Escape': 'Escape', 'Backspace': 'Backspace',
-      'Delete': 'Delete', 'Tab': 'Tab', 'Home': 'Home', 'End': 'End',
-      'PageUp': 'PageUp', 'PageDown': 'PageDown',
-    };
-    const normKey = keyMap[key] ?? (key.length === 1 ? key.toUpperCase() : key);
-    parts.push(normKey);
-
-    const combo = parts.join('+');
+    // Batch 614: the same rules the hotkey matcher uses (Mac Option and AltGr), so what is recorded is what fires.
+    const recorded = shortcutFromPress(e);
+    if (!recorded) return; // a modifier on its own
+    const combo = recorded;
     setTempShortcut(combo);
     setIsRecording(false);
     validateShortcut(combo, editingAction?.id ?? '');
@@ -316,7 +299,11 @@ export const ActionsTab: React.FC = () => {
                        </div>
                        <div className="ps-actionstab-role">{action.requiredRole}</div>
                     </td>
-                    <td className="ps-actionstab-td"><code className="ps-actionstab-shortcut-code">{action.shortcut}</code></td>
+                    <td className="ps-actionstab-td">
+                      <code className="ps-actionstab-shortcut-code">{action.shortcut}</code>
+                      {/* Batch 614: an always-on command can be shadowed by a screen's own key; Alt+J then its key always reaches it. */}
+                      {goToRouteOf(action) && <div className="ps-actionstab-goto-route">{t('goToPrefix.route', { key: goToRouteOf(action) })}</div>}
+                    </td>
                     <td className="ps-actionstab-td">
                       <div className="ps-actionstab-triggers-wrap">
                         {action.voiceTriggers.map(trig => <span key={trig} className="ps-actionstab-trigger-pill">{trig}</span>)}

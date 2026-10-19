@@ -162,6 +162,7 @@ const SecureEmailModalBody: React.FC<SecureEmailModalProps> = ({
                 <Trans i18nKey={`${K}.deliveredTo`} values={{ to, gateway: gatewayName }} components={{ strong: <strong className="ps-sem-sent-delivered-strong" /> }} />
               </div>
               <div className="ps-sem-sent-notice">{t(`${K}.encryptedNotice`)}</div>
+              <div className="ps-sem-sent-notice" role="status" data-testid="secure-email-simulated">{t(`${K}.simulatedNotice`)}</div>
             </div>
             <button onClick={onClose} className="ps-sem-sent-close-btn">{t(`${K}.closeButton`)}</button>
           </div>

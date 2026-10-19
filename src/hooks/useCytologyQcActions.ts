@@ -10,12 +10,25 @@
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import { cytologyQcCaseAssignmentService } from '@/services';
+import { cytologyQcCaseAssignmentService, userService } from '@/services';
+import { effectiveQcReviewerRoles } from '@/services/cytologyQc/resolveQcReviewerEligibility';
 import { cytologyQcErrorKey, resolveCytologyQcCaseReview, type CytologyQcCaseReview } from '@/services/cytologyQc/resolveCytologyQcCaseReview';
 import type { CytologyQcCaseAssignment } from '@/types/cytologyQc/CytologyQcRule';
 import type { CytologyQcDiscrepancyInput } from '@/components/CytologyQc/CytologyQcDiscrepancyModal';
 
-export type CytologyQcMessage = 'notPermitted' | 'selfReview' | 'failed' | null;
+export type CytologyQcMessage = 'notPermitted' | 'selfReview' | 'notInPool' | 'failed' | null;
+
+/** Batch 608: the reviewer pools the signed-in person belongs to (Config > Staff). */
+export function useMyQcReviewerRoles(userId: string | null | undefined): string[] {
+  const [roles, setRoles] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    if (!userId) { setRoles([]); return; }
+    void userService.getById(userId).then(r => { if (live) setRoles(r.ok ? effectiveQcReviewerRoles(r.data) : []); });
+    return () => { live = false; };
+  }, [userId]);
+  return roles;
+}
 
 export function useCytologyQcActions(onChanged: () => void | Promise<void>) {
   const { user } = useAuth();
@@ -59,6 +72,7 @@ export function useCytologyQcCaseReview(caseId: string | undefined) {
   const actions = useCytologyQcActions(refresh);
   // Batch 434: the buttons follow cytology:qc-review:record.
   const { has } = useCapabilities();
-  const review: CytologyQcCaseReview = resolveCytologyQcCaseReview(assignments, actions.userId, has('cytology:qc-review:record'));
+  const myPools = useMyQcReviewerRoles(actions.userId);
+  const review: CytologyQcCaseReview = resolveCytologyQcCaseReview(assignments, actions.userId, has('cytology:qc-review:record'), myPools);
   return { review, ...actions };
 }

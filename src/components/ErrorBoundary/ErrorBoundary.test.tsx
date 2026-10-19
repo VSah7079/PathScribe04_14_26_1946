@@ -60,6 +60,25 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('fine')).toBeTruthy();
   });
 
+  it('tells the shell when the recovery screen starts and stops showing (PS-472)', () => {
+    const onErrorChange = vi.fn();
+    const Harness = () => {
+      const [explode, setExplode] = useState(true);
+      return (
+        <>
+          <button onClick={() => setExplode(false)}>fix</button>
+          <ErrorBoundary scope="route" name="route" report={() => 'R'} onErrorChange={onErrorChange}><Bomb explode={explode} /></ErrorBoundary>
+        </>
+      );
+    };
+    render(<Harness />);
+    expect(onErrorChange).toHaveBeenLastCalledWith(true);
+    fireEvent.click(screen.getByText('fix'));
+    fireEvent.click(screen.getByText('errorBoundary.tryAgain'));
+    expect(onErrorChange).toHaveBeenLastCalledWith(false);
+    expect(onErrorChange).toHaveBeenCalledTimes(2);
+  });
+
   it('a new address (resetKey) clears the error', () => {
     const { rerender } = render(<ErrorBoundary scope="route" name="route" resetKey="/a" report={() => 'R'}><Bomb explode /></ErrorBoundary>);
     rerender(<ErrorBoundary scope="route" name="route" resetKey="/b" report={() => 'R'}><Bomb explode={false} text="page b" /></ErrorBoundary>);

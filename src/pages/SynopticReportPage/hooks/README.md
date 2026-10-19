@@ -329,3 +329,25 @@ Files here that imported a mock service directly now import it from `@/services`
 ## Batch 572
 
 `useSignOutWorkflow.ts`: confirming an abnormal finding saves the case and now moves the page's known version on (it didn't, so the next save could be refused as a conflict).
+
+## Batch 588
+
+- `useSpecimenBlockManagement.ts`: `handleDeleteBlock(specimenId, blockId, reasonCode, note)` saves the soft delete through this page's own version tracking and calls `services/material/deleteBlockInProcess.ts`; `canDeleteBlocks` is false once the case is signed out.
+
+## Batch 589
+
+- `useLabelBridgeNotice`: shows the "label printer is not connected" toast (PS-55).
+- `useSignOutWorkflow`: the check reads `narrativeForDetection(caseData)`, saves the flagged findings per case and loads them when the case opens (PS-323).
+- `useOrchestratorDraft`: sections feed the case narrative by their stable part id (PS-323).
+
+## Batch 607
+
+`useSignOutWorkflow.ts`: a required code system with no code on the case asks before sign-out; going ahead is audited (`CODE_POLICY_SIGNOUT_OVERRIDE`, system names only). No way to ask means sign-out stops.
+
+## Batch 609 (#31)
+
+`checkPeerReviewAndMismatch.ts`: `checkClinicalMismatch` uses the revision rules (`clinicalMismatchService.atRevision`) when a report is unlocked for an amendment or correction; new `checkAddendumMismatch`. `useAmendmentWorkflow.ts` holds an addendum with a high-risk mismatch (`amendmentMismatch`, `resumeAddendumAfterMismatch`, `cancelAddendumMismatch`). `useClinicalMismatchAlert.ts` marks the alert on an amended report with the lab setting.
+
+## Batch 615 (PS-138): `useTriggerCodeQueries`
+
+Loads the Code Manager's trigger searches (`services/abnormalDetection/triggerCodeQueries.ts`) while the Code Manager is open, honouring the enterprise and facility abnormal-detection switches and the performing-lab scope of each rule. Returns an empty list when off or on any error.

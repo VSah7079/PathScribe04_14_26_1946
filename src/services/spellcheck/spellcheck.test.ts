@@ -145,9 +145,18 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
   it('German (GPL, shipped unmodified) loads and checks, with codes still passed through', async () => {
     const de = await engine('de-DE');
     expect(checkText('Das Präparat zeigt Lymphknoten; pT2 N1 G2, Ki-67 30 %. Präparatt', de.tiers).map(i => i.word)).toEqual(['Präparatt']);
-    expect(suggestWord('Präparatt', 'latin', de.tiers)).toContain('Präparat');
-    // Known gap: German has no medical tier yet, and the general dictionary lacks core terms.
-    expect(checkText('Karzinom Adenokarzinom', de.tiers).map(i => i.word)).toEqual(['Karzinom', 'Adenokarzinom']);
+    // Hunspell gives up on suggestions after a short time limit, and the German
+    // dictionary (heavy compounding) can hit it on a busy machine; the lookup is
+    // otherwise deterministic, so allow a few attempts before failing.
+    let suggestions: string[] = [];
+    for (let attempt = 0; attempt < 5 && !suggestions.includes('Präparat'); attempt++) suggestions = suggestWord('Präparatt', 'latin', de.tiers);
+    expect(suggestions).toContain('Präparat');
+    // Batch 609: the starter medical tier supplies the core terms the general dictionary lacks.
+    expect(checkText('Karzinom Adenokarzinom Plattenepithelkarzinome Resektionsrand', de.tiers)).toEqual([]);
+    expect(checkText('Karzinomm', de.tiers).map(i => i.word)).toEqual(['Karzinomm']);
+    expect(checkWord('Karzinom', 'latin', de.tiers)).toEqual({ ok: true, tier: 'medical' });
+    // German nouns stay capitalised: the lower-case form is not in the lexicon.
+    expect(checkText('karzinom', de.tiers).map(i => i.word)).toEqual(['karzinom']);
   });
 
   it('French and Dutch base dictionaries load and check', async () => {
@@ -156,6 +165,12 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     expect(suggestWord('prélevement', 'latin', fr.tiers)).toContain('prélèvement');
     const nl = await engine('nl-NL');
     expect(checkText('Biopsie van weefsel met carcinoom', nl.tiers)).toEqual([]);
+    // Batch 609: starter medical tiers for French and Dutch.
+    expect(checkText('Carcinome épidermoïde infiltrant, exérèse complète; frottis', fr.tiers)).toEqual([]);
+    expect(checkText('Adénocarcinomme', fr.tiers).map(i => i.word)).toEqual(['Adénocarcinomme']);
+    expect(checkText('Plaveiselcelcarcinoom met resectiemarge; vriescoupe en lymfeklieren', nl.tiers)).toEqual([]);
+    expect(checkText('adenocarcinomm', nl.tiers).map(i => i.word)).toEqual(['adenocarcinomm']);
+    expect(checkWord('lymfeklier', 'latin', nl.tiers)).toEqual({ ok: true, tier: 'medical' });
   });
 
   it('checks a 5,000-word report quickly, looking each distinct word up only once (AC4)', async () => {

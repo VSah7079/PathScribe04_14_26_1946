@@ -11,6 +11,7 @@ import { FIELD_INPUT_SPECS, pathScribeDefaultBinding, validateOrganMapBinding, t
 import { BUILT_IN_ORGAN_MAP_SCHEME, BUILT_IN_ORGAN_MAP_THRESHOLDS, THRESHOLD_ROWS, validateOrganMapScheme, type OrganMapThresholds } from './organMapScheme';
 import { resolveOrganMap } from './resolveProstateMap';
 import { renalPtFromExtent } from './resolveRenalMap';
+import { partialRenalAnatomy } from './renalAnatomy';
 import { organMapLayout, renderOrganMapSvg } from './organMapDrawing';
 import { organMapInlineText, organMapLabelsFor, organMapSectorName, organMapSectorSummary } from './organMapLabels';
 import { bindingProblemInputKey, emptyOrganMapBinding, fieldInputValueKey, organMapRenalPreviews } from './organMapConfigDraft';
@@ -122,11 +123,12 @@ describe('configuration, drawing and words', () => {
     }
     // Batch 466c: a partial nephrectomy draws no vein, vena cava (nor diaphragm line) or ureter unless reported.
     const partialIds = organMapLayout('renalResection', undefined, 0, 'partial|R|ps').shapes.map(sh => sh.id);
-    expect(['renalVein', 'ivcBelow', 'ivcAbove', 'ureter'].filter(id => partialIds.includes(id))).toEqual([]);
+    expect(['renalVein', 'ivcBelow', 'ivcAbove', 'ureter', 'gerota', 'adrenal'].filter(id => partialIds.includes(id))).toEqual([]);
+    expect(partialIds).toContain('perinephricFat');
     expect([organMapLayout('renalResection', undefined, 0, 'partial|R|ps').guides, organMapLayout('renalResection', undefined, 0, 'partial|R|ps|vi').guides]).toEqual(['', 'M 392 110 L 430 110']);
     expect(renalCaptions('partial|R|ps').some(c => c.key === 'diaphragm')).toBe(false);
     expect(renalCompartmentsDrawn('radical|R|vus')).toEqual([...RENAL_COMPARTMENTS]);
-    expect(renalCompartmentsDrawn('partial|R|psu|u')).toEqual(RENAL_COMPARTMENTS.filter(c => !['renalVein', 'ivcBelow', 'ivcAbove'].includes(c)));
+    expect(renalCompartmentsDrawn('partial|R|psu|u')).toEqual(RENAL_COMPARTMENTS.filter(c => !['renalVein', 'ivcBelow', 'ivcAbove', 'gerota', 'adrenal'].includes(c)));
     const r = organMapLayout('renalResection', undefined, 0, 'radical|R|vus').shapes.find(s => s.id === 'renalVein')!;
     const l = organMapLayout('renalResection', undefined, 0, 'radical|L|vus').shapes.find(s => s.id === 'renalVein')!;
     expect(l.labelX).toBe(440 - r.labelX);
@@ -202,6 +204,35 @@ describe('Batch 466b (Pete): a partial nephrectomy has no renal vein or ureter m
     }
     // A radical nephrectomy draws it all.
     expect(ids(renal({ [`${P}procedure`]: `${P}procedure_radical` }))).toEqual(expect.arrayContaining(['renalVein', 'ivcBelow', 'ivcAbove', 'ureter']));
+  });
+  it('Batch 618 (PS-492, Pete): a partial nephrectomy draws Gerota’s fascia and the adrenal only when the extent reports them; the perinephric fat always', () => {
+    const partial = (extent: string[], extra: Record<string, string | string[]> = {}) =>
+      renal({ [`${P}procedure`]: `${P}procedure_partial`, [`${P}extent`]: extent.map(e => `${P}extent_${e}`), ...extra });
+    const ids = (m: ReturnType<typeof renal>) => m.sectors.map(x => x.id);
+    const shown = (m: ReturnType<typeof renal>) => ['perinephricFat', 'gerota', 'adrenal'].filter(id => ids(m).includes(id));
+    // None reported (and nothing answered): the fat only.
+    expect([shown(partial(['limited'])), partial(['limited']).variant, shown(renal({ [`${P}procedure`]: `${P}procedure_partial` }))]).toEqual([['perinephricFat'], 'partial|R|ps', ['perinephricFat']]);
+    // Perinephric fat reported (pT3a): still not Gerota's or the adrenal.
+    expect(shown(partial(['perinephricFat']))).toEqual(['perinephricFat']);
+    // Contiguous adrenal only.
+    const a = partial(['adrenal']);
+    expect([shown(a), a.variant, cat(a).adrenal, a.meta!.pT]).toEqual([['perinephricFat', 'adrenal'], 'partial|R|ps|a', 'invasive', 'pT4']);
+    // Beyond Gerota's fascia only.
+    const g = partial(['gerota']);
+    expect([shown(g), g.variant, cat(g).gerota, g.meta!.pT]).toEqual([['perinephricFat', 'gerota'], 'partial|R|ps|g', 'invasive', 'pT4']);
+    // Both, and with the vein and ureter rules unchanged.
+    const both = partial(['gerota', 'adrenal', 'renalVein'], { [`${P}extraMargins`]: [`${P}extraMargins_ureter`] });
+    expect([shown(both), both.variant]).toEqual([['perinephricFat', 'gerota', 'adrenal'], 'partial|R|psu|vuga']);
+    // Every sector the resolver gives has a shape, on both sides.
+    for (const m of [a, g, both]) for (const side of ['R', 'L']) {
+      const v = (m.variant ?? '').replace('|R|', `|${side}|`);
+      const shapes = organMapLayout('renalResection', undefined, 0, v).shapes.map(sh => sh.id);
+      expect(ids(m).filter(id => !shapes.includes(id))).toEqual([]);
+    }
+    // A radical nephrectomy is unchanged: all of it, whatever the extent.
+    expect(shown(renal({ [`${P}procedure`]: `${P}procedure_radical` }))).toEqual(['perinephricFat', 'gerota', 'adrenal']);
+    // The decision itself is a pure function.
+    expect([partialRenalAnatomy({ boxes: 'ps', involved: new Set() }), partialRenalAnatomy({ boxes: 'ps', involved: new Set(['adrenal'] as const) }), partialRenalAnatomy({ boxes: 'psvu', involved: new Set(['gerota', 'ivcAbove'] as const) })]).toEqual(['', 'a', 'viug'.split('').sort((x, y) => 'viuga'.indexOf(x) - 'viuga'.indexOf(y)).join('')]);
   });
   it('the report leaves out a question hidden by its visibility condition, even with an answer stored', () => {
     const answers = { [`${P}procedure`]: `${P}procedure_partial`, [`${P}veinMargin`]: `${P}veinMargin_notInvolved`, [`${P}parenchymalMarginMm`]: '2' };

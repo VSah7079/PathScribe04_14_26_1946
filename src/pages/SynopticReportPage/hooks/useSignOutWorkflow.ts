@@ -44,15 +44,19 @@
 //     useAmendmentWorkflow, per the dependency direction above.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { destroyHistoryCacheAtSignOut } from '@/services/patientHistory/runHistoryRefreshSweep';
+import { dispatchQueuedChargesForCase, dispatchFinancialClass } from '@/services/interfaceDispatch/dispatchCharge';
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
 import type { AuditLogFn } from '@/components/Audit/useAuditLog';
 import { countBlockMessage, findSynopticEntryChecks, totalWarningsMessage } from '@/services/templates/synopticEntryChecks';
-import { useState, useCallback, type MutableRefObject } from 'react';
+import { useState, useCallback, useEffect, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSessionUser, canFinalizeCase, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl';
 import { countersignService, userService, qaSupervisionAssignmentService, FPPE_ACTIVITY_TYPE_ID, reportReleaseService, serviceChargeService, ncciEditService, billingDeficiencyService, criticalResultNotificationService, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, outboundChargeQueueService, codeReviewPoolService, billingTypeTriggerConfigService } from '@/services';
 
-import { intraoperativeService } from '@/services';
+import { intraoperativeService, codeSystemPolicyService, auditService } from '@/services';
+import { getCurrentJurisdiction } from '@/services/retentionPolicy/RetentionPolicy';
+import { collectCaseEntries, signOutCodeCheck, isoDayOf, codeSignOutOverrideAudit } from '@/services/coding/codePolicyEnforcement';
 import { concordanceReviewSettingsService } from '@/services';
 import { dispatchCancerRegistryReportIfApplicable } from '@/services/cancerRegistry/dispatchCancerRegistryReportIfApplicable';
 import { amendmentService, reportVersionService, signatureGate } from '@/services';
@@ -66,6 +70,8 @@ import { finalizedAssistWorkups } from '@/services/reports/assistFinalize';
 
 import type { BillingDeficiencyType, BillingDeficiencySeverity } from '@/types/billing/BillingDeficiencyRecord';
 import { checkSignOutBillingDeficiencies } from '@/services/billing/checkSignOutBillingDeficiencies';
+import { narrativeForDetection } from '@/services/clinical/narrativeForDetection';
+import { loadCriticalFindings, saveCriticalFindings } from '@/services/clinical/criticalFindingStore';
 import { detectCriticalFindings } from '@/services/clinical/detectCriticalFindings';
 import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
 
@@ -234,6 +240,8 @@ const BILLING_DEFICIENCY_SEVERITY: Record<BillingDeficiencyType, BillingDeficien
   // Batch 433: raised by billing staff, not at sign-out.
   MISSING_CHARGE: 'REVENUE_LEAKAGE',
   POST_SIGNOUT_CORRECTION: 'COMPLIANCE_WARNING',
+  // Batch 588: raised when a block is deleted (services/material/deleteBlockInProcess.ts), not at sign-out.
+  BLOCK_DELETED: 'COMPLIANCE_WARNING',
 };
 
 // Real, per direct guidance (retiring Finalize for Orchestration Mode,
@@ -634,6 +642,22 @@ export function useSignOutWorkflow({
     const { participationTypes: authorityParticipationTypes, performingLabFacilityId: authorityLabId, jurisdiction: authorityJurisdiction } =
       await resolveFinalizeAuthorityContext(caseData);
     const countersignRequiredTypeIds = resolveCountersignRequiredTypeIds(authorityParticipationTypes, authorityLabId, authorityJurisdiction);
+
+    // Batch 607 (#161, #182): a system the jurisdiction's code-system policy requires, with no code on the case, asks first.
+    // Proceeding is an override and is audited (system names only). With no way to ask, sign-out stops.
+    {
+      const codePolicy = await codeSystemPolicyService.policyFor(authorityJurisdiction ?? getCurrentJurisdiction());
+      const codeCheck = signOutCodeCheck(collectCaseEntries(caseData ?? {}), codePolicy, isoDayOf(new Date()));
+      if (!codeCheck.ok) {
+        const systems = codeCheck.missing.join(', ');
+        if (!(confirmWarnings && await confirmWarnings(t('codePolicy.signOutMissing', { systems })))) {
+          showToast(t('codePolicy.signOutBlocked', { systems }), 'warning');
+          setShowSignOutModal(false);
+          return;
+        }
+        if (caseData?.id) await auditService.logEvent(codeSignOutOverrideAudit(caseData.id, signingUser?.name ?? '', codeCheck.missing));
+      }
+    }
 
     // Real resident-countersign gate — must run before anything else in
     // this function, including the reconciliation check below. If the
@@ -1179,6 +1203,11 @@ export function useSignOutWorkflow({
   // re-detecting the same, unchanged text on a second Finalize click
   // would be pure friction, not a real safeguard.
   const [criticalFindings,        setCriticalFindings]        = useState<CriticalFindingFlag[]>([]);
+  // PS-323: findings flagged earlier for this case come back when it is reopened.
+  const findingsCaseId = caseData?.id;
+  useEffect(() => {
+    if (findingsCaseId) setCriticalFindings(loadCriticalFindings(findingsCaseId));
+  }, [findingsCaseId]);
   const [showCriticalFindingsModal, setShowCriticalFindingsModal] = useState(false);
   const [acknowledgedCritical,    setAcknowledgedCritical]    = useState(false);
 
@@ -1250,11 +1279,8 @@ export function useSignOutWorkflow({
 
     let narrativeFindings: CriticalFindingFlag[] = [];
     if (caseData?.diagnostic) {
-      const res = await detectCriticalFindings({
-        gross:       caseData.diagnostic.grossDescription ?? '',
-        microscopic: caseData.diagnostic.microscopicDescription ?? '',
-        ancillary:   caseData.diagnostic.ancillaryStudies ?? '',
-      }, { caseId: caseData.id, facilityId: caseData.order?.facilityId });
+      // PS-323: includes the Microscopic Description typed for each specimen.
+      const res = await detectCriticalFindings(narrativeForDetection(caseData), { caseId: caseData.id, facilityId: caseData.order?.facilityId });
       narrativeFindings = res.ok ? res.data.flags : [];
     }
 
@@ -1423,6 +1449,10 @@ export function useSignOutWorkflow({
         findingSeverity: highest,
         sourceQuote: highestFinding?.sourceQuote ?? '',
         confirmedAt: patch.abnormalDetectionStatus.confirmedAt,
+      }).then(res => {
+        // Batch 604: tell the person what happened on each channel, and that it was simulated.
+        const stubbed = res.ok && res.data ? res.data.channels.filter(c => c.method === 'stub').length : 0;
+        if (stubbed > 0) showToast(t('criticalAlertsAudit.signOutToast', { count: stubbed }), 'warning');
       }).catch(e => console.error('[AbnormalDetection] Could not dispatch automated critical alert:', e));
 
       qaActivityRecordService.create({
@@ -1780,8 +1810,12 @@ export function useSignOutWorkflow({
             });
           }
         }));
+        // Batch 605: send what was queued (the simulated billing engine answers in the demo).
+        await dispatchQueuedChargesForCase(caseData.id);
+        await dispatchFinancialClass(caseData.id, 'system'); // Batch 605: the financial-class payload follows the charges
       })().catch(e => console.error('[PathScribe] Outbound charge queue sweep failed (non-blocking):', e));
 
+      void destroyHistoryCacheAtSignOut(caseData.id); // Batch 605: the prior-report cache must not outlive the case
       await signatureGate.commit(caseData.id, 'finalized');
       return true;
     } catch (err) {
@@ -1999,6 +2033,8 @@ export function useSignOutWorkflow({
       // the original single 'critical' level this replaced) — Abnormal
       // alone still doesn't prompt this modal, same original intent.
       const criticalOnly = findings.filter(f => f.severity === 'Critical' || f.severity === 'Malignant');
+      // PS-323: kept with the case so the highlight survives a reopen.
+      if (caseData) saveCriticalFindings(caseData.id, criticalOnly);
       if (criticalOnly.length > 0) {
         setCriticalFindings(criticalOnly);
         setShowCriticalFindingsModal(true);

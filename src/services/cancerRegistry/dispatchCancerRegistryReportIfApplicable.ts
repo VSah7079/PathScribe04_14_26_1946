@@ -16,8 +16,8 @@
 // must never block the case's own, already-successful sign-out.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockCancerRegistrySettingsService } from './mockCancerRegistrySettingsService';
-import { mockFacilityCancerRegistryOverrideService } from './mockFacilityCancerRegistryOverrideService';
+import { cancerRegistrySettingsService } from './cancerRegistrySettingsServiceInstance';
+import { facilityCancerRegistryOverrideService } from './facilityCancerRegistryOverrideServiceInstance';
 import { resolveEffectiveCancerRegistrySettings } from './resolveEffectiveCancerRegistrySettings';
 import { resolveCancerRegistryReportability } from './resolveCancerRegistryReportability';
 import { consentExclusionMessage, evaluateRegistryConsent } from '../registryConsent/evaluateRegistryConsent';
@@ -25,7 +25,7 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { buildRegistrySubmissionHeader, registryContentHash } from '../registrySubmission/registrySubmissionHeader';
 import { buildCancerRegistryReportPayload, type CancerRegistryReportPayload } from './buildCancerRegistryReportPayload';
 import type { CancerRegistryId, CancerRegistrySettingsConfig } from './ICancerRegistrySettingsService';
-import { mockCancerRegistryOutboundQueueService } from './mockCancerRegistryOutboundQueueService';
+import { cancerRegistryOutboundQueueService } from './cancerRegistryOutboundQueueServiceInstance';
 import type { Case } from '@/types/case/Case';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { latestRegistryTemplateVersion, registryTemplateHistory } from '../registryGoLive/registryTemplateVersions';
@@ -67,8 +67,8 @@ export interface PreparedCancerSubmission {
 
 export async function prepareCancerRegistrySubmission(caseData: Case, facilityId: string, facilityName: string | undefined): Promise<PreparedCancerSubmission> {
   const [enterpriseRes, overrideRes] = await Promise.all([
-    mockCancerRegistrySettingsService.get(),
-    mockFacilityCancerRegistryOverrideService.getForFacility(facilityId),
+    cancerRegistrySettingsService.get(),
+    facilityCancerRegistryOverrideService.getForFacility(facilityId),
   ]);
   if (!enterpriseRes.ok) return { outcome: 'noSettings' };
   const effective = resolveEffectiveCancerRegistrySettings(enterpriseRes.data, overrideRes.ok ? overrideRes.data : null);
@@ -116,7 +116,7 @@ export async function dispatchCancerRegistryReportIfApplicable(
   }
   // Batch 419 (SRS v2.1 FR-008.4/5/8): the payload header. A cancer report is case-level, so the
   // "specimen" is 'case'; a second sign-out of the same case is the registry's CORRECTION.
-  const prior = await mockCancerRegistryOutboundQueueService.getByCaseId(caseData.id);
+  const prior = await cancerRegistryOutboundQueueService.getByCaseId(caseData.id);
   const submission = buildRegistrySubmissionHeader({
     facilityId, caseId: caseData.id, specimenId: 'case', registryId,
     signOutTimestamp: caseData.diagnostic?.issuedDate ?? caseData.updatedAt ?? '',
@@ -124,25 +124,25 @@ export async function dispatchCancerRegistryReportIfApplicable(
     templateVersion: latestRegistryTemplateVersion(registryTemplateHistory('cancer', registryId), new Date())?.version,
   }, prior.ok ? prior.data : []);
   const payload = { ...prepared.body!, submission };
-  const queued = await mockCancerRegistryOutboundQueueService.enqueue({ caseId: caseData.id, registryId, submission, contentHash: prepared.contentHash });
+  const queued = await cancerRegistryOutboundQueueService.enqueue({ caseId: caseData.id, registryId, submission, contentHash: prepared.contentHash });
   // Batch 425: a report missing the registry's mandatory data is held (HOLD_MISSING_MANDATORY_DATA), never
   // sent; it shows on the Registry Exceptions worklist. Checked after the gate, so a validation instance
   // never queues a real case. The case's sign-out has already happened and is never held for this.
   if (queued.ok && prepared.outcome === 'missingMandatoryData') {
-    await mockCancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: 'HOLD_MISSING_MANDATORY_DATA', errorMessage: prepared.holdMessage!, maxRetriesExceeded: false });
+    await cancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: 'HOLD_MISSING_MANDATORY_DATA', errorMessage: prepared.holdMessage!, maxRetriesExceeded: false });
     mockAuditService.logEvent({ type: 'system', event: 'Registry submission held: mandatory data missing', detail: `Case ${caseData.id}: ${prepared.holdMessage}`, user: 'system', caseId: caseData.id, confidence: null } as any);
     return { dispatched: false, reason: prepared.holdMessage! };
   }
   // Batch 420: before this, a cancer registry report was queued and never sent: nothing dispatched it.
   // Batch 423/424: a live register needs a current go-live approval; without one the report is held, not sent.
   if (queued.ok && gate.action === 'hold') {
-    await mockCancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: gate.code as any, errorMessage: gate.message!, maxRetriesExceeded: false });
+    await cancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: gate.code as any, errorMessage: gate.message!, maxRetriesExceeded: false });
     return { dispatched: false, reason: gate.message! };
   }
   if (queued.ok) {
     const sent = await dispatchDeps.dispatch(queued.data.id, payload);
-    if (sent.ok) await mockCancerRegistryOutboundQueueService.markSent(queued.data.id);
-    else await mockCancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: (sent.errorCode as any) ?? 'DISPATCH_REJECTED', errorMessage: sent.error ?? 'Unknown dispatch failure.', maxRetriesExceeded: false });
+    if (sent.ok) await cancerRegistryOutboundQueueService.markSent(queued.data.id);
+    else await cancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: (sent.errorCode as any) ?? 'DISPATCH_REJECTED', errorMessage: sent.error ?? 'Unknown dispatch failure.', maxRetriesExceeded: false });
   }
   return { dispatched: true, reason: `Enqueued for ${registryId} (message ${payload.messageId}, ${submission.messageType} v${submission.submissionVersion}).` };
 }

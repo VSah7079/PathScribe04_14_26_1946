@@ -59,5 +59,5 @@ export function useServerJobs(service: IServerJobsService = serverJobsService) {
     }
   }, [service, reload]);
 
-  return { viaServer: service.viaServer, health, jobs, kind, setKind, problem, busyJob, lastRequeue, reload, requeue };
+  return { viaServer: service.viaServer, simulated: !!service.simulated, health, jobs, kind, setKind, problem, busyJob, lastRequeue, reload, requeue };
 }

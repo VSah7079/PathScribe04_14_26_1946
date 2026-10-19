@@ -1,3 +1,13 @@
+Batch 611: the unused mock AI integration service (nothing imported it; the AI spell check it once stood beside was replaced by dictionary spell check).
+
+src/services/aiIntegration/MockAIIntegrationService.ts
+
+Batch 583 (PS-63): the browser no longer looks up e-mail recipients or writes template lifecycle e-mails; the server does
+(docs/architecture/TEMPLATE_NOTIFICATIONS_API.md). The role lookup also asked for a "clinical_lead" role PathScribe doesn't have.
+
+src/services/communications/recipientResolver.ts
+src/services/communications/emailTemplates/synopticEmailTemplates.ts
+
 Batch 549 (PS-539, finding F1, open since Batch 537): the engine-notification poll that nothing
 mounted, and the Firestore read only it used. The engine's events reach the case through the
 interface engine edge contract (docs/architecture/INTERFACE_ENGINE_EDGE.md) and the hub.
@@ -153,5 +163,6 @@ src/services/specimens/ISpecimenService.ts
 src/services/hl7/mockHL7Service.ts
 src/services/cases/concurrencyCheck.ts                    (replaced by updateCase's compare-and-swap)
 src/contexts/useClientDictionary.ts
+src/services/billing/blockDeletionQueue/       (Batch 588 first draft; billing credits are reviewed in Financials)
 
 To remove everything listed in this file in one go:  npm run cleanup:deleted

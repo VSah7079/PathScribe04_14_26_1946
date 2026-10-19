@@ -36,7 +36,7 @@ export interface IPrintQueueService {
   getFailed(): Promise<ServiceResult<PrintJob[]>>;
   markFailed(id: string, failure: { errorCode: PrintJob['errorCode']; errorMessage: string; maxRetriesExceeded: boolean }): Promise<ServiceResult<PrintJob>>;
   retryDispatch(id: string): Promise<ServiceResult<PrintJob>>;
-  markPrinted(id: string): Promise<ServiceResult<PrintJob>>;
+  markPrinted(id: string, options?: { simulated?: true }): Promise<ServiceResult<PrintJob>>;
 
   /** Real, per PS-279 — a real, data-only enrichment step, deliberately
    *  NOT audit-logged on its own: it runs as part of the single, real

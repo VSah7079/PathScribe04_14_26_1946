@@ -11,15 +11,22 @@
 // real coldChainExcursion hold.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockTelemetryReadingService } from './mockTelemetryReadingService';
-import { mockHardwareContainerRegistryService } from '../hardwareContainers/mockHardwareContainerRegistryService';
-import { mockBatchService } from '../batches/mockBatchService';
-import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
+import { telemetryReadingService as mockTelemetryReadingService } from './telemetryReadingServiceInstance';
+import { hardwareContainerRegistryService as mockHardwareContainerRegistryService } from '../hardwareContainers/hardwareContainerRegistryServiceInstance';
+import { batchService } from '../batches/batchServiceInstance';
+import { specimenDeficiencyService as mockSpecimenDeficiencyService } from '../deficiencies/specimenDeficiencyServiceInstance';
 import type { TelemetryReadingEventPayload } from '@/types/events/TelemetryReadingEventPayload';
 
 export interface ProcessInboundTelemetryReadingEventResult {
   messageId: string;
   outcome: 'applied' | 'already-applied' | 'invalid-payload';
+  /** Batch 610: what a reading did, for the screen that posted it (absent unless 'applied'). */
+  readingId?: string;
+  excursion?: boolean;
+  /** The batch a container was checked out to when the excursion held it. */
+  heldBatchId?: string;
+  /** One open cold-chain deficiency (CAPA) per case in the held batch. */
+  deficienciesRaised?: number;
 }
 
 const processedMessageIds = new Set<string>();
@@ -39,17 +46,26 @@ export async function processInboundTelemetryReadingEvent(
     assetType: payload.assetType, assetId: payload.assetId,
     temperatureCelsius: payload.temperatureCelsius, humidityPercent: payload.humidityPercent,
     gpsLat: payload.gpsLat, gpsLng: payload.gpsLng, recordedAt: payload.recordedAt,
+    ...(payload.simulated ? { simulated: true } : {}),
   });
 
+  let effects: ExcursionEffects = { deficienciesRaised: 0 };
   if (recorded.ok && recorded.data.isExcursion) {
-    await handleExcursion(payload, recorded.data.id);
+    effects = await handleExcursion(payload, recorded.data.id);
   }
 
   processedMessageIds.add(payload.messageId);
-  return { messageId: payload.messageId, outcome: 'applied' };
+  return {
+    messageId: payload.messageId, outcome: 'applied',
+    ...(recorded.ok ? { readingId: recorded.data.id, excursion: recorded.data.isExcursion } : {}),
+    ...(effects.heldBatchId ? { heldBatchId: effects.heldBatchId } : {}),
+    deficienciesRaised: effects.deficienciesRaised,
+  };
 }
 
-async function handleExcursion(payload: TelemetryReadingEventPayload, readingId: string): Promise<void> {
+interface ExcursionEffects { heldBatchId?: string; deficienciesRaised: number }
+
+async function handleExcursion(payload: TelemetryReadingEventPayload, readingId: string): Promise<ExcursionEffects> {
   // Real, honest scope: a workflow hold and a case-scoped CAPA
   // deficiency both require a real, active Batch with real items to
   // attach to — only ever true for a smart HardwareContainer
@@ -59,30 +75,33 @@ async function handleExcursion(payload: TelemetryReadingEventPayload, readingId:
   // a deficiency against — surfaced only via the reading's own
   // isExcursion flag (visible in a real UI), never a fabricated case
   // association.
-  if (payload.assetType !== 'hardware_container') return;
+  if (payload.assetType !== 'hardware_container') return { deficienciesRaised: 0 };
 
   const containerRes = await mockHardwareContainerRegistryService.getById(payload.assetId);
-  if (!containerRes.ok || !containerRes.data.currentBatchId) return;
+  if (!containerRes.ok || !containerRes.data.currentBatchId) return { deficienciesRaised: 0 };
 
-  const batchRes = await mockBatchService.getById(containerRes.data.currentBatchId);
-  if (!batchRes.ok) return;
+  const batchRes = await batchService.getById(containerRes.data.currentBatchId);
+  if (!batchRes.ok) return { deficienciesRaised: 0 };
   const batch = batchRes.data;
-  if (batch.status !== 'active' && batch.status !== 'reconciling') return;
+  if (batch.status !== 'active' && batch.status !== 'reconciling') return { deficienciesRaised: 0 };
 
-  await mockBatchService.setColdChainExcursion(batch.id, readingId, payload.temperatureCelsius ?? 0, payload.recordedAt);
+  await batchService.setColdChainExcursion(batch.id, readingId, payload.temperatureCelsius ?? 0, payload.recordedAt);
 
   // Real, per this file's own header — one real deficiency per
   // distinct real case actually represented in the batch's own
   // items, never one, fabricated "batch-level" case.
   const distinctCaseAccessions = Array.from(new Set(batch.items.map(i => i.caseAccession).filter(Boolean)));
+  let deficienciesRaised = 0;
   for (const caseAccession of distinctCaseAccessions) {
-    await mockSpecimenDeficiencyService.raise({
+    const raised = await mockSpecimenDeficiencyService.raise({
       caseId: caseAccession,
       deficiencyTypeId: 'def-cold-chain-excursion',
-      comment: `Real cold-chain excursion detected on container ${containerRes.data.rackId} (batch ${batch.masterBarcode}) at ${payload.temperatureCelsius}°C, recorded ${payload.recordedAt}.`,
+      comment: `${payload.simulated ? 'Simulated cold-chain' : 'Real cold-chain'} excursion detected on container ${containerRes.data.rackId} (batch ${batch.masterBarcode}) at ${payload.temperatureCelsius}°C, recorded ${payload.recordedAt}.`,
       raisedBy: 'system',
     });
+    if (raised.ok) deficienciesRaised += 1;
   }
+  return { heldBatchId: batch.id, deficienciesRaised };
 }
 
 /** Test-only reset — same real pattern as this app's own other

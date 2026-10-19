@@ -20,6 +20,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { captureDownload } from './downloadCapture';
+
 /**
  * Parses raw CSV text into an array of string-cell rows (RFC4180: quoted
  * fields, "" escaping, embedded commas/newlines). Row 0 is the header row —
@@ -146,6 +148,8 @@ export function toCsv<T extends object>(rows: T[], columns?: string[]): string {
  * mis-rendering non-ASCII text.
  */
 export function downloadCsv(filename: string, text: string): void {
+  const csvName = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+  if (captureDownload({ filename: csvName, content: '﻿' + text, mime: 'text/csv;charset=utf-8;' })) return; // Batch 611: the simulated export server keeps it
   const blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

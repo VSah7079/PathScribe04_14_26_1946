@@ -22,22 +22,29 @@ import { formatDateTime } from '@/utils/formatDate';
 
 export function useSignerConfirmation(action: SigningAction, caseRef?: string | null) {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  // Batch 611 (#157): the fresh second-factor code a signature asks for when the policy says so.
+  const [mfaCode, setMfaCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const method = signerConfirmation.method();
   const needsUsername = method === 'password' && signerConfirmation.needsUsername();
+  const mfaCodeNeeded = signerConfirmation.mfaCodeNeeded();
 
   const reset = useCallback(() => {
-    setUsername(''); setPassword(''); setError(''); setBusy(false);
+    setUsername(''); setPassword(''); setMfaCode(''); setError(''); setBusy(false);
   }, []);
 
   const handle = useCallback((r: SignerResult): SignatureConfirmation | null => {
     setBusy(false);
-    if (r.ok === true) { setPassword(''); setError(''); return r.confirmation; }
+    if (r.ok === true) {
+      setPassword(''); setMfaCode(''); setError('');
+      if (r.mfa) updateUserProfile({ mfa: r.mfa });
+      return r.confirmation;
+    }
     const message = r.reason === 'locked' && r.lockedUntil
       ? t('signerConfirmation.error.locked', { time: formatDateTime(r.lockedUntil, i18n.language) })
       : t(`signerConfirmation.error.${r.reason}`);
@@ -45,8 +52,9 @@ export function useSignerConfirmation(action: SigningAction, caseRef?: string | 
       ? t('signerConfirmation.messageWithAttempts', { message, attempts: t('signerConfirmation.attemptsLeft', { count: r.attemptsLeft }) })
       : message);
     if (r.reason === 'wrong_credentials') setPassword('');
+    if (r.reason === 'mfa_invalid') setMfaCode('');
     return null;
-  }, [t, i18n.language]);
+  }, [t, i18n.language, updateUserProfile]);
 
   /** Resolves with the confirmation, or null (the reason is in `error`). */
   const confirm = useCallback((): Promise<SignatureConfirmation | null> => {
@@ -54,18 +62,18 @@ export function useSignerConfirmation(action: SigningAction, caseRef?: string | 
     const pending = method === 'sso'
       ? signerConfirmation.withSso({ action, caseRef })
       : method === 'password'
-        ? signerConfirmation.withPassword({ username, password, action, caseRef })
+        ? signerConfirmation.withPassword({ username, password, action, caseRef, mfaCode })
         : Promise.resolve<SignerResult>({ ok: false, reason: 'unavailable' });
     setBusy(true);
     return pending.then(handle);
-  }, [method, action, caseRef, username, password, handle]);
+  }, [method, action, caseRef, username, password, mfaCode, handle]);
 
   /** The simulated biometric (demo builds only). */
   const confirmBiometric = useCallback((): Promise<SignatureConfirmation | null> => {
     setError('');
     setBusy(true);
-    return signerConfirmation.withBiometric({ action, caseRef }).then(handle);
-  }, [action, caseRef, handle]);
+    return signerConfirmation.withBiometric({ action, caseRef, mfaCode }).then(handle);
+  }, [action, caseRef, mfaCode, handle]);
 
   return {
     method,
@@ -75,6 +83,7 @@ export function useSignerConfirmation(action: SigningAction, caseRef?: string | 
     signerCredentials: user?.credentials ?? '',
     username, setUsername,
     password, setPassword,
+    mfaCodeNeeded, mfaCode, setMfaCode,
     error, busy,
     confirm, confirmBiometric, reset,
   };

@@ -10,3 +10,4 @@ export { authSession, authConfig } from './auth/authSessionInstance';
 export { mockStaffPasswordService as staffPasswordService } from './staffPasswords/mockStaffPasswordService';
 export { passwordConfirmProblem, PASSWORD_MIN_LENGTH } from './staffPasswords/staffPasswordRules';
 export { signInRefusalNotice } from './auth/signInLockout';
+export { mfaService } from './auth/mfa/mfaInstance';

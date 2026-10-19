@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/aiIntegration/
 
 Higher-level AI integration: transcript refinement, macro suggestions, synoptic field suggestions, narrative generation. (The AI spelling check was retired in Batch 338; see below.) Routes through services/ai/'s provider abstraction underneath.
@@ -9,7 +11,6 @@ Higher-level AI integration: transcript refinement, macro suggestions, synoptic 
 - **`aiProviderService.ts`** — The REAL, live, multi-provider callAi() function everything actually calls through. Provider builders/parsers are named for their real request/response protocol shape (`structured_messages`, `chat_completions`, `chat_completions_managed`, `model_gateway`, `structured_content`) rather than the vendor, matching `AiProviderId` in `aiProviderConfig.ts` — a deliberate internal-naming decision; the admin config UI still shows real vendor/model names. **Real addition:** Gemini/Google added as a formal, selectable provider (`structured_content`, matching the real, already-configured proxy route in `vite.config.ts` — `/api/ai/gemini/generate?model=...`, deliberately avoiding constructing the colon-bearing `:generateContent` URL client-side, same reasoning as that proxy config's own comment). Previously Gemini was used elsewhere in this app but wasn't a selectable option in the shared provider config at all — now it is, alongside the other five. Tests in `aiProviderService.structuredContent.test.ts` (renamed from `.gemini.test.ts`) — request shape, multi-part response parsing, error handling.
 - **`IAIIntegrationService.ts`** — Interface. IMPORTANT: its own comment documents that evaluateSynopticAssignment is NOT the live runtime path for that specific method — the real implementation is a plain function in services/cases/mockCaseService.ts. Types from this file ARE genuinely used (type-only) elsewhere.
 - **`PathScribeAIService.ts`** — (class renamed from `GeminiAIIntegrationService` — the old name is gone entirely now, not just aliased, since nothing outside this file ever referenced it directly) Provider-agnostic, not Gemini-specific. Genuinely live: refineTranscript, suggestMacros, suggestSynopticFields, generateNarrative are all real, working methods, routed through `callAi()`. evaluateSynopticAssignment is a deliberate no-op stub on this class (see IAIIntegrationService.ts note).
-- **`MockAIIntegrationService.ts`** — Thoughtfully designed mock — deliberately returns empty results for evaluateSynopticAssignment to avoid conflicting with the 'Sim Microscopic' dev button's own fake data. **Confirmed genuinely, fully unused** (not just unconfirmed) during a direct orphaned-code audit — zero real imports anywhere, only comment references. `PathScribeAIService` (the real implementation of the same interface) was what `OrchestratorSectionEditor.tsx` instantiated for its (now retired) spell-check — this mock was never adopted for that feature, likely because `aiProviderService.ts`'s own `mock` provider mode already covers the "no real API calls" use case at a lower level. Left in place rather than deleted — genuine potential value for future testing without live API access, but flagging clearly that it's currently dead code, not a hidden dependency.
 
 ## Result shape (Batch 348, PS-67)
 
@@ -51,3 +52,11 @@ Every method here now returns `ServiceResult` from `services/types.ts` (`{ ok: t
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 609 (#173, #177)
+
+`callAi` treats a model's `maxTokens` override as a ceiling on output length. `refineTranscript` builds its instructions with `services/voice/dictationRefinementPrompt.ts` (Australian and Canadian spelling were American before). Tests: `aiProviderService.maxTokens.test.ts`.
+
+## Batch 616 (part E) — server version
+
+API-server version of `AiVendorPolicy` (`httpAiVendorPolicyService.ts`, contract `AI_VENDOR_POLICY_API.md`), picked by `aiVendorPolicyServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

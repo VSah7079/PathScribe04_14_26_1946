@@ -21,4 +21,7 @@ export interface IAccessRequestService {
   /** Batch 432: needs the permission that gives that access
    *  (accessRequestDecision.ts) and a reason; the requester is messaged. */
   deny(id: ID, resolvedByUserId: ID, resolvedByUserName: string, reason: string): Promise<ServiceResult<AccessRequest>>;
+  /** Batch 613: ends a granted patient_cases request (the grant stays open until this). Needs a reason.
+   *  The permission and the assigned-pathologist rule are checked by services/patientCaseAccess, which calls this. */
+  revoke(id: ID, revokedByUserId: ID, revokedByUserName: string, reason: string): Promise<ServiceResult<AccessRequest>>;
 }

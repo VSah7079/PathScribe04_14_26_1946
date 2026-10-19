@@ -20,12 +20,19 @@ import {
   ASSEMBLY_ROLE_LABEL_KEY, ASSEMBLY_ROLE_ICONS, ROLE_DISPLAY_ORDER,
   VALID_ROLES_FOR_PART, validateAssembly,
 } from '../../types/reportPart';
-import { reportTemplateService } from '@/services';
+import { reportTemplateService, checkTemplateFinalDiagnosis, FINAL_DIAGNOSIS_DESIGNATION_ERROR } from '@/services';
 import { TemplatePreviewPanel } from './TemplatePreviewPanel';
 import type { ReportTemplate as OldTemplate } from '../../types/template';
 import { reportPartService, onReportPartsChanged } from '@/services';
 import type { LabelConfig } from '../../types/template';
-import { Label, TextInput, Toggle, Sel } from './TemplateInspector';
+import { Label, Toggle, Sel } from './TemplateInspector';
+import { FontSizeField } from '../Common/FontSizeField';
+import { ConvertToPointsPanel } from '../Common/ConvertToPointsPanel';
+import { convertTemplateToPoints, planTemplatePointsConversion } from '@/services/reportAppearance/convertToPoints';
+import { unitsOf } from '@/services/reportAppearance/fontUnits';
+import { auditService } from '@/services';
+import { useAuth } from '@/contexts/AuthContext';
+import type { FontUnits } from '../../types/template';
 import { getOrgDocumentStyleDefault, getOrgHeaderStyleDefault, getOrgFooterStyleDefault } from '../Config/System/documentStyleConfig';
 import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
@@ -426,7 +433,7 @@ const FONT_FAMILY_OPTIONS = [
   { value: 'Courier New',     label: 'Courier New' },
 ];
 
-const DocumentStyleEditor: React.FC<{ style: LabelConfig; onChange: (s: LabelConfig) => void }> = ({ style, onChange }) => {
+const DocumentStyleEditor: React.FC<{ style: LabelConfig; templateUnits?: FontUnits; onChange: (s: LabelConfig) => void }> = ({ style, templateUnits, onChange }) => {
   const { t } = useTranslation();
   return (
   <div className="ps-tinsp-stack">
@@ -434,11 +441,12 @@ const DocumentStyleEditor: React.FC<{ style: LabelConfig; onChange: (s: LabelCon
     <Sel ariaLabel={t('templateAssemblyPage.fontFamilyLabel')} value={style.fontFamily ?? 'Arial'} onChange={v => onChange({ ...style, fontFamily: v })}
       options={FONT_FAMILY_OPTIONS} fullWidth />
 
-    <Label>{t('templateAssemblyPage.fontSizeLabel')}</Label>
-    <TextInput
-      value={String(style.fontSize ?? 10)}
-      onChange={v => onChange({ ...style, fontSize: parseInt(v) || 10 })}
-      placeholder="10"
+    <FontSizeField
+      style={style}
+      templateUnits={templateUnits}
+      pointsLabel={t('templateAssemblyPage.fontSizeLabel')}
+      fallbackSize={10}
+      onChange={size => onChange({ ...style, fontSize: size })}
     />
 
     <div className="ps-tinsp-row ps-tinsp-row--tight">
@@ -464,7 +472,7 @@ const DocumentStyleEditor: React.FC<{ style: LabelConfig; onChange: (s: LabelCon
 
     <div
       className="ps-tmpla-style-preview"
-      style={labelStyleVars(style, 'preview')}
+      style={labelStyleVars(style, 'preview', templateUnits)}
     >
       {t('templateAssemblyPage.stylePreviewText')}
     </div>
@@ -483,12 +491,15 @@ export const TemplateAssemblyPage: React.FC = () => {
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  // Batch 609 (#38): how many fields in this Final template are marked as the Final Diagnosis, when more than one.
+  const [finalDxCount, setFinalDxCount] = useState(0);
   const [picker, setPicker]     = useState<AssemblyRole | null>(null);
   const [activeRole, setActiveRole] = useState<AssemblyRole | null>(null);
   const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [resolvedParts, setResolvedParts] = useState<ReportPart[]>([]);
   const [nameActive, setNameActive] = useState(false);
+  const { user } = useAuth();
   const [styleOpen, setStyleOpen] = useState(false);
   const [styleCategory, setStyleCategory] = useState<'header' | 'body' | 'footer'>('body');
   const orgDocumentStyleDefault = getOrgDocumentStyleDefault();
@@ -546,6 +557,8 @@ export const TemplateAssemblyPage: React.FC = () => {
         standard:           'custom',
         status:             'draft',
         orchestrationEnabled: false,
+        // Batch 612: a new template's font sizes are in points (the printed size).
+        fontUnits:          'pt',
         institutionId:      'PATHSCRIBE',
         createdBy:          'user',
         createdAt:          new Date().toISOString(),
@@ -564,6 +577,22 @@ export const TemplateAssemblyPage: React.FC = () => {
       setLoading(false);
     });
   }, [templateId]);
+
+  // Checked as the design changes, so the problem shows before anyone tries to publish.
+  useEffect(() => {
+    if (!template) return;
+    let live = true;
+    void checkTemplateFinalDiagnosis(template).then(c => { if (live) setFinalDxCount(c.ok ? 0 : c.count); });
+    return () => { live = false; };
+  }, [template]);
+
+  const publish = useCallback(async () => {
+    if (!template) return;
+    const r = await svc.publish(template.id);
+    if (r.ok) { setTemplate(r.data); setError(null); return; }
+    // The refusal is explained in the user's language by the banner below, not by the service's code.
+    if (r.error !== FINAL_DIAGNOSIS_DESIGNATION_ERROR) setError(r.error);
+  }, [template]);
 
   const save = useCallback(async (updated: ReportTemplate) => {
     setSaving(true);
@@ -719,8 +748,8 @@ export const TemplateAssemblyPage: React.FC = () => {
           }} className="ps-tmpla-btn ps-tmpla-btn--preview">
             {t('templateAssemblyPage.previewButton')}
           </button>
-          <button onClick={async () => { const r = await svc.publish(template.id); if (r.ok) setTemplate(r.data); }}
-            disabled={template.status === 'published'}
+          <button onClick={() => { void publish(); }}
+            disabled={template.status === 'published' || finalDxCount > 1}
             className={`ps-tmpla-btn ps-tmpla-btn--publish${template.status === 'published' ? ' ps-tmpla-btn--published' : ''}`}>
             {template.status === 'published' ? t('templateAssemblyPage.publishedButton') : t('templateAssemblyPage.publishButton')}
           </button>
@@ -751,6 +780,7 @@ export const TemplateAssemblyPage: React.FC = () => {
               category: t(ZONE_LABEL_KEY[styleCategory]),
               fontFamily: orgStyleForCategory(styleCategory).fontFamily,
               fontSize: orgStyleForCategory(styleCategory).fontSize,
+              unit: unitsOf(orgStyleForCategory(styleCategory)) === 'pt' ? 'pt' : 'px',
             })}
           </div>
           <DocumentStyleEditor
@@ -758,7 +788,20 @@ export const TemplateAssemblyPage: React.FC = () => {
               template.documentStyle?.[styleCategory]
               ?? orgStyleForCategory(styleCategory)
             }
+            templateUnits={template.fontUnits}
             onChange={next => save({ ...template, documentStyle: { ...template.documentStyle, [styleCategory]: next } })}
+          />
+          {/* Batch 612: a template saved in pixels converts to points, with a list of what changes first. */}
+          <ConvertToPointsPanel
+            plan={planTemplatePointsConversion(template)}
+            needed={template.fontUnits !== 'pt' || planTemplatePointsConversion(template).changes.length > 0}
+            categoryLabel={c => t(ZONE_LABEL_KEY[c])}
+            onConvert={async () => {
+              const result = await convertTemplateToPoints(template, { templateService: svc, auditService, actorName: user?.name ?? '' });
+              if (result.ok === false) return 'fontUnits.failed';
+              if (result.template) setTemplate(result.template);
+              return null;
+            }}
           />
         </div>
       )}
@@ -783,6 +826,13 @@ export const TemplateAssemblyPage: React.FC = () => {
           {error && (
             <div className="ps-tmpla-error-banner">
               {error}
+            </div>
+          )}
+
+          {/* Batch 609 (#38): a Final template may mark at most one field as the Final Diagnosis */}
+          {finalDxCount > 1 && (
+            <div className="ps-tmpla-error-banner" role="alert">
+              {t('templateAssemblyPage.finalDiagnosisTooMany', { fields: finalDxCount })}
             </div>
           )}
 

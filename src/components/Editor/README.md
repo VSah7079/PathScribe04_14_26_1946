@@ -1,3 +1,7 @@
+## Batch 614 (part A): voice and hotkey commands
+
+`editorCommands.ts` (`runEditorCommand`, `sectionTarget`, `EDITOR_COMMAND_IDS`) and `editorFocus.ts` (which editor a command acts on: the one that last had the cursor; with none focused, the first mounted). `PathScribeEditor` subscribes to the action registry, registers itself, and passes the commands the screen state it owns (find panel on its Replace tab, table picker, formatting marks, ruler, signature line). `showRulerDefault` now works: a ruler with centimetre ticks above the text. "Section" means a heading (Heading 1 to 3). A read-only editor ignores the commands that change the text.
+
 # components/Editor/
 
 The rich text editor (Tiptap-based) used throughout PathScribe for

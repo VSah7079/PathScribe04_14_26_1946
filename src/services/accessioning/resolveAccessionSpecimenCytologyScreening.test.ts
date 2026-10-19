@@ -29,3 +29,13 @@ describe('resolveAccessionSpecimenCytologyScreening (PS-212)', () => {
     expect([contactBleedingFromChoice('yes'), contactBleedingFromChoice('no'), contactBleedingFromChoice('')]).toEqual([true, false, undefined]);
   });
 });
+
+describe('Batch 608 (#47): prior cervical procedure', () => {
+  it('records the choice on cytology specimens, alone or with the bleeding answer', async () => {
+    const { resolveAccessionSpecimenCytologyScreening: r } = await import('./resolveAccessionSpecimenCytologyScreening');
+    expect(r('Cytology', undefined, 'leep')).toEqual({ priorCervicalProcedure: 'leep' });
+    expect(r('Cytology', false, 'none')).toEqual({ persistentContactBleedingAtCollection: false, priorCervicalProcedure: 'none' });
+    expect(r('Cytology', undefined, '')).toBeUndefined();
+    expect(r('Surgical', undefined, 'leep')).toBeUndefined();
+  });
+});

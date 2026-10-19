@@ -77,7 +77,9 @@ export default defineConfig(({ mode }) => {
       // lazily loaded modules (single sign-on, live updates), so Vite found
       // them mid-session, re-bundled, and the open page failed with
       // "504 (Outdated Optimize Dep)" for oidc-client-ts.
-      include: ['oidc-client-ts', '@microsoft/signalr'],
+      // Batch 612: error monitoring (@sentry/browser) is loaded the same way,
+      // through a lazy import in startApp.tsx, so it is pre-bundled here too.
+      include: ['oidc-client-ts', '@microsoft/signalr', '@sentry/browser'],
     },
     server: {
       port: 5173,

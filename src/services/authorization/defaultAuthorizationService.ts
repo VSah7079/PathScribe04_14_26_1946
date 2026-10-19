@@ -6,10 +6,16 @@
 import { mockRoleService } from '../roles/mockRoleService';
 import { mockUserService } from '../users/mockUserService';
 import { mockAuditService } from '../auditlog/mockAuditService';
-import { createAuthorizationService } from './authorizationService';
+import { chooseService } from '../apiServer/serviceSelection';
+import { createAuthorizationService, type IAuthorizationService } from './authorizationService';
+import { createHttpAuthorizationService } from './httpAuthorizationService';
 
-export const authorizationService = createAuthorizationService({
+// Batch 616 (PS-484): with an API server address the checks are put to the server
+// (httpAuthorizationService.ts); without one (the demo) they run here on the mock data.
+const mockAuthorizationService = createAuthorizationService({
   roleService: mockRoleService,
   userService: mockUserService,
   auditService: mockAuditService,
 });
+
+export const authorizationService: IAuthorizationService = chooseService<IAuthorizationService>('authorization', mockAuthorizationService, createHttpAuthorizationService);

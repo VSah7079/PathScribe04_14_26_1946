@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per direct spec ("Decoupled Dispatch & Print Management
 // System", Component B) — the real dispatch function connecting the
-// print queue (mockPrintQueueService.ts) to one of the three real,
+// print queue (printQueueService.ts) to one of the three real,
 // buildable delivery modes (NATIVE_QZ_TRAY / DIRECT_NETWORK_PRINT /
 // INTERFACE_ENGINE_HANDOFF). The actual per-mode delivery attempt
 // itself now lives in attemptPrintDelivery.ts — extracted for PS-279
@@ -60,8 +60,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { facilityService } from '../index';
-import { mockPrintQueueService } from './mockPrintQueueService';
-import { mockPrintRoutingRuleService } from '../printRouting/mockPrintRoutingRuleService';
+import { printQueueService } from './printQueueServiceInstance';
+import { printRoutingRuleService as mockPrintRoutingRuleService } from '../printRouting/printRoutingRuleServiceInstance';
 import { resolvePrintDestination } from '../printRouting/resolvePrintDestination';
 import { redirectSiteAllowed } from '../printRouting/printDestinationRules';
 import { resolveRealPrintRoutingContext, type RealPrintRoutingContextOverrides } from '../printRouting/resolveRealPrintRoutingContext';
@@ -141,7 +141,7 @@ export async function dispatchPrintJob(
     destination = resolution.destination ?? config.directNetworkPrintDestination;
   }
 
-  const enqueueRes = await mockPrintQueueService.enqueue({
+  const enqueueRes = await printQueueService.enqueue({
     caseId,
     performingFacilityId,
     reportType,
@@ -160,7 +160,7 @@ export async function dispatchPrintJob(
   const job = enqueueRes.data;
 
   if (config.mode === 'DIRECT_NETWORK_PRINT' && !destination) {
-    await mockPrintQueueService.markFailed(job.id, {
+    await printQueueService.markFailed(job.id, {
       errorCode: 'PRINT_REJECTED',
       errorMessage: 'No PrintRoutingRule matched this job at any real tier, and this facility has no configured directNetworkPrintDestination default.',
       maxRetriesExceeded: true,
@@ -169,7 +169,7 @@ export async function dispatchPrintJob(
   }
 
   if (!generatePdf) {
-    await mockPrintQueueService.markFailed(job.id, {
+    await printQueueService.markFailed(job.id, {
       errorCode: 'PRINT_REJECTED',
       errorMessage: 'No PDF generation available from this caller — the real report rendering closure only exists inside SynopticReportPage.tsx.',
       maxRetriesExceeded: true,
@@ -179,7 +179,7 @@ export async function dispatchPrintJob(
 
   const pdfResult = await generatePdf();
   if (!pdfResult.pdfBase64) {
-    await mockPrintQueueService.markFailed(job.id, {
+    await printQueueService.markFailed(job.id, {
       errorCode: 'PRINT_REJECTED',
       errorMessage: pdfResult.generationError ?? 'PDF generation returned no data.',
       maxRetriesExceeded: false,
@@ -192,7 +192,7 @@ export async function dispatchPrintJob(
   // in memory, so a later Retry/Redirect (redispatchPrintJob.ts) can
   // genuinely resend without needing to re-render — see PrintJob.pdfBase64's
   // own doc comment for the full, honest account.
-  await mockPrintQueueService.persistRenderedPdf(job.id, pdfResult.pdfBase64, { id: pdfResult.documentId, sha256: pdfResult.sha256 });
+  await printQueueService.persistRenderedPdf(job.id, pdfResult.pdfBase64, { id: pdfResult.documentId, sha256: pdfResult.sha256 });
 
   return attemptPrintDelivery({
     jobId: job.id,

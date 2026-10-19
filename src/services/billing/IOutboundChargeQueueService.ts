@@ -22,4 +22,6 @@ export interface IOutboundChargeQueueService {
    *  first when the failure was a real, detectable metadata gap, so a
    *  still-broken entry isn't silently re-queued. */
   retryDispatch(id: string): Promise<ServiceResult<OutboundChargeQueueEntry>>;
+  /** Batch 605: the charge reached the interface engine (or the simulated one): QUEUED to SENT, with an audit entry. */
+  markSent(id: string): Promise<ServiceResult<OutboundChargeQueueEntry>>;
 }

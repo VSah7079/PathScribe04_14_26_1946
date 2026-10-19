@@ -44,6 +44,14 @@ The informal-review banner and `findPendingInformalReview` were deleted. The ban
 
 `delegationStore.ts` adds two pending second opinions between Sarah Johnson and Pete Nimmo, one each way (S26-4603, S26-4604).
 
+## Batch 610 (#83)
+
+`delegationVoicePresets.ts` says which delegation type each spoken action means (peer review → Informal Review, formal consult → Second Opinion, full transfer → Case Reassignment). `completeDelegatedWork.ts` completes a user's pending delegations on a case; the report page calls it when that user signs the case out.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part B): server version (PS-514)
+
+The delegation service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELEGATIONS_NOTES_API.md`.

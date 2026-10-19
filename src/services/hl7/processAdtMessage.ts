@@ -208,6 +208,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     const check = verifyNationalIdentifier(system, identifier.identifierValue);
     await mockPatientIndexService.recordNationalIdentifier(mpiResult.patientId, {
       system, value: normalizeNationalIdentifier(identifier.identifierValue), verificationStatus: check.status, verifiedAt: new Date().toISOString(), source: 'hl7',
+      ...(system === 'mrn_nhs' && parsed.patient.nhsStatusCode ? { statusCode: parsed.patient.nhsStatusCode } : {}),
     });
   }
 

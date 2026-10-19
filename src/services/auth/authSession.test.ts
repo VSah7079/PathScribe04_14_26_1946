@@ -8,6 +8,8 @@ import { resolveAuthConfig } from './authConfig';
 import type { ISsoClient, SsoCompletion } from './sso/ssoClient';
 import type { SessionProfile } from './sessionProfile';
 import type { DemoAccount } from './demo/demoAccounts';
+import { createMfaService } from './mfa/mfaService';
+import { memoryMfaStores } from './mfa/mfaStores';
 
 const TENANT = 'tenant-1';
 const ISS = `https://login.microsoftonline.com/${TENANT}/v2.0`;
@@ -341,5 +343,45 @@ describe('the access token for API and hub calls', () => {
     expect(await setup({ stored: sso }).session.accessToken()).toBe('access-token');
     expect(await setup({ stored: { ...sso, authMethod: 'password' } }).session.accessToken()).toBeNull();
     expect(await setup().session.accessToken()).toBeNull();
+  });
+});
+
+// ── Batch 611 (#157): the second factor on single sign-on and on restore ───
+
+describe('multi-factor sign-in (Batch 611)', () => {
+  const mfaFor = async (mode: 'off' | 'all', at = new Date('2026-09-26T12:00:00Z')) => {
+    const mfa = createMfaService({
+      stores: memoryMfaStores(), secretFor: null, audit: { logEvent: async e => ({ ok: true, data: { ...e, id: 'a', timestamp: '' } }) },
+      enforce: async () => true, now: () => at,
+    });
+    await mfa.savePolicy({ id: 'x', name: 'x', email: '', role: 'admin', initials: 'X', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' }, { mode, sessionMaxHours: 8 });
+    return mfa;
+  };
+  const claims = (extra: Record<string, unknown>) => ({ ok: true as const, providerId: 'microsoft' as const, claims: { iss: ISS, sub: 'x', oid: 'oid-1', email: 'SChen@hospital.org', ...extra }, returnPath: '/worklist' });
+
+  it('refuses a single sign-on that the provider did not back with a second factor, and signs out of the provider', async () => {
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa: await mfaFor('all') });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toEqual({ ok: false, reason: 'mfa_required' });
+    expect(t.sso.signedOut).toEqual(['microsoft']);
+    expect(t.stored()).toBeNull();
+  });
+  it('accepts it when the claims assert MFA, and the profile carries the stamp', async () => {
+    const t = setup({ completion: claims({ amr: ['pwd', 'mfa'] }), mfa: await mfaFor('all') });
+    const r = await t.session.completeSsoSignIn('microsoft', 'u');
+    expect(r).toMatchObject({ ok: true, profile: { id: '1', mfa: { organisationId: 'ORG-DVMC', userId: '1', method: 'idp' } } });
+  });
+  it('asks nothing when the organisation does not require it', async () => {
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa: await mfaFor('off') });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toMatchObject({ ok: true });
+  });
+  it('a restored session whose second factor has expired is dropped and the provider signed out', async () => {
+    const stamp = { organisationId: 'ORG-DVMC', userId: '1', verifiedAt: '2026-09-26T01:00:00Z', method: 'idp' as const };
+    const stored: SessionProfile = { id: '1', name: 'Sarah Chen', email: 'schen@hospital.org', role: 'pathologist', initials: 'SC', voiceProfile: 'EN-US', authMethod: 'sso', ssoProviderId: 'microsoft', organisationId: 'ORG-DVMC', canViewPediatric: true, mfa: stamp };
+    const live = setup({ stored, mfa: await mfaFor('all', new Date('2026-09-26T05:00:00Z')) });
+    expect(await live.session.restoreSession()).toMatchObject({ id: '1' });
+    const expired = setup({ stored, mfa: await mfaFor('all', new Date('2026-09-26T12:00:00Z')) });
+    expect(await expired.session.restoreSession()).toBeNull();
+    expect(expired.stored()).toBeNull();
+    expect(expired.sso.signedOut).toEqual(['microsoft']);
   });
 });

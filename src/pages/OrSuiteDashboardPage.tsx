@@ -50,13 +50,17 @@ import { resolveStaffByQuickAuthPin } from '@/services/intraopDashboard/resolveS
 import { resolveActiveIntraopRequestsForLocations, type ActiveIntraopRequest } from '@/services/intraopDashboard/resolveActiveIntraopRequestsForLocations';
 import { dismissFromBoardWithAudit } from '@/services/intraopDashboard/dismissFromBoardWithAudit';
 import { resolveBoardLocationIds, resolveFlashState } from '@/services/intraopDashboard/resolveOrBoardLiveView';
-import { intraoperativeService, locationService, orEventLogService, orSuiteTerminalService } from '@/services';
+import { intraoperativeService, locationService, orEventLogService, orSuiteTerminalService, tatTargetService } from '@/services';
+import { resolveFrozenSectionClock } from '@/services/tatConfig/resolveFrozenSectionClock';
 import { useLiveIntraopUpdates } from '@/hooks/useLiveIntraopUpdates';
 import { LiveStatusBadge } from '@/components/LiveUpdates/LiveStatusBadge';
 import type { OrSuiteTerminal } from '@/services/intraopDashboard/IOrSuiteTerminalService';
 import OrBoardRow from '@/components/OrSuiteDashboard/OrBoardRow';
 import type { Location } from '@/services/locations/ILocationService';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { DisplayTokenPrompt, DisplayBlank, type DisplayTokenClasses } from '@/components/Common/DisplayTokenPrompt';
+import { readStoredDisplayToken, storeDisplayToken, useDisplayBindingStatus } from '@/hooks/useDisplayBinding';
+import { maskForWallDisplay } from '@/services/intraopDashboard/maskForWallDisplay';
 
 /** Real, per the spec's own "Counts up continuously in MM:SS format."
  *  Pure — computes elapsed seconds between two real timestamps, never
@@ -197,8 +201,7 @@ const DismissConfirmationModal: React.FC<{ request: ActiveIntraopRequest; onClos
           <>
             <h2 className="ps-orboard-modal-title">{t('orSuiteDashboard.confirmDismissalTitle')}</h2>
             <div className="ps-orboard-safety-redisplay">
-              <div><span className="ps-orboard-safety-label">{t('orSuiteDashboard.patient')}</span> <span data-phi="name">{request.patientName}</span></div>
-              <div><span className="ps-orboard-safety-label">{t('orSuiteDashboard.mrn')}</span> <span data-phi="mrn">{request.mrn}</span></div>
+              <div><span className="ps-orboard-safety-label">{t('orSuiteDashboard.caseId')}</span> {request.orNumber}</div>
               <div><span className="ps-orboard-safety-label">{t('orSuiteDashboard.orRoom')}</span> {request.locationDisplay ?? request.orNumber}</div>
               <div className="ps-orboard-safety-diagnosis">
                 <span className="ps-orboard-safety-label">{t('orSuiteDashboard.preliminaryDiagnosis')}</span>
@@ -223,16 +226,27 @@ const DismissConfirmationModal: React.FC<{ request: ActiveIntraopRequest; onClos
   );
 };
 
-const TerminalSetup: React.FC<{ onBound: (id: string) => void }> = ({ onBound }) => {
+const OR_TOKEN_CLASSES: DisplayTokenClasses = {
+  page: 'ps-orboard-setup-page', content: 'ps-orboard-setup-content', description: 'ps-orboard-setup-description',
+  input: 'ps-orboard-setup-select', error: 'ps-orboard-error', actions: 'ps-orboard-modal-actions',
+  secondary: 'ps-btn-secondary', primary: 'ps-btn-primary',
+};
+
+/** Batch 603: choosing a terminal is not enough; the Display Token an administrator issued for it must be entered and verified. */
+const TerminalSetup: React.FC<{ onBound: (id: string, token: string) => void }> = ({ onBound }) => {
   const { t } = useTranslation();
   const [terminals, setTerminals] = useState<OrSuiteTerminal[]>([]);
+  const [pending, setPending] = useState<OrSuiteTerminal | null>(null);
   useEffect(() => { orSuiteTerminalService.getActive().then(res => { if (res.ok) setTerminals(res.data); }); }, []);
+  if (pending) {
+    return <DisplayTokenPrompt kind="or-suite" subjectId={pending.id} displayName={pending.name} classes={OR_TOKEN_CLASSES} onAccepted={token => onBound(pending.id, token)} onBack={() => setPending(null)} />;
+  }
   return (
     <div className="ps-orboard-setup-page">
       <div className="ps-orboard-setup-content">
         <h1>{t('orSuiteDashboard.bindDisplayTitle')}</h1>
         <p className="ps-orboard-setup-description">{t('orSuiteDashboard.bindDisplayDescription')}</p>
-        <select aria-label={t('orSuiteDashboard.bindDisplayTitle')} className="ps-orboard-setup-select" onChange={e => e.target.value && onBound(e.target.value)} defaultValue="">
+        <select aria-label={t('orSuiteDashboard.bindDisplayTitle')} className="ps-orboard-setup-select" onChange={e => { const term = terminals.find(x => x.id === e.target.value); if (term) setPending(term); }} defaultValue="">
           <option value="">{t('orSuiteDashboard.selectTerminal')}</option>
           {terminals.map(term => <option key={term.id} value={term.id}>{term.name}</option>)}
         </select>
@@ -262,6 +276,9 @@ const MultiSuiteLocationPicker: React.FC<{ facilityId: string; selected: string[
 const OrSuiteDashboardPage: React.FC = () => {
   const { t } = useTranslation();
   const { terminalId, setTerminalId } = useCurrentOrTerminal();
+  const [displayToken, setDisplayToken] = useState<string | null>(() => readStoredDisplayToken('or-suite'));
+  const [reprovision, setReprovision] = useState(false);
+  const access = useDisplayBindingStatus('or-suite', terminalId, displayToken);
   const [terminal, setTerminal] = useState<OrSuiteTerminal | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
   const [multiSuiteLocationIds, setMultiSuiteLocationIds] = useState<string[]>([]);
@@ -283,9 +300,9 @@ const OrSuiteDashboardPage: React.FC = () => {
   const DEMO_ADVANCE_INTERVAL_MS = 25_000;
 
   useEffect(() => {
-    if (!terminalId) { setTerminal(null); return; }
+    if (!terminalId || access !== 'valid') { setTerminal(null); setRequests([]); return; }
     orSuiteTerminalService.getById(terminalId).then(res => { if (res.ok) setTerminal(res.data); });
-  }, [terminalId]);
+  }, [terminalId, access]);
 
   useEffect(() => {
     if (!terminal) return;
@@ -301,7 +318,15 @@ const OrSuiteDashboardPage: React.FC = () => {
     if (effectiveLocationIds.length === 0) return;
     const res = await intraoperativeService.getAll();
     if (!res.ok) return;
-    const next = resolveActiveIntraopRequestsForLocations(res.data, effectiveLocationIds);
+    // Batch 610 (#68, #91): the clock comes from TAT configuration (FROZEN_SECTION,
+    // per facility and STAT or routine). If the targets cannot be read, the
+    // board keeps the built-in 20 and 5 minutes rather than going blank.
+    const tat = await tatTargetService.getAll();
+    const tatEntries = tat.ok ? tat.data : [];
+    const next = resolveActiveIntraopRequestsForLocations(
+      res.data, effectiveLocationIds, undefined, undefined, new Date(),
+      (entry, urgency) => resolveFrozenSectionClock(tatEntries, { facilityId: entry.facilityId ?? location?.facilityId, urgency }),
+    ).map(maskForWallDisplay);
     // The "3-pulse flash" plays once, the moment a diagnosis first appears
     // (resolveOrBoardLiveView.ts), whichever device entered it.
     setFlashedIds(prev => {
@@ -310,7 +335,7 @@ const OrSuiteDashboardPage: React.FC = () => {
       return flashed;
     });
     setRequests(next);
-  }, [effectiveLocationIds]);
+  }, [effectiveLocationIds, location?.facilityId]);
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
 
@@ -372,7 +397,21 @@ const OrSuiteDashboardPage: React.FC = () => {
     window.setTimeout(() => { refresh(); setDismissingIds(prev => { const next = new Set(prev); next.delete(specimenId); return next; }); }, 400);
   };
 
-  if (!terminalId) return <TerminalSetup onBound={setTerminalId} />;
+  const handleBound = (id: string, token: string) => {
+    storeDisplayToken('or-suite', token);
+    setDisplayToken(token);
+    setReprovision(false);
+    setTerminalId(id);
+  };
+
+  if (!terminalId) return <TerminalSetup onBound={handleBound} />;
+  if (access === 'checking') return <LoadingState label={t('orSuiteDashboard.loadingTerminal')} />;
+  if (access !== 'valid') {
+    if (reprovision) {
+      return <DisplayTokenPrompt kind="or-suite" subjectId={terminalId} displayName={terminal?.name ?? ''} classes={OR_TOKEN_CLASSES} reason={access} onAccepted={token => handleBound(terminalId, token)} onBack={() => setReprovision(false)} />;
+    }
+    return <DisplayBlank classes={OR_TOKEN_CLASSES} status={access} actionClass="ps-btn-primary" onReprovision={() => setReprovision(true)} />;
+  }
   if (!terminal) return <LoadingState label={t('orSuiteDashboard.loadingTerminal')} />;
 
   return (

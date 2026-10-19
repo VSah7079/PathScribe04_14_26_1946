@@ -24,7 +24,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { biometricService } from '@/services';
+import { biometricFlow } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignerConfirmationFields } from '@/components/Signing/SignerConfirmationFields';
 import { useSignerConfirmation } from '@/hooks/useSignerConfirmation';
@@ -216,13 +216,15 @@ const SigningPanel: React.FC<{
   // Biometric is offered only in demo builds (simulated WebAuthn), only when
   // the institution has turned it on, and only if this user is enrolled.
   React.useEffect(() => {
-    if (!signer.biometricAllowed || !userId || !biometricService.getBiometricPolicy().enabled) return;
+    if (!signer.biometricAllowed || !userId) return;
     let live = true;
-    biometricService.isBiometricAvailable().then(avail => {
+    void (async () => {
+      if (!(await biometricFlow.getPolicy()).enabled) return;
+      const [avail, credential] = await Promise.all([biometricFlow.isAvailable(), biometricFlow.getCredential(userId)]);
       if (!live) return;
-      setShowBio(!!biometricService.getCredentialForUser(userId) && avail);
-      setDeviceName(biometricService.getDeviceName());
-    });
+      setShowBio(!!credential && avail);
+      setDeviceName(biometricFlow.deviceName());
+    })();
     return () => { live = false; };
   }, [signer.biometricAllowed, userId]);
 
@@ -240,6 +242,7 @@ const SigningPanel: React.FC<{
 
   return (
     <div className="ps-prefin-signing">
+      {showBio && <div className="ps-prefin-bio-simulated" role="note">{t('preFinalisationModal.signing.bioSimulated')}</div>}
       {bioFailMsg && <div className="ps-prefin-signing-biofail">⚠ {bioFailMsg}</div>}
       <div className="ps-prefin-signing-row">
         <div className="ps-prefin-signing-identity">

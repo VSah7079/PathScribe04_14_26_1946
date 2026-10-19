@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # src/services/cytology/
 
 `ICytologyCategoryService.ts` + `mockCytologyCategoryService.ts` (+ test)
@@ -1600,6 +1602,10 @@ test files, 4714/4714 tests passing.
 - a non-admin Consultant was refused with the finalize reason, and the case stayed in progress;
 - the same user as Primary signed out.
 
+## Batch 609 (part A)
+
+- The cytology render payload carries `documentStyle`; `renderCytologyPdf.ts` adds the images linked to the report after the renderer's pages (`applyImages`), and a failure to add them holds the report (an error, not a report quietly without its images).
+
 ## Batch 366 (PS-68)
 
 Comments in `ICytologySignOutRecordService.ts` and `types/cytology/CytologySignOutRecord.ts` no longer point to the removed `ReportSnapshot` type.
@@ -2094,3 +2100,18 @@ Pete, Oct 12: "PDF that leaves PathScribe, and the browser only shows previews. 
 ## Batch 578
 
 - `cytologyWorkloadCapRules.ts`: `cytologyWorkloadCapError` (which tier, and why), `withoutCapOverride` (who can still be given an override). `mockCytologyWorkloadCapSettingsService.ts`: `createMockCytologyWorkloadCapSettingsService(clock)`; the start-of-day history takes its time from the clock.
+
+## Batch 608
+
+- `resolveCytologyCaseSeverities.ts`: the advisory abnormal severity per case from its latest review (the QC queue badge); `resolveCytologyAbnormalSeverity` now has callers.
+- `screeningIntervals.ts`: the per-country, per-age interval rules, `resolveScreeningIntervalAdherence` (a 3-month grace; undefined, not 0%, when nothing can be judged). `mockScreeningIntervalService.ts` keeps the table (`config:cytology-compliance:manage`, audited).
+- `proficiencyPanel.ts`, `mockCytologyProficiencyPanelService.ts`: a PT panel, and a Simulated grade against a fixed demo key (pass mark 90%). The result is stored with `simulated: true` and is left out of the PT rates and deficiency rule.
+- The QA reports read the new specimen fields: `hpvAssayName`, `liquidBasedPlatform`, `hpvFollowUp` (UK failsafe: referrals, and referrals with no response after 28 days), `priorCervicalProcedure` (drives `priorCervicalProcedureOrBiopsy` beside the diagnosis-history half). `runMatchesScope` scopes the molecular QC runs by organisation or facility.
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the cytology services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/CYTOLOGY_API.md`. The mocks are unchanged.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`cytologyProficiencyPanelService`, `pathologyLexiconService`, `cytologyComplianceFeaturesService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CYTOLOGY_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

@@ -260,3 +260,79 @@ describe('the case-data gate (Batch 372)', () => {
   });
 });
 
+
+// ── Batch 604: simulated ticket close, PDF export, support's own activity ──
+import { buildSupportAuditPdf } from './supportAuditPdf';
+import { setSupportActivityHandler, reportSupportActivity } from './supportActivity';
+
+describe('Batch 604 support audit additions', () => {
+  it('builds a real PDF from the stream', async () => {
+    const bytes = await buildSupportAuditPdf({ organisationName: 'Desert Valley', exportedBy: 'Admin', exportedAt: '2026-10-17T00:00:00Z', chain: { intact: true, entries: 0 }, entries: [] });
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
+  });
+
+  it('passes support activity to the installed handler and never throws', async () => {
+    const seen: string[] = [];
+    setSupportActivityHandler(a => { seen.push(a.kind); });
+    reportSupportActivity({ kind: 'export', detail: 'x' });
+    await Promise.resolve();
+    expect(seen).toEqual(['export']);
+    setSupportActivityHandler(() => { throw new Error('boom'); });
+    expect(() => reportSupportActivity({ kind: 'configChange', detail: 'y' })).not.toThrow();
+    setSupportActivityHandler(null);
+  });
+});
+
+describe('Batch 604 simulated ticket close and support activity', () => {
+  async function approved() {
+    const h = harness();
+    await h.svc.setSettings('fac-mft', { policy: 'approvalRequired', windowMinutes: 60 });
+    h.as({ id: 'SUP', name: 'Support A', role: 'superadmin', organisationId: 'ORG-DVMC' });
+    const r = await h.svc.requestAccess({ tenantId: 'fac-mft', ticketId: 'TK-20', reason: 'Report render fault, ticket' });
+    h.as({ id: 'H1', name: 'Hospital Admin', role: 'admin', organisationId: 'ORG-MFT' });
+    await h.svc.decide(r.ok ? r.request.id : '', 'approve');
+    h.as({ id: 'SUP', name: 'Support A', role: 'superadmin', organisationId: 'ORG-DVMC' });
+    return h;
+  }
+
+  it('closing the ticket ends the access and says so in the stream', async () => {
+    const h = await approved();
+    expect(await h.svc.closeTicket('TK-20')).toEqual({ ok: true, ended: 1 });
+    expect((await h.svc.decisionFor('fac-mft', 'SUP')).allowed).toBe(false);
+    h.as({ id: 'H1', role: 'admin', organisationId: 'ORG-MFT' });
+    const a = await h.svc.listAudit('fac-mft');
+    const last = a.ok ? a.entries[0] : null;
+    expect(last?.action).toBe('ticketClosed');
+    expect(last?.detail).toContain('SIMULATED');
+    expect(await h.svc.verifyAudit('fac-mft')).toMatchObject({ intact: true });
+  });
+
+  it('only support can close a ticket, and an unknown ticket is refused', async () => {
+    const h = await approved();
+    expect(await h.svc.closeTicket('TK-NOPE')).toEqual({ ok: false, reason: 'notFound' });
+    h.as({ id: 'H1', role: 'admin', organisationId: 'ORG-MFT' });
+    expect(await h.svc.closeTicket('TK-20')).toEqual({ ok: false, reason: 'notSupport' });
+  });
+
+  it('records the support agent\'s own export and configuration change, and nobody else\'s', async () => {
+    const h = await approved();
+    await h.svc.recordSupportActivity({ kind: 'export', detail: 'Exported stains as csv.' });
+    await h.svc.recordSupportActivity({ kind: 'configChange', detail: 'Configuration changed: add (config:stain-dictionary:manage).' });
+    h.as({ id: 'H1', role: 'admin', organisationId: 'ORG-MFT' });
+    await h.svc.recordSupportActivity({ kind: 'export', detail: 'by a hospital user' });
+    const a = await h.svc.listAudit('fac-mft');
+    const actions = a.ok ? a.entries.map(e => e.action) : [];
+    expect(actions).toContain('supportExport');
+    expect(actions).toContain('supportConfigChange');
+    expect(a.ok && a.entries.filter(e => e.detail.includes('hospital user'))).toHaveLength(0);
+  });
+
+  it('exports the stream as a PDF and records it', async () => {
+    const h = await approved();
+    h.as({ id: 'H1', name: 'Hospital Admin', role: 'admin', organisationId: 'ORG-MFT' });
+    const r = await h.svc.exportAuditPdf('fac-mft');
+    expect(r.ok && new TextDecoder().decode(r.bytes.slice(0, 5))).toBe('%PDF-');
+    const a = await h.svc.listAudit('fac-mft');
+    expect(a.ok && a.entries[0].detail).toContain('PDF');
+  });
+});

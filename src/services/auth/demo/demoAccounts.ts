@@ -120,3 +120,19 @@ export async function verifyDemoCredentials(email: string, password: string, acc
   const ok = await verifyPasswordHash(password.trim(), account?.password ?? NO_ACCOUNT);
   return account && ok ? account : null;
 }
+
+// ── Batch 611 (#157): the Simulated second factor ──────────────────────────
+// A documented demo secret per account, so the multi-factor sign-in can be
+// shown without a phone. It is derived from a seed that is written here and in
+// docs/architecture/MFA.md, so treat it as known: it protects nothing and
+// exists only in the demo build. Add the secret to an authenticator app, or use
+// the "Show demo code (Simulated)" button on the screen.
+export const DEMO_MFA_SEED = 'pathscribe-demo-mfa-v1';
+
+/** The base32 demo secret for a staff id (20 bytes of SHA-256(seed:id)); the same for every id, so staff whose password was set on the Staff screen are covered too. */
+export async function demoMfaSecretFor(accountId: string): Promise<string | null> {
+  if (!accountId) return null;
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${DEMO_MFA_SEED}:${accountId}`) as BufferSource));
+  const { base32Encode } = await import('../mfa/totp');
+  return base32Encode(digest.slice(0, 20));
+}

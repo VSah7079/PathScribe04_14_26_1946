@@ -1,0 +1,6 @@
+Batch 588 — deleting a block in process (2026-10-16)
+Vitest: src/services/material/deleteBlockInProcess.test.ts (13) and src/pages/SynopticReportPage/modals/DeleteBlockControl.test.tsx (5) passed. Full suite result: see the batch summary.
+Design changed during the batch (Pete): billing reviews in the existing Billing deficiencies tab, so the separate credit queue, its storage key and the second permission were removed before delivery.
+e2e/review/ps-100.toast-persistence.spec.ts: passes here (47 s); the wait for the first report widened to 90 s after it failed for Pete at 15 s.
+Xray Tests: PS-743 (automated), PS-744 (verification gap). Not run: the independent review agent.
+Not built: deleting after sign-out and the amended-report flag (tiers 2 and 3).

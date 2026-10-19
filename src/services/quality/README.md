@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/quality/
 
 Generic services for PS-108's real QA Activity Framework.
@@ -174,3 +176,13 @@ Screen: Quality Assurance → Activities (`components/QualityAssurance/QaActivit
 ## Batch 544
 
 `resolveQaEvidenceBinder.ts`: `qaEvidenceBinderExportFilename` takes the scope and names the facility or organisation exported (enterprise-wide keeps the old name).
+
+## Batch 589 — Demo discordance data (PS-147)
+
+`demoDiscordanceSeed.ts`: five post-sign-out peer reviews (3 minor, 2 major) across three pathologists, and the two CAPA recommendations the major ones raise. The QA activity record seed is now 181 records. Five cases do not trip the pattern rule (20 reviews, 3 majors), so no pattern tile shows.
+
+Batch 616 (part D, PS-501): server versions of QaActivityRecordService, QaActivityTypeService, QaSupervisionAssignmentService, QaSupervisionAssignmentTypeService, ReconciliationService, SurgicalPeerReviewRiskWeightService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/QUALITY_API.md`.
+
+## Batch 617 (part C): server versions (PS-514)
+
+The peer review, peer-review settings, CAPA recommendation and QA trend policy services here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/QUALITY_SETTINGS_API.md`. The mocks are unchanged.

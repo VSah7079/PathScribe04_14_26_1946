@@ -21,7 +21,7 @@ import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { AmendedAddendaTriageTile } from './AmendedAddendaTriageTile';
 import { PendingGrossingTriageTile } from './PendingGrossingTriageTile';
 import { flagService }    from '@/services';
-import { amendmentService, lisAmendmentNoticeService, informalReviewService, delegationService, peerReviewService, loadCytologyReviewTray, takeCytologyReview, loadFollowUpCaseIdsForUser } from '@/services';
+import { amendmentService, lisAmendmentNoticeService, informalReviewService, delegationService, peerReviewService, loadCytologyReviewTray, takeCytologyReview, loadFollowUpCaseIdsForUser, loadOpenSlaBreaches, type SlaBreachKind } from '@/services';
 import ConfirmModal from '@/components/Common/ConfirmModal';
 import { pendingDelegationsTo } from '@/services/delegations/delegationRules';
 import type { AmendmentType } from '@/types/reports/AmendmentRecord';
@@ -221,6 +221,8 @@ const WorklistPage: React.FC = () => {
   const [peerReviewCaseIds, setPeerReviewCaseIds] = useState<Set<string>>(new Set());
   // Batch 454: my signed-out cases with a follow-up due soon or overdue.
   const [followUpCaseIds, setFollowUpCaseIds] = useState<Set<string>>(new Set());
+  // Batch 610 (#164): open cases past a client SLA target right now (set in Configuration → System → Client SLA).
+  const [slaBreaches, setSlaBreaches] = useState<ReadonlyMap<string, SlaBreachKind>>(new Map());
   // Batch 440: positive GYN cytology waiting for a pathologist — the open
   // ones anyone may take, plus the viewer's own (loadCytologyReviewTray).
   // Kept apart from realCases so open cases don't join the viewer's All list.
@@ -363,6 +365,13 @@ const WorklistPage: React.FC = () => {
     if (!user?.id) { setFollowUpCaseIds(new Set()); return; }
     loadFollowUpCaseIdsForUser(user.id).then(setFollowUpCaseIds).catch(() => {});
   }, [user?.id, location.key]);
+
+  // Batch 610 (#164): a client SLA breach on an open case, shown as a badge on its row.
+  useEffect(() => {
+    let cancelled = false;
+    loadOpenSlaBreaches(realCases).then(m => { if (!cancelled) setSlaBreaches(m); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [realCases]);
 
   const canTakeCytologyReview = capabilities.has('cytology:pathologist-review:take');
   const refreshCytologyReview = useCallback(() => {
@@ -1196,6 +1205,7 @@ const WorklistPage: React.FC = () => {
                 onOpenDpDrawer={setDpDrawerCaseId}
                 branchFilter={branchFilter}
                 delegatedCaseIds={delegatedCaseIds}
+                slaBreaches={slaBreaches}
                 interceptOpen={activeFilter === 'cytologyreview' ? openCytologyReviewCase : undefined}
                 onPoolCaseClick={(caseId, summary) => {
                   const c = realCases.find(c => c.id === caseId);

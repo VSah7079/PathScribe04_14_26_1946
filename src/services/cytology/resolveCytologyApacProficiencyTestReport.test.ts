@@ -86,4 +86,19 @@ describe('resolveCytologyApacProficiencyTestReport — real, per direct guidance
     // needs three real, consecutive events within the SAME provider.
     expect(report.rows.every(r => !r.consecutiveDeficiencyFlagged)).toBe(true);
   });
+
+  it('Batch 608 (#77): a simulated result is listed but never counted in the rate or the deficiency rule', () => {
+    const base = { caseId: 'c', accessionNumber: 'a', provider: 'CAP', challengeReferenceId: 'x' };
+    const report = resolveCytologyApacProficiencyTestReport([
+      { ...base, id: '1', outcome: 'satisfactory', receivedAt: '2026-01-01T00:00:00Z' },
+      { ...base, id: '2', outcome: 'unsatisfactory', receivedAt: '2026-02-01T00:00:00Z', simulated: true },
+      { ...base, id: '3', outcome: 'unsatisfactory', receivedAt: '2026-03-01T00:00:00Z', simulated: true },
+      { ...base, id: '4', outcome: 'unsatisfactory', receivedAt: '2026-04-01T00:00:00Z', simulated: true },
+    ]);
+    expect(report.rows).toHaveLength(4);
+    expect(report.rows.filter(r => r.simulated)).toHaveLength(3);
+    expect(report.totalEvents).toBe(1);
+    expect(report.satisfactoryRatePercent).toBe(100);
+    expect(report.rows.every(r => !r.consecutiveDeficiencyFlagged)).toBe(true);
+  });
 });

@@ -40,7 +40,7 @@ import { mockCaseService }             from './mockCaseService';
 import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { getSessionUser, canAccessCaseWithPools, filterAccessibleCasesWithPools, deriveEligibleFinalizerIds, isCrossTenantSupportAccess, type CaseAccessSubspecialty } from '../auth/caseAccessControl';
-import { mockSubspecialtyService as subspecialtyService } from '../subspecialties/mockSubspecialtyService';
+import { subspecialtyService } from '../subspecialties/subspecialtyServiceInstance';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import type { Facility } from '../facilities/IFacilityService';
 import { getParticipationTypeLookup } from '../../utils/participationTypeLookup';

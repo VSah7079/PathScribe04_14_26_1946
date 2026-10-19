@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/locations/
 
 The `Location` dictionary — real wards/rooms/beds, scoped to a
@@ -135,3 +137,6 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+
+Batch 616: server version in `httpLocationService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `locationServiceInstance.ts`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.

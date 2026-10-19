@@ -14,6 +14,7 @@ Source word lists for PathScribe's medical spell checker (PS-342). They are comp
 - **`sources/de-DE/`:** put the upstream igerman98 source archive here (see its README). It then ships with the German dictionary as the GPL's corresponding source, and the written offer is no longer needed.
 - **`licensed/`** (Batch 339): drop the licensed releases here (SPECIALIST Lexicon, SNOMED CT editions, LOINC) and rebuild. They never ship; only the derived words do. See `licensed/README.md`.
 - **`licensed-sources.json`** (Batch 339): which SNOMED CT hierarchies, language reference sets and LOINC classes the build uses, and which locale each language feeds.
+- **`de/`, `fr/`, `nl/` `pathology.dic.txt` (Batch 609):** starter pathology lists for German (about 190 entries), French (about 155) and Dutch (about 170): plain words, one per line, so every accepted form is written out. They are standard classification spellings, not machine translation, and **need native-speaker clinical review**; extend them from the national SNOMED CT edition when licensed. German nouns are capitalised.
 - **`ko/pathology.txt`:** about 150 Korean pathology terms, as bare nouns (particles are stripped at lookup). **Needs native-speaker clinical review before clinical use.**
 
 ## Rules for editing

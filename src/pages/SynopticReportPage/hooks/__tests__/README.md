@@ -182,3 +182,5 @@ you hit them yourself:
 ## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
 
 `useSpecimenBlockManagement.test.ts`: decants go through the atomic save on the current version. A failure rolls back and says why, and a conflict opens the dialog.
+
+`checkAmendmentMismatch.test.ts` (Batch 609): re-sign-out of an amended report uses the lab setting, first sign-out ignores it, an addendum is checked. `useAmendmentWorkflow.test.ts` covers holding an addendum for the decision and going back.

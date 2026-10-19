@@ -42,6 +42,10 @@ Component B of the "Decoupled Dispatch & Print Management System" spec — the P
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): the Delivery Rules configuration screen now exists; the `printDeliveryConfig` screen is still missing.*
 
+## Batch 613 (part A) — case search reporting
+
+`exportGate.ts`: `case-search-report` is checked with `search:case-report:export`.
+
 ## Batch 437 (PS-282, PS-357): print and export audit
 
 Pete: needed for HIPAA. Every print, reprint, preview print, stored-PDF open and export now writes one entry in the existing audit log:
@@ -166,3 +170,12 @@ Batch 553 (PS-539 phase 2d; `SITE_AGENT_API.md` §3):
 ## Batch 556 (PS-539 phase 2d: report documents through the API)
 
 - Batch 556: a print retry whose stored document the server couldn't give right now (not answering, or not allowed) stays retryable; a changed or missing document still fails for good (`redispatchPrintJob.ts`). Documents are read through `reportDocuments/reportDocumentInstance.ts`.
+
+## Batch 606 (printing, labels and the site agent)
+
+- `simulatedPrint.ts` (+ test): the demo stand-in for routes with no real transport. `recordSimulatedPrint` keeps a Simulated record (browser store), shows a toast and writes a PHI-free audit entry; `simulationAllowed()` is true only with no API server. A failure switch (`setSimulatedPrintFailure`) makes simulated sends fail. Read in Configuration, System, Simulated print log.
+- `attemptPrintDelivery.ts`: in the demo, network and site-agent report print goes through the Simulated transport and the job is marked PRINTED with `simulated: true` (the print queue shows "Simulated: sent to printer"). With an API server it still fails with NEEDS_SITE_AGENT.
+
+## Batch 617 (part B): server version (PS-514)
+
+The print queue service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELIVERY_PRINTING_API.md`.

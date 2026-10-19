@@ -5,10 +5,10 @@
 // run log and the authorization service. The screen passes these; tests pass
 // fakes.
 import type { ReprintDeps, ReprintItem } from './batchLabelReprint';
-import { mockLabelReprintRunService } from './mockLabelReprintRunService';
-import { mockPrintSettingsService as printSettingsService } from '../printSettings/mockPrintSettingsService';
+import { labelReprintRunService } from './labelReprintRunServiceInstance';
+import { printSettingsService } from '../printSettings/printSettingsServiceInstance';
 import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '../printSettings/IPrintSettingsService';
-import { mockPrinterProfileService as printerProfileService } from '../printerProfiles/mockPrinterProfileService';
+import { printerProfileService } from '../printerProfiles/printerProfileServiceInstance';
 
 async function printItem(item: ReprintItem, printerProfileId: string | undefined): Promise<{ ok: boolean; message?: string }> {
   const { mockCaseService } = await import('../cases/mockCaseService');
@@ -54,7 +54,7 @@ export const batchLabelReprintDeps: ReprintDeps = {
     const s = await printSettingsService.get();
     return s.ok && s.data.defaultPrintBehavior === 'on_demand' && s.data.enforceOnDemandGuardrails === true;
   },
-  saveRun: run => mockLabelReprintRunService.save(run),
+  saveRun: run => labelReprintRunService.save(run),
   sleep: ms => new Promise(r => setTimeout(r, ms)),
   now: () => new Date().toISOString(),
   newId: () => `reprint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,

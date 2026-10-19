@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/scanStations/
 
 Registry of physical scan/work stations — where a tech actually scans a specimen at the bench — facility-scoped, with an Active/Inactive/Unverified lifecycle and a real workflow-stage mapping. A genuinely different real entity from `services/locations/` (which tracks where a *patient* is physically placed, ward/room/bed, HL7 PV1) and from `services/hardwareContainers/` (a reusable rack that moves between stations, not a fixed station itself).
@@ -49,3 +51,5 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-506): server version of ScanStationService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.

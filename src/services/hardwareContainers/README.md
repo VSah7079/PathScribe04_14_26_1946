@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/hardwareContainers/
 
 Registry of semi-permanent, laser-engraved, reusable hardware containers (racks/baskets/trays) — their check-in/check-out lifecycle against `services/batches/` sessions (Available / In Use), so the same physical rack can't be double-assigned to two active batches.
@@ -22,3 +24,5 @@ Registry of semi-permanent, laser-engraved, reusable hardware containers (racks/
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-506): server version of HardwareContainerRegistryService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.

@@ -163,7 +163,8 @@ export function approvalExpiry(now: Date, minutes = DEFAULT_SUPPORT_WINDOW_MINUT
 
 export type SupportAuditAction =
   | 'policyChanged' | 'accessRequested' | 'accessApproved' | 'accessRejected' | 'accessExpired' | 'accessEnded' | 'accessRevoked'
-  | 'caseOpened' | 'casesListed' | 'searchRun' | 'caseEdited' | 'accessRefused' | 'auditExported';
+  | 'caseOpened' | 'casesListed' | 'searchRun' | 'caseEdited' | 'accessRefused' | 'auditExported'
+  | 'ticketClosed' | 'supportExport' | 'supportConfigChange';
 
 export interface SupportAuditEntry {
   id: string;

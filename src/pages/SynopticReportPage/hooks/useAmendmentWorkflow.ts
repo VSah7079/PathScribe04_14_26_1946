@@ -52,7 +52,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { AuditLogFn } from '@/components/Audit/useAuditLog';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
 import { userService, auditService } from '@/services';
@@ -73,6 +73,8 @@ import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { MutableRefObject } from 'react';
 import type { SigningUser, SetConcurrencyConflict, SendSynopticReportToLisFn, GenerateReportPdfSnapshotFn } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
+import { checkAddendumMismatch } from './checkPeerReviewAndMismatch';
+import type { ClinicalMismatchAssessment } from '@/services';
 
 interface UseAmendmentWorkflowParams {
   caseData: Case | null;
@@ -784,6 +786,12 @@ export function useAmendmentWorkflow({
     return () => { cancelled = true; };
   }, [amendmentDraftId, amendmentMode]);
 
+  // Batch 609 (#31): an addendum whose text raises a high-risk clinical-pathologic
+  // mismatch waits for the pathologist's decision (ClinicalMismatchModal on the
+  // page) and is then released with the same fields.
+  const [amendmentMismatch, setAmendmentMismatch] = useState<ClinicalMismatchAssessment | null>(null);
+  const heldAddendumFields = useRef<{ addendumTitle?: string; explanationOfChange?: string; clinicianName?: string; method?: NotificationMethod; notifiedAt?: string; reasonId: string } | null>(null);
+
   const handleAmendmentSubmit = useCallback(async (fields: { addendumTitle?: string; explanationOfChange?: string; clinicianName?: string; method?: NotificationMethod; notifiedAt?: string; reasonId: string }) => {
     if (!amendmentDraftId) return;
     const typed = await amendmentService.changeDraftType(amendmentDraftId, amendmentMode);
@@ -859,6 +867,12 @@ export function useAmendmentWorkflow({
 
     // Single-stage — addenda only. Amendments (both modes now) go
     // through the unlock-and-re-edit path above and never reach here.
+    // Batch 609 (#31): the addendum's text is checked against the clinical
+    // history first; a high-risk mismatch is decided before it is released.
+    if (caseData) {
+      const mismatch = await checkAddendumMismatch(caseData, amendmentText).catch(() => null);
+      if (mismatch) { heldAddendumFields.current = fields; setAmendmentMismatch(mismatch); return; }
+    }
     const res = await amendmentService.release(amendmentDraftId, {
       addendumTitle: fields.addendumTitle,
       explanationOfChange: fields.explanationOfChange,
@@ -888,7 +902,17 @@ export function useAmendmentWorkflow({
     setAmendmentText('');
   }, [amendmentDraftId, amendmentMode, amendmentText, caseData, activeReportInstanceId, setAmendmentText, setShowAmendmentModal, showToast, setCaseData, preOverrideSnapshot, knownVersionRef, setConcurrencyConflict, log, t]);
 
+  /** Batch 609: the decision was recorded; release the held addendum. */
+  const resumeAddendumAfterMismatch = useCallback(() => {
+    const fields = heldAddendumFields.current;
+    heldAddendumFields.current = null;
+    setAmendmentMismatch(null);
+    if (fields) void handleAmendmentSubmit(fields);
+  }, [handleAmendmentSubmit]);
+  const cancelAddendumMismatch = useCallback(() => { heldAddendumFields.current = null; setAmendmentMismatch(null); }, []);
+
   return {
+    amendmentMismatch, resumeAddendumAfterMismatch, cancelAddendumMismatch,
     releasePendingAmendmentOrAddendum,
     alertAdminsOfUnresolvedDrift,
     showProtoReview, setShowProtoReview,

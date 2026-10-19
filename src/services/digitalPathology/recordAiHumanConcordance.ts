@@ -11,8 +11,8 @@
 // escalates to CAPA on its own.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockAiScreeningResultService } from './mockAiScreeningResultService';
-import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
+import { aiScreeningResultService as mockAiScreeningResultService } from './aiScreeningResultServiceInstance';
+import { specimenDeficiencyService as mockSpecimenDeficiencyService } from '../deficiencies/specimenDeficiencyServiceInstance';
 import type { ServiceResult, ID } from '../types';
 import type { AiScreeningResult } from '@/types/digitalPathology/AiScreeningResult';
 

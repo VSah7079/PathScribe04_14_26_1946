@@ -26,6 +26,8 @@ import { removeBrowserDataCopies } from './services/browserData/browserKeepList'
 import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
 import { clientErrorReporter } from './services/errorReporting/clientErrorReporterInstance';
 import { installGlobalErrorHandlers } from './services/errorReporting/clientErrorReporter';
+import { startErrorMonitoring } from './services/errorReporting/errorMonitoring';
+import { appEnv } from './services/runtimeConfig/runtimeEnv';
 import { installSelectAutoWidth } from './utils/selectAutoWidth';
 
 // Batch 431: remove browser copies the app no longer uses (old AI draft
@@ -37,6 +39,15 @@ removeBrowserDataCopies();
 // Batch 502 (PS-472): errors no error boundary sees (event handlers, timers,
 // rejected promises) are reported too, scrubbed of patient data.
 installGlobalErrorHandlers(window, clientErrorReporter);
+
+// Batch 590 (PS-469): crash reports also go to the deployment's monitoring service when its config.json
+// names one (a DSN and an environment); otherwise this does nothing and the SDK is never downloaded.
+void startErrorMonitoring({
+  dsn: appEnv().VITE_ERROR_MONITORING_DSN,
+  environment: appEnv().VITE_ERROR_MONITORING_ENV,
+  release: appEnv().VITE_APP_VERSION,
+  loadSdk: () => import('@sentry/browser'),
+});
 
 // Batch 580 (PS-62): where the styled dropdown list is drawn, each dropdown keeps the width of its widest option.
 installSelectAutoWidth(document);

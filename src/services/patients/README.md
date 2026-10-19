@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/patients/
 
 Real Master Patient Index (MPI) — the missing piece found while tracing
@@ -259,3 +261,5 @@ Registry details are saved per case, versioned; conflicts are counted and audite
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
 
 **New, real consumer (Sep 2026)**: `services/migration/processLegacyRecordImport.ts` (RFP-APLIS-2026-GLOBAL Historical Data Migration Engine) calls `resolveOrCreatePatient()` directly for real MPI dedup during legacy import — a genuine ambiguous match found during migration lands in the exact same `listPendingReview()`/`PatientMatchReviewSection.tsx` queue a live accession's own ambiguous match would, confirmed directly before building on top of it. No changes made to this folder itself; noted here since it's a genuinely new real caller.
+
+Batch 616 (part A, PS-503): `httpPatientIndexService.ts`, `httpOutboundPatientAdtQueueService.ts`, `patientServicesInstance.ts`. Nothing that identifies a person is in a URL; matching, merging and moving a case are the server's, and a refusal throws a fixed code. The HL7 processing and dispatchers still import the mock directly (server work in production). Contract `docs/architecture/PATIENTS_API.md`.

@@ -86,6 +86,25 @@ export const SignerConfirmationFields: React.FC<Props> = ({ signer, onSubmit, va
         </div>
       )}
 
+      {signer.mfaCodeNeeded && (
+        <div className="ps-signer-field ps-signer-mfa">
+          <label className="ps-modal-dark-label" htmlFor={`${id}-mfa`}>{t('signerConfirmation.mfaCode')}</label>
+          <input
+            id={`${id}-mfa`}
+            type="text"
+            autoComplete="one-time-code"
+            value={signer.mfaCode}
+            onChange={e => signer.setMfaCode(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={t('signerConfirmation.mfaCodePlaceholder')}
+            aria-invalid={invalid}
+            aria-describedby={signer.error ? errorId : undefined}
+            className={`ps-modal-dark-input${signer.error ? ' ps-modal-dark-input--error' : ''}`}
+          />
+          <p className="ps-signer-note">{t('signerConfirmation.mfaNote')}</p>
+        </div>
+      )}
+
       {signer.method === 'sso' && (
         <p className="ps-signer-note">
           {t('signerConfirmation.ssoNote')}

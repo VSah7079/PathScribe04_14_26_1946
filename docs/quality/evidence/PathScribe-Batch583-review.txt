@@ -1,0 +1,39 @@
+Batch 583: the review tests (e2e/review/), Playwright in Chromium against the demo, run 2026-10-15. This batch's tests: 29 passed, 5 known-bug tests (each fails as expected on a real app bug), 1 skipped.
+
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Steps 1–2: identifier searches with no dates chosen (MRN, accession, patient name)
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Step 3: all cases page correctly; page size, sort, page 2, open a case and come back
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Step 4: diagnosis, requisition number, flag, case type and CPT filters
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Step 5: performing lab, as Pete (Desert Valley staff, support access to Manchester and Midwest not approved)
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Step 5: performing lab, as a Manchester user: the Trust includes its sites
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Step 5: performing lab, as a Midwest user
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Step 6: the CSV export holds every match; a saved search survives a reload
+PASSED: e2e/review/ps-101.case-search.spec.ts › PS-101 Search does not appear to be working › Step 7: the header search bar: O26-000 + Enter lists cases with flag chips and readable statuses
+PASSED: e2e/review/ps-124.fppe-assignments.spec.ts › PS-124: FPPE Assignments read and write the QA supervision system only › Steps 1–5: seeded list; create appears at once; Graduate Now moves it; QA tracking and the Audit Log show the same
+PASSED: e2e/review/ps-124.fppe-assignments.spec.ts › PS-124: FPPE Assignments read and write the QA supervision system only › Step 6: a role with only "Manage FPPE assignments" (no cytotech competency) can create an assignment
+PASSED: e2e/review/ps-125.qa-field-schema-editor.spec.ts › PS-125: QA Configuration Center field-schema editor for Custom activities › Steps 1–5: Standard read-only; duplicate; edit fields and save; saved fields and options are locked
+PASSED: e2e/review/ps-125.qa-field-schema-editor.spec.ts › PS-125: QA Configuration Center field-schema editor for Custom activities › Step 6: removing all fields is refused with "An activity needs at least one field."
+PASSED: e2e/review/ps-128.config-unsaved-changes.spec.ts › PS-128 Configuration honours unsaved changes › Steps 1–2: an edited macro asks before another tab; Cancel keeps it, Discard moves on
+PASSED: e2e/review/ps-128.config-unsaved-changes.spec.ts › PS-128 Configuration honours unsaved changes › Steps 3–4: typing in the Add Color dialog keeps every letter; leaving or closing it asks
+PASSED: e2e/review/ps-128.config-unsaved-changes.spec.ts › PS-128 Configuration honours unsaved changes › Step 5: a changed Cytology setting asks before another section, the logo, or another tab
+PASSED: e2e/review/ps-128.config-unsaved-changes.spec.ts › PS-128 Configuration honours unsaved changes › Step 6: Sign Out shows "Unsaved Data"; closing or reloading the tab gets the browser's warning
+PASSED: e2e/review/ps-128.config-unsaved-changes.spec.ts › PS-128 Configuration honours unsaved changes › Step 7: with nothing changed every exit is silent, and filters or search boxes never ask
+PASSED: e2e/review/ps-476.pubmed-keyless.spec.ts › PS-476 PubMed ticker works without an NCBI key › Step 1: the "From PubMed" ticker shows an article and opens its listing; no request carries a key
+PASSED: e2e/review/ps-494.free-text-node-counts.spec.ts › PS-494 Free-text node counts are checked › Steps 1–4: "abc" is refused, CAP phrases are accepted, positive > examined and total < A + B + C are blocked
+PASSED: e2e/review/ps-494.free-text-node-counts.spec.ts › PS-494 Free-text node counts are checked › Step 5: the Synoptic Editor offers "Node count (free text)" on a text question, with its limits
+PASSED: e2e/review/ps-78.messages-drawer-css.spec.ts › PS-78 Messages drawer keeps its styling after the dead ps-msg-* rules were removed › Steps 1–4: list, badges, edit checkboxes, search, thread, compose, person search and phone width
+PASSED: e2e/review/ps-147.discordance-patterns.spec.ts › PS-147: discordance trend policy and Discordance Patterns › Steps 1–2: as the Lab Director, the policy defaults; minimum reviews 0 refused, 30 saves (and then stops a 20-review pattern)
+KNOWN BUG (expected to fail): e2e/review/ps-147.discordance-patterns.spec.ts › PS-147: discordance trend policy and Discordance Patterns › Steps 3–4 on the demo data as given: the tile count on load; Sarah Chen at Desert Valley, 3 major of 20
+PASSED: e2e/review/ps-147.discordance-patterns.spec.ts › PS-147: discordance trend policy and Discordance Patterns › Steps 3–6 on a written review history: tile count on load, both patterns, decide with a CAPA, audit; a pathologist sees no tile
+KNOWN BUG (expected to fail): e2e/review/ps-245.label-designer.spec.ts › PS-245 Label Designer › Steps 1–5: drag fields onto a facility override, resize and type within the label, save and export ZPL
+PASSED: e2e/review/ps-245.label-designer.spec.ts › PS-245 Label Designer › Step 6: an older layout with a field past the edge is outlined, refused on save, and fixed by Fit to label
+KNOWN BUG (expected to fail): e2e/review/ps-472.error-boundaries.spec.ts › PS-472 Error boundaries and crash handling › Steps 1, 2 and 5: a route crash shows the recovery screen; the nav bar and Back to worklist work
+PASSED: e2e/review/ps-472.error-boundaries.spec.ts › PS-472 Error boundaries and crash handling › Steps 3 and 5: an organ map or synoptic panel crash stops only that panel
+PASSED: e2e/review/ps-472.error-boundaries.spec.ts › PS-472 Error boundaries and crash handling › Steps 4 and 5: an app crash shows the whole-app screen without claiming the app is still running
+KNOWN BUG (expected to fail): e2e/review/ps-472.error-boundaries.spec.ts › PS-472 Error boundaries and crash handling › Step 6: Audit Log → Error Log lists each crash once, without patient details
+PASSED: e2e/review/ps-472.error-boundaries.spec.ts › PS-472 Error boundaries and crash handling › Step 7: after switching to German the recovery screens are translated
+SKIPPED (known bug, fails some runs): e2e/review/ps-477.deployment-baseline-reset.spec.ts › PS-477 Screens unchanged after the deployment baseline went to zero; Full Reset restores a clean baseline › Steps 1–2: Worklist, a case report, Search, Configuration System sections and the Audit Log load with no errors
+PASSED: e2e/review/ps-477.deployment-baseline-reset.spec.ts › PS-477 Screens unchanged after the deployment baseline went to zero; Full Reset restores a clean baseline › Steps 3–4: Full Reset clears the display preferences and workstation settings, keeps guide-window positions (1.2m)
+PASSED: e2e/review/ps-66.action-key-collisions.spec.ts › PS-66 Action Registry: merged actions are listed once and their shortcuts still work › Steps 1–3: the eight named actions and Skip Field / Full View / Tabbed View in the Action Registry
+KNOWN BUG (expected to fail): e2e/review/ps-66.action-key-collisions.spec.ts › PS-66 Action Registry: merged actions are listed once and their shortcuts still work › Step 4: on a synoptic case, Next Unanswered (Ctrl+Alt+U) and Confirm Field (Ctrl+Alt+Shift+A) act
+
+Earlier batches' review tests, re-run in the same run: 16 passed, 2 skipped (PS_DEMO_PASSWORD).

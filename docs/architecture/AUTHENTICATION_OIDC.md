@@ -15,6 +15,19 @@
 >
 > Why: a token kept where page scripts can read it is exposed to any script injection, and a session cookie that scripts can't read isn't. That's the current guidance for browser apps handling sensitive data. The front-end change (sign-in becomes a redirect to the server, and API calls send the cookie and the anti-forgery header) comes with the API-client batch. The demo mode is unchanged.
 
+> **Decisions, Oct 15 2026 (Pete, with the dev team's review; Jira PS-60):**
+> - **Sign-in tokens.** The Oct 3 decision (PS-345) stands. The dev team's "stateless JWT validation" (reference server item 4.6) is acceptable only for validating the identity provider's token during the sign-in exchange on the server, to set up the server-held session. **The browser never stores or carries a JWT**, only the HTTP-only session cookie. The dev team is to confirm.
+> - **User accounts sync now (SCIM users, phase 2e):** joiners, changes and leavers, so a leaver loses access through the directory update. Group-to-role mapping is **after the first release**; roles are assigned by hand in System → Staff and Roles.
+> - **When group mapping comes (§6.5):**
+>   - a group may grant bench roles only (Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist), never Admin, Lab Director, Template Approver or anything with signing authority;
+>   - leaving a group removes the mapped role at the next directory update, and the removal is audited;
+>   - an admin can add roles by hand on top, and each role shows whether it came from the directory or was added by hand;
+>   - a mapping needs approval from a second admin;
+>   - Microsoft Entra ID first, then Okta;
+>   - groups arrive by SCIM, not in the sign-in token (Entra stops listing groups in a token past 200);
+>   - mappings live in a table per organisation (directory group id → PathScribe role id), editable only by designated admins, every change audited.
+> - **Still owed by the dev team:** whether the Entra External ID broker passes the hospital's groups through, and in which claim (§8).
+
 ## 1. Why the sign-in itself doesn't need a server
 
 PS-60 said OAuth "needs a real backend for the token exchange (client secrets can't live in frontend code)". For Entra ID and Okta that is no longer true.
@@ -282,7 +295,7 @@ Reactivation (`active: true`) restores the record but not its roles or signing a
 
 - **Server side** (§5, §6): token validation, the tenant mapping, `/api/me`, row-level security, the link table, signature verification (§5.4) and SCIM.
 - **Server-side signature check** (§5.4). The browser builds the signing request's proof and checks it against the mock services (Batch 345), but only a server check makes it binding, because a modified browser could skip it. The signing endpoints need to accept the `SignatureConfirmation` and verify it.
-- **Broker:** set up Entra External ID, confirm which claim carries the upstream identity provider, and put the email-first login routing on the login page.
+- **Broker:** set up Entra External ID, confirm which claim carries the upstream identity provider **and whether it passes the hospital's groups through, and in which claim (owed by the dev team, Oct 15)**, and put the email-first login routing on the login page.
 - **Operations console** (ForMedrix-only) for tenants, identity-provider connections and SCIM tokens.
 - **Linking accounts by hand:** the Staff screen now shows a person's linked sign-in accounts and can unlink them (Batch 345); adding a link by hand waits for the operations console or SCIM.
 - **Biometric signing** for SSO builds: server-issued WebAuthn challenges. It is simulated today and offered only in demo builds.

@@ -13,15 +13,25 @@ import CytologyQcRulesSection from './CytologyQcRulesSection';
 import OrSuiteTerminalsSection from './OrSuiteTerminalsSection';
 import IntraopCriticalResultsSection from './IntraopCriticalResultsSection';
 import DisplayProfilesSection from './DisplayProfilesSection';
+import SimulatedPrintLogSection from './SimulatedPrintLogSection';
+import SimulatedMailOutboxSection from './SimulatedMailOutboxSection';
+import PerformanceTargetsSection from './PerformanceTargetsSection';
+import ClientSlaSection from './ClientSlaSection';
+import JurisdictionOverviewSection from './JurisdictionOverviewSection';
 import MigrationFieldMappingsSection from './MigrationFieldMappingsSection';
 import CancerRegistrySettingsSection from './CancerRegistrySettingsSection';
 import ProtocolDictionarySection from './ProtocolDictionarySection';
 import PrinterProfilesSection from './PrinterProfilesSection';
 import SiteAgentsSection from './SiteAgentsSection';
+import WorkstationsSection from './WorkstationsSection';
+import BiFeedSection from './BiFeedSection';
+import ScopeReferenceSection from './ScopeReferenceSection';
 import AssistLisPollingSection from './AssistLisPollingSection';
 import GrossingRouteOverridesSection from './GrossingRouteOverridesSection';
 import DepartmentsSection from './DepartmentsSection';
 import AssetLocationDictionarySection from './AssetLocationDictionarySection';
+import ColdChainSection from './ColdChainSection';
+import SmartCaptureSection from './SmartCaptureSection';
 import ContainerTypesSection from './ContainerTypesSection';
 import ReagentLotsSection from './ReagentLotsSection';
 import WorkstationGroupsSection from './WorkstationGroupsSection';
@@ -46,6 +56,7 @@ import NcciEditRulesSection      from './NcciEditRulesSection';
 import MasterPaymentTypeDictionarySection from './MasterPaymentTypeDictionarySection';
 import OutboundMessagePreviewSection from './OutboundMessagePreviewSection';
 import JurisdictionPaymentMappingSection  from './JurisdictionPaymentMappingSection';
+import CodeSystemsSection from './CodeSystemsSection';
 import DftExportPreviewSection   from './DftExportPreviewSection';
 import BillingDictionarySection  from './BillingDictionarySection';
 import PendingApprovalSection from './PendingApprovalSection';
@@ -60,6 +71,8 @@ import FieldRequirementsSection  from './FieldRequirementsSection';
 import ReleaseBufferSection      from './ReleaseBufferSection';
 import ConcordanceReviewSettingsSection from './ConcordanceReviewSettingsSection';
 import DeliveryRulesSection from './DeliveryRulesSection';
+import DeliverySchedulesSection from './DeliverySchedulesSection';
+import BillingReleaseSection from './BillingReleaseSection';
 import PrintRoutingRuleSection from './PrintRoutingRuleSection';
 import ContributionSettingsSection from './ContributionSettingsSection';
 import ExternalResourcesSection  from './ExternalResourcesSection';
@@ -99,6 +112,9 @@ import RevisionReasonsSection from './RevisionReasonsSection';
 import PeerReviewGateSection from './PeerReviewGateSection';
 import ClinicalMismatchRulesSection from './ClinicalMismatchRulesSection';
 import AiInstructionsSection from './AiInstructionsSection';
+import InterfaceDictionarySection from './InterfaceDictionarySection';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { configSectionVisible } from '@/services/screens/configSectionAccess';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
@@ -126,6 +142,8 @@ const SystemTab: React.FC = () => {
   // Batch 371: the terminology endpoint details are shown to PathScribe
   // support (Superadmin) only; this used to be hard-coded true for everyone.
   const isSuperAdmin = useIsSuperAdmin();
+  // Batch 612: ForMedrixAI-only sections (the Interface Dictionary) are listed only for someone who holds their capability.
+  const { has: holds } = useCapabilities();
   const location = useLocation();
   const [active, setActiveRaw] = useState<SystemSection>(() => {
     const section = new URLSearchParams(location.search).get('section') as SystemSection | null;
@@ -178,6 +196,11 @@ const SystemTab: React.FC = () => {
       case 'or_suite_terminals':  return <OrSuiteTerminalsSection />;
       case 'intraop_critical_results': return <IntraopCriticalResultsSection />;
       case 'display_profiles':    return <DisplayProfilesSection />;
+      case 'simulated_print':     return <SimulatedPrintLogSection />;
+      case 'simulated_mail':      return <SimulatedMailOutboxSection />;
+      case 'performance_targets': return <PerformanceTargetsSection />;
+      case 'client_sla':          return <ClientSlaSection />;
+      case 'jurisdiction_overview': return <JurisdictionOverviewSection />;
       case 'migration_field_mappings': return <MigrationFieldMappingsSection />;
       case 'cancer_registry_settings': return <CancerRegistrySettingsSection />;
       case 'protocols':           return <ProtocolDictionarySection />;
@@ -185,12 +208,18 @@ const SystemTab: React.FC = () => {
       case 'grossing_route_overrides': return <GrossingRouteOverridesSection />;
       case 'departments': return <DepartmentsSection />;
       case 'asset_locations': return <AssetLocationDictionarySection />;
+      case 'cold_chain':      return <ColdChainSection />;
+      case 'smart_capture':   return <SmartCaptureSection />;
+      case 'interface_dictionary': return <InterfaceDictionarySection />;
       case 'container_types': return <ContainerTypesSection />;
       case 'reagent_lots': return <ReagentLotsSection />;
       case 'workstation_groups': return <WorkstationGroupsSection />;
       case 'action_groups': return <ActionGroupsSection />;
       case 'scan_stations': return <ScanStationsSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'site_agents': return <SiteAgentsSection selectedFacilityId={workstationFacilityId || undefined} />;
+      case 'workstations': return <WorkstationsSection />;
+      case 'bi_feed': return <BiFeedSection />;
+      case 'scope_reference': return <ScopeReferenceSection />;
       case 'equipment': return <EquipmentSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'grossing_hardware': return <GrossingHardwareSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'cassette_routing_rules': return <CassetteRoutingRulesSection />;
@@ -217,6 +246,7 @@ const SystemTab: React.FC = () => {
       case 'dft_export_preview':  return <DftExportPreviewSection />;
       case 'participation_types': return <ParticipationTypesSection />;
       case 'country_signing_rules': return <CountrySigningRulesSection />;
+      case 'code_systems':          return <CodeSystemsSection />;
       case 'session_security':    return <SessionSecuritySection />;
       case 'support_access':      return <SupportAccessSection />;
       case 'field_requirements':  return <FieldRequirementsSection />;
@@ -224,6 +254,8 @@ const SystemTab: React.FC = () => {
       case 'concordance_review_settings': return <ConcordanceReviewSettingsSection />;
       case 'template_governance': return <TemplateGovernanceSection />;
       case 'delivery_rules': return <DeliveryRulesSection />;
+      case 'delivery_schedules': return <DeliverySchedulesSection />;
+      case 'billing_release': return <BillingReleaseSection />;
       case 'print_routing_rules': return <PrintRoutingRuleSection />;
       case 'contribution_settings': return <ContributionSettingsSection />;
       case 'external_resources':  return <ExternalResourcesSection />;
@@ -313,7 +345,7 @@ const SystemTab: React.FC = () => {
             active group's own items, no more group-header dividers,
             since only one group is ever visible at a time now. ── */}
         <div className="ps-confsys-sidebar">
-          {SECTIONS.filter(s => s.group === activeGroup).map(s => (
+          {SECTIONS.filter(s => s.group === activeGroup && configSectionVisible(s.id, holds)).map(s => (
             <button
               key={s.id}
               onClick={() => guardNav(() => { selectSection(s.id); resetConfigScroll(); })}

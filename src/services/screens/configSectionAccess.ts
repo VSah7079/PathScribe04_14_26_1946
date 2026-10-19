@@ -36,13 +36,22 @@ export const CONFIG_SECTION_CAPABILITIES: Readonly<Record<string, readonly strin
   cytology_qc_rules:        ['config:cytology-qc-rules:manage'],
   or_suite_terminals:       ['config:or-suite-terminals:manage'],
   display_profiles:         ['config:display-profiles:manage'],
+  simulated_mail:           ['config:vendor-integrations:manage'],
+  performance_targets:      ['config:tat-targets:manage'],
+  client_sla:               ['config:tat-targets:manage'],
   migration_field_mappings: ['config:migration-mappings:manage'],
   protocols:                ['config:processing-protocols:manage'],
   printer_profiles:         ['config:printers:manage'],
+  simulated_print:          ['config:printers:manage'],
   site_agents:              ['config:site-agents:enroll', 'config:site-agent-config:manage'],
+  workstations:             ['config:workstations:manage', 'config:workstation-tokens:manage'],
+  bi_feed:                  ['config:bi-feed:manage', 'config:bi-feed-tokens:manage', 'config:bi-feed-identified:approve'],
   grossing_route_overrides: ['config:grossing-routes:manage'],
   departments:              ['config:departments:manage'],
   asset_locations:          ['config:asset-locations:manage'],
+  cold_chain:               ['config:cold-chain:manage'],
+  smart_capture:            ['config:smart-capture:manage'],
+  interface_dictionary:     ['platform:interface-dictionary:manage'],
   container_types:          ['config:container-types:manage'],
   reagent_lots:             ['config:reagent-lots:manage'],
   workstation_groups:       ['config:workstation-groups:manage'],
@@ -71,10 +80,13 @@ export const CONFIG_SECTION_CAPABILITIES: Readonly<Record<string, readonly strin
   dft_export_preview:       ['config:interface-preview:view'],
   participation_types:      ['config:participation-types:manage'],
   country_signing_rules:    ['platform:signing-rules:manage'],
+  code_systems:             ['config:code-systems:manage'],
   session_security:         ['config:session-security:manage'],
   release_buffer:           ['config:release-buffer:manage'],
   concordance_review_settings: ['config:concordance-review:manage'],
   delivery_rules:           ['config:delivery-rules:manage'],
+  delivery_schedules:       ['config:delivery-schedules:manage'],
+  billing_release:          ['config:billing-release:manage'],
   print_routing_rules:      ['config:print-routing:manage'],
   contribution_settings:    ['config:contribution-settings:manage'],
   external_resources:       ['config:external-resources:manage'],
@@ -117,6 +129,18 @@ export interface ConfigSectionAccess {
   editable: boolean;
   /** The capabilities that would make it editable (empty when not gated). */
   needs: readonly string[];
+}
+
+/** Batch 612: sections shown only to someone holding one of these capabilities (ForMedrixAI staff sections).
+ *  Everyone else does not see them in the list. */
+export const PLATFORM_ONLY_SECTIONS: Readonly<Record<string, readonly string[]>> = {
+  interface_dictionary: ['platform:interface-dictionary:manage'],
+};
+
+/** Whether a section is listed for someone holding `has` (pure). */
+export function configSectionVisible(section: string, has: (capability: string) => boolean): boolean {
+  const needs = PLATFORM_ONLY_SECTIONS[section];
+  return !needs || needs.some(has);
 }
 
 /** Whether a section is editable for someone holding `has`. */

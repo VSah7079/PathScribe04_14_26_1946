@@ -264,3 +264,7 @@ The signature is a link to the image in the hospital's own system (`SignatureLin
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+- Batch 608: `StaffTab.tsx` has a Cytology QC reviewer pools field (`qcReviewerRoles`).
+
+**Batch 614:** the action reference (cheat sheet) tab now lists the always-on commands as well as Worklist and Synoptic Report ones, each with its "Alt+J, then X" route (`goToRouteOf`).

@@ -31,6 +31,7 @@ import { filterDispatchTrail, countDispatchTrail, type DispatchTrailFilter } fro
 import { getOrganisationDisplayName } from '@/services/organisation/organisationService';
 import { formatAuditTimestamp } from '@/utils/formatDate';
 import { interfaceEngineService } from '@/services';
+import SimulatedEngineLogPanel from '@/components/MockInterfaceEngine/SimulatedEngineLogPanel';
 
 const STATUS_LABEL_KEY: Record<OrderCreatedDispatchRecord['status'], string> = {
   delivered: 'outboundDispatchTrail.status.delivered',
@@ -224,6 +225,8 @@ const OutboundDispatchTrailSection: React.FC = () => {
       <div className="ps-auditlog-count-footer">{t('outboundDispatchTrail.footerCount', { shown: shown.length, total: records.length })}</div>
 
       {open && <PayloadDrawer record={open} onClose={() => setOpen(null)} />}
+      {/* Batch 605: every other message type sent in the demo (block orders, scan events, charges ...) */}
+      <SimulatedEngineLogPanel />
     </>
   );
 };

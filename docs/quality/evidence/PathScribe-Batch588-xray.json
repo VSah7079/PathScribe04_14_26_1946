@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 588 — deleting a block in process (unit and component tests)",
+    "description": "Vitest, 2026-10-16: deleteBlockInProcess.test.ts 12 passed. Full suite 9973 passed; firestore.rules.test.ts needs the Firebase emulator."
+  },
+  "tests": [
+    {
+      "testKey": "PS-743",
+      "start": "2026-10-16T16:00:00Z",
+      "finish": "2026-10-16T16:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/material/deleteBlockInProcess.test.ts (13 tests)\nPASSED: src/pages/SynopticReportPage/modals/DeleteBlockControl.test.tsx (5 tests)"
+    }
+  ]
+}

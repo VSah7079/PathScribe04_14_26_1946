@@ -177,8 +177,10 @@ describe('the build, end to end on the sample releases', { timeout: 120_000 }, (
   });
 
   it('German: medical terms from the national edition and LOINC close the base dictionary gap', async () => {
-    expect(await verdict('de-DE', 'Plattenepithelkarzinom')).toEqual({ ok: true, tier: 'clinical' });
-    expect(await verdict('de-DE', 'Cholangiokarzinom')).toEqual({ ok: true, tier: 'clinical' });
+    // Batch 609: these two are also in the starter medical lexicon, which takes them first
+    // (the clinical tier leaves out words the medical tier already has).
+    expect(await verdict('de-DE', 'Plattenepithelkarzinom')).toEqual({ ok: true, tier: 'medical' });
+    expect(await verdict('de-DE', 'Cholangiokarzinom')).toEqual({ ok: true, tier: 'medical' });
     expect(suggestWord('Plattenepitelkarzinom', 'latin', await engine('de-DE'))).toContain('Plattenepithelkarzinom');
   });
 

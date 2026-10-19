@@ -1,3 +1,57 @@
+## Batch 617 (part R) — one route style for every server version of a service (PS-488 dev notes, Pete)
+
+- **One route style.** Every server (HTTP) version now uses `/api/<area>/<service>/<method-kebab>`; a read whose arguments are all plain values is `GET` (arguments in the query string), everything else is `POST`; `PUT`, `PATCH` and `DELETE` are no longer used and no id or text is in the path. About 85 services written as REST resources were converted (code, fake-fetch tests, contract docs); the earlier-to-current path of every call is in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+- **Why method routes:** the interface already has one method per action, so the server's route table is the interface's method list; the kit generates the path, so it cannot be misspelt; commands carry what they change in a body, which keeps patient text out of URLs and logs.
+- **Guard:** `src/services/apiServer/httpRoutes.guard.test.ts` fails on any other verb or path shape. Three files keep their own contracts (job polling and binary downloads): `exports/httpExportApi.ts`, `reportDocuments/httpReportDocumentService.ts`, `reports/httpReportVersionService.ts`.
+- **Wire changes the server author must know:** an id that was in the path is now in the query string or the body (`update(id, changes)` sends `{ id, changes }`); `deny` and `revoke` still send only the reason (plus `id`); the audit log and error log filters are sent as a body (the value `all` is still left out); a case list sends its filters as a body and ignores a cursor with no page size, as before; the follow-up commands send only the key and the choice.
+- Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team).
+
+## Batch 617 (part C) — server versions of the quality, referral, search, signature, dictionary, tumor board and workstation services (PS-514, PS-501)
+
+- **28 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): peer review, peer-review settings, CAPA recommendations, the QA trend policy, concordance review settings; referral tracking and the research feed settings; saved searches and scheduled reports; signature records and smart capture (and its settings); specimen categories, custom spelling dictionaries, stain types, sectioning protocols, molecular targets, subspecialties, support references, system configuration, TAT targets, workstation groups and the workstation registry; the tumor board and its four rule services. Each is chosen by `<name>ServiceInstance.ts`: the server version with an API server address, the mock without one (the demo is unchanged).
+- Interfaces moved out of mock files into `I<Name>Service.ts` (peer-review settings, QA trend policy, system configuration, intraoperative critical results) and written out for smart capture and its settings, so the mock and the server version share one interface. The old mock files re-export the names, so no import changes.
+- **One convention:** one route per interface method, `/api/<area>/<service>/<method-name>` (`HTTP_SERVICES_PATTERN.md` §7). Contracts: `docs/architecture/QUALITY_SETTINGS_API.md`, `REFERRAL_RESEARCH_API.md`, `SEARCH_REPORTING_API.md`, `SIGNATURES_SMART_CAPTURE_API.md`, `DICTIONARIES_CONFIG_API.md`, `TUMOR_BOARD_API.md`.
+- **Kept in the browser on purpose:** the research feed's `getDefaults`, `getHealth` and `recordHealth` answer from memory (no server call). The spelling dictionary's refusals keep their `code`. A failed peer-review gate check leaves the gate on (fail closed); a failed research-feed settings save throws instead of pretending to save.
+- Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team). `demoReset.ts` still names the mocks on purpose (it resets demo data).
+
+## Batch 617 (part A) — server versions of 29 more services (PS-514)
+
+- **29 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test; 509 tests): settings and dictionaries, case workflows, critical results, bulk code import, case search and the BI feed admin calls. Each is chosen by `<name>ServiceInstance.ts` (the server version with an API server address, the mock without one), so the demo is unchanged. 13 workflow files that imported a mock directly now import the instance.
+- Contracts: `docs/architecture/CONFIG_SERVICES_API.md`, `CASE_WORKFLOWS_API.md`, `CRITICAL_RESULTS_API.md`, and Batch 617 sections in `BILLING_API.md`, `CYTOLOGY_API.md`, `CASE_SEARCH_API.md`, `BI_FEED_API.md`. Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team).
+- Not given a server version, on purpose: the voice and hotkey registry (synchronous, in memory) and the AI instruction service (rules run in the browser).
+
+## Batch 617 (part B) — server versions of the delivery, print, delegation, dictionary, equipment, migration and related services (PS-514)
+
+- **26 more services have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test of every method): delivery rules, delivery retry settings and retries; print settings, facility print settings and the print queue; batch label reprint runs; delegations; participation types; internal notes; display access (tokens); diagnosis codes; external resources; feedback settings; fonts; governing bodies; performance targets; priorities; equipment and its log; data migration jobs, record results and field mappings; LIS sync; margin extraction; intraoperative critical results.
+- **Wiring:** each has an `<name>ServiceInstance.ts` (mock without an API server address, server version with one). `services/index.ts` and the workflow files that imported a mock directly (print dispatch, retries, label printing, scan batches, margin rules, retention, migration) now use the instance. The save of country signing rules keeps the demo's unguarded store because it checks the permission itself; with a server the server decides.
+- **Three interfaces were missing** and are now written: `ILabelReprintRunService`, `ILisSyncService`, `IFeedbackSettingsService` (it lived inside the mock). The mocks now declare them; behaviour is unchanged.
+- **Privacy and safety:** one route per method (`/api/<area>/<service>/<method-name>`, `HTTP_SERVICES_PATTERN.md` section 7). Searches and accession numbers (`diagnosisCodes.search`, `internalNotes.getForCase`) and display tokens (`verify`, issue) travel in a POST body, never a URL. `displayAccess.verify` fails closed: any failure is `invalid`. A plain list is `{ items }`; a method that returns nothing throws a fixed code on refusal.
+- **Contracts:** `docs/architecture/DELIVERY_PRINTING_API.md`, `DELEGATIONS_NOTES_API.md`, `CONFIG_DICTIONARIES_API.md`, `EQUIPMENT_MIGRATION_API.md`. The routes are proposals for the India team.
+- **Not a plain server version:** `interfaceDictionary` (composed in the browser over injected storage; its storage travels through the configuration calls).
+- Screens are unchanged. No new permissions, no new strings. Server side not built: the endpoints themselves.
+
+## Batch 616 (part B) — server versions of audit, authorization, staff, roles, facilities, access, session, biometric and the lab dictionaries (PS-484, PS-507, PS-512)
+
+- **16 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): audit, authorization, users, roles, facilities, screening-registry settings and override, access requests, session time-out, biometric, departments, locations, container types, ink colours, cassette colours, physicians and the reason dictionary. Contracts: `docs/architecture/STAFF_ADMIN_API.md`, `ACCESS_SESSION_API.md`, `LAB_DICTIONARIES_API.md`.
+- **Authorization fails closed:** with a server, each access decision is put to the server; no answer is a refusal. Access requests are resolved by the signed-in user only; the browser no longer sends who.
+- Biometric: server version built; the screens still use the browser-side functions. No new permissions, no new strings. Server side not built: the endpoints themselves (India team).
+
+## Batch 616 (part C) — server versions of the billing, cytology, molecular and registry services (PS-498, PS-499, PS-500, PS-504)
+
+- **52 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): billing and charge capture (10), cytology and cytology QC (33), molecular batches, racks, control rules and the order queue (4), and registry reporting (5). Each is chosen by `<name>ServiceInstance.ts`: with an API server address the server version, without one the mock, so the demo is unchanged.
+- **One convention for wide interfaces:** one route per interface method, `/api/<area>/<service>/<method-name>`; reads are `GET` with the arguments in the query string, writes carry a body. Contract tables: `docs/architecture/BILLING_API.md`, `CYTOLOGY_API.md`, `MOLECULAR_API.md`, `REGISTRY_API.md`; the convention is `HTTP_SERVICES_PATTERN.md` §7.
+- Screens are unchanged. No new permissions, no new strings. Server side not built: the endpoints themselves (India team).
+
+
+## Batch 615 (part D) — vial and rack labels, CI workflow, right-to-left groundwork (PS-360, PS-471, PS-293)
+
+- **Vial and rack/batch labels** print through the interface engine like slide and cassette labels (`utils/labels/vialRackZplTemplates.ts`, `printVialRackLabel.ts`): Code 128 of the vial or rack id, sized to the label stock and printer resolution.
+- **CI:** `.github/workflows/ci.yml` runs type check, lint, tests, build and the Python report tests on every push to `main` and every pull request. It starts working once the repository is on GitHub (PS-468).
+- **Right to left:** `<html lang dir>` follows the language (`i18n/direction.ts`), and `pathscribe.css` now uses logical properties throughout, so a right-to-left language mirrors the layout. Identifiers and physical layouts (organ map, plates, label canvas) stay left to right. No right-to-left language is enabled yet (needs translations and Pete's go-ahead).
+
+## Batch 613 (part A) — case search reporting
+
+`architecture/SCHEDULED_REPORTS_API.md` (new) and a Reports section in `architecture/CASE_SEARCH_API.md`.
 
 ## Batch 518
 
@@ -203,3 +257,14 @@ Phase 2d item 2: the connection banner and the waiting states. See `architecture
 ## Batch 580
 
 - Batch 580: the styled dropdown list (PS-62); supported browsers in `product/FEATURE_OVERVIEW.md`; guide entry; quality evidence.
+
+## Batch 583 and 584
+
+- `architecture/TEMPLATE_NOTIFICATIONS_API.md` (new): the server contract for template lifecycle e-mails (event in; recipients, language and sending on the server), with the English wording to start from.
+- `architecture/AUTHENTICATION_OIDC.md`: the Oct 15 decisions (server-held tokens, user sync now, group mapping later with its rules). `architecture/LIVE_UPDATES_SIGNALR.md`: the deployment matrix (Azure SignalR Service for shared SaaS, Redis backplane for private cloud).
+- `quality/PLAYWRIGHT_REVIEW_GUIDE.md`: the ticket table now lists 34 tickets, and what a "known bug" test is.
+- `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `quality/README.md`: Batches 583 to 588.
+
+## Batch 581 and 582
+
+- `quality/PLAYWRIGHT_REVIEW_GUIDE.md` (new): running the review tests, step by step, on Windows.

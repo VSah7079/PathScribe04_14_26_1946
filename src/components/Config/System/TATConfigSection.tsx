@@ -74,6 +74,7 @@ const TAT_TYPES: TATType[] = [
   'FIRST_TOUCH', 'TOTAL_CASE', 'FROZEN_SECTION',
   'COLD_ISCHEMIA', 'GROSSING', 'SIGN_OUT',
   'CONSULTATION_RESPONSE', 'CONSULTATION_AWAITING',
+  'AUTOPSY_PAD', 'AUTOPSY_FAD',
 ];
 
 const TAT_TYPE_LABEL_KEY: Record<TATType, string> = {
@@ -85,6 +86,8 @@ const TAT_TYPE_LABEL_KEY: Record<TATType, string> = {
   SIGN_OUT:                 'tatConfigSection.types.signOut.label',
   CONSULTATION_RESPONSE:    'tatConfigSection.types.consultationResponse.label',
   CONSULTATION_AWAITING:    'tatConfigSection.types.consultationAwaiting.label',
+  AUTOPSY_PAD:              'tatConfigSection.types.autopsyPad.label',
+  AUTOPSY_FAD:              'tatConfigSection.types.autopsyFad.label',
 };
 
 const TAT_TYPE_DESC_KEY: Record<TATType, string> = {
@@ -96,6 +99,8 @@ const TAT_TYPE_DESC_KEY: Record<TATType, string> = {
   SIGN_OUT:                 'tatConfigSection.types.signOut.desc',
   CONSULTATION_RESPONSE:    'tatConfigSection.types.consultationResponse.desc',
   CONSULTATION_AWAITING:    'tatConfigSection.types.consultationAwaiting.desc',
+  AUTOPSY_PAD:              'tatConfigSection.types.autopsyPad.desc',
+  AUTOPSY_FAD:              'tatConfigSection.types.autopsyFad.desc',
 };
 
 // Fixed Role values offered by this screen's own Role filter/selector —
@@ -241,6 +246,7 @@ const TATModal: React.FC<ModalProps> = ({
     if (result.ok === false) {
       if (result.error === 'typeRequired') setError(t('tatConfigSection.modal.errorTypeRequired'));
       else if (result.error === 'hoursRequired') setError(t('tatConfigSection.modal.errorHoursRequired'));
+      else if (result.error === 'warningInvalid') setError(t('tatConfigSection.modal.errorWarningInvalid'));
       else if (result.conflict) {
         setError(
           t('tatConfigSection.modal.conflictError', {
@@ -333,6 +339,23 @@ const TATModal: React.FC<ModalProps> = ({
               )}
             </div>
 
+            {draft.type === 'FROZEN_SECTION' && (
+              <div className="ps-sub-field">
+                <label className="ps-sub-label" htmlFor="tat-rule-warning-minutes">{t('tatConfigSection.modal.warningMinutesLabel')}</label>
+                <input
+                  id="tat-rule-warning-minutes"
+                  type="number"
+                  className="ps-sub-input"
+                  min={1}
+                  step={1}
+                  value={draft.warningMinutes ?? ''}
+                  placeholder={t('tatConfigSection.modal.warningMinutesPlaceholder')}
+                  onChange={e => set('warningMinutes', e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)}
+                />
+                <div className="ps-tat-hint-text ps-tat-hint-text--mt4">{t('tatConfigSection.modal.warningMinutesHint')}</div>
+              </div>
+            )}
+
             <div className="ps-sub-field">
               <label className="ps-sub-label" htmlFor="tat-rule-urgency">{t('tatConfigSection.modal.urgencyLabel')}</label>
               <select
@@ -416,7 +439,7 @@ const TATModal: React.FC<ModalProps> = ({
               const facilityName  = facilities.find(cl => cl.id === draft.facilityId)?.name;
               const specimenName = specimens.find(s => s.id === draft.specimenId)?.name;
               const subName     = subspecialties.find(s => s.id === draft.subspecialtyId)?.name;
-              const roleName    = roleGroupLabel((draft as any).roleId, t);
+              const roleName    = roleGroupLabel(draft.roleId, t);
               const urgency     = draft.urgency;
 
               if (urgency)      parts.push(urgency === 'STAT' ? t('tatConfigSection.urgencyStat') : t('tatConfigSection.urgencyRoutine'));
@@ -773,7 +796,7 @@ const TATConfigSection: React.FC = () => {
       facilityName(e.facilityId),
       specimenName(e.specimenId),
       subName(e.subspecialtyId),
-      (e as any).roleId ? t('tatConfigSection.roleScope', { role: roleLabel((e as any).roleId, t) }) : null,
+      e.roleId ? t('tatConfigSection.roleScope', { role: roleLabel(e.roleId, t) }) : null,
     ].filter(Boolean);
 
     return (
@@ -781,12 +804,15 @@ const TATConfigSection: React.FC = () => {
         <td className="ps-sub-td">
           <span className="ps-tat-type-badge ps-tatconfig__type-badge--mr8">
             {getTatTypeLabel(e.type, qaActivityTypesById, t)}
-            {(e as any).roleId && <span className="ps-tatconfig__role-suffix"> · {roleLabel((e as any).roleId, t)}</span>}
+            {e.roleId && <span className="ps-tatconfig__role-suffix"> · {roleLabel(e.roleId, t)}</span>}
           </span>
           {isSystem && <span className="ps-del-tag ps-tatconfig__lock-icon">🔒</span>}
         </td>
         <td className="ps-sub-td">
           <strong className="ps-tatconfig__target">{formatHours(e.targetHours, t)}</strong>
+          {e.type === 'FROZEN_SECTION' && (
+            <div className="ps-tat-hint-text">{t('tatConfigSection.warnMinutesShort', { m: e.warningMinutes ?? 5 })}</div>
+          )}
         </td>
         <td className="ps-sub-td">
           <span className={e.urgency === 'STAT' ? 'ps-tatconfig__urgency--stat' : 'ps-tatconfig__urgency--routine'}>

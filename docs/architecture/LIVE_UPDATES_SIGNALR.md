@@ -115,6 +115,15 @@ The client re-reads as soon as it gets an event. An event sent before the transa
 
 ## 7. Scale-out and deployment
 
+**Deployment matrix (Pete, Oct 15, 2026; the dev team had listed "Azure SignalR Service with a Redis backplane", which are alternatives, not a pair):**
+
+| Deployment | Scaling |
+|---|---|
+| Shared SaaS | Azure SignalR Service |
+| Private cloud and on-premises | Redis backplane (or a single instance) |
+
+The dev team is to confirm and keep this matrix in the server's own docs.
+
 - **Public cloud (Azure):** Azure SignalR Service in Default mode. The API servers stay stateless; no sticky sessions needed.
 - **Private cloud:** the Redis backplane (`Microsoft.AspNetCore.SignalR.StackExchangeRedis`) across API instances, or a single instance.
   - Without Azure SignalR Service, the load balancer needs **sticky sessions**, because negotiate and connect must reach the same node.
@@ -200,6 +209,14 @@ The source of truth is `src/services/liveUpdates/liveUpdateContract.ts` (`HUB_PR
 - Template versions: `ZPL-CASSETTE-V3` or `ZPL-SLIDE-V1`.
 - `attempt`.
 - `eventId` values are now unique per label, even for a batch sent in the same millisecond. The old `EVT-{case}-{ms}` could repeat, and an engine enforcing the key would have dropped the repeats.
+
+### Payload additions in Batch 615 (vial and rack labels, PS-360)
+
+- `labelData.labelType`: now also `VIAL` or `RACK`.
+- `labelData.vialRack`: `{ barcode, rackKind?, lines, zpl }`. `barcode` is the plain Code 128 id (no GS1). `rackKind` is `staining_rack`, `molecular_plate`, `molecular_rack` or `wsi_batch`. `zpl` is the finished label as PathScribe built it; the engine may send it to the printer as it is.
+- `labelData.gs1DataMatrix` is absent for these two kinds, and `accessionNumber` may be empty (a rack or batch belongs to no case).
+- Template versions: `ZPL-VIAL-V1` and `ZPL-RACK-V1`.
+- Retries, idempotency and the audit entries work as for cassettes and slides.
 
 ### Audit
 

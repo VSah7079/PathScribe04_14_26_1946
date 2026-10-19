@@ -7,7 +7,7 @@
 // SLA target this app has no real source for — see
 // IFacilityOpsDashboardTypes.ts's own header.
 
-import { mockBatchService } from '../batches/mockBatchService';
+import { batchService } from '../batches/batchServiceInstance';
 import { buildFacilityLookupMaps } from './buildFacilityLookupMaps';
 import { resolveBatchFacilityId } from './resolveBatchFacilityId';
 import type { DashboardSummary, DashboardAlert, DashboardQueueItem } from './IFacilityOpsDashboardTypes';
@@ -15,7 +15,7 @@ import type { DashboardSummary, DashboardAlert, DashboardQueueItem } from './IFa
 const NODES = new Set(['Embedding', 'Microtomy / Sectioning']);
 
 export async function computeEmbeddingMicrotomySummary(facilityId: string | undefined): Promise<DashboardSummary> {
-  const [batchesRes, maps] = await Promise.all([mockBatchService.getAll(), buildFacilityLookupMaps()]);
+  const [batchesRes, maps] = await Promise.all([batchService.getAll(), buildFacilityLookupMaps()]);
 
   const batches = (batchesRes.ok ? batchesRes.data : [])
     .filter(b => b.status === 'active' && NODES.has(b.processingNode))

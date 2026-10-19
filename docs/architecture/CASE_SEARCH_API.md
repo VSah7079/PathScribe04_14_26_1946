@@ -25,7 +25,7 @@ The page turns its form into a request with `utils/search/buildCaseSearchRequest
 
 ## 3. Endpoints
 
-### `POST /api/cases/search`
+### `POST /api/cases/case-search/search`
 
 Request body (`CaseSearchRequest`):
 
@@ -51,13 +51,71 @@ Response 200 (`CaseSearchPage`):
 - **`timeZone`** is the facility's IANA time zone. It decides which calendar day an accession, sign-out or release timestamp falls on, and today's date for ages and turnaround. It defaults to UTC. The server may prefer the facility's configured zone.
 - **POST, not GET:** criteria are too long and too sensitive (names, MRNs) for a URL or access logs.
 
-### `POST /api/cases/search/export`
+### `POST /api/cases/case-search/export-rows`
 
 The same body without `page` and `pageSize`. It returns `CaseSearchExport`: `{ rows, total, truncated }`.
 
 - `rows` holds at most 5,000 export rows (`CaseSearchExportRow`), in the requested order.
 - Values are data: codes and ISO dates. The browser translates the headings, statuses and priorities and formats the dates for the user's locale.
 - Flags are names: current flag records name their definition, and older records carry the name themselves.
+
+### Reports and synoptic answers (Batch 613)
+
+A report is a search whose matching cases are **counted by group** or **listed with chosen columns**. It runs on the same criteria and the same access rules as a search (§4: access first, never after), so a report can never count a case the user cannot open.
+
+#### `POST /api/cases/case-search/report`
+
+```json
+{
+  "criteria": { "dateBasis": "signedOut", "dateFrom": "2026-08-01", "dateTo": "2026-08-31",
+                "synopticValues": [ { "templateId": "breast_invasive", "fieldId": "grade", "operator": "is", "value": "grade_opt_3" } ] },
+  "timeZone": "America/Phoenix",
+  "groupBy": "pathologist",
+  "columns": ["accession", "diagnosis", "synoptic:breast_invasive:grade"],
+  "groupKey": "u-1042",
+  "rowLimit": 200
+}
+```
+
+Response 200 (`CaseSearchReport`, `caseSearchReport.ts`):
+
+```json
+{ "total": 312, "groupBy": "pathologist",
+  "groups": [ { "key": "u-1042", "count": 120, "share": 0.3846, "medianTatDays": 2.5 } ],
+  "rows": [ { "caseId": "C-001", "cells": { "accession": "S26-1001", "diagnosis": "Invasive ductal carcinoma", "synoptic:breast_invasive:grade": ["Grade 3"] } } ],
+  "rowsTruncated": false, "groupsTruncated": false }
+```
+
+- **`groupBy`** is `none`, `pathologist`, `month`, `diagnosis`, `facility`, `caseType`, `status`, `priority` or `subspecialty`. With `none` the response has no groups and lists the cases. The server counts in SQL (`GROUP BY`), never by loading cases.
+  - *pathologist*: who signed the case out, else who it is assigned to; none: the blank group (`key: ""`).
+  - *month*: `YYYY-MM` of the search's date basis (accession by default), in `timeZone`.
+  - *diagnosis*: the primary diagnosis, compared with spacing collapsed and case ignored; the key is the wording of the first case in the group.
+  - *caseType*: the first of surgical, gynCytology, nonGynCytology, autopsy that the case has.
+- **`share`** is `count / total` (0 to 1). **`medianTatDays`** is the median of whole-and-part days from accession to sign-out over the group's signed-out cases, to one decimal; null when the group has none.
+- **Sorting groups** is done by the browser (name, count, median); the blank group and the "other" group are always last. The server returns at most 500 groups; the rest are summed into one group with key `"\u0000other"` and `groupsTruncated: true`.
+- **`groupKey`** returns only that group's cases in `rows` (the screen's drill-down). **`rowLimit`** defaults to 200 and `rowsTruncated` says when more matched.
+- **`columns`**: at most 24, no duplicates. Standard columns: `accession, patientName, mrn, sex, age, specimens, accessionDate, signedOutDate, orderingPhysician, facility, pathologist, caseType, diagnosis, priority, status, flags, turnaroundDays`. A synoptic answer column is `synoptic:<templateId>:<fieldId>`; its cell is the list of answers across the case's reports from that protocol, choices as the protocol's wording. Cells are data (ids, codes, ISO dates); the browser translates and formats them.
+
+#### `POST /api/cases/case-search/export-report`
+
+The same body. Needs `search:case-report:export` (`EXPORT_NOT_PERMITTED` otherwise: no report is made and nothing is recorded). A grouped export returns every group and no case rows; a list export returns every case up to 5,000 rows (`rowsTruncated`). With the API server this is the export kind `search.case-report` (`ASYNC_EXPORT_API.md`). The browser writes the CSV from the response (`utils/search/caseReportCsv.ts`: every cell quoted, formula cells neutralised).
+
+#### Searching on synoptic answers (`criteria.synopticValues`)
+
+Up to 10 criteria, all of which must match. Each is `{ templateId, fieldId, operator, value }`. A case matches a criterion when **one of its synoptic reports from that protocol** has a matching answer.
+
+| Operator | Meaning |
+|---|---|
+| `is`, `isNot` | A choice's option id or its wording (case-insensitive); numbers compare by value (`2` = `2.0 cm`). `isNot` needs an answer: an unanswered question does not match. |
+| `contains` | Text anywhere in a text answer, case-insensitive. |
+| `gt`, `gte`, `lt`, `lte` | The number at the start of the answer (`2.3 cm` is 2.3; a comma is a decimal point). Answers with no leading number never match. |
+| `answered`, `unanswered` | Whether the question has an answer in any report from that protocol. A case with no report from the protocol matches neither. |
+
+The questions and choices come from the protocol registry (`GET` the protocol templates; fields of type dropdown, radio, checkboxes, numeric, text and long text are searchable; grids and the Mohs map are not). The server stores answers in a searchable table (one row per report, question and answer) so these run as indexed SQL, not by scanning reports. Rules: `synopticValueCriteria.ts` (`answerMatches`, `caseMatchesSynopticValues`); port `synopticValueCriteria.test.ts`.
+
+#### Saved reports
+
+A saved report definition is the search's draft plus its grouping and columns (`CaseReportDefinition`), saved under the search context `caseReport`, private to its owner like a saved search.
 
 ## 4. Access control: before matching, never after
 
@@ -159,6 +217,7 @@ The reference implementation receives these as `CaseSearchReferenceData`. In SQL
 ## 8. Audit
 
 - **Search:** each search is recorded as a case search by the user. The reference implementation's case list does this (`case.search`).
+- **Report export (Batch 613):** recorded as `case-search-report` with the grouping and the group, row and case counts as literal English, no patient data. The on-screen report is audited as a search.
 - **Export:** each export is recorded with the row count and total, as literal English with no patient data. In the reference implementation: "Exported 99 of 99 matching cases from Search to CSV".
 
 ## 9. Acceptance tests for the endpoint
@@ -168,8 +227,30 @@ The reference implementation receives these as `CaseSearchReferenceData`. In SQL
 3. A page past the end returns the last page.
 4. Each row of §5 has a case in `caseSearchMatching.test.ts`. Port those cases to the server's tests.
 5. Export stops at 5,000 rows, reports `truncated`, and writes one audit entry.
+6. A report counts only cases the user may see; group counts add up to `total`; a refused report export makes nothing and records nothing (`caseSearchReportService.test.ts`, `caseSearchReport.test.ts`).
+7. Each synoptic operator has a case in `synopticValueCriteria.test.ts`.
 
 ## 10. Open items
 
 - **Demo data:** several Batch 351 filters match nothing in this build's demo cases, because no case carries the data yet: holds, the abnormal marker, locations, intake type, payer, sign-out timestamps (one case has an issued date) and autopsy details. Their rules are covered by `caseSearchMatching.test.ts`.
 - **TAT targets and delegations** now come from their own services (Batch 353): `tatTargetService` with the resolver in `services/tatConfig/tatTargetResolution.ts`, and `delegationService`. Their endpoints are in [TAT_AND_DELEGATION_API.md](TAT_AND_DELEGATION_API.md).
+
+## Batch 617 (part A): the browser's calls for these services (PS-514)
+
+Batch 617 (part A). The browser's `caseSearchService` now has a server version (`services/caseSearch/httpCaseSearchService.ts`). It uses the routes this document already names; the one call this document did not name, `listSynopticProtocols`, is proposed as `GET /api/cases/case-search/list-synoptic-protocols` (the protocols and their searchable questions, `{ items: [{ templateId, name, fields }] }`). The server version answers the same `ServiceResult` the screens already handle.
+
+### ICaseSearchService
+
+Service: `services/caseSearch/httpCaseSearchService.ts`; chosen in `caseSearchServiceInstance.ts`. Base `/api/case-search/case-search`.
+
+| Method | Call | Arguments | Answer |
+|---|---|---|---|
+| `search` | `POST /api/cases/case-search/search` | `request` (the body) | result |
+| `exportRows` | `POST /api/cases/case-search/export-rows` | `request` (the body) | result |
+| `report` | `POST /api/cases/case-search/report` | `request` (the body) | result |
+| `exportReport` | `POST /api/cases/case-search/export-report` | `request` (the body) | result |
+| `listSynopticProtocols` | `GET /api/cases/case-search/list-synoptic-protocols` | none | result |
+
+
+
+**Route standardization (Batch 617 merge).** The routes above replace the earlier `/api/cases/search...` paths; the earlier paths are listed in `HTTP_ROUTE_MAPPING.md`.

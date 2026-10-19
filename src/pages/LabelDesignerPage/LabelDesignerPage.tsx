@@ -40,7 +40,10 @@ import { labelLayoutService } from '@/services';
 import { facilityService } from '@/services';
 // PS-256 (Batch 451): the canvas's defensive barcode wrapper lives in utils/labels/safeBarcodeSvg.ts.
 import { safeBarcodeSvg } from '../../utils/labels/safeBarcodeSvg';
-import { buildLabelLayoutZpl } from '../../services/labelDesigner/buildLabelLayoutZpl';
+import { buildLabelLayoutPrinterCode, type PrinterLanguage } from '../../services/labelDesigner/buildLabelLayoutPrinterCode';
+import { isFieldVisible } from '../../services/labelDesigner/labelFieldVisibility';
+import type { LabelLayoutVersion, LabelFieldShowWhen } from '../../services/labelDesigner/ILabelLayoutService';
+import { useAuthOptional } from '@/contexts/AuthContext';
 import {
   LABEL_TYPES, LABEL_TYPE_DISPLAY_NAMES, LABEL_TYPE_DEFAULT_SIZE_MM, LABEL_FIELD_CATALOG,
   LABEL_TYPE_ALLOWS_FACILITY_OVERRIDE, LABEL_TYPE_DEFAULT_SYMBOLOGY,
@@ -82,11 +85,15 @@ const SAMPLE_VALUES: Record<string, string> = {
  *  clamped while the person is still typing. */
 const MmInput: React.FC<{ value: number; step?: number; className: string; label: string; onCommit: (n: number) => void }> = ({ value, step, className, label, onCommit }) => {
   const [draft, setDraft] = useState(String(value));
-  useEffect(() => { setDraft(String(value)); }, [value]);
+  // PS-245: a typed value the label clamps back to the same number does not change
+  // `value`, so the box also re-syncs after every commit, not only when the value changes.
+  const [commits, setCommits] = useState(0);
+  useEffect(() => { setDraft(String(value)); }, [value, commits]);
   const commit = () => {
     const n = Number(draft);
     if (draft.trim() === '' || !Number.isFinite(n)) { setDraft(String(value)); return; }
     onCommit(n);
+    setCommits(c => c + 1);
   };
   return (
     <input aria-label={label} className={className} type="number" step={step} value={draft}
@@ -126,6 +133,13 @@ const LabelDesignerPage: React.FC = () => {
   // exported ZPL text shown for copying, or null when the export
   // panel is closed.
   const [exportedZpl, setExportedZpl] = useState<string | null>(null);
+  const [exportLanguage, setExportLanguage] = useState<PrinterLanguage>('zpl');
+  // Batch 606 (PS-26 / PS-153): keys the preview treats as empty, saved versions, and who is editing.
+  const [emptyKeys, setEmptyKeys] = useState<Set<string>>(new Set());
+  const [versions, setVersions] = useState<LabelLayoutVersion[] | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const auth = useAuthOptional();
+  const editorName = auth?.user?.name ?? auth?.user?.id ?? 'system';
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -149,7 +163,11 @@ const LabelDesignerPage: React.FC = () => {
       }
       setLoading(false);
     });
-  }, [labelType, facilityId]);
+  }, [labelType, facilityId, reloadTick]);
+
+  const previewValues: Record<string, string> = Object.fromEntries(
+    Object.entries(SAMPLE_VALUES).map(([k, v]) => [k, emptyKeys.has(k) ? '' : v]),
+  );
 
   const handlePaletteDragStart = (e: React.DragEvent, fieldKey: string) => {
     e.dataTransfer.setData('application/x-pathscribe-new-field', fieldKey);
@@ -166,17 +184,20 @@ const LabelDesignerPage: React.FC = () => {
     e.preventDefault();
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
+    // PS-245: measure from the inside of the canvas border, where field positions start.
+    const originLeft = rect.left + canvasRef.current.clientLeft;
+    const originTop = rect.top + canvasRef.current.clientTop;
     const newFieldKey = e.dataTransfer.getData('application/x-pathscribe-new-field');
     const moved = e.dataTransfer.getData('application/x-pathscribe-move-field');
 
     if (newFieldKey) {
-      const field = moveFieldTo(newField(newFieldKey, 0, 0), pxToMm(e.clientX - rect.left), pxToMm(e.clientY - rect.top), labelSize);
+      const field = moveFieldTo(newField(newFieldKey, 0, 0), pxToMm(e.clientX - originLeft), pxToMm(e.clientY - originTop), labelSize);
       setFields(prev => [...prev, field]);
       setSelectedFieldId(field.id);
     } else if (moved) {
       const { fieldId, grabXPx = 0, grabYPx = 0 } = JSON.parse(moved) as { fieldId: string; grabXPx?: number; grabYPx?: number };
-      const xMm = pxToMm(e.clientX - rect.left - grabXPx);
-      const yMm = pxToMm(e.clientY - rect.top - grabYPx);
+      const xMm = pxToMm(e.clientX - originLeft - grabXPx);
+      const yMm = pxToMm(e.clientY - originTop - grabYPx);
       setFields(prev => prev.map(f => (f.id === fieldId ? moveFieldTo(f, xMm, yMm, labelSize) : f)));
     }
   };
@@ -225,7 +246,7 @@ const LabelDesignerPage: React.FC = () => {
     setSaveMessage(null);
     try {
       const effectiveFacilityId = allowsOverride ? (facilityId || undefined) : undefined;
-      const res = await labelLayoutService.save({ labelType, facilityId: effectiveFacilityId, widthMm, heightMm, fields });
+      const res = await labelLayoutService.save({ labelType, facilityId: effectiveFacilityId, widthMm, heightMm, fields }, editorName);
       setSaveMessage(res.ok ? (effectiveFacilityId ? t('labelDesignerPage.saveMessages.facilityOverrideSaved') : t('labelDesignerPage.saveMessages.enterpriseDefaultSaved'))
         : 'error' in res ? (res.error === LABEL_LAYOUT_OUT_OF_BOUNDS ? t('labelDesignerPage.saveMessages.outOfBounds') : res.error) : t('labelDesignerPage.saveMessages.unknownError'));
     } finally {
@@ -243,9 +264,29 @@ const LabelDesignerPage: React.FC = () => {
     setSaveMessage(t('labelDesignerPage.saveMessages.resetToDefault'));
   };
 
-  const handleExportZpl = () => {
+  const handleExport = (language: PrinterLanguage) => {
     const layout = { id: 'preview', labelType, widthMm, heightMm, fields, updatedAt: new Date().toISOString() };
-    setExportedZpl(buildLabelLayoutZpl(layout, labelType, SAMPLE_VALUES, EXPORT_DPI));
+    setExportLanguage(language);
+    setExportedZpl(buildLabelLayoutPrinterCode(layout, labelType, previewValues, EXPORT_DPI, language));
+  };
+
+  const handleShowHistory = async () => {
+    const effectiveFacilityId = allowsOverride ? (facilityId || undefined) : undefined;
+    const res = await labelLayoutService.listVersions(labelType, effectiveFacilityId);
+    setVersions(res.ok ? res.data : []);
+  };
+
+  const handleRestore = async (versionId: string) => {
+    const res = await labelLayoutService.restoreVersion(versionId, editorName);
+    setSaveMessage(res.ok ? t('labelDesignerPage.history.restored') : t('labelDesignerPage.saveMessages.unknownError'));
+    if (res.ok) { setReloadTick(n => n + 1); setVersions(null); }
+  };
+
+  const updateShowWhen = (patch: Partial<LabelFieldShowWhen> | null) => {
+    if (!selectedField) return;
+    if (patch === null) { updateSelectedField({ showWhen: undefined }); return; }
+    const base: LabelFieldShowWhen = selectedField.showWhen ?? { fieldKey: LABEL_FIELD_CATALOG[labelType][0].key, op: 'present' };
+    updateSelectedField({ showWhen: { ...base, ...patch } });
   };
 
   return (
@@ -327,7 +368,7 @@ const LabelDesignerPage: React.FC = () => {
                     {...pressable(e => { e.stopPropagation(); setSelectedFieldId(f.id); })}
                     title={def?.displayName ?? f.fieldKey}
                     data-field-id={f.id}
-                    className={`ps-designer-field${isSelected ? ' ps-designer-field--selected' : ''}${outsideIds.has(f.id) ? ' ps-designer-field--outside' : ''}`}
+                    className={`ps-designer-field${isSelected ? ' ps-designer-field--selected' : ''}${outsideIds.has(f.id) ? ' ps-designer-field--outside' : ''}${isFieldVisible(f, previewValues) ? '' : ' ps-designer-field--hidden'}`}
                     style={{
                       '--field-x': `${f.xMm * PX_PER_MM}px`, '--field-y': `${f.yMm * PX_PER_MM}px`,
                       '--field-w': `${f.widthMm * PX_PER_MM}px`, '--field-h': `${f.heightMm * PX_PER_MM}px`,
@@ -392,6 +433,39 @@ const LabelDesignerPage: React.FC = () => {
                 <MmInput label={t('labelDesignerPage.field.height')} className="ps-input-dark ps-w-full-mb-8" value={selectedField.heightMm} onCommit={n => updateSelectedField({ heightMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.fontSize')}</label>
                 <MmInput label={t('labelDesignerPage.field.fontSize')} className="ps-input-dark ps-w-full ps-mb-14" step={0.1} value={selectedField.fontSizeMm} onCommit={n => updateSelectedField({ fontSizeMm: n })} />
+                <label className="ps-label" htmlFor="ld-showwhen-key">{t('labelDesignerPage.showWhen.heading')}</label>
+                <select id="ld-showwhen-key" className="ps-input-dark ps-w-full-mb-8"
+                  value={selectedField.showWhen ? selectedField.showWhen.fieldKey : ''}
+                  onChange={e => (e.target.value === '' ? updateShowWhen(null) : updateShowWhen({ fieldKey: e.target.value }))}>
+                  <option value="">{t('labelDesignerPage.showWhen.always')}</option>
+                  {LABEL_FIELD_CATALOG[labelType].filter(c => c.key !== 'barcode' && c.key !== selectedField.fieldKey).map(c => (
+                    <option key={c.key} value={c.key}>{c.displayName}</option>
+                  ))}
+                </select>
+                {selectedField.showWhen && (
+                  <>
+                    <select aria-label={t('labelDesignerPage.showWhen.condition')} className="ps-input-dark ps-w-full-mb-8"
+                      value={selectedField.showWhen.op} onChange={e => updateShowWhen({ op: e.target.value as LabelFieldShowWhen['op'] })}>
+                      <option value="present">{t('labelDesignerPage.showWhen.present')}</option>
+                      <option value="absent">{t('labelDesignerPage.showWhen.absent')}</option>
+                      <option value="equals">{t('labelDesignerPage.showWhen.equals')}</option>
+                    </select>
+                    {selectedField.showWhen.op === 'equals' && (
+                      <input aria-label={t('labelDesignerPage.showWhen.value')} className="ps-input-dark ps-w-full-mb-8"
+                        value={selectedField.showWhen.value ?? ''} onChange={e => updateShowWhen({ value: e.target.value })} />
+                    )}
+                    <label className="ps-label ps-label-inline">
+                      <input type="checkbox" checked={emptyKeys.has(selectedField.showWhen.fieldKey)}
+                        onChange={e => setEmptyKeys(prev => {
+                          const next = new Set(prev);
+                          const k = selectedField.showWhen!.fieldKey;
+                          if (e.target.checked) next.add(k); else next.delete(k);
+                          return next;
+                        })} />
+                      {' '}{t('labelDesignerPage.showWhen.previewEmpty')}
+                    </label>
+                  </>
+                )}
                 <button className="ps-btn-small" onClick={removeSelectedField}>{t('labelDesignerPage.removeFieldButton')}</button>
               </>
             )}
@@ -402,9 +476,28 @@ const LabelDesignerPage: React.FC = () => {
       <div className="ps-designer-footer-row">
         <button className="ps-conf-btn-secondary" disabled={saving} onClick={handleSave}>{saving ? t('common.saving') : t('labelDesignerPage.saveLayoutButton')}</button>
         <button className="ps-btn-small" onClick={handleReset}>{t('labelDesignerPage.resetToDefaultButton')}</button>
-        <button className="ps-btn-small" onClick={handleExportZpl}>📤 {t('labelDesignerPage.exportZplButton')}</button>
+        <button className="ps-btn-small" onClick={() => handleExport('zpl')}>📤 {t('labelDesignerPage.exportZplButton')}</button>
+        <button className="ps-btn-small" onClick={() => handleExport('epl')}>📤 {t('labelDesignerPage.exportEplButton')}</button>
+        <button className="ps-btn-small" onClick={() => handleExport('dpl')}>📤 {t('labelDesignerPage.exportDplButton')}</button>
+        <button className="ps-btn-small" onClick={handleShowHistory}>🕘 {t('labelDesignerPage.history.button')}</button>
         {saveMessage && <span className="ps-helper-text">{saveMessage}</span>}
       </div>
+
+      {versions && (
+        <div className="ps-panel-box ps-mt-16">
+          <div className="ps-page-header-row">
+            <h3 className="ps-panel-heading">{t('labelDesignerPage.history.heading')}</h3>
+            <button className="ps-btn-small" onClick={() => setVersions(null)}>✕ {t('common.close')}</button>
+          </div>
+          {versions.length === 0 && <p className="ps-helper-text">{t('labelDesignerPage.history.empty')}</p>}
+          {versions.map(v => (
+            <div key={v.versionId} className="ps-flex-row-gap-8">
+              <span className="ps-helper-text">{t('labelDesignerPage.history.row', { version: v.version, when: new Date(v.savedAt).toLocaleString(), who: v.savedBy })}</span>
+              <button className="ps-btn-small" onClick={() => handleRestore(v.versionId)}>{t('labelDesignerPage.history.restore')}</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {exportedZpl && (
         <div className="ps-panel-box ps-mt-16">
@@ -412,13 +505,14 @@ const LabelDesignerPage: React.FC = () => {
             <h3 className="ps-panel-heading">{t('labelDesignerPage.exportedZplHeading')}</h3>
             <button className="ps-btn-small" onClick={() => setExportedZpl(null)}>✕ {t('common.close')}</button>
           </div>
-          <p className="ps-helper-text">
+          {exportLanguage !== 'zpl' && <p className="ps-helper-text">{t('labelDesignerPage.exportStarterNote', { language: exportLanguage.toUpperCase() })}</p>}
+          {exportLanguage === 'zpl' && <p className="ps-helper-text">
             <Trans
               i18nKey="labelDesignerPage.exportInstructions"
               values={{ dpi: EXPORT_DPI, width: widthMm, height: heightMm }}
               components={{ viewer: <strong /> }}
             />
-          </p>
+          </p>}
           <textarea
             aria-label={t('a11y.fields.zplOutput')}
             className="ps-input-dark ps-w-full ps-designer-zpl-textarea"

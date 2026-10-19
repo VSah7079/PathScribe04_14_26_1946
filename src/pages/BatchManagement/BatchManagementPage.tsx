@@ -258,6 +258,23 @@ const BatchManagementPage: React.FC = () => {
                 {' '}
               </div>
             </button>
+            {/* Batch 610 (#12): every active retention hold, with release and CSV export. */}
+            <button
+              type="button"
+              className="ps-wl-filter-tile ps-batch-tile--disposal-report"
+              title={t('batchManagement.retentionHoldsTitle')}
+              onClick={() => navigate('/batch-management/retention-holds')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.retentionHoldsTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal-report" aria-hidden="true">
+                🔒
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--disposal-report">
+                {' '}
+              </div>
+            </button>
             {/* Real feature, per direct follow-up: "the pending batch
                 queue has no UI at all... the natural place for this
                 is a new tab/section [in Batch Management]." Same

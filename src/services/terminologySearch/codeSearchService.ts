@@ -15,7 +15,8 @@
 //   rec_type = SNOMED concept type filter
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { TERMINOLOGY_CONFIG } from '../../components/Config/Terminology/terminologyConfig';
+import { nlmLookupUrl, nlmViaServer } from './nlmLookupRoute';
+import { getAccessToken } from '../auth/accessTokenSource';
 
 // Real, per direct guidance: "real search could introduce time...
 // Everything needs to be fast as possible otherwise, the point of the
@@ -42,11 +43,22 @@ async function fetchWithTimeout(url: string, timeoutMs = TERMINOLOGY_SEARCH_TIME
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal });
+    // Batch 617: a look-up through the API server carries the signed-in user's token; a direct demo call to NLM carries nothing.
+    const token = nlmViaServer() && url.startsWith('/api/terminology/nlm/') ? await getAccessToken().catch(() => '') : '';
+    return await fetch(url, { signal: controller.signal, ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}) });
   } finally {
     clearTimeout(timeoutId);
   }
 }
+
+import { simulatedIcdoSearch, simulatedIcd11Search } from './simulatedCodeLookup';
+import { searchIcdo3Morphology } from '../coding/icdO3Morphology';
+
+/** Batch 607: hierarchy label on results from the bundled ICD-O-3 morphology table. */
+export const BUNDLED_ICDO3_HIERARCHY = 'ICD-O-3 (bundled)';
+
+let simulatedFallback = import.meta.env.MODE !== 'test';
+export function setSimulatedCodeFallbackForTests(v: boolean): void { simulatedFallback = v; }
 
 export interface CodeResult {
   code:       string;
@@ -54,8 +66,6 @@ export interface CodeResult {
   system:     string;
   hierarchy?: string;
 }
-
-const NLM_BASE = TERMINOLOGY_CONFIG.nlm.baseUrl;
 
 export type SnomedFilter = 'all' | 'morphology' | 'anatomy' | 'specimen' | 'organism';
 
@@ -150,7 +160,7 @@ async function searchIcd10(query: string, maxResults = 20): Promise<CodeResult[]
       sf:      'code,name',
       df:      'code,name',
     });
-    const res = await fetchWithTimeout(`${NLM_BASE}${TERMINOLOGY_CONFIG.nlm.endpoints.icd10}?${params}`);
+    const res = await fetchWithTimeout(`${nlmLookupUrl('icd10')}?${params}`);
     if (!res.ok) throw new Error(`NLM ICD-10 ${res.status}`);
     const data = await res.json();
 
@@ -190,7 +200,7 @@ async function searchIcd11(query: string, maxResults = 20): Promise<CodeResult[]
       sf:      'code,title',
       df:      'code,title',
     });
-    const res = await fetchWithTimeout(`${NLM_BASE}${TERMINOLOGY_CONFIG.nlm.endpoints.icd11}?${params}`);
+    const res = await fetchWithTimeout(`${nlmLookupUrl('icd11')}?${params}`);
     if (!res.ok) throw new Error(`NLM ICD-11 ${res.status}`);
     const data = await res.json();
 
@@ -231,7 +241,7 @@ async function searchLoinc(query: string, maxResults = 20): Promise<CodeResult[]
       sf:      'LOINC_NUM,LONG_COMMON_NAME,SHORTNAME',
       df:      'LOINC_NUM,LONG_COMMON_NAME',
     });
-    const res = await fetchWithTimeout(`${NLM_BASE}${TERMINOLOGY_CONFIG.nlm.endpoints.loinc}?${params}`);
+    const res = await fetchWithTimeout(`${nlmLookupUrl('loinc')}?${params}`);
     if (!res.ok) throw new Error(`NLM LOINC ${res.status}`);
     const data = await res.json();
 
@@ -301,14 +311,30 @@ async function searchIcdo(query: string, maxResults = 20): Promise<CodeResult[]>
   }
 }
 
+// Batch 607 (#140): the bundled ICD-O-3 morphology table answers first (code and behaviour); the live search adds to it.
+async function searchIcdoWithBundled(query: string, maxResults: number): Promise<CodeResult[]> {
+  const bundled: CodeResult[] = searchIcdo3Morphology(query, maxResults).map(h => ({ code: h.code, display: h.display, system: 'ICDO', hierarchy: BUNDLED_ICDO3_HIERARCHY }));
+  const isCode = /^\d{4}(\/\d?)?$/.test(query.trim());
+  let live: CodeResult[] = [];
+  try {
+    live = isCode ? [] : await searchIcdo(query, maxResults);
+  } catch (e) {
+    if (bundled.length) return bundled;
+    if (simulatedFallback) return simulatedIcdoSearch(query, maxResults);
+    throw e;
+  }
+  const seen = new Set(bundled.map(b => b.code));
+  return [...bundled, ...live.filter(l => !seen.has(l.code))].slice(0, maxResults);
+}
+
 // ─── OPCS-4 ───────────────────────────────────────────────────────────────────
 // NHS UK procedure classification — no public NLM endpoint exists.
 // Requires NHS TRUD licence and backend proxy for production.
 // Dev/demo: returns empty with a console note.
 // TODO: wire to NHS TRUD API via backend proxy.
 
+// Batch 607: the OPCS-4 tab says so (components/Opcs4Notice); search stays empty until the licensed feed exists.
 async function searchOpcs4(_query: string, _maxResults = 20): Promise<CodeResult[]> {
-  console.info('[codeSearchService] OPCS-4 search requires NHS TRUD backend proxy — not yet implemented');
   return [];
 }
 
@@ -349,9 +375,9 @@ export async function searchCodes(
   switch (system) {
     case 'SNOMED': return searchSnomed(query, filter, maxResults);
     case 'ICD10':  return searchIcd10(query, maxResults);
-    case 'ICD11':  return searchIcd11(query, maxResults);
+    case 'ICD11':  return searchIcd11(query, maxResults).catch(e => { if (simulatedFallback) return simulatedIcd11Search(query, maxResults); throw e; });
     case 'LOINC':  return searchLoinc(query, maxResults);
-    case 'ICDO':   return searchIcdo(query, maxResults);
+    case 'ICDO':   return searchIcdoWithBundled(query, maxResults);
     case 'OPCS4':  return searchOpcs4(query, maxResults);
     case 'CPT':    return searchCpt(query, maxResults);
     default:       return [];

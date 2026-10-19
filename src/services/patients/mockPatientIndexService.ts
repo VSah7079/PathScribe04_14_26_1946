@@ -8,6 +8,7 @@ import type {
   PatientLinkRelationshipType,
   PatientIdentifier,
 } from './IPatientIndexService';
+import { normalizeNationalIdentifier } from '../patientIdentifiers/checkDigits';
 import { caseRouter } from '../cases/CaseRouter';
 import type { NationalPatientIdentifier } from '@/types/patient/NationalPatientIdentifier';
 import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
@@ -450,6 +451,13 @@ export const mockPatientIndexService: IPatientIndexService = {
   }): Promise<{ rebound: boolean; reason?: string; casesRepointed?: number; caseIds?: string[] }> {
     await delay();
 
+    // Batch 603 (Pete, dev review): its own permission (patient:break-glass:rebind), checked here and audited as a high-risk
+    // capability, not left to a role string on the screen.
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('patient:break-glass:rebind')).allowed) {
+      return { rebound: false, reason: 'You do not have permission to rebind a downtime patient identity.' };
+    }
+
     // Real, load-bearing validation, per direct confirmation: a
     // mandatory reason code alone, without a real free-text
     // justification, is not a real justification. Enforced here, at
@@ -754,9 +762,18 @@ export const mockPatientIndexService: IPatientIndexService = {
       system: identifier.system,
       verificationStatus: identifier.verificationStatus,
       verifiedAt: identifier.verifiedAt,
+      ...(identifier.statusCode ? { statusCode: identifier.statusCode } : {}),
     };
     saveIdentifiers([...rest, record]);
     return record;
+  },
+
+  // Batch 605: the NHS Number Status Indicator stored from an inbound ADT, for the status dot.
+  async getNationalIdentifierStatusCode(system: string, value: string): Promise<string | null> {
+    await delay();
+    const wanted = normalizeNationalIdentifier(value);
+    const hit = loadIdentifiers().find(i => i.system === system && normalizeNationalIdentifier(i.identifierValue) === wanted && i.statusCode);
+    return hit?.statusCode ?? null;
   },
 
   // Batch 425: a national identifier removed after accessioning comes off the MPI too.

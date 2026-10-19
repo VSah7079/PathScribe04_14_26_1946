@@ -45,3 +45,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 543
 
 CSV exports neutralize formula cells (finding F8, `utils/csv.ts`); the disposal report export is audited (F9).
+
+**Batch 614:** the shortcut recorder uses `shortcutFromPress` (Mac Option and AltGr rules shared with the hotkey matcher), and an always-on command shows its "Alt+J, then X" route under its key.

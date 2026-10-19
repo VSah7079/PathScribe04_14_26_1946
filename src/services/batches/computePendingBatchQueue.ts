@@ -42,7 +42,7 @@
 
 import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockBatchService } from './mockBatchService';
+import { batchService } from './batchServiceInstance';
 import { cassetteIdentifier, slideIdentifier } from '@/types/labels/LabelData';
 import type { BlockStatus } from '@/types/case/Specimen';
 
@@ -76,7 +76,7 @@ const PHYSICALLY_EXISTS: ReadonlySet<BlockStatus> = new Set(['Grossed', 'Embedde
 export async function computePendingBatchQueue(facilityId: string | undefined): Promise<PendingBatchQueueItem[]> {
   const [casesRes, batchesRes] = await Promise.all([
     caseRouter.getAll(undefined, { bypassAccessControl: true, includeOrchestration: true }),
-    mockBatchService.getAll(),
+    batchService.getAll(),
   ]);
   if (!casesRes.ok || !batchesRes.ok) return [];
 

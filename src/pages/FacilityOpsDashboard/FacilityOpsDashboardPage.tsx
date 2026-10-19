@@ -30,78 +30,42 @@ import { useLiveData } from '@/hooks/useLiveData';
 import { LIVE_SAFETY_POLL_MS } from '@/services/liveUpdates/liveUpdatePolicy';
 import { dataStaleAfterMs } from '@/services/liveUpdates/dataTopics';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { DisplayTokenPrompt, DisplayBlank, type DisplayTokenClasses } from '@/components/Common/DisplayTokenPrompt';
+import { readStoredDisplayToken, storeDisplayToken, useDisplayBindingStatus } from '@/hooks/useDisplayBinding';
 
 const POLL_INTERVAL_MS = 20_000;
 const DEFAULT_CAROUSEL_SECONDS = 20;
 
-// Real, closed gap (per direct follow-up: "the monitors... to be done
-// after the individual workstations were built"): DisplayProfile's own
-// deviceToken (admin-recorded bookkeeping, see DisplayProfilesSection.tsx)
-// was captured but never once consulted anywhere in this binding flow —
-// any browser could bind to any profile purely by its friendly name.
-// A profile with a token recorded now requires that exact token to be
-// typed here before the bind completes; a profile with none set still
-// binds straight from the dropdown, unchanged. This still is NOT real
-// physical hardware verification — no MAC/IP a browser can actually read
-// is ever compared, only a human-entered string against another
-// human-entered string — it closes the specific, concrete inconsistency
-// (a recorded value nothing ever checked), not the larger, still-honestly-
-// disclosed "no real device binding exists" limitation (see
-// services/facilityOpsDashboard/README.md).
-const ProfileSetup: React.FC<{ onBound: (id: string) => void }> = ({ onBound }) => {
+// Batch 603 (device binding): a display binds to a profile only with the
+// Display Token an administrator issued for it in Configuration (a long-lived,
+// revocable, random secret; only its hash is stored). The earlier typed
+// "device token" comparison is gone; DisplayProfile.deviceToken stays as the
+// admin's asset note. The bound display re-checks its token every minute
+// (hooks/useDisplayBinding.ts) and blanks the moment it is revoked or expires.
+// This page carries no patient identifiers at all.
+const OPSDASH_TOKEN_CLASSES: DisplayTokenClasses = {
+  page: 'ps-opsdash-setup-page', content: 'ps-opsdash-setup-content', description: 'ps-opsdash-setup-description',
+  input: 'ps-opsdash-setup-select', error: 'ps-opsdash-setup-token-error', actions: 'ps-opsdash-setup-token-actions',
+  secondary: 'ps-opsdash-btn-secondary', primary: 'ps-opsdash-btn-primary',
+};
+
+const ProfileSetup: React.FC<{ onBound: (id: string, token: string) => void }> = ({ onBound }) => {
   const { t } = useTranslation();
   const [profiles, setProfiles] = useState<DisplayProfile[]>([]);
   const [pendingProfile, setPendingProfile] = useState<DisplayProfile | null>(null);
-  const [tokenInput, setTokenInput] = useState('');
-  const [tokenError, setTokenError] = useState(false);
   useEffect(() => { displayProfileService.getActive().then(res => { if (res.ok) setProfiles(res.data); }); }, []);
 
   const handleSelect = (id: string) => {
-    if (!id) return;
     const profile = profiles.find(p => p.id === id);
-    if (!profile) return;
-    if (profile.deviceToken && profile.deviceToken.trim()) {
-      setPendingProfile(profile);
-      setTokenInput('');
-      setTokenError(false);
-    } else {
-      onBound(profile.id);
-    }
-  };
-
-  const confirmToken = () => {
-    if (!pendingProfile) return;
-    if (tokenInput.trim() === (pendingProfile.deviceToken ?? '').trim()) {
-      onBound(pendingProfile.id);
-    } else {
-      setTokenError(true);
-    }
+    if (profile) setPendingProfile(profile);
   };
 
   if (pendingProfile) {
     return (
-      <div className="ps-opsdash-setup-page">
-        <div className="ps-opsdash-setup-content">
-          <h1>{t('facilityOpsDashboard.confirmTokenTitle')}</h1>
-          <p className="ps-opsdash-setup-description">
-            {t('facilityOpsDashboard.confirmTokenDescription', { name: pendingProfile.name })}
-          </p>
-          <input
-            className="ps-opsdash-setup-select"
-            type="text"
-            value={tokenInput}
-            onChange={e => { setTokenInput(e.target.value); setTokenError(false); }}
-            placeholder={t('facilityOpsDashboard.confirmTokenPlaceholder')}
-            autoFocus
-          />
-          {tokenError && <p className="ps-opsdash-setup-token-error">{t('facilityOpsDashboard.confirmTokenError')}</p>}
-          <p className="ps-opsdash-setup-empty">{t('facilityOpsDashboard.confirmTokenNote')}</p>
-          <div className="ps-opsdash-setup-token-actions">
-            <button className="ps-opsdash-btn-secondary" onClick={() => setPendingProfile(null)}>{t('common.back')}</button>
-            <button className="ps-opsdash-btn-primary" onClick={confirmToken} disabled={!tokenInput.trim()}>{t('common.confirm')}</button>
-          </div>
-        </div>
-      </div>
+      <DisplayTokenPrompt
+        kind="facility-ops" subjectId={pendingProfile.id} displayName={pendingProfile.name} classes={OPSDASH_TOKEN_CLASSES}
+        onAccepted={token => onBound(pendingProfile.id, token)} onBack={() => setPendingProfile(null)}
+      />
     );
   }
 
@@ -130,6 +94,9 @@ const LiveClock: React.FC = () => {
 const FacilityOpsDashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { profileId, setProfileId } = useCurrentDisplayProfile();
+  const [displayToken, setDisplayToken] = useState<string | null>(() => readStoredDisplayToken('facility-ops'));
+  const [reprovision, setReprovision] = useState(false);
+  const access = useDisplayBindingStatus('facility-ops', profileId, displayToken);
   const [profile, setProfile] = useState<DisplayProfile | null>(null);
   const [facilityName, setFacilityName] = useState<string>('');
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -138,9 +105,9 @@ const FacilityOpsDashboardPage: React.FC = () => {
   const [nowTick, setNowTick] = useState(Date.now());
 
   useEffect(() => {
-    if (!profileId) { setProfile(null); return; }
+    if (!profileId || access !== 'valid') { setProfile(null); return; }
     displayProfileService.getById(profileId).then(res => { if (res.ok) setProfile(res.data); });
-  }, [profileId]);
+  }, [profileId, access]);
 
   useEffect(() => {
     if (!profile) { setFacilityName(''); return; }
@@ -194,7 +161,21 @@ const FacilityOpsDashboardPage: React.FC = () => {
   const staleAfterMs = dataStaleAfterMs(liveData.live, POLL_INTERVAL_MS, LIVE_SAFETY_POLL_MS);
   const isStale = useMemo(() => !lastSuccessAt || (nowTick - lastSuccessAt) > staleAfterMs, [lastSuccessAt, nowTick, staleAfterMs]);
 
-  if (!profileId) return <ProfileSetup onBound={setProfileId} />;
+  const handleBound = (id: string, token: string) => {
+    storeDisplayToken('facility-ops', token);
+    setDisplayToken(token);
+    setReprovision(false);
+    setProfileId(id);
+  };
+
+  if (!profileId) return <ProfileSetup onBound={handleBound} />;
+  if (access === 'checking') return <LoadingState label={t('facilityOpsDashboard.loadingProfile')} />;
+  if (access !== 'valid') {
+    if (reprovision) {
+      return <DisplayTokenPrompt kind="facility-ops" subjectId={profileId} displayName={profile?.name ?? ''} classes={OPSDASH_TOKEN_CLASSES} reason={access} onAccepted={token => handleBound(profileId, token)} onBack={() => setReprovision(false)} />;
+    }
+    return <DisplayBlank classes={OPSDASH_TOKEN_CLASSES} status={access} actionClass="ps-opsdash-btn-primary" onReprovision={() => setReprovision(true)} />;
+  }
   if (!profile) return <LoadingState label={t('facilityOpsDashboard.loadingProfile')} />;
 
   return (

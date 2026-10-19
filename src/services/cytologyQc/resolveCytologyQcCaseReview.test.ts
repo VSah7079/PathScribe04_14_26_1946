@@ -25,6 +25,15 @@ describe('resolveCytologyQcCaseReview (Batch 396)', () => {
     expect(resolveCytologyQcCaseReview([a()], 'ME', false)).toMatchObject({ canAssignToMe: false, isOwnCase: false });
     expect(resolveCytologyQcCaseReview([a({ state: 'QC_IN_REVIEW', assignedReviewerId: 'ME' })], 'ME', false)).toMatchObject({ canRecordVerdict: false });
   });
+  it('Batch 608: a reader outside the pool cannot take the review and is told why', () => {
+    const pooled = a({ eligibleReviewerRoles: ['SENIOR_CT'] });
+    expect(resolveCytologyQcCaseReview([pooled], 'ME', true, ['PATHOLOGIST'])).toMatchObject({ canAssignToMe: false, notInPool: true, isOwnCase: false });
+    expect(resolveCytologyQcCaseReview([pooled], 'ME', true, ['SENIOR_CT'])).toMatchObject({ canAssignToMe: true, notInPool: false });
+    expect(resolveCytologyQcCaseReview([a()], 'ME', true, [])).toMatchObject({ canAssignToMe: true, notInPool: false });
+  });
+  it('Batch 608: maps the pool refusal', () => {
+    expect(cytologyQcErrorKey('CYTOLOGY_QC_REVIEWER_NOT_IN_POOL')).toBe('notInPool');
+  });
   it('maps service errors to message keys', () => {
     expect(cytologyQcErrorKey(QC_REVIEW_NOT_PERMITTED)).toBe('notPermitted');
     expect(cytologyQcErrorKey('Self-review is not permitted: x')).toBe('selfReview');

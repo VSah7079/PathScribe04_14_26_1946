@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/cases/
 
 The biggest, most central folder — case data access, LIS-vs-Orchestration routing, and production-migration planning.
@@ -377,3 +379,17 @@ The AI calls in `mockCaseService.ts` (synoptic suggestions, template assignment,
 ## Batch 577
 
 - `caseWrite.ts`: `takeTheirVersion` (the Edit Conflict dialog's "Use their version": the saved case exactly as saved, without a reload) and `selectionAfterTakeUp` (what stays open after taking up someone else's version).
+
+## Batch 608
+
+- `returnCaseToTrainee.ts`, `returnCaseToTraineeDeps.ts`: the attending's Return to Trainee for a cytology specimen (with `specimenId`) or an autopsy report (without). Feedback is required; the countersign record is rejected, the case becomes `returned`, and the trainee is the primary assignee again.
+
+## Batch 615 (PS-481, PS-482)
+
+- `httpCaseService.ts`: the API server's version of `ICaseService`, built from the shared HTTP kit: read one, list with filters and paging, a user's worklist, create, and a save with `If-Match` whose 409 becomes `ConcurrencyConflictError`. Calls: `docs/architecture/CASE_API.md` §6.
+- `caseServiceInstance.ts`: `caseService` is the mock in the demo and the server's with an API address (`services/index.ts` re-exports it).
+- `httpCaseService.test.ts`: 7 tests with a fake `fetch`.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`countersignService`, `onDemandCaseFetchService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_WORKFLOWS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

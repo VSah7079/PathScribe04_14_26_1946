@@ -1,5 +1,7 @@
 # Case API: versioned saves (PS-71)
 
+> **Route style (Batch 617).** Every call converted below uses the single route style of `HTTP_SERVICES_PATTERN.md` section 7: `/api/<area>/<service>/<method-kebab>`, `GET` for a plain-value read and `POST` for everything else. The path each call had before is in `HTTP_ROUTE_MAPPING.md` ("earlier path").
+
 Batch 458. The contract the PathScribe API server (ASP.NET Core, SQL Server) must honour for saving a case, so that a save made from an old copy never silently overwrites someone else's change. The browser build already behaves this way against its mock services; this document is what the server has to match.
 
 ## 1. The version
@@ -12,11 +14,11 @@ Batch 458. The contract the PathScribe API server (ASP.NET Core, SQL Server) mus
 ## 2. Saving
 
 ```
-PATCH /api/cases/{caseId}
+POST /api/cases/case/update-case
 If-Match: "<version>"
 Content-Type: application/json
 
-{ ...the changed top-level parts of the case... }
+{ "caseId": "<id>", "updates": { ...the changed top-level parts of the case... } }
 ```
 
 - **`If-Match` is required.**
@@ -117,3 +119,21 @@ The browser sanitises HTML **when it displays it** (`src/services/security/sanit
 - Not audited: it is the case's own reference, asked for by someone who may open the case. (Resolving a reference to its case stays audited, `support_reference.resolved`.)
 - The browser asks once per case per page load (`services/supportReferences/caseSupportReference.ts`) and, with no API server (the demo), uses its own reference service instead.
 
+## 6. The reads, the worklist and creating a case (Batch 615, PS-482)
+
+The browser's server version of the case service is `services/cases/httpCaseService.ts` (pattern: `HTTP_SERVICES_PATTERN.md`). Calls, in addition to the save in §2:
+
+| Call | Request | Answer |
+|---|---|---|
+| Read one case | `GET /api/cases/case/get-case?caseId=<id>` | `200` the case with its `version`; `404` when there is none (the browser treats that as "no such case"). |
+| List and filter | `POST /api/cases/case/get-all` with `{ search, patientName, hospitalId, patientId, accessionNo, status, pageSize, cursor }` (any may be left out) | `200 { "items": [case...], "nextCursor": "..." }`. `status` is a text or a list of text. `cursor` is used only with `pageSize`. Only cases the caller may see (`CASE_PRIVACY_MODEL.md`). |
+| A user's worklist | `GET /api/cases/case/list-cases-for-user?userId=<id>` | `200 { "items": [case...] }` |
+| Create | `POST /api/cases/case/create-case` with the case as the body (the browser generates the id) | `201`; the new case's `version` is 1. |
+
+- A refusal is `403`; the browser shows nothing it wasn't given.
+- `409` on a save carries `{ "currentVersion": n }`; the browser raises `ConcurrencyConflictError(caseId, expected, n)`, the same error the demo raises.
+
+
+## Batch 618 (PS-336): the technical-component facility
+
+Decision: the second facility is `order.technicalComponentFacilityId` on the case (string, optional), set at accessioning (the order the Accession screen builds) and changeable afterwards from the Case team window, which writes it with the usual versioned case update. It names a facility with the performing lab role. A value equal to the reporting lab (compared as the resolved performing lab) is treated as not split. The server must accept the field on case create and on order update, and must write an audit entry on a later change (case id and facility ids only, never names).

@@ -8,7 +8,13 @@ Batch 542 (PS-539 phase 2c, decision D7, Pete, Oct 13, 2026: "request it, get no
   - `ExportRequest`, `ExportJob`, `ExportErrorCode`, `ExportStatusEvent` (the hub message), `EXPORT_TRANSITIONS` / `canTransition`, `exportExpiresAt`, `downloadRefusal` (requester only, ready, not expired), `exportKindFor`.
 - **Tests:** `asyncExportContract.test.ts`; `deploymentReadiness/phase2cContracts.guard.test.ts` keeps the kinds equal to the catalog's export capabilities.
 
+**Batch 611 (#194): the simulated export server.** `demoExportApi.ts` is an in-memory `IExportApi` used when no API URL is set. It runs the page's own export in the browser (`utils/downloadCapture.ts` keeps the file the download helpers would have saved), holds it as a job (quick at 500 rows or fewer, 10 ms per extra row up to 30 s, or 8 s with the long-export switch), enforces 3 open per user and the 7-day expiry, and answers the same calls as the HTTP client. `exportTrackerInstance.ts` wires it in; My exports and the notices show **Simulated**. Cleared at sign-out. Tests: `demoExportApi.test.ts`, `utils/downloadCapture.test.ts`.
+
 Since Batch 550 the browser's export service uses it (see the Batch 550 entry); the server comes in 2e.
+
+## Batch 613 (part A) — case search reporting
+
+Export kind `search.case-report` (capability `search:case-report:export`). 29 kinds.
 
 ## Batch 544
 

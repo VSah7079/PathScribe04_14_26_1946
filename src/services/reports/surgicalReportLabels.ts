@@ -24,10 +24,15 @@ export const SURGICAL_REPORT_LABEL_KEYS = [
   // Batch 498 (PS-283): the revision banner and the footer document reference.
   'revisionAmendment', 'revisionAddendum', 'revisionCorrection', 'revisionDatesWithOriginal', 'revisionDatesLatestOnly',
   'documentReference', 'documentReferenceNoVersion',
+  // Batch 613: the intraoperative diagnosis and the related cases the signer attached.
+  'intraopDiagnosis', 'relatedCasesTitle', 'relatedCasesNotice', 'relatedCaseReleased', 'relatedCaseSpecimens',
+  'relatedCaseDiagnosis', 'relatedCaseSignedBy', 'relatedCaseOrdering', 'relatedCaseCopyTo', 'relatedCaseClient',
+  // Batch 618 (PS-336): the technical lab of a split case.
+  'technicalComponentAt',
 ] as const;
 export type SurgicalReportLabels = Record<typeof SURGICAL_REPORT_LABEL_KEYS[number], string>;
 
-const RENDERER_PLACEHOLDERS = { name: '{{name}}', original: '{{original}}', latest: '{{latest}}', accession: '{{accession}}', version: '{{version}}' };
+const RENDERER_PLACEHOLDERS = { name: '{{name}}', original: '{{original}}', latest: '{{latest}}', accession: '{{accession}}', version: '{{version}}', facility: '{{facility}}' };
 
 /** The labels for a report language; undefined before the app's i18n has started (the renderer then uses English). */
 export function surgicalReportLabelsFor(language: string | undefined): SurgicalReportLabels | undefined {

@@ -48,6 +48,9 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { actionRegistryService } from '@/services';
+import { isEditorCommand, runEditorCommand } from './editorCommands';
+import { isTargetEditor, markEditorFocused, registerEditor } from './editorFocus';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -152,6 +155,7 @@ const themeVars = (theme: EditorThemeTokens): React.CSSProperties => ({
   '--pse-input-bg': theme.inputBg, '--pse-input-border': theme.inputBorder, '--pse-input-text': theme.inputText,
   '--pse-content-bg': theme.contentBg, '--pse-content-border': theme.contentBorder, '--pse-accent': theme.accent,
   '--pse-content-text': theme.contentText,
+  '--pse-ruler-bg': theme.rulerBg, '--pse-ruler-border': theme.rulerBorder, '--pse-ruler-mark': theme.rulerMarkColor,
 } as React.CSSProperties);
 
 /** The editor wrapper's custom properties: theme, minimum height and font (Batch 367). */
@@ -455,12 +459,14 @@ const Divider = () => <div className="pse-divider" />;
 
 // ─── FIND/REPLACE PANEL ───────────────────────────────────────────────────────
 
-const FindReplacePanel: React.FC<{ editor: any; onClose: () => void }> = ({ editor, onClose }) => {
+const FindReplacePanel: React.FC<{ editor: any; onClose: () => void; initialMode?: 'find' | 'replace' }> = ({ editor, onClose, initialMode = 'find' }) => {
   const { t } = useTranslation();
   const [findText, setFindText] = useState('');
   const [replaceText, setReplaceText] = useState('');
-  const [mode, setMode] = useState<'find' | 'replace'>('find');
+  const [mode, setMode] = useState<'find' | 'replace'>(initialMode);
   const [matchCount, setMatchCount] = useState(0);
+  // Batch 614: "replace in text" by voice or key opens this panel on the Replace tab.
+  useEffect(() => { setMode(initialMode); }, [initialMode]);
 
   const doFind = () => {
     if (!findText || !editor) return;
@@ -649,6 +655,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
     tabWidthChars = DEFAULT_TAB_WIDTH_CHARS,
     onTabWidthChange,
     highlightFindings,
+    showRulerDefault = false,
   },
   ref
 ) => {
@@ -675,6 +682,8 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
   // ── UI State ──────────────────────────────────────────────────────────────
   const [showFormatMarks, setShowFormatMarks] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
+  const [findMode, setFindMode] = useState<'find' | 'replace'>('find');
+  const [showRuler, setShowRuler] = useState(showRulerDefault);
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [showMacroModal, setShowMacroModal]   = useState(false);
   const [macroModalSearch, setMacroModalSearch] = useState('');
@@ -790,6 +799,35 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
   useEffect(() => {
     requestFindingHighlightRefresh(editor?.view);
   }, [editor, highlightFindings]);
+
+  // ── Batch 614: voice and hotkey commands for this editor ──────────────────────────────────────────────
+  // Every editor on the screen listens; only the one that last had the cursor acts (editorFocus.ts).
+  const instanceId = useRef<symbol>(Symbol('pathscribe-editor'));
+  useEffect(() => registerEditor(instanceId.current), []);
+  useEffect(() => {
+    if (!editor) return undefined;
+    const id = instanceId.current;
+    const onFocus = () => markEditorFocused(id);
+    editor.on('focus', onFocus);
+    return () => { editor.off('focus', onFocus); };
+  }, [editor]);
+  const insertSignatureLine = useCallback(() => {
+    const sig = `<p><br/></p><p>_____________________________ &nbsp;&nbsp;&nbsp; ${t('pathScribeEditor.signatureLine.date')}: ___________</p><p><em>${t('pathScribeEditor.signatureLine.pathologistSignature')}</em></p><p><br/></p>`;
+    editor?.chain().focus().insertContent(sig).run();
+  }, [editor, t]);
+  useEffect(() => {
+    if (!editor) return undefined;
+    return actionRegistryService.onAction((actionId: string) => {
+      if (!isEditorCommand(actionId) || !isTargetEditor(instanceId.current)) return;
+      runEditorCommand(actionId, editor, {
+        toggleFormatMarks: () => setShowFormatMarks(v => !v),
+        toggleRuler: () => setShowRuler(v => !v),
+        openFind: mode => { setFindMode(mode); setShowTablePicker(false); setShowFindReplace(true); },
+        openTablePicker: () => { setShowFindReplace(false); setShowTablePicker(true); },
+        insertSignatureLine,
+      });
+    });
+  }, [editor, insertSignatureLine]);
 
   // Keep the module-level ref in sync with state, and force ProseMirror to
   // recompute decorations immediately (decorations() only re-runs when the
@@ -992,11 +1030,11 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       <Divider />
       <TBtn onClick={() => { setMacroModalSearch(''); setShowMacroModal(true); }} title={t('pathScribeEditor.toolbar.insertMacro')} width="68px"><Zap size={IC} /><span className="pse-toolbar-macro-label">{t('pathScribeEditor.toolbar.macro')}</span></TBtn>
       <Divider />
-      <TBtn onClick={() => { const sig = `<p><br/></p><p>_____________________________ &nbsp;&nbsp;&nbsp; ${t('pathScribeEditor.signatureLine.date')}: ___________</p><p><em>${t('pathScribeEditor.signatureLine.pathologistSignature')}</em></p><p><br/></p>`; editor.chain().focus().insertContent(sig).run(); }} title={t('pathScribeEditor.toolbar.insertSignatureLine')}><PenLine size={IC} /></TBtn>
+      <TBtn onClick={insertSignatureLine} title={t('pathScribeEditor.toolbar.insertSignatureLine')}><PenLine size={IC} /></TBtn>
       <Divider />
       <div className="pse-toolbar-anchor" onMouseDown={e => e.stopPropagation()}>
-        <TBtn onClick={() => { setShowFindReplace(v => !v); setShowTablePicker(false); }} isActive={showFindReplace} title={t('pathScribeEditor.toolbar.findReplace')}><Search size={IC} /></TBtn>
-        {showFindReplace && <FindReplacePanel editor={editor} onClose={() => setShowFindReplace(false)} />}
+        <TBtn onClick={() => { setFindMode('find'); setShowFindReplace(v => !v); setShowTablePicker(false); }} isActive={showFindReplace} title={t('pathScribeEditor.toolbar.findReplace')}><Search size={IC} /></TBtn>
+        {showFindReplace && <FindReplacePanel editor={editor} initialMode={findMode} onClose={() => setShowFindReplace(false)} />}
       </div>
       <Divider />
       <TBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title={t('pathScribeEditor.toolbar.undo')}><Undo2 size={IC} /></TBtn>
@@ -1050,6 +1088,10 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
         const node = typeof document !== 'undefined' ? document.getElementById(toolbarPortalId) : null;
         return node ? createPortal(renderToolbar(), node) : null;
       })()}
+
+      {showRuler && (
+        <div className="pse-ruler" role="img" aria-label={t('pathScribeEditor.ruler')} data-testid="pse-ruler" style={themeVars(theme)} />
+      )}
 
       <div className="pse-editor-body" style={{ '--pse-min-height': minHeight } as React.CSSProperties}>
         <EditorContent editor={editor} />

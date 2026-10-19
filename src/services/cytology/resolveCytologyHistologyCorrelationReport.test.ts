@@ -1,6 +1,6 @@
 // src/services/cytology/resolveCytologyHistologyCorrelationReport.test.ts
 import { describe, it, expect } from 'vitest';
-import { resolveCytologyHistologyCorrelationReport } from './resolveCytologyHistologyCorrelationReport';
+import { resolveCytologyHistologyCorrelationReport, cytologyHistologyCorrelationCsvRows } from './resolveCytologyHistologyCorrelationReport';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 
 let seq = 0;
@@ -84,5 +84,20 @@ describe('resolveCytologyHistologyCorrelationReport — real, per direct guidanc
     ];
     const report = resolveCytologyHistologyCorrelationReport(records, {}, {});
     expect(report.ppvHsilPercent).toBeCloseTo(66.67, 1);
+  });
+});
+
+describe('cytologyHistologyCorrelationCsvRows (Batch 603)', () => {
+  it('has no patient MRN column and keeps both accession numbers', () => {
+    const rows = cytologyHistologyCorrelationCsvRows([{
+      patientMrn: 'MRN-123', cytoAccessionId: 'C26-1', cytoDate: '2026-03-01T00:00:00Z', cytoDiagnosis: 'HSIL',
+      histAccessionId: 'S26-9', histDate: '2026-03-20T00:00:00Z', histDiagnosis: 'CIN2', daysToBiopsy: 19,
+      correlationCategory: 'concordant', recordedAt: '2026-03-21T00:00:00Z',
+    }]);
+    expect(Object.keys(rows[0])).not.toContain('Patient MRN');
+    expect(JSON.stringify(rows)).not.toContain('MRN-123');
+    expect(rows[0]['Cyto Accession']).toBe('C26-1');
+    expect(rows[0]['Hist Accession']).toBe('S26-9');
+    expect(rows[0]['Correlation Category']).toBe('Concordant');
   });
 });

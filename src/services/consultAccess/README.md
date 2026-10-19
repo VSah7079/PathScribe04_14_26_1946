@@ -100,3 +100,7 @@ Opinions came back but were never shown to the pathologist. Now:
 ## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
 
 - Batch 555: recording link expiries (`recordExpiries`) stops in the browser once the server runs `consult.expireLinks` (`serverJobs/browserStandIns.ts`). A link's status is still worked out on read.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`consultTokenService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_WORKFLOWS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

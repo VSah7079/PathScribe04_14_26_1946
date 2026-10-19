@@ -22,6 +22,10 @@ Case delegation UI.
 - **Still inline:** building the staff and pool lists and filtering them. Not moved this batch.
 - **No listeners yet:** `DELEGATE_PEER_REVIEW`, `DELEGATE_FORMAL_CONSULT` and `DELEGATE_FULL_TRANSFER` don't name any of the seeded delegation types (REASSIGN, POOL, SECOND_OPINION, …), so they're still unwired.
 
+## Batch 610 (#83)
+
+`DelegateModal` takes `presetTypeId` and `presetNonce`: the report page passes the type said by voice, and the dialog chooses it once the type list has loaded (or shows "turned off" when that type is inactive). Confirm by voice is unchanged.
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

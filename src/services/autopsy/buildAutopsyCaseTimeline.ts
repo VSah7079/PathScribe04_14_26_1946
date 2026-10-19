@@ -175,17 +175,22 @@ export function buildAutopsyCaseTimeline(details: AutopsyCaseDetails | undefined
     }
   });
 
-  const retentionDetail = details.organRetentionDetail;
-  if (retentionDetail?.recordedAt) {
+  // Batch 611 (#59): every custody move when the history exists; the single
+  // current detail for a case recorded before the history was kept.
+  const retentionRecords = details.organRetentionHistory?.length
+    ? details.organRetentionHistory
+    : details.organRetentionDetail ? [details.organRetentionDetail] : [];
+  retentionRecords.forEach((retentionDetail, i) => {
+    if (!retentionDetail.recordedAt) return;
     entries.push({
-      id: 'organ-retention-detail',
+      id: i === 0 && !details.organRetentionHistory?.length ? 'organ-retention-detail' : `organ-retention-detail-${i}`,
       occurredAt: retentionDetail.recordedAt,
       kind: 'organ_retention_detail_recorded',
       actorName: retentionDetail.recordedByName,
       itemDescription: retentionDetail.recipientName,
       note: retentionDetail.location,
     });
-  }
+  });
 
   const disposal = details.organRetentionDisposal;
   if (disposal?.disposalTimestamp) {

@@ -21,7 +21,7 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
-import { mockMolecularOrderOutboundQueueService } from '../molecularOrders/mockMolecularOrderOutboundQueueService';
+import { molecularOrderOutboundQueueService } from '../molecularOrders/molecularOrderOutboundQueueServiceInstance';
 import type { HpvResultEventPayload } from '@/types/events/HpvResultEventPayload';
 
 export interface ProcessInboundHpvResultEventResult {
@@ -115,7 +115,7 @@ export async function processInboundHpvResultEvent(payload: HpvResultEventPayloa
   // never turn an otherwise-successful result ingestion into a failed
   // one.
   if (payload.hrHpvResult === 'Positive' && payload.assayStainTypeId === 'st-hpv-highrisk-screen') {
-    mockMolecularOrderOutboundQueueService.enqueue({
+    molecularOrderOutboundQueueService.enqueue({
       caseId: caseData.id,
       eventType: 'order.molecular',
       payload: {

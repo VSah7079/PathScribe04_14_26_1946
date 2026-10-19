@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/orderIntake/
 
 The pending-orders queue an accessioner pulls from, and the resolution chain turning a raw external order into real Client/Department references.
@@ -17,3 +19,9 @@ Changing the specimen code crosswalk (`addCrosswalkEntry` / `updateCrosswalkEntr
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 605
+
+Batch 605: `IncomingOrder.siteId` (optional) and `findCrosswalkMatch(..., siteId)`: the entry for the order's site wins, then organisation-wide entries; a site-only entry never matches another site. The crosswalk admin has a Site picker.
+
+Batch 616 (part A, PS-505): `httpOrderIntakeService.ts` and `orderIntakeInstance.ts`. Contract `docs/architecture/ACCESSIONING_API.md` sections 1 and 2.

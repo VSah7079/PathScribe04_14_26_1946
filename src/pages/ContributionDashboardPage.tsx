@@ -35,11 +35,11 @@ import type {
 import { getOrgOrchestratorDefault } from "@components/Config/AI/orchestratorModeConfig";
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { useNavigate } from 'react-router';
-import { actionRegistryService, flagService, rvuCodeMapService, tatTargetService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
+import { actionRegistryService, flagService, rvuCodeMapService, tatTargetService, performanceTargetService, clientSlaService, facilityService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
 import type { Subspecialty } from '../services';
 import { caseRouter } from '../services/cases/CaseRouter';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '../services/quality/reconciliationRecordMapping';
-import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, qualityFlagText, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
+import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTargetAmounts, computeTopQualityFlags, qualityFlagText, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
 import { specimenDictionaryService } from '@/services';
 import { toCsv, downloadCsv } from '../utils/csv';
 import type { DeficiencyType } from '../services/deficiencies/IDeficiencyService';
@@ -50,15 +50,22 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { beginExport } from '@/services';
 import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 import { runExport } from '@/services/exports/runExport';
+import PerformanceTargetsTile from '@components/Contribution/PerformanceTargetsTile';
+import ClientSlaPanel from '@components/Contribution/ClientSlaPanel';
+import { buildTargetProgress, type TargetProgressRow } from '@/services/performanceTargets/performanceTargetRules';
+import { buildClientSlaRows, type ClientSlaRow } from '@/services/clientSLA/clientSlaRules';
 
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 // Extended KPI data — peer averages and % of target (added alongside KpiTile)
-const kpiExtras = [
-  { peer: 109, targetPct: 107 },
+// Batch 610 (#87): targetPct was a fixed 107 and 72 with no source; it is now
+// the real "% of target" for the cases tile (from Performance Targets, below)
+// and absent for the others.
+const kpiExtras: { peer: number; targetPct: number | null }[] = [
+  { peer: 109, targetPct: null },
   { peer: 18,  targetPct: null },
-  { peer: 76,  targetPct: 72 },
+  { peer: 76,  targetPct: null },
 ];
 
 // mockKpis removed - real fix, now derived from overviewKpis state
@@ -438,6 +445,9 @@ const ContributionDashboardPage: React.FC = () => {
   const [tatPerformance, setTatPerformance] = useState<RealTatPerformance | null>(null);
   const [rvu30, setRvu30]                   = useState<RealRvu30 | null>(null);
   const [weeklyDaily, setWeeklyDaily]       = useState<RealDailyRvu[] | null>(null);
+  // Batch 610 (#87): this person's progress against the performance targets, and how each client's cases did against its SLA.
+  const [targetRows, setTargetRows]         = useState<TargetProgressRow[]>([]);
+  const [slaRows, setSlaRows]               = useState<ClientSlaRow[]>([]);
   useEffect(() => {
     if (!user?.id) return;
     Promise.all([
@@ -445,7 +455,10 @@ const ContributionDashboardPage: React.FC = () => {
       rvuCodeMapService.getAllVersions(),
       specimenDictionaryService.getAll(),
       tatTargetService.getAll(),
-    ]).then(([res, versionsRes, dictionaryRes, tatRes]) => {
+      performanceTargetService.getAll(),
+      clientSlaService.getAll(),
+      facilityService.getAll(),
+    ]).then(([res, versionsRes, dictionaryRes, tatRes, targetsRes, slasRes, facilitiesRes]) => {
       if (!res.ok) return;
       const versions = versionsRes.ok ? versionsRes.data : [];
       const dictionaryEntries = dictionaryRes.ok ? dictionaryRes.data : [];
@@ -453,6 +466,9 @@ const ContributionDashboardPage: React.FC = () => {
       setCaseMixData(computeCaseMixData(res.data, user.id));
       setRvu30(computeRvu30(res.data, user.id, versions, new Date(), dictionaryEntries));
       setWeeklyDaily(computeWeeklyDaily(res.data, user.id, config.facilityTimezone, versions, new Date(), dictionaryEntries));
+      const now = new Date();
+      setTargetRows(buildTargetProgress(targetsRes.ok ? targetsRes.data : [], computeTargetAmounts(res.data, user.id, versions, dictionaryEntries), now));
+      setSlaRows(buildClientSlaRows(res.data, slasRes.ok ? slasRes.data : [], facilitiesRes.ok ? facilitiesRes.data : [], now));
       const tatEntries = tatRes.ok ? tatRes.data : [];
       // Real fix: org-wide aggregate, deliberately not filtered to this
       // user's own cases the way overviewKpis/caseMixData are - matches
@@ -704,6 +720,12 @@ const ContributionDashboardPage: React.FC = () => {
             <TatPerformanceTile data={tatPerformance ?? { firstTouchAvgHrs: 0, totalCaseAvgHrs: 0, firstTouchTargetHrs: 0, totalTargetHrs: 0, onTargetPct: 0, facilityCount: 0 }} />
             {/* RVU tile as 5th KPI */}
             <Rvu30Tile data={rvu30 ?? { total: 0, deltaPct: null, avgPerCase: 0 }} />
+          </div>
+
+          {/* Batch 610 (#87): performance targets and client SLAs, actual against target */}
+          <div className="ps-perf-row">
+            <PerformanceTargetsTile rows={targetRows} />
+            <ClientSlaPanel rows={slaRows} />
           </div>
 
           {/* Main content: 2-col */}

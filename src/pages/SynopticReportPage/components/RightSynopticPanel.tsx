@@ -1,6 +1,7 @@
 // src/pages/SynopticReportPage/components/RightSynopticPanel.tsx
 // Schema-driven synoptic field renderer — dark navy theme.
 
+import { resolveFieldToConfirm } from '@/utils/synopticConfirmField';
 import React, { useImperativeHandle, forwardRef, useState, useEffect, useCallback, useRef } from 'react';
 import { nodeCountBelowSum, textNodeCountExceeds, textNodeCountProblem } from '@/services/templates/nodeCountText';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,7 @@ import { filterAutopsyTemplateToActiveSections } from '@/services/autopsy/filter
 import { calculateAutopsyBodyMassIndex } from '@/services/autopsy/calculateAutopsyBodyMassIndex';
 
 import { resolveEmbeddedCodesForAnswer, appendEmbeddedCodesToSpecimen } from '../resolveEmbeddedCoding';
+import { resolveConfidenceThresholdForClient } from '@/components/Config/AI/resolveClientAiModel';
 import { aiBehaviorService, generateAiSuggestionsForReport, saveReportSuggestions, recordAiFeedback } from '@/services';
 import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { matchSourceText } from '@/utils/sourceTextMatching';
@@ -34,6 +36,8 @@ import { loadOrganMapContext, loadOrganMapScheme, type OrganMapContext } from '@
 import { derivedFieldIds } from '@/services/organMapping/organMapDerived';
 import { molecularFieldNotice } from '@/services/templates/molecularResultBinding';
 import { derivedMarginAnswers } from '@/services/organMapping/organMapDerivedAnswers';
+import { collectMarginInk, inkForMarginLabel, type MarginInkEntry } from '@/services/grossing/marginInkLabels';
+import { MarginInkChip } from '@/components/Common/MarginInkChip';
 import type { OrganMapScheme } from '@/services/organMapping/organMapTypes';
 import {
   clearSynopticFieldAnswers, computedSumPatch, partGridCellHasProblem, partGridCountProblems, partGridKey, partGridRowHeading, sumFieldState, sumOfTotal, wholeNumberFieldProblem, fieldExceedsProblem, partGridRowsForField, partGridRowsOf, synopticFieldAnswered, synopticFieldComplete, synopticFieldMissing, type PartGridColumn, type PartGridRow,
@@ -83,6 +87,8 @@ const displayAnswer = (field: EditorField, value: string | string[]) =>
   (Array.isArray(value) ? value : [value]).map(v => field.options?.find((o: FieldOption) => o.id === v)?.label ?? v).join(', ');
 
 interface FieldRowProps {
+  /** Batch 610 (#9): the ink colour recorded on the margin this field's label names, shown beside the label. */
+  marginInk?: MarginInkEntry;
   field: EditorField;
   value: string | string[];
   onChange: (id: string, v: string | string[]) => void;
@@ -185,7 +191,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
   isActive = false, aiAttempted = false,
   belowThreshold = false, belowThresholdConf, belowThresholdSource,
   isPulsing = false, fieldRef, onFieldFocus, sourceNotFound = false, reevaluation, onReevaluation,
-  answers, gridRows, mohs, sumTotal, derivedFromMap = false, exceeds, belowSum, molecular,
+  answers, gridRows, mohs, sumTotal, derivedFromMap = false, exceeds, belowSum, molecular, marginInk,
 }) => {
   const { t } = useTranslation();
   const sumState = sumFieldState(field, sumTotal);
@@ -244,6 +250,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
           className={`ps-syn-field-label${isActive ? ' ps-syn-field-label--active' : ''}`}
           title={ai ? t('rightSynopticPanel.fieldRow.clickToHighlightTitle') : t('rightSynopticPanel.fieldRow.clickToFocusTitle')}
         >{field.label}</span>
+        {marginInk && <MarginInkChip ink={marginInk} />}
         {field.required && <span className="ps-syn-field-required">*</span>}
 
         {/* Below-threshold warning badge */}
@@ -765,12 +772,15 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   useEffect(() => {
     aiBehaviorService.get().then(res => {
       if (res.ok) {
-        setConfidenceThreshold(res.data.confidenceThreshold ?? 75);
+        const orgThreshold = res.data.confidenceThreshold ?? 75;
+        setConfidenceThreshold(orgThreshold);
+        // Batch 609 (#173): the model's own threshold override, when the organisation set one.
+        void resolveConfidenceThresholdForClient(initialCaseData?.order?.facilityId, orgThreshold).then(setConfidenceThreshold);
         setAutoInsertSuggestions(res.data.autoInsertSuggestions ?? false);
         setMicroscopicAiEnabled(res.data.microscopicEnabled ?? true);
       }
     });
-  }, []);
+  }, [initialCaseData?.order?.facilityId]);
 
   // ── PS-329: the template's Must Have fields, for the header's AI badge ─────
   useEffect(() => {
@@ -1433,6 +1443,16 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       return nextSuggestions;
     });
   }, [caseData, activeReportInstanceId, templateDetail, answers, user, activeSpecimenId, onCaseUpdate]);
+  // PS-66: the Confirm Field shortcut (Ctrl+Alt+Shift+A) sends this event.
+  useEffect(() => {
+    const onConfirmField = () => {
+      const id = resolveFieldToConfirm(lastJumpedFieldId.current, activeFieldId, aiSuggestions);
+      if (id) handleVerify(id, 'verified');
+    };
+    window.addEventListener('PATHSCRIBE_CONFIRM_FIELD', onConfirmField);
+    return () => window.removeEventListener('PATHSCRIBE_CONFIRM_FIELD', onConfirmField);
+  }, [activeFieldId, aiSuggestions, handleVerify]);
+
 
   // Batch 426: "keep or update?" for a re-evaluated field (services/assistPolling/assistMilestoneRules.ts).
   const activeInstance = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as SynopticReportInstance | undefined;
@@ -1551,6 +1571,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   }));
 
   const gridRows = partGridRowsOf(caseData.specimens);
+  const marginInkEntries = collectMarginInk(caseData.specimens);
 
   // ── Section fields renderer ───────────────────────────────────────────────
   const SectionFields = (sec: EditorSection) => (
@@ -1571,6 +1592,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               mohs={f.type === 'spatialStageCanvas' ? { scheme: mapScheme, defaultHistology: mohsDefaultHistology(template, f, answers), onPatch: applyPatch } : undefined}
               gridRows={f.type === 'partGrid' ? partGridRowsForField(f as never, gridRows) : undefined}
               derivedFromMap={derivedIds.includes(f.id)}
+              marginInk={inkForMarginLabel(marginInkEntries, f.label)}
               molecular={molecularFieldState(f.id)}
               exceeds={fieldExceedsProblem(f as never, answers) ?? textNodeCountExceeds(f as never, answers)}
               belowSum={nodeCountBelowSum(f as never, answers)}
@@ -1612,6 +1634,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               aiAttempted={sec.fields.some((sf: EditorField) => sf.id in aiSuggestions)}
               onLabelClick={() => {
                 setActiveFieldId(f.id);
+                lastJumpedFieldId.current = f.id;
                 onHighlight?.(sug?.source ?? null);
               }}
               onFieldFocus={fid => { lastJumpedFieldId.current = fid; }}

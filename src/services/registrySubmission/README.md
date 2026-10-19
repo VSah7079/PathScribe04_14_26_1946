@@ -99,3 +99,7 @@ Status, beside the transport status on each queue entry (`registryStatus`): `awa
 ## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
 
 - Batch 555: the worklist's 72-hour escalation stops in the browser once the server runs `registry.escalateStale` (`loadRegistryExceptions`, `runServerJobs`).
+
+## Batch 605
+
+`simulateRegistryAcknowledgement.ts` plays the registry's answer (accepted, warnings, rejected, silent) through the real acknowledgement recorder. `simulateRegistrySubmission.ts` hands queued cancer registry reports to the simulated registry (marks them sent, awaiting an answer) with a PHI-free audit entry; the case panel is `CaseRegistryReportPanel`.

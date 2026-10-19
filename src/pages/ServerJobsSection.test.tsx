@@ -5,6 +5,7 @@ import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/re
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o ? `${k}:${JSON.stringify(o)}` : k), i18n: { language: 'en' } }) }));
 vi.mock('@/services', () => ({ serverJobsService: {} }));
+vi.mock('@/services/patientHistory/runHistoryRefreshSweep', () => ({ runHistoryRefreshSweep: vi.fn() }));
 vi.mock('@/components/Common/CapabilityButton', () => ({
   CapabilityButton: ({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) => <button type="button" disabled={disabled} onClick={onClick}>{children}</button>,
 }));

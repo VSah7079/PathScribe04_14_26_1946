@@ -25,10 +25,10 @@ export const SUPPORT_ROUTE_PATTERNS: readonly string[] = [
   '/quality-compliance', '/cytology-worklist', '/cytology-worklist/:caseId', '/molecular',
   '/molecular-batch/:batchId', '/molecular-rack', '/molecular-rack/:rackId', '/molecular-control-rules',
   '/dev/mock-interface-engine', '/quality-assurance', '/batch-management', '/batch-management/disposal',
-  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log', '/batch-management/wsi-scan', '/batch-management/label-reprint',
+  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log', '/batch-management/wsi-scan', '/batch-management/label-reprint', '/batch-management/retention-holds',
   '/workstations/microtomy', '/workstations/embedding', '/workstations/slide-distribution', '/add-on-orders',
   '/intraop-queue', '/molecular-order-queue', '/cytology-qc-queue', '/surgical-qa-worklist', '/migration-jobs',
-  '/search', '/audit', '/registry-exceptions', '/my-exports', '/configuration', '/contribution', '/bench-contributions', '/tumor-board', '/margin-exception-review', '/case/:caseId/synoptic', '/case/:caseId/grossing',
+  '/search', '/audit', '/registry-exceptions', '/autopsy-dashboards', '/outbound-queue', '/my-exports', '/configuration', '/contribution', '/bench-contributions', '/tumor-board', '/margin-exception-review', '/case/:caseId/synoptic', '/case/:caseId/grossing',
   '/report/:caseId', '/admin/parts/new', '/admin/parts/:partId/edit', '/admin/templates/new',
   '/admin/templates/:templateId/edit', '/template-editor/new', '/template-editor/:templateId',
   '/template-review/:templateId', '/mock-emr', '/wsi-viewer',
@@ -62,7 +62,25 @@ const IDENTIFYING_KINDS: ReadonlySet<IdentifierKind> = new Set(['accession', 'mr
 
 export interface IdentifierInText {
   text: string;
-  kind: IdentifierKind;
+  /** Batch 604 (PS-349): 'patientName' (the open case's patient is named in the text) and
+   *  'screenshot' (a screenshot is attached; it is masked automatically, check it) join the identifier kinds. */
+  kind: IdentifierKind | 'patientName' | 'screenshot';
+}
+
+/**
+ * Batch 604 (PS-349): the open case's patient named in the text. Any word of the name of
+ * three letters or more, on its own, in any case. Over-warning is acceptable here: the
+ * person can keep editing or send anyway.
+ */
+export function findPatientNameInText(text: string, nameParts: readonly string[]): IdentifierInText[] {
+  const found = new Map<string, IdentifierInText>();
+  const words = nameParts.flatMap(p => p.split(/[\s,'-]+/)).map(w => w.trim()).filter(w => w.length >= 3);
+  for (const w of words) {
+    const re = new RegExp(`(?<![\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'iu');
+    const m = text.match(re);
+    if (m && !found.has(w.toLowerCase())) found.set(w.toLowerCase(), { text: m[0], kind: 'patientName' });
+  }
+  return [...found.values()];
 }
 
 /**

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 604 — Simulated mail outbox, simulated critical-alert channels, support audit PDF and ticket close, ticket privacy checks (unit and component tests)",
+    "description": "Vitest, 2026-10-17: 1215 files; 10176 tests passed (the one failure in the first run, pdf-lib imported statically, was fixed and its guard re-run). firestore.rules.test.ts needs the Firestore emulator (not run). Not run: browser check; real mail, SMS, secure e-mail relay, EHR push and ticketing integrations (server side, not in this repository); native-speaker review of fr/de/nl/ko text."
+  },
+  "tests": [
+    {
+      "testKey": "PS-769",
+      "start": "2026-10-17T20:55:00Z",
+      "finish": "2026-10-18T04:45:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/communications/simulatedMailOutbox.test.ts\nPASSED: src/components/Config/System/SimulatedMailOutboxSection.test.tsx\nPASSED: src/services/supportAccess/supportAccess.test.ts\nPASSED: src/services/supportReferences/supportTicketRules.test.ts\nPASSED: src/services/clinical/alertChannels/alertChannels.test.ts\nPASSED: src/services/loadSize/loadSize.guard.test.ts\nPASSED: src/i18n/localeParity.test.ts\nPASSED: src/services/authorization/capabilities.guard.test.ts"
+    }
+  ]
+}

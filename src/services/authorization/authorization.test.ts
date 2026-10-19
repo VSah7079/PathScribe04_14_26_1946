@@ -29,7 +29,7 @@ describe('capability catalog', () => {
   });
   it('has one capability per QA report export, plus the change-history export', () => {
     const qa = ALL_CAPABILITY_KEYS.filter(k => k.startsWith('qa:') && k.endsWith(':export'));
-    expect(qa).toHaveLength(16); // Batch 454: + qa:follow-up:export
+    expect(qa).toHaveLength(17); // Batch 454: + qa:follow-up:export. Batch 610: + qa:ai-discordance:export
     expect(ALL_CAPABILITY_KEYS).toContain('report:change-history:export');
   });
   it('the evidence binder requires the dashboard it lists the records of', () => {
@@ -174,7 +174,7 @@ describe('capability seeds', () => {
     // Batch 432: and resolving Audit Log errors (configuration access had the Audit Log).
     // Batch 437: and the Audit Log's exports (it opens the Audit Log).
     // Batch 515: and the Print Queue actions (they sit on the Audit Log).
-    expect(roles[1].capabilities).toEqual(['billing:applied-code:correct', 'billing:applied-code:review', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email', 'message:internal:send', 'message:secure-email:send', 'screen:configuration:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open']);
+    expect(roles[1].capabilities).toEqual(['billing:applied-code:correct', 'billing:applied-code:review', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email', 'message:internal:send', 'message:secure-email:send', 'screen:configuration:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'screen:autopsy-dashboards:open']);
     // Batch 437: a role with case access gets Search, so the case search export too.
     expect(roles[0].capabilities).toEqual(expect.arrayContaining(['search:case-results:export', 'contribution:trainee-case-reference:export']));
     const trimmed = [{ ...roles[1], capabilities: [] }];
@@ -194,11 +194,11 @@ describe('capability seeds', () => {
     expect(open('cytotechnologist')).toEqual(['batch-management', 'bench-contributions', 'cytology-workspace', 'search']);
     expect(open('molecular-technologist')).toEqual(['batch-management', 'bench-contributions', 'molecular', 'search']);
     // Batch 434: and Batch Management (the screen only).
-    expect(open('admin')).toEqual(['audit-log', 'batch-management', 'configuration', 'quality-assurance', 'registry-exceptions']);
+    expect(open('admin')).toEqual(['audit-log', 'autopsy-dashboards', 'batch-management', 'configuration', 'outbound-queue', 'quality-assurance', 'registry-exceptions']);
     expect(open('template-author')).toEqual(['configuration']);
     expect(open('template-approver')).toEqual(['configuration']);
-    expect(open('lab-director')).toEqual(['audit-log', 'configuration', 'my-contributions', 'quality-assurance', 'registry-exceptions', 'search']);
-    expect(open('qa-reviewer')).toEqual(['audit-log', 'quality-assurance', 'registry-exceptions']);
+    expect(open('lab-director')).toEqual(['audit-log', 'autopsy-dashboards', 'configuration', 'my-contributions', 'quality-assurance', 'registry-exceptions', 'search']);
+    expect(open('qa-reviewer')).toEqual(['audit-log', 'autopsy-dashboards', 'quality-assurance', 'registry-exceptions']);
     expect(CAPABILITY_SEEDS.physician).toBeUndefined();
     expect(CAPABILITY_SEEDS['or-staff']).toBeUndefined();
   });
@@ -215,15 +215,18 @@ describe('capability seeds', () => {
     // The change-history and QA exports (Batch 407: the disposal report export belongs to the Batch Management roles).
     const exports = ALL_CAPABILITY_KEYS.filter(k => k === 'report:change-history:export' || (k.startsWith('qa:') && k.endsWith(':export')));
     // Batch 432: and resolving Audit Log errors (everyone who opens the Audit Log).
-    expect(CAPABILITY_SEEDS['qa-reviewer']).toEqual([...exports, 'config:clinical-mismatch-rules:view', 'config:ai-prompt:view', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry', 'audit:consult-links:view', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email']);
+    expect(CAPABILITY_SEEDS['qa-reviewer']).toEqual([...exports, 'config:clinical-mismatch-rules:view', 'config:ai-prompt:view', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'screen:autopsy-dashboards:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry', 'audit:consult-links:view', 'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email', 'material:block:delete-signed-out', 'material:block:flag-amended']);
     // Batch 458 (PS-71): Save mine anyway on the Edit Conflict dialog.
-    expect(CAPABILITY_SEEDS.admin).toEqual([...exports, 'case:edit-conflict:override', 'case:inking-gate:override', 'config:roles:manage', 'config:staff:edit', 'config:staff-access:assign', 'config:staff-password:manage', 'config:demo-data:reset', 'config:field-requirements:manage', 'config:intraop-critical-results:manage', 'config:molecular-control-rules:manage', 'config:screening-registry:manage', 'config:cancer-registry:manage', 'config:cytology-compliance:manage', 'registry:submission:resend', 'registry:live-register:approve', 'config:registry-go-live:manage', 'registry:test-suite:run', 'registry:revision:review', 'config:template-governance:manage',
+    // Batch 603: break-glass rebind of a downtime patient identity.
+    expect(CAPABILITY_SEEDS.admin).toEqual(['patient:break-glass:rebind', ...exports, 'case:edit-conflict:override', 'case:inking-gate:override', 'config:roles:manage', 'config:staff:edit', 'config:staff-access:assign', 'config:staff-password:manage', 'config:demo-data:reset', 'config:field-requirements:manage', 'auth:mfa-enrolment:reset', 'config:intraop-critical-results:manage', 'config:molecular-control-rules:manage', 'config:screening-registry:manage', 'config:cancer-registry:manage', 'config:cytology-compliance:manage', 'registry:submission:resend', 'registry:live-register:approve', 'config:registry-go-live:manage', 'registry:test-suite:run', 'registry:revision:review', 'config:template-governance:manage',
       'config:support-access:policy', 'config:support-access:approve', 'config:support-audit:view',
       // Batch 428: every Configuration section.
       ...CONFIG_SECTIONS,
-      'screen:configuration:open', 'screen:batch-management:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry',
+      'screen:configuration:open', 'screen:batch-management:open', 'screen:outbound-queue:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'screen:autopsy-dashboards:open', 'billing:applied-code:correct', 'billing:applied-code:review', 'message:internal:send', 'message:secure-email:send', 'audit:error:resolve', 'print:job:hold', 'print:job:cancel', 'print:job:redirect', 'print:job:retry',
       // Batch 518: resending interface messages (PS-122) and batch label reprint (PS-123).
       'interface:outbound:resend',
+      // Batch 619 (PS-800): hold, release, retract, override-release and mark-not-reportable on the Outbound Queue.
+      'interface:outbound:hold', 'interface:outbound:release', 'interface:outbound:mark-not-reportable', 'interface:outbound:retract', 'interface:outbound:override-release',
       // Batch 554: interface monitoring.
       'interface:engine-status:view',
       // Batch 551: the Server jobs view (see and requeue the API server's background jobs).
@@ -232,7 +235,7 @@ describe('capability seeds', () => {
       // Batch 522 (PS-290): the cross-case consult link list.
       'audit:consult-links:view',
       // Batch 437: the exports on the screens it opens. Batch 438: deciding CAPA recommendations. Batch 454: follow-up outcomes and clinician emails.
-      'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email']);
+      'audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export', 'qa:capa-recommendation:decide', 'qa:follow-up:record', 'qa:follow-up-clinician:email', 'material:block:delete-signed-out', 'patient:other-cases:decide-access']);
     // Batch 437 (PS-357): the exports go with the screen they sit on.
     expect(CAPABILITY_SEEDS.pathologist).toEqual(expect.arrayContaining(['search:case-results:export', 'contribution:trainee-case-reference:export', 'contribution:case-mix-summary:export']));
     expect(CAPABILITY_SEEDS.pathologist).not.toContain('audit:audit-log:export');
@@ -274,7 +277,7 @@ describe('capability seeds', () => {
     expect(customRoleScreenSeed({ caseAccess: true })).toEqual(expect.arrayContaining(['wsi:scan-batch:load', 'wsi:scan-batch:send', 'wsi:scan-batch:unload']));
     expect(customRoleScreenSeed({ configAccess: true })).not.toContain('wsi:scan-batch:load');
     // Batch 438: and deciding CAPA recommendations. Batch 454: + the follow-up export, outcomes and clinician email.
-    expect(CAPABILITY_SEEDS.admin.filter(k => k.startsWith('qa:'))).toHaveLength(19);
+    expect(CAPABILITY_SEEDS.admin.filter(k => k.startsWith('qa:'))).toHaveLength(20); // Batch 610: + qa:ai-discordance:export
     // Batch 454: marking "follow-up expected" is for the roles that sign out surgical cases.
     for (const role of ['pathologist', 'fellow']) expect(CAPABILITY_SEEDS[role], role).toContain('case:follow-up:expect');
     for (const role of ['resident', 'pa', 'admin', 'qa-reviewer']) expect(CAPABILITY_SEEDS[role], role).not.toContain('case:follow-up:expect');
@@ -305,11 +308,13 @@ describe('capability seeds', () => {
       ...(caseAccess.includes(role) ? caseReport : []),
       // Batch 382: correcting an applied billing code is its own permission, for the roles that could before.
       ...(caseAccess.includes(role) || role === 'lab-director' ? ['billing:applied-code:correct', 'billing:applied-code:review'] : []),
+      // Batch 609: and linking images to a report (report:case-images:attach), same roles.
+      // Batch 613: choosing related cases to send with a report (the signer's decision) and the Patient summary print (above).
       // Batch 383: releasing an autopsy body, for the roles with case access.
       // Batch 468: and recording a forensic chain-of-custody transfer.
       // Batch 469: and consent narrowing/revocation, organ-retention disposal, toxicology.
       // Batch 471: and cancelling a toxicology order, retention detail, consent reinstatement.
-      ...(caseAccess.includes(role) ? ['autopsy:body:release', 'report:case-report:print', 'autopsy:custody:transfer', 'autopsy:consent:manage', 'autopsy:retention-disposal:record', 'autopsy:toxicology:order', 'autopsy:toxicology:result', 'autopsy:toxicology:cancel', 'autopsy:retention-detail:record', 'autopsy:retention-tier:record', 'autopsy:consent:reinstate', 'patient:national-identifier:record', 'patient:registry-consent:record'] : []),
+      ...(caseAccess.includes(role) ? ['autopsy:body:release', 'report:case-report:print', 'report:case-images:attach', 'patient:summary:print', ...(['pathologist', 'fellow'].includes(role) ? ['report:related-cases:attach'] : []), 'autopsy:custody:transfer', 'autopsy:consent:manage', 'autopsy:retention-disposal:record', 'autopsy:toxicology:order', 'autopsy:toxicology:result', 'autopsy:toxicology:cancel', 'autopsy:retention-detail:record', 'autopsy:retention-tier:record', 'autopsy:consent:reinstate', 'patient:national-identifier:record', 'patient:registry-consent:record', 'patient:other-cases:request-access'] : []),
       // Batch 421: resending a registry submission, Lab Director (Admin has it through the administration group).
       ...(role === 'lab-director' ? ['registry:submission:resend', 'qa:pathologist-trend:view', 'qa:pathologist-trend:decide', 'registry:live-register:approve', 'registry:revision:review'] : []),
       // Batch 428 (Pete): Lab Director keeps every Configuration section it could change; the template roles keep only theirs.
@@ -338,9 +343,9 @@ describe('capability seeds', () => {
       // Batch 403: add-on orders, for the roles that had that screen.
       ...(['pathologist', 'fellow', 'resident'].includes(role) ? ['add-on:order:place', 'add-on:exception:approve-destructive-cut'] : []),
       // Batch 404: Batch Management's overrides, for the roles with that screen.
-      ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['batch:reconciliation:override', 'batch:run:abort', 'batch:cold-chain-excursion:acknowledge'] : []),
+      ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['batch:reconciliation:override', 'batch:run:abort', 'batch:cold-chain-excursion:acknowledge', 'batch:cold-chain-reading:simulate', 'retention:holds-queue:export'] : []),
       // Batch 407: disposing of retained material, for the same roles.
-      ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['retention:material:dispose', 'retention:disposal-report:export', 'case:decant:delete'] : []),
+      ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['retention:material:dispose', 'retention:disposal-report:export', 'case:decant:delete', 'material:block:delete-in-process'] : []),
       // Batch 432: referral transit status, for the same roles; resolving Audit Log errors, for Lab Director.
       ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['referral:transit-status:update'] : []),
       // Batch 434: WSI scan batches, for every role with the Batch Management screen.
@@ -353,7 +358,7 @@ describe('capability seeds', () => {
       ...(role === 'lab-director' ? ['audit:consult-links:view'] : []),
       // Batch 437 (PS-357): the exports on the screens the role opens.
       ...(set.includes('screen:audit-log:open') ? ['audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export'] : []),
-      ...(set.includes('screen:search:open') ? ['search:case-results:export'] : []),
+      ...(set.includes('screen:search:open') ? ['search:case-results:export', 'search:case-report:export', 'search:report-schedule:manage'] : []),
       ...(set.includes('screen:my-contributions:open') ? ['contribution:trainee-case-reference:export', 'contribution:case-mix-summary:export'] : []),
       // Batch 438: deciding CAPA recommendations, for the roles that open Quality Assurance.
       ...(set.includes('screen:quality-assurance:open') ? ['qa:capa-recommendation:decide'] : []),
@@ -374,6 +379,13 @@ describe('capability seeds', () => {
       ...(role === 'lab-director' ? ['config:ai-prompt:view', 'config:ai-prompt:approve'] : []),
       // Batch 530: recording clinical history after accession.
       ...(['pathologist', 'fellow', 'resident', 'pa'].includes(role) ? ['case:clinical-history:record'] : []),
+      // Batch 610 (#11): deleting a block after sign-out (Lab Director) and flagging one on an amended report (Pathologist).
+      ...(role === 'lab-director' ? ['material:block:delete-signed-out'] : []),
+      ...(role === 'pathologist' ? ['material:block:flag-amended'] : []),
+      // Batch 611 (#189): Smart Capture review, approval and export, Pathologist only.
+      ...(role === 'pathologist' ? ['billing:smart-capture:review', 'billing:smart-capture:approve', 'billing:smart-capture:send'] : []),
+      // Batch 613: deciding who may see a patient's other cases (Pathologist; Admin above).
+      ...(role === 'pathologist' ? ['patient:other-cases:decide-access'] : []),
       // Batch 518 (PS-123): batch label reprint, Histotechnologist (and Admin above).
       ...(role === 'histotechnologist' ? ['label:batch:reprint'] : []),
       // Batch 405: superseding a molecular run, for the roles with the Molecular screen.
@@ -385,7 +397,7 @@ describe('capability seeds', () => {
     ]);
     // Batch 428: the Configuration sections, by Pete's decisions.
     // Batch 438: and Revision Reasons. Batch 439: and the peer-review sign-out gate. Batch 442: and the discordance trend policy.
-    expect(CONFIG_SECTIONS).toHaveLength(101); // Batch 552: + config:site-agents:enroll, config:site-agent-config:manage. Batch 536: + config:ai-vendor-policy:manage (PS-558); the ai-prompt ones have no default grant. Batch 517: + config:secure-messaging:manage (PS-143). Batch 461: + config:organ-map-scheme:manage, config:organ-map-bindings:manage. Batch 452: + config:cytology-histology-correlation:manage; Batch 453: + config:biopsy-resection-correlation:manage; Batch 454: + config:follow-up-tracking:manage; Batch 480: + config:inking-validation-mode:manage. Structured Inking Module 3 (PS-359 follow-up): + config:ink-color:manage. Batch 491: + config:tumor-board-rules:manage
+    expect(CONFIG_SECTIONS).toHaveLength(111); // Batch 619: + config:delivery-schedules:manage, config:billing-release:manage. Batch 613: + config:bi-feed:manage, config:bi-feed-tokens:manage, config:bi-feed-identified:approve. Batch 612: + config:workstations:manage, config:workstation-tokens:manage. Batch 611: + config:smart-capture:manage. Batch 610: + config:cold-chain:manage. Batch 595: + config:code-systems:manage. Batch 552: + config:site-agents:enroll, config:site-agent-config:manage. Batch 536: + config:ai-vendor-policy:manage (PS-558); the ai-prompt ones have no default grant. Batch 517: + config:secure-messaging:manage (PS-143). Batch 461: + config:organ-map-scheme:manage, config:organ-map-bindings:manage. Batch 452: + config:cytology-histology-correlation:manage; Batch 453: + config:biopsy-resection-correlation:manage; Batch 454: + config:follow-up-tracking:manage; Batch 480: + config:inking-validation-mode:manage. Structured Inking Module 3 (PS-359 follow-up): + config:ink-color:manage. Batch 491: + config:tumor-board-rules:manage
     // Batch 429: recording equipment maintenance is also the bench roles'.
     expect(CONFIG_SECTIONS).toContain('equipment:maintenance:record');
     expect(CONFIG_SECTIONS_LAB_DIRECTOR).toEqual(CONFIG_SECTIONS.filter(k => k !== 'config:protocol:draft'));
@@ -430,6 +442,8 @@ describe('capability seeds', () => {
     expect(customRoleScreenSeed({ caseAccess: true })).toContain('autopsy:body:release');
     expect(customRoleScreenSeed({ caseAccess: true })).toContain('patient:national-identifier:record');
     expect(customRoleScreenSeed({ caseAccess: true })).toContain('patient:registry-consent:record');
+    expect(customRoleScreenSeed({ caseAccess: true })).toContain('patient:other-cases:request-access');
+    expect(customRoleScreenSeed({ caseAccess: true })).not.toContain('patient:other-cases:decide-access');
     expect(customRoleScreenSeed({ configAccess: true })).not.toContain('autopsy:body:release');
     // Batch 468: and recording a forensic chain-of-custody transfer, same roles.
     expect(customRoleScreenSeed({ caseAccess: true })).toContain('autopsy:custody:transfer');

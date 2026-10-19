@@ -9,7 +9,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { readSessionProfile } from '../auth/sessionProfile';
-import { mockQaTrendPolicyService } from './mockQaTrendPolicyService';
+import { qaTrendPolicyService } from './qaTrendPolicyServiceInstance';
 import { DEFAULT_QA_TREND_POLICY_SETTINGS } from './qaTrendRules';
 
 const KEY = 'pathscribe_qa_trend_recommendations';
@@ -45,7 +45,7 @@ export const qaTrendService = createQaTrendService({
   load: () => storageGet<QaTrendRecommendation[]>(KEY, []),
   persist: all => storageSet(KEY, all),
   trendRecords,
-  policy: async () => { const r = await mockQaTrendPolicyService.get(); return r.ok ? r.data : DEFAULT_QA_TREND_POLICY_SETTINGS; },
+  policy: async () => { const r = await qaTrendPolicyService.get(); return r.ok ? r.data : DEFAULT_QA_TREND_POLICY_SETTINGS; },
   enforce: capability => authorizationService.enforce(capability),
   audit: entry => mockAuditService.logEvent(entry),
   actor: () => { const s = readSessionProfile(); return { userId: s?.id ?? 'unknown', userName: s?.name ?? 'unknown' }; },

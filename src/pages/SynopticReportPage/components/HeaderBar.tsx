@@ -52,18 +52,25 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
   Cancelled: 'headerBar.blockStatusLabels.cancelled',
   Lost:      'headerBar.blockStatusLabels.lost',
   Damaged:   'headerBar.blockStatusLabels.damaged',
+  Deleted:   'headerBar.blockStatusLabels.deleted',
+  Invalidated: 'headerBar.blockStatusLabels.invalidated',
 };
 
 // ── AI Synthesis Status — the Gatekeeper Badge. One definition, in
 // services/templates/aiSynthesisStatus.ts (Batch 437).
 import type { AiSynthesisStatus } from '@/services/templates/aiSynthesisStatus';
 import { pressable } from '@/utils/a11y/pressable';
+import { caseReturnTarget, type CaseReturnTarget } from '@/utils/search/caseReturnTarget';
 export type { AiSynthesisStatus };
+
+const DEFAULT_RETURN = caseReturnTarget('worklist');
 
 interface HeaderBarProps {
   caseData:      Case | null;
   onSignOut:     () => void;
   onNavigate:    (path: string) => void;
+  /** PS-101: where the breadcrumb and the compact Back go, and their label (utils/search/caseReturnTarget.ts). Worklist when omitted. */
+  returnTarget?: CaseReturnTarget;
   /**
    * Gatekeeper Badge status — replaces the old flat `aiConfidence` percentage.
    * PS-329 (Batch 437): an unreviewed AI suggestion below the configured
@@ -158,7 +165,7 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, changeCount, onOpenChangeHistory, signatureCount, onOpenSignatureHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, returnTarget, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, changeCount, onOpenChangeHistory, signatureCount, onOpenSignatureHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
   const { t, i18n } = useTranslation();
   // Real fix, found via a direct audit: this used to call the old,
   // superseded getOrchestratorMode() (org-level only, from the now-
@@ -186,6 +193,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   // sessionStorage check rather than anything AppShell tracks.
   const navigate = useNavigate();
   const openCasePage = useOpenCase();
+  const back = returnTarget ?? DEFAULT_RETURN;
   // Batch 375 (Pete): Add-On Orders is an action on the case, for whoever may open that screen.
   const capabilities = useCapabilities();
   const { setPortalOpen } = useMessaging();
@@ -430,9 +438,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           <div className="ps-hb-compact-nav-group">
             <button
               className="ps-hb-compact-nav-btn"
-              onClick={() => onNavigate('/worklist')}
-              title={t('headerBar.nav.backToWorklistTooltip')}
-            >← {t('headerBar.breadcrumb.worklist')}</button>
+              onClick={() => onNavigate(back.path)}
+              title={t(back.tooltipKey)}
+            >← {t(back.labelKey)}</button>
             {onToggleManualCompact && (
               <button
                 className="ps-hb-compact-nav-btn"
@@ -464,7 +472,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         )}
         <span className="ps-hb-crumb" {...pressable(() => onNavigate('/'))}>{t('headerBar.breadcrumb.home')}</span>
         <span className="ps-hb-crumb-sep">›</span>
-        <span className="ps-hb-crumb" {...pressable(() => onNavigate('/worklist'))}>{t('headerBar.breadcrumb.worklist')}</span>
+        <span className="ps-hb-crumb" {...pressable(() => onNavigate(back.path))}>{t(back.labelKey)}</span>
         <span className="ps-hb-crumb-sep">›</span>
         <span className="ps-hb-crumb ps-hb-crumb--active">{t('headerBar.breadcrumb.caseReport')}</span>
 

@@ -254,3 +254,16 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 567 (WCAG 2.1 AA, 4.1.2)
 
 - `ProtocolChangeModal.tsx`: each proposed change, and "Select all", was a button holding a checkbox; each is now the checkbox's label (click anywhere on it to tick). A change's checkbox is named by the specimen and the proposed template and described by the reason. The close button has a name. Tests: `ProtocolChangeModal.labels.test.tsx`.
+
+## Batch 588
+
+- `DeleteBlockControl.tsx` (new, with `DeleteBlockControl.test.tsx`): the Delete this block control shown by `BlockStainEditorModal.tsx` when `onDeleteBlock` is passed. The reason list and the "Other needs a note" rule are in `services/material/blockDeletion.ts`.
+
+## Batch 606
+
+- `SpecimenEditModal.tsx`: gross weight with Capture weight and Capture gross photo (`CameraCaptureControl` kind `gross_photo`); saved as `grossWeightG`, `grossWeightSource` and `digitalAssets`.
+- `TechnicalComponentFacilityField.tsx` (+ test): picks the technical-component facility on the case team dialog; saved straight to the case.
+
+## Batch 618 (PS-336)
+
+`TechnicalComponentFacilityField.tsx` now lists active performing labs only (same list as the Accession field) and writes an audit entry (facility ids only) when the lab is set, changed or cleared.

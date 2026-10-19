@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/auditlog/
 
 System-wide audit log — AI actions, user changes, system events.
@@ -22,3 +24,10 @@ Deep links into the Audit Log page. `FAILED_CHARGE_DISPATCHES_LINK` (`/audit?tab
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 589 — Unique ids (PS-344 / PS-477)
+
+`auditIds.ts` `newAuditId('al' | 'el')` gives every audit and error entry a unique id (`crypto.randomUUID`, with a fallback). The old `'al-' + Date.now()` repeated for two entries in the same millisecond, which gave duplicate React keys. The server's database should also enforce uniqueness with a key.
+
+
+Batch 616: server version in `httpAuditService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `auditServiceInstance.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.

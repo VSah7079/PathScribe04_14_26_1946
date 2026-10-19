@@ -21,7 +21,8 @@ import {
 } from './clinicalMismatchInputs';
 import { recordClinicalMismatchDecision, logLowRiskMismatch, type ClinicalMismatchDecisionInput, type ClinicalMismatchDeps } from './clinicalMismatchDecision';
 import { evaluateClinicalMismatch, type ClinicalMismatchOutcome } from './clinicalMismatchRules';
-import { mockClinicalMismatchRuleService } from './mockClinicalMismatchRuleService';
+import { clinicalMismatchRuleService } from './clinicalMismatchRuleServiceInstance';
+import { revisionStep, withReleaseSetting } from './amendmentMismatch';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 
 /** A suggestion and what the rules make of it. */
@@ -32,6 +33,8 @@ export interface ClinicalMismatchAssessment {
   fingerprint?: string;
   /** Batch 531: the decision made on earlier text, when the text has changed since. */
   previous?: { resolution?: string; kind?: string; recordedAt?: string };
+  /** Batch 609 (#31): a high-risk mismatch on an amendment, correction or addendum that the lab setting does not hold the release for. */
+  releaseNotHeld?: boolean;
 }
 
 export type ClinicalMismatchSignOutStep = 'continue' | 'log' | 'decide';
@@ -90,7 +93,7 @@ export const clinicalMismatchService = {
       lastAnswer.set(scopeKey(scope), { key, suggestion });
     }
     if (!suggestion) return null;
-    const rules = await mockClinicalMismatchRuleService.rulesForCheck();
+    const rules = await clinicalMismatchRuleService.rulesForCheck();
     const outcome = evaluateClinicalMismatch(suggestion, specimenTypeIds, rules);
     if (previous && !mismatchWorseThanBefore(previous, { kind: suggestion.kind, risk: outcome.risk })) return null;
     return {
@@ -134,6 +137,39 @@ export const clinicalMismatchService = {
       }, deps).catch(() => null);
     }
     return null;
+  },
+
+  /**
+   * Batch 609 (#31): the same check for an amendment, correction or addendum,
+   * before it is released. Returns the assessment to decide first (a high-risk
+   * mismatch, when the lab setting holds the release), or null to go on. A
+   * mismatch that does not hold the release is logged to the QA dashboard
+   * here, with the risk the rules gave it.
+   */
+  async atRevision(
+    input: ClinicalMismatchInput,
+    scope: { caseId: string; specimenId?: string },
+    specimenTypeIds: readonly string[],
+    meta: Pick<ClinicalMismatchDecisionInput, 'caseType' | 'subspecialtyId' | 'clinicalIndication' | 'discipline'>,
+  ): Promise<ClinicalMismatchAssessment | null> {
+    if (mismatchCheckDeferred(input)) return null;
+    const holds = await clinicalMismatchRuleService.revisionHoldsRelease();
+    const assessment = await clinicalMismatchService.assess(input, scope, specimenTypeIds);
+    const step = revisionStep(assessment, holds);
+    if (step === 'decide') return assessment;
+    if (step === 'log' && assessment) {
+      await logLowRiskMismatch({
+        ...meta, caseId: scope.caseId, ...(scope.specimenId ? { specimenId: scope.specimenId } : {}),
+        kind: assessment.suggestion.kind, source: assessment.suggestion.source, confidence: assessment.suggestion.confidence,
+        risk: assessment.outcome.holdsSignOut ? 'high' : 'low', ruleId: assessment.outcome.rule.id, inputFingerprint: assessment.fingerprint,
+      }, deps).catch(() => null);
+    }
+    return null;
+  },
+
+  /** Batch 609: the assessment as the report alert shows it while an amended report is edited. */
+  async forRevisionAlert(assessment: ClinicalMismatchAssessment): Promise<ClinicalMismatchAssessment> {
+    return withReleaseSetting(assessment, await clinicalMismatchRuleService.revisionHoldsRelease());
   },
 
   record: (input: ClinicalMismatchDecisionInput) => recordClinicalMismatchDecision(input, deps),

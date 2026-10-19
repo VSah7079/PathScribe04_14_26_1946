@@ -90,3 +90,7 @@ The route tests read both `App.tsx` and `SignedInApp.tsx`, where every route aft
 ## Batch 573
 
 - `caseSupportReference.ts` (new): a case's support reference for the live hub, from the API server (`GET /api/cases/{caseId}/support-reference`, `CASE_API.md` §8) so every user of a case has the same one; the browser's own service in the demo. Used by the `caseReport` notice and presence.
+
+## Batch 617 (part C): server versions (PS-514)
+
+The support reference service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.

@@ -14,14 +14,14 @@
 import { createMolecularOrderEngine, type MolecularOrderEngine } from './molecularOrderEngine';
 import { loadMolecularOrders, saveMolecularOrders } from './mockMolecularOrderStore';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockStainTypeService } from '../stains/mockStainTypeService';
-import { mockMolecularBatchService } from '../molecular/mockMolecularBatchService';
-import { mockMolecularAssayControlRuleService } from '../molecular/mockMolecularAssayControlRuleService';
+import { stainTypeService } from '../stains/stainTypeServiceInstance';
+import { molecularBatchService } from '../molecular/molecularBatchServiceInstance';
+import { molecularAssayControlRuleService } from '../molecular/molecularAssayControlRuleServiceInstance';
 import { caseRouter } from '../cases/CaseRouter';
 import { updateCaseWithRetry } from '../cases/caseWrite';
 import { getTemplateCached } from '../templates/templateService';
 import { mockAuditService } from '../auditlog/mockAuditService';
-import { mockAmendmentService } from '../reports/mockAmendmentService';
+import { amendmentService as mockAmendmentService } from '../reports/reportServicesInstance';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import { activeReferenceLabs } from '../stains/referenceLabLink';
 import { getSessionUser } from '../auth/caseAccessControl';
@@ -34,10 +34,10 @@ export const molecularOrderEngine: MolecularOrderEngine = createMolecularOrderEn
   loadOrders: loadMolecularOrders,
   saveOrders: saveMolecularOrders,
   enforce: (capability, context) => authorizationService.enforce(capability, context),
-  getStainTypes: async () => { const r = await mockStainTypeService.getAll(); return r.ok ? r.data : []; },
-  getBatches: async () => { const r = await mockMolecularBatchService.getAll(); return r.ok ? r.data : []; },
-  updateBatchWells: async (batchUuid, wells) => (await mockMolecularBatchService.updateByUuid(batchUuid, { wells })).ok,
-  getControlRules: async () => { const r = await mockMolecularAssayControlRuleService.getAll(); return r.ok ? r.data : []; },
+  getStainTypes: async () => { const r = await stainTypeService.getAll(); return r.ok ? r.data : []; },
+  getBatches: async () => { const r = await molecularBatchService.getAll(); return r.ok ? r.data : []; },
+  updateBatchWells: async (batchUuid, wells) => (await molecularBatchService.updateByUuid(batchUuid, { wells })).ok,
+  getControlRules: async () => { const r = await molecularAssayControlRuleService.getAll(); return r.ok ? r.data : []; },
   getCase: async caseId => (await caseRouter.getCase(caseId)) ?? null,
   changeCase: async (caseId, change) => (await updateCaseWithRetry(caseId, change, caseRouter)).ok,
   getTemplate: async templateId => {
@@ -60,11 +60,11 @@ export const molecularOrderEngine: MolecularOrderEngine = createMolecularOrderEn
  *  worklist had been dispatched and run. Goes through processInboundMolecularRunResults like a real run. */
 export async function simulateMolecularRunResults(batchId: string, call: 'POSITIVE' | 'NEGATIVE'): Promise<boolean> {
   const { processInboundMolecularRunResults } = await import('../molecular/processInboundMolecularRunResults');
-  const r = await mockMolecularBatchService.getById(batchId);
+  const r = await molecularBatchService.getById(batchId);
   if (!r.ok) return false;
   const batch = r.data;
   if (!batch.worklistDispatchedAt) {
-    await mockMolecularBatchService.updateByUuid(batch.batchUuid, { worklistDispatchedAt: new Date().toISOString(), status: 'active' });
+    await molecularBatchService.updateByUuid(batch.batchUuid, { worklistDispatchedAt: new Date().toISOString(), status: 'active' });
     await molecularOrderEngine.onWorklistDispatched(batch.batchUuid);
   }
   const payload: MolecularRunResultsPayload = {
@@ -93,8 +93,8 @@ export async function simulateSendOutResult(orderId: string, call: 'POSITIVE' | 
   if (order.status === 'QUEUED') {
     if (!order.sendOutLabId) return 'needsLab';
     batchId = `ref-demo-${order.orderId}`;
-    const { mockReferralTrackingService } = await import('../referral/mockReferralTrackingService');
-    await mockReferralTrackingService.createOnDispatch(batchId);
+    const { referralTrackingService } = await import('../referral/referralTrackingServiceInstance');
+    await referralTrackingService.createOnDispatch(batchId);
     const sent = await molecularOrderEngine.onReferralDispatched({ batchId, labId: order.sendOutLabId, testRequested: order.assayName, items: [{ caseAccession: order.accession, specimenLabel: order.specimenLabel }], assayCodes: [order.assayTarget] });
     if (!sent.some(x => x.orderId === order.orderId)) return 'failed';
   }

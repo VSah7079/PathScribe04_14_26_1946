@@ -1,0 +1,20 @@
+Batch 587 — review tests for six "Can automate" tickets (run 2026-10-16)
+Chromium against the demo on the Vite dev server, as Pete Nimmo.
+
+7 passed, 0 skipped, 0 failed:
+ PS-146  ps-146.revision-reasons-capa      Steps 1-2
+ PS-327  ps-327.signing-authority-overrides Step 7 (three vitest files, all pass)
+ PS-341  ps-341.country-signing-rules      Steps 1-3
+ PS-470  ps-470.lint-cleanup               Steps 2 and 3
+ PS-73   ps-73.facility-duplicate          Steps 1-3
+ PS-89   ps-89.code-import                 Steps 1-4
+
+PS-470 step 1 (npm run lint), run by hand: the e2e/review specs are clean
+(npx eslint e2e/review --max-warnings 0, exit 0). The full run still reports
+3 errors in src/services/serverJobs/serverJobsContract.ts (file dated Oct 13;
+"{}" used as a type). Not touched in this batch; carried forward.
+
+Not done: PS-261, PS-273, PS-493 (no spec yet, Batch 588); PS-327 steps 1-6,
+PS-341 steps 4-7, PS-73 steps 4-9, PS-89 steps 5-7, PS-146 steps 3-6.
+Independent review agent: not run.
+Xray Tests: PS-735 (PS-73, 89, 146), PS-736 (PS-327, 341, 470).

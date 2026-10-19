@@ -19,6 +19,8 @@ import { mockPrintQueueService } from './mockPrintQueueService';
 import { printPdfViaQzTray, isQzTrayConnected } from '@/utils/labels/qzTrayBridge';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { dispatchViaPrintProtocol } from './transport/dispatchViaPrintProtocol';
+import { setDataMayPersistInBrowserForTests } from '@/services/browserData/browserDataPolicy';
+import { listSimulatedPrints, resetSimulatedPrintForTests, setSimulatedPrintFailure } from './simulatedPrint';
 import { attemptPrintDelivery } from './attemptPrintDelivery';
 import { AGENT_PRINT_NEEDS_SERVER, NETWORK_PRINT_NEEDS_SITE_AGENT, canSendNetworkPrintHere } from './transport/networkPrintRuntime';
 
@@ -27,6 +29,7 @@ const baseInput = {
 };
 
 beforeEach(() => {
+  setDataMayPersistInBrowserForTests(null);
   vi.mocked(mockPrintQueueService.markFailed).mockReset().mockResolvedValue({ ok: true, data: {} } as any);
   vi.mocked(mockPrintQueueService.markPrinted).mockReset().mockResolvedValue({ ok: true, data: {} } as any);
   vi.mocked(printPdfViaQzTray).mockReset();
@@ -93,11 +96,34 @@ describe('attemptPrintDelivery — real, per PS-279 extraction out of dispatchPr
     });
 
     it('Batch 553: a site agent printer is never sent from here (in Node or a browser); the job fails with that reason, not retried', async () => {
+      // Batch 606: with an API server configured nothing is simulated; the job fails with the reason.
+      setDataMayPersistInBrowserForTests(false);
       const agentDestination = { agentPrinter: { siteId: 'S1', destinationId: 'rep-1' }, displayName: 'Front desk' };
       const result = await attemptPrintDelivery({ ...baseInput, mode: 'DIRECT_NETWORK_PRINT', destination: agentDestination });
       expect(result).toEqual({ outcome: 'failed', jobId: 'job-1', retriable: false });
       expect(dispatchViaPrintProtocol).not.toHaveBeenCalled();
       expect(mockPrintQueueService.markFailed).toHaveBeenCalledWith('job-1', { errorCode: 'NEEDS_SITE_AGENT', errorMessage: AGENT_PRINT_NEEDS_SERVER, maxRetriesExceeded: true });
+    });
+
+    it('Batch 606: in the demo a site agent printer gets a labelled Simulated send, and the job is marked printed as simulated', async () => {
+      resetSimulatedPrintForTests();
+      const agentDestination = { agentPrinter: { siteId: 'S1', destinationId: 'rep-1' }, displayName: 'Front desk' };
+      const result = await attemptPrintDelivery({ ...baseInput, mode: 'DIRECT_NETWORK_PRINT', destination: agentDestination });
+      expect(result).toEqual({ outcome: 'dispatched', jobId: 'job-1' });
+      expect(mockPrintQueueService.markPrinted).toHaveBeenCalledWith('job-1', { simulated: true });
+      expect(listSimulatedPrints()[0]).toMatchObject({ kind: 'report', transport: 'site agent', destination: 'Front desk', outcome: 'delivered' });
+      expect(dispatchViaPrintProtocol).not.toHaveBeenCalled();
+    });
+
+    it('Batch 606: with the failure switch on the simulated send fails and the job is marked failed', async () => {
+      resetSimulatedPrintForTests();
+      setSimulatedPrintFailure(true);
+      const agentDestination = { agentPrinter: { siteId: 'S1', destinationId: 'rep-1' }, displayName: 'Front desk' };
+      const result = await attemptPrintDelivery({ ...baseInput, mode: 'DIRECT_NETWORK_PRINT', destination: agentDestination });
+      expect(result.outcome).toBe('failed');
+      expect(mockPrintQueueService.markFailed).toHaveBeenCalledWith('job-1', expect.objectContaining({ errorCode: 'PRINTER_UNREACHABLE' }));
+      expect(mockPrintQueueService.markPrinted).not.toHaveBeenCalled();
+      resetSimulatedPrintForTests();
     });
 
     it('a real transport failure fails with PRINTER_UNREACHABLE, retriable', async () => {
@@ -115,6 +141,8 @@ describe('attemptPrintDelivery — real, per PS-279 extraction out of dispatchPr
     });
 
     it('Batch 546 (F3): in a browser it never reaches the Node transports; the job fails with the reason, not to be retried', async () => {
+      // Batch 606: with an API server configured nothing is simulated; the job fails with the reason.
+      setDataMayPersistInBrowserForTests(false);
       vi.stubGlobal('window', {});
       try {
         const result = await attemptPrintDelivery({ ...baseInput, mode: 'DIRECT_NETWORK_PRINT', destination });

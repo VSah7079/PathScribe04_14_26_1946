@@ -1,5 +1,6 @@
 import { ServiceResult, ID } from '../types';
 import type { CaseSearchDraft } from '../caseSearch/caseSearchTypes';
+import type { CaseReportDefinition } from '../caseReports/caseReportDefinition';
 
 // ─── Filter shapes per context ────────────────────────────────────────────────
 
@@ -40,11 +41,13 @@ export interface RefinedSearchFilters {
   minConfidenceScore?: number;
 }
 
-export type SearchContext = 'worklist' | 'caseSearch' | 'refinedSearch';
+/** Batch 613: 'caseReport' saves a report definition (a search plus its grouping and columns). */
+export type SearchContext = 'worklist' | 'caseSearch' | 'refinedSearch' | 'caseReport';
 
 export type SearchFilters =
   | WorklistFilters
   | CaseSearchFilters
+  | CaseReportDefinition
   | RefinedSearchFilters;
 
 export interface SavedSearch {

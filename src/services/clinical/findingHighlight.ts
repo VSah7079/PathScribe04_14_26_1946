@@ -42,13 +42,33 @@ export type NarrativeField = 'gross' | 'microscopic' | 'ancillary';
 /** Which narrative field a Report Draft section feeds. Same section ids
  *  useOrchestratorDraft's syncOrchSectionsToDiagnostic copies into
  *  caseData.diagnostic, which is the text detectCriticalFindings reads. */
-export function narrativeFieldForSection(sectionId: string): NarrativeField | null {
+export function narrativeFieldForSection(sectionId: string, sourcePartId?: string): NarrativeField | null {
+  // PS-323: the section id is a fresh UUID each time a template is resolved, so the
+  // stable part id it came from (std_body_gross and so on) is checked first.
+  switch (sourcePartId) {
+    case 'std_body_gross': return 'gross';
+    case 'std_body_microscopic': return 'microscopic';
+    case 'std_body_ancillary': return 'ancillary';
+    default: break;
+  }
   switch (sectionId) {
     case 'gross_description': case 'gross': return 'gross';
     case 'microscopic': case 'microscopic_description': return 'microscopic';
     case 'ancillary_studies': case 'ancillary': return 'ancillary';
     default: return null;
   }
+}
+
+/** The text of every Report Draft section that feeds one narrative field, joined. */
+export function orchestratorNarrativeText(
+  sections: readonly { id: string; text?: string; sourcePartId?: string }[],
+  field: NarrativeField,
+): string {
+  return sections
+    .filter(s => narrativeFieldForSection(s.id, s.sourcePartId) === field)
+    .map(s => s.text ?? '')
+    .filter(t => t.trim() !== '')
+    .join('');
 }
 
 /** Which narrative field a row of the read-only Full Patient Report panel

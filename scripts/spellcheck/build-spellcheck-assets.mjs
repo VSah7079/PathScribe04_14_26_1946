@@ -238,11 +238,24 @@ export async function main(opts = {}) {
   manifest.sources.push({ tier: 'medical', name: 'PathScribe pathology lexicon (en, ko)', license: 'Proprietary (ForMedrixAI LLC)' });
   notices.push('[en-*, ko-KR] medical tier: PathScribe pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/).', '');
 
+  // German, French and Dutch (Batch 609): a starter medical tier from
+  // spellcheck-data/<lang>/pathology.dic.txt, plain entries over the same
+  // .aff as the base dictionary (the German base files stay unmodified; this
+  // is a separate data file). Native-speaker review pending, see its header.
+  const starterWords = {};
+  for (const [locale, dir] of [['de-DE', 'de'], ['fr-FR', 'fr'], ['nl-NL', 'nl']]) {
+    const words = lines(path.join(DATA, dir, 'pathology.dic.txt'));
+    starterWords[locale] = new Set(words);
+    fs.writeFileSync(path.join(OUT, 'medical', `${locale}.dic`), `${words.length}\n${words.join('\n')}\n`);
+    manifest.locales[locale].medical = { dic: `medical/${locale}.dic` };
+    notices.push(`[${locale}] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/${dir}/), pending native-speaker review.`, '');
+  }
+
   // Other languages: clinical tier only (their medical terms come from the
   // validated national sources, never machine translation).
   if (licensed.any) {
     for (const locale of Object.keys(BASE_PACKAGES).filter(l => !(l in ENGLISH_CONVENTION))) {
-      const words = wordsForLocale(union(licensed.snomed.byLocale.get(locale), licensed.loinc.byLocale.get(locale)), { base: bases[locale] });
+      const words = wordsForLocale(union(licensed.snomed.byLocale.get(locale), licensed.loinc.byLocale.get(locale)), { base: bases[locale], ...(starterWords[locale] ? { exclude: starterWords[locale] } : {}) });
       counts[locale] = { clinical: words.length };
       if (!words.length) continue;
       fs.mkdirSync(path.join(OUT, 'clinical'), { recursive: true });

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 609 \u2014 report renderer page setup and image links, mismatch check after amendments, template audit and Final Diagnosis rule, AI model settings, dictation, spell lists",
+    "description": "Vitest, 2026-10-18: full suite 1277 files; 10,537 tests passed, 33 skipped. The only failure is firestore.rules.test.ts, which needs the Firestore emulator (not run). Python renderer checks passed (201). Not run: browser check; production renderer and PDF/A (PS-333), server-side image fetch, CAP/RCPath licence and files, licensed SNOMED/LOINC/SPECIALIST (PS-343), native-speaker review."
+  },
+  "tests": [
+    {
+      "testKey": "PS-780",
+      "start": "2026-10-18T16:40:00Z",
+      "finish": "2026-10-18T17:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: functions/test_main.py\nPASSED: src/components/Config/AI/resolveClientAiModel.overrides.test.ts\nPASSED: src/components/Config/Models/ModelOverridesModal.test.tsx\nPASSED: src/components/Config/Protocols/UploadProtocolModal.test.tsx\nPASSED: src/components/Config/System/ClinicalMismatchRulesSection.test.tsx\nPASSED: src/components/Config/System/VoiceSection.test.tsx\nPASSED: src/components/ReportImages/AttachReportImagesModal.test.tsx\nPASSED: src/components/TemplateBuilder/TemplateAssemblyPage.finalDiagnosis.test.tsx\nPASSED: src/pages/SynopticReportPage/hooks/__tests__/checkAmendmentMismatch.test.ts\nPASSED: src/pages/SynopticReportPage/hooks/__tests__/useAmendmentWorkflow.test.ts\nPASSED: src/pages/SynopticReportPage/modals/peerReviewAndMismatch.test.tsx\nPASSED: src/services/actionRegistry/voiceTriggerPool.test.ts\nPASSED: src/services/aiIntegration/aiProviderService.maxTokens.test.ts\nPASSED: src/services/authorization/authorization.test.ts\nPASSED: src/services/clinical/amendmentMismatch.test.ts\nPASSED: src/services/cytology/cytologyRenderPayload.test.ts\nPASSED: src/services/imageAssociation/caseReportImages.test.ts\nPASSED: src/services/imageAssociation/fitImageToReportPage.test.ts\nPASSED: src/services/imageAssociation/readImageSize.test.ts\nPASSED: src/services/models/mockModelService.test.ts\nPASSED: src/services/models/modelOverrides.test.ts\nPASSED: src/services/reportTemplates/finalDiagnosisPublishCheck.test.ts\nPASSED: src/services/spellcheck/spellcheck.test.ts\nPASSED: src/services/systemConfig/systemConfigChangeChecks.test.ts\nPASSED: src/services/templates/protocolUploadValidation.test.ts\nPASSED: src/services/templates/templateLifecycleAudit.test.ts\nPASSED: src/services/voice/dictationRefinementPrompt.test.ts"
+    }
+  ]
+}

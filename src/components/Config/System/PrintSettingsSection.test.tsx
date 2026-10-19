@@ -29,6 +29,7 @@ vi.mock('@/services/index', () => ({
 }));
 vi.mock('@/utils/performingLabs', () => ({ getActivePerformingLabs: async () => [{ id: 'fac-1', name: 'North Lab' }] }));
 vi.mock('./CassetteLabelLayoutEditor', () => ({ default: () => null }));
+vi.mock('./SlideLabelLayoutEditor', () => ({ default: () => null }));
 
 import PrintSettingsSection from './PrintSettingsSection';
 import { DEFAULT_PRINT_SETTINGS_CONFIG } from '@/services/printSettings/IPrintSettingsService';

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/interfaceEngine/
 
 Real feature, per direct follow-up: "Did we want to implement the
@@ -155,3 +157,7 @@ Nothing in the app uses it yet: the API server implements it (phase 2e).
 ## Batch 554 (PS-539 phase 2d: interface monitoring)
 
 - Batch 554: `engineStatus` treats a stopped channel (a listener not taking messages) as degraded, and a heartbeat time that can't be read as offline (`INTERFACE_ENGINE_EDGE.md` §8).
+
+## Batch 616 (part E) — server version
+
+API-server version of `InterfaceEngine` (`httpInterfaceEngineService.ts`, contract `INTERFACE_ENGINE_API.md`), picked by `interfaceEngineServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

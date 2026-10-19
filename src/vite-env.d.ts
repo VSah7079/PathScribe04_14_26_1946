@@ -52,6 +52,9 @@ interface ImportMetaEnv {
   readonly VITE_BABAKHANI_EMAIL?: string;
   readonly VITE_CPT_PROXY_URL?: string;
   readonly VITE_ENHANCEMENT_EMAIL?: string;
+  /** Batch 590 (PS-469): where scrubbed crash reports go (public-key address); monitoring is off without it and VITE_ERROR_MONITORING_ENV. */
+  readonly VITE_ERROR_MONITORING_DSN?: string;
+  readonly VITE_ERROR_MONITORING_ENV?: string;
   readonly VITE_ICD10_PROXY_URL?: string;
   readonly VITE_INTERFACE_RECEIVER_ENDPOINT?: string;
   // PS-262 (Batch 342): the SignalR hub. See services/liveUpdates/liveUpdateService.ts.
@@ -60,6 +63,8 @@ interface ImportMetaEnv {
   readonly VITE_NLM_BASE_URL?: string;
   readonly VITE_REPORT_PDF_ENDPOINT?: string;
   readonly VITE_VOICE_ENABLED?: string;
+  /** Batch 617 (PS-512): "false" turns biometric sign-in off for the whole deployment. See services/biometric/biometricDeploymentSwitch.ts. */
+  readonly VITE_BIOMETRIC_SIGN_IN?: string;
   /** Batch 555: the recurring jobs the API server runs (comma-separated, MESSAGE_BUS_API.md §5); the browser stops standing in for those. */
   readonly VITE_SERVER_JOBS?: string;
 }

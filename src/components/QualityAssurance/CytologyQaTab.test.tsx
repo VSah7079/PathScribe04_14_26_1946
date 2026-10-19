@@ -82,6 +82,8 @@ vi.mock('@/services', () => ({
   auditService: { logEvent: vi.fn(async () => undefined) },
   authorizationService: { enforce: vi.fn(async () => ({ allowed: true })) },
   exportQaReport: vi.fn(),
+  // Batch 608: the PT panel card on the APAC report.
+  cytologyProficiencyPanelService: { getAll: vi.fn(async () => ({ ok: true, data: [] })), submit: vi.fn(), applySimulatedResult: vi.fn() },
 }));
 vi.mock('@/services/auth/caseAccessControl', () => ({ getSessionUser: () => null, canViewCrossTenantQaData: () => false }));
 vi.mock('@/components/Common/CapabilityButton', () => ({ CapabilityButton: () => null }));

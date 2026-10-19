@@ -14,16 +14,20 @@
 // on a signed-out case, the post-sign-out reason (cancelled → nothing
 // changes); the coding save; then the charge or credit (only when charges
 // are enabled: an Assist-mode case is billed by the LIS, as on the report page).
+// Oct 15, 2026: the specimen-level changes (a base code added or removed, a
+// matrix code applied) ask for the reason too; before, they charged or
+// credited a signed-out case without one (services/billing/postSignoutBillingReason.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Case } from '@/types/case/Case';
 import type { PostSignoutChangeContext } from '@/services/billing/resolveServiceCharge';
 import {
   enforceBillingReview, recordCaseCharge, recordCaseCredit, recordCaseCodeCorrection, auditBillingSuggestionDeclined,
   codingWithApproved, codingWithRejected, codingWithOverride, codingWithoutCode, codingWithCorrection, groupApprovalsByUnit,
   specimensWithBaseCodeAdded, specimensWithBaseCodeRemoved, specimensWithBaseCodeCorrected, specimensWithMatrixCode,
-  isCaseSignedOutForBilling, enforceAppliedCodeCorrection,
+  postSignoutReasonNeeded, specimenBillingChangeSummary, enforceAppliedCodeCorrection,
   type BillingApprovalItem, type UnitCoding,
 } from '@/services';
 
@@ -52,6 +56,7 @@ export interface CaseBillingReviewOptions {
 }
 
 export function useCaseBillingReview(o: CaseBillingReviewOptions) {
+  const { t } = useTranslation();
   const opts = useRef(o);
   opts.current = o;
   const [postSignoutPrompt, setPostSignoutPrompt] = useState<{ summary: string } | null>(null);
@@ -68,7 +73,7 @@ export function useCaseBillingReview(o: CaseBillingReviewOptions) {
 
   /** undefined: not asked (not signed out, or not billed here); null: cancelled. As on the report page, only a billed case asks. */
   const reason = useCallback((summary: string): Promise<PostSignoutChangeContext | undefined | null> => {
-    if (!opts.current.chargesEnabled || !isCaseSignedOutForBilling(opts.current.caseData?.status)) return Promise.resolve(undefined);
+    if (!postSignoutReasonNeeded({ billed: opts.current.chargesEnabled, status: opts.current.caseData?.status })) return Promise.resolve(undefined);
     return new Promise(resolve => { promptRef.current = { resolve }; setPostSignoutPrompt({ summary }); });
   }, []);
   const confirmPostSignout = useCallback((ctx: PostSignoutChangeContext) => { promptRef.current?.resolve(ctx); promptRef.current = null; setPostSignoutPrompt(null); }, []);
@@ -86,10 +91,10 @@ export function useCaseBillingReview(o: CaseBillingReviewOptions) {
     await recordCaseCharge({ caseData, specimenId, blockId, code, user, postSignoutContext });
     opts.current.onLedgerChanged?.();
   };
-  const credit = async (specimenId: string, blockId: string | undefined, code: string) => {
+  const credit = async (specimenId: string, blockId: string | undefined, code: string, postSignoutContext?: PostSignoutChangeContext) => {
     const { caseData, user, chargesEnabled } = opts.current;
     if (!caseData || !chargesEnabled) return;
-    await recordCaseCredit({ caseData, specimenId, blockId, code, user });
+    await recordCaseCredit({ caseData, specimenId, blockId, code, user, postSignoutContext });
     opts.current.onLedgerChanged?.();
   };
 
@@ -128,17 +133,28 @@ export function useCaseBillingReview(o: CaseBillingReviewOptions) {
       for (const c of codes) await charge(specimenId, blockId, c.code, ctx);
     }
   };
+  // Specimen-level changes on a signed-out case ask for the same reason as the case-level paths, first.
+  const specimenReason = (kind: 'added' | 'removed', code: string) => {
+    const summary = specimenBillingChangeSummary(kind, code);
+    return reason(t(summary.key, summary.values));
+  };
   const onDeleteBaseCode = async (specimenId: string, code: string) => {
     if (!(await allowed())) return;
-    if (await saveSpecimens(sp => specimensWithBaseCodeRemoved(sp, specimenId, code))) await credit(specimenId, undefined, code);
+    const ctx = await specimenReason('removed', code);
+    if (ctx === null) return;
+    if (await saveSpecimens(sp => specimensWithBaseCodeRemoved(sp, specimenId, code))) await credit(specimenId, undefined, code, ctx);
   };
   const onAddBaseCode = async (specimenId: string, code: string) => {
     if (!(await allowed())) return;
-    if (await saveSpecimens(sp => specimensWithBaseCodeAdded(sp, specimenId, code))) await charge(specimenId, undefined, code);
+    const ctx = await specimenReason('added', code);
+    if (ctx === null) return;
+    if (await saveSpecimens(sp => specimensWithBaseCodeAdded(sp, specimenId, code))) await charge(specimenId, undefined, code, ctx);
   };
   const onApplyMatrixCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
     if (!(await allowed())) return;
-    if (await saveSpecimens(sp => specimensWithMatrixCode(sp, specimenId, matrixBlockId, code, stainOrderId, 'applied'))) await charge(specimenId, undefined, code);
+    const ctx = await specimenReason('added', code);
+    if (ctx === null) return;
+    if (await saveSpecimens(sp => specimensWithMatrixCode(sp, specimenId, matrixBlockId, code, stainOrderId, 'applied'))) await charge(specimenId, undefined, code, ctx);
   };
   const onRejectMatrixCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
     if (!(await allowed())) return;

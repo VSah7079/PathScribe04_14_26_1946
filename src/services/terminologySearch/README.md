@@ -18,3 +18,9 @@ Live REST API client for clinical terminology search — SNOMED CT, ICD-10, ICD-
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 605
+
+`simulatedCodeLookup.ts`: a small seeded ICD-O and ICD-11 list used (labelled Simulated) when the live lookup fails, and `checkIcdO3Entry` for the Add Code window's manual ICD-O-3 entry (behaviour digit 0, 1, 2, 3, 6 or 9; topography C00 to C80).
+
+**Batch 617 (PS-488):** `nlmLookupRoute.ts` decides where the ICD-10-CM, ICD-11 and LOINC searches go: the API server's `/api/terminology/nlm/search-icd10|icd11|loinc` when an API address is configured (with the user's token), NLM directly only in the demonstration. Contract: `docs/architecture/TERMINOLOGY_PROXY_API.md`.

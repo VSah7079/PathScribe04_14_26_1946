@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/molecularOrders/
 
 **NEW (Sep 2026)** — Protocol-Driven Workflow Infrastructure story, Part 2b. Real outbound queue for two genuinely distinct events: `'order.molecular'` (a real assay order — HPV co-test, HPV reflex genotyping) and `'order.instrument'` (a processing order to the ThinPrep processor at cytology batch creation). Deliberately separate from `services/accessioning/`'s own accession outbound queue — a different real concern (ordering an assay / notifying an instrument) — but follows its exact same established shape.
@@ -69,3 +71,7 @@ The older outbound order queue (`IMolecularOrderOutboundQueueService`, HPV) is u
 ## Batch 562
 
 - `molecularQueueSelection.ts` (new): `keepSelectedInView`. Test: `molecularQueueSelection.test.ts`.
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the molecular order outbound queue) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/MOLECULAR_API.md`. The mocks are unchanged.

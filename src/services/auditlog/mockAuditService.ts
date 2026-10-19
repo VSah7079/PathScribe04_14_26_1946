@@ -1,6 +1,7 @@
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { getEffectiveScanStationId } from '../../utils/effectiveScanStation';
+import { newAuditId } from './auditIds';
 import type {
   AuditLog, ErrorLog,
   AuditFilterParams, ErrorFilterParams,
@@ -199,7 +200,7 @@ export const mockAuditService: IAuditService = {
     // (if anything) the caller passed — is what genuinely covers
     // every real audit event in this app, not just the three
     // consumers of one specific bridge file.
-    const newEntry: AuditLog = { ...entry, stationId: getEffectiveScanStationId(), id: 'al-' + Date.now(), timestamp: nowTs() };
+    const newEntry: AuditLog = { ...entry, stationId: getEffectiveScanStationId(), id: newAuditId('al'), timestamp: nowTs() };
     MOCK_AUDIT_LOGS = [newEntry, ...MOCK_AUDIT_LOGS];
     persistAudit(MOCK_AUDIT_LOGS);
     return ok({ ...newEntry });
@@ -212,7 +213,7 @@ export const mockAuditService: IAuditService = {
 
   async logError(entry) {
     await delay();
-    const newEntry: ErrorLog = { ...entry, id: 'el-' + Date.now(), timestamp: nowTs(), resolved: false };
+    const newEntry: ErrorLog = { ...entry, id: newAuditId('el'), timestamp: nowTs(), resolved: false };
     MOCK_ERROR_LOGS = [newEntry, ...MOCK_ERROR_LOGS];
     persistErrors(MOCK_ERROR_LOGS);
     return ok({ ...newEntry });

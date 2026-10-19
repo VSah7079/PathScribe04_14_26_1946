@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/voicemacro/
 
 Voice-triggered macro dictionary — distinct from the text-expansion macros/ folder (this is voice-command-triggered, not typed-shortcut-triggered).
@@ -30,3 +32,7 @@ Voice-triggered macro dictionary — distinct from the text-expansion macros/ fo
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 616 (part E) — server version
+
+API-server version of `VoiceMacro` (`httpVoiceMacroService.ts`, contract `MACROS_API.md`), picked by `voiceMacroServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

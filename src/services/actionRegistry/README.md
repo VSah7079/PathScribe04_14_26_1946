@@ -1,8 +1,20 @@
+## Batch 614 (part A)
+
+- **16 editor commands** (`EDITOR_*`, category SYNOPTIC): Bold, Italic, Underline, Bullets, Numbered List, Increase/Decrease Indent, Find in Text, Replace in Text, Select All Text, Insert Table, Insert Signature Line, Next/Previous Section, Show / Hide Ruler, Show / Hide Formatting Marks. Keys Ctrl+Alt+1-9, 0 and Ctrl+Alt with . , / [ ] ;. Handlers: `components/Editor/editorCommands.ts`, run by `PathScribeEditor` on the editor that last had the cursor.
+- **`permissionOnlyActions.ts`:** the 80 Role Dictionary ids with no voice phrase of their own, each `covered` (by a registry id that must exist and be active), `screen`, `needs-choice` or `risky`. The guard test checks it; nothing is left planned.
+- **`shortcutResolution.ts` additions:** `effectiveKey`, `matchesShortcut`, `shortcutFromPress` (Mac Option and AltGr: physical key when Option/AltGr changed the character, AltGr counts as Alt, `producedText` so a typed character in a field is not a hotkey), `keyFromCode`, `leaderDisplayOf`, `goToRouteOf`. `VoiceProvider` and the Actions tab recorder use them; `isLeaderPress` and the second key of the Go to prefix use them too.
+
+## Batch 602
+
+`shortcutResolution.ts`: `pickShortcutMatch` (screen first), `screenFirst` (voice), `leaderEntries`/`leaderKeyOf` (Alt+J prefix keys), `isGlobalCategory`. `SHORTCUT_MIGRATIONS` moves six old default hotkeys to new ones without touching customised keys. `findActionByTrigger` lists screen commands before always-on ones. Guard: `actionsCoverage.guard.test.ts`.
+
 # services/actionRegistry/
 
 Voice-command and keyboard-shortcut action catalog — the registry of every named system action (e.g. 'DELEGATE_FULL_TRANSFER') that voice commands and shortcuts can trigger.
 
 **Pattern:** Standard interface/mock/firestore pattern.
+
+**Batch 614 (hotkey triage):** seven `INTRAOP_*` commands (start new entry, touch prep performed/skip, frozen section cut, squash prep, cytology fluid, gross only) moved from `NAVIGATION` to `INTRAOP` (keys unchanged), removing 15 key clashes. `actionsCoverage.guard.test.ts` now holds `KNOWN_SCREEN_KEY_SHADOWS` (27) and `KNOWN_SCREEN_VOICE_SHADOWS` (25); the computed shadow lists must equal them, so a new clash fails. Product decisions are in `docs/product/HOTKEY_DECISIONS.md`; phrases awaiting native review in `docs/product/PHRASE_REVIEW_LIST.md`. Not done: Mac Option/AltGr key matching.
 
 **Real, honest gap, found while fixing the RFP-APLIS-2026-GLOBAL Multi-Language UI & Localization Framework's own voice-input BCP-47 bug (Sep 2026)**: this registry's own 191 real entries all carry English-only `voiceTriggers` phrases. The new French/German/Dutch/Korean voice *language* profiles (`constants/voiceProfiles.ts`) let the browser's speech engine correctly recognize spoken French/German/Dutch/Korean for free-text dictation, and `contexts/punctuationMaps.ts` covers spoken punctuation commands in those same four languages — but a navigation/action command spoken in one of these languages (e.g. "supprimer" for "delete") would not match any of this registry's own trigger phrases, since none had been translated.
 
@@ -33,6 +45,18 @@ genuinely unique internalKey" test (mock-internal only) still passes unchanged.
 Deliberately **not** touched here: a separate, larger, purely-internal
 duplication within `systemActions.ts` itself (16 more keys, unrelated to this
 file) — see `constants/README.md` for that disclosure.
+
+## Batch 601
+
+The 89 open/filter/move commands now have roles-list entries and this registry reads their keys from it. `actionsCoverage.guard.test.ts` also checks that every command has a hotkey and phrases in five languages and lists the known hotkey clashes (67).
+
+## Batch 600
+
+The 60 record-changing commands now have roles-list entries; this registry reads each key from the roles list (`ACTION_MAP[...]`). The guard now accepts only roles-list entries or view-only.
+
+## Batch 599: accounting against the roles list
+
+`actionsCoverage.guard.test.ts` joins this registry to `constants/systemActions.ts` by `internalKey`. Every registry action is either linked to a roles-list entry, listed as view-only (89), or listed as record-changing and still missing from the roles list (60). A new action must be one of these. See `docs/product/ACTIONS_COVERAGE.md`.
 
 ## Batch 378
 
@@ -141,3 +165,9 @@ Four buttons in category `CYTOLOGY` (voice phrases in all five languages): `CYTO
 ## Batch 543
 
 `parseActionRegistryImportCsv.ts`: each line is parsed as CSV (`parseCsvRows`): quoted fields, `""` inside them, and the apostrophe the export now adds before a formula-like cell. Before, every quote was stripped, so a label containing a quote was reported as a changed label.
+
+## Batch 609 (#179)
+
+`voiceTriggerPool.ts` (pure): which phrases a command is matched against. `findActionByTrigger(transcript, language, { englishFuzzyFallback })`: with the switch off (Configuration, System, Voice), a non-English profile fuzzy-matches only its own language's phrases and learned phrases; exact English phrases still match. Default on (unchanged). Tests: `voiceTriggerPool.test.ts`.
+
+- **Batch 617:** `permissionOnlyActions.ts` classifies the 16 roles-list entries added by Batches 613 to 616 (needs-choice or deliberate click); no voice phrase or hotkey added.

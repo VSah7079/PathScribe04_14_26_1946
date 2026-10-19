@@ -31,8 +31,9 @@ import type { CytologyAscusHpvReflexRow } from '@/services/cytology/resolveCytol
 import type { CytologyWorkloadTrackingRow } from '@/services/cytology/resolveCytologyWorkloadTrackingReport';
 import { cytologyTransmissionAuditCsvRows, type CytologyRegistryTransmissionAuditRow } from '@/services/cytology/resolveCytologyRegistryTransmissionAuditReport';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
-import type { CytologyHistologyCorrelationReport } from '@/services/cytology/resolveCytologyHistologyCorrelationReport';
+import { cytologyHistologyCorrelationCsvRows, type CytologyHistologyCorrelationReport } from '@/services/cytology/resolveCytologyHistologyCorrelationReport';
 import type { CytologyUnscreenedBacklogRow } from '@/services/cytology/resolveCytologyUnscreenedBacklogReport';
+import { ProficiencyPanelCard } from './ProficiencyPanelCard';
 import type { CytologyPrimaryHpvFailsafeAuditRow } from '@/services/cytology/resolveCytologyPrimaryHpvFailsafeAuditReport';
 import type { CytologyEuComplianceMatrixRow } from '@/services/cytology/resolveCytologyEuComplianceMatrixReport';
 import type { CytologyHpvPositivityMonitorRow } from '@/services/cytology/resolveCytologyHpvPositivityMonitorReport';
@@ -406,17 +407,6 @@ const CATEGORY_LABEL: Record<string, { textKey: string; color: string }> = {
   discordant_unspecified: { textKey: 'cytologyQaTab.category.discordantUnspecified', color: '#ef4444' },
 };
 
-// Fixed English text for the same correlation-category enum, used only
-// for the CSV export column value below — exported/persisted data
-// stays English regardless of the UI's active locale, same convention
-// as every other CSV/XLSX export in this sweep.
-const CATEGORY_LABEL_EXPORT_TEXT: Record<string, string> = {
-  concordant: 'Concordant',
-  minor_discrepancy: 'Minor Discrepancy',
-  major_discrepancy: 'Major Discrepancy',
-  discordant_unspecified: 'Discordant (Unspecified)',
-};
-
 const HistologyCorrelationTable: React.FC<{
   report: CytologyHistologyCorrelationReport | null;
   onDownload: () => void;
@@ -615,6 +605,8 @@ const PrimaryHpvFailsafeAuditTable: React.FC<{ rows: CytologyPrimaryHpvFailsafeA
               <th className="ps-conf-th">{t('cytologyQaTab.ukFailsafeTable.hpvPrimaryPositives')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.ukFailsafeTable.cytologyTriagePerformed')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.ukFailsafeTable.inadequateCytologyRate')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.ukFailsafeTable.colposcopyReferrals')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.ukFailsafeTable.nonResponded')}</th>
             </tr>
           </thead>
           <tbody>
@@ -624,9 +616,11 @@ const PrimaryHpvFailsafeAuditTable: React.FC<{ rows: CytologyPrimaryHpvFailsafeA
                 <td className="ps-conf-td">{r.totalHpvPrimaryPositives}</td>
                 <td className="ps-conf-td">{r.cytologyTriagePerformedCount}</td>
                 <td className="ps-conf-td">{pct(r.inadequateCytologyRatePercent)}</td>
+                <td className="ps-conf-td">{r.failsafeDirectColposcopyReferrals}</td>
+                <td className="ps-conf-td">{r.nonRespondedFailsafeAlerts}</td>
               </tr>
             ))}
-            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={4}>{t('cytologyQaTab.ukFailsafeTable.noDataYet')}</td></tr>)}
+            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={6}>{t('cytologyQaTab.ukFailsafeTable.noDataYet')}</td></tr>)}
           </tbody>
         </table>
       </div>
@@ -653,6 +647,10 @@ const EuComplianceMatrixTable: React.FC<{ rows: CytologyEuComplianceMatrixRow[] 
               <th className="ps-conf-th">{t('cytologyQaTab.euComplianceTable.hpvPrimary')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.euComplianceTable.hpvCoTest')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.euComplianceTable.internalAuditNonConformities')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.euComplianceTable.registryIds')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.euComplianceTable.thinPrep')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.euComplianceTable.surePath')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.euComplianceTable.intervalAdherence')}</th>
             </tr>
           </thead>
           <tbody>
@@ -663,9 +661,13 @@ const EuComplianceMatrixTable: React.FC<{ rows: CytologyEuComplianceMatrixRow[] 
                 <td className="ps-conf-td">{r.hpvPrimaryCount}</td>
                 <td className="ps-conf-td">{r.hpvCoTestCount}</td>
                 <td className="ps-conf-td">{r.internalAuditNonConformityCount}</td>
+                <td className="ps-conf-td">{r.nationalRegistryIds.length > 0 ? r.nationalRegistryIds.join(', ') : '—'}</td>
+                <td className="ps-conf-td">{r.thinPrepCount}</td>
+                <td className="ps-conf-td">{r.surePathCount}</td>
+                <td className="ps-conf-td">{r.intervalAdherencePercent === undefined ? '—' : pct(r.intervalAdherencePercent)}</td>
               </tr>
             ))}
-            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={5}>{t('cytologyQaTab.euComplianceTable.noDataYet')}</td></tr>)}
+            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={9}>{t('cytologyQaTab.euComplianceTable.noDataYet')}</td></tr>)}
           </tbody>
         </table>
       </div>
@@ -698,6 +700,7 @@ const HpvPositivityMonitorTable: React.FC<{ rows: CytologyHpvPositivityMonitorRo
             <tr>
               <th className="ps-conf-th">{t('cytologyQaTab.hpvPositivityTable.testingSite')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.hpvPositivityTable.indication')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.hpvPositivityTable.assay')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.hpvPositivityTable.totalTested')}</th>
               <th className="ps-conf-th">HR-HPV+ %</th>
               <th className="ps-conf-th">HPV16 %</th>
@@ -711,6 +714,7 @@ const HpvPositivityMonitorTable: React.FC<{ rows: CytologyHpvPositivityMonitorRo
               <tr key={i} className="ps-conf-tr">
                 <td className="ps-conf-td">{r.testingSite}</td>
                 <td className="ps-conf-td">{t(INDICATION_LABEL_KEY[r.indicationType])}</td>
+                <td className="ps-conf-td">{r.testAssayName ?? '—'}</td>
                 <td className="ps-conf-td">{r.totalHpvTested}</td>
                 <td className="ps-conf-td">{pct(r.hrHpvPositivityPercent)}</td>
                 <td className="ps-conf-td">{pct(r.hpv16PositivityPercent)}</td>
@@ -719,7 +723,7 @@ const HpvPositivityMonitorTable: React.FC<{ rows: CytologyHpvPositivityMonitorRo
                 <td className="ps-conf-td">{percentagePoints(r.positivityVarianceFromAggregateMean)}</td>
               </tr>
             ))}
-            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={8}>{t('cytologyQaTab.hpvPositivityTable.noDataYet')}</td></tr>)}
+            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={9}>{t('cytologyQaTab.hpvPositivityTable.noDataYet')}</td></tr>)}
           </tbody>
         </table>
       </div>
@@ -865,6 +869,7 @@ const ApacProficiencyTestTable: React.FC<{ report: CytologyApacProficiencyTestRe
                   <span className={`ps-qa-badge ${r.outcome === 'satisfactory' ? 'ps-qa-badge--success' : 'ps-qa-badge--danger'}`}>
                     {r.outcome === 'satisfactory' ? t('cytologyQaTab.apacPtTable.satisfactoryOutcome') : t('cytologyQaTab.apacPtTable.unsatisfactoryOutcome')}
                   </span>
+                  {r.simulated && <span className="ps-qa-badge ps-qa-badge--warning">{t('ptPanel.simulatedBadge')}</span>}
                 </td>
                 <td className="ps-conf-td">{r.scoreDetail ?? '—'}</td>
                 <td className="ps-conf-td">
@@ -972,6 +977,8 @@ export const CytologyQaTab: React.FC = () => {
   const [histologyCorrelationReport, setHistologyCorrelationReport] = useState<CytologyHistologyCorrelationReport | null>(null);
   const [showHistologyCorrelationPrint, setShowHistologyCorrelationPrint] = useState(false);
   const [unscreenedBacklogReport, setUnscreenedBacklogReport] = useState<CytologyUnscreenedBacklogRow[]>([]);
+  // Batch 608 (#77): bumps when a simulated PT result is applied, so the log reloads.
+  const [ptNonce, setPtNonce] = useState(0);
   const [ukFailsafeReport, setUkFailsafeReport] = useState<CytologyPrimaryHpvFailsafeAuditRow[]>([]);
   const [euComplianceReport, setEuComplianceReport] = useState<CytologyEuComplianceMatrixRow[]>([]);
   const [hpvPositivityReport, setHpvPositivityReport] = useState<CytologyHpvPositivityMonitorRow[]>([]);
@@ -1068,7 +1075,7 @@ export const CytologyQaTab: React.FC = () => {
     })();
 
     return () => { cancelled = true; };
-  }, [activeReport, scope, transmissionRegistryId, facilityTimezone]);
+  }, [activeReport, scope, transmissionRegistryId, facilityTimezone, ptNonce]);
 
   const { t } = useTranslation();
 
@@ -1142,14 +1149,7 @@ export const CytologyQaTab: React.FC = () => {
               exportContext={qaScopeContext(scope)}
               onDownload={() => {
                 if (!histologyCorrelationReport) return;
-                const rows = histologyCorrelationReport.rows.map(r => ({
-                  'Patient MRN': r.patientMrn ?? '', 'Cyto Accession': r.cytoAccessionId ?? '',
-                  'Cyto Date': r.cytoDate ? new Date(r.cytoDate).toLocaleDateString() : '',
-                  'Cyto Diagnosis': r.cytoDiagnosis, 'Hist Accession': r.histAccessionId ?? '',
-                  'Hist Date': r.histDate ? new Date(r.histDate).toLocaleDateString() : '',
-                  'Hist Diagnosis': r.histDiagnosis, 'Days to Biopsy': r.daysToBiopsy ?? '',
-                  'Correlation Category': CATEGORY_LABEL_EXPORT_TEXT[r.correlationCategory],
-                }));
+                const rows = cytologyHistologyCorrelationCsvRows(histologyCorrelationReport.rows);
                 void exportQaReportRows('qa:cytology-histology-correlation:export', rows, `cyto-histo-correlation-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
               }}
               onPrint={() => { void authorizationService.enforce('qa:cytology-histology-correlation:export', qaScopeContext(scope)).then(d => { if (d.allowed) setShowHistologyCorrelationPrint(true); }); }}
@@ -1161,7 +1161,7 @@ export const CytologyQaTab: React.FC = () => {
           {activeReport === 'hpv-positivity' && <HpvPositivityMonitorTable rows={hpvPositivityReport} />}
           {activeReport === 'mol-qc-failure' && <MolecularQcFailureRateTable rows={molQcFailureReport} />}
           {activeReport === 'mol-lot-trend' && <MolecularLotToLotTrendTable rows={molLotTrendReport} />}
-          {activeReport === 'apac-pt' && <ApacProficiencyTestTable report={apacPtReport} />}
+          {activeReport === 'apac-pt' && <><ProficiencyPanelCard onChanged={() => setPtNonce(n => n + 1)} /><ApacProficiencyTestTable report={apacPtReport} /></>}
         </>
       )}
       {showHistologyCorrelationPrint && histologyCorrelationReport && (

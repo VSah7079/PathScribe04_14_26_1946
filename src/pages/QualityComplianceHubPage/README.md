@@ -12,3 +12,7 @@ The Registry Exceptions tile shows the live count of submissions needing attenti
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 610 (part A) — Autopsy Dashboards tile
+
+New tile for `/autopsy-dashboards`, shown with `screen:autopsy-dashboards:open` (Admin, Lab Director, QA Reviewer).

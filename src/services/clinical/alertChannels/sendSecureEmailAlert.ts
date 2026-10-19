@@ -23,6 +23,7 @@
 // authentication — never here.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { recordSimulatedEmail } from '@/services/communications/simulatedMailOutbox';
 import type { AlertChannelDispatchOutcome, CriticalAlertPayload } from '@/types/clinical/CriticalAlertDispatch';
 
 const DISPATCHED_LOG: { payload: CriticalAlertPayload; to: string }[] = [];
@@ -51,6 +52,11 @@ export async function sendSecureEmailAlert(payload: CriticalAlertPayload): Promi
   DISPATCHED_LOG.push({ payload, to });
   const body = buildEmailBody(payload.referenceUrl);
   const detail = `Secure email to ${to}: "PathScribe Alert" — "${body}"`;
+  // Batch 604: the e-mail leg is kept in the labelled Simulated mail outbox (zero-PHI body, same as a real send).
+  recordSimulatedEmail({
+    to: [to], subject: 'PathScribe Alert', bodyText: body, bodyHtml: `<p>${body}</p>`,
+    metadata: { source: 'critical-alert', channel: 'secure_email' },
+  }, payload.recipient.physicianName);
   console.info(
     `[PathScribe] Automated critical-alert dispatch — secure email STUB, no real vendor integration wired yet (PS-136 still open). Would send: ${detail}`,
   );

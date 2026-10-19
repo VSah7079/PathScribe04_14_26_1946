@@ -26,6 +26,9 @@ import React, { useState, useEffect } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import '../../pathscribe.css';
+import RegistryAnswerSimulatorPanel from '@/components/MockInterfaceEngine/RegistryAnswerSimulatorPanel';
+import SimulatedEngineLogPanel from '@/components/MockInterfaceEngine/SimulatedEngineLogPanel';
+import InboundSimulatorPanel from '@/components/MockInterfaceEngine/InboundSimulatorPanel';
 import { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings, type MockInterfaceEngineMode, type MockInterfaceEngineSettings } from '@/services';
 
 
@@ -153,6 +156,9 @@ const MockInterfaceEnginePage: React.FC = () => {
           </div>
         )}
       </div>
+      <InboundSimulatorPanel />
+      <SimulatedEngineLogPanel />
+      <RegistryAnswerSimulatorPanel />
     </div>
   );
 };

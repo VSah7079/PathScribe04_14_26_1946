@@ -25,3 +25,7 @@ Rules about a case's specimens that screens shouldn't decide themselves. Specime
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the services layer.*
+
+## Batch 605
+
+`simulateSpecimenLisAck.ts` writes a pending_sync specimen back to the LIS in the demo (Sent or Rejected, with a reason) so the sync badge settles.

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/printRouting/
 
 **Real, per PS-278 ("Print Destination Routing Engine — multi-criteria
@@ -170,3 +172,9 @@ Batch 553 (PS-539 phase 2d; `SITE_AGENT_API.md` §3): a rule's `printDestination
   - another site's agent printer on a facility-tier rule (`routingRuleDestinationProblem`);
   - a site's printer without `config:print-routing:manage` at that site.
 - **Tests:** `printDestinationRules.test.ts`, `mockPrintRoutingRuleService.test.ts`.
+
+- **Batch 612:** `resolveRealPrintRoutingContext.ts` defaults `workstationId` to the registered workstation this browser is bound to (setting `pathscribe_registered_workstation_id`), only while that workstation is active. An explicit override still wins.
+
+## Batch 616 (part E) — server version
+
+API-server version of `PrintRoutingRule` (`httpPrintRoutingRuleService.ts`, contract `ROUTING_API.md`), picked by `printRoutingRuleServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

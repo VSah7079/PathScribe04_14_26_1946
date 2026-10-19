@@ -26,8 +26,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { revisionAllowedNow, REVISION_IN_RELEASE_DELAY } from '../reportRelease/revisionDuringDelay';
-import { mockCytologyReviewRecordService } from './mockCytologyReviewRecordService';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
+import { cytologyReviewRecordService } from './cytologyReviewRecordServiceInstance';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { resolveCytologyReportContent } from './resolveCytologyReportContent';
 import { publishCytologyRevision } from './publishCytologyRevision';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
@@ -99,7 +99,7 @@ export async function releaseCytologyCorrection(
   // real record for this specimen; the most recent by signedAt is the
   // specimen's own current, real result — the one this correction
   // actually replaces.
-  const priorRecordsRes = await mockCytologySignOutRecordService.getBySpecimenId(specimenId);
+  const priorRecordsRes = await cytologySignOutRecordService.getBySpecimenId(specimenId);
   if (!priorRecordsRes.ok || priorRecordsRes.data.length === 0) {
     return { ok: false, error: 'No prior sign-out exists for this specimen — nothing to correct.' };
   }
@@ -109,7 +109,7 @@ export async function releaseCytologyCorrection(
   // real, verbatim primaryInterpretation, never diffed or reworded.
   const previouslyReportedAs = priorRecord.reportContent.primaryInterpretation;
 
-  const reviewRes = await mockCytologyReviewRecordService.create({
+  const reviewRes = await cytologyReviewRecordService.create({
     specimenId, caseId, role: 'pathologist_review',
     ...correctedFindings,
     recordedBy: { userId: correctingUser.id, userName: correctingUser.name },
@@ -131,7 +131,7 @@ export async function releaseCytologyCorrection(
   const { language, locale } = prior.language ? { language: prior.language, locale: prior.locale } : await resolveCytologyReportLocale(order.facilityId);
   const reportContent = { ...resolvedContent, language, locale, revision: { kind: 'correction' as const, reason: revisionReason, previouslyReportedAs } };
 
-  const createRes = await mockCytologySignOutRecordService.create({
+  const createRes = await cytologySignOutRecordService.create({
     caseId, specimenId, reviewRecordId: newReview.id, reportContent,
     signedBy: { userId: correctingUser.id, userName: correctingUser.name, isPathologist: correctingUser.isPathologist },
     amendsRecordId: priorRecord.id,
@@ -145,8 +145,8 @@ export async function releaseCytologyCorrection(
   // CAPA for the QA lead to confirm or dismiss. Linked to a discordance
   // already recommended for the case (PS-148). Never blocks the release.
   try {
-    const { mockCapaRecommendationService } = await import('../quality/mockCapaRecommendationService');
-    await mockCapaRecommendationService.recommend({
+    const { capaRecommendationService } = await import('../quality/capaRecommendationServiceInstance');
+    await capaRecommendationService.recommend({
       caseId, specimenId, source: 'clinical-correction', deficiencyTypeId: 'def-clinically-significant-revision',
       sourceRecordId: newRecord.id, summary: 'Released a cytology diagnosis correction (Correct diagnosis).', createdBy: correctingUser.id,
     });

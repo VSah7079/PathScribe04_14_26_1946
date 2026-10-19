@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 618 \u2014 technical component facility (PS-336), partial nephrectomy drawing (PS-492), file size limit (PS-497), case material server version (PS-482)",
+    "description": "Vitest, 2026-10-19: full suite 1627 files (1622 passed, 4 skipped, 1 failed); 13,751 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Not run: server side."
+  },
+  "tests": [
+    {
+      "testKey": "PS-801",
+      "start": "2026-10-19T12:00:00Z",
+      "finish": "2026-10-19T15:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/accessioning/resolveTechnicalFacilityOffer.test.ts\nPASSED: src/services/billing/resolveChargeFacilities.test.ts\nPASSED: src/services/billing/jsonWebhookBuilder.test.ts\nPASSED: src/services/facilities/resolveSplitReportBranding.test.ts\nPASSED: src/services/facilities/technicalFacilityAudit.test.ts\nPASSED: src/pages/AccessionPage/AccessionTechnicalFacilityField.test.tsx\nPASSED: src/pages/SynopticReportPage/modals/TechnicalComponentFacilityField.test.tsx\nPASSED: src/services/organMapping/renalMap.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts\nPASSED: src/services/material/httpCaseMaterialService.test.ts"
+    }
+  ]
+}

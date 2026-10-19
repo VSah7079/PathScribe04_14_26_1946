@@ -18,9 +18,14 @@ export interface ExportApiError {
 
 export type ExportApiResult<T> = { ok: true; data: T } | { ok: false; error: ExportApiError };
 
+/** Batch 611 (#194): how the browser builds the file today. Only the simulated export server uses it; the real one builds from the request's parameters. */
+export interface ExportLocalBuild {
+  build: () => Promise<unknown> | unknown;
+}
+
 export interface IExportApi {
-  /** `POST /api/exports`: 202 with the queued job. */
-  request(req: ExportRequest): Promise<ExportApiResult<ExportJob>>;
+  /** `POST /api/exports`: 202 with the queued job. `local` is for the simulated server only; the HTTP client ignores it. */
+  request(req: ExportRequest, local?: ExportLocalBuild): Promise<ExportApiResult<ExportJob>>;
   /** `GET /api/exports/{id}`. */
   get(exportId: string): Promise<ExportApiResult<ExportJob>>;
   /** `GET /api/exports`: the requester's exports, newest first. */

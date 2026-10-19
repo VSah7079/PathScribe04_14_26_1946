@@ -25,3 +25,15 @@ Batch 502 (PS-472): what happens to a crash in the browser.
 ## Batch 527 (PS-486): a lean first load
 
 `clientErrorReporterInstance.ts` loads the services when it logs an error, instead of at start-up. Before, this module alone pulled the whole services barrel into the sign-in page.
+
+## Batch 589 — One crash, one log entry (PS-472)
+
+Window errors wait `WINDOW_ERROR_DELAY_MS` (500 ms) for a boundary to report the same crash first, and the match uses the message without an "Uncaught Error:" prefix (`shadowKeyOf`). A development build no longer logs a route or panel crash twice.
+
+## Batch 590 — External monitoring (PS-469)
+
+- `monitoringConfig.ts`: monitoring is on only with a valid DSN **and** an environment name from `config.json`; otherwise off (no default label).
+- `sentrySink.ts`: Sentry as one more sink. It re-checks each report's scrubbed shape and drops anything else; Sentry's own collectors are off; `beforeSend` removes request, user, extra, contexts and breadcrumbs.
+- `errorMonitoring.ts`: `monitoringSink` in the reporter's list does nothing until `startErrorMonitoring()` (called from `startApp.tsx`) loads the SDK as a separate chunk; reports arriving meanwhile are held (25 at most).
+- **Scrubber fix:** `scrubStack` no longer treats a message line containing an `@` (an e-mail address) as a stack frame; a frame must end in `file:line:col`.
+- See `docs/architecture/ERROR_MONITORING.md`.

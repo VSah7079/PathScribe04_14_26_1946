@@ -29,3 +29,7 @@ Batch 345 (PS-60 follow-up). **The signature records: one per signature applied 
 ## Batch 533
 
 `ISignatureRecordService.ts`: link kind `cytology-preliminary` (the signature on an urgent cytology preliminary report, when the laboratory requires it).
+
+## Batch 617 (part C): server versions (PS-514)
+
+The signature record service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/SIGNATURES_SMART_CAPTURE_API.md`. The mocks are unchanged.

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 619 \u2014 delivery schedules, Outbound Queue screen, billing release rules (PS-800)",
+    "description": "Vitest, 2026-10-19: full suite 1627 files (1622 passed, 4 skipped, 1 failed); 13,751 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Not run: server side."
+  },
+  "tests": [
+    {
+      "testKey": "PS-802",
+      "start": "2026-10-19T12:00:00Z",
+      "finish": "2026-10-19T15:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/deliverySchedules/httpDeliveryScheduleService.test.ts\nPASSED: src/services/deliverySchedules/mockDeliveryScheduleService.test.ts\nPASSED: src/services/deliverySchedules/deliverySchedule.test.ts\nPASSED: src/components/Config/System/DeliverySchedulesSection.test.tsx\nPASSED: src/components/Config/System/deliveryScheduleForm.test.ts\nPASSED: src/pages/OutboundQueuePage/OutboundQueuePage.test.tsx\nPASSED: src/services/outboundQueue/billingFeedAdapter.test.ts\nPASSED: src/services/outboundQueue/httpOutboundQueueService.test.ts\nPASSED: src/services/outboundQueue/outboundQueueService.test.ts\nPASSED: src/services/outboundQueue/outboundQueueView.test.ts\nPASSED: src/services/outboundQueue/registryFeedAdapter.test.ts\nPASSED: src/services/outboundQueue/scheduleBinding.test.ts\nPASSED: src/services/interfaceDispatch/outboundQueueActions.test.ts\nPASSED: src/services/authorization/authorization.test.ts\nPASSED: src/services/screens/screenAccess.test.ts\nPASSED: src/services/billingRelease/billingRelease.test.ts\nPASSED: src/services/billingRelease/mockBillingReleaseService.test.ts\nPASSED: src/services/billingRelease/httpBillingReleaseService.test.ts\nPASSED: src/services/billingRelease/billingReleaseFeed.test.ts\nPASSED: src/components/Config/System/BillingReleaseSection.test.tsx\nPASSED: src/components/Config/System/billingReleaseForm.test.ts"
+    }
+  ]
+}

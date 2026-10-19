@@ -59,6 +59,7 @@ import { InspectionModeTab } from '@/components/QualityAssurance/InspectionModeT
 import { QaActivityBoardTab } from '@/components/QualityAssurance/QaActivityBoardTab';
 import { CountersignTurnaroundTab } from '@/components/QualityAssurance/CountersignTurnaroundTab';
 import { AccessRequestResponseTab } from '@/components/QualityAssurance/AccessRequestResponseTab';
+import { AiDiscordanceTab } from '@/components/QualityAssurance/AiDiscordanceTab';
 import { FppeTrackingTab } from '@/components/QualityAssurance/FppeTrackingTab';
 import { DriftCorrectionTab } from '@/components/QualityAssurance/DriftCorrectionTab';
 import { CapaRecommendationsTab } from '@/components/QualityAssurance/CapaRecommendationsTab';
@@ -105,7 +106,7 @@ type Pillar = 'operations' | 'financials' | 'capa' | 'cytology' | 'enterprise' |
 // effectiveness check), just previously shown alongside 'open' items
 // in the same tab. This tab split is what changed, not the lifecycle
 // itself.
-type Tab = 'case-specimen' | 'capa-recommended' | 'trend-reviews' | 'escalated' | 'closed' | 'reviews' | 'intraop-linkage' | 'discordance' | 'countersign' | 'fppe' | 'drift-correction' | 'patient-match-review' | 'patient-management' | 'access-requests' | 'financials-open' | 'financials-resolved' | 'financials-code-review' | 'financials-charge-approval' | 'cytology-qa' | 'enterprise-rollup' | 'qa-dashboard' | 'inspection' | 'follow-up' | 'activities';
+type Tab = 'case-specimen' | 'capa-recommended' | 'trend-reviews' | 'escalated' | 'closed' | 'reviews' | 'intraop-linkage' | 'discordance' | 'countersign' | 'fppe' | 'drift-correction' | 'patient-match-review' | 'patient-management' | 'access-requests' | 'ai-discordance' | 'financials-open' | 'financials-resolved' | 'financials-code-review' | 'financials-charge-approval' | 'cytology-qa' | 'enterprise-rollup' | 'qa-dashboard' | 'inspection' | 'follow-up' | 'activities';
 
 // Real, per direct guidance on the QA reorganization: which tabs
 // belong to which pillar. Operations = the raw deficiency list plus
@@ -120,7 +121,7 @@ type Tab = 'case-specimen' | 'capa-recommended' | 'trend-reviews' | 'escalated' 
 // empty tabs for them would misrepresent what this pillar actually does.
 const PILLAR_TABS: Record<Pillar, Tab[]> = {
   // Batch 454: expected follow-ups (cytology and surgical) that haven't arrived.
-  operations: ['case-specimen', 'follow-up', 'intraop-linkage', 'discordance', 'countersign', 'fppe', 'drift-correction', 'patient-match-review', 'patient-management', 'access-requests'],
+  operations: ['case-specimen', 'follow-up', 'intraop-linkage', 'discordance', 'countersign', 'fppe', 'drift-correction', 'patient-match-review', 'patient-management', 'access-requests', 'ai-discordance'],
   // Batch 438 (PS-144–148): recommendations wait here for a QA lead.
   // Batch 442 (PS-147): discordance patterns, shown only to holders of qa:pathologist-trend:view.
   capa: ['capa-recommended', 'trend-reviews', 'escalated', 'closed', 'reviews'],
@@ -504,6 +505,8 @@ const DEFICIENCY_TYPE_LABEL_KEY: Record<BillingDeficiencyType, string> = {
   // Batch 433
   MISSING_CHARGE: 'qualityAssurance.deficiencyType.missingCharge',
   POST_SIGNOUT_CORRECTION: 'qualityAssurance.deficiencyType.postSignoutCorrection',
+  // Batch 588
+  BLOCK_DELETED: 'qualityAssurance.deficiencyType.blockDeleted',
 };
 
 const MISSING_CHARGE_CHOICE = '__missing__';
@@ -1120,6 +1123,7 @@ const QualityAssurancePage: React.FC = () => {
           { key: 'patient-match-review', label: t('qualityAssurance.tiles.patientMatchReview'), count: undefined, color: '#53E2EA', sublabel: undefined },
           { key: 'patient-management', label: t('qualityAssurance.tiles.patientManagement'), count: undefined, color: '#53E2EA', sublabel: undefined },
           { key: 'access-requests', label: t('qualityAssurance.tiles.accessRequests'), count: undefined, color: '#94a3b8', sublabel: undefined },
+          { key: 'ai-discordance', label: t('qualityAssurance.tiles.aiDiscordance'), count: undefined, color: '#0EA5E9', sublabel: undefined },
           { key: 'financials-open', label: t('qualityAssurance.tiles.billingDeficiencies'), count: billingOpenInScope.length, color: '#EF4444', sublabel: undefined },
           { key: 'financials-resolved', label: t('qualityAssurance.tiles.resolved'), count: billingResolvedInScope.length, color: '#10B981', sublabel: undefined },
           { key: 'financials-code-review', label: t('qualityAssurance.tiles.codeReviewPool'), count: codeReviewPending.length, color: '#8B5CF6', sublabel: undefined },
@@ -1311,6 +1315,7 @@ const QualityAssurancePage: React.FC = () => {
       {tab === 'patient-match-review' && <PatientMatchReviewSection />}
       {tab === 'patient-management' && <PatientManagementSection />}
       {tab === 'access-requests' && <AccessRequestResponseTab />}
+      {tab === 'ai-discordance' && <AiDiscordanceTab />}
 
       {tab === 'closed' && (
         <div className="ps-defic-review-banner">

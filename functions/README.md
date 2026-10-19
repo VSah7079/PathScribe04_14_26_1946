@@ -1,3 +1,7 @@
+## Batch 613 (part B) — intraoperative diagnosis and related cases
+
+`render_report` now draws two blocks sent in the payload: `intraoperativeDiagnosis` (after the case header and any revision banner, before the body) and `relatedCases` (after the body and maps, before the confidentiality line), in the PDF and in the text. Nothing is drawn when they are absent. Related cases are the snapshots the signer saw (`src/services/relatedCases/relatedCaseTypes.ts`) printed as recorded. Ten new labels (`intraopDiagnosis`, `relatedCasesTitle`, `relatedCasesNotice`, `relatedCaseReleased`, `relatedCaseSpecimens`, `relatedCaseDiagnosis`, `relatedCaseSignedBy`, `relatedCaseOrdering`, `relatedCaseCopyTo`, `relatedCaseClient`) are in `DEFAULT_LABELS` and in `surgicalReportPdf`. Checks in `test_main.py`. Redeploy `functions/`.
+
 # functions
 
 The Python cloud functions. Run the tests with `python test_main.py`.
@@ -12,6 +16,21 @@ The Python cloud functions. Run the tests with `python test_main.py`.
 - `receive_interface_message`: the stand-in receiving end for PathScribe's outbound interface messages.
 
 Its rendering logic mirrors the TypeScript report renderer by hand (see the header of `main.py`). Its English labels must match `surgicalReportPdf` in `src/i18n/locales/en.json`, which `surgicalReportLabels.test.ts` checks.
+
+## Batch 612 (part C) — font sizes in points
+
+`report_layout.py`: a style with `units: "pt"` (or a request with `fontUnits: "pt"`) is in points, printed at the number given with an 8 pt floor; a style with none or `legacy_px` is pixels, as before (0.75 pt a pixel, 7 pt floor). A field label's own size keeps printing as points (8 pt floor in a points template). `main.py` and `cytology_report.py` use it. Python tests: `test_font_units_rules`, `test_surgical_pdf_points_templates`. **Redeploy `functions/`.**
+
+## Batch 609 (part A): page setup, Document Style, header and footer parts
+
+`render_report` and the cytology template now read `pageSetup` (size A4/Letter/Legal/A3/A5, orientation, margins) and `documentStyle` (header, body, footer: font family, size in px, weight, underline, case) from the request; before this they always drew A4 portrait with fixed fonts. The shared rules are in `report_layout.py`:
+
+- margins never below 12.7 mm; font size in px, 0.75 pt each, floored at 7 pt;
+- Arial, Helvetica, Calibri, Verdana print as Helvetica; Times New Roman, Georgia as Times; Courier New as Courier; Korean stays Pretendard; the cytology template stays in embedded Liberation Sans;
+- the header parts replace the institution block (first page only) and the footer parts the confidentiality line (every page, above the barcode band) when they draw something; footer parts have no page numbers;
+- a request without `pageSetup` renders exactly as before.
+
+Tests: new functions in `test_main.py` (201 checks pass). **Deploy:** redeploy this folder (`report_layout.py` is new).
 
 ## Batch 427
 
@@ -80,3 +99,7 @@ Each PDF carries `pathscribe-template:cytology` in its Keywords; the browser ref
 **Deploy:** this folder must be redeployed (`firebase deploy --only functions`) before the Batch 539 zip is used; until then every cytology preview and release fails with "the report renderer has not been updated" and releases are held for retry. No new Python dependency.
 
 Tests: 7 new functions in `test_main.py` (148 checks pass): the lines drawn, byte-identical output, embedded fonts and margins, continuation lines and per-document page numbering, cover and documents, the addendum page, watermark, an unencodable barcode, the logo, line breaks, mixed languages, and the HTTP entry point.
+
+## Batch 618 (PS-336)
+
+`render_report` reads `technicalBranding` (`facilityName`, `address`, `city`, `state`, `zip`) and prints one line under the case header, "Technical component performed at: ...", in the report language (`labels.technicalComponentAt`). Director and CLIA number are never drawn. The browser sends the block on signed-out reports only. Tested in `test_main.py` (239 checks).

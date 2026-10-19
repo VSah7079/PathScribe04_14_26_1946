@@ -95,3 +95,7 @@ Readiness review §9 items 1 and 7. With an API server, the app reads `GET {VITE
 | `/api/config` from the API server, read after config.json (§5a) | **Done, Batch 557** (browser side; the endpoint is phase 2e) |
 | The database and blob storage region shown to administrators (readiness review §9 item 7) | **Done, Batch 557** (browser side, from `/api/config` `hosting`) |
 | Preloading the app's code while config.json is read | **Done, Batch 549** |
+
+## Batch 590
+
+Added `VITE_ERROR_MONITORING_DSN` and `VITE_ERROR_MONITORING_ENV` (PS-469). See `ERROR_MONITORING.md`.

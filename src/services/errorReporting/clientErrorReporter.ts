@@ -39,6 +39,15 @@ export interface ClientErrorReporterDeps {
 const DEDUPE_MS = 60_000;
 const MAX_PER_LOAD = 25;
 const RENDER_SHADOW_MS = 5_000;
+/** How long a window error waits for a boundary to report the same crash first. */
+export const WINDOW_ERROR_DELAY_MS = 500;
+
+/** The same crash seen by a boundary and by the window: development builds report it again as
+ *  "Uncaught Error: <message>", possibly with another error name or route (PS-472), so the match
+ *  uses the message alone, without those prefixes. */
+export function shadowKeyOf(message: string): string {
+  return message.replace(/^Uncaught\s+/i, '').replace(/^[A-Za-z]*Error:\s*/, '').trim();
+}
 
 export function createClientErrorReporter(deps: ClientErrorReporterDeps) {
   const lastSeen = new Map<string, number>();
@@ -56,7 +65,7 @@ export function createClientErrorReporter(deps: ClientErrorReporterDeps) {
       }
       const scrubbed = scrubClientError(error, deps.pathname());
       const key = `${source}|${boundary ?? ''}|${scrubbed.name}|${scrubbed.message}|${scrubbed.route}`;
-      const what = `${scrubbed.name}|${scrubbed.message}|${scrubbed.route}`;
+      const what = shadowKeyOf(scrubbed.message);
       const now = deps.now();
       // A boundary already reported this crash (React in development re-throws a
       // caught render error to the window, as a new error object on the retry).
@@ -106,8 +115,10 @@ export function errorLogEntryFor(r: ClientErrorReport) {
  * Returns a function that removes them.
  */
 export function installGlobalErrorHandlers(win: Pick<Window, 'addEventListener' | 'removeEventListener'>, reporter: ClientErrorReporter): () => void {
-  // Deferred a moment, so a boundary that catches the same render error reports it first.
-  const later = (f: () => void) => { setTimeout(f, 0); };
+  // Deferred, so a boundary that catches the same render error reports it first. In development React
+  // sends the window the error before the boundary's own report, and the boundary's retry can run in a
+  // later task, so an immediate hand-off (0 ms) logged one crash twice (PS-472).
+  const later = (f: () => void) => { setTimeout(f, WINDOW_ERROR_DELAY_MS); };
   const onError = (e: ErrorEvent) => { const err = e.error ?? e.message; later(() => reporter.report(err, 'window-error')); };
   const onRejection = (e: PromiseRejectionEvent) => { const reason = e.reason; later(() => reporter.report(reason, 'unhandled-rejection')); };
   win.addEventListener('error', onError as EventListener);

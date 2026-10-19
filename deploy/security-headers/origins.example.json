@@ -1,5 +1,5 @@
 {
-  "_comment": "Batch 503 (PS-474). Copy to origins.json, fill in this deployment's addresses, then run: node scripts/generate-security-headers.mjs deploy/security-headers/origins.json <outDir>. connect: the API server, the identity provider (OIDC authority), the AI/terminology proxy, the report rendering service. hub: the SignalR live-updates hub (gets a wss:// origin too). formAction: the identity provider, if it posts back. frame/img: anything embedded from another origin (a slide viewer, an image server). https: false only for an internal http deployment (drops HSTS and upgrade-insecure-requests). Full URLs are fine; paths are ignored.",
+  "_comment": "Batch 503 (PS-474). Copy to origins.json, fill in this deployment's addresses, then run: node scripts/generate-security-headers.mjs deploy/security-headers/origins.json <outDir>. connect: the API server, the identity provider (OIDC authority), the AI/terminology proxy, the report rendering service. hub: the SignalR live-updates hub (gets a wss:// origin too). formAction: the identity provider, if it posts back. frame/img: anything embedded from another origin (a slide viewer, an image server). terminologyViaServer: true when the API server makes the NLM terminology look-ups (it should; leave it out only for the demonstration). https: false only for an internal http deployment (drops HSTS and upgrade-insecure-requests). Full URLs are fine; paths are ignored.",
   "connect": [
     "https://pathscribe-api.hospital.example",
     "https://login.microsoftonline.com",
@@ -11,6 +11,7 @@
   "frame": [],
   "img": [],
   "https": true,
+  "terminologyViaServer": true,
   "hub": [
     "https://live.pathscribe-api.hospital.example/hubs/live"
   ]

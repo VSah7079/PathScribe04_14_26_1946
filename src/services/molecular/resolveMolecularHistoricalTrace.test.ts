@@ -63,4 +63,16 @@ describe('resolveMolecularHistoricalTrace — real, per the given specification\
     const trace = resolveMolecularHistoricalTrace([batchNoMovement], { accessionNumber: 'PS26-100452' });
     expect(trace!.movementHistory).toEqual([]);
   });
+
+  it('Batch 608 (#62): a control well is found by its position and carries its control ID, lot and expiry', () => {
+    const control = { controlId: 'PC-1', controlLotNumber: 'LOT-PC-9', controlExpirationDate: '2027-03-01', expectedValue: 'POSITIVE' as const };
+    const batch: MolecularBatch = { ...BATCH, wells: [{ wellPosition: 'H12', sampleType: 'POSITIVE_CONTROL' as never, controlInfo: control, movementHistory: [] }] };
+    const trace = resolveMolecularHistoricalTrace([batch], { wellPosition: 'H12' });
+    expect(trace?.control).toEqual(control);
+    expect(trace?.plateUuid).toBe(BATCH.plateUuid);
+  });
+
+  it('Batch 608 (#62): a position lookup never returns a patient well', () => {
+    expect(resolveMolecularHistoricalTrace([BATCH], { wellPosition: 'A03' })).toBeNull();
+  });
 });

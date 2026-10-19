@@ -33,6 +33,7 @@ import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
 import { checkRegistryPayloadBoundary } from './registryPayloadBoundary';
 import { deploymentInstance } from '../deployment/deploymentInstance';
 import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
+import { isEngineSimulated, simulateEngineReceive } from '../mockInterfaceEngine/simulatedEngineReceiver';
 
 // 'CRITICAL_ALERT' added per direct follow-up ("Can the interface
 // engine be used for any post GA modification to fully implement this
@@ -50,7 +51,9 @@ export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_
   | 'ACCESSION_EVENT' | 'REFERRAL_MANIFEST' | 'MOLECULAR_ORDER'
   // Batch 520 (PS-280): a signed report PDF to fax or drop as a file. The interface server
   // delivers it and answers only once it is delivered (services/delivery/deliverReport.ts).
-  | 'REPORT_DELIVERY';
+  | 'REPORT_DELIVERY'
+  // Batch 605: hardware orders, scan events and charges (simulated engine in the demo).
+  | 'BLOCK_ORDER' | 'SLIDE_ORDER' | 'SPECIMEN_LABEL' | 'MATERIAL_SCAN_EVENT' | 'CHARGE_DFT' | 'CHARGE_JSON' | 'FINANCIAL_CLASS';
 
 export interface InterfaceDispatchEnvelope {
   queueEntryId: string;
@@ -143,6 +146,8 @@ export async function dispatchInterfaceMessage(
   // systems on a validation instance, real data to live registers on production).
   const refused = checkRegistryPayloadBoundary(transactionType, payload, deploymentInstance.role);
   if (refused) return { ok: false, errorCode: 'DISPATCH_REJECTED', error: refused };
+  // Batch 605: the demo has no engine; the simulated one answers and keeps what it got.
+  if (isEngineSimulated()) return simulateEngineReceive(envelope);
   if (INTERFACE_RECEIVER.ok === false) {
     return { ok: false, errorCode: 'DISPATCH_UNREACHABLE', error: INTERFACE_RECEIVER.message };
   }

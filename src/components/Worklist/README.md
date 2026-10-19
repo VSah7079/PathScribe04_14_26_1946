@@ -371,3 +371,11 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 567 (WCAG 2.1 AA)
 
 - `WorklistTable.tsx`: the two digital-pathology cells are a mouse shortcut only (`clickableContainer`), and only when they show a badge; the badge button is the one tab stop (it was the cell and the badge).
+
+## Batch 610 (part A) — autopsy TAT chip
+
+`AutopsyWorklistBadges` takes `caseSource` and shows `AutopsyTatChip` after the SLA badge.
+
+## Batch 610 (#164)
+
+`WorklistTable` takes an optional `slaBreaches` map (case id to `firstTouch` or `total`) and shows an "SLA" badge in both the card and table views for an open case past its client's target. `WorklistPage` builds the map with `loadOpenSlaBreaches`.

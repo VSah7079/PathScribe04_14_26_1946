@@ -6,7 +6,12 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { TUMOR_BOARD_NAMES } from '../tumorBoard/ITumorBoardService';
+import { validateCriteriaRule, normaliseCriteria } from './criteriaRuleValidation';
 import {
+  MAX_CRITERIA_RULES,
+  type TumorBoardCriteriaRule,
+  type ITumorBoardCriteriaRuleService,
   DEFAULT_TUMOR_BOARD_RULES,
   DEFAULT_TUMOR_BOARD_BATCH_SETTINGS,
   type TumorBoardAutoFlagRule,
@@ -40,8 +45,14 @@ const persistOverrides = (data: FacilityTumorBoardRuleOverride[]) => storageSet(
 
 function validate(change: TumorBoardRuleChange): string | null {
   if (change.marginThresholdMm !== undefined && !(Number.isFinite(change.marginThresholdMm) && change.marginThresholdMm > 0)) return 'marginThresholdMmInvalid';
+  if (change.board !== undefined && !(TUMOR_BOARD_NAMES as readonly string[]).includes(change.board)) return 'boardInvalid';
   return null;
 }
+
+// Batch 610 (#71): admin-added diagnosis / biomarker rules.
+const CRITERIA_KEY = 'tumor_board_criteria_rules';
+const loadCriteriaRules = () => storageGet<TumorBoardCriteriaRule[]>(CRITERIA_KEY, []);
+const persistCriteriaRules = (data: TumorBoardCriteriaRule[]) => storageSet(CRITERIA_KEY, data);
 
 const rulesUnchecked: ITumorBoardRuleService = {
   async getAll() { return ok(loadRules()); },
@@ -67,7 +78,7 @@ const overridesUnchecked: IFacilityTumorBoardRuleOverrideService = {
   async getForFacility(facilityId) { return ok(loadOverrides().filter(o => o.facilityId === facilityId).map(o => ({ ...o }))); },
   async set(facilityId, ruleId, changes) {
     if (!facilityId) return err<FacilityTumorBoardRuleOverride>('facilityRequired');
-    if (!loadRules().some(r => r.id === ruleId)) return err<FacilityTumorBoardRuleOverride>(`Tumor Board auto-flag rule ${ruleId} not found`);
+    if (!loadRules().some(r => r.id === ruleId) && !loadCriteriaRules().some(r => r.id === ruleId)) return err<FacilityTumorBoardRuleOverride>(`Tumor Board auto-flag rule ${ruleId} not found`);
     const problem = validate(changes);
     if (problem) return err<FacilityTumorBoardRuleOverride>(problem);
     const records = loadOverrides();
@@ -118,4 +129,54 @@ const batchSettingsUnchecked: ITumorBoardBatchSettingsService = {
 
 export const mockTumorBoardBatchSettingsService: ITumorBoardBatchSettingsService = guardConfigWrites(batchSettingsUnchecked, [
   ['config:tumor-board-rules:manage', ['update']],
+]);
+
+
+const criteriaUnchecked: ITumorBoardCriteriaRuleService = {
+  async getAll() { return ok(loadCriteriaRules().map(r => ({ ...r, criteria: r.criteria.map(c => ({ ...c })) }))); },
+  async create(input) {
+    const problem = validateCriteriaRule(input, true);
+    if (problem) return err<TumorBoardCriteriaRule>(problem);
+    const current = loadCriteriaRules();
+    if (current.length >= MAX_CRITERIA_RULES) return err<TumorBoardCriteriaRule>('tooManyRules');
+    const now = new Date().toISOString();
+    const rule: TumorBoardCriteriaRule = {
+      id: `tbcr-${Date.now().toString(36)}-${current.length + 1}`,
+      label: input.label.trim(),
+      board: input.board,
+      criteria: normaliseCriteria(input.criteria),
+      active: input.active ?? true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    persistCriteriaRules([...current, rule]);
+    return ok({ ...rule });
+  },
+  async update(id, changes) {
+    const problem = validateCriteriaRule(changes, false);
+    if (problem) return err<TumorBoardCriteriaRule>(problem);
+    const current = loadCriteriaRules();
+    const existing = current.find(r => r.id === id);
+    if (!existing) return err<TumorBoardCriteriaRule>(`Tumor Board criteria rule ${id} not found`);
+    const updated: TumorBoardCriteriaRule = {
+      ...existing,
+      ...(changes.label !== undefined ? { label: changes.label.trim() } : {}),
+      ...(changes.board !== undefined ? { board: changes.board } : {}),
+      ...(changes.criteria !== undefined ? { criteria: normaliseCriteria(changes.criteria) } : {}),
+      ...(changes.active !== undefined ? { active: changes.active } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+    persistCriteriaRules(current.map(r => (r.id === id ? updated : r)));
+    return ok({ ...updated });
+  },
+  async remove(id) {
+    persistCriteriaRules(loadCriteriaRules().filter(r => r.id !== id));
+    // A removed rule's facility overrides would point at nothing.
+    persistOverrides(loadOverrides().filter(o => o.ruleId !== id));
+    return { ok: true, data: undefined };
+  },
+};
+
+export const mockTumorBoardCriteriaRuleService: ITumorBoardCriteriaRuleService = guardConfigWrites(criteriaUnchecked, [
+  ['config:tumor-board-rules:manage', ['create', 'update', 'remove']],
 ]);

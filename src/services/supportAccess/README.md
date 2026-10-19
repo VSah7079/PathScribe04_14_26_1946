@@ -1,3 +1,7 @@
+## Batch 604
+
+`closeTicket` (Simulated: ends the agent's live approvals for a ticket and records `ticketClosed`), `exportAuditPdf` (`supportAuditPdf.ts`, pdf-lib), and `recordSupportActivity` (the support agent's own exports and configuration changes, reported through `supportActivity.ts` by the configuration guard and the export audit, recorded as `supportExport` and `supportConfigChange` in the stream of each organisation they hold live access to).
+
 # services/supportAccess — ForMedrixAI support access (Batch 372)
 
 The hospital, as data controller, decides whether ForMedrixAI support may reach its data, approves each visit, and owns the record of what support did. Built from Pete's specification of Sep 28, 2026.

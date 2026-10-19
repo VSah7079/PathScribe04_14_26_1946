@@ -18,6 +18,7 @@
 
 import { readLabSetting, saveLabSetting } from '../labSettings/labSettingsStore';
 import { dataStorage } from '../browserData/dataStorage';
+import { assertPlatformCredential, createPlatformCredential, type PlatformAuthenticatorClient } from './platformAuthenticator';
 
 export type BiometricCadence =
   | 'never'          // enrol once, biometric prompt valid indefinitely
@@ -43,6 +44,10 @@ export interface BiometricCredential {
   enrolledAt: string;             // ISO datetime
   lastVerifiedAt: string | null;  // ISO datetime
   deviceName: string;             // e.g. "Touch ID", "Windows Hello"
+  /** Batch 611: 'device' = the browser's real fingerprint / face prompt was shown; 'simulated' = the labelled demo prompt. Either way the check is a SIMULATION (no server checks it). */
+  prompt?: 'device' | 'simulated';
+  /** Batch 611: the public key the browser gave (never a secret). */
+  publicKey?: string;
 }
 
 const POLICY_KEY      = 'ps_biometric_policy';
@@ -129,44 +134,81 @@ export function getDeviceName(): string {
 
 // ─── Enrolment ───────────────────────────────────────────────────────────────
 
-export async function enrollBiometric(userId: string): Promise<{ ok: boolean; error?: string }> {
+/** Batch 611 (#158): says on screen and in the audit log that the check is a demonstration. */
+async function auditBiometric(event: string, detail: string, userId: string): Promise<void> {
+  try {
+    const { mockAuditService } = await import('../auditlog/mockAuditService');
+    await mockAuditService.logEvent({ type: 'system', event, detail, user: userId, caseId: null, confidence: null });
+  } catch { /* the audit write never blocks the person */ }
+}
+
+export interface BiometricRunOptions {
+  /** Tests give a fake browser client (null = no WebAuthn). */
+  client?: PlatformAuthenticatorClient | null;
+  /** Tests skip the simulated wait. */
+  simulatedDelayMs?: number;
+}
+
+export async function enrollBiometric(userId: string, options: BiometricRunOptions = {}): Promise<{ ok: boolean; error?: string; prompt?: 'device' | 'simulated' }> {
   // Batch 433: you enrol yourself only.
   const { getSessionUser } = await import('../auth/caseAccessControl');
-  if (getSessionUser()?.id !== userId) return { ok: false, error: 'NOT_PERMITTED' };
-  // Production: navigator.credentials.create() with server-generated challenge
-  // Demo: simulate 1.5s biometric prompt
-  await new Promise(r => setTimeout(r, 1500));
+  const session = getSessionUser();
+  if (session?.id !== userId) return { ok: false, error: 'NOT_PERMITTED' };
 
-  const mockCredentialId = btoa(`pathscribe-${userId}-${Date.now()}`);
+  // Batch 611: the device's own prompt when the browser has one (challenge made
+  // here, not by a server: SIMULATED); a person who cancels is not enrolled.
+  const real = await createPlatformCredential({ id: userId, name: [session?.firstName, session?.lastName].filter(Boolean).join(' ') || userId }, options.client);
+  if (real.kind === 'declined') {
+    await auditBiometric('Biometric Enrolment Declined (Simulated)', 'Simulated biometric enrolment: the device prompt was cancelled or refused; nothing was enrolled.', userId);
+    return { ok: false, error: 'DECLINED' };
+  }
+  let credentialId: string;
+  let publicKey: string | undefined;
+  let prompt: 'device' | 'simulated';
+  if (real.kind === 'used') {
+    credentialId = real.credentialId; publicKey = real.publicKey; prompt = 'device';
+  } else {
+    await new Promise(r => setTimeout(r, options.simulatedDelayMs ?? 1500));
+    credentialId = btoa(`pathscribe-${userId}-${Date.now()}`); prompt = 'simulated';
+  }
+
   const creds = loadCredentials().filter(c => c.userId !== userId);
   creds.push({
-    userId,
-    credentialId: mockCredentialId,
+    userId, credentialId,
     enrolledAt: new Date().toISOString(),
     lastVerifiedAt: new Date().toISOString(),
-    deviceName: getDeviceName(),
+    deviceName: getDeviceName(), prompt, publicKey,
   });
   saveCredentials(creds);
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ userId, verifiedAt: new Date().toISOString() }));
-  return { ok: true };
+  await auditBiometric('Biometric Enrolment (Simulated)', `Simulated biometric enrolment (${prompt === 'device' ? 'device prompt, challenge made in the browser' : 'demonstration prompt'}); no server verified it.`, userId);
+  return { ok: true, prompt };
 }
 
 // ─── Verification ─────────────────────────────────────────────────────────────
 
-export async function verifyBiometric(userId: string): Promise<{ ok: boolean; error?: string }> {
+export async function verifyBiometric(userId: string, options: BiometricRunOptions = {}): Promise<{ ok: boolean; error?: string; prompt?: 'device' | 'simulated' }> {
   const cred = getCredentialForUser(userId);
   if (!cred) return { ok: false, error: 'No biometric credential enrolled.' };
 
-  // Production: navigator.credentials.get() with server-generated challenge
-  // Demo: simulate 1.2s prompt — always succeeds in demo
-  await new Promise(r => setTimeout(r, 1200));
+  let prompt: 'device' | 'simulated' = 'simulated';
+  if (cred.prompt === 'device') {
+    const real = await assertPlatformCredential(cred.credentialId, options.client);
+    if (real.kind === 'declined') {
+      await auditBiometric('Biometric Check Not Recognised (Simulated)', 'Simulated biometric check: the device did not confirm the person; password fallback offered.', userId);
+      return { ok: false, error: 'DECLINED' };
+    }
+    if (real.kind === 'used') prompt = 'device';
+  }
+  if (prompt === 'simulated') await new Promise(r => setTimeout(r, options.simulatedDelayMs ?? 1200));
 
   const creds = loadCredentials().map(c =>
     c.userId === userId ? { ...c, lastVerifiedAt: new Date().toISOString() } : c
   );
   saveCredentials(creds);
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ userId, verifiedAt: new Date().toISOString() }));
-  return { ok: true };
+  await auditBiometric('Biometric Check (Simulated)', `Simulated biometric check passed (${prompt === 'device' ? 'device prompt, challenge made in the browser' : 'demonstration prompt'}); no server verified it.`, userId);
+  return { ok: true, prompt };
 }
 
 // ─── Cadence check ───────────────────────────────────────────────────────────

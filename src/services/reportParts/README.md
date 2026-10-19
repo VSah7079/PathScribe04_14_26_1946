@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/reportParts/
 
 Atomic report-building-block library (header/footer/body parts) — one half of the Report Part + Template Assembly system.
@@ -35,3 +37,5 @@ Same as report templates: publishing a part is `config:report-template:publish`;
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part A, PS-483): `httpReportPartService.ts` and `reportPartServiceInstance.ts`. After a change that worked it fires the same "parts changed" event the mock does (`notifyChanged`). Contract `REPORTS_API.md` section 6.

@@ -21,13 +21,11 @@
 // analog for at all, plus a real PrintDestination sub-object (network
 // protocol/address) instead of a simple enum action. The scope-tier
 // picker drives which real reference-data field appears for scopeId:
-//   - 'workstation' → free-text. Confirmed directly before building
-//     this: this app has no real workstation/scan-station dictionary
-//     service (only ad hoc, per-mock-data IDs like
-//     'ws-fgh-theatre2-01' — see printRoutingRuleService.ts's own
-//     seed data) to populate a dropdown from, so forcing a `<select>`
-//     here would mean inventing a fake, closed list — a free-text
-//     field is the honest choice, not a fallback shortcut.
+//   - 'workstation' → free-text, with the registered workstations suggested as
+//     you type (Batch 612, services/workstationRegistry). It stays free text
+//     because older rules hold ids that were never registered
+//     (e.g. 'ws-fgh-theatre2-01', see printRoutingRuleService.ts's seed data);
+//     picking a suggestion stores the registered workstation's id.
 //   - 'location' → the same real, distinct `pointOfCare` list
 //     DeliveryRulesSection.tsx already loads via locationService.
 //   - 'clientAccount'/'facility' → the same real Facility list
@@ -57,7 +55,7 @@ import {
 } from '../../../services/printRouting/printDestinationRules';
 import { PrintDestinationFields } from '@/components/Printing/PrintDestinationFields';
 import type { Facility } from '../../../services/facilities/IFacilityService';
-import { printRoutingRuleService, facilityService, locationService } from '@/services';
+import { printRoutingRuleService, facilityService, locationService, workstationRegistryService } from '@/services';
 import { LoadingState } from '@/components/Common/LoadingState';
 
 const SCOPE_TYPE_LABEL_KEY: Record<PrintDestinationScopeType, string> = {
@@ -82,11 +80,13 @@ const RuleModal: React.FC<{
   rule?: PrintRoutingRule;
   facilities: Facility[];
   pointsOfCare: string[];
+  /** Batch 612: the registered, active workstations, suggested for the workstation tier. */
+  workstations: { id: string; name: string }[];
   onSave: (rule: Partial<PrintRoutingRule>) => void;
   onClose: () => void;
   /** Batch 553: why the last save was refused (a message key); the window stays open. */
   saveError?: string | null;
-}> = ({ rule, facilities, pointsOfCare, onSave, onClose, saveError }) => {
+}> = ({ rule, facilities, pointsOfCare, workstations, onSave, onClose, saveError }) => {
   const { t } = useTranslation();
   const [scopeType, setScopeType] = useState<PrintDestinationScopeType>(rule?.scopeType ?? 'workstation');
   const [scopeId, setScopeId] = useState(rule?.scopeId ?? '');
@@ -145,9 +145,15 @@ const RuleModal: React.FC<{
                 className="ps-conf-input"
                 aria-label={t('printRoutingRulesSection.fields.scopeId')}
                 placeholder={t('printRoutingRulesSection.modal.workstationIdPlaceholder')}
+                list="ps-routing-workstations"
                 value={scopeId}
                 onChange={e => setScopeId(e.target.value)}
               />
+            )}
+            {scopeType === 'workstation' && (
+              <datalist id="ps-routing-workstations">
+                {workstations.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </datalist>
             )}
             {scopeType === 'location' && (
               <select className="ps-conf-select" aria-label={t('printRoutingRulesSection.fields.scopeId')} value={scopeId} onChange={e => setScopeId(e.target.value)}>
@@ -320,6 +326,7 @@ const PrintRoutingRuleSection: React.FC = () => {
   const [rules, setRules] = useState<PrintRoutingRule[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [pointsOfCare, setPointsOfCare] = useState<string[]>([]);
+  const [workstations, setWorkstations] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ rule?: PrintRoutingRule } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -327,11 +334,15 @@ const PrintRoutingRuleSection: React.FC = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [rulesRes, facilitiesRes, locationsRes] = await Promise.all([
+    const [rulesRes, facilitiesRes, locationsRes, workstationsRes] = await Promise.all([
       printRoutingRuleService.getAll(),
       facilityService.getAll(),
       locationService.getAll(),
+      workstationRegistryService.list().catch(() => null),
     ]);
+    if (workstationsRes && workstationsRes.ok === true) {
+      setWorkstations(workstationsRes.data.filter(w => w.status === 'active').map(w => ({ id: w.id, name: w.name })));
+    }
     if (rulesRes.ok) setRules(rulesRes.data);
     if (facilitiesRes.ok) setFacilities((facilitiesRes.data as Facility[]).filter(f => f.status === 'Active'));
     if (locationsRes.ok) {
@@ -440,6 +451,7 @@ const PrintRoutingRuleSection: React.FC = () => {
           rule={modal.rule}
           facilities={facilities}
           pointsOfCare={pointsOfCare}
+          workstations={workstations}
           onSave={handleSave}
           onClose={() => openModal(null)}
           saveError={saveError}

@@ -1,6 +1,6 @@
 // Batch 452 (PS-323, PS-133): where a detected critical finding is highlighted.
 import { describe, expect, it } from 'vitest';
-import { findFindingSpans, findingsForField, narrativeFieldForReportRow, narrativeFieldForSection, splitTextByFindings, type FindingHighlightTarget } from './findingHighlight';
+import { findFindingSpans, findingsForField, narrativeFieldForReportRow, narrativeFieldForSection, orchestratorNarrativeText, splitTextByFindings, type FindingHighlightTarget } from './findingHighlight';
 
 const f = (term: string, sourceQuote = '', severity: FindingHighlightTarget['severity'] = 'Malignant'): FindingHighlightTarget => ({ term, sourceQuote, severity });
 const marked = (text: string, findings: FindingHighlightTarget[]) => findFindingSpans(text, findings).map(s => [text.slice(s.from, s.to), s.match]);
@@ -62,7 +62,7 @@ describe('splitTextByFindings', () => {
 
 describe('which narrative a finding belongs to', () => {
   it('maps Report Draft sections and Full Patient Report rows to the field detection reads', () => {
-    expect(['gross_description', 'gross', 'microscopic', 'microscopic_description', 'ancillary_studies', 'ancillary', 'diagnosis'].map(narrativeFieldForSection))
+    expect(['gross_description', 'gross', 'microscopic', 'microscopic_description', 'ancillary_studies', 'ancillary', 'diagnosis'].map(id => narrativeFieldForSection(id)))
       .toEqual(['gross', 'gross', 'microscopic', 'microscopic', 'ancillary', 'ancillary', null]);
     expect(['grossDescription', 'microscopicFindings', 'ancillaryStudies', 'clinicalHistory'].map(narrativeFieldForReportRow))
       .toEqual(['gross', 'microscopic', 'ancillary', null]);
@@ -75,5 +75,29 @@ describe('which narrative a finding belongs to', () => {
     expect(findingsForField(all, 'microscopic').map(x => x.term)).toEqual(['a']);
     expect(findingsForField(all, null)).toEqual([]);
     expect(findingsForField(undefined, 'gross')).toEqual([]);
+  });
+});
+
+describe('Report Draft sections with random ids (PS-323)', () => {
+  it('finds the narrative field from the stable part id when the section id is a UUID', () => {
+    expect(narrativeFieldForSection('3f2b8c1e-aaaa', 'std_body_gross')).toBe('gross');
+    expect(narrativeFieldForSection('3f2b8c1e-bbbb', 'std_body_microscopic')).toBe('microscopic');
+    expect(narrativeFieldForSection('3f2b8c1e-cccc', 'std_body_ancillary')).toBe('ancillary');
+  });
+
+  it('gives nothing for a section from another part', () => {
+    expect(narrativeFieldForSection('3f2b8c1e-dddd', 'std_body_diagnosis')).toBeNull();
+  });
+
+  it('joins the text of every section that feeds a field', () => {
+    const sections = [
+      { id: 'u1', sourcePartId: 'std_body_gross', text: '<p>A</p>' },
+      { id: 'u2', sourcePartId: 'std_body_gross', text: '<p>B</p>' },
+      { id: 'u3', sourcePartId: 'std_body_microscopic', text: '<p>M</p>' },
+      { id: 'u4', sourcePartId: 'std_body_diagnosis', text: '<p>D</p>' },
+    ];
+    expect(orchestratorNarrativeText(sections, 'gross')).toBe('<p>A</p><p>B</p>');
+    expect(orchestratorNarrativeText(sections, 'microscopic')).toBe('<p>M</p>');
+    expect(orchestratorNarrativeText(sections, 'ancillary')).toBe('');
   });
 });

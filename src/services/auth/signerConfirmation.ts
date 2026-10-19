@@ -36,6 +36,7 @@ import type { SessionProfile } from './sessionProfile';
 import type { ISsoClient } from './sso/ssoClient';
 import type { DemoAccount } from './demo/demoAccounts';
 import { SSO_PROVIDER_AUDIT_NAMES } from './sso/resolveSsoProfile';
+import type { MfaStamp } from './mfa/mfaPolicy';
 
 export const SIGNING_ACTIONS = [
   'case-sign-out', 'countersign', 'synoptic-finalize', 'report-finalize',
@@ -65,6 +66,8 @@ export type SignerMethod = 'password' | 'sso' | 'unavailable';
 export const SIGNER_FAILURES = [
   'username_required', 'password_required', 'wrong_credentials', 'different_account', 'not_fresh', 'invalid_token',
   'cancelled', 'popup_blocked', 'provider_error', 'locked', 'no_session', 'unavailable',
+  // Batch 611 (#157): the fresh second factor a signature can ask for.
+  'mfa_code_required', 'mfa_invalid', 'mfa_not_asserted',
 ] as const;
 export type SignerFailure = typeof SIGNER_FAILURES[number];
 
@@ -87,7 +90,8 @@ export interface SignatureConfirmation {
 }
 
 export type SignerResult =
-  | { ok: true; confirmation: SignatureConfirmation }
+  /** `mfa` (Batch 611): the second-factor stamp this signature renewed, for the session to carry. */
+  | { ok: true; confirmation: SignatureConfirmation; mfa?: MfaStamp }
   | { ok: false; reason: SignerFailure; lockedUntil?: string; attemptsLeft?: number };
 
 // ── Lockout (pure) ─────────────────────────────────────────────────────────
@@ -168,11 +172,17 @@ export interface SignerConfirmationDeps {
   /** The sign-in session a signature was last confirmed in (for the username rule). */
   signingSession: { current(): string | null; lastConfirmed(): string | null; markConfirmed(sessionId: string): void };
   biometric: { verify(userId: string): Promise<{ ok: boolean }> };
+  /** Batch 611 (#157). Optional: the fresh second factor a signature asks for (mfa/mfaService.ts). */
+  mfa?: {
+    stepUpNeeded(profile: SessionProfile): boolean;
+    challenge(profile: SessionProfile, code: string): Promise<{ ok: true; stamp: MfaStamp } | { ok: false; reason: string; lockedUntil?: string; attemptsLeft?: number }>;
+    stepUpWithClaims(profile: SessionProfile, claims: Record<string, unknown>): { ok: true; stamp: MfaStamp } | { ok: false };
+  };
   now?: () => Date;
   newId?: () => string;
 }
 
-export interface SigningContext { action: SigningAction; caseRef?: string | null }
+export interface SigningContext { action: SigningAction; caseRef?: string | null; /** Batch 611: the second-factor code, when a signature asks for one. */ mfaCode?: string }
 
 export function createSignerConfirmation(deps: SignerConfirmationDeps) {
   const now = deps.now ?? (() => new Date());
@@ -224,6 +234,18 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
     return { profile };
   };
 
+  /** Batch 611: the fresh code a password or biometric signature needs, checked after the password so a wrong password never spends a code. */
+  const stepUpWithCode = async (profile: SessionProfile, ctx: SigningContext): Promise<{ stop: SignerResult } | { stamp: MfaStamp | undefined }> => {
+    if (!deps.mfa || !deps.mfa.stepUpNeeded(profile)) return { stamp: undefined };
+    const r = await deps.mfa.challenge(profile, ctx.mfaCode ?? '');
+    if (r.ok) return { stamp: r.stamp };
+    if (r.reason === 'locked' && r.lockedUntil) return { stop: { ok: false, reason: 'locked', lockedUntil: r.lockedUntil } };
+    return { stop: { ok: false, reason: 'mfa_invalid', attemptsLeft: r.attemptsLeft } };
+  };
+
+  const mfaCodeMissing = (profile: SessionProfile, ctx: SigningContext): boolean =>
+    !!deps.mfa && deps.mfa.stepUpNeeded(profile) && !(ctx.mfaCode ?? '').trim();
+
   const needsUsername = (): boolean => {
     const current = deps.signingSession.current();
     return !current || deps.signingSession.lastConfirmed() !== current;
@@ -237,6 +259,12 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
 
     /** The first signature in a sign-in session needs the username as well as the password. */
     needsUsername,
+
+    /** Batch 611 (#157): this signature needs a fresh second-factor code typed in (password sessions; single sign-on asks at the provider). */
+    mfaCodeNeeded(): boolean {
+      const profile = deps.readProfile();
+      return !!profile && signerMethodFor(profile, deps.config) !== 'sso' && !!deps.mfa && deps.mfa.stepUpNeeded(profile);
+    },
 
     /** Simulated biometric is offered only in demo builds. */
     biometricAllowed(): boolean {
@@ -257,10 +285,14 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
       const { profile } = pre;
       if (needsUsername() && !input.username.trim()) return { ok: false, reason: 'username_required' };
       if (!input.password) return { ok: false, reason: 'password_required' };
+      if (mfaCodeMissing(profile, input)) return { ok: false, reason: 'mfa_code_required' };
       if (input.username.trim() && !usernameMatchesSigner(input.username, profile)) return fail(profile, 'password', input, 'wrong_credentials');
       const account = deps.verifyDemoCredentials ? await deps.verifyDemoCredentials(profile.email, input.password) : null;
       if (!account || account.id !== profile.id) return fail(profile, 'password', input, 'wrong_credentials');
-      return succeed(profile, 'password', input);
+      const second = await stepUpWithCode(profile, input);
+      if ('stop' in second) return second.stop;
+      const done = succeed(profile, 'password', input);
+      return second.stamp && done.ok ? { ...done, mfa: second.stamp } : done;
     },
 
     /** Call straight from the click: the popup opens before anything is awaited. */
@@ -278,7 +310,16 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
           sessionIssuer: profile.ssoIssuer!, sessionSubject: profile.ssoSubject!,
           startedAtSeconds, nowSeconds: Math.floor(now().getTime() / 1000),
         });
-        return problem ? fail(profile, 'sso', ctx, problem) : succeed(profile, 'sso', ctx, { kind: 'oidc-id-token', idToken: r.idToken });
+        if (problem) return fail(profile, 'sso', ctx, problem);
+        // Batch 611: the provider's fresh sign-in must report a second factor when this signature asks for one.
+        let stamp: MfaStamp | undefined;
+        if (deps.mfa && deps.mfa.stepUpNeeded(profile)) {
+          const second = deps.mfa.stepUpWithClaims(profile, r.claims);
+          if (second.ok === false) return fail(profile, 'sso', ctx, 'mfa_not_asserted');
+          stamp = second.stamp;
+        }
+        const done = succeed(profile, 'sso', ctx, { kind: 'oidc-id-token', idToken: r.idToken });
+        return stamp && done.ok ? { ...done, mfa: stamp } : done;
       });
     },
 
@@ -286,8 +327,13 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
       const pre = precheck('biometric');
       if ('stop' in pre) return pre.stop;
       const { profile } = pre;
+      if (mfaCodeMissing(profile, ctx)) return { ok: false, reason: 'mfa_code_required' };
       const r = await deps.biometric.verify(profile.id).catch(() => ({ ok: false }));
-      return r.ok ? succeed(profile, 'biometric', ctx) : fail(profile, 'biometric', ctx, 'wrong_credentials');
+      if (!r.ok) return fail(profile, 'biometric', ctx, 'wrong_credentials');
+      const second = await stepUpWithCode(profile, ctx);
+      if ('stop' in second) return second.stop;
+      const done = succeed(profile, 'biometric', ctx);
+      return second.stamp && done.ok ? { ...done, mfa: second.stamp } : done;
     },
 
     /** In the popup, on /auth/signing/<provider>. */

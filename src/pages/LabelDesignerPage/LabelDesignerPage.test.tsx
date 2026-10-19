@@ -19,7 +19,7 @@ vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
 }));
 
-const { layoutSvc } = vi.hoisted(() => ({ layoutSvc: { getByLabelType: vi.fn(), save: vi.fn(), reset: vi.fn() } }));
+const { layoutSvc } = vi.hoisted(() => ({ layoutSvc: { getByLabelType: vi.fn(), save: vi.fn(), reset: vi.fn(), listVersions: vi.fn(), restoreVersion: vi.fn() } }));
 vi.mock('@/services', () => ({
   labelLayoutService: layoutSvc,
   facilityService: { getAll: async () => ({ ok: true, data: [] }) },
@@ -167,5 +167,40 @@ describe('LabelDesignerPage (Batch 460, PS-245) — resize handles and the label
     fireEvent.click(screen.getByText('labelDesignerPage.fitToLabelButton'));
     expect(fieldEl(container, 'f-out').classList.contains('ps-designer-field--outside')).toBe(false);
     expect(fieldEl(container, 'f-out').style.getPropertyValue('--field-x')).toBe(`${20.8 * 4}px`);
+  });
+});
+
+
+describe('LabelDesignerPage (Batch 606) — EPL/DPL export, show rules, version history', () => {
+  it('exports EPL and DPL from the same layout, with the starter-code note', async () => {
+    layoutSvc.getByLabelType.mockResolvedValue(layoutWith(field('f-acc', 'fullAccession')));
+    await renderPage();
+    fireEvent.click(screen.getByText(/labelDesignerPage.exportEplButton/));
+    const epl = (screen.getByLabelText('a11y.fields.zplOutput') as HTMLTextAreaElement).value;
+    expect(epl.startsWith('N')).toBe(true);
+    expect(epl).toContain('DVMC26-0001');
+    expect(screen.getByText(/labelDesignerPage.exportStarterNote/)).toBeTruthy();
+    fireEvent.click(screen.getByText(/labelDesignerPage.exportDplButton/));
+    expect((screen.getByLabelText('a11y.fields.zplOutput') as HTMLTextAreaElement).value).toContain('\u0002L');
+  });
+
+  it('lists the saved versions and restores one', async () => {
+    layoutSvc.getByLabelType.mockResolvedValue(layoutWith(field('f-acc', 'fullAccession')));
+    layoutSvc.listVersions.mockResolvedValue({ ok: true, data: [{ versionId: 'v2', version: 2, savedAt: '2026-10-16T10:00:00Z', savedBy: 'dr.b' }, { versionId: 'v1', version: 1, savedAt: '2026-10-15T10:00:00Z', savedBy: 'dr.a' }] });
+    layoutSvc.restoreVersion.mockResolvedValue({ ok: true, data: {} });
+    await renderPage();
+    fireEvent.click(screen.getByText(/labelDesignerPage.history.button/));
+    await act(async () => {});
+    expect(screen.getAllByText(/labelDesignerPage.history.row/)).toHaveLength(2);
+    fireEvent.click(screen.getAllByText('labelDesignerPage.history.restore')[1]);
+    await act(async () => {});
+    expect(layoutSvc.restoreVersion).toHaveBeenCalledWith('v1', expect.any(String));
+  });
+
+  it('a show rule dims the field in the preview when its condition is not met', async () => {
+    const withRule = { ...field('f-mrn', 'mrn'), showWhen: { fieldKey: 'patientName', op: 'absent' as const } };
+    layoutSvc.getByLabelType.mockResolvedValue(layoutWith(withRule as never));
+    const { container } = await renderPage();
+    expect(container.querySelector('.ps-designer-field--hidden')).toBeTruthy();
   });
 });

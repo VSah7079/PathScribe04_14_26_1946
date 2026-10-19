@@ -54,6 +54,17 @@ describe('outbound interface resend (Batch 518, PS-122)', () => {
     expect(s.deps.dispatch).not.toHaveBeenCalled();
   });
 
+  it('a message held on the Outbound Queue screen is neither sent nor resent until released (Batch 619)', async () => {
+    s.deps.isHeld = vi.fn(async () => true);
+    expect(await dispatchOutboundEntry('accession', 'q1', s.deps)).toBe('onHold');
+    expect(await resendOutboundEntry('accession', 'q1', s.deps)).toBe('onHold');
+    expect(s.deps.isHeld).toHaveBeenCalledWith('accession', 'q1');
+    expect(s.calls).toEqual([]);
+    expect(s.deps.dispatch).not.toHaveBeenCalled();
+    s.deps.isHeld = vi.fn(async () => false);
+    expect(await resendOutboundEntry('accession', 'q1', s.deps)).toBe('sent');
+  });
+
   it('a refused send is marked failed with the receiver\'s reason', async () => {
     s = setup({ dispatchOk: false });
     expect(await dispatchOutboundEntry('molecular_order', 'q1', s.deps)).toBe('failed');

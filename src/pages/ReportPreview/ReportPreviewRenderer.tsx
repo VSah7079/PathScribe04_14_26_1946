@@ -8,6 +8,10 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { labelStyleVars } from '@/utils/labelStyleVars';
+import { unitsOf } from '@/services/reportAppearance/fontUnits';
+import { previewPageVars } from '@/services/reportAppearance/previewPage';
+import { renderPageSetup } from '@/services/reportAppearance/pageSetup';
+import type { FontUnits } from '@/types/template';
 import { formatDateTime } from '@/utils/formatDate';
 import type { ReportRevisionStatus } from '@/services/reports/resolveReportRevisionStatus';
 import { buildReportDocumentReference } from '@/services/printing/buildReportDocumentReference';
@@ -115,6 +119,9 @@ export function evalCondition(cond: ConditionalExpression | undefined, scope: an
   return cond.logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
 }
 
+// Batch 612: the template's font units, for a field label that sets a size but not its own units.
+const FontUnitsContext = React.createContext<FontUnits | undefined>(undefined);
+
 const FieldRow: React.FC<{
   label: string;
   value: React.ReactNode;
@@ -123,12 +130,13 @@ const FieldRow: React.FC<{
   nodeKey: string;
 }> = ({ label, value, labelConfig, defaultPosition, nodeKey }) => {
   const position = labelConfig?.position ?? defaultPosition;
+  const templateUnits = React.useContext(FontUnitsContext);
   if (position === 'none') {
     return <div key={nodeKey} className="rp-node-value-only">{value}</div>;
   }
   return (
     <div key={nodeKey} className={`rp-node-field rp-node-field--${position}`}>
-      <span className="rp-node-label" style={labelStyleVars(labelConfig, 'rp-label')}>{label}</span>
+      <span className="rp-node-label" style={labelStyleVars(labelConfig, 'rp-label', templateUnits)}>{label}</span>
       <span className="rp-node-value">{value}</span>
     </div>
   );
@@ -190,6 +198,9 @@ export function buildRenderScope(caseData: Case | null): Record<string, any> {
   };
 }
 
+import { RelatedCaseList } from '@/components/RelatedCases/RelatedCaseList';
+import type { RelatedCaseSnapshot } from '@/services/relatedCases/relatedCaseTypes';
+
 interface Props {
   sections:    OrchestratorSection[];
   /** Every enabled body-role Part, full node tree, assembly order — drives
@@ -215,6 +226,9 @@ interface Props {
    *  each section's own container and left to cascade via ordinary CSS
    *  inheritance. */
   documentStyle?: { header?: LabelConfig; body?: LabelConfig; footer?: LabelConfig };
+  /** Batch 612: the template's font size units. A template in points is drawn at the paper's real
+   *  width and margins, text in CSS points, so the screen matches what prints. */
+  fontUnits?: FontUnits;
   // ── Cross-pane sync (three-column layout) ──────────────────────────────────
   // Clicking a section heading here notifies the parent, which updates the
   // shared activeSectionId — the right-hand editor then scrolls to match.
@@ -225,6 +239,10 @@ interface Props {
    *  sign-out date and the latest revision date. Part of the document
    *  itself, so it prints from every path that prints this page. */
   revisionStatus?: ReportRevisionStatus | null;
+  /** Batch 613: the case's intraoperative (frozen section) diagnosis. Part of the case report, like an addendum. */
+  intraoperativeDiagnosis?: string | null;
+  /** Batch 613: related released cases the signer attached. Drawn after the body, exactly as signed. */
+  relatedCases?: readonly RelatedCaseSnapshot[];
 }
 
 // ── Institution data (mirrors OrchestratorReportPanel logic) ─────────────────
@@ -254,8 +272,8 @@ export function getInstitution(originHospitalId?: string) {
 }
 
 const ReportPreviewRenderer: React.FC<Props> = ({
-  sections, bodyAssembly = [], headerAssembly = [], footerAssembly = [], structuredContext = null, caseData, templateName, resolvedBy, activeSectionId, onSectionClick, documentStyle,
-  revisionStatus = null,
+  sections, bodyAssembly = [], headerAssembly = [], footerAssembly = [], structuredContext = null, caseData, templateName, resolvedBy, activeSectionId, onSectionClick, documentStyle, fontUnits,
+  revisionStatus = null, intraoperativeDiagnosis = null, relatedCases = [],
 }) => {
   const { t, i18n } = useTranslation();
   // Batch 495 (PS-283 §4.2.3): the scan-and-correlate footer (Code 128 of the
@@ -561,11 +579,16 @@ const ReportPreviewRenderer: React.FC<Props> = ({
     }
   };
 
+  // Batch 612: a template in points is drawn at the paper's real width and side margins.
+  const trueSize = unitsOf(documentStyle?.body, fontUnits) === 'pt';
+  const pageVars = trueSize ? previewPageVars(renderPageSetup()) : {};
+
   return (
-    <div className="rp-page" style={labelStyleVars(documentStyle?.body, 'rp-body')}>
+    <FontUnitsContext.Provider value={fontUnits}>
+    <div className={`rp-page${trueSize ? ' rp-page--true-size' : ''}`} style={labelStyleVars(documentStyle?.body, 'rp-body', fontUnits, pageVars)}>
 
       {/* ── Institution header ────────────────────────────────────────── */}
-      <div className="rp-doc-header" style={labelStyleVars(documentStyle?.header, 'rp-header')}>
+      <div className="rp-doc-header" style={labelStyleVars(documentStyle?.header, 'rp-header', fontUnits)}>
         {headerAssembly.length > 0 ? (
           headerAssembly.map(part => (
             <React.Fragment key={part.slotId}>
@@ -640,6 +663,13 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         <div className="rp-case-rule" />
       </div>
 
+      {intraoperativeDiagnosis && (
+        <div className="ps-related-card__row rp-intraop" data-phi="diagnosis">
+          <span className="ps-related-card__label">{t('surgicalReportPdf.intraopDiagnosis')}</span>
+          <span className="ps-related-card__multiline">{intraoperativeDiagnosis}</span>
+        </div>
+      )}
+
       {/* ── Narrative + structural body content ─────────────────────────── */}
       <div className="rp-body">
         {bodyAssembly.length === 0 && sections.length === 0 ? (
@@ -668,8 +698,16 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         )}
       </div>
 
+      {relatedCases.length > 0 && (
+        <section className="rp-related-cases">
+          <h3>{t('surgicalReportPdf.relatedCasesTitle')}</h3>
+          <p>{t('surgicalReportPdf.relatedCasesNotice')}</p>
+          <RelatedCaseList cases={relatedCases} />
+        </section>
+      )}
+
       {/* ── Report footer ─────────────────────────────────────────────── */}
-      <div className="rp-doc-footer" style={labelStyleVars(documentStyle?.footer, 'rp-footer')}>
+      <div className="rp-doc-footer" style={labelStyleVars(documentStyle?.footer, 'rp-footer', fontUnits)}>
         {footerAssembly.length > 0 ? (
           footerAssembly.map(part => (
             <React.Fragment key={part.slotId}>
@@ -700,6 +738,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
       </div>
 
     </div>
+    </FontUnitsContext.Provider>
   );
 };
 

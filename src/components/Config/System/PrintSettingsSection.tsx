@@ -43,6 +43,7 @@ import { getActivePerformingLabs } from '@/utils/performingLabs';
 import type { Facility } from '@/services';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import CassetteLabelLayoutEditor from './CassetteLabelLayoutEditor';
+import SlideLabelLayoutEditor from './SlideLabelLayoutEditor';
 import { LoadingState } from '@/components/Common/LoadingState';
 
 // Data-key-stays-English, label-is-translated: the stored
@@ -438,6 +439,13 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         value={effective.cassetteLabelLayout}
         readOnly={readOnly}
         onChange={changes => update({ cassetteLabelLayout: { ...effective.cassetteLabelLayout, ...changes } })}
+      />
+
+      {/* Batch 606 (PS-15 / PS-165): the slide layout now drives the slide ZPL. */}
+      <SlideLabelLayoutEditor
+        value={effective.slideLabelLayout}
+        readOnly={readOnly}
+        onChange={changes => update({ slideLabelLayout: { ...effective.slideLabelLayout, ...changes } })}
       />
 
       {/* ── Container Type Codes ── */}

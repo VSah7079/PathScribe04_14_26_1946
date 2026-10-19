@@ -18,6 +18,8 @@
 // recommendations; addendum (on its own page when the lab says so); sign-off.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { renderPageSetup, type RenderPageSetup } from '../reportAppearance/pageSetup';
+import { renderDocumentStyle, type RenderDocumentStyle } from '../reportAppearance/renderDocumentStyle';
 import type { CytologyReportContent } from '@/types/cytology/CytologyReportContent';
 import type { CytologyCaseReport } from '@/types/cytology/CytologyCaseReport';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
@@ -50,6 +52,11 @@ export interface CytologyRenderPayload {
   watermarkText?: string;
   metadata: { title: string; author: string; subject: string; timestamp: string };
   documents: CytologyRenderDocument[];
+  /** The lab's page size and margins (Document Style). */
+  pageSetup: RenderPageSetup;
+  /** Batch 609 (PS-35): the lab's header, body and footer text style (Document Style). The cytology
+   *  template prints in its embedded font whatever the family; size, weight, case and underline apply. */
+  documentStyle: RenderDocumentStyle;
 }
 
 export interface CytologyRenderOptions {
@@ -57,6 +64,10 @@ export interface CytologyRenderOptions {
   watermarkText?: string;
   /** The letterhead logo, by its URL, already fetched (base64). */
   logos?: Readonly<Record<string, string>>;
+  /** Overrides the lab's page setup (tests). */
+  pageSetup?: RenderPageSetup;
+  /** Overrides the lab's document style (tests). */
+  documentStyle?: RenderDocumentStyle;
 }
 
 const join = (parts: (string | undefined | false)[]) => parts.filter(Boolean).join(' · ');
@@ -158,6 +169,8 @@ export function buildCytologyReportRenderPayload(content: CytologyReportContent,
     ...(options.watermarkText ? { watermarkText: options.watermarkText } : {}),
     metadata: { title: fillLabel(labels.metadataTitle, { accession: content.accessionNumber }), author: content.signedBy.name, subject: labels.metadataSubject, timestamp: content.signedAt },
     documents: [cytologyReportDocument(content, labels, options.logos)],
+    pageSetup: options.pageSetup ?? renderPageSetup(),
+    documentStyle: options.documentStyle ?? renderDocumentStyle(),
   };
 }
 
@@ -206,6 +219,8 @@ export function buildCytologyCaseRenderPayload(
       timestamp: newest,
     },
     documents,
+    pageSetup: options.pageSetup ?? renderPageSetup(),
+    documentStyle: options.documentStyle ?? renderDocumentStyle(),
   };
 }
 

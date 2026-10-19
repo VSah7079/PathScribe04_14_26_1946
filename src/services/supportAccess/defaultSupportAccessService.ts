@@ -12,6 +12,8 @@ import { mockRoleService } from '../roles/mockRoleService';
 import { mockMessageService } from '../messages/mockMessageService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { createSupportAccessService } from './supportAccessService';
+import { setSupportActivityHandler } from './supportActivity';
+import { recordSimulatedEmail } from '../communications/simulatedMailOutbox';
 import { browserRunsServerJob } from '../serverJobs/browserStandIns';
 
 export const supportAccessService = createSupportAccessService({
@@ -38,9 +40,21 @@ export const supportAccessService = createSupportAccessService({
       configLink: '/configuration?tab=system&section=support_access',
       timestamp: new Date(), isUrgent: true,
     } as any);
+    // Batch 604: the approver's e-mail/webhook notice is the API server's job; here it is kept as a
+    // labelled Simulated e-mail (no ticket reason in it: it can describe a patient).
+    if (m.recipientEmail) {
+      recordSimulatedEmail({
+        to: [m.recipientEmail], subject: i18n.t('supportAccess.notification.subject', { ticket: m.ticketId }),
+        bodyText: i18n.t('supportAccess.notification.emailBody', { agent: m.senderName, organisation: m.tenantName, ticket: m.ticketId }),
+        bodyHtml: '', metadata: { source: 'support-access-request' },
+      }, m.senderName);
+    }
   },
   store: { get: storageGet, set: storageSet },
   seedSettings: DEMO_SUPPORT_ACCESS_SETTINGS,
   // Batch 456: a request awaiting Desert Valley's approval (demo seed).
   seedRequests: () => demoSupportAccessRequests(),
 });
+
+// Batch 604: the support agent's own exports and configuration changes also go to the support stream.
+setSupportActivityHandler(a => supportAccessService.recordSupportActivity(a));

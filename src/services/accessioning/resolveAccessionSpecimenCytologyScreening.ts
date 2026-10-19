@@ -25,11 +25,18 @@ export function contactBleedingFromChoice(choice: ContactBleedingChoice): boolea
   return choice === 'yes' ? true : choice === 'no' ? false : undefined;
 }
 
+/** Batch 608 (#47): the prior cervical procedure choices, '' = not recorded. */
+export const PRIOR_CERVICAL_PROCEDURE_CHOICES = ['none', 'leep', 'cold_knife_conization', 'cryotherapy', 'other_excision_or_biopsy'] as const;
+export type PriorCervicalProcedureChoice = '' | (typeof PRIOR_CERVICAL_PROCEDURE_CHOICES)[number];
+
 export function resolveAccessionSpecimenCytologyScreening(
   entryType: string | undefined,
   persistentContactBleedingAtCollection: boolean | undefined,
-): Pick<CytologyScreeningRecord, 'persistentContactBleedingAtCollection'> | undefined {
-  if (typeof persistentContactBleedingAtCollection !== 'boolean') return undefined;
+  priorCervicalProcedure?: PriorCervicalProcedureChoice,
+): Pick<CytologyScreeningRecord, 'persistentContactBleedingAtCollection' | 'priorCervicalProcedure'> | undefined {
   if (!entryType || !CYTOLOGY_ENTRY_TYPES.includes(entryType)) return undefined;
-  return { persistentContactBleedingAtCollection };
+  const record: Pick<CytologyScreeningRecord, 'persistentContactBleedingAtCollection' | 'priorCervicalProcedure'> = {};
+  if (typeof persistentContactBleedingAtCollection === 'boolean') record.persistentContactBleedingAtCollection = persistentContactBleedingAtCollection;
+  if (priorCervicalProcedure) record.priorCervicalProcedure = priorCervicalProcedure;
+  return Object.keys(record).length > 0 ? record : undefined;
 }

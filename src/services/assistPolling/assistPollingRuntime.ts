@@ -24,7 +24,7 @@
 
 import type { AssistPollRun } from './types';
 import { runAssistPollCycle, ingestPushedMessage, retryFailedEvents, type AssistPollDeps } from './runAssistPollCycle';
-import { mockAssistPollingService } from './mockAssistPollingService';
+import { assistPollingService } from './assistPollingServiceInstance';
 import { mockPollAdapter } from '../lisIngestion/adapters/mockPollAdapter';
 import { mockLisStagingQueueService } from '../lisIngestion/mockLisStagingQueueService';
 import { hl7v2StatusAdapter } from '../lisIngestion/adapters/hl7v2StatusAdapter';
@@ -64,8 +64,8 @@ async function buildDeps(): Promise<AssistPollDeps> {
         microscopic: !res.ok || res.data.microscopicEnabled !== false,
       };
     },
-    loadState: () => mockAssistPollingService.getState(),
-    saveState: s => mockAssistPollingService.saveState(s),
+    loadState: () => assistPollingService.getState(),
+    saveState: s => assistPollingService.saveState(s),
     logAudit: entry => auditService.logEvent(entry),
     now: () => new Date().toISOString(),
     newId: () => `lis-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,

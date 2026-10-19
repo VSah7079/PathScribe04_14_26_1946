@@ -77,7 +77,7 @@
 - **In the code, on every test run, with no exception list:** every clickable element works from the keyboard; every field has a name; no control sits inside another (a check that also reads hand-made controls); no inline styles; every on-screen string translated; patient identifiers tagged for redaction.
 - **Fixed in Batches 563 to 570:** colour contrast across the app (the dim grey and about 500 more rules), selected tiles announced, rows that held their own buttons, focus kept after a delete, the screenshot view as a proper dialog.
 - **Not yet done, and needed before a hospital relies on it:** testing with real screen readers (NVDA on Windows, VoiceOver on Mac) by a person, using the manual screen reader test plan for the QC team (written Oct 14; 38 scripts; its run is Xray PS-687). Also open: contrast the checker can't measure on the translucent tiles, real displays, Firefox dragging in the template builder, and native-speaker review of the translations (Korean especially).
-- **No CI pipeline yet** (PS-471, with the GitHub move at the end of October): the checks run on each batch here, not on every change.
+- **CI pipeline written, not yet running** (PS-471, Batch 615): `.github/workflows/ci.yml` runs type check, lint, tests and build, and the Python report tests, on every push to `main` and every pull request. It starts working once the repository is on GitHub (PS-468); until then the checks run on each batch here.
 
 ### 0.6 Decisions still open for Pete
 

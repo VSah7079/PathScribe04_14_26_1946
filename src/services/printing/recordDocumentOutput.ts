@@ -6,10 +6,11 @@
 // for a reprint?). Screens reach these through '@/services'.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { reportSupportActivity } from '../supportAccess/supportActivity';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { readSessionProfile } from '../auth/sessionProfile';
-import { mockPrintSettingsService } from '../printSettings/mockPrintSettingsService';
-import { mockFacilityPrintSettingsService } from '../printSettings/mockFacilityPrintSettingsService';
+import { printSettingsService } from '../printSettings/printSettingsServiceInstance';
+import { facilityPrintSettingsService } from '../printSettings/facilityPrintSettingsServiceInstance';
 import { resolveEffectivePrintSettings } from '../printSettings/IFacilityPrintSettingsService';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import { resolveCasePerformingLab } from '../facilities/resolveCasePerformingLab';
@@ -25,16 +26,18 @@ const sessionActor = (): string => {
 
 /** Records a print, reprint, preview print or export in the audit log. */
 export function recordDocumentOutput(e: DocumentOutputEvent): Promise<void> {
+  // Batch 604: a support agent's own export is also written to the support audit stream.
+  if (e.action === 'export') reportSupportActivity({ kind: 'export', detail: `Exported ${e.document}${e.format ? ` as ${e.format}` : ''}.` });
   return recordDocumentOutputWith(e, { logEvent: entry => mockAuditService.logEvent(entry), actor: sessionActor });
 }
 
 /** Whether the case's performing lab asks for a reason when a report is reprinted. */
 async function reprintReasonRequired(caseRecord: { originHospitalId?: string | null }): Promise<boolean> {
-  const global = await mockPrintSettingsService.get();
+  const global = await printSettingsService.get();
   if (!global.ok) return false;
   const facilities = await mockFacilityService.getAll();
   const lab = facilities.ok ? resolveCasePerformingLab(caseRecord, facilities.data) : undefined;
-  const override = lab ? await mockFacilityPrintSettingsService.getForFacility(lab.id) : null;
+  const override = lab ? await facilityPrintSettingsService.getForFacility(lab.id) : null;
   const effective = resolveEffectivePrintSettings(global.data, override && override.ok ? override.data : null);
   return effective.requireReprintReason === true;
 }

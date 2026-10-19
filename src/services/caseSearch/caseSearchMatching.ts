@@ -39,8 +39,10 @@ import { withDescendantFacilityIds } from '../facilities/facilityHierarchy';
 import type {
   CaseSearchCaseType, CaseSearchCriteria, CaseSearchPathologistRole, CaseSearchPendingWork, CaseSearchSort, CaseSearchSex,
 } from './caseSearchTypes';
+import { caseMatchesSynopticValues, type SynopticFieldCatalogue } from './synopticValueCriteria';
 
 export interface CaseSearchFlagInfo { name: string; lisCode?: string }
+
 
 /** Data the server joins while matching. Everything is optional: a missing piece just can't match. */
 export interface CaseSearchReferenceData {
@@ -66,6 +68,8 @@ export interface CaseSearchReferenceData {
   subspecialtyOf?: (c: Case, performingLabId: string | undefined) => string | undefined;
   /** The case's total turnaround target in hours, or null when none applies. */
   tatTargetHoursOf?: (c: Case, context: { performingLabId?: string; subspecialtyId?: string }) => number | null;
+  /** Batch 613: the questions of the protocols a search or report reads answers from (labels, choices, units). */
+  synopticFields?: SynopticFieldCatalogue;
 }
 
 export interface CaseSearchMatchContext extends CaseSearchReferenceData {
@@ -123,7 +127,7 @@ export function patientSortName(c: Case): string {
   return family && given ? `${family}, ${given}` : (family || given);
 }
 
-function ageOn(dob: string, today: string): number | null {
+export function ageOn(dob: string, today: string): number | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dob);
   const t = /^(\d{4})-(\d{2})-(\d{2})/.exec(today);
   if (!m || !t) return null;
@@ -396,6 +400,7 @@ export function matchesCaseSearch(c: Case, criteria: CaseSearchCriteria, ctx: Ca
     const used = (c.synopticReports ?? []).map(r => r.templateId);
     if (!k.synopticTemplateIds.some(id => used.includes(id))) return false;
   }
+  if (nonEmpty(k.synopticValues) && !caseMatchesSynopticValues(c, k.synopticValues, ctx.synopticFields)) return false;
   if (nonEmpty(k.pathologistIds)) {
     const staff = caseStaffInRole(c, k.pathologistRole ?? 'any', ctx);
     if (!k.pathologistIds.some(id => staff.has(id))) return false;

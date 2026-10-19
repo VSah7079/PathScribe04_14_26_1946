@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 606 \u2014 simulated printing and site agent, label designer drives print, slide layout, gross weight and photo, report page setup (unit and component tests)",
+    "description": "Vitest, 2026-10-18: full suite 1247 files; 10,297 tests passed on the first run; the failures that run showed (PHI-tag guard, explicit-any baseline, direct mock import guard, one test mock) were fixed in Batch 605 files and their tests re-run and passed. firestore.rules.test.ts needs the Firestore emulator (not run). Not run: browser check; real engine, printers, vendors, site agent and server (not in this repository); native-speaker review of fr/de/nl/ko text."
+  },
+  "tests": [
+    {
+      "testKey": "PS-771",
+      "start": "2026-10-17T22:10:00Z",
+      "finish": "2026-10-18T07:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Config/System/PrintSettingsSection.test.tsx\nPASSED: src/components/Config/System/SimulatedPrintLogSection.test.tsx\nPASSED: src/components/Config/System/SlideLabelLayoutEditor.test.tsx\nPASSED: src/pages/LabelDesignerPage/LabelDesignerPage.test.tsx\nPASSED: src/pages/PrintQueueDashboardSection.test.tsx\nPASSED: src/pages/SynopticReportPage/modals/SpecimenEditModal.weight.test.tsx\nPASSED: src/pages/SynopticReportPage/modals/TechnicalComponentFacilityField.test.tsx\nPASSED: src/services/cytology/cytologyRenderPayload.test.ts\nPASSED: src/services/facilities/resolveSplitReportBranding.test.ts\nPASSED: src/services/grossingHardware/captureGrossWeight.test.ts\nPASSED: src/services/labelDesigner/savedLayoutRegistry.test.ts\nPASSED: src/services/printing/attemptPrintDelivery.test.ts\nPASSED: src/services/printing/simulatedPrint.test.ts\nPASSED: src/services/reportAppearance/pageSetup.test.ts\nPASSED: src/utils/labels/dispatchSlideLabel.ledger.test.ts\nPASSED: src/utils/labels/dispatchZplLabel.simulated.test.ts\nPASSED: src/utils/labels/pathscribeAgent/pathscribeAgentClient.test.ts\nPASSED: src/utils/labels/printCassetteSlideLabel.test.ts\nPASSED: src/utils/labels/printMolecularLabels.test.ts\nPASSED: src/utils/labels/printRequisitionAndContainerLabels.test.ts\nPASSED: src/utils/labels/zplTemplates.test.ts"
+    }
+  ]
+}

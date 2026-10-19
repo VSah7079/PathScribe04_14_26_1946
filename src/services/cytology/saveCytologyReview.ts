@@ -258,6 +258,7 @@ async function selectQc(input: SaveCytologyReviewInput, review: CytologyReviewRe
         encounters.ok ? encounters.data : [],
         specimen?.cytologyScreening?.persistentContactBleedingAtCollection,
         now,
+        specimen?.cytologyScreening?.priorCervicalProcedure,
       );
       if (resolveCytologyHighRiskStatus(factors).isHighRisk) {
         return { reason: 'targeted_high_risk', flag: { reason: 'targeted_high_risk', flaggedBy: 'system', flaggedByName: 'Automatic High-Risk Patient Identification', flaggedAt: now.toISOString() } };

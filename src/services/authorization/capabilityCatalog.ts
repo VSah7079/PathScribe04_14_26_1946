@@ -117,6 +117,10 @@ export const CAPABILITY_CATALOG = [
   // Quality & Compliance hub
   { key: 'screen:audit-log:open',            labelId: 'screenAuditLogOpen',            group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:quality-assurance:open',    labelId: 'screenQualityAssuranceOpen',    group: 'screens', risk: 'standard', requires: [] },
+  // Batch 610 (#61, #89): the three-tier autopsy dashboards, in Quality & Compliance.
+  { key: 'screen:autopsy-dashboards:open',   labelId: 'screenAutopsyDashboardsOpen',   group: 'screens', risk: 'standard', requires: [] },
+  // Batch 619 (PS-800): the one Outbound Queue, in the Quality & Compliance hub.
+  { key: 'screen:outbound-queue:open',       labelId: 'screenOutboundQueueOpen',       group: 'screens', risk: 'standard', requires: [] },
   // Batch 421 (Registry Engine SRS v2.1, FR-008.6): the Registry Exceptions worklist, in Quality & Compliance.
   { key: 'screen:registry-exceptions:open', labelId: 'screenRegistryExceptionsOpen', group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:configuration:open',        labelId: 'screenConfigurationOpen',       group: 'screens', risk: 'standard', requires: [] },
@@ -184,11 +188,17 @@ export const CAPABILITY_CATALOG = [
   // Batch 417 (Registry Engine SRS v2.1, FR-004.3): recording or removing a
   // patient's national identifier (NHS number, BSN, IHI…), the number every
   // registry keys on. Checked in services/patientIdentifiers/recordNationalPatientIdentifier.ts.
+  // Batch 603 (Pete, dev review): break-glass rebind was open to a role string; now its own permission. It still needs a reason code and a written justification (the service enforces both) and is audited.
+  { key: 'patient:break-glass:rebind', labelId: 'patientBreakGlassRebind', group: 'casework', risk: 'high', requires: [] },
   { key: 'patient:national-identifier:record', labelId: 'patientNationalIdentifierRecord', group: 'casework', risk: 'high', requires: [] },
   // Batch 418 (SRS v2.1, FR-008.1): recording a patient's registry opt-outs
   // (screening programme; cancer registry where the law allows). Checked in
   // services/registryConsent/recordPatientRegistryConsent.ts.
   { key: 'patient:registry-consent:record', labelId: 'patientRegistryConsentRecord', group: 'casework', risk: 'high', requires: [] },
+  // Batch 613 (Pete, Oct 18, 2026): a patient's other cases the signed-in user cannot open. Asking is standard risk; deciding
+  // (approve, deny, revoke) is high risk. Deciding is also limited, in the service, to the case's assigned pathologist or an administrator.
+  { key: 'patient:other-cases:request-access', labelId: 'patientOtherCasesRequestAccess', group: 'casework', risk: 'standard', requires: [] },
+  { key: 'patient:other-cases:decide-access',  labelId: 'patientOtherCasesDecideAccess',  group: 'casework', risk: 'high',     requires: [] },
 
   // Batch 390 (PS-340): correcting a signed-out cytology diagnosis, and adding
   // an addendum to one, are two separate acts (a correction replaces what was
@@ -314,6 +324,14 @@ export const CAPABILITY_CATALOG = [
   { key: 'retention:material:dispose',             labelId: 'retentionMaterialDispose',           group: 'casework', risk: 'high', requires: [] },
   // Batch 452: removing a decant from the material tree.
   { key: 'case:decant:delete',                     labelId: 'caseDecantDelete',                   group: 'casework', risk: 'high', requires: [] },
+  // Batch 588 (Pete, Oct 16 2026): deleting a block that is still in process (a soft delete: the
+  // block stays on the case marked Deleted). Which roles hold it is each facility's choice through
+  // its role grants. Checked in services/material/deleteBlockInProcess.ts.
+  { key: 'material:block:delete-in-process',       labelId: 'materialBlockDeleteInProcess',       group: 'casework', risk: 'high', requires: [] },
+  { key: 'material:block:delete-signed-out',       labelId: 'materialBlockDeleteSignedOut',       group: 'casework', risk: 'high', requires: [] },
+  { key: 'material:block:flag-amended',             labelId: 'materialBlockFlagAmended',           group: 'casework', risk: 'high', requires: [] },
+  { key: 'batch:cold-chain-reading:simulate',       labelId: 'batchColdChainReadingSimulate',      group: 'casework', risk: 'standard', requires: [] },
+  { key: 'retention:holds-queue:export',            labelId: 'retentionHoldsQueueExport',          group: 'casework', risk: 'high', requires: [] },
   // Batch 454 (Pete): marking a signed-out surgical case "follow-up specimen
   // expected" (a resection or excision), so the lab is told if none arrives in
   // the biopsy-to-resection window. Checked in services/followUp/followUpActions.ts.
@@ -332,6 +350,15 @@ export const CAPABILITY_CATALOG = [
   // flag (VIP, confidential consultation). Checked on top of report:case-report:print
   // (services/printing/reportPrintGate.ts).
   { key: 'report:restricted-case:print', labelId: 'reportRestrictedCasePrint', group: 'casework', risk: 'high', requires: ['report:case-report:print'] },
+  // Batch 609 (PS-44): attaching images to a case's report (gross photographs,
+  // microphotographs) and taking them off. They print after the report's own
+  // pages, so the action changes what leaves the lab. Checked in
+  // services/imageAssociation/caseReportImages.ts; seeded to every role with
+  // case access (the people who handle the case's images today).
+  { key: 'report:case-images:attach', labelId: 'reportCaseImagesAttach', group: 'casework', risk: 'standard', requires: [] },
+  // Batch 613: a patient's other released cases, sent with the report being signed out; and the Patient summary print.
+  { key: 'report:related-cases:attach', labelId: 'reportRelatedCasesAttach', group: 'casework', risk: 'standard', requires: [] },
+  { key: 'patient:summary:print', labelId: 'patientSummaryPrint', group: 'casework', risk: 'high', requires: [] },
   // Batch 458 (PS-71): "Overwrite" on the report page's Edit Conflict dialog:
   // save this session's changes over a newer version someone else saved.
   // Checked in services/cases/caseWrite.ts overwriteAfterConflict.
@@ -347,6 +374,9 @@ export const CAPABILITY_CATALOG = [
   // services/contribution/contributionExports.ts; seeded to the roles that
   // open Search and My Contributions (keep today's users).
   { key: 'search:case-results:export',                labelId: 'searchCaseResultsExport',               group: 'casework', risk: 'high', requires: ['screen:search:open'] },
+  // Batch 613: reporting on search results. The grouped or column-chosen report file is its own export; scheduling a report is its own action.
+  { key: 'search:case-report:export',                 labelId: 'searchCaseReportExport',                group: 'casework', risk: 'high', requires: ['screen:search:open'] },
+  { key: 'search:report-schedule:manage',             labelId: 'searchReportScheduleManage',            group: 'casework', risk: 'high', requires: ['screen:search:open'] },
   { key: 'contribution:trainee-case-reference:export', labelId: 'contributionTraineeCaseReferenceExport', group: 'casework', risk: 'high', requires: ['screen:my-contributions:open'] },
   { key: 'contribution:case-mix-summary:export',      labelId: 'contributionCaseMixSummaryExport',      group: 'casework', risk: 'high', requires: ['screen:my-contributions:open'] },
 
@@ -382,6 +412,10 @@ export const CAPABILITY_CATALOG = [
   // access to its own billing (the staff member's facility assignment limits
   // whose charges they can decide).
   { key: 'billing:charge:approve', labelId: 'billingChargeApprove', group: 'billing', risk: 'high', requires: [] },
+  // Batch 611 (#189): Smart Capture, a labelled prototype that suggests charge lines for a person to review.
+  { key: 'billing:smart-capture:review', labelId: 'billingSmartCaptureReview', group: 'billing', risk: 'standard', requires: [] },
+  { key: 'billing:smart-capture:approve', labelId: 'billingSmartCaptureApprove', group: 'billing', risk: 'high', requires: [] },
+  { key: 'billing:smart-capture:send', labelId: 'billingSmartCaptureSend', group: 'billing', risk: 'high', requires: [] },
 
   // ── Autopsy (Batch 383) ───────────────────────────────────────────────────
   // Releasing a body ends the mortuary's custody: it records who received it
@@ -479,6 +513,9 @@ export const CAPABILITY_CATALOG = [
   // "nobody by default" the way cytology:qc-review:bypass or
   // autopsy:gross-exam-gate:override are (see capabilitySeeds.ts).
   { key: 'config:inking-validation-mode:manage', labelId: 'configInkingValidationModeManage', group: 'configSystem', risk: 'high', requires: [] },
+  // Batch 595: which code systems (ICD-10, ICD-11, ICD-O, SNOMED CT ...) each
+  // jurisdiction uses, and when. Checked in services/coding/codeSystemPolicyService.ts.
+  { key: 'config:code-systems:manage', labelId: 'configCodeSystemsManage', group: 'configSystem', risk: 'high', requires: [] },
 
   // Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic Engine;
   // PS-519 follow-up). The Administrative Override action at Gate B
@@ -517,6 +554,8 @@ export const CAPABILITY_CATALOG = [
   { key: 'qa:drift-correction:export',        labelId: 'qaDriftCorrectionExport',        group: 'qaOperations', risk: 'high', requires: [] },
   { key: 'qa:patient-match-review:export',    labelId: 'qaPatientMatchReviewExport',     group: 'qaOperations', risk: 'high', requires: [] },
   { key: 'qa:access-request-response:export', labelId: 'qaAccessRequestResponseExport', group: 'qaOperations', risk: 'high', requires: [] },
+  // Batch 610 (#78): the AI discordance tab's two CSV exports (per-vendor discordance rate, stalled AI results).
+  { key: 'qa:ai-discordance:export',          labelId: 'qaAiDiscordanceExport',          group: 'qaOperations', risk: 'high', requires: [] },
   // Batch 425: the registry transmission audit (screening and cancer, one column set: sent time,
   // registry status, the registry's response code). Checked in services/qualityAssurance/qaExport.ts,
   // called by services/registrySubmission/registryExceptionsService.ts (exportRegistryTransmissionAudit).
@@ -555,6 +594,15 @@ export const CAPABILITY_CATALOG = [
   // Batch 518 (PS-122): send, resend or simulate a failure for an outbound
   // interface message (Audit Log → Interfaces → Outbound, every queue).
   { key: 'interface:outbound:resend', labelId: 'interfaceOutboundResend', group: 'qaOversight', risk: 'high', requires: [] },
+  // Batch 619 (PS-800): hold and release an outbound message from the Outbound Queue screen
+  // (services/outboundQueue/outboundQueueService.ts); retry there uses interface:outbound:resend.
+  { key: 'interface:outbound:hold', labelId: 'interfaceOutboundHold', group: 'qaOversight', risk: 'high', requires: ['screen:outbound-queue:open'] },
+  { key: 'interface:outbound:release', labelId: 'interfaceOutboundRelease', group: 'qaOversight', risk: 'high', requires: ['screen:outbound-queue:open'] },
+  // Billing release runs through the Outbound Queue (Pete, Oct 19): cancel a queued charge before release, or force an immediate release.
+  { key: 'interface:outbound:retract', labelId: 'interfaceOutboundRetract', group: 'qaOversight', risk: 'high', requires: ['screen:outbound-queue:open'] },
+  { key: 'interface:outbound:override-release', labelId: 'interfaceOutboundOverrideRelease', group: 'qaOversight', risk: 'high', requires: ['screen:outbound-queue:open'] },
+  // Close a message the receiving registry rejected as not reportable (nothing more is sent for it).
+  { key: 'interface:outbound:mark-not-reportable', labelId: 'interfaceOutboundMarkNotReportable', group: 'qaOversight', risk: 'high', requires: ['screen:outbound-queue:open'] },
   // Batch 551 (PS-539 phase 2d; MESSAGE_BUS_API.md §4): the API server's background jobs (System Logs →
   // Server jobs): see the job kinds' health and the dead-lettered jobs; requeue one (delivery, held release,
   // charge, export and event jobs; interface and print jobs keep their own resend capabilities).
@@ -591,6 +639,8 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:demo-data:reset',     labelId: 'configDemoDataReset',      group: 'administration', risk: 'high', requires: [] },
   // PS-359 (Batch 376): which fields each page requires, for the person's own organisation.
   { key: 'config:field-requirements:manage', labelId: 'configFieldRequirementsManage', group: 'administration', risk: 'high', requires: [] },
+  // Batch 611 (#157): resetting a colleague's second-factor enrolment (a lost device), own organisation only.
+  { key: 'auth:mfa-enrolment:reset', labelId: 'authMfaEnrolmentReset', group: 'administration', risk: 'high', requires: [] },
   // Batch 399: the critical intraoperative results dictionary decides when a
   // frozen result needs direct communication with the operating surgeon, so
   // changing it is an administrative, audited act. Checked in
@@ -712,11 +762,14 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:physicians:manage', labelId: 'configPhysiciansManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:departments:manage', labelId: 'configDepartmentsManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:asset-locations:manage', labelId: 'configAssetLocationsManage', group: 'configLab', risk: 'high', requires: [] },
+  { key: 'config:cold-chain:manage', labelId: 'configColdChainManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:case-masks:manage', labelId: 'configCaseMasksManage', group: 'configLab', risk: 'high', requires: [] },
   // Results, reporting and quality
   { key: 'config:participation-types:manage', labelId: 'configParticipationTypesManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:release-buffer:manage', labelId: 'configReleaseBufferManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:delivery-rules:manage', labelId: 'configDeliveryRulesManage', group: 'configQuality', risk: 'high', requires: [] },
+  // Batch 619 (PS-800): when reports, billing and feeds go out (enterprise level, performing-facility overrides).
+  { key: 'config:delivery-schedules:manage', labelId: 'configDeliverySchedulesManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:abnormal-triggers:manage', labelId: 'configAbnormalTriggersManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:concordance-review:manage', labelId: 'configConcordanceReviewManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:qa-types:manage', labelId: 'configQaTypesManage', group: 'configQuality', risk: 'high', requires: [] },
@@ -774,6 +827,13 @@ export const CAPABILITY_CATALOG = [
   // make an enrolment code or revoke an agent; change the site's agent printers and shares.
   { key: 'config:site-agents:enroll', labelId: 'configSiteAgentsEnroll', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:site-agent-config:manage', labelId: 'configSiteAgentConfigManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  // Batch 612: the workstation registry.
+  { key: 'config:workstations:manage', labelId: 'configWorkstationsManage', group: 'configSystem', risk: 'high', requires: [] },
+  { key: 'config:workstation-tokens:manage', labelId: 'configWorkstationTokensManage', group: 'configSystem', risk: 'high', requires: [] },
+  // Batch 613 (PS-787): the reporting feed for Power BI and other BI tools.
+  { key: 'config:bi-feed:manage', labelId: 'configBiFeedManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  { key: 'config:bi-feed-tokens:manage', labelId: 'configBiFeedTokensManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  { key: 'config:bi-feed-identified:approve', labelId: 'configBiFeedIdentifiedApprove', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:crosswalk:manage', labelId: 'configCrosswalkManage', group: 'configIntegrations', risk: 'high', requires: [] },
   // Batch 517 (PS-143): a lab's secure messaging gateways and their BAA / data processing agreements.
   { key: 'config:secure-messaging:manage', labelId: 'configSecureMessagingManage', group: 'configIntegrations', risk: 'high', requires: [] },
@@ -782,6 +842,8 @@ export const CAPABILITY_CATALOG = [
   { key: 'assist:lis-message:ingest', labelId: 'assistLisMessageIngest', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:interface-preview:view', labelId: 'configInterfacePreviewView', group: 'configIntegrations', risk: 'high', requires: [] },
   // Billing tables
+  // Batch 619 (PS-800): when generated charges are released to billing (per billing type, enterprise default with performing-facility overrides).
+  { key: 'config:billing-release:manage', labelId: 'configBillingReleaseManage', group: 'configBilling', risk: 'high', requires: [] },
   { key: 'config:billing-rules:manage', labelId: 'configBillingRulesManage', group: 'configBilling', risk: 'high', requires: [] },
   { key: 'config:billing-tables:approve', labelId: 'configBillingTablesApprove', group: 'configBilling', risk: 'high', requires: [] },
   { key: 'config:billing-code-import:run', labelId: 'configBillingCodeImportRun', group: 'configBilling', risk: 'high', requires: [] },
@@ -791,6 +853,7 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:billing-triggers:manage', labelId: 'configBillingTriggersManage', group: 'configBilling', risk: 'high', requires: [] },
   { key: 'config:payment-types:manage', labelId: 'configPaymentTypesManage', group: 'configBilling', risk: 'high', requires: [] },
   { key: 'config:payment-mappings:manage', labelId: 'configPaymentMappingsManage', group: 'configBilling', risk: 'high', requires: [] },
+  { key: 'config:smart-capture:manage', labelId: 'configSmartCaptureManage', group: 'configBilling', risk: 'high', requires: [] },
   // Security and system
   { key: 'config:session-security:manage', labelId: 'configSessionSecurityManage', group: 'configSystem', risk: 'high', requires: [] },
   { key: 'config:report-appearance:manage', labelId: 'configReportAppearanceManage', group: 'configSystem', risk: 'high', requires: [] },
@@ -828,6 +891,14 @@ export const CAPABILITY_CATALOG = [
   // rules) were already ForMedrixAI support's alone, by a role check in the service; now a capability,
   // checked in services/participationTypes/saveCountryProfiles.ts.
   { key: 'platform:signing-rules:manage', labelId: 'platformSigningRulesManage', group: 'platform', risk: 'high', requires: [], platformOnly: true },
+  // Batch 612: the Interface Dictionary / Message Mapper (Configuration → System → Interface Dictionary).
+  // Pete: only ForMedrixAI staff build vendor profiles. Checked in services/interfaceDictionary/interfaceDictionaryServices.ts.
+  // Create a vendor profile, open a draft, edit its mappings and test it against a pasted sample.
+  { key: 'platform:interface-dictionary:manage', labelId: 'platformInterfaceDictionaryManage', group: 'platform', risk: 'high', requires: [], platformOnly: true },
+  // Make a tested version live, roll back to the version before, or switch a profile off.
+  { key: 'platform:interface-dictionary:publish', labelId: 'platformInterfaceDictionaryPublish', group: 'platform', risk: 'high', requires: ['platform:interface-dictionary:manage'], platformOnly: true },
+  // Demo only: apply a pasted vendor message to a case so the Vendor fields panel can be seen. Labelled Simulated.
+  { key: 'platform:interface-dictionary:simulate', labelId: 'platformInterfaceDictionarySimulate', group: 'platform', risk: 'high', requires: ['platform:interface-dictionary:manage'], platformOnly: true },
 ] as const satisfies readonly CapabilityDefinition[];
 
 /** A key that is in the catalog. */

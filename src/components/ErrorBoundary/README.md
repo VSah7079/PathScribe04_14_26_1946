@@ -15,3 +15,7 @@ Tests: `ErrorBoundary.test.tsx` — the recovery screen, the unsaved-changes wor
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
+
+## Batch 589 — Nav bar on the recovery screen (PS-472)
+
+`ErrorBoundary` takes `onErrorChange(crashed)`; `RouteErrorBoundary` passes it on. `AppShell` uses it to show the nav bar while a page that hides it (the case report) shows the recovery screen.

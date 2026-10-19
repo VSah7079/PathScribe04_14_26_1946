@@ -5,11 +5,12 @@
 // (the screen is gated). Kept to the latest 200 runs.
 import { storageGet, storageSet } from '../mockStorage';
 import type { LabelReprintRun } from './batchLabelReprint';
+import type { ILabelReprintRunService } from './ILabelReprintRunService';
 
 export const LABEL_REPRINT_RUNS_KEY = 'pathscribe_label_reprint_runs';
 const MAX_RUNS = 200;
 
-export const mockLabelReprintRunService = {
+export const mockLabelReprintRunService: ILabelReprintRunService = {
   async list(): Promise<LabelReprintRun[]> {
     return storageGet<LabelReprintRun[]>(LABEL_REPRINT_RUNS_KEY, []);
   },

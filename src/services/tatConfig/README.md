@@ -46,3 +46,11 @@ Before, anyone who could open Configuration could change this; now each change i
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 610 (part A) — Autopsy PAD/FAD rules, frozen section clock (#87, #88)
+
+`TATType` gains `AUTOPSY_PAD` and `AUTOPSY_FAD`; `TATEntry.warningMinutes` (frozen section only, whole minutes, above 0 and below the target); `resolveFrozenSectionClock.ts` returns target and warning minutes for STAT or routine (defaults 20 and 5); `resolveTatEntry` is generic over the entry type.
+
+## Batch 617 (part C): server versions (PS-514)
+
+The TAT target service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.

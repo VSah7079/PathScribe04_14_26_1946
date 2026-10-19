@@ -5,7 +5,7 @@
 // Protocol-Driven Workflow Infrastructure story's Part 2a. Same real
 // "ingest our own specification" posture as processInboundHpvResultEvent.ts:
 // takes an already-translated, PathScribe-shaped event and applies it
-// through mockBatchService.setCytologyInstrumentStatus, the exact same
+// through batchService.setCytologyInstrumentStatus, the exact same
 // service every UI action on a Batch already goes through. The real
 // instrument's own raw wire format -> this shape is a real interface-
 // engine concern, deliberately kept out of this file, same real split
@@ -26,7 +26,7 @@
 // separate check, not silently assumed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockBatchService } from '../batches/mockBatchService';
+import { batchService } from '../batches/batchServiceInstance';
 import type { CytologyInstrumentStatusEventPayload } from '@/types/events/CytologyInstrumentStatusEventPayload';
 
 export interface ProcessInboundCytologyInstrumentStatusEventResult {
@@ -51,7 +51,7 @@ export async function processInboundCytologyInstrumentStatusEvent(
     return { messageId: payload.messageId, outcome: 'invalid-payload', reason: 'Missing one or more required fields: masterBarcode, status.' };
   }
 
-  const batchRes = await mockBatchService.getByMasterBarcode(payload.masterBarcode);
+  const batchRes = await batchService.getByMasterBarcode(payload.masterBarcode);
   if (!batchRes.ok) {
     return { messageId: payload.messageId, outcome: 'batch-not-found', reason: 'error' in batchRes ? batchRes.error : 'Unknown error.' };
   }
@@ -61,7 +61,7 @@ export async function processInboundCytologyInstrumentStatusEvent(
     return { messageId: payload.messageId, outcome: 'wrong-node', batchId: batch.id, reason: `Batch ${batch.masterBarcode} is a '${batch.processingNode}' batch, not 'Cytology Processing' — instrument status events only apply to a ThinPrep processor batch.` };
   }
 
-  const updateRes = await mockBatchService.setCytologyInstrumentStatus(batch.id, payload.status);
+  const updateRes = await batchService.setCytologyInstrumentStatus(batch.id, payload.status);
   if (!updateRes.ok) {
     return { messageId: payload.messageId, outcome: 'invalid-payload', batchId: batch.id, reason: 'error' in updateRes ? updateRes.error : 'Unknown error.' };
   }

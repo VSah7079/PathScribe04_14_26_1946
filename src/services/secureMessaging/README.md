@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/secureMessaging
 
 Batch 517 (PS-143). These files hold the secure messaging gateways a lab can send through, and the agreement that allows patient data through each one.
@@ -35,3 +37,7 @@ Henry Ford and the EU and Canadian demo labs have no gateway, so they show the "
 - The real transports (PS-332).
 - Pete to confirm which of the AU/NZ/KR networks to support first (Jira PS-143).
 - A per-site gateway (below the tenant), if a lab wants one.
+
+## Batch 616 (part E) — server version
+
+API-server version of `SecureMessagingConfig` (`httpSecureMessagingConfigService.ts`, contract `FLAGS_AND_MESSAGES_API.md`), picked by `secureMessagingConfigServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

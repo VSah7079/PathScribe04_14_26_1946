@@ -12,7 +12,7 @@
 import type { Case } from '@/types/case/Case';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockCytologyOutboundResultQueueService } from './mockCytologyOutboundResultQueueService';
+import { cytologyOutboundResultQueueService } from './cytologyOutboundResultQueueServiceInstance';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import type { CytologyPreliminaryOruR01Payload } from './buildCytologyPreliminaryOruR01Payload';
 import type { ReportPdf } from '../reportDocuments/reportDocuments';
@@ -45,23 +45,23 @@ export async function dispatchCytologyPreliminary(caseId: string, releaseId: str
   if (!patientRecord) return 0;
   // Batch 538: the release's report document; recorded on the entry so a retry sends the same bytes.
   const doc = generatePdf ? await generatePdf().catch((e: unknown) => ({ generationError: e instanceof Error ? e.message : 'unknown error' }) as ReportPdf) : undefined;
-  const enqueueRes = await mockCytologyOutboundResultQueueService.enqueue({
+  const enqueueRes = await cytologyOutboundResultQueueService.enqueue({
     caseId, signOutRecordId: releaseId, resultState: 'PRELIMINARY', scope: 'preliminary', organisationId: (patientRecord as { organisationId: string }).organisationId,
     ...(doc?.documentId ? { reportDocumentId: doc.documentId, ...(doc.sha256 ? { pdfSha256: doc.sha256 } : {}) } : {}),
   });
   if (!enqueueRes.ok) return 0;
   const built = await buildCytologyPreliminaryMessage(caseData, releaseId, doc ? async () => doc : undefined);
   if ('held' in built) {
-    await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, { errorCode: 'DISPATCH_REJECTED', errorMessage: built.held, maxRetriesExceeded: false });
+    await cytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, { errorCode: 'DISPATCH_REJECTED', errorMessage: built.held, maxRetriesExceeded: false });
     return 0;
   }
   const sent = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', built.payload as unknown as Record<string, unknown>);
   if (sent.ok) {
-    await mockCytologyOutboundResultQueueService.markSent(enqueueRes.data.id);
+    await cytologyOutboundResultQueueService.markSent(enqueueRes.data.id);
     return 1;
   }
   const failure = sent as { errorCode?: 'DISPATCH_TIMEOUT' | 'DISPATCH_UNREACHABLE' | 'DISPATCH_REJECTED'; error?: string };
-  await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+  await cytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
     errorCode: failure.errorCode ?? 'DISPATCH_REJECTED', errorMessage: failure.error ?? 'Unknown dispatch failure.', maxRetriesExceeded: false,
   });
   return 0;

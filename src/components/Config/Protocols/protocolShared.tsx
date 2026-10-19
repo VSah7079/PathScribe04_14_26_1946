@@ -31,6 +31,8 @@ import '../../../pathscribe.css';
 import type { TemplateApproval } from '../../../services/templates/templatePublishingRules';
 import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
 import { pressable } from '@/utils/a11y/pressable';
+import { validateProtocolUpload, draftFromUpload, type ProtocolUploadResult } from '../../../services/templates/protocolUploadValidation';
+import { findProtocolNameConflict } from '../../../services/templates/protocolLifecycle';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -597,12 +599,41 @@ export const UploadProtocolModal: React.FC<{
   const [govBody,  setGovBody]  = React.useState<GoverningBody>('CAP');
   const [file,     setFile]     = React.useState<File | null>(null);
   const [dragging, setDragging] = React.useState(false);
+  // Batch 609 (#39): the file is read and checked as soon as it is chosen.
+  const [result,   setResult]   = React.useState<ProtocolUploadResult | null>(null);
+  const [checking, setChecking] = React.useState(false);
+  const [importing, setImporting] = React.useState(false);
+  const [importedName, setImportedName] = React.useState<string | null>(null);
+  const [importError, setImportError] = React.useState<'failed' | 'nameExists' | null>(null);
+
+  const chooseFile = async (chosen: File) => {
+    setFile(chosen); setResult(null); setImportedName(null); setImportError(null); setChecking(true);
+    try {
+      const bytes = new Uint8Array(await chosen.arrayBuffer());
+      setResult(await validateProtocolUpload({ name: chosen.name, size: chosen.size }, bytes));
+    } catch {
+      setResult({ format: 'unknown', ok: false, findings: [{ level: 'error', code: 'EMPTY_FILE' }], verifiedAgainstGoverningBody: false });
+    } finally { setChecking(false); }
+  };
+
+  // Only a PathScribe protocol file can be saved; it becomes a draft that goes through review like any other.
+  const importAsDraft = async () => {
+    if (!result?.importable) return;
+    setImporting(true); setImportError(null);
+    try {
+      const draft = draftFromUpload(result.importable, govBody, `tmpl-upload-${Date.now()}`);
+      if (findProtocolNameConflict(PROTOCOL_REGISTRY, draft)) { setImportError('nameExists'); return; }
+      const { saveDraft } = await import('../../../services/templates/templateService');
+      await saveDraft(draft);
+      setImportedName(draft.name);
+    } catch { setImportError('failed'); } finally { setImporting(false); }
+  };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped) setFile(dropped);
+    if (dropped) void chooseFile(dropped);
   };
 
   return (
@@ -637,7 +668,7 @@ export const UploadProtocolModal: React.FC<{
           </div>
 
           {/* Drop zone. Batch 568: its hidden file input sits beside it, not inside it (no control inside a button). */}
-          <input id="ps-upload-input" type="file" accept=".json,.xml,.xlsx" className="ps-pshare-hidden-file-input" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
+          <input id="ps-upload-input" type="file" accept=".json,.xml,.xlsx" className="ps-pshare-hidden-file-input" onChange={e => { const chosen = e.target.files?.[0]; if (chosen) void chooseFile(chosen); }} />
           <div
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
@@ -660,6 +691,33 @@ export const UploadProtocolModal: React.FC<{
             )}
           </div>
 
+          {/* Batch 609 (#39): the result of reading the file. The format is checked; the content is not verified against CAP or RCPath. */}
+          {file && (
+            <div className="ps-pshare-check" role="status" aria-live="polite">
+              {checking || !result ? (
+                <div className="ps-pshare-check-head">{t('protocolShared.uploadModal.check.checking')}</div>
+              ) : (
+                <>
+                  <div className="ps-pshare-check-head">
+                    <span className={`ps-pshare-check-badge ${result.ok ? 'ps-pshare-check-badge--ok' : 'ps-pshare-check-badge--bad'}`}>
+                      {result.ok ? t('protocolShared.uploadModal.check.formatOk') : t('protocolShared.uploadModal.check.formatProblems')}
+                    </span>
+                    <span className="ps-pshare-check-unverified">{t('protocolShared.uploadModal.check.unverified')}</span>
+                  </div>
+                  <ul className="ps-pshare-check-list">
+                    {result.findings.map((f, i) => (
+                      <li key={`${f.code}-${i}`} className={`ps-pshare-check-item ps-pshare-check-item--${f.level}`}>
+                        {t(`protocolShared.uploadModal.check.codes.${f.code}`, f.params)}
+                      </li>
+                    ))}
+                  </ul>
+                  {importedName && <div className="ps-pshare-check-item ps-pshare-check-item--info" role="status">{t('protocolShared.uploadModal.check.imported', { name: importedName })}</div>}
+                  {importError && <div className="ps-pshare-check-item ps-pshare-check-item--error" role="alert">{t(`protocolShared.uploadModal.check.importErrors.${importError}`)}</div>}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Warning */}
           <div className="ps-pshare-warning">
             <span className="ps-pshare-warning-prefix">ℹ️ {t('protocolShared.uploadModal.warningPrefix')} </span>
@@ -670,10 +728,11 @@ export const UploadProtocolModal: React.FC<{
           <div className="ps-pshare-actions">
             <button onClick={onClose} className="ps-conf-btn-secondary">{t('common.cancel')}</button>
             <button
-              disabled={!file} onClick={onClose}
+              disabled={importedName ? false : !result?.importable || importing || checking}
+              onClick={importedName ? onClose : () => { void importAsDraft(); }}
               className="ps-conf-btn-teal-accent"
             >
-              {t('protocolShared.uploadModal.uploadButton')}
+              {importedName ? t('common.close') : t('protocolShared.uploadModal.importButton')}
             </button>
           </div>
         </div>

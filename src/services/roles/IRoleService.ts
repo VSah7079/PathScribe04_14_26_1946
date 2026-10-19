@@ -17,6 +17,9 @@ export interface Role {
    *  capability an administrator removed isn't added back
    *  (services/authorization/capabilitySeeds.ts). */
   seededCapabilities?: string[];
+  /** Batch 600: voice and keyboard commands this built-in role has already been offered
+   *  (services/roles/actionSeeds.ts), so one an administrator removed isn't added back. */
+  seededActions?: string[];
   /** false: can't be given to a staff member (Superadmin, held only through
    *  a PathScribe support sign-in). Absent means assignable. */
   assignable?: boolean;

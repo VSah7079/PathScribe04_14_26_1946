@@ -30,3 +30,13 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 567 (WCAG 2.1 AA, 4.1.2)
 
 - `AddCodeModal.tsx`: AI suggestion rows and search results can hold a button (Move here), so they are no longer buttons. Clicking a row still applies its code; the icon at its end is now a button that does the same ("Apply code"), and once applied the "✓ ×n" mark is the button that applies it again (its name keeps the visible text: `addCodeModal.applyAgainLabel`). A row whose code is on another specimen is no longer an empty tab stop.
+
+## Batch 607 (code systems and coding)
+
+- **`useCodePolicy.ts`:** the code-system policy for the lab's jurisdiction (default until loaded). `AddCodeModal.tsx` shows only allowed systems, marks required ones, and refuses a code from a system that is off.
+- **`Opcs4Notice.tsx`:** the "needs NHS TRUD licence" notice and a Simulated, read-only sample list.
+- **`CaseCodingDisplay.tsx`:** coded entries with release, source and AI detail, and ICD-10 beside ICD-11 (Simulated map). `AddCodeModal` hands the entries back as the third argument of `onAddToSpecimens`; `SynopticReportPage` stores them in `Case.coding.entries`.
+
+## Batch 615 (PS-138): searches for flagged findings
+
+`AddCodeModal` takes `triggerQueries` (matched abnormal-detection triggers). Each shows as a button above the system tabs (`acd-trigger-*` classes); pressing one switches to SNOMED, selects the finding's specimen and fills the search box. Only shown when SNOMED is allowed by the code-system policy. Test: `AddCodeModal.triggers.test.tsx`.

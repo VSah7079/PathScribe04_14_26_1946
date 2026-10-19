@@ -155,4 +155,17 @@ describe('resolveCytologyHighRiskFactorsForCase — real, per direct investigati
     );
     expect(factors.abnormalExamFindings).toBe(false);
   });
+
+  it('Batch 608 (#47): a procedure recorded at accessioning drives the prior-procedure factor', () => {
+    const f = (proc: 'leep' | 'none' | undefined, dx: string[]) => resolveCytologyHighRiskFactorsForCase(
+      { hpvResult: undefined, hpvGenotypeDetail: undefined }, [],
+      dx.length ? [{ diagnoses: dx.map(code => ({ code })) }] as never : [], undefined, new Date('2026-09-05'), proc);
+    expect(f('leep', []).priorCervicalProcedureOrBiopsy).toBe(true);
+    expect(f(undefined, []).priorCervicalProcedureOrBiopsy).toBeUndefined();
+    expect(f('none', ['N93.9']).priorCervicalProcedureOrBiopsy).toBe(false);
+    expect(f('none', ['Z87.410']).priorCervicalProcedureOrBiopsy).toBe(true);
+    // not recorded: the diagnosis history alone, as before
+    expect(f(undefined, ['Z87.410']).priorCervicalProcedureOrBiopsy).toBe(true);
+    expect(f(undefined, ['N93.9']).priorCervicalProcedureOrBiopsy).toBe(false);
+  });
 });

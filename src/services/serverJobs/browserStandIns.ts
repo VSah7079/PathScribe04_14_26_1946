@@ -39,6 +39,8 @@ export const BROWSER_STAND_INS: readonly BrowserStandIn[] = [
   { serverJob: 'followUp.dailyAlerts', file: 'services/followUp/followUpLive.ts', trigger: 'onLoad' },
   { serverJob: 'supportAccess.expire', file: 'services/supportAccess/defaultSupportAccessService.ts', trigger: 'onRead' },
   { serverJob: 'cytology.histologyCorrelationSweep', file: 'services/cytology/cytologyHistologyCorrelationLive.ts', trigger: 'onLoad' },
+  // Batch 605: the demo's simulated Assist poll schedule.
+  { serverJob: 'assist.pollLis', file: 'hooks/useSimulatedAssistSchedule.ts', trigger: 'timer' },
 ];
 
 /** The recurring jobs a `VITE_SERVER_JOBS` value names; unknown names are returned apart, to be reported (pure). */

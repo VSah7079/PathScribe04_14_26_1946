@@ -901,7 +901,25 @@ const SpecimenCard: React.FC<{ sessionId: string; specimen: IntraopSpecimen; onR
   const { t } = useTranslation();
   return (
   <div className="ps-intraop-specimen-card">
-    <div className="ps-intraop-specimen">{specimen.specimenLabel}</div>
+    <div className="ps-intraop-specimen">
+      {specimen.specimenLabel}
+      {/* Batch 610 (#68): one click switches the clock between the STAT and routine
+          frozen-section targets (TAT configuration). Gone once the diagnosis is
+          rendered, because the clock has stopped. */}
+      {!specimen.frozenDiagnosisRenderedAt && (
+        <button
+          type="button"
+          className={`ps-intraop-urgency ps-intraop-urgency--${(specimen.urgency ?? 'STAT').toLowerCase()}`}
+          title={t('intraopQueue.specimenCard.urgencyToggleTitle')}
+          onClick={async () => {
+            const res = await intraoperativeService.setSpecimenUrgency(sessionId, specimen.id, (specimen.urgency ?? 'STAT') === 'STAT' ? 'ROUTINE' : 'STAT');
+            if (res.ok) onRefresh();
+          }}
+        >
+          {t((specimen.urgency ?? 'STAT') === 'STAT' ? 'intraopQueue.specimenCard.urgencyStat' : 'intraopQueue.specimenCard.urgencyRoutine')}
+        </button>
+      )}
+    </div>
 
     {specimen.milestones.length > 0 && (
       <div className="ps-intraop-timeline">

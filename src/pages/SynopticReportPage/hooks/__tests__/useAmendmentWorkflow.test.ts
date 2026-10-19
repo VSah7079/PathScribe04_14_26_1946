@@ -38,6 +38,8 @@ import { resolveFinalDiagnosisText } from '@/services/reportTemplates/resolveFin
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
 import type { Case } from '@/types/case/Case';
 
+// Batch 609 (#31): an addendum's text is checked for a clinical-pathologic mismatch before release.
+vi.mock('../checkPeerReviewAndMismatch', () => ({ checkAddendumMismatch: vi.fn(async () => null) }));
 vi.mock('@/services/cases/CaseRouter', () => ({
   caseRouter: { updateCase: vi.fn().mockResolvedValue(undefined), getCase: vi.fn().mockResolvedValue(undefined) },
 }));
@@ -562,6 +564,40 @@ describe('useAmendmentWorkflow — handleAmendmentSubmit', () => {
       expect(log).toHaveBeenCalledWith('amendment_released', expect.objectContaining({
         type: 'addendum', reportInstanceId: 'SR-1', specimenId: 'sp-A',
       }));
+    });
+
+    it('Batch 609 (#31): an addendum with a high-risk mismatch is held for a decision, then released with the same fields', async () => {
+      const { amendmentService } = await import('@/services');
+      const { checkAddendumMismatch } = await import('../checkPeerReviewAndMismatch');
+      vi.mocked(amendmentService.release).mockClear();
+      vi.mocked(amendmentService.release).mockResolvedValue({ ok: true, data: { type: 'addendum', reportInstanceId: 'SR-1', specimenId: 'sp-A' } } as any);
+      const held = { suggestion: { kind: 'unexpected-malignancy', confidence: 85, source: 'ai' }, outcome: { risk: 'high', holdsSignOut: true } } as any;
+      vi.mocked(checkAddendumMismatch).mockResolvedValueOnce(held);
+      const caseData = makeTestCase({ synopticReports: [{ instanceId: 'SR-1', specimenId: 'sp-A', answers: {} }] as any });
+      const { result } = renderHook(() => useAmendmentWorkflow(baseParams({ caseData, amendmentMode: 'addendum', amendmentText: 'Deeper levels show carcinoma.' })));
+      await act(async () => { await result.current.openAmendmentDraft('addendum'); });
+
+      await act(async () => { await result.current.handleAmendmentSubmit({ addendumTitle: 'New finding', reasonId: 'ADD_IHC' }); });
+      expect(result.current.amendmentMismatch).toBe(held);
+      expect(amendmentService.release).not.toHaveBeenCalled();
+
+      await act(async () => { result.current.resumeAddendumAfterMismatch(); });
+      expect(result.current.amendmentMismatch).toBeNull();
+      expect(amendmentService.release).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ addendumTitle: 'New finding', body: 'Deeper levels show carcinoma.' }));
+    });
+
+    it('Batch 609 (#31): going back from the mismatch window releases nothing', async () => {
+      const { amendmentService } = await import('@/services');
+      const { checkAddendumMismatch } = await import('../checkPeerReviewAndMismatch');
+      vi.mocked(amendmentService.release).mockClear();
+      vi.mocked(checkAddendumMismatch).mockResolvedValueOnce({ suggestion: { kind: 'other', confidence: 90, source: 'ai' }, outcome: { risk: 'high', holdsSignOut: true } } as any);
+      const caseData = makeTestCase({ synopticReports: [{ instanceId: 'SR-1', specimenId: 'sp-A', answers: {} }] as any });
+      const { result } = renderHook(() => useAmendmentWorkflow(baseParams({ caseData, amendmentMode: 'addendum', amendmentText: 'x' })));
+      await act(async () => { await result.current.openAmendmentDraft('addendum'); });
+      await act(async () => { await result.current.handleAmendmentSubmit({ reasonId: 'ADD_IHC' }); });
+      await act(async () => { result.current.cancelAddendumMismatch(); });
+      expect(result.current.amendmentMismatch).toBeNull();
+      expect(amendmentService.release).not.toHaveBeenCalled();
     });
 
     it('a real correction release audits the real, verbatim before/after Final Diagnosis text \u2014 resolved through the real, designated-field resolver, never instance.comment', async () => {

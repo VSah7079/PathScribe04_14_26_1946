@@ -7,6 +7,7 @@ import type { SpecimenLisSyncState } from '@/types/case/Specimen';
 import { lisSyncStateNeedsBadge } from '@/services/specimens/resolveSpecimenLisSyncState';
 import type { CaseComment } from '@/types/case/CaseComment';
 import { pressable } from '@/utils/a11y/pressable';
+import { VendorFieldsPanel } from '@/components/VendorFields/VendorFieldsPanel';
 
 interface SidebarProps {
   caseData: Case | null;
@@ -505,6 +506,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           <button className="ps-syn-add-btn" onClick={() => onAddSynoptic?.()}>
             <span className="ps-syn-add-icon">+</span> {t('sidebar.addSynoptic')}
           </button>
+
+          {/* Batch 612: fields a vendor profile added to this case; nothing is shown when there are none. */}
+          {caseData && <VendorFieldsPanel caseId={caseData.id} />}
 
         </div>
       )}

@@ -33,7 +33,7 @@ import {
 import { useScreenCapture, ScreenCaptureResult } from '../../hooks/useScreenCapture';
 import { caseService, supportReferenceService } from '@/services';
 import { replaceCaseNumbersWithReferences } from '../../services/enhancementRequestService';
-import { identifierWarningOnSend, canReplaceCaseNumbers, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
+import { identifierWarningOnSend, canReplaceCaseNumbers, findIdentifiersInText, findPatientNameInText, supportPageOf, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
 import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 
 // ─── Screenshot compression ───────────────────────────────────────────────────
@@ -89,7 +89,7 @@ const PRIORITY_STYLES: Record<RequestPriority, { color: string; bg: string; bord
 
 // ─── Success screen ───────────────────────────────────────────────────────────
 
-const SuccessScreen: React.FC<{ ticketUrl?: string; onClose: () => void }> = ({ ticketUrl, onClose }) => {
+const SuccessScreen: React.FC<{ ticketUrl?: string; simulated?: boolean; onClose: () => void }> = ({ ticketUrl, simulated, onClose }) => {
   const { t } = useTranslation();
   return (
     <div className="erm-success">
@@ -100,6 +100,7 @@ const SuccessScreen: React.FC<{ ticketUrl?: string; onClose: () => void }> = ({ 
       <p className="erm-success-text">
         {t('enhancementRequestModal.submittedMessage')}
       </p>
+      {simulated && <p className="erm-success-text" role="status" data-testid="erm-simulated">{t('enhancementRequestModal.simulatedNotice')}</p>}
       {ticketUrl && (
         <a href={ticketUrl} target="_blank" rel="noopener noreferrer" className="erm-success-link">
           {t('enhancementRequestModal.viewTicket')}
@@ -227,6 +228,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
   const [error,           setError]           = useState<string | null>(null);
   const [submitted,       setSubmitted]       = useState(false);
   const [ticketUrl,       setTicketUrl]       = useState<string | undefined>();
+  const [simulated,       setSimulated]       = useState(false);
 
   const canSubmit = title.trim().length > 0 && description.trim().length > 0 && !submitting;
 
@@ -240,9 +242,25 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     setIdentifiersFound(out.remaining);
   };
 
+  /** The open case's patient name words (empty when no case is open). */
+  const openCasePatientNameParts = async (): Promise<string[]> => {
+    const caseId = supportPageOf(window.location.pathname).caseId;
+    if (!caseId) return [];
+    const found = await caseService.getCase(caseId).catch(() => null);
+    const p = found?.patient;
+    return p ? [p.givenNames, p.familyNames, p.firstName, p.lastName, p.preferredName].filter((x): x is string => !!x) : [];
+  };
+
   const handleSubmit = async (sendAnyway = false) => {
     if (!canSubmit) return;
-    const warnAbout = identifierWarningOnSend({ title, description, sendAnyway });
+    // Batch 604 (PS-349): also the open case's patient named in the text, and an attached screenshot.
+    const nameParts = sendAnyway ? [] : await openCasePatientNameParts();
+    const withScreenshot = !!(screenshot && includeScreenshot);
+    const warnAbout = identifierWarningOnSend({ title, description, sendAnyway }, text => [
+      ...findIdentifiersInText(text),
+      ...findPatientNameInText(text, nameParts),
+      ...(withScreenshot ? [{ text: 'screenshot', kind: 'screenshot' as const }] : []),
+    ]);
     if (warnAbout) { setIdentifiersFound(warnAbout); setReplacedCount(null); return; }
     setIdentifiersFound(null);
     setSubmitting(true);
@@ -278,6 +296,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
       const result = await submitEnhancementRequest(payload, config);
       if (result.success) {
         setTicketUrl(result.ticketUrl);
+        setSimulated(!!result.simulated);
         setSubmitted(true);
       } else {
         setError(result.error ?? t('enhancementRequestModal.submissionFailed'));
@@ -297,7 +316,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     >
       <div onClick={e => e.stopPropagation()} className="erm-modal">
         {submitted ? (
-          <SuccessScreen ticketUrl={ticketUrl} onClose={onClose} />
+          <SuccessScreen ticketUrl={ticketUrl} simulated={simulated} onClose={onClose} />
         ) : (
           <>
             {/* Header */}

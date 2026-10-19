@@ -3,7 +3,7 @@
 // reference (the hub key), and, in the demo, another tab's saves. Batch 573: also what hooks/useCasePresence.ts
 // uses; the reference comes from the API server when there is one, so every user has the same one.
 import { caseRouter } from './CaseRouter';
-import { mockSupportReferenceService } from '../supportReferences/mockSupportReferenceService';
+import { supportReferenceService } from '../supportReferences/supportReferenceServiceInstance';
 import { createCaseSupportReferenceLookup } from '../supportReferences/caseSupportReference';
 import { apiServerUrl } from '../apiServer/apiServerUrl';
 import { getAccessToken } from '../auth/accessTokenSource';
@@ -15,7 +15,7 @@ const caseSupportReference = createCaseSupportReferenceLookup({
   fetch: (url, init) => fetch(url, init),
   accessToken: getAccessToken,
   fallback: async caseId => {
-    const r = await mockSupportReferenceService.forRecord('case', caseId);
+    const r = await supportReferenceService.forRecord('case', caseId);
     return r.ok ? r.data.ref : null;
   },
 });

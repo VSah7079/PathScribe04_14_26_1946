@@ -173,7 +173,7 @@ Pete (Oct 6):
   - the vena cava (with the diaphragm line and caption) when carcinoma is in it;
   - the ureter when its margin was added.
 
-  `resolveRenalMap.ts` works out the letters and drops the hidden compartments' sectors. A radical nephrectomy draws everything. The adrenal and Gerota's fascia are still drawn for a partial nephrectomy.
+  `resolveRenalMap.ts` works out the letters and drops the hidden compartments' sectors. A radical nephrectomy draws everything. (Batch 618 changed this: the adrenal and Gerota's fascia are drawn only when the extent reports them; see the Batch 618 entry below.)
 - **Adenoma at the polyp margin.** (Replaced in Batch 466d: this switch is gone — margins are reported per component, so adenoma at the margin sets the adenoma margins, never the carcinoma's.) In 466c, adenoma at a colorectal polyp's lateral margin counted as the lateral margin involved in the derived margin answers, with a lab switch to turn it off.
 - Tests: `renalMap.test.ts` and `organMapDerived.test.ts`.
 
@@ -204,3 +204,10 @@ Pete (Oct 6):
 ## Batch 511 (PS-478): full strict type-checking
 
 One test (`organMapDerived.test.ts`) types its payloads. No code change.
+
+## Batch 618 (part B): partial nephrectomy anatomy (PS-492)
+
+- **`renalAnatomy.ts` (new):** `partialRenalAnatomy({ boxes, involved })` decides which anatomy letters a partial nephrectomy's variant carries. `RENAL_OPTIONAL_ANATOMY` gained **g** (Gerota's fascia) and **a** (adrenal gland), so a partial nephrectomy draws them only when the extent answer is "Beyond Gerota's fascia" (`gerota`) or "Ipsilateral adrenal gland, by direct (contiguous) spread" (`adrenal`). The perinephric fat is always drawn; a radical nephrectomy draws everything. A variant such as `partial|R|ps|a` or `partial|R|psu|vuga` says what is drawn.
+- **`resolveRenalMap.ts`:** asks `renalAnatomy.ts` instead of building the letters inline. The pT guide is unchanged (both are pT4).
+- Tests in `renalMap.test.ts`: none, perinephric fat only, adrenal only, Gerota only, both with the vein and ureter, both sides, radical unchanged, and the pure function.
+

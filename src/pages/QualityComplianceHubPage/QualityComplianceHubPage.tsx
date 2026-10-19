@@ -116,6 +116,26 @@ export default function QualityComplianceHubPage() {
       color: '#CC79A7',
       image: '/logs.webp',
     },
+    // Batch 610 (#61, #89): the three-tier autopsy dashboards.
+    {
+      key: 'autopsyDashboards',
+      screen: 'autopsyDashboards',
+      title: t('qualityComplianceHub.autopsyDashboardsTile.title'),
+      description: t('qualityComplianceHub.autopsyDashboardsTile.description'),
+      route: '/autopsy-dashboards',
+      color: '#56B4E9',
+      image: '/deficiencies.webp',
+    },
+    // Batch 619 (PS-800): every outbound message in one queue, with hold, release and retry.
+    {
+      key: 'outboundQueue',
+      screen: 'outboundQueue',
+      title: t('qualityComplianceHub.outboundQueueTile.title'),
+      description: t('qualityComplianceHub.outboundQueueTile.description'),
+      route: '/outbound-queue',
+      color: '#009E73',
+      image: '/logs.webp',
+    },
   ];
   // Batch 374: only the screens this user may open (services/screens/screenAccess.ts).
   const shown = new Set(visibleTiles(allTiles.map(x => x.screen), c => capabilities.has(c)));

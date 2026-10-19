@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/molecular/ — Full Molecular Testing Execution Module
 
 Real feature, per a direct, detailed specification document ("PathScribe Full Molecular Testing Execution Module") — extends this app's existing sample-tracking/batching framework (`services/batches/`) to support Molecular Diagnostics workflows (HPV, CT/NG, Respiratory PCR panels, targeted NGS).
@@ -404,3 +406,9 @@ Merged into the batch and rack seeds with `withMissingSeedRecords`, so existing 
 
 - `resolveMolecularWorklistPayload` puts `order_id` on sample wells holding an order. Results may echo `order_id` (`MolecularWellResult`).
 - `plateBuilderWells.plateWellTitle`: a well's tooltip (sample, accession, order).
+
+- Batch 608: `resolveMolecularHistoricalTrace` finds a control or calibrator well by `wellPosition` and returns its `control` (ID, lot, expiry).
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the molecular batch, rack and control-rule services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/MOLECULAR_API.md`. The mocks are unchanged.

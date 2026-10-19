@@ -96,6 +96,8 @@ export interface PrintJob {
    *  it ('printed', IPP or IPPS) or only took the data ('sent', Raw 9100 or LPR: shown as "Sent to printer").
    *  Absent on jobs printed another way. */
   confirmation?: 'printed' | 'sent';
+  /** Batch 606 (PS-43 / PS-128): true when this PRINTED job went through the Simulated transport (demo, no server): shown as "Simulated: sent to printer". */
+  simulated?: true;
   queuedAt: string;
   /** Real, per the source spec's own Use Case 2 ("If the IP printer
    *  is offline, the LIS Print Spooler holds the job, alerts the LIS

@@ -14,6 +14,7 @@
 import type { CytologyReportContent } from '@/types/cytology/CytologyReportContent';
 import type { CytologyCaseReport } from '@/types/cytology/CytologyCaseReport';
 import { bytesToBase64, postReportRender, type PostReportRender } from '../reports/reportRenderer';
+import { applyCaseReportImagesToPdf, CASE_IMAGES_FAILED, type ApplyImagesResult, type ReportImageRef } from '../imageAssociation/caseReportImages';
 import { cytologyPdfLabelsFor } from './cytologyPdfLabelsFor';
 import {
   buildCytologyCaseRenderPayload, buildCytologyReportRenderPayload, cytologyLogoUrls,
@@ -29,6 +30,8 @@ export interface RenderCytologyDeps {
   post?: PostReportRender;
   /** A letterhead logo's bytes, base64; undefined when it can't be fetched. */
   fetchLogo?: (url: string) => Promise<string | undefined>;
+  /** Batch 609 (PS-44): adds the images attached to the report after its pages (caseReportImages.ts). */
+  applyImages?: (ref: ReportImageRef, pdf: Uint8Array) => Promise<ApplyImagesResult>;
 }
 
 /** True when the bytes were made by the cytology template. */
@@ -69,6 +72,13 @@ export async function renderCytologyPayload(payload: CytologyRenderPayload, deps
   return bytes;
 }
 
+/** Batch 609 (PS-44): the report with the images attached to it after its own pages. Throws when they can't be added. */
+async function withAttachedImages(ref: ReportImageRef, bytes: Uint8Array, deps: RenderCytologyDeps): Promise<Uint8Array> {
+  const out = await (deps.applyImages ?? applyCaseReportImagesToPdf)(ref, bytes);
+  if (out.failed) throw new Error(CASE_IMAGES_FAILED);
+  return out.bytes;
+}
+
 /** One report: a specimen's signed report, a preliminary, or (with a watermark) a preview. */
 export async function renderCytologyReportPdf(
   content: CytologyReportContent,
@@ -76,13 +86,15 @@ export async function renderCytologyReportPdf(
   deps: RenderCytologyDeps = {},
 ): Promise<Uint8Array> {
   const logos = await logosFor([content], deps);
-  return renderCytologyPayload(buildCytologyReportRenderPayload(content, cytologyPdfLabelsFor(content.language), { ...options, logos }), deps);
+  const bytes = await renderCytologyPayload(buildCytologyReportRenderPayload(content, cytologyPdfLabelsFor(content.language), { ...options, logos }), deps);
+  return withAttachedImages({ accession: content.accessionNumber }, bytes, deps);
 }
 
 /** The consolidated case report (Batch 532). */
 export async function renderCytologyCaseReportPdf(report: CytologyCaseReport, deps: RenderCytologyDeps = {}): Promise<Uint8Array> {
   const logos = await logosFor(report.specimens.flatMap(s => (s.record ? [s.record.reportContent] : [])), deps);
-  return renderCytologyPayload(buildCytologyCaseRenderPayload(report, cytologyPdfLabelsFor, { logos }), deps);
+  const bytes = await renderCytologyPayload(buildCytologyCaseRenderPayload(report, cytologyPdfLabelsFor, { logos }), deps);
+  return withAttachedImages({ caseId: report.caseId, accession: report.accessionNumber }, bytes, deps);
 }
 
 /** The message key for a failed print or preview: an outdated renderer says so; anything else is the general failure. */

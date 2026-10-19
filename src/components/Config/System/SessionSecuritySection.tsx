@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 
 import BiometricPolicyCard from './BiometricPolicyCard';
+import MfaPolicyCard from './MfaPolicyCard';
 import { sessionTimeoutService } from '@/services';
 
 const PRESET_MINUTES = [5, 10, 15, 20, 30, 60];
@@ -91,6 +92,9 @@ const SessionSecuritySection: React.FC = () => {
 
       {/* Batch 433: the biometric e-signature policy. */}
       <BiometricPolicyCard />
+
+      {/* Batch 611 (#157): the second-factor policy and enrolments. */}
+      <MfaPolicyCard />
     </div>
   );
 };

@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { IActionRegistryService } from '../../../services/actionRegistry/IActionRegistryService';
-import { userService, subspecialtyService, delegationTypeService, delegationService, delegationMissing, delegationNoteShown } from '../../../services';
+import { userService, subspecialtyService, delegationTypeService, delegationService, delegationMissing, delegationNoteShown, presetAvailable } from '../../../services';
 import { useFieldRequirements } from '../../../hooks/useFieldRequirements';
 import { CapabilityButton } from '../../../components/Common/CapabilityButton';
 import { getStaffSubspecialtyDisplay } from '../../../utils/staffSubspecialties';
@@ -43,6 +43,10 @@ interface DelegateModalProps {
   currentUserId?: string;
   onDelegated?: () => void;
   synopticInstances?: SynopticOption[];
+  /** Batch 610 (#83): a delegation type to choose on opening (said by voice: peer review, formal consult, full transfer). */
+  presetTypeId?: string;
+  /** Changes each time the preset is asked for, so saying it again while open applies it again. */
+  presetNonce?: number;
 }
 
 // ─── Draggable recipient card — staff or pool ────────────────────────────────
@@ -141,7 +145,7 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
 };
 
 export const DelegateModal: React.FC<DelegateModalProps> = ({
-  isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = []
+  isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = [], presetTypeId, presetNonce
 }) => {
   const { t } = useTranslation();
   const requirements = useFieldRequirements('report');
@@ -190,6 +194,16 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [delegationType]);
+
+  // Batch 610 (#83): choose the preset delegation type once the list has loaded.
+  const appliedPresetRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!isOpen || !presetTypeId || loading || delegationTypes.length === 0) return;
+    if (appliedPresetRef.current === presetNonce) return;
+    appliedPresetRef.current = presetNonce;
+    if (presetAvailable(delegationTypes, presetTypeId)) { setDelegationType(presetTypeId); setRefusal(null); }
+    else setRefusal('presetUnavailable');
+  }, [isOpen, presetTypeId, presetNonce, loading, delegationTypes]);
 
   useEffect(() => {
     if (isOpen) {

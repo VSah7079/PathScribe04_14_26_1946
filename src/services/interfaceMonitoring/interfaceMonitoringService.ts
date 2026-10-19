@@ -18,12 +18,16 @@ export interface IInterfaceMonitoringApi {
 export interface IInterfaceMonitoringService extends IInterfaceMonitoringApi {
   /** False in the demo: no engine, nothing to list. */
   readonly viaServer: boolean;
+  /** Batch 605: true when the engines are the browser's sample ones (no API server). */
+  readonly simulated?: boolean;
 }
 
-export function createInterfaceMonitoringService(deps: { api: IInterfaceMonitoringApi | null; authorization: Pick<IAuthorizationService, 'enforce'> }): IInterfaceMonitoringService {
-  const { api } = deps;
+export function createInterfaceMonitoringService(deps: { api: IInterfaceMonitoringApi | null; simulatedApi?: IInterfaceMonitoringApi; authorization: Pick<IAuthorizationService, 'enforce'> }): IInterfaceMonitoringService {
+  const api = deps.api ?? deps.simulatedApi ?? null;
+  const simulated = deps.api === null && !!deps.simulatedApi;
   return {
     viaServer: api !== null,
+    simulated,
     async engines() {
       if (!api) return { ok: false, error: 'UNAVAILABLE' };
       if (!(await deps.authorization.enforce('interface:engine-status:view')).allowed) return { ok: false, error: 'NOT_PERMITTED' };

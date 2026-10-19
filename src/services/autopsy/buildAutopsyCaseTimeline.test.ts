@@ -194,3 +194,20 @@ describe('buildAutopsyCaseTimeline', () => {
     }
   });
 });
+
+describe('organ retention custody history (Batch 611, #59)', () => {
+  const rec = (n: string, at: string) => ({ recipientName: n, location: `Loc ${n}`, recordedAt: at, recordedByName: 'Dr. Lane' });
+  const base = { jurisdiction: 'GB_EW', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false } } as never;
+  it('shows one entry per custody move, newest first like the rest of the timeline', () => {
+    const h = [rec('A', '2026-05-01T00:00:00Z'), rec('B', '2026-05-02T00:00:00Z')];
+    const entries = buildAutopsyCaseTimeline({ ...(base as object), organRetentionDetail: h[1], organRetentionHistory: h } as never)
+      .filter(e => e.kind === 'organ_retention_detail_recorded');
+    expect(entries.map(e => e.itemDescription)).toEqual(['B', 'A']);
+    expect(new Set(entries.map(e => e.id)).size).toBe(2);
+  });
+  it('a case recorded before the history existed still shows its one record', () => {
+    const entries = buildAutopsyCaseTimeline({ ...(base as object), organRetentionDetail: rec('A', '2026-05-01T00:00:00Z') } as never)
+      .filter(e => e.kind === 'organ_retention_detail_recorded');
+    expect(entries.map(e => e.id)).toEqual(['organ-retention-detail']);
+  });
+});

@@ -60,8 +60,10 @@ import type { StaffUser } from '@/services/users/IUserService';
 import type { Case, GrossingReportInstance } from '@/types/case/Case';
 import type { RecordedClinicalHistoryEntry, ClinicalHistoryCategoryCode } from '@/types/clinicalHistory/RecordedClinicalHistoryEntry';
 import ClinicalHistoryEntryPanel from './ClinicalHistory/ClinicalHistoryEntryPanel';
+import AccessionTechnicalFacilityField from './AccessionTechnicalFacilityField';
+import { technicalFacilityForOrder } from '@/services/accessioning/resolveTechnicalFacilityOffer';
 import { resolveAccessionValidation, type AccessionValidationResult } from '@/services/accessioning/resolveAccessionValidation';
-import { resolveAccessionSpecimenCytologyScreening, contactBleedingFromChoice, type ContactBleedingChoice } from '@/services/accessioning/resolveAccessionSpecimenCytologyScreening';
+import { resolveAccessionSpecimenCytologyScreening, contactBleedingFromChoice, PRIOR_CERVICAL_PROCEDURE_CHOICES, type ContactBleedingChoice, type PriorCervicalProcedureChoice } from '@/services/accessioning/resolveAccessionSpecimenCytologyScreening';
 import { resolveOutboundMolecularAssaysForProtocol } from '@/utils/resolveOutboundMolecularAssaysForProtocol';
 import type { HistologyBlock, Specimen } from '@/types/case/Specimen';
 import { generateDefaultMaterial } from '@/utils/generateDefaultMaterial';
@@ -91,6 +93,9 @@ import { getSpecimenLabel } from '@/utils/specimenLabeling';
 import type { GrossingTemplateAssignment } from '@/services/grossing/IGrossingEvaluationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { useCodePolicy } from '@/pages/Synoptic/Codes/useCodePolicy';
+import { systemAllowed } from '@/services/coding/codePolicyEnforcement';
+import { CodeSystemOffNote } from '@/components/Coding/CodeSystemOffNote';
 import { getFacilityDateParts } from '@/utils/facilityTime';
 import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
 import { orderIntakeService } from '@/services';
@@ -102,7 +107,7 @@ import { isEncounterActive } from '@/utils/isEncounterActive';
 import { inferLateralityFromText } from '@/utils/inferLateralityFromText';
 import { parseScannedPayload } from '@/utils/parseScannedPayload';
 import { playScanBeep } from '@/utils/playScanBeep';
-import { buildOrderCreationPayload } from '@/services/interfaceEngine/buildOrderCreationPayload';
+import { buildOrderCreationPayload, toOrderCreationEncounter } from '@/services/interfaceEngine/buildOrderCreationPayload';
 import { applyGrossingRefinement, markGrossingRefinementFailed } from '@/utils/applyGrossingRefinement';
 import { PatientIdStatusDot } from '@/components/Common/PatientIdStatusDot';
 import { prefillPatientRegistryDetails } from '@/services/patients/patientRegistryDetails';
@@ -572,10 +577,14 @@ const AccessionPage: React.FC = () => {
   // own doc comment (types/case/Specimen.ts).
   // Batch 452: Yes / No / Not recorded, so an explicit "no" is kept.
   const [contactBleedingChoice, setContactBleedingChoice] = useState<ContactBleedingChoice>('');
+  // Batch 608 (#47): prior cervical procedure, '' = not recorded.
+  const [priorProcedureChoice, setPriorProcedureChoice] = useState<PriorCervicalProcedureChoice>('');
   const [reasonForStudy, setReasonForStudy] = useState<'' | 'nhs_programme_invited' | 'private_or_opportunistic'>('');
   const [mrn, setMrn] = useState('');
   // Batch 417: the patient's national identifiers (NHS number, BSN…), by system id; saved after the case exists.
   const [nationalIds, setNationalIds] = useState<Record<string, string>>({});
+  // Batch 605: the NHS Number Status Indicator stored from an inbound ADT (green only for '01').
+  const [nhsStatusCode, setNhsStatusCode] = useState<string | undefined>(undefined);
   // Batch 418: the patient's registry opt-outs; saved after the case exists.
   const [registryConsent, setRegistryConsent] = useState({ screeningOptOut: false, cancerRegistryOptOut: false });
   const [encounterNumber, setEncounterNumber] = useState('');
@@ -751,6 +760,9 @@ const AccessionPage: React.FC = () => {
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [allIcd10Codes, setAllIcd10Codes] = useState<Icd10Code[]>([]);
+  // Batch 614 (PS-762): the Code Systems setting decides whether the ICD-10 picker is offered and whether order messages carry diagnoses.
+  const codePolicy = useCodePolicy();
+  const icd10Allowed = systemAllowed('ICD10', codePolicy.policy, codePolicy.today);
   useEffect(() => {
     protocolService.getAll().then(res => { if (res.ok) setProtocols(res.data.filter(p => p.active)); });
     diagnosisCodesService.getAll().then(res => { if (res.ok) setAllIcd10Codes(res.data); });
@@ -786,6 +798,7 @@ const AccessionPage: React.FC = () => {
   }, [providerQuery, showProviderDropdown]);
 
   const [clientId, setClientId] = useState('');
+  const [technicalFacilityId, setTechnicalFacilityId] = useState(''); // Batch 618 (PS-336)
 
   useEffect(() => {
     // Real, per direct guidance (per-facility Specimen Deficiencies):
@@ -1719,6 +1732,23 @@ const AccessionPage: React.FC = () => {
     return () => window.removeEventListener('PATHSCRIBE_SCAN', onScan);
   }, []);
 
+  // Batch 605: a typed MRN that matches a known patient shows the active-encounter badge or picker before submit.
+  const lastTypedMrnLookup = useRef('');
+  useEffect(() => {
+    const typed = mrn.trim();
+    if (typed.length < 3 || linkedEncounter || encounterCandidates.length > 0 || typed === lastTypedMrnLookup.current) return;
+    const timer = setTimeout(() => {
+      lastTypedMrnLookup.current = typed;
+      const orgId = user?.organisationId ?? originHospitalId;
+      void patientIndexService.searchPatients(orgId, typed).then(list => {
+        const hit = list.find(p => (p.mrn ?? '').trim().toLowerCase() === typed.toLowerCase());
+        if (hit) void lookupActiveEncountersForPatient(hit.id, `${hit.firstName} ${hit.lastName}`);
+      }).catch(() => { /* a failed lookup leaves the form as it was */ });
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mrn, linkedEncounter, encounterCandidates.length]);
+
   // Real feature, per direct specification: the "Order Lookup & Patient
   // Verification" modal's second real path — an existing, already-known
   // patient found via the real Master Patient Index (searchPatients()),
@@ -1797,19 +1827,11 @@ const AccessionPage: React.FC = () => {
   // as if a real specimen were already recorded.
   const filledSpecimenCount = specimens.filter(s => s.description.trim().length > 0).length;
 
-  // Real departments (Surgical/Non-GYN Cytology/Consultation) each
-  // draw from their own accession series — see resolveCaseMaskScopeCandidates
-  // and caseMaskService. Per the CAP-adjacent labeling guideline and
-  // real specimen-handling policy this whole feature was researched
-  // against, specimens spanning genuinely different case types are
-  // standard practice to accession as SEPARATE cases, not combine under
-  // one number. Rather than building full automatic case-splitting (a
-  // much bigger feature — grouping specimens, creating N cases, routing
-  // blocks/grossing per case, a multi-case success screen), this blocks
-  // submission with a clear, actionable message instead of silently
-  // mislabeling specimens under the wrong prefix. Specimens with no
-  // dictionary match (no resolved department) don't count toward a
-  // conflict — only genuinely different resolved departments do.
+  // Departments (Surgical/Non-GYN Cytology/Consultation) each draw from their own accession
+  // series (resolveCaseMaskScopeCandidates, caseMaskService). Specimens of genuinely different
+  // case types are accessioned as SEPARATE cases, so submission is blocked with a clear message
+  // rather than mislabeling them under one prefix. Specimens with no dictionary match don't
+  // count toward a conflict.
   const resolvedDepartmentIds = useMemo(() => {
     const ids = new Set<string>();
     for (const s of specimens) {
@@ -1827,6 +1849,16 @@ const AccessionPage: React.FC = () => {
   const canSubmit = !!caseInfoValid && specimensValid && !submitting && !departmentConflictNames && (!autopsyRelevant || autopsyFormValidation.valid);
 
   const selectedFacility = useMemo(() => facilities.find(c => c.id === clientId), [facilities, clientId]);
+
+  // Batch 605: look up the NHS Number Status Indicator an inbound ADT stored for this number.
+  useEffect(() => {
+    if (selectedFacility?.jurisdiction !== 'GB_EW') { setNhsStatusCode(undefined); return; }
+    const number = (nationalIds.mrn_nhs || mrn || '').trim();
+    if (!number) { setNhsStatusCode(undefined); return; }
+    let cancelled = false;
+    patientIndexService.getNationalIdentifierStatusCode('mrn_nhs', number).then(code => { if (!cancelled) setNhsStatusCode(code ?? undefined); }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [selectedFacility?.jurisdiction, nationalIds.mrn_nhs, mrn]);
 
   // Real, per direct guidance (dynamic-behavior rule 1: "Selecting an
   // Outside Client automatically sets default billing preferences...
@@ -2079,7 +2111,7 @@ const AccessionPage: React.FC = () => {
           // The persistent contact bleeding observation, on each
           // cytology/FNA specimen only (Batch 451, PS-212:
           // services/accessioning/resolveAccessionSpecimenCytologyScreening.ts).
-          cytologyScreening: resolveAccessionSpecimenCytologyScreening(entry?.type, contactBleedingFromChoice(contactBleedingChoice)),
+          cytologyScreening: resolveAccessionSpecimenCytologyScreening(entry?.type, contactBleedingFromChoice(contactBleedingChoice), priorProcedureChoice),
           ...(await generateDefaultMaterial(entry, `${caseId}-SP-${s.label}`, selectedFacility?.specimenLabelStyle, stainTypes, protocols, fullAccession, s.label, priority)),
           // kept alongside the record (not part of Specimen's own shape)
           // purely to feed evaluateGrossingTemplateAssignment below —
@@ -2326,6 +2358,7 @@ const AccessionPage: React.FC = () => {
           priority,
           requestingProvider: requestingProvider.trim(),
           facilityId: clientId,
+          technicalComponentFacilityId: technicalFacilityForOrder(technicalFacilityId, selectedFacility, facilities), // Batch 618 (PS-336)
           facilityName: selectedFacility?.name,
           locationId: locationId || undefined,
           locationDisplay: selectedLocation
@@ -2587,8 +2620,12 @@ const AccessionPage: React.FC = () => {
       // why "delivered" only means "the mock recorded it," not "a real
       // downstream system received it" — there is no real backend yet.
       if (!sourceOrderId) {
-        const orderCreationPayload = buildOrderCreationPayload(newCase, mpiResult.outcome, nowIso);
-        interfaceEngineService.postOrderCreated(orderCreationPayload).catch(console.error);
+        const visitRes = newCase.encounterId ? await encounterService.getById(newCase.encounterId) : null;
+        const orderCreationPayload = buildOrderCreationPayload(newCase, mpiResult.outcome, nowIso, toOrderCreationEncounter(visitRes?.ok ? visitRes.data : null), codePolicy);
+        // Batch 605: a failed send is shown (non-blocking); the case is already saved.
+        interfaceEngineService.postOrderCreated(orderCreationPayload).then(r => {
+          if (!r.ok || !r.data.delivered) toast.warn(t('accessionPage.orderCreatedNotSent'));
+        }).catch(() => { toast.warn(t('accessionPage.orderCreatedNotSent')); });
       }
 
       // Real, per PS-81 (Jira) — completes the ROOT FIX above. That
@@ -2741,7 +2778,7 @@ const AccessionPage: React.FC = () => {
   function resetForm() {
     setNamePrefix(''); setGivenNames(''); setFamilyNames(''); setPreferredName(''); setNameSuffix('');
     setDob(''); setSex('F'); setMrn('');
-    setPriority('Routine'); setRequestingProvider(''); setClientId(''); setClinicalIndication(''); setIcd10Codes([]); setCaseComments([]); setAssignedTo(''); setCaseManualDeficiencies([]);
+    setPriority('Routine'); setRequestingProvider(''); setClientId(''); setTechnicalFacilityId(''); setClinicalIndication(''); setIcd10Codes([]); setCaseComments([]); setAssignedTo(''); setCaseManualDeficiencies([]);
     setSpecimens([emptySpecimen('A')]);
     setLastResult(null);
     setJustAccessionedCase(null);
@@ -3082,6 +3119,14 @@ const AccessionPage: React.FC = () => {
                           <option value="no">{t('common.no')}</option>
                         </select>
                       </div>
+                      <div className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
+                        <label className="ps-label" htmlFor="accession-prior-procedure">{t('accessionPage.cytology.priorProcedure')}</label>
+                        <select id="accession-prior-procedure" className="ps-input-dark" value={priorProcedureChoice}
+                          onChange={e => setPriorProcedureChoice(e.target.value as PriorCervicalProcedureChoice)}>
+                          <option value="">{t('accessionPage.cytology.priorProcedureNotRecorded')}</option>
+                          {PRIOR_CERVICAL_PROCEDURE_CHOICES.map(c => <option key={c} value={c}>{t(`accessionPage.cytology.priorProcedureOptions.${c}`)}</option>)}
+                        </select>
+                      </div>
                     </>
                   )}
 
@@ -3204,7 +3249,7 @@ const AccessionPage: React.FC = () => {
                       patientIdStatus.ts's own comment on that exact,
                       honest distinction. */}
                   {selectedFacility && (
-                    <PatientIdStatusDot jurisdiction={selectedFacility.jurisdiction} rawId={mrn} />
+                    <PatientIdStatusDot jurisdiction={selectedFacility.jurisdiction} rawId={mrn} hl7StatusCode={nhsStatusCode} />
                   )}
                 </label>
                 <input data-phi="mrn" className="ps-input-dark" value={mrn} onChange={e => setMrn(e.target.value)}
@@ -3292,6 +3337,8 @@ const AccessionPage: React.FC = () => {
                   {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              <AccessionTechnicalFacilityField facilities={facilities} value={technicalFacilityId} onChange={setTechnicalFacilityId}
+                intakeType={intakeType} departmentName={[...resolvedDepartmentIds].map(id => departmentsById.get(id)?.name).join(' ')} />
               {/* Real feature, per direct confirmation: "add the
                   Client and Location as fields to be seen in the
                   accession page." Optional — not every specimen has a
@@ -3435,7 +3482,9 @@ const AccessionPage: React.FC = () => {
               </div>
               <div className="ps-accession-field--full">
                 <label className="ps-label">{t('accessionPage.icd10.label')}</label>
-                <Icd10Picker allCodes={allIcd10Codes} selected={icd10Codes} onChange={setIcd10Codes} />
+                {icd10Allowed
+                  ? <Icd10Picker allCodes={allIcd10Codes} selected={icd10Codes} onChange={setIcd10Codes} />
+                  : <CodeSystemOffNote systems={['ICD10']} />}
               </div>
               <div className="ps-accession-field--full">
                 <label className="ps-label">{t('accessionPage.caseComment.label')}</label>

@@ -45,8 +45,8 @@ describe('Correction / addendum screen (Batch 390)', () => {
   });
   it('the two release services check their permission and the reason before any write', () => {
     for (const [file, cap, write] of [
-      ['services/cytology/releaseCytologyCorrection.ts', 'cytology:report:correct', 'mockCytologyReviewRecordService.create'],
-      ['services/cytology/releaseCytologyAddendum.ts', 'cytology:report:addend', 'mockCytologySignOutRecordService.create'],
+      ['services/cytology/releaseCytologyCorrection.ts', 'cytology:report:correct', 'cytologyReviewRecordService.create'],
+      ['services/cytology/releaseCytologyAddendum.ts', 'cytology:report:addend', 'cytologySignOutRecordService.create'],
     ]) {
       const code = src(file);
       const enforce = code.indexOf(`authorizationService.enforce('${cap}'`);

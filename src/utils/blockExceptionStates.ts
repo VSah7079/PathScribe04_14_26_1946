@@ -24,6 +24,17 @@ export function isExhausted(block: Pick<HistologyBlock, 'status'>): boolean {
   return block.status === 'Exhausted';
 }
 
+/**
+ * Batch 610 (#16): a block flagged 'Block exhausted' cannot be cut until the ordering
+ * pathologist answers: Approve destructive cutting lets it go on; Cancel or Modify puts
+ * the block's status back. True while any order on the block has that flag still open.
+ * (A block whose status is Exhausted from grossing, with no flag, is not held up.)
+ */
+export function cuttingBlockedByExhaustion(block: Pick<HistologyBlock, 'status' | 'stains'>): boolean {
+  return block.status === 'Exhausted'
+    && (block.stains ?? []).some(s => s.exception?.reason === 'Block exhausted' && s.exception.status === 'pending_pathologist_review');
+}
+
 export function isLost(block: Pick<HistologyBlock, 'status'>): boolean {
   return block.status === 'Lost';
 }

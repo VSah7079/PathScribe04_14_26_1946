@@ -12,6 +12,8 @@ import type { VoiceMacro } from '../../types';
 // PS-67 (Batch 348): the app's one result shape, { ok, data } | { ok: false, error }.
 import type { ServiceResult } from '../types';
 import { spellLangForJurisdiction } from '../../utils/formatDate';
+import { buildDictationRefinementSystem, dictationLanguageForLocale } from '../voice/dictationRefinementPrompt';
+import type { VoiceProfileLanguage } from '../../constants/voiceProfiles';
 import type { Jurisdiction } from '../../types/systemConfig';
 import type { EditorTemplate } from '../../components/Config/Protocols/SynopticEditor';
 import { buildSynopticNarrativePrompt } from '../../pages/SynopticReportPage/hooks/buildSynopticNarrativePrompt';
@@ -28,16 +30,19 @@ export class PathScribeAIService implements IAIIntegrationService {
   // (matching the prior hardcoded behaviour) when omitted.
   async refineTranscript(
     text: string,
-    options?: AIProcessingOptions & { jurisdiction?: Jurisdiction; facilityId?: string }
+    options?: AIProcessingOptions & { jurisdiction?: Jurisdiction; facilityId?: string; language?: VoiceProfileLanguage }
   ): Promise<ServiceResult<string>> {
     try {
       const spellLang = spellLangForJurisdiction(options?.jurisdiction as Jurisdiction);
-      const localeNote = spellLang.startsWith('en-GB')
-        ? 'Use British English spelling conventions (e.g. "haemorrhage", "oesophagus", "anaesthesia", "colour").'
-        : 'Use American English spelling conventions (e.g. "hemorrhage", "esophagus", "anesthesia", "color").';
+      // Batch 609 (#177, #179): one prompt per dictation language and English spelling convention
+      // (en-AU and en-CA used to get American spelling), shared with the voice provider.
+      const system = buildDictationRefinementSystem({
+        language: options?.language ?? dictationLanguageForLocale(spellLang),
+        spellLocale: spellLang,
+      });
 
       const { text: refined } = await callAi({
-        system: `You are an expert Pathology Transcription Assistant. Correct phonetic errors, format measurements, and use proper pathology capitalisation. ${localeNote} Return ONLY the refined text.`,
+        system,
         prompt: `Context: ${options?.context ?? 'Pathology Report'}\nRaw Text: "${text}"`,
         maxTokens: 500,
         configOverride: await resolveAiConfigOverrideForClient(options?.facilityId),
@@ -145,8 +150,7 @@ Rules:
   // Interface requires this method, but per IAIIntegrationService's own
   // doc comment, it isn't actually the runtime path — the real
   // evaluateSynopticAssignment lives as a plain function in
-  // mockCaseService.ts. Stubbed here the same way MockAIIntegrationService
-  // stubs it, just to satisfy `implements IAIIntegrationService`. A real
+  // mockCaseService.ts. Stubbed here, just to satisfy `implements IAIIntegrationService`. A real
   // Gemini-backed implementation would be new scope, not a type fix.
   async evaluateSynopticAssignment(
     _input: SynopticEvaluationInput

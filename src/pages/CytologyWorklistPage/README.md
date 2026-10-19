@@ -5,6 +5,10 @@ The Cytology worklist and the screening page (`CytologyScreeningPage.tsx`), wher
 - `cytologyDrafts.ts`: the Bethesda review's in-progress draft (`Draft`, `EMPTY_DRAFT`).
 - `components/`: the forms and banners on the screening page. See its README.
 
+## Batch 609 (part A)
+
+- `CytologyScreeningPage` has an Attach images button and window for the report being screened.
+
 ## Batch 386
 
 The five forms on the screening page take what they need from Field Requirements (page `cytology`, Configuration → System → Field Requirements) and are components with tests. The page still owns the save handlers, workload checks and state; the forms only render, check what is still required and dispatch. `CytologyScreeningPage.tsx` is still on the deployment baseline (about 50 direct mock-service imports) and about 3,000 lines; the rest of its text is translated in Batch 387.
@@ -252,3 +256,5 @@ One case report per accession (Pete, Oct 12). `CytologyScreeningPage.tsx`: **Pri
 ## Batch 574
 
 - The workload counter (`components/CytologyWorkloadCounter.tsx`, `hooks/useCytologyWorkloadSummary.ts`) on the worklist and the screening page (with the review open now and the chosen mode); yesterday's screening hours panel above today's.
+
+- Batch 608: the screening page shows `ReturnToTraineeBar`, the suggested-severity badge and `CytologyScreeningDetailsCard`.

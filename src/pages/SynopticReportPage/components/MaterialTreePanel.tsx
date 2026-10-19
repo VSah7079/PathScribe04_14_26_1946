@@ -68,6 +68,8 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
   Cancelled: 'materialTreePanel.blockStatus.cancelled',
   Lost: 'materialTreePanel.blockStatus.lost',
   Damaged: 'materialTreePanel.blockStatus.damaged',
+  Deleted: 'materialTreePanel.blockStatus.deleted',
+  Invalidated: 'materialTreePanel.blockStatus.invalidated',
 };
 const STAIN_STATUS_LABEL_KEY: Record<StainOrderStatus, string> = {
   'Pending Cut': 'materialTreePanel.stainStatus.pendingCut',
@@ -609,6 +611,22 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                       {isCancelled && (
                         <span className="ps-material-tree-cancelled-text">
                           {t('materialTreePanel.cancelledBadge')}
+                        </span>
+                      )}
+                      {/* Batch 610 (#11): a deleted or invalidated block stays in the list with why, who and when. */}
+                      {block.deletion && (
+                        <span className="ps-material-tree-cancelled-text ps-material-tree-deleted-note" data-testid={`block-deletion-${block.id}`}>
+                          {t(block.status === 'Invalidated' ? 'materialTreePanel.invalidatedNote' : 'materialTreePanel.deletedNote', {
+                            reason: t(`blockDeletion.reasons.${block.deletion.reasonCode}`, { defaultValue: block.deletion.reasonCode }),
+                            who: block.deletion.deletedByName,
+                            when: formatDateTime(block.deletion.deletedAt, i18n.language),
+                          })}
+                        </span>
+                      )}
+                      {block.amendmentFlag && (
+                        <span className="ps-material-exception-badge ps-material-exception-badge--discrepancy" data-testid={`block-amendment-flag-${block.id}`}
+                          title={t('materialTreePanel.amendmentFlagTooltip', { reason: t(`blockDeletion.flagReasons.${block.amendmentFlag.reasonCode}`, { defaultValue: block.amendmentFlag.reasonCode }), who: block.amendmentFlag.flaggedByName, when: formatDateTime(block.amendmentFlag.flaggedAt, i18n.language) })}>
+                          {t(`materialTreePanel.amendmentFlag.${block.amendmentFlag.kind}`)}
                         </span>
                       )}
                       {/* Real feature, per direct follow-up: "Lets add

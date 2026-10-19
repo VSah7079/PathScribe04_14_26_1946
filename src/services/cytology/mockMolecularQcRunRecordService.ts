@@ -31,36 +31,36 @@ const delay = () => new Promise(res => setTimeout(res, 30));
 
 const SEED: MolecularQcRunRecord[] = [
   // CYTO-1 — Roche cobas 4800, LOT-CYTO1-2601 (Jan 2026)
-  { id: 'mqc-001', runDate: '2026-01-06T08:00:00.000Z', instrumentId: 'CYTO-1', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2601', totalSamplesRun: 94, invalidControlCount: 0, inhibitorCount: 1,
+  { id: 'mqc-001', runDate: '2026-01-06T08:00:00.000Z', instrumentId: 'CYTO-1', organisationId: 'ORG-DVMC', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2601', totalSamplesRun: 94, invalidControlCount: 0, inhibitorCount: 1,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.2 }, { controlLevel: 'high_positive', meanCt: 24.1 }] },
-  { id: 'mqc-002', runDate: '2026-01-13T08:00:00.000Z', instrumentId: 'CYTO-1', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2601', totalSamplesRun: 88, invalidControlCount: 1, inhibitorCount: 0,
+  { id: 'mqc-002', runDate: '2026-01-13T08:00:00.000Z', instrumentId: 'CYTO-1', organisationId: 'ORG-DVMC', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2601', totalSamplesRun: 88, invalidControlCount: 1, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.5 }, { controlLevel: 'high_positive', meanCt: 23.9 }] },
-  { id: 'mqc-003', runDate: '2026-01-20T08:00:00.000Z', instrumentId: 'CYTO-1', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2601', totalSamplesRun: 91, invalidControlCount: 0, inhibitorCount: 0,
+  { id: 'mqc-003', runDate: '2026-01-20T08:00:00.000Z', instrumentId: 'CYTO-1', organisationId: 'ORG-DVMC', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2601', totalSamplesRun: 91, invalidControlCount: 0, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 32.9 }, { controlLevel: 'high_positive', meanCt: 24.3 }] },
   // CYTO-1 — lot transition to LOT-CYTO1-2604 (Feb 2026) — real, small, passing Ct shift
-  { id: 'mqc-004', runDate: '2026-02-03T08:00:00.000Z', instrumentId: 'CYTO-1', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 96, invalidControlCount: 0, inhibitorCount: 0,
+  { id: 'mqc-004', runDate: '2026-02-03T08:00:00.000Z', instrumentId: 'CYTO-1', organisationId: 'ORG-DVMC', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 96, invalidControlCount: 0, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.6 }, { controlLevel: 'high_positive', meanCt: 24.5 }] },
-  { id: 'mqc-005', runDate: '2026-02-10T08:00:00.000Z', instrumentId: 'CYTO-1', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 89, invalidControlCount: 0, inhibitorCount: 1,
+  { id: 'mqc-005', runDate: '2026-02-10T08:00:00.000Z', instrumentId: 'CYTO-1', organisationId: 'ORG-DVMC', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 89, invalidControlCount: 0, inhibitorCount: 1,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.4 }, { controlLevel: 'high_positive', meanCt: 24.2 }] },
   // CYTO-1 — a real, deliberately elevated-failure run, for MOL-QA-02's own Threshold_Exceeded case
-  { id: 'mqc-006', runDate: '2026-02-17T08:00:00.000Z', instrumentId: 'CYTO-1', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 90, invalidControlCount: 5, inhibitorCount: 4,
+  { id: 'mqc-006', runDate: '2026-02-17T08:00:00.000Z', instrumentId: 'CYTO-1', organisationId: 'ORG-DVMC', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 90, invalidControlCount: 5, inhibitorCount: 4,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.8 }, { controlLevel: 'high_positive', meanCt: 24.6 }] },
-  { id: 'mqc-007', runDate: '2026-02-24T08:00:00.000Z', instrumentId: 'CYTO-1', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 93, invalidControlCount: 0, inhibitorCount: 0,
+  { id: 'mqc-007', runDate: '2026-02-24T08:00:00.000Z', instrumentId: 'CYTO-1', organisationId: 'ORG-DVMC', assayName: 'Roche cobas 4800 HPV', reagentLotNumber: 'LOT-CYTO1-2604', totalSamplesRun: 93, invalidControlCount: 0, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.3 }, { controlLevel: 'high_positive', meanCt: 24.4 }] },
 
   // CYTO-2 — Hologic Aptima, LOT-CYTO2-2601 (Jan 2026)
-  { id: 'mqc-008', runDate: '2026-01-07T08:00:00.000Z', instrumentId: 'CYTO-2', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2601', totalSamplesRun: 76, invalidControlCount: 0, inhibitorCount: 0,
+  { id: 'mqc-008', runDate: '2026-01-07T08:00:00.000Z', instrumentId: 'CYTO-2', organisationId: 'ORG-HFHS', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2601', totalSamplesRun: 76, invalidControlCount: 0, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 31.8 }, { controlLevel: 'high_positive', meanCt: 22.6 }] },
-  { id: 'mqc-009', runDate: '2026-01-14T08:00:00.000Z', instrumentId: 'CYTO-2', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2601', totalSamplesRun: 82, invalidControlCount: 1, inhibitorCount: 0,
+  { id: 'mqc-009', runDate: '2026-01-14T08:00:00.000Z', instrumentId: 'CYTO-2', organisationId: 'ORG-HFHS', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2601', totalSamplesRun: 82, invalidControlCount: 1, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 32.0 }, { controlLevel: 'high_positive', meanCt: 22.8 }] },
-  { id: 'mqc-010', runDate: '2026-01-21T08:00:00.000Z', instrumentId: 'CYTO-2', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2601', totalSamplesRun: 79, invalidControlCount: 0, inhibitorCount: 1,
+  { id: 'mqc-010', runDate: '2026-01-21T08:00:00.000Z', instrumentId: 'CYTO-2', organisationId: 'ORG-HFHS', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2601', totalSamplesRun: 79, invalidControlCount: 0, inhibitorCount: 1,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 31.6 }, { controlLevel: 'high_positive', meanCt: 22.5 }] },
   // CYTO-2 — lot transition to LOT-CYTO2-2605 (Feb 2026) — real, deliberately large Ct shift on the low-positive control, for MOL-QA-04's own Fail case
-  { id: 'mqc-011', runDate: '2026-02-04T08:00:00.000Z', instrumentId: 'CYTO-2', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2605', totalSamplesRun: 80, invalidControlCount: 0, inhibitorCount: 0,
+  { id: 'mqc-011', runDate: '2026-02-04T08:00:00.000Z', instrumentId: 'CYTO-2', organisationId: 'ORG-HFHS', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2605', totalSamplesRun: 80, invalidControlCount: 0, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.2 }, { controlLevel: 'high_positive', meanCt: 22.9 }] },
-  { id: 'mqc-012', runDate: '2026-02-11T08:00:00.000Z', instrumentId: 'CYTO-2', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2605', totalSamplesRun: 84, invalidControlCount: 0, inhibitorCount: 0,
+  { id: 'mqc-012', runDate: '2026-02-11T08:00:00.000Z', instrumentId: 'CYTO-2', organisationId: 'ORG-HFHS', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2605', totalSamplesRun: 84, invalidControlCount: 0, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.5 }, { controlLevel: 'high_positive', meanCt: 23.0 }] },
-  { id: 'mqc-013', runDate: '2026-02-18T08:00:00.000Z', instrumentId: 'CYTO-2', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2605', totalSamplesRun: 81, invalidControlCount: 0, inhibitorCount: 0,
+  { id: 'mqc-013', runDate: '2026-02-18T08:00:00.000Z', instrumentId: 'CYTO-2', organisationId: 'ORG-HFHS', assayName: 'Hologic Aptima HR-HPV', reagentLotNumber: 'LOT-CYTO2-2605', totalSamplesRun: 81, invalidControlCount: 0, inhibitorCount: 0,
     controlResults: [{ controlLevel: 'negative', meanCt: 0 }, { controlLevel: 'low_positive', meanCt: 33.3 }, { controlLevel: 'high_positive', meanCt: 22.7 }] },
 ];
 

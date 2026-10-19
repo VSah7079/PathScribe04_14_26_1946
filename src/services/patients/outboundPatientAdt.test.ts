@@ -1,5 +1,11 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 603: breakGlassRebind checks patient:break-glass:rebind; the test controls the decision directly.
+const { bgAllowed } = vi.hoisted(() => ({ bgAllowed: { current: true } }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: vi.fn(async (capability: string) => ({ capability, allowed: bgAllowed.current, grantedBy: [], missingRequirements: [], context: {} })) },
+}));
+
 import { mockPatientIndexService } from './mockPatientIndexService';
 import { mockOutboundPatientAdtQueueService } from './mockOutboundPatientAdtQueueService';
 import { buildAdt08Payload, buildAdt40Payload, buildAdt47Payload } from './buildPatientAdtPayload';

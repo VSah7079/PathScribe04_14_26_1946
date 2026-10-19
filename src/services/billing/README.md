@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/billing/
 
 The real, minimal RVU (Relative Value Unit) infrastructure this app never had — built specifically because `ProductivityTab.tsx`'s and `ContributionDashboardPage.tsx`'s RVU tiles were both hardcoded, with no real CPT-to-RVU mapping or per-case RVU field anywhere in this codebase to compute from.
@@ -328,3 +330,31 @@ Tests: `caseBillingCoding.test.ts`, `caseBillingCharges.test.ts`, `materialCharg
 - **Bug fixed, `searchBillingAuditLog.ts`:** filtering the billing audit log by signing pathologist crashed on a case whose `finalizedBy` was stored as `null`.
 - **Bug fixed, same file:** filtering by detail text crashed when a released amendment had no explanation of change.
 - Two tests narrow their results before asserting.
+
+## Batch 583
+
+- `postSignoutBillingReason.ts` (new): the one decision "does this billing change on a signed-out case need a reason?" (Assist cases, billed by the LIS, don't) and the audit summaries. Used by the case-level Code Manager save, the report page's three specimen-level handlers (add base code, remove base code, apply block code) and the shared billing review. A removal with no charge on file keeps the reason in its audit entry. Not covered: deleting a block-level applied code after sign-out still credits without asking.
+
+## Batch 588
+
+- New deficiency type `BLOCK_DELETED` (trigger `BLOCK_DELETION`, detail in `BillingDeficiencyRecord.blockDeleted`), raised when a block is deleted in process (`material/deleteBlockInProcess.ts`). Billing resolves it in Quality Assurance → Financials → Billing deficiencies: Charge reversed is the credit.
+
+## Batch 605
+
+Batch 605: `frozenSectionSuggestionReview.ts` (accept or dismiss suggested 88331/88332; decisions only, no charge posted); `jsonWebhookBuilder` adds the performing facility place of service; `markSent` on the outbound charge queue; the financial-class payload is shown beside the billing export preview.
+
+## Batch 607
+
+`jsonWebhookBuilder.ts` leaves ICD-10 diagnosis codes out of the charge message when the performing lab's code-system policy has ICD-10 off.
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the billing and charge-capture services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/BILLING_API.md`. The mocks are unchanged.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`codeImportService`, `ncciEditService`, `billingTypeTriggerConfigService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/BILLING_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 618 (PS-336): which lab performed each charge
+
+`resolveChargeFacilities.ts` (+ test): `resolveSplitTechnicalFacility` (a technical lab that is a different lab from the reporting lab) and `resolveChargePerformingFacilityId` (TC goes to the technical lab on a split case; 26 and Global to the reporting lab). `jsonWebhookBuilder.ts` adds `performingFacilityId` per charge and `technicalComponentFacility` on a split case. Release rules are unchanged (`codeMapTable.ts`); the test proves TC at grossing and 26 at sign-out.

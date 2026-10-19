@@ -8,22 +8,17 @@
 // config:peer-review:manage; every change is audited.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import type { PeerReviewGateSettings } from '@/types/quality/PeerReview';
 import { DEFAULT_PEER_REVIEW_GATE_SETTINGS, peerReviewGateOn, peerReviewGateSettingsChange } from './peerReviewRules';
+import type { IPeerReviewSettingsService } from './IPeerReviewSettingsService';
+export type { IPeerReviewSettingsService } from './IPeerReviewSettingsService';
 
 export const PEER_REVIEW_SETTINGS_STORAGE_KEY = 'pathscribe_peer_review_gate_settings';
 
-export interface IPeerReviewSettingsService {
-  get(): Promise<ServiceResult<PeerReviewGateSettings>>;
-  save(settings: PeerReviewGateSettings): Promise<ServiceResult<PeerReviewGateSettings>>;
-  /** Whether sign-out waits for the review on a case from this facility and subspecialty. */
-  gateOnFor(facilityId?: string, subspecialtyId?: string): Promise<boolean>;
-}
 
 const load = (): PeerReviewGateSettings => ({
   ...DEFAULT_PEER_REVIEW_GATE_SETTINGS,

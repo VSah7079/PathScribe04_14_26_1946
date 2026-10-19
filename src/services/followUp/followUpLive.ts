@@ -1,7 +1,9 @@
 // src/services/followUp/followUpLive.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch 454: follow-up tracking wired to the real services, so screens call
-// these (through @/services) and never a mock.
+// these (through @/services) and never a mock. Batch 616: the commands go to
+// followUpService (the demo's, or the API server's, command-based); this file
+// keeps what only the browser does (the demo alert sweep, the email draft).
 //
 // Received-or-not is decided over every case (a resection may be at another
 // facility the viewer can't open), but a screen is only given the follow-ups
@@ -13,84 +15,28 @@ import { browserRunsServerJob } from '../serverJobs/browserStandIns';
 import i18n from '@/i18n/config';
 import { formatDate } from '@/utils/formatDate';
 import { caseRouter } from '../cases/CaseRouter';
-import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
-import { mockSpecimenDictionaryService } from '../specimenDictionary/mockSpecimenDictionaryService';
 import { mockMessageService } from '../messages/mockMessageService';
 import { mockUserService } from '../users/mockUserService';
 import { mockPhysicianService } from '../physicians/mockPhysicianService';
 import { mockFacilityService } from '../facilities/mockFacilityService';
-import { sendEmail } from '../communications/notificationService';
-import { getEffectiveBiopsyResectionRule } from '../quality/biopsyResectionCorrelationSettings';
-import { followUpStore, type IFollowUpStore } from './followUpStore';
-import { FOLLOW_UP_PLACEHOLDERS_AS_WRITTEN, getEffectiveFollowUpSettings, type EffectiveFollowUpSettings } from './followUpSettings';
-import { followUpCaseIdsForUser, resolveFollowUpItems, toFollowUpCaseInfo, type FollowUpCaseInfo } from './followUpTracking';
-import {
-  markFollowUpExpected, noteFollowUpAlertSent, recordFollowUpDisposition, reopenFollowUp, followUpMarkOffer,
-  type FollowUpActionDeps, type FollowUpActionResult, type FollowUpUser, type FollowUpMarkOffer,
-} from './followUpActions';
-import { draftFollowUpClinicianEmail, emailOrderingClinician, type ClinicianEmailDeps, type FollowUpEmailDraft } from './followUpClinicianEmail';
+import { followUpStore } from './followUpStore';
+import { FOLLOW_UP_PLACEHOLDERS_AS_WRITTEN, getEffectiveFollowUpSettings } from './followUpSettings';
+import { followUpCaseIdsForUser, toFollowUpCaseInfo } from './followUpTracking';
+import { noteFollowUpAlertSent, followUpMarkOffer, type FollowUpActionResult, type FollowUpUser, type FollowUpMarkOffer } from './followUpActions';
+import { draftFollowUpClinicianEmail, type FollowUpEmailDraft } from './followUpClinicianEmail';
 import { followUpAlertRecipients, followUpAlertsDue } from './followUpAlerts';
 import type { FollowUpDisposition, FollowUpExpectation, FollowUpItem, FollowUpRecord } from './followUpTypes';
-
+import { followUpService } from './followUpServiceInstance';
+import { surgicalTest } from './mockFollowUpService';
+import type { LoadedFollowUps } from './IFollowUpService';
 
 /** i18next would otherwise empty the template's {{placeholders}}. */
 const KEEP_PLACEHOLDERS = FOLLOW_UP_PLACEHOLDERS_AS_WRITTEN;
 
-const actionDeps = (store: IFollowUpStore = followUpStore): FollowUpActionDeps => ({
-  enforce: (capability, context) => authorizationService.enforce(capability as any, (context ?? {}) as any),
-  store,
-  now: () => new Date(),
-  logAudit: event => mockAuditService.logEvent(event as any),
-});
+export type { LoadedFollowUps };
 
-const clinicianDeps = (): ClinicianEmailDeps => ({
-  ...actionDeps(),
-  sendEmail: payload => sendEmail(payload),
-  getSettings: facilityId => getEffectiveFollowUpSettings(facilityId),
-});
-
-async function surgicalTest(): Promise<(specimen: any) => boolean> {
-  const dict = await mockSpecimenDictionaryService.getAll();
-  const byId = new Map((dict.ok ? dict.data : []).map((e: any) => [e.id, e]));
-  return (s: any) => {
-    const entry: any = s?.specimenDictionaryEntryId ? byId.get(s.specimenDictionaryEntryId) : undefined;
-    return !(entry && (entry.type === 'Cytology' || entry.type === 'FNA'));
-  };
-}
-
-async function settingsByFacility(facilityIds: (string | undefined)[]): Promise<Map<string, EffectiveFollowUpSettings>> {
-  const ids = [...new Set(facilityIds.map(f => f ?? ''))];
-  const entries = await Promise.all(ids.map(async id => [id, await getEffectiveFollowUpSettings(id || undefined)] as const));
-  return new Map(entries);
-}
-
-export interface LoadedFollowUps {
-  items: FollowUpItem[];
-  /** The settings that apply to each item's facility ('' = none). */
-  settingsFor: (facilityId: string | undefined) => EffectiveFollowUpSettings;
-}
-
-/** Every follow-up, with its status today. `allCases` is for system tasks only. */
-export async function loadFollowUpItems(opts: { allCases?: boolean; now?: Date } = {}): Promise<LoadedFollowUps> {
-  const [everything, visible, isSurgical, expectations, records] = await Promise.all([
-    caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
-    opts.allCases ? Promise.resolve(null) : caseRouter.getAll(undefined, { includeOrchestration: true }),
-    surgicalTest(),
-    followUpStore.getExpectations(),
-    followUpStore.getRecords(),
-  ]);
-  const cases: FollowUpCaseInfo[] = (everything.ok ? everything.data : []).map(c => toFollowUpCaseInfo(c, isSurgical));
-  const settings = await settingsByFacility(cases.map(c => c.facilityId));
-  const settingsFor = (facilityId: string | undefined) => settings.get(facilityId ?? '') ?? settings.get('')!;
-  const items = resolveFollowUpItems({
-    cases, expectations, records, now: opts.now ?? new Date(),
-    warningDaysFor: f => (settings.get(f ?? '') ?? settings.get(''))?.warningDays ?? 0,
-  });
-  if (visible === null) return { items, settingsFor };
-  const visibleIds = new Set((visible.ok ? visible.data : []).map(c => c.id));
-  return { items: items.filter(i => visibleIds.has(i.caseId)), settingsFor };
-}
+/** Every follow-up, with its status today. `allCases` is for system tasks only (the demo's alert sweep); the server limits the list to cases the caller can open. */
+export const loadFollowUpItems = (opts: { allCases?: boolean; now?: Date } = {}): Promise<LoadedFollowUps> => followUpService.loadItems(opts);
 
 /** One sweep at a time: the worklists and the Follow-up tab each start one
  *  when they load, and two overlapping sweeps would both send. */
@@ -142,40 +88,28 @@ export async function loadFollowUpCaseIdsForUser(userId: string | undefined): Pr
   return followUpCaseIdsForUser(items, userId);
 }
 
-/** At surgical sign-out: marks the case "follow-up expected" with its facility's window. */
-export async function markFollowUpExpectedLive(caseId: string, user: FollowUpUser): Promise<FollowUpActionResult<FollowUpExpectation>> {
-  const found = await caseRouter.getCase(caseId);
-  if (!found) return { ok: false, reason: 'caseNotFound' };
-  const c: any = found;
-  const caseInfo = toFollowUpCaseInfo(c, await surgicalTest());
-  const rule = await getEffectiveBiopsyResectionRule(caseInfo.facilityId);
-  return markFollowUpExpected({ caseInfo, signedOutAt: c.finalizedAt ?? new Date().toISOString(), rule, user }, actionDeps());
-}
+/** At surgical sign-out: marks the case "follow-up expected" with its facility's window (the window is worked out by whoever runs the service: the server, or the demo). */
+export const markFollowUpExpectedLive = (caseId: string, user: FollowUpUser): Promise<FollowUpActionResult<FollowUpExpectation>> =>
+  followUpService.markExpected(caseId, {}, user);
 
 /** Batch 459: what the report page offers for this case (mark after sign-out, or the existing mark). */
 export async function loadFollowUpMarkOffer(caseId: string): Promise<FollowUpMarkOffer> {
   const found: any = await caseRouter.getCase(caseId);
   if (!found) return { kind: 'none' };
-  const expectation = (await followUpStore.getExpectations()).find(e => e.caseId === caseId) ?? null;
+  const expectation = await followUpService.getExpectation(caseId);
   return followUpMarkOffer({ status: found.status, caseInfo: toFollowUpCaseInfo(found, await surgicalTest()), expectation });
 }
 
 /** Batch 459: "Follow-up expected" marked from the report page after sign-out (case:follow-up:expect). */
-export async function markFollowUpExpectedAfterSignOutLive(caseId: string, user: FollowUpUser): Promise<FollowUpActionResult<FollowUpExpectation>> {
-  const found: any = await caseRouter.getCase(caseId);
-  if (!found) return { ok: false, reason: 'caseNotFound' };
-  const caseInfo = toFollowUpCaseInfo(found, await surgicalTest());
-  const rule = await getEffectiveBiopsyResectionRule(caseInfo.facilityId);
-  return markFollowUpExpected({ caseInfo, signedOutAt: found.finalizedAt ?? new Date().toISOString(), rule, user, afterSignOut: true }, actionDeps());
-}
+export const markFollowUpExpectedAfterSignOutLive = (caseId: string, user: FollowUpUser): Promise<FollowUpActionResult<FollowUpExpectation>> =>
+  followUpService.markExpected(caseId, { afterSignOut: true }, user);
 
 export const recordFollowUpDispositionLive = (
   item: FollowUpItem, value: FollowUpDisposition, note: string | undefined, user: FollowUpUser,
-): Promise<FollowUpActionResult<FollowUpRecord>> =>
-  recordFollowUpDisposition({ key: item.key, caseId: item.caseId, accession: item.accession, facilityId: item.facilityId, value, note, user }, actionDeps());
+): Promise<FollowUpActionResult<FollowUpRecord>> => followUpService.recordDisposition(item, value, note, user);
 
 export const reopenFollowUpLive = (item: FollowUpItem, user: FollowUpUser): Promise<FollowUpActionResult<FollowUpRecord>> =>
-  reopenFollowUp({ key: item.key, caseId: item.caseId, accession: item.accession, facilityId: item.facilityId, user }, actionDeps());
+  followUpService.reopen(item, user);
 
 /** The clinician email as first shown: the lab's template (or the built-in
  *  wording in the user's language), filled in. */
@@ -199,12 +133,7 @@ export async function draftFollowUpClinicianEmailLive(
   });
 }
 
-/** Sends the reviewed email. The follow-up is read again first, so the
- *  checks use its status and facility now, not the screen's copy. */
-export async function emailOrderingClinicianLive(
+/** Sends the reviewed email. The follow-up is read again first (by the service), so the checks use its status and facility now, not the screen's copy. */
+export const emailOrderingClinicianLive = (
   item: FollowUpItem, draft: { to: string; subject: string; body: string }, user: FollowUpUser,
-): Promise<FollowUpActionResult<FollowUpRecord>> {
-  const fresh = (await loadFollowUpItems()).items.find(i => i.key === item.key);
-  if (!fresh) return { ok: false, reason: 'notOpen' };
-  return emailOrderingClinician({ item: fresh, ...draft, user }, clinicianDeps());
-}
+): Promise<FollowUpActionResult<FollowUpRecord>> => followUpService.emailClinician(item, draft, user);

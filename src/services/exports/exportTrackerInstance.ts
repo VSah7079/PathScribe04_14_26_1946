@@ -12,16 +12,29 @@ import { absoluteDownloadUrl, downloadFromUrl } from '@/utils/downloadFromUrl';
 import { getAccessToken } from '../auth/accessTokenSource';
 import { onSessionEnd } from '../auth/sessionEndHooks';
 import { liveUpdateService } from '../liveUpdates/liveUpdateService';
+import { readSessionProfile } from '../auth/sessionProfile';
 import { createHttpExportApi } from './httpExportApi';
+import { createDemoExportApi } from './demoExportApi';
 import { createExportTracker } from './exportTracker';
 
 const isProduction = isProductionBuild();
 const apiBaseUrl = apiServerUrl('exports');
 
-export const exportService = createExportTracker({
-  api: apiBaseUrl ? createHttpExportApi({ baseUrl: apiBaseUrl, fetch: (...a) => fetch(...a), accessToken: getAccessToken }) : null,
-  subscribeStatus: onEvent => liveUpdateService.subscribeExports(onEvent),
-  openDownload: (url, filename) => !!apiBaseUrl && downloadFromUrl(absoluteDownloadUrl(url, apiBaseUrl), filename, { allowLocalHttp: !isProduction }),
+// Batch 611 (#194): with no API server, the demo has a simulated export server
+// (demoExportApi.ts), so a long export shows Preparing, appears in My exports
+// and downloads, as it will with the real one. Labelled Simulated on screen.
+const demoApi = apiBaseUrl ? null : createDemoExportApi({
+  now: () => new Date(),
+  user: () => { const p = readSessionProfile(); return { userId: p?.id ?? 'unknown', userName: p?.name ?? p?.id ?? 'unknown' }; },
 });
 
-onSessionEnd(() => exportService.reset());
+export const exportService = createExportTracker({
+  api: apiBaseUrl ? createHttpExportApi({ baseUrl: apiBaseUrl, fetch: (...a) => fetch(...a), accessToken: getAccessToken }) : demoApi,
+  simulation: demoApi ? { longBuilds: () => demoApi.longBuilds(), setLongBuilds: on => demoApi.setLongBuilds(on) } : null,
+  subscribeStatus: onEvent => demoApi ? demoApi.subscribe(onEvent) : liveUpdateService.subscribeExports(onEvent),
+  openDownload: (url, filename) => demoApi
+    ? demoApi.openDownload(url)
+    : !!apiBaseUrl && downloadFromUrl(absoluteDownloadUrl(url, apiBaseUrl), filename, { allowLocalHttp: !isProduction }),
+});
+
+onSessionEnd(() => { exportService.reset(); demoApi?.reset(); });

@@ -8,6 +8,8 @@
 // Controls how a field label renders in the printed report.
 // The canvas card label is always shown regardless of this setting.
 
+export type FontUnits = 'pt' | 'legacy_px';
+
 export interface LabelConfig {
   /** Where the label appears relative to the value.
    *  above    → label on its own line above the value (default for paragraphs)
@@ -18,8 +20,13 @@ export interface LabelConfig {
   transform?: 'uppercase' | 'capitalize' | 'none';
   weight?: 'bold' | 'normal';
   decoration?: 'underline' | 'none';
-  /** Font size in px — defaults to 11 (adjacent) or 12 (above) */
+  /** Font size — defaults to 11 (adjacent) or 12 (above). What it means is set by `units`. */
   fontSize?: number;
+  /** Batch 612: the units of fontSize. "pt" is points, the size it prints at (a 10 prints at 10 pt, not
+   *  smaller). "legacy_px" (or missing) is a size saved before Batch 612 in CSS pixels, 1 px = 0.75 pt,
+   *  which prints as it always did until the author converts it (services/reportAppearance/fontUnits.ts).
+   *  A style with none takes its template's `fontUnits`. */
+  units?: FontUnits;
   /** Real feature, per direct request: a template's overall document
    *  style ("Arial 10pt") needs a typeface, not just size/weight —
    *  nothing in this type previously carried one at all. Same type

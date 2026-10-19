@@ -21,6 +21,7 @@ import type { Case } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { CasePriority } from '../cases/ICaseService';
 import type { ClinicalCode } from '../codes/ICodeService';
+import type { SynopticValueCriterion } from './synopticValueCriteria';
 
 /** Recorded patient sex codes (Patient.sex). */
 export type CaseSearchSex = 'M' | 'F' | 'U';
@@ -119,6 +120,10 @@ export interface CaseSearchCriteria {
   autopsyJurisdictions?: string[];
   autopsyAuthorities?: CaseSearchAutopsyAuthority[];
   autopsyReports?: CaseSearchAutopsyReport[];
+
+  // ── Batch 613 ─────────────────────────────────────────────
+  /** What was answered in a synoptic report: a question of a protocol, an operator and a value. All must match. */
+  synopticValues?: SynopticValueCriterion[];
 }
 
 export type CaseSearchSortKey = 'accessionDate' | 'signedOutDate' | 'lastUpdated' | 'patientName' | 'accessionNumber';
@@ -256,6 +261,8 @@ export interface CaseSearchDraft {
   autopsyJurisdictions: string[];
   autopsyAuthorities: CaseSearchAutopsyAuthority[];
   autopsyReports: CaseSearchAutopsyReport[];
+  // Batch 613
+  synopticValues: SynopticValueCriterion[];
 }
 
 export function emptyCaseSearchDraft(dateFrom: string, dateTo: string): CaseSearchDraft {
@@ -269,6 +276,6 @@ export function emptyCaseSearchDraft(dateFrom: string, dateTo: string): CaseSear
     dateBasis: 'accessioned', caseTypes: [], pathologistRole: 'any', revisionTypes: [], holdTypes: [],
     resultFlags: [], pendingWork: [], pastTatTarget: false, subspecialtyIds: [], performingLabIds: [],
     locationIds: [], intakes: [], payer: '', cptCodes: [], autopsyJurisdictions: [], autopsyAuthorities: [],
-    autopsyReports: [],
+    autopsyReports: [], synopticValues: [],
   };
 }

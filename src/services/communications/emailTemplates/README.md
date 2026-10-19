@@ -1,11 +1,10 @@
 # services/communications/emailTemplates/
 
-Email subject + HTML/text body builders for the two real, tracked email-generating workflows in the app.
+Email subject + HTML/text body builders for the browser-built e-mail (enhancement requests). Template lifecycle e-mails moved to the server in Batch 583.
 
 ## Files
 
 - **`enhancementEmailTemplates.ts`** — builds emails for enhancement requests.
-- **`synopticEmailTemplates.ts`** — builds emails for synoptic template events.
 
 
 ## Batch 364 (PS-349, PS-350): support references

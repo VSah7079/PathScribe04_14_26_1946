@@ -50,3 +50,16 @@ describe('findIdentifiersInText', () => {
       .toBe('Case SR-7K2Q-9MXD and SR-7K2Q-9MXD, not S26-44031.');
   });
 });
+
+import { findPatientNameInText } from './supportTicketRules';
+describe('Batch 604 patient name in a ticket', () => {
+  it('finds a surname or given name of the open case, any case, whole words only', () => {
+    const f = findPatientNameInText('Report for SMITH looks wrong; also Maria?', ['Maria', 'Smith']);
+    expect(f.map(x => x.kind)).toEqual(['patientName', 'patientName']);
+    expect(findPatientNameInText('smithson is a different word', ['Smith'])).toEqual([]);
+  });
+  it('ignores very short name parts and handles double surnames and apostrophes', () => {
+    expect(findPatientNameInText('Li went to the lab', ['Li'])).toEqual([]);
+    expect(findPatientNameInText("Mr O'Connor asked", ["O'Connor"]).length).toBe(1);
+  });
+});

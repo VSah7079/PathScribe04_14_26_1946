@@ -17,7 +17,7 @@ import type { IInterfaceMonitoringService } from '@/services/interfaceMonitoring
 export const EngineStatusLine: React.FC<{ onOpen: () => void; service?: IInterfaceMonitoringService; enabled?: boolean }> = ({ onOpen, service, enabled = true }) => {
   const { t, i18n } = useTranslation();
   const e = useInterfaceEngines(service, enabled);
-  if (!e.viaServer || !enabled || e.problem || !e.counts || (e.views?.length ?? 0) === 0) return null;
+  if (!e.viaServer || e.simulated || !enabled || e.problem || !e.counts || (e.views?.length ?? 0) === 0) return null;
   const parts = engineLineParts(e.counts).map(p => t(`interfaceEngines.lineParts.${p.key}`, { count: p.count }));
   return (
     <p className={`ps-ifengines-line${engineLineIsProblem(e.counts) ? ' ps-ifengines-line--problem' : ''}`} role="status">

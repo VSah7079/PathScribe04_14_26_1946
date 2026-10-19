@@ -60,6 +60,10 @@ const EXPORTS = CAPABILITY_CATALOG
   .map(c => c.key);
 
 // PS-356 (Batch 370): managing roles and staff, and the full demo reset.
+// Batch 603 (Pete, dev review): break-glass rebind of a downtime patient identity. Admin starts with it (it was open to administrator roles before);
+// anyone else is granted it in Staff → Roles.
+const BREAK_GLASS_REBIND = ['patient:break-glass:rebind'];
+
 const ADMINISTRATION = CAPABILITY_CATALOG.filter(c => c.group === 'administration').map(c => c.key);
 
 // Batch 428 (Pete, Oct 1, 2026): the Configuration section capabilities. Admin
@@ -125,7 +129,8 @@ const SUPPORT_ACCESS = CAPABILITY_CATALOG.filter(c => c.group === 'supportAccess
 // Sep 28, 2026). The Home page and hubs show only these tiles.
 const screens = (...names: string[]) => names.map(n => `screen:${n}:open`);
 // Batch 421: and the Registry Exceptions worklist.
-const QUALITY_COMPLIANCE = screens('audit-log', 'quality-assurance', 'registry-exceptions');
+// Batch 610: and the autopsy dashboards.
+const QUALITY_COMPLIANCE = screens('audit-log', 'quality-assurance', 'registry-exceptions', 'autopsy-dashboards');
 export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
   // Batch 489: and the Tumor Board workspace, for the roles that nominate
   // cases to a board (GROSSERS below).
@@ -154,7 +159,7 @@ export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
   // Batch 434 (Pete): Admin also opens Batch Management (it couldn't see Slide
   // scanning). The screen only: the batch actions stay with the bench roles,
   // and an administrator can add them to any role in the Role Dictionary.
-  [SYSTEM_ROLE_IDS.ADMIN]:             [...screens('configuration', 'batch-management'), ...QUALITY_COMPLIANCE],
+  [SYSTEM_ROLE_IDS.ADMIN]:             [...screens('configuration', 'batch-management', 'outbound-queue'), ...QUALITY_COMPLIANCE],
   [SYSTEM_ROLE_IDS.TEMPLATE_AUTHOR]:   screens('configuration'),
   [SYSTEM_ROLE_IDS.TEMPLATE_APPROVER]: screens('configuration'),
   [SYSTEM_ROLE_IDS.LAB_DIRECTOR]:      [...screens('configuration', 'search', 'my-contributions'), ...QUALITY_COMPLIANCE],
@@ -173,6 +178,13 @@ const AUTOPSY_RELEASE = ['autopsy:body:release'];
 // Batch 495 (PS-283): printing a case report, for every role that could
 // print one before (the roles with case access, built-in and a hospital's own).
 const REPORT_PRINT = ['report:case-report:print'];
+// Batch 609 (PS-44): attaching images to a case report, for the same case-access roles.
+const REPORT_IMAGES = ['report:case-images:attach'];
+// Batch 613: related cases at sign-out are the signer's decision (Pathologist, Fellow); the Patient summary print is for the case-access roles that can read patient history.
+const RELATED_CASES = ['report:related-cases:attach'];
+const PATIENT_SUMMARY = ['patient:summary:print'];
+// Batch 611 (#189): Smart Capture review, approval and export, for the Pathologist only (the approver is always a pathologist).
+const SMART_CAPTURE = ['billing:smart-capture:review', 'billing:smart-capture:approve', 'billing:smart-capture:send'];
 // Batch 516 (PS-283): printing a VIP/confidential case, for the Pathologist who
 // reports it (least privilege; it needs report:case-report:print, which only the
 // case-access roles hold). An administrator grants it to anyone else.
@@ -255,6 +267,10 @@ export const CYTOLOGY_CT_SIGN_OUT = ['cytology:ct-report:sign-out'];
 export const NATIONAL_IDENTIFIER_RECORD = ['patient:national-identifier:record'];
 // Batch 418: and the patient's registry opt-outs.
 export const REGISTRY_CONSENT_RECORD = ['patient:registry-consent:record'];
+// Batch 613: asking to see a patient's other cases (every case-access role); deciding (Pathologist and Admin; the service also
+// limits a pathologist to cases they are assigned to).
+export const OTHER_CASES_REQUEST = ['patient:other-cases:request-access'];
+export const OTHER_CASES_DECIDE = ['patient:other-cases:decide-access'];
 // Batch 421: resending a registry submission: Admin (administration group) and the Lab Director.
 export const REGISTRY_RESEND = ['registry:submission:resend'];
 // Batch 425: marking a registry revision reviewed, the same people who resend.
@@ -279,7 +295,12 @@ export const ADD_ON_ORDER_ACTIONS = ['add-on:order:place', 'add-on:exception:app
 const ADD_ON_ORDER_ROLES = ['pathologist', 'fellow', 'resident'];
 // Batch 404: Batch Management's overrides, for every role that has its screen
 // (Pete: keep today's users).
-export const BATCH_OVERRIDE_ACTIONS = ['batch:reconciliation:override', 'batch:run:abort', 'batch:cold-chain-excursion:acknowledge'];
+// Batch 610 (#17/#123, #12): and trying the Simulated temperature reading, and exporting the Retention Holds queue.
+export const BATCH_OVERRIDE_ACTIONS = ['batch:reconciliation:override', 'batch:run:abort', 'batch:cold-chain-excursion:acknowledge', 'batch:cold-chain-reading:simulate', 'retention:holds-queue:export'];
+// Batch 610 (#11): deleting (Invalidating) a block after sign-out: supervisory and administrative roles only.
+export const BLOCK_DELETE_SIGNED_OUT = ['material:block:delete-signed-out'];
+// Batch 610 (#11): flagging a block Invalidated or Superseded on an amended report: Pathologist and Quality Manager (QA Reviewer).
+export const BLOCK_FLAG_AMENDED = ['material:block:flag-amended'];
 // Batch 405: superseding a molecular run, for every role with the Molecular screen.
 export const MOLECULAR_SUPERSEDE = ['molecular:batch:supersede'];
 // Batch 467: the in-house molecular Order Queue's actions, for the same roles.
@@ -301,6 +322,8 @@ export const PRINT_QUEUE_ACTIONS = ['print:job:hold', 'print:job:cancel', 'print
 // default (Pete's accepted default named Admin and an Interface Analyst; there
 // is no built-in Interface Analyst role, so a hospital grants it to its own).
 export const INTERFACE_RESEND = ['interface:outbound:resend'];
+// Batch 619 (PS-800): hold and release on the Outbound Queue screen (Admin).
+export const INTERFACE_HOLD_RELEASE = ['interface:outbound:hold', 'interface:outbound:release', 'interface:outbound:mark-not-reportable', 'interface:outbound:retract', 'interface:outbound:override-release'];
 // Batch 518 (PS-123, Pete Oct 2): batch label reprint, Histotechnologist and Admin.
 export const LABEL_BATCH_REPRINT = ['label:batch:reprint'];
 // Batch 515 (PS-290): issuing and revoking an outside consult link, for every
@@ -314,7 +337,7 @@ export const CONSULT_LINK_OVERSIGHT = ['audit:consult-links:view'];
 // Batch 437 (PS-282, PS-357): the exports, for the roles that open the screen
 // they sit on (keep today's users).
 export const AUDIT_LOG_EXPORTS = ['audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export'];
-export const CASE_SEARCH_EXPORT = ['search:case-results:export'];
+export const CASE_SEARCH_EXPORT = ['search:case-results:export', 'search:case-report:export', 'search:report-schedule:manage'];
 export const CONTRIBUTION_EXPORTS = ['contribution:trainee-case-reference:export', 'contribution:case-mix-summary:export'];
 // Batch 438 (PS-144–148): confirming or dismissing a CAPA recommendation, for the roles that open Quality Assurance.
 export const CAPA_DECIDE = ['qa:capa-recommendation:decide'];
@@ -353,7 +376,8 @@ export const REFERRAL_TRANSIT = ['referral:transit-status:update'];
 export const WSI_SCAN_BATCH = ['wsi:scan-batch:load', 'wsi:scan-batch:send', 'wsi:scan-batch:unload'];
 // Batch 407: disposing of retained material, for every role with the Batch Management screen.
 // Batch 452: and removing a decant from the material tree, for the same roles.
-export const MATERIAL_DISPOSAL = ['retention:material:dispose', 'retention:disposal-report:export', 'case:decant:delete'];
+// Batch 588: and deleting a block in process (each facility changes this in its role grants).
+export const MATERIAL_DISPOSAL = ['retention:material:dispose', 'retention:disposal-report:export', 'case:decant:delete', 'material:block:delete-in-process'];
 const BILLING_CORRECTION_ROLES: string[] = [
   SYSTEM_ROLE_IDS.ADMIN, SYSTEM_ROLE_IDS.LAB_DIRECTOR, SYSTEM_ROLE_IDS.QA_REVIEWER,
 ];
@@ -391,6 +415,8 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     // Batch 383: and releasing an autopsy body.
     ...(role.caseAccess ? [...AUTOPSY_RELEASE] : []),
     ...(role.caseAccess ? [...REPORT_PRINT] : []),
+    ...(role.caseAccess ? [...REPORT_IMAGES] : []),
+    ...(role.caseAccess ? [...PATIENT_SUMMARY] : []),
     // Batch 468: and recording a forensic chain-of-custody transfer.
     ...(role.caseAccess ? [...AUTOPSY_CUSTODY_TRANSFER] : []),
     // Batch 469: and consent narrowing/revocation, organ-retention disposal, toxicology.
@@ -405,6 +431,7 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     // Batch 417: and recording a national identifier.
     ...(role.caseAccess ? [...NATIONAL_IDENTIFIER_RECORD] : []),
     ...(role.caseAccess ? [...REGISTRY_CONSENT_RECORD] : []),
+    ...(role.caseAccess ? [...OTHER_CASES_REQUEST] : []),
     // Batch 403: and add-on orders (a role with case access had that screen too).
     ...(role.caseAccess ? [...ADD_ON_ORDER_ACTIONS] : []),
     // Batch 404: and Batch Management's overrides (a role with case access had that screen too).
@@ -484,6 +511,9 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(CASE_ACCESS_ROLES.includes(r) || BILLING_CORRECTION_ROLES.includes(r) ? BILLING_REVIEW : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RELEASE : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? REPORT_PRINT : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? REPORT_IMAGES : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? PATIENT_SUMMARY : []),
+    ...(['pathologist', 'fellow'].includes(r) ? RELATED_CASES : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CUSTODY_TRANSFER : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CONSENT_MANAGE : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RETENTION_DISPOSAL : []),
@@ -494,6 +524,7 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CONSENT_REINSTATE : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? NATIONAL_IDENTIFIER_RECORD : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? REGISTRY_CONSENT_RECORD : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? OTHER_CASES_REQUEST : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? REGISTRY_RESEND : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? QA_TREND : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? REGISTRY_GO_LIVE_APPROVE : []),
@@ -534,13 +565,17 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? AI_PROMPT_APPROVE : []),
     ...(CLINICAL_HISTORY_RECORD_ROLES.includes(r) ? CLINICAL_HISTORY_RECORD : []),
     ...(r === SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST ? LABEL_BATCH_REPRINT : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? BLOCK_DELETE_SIGNED_OUT : []),
+    ...(r === 'pathologist' ? BLOCK_FLAG_AMENDED : []),
+    ...(r === 'pathologist' ? SMART_CAPTURE : []),
+    ...(r === 'pathologist' ? OTHER_CASES_DECIDE : []),
     ...(caps.includes('screen:molecular:open') ? MOLECULAR_SUPERSEDE : []),
     ...(caps.includes('screen:molecular:open') ? MOLECULAR_ORDER_ACTIONS : []),
     ...MESSAGING,
   ]])),
   [SYSTEM_ROLE_IDS.SUPERADMIN]: SUPERADMIN_CAPABILITY_KEYS,
-  [SYSTEM_ROLE_IDS.ADMIN]: [...EXPORTS, ...CASE_EDIT_CONFLICT_OVERRIDE, ...INKING_GATE_OVERRIDE, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...INTERFACE_RESEND, ...INTERFACE_MONITORING, ...SERVER_JOBS, ...LABEL_BATCH_REPRINT, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN])],
-  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...MISMATCH_RULES_VIEW, ...AI_PROMPT_VIEW, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER])],
+  [SYSTEM_ROLE_IDS.ADMIN]: [...BREAK_GLASS_REBIND, ...EXPORTS, ...CASE_EDIT_CONFLICT_OVERRIDE, ...INKING_GATE_OVERRIDE, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...INTERFACE_RESEND, ...INTERFACE_HOLD_RELEASE, ...INTERFACE_MONITORING, ...SERVER_JOBS, ...LABEL_BATCH_REPRINT, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN]), ...BLOCK_DELETE_SIGNED_OUT, ...OTHER_CASES_DECIDE],
+  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...MISMATCH_RULES_VIEW, ...AI_PROMPT_VIEW, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER]), ...BLOCK_DELETE_SIGNED_OUT, ...BLOCK_FLAG_AMENDED],
 };
 
 /**

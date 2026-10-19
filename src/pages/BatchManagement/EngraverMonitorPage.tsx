@@ -24,7 +24,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { fetchEngraverDevices } from '@/services/engravers/fetchEngraverDevices';
+import { fetchEngraverDevices, engraversAreSimulated } from '@/services/engravers/fetchEngraverDevices';
 import type { EngraverDevice } from '@/services/engravers/fetchEngraverDevices';
 import type { EngraverStatus, SupplyWarning, SupplyWarningCode } from '@/types/events/EngraverStatusEventPayload';
 import { cassetteColorService } from '@/services';
@@ -110,7 +110,11 @@ const EngraverMonitorPage: React.FC = () => {
   // minute's safety poll; without a live connection, every 30 seconds as before.
   useLiveData(backgroundRefresh, { topic: 'engravers', pollMs: POLL_INTERVAL_MS });
 
-  const counts = engraverStatusCounts(devices);
+  const [orgFilter, setOrgFilter] = useState('');
+  const orgIds = Array.from(new Set(devices.map(d => d.organisationId))).sort();
+  const visible = orgFilter ? devices.filter(d => d.organisationId === orgFilter) : devices;
+  const simulated = engraversAreSimulated();
+  const counts = engraverStatusCounts(visible);
 
   return (
     <div className="ps-batch-page">
@@ -136,16 +140,23 @@ const EngraverMonitorPage: React.FC = () => {
             <button className="ps-btn-secondary" onClick={refresh} disabled={loading}>
               {loading ? t('engraverMonitor.refreshing') : `↻ ${t('engraverMonitor.refresh')}`}
             </button>
+            {orgIds.length > 1 && (
+              <select className="ps-select" aria-label={t('engraverMonitor.orgFilter')} value={orgFilter} onChange={e => setOrgFilter(e.target.value)}>
+                <option value="">{t('engraverMonitor.allOrgs')}</option>
+                {orgIds.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            )}
+            {simulated && <span className="ps-simulated-badge">{t('engraverMonitor.simulated')}</span>}
           </div>
 
-          <div className="ps-batch-section-label">{t('engraverMonitor.devicesSection', { count: devices.length })}</div>
+          <div className="ps-batch-section-label">{t('engraverMonitor.devicesSection', { count: visible.length })}</div>
           {loading && devices.length === 0 ? (
             <LoadingState variant="inline" className="ps-batch-empty" label={t('engraverMonitor.loadingDevices')} />
           ) : devices.length === 0 ? (
             <div className="ps-batch-empty">{t('engraverMonitor.noDevices')}</div>
           ) : (
             <div className="ps-engraver-device-grid">
-              {devices.map(device => (
+              {visible.map(device => (
                 <div key={device.deviceId} className="ps-engraver-device-card" style={{ '--ps-hue': STATUS_COLOR[device.status] } as React.CSSProperties}>
                   <div className="ps-engraver-device-card-header">
                     <div>

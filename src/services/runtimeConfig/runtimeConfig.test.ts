@@ -41,6 +41,15 @@ describe('checking config.json', () => {
     expect(proxyProblem('//evil.example/x', true)).toBe('NOT_THIS_SITE');
     expect(proxyProblem('/\\evil.example/x', true)).toBe('NOT_THIS_SITE');
   });
+  it('an error-monitoring address needs a public key, a project and https (PS-469)', () => {
+    const ok = parseRuntimeConfig({ VITE_ERROR_MONITORING_DSN: 'https://key@o1.ingest.sentry.io/42', VITE_ERROR_MONITORING_ENV: 'hospital-a-prod' }, { demoBuild: false, buildApiBaseUrl: 'https://x.example', buildAuthMode: 'sso' });
+    expect(ok.problems).toEqual([]);
+    for (const bad of ['https://o1.ingest.sentry.io/42', 'http://key@collector.example/1', 'https://key:pw@collector.example/1', 'https://key@collector.example/', 'https://key@collector.example/1?a=b']) {
+      const r = parseRuntimeConfig({ VITE_ERROR_MONITORING_DSN: bad }, { demoBuild: false, buildApiBaseUrl: 'https://x.example', buildAuthMode: 'sso' });
+      expect(r.problems.some(p => p.key === 'VITE_ERROR_MONITORING_DSN'), bad).toBe(true);
+    }
+  });
+
   it('a demo build never talks to an API server, a hub, the renderer or an interface receiver, and is never "production"', () => {
     expect(parseRuntimeConfig({ VITE_API_BASE_URL: 'https://ps.example' }, demo).problems).toEqual([{ key: 'VITE_API_BASE_URL', code: 'API_SERVER_IN_DEMO_BUILD' }]);
     expect(parseRuntimeConfig({

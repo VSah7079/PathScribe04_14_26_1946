@@ -1,8 +1,13 @@
 // src/utils/labels/printCassetteSlideLabel.test.ts
+import { storageSet } from '@/services/mockStorage';
+import { setDataMayPersistInBrowserForTests } from '@/services/browserData/browserDataPolicy';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('./qzTrayBridge', () => ({
   printZplViaQzTray: vi.fn(),
+  // PS-55: the dispatcher connects before printing; these tests are about what is printed.
+  isQzTrayConnected: vi.fn(() => true),
+  connectToQzTray: vi.fn(async () => ({ ok: true, data: undefined })),
 }));
 vi.mock('./dispatchNetworkPrintJob', async () => {
   const actual = await vi.importActual<typeof import('./dispatchNetworkPrintJob')>('./dispatchNetworkPrintJob');
@@ -75,8 +80,11 @@ describe('printCassetteSlideLabel — real, parallel printed path alongside engr
     });
 
     it('real, honest refusal for a bridge type with no implementation yet — never silently no-ops', async () => {
+      // Batch 606: in the demo this route answers Simulated; with an API server it is a real refusal.
+      setDataMayPersistInBrowserForTests(false);
       const printer: PrinterProfile = { ...basePrinter, bridgeType: 'zebra_browser_print' };
       const result = await printCassetteLabel(cassetteInput, printer, '00850000000000', DEFAULT_CASSETTE_LABEL_LAYOUT);
+      setDataMayPersistInBrowserForTests(null);
       expect(result.ok).toBe(false);
       if (!result.ok) expect((result as PrintCassetteSlideLabelError).message).toContain('zebra_browser_print');
     });
@@ -127,5 +135,50 @@ describe('printCassetteSlideLabel — real, parallel printed path alongside engr
       const [, zpl] = (printZplViaQzTray as any).mock.calls[0];
       expect(zpl).toContain('1-CB2');
     });
+  });
+});
+
+describe('slide and block labels follow the admin layouts (Batch 606, PS-15 / PS-165 / PS-26)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (printZplViaQzTray as any).mockResolvedValue({ ok: true, data: undefined });
+    storageSet('label_designer_layouts', []);
+  });
+
+  it('the slide layout sets the module size and text position of the printed ZPL', async () => {
+    await printSlideLabel(slideInput, basePrinter, '00850000000000', { faceWidthMm: 25, faceHeightMm: 10, moduleSizeMm: 0.3, fontHeightMm: 1.6 });
+    const [, zpl] = (printZplViaQzTray as any).mock.calls[0];
+    expect(zpl).toContain('^BXN,4,');
+    expect(zpl).toContain('^A0N,19,19');
+  });
+
+  it('without a layout argument the saved Print settings layout (default) is used: the original ZPL', async () => {
+    await printSlideLabel(slideInput, basePrinter, '00850000000000');
+    const [, zpl] = (printZplViaQzTray as any).mock.calls[0];
+    expect(zpl).toContain('^FO70,10^A0N,14,14');
+  });
+
+  it('a slide layout saved in the label designer replaces the built-in slide ZPL', async () => {
+    storageSet('label_designer_layouts', [{
+      id: 'l1', labelType: 'slide', widthMm: 25.4, heightMm: 9.5, updatedAt: '',
+      fields: [{ id: 'f1', fieldKey: 'stainName', xMm: 1, yMm: 1, widthMm: 10, heightMm: 3, fontSizeMm: 1.5 }],
+    }]);
+    await printSlideLabel(slideInput, basePrinter, '00850000000000');
+    const [, zpl] = (printZplViaQzTray as any).mock.calls[0];
+    expect(zpl).toContain('^FDH&E^FS');
+    expect(zpl).not.toContain('^BXN');
+  });
+
+  it('a block layout saved in the label designer replaces the built-in cassette ZPL, and the built-in one is used when none is saved', async () => {
+    await printCassetteLabel(cassetteInput, basePrinter, '00850000000000', DEFAULT_CASSETTE_LABEL_LAYOUT);
+    expect((printZplViaQzTray as any).mock.calls[0][1]).toContain('^BXN');
+    storageSet('label_designer_layouts', [{
+      id: 'l2', labelType: 'block', widthMm: 25.4, heightMm: 12.7, updatedAt: '',
+      fields: [{ id: 'f1', fieldKey: 'patientName', xMm: 1, yMm: 1, widthMm: 20, heightMm: 3, fontSizeMm: 1.5 }],
+    }]);
+    await printCassetteLabel(cassetteInput, basePrinter, '00850000000000', DEFAULT_CASSETTE_LABEL_LAYOUT);
+    const zpl = (printZplViaQzTray as any).mock.calls[1][1];
+    expect(zpl).toContain('^FDDOE, JOHN^FS');
+    expect(zpl).not.toContain('^BXN');
   });
 });

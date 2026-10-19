@@ -27,7 +27,9 @@ function actorName(fallback = 'Unknown'): string {
   return me ? ([me.firstName, me.lastName].filter(Boolean).join(' ') || me.id) : fallback;
 }
 
-import { QC_REVIEW_NOT_PERMITTED } from './qcReviewErrors';
+import { QC_REVIEW_NOT_PERMITTED, QC_REVIEWER_NOT_IN_POOL } from './qcReviewErrors';
+import { resolveQcReviewerPool, effectiveQcReviewerRoles } from './resolveQcReviewerEligibility';
+import { mockUserService } from '../users/mockUserService';
 
 // Batch 396: taking a QC review and recording its verdict needs
 // cytology:qc-review:record (Pathologist and Fellow, who had the queue).
@@ -41,6 +43,14 @@ let _cache: CytologyQcCaseAssignment[] = load();
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = (message: string): ServiceResult<never> => ({ ok: false, error: message });
+/** Batch 608: whether the reviewer is in the case's pool. An unknown user is not judged here. */
+async function reviewerInPool(a: CytologyQcCaseAssignment, reviewerId: string): Promise<boolean> {
+  if (!a.eligibleReviewerRoles || a.eligibleReviewerRoles.length === 0) return true;
+  const res = await mockUserService.getById(reviewerId);
+  if (!res.ok) return true;
+  return resolveQcReviewerPool(a.eligibleReviewerRoles, effectiveQcReviewerRoles(res.data));
+}
+
 const delay = () => new Promise(res => setTimeout(res, 30));
 
 export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentService = {
@@ -107,6 +117,7 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
     if (!resolveQcReviewerEligibility(reviewerId, current.primarySignOutProviderId)) {
       return err('Self-review is not permitted: the assigned reviewer cannot be the case\'s own primary sign-out provider.');
     }
+    if (!(await reviewerInPool(current, reviewerId))) return err(QC_REVIEWER_NOT_IN_POOL);
     const updated: CytologyQcCaseAssignment = { ...current, state: 'QC_IN_REVIEW', assignedReviewerId: reviewerId };
     _cache = [..._cache.slice(0, idx), updated, ..._cache.slice(idx + 1)];
     persist(_cache);
@@ -123,6 +134,7 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
     if (current.state !== 'QC_IN_REVIEW') {
       return err(`Cannot record concurrence for assignment ${id} — it is genuinely in state "${current.state}", not QC_IN_REVIEW.`);
     }
+    if (current.assignedReviewerId && !(await reviewerInPool(current, current.assignedReviewerId))) return err(QC_REVIEWER_NOT_IN_POOL);
     const updated: CytologyQcCaseAssignment = {
       ...current,
       state: 'FINAL_APPROVED',
@@ -144,6 +156,7 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
     if (current.state !== 'QC_IN_REVIEW') {
       return err(`Cannot record a discrepancy for assignment ${id} — it is genuinely in state "${current.state}", not QC_IN_REVIEW.`);
     }
+    if (current.assignedReviewerId && !(await reviewerInPool(current, current.assignedReviewerId))) return err(QC_REVIEWER_NOT_IN_POOL);
     const updated: CytologyQcCaseAssignment = {
       ...current,
       state: 'QC_DISCREPANCY_REVISE',

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 603 — wall display Display Token binding and masking, break-glass rebind capability, MRN-free correlation export (unit, component and guard tests)",
+    "description": "Vitest, 2026-10-17: 1212 files passed; 10159 tests passed. firestore.rules.test.ts needs the Firestore emulator (not run). Not run: browser check on real wall displays; server-side 401 check (Planned, no server in this repository); native-speaker review of fr/de/nl/ko text."
+  },
+  "tests": [
+    {
+      "testKey": "PS-766",
+      "start": "2026-10-17T15:00:00Z",
+      "finish": "2026-10-17T17:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/displayAccess/mockDisplayAccessService.test.ts\nPASSED: src/services/intraopDashboard/maskForWallDisplay.test.ts\nPASSED: src/pages/FacilityOpsDashboard/FacilityOpsDashboardPage.test.tsx\nPASSED: src/pages/OrSuiteDashboardPage.test.tsx\nPASSED: src/components/Config/System/DemoResetTab.coverage.test.ts\nPASSED: src/services/phi/phiTagging.guard.test.ts\nPASSED: src/services/authorization/authorization.test.ts\nPASSED: src/services/authorization/capabilities.guard.test.ts\nPASSED: src/services/patients/mockPatientIndexService.test.ts\nPASSED: src/services/cytology/resolveCytologyHistologyCorrelationReport.test.ts"
+    }
+  ]
+}

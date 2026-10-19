@@ -10,3 +10,7 @@ Before, anyone who could open Configuration could change this; now each change i
 
 ---
 *Parent: [services/](../README.md).*
+
+## Batch 617 (part C): server versions (PS-514)
+
+The concordance review settings service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/QUALITY_SETTINGS_API.md`. The mocks are unchanged.

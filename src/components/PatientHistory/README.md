@@ -76,3 +76,9 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 613: access to a patient's other cases
+
+- `RestrictedCasesNotice.tsx` (props `{ patientId, caseId }`): inline notice showing how many of the patient's other cases the user cannot open, the request form (reason list, note for "Other"), the user's pending or declined status, and, for people who may decide, Approve / Decline / Revoke with inline reasons. Shown in the Prior Pathology panel and in the case workup.
+- `usePatientCaseAccess.ts`: loads the state through `services/patientCaseAccess` and runs the actions.
+- `PatientHistoryModal.tsx` lists only the cases the user may open (plus those a grant opens, with a banner) and writes one audit entry when a grant was used.

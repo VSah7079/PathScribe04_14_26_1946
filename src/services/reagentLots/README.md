@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/reagentLots
 
 Reagent lots. Stain reagent lots (Configuration → System → Reagent & Solution Lots). `mockReagentLotService.ts`: create / update / deactivate / reactivate.
@@ -12,3 +14,5 @@ Before, anyone who could open Configuration could change this; now each change i
 
 ---
 *Parent: [services/](../README.md).*
+
+Batch 616 (part D, PS-508): server version of ReagentLotService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/REAGENTS_LABELS_API.md`.

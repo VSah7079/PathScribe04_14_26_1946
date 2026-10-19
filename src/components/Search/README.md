@@ -53,6 +53,15 @@
 **Batch 349 (PS-101):** the header search popup showed raw status codes (`pending-review`) in near-invisible grey. Every case status now has a translated label (`caseSearchBar.status.*`) on a readable pill. The flag chips' inline colour styles became a `--ps-hue` custom property read by `.ps-casebar-dropdown__flag-chip`. Found and not fixed: the popup reads `case.flags`, but cases store flags as `caseFlags`, so flag chips never appear.
 
 
+## Batch 613 (part A) — case search reporting
+
+- **`Report/`**: the report view of a search.
+  - `CaseReportPanel.tsx`: group-by, sortable group table (cases, share, median days to sign-out, total), a group's cases, list with chosen columns, save/load, CSV export (`search:case-report:export`).
+  - `ColumnPicker.tsx`: choose and order columns, including synoptic answers (at most 24).
+  - `ReportSchedulesPanel.tsx`: schedules for saved reports; last run shown labelled Simulated; changes need `search:report-schedule:manage`.
+  - `SynopticValueFilters.tsx`: the Synoptic answers filter rows on the Search sidebar.
+  - `useCaseReport.ts`: the report's state (latest request wins).
+
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `CaseSearchBar.tsx`: the search box, the not-found and LIS-fetch messages, the results header and the matched-value hint are tagged (they show the typed or found accession).

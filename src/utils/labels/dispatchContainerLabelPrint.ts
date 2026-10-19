@@ -18,6 +18,7 @@
 // of it.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { recordSimulatedPrint, simulationAllowed } from '@/services/printing/simulatedPrint';
 import type { LabelBarcodeSymbology } from '@/types/labels/LabelSizePreset';
 
 export interface ContainerLabelPrintRequest {
@@ -61,6 +62,7 @@ export async function dispatchContainerLabelPrint(
     `(${request.symbology}, preset ${request.labelSizePresetId})` +
     `${request.printerIp ? ` — station printer on file: ${request.printerIp} (not yet used for routing; see PS-51).` : ' — no printer configured for this station.'}`,
   );
+  if (simulationAllowed()) recordSimulatedPrint({ kind: 'label', transport: 'container label printer', destination: request.printerIp ?? 'station printer' });
   return { dispatched: true, method: 'stub' };
 }
 

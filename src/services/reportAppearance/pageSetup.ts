@@ -12,8 +12,9 @@
 //     carries over the size and margins the preview remembered before (the
 //     old 'ps_preview_page_size' / 'ps_preview_margins' browser values).
 //
-// Not yet used by the PDF renderer (functions/main.py prints A4 today);
-// that's server work, on PS-345.
+// Batch 606 (PS-36): now sent in the surgical and cytology render payloads as
+// pageSetup, so the renderer can use it. functions/main.py still prints A4
+// until the server reads it (PS-345).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { readLabSetting, saveLabSetting } from '../labSettings/labSettingsStore';
@@ -88,6 +89,13 @@ export function getLabPageSetup(): PageSetup {
   saveLabSetting(PAGE_SETUP_KEY, carried);
   try { dataStorage.removeItem(LEGACY_SIZE_KEY); dataStorage.removeItem(LEGACY_MARGINS_KEY); } catch { /* fine */ }
   return carried;
+}
+
+/** The page size in millimetres and margins as sent to the report renderer (Batch 606, PS-36). */
+export interface RenderPageSetup { pageSizeId: string; widthMm: number; heightMm: number; margins: Margins; }
+export function renderPageSetup(setup: PageSetup = getLabPageSetup()): RenderPageSetup {
+  const size = PAGE_SIZES.find(p => p.id === setup.pageSizeId) ?? PAGE_SIZES[0];
+  return { pageSizeId: size.id, widthMm: size.widthMm, heightMm: size.heightMm, margins: { ...setup.margins } };
 }
 
 /** Saves the lab's page setup. False when refused (nothing saved). */

@@ -99,6 +99,9 @@ Admin and user guides, training, marketing and RFP answers are written from the 
 - **A feature that needs explaining** (a workflow, a rule set, a governance model) gets its own guide in `docs/product/`, as `CLINICAL_MISMATCH_CHECK.md` does.
 - Planned work is labelled Planned, never described as built.
 
+### 10. Split large files as you touch them (Pete, Oct 18, 2026, PS-497)
+No big-bang refactor and no pilot deadline to plan around: when a story changes a file over 1,000 lines (the report screen `SynopticReportPage.tsx`, `AccessionPage.tsx`, `useSignOutWorkflow.ts`, `WorklistTable.tsx`, `SearchPage.tsx` and the like), move the part you are changing into its own service, hook or component in the same change, with no behaviour change, and note the new line counts in the summary. A change never makes a file over 1,000 lines longer than it was. Mocks and data tables (`mockCaseService.ts`, `mockActionRegistryService.ts`) are split the same way when touched.
+
 ---
 
 ## Delivery routine (every batch)

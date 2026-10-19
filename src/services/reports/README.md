@@ -1,3 +1,8 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
+## Batch 613 (part B)
+`intraopDiagnosisForCase.ts`: one read of a case's intraoperative diagnosis for every output path. The render payload now carries it, with `relatedCases`; the outbound narrative and PDF come from that payload.
+
 # services/reports/
 
 The amendment/versioning system — Pete's actively-developed current work as of July 2026. Three tightly-coupled interfaces correctly bundled together (not a templates/-style bundling mistake).
@@ -342,3 +347,9 @@ Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`)
 ## Batch 561 (PS-539 phase 2d)
 
 - Test: `oruQueueEntryHash.test.ts` (the FINAL and PRELIMINARY dispatchers record the PDF's hash on the queue entry).
+
+Batch 616 (part A, PS-483): `httpReportServices.ts` (amendments, informal reviews, LIS amendment notices), `httpOutboundQueueServices.ts` (LIS sync and result queues), `reportServicesInstance.ts` (the five as `@/services` exports; mock without an API address). Contract `docs/architecture/REPORTS_API.md`. Report versions keep `reportVersionInstance.ts`. The dispatchers here still import the mock queues directly (server work in production).
+
+## Batch 618 (PS-336)
+
+`surgicalReportLabels.ts` gains the `technicalComponentAt` label (the line the renderer prints for a split case's technical lab).

@@ -1518,6 +1518,14 @@ New **`TumorBoardRulesSection.tsx`**: an enterprise-baseline card (per-rule edit
 
 **`TumorBoardRulesSection.tsx`** gains a new "Batching cut-off" card, between the enterprise-baseline and facility-overrides cards — one hours input + Save, same dirty-draft pattern as the per-rule threshold inputs. Reads/writes `tumorBoardBatchSettingsService.get()`/`update()` (new, in `services/tumorBoardRules/`), gated by the same `config:tumor-board-rules:manage` this screen already checks — no new capability needed. Folded into the existing `anyDirty`/`useReportConfigDirty` unsaved-changes guard. See `services/tumorBoardRules/README.md`'s own Batch 494 entry for the enterprise-wide-vs-per-facility scope decision.
 
+## Batch 612 (part C)
+
+Document Style: sizes are points (labelled pt, with the printed size shown); the built-in defaults are body 10, header 11 bold, footer 10 pt (`documentStyleConfig.ts`). A lab style saved before is read as `legacy_px` and prints as before until **Convert to points**.
+
+## Batch 610 (#71)
+
+`TumorBoardCriteriaRulesCard.tsx`: the diagnosis and biomarker rules card on Tumor Board Auto-Flag Rules.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*
@@ -1624,3 +1632,54 @@ Batch 553:
 ## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
 
 - `SupportAccessSection.tsx` (Batch 555): a support approval past its time reads "Expired" (`effectiveSupportStatus`).
+
+## Batch 595 — Code Systems
+
+`CodeSystemsSection.tsx` (Configuration → System → Code Systems, group Clinical Lookups): for each jurisdiction served, which code systems (ICD-10, ICD-11, ICD-O, SNOMED CT and others) are off, optional or required, and from what date. Uses `codeSystemPolicyService` (`services/coding/`); edits need `config:code-systems:manage` and are audited. The Add Code window and sign-out do not read the policy yet (Planned). `CodeSystemsSection.test.tsx`.
+- Batch 604: SimulatedMailOutboxSection (Integrations group).
+
+## Batch 606
+
+- `SimulatedPrintLogSection.tsx` (+ test): the Simulated print log (section `simulated_print`, capability `config:printers:manage`), with the failure switch.
+- `SlideLabelLayoutEditor.tsx` (+ test): slide label face, module size and font height with a fit check, preview and test print; mounted in `PrintSettingsSection.tsx`.
+
+## Batch 609 (#179)
+
+`VoiceSection.tsx` gained the "Match English commands loosely in other languages" switch (`voiceEnglishFuzzyFallback`) and a review list of the AI dictation instructions per language. Tests: `VoiceSection.test.tsx`.
+
+## Batch 609 (#31)
+
+`ClinicalMismatchRulesSection.tsx` has a new card, "Amendments, corrections and addenda": a switch for whether a high-risk mismatch holds the release (on by default). Needs `config:clinical-mismatch-rules:manage`; the change is audited. Tests added to `ClinicalMismatchRulesSection.test.tsx`.
+
+## Batch 610 (part A) — TAT configuration
+
+Autopsy PAD and FAD rule types; warning-minutes field for frozen section (`tat-rule-warning-minutes`); all `as any` casts removed.
+
+## Batch 610 (part B)
+
+New sections `PerformanceTargetsSection`, `ClientSlaSection` and `JurisdictionOverviewSection` (Administration & Compliance group; ids `performance_targets`, `client_sla`, `jurisdiction_overview`), registered in `systemSections.ts`, `index.tsx`, `configSearchIndex.ts` and `configSectionAccess.ts` (the first two need `config:tat-targets:manage`). Values save on change; the overview is read-only.
+
+## Batch 611 (part G)
+
+New section `SmartCaptureSection` (id `smart_capture`, Lab Materials & Workflows group): the prototype switch and the six-item production checklist for Smart Capture. Needs `config:smart-capture:manage`.
+
+## Batch 611 (#157)
+
+**`MfaPolicyCard.tsx`**: in Session Security, below the biometric card: who is asked for a second factor, the step-up minutes and the session hours, and the people enrolled in the Simulated authenticator with **Reset enrolment** (`CapabilityButton`, `auth:mfa-enrolment:reset`). Saving is checked in `mfaService` (`config:session-security:manage`). Test: `MfaPolicyCard.test.tsx`.
+
+## Batch 612 (workstations and scope reference)
+
+**`WorkstationsSection.tsx`**: register, change, rotate, revoke and test workstations; token shown once. **`ScopeReferenceSection.tsx`**: read-only list of enterprise versus facility scope by setting area. **`PrintRoutingRuleSection.tsx`**: the workstation field now suggests registered workstations.
+
+## Batch 612 (Interface Dictionary)
+
+**`InterfaceDictionarySection.tsx`**: vendor profiles, mapping editor, test, publish, roll back, scope reference. Registered in `systemSections.ts` (group Integrations) and shown only to holders of `platform:interface-dictionary:manage`.
+
+**Batch 617:** `BiometricPolicyCard` disables its switch and shows a note when the deployment has biometric sign-in turned off (`VITE_BIOMETRIC_SIGN_IN`).
+
+### DeliverySchedulesSection (Batch 619, PS-800)
+
+When each feed (and each registry separately) goes out, set for the enterprise and overridden per performing facility: card per feed or registry showing the schedule and where it comes from, an editor (immediate, set hours, batch with cutoff, hold until sign-out, review hold; reporting deadline; amendment re-queue), and a "Try a schedule" panel. Registered as `delivery_schedules` (Administration & Compliance), capability `config:delivery-schedules:manage`. Logic in `services/deliverySchedules/`; the editor's helpers in `deliveryScheduleForm.ts`; styles in `DeliverySchedulesSection.css` (own file, so `pathscribe.css` does not grow). Contract: `docs/architecture/DELIVERY_SCHEDULES_API.md`.
+
+### BillingReleaseSection (Batch 619, PS-800)
+When a generated charge is released to billing, set for the enterprise and overridden per performing facility: a card per rule (billing type, optional case types, ordering site, pathologist, amended/original; release at once, after a hold, in a batch or by a person), an editor (`BillingReleaseEditor.tsx`), and a "Try a charge" panel (`BillingReleaseTestPanel.tsx`). Registered as `billing_release` (Administration & Compliance), capability `config:billing-release:manage`. Logic in `services/billingRelease/`; the draft helpers in `billingReleaseForm.ts`; styles reuse `DeliverySchedulesSection.css`. Contract: `docs/architecture/BILLING_RELEASE_API.md`.

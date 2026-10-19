@@ -11,18 +11,26 @@
 // This file is intentionally thin — layout + modal wiring only.
 // ─────────────────────────────────────────────────────────────
 
+import { writeBackSpecimenToLis } from '@/services/specimens/simulateSpecimenLisAck';
+import { facilityService, delegationTypeForVoiceAction, completeDelegatedWork, delegationService } from '@/services';
+import { resolveSplitReportBranding, technicalBrandingForRender } from '@/services/facilities/resolveSplitReportBranding';
+import { renderPageSetup } from '@/services/reportAppearance/pageSetup';
 import { useOpenCase } from '@/hooks/useOpenCase';
 import { useRouteCaseId } from '@/hooks/useRouteCaseId';
 import { CaseUnavailable } from '@/components/CaseUnavailable/CaseUnavailable';
 import { WorkupPartsModal } from './modals/WorkupPartsModal';
 import { setWorkupParts, type WorkupPartsMode } from '@/services/reports/workupParts';
 import { resolveReportLocaleForFacility } from '@/services/reports/resolveReportLocale';
+import { RelatedCasesAmendedNotice } from '@/components/RelatedCases/RelatedCasesAmendedNotice';
+import { loadIntraopDiagnosisForCase } from '@/services/reports/intraopDiagnosisForCase';
+import { attachedRelatedCases, freezeRelatedCases, subscribeRelatedCaseAttachments } from '@/services/relatedCases/relatedCaseAttachments';
 import { surgicalReportLabelsFor, formatReportDateOfBirth } from '@/services/reports/surgicalReportLabels';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVoice } from '@/contexts/VoiceProvider';
 import { useFootPedal } from '@/hooks/useFootPedal';
+import { useAutoBlockOrderDispatch } from '@/hooks/useAutoBlockOrderDispatch';
 import { useAudioSegmentRecorder } from '@/hooks/useAudioSegmentRecorder';
 import { useNavigate, useLocation } from 'react-router';
 import { useCapabilities } from '@/hooks/useCapabilities';
@@ -30,6 +38,8 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { useTranslation, Trans } from 'react-i18next';
 import type { DirtySectionId } from '@/services';
 import { loadFollowUpMarkOffer, markFollowUpExpectedAfterSignOutLive, followUpMarkFailureKey, type FollowUpMarkOffer } from '@/services';
+import { applyCaseReportImagesToBlob, CASE_IMAGES_FAILED } from '@/services';
+import { AttachReportImagesModal } from '@/components/ReportImages/AttachReportImagesModal';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { HeldReportsBanner } from '@/components/ReportRelease/HeldReportsBanner';
 import { CaseUpdatedBanner } from './components/CaseUpdatedBanner';
@@ -50,6 +60,7 @@ import Sidebar            from './components/Sidebar';
 import MaterialTreePanel  from './components/MaterialTreePanel';
 import LeftReportPanel    from './components/LeftReportPanel';
 import { AmendmentStatusBanner } from './components/AmendmentStatusBanner';
+import { ReturnToTraineeBar } from '@/components/Common/ReturnToTraineeBar';
 import AutopsyAuthorizationCompletionForm from '../../components/Autopsy/AutopsyAuthorizationCompletionForm';
 import AutopsyBodyReleaseForm from '../../components/Autopsy/AutopsyBodyReleaseForm';
 import { resolveCodeManagerSave, buildCodeManagerExistingCodes, type CodeManagerCode } from '@/services/codes/codeManagerCoding';
@@ -57,6 +68,7 @@ import { resolveAutopsyGrossExaminationGate } from '@/services/autopsy/resolveAu
 import { resolveAutopsyAccessionStatus } from '@/services/autopsy/resolveAutopsyAccessionStatus';
 import { resolveAutopsyTatSlaMatrix } from '@/services/autopsy/resolveAutopsyTatSlaMatrix';
 import { formatAutopsyTatSlaSummary } from '@/services/autopsy/formatAutopsyTatSlaSummary';
+import AutopsyTatChip from '@/components/Autopsy/AutopsyTatChip';
 import { resolveHtaApplicability } from '@/services/autopsy/resolveHtaApplicability';
 import { resolveAutopsyBodyReleaseGate } from '@/services/autopsy/resolveAutopsyBodyReleaseGate';
 import { resolveAutopsyBodyAlreadyReleased } from '@/services/autopsy/resolveAutopsyBodyAlreadyReleased';
@@ -98,6 +110,7 @@ import { RevisionFeedbackBanner } from './components/RevisionFeedbackBanner';
 import { AmendmentDraftBanner } from './components/AmendmentDraftBanner';
 import RightSynopticPanel, { type RightSynopticPanelHandle, type AiSuggestion } from './components/RightSynopticPanel';
 import { OrganMapPanel } from '@/components/OrganMap/OrganMapPanel';
+import { collectMarginInk } from '@/services/grossing/marginInkLabels';
 import { ErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary';
 import { useOrganMap } from './hooks/useOrganMap';
 import { computeAiSynthesisStatus, type AiSynthesisStatus, type MustHaveFields } from '@/services/templates/aiSynthesisStatus';
@@ -112,9 +125,13 @@ import { RetentionHoldModal } from './modals/RetentionHoldModal';
 import { CaseHoldModal } from './modals/CaseHoldModal';
 import { CriticalFindingsModal } from './modals/CriticalFindingsModal';
 import PatientHistoryModal    from '../../components/PatientHistory/PatientHistoryModal';
+import { RestrictedCasesNotice } from '../../components/PatientHistory/RestrictedCasesNotice';
 import FlagManagerModal       from '../../components/Flags/FlagManagerModal';
 import { AddCodeModal }       from '../Synoptic/Codes/AddCodeModal';
+import { useTriggerCodeQueries } from './hooks/useTriggerCodeQueries';
 import { ReportCommentModal } from '../Synoptic/Comments/ReportCommentModal';
+import { reconcileEntries } from '@/services/coding/caseCodingEntries';
+import type { CodedEntry } from '@/services/coding/codedEntry';
 import CaseSignOutModal      from './modals/CaseSignOutModal';
 import BillingReviewPanel from './components/BillingReviewPanel';
 import { DiscordanceReconciliationModal } from './modals/DiscordanceReconciliationModal';
@@ -152,7 +169,7 @@ import { getUiPreference, setUiPreference, getSessionFlag } from '@/utils/uiPref
 import { stainTypeService } from '@/services';
 import { computeCaseCodingSummary } from '@/services/billing/codeMapTable';
 import type { PostSignoutChangeContext } from '@/services/billing/resolveServiceCharge';
-import { isCaseSignedOutForBilling } from '@/services/billing/isCaseSignedOutForBilling';
+import { postSignoutReasonNeeded, specimenBillingChangeSummary } from '@/services/billing/postSignoutBillingReason';
 import { PostSignoutBillingChangeModal } from '@/components/Billing/PostSignoutBillingChangeModal';
 import { CorrectAppliedCodeModal } from '@/components/Billing/CorrectAppliedCodeModal';
 import { enforceAppliedCodeCorrection } from '@/services/billing/correctServiceCharge';
@@ -214,6 +231,7 @@ import SynopticSidebar    from '../../components/Synoptic/SynopticSidebar';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { useLogout } from '@/hooks/useLogout';
 import { useDraftCache } from '@/hooks/useDraftCache';
+import { useLabelBridgeNotice } from './hooks/useLabelBridgeNotice';
 import { computeDraftDiff } from '@/utils/computeDraftDiff';
 import '@/pathscribe.css';
 
@@ -242,12 +260,14 @@ import SequencerPanel from './components/SequencerPanel';
 import { buildContext, resolveAnswers } from '@/orchestrator/contextBuilder';
 import type { StructuredContext } from '@/orchestrator/contextBuilder';
 import { aiBehaviorService } from '@/services';
+import { resolveConfidenceThresholdForClient } from '@/components/Config/AI/resolveClientAiModel';
 import { reportRendererUrl } from '@/services/reports/reportRenderer';
 import { revisionAllowedNow } from '@/services/reportRelease/revisionDuringDelay';
 import { useCaseSpellCheck } from '@/hooks/useCaseSpellCheck';
 import { SpellCheckProvider } from '@/components/SpellCheck/SpellCheckContext';
 import type { SpellingLocale } from '@/services/spellcheck/spellingLocales';
 import { getCaseOpenedFrom, markReturnToSearch } from '@/utils/search/searchSession';
+import { caseReturnTarget } from '@/utils/search/caseReturnTarget';
 import { recordCaseCharge, recordCaseCredit, recordCaseCodeCorrection, enforceBillingReview, auditBillingSuggestionDeclined } from '@/services';
 import { codingWithApproved, codingWithRejected, codingWithOverride, codingWithoutCode, codingWithCorrection, groupApprovalsByUnit, specimensWithBaseCodeAdded, specimensWithBaseCodeRemoved, specimensWithBaseCodeCorrected, specimensWithMatrixCode, matrixSlidesWithEvaluatedCores, type BillingApprovalItem } from '@/services';
 import { partGridRowsOf } from '@/services/templates/partGrid';
@@ -333,7 +353,9 @@ const SynopticReportPage: React.FC = () => {
     return getCaseOpenedFrom();
   }, []);
 
-  const backPath = navSource === 'search' ? '/search' : '/worklist';
+  // PS-101 review: the breadcrumb names this place too (utils/search/caseReturnTarget.ts).
+  const returnTarget = React.useMemo(() => caseReturnTarget(navSource), [navSource]);
+  const backPath = returnTarget.path;
 
   // ── Foot pedal — real feature, per direct follow-up: "Foot pedal
   //    support specifically." The Grossing spec's own real 3-pedal
@@ -377,6 +399,7 @@ const SynopticReportPage: React.FC = () => {
 
   // ── Case data ──────────────────────────────────────────────
   const [caseData, setCaseData]     = useState<Case | null>(null);
+  useAutoBlockOrderDispatch(caseData, signingUser?.id ?? 'system');
   // Batch 465b: the warning a save or sign-out can ask the person to go past (totals that differ from their grid).
   const warningConfirm = useWarningConfirm();
   // Real optimistic-concurrency baseline — the version this session last
@@ -918,6 +941,8 @@ const SynopticReportPage: React.FC = () => {
   const [addOrdersInitialTab,   setAddOrdersInitialTab]     = useState<OrderTab | undefined>(undefined);
 
   const { toastMsg, toastKind, toastVisible, toastContainsPhi, showToast, dismissToast } = useSynopticToast();
+  const notifyLabelPrinterNotConnected = useCallback(() => showToast(tGrossingNav('synopticReportPage.toast.labelPrinterNotConnected'), 'warning'), [showToast, tGrossingNav]);
+  useLabelBridgeNotice(notifyLabelPrinterNotConnected);
 
   // Batch 468 (PS-261 §2.4.3) — submits the custody-transfer mini-form.
   // Moved here (after showToast exists) from the form's own state block above.
@@ -1217,6 +1242,11 @@ const SynopticReportPage: React.FC = () => {
     handleConfirmTriageChecklistItem,
     handleUpdateBlock,
     handleCancelBlock,
+    handleDeleteBlock,
+    canDeleteBlocks,
+    blockDeleteTier,
+    handleFlagBlock,
+    canFlagBlocks,
     handleCreateSpareSlide,
     handleOrderRestain,
     handleAddBlock,
@@ -1271,6 +1301,7 @@ const SynopticReportPage: React.FC = () => {
   const [isAlertExpanded, setIsAlertExpanded] = useState(false);
   const [isSimilarCasesOpen, setIsSimilarCasesOpen] = useState(false);
   const [showCodesModal, setShowCodesModal] = useState(false);
+  const triggerCodeQueryList = useTriggerCodeQueries(caseData, showCodesModal);
   // Real, per direct guidance's own follow-up: the general Codes
   // manager (AddCodeModal) had no post-signout gating at all, unlike
   // the QA CODE_CORRECTED resolution path. A pending prompt captures
@@ -1304,6 +1335,7 @@ const SynopticReportPage: React.FC = () => {
   // BottomActionBar.tsx now, not something that only existed while
   // the Material tab happened to be open.
   const [showReprintModal, setShowReprintModal] = useState(false);
+  const [showAttachImages, setShowAttachImages] = useState(false); // Batch 609 (PS-44)
   // Real fix: which specimen (if any) the codes modal should be
   // pre-targeted at - set when opened via a specimen's own contextual
   // "+Code" button, null when opened via the general "Codes" toolbar
@@ -1353,6 +1385,8 @@ const SynopticReportPage: React.FC = () => {
   // For orchestration mode: tab switch that needs unsaved-draft confirmation
   const [pendingTabSwitch,   setPendingTabSwitch]   = useState<string | null>(null);
   const [showDelegateModal, setShowDelegateModal]   = useState(false);
+  // Batch 610 (#83): a delegation type said by voice, applied when the Delegate dialog opens.
+  const [delegatePreset, setDelegatePreset] = useState<{ typeId: string; nonce: number } | null>(null);
   // Batch 489: the real fix for the previously-dead 'delegation.tumorBoard' action.
   const [showFlagForMdtModal, setShowFlagForMdtModal] = useState(false);
   const [delegateReturnTo,  setDelegateReturnTo]    = useState<'team' | null>(null);
@@ -1771,10 +1805,14 @@ const SynopticReportPage: React.FC = () => {
   // uses (Configuration → AI Provider Settings), not a second copy.
   const [reviewThreshold, setReviewThreshold] = React.useState(75);
   React.useEffect(() => {
-    aiBehaviorService.get().then(res => {
-      if (res.ok) setReviewThreshold(res.data.confidenceThreshold ?? 75);
+    aiBehaviorService.get().then(async res => {
+      if (!res.ok) return;
+      const orgThreshold = res.data.confidenceThreshold ?? 75;
+      setReviewThreshold(orgThreshold);
+      // Batch 609 (#173): the model's own threshold override, when the organisation set one.
+      setReviewThreshold(await resolveConfidenceThresholdForClient(caseData?.order?.facilityId, orgThreshold));
     }).catch(() => {});
-  }, []);
+  }, [caseData?.order?.facilityId]);
 
   const REVIEW_THRESHOLD = reviewThreshold;
 
@@ -2068,7 +2106,7 @@ const SynopticReportPage: React.FC = () => {
   };
   // Cancelled → null: nothing changes. Not signed out → undefined.
   const postSignoutReason = async (summary: string): Promise<PostSignoutChangeContext | undefined | null> => {
-    if (!(isOrchestrationMode && isCaseSignedOutForBilling(caseData?.status))) return undefined;
+    if (!postSignoutReasonNeeded({ billed: isOrchestrationMode, status: caseData?.status })) return undefined;
     try { return await requestPostSignoutConfirmation(summary); } catch { return null; }
   };
 
@@ -2168,10 +2206,20 @@ const SynopticReportPage: React.FC = () => {
     return result;
   };
 
+  // A specimen-level change on a signed-out case asks for the same post-sign-out reason as the case-level
+  // paths (services/billing/postSignoutBillingReason.ts), before anything changes; the reason goes on the
+  // credit or charge and its audit entry. Cancelled → nothing changes.
+  const specimenPostSignoutReason = (kind: 'added' | 'removed', code: string) => {
+    const summary = specimenBillingChangeSummary(kind, code);
+    return postSignoutReason(tGrossingNav(summary.key, summary.values));
+  };
+
   const handleDeleteSpecimenBaseCode = async (specimenId: string, code: string) => {
     if (!(await billingReviewAllowed())) return;
+    const postSignoutContext = await specimenPostSignoutReason('removed', code);
+    if (postSignoutContext === null) return;
     if (await saveSpecimensNow(sp => specimensWithBaseCodeRemoved(sp, specimenId, code), { allOrNothing: true }) !== 'saved') return;
-    recordCreditTransaction(specimenId, undefined, code);
+    recordCreditTransaction(specimenId, undefined, code, postSignoutContext);
   };
 
   // These only capture which applied code is being corrected; the credit and
@@ -2213,8 +2261,10 @@ const SynopticReportPage: React.FC = () => {
 
   const handleAddSpecimenBaseCode = async (specimenId: string, code: string) => {
     if (!(await billingReviewAllowed())) return;
+    const postSignoutContext = await specimenPostSignoutReason('added', code);
+    if (postSignoutContext === null) return;
     if (await saveSpecimensNow(sp => specimensWithBaseCodeAdded(sp, specimenId, code), { allOrNothing: true }) !== 'saved') return;
-    recordChargeTransaction(specimenId, undefined, code);
+    recordChargeTransaction(specimenId, undefined, code, postSignoutContext);
   };
 
   // PS-93: which of a matrix-block stain's cores the pathologist confirmed as
@@ -2230,8 +2280,10 @@ const SynopticReportPage: React.FC = () => {
   // Specimen.matrixBlockCoding (not on a block).
   const handleApplyMatrixBillingCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
     if (!(await billingReviewAllowed())) return;
+    const postSignoutContext = await specimenPostSignoutReason('added', code);
+    if (postSignoutContext === null) return;
     if (await saveSpecimensNow(sp => specimensWithMatrixCode(sp, specimenId, matrixBlockId, code, stainOrderId, 'applied'), { allOrNothing: true }) !== 'saved') return;
-    recordChargeTransaction(specimenId, undefined, code);
+    recordChargeTransaction(specimenId, undefined, code, postSignoutContext);
   };
 
   const handleRejectMatrixBillingCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
@@ -2303,6 +2355,39 @@ const SynopticReportPage: React.FC = () => {
       if (res.ok) setOrchPrintRestricted(res.data.restrictHardcopyPrinting);
     });
   }, [caseData?.status]);
+  // Batch 610 (#83): signing the case out finishes the work delegated to this
+  // user, so it leaves "Delegated to me". Only a change seen on this page counts
+  // (not a case that was already signed out when opened).
+  const lastSeenStatusRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const status = caseData?.status;
+    const before = lastSeenStatusRef.current;
+    lastSeenStatusRef.current = status;
+    const signedNow = status === 'pending-release' || status === 'finalized';
+    const signedBefore = before === 'pending-release' || before === 'finalized';
+    if (!signedNow || signedBefore || before === undefined || !caseData?.id || !signingUser?.id) return;
+    void completeDelegatedWork(delegationService, caseData.id, signingUser.id);
+  }, [caseData?.status, caseData?.id, signingUser?.id]);
+  // Batch 613: the intraoperative diagnosis and the attached related cases, for the preview.
+  const [intraopDiagnosisText, setIntraopDiagnosisText] = useState<string | null>(null);
+  const [attachedRelated, setAttachedRelated] = useState(() => attachedRelatedCases(caseData?.id));
+  useEffect(() => {
+    if (!caseData?.id) return;
+    let live = true;
+    void loadIntraopDiagnosisForCase(caseData.id).then(text => { if (live) setIntraopDiagnosisText(text); });
+    return () => { live = false; };
+  }, [caseData?.id, caseData?.status]);
+  useEffect(() => {
+    const sync = () => setAttachedRelated(attachedRelatedCases(caseData?.id));
+    sync();
+    return subscribeRelatedCaseAttachments(sync);
+  }, [caseData?.id]);
+  // What the pathologist saw is fixed at sign-out: freeze it once the case is signed out or released.
+  useEffect(() => {
+    const st = caseData?.status;
+    if (!caseData?.id || !signingUser?.id) return;
+    if (st === 'pending-release' || st === 'finalized' || st === 'closed') freezeRelatedCases(caseData.id, signingUser.id);
+  }, [caseData?.id, caseData?.status, signingUser?.id]);
   // Automatic merge-on-claim trigger — unifies "claimed from Pool" and
   // "opened directly" into one check, since PoolClaimModal already
   // navigates here after a successful claim. Set once per case-load
@@ -2544,6 +2629,14 @@ const SynopticReportPage: React.FC = () => {
     // Batch 392 (Pete): the report is written in the performing lab's language;
     // its labels and date of birth go to the renderer in that language.
     const reportLocale = await resolveReportLocaleForFacility(caseData.order?.facilityId);
+    // Batch 606 (PS-37): a split '26' report also carries the technical lab's own branding block.
+    const splitBranding = caseData.order?.technicalComponentFacilityId
+      ? await (async () => {
+          const all = await facilityService.getAll();
+          if (!all.ok) return {};
+          return resolveSplitReportBranding(all.data.find(f => f.id === caseData.order?.facilityId), caseData.order?.technicalComponentFacilityId, all.data);
+        })()
+      : {};
     // Batch 498 (PS-283 §4.2.2): the report's revision status, dates in the report locale.
     const amendmentsRes = await amendmentService.getByCaseId(caseData.id);
     const revision = buildReportRenderRevision(
@@ -2613,9 +2706,11 @@ const SynopticReportPage: React.FC = () => {
       sections:        orchSections,
       renderScope:     buildRenderScope(caseData),
       synopticAnswers: isOrchestrationMode ? (resolvedContext?.synoptics?.flatMap(s => s.answers) ?? []) : copilotSynopticAnswers,
-      // Not read by render_report yet (functions/main.py, in this repo —
-      // Batch 496 audit, PS-333).
+      // Batch 609 (PS-35): render_report draws the header, body and footer text
+      // style, and the header and footer parts above (functions/main.py).
       documentStyle:   resolvedContext?.narrativeTemplate.documentStyle,
+      // Batch 612: the template's font size units ("pt" or "legacy_px"), for a style or label with none of its own.
+      ...(resolvedContext?.narrativeTemplate.fontUnits ? { fontUnits: resolvedContext.narrativeTemplate.fontUnits } : {}),
       // Drawn diagonally on every page by render_report since Batch 498.
       // Absent (not an empty string) for any case that isn't 'pending-release'.
       watermarkText,
@@ -2628,6 +2723,9 @@ const SynopticReportPage: React.FC = () => {
       // relying on the backend's own default matching whatever the
       // caller happened to mean.
       outputFormat,
+      // Batch 606 (PS-36): the lab's page size and margins (Document Style).
+      pageSetup: renderPageSetup(),
+      ...(technicalBrandingForRender(splitBranding, caseData.status) ? { technicalBranding: technicalBrandingForRender(splitBranding, caseData.status) } : {}), // Batch 618: signed-out reports only
       // Batch 392: the report's language, and the wording around it in that language.
       language: reportLocale.language,
       labels: surgicalReportLabelsFor(reportLocale.language),
@@ -2638,6 +2736,10 @@ const SynopticReportPage: React.FC = () => {
       // Batch 461: the anatomical maps the pathologist inserted (snapshots, print colours);
       // Batch 463: and the maps that are part of the report (Mohs), drawn now in the report's language.
       reportFigures: await reportFiguresWithAuto(caseData, i18nForDates.getFixedT(reportLocale.language) as never),
+      // Batch 613: the intraoperative diagnosis is part of the case report, and the related cases
+      // the signer attached are printed exactly as they were when seen at sign-out.
+      intraoperativeDiagnosis: await loadIntraopDiagnosisForCase(caseData.id),
+      relatedCases: attachedRelatedCases(caseData.id),
     };
   }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode, i18nForDates, reportWatermarkFor]);
 
@@ -2675,7 +2777,10 @@ const SynopticReportPage: React.FC = () => {
         throw new Error(`Report PDF generation failed (${resp.status})`);
       }
 
-      const blob = await resp.blob();
+      // Batch 609 (PS-44): the images attached to this report print after its pages.
+      const withImages = await applyCaseReportImagesToBlob({ caseId: caseData.id, accession }, await resp.blob());
+      if (withImages.failed) throw new Error(CASE_IMAGES_FAILED);
+      const blob = withImages.blob;
       const url = URL.createObjectURL(blob);
       const win = window.open(url, '_blank');
       if (!win) {
@@ -2902,9 +3007,10 @@ const SynopticReportPage: React.FC = () => {
   // listens for still does nothing. This used to only wire the 4
   // Grossing actions; the other 24 SYNOPTIC actions were recognized by
   // voice but genuinely inert. 20 of those 24 are wired for real below —
-  // 4 more (DELEGATE_PEER_REVIEW/FORMAL_CONSULT/FULL_TRANSFER/CONFIRM)
-  // are wired inside DelegateModal.tsx directly, since the delegation-
-  // type and confirm state live there, not here.
+  // 4 more (DELEGATE_PEER_REVIEW/FORMAL_CONSULT/FULL_TRANSFER/CONFIRM):
+  // CONFIRM is wired inside DelegateModal.tsx (the confirm state lives
+  // there); the three type actions are wired below (Batch 610) and hand
+  // the preset to the modal.
   //
   // Genuinely NOT wired, on purpose — not silently skipped:
   //   POOL_ACCEPT_CASE / POOL_PASS_CASE — these describe a pool case
@@ -2943,8 +3049,20 @@ const SynopticReportPage: React.FC = () => {
         // ── DelegateModal.tsx itself, wired separately) ────────────────────
         case 'OPEN_DELEGATE_MODAL':
         case 'DELEGATE_CONSULTATION':
+          setDelegatePreset(null);
           setShowDelegateModal(true);
           break;
+
+        // Batch 610 (#83): saying the type opens the dialog with it chosen
+        // (and, when the dialog is already open, chooses it there).
+        case 'DELEGATE_PEER_REVIEW':
+        case 'DELEGATE_FORMAL_CONSULT':
+        case 'DELEGATE_FULL_TRANSFER': {
+          const typeId = delegationTypeForVoiceAction(actionId);
+          if (typeId) setDelegatePreset(prev => ({ typeId, nonce: (prev?.nonce ?? 0) + 1 }));
+          setShowDelegateModal(true);
+          break;
+        }
 
         // Batch 489: real fix — this action was declared in
         // constants/systemActions.ts ("Submit to Tumor Board") and
@@ -3299,7 +3417,11 @@ const SynopticReportPage: React.FC = () => {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       });
       if (!resp.ok) return { generationError: `Report PDF generation failed (${resp.status})` };
-      const blob = await resp.blob();
+      // Batch 609 (PS-44): the images attached to this report go in the released PDF too.
+      const withImages = await applyCaseReportImagesToBlob(
+        { caseId: caseData?.id, accession: caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber }, await resp.blob());
+      if (withImages.failed) return { generationError: CASE_IMAGES_FAILED };
+      const blob = withImages.blob;
       const pdfBase64: string = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve((reader.result as string).split(',')[1] ?? '');
@@ -3310,7 +3432,7 @@ const SynopticReportPage: React.FC = () => {
     } catch (e: any) {
       return { generationError: e?.message ?? 'Unknown error generating PDF snapshot.' };
     }
-  }, [buildReportRenderPayload]);
+  }, [buildReportRenderPayload, caseData]);
 
   // Real, per direct guidance (outputFormat: 'text' — the real
   // extension to the render_report Cloud Function for
@@ -3368,6 +3490,7 @@ const SynopticReportPage: React.FC = () => {
     handleFieldOverridesConfirmed,
     handleRequestAmendment,
     handleAmendmentSubmit,
+    amendmentMismatch, resumeAddendumAfterMismatch, cancelAddendumMismatch,
   } = useAmendmentWorkflow({
     caseData, setCaseData, signingUser, showToast, activeReportInstanceId,
     knownVersionRef, setConcurrencyConflict, sendSynopticReportToLis,
@@ -3619,6 +3742,16 @@ const SynopticReportPage: React.FC = () => {
           showToast(tGrossingNav('synopticReportPage.toast.grossingTemplateAssignFailed'), 'warning');
         }
       })();
+    }
+    // Batch 605: the LIS answers the write-back (the simulated engine in the demo); the sidebar badge moves to Sent or Rejected.
+    if (saved.lisSyncState === 'pending_sync') {
+      const caseIdForAck = caseData.id;
+      void writeBackSpecimenToLis(caseIdForAck, saved, signingUser?.id ?? 'unknown').then(async answer => {
+        if (!answer) return;
+        const patched: Specimen[] = nextSpecimens.map(sp => sp.id === saved.id ? { ...sp, lisSyncState: answer.state } : sp);
+        setCaseData(prev => prev ? ({ ...prev, specimens: (prev.specimens ?? []).map(sp => sp.id === saved.id && sp.lisSyncState === 'pending_sync' ? { ...sp, lisSyncState: answer.state } : sp) }) : prev);
+        try { await savePagePatch(caseIdForAck, { specimens: patched } as any); } catch (e) { console.error('[LisAck] Failed to persist sync state:', e); }
+      });
     }
     markDirty('specimens');
     setShowSpecimenEdit(false);
@@ -4202,7 +4335,7 @@ const SynopticReportPage: React.FC = () => {
   // Previously an anonymous inline closure on AddCodeModal's
   // onAddToSpecimens JSX prop — merges new ICD/SNOMED/CPT codes into the
   // case, routing each CPT code to its own specimen's coding.cpt.
-  const handleAddCodesToSpecimens = useCallback(async (codes: any[], _specimenIndices: unknown) => {
+  const handleAddCodesToSpecimens = useCallback(async (codes: any[], _specimenIndices: unknown, codedEntries?: CodedEntry[]) => {
     if (!caseData) return;
     // Real fix, per direct correction: "you can delete cpt codes in
     // the code manager - it uses the trash can icon." The modal's own
@@ -4225,8 +4358,10 @@ const SynopticReportPage: React.FC = () => {
     // PS-141: the per-specimen split (ICD-10 / SNOMED / ICD-O on each
     // specimen, unattached ICD-10 / SNOMED case-level) and the count-based
     // CPT diff live in services/codes/codeManagerCoding.ts.
-    const { newCoding, updatedSpecimens, additionsBySpecimen, removalsBySpecimen } =
+    const { newCoding: savedCoding, updatedSpecimens, additionsBySpecimen, removalsBySpecimen } =
       resolveCodeManagerSave(codes as CodeManagerCode[], (caseData.specimens ?? []) as any[]);
+    // Batch 607 (#138): the full-fidelity entries (release, source, AI detail) travel with the saved lists.
+    const newCoding = codedEntries ? { ...savedCoding, entries: reconcileEntries([...(caseData.coding?.entries ?? [])], codedEntries) } : savedCoding;
 
     // Real, per direct guidance's own follow-up: billing is one of the
     // few things that can genuinely change after a case signs out, but
@@ -4237,7 +4372,7 @@ const SynopticReportPage: React.FC = () => {
     // never actually confirmed.
     const hasRealChange = additionsBySpecimen.size > 0 || removalsBySpecimen.size > 0;
     let postSignoutContext: PostSignoutChangeContext | undefined;
-    if (isOrchestrationMode && hasRealChange && isCaseSignedOutForBilling(caseData.status)) {
+    if (postSignoutReasonNeeded({ billed: isOrchestrationMode, status: caseData.status, hasChange: hasRealChange })) {
       const addCount = [...additionsBySpecimen.values()].reduce((n, c) => n + c.length, 0);
       const removeCount = [...removalsBySpecimen.values()].reduce((n, c) => n + c.length, 0);
       const parts: string[] = [];
@@ -4417,6 +4552,7 @@ const SynopticReportPage: React.FC = () => {
         <HeaderBar
           caseData={caseData}
           onNavigate={guard}
+          returnTarget={returnTarget}
           onSignOut={handleSignOutClick}
           aiSynthesisStatus={aiSynthesisStatus}
           onAiStatusClick={handleAiStatusReviewClick}
@@ -4794,7 +4930,10 @@ const SynopticReportPage: React.FC = () => {
                       activeSectionId={activeSectionId}
                       onSectionClick={setActiveSectionId}
                       documentStyle={resolvedContext?.narrativeTemplate.documentStyle}
+                      fontUnits={resolvedContext?.narrativeTemplate.fontUnits}
                       revisionStatus={reportRevisionStatus}
+                      intraoperativeDiagnosis={intraopDiagnosisText}
+                      relatedCases={attachedRelated}
                     />
                   </div>
                 </div>
@@ -4823,6 +4962,7 @@ const SynopticReportPage: React.FC = () => {
                     onGenerateReport={isOrchestrationMode ? handleGenerateReport : undefined}
                     onStartManualEntry={isOrchestrationMode ? handleStartManualEntry : undefined}
                     documentStyle={resolvedContext?.narrativeTemplate.documentStyle}
+                    fontUnits={resolvedContext?.narrativeTemplate.fontUnits}
                     criticalFindings={criticalFindings}
                   />
                 </div>
@@ -4867,6 +5007,9 @@ const SynopticReportPage: React.FC = () => {
                 )}
                 <AmendmentDraftBanner caseData={caseData} activeReportInstanceId={activeReportInstanceId} onEdit={handleRequestAmendment} />
                 <AmendmentStatusBanner caseId={caseData?.id} synopticReports={caseData?.synopticReports} specimens={caseData?.specimens} refreshKey={takenUpKey} />
+                {/* Batch 613: the patient's other cases this person can't open, and the request to see them (settled while the case is worked up; sign-out shows it too). */}
+                <RelatedCasesAmendedNotice caseId={caseData?.id} status={caseData?.status} />
+                {caseData?.patient?.id && caseData?.id && <RestrictedCasesNotice patientId={caseData.patient.id} caseId={caseData.id} />}
 
                 {/* Real, per direct follow-up: "it all needs to be
                     wired" \u2014 resolveAutopsyAccessionStatus.ts had
@@ -4893,6 +5036,8 @@ const SynopticReportPage: React.FC = () => {
                     <p className="ps-conf-section-subtitle ps-conf-section-subtitle--form-gap">
                       {formatAutopsyTatSlaSummary(resolveAutopsyTatSlaMatrix(caseData.autopsy.jurisdiction))}
                     </p>
+                    {/* Batch 610 (#60, #88): the verdict against that target, on the report status line. */}
+                    <AutopsyTatChip autopsy={caseData.autopsy} caseSource={caseData} />
                   </div>
                 )}
 
@@ -4987,6 +5132,22 @@ const SynopticReportPage: React.FC = () => {
                         }}>
                           {tGrossingNav('synopticReportPage.autopsy.retentionDetail.updateBtn')}
                         </button>
+                        {(caseData.autopsy.organRetentionHistory?.length ?? 0) > 1 && (
+                          <div className="ps-autopsy-retention-history" data-testid="retention-history">
+                            <div className="ps-conf-section-subtitle">{tGrossingNav('synopticReportPage.autopsy.retentionDetail.historyTitle')}</div>
+                            {[...caseData.autopsy.organRetentionHistory!].slice(0, -1).reverse().map(h => (
+                              <div key={h.recordedAt} className="ps-autopsy-custody-entry">
+                                <div className="ps-autopsy-custody-entry__transfer">
+                                  {tGrossingNav('synopticReportPage.autopsy.retentionDetail.summaryLine', { recipient: h.recipientName, location: h.location })}
+                                </div>
+                                <div className="ps-autopsy-custody-entry__meta">
+                                  {tGrossingNav('synopticReportPage.autopsy.retentionDetail.metaLine', { at: formatDateTime(h.recordedAt, i18nForDates.language), by: h.recordedByName })}
+                                  {h.reason ? tGrossingNav('synopticReportPage.autopsy.retentionDetail.reasonSuffix', { reason: h.reason }) : ''}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -5702,6 +5863,16 @@ const SynopticReportPage: React.FC = () => {
                   </div>
                 )}
 
+                {/* Batch 608 (#32, #84): the attending can return a released autopsy report to the trainee
+                    with feedback; the trainee sees that feedback here once it is returned. */}
+                {caseData?.autopsy && (
+                  <ReturnToTraineeBar caseId={caseData.id} user={signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : null}
+                    onReturned={async () => {
+                      const refreshed = await caseRouter.getCase(caseData.id);
+                      if (refreshed) { setCaseData(refreshed); knownVersionRef.current = refreshed.version ?? knownVersionRef.current; }
+                    }} />
+                )}
+
                 {caseData?.autopsy?.padSnapshot && !caseData.autopsy.fadSnapshot && (
                   <div className="ps-lis-triage-banner">
                     <div>
@@ -5925,6 +6096,7 @@ const SynopticReportPage: React.FC = () => {
                   busy={organMap.busy}
                   caseId={caseData?.id}
                   facilityId={caseData?.order?.facilityId ?? null}
+                  marginInk={collectMarginInk(caseData?.specimens)}
                   onSectorClick={handleOrganMapSectorClick}
                   onInsert={() => { void organMap.insert(); }}
                   onRemove={() => { void organMap.remove(); }}
@@ -6037,6 +6209,7 @@ const SynopticReportPage: React.FC = () => {
           onMarkFollowUp={handleMarkFollowUpAfterSignOut}
           onPrint={openCopilotReportView}
           onOpenReprints={() => setShowReprintModal(true)}
+          onAttachImages={() => setShowAttachImages(true)}
           
           onHistory={() => setIsSimilarCasesOpen(true)}
           onFlags={() => { openFlagManager(caseData); log('flag_manager_opened', { caseId: caseId ?? '' }); }}
@@ -6112,6 +6285,7 @@ const SynopticReportPage: React.FC = () => {
         onCountersignFeedbackChange={setCountersignFeedback}
         followUpExpected={followUpExpected}
         onFollowUpExpectedChange={canMarkFollowUp ? setFollowUpExpected : undefined}
+        relatedCases={caseData?.id ? { caseId: caseData.id, patientId: caseData.patient?.id, facilityId: caseData.order?.facilityId ?? null, user: signingUser?.id ?? 'unknown' } : undefined}
         specimens={caseData?.specimens as any}
         matrixBlocks={(caseData?.matrixBlocks as any) ?? []}
         onAssignBaseCode={(_specimenId, specimenIndex) => {
@@ -6492,6 +6666,8 @@ const SynopticReportPage: React.FC = () => {
             onPrintCassette={() => printMatrixCassette?.(matrixBlock.id)}
             onEditMembership={() => { setEditingMatrixBlockId(matrixBlock.id); setViewingMatrixBlockId(null); }}
             onOrderTargetedStain={handleOrderTargetedMatrixStain}
+            currentUserId={signingUser?.id ?? 'unknown'}
+            currentUserName={signingUser?.name ?? unknownUserName}
             onClose={() => setViewingMatrixBlockId(null)}
           />
         );
@@ -6620,6 +6796,9 @@ const SynopticReportPage: React.FC = () => {
           onPrintDecantContainerLabel={handlePrintDecantContainerLabel}
           onSendStainOrder={handleSendStainOrder}
           onCancelBlock={handleCancelBlock}
+          onDeleteBlock={canDeleteBlocks ? handleDeleteBlock : undefined}
+          blockDeleteTier={blockDeleteTier}
+          onFlagBlock={canFlagBlocks ? handleFlagBlock : undefined}
           onCreateSpareSlide={handleCreateSpareSlide}
           onOrderRestain={handleOrderRestain}
           currentUserId={signingUser?.id ?? 'unknown'}
@@ -6649,6 +6828,20 @@ const SynopticReportPage: React.FC = () => {
           discipline="autopsy"
           onCancel={() => { setAutopsyMismatch(null); setGateOverrideReason(null); }}
           onContinue={() => { setAutopsyMismatch(null); mismatchAlert.recorded(); setConfirmingAutopsyTier('FAD'); }}
+        />
+      )}
+
+      {amendmentMismatch && caseData && (
+        <ClinicalMismatchModal
+          caseId={caseData.id}
+          accession={caseData.accession?.fullAccession}
+          caseType={caseData.specimens?.[0]?.description || caseData.id}
+          subspecialtyId={caseData.subspecialtyId}
+          clinicalIndication={caseData.order?.clinicalIndication}
+          assessment={amendmentMismatch}
+          discipline={caseData.autopsy ? 'autopsy' : 'surgical'}
+          onCancel={cancelAddendumMismatch}
+          onContinue={resumeAddendumAfterMismatch}
         />
       )}
 
@@ -6799,10 +6992,12 @@ const SynopticReportPage: React.FC = () => {
             (caseData.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any)?.narrativeContent ?? undefined
           }
           onAddToSpecimens={handleAddCodesToSpecimens}
+          caseCoding={caseData?.coding}
           onClose={() => { setShowCodesModal(false); setCodesModalTargetSpecimenIndex(null); }}
           originHospitalId={caseData?.originHospitalId}
           activeSpecimenIndex={codesModalTargetSpecimenIndex ?? undefined}
           initialSystem={codesModalTargetSpecimenIndex !== null ? 'CPT' : undefined}
+          triggerQueries={triggerCodeQueryList}
         />
       )}
 
@@ -6860,6 +7055,8 @@ const SynopticReportPage: React.FC = () => {
           registry={actionRegistryService}
           caseId={caseId}
           currentUserId={signingUser?.id}
+          presetTypeId={delegatePreset?.typeId}
+          presetNonce={delegatePreset?.nonce}
           onDelegated={() => {
             setShowDelegateModal(false);
             showToast(tGrossingNav('synopticReportPage.toast.caseDelegated'));
@@ -6927,6 +7124,15 @@ const SynopticReportPage: React.FC = () => {
           onRestore={handleRestoreDraft}
           onDiscard={discardDraft}
           changes={draftDiff}
+        />
+      )}
+
+      {showAttachImages && caseData && (
+        <AttachReportImagesModal
+          caseId={caseData.id}
+          accession={caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? caseData.id}
+          facilityId={caseData.order?.facilityId ?? null}
+          onClose={() => setShowAttachImages(false)}
         />
       )}
 

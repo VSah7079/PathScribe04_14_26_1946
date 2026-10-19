@@ -182,6 +182,9 @@ export interface IncomingOrder {
     mrn?: string;
   };
   encounterNumber?: string;
+  /** Sending site (Site.id) as supplied by the interface engine. Optional: when present, a site-specific
+   *  crosswalk entry is preferred over an organisation-wide one. */
+  siteId?: string;
   requestingProvider: IncomingOrderProvider;
   priority?: 'Routine' | 'STAT';
   clinicalIndication?: string;

@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { revisionAllowedNow, REVISION_IN_RELEASE_DELAY } from '../reportRelease/revisionDuringDelay';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { publishCytologyRevision } from './publishCytologyRevision';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { resolvePerformingLabFacility } from './resolveCytologyReportLanguage';
@@ -60,7 +60,7 @@ export async function releaseCytologyAddendum(
   const text = (addendumText ?? '').trim();
   if (text === '') return { ok: false, textMissing: true, error: 'The addendum text is required.' };
 
-  const priorRecordsRes = await mockCytologySignOutRecordService.getBySpecimenId(specimenId);
+  const priorRecordsRes = await cytologySignOutRecordService.getBySpecimenId(specimenId);
   if (!priorRecordsRes.ok || priorRecordsRes.data.length === 0) {
     return { ok: false, error: 'No prior sign-out exists for this specimen — nothing to add an addendum to.' };
   }
@@ -100,7 +100,7 @@ export async function releaseCytologyAddendum(
     forceAddendumOnDedicatedPage,
   };
 
-  const createRes = await mockCytologySignOutRecordService.create({
+  const createRes = await cytologySignOutRecordService.create({
     caseId, specimenId,
     reviewRecordId: priorRecord.reviewRecordId,
     reportContent,

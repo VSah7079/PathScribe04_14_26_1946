@@ -496,7 +496,7 @@ export const IDENTIFIER_FORMAT_LIBRARY: IdentifierFormat[] = [
   { id: 'requisition_generic',      kind: 'requisition', label: 'Requisition Number',                    description: 'Lab requisition: R or REQ prefix + 6–10 digits.',                                                                                                         pattern: '^R(?:EQ)?\\d{6,10}$',                                  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: [],                               lisPresets: [],                             enabled: false, example: 'REQ1234567'       },
 
   // Block (Tier 2 — internal mapping only)
-  { id: 'block_generic',            kind: 'block',       label: 'Block / Cassette ID',                   description: 'Specimen letter + block number (e.g. A1). Used for Computational Sidecar result mapping and HL7 OBR matching.',                                          pattern: '^[A-Z]\\d{1,2}[a-z]?$',                               barcodeTypes: ['1d_code128'],                    tier: 2, navigateToCaseOnMatch: false, jurisdictions: [],                               lisPresets: [],                             enabled: true,  example: 'A1'              },
+  { id: 'block_generic',            kind: 'block',       label: 'Block / Cassette ID',                   description: 'Specimen letter + block number (e.g. A1). Used for result-to-specimen mapping and HL7 OBR matching.',                                          pattern: '^[A-Z]\\d{1,2}[a-z]?$',                               barcodeTypes: ['1d_code128'],                    tier: 2, navigateToCaseOnMatch: false, jurisdictions: [],                               lisPresets: [],                             enabled: true,  example: 'A1'              },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -556,6 +556,11 @@ export interface SystemConfig {
   jurisdiction:                    Jurisdiction;
   terminologyConfig:               InstitutionTerminologyConfig;
   voiceEnabled:                    boolean;
+  /** Batch 609 (#179): whether a non-English voice profile may still fuzzy-match English
+   *  command phrases when nothing in its own language matches. On by default (the
+   *  behaviour before this setting); turn it off once a language's commands are
+   *  translated, so a near-miss is not read as an unrelated English command. */
+  voiceEnglishFuzzyFallback:       boolean;
   /** Whether pathologists (role === 'pathologist' specifically) see peer-
    *  average/top-performer comparisons on their own Contribution dashboard.
    *  Defaults to false, matching the design decision this mirrors: peer
@@ -603,6 +608,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
     icdo:   { active: true,  mode: 'mock' },
   },
   voiceEnabled: true,
+  voiceEnglishFuzzyFallback: true,
   showPeerAveragesToPathologists: false,
   facilityTimezone: 'America/Phoenix',
 };

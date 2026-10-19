@@ -34,6 +34,8 @@ import {
 import { roleIdsForNames } from '../roles/systemRoles';
 import { getTemplateGovernanceSettings } from './templateGovernanceSettings';
 import { dataStorage } from '../browserData/dataStorage';
+import { mockAuditService } from '../auditlog/mockAuditService';
+import { templateLifecycleAuditEntry, type TemplateLifecycleEvent, type TemplateLifecycleSubject } from './templateLifecycleAudit';
 
 // â”€â”€â”€ Shared types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -403,6 +405,11 @@ function resolveOwnerDisplayName(): string {
   return formatFullDisplayName(fromLegacyName(session.firstName ?? '', session.lastName ?? ''));
 }
 
+/** Batch 609 (#39): a lifecycle step goes to the Audit Log (it used to go to the console only). Never blocks the step. */
+async function auditLifecycle(event: TemplateLifecycleEvent, subject: TemplateLifecycleSubject): Promise<void> {
+  try { await mockAuditService.logEvent(templateLifecycleAuditEntry(event, subject, resolveOwnerDisplayName())); } catch { /* the audit service is best-effort here */ }
+}
+
 export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResult> {
   await delay(400);
   // PS-63 (Batch 329): drafting is limited to Template Author (Admin inherits).
@@ -437,7 +444,7 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
     approvals:    [],
   });
 
-  console.info(`[templateService] Draft saved: ${template.name} (${template.id})`);
+  await auditLifecycle('TEMPLATE_DRAFT_SAVED', { id: template.id, name: template.name, version: template.version, to: 'draft' });
   return { id: template.id, status: 'draft', updatedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -462,7 +469,7 @@ export async function submitForReview(id: string, note?: string): Promise<Submit
   const ts = now();
   upsertRegistry({ id, status: 'in_review', lastModified: ts.slice(0, 10), reviewNote: note, approvals: [] });
 
-  console.info(`[templateService] Submitted for review: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_SUBMITTED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'in_review', noted: !!note?.trim() });
   return { id, status: 'in_review', submittedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -499,7 +506,7 @@ export async function approveTemplate(id: string, note?: string, reviewedBy?: st
     lastModified: ts.slice(0, 10), reviewNote: note,
   });
 
-  console.info(`[templateService] Approval recorded: ${entry.name} (${decision.approvalCount}, now ${decision.status})`);
+  await auditLifecycle('TEMPLATE_APPROVED', { id, name: entry.name, version: entry.version, from: entry.status, to: decision.status, approvals: decision.approvalCount, noted: !!note?.trim() });
   return { id, status: decision.status, updatedAt: ts, approvalCount: decision.approvalCount };
 
   // â”€â”€ REAL â”€â”€
@@ -536,10 +543,10 @@ export async function publishTemplate(id: string, _note?: string, publishedBy?: 
   const predecessor = entry.supersedesId ? registryEntry(entry.supersedesId) : undefined;
   if (predecessor && predecessor.status === 'published') {
     upsertRegistry({ id: predecessor.id, status: 'archived', archivedAt: ts, lastModified: ts.slice(0, 10) });
-    console.info(`[templateService] Archived ${predecessor.name} v${predecessor.version} (superseded by v${entry.version})`);
+    await auditLifecycle('TEMPLATE_SUPERSEDED', { id: predecessor.id, name: predecessor.name, version: predecessor.version, from: 'published', to: 'archived' });
   }
 
-  console.info(`[templateService] Published: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_PUBLISHED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'published' });
 
   // Notify the requester if template was built from a request
   // Requester info stored in reviewNote as NOTIFY_REQUESTER:{...} marker
@@ -592,7 +599,7 @@ export async function requestChanges(id: string, note: string, reviewedBy?: stri
     approvals: [],
   });
 
-  console.info(`[templateService] Changes requested: ${entry.name} â€” "${note}"`);
+  await auditLifecycle('TEMPLATE_CHANGES_REQUESTED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'needs_changes', noted: !!note?.trim() });
   return { id, status: 'needs_changes', reviewNote: note, updatedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -626,7 +633,7 @@ export async function resubmitForReview(id: string, _note?: string): Promise<Sub
   const ts = now();
   upsertRegistry({ id, status: 'in_review', reviewNote: undefined, lastModified: ts.slice(0, 10), approvals: [] });
 
-  console.info(`[templateService] Resubmitted: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_RESUBMITTED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'in_review' });
   return { id, status: 'in_review', submittedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -649,6 +656,7 @@ export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
   if (PROTOCOL_REGISTRY[idx].status !== 'draft') {
     throw { code: 'FORBIDDEN', message: 'Only draft templates can be deleted' } as ServiceError;
   }
+  const removed = PROTOCOL_REGISTRY[idx];
   PROTOCOL_REGISTRY.splice(idx, 1);
   editorStore.delete(id);
   deletedSeeds.add(id);
@@ -661,7 +669,7 @@ export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
     dataStorage.setItem('ps_registry_overrides_v1', JSON.stringify(overrides));
   } catch { /* storage unavailable */ }
 
-  console.info(`[templateService] Deleted draft: ${id}`);
+  await auditLifecycle('TEMPLATE_DRAFT_DELETED', { id, name: removed.name, version: removed.version, from: 'draft' });
   return { deleted: true };
 
   // â”€â”€ REAL â”€â”€
@@ -690,7 +698,7 @@ export async function archiveTemplate(id: string): Promise<TransitionResult> {
   if (entry.status === 'archived') throw { code: 'INVALID_TRANSITION', message: `Template ${id} is already archived` } as ServiceError;
   const ts = now();
   upsertRegistry({ id, status: 'archived', archivedAt: ts, lastModified: ts.slice(0, 10) });
-  console.info(`[templateService] Archived: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_ARCHIVED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'archived' });
   return { id, status: 'archived', updatedAt: ts };
 }
 
@@ -702,7 +710,7 @@ export async function restoreTemplate(id: string): Promise<TransitionResult> {
   if (entry.status !== 'archived') throw { code: 'INVALID_TRANSITION', message: `Template ${id} is not archived` } as ServiceError;
   const ts = now();
   upsertRegistry({ id, status: 'draft', archivedAt: undefined, lastModified: ts.slice(0, 10) });
-  console.info(`[templateService] Restored to draft: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_RESTORED', { id, name: entry.name, version: entry.version, from: 'archived', to: 'draft' });
   return { id, status: 'draft', updatedAt: ts };
 }
 
@@ -721,6 +729,7 @@ export async function resetToDraft(id: string): Promise<TransitionResult> {
   }
   const ts = now();
   upsertRegistry({ id, status: 'draft', approvals: [], lastModified: ts.slice(0, 10) });
+  await auditLifecycle('TEMPLATE_RESET_TO_DRAFT', { id, name: entry.name, version: entry.version, from: entry.status, to: 'draft' });
   return { id, status: 'draft', updatedAt: ts };
 }
 

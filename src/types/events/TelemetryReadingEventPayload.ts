@@ -20,4 +20,6 @@ export interface TelemetryReadingEventPayload {
   gpsLat?: number;
   gpsLng?: number;
   recordedAt: string;
+  /** Batch 610: set by the Simulated feed only; shown as Simulated on screen and in the audit trail. */
+  simulated?: boolean;
 }

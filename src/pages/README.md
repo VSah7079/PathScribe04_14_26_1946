@@ -2,6 +2,8 @@
 
 Top-level route pages.
 
+**Batch 619 (part Q):** `OutboundQueuePage/` is the Outbound Queue screen (`/outbound-queue`, Quality & Compliance hub): every outbound message in one list with hold, release, retry, registry resubmit and billing retract. See [OutboundQueuePage/README.md](./OutboundQueuePage/README.md).
+
 ## Subfolder index
 
 | Folder | What it is |
@@ -817,6 +819,10 @@ inconsistency across pages): this page's own `.ps-search-bg-image`/
 folder's own README for the fuller account of the inline-style bug
 this whole pass traced back to) — matching Configuration/Quality
 Assurance/Intraop Queue/Contribution's existing, correct behavior.
+
+## Batch 613 (part A) — case search reporting
+
+`SearchPage.tsx`: a Cases / Report toggle beside the results, the Synoptic answers filter section, and the report panel (`components/Search/Report/`). The pager, sort and the results export belong to the Cases view only.
 
 ## Batch 317 (PS-73)
 
@@ -1889,3 +1895,37 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 ## Batch 579
 
 - `SynopticReportPage/`: specimen billing codes and the Sequencer's specimen order saved at once (`saveSpecimensNow`); the synoptic form keeps its section after a re-read.
+
+## Batch 583
+
+- `SynopticReportPage`: breadcrumb and Back name Search for a case opened from Search; specimen-level billing changes after sign-out ask for a reason. `ConfigurationPage.tsx`: Discard closes the dialog.
+
+## Batch 588
+
+- `SynopticReportPage/`: Delete this block in the block editor. See its README.
+
+## Batch 589
+
+Label Designer canvas (PS-245); report page changes listed in `SynopticReportPage/README.md`.
+
+- Batch 609 (part B): the mismatch check on amendments, corrections and addenda (lab setting for holding the release), Final Diagnosis rule on publish, template lifecycle in the Audit Log, Upload Protocol file check. See `src/services/clinical/README.md`, `src/services/templates/README.md`, `src/components/Config/Protocols/README.md`.
+
+## Batch 612 (part C)
+
+Report preview: a template in points is drawn at the paper's real width and side margins with text in CSS points, so the screen matches the print.
+
+## Batch 610 (part A) — AutopsyDashboardPage; Intraop urgency toggle; OR dashboard clock
+
+New `AutopsyDashboardPage/` at `/autopsy-dashboards` (Quality & Compliance hub tile). `IntraopQueuePage.tsx`: STAT/Routine toggle on each specimen. `OrSuiteDashboardPage.tsx`: frozen section target and warning from TAT configuration. `SynopticReportPage.tsx`: autopsy turnaround chip next to the TAT summary. `QualityComplianceHubPage.tsx`: Autopsy Dashboards tile.
+
+## Batch 610 (part B)
+
+Performance targets and client service levels are saved and judged by `services/performanceTargets` and `services/clientSLA`; `services/jurisdictionOverview` feeds the read-only Jurisdiction Overview. The Productivity dashboard (`ContributionDashboardPage`) shows the Targets tile and client service levels, the Quality tab shows client service levels, and `WorklistPage` passes SLA breaches to the table.
+
+## Batch 611 (part F)
+
+`MigrationJobsPage`: **Import legacy file** button (permission `config:migration-mappings:manage`), Simulated tag on imported jobs, and an all-records list in the job detail. Test: `MigrationJobsPage.test.tsx`.
+
+- Batch 612 (part A): SynopticReportPage sidebar gains the read-only Vendor fields panel.
+
+**Batch 618 (part A):** `AccessionPage/AccessionTechnicalFacilityField.tsx` (optional technical-component lab on the Accession screen, PS-336); `SynopticReportPage` sends the technical lab block on signed-out reports only.

@@ -34,6 +34,13 @@ With the API server (`INTERFACE_ENGINE_EDGE.md`, Batch 545, decision D6): the AP
 | `REFERRAL_MANIFEST` | A referral batch's manifest for the reference lab (Batch 518) | `services/batches/mockBatchService.ts` enqueues it; sent or resent from the Outbound view | Results (`ReferralResultEventPayload`) |
 | `MOLECULAR_ORDER` | A molecular assay order, or an instrument order (`order.molecular` / `order.instrument`) (Batch 518) | `pages/AccessionPage`, Molecular Order Queue; sent or resent from the Outbound view | — |
 | `REPORT_DELIVERY` | A signed report PDF to send by e-fax or to drop as a file (Batch 520, PS-280). The receiving server delivers it (email-to-fax gateway; folder or SFTP target) and answers only once it is delivered: 200, or 503 not set up, 502 delivery failed. Contract: `REPORT_DELIVERY_API.md` | `services/reports/publishReportReleasedEvent.ts` (a delivery rule's fax or file-drop channel), `services/delivery/deliverReport.ts`; resent from the Outbound view | — |
+| `BLOCK_ORDER` | One block's stain orders as an HL7 ORM^O01 for the embedding/staining instrument (Batch 605). PathScribe builds the ORM; the engine passes it on. | `services/interfaceDispatch/dispatchHardwareOrders.ts` | - |
+| `SLIDE_ORDER` | A slide order for a labelling or staining instrument (Batch 605). | `services/interfaceDispatch/dispatchHardwareOrders.ts` | - |
+| `SPECIMEN_LABEL` | A specimen container label for the engine to print or pass to a labeller (Batch 605). | `services/interfaceDispatch/dispatchHardwareOrders.ts` | - |
+| `MATERIAL_SCAN_EVENT` | A barcode scan of a cassette or slide at a bench station, for tracking (Batch 605). | `utils/dispatchMaterialScanEvent.ts` | - |
+| `CHARGE_DFT` | A charge as an HL7 DFT^P03 for the billing system (Batch 605). | `services/interfaceDispatch/dispatchCharge.ts` | - |
+| `CHARGE_JSON` | A charge as the JSON billing webhook payload (Batch 605). | `services/interfaceDispatch/dispatchCharge.ts` | - |
+| `FINANCIAL_CLASS` | The financial-class payload for a downstream billing engine; a preview payload until the formats exist (Batch 605). | `services/interfaceDispatch/dispatchCharge.ts` | - |
 <!-- interface-transactions:end -->
 
 ## `WSI_SCAN_MANIFEST` (Batch 434)

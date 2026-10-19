@@ -141,3 +141,13 @@ See `services/digitalPathology/wsiScanQueue.ts`.
 ## Batch 559 (PS-539 phase 2d)
 
 - `OutboundResultQueueEntry.pdfSha256` is set for a signed version's PDF too, and updated by a retry.
+
+## Batch 588
+
+- `Specimen.ts`: `BlockStatus` gains `Deleted`; `HistologyBlock.deletion` (`BlockDeletion`) records the reason, who, when and the billing codes released.
+
+- Batch 608: `CytologyScreeningRecord` gains `hpvAssayName`, `hpvFollowUp`, `liquidBasedPlatform`, `priorCervicalProcedure`.
+
+## Batch 611 (part F)
+
+`Case.importSource` marks a case created by the simulated legacy file import (`kind: 'simulated_bulk_import'`, job id, source system, time).

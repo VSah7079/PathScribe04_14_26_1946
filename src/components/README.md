@@ -1,3 +1,18 @@
+## Batch 613 (part A) — case search reporting
+
+`Search/Report/`: `CaseReportPanel`, `ColumnPicker`, `ReportSchedulesPanel`, `SynopticValueFilters` and the `useCaseReport` hook.
+
+## Batch 613 (part B)
+`RelatedCases/` (new): the related-cases picker, shared layout, sign-out panel, Patient summary panel and amended flag. See its README.
+
+## Batch 612 (part C)
+
+`Common/FontSizeField.tsx` and `Common/ConvertToPointsPanel.tsx` (the size box with its printed size, and Convert to points with a list of what changes); used by Document Style and Template Assembly.
+
+## Batch 610 (part A) — autopsy turnaround chip, frozen section warning field (#60, #88, #87)
+
+New `Autopsy/AutopsyTatChip.tsx` (on the worklist and the report page). `Config/System/TATConfigSection.tsx`: Autopsy PAD and FAD rule types, a warning-minutes field for frozen section, and the `as any` casts removed. `Worklist/AutopsyWorklistBadges.tsx` shows the chip after the SLA badge.
+
 # components/
 
 Master index for `src/components/`. One line per top-level folder,
@@ -332,6 +347,10 @@ subfolder work — summarized here for a single cross-folder view:
   auto-persist. Full detail in `Config/README.md`, `Common/README.md`,
   and `ClientDictionary/README.md` (the per-client override field; now
   `FacilityDictionary/README.md`).
+
+## Batch 609 (part A)
+
+- `ReportImages/`: the Attach images window for a case's report.
 
 ## Batch 353
 
@@ -961,3 +980,28 @@ CSV exports neutralize formula cells (finding F8, `utils/csv.ts`); the disposal 
 ## Batch 580
 
 - `Common/README.md`: PS-62, the styled dropdown list and `utils/selectAutoWidth.ts`.
+
+## Batch 581
+
+- `pathscribe.css` `.ps-conf-backdrop` (Configuration's dialogs): a dialog taller than the window starts below the nav bar and scrolls, instead of losing its top above the screen (found by the PS-363 review test).
+
+## Batch 583
+
+No new components. `HeaderBar.tsx` (breadcrumb names Search for a case opened from Search) and the Configuration dialogs' Discard behaviour changed; see `src/pages/SynopticReportPage/components/README.md` and `src/services/configDirty/README.md`.
+
+## Batch 589
+
+Error boundary `onErrorChange`; AppShell shows the nav bar on the recovery screen (PS-472).
+
+- Batch 609 (part B): the mismatch check on amendments, corrections and addenda (lab setting for holding the release), Final Diagnosis rule on publish, template lifecycle in the Audit Log, Upload Protocol file check. See `src/services/clinical/README.md`, `src/services/templates/README.md`, `src/components/Config/Protocols/README.md`.
+
+## Batch 610 (part B)
+
+Performance targets and client service levels are saved and judged by `services/performanceTargets` and `services/clientSLA`; `services/jurisdictionOverview` feeds the read-only Jurisdiction Overview. The Productivity dashboard (`ContributionDashboardPage`) shows the Targets tile and client service levels, the Quality tab shows client service levels, and `WorklistPage` passes SLA breaches to the table.
+
+- **`Auth/`** (Batch 611, #157): `MfaSignInStep.tsx`, the second step of a password sign-in (Simulated enrolment, recovery codes, code entry, demo code).
+- **`Migration/`** (Batch 611, #132/#166): `LegacyImportModal.tsx`, the simulated Import legacy file window. See `Migration/README.md`.
+
+- Batch 612 (part A): `InterfaceDictionary/` (mapping editor, test panel, scope reference) and `VendorFields/` (case sidebar panel).
+
+Batch 614: `Coding/CodeSystemOffNote.tsx`, the short note a coding screen shows when the Code Systems setting has switched a system off.

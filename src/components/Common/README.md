@@ -1,3 +1,16 @@
+## Batch 612 (part C)
+
+- `FontSizeField.tsx`: a report style's font size box. A size in points shows what it prints at; a size saved in pixels says so and points at Convert to points.
+- `ConvertToPointsPanel.tsx`: the button, the inline list of sizes that change, and the confirm step. Shown only while something is still in pixels.
+
+## Batch 603
+
+`DisplayTokenPrompt` (asks for and verifies a Display Token) and `DisplayBlank` (the screen shown when a bound display's token is revoked or expired). Used by both wall displays.
+
+## Batch 602
+
+`GoToPrefix`: the small panel listing always-on commands by key while the Alt+J prefix is open. Esc or a click outside closes it.
+
 # components/Common/
 
 Shared, reusable UI primitives used across multiple pages.
@@ -305,3 +318,9 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 579
 
 - `InlineCommentThread.tsx`: the template reviewers' question comments: dark, each box labelled with its question, an Add button as well as Enter; adding and resolving through `services/templates/templateReviewWork.ts`, which saves and audits them.
+
+## Batch 608
+
+- `ReturnToTraineeBar.tsx`: feedback box and Return to Trainee for a cytology specimen or autopsy report released for countersign; shows the trainee the attending's feedback once returned.
+
+- **`MaterialCommentThread.tsx`** (Batch 611, #10): plain-text comments list with a one-line composer; used by the matrix block editor. Test: `MaterialCommentThread.test.tsx`.

@@ -28,9 +28,10 @@
 import { getEffectiveBiopsyResectionRule } from './biopsyResectionCorrelationSettings';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { intraoperativeService } from '@/services';
-import { mockSpecimenDictionaryService } from '@/services/specimenDictionary/mockSpecimenDictionaryService';
-import { mockQaActivityTypeService, SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID } from './mockQaActivityTypeService';
-import { mockSurgicalPeerReviewRiskWeightService } from './mockSurgicalPeerReviewRiskWeightService';
+import { specimenDictionaryService as mockSpecimenDictionaryService } from '@/services/specimenDictionary/specimenDictionaryServiceInstance';
+import { SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID } from './mockQaActivityTypeService';
+import { qaActivityTypeService as mockQaActivityTypeService } from './qaActivityTypeServiceInstance';
+import { surgicalPeerReviewRiskWeightService as mockSurgicalPeerReviewRiskWeightService } from './surgicalPeerReviewRiskWeightServiceInstance';
 import { resolveQaCaseSelectionContext } from './resolveQaCaseSelectionContext';
 import { evaluateQaTargetedSelectionRule } from './evaluateQaTargetedSelectionRule';
 import { resolveSurgicalPeerReviewSelectionForCase } from './resolveSurgicalPeerReviewSelectionForCase';

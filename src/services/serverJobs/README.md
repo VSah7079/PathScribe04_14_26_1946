@@ -40,3 +40,7 @@ A job that fails for good is dead-lettered. The **Server jobs** view (System Log
   - `browserRunsServerJob('<job>')` is false only when an API server is configured and config.json's `VITE_SERVER_JOBS` lists that job as the server's. Until a job is listed, the browser keeps running it, so a job is never done twice and never left with no runner.
   - `browserStandIns.guard.test.ts` checks two things: every stand-in calls the check with its own job name, and the work is started only from the listed files.
   - `browserStandIns.behaviour.test.ts` checks that a listed job doesn't run in the browser.
+
+## Batch 605
+
+`simulatedServerJobsApi.ts` stands in for the server jobs API in the demo: jobs show a Simulated badge and run against browser stand-ins. `createServerJobsService({api, simulatedApi})` reports `simulated` when only the simulated API is present.

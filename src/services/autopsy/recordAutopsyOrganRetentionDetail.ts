@@ -18,11 +18,10 @@
 // 2006), and only once a tier beyond 'tier_0_no_retention' is on file
 // — recording where nothing is retained isn't a real event.
 //
-// Deliberately a single current record, not an append-only log (same
-// honest bound OrganRetentionRecord's own doc comment names): each
-// call overwrites the last, with its own audit entry. A real custody
-// chain for retained material moving between locations over time is a
-// further, separate extension, not attempted here.
+// organRetentionDetail is the current record. Batch 611 (#59) adds the
+// custody chain: each call also appends to organRetentionHistory (never
+// rewritten), so material moving between holders and locations over time
+// is kept, and the case timeline shows each move.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '@/services/cases/CaseRouter';
@@ -81,7 +80,9 @@ export async function recordAutopsyOrganRetentionDetail(
     if (!resolveHtaApplicability(current.autopsy.jurisdiction)) { notEligible = true; return null; }
     const t = current.autopsy.organRetentionTier;
     if (!t || t === 'tier_0_no_retention') { notEligible = true; return null; }
-    return { autopsy: { ...current.autopsy, organRetentionDetail: record } };
+    const earlier = current.autopsy.organRetentionHistory
+      ?? (current.autopsy.organRetentionDetail ? [current.autopsy.organRetentionDetail] : []);
+    return { autopsy: { ...current.autopsy, organRetentionDetail: record, organRetentionHistory: [...earlier, record] } };
   }, caseRouter);
 
   if (write.ok === true) {

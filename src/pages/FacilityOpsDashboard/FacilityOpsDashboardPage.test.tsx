@@ -40,13 +40,14 @@ vi.mock('@/hooks/useCurrentDisplayProfile', async () => {
   };
 });
 
-const { getActive, getById } = vi.hoisted(() => ({ getActive: vi.fn(), getById: vi.fn() }));
+const { getActive, getById, verify } = vi.hoisted(() => ({ getActive: vi.fn(), getById: vi.fn(), verify: vi.fn() }));
 
 const { facilityGetAll } = vi.hoisted(() => ({ facilityGetAll: vi.fn() }));
 // Batch 506: the page takes displayProfileService from the services index.
 vi.mock('@/services', () => ({
   facilityService: { getAll: facilityGetAll },
   displayProfileService: { getActive, getById },
+  displayAccessService: { verify },
 }));
 
 vi.mock('./viewRegistry', () => ({
@@ -79,46 +80,52 @@ async function renderPage() {
   return render(<FacilityOpsDashboardPage />);
 }
 
-describe('FacilityOpsDashboardPage — device-token binding gap', () => {
-  it('a profile with no deviceToken still binds straight from the dropdown, unchanged', async () => {
+describe('FacilityOpsDashboardPage — Display Token device binding (Batch 603)', () => {
+  const choose = async (id: string) => {
+    const option = await screen.findByText('facilityOpsDashboard.selectProfile');
+    fireEvent.change(option.closest('select')!, { target: { value: id } });
+    await act(async () => {});
+  };
+  const enter = async (value: string) => {
+    fireEvent.change(screen.getByLabelText('displayAccess.tokenLabel'), { target: { value } });
+    fireEvent.click(screen.getByText('common.confirm'));
+    await act(async () => {});
+  };
+
+  it('choosing a profile never binds by itself: the Display Token is asked for first', async () => {
     getActive.mockResolvedValue({ ok: true, data: [NO_TOKEN_PROFILE] });
     getById.mockResolvedValue({ ok: true, data: NO_TOKEN_PROFILE });
     await renderPage();
     await act(async () => {});
+    await choose('dispprof-2');
 
-    const option = await screen.findByText('facilityOpsDashboard.selectProfile');
-    fireEvent.change(option.closest('select')!, { target: { value: 'dispprof-2' } });
-    await act(async () => {});
-
-    expect(screen.queryByText('facilityOpsDashboard.confirmTokenTitle')).toBeNull();
-    expect(getById).toHaveBeenCalledWith('dispprof-2');
+    expect(screen.getByText('displayAccess.promptTitle')).not.toBeNull();
+    expect(getById).not.toHaveBeenCalled();
   });
 
-  it('a profile with a deviceToken blocks binding until the exact token is typed', async () => {
+  it('a token the registry refuses keeps the display unbound and says why', async () => {
     getActive.mockResolvedValue({ ok: true, data: [TOKEN_PROFILE] });
     getById.mockResolvedValue({ ok: true, data: TOKEN_PROFILE });
+    verify.mockResolvedValue('revoked');
     await renderPage();
     await act(async () => {});
+    await choose('dispprof-1');
+    await enter('psd_old');
 
-    const option = await screen.findByText('facilityOpsDashboard.selectProfile');
-    fireEvent.change(option.closest('select')!, { target: { value: 'dispprof-1' } });
-    await act(async () => {});
-
-    expect(screen.getByText('facilityOpsDashboard.confirmTokenTitle')).not.toBeNull();
+    expect(screen.getByText('displayAccess.status.revoked')).not.toBeNull();
     expect(getById).not.toHaveBeenCalled();
+  });
 
-    const input = document.querySelector('input.ps-opsdash-setup-select') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'wrong-token' } });
-    fireEvent.click(screen.getByText('common.confirm'));
+  it('a valid token binds the display and loads the profile', async () => {
+    getActive.mockResolvedValue({ ok: true, data: [TOKEN_PROFILE] });
+    getById.mockResolvedValue({ ok: true, data: TOKEN_PROFILE });
+    verify.mockResolvedValue('valid');
+    await renderPage();
     await act(async () => {});
+    await choose('dispprof-1');
+    await enter('psd_good');
 
-    expect(screen.getByText('facilityOpsDashboard.confirmTokenError')).not.toBeNull();
-    expect(getById).not.toHaveBeenCalled();
-
-    fireEvent.change(input, { target: { value: 'AA:BB:CC' } });
-    fireEvent.click(screen.getByText('common.confirm'));
-    await act(async () => {});
-
+    expect(verify).toHaveBeenCalledWith('facility-ops', 'dispprof-1', 'psd_good');
     expect(getById).toHaveBeenCalledWith('dispprof-1');
   });
 
@@ -135,7 +142,7 @@ describe('FacilityOpsDashboardPage — device-token binding gap', () => {
     fireEvent.click(screen.getByText('common.back'));
     await act(async () => {});
 
-    expect(screen.queryByText('facilityOpsDashboard.confirmTokenTitle')).toBeNull();
+    expect(screen.queryByText('displayAccess.promptTitle')).toBeNull();
     expect(screen.getByText('facilityOpsDashboard.bindDisplayTitle')).not.toBeNull();
     expect(getById).not.toHaveBeenCalled();
   });

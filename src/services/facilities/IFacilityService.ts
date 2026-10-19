@@ -448,6 +448,8 @@ export interface Facility {
    * fallback default for contexts with no facility resolved yet.
    */
   jurisdiction: Jurisdiction;
+  /** Batch 608 (#52): the facility's ID with its national screening registry, shown in EU-QA-01. */
+  nationalRegistryId?: string;
 
   /**
    * Which of the two CAP/NSH-recognized specimen/block labeling patterns

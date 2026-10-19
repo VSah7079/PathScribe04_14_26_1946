@@ -41,6 +41,14 @@ describe('security headers (PS-474)', () => {
     expect(originOf('javascript:alert(1)')).toBeNull();
   });
 
+  it('Batch 617 (PS-488): terminologyViaServer leaves the NLM clinical-tables host out; PubMed stays', () => {
+    const demo = directive(contentSecurityPolicy({}), 'connect-src');
+    const server = directive(contentSecurityPolicy({ terminologyViaServer: true }), 'connect-src');
+    expect(demo).toContain('https://clinicaltables.nlm.nih.gov');
+    expect(server).not.toContain('clinicaltables.nlm.nih.gov');
+    expect(server).toContain('https://eutils.ncbi.nlm.nih.gov');
+  });
+
   it('Batch 546 (F4): the workstation agent and QZ Tray are allowed, on loopback only, and can be left out', () => {
     const connect = directive(csp, 'connect-src');
     for (const p of AGENT_PORTS) {

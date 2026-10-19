@@ -1,0 +1,55 @@
+import { describe, expect, it, vi } from 'vitest';
+import { createApiHttpClient } from '../apiServer/apiHttpClient';
+import { createHttpCustomDictionaryService } from './httpCustomDictionaryService';
+
+// Batch 617 (PS-514): every call of ICustomDictionaryService against a fake fetch: verb, path, body, and what a success and a refusal become.
+const reply = (status: number, body?: unknown): Response => new Response(body === undefined ? null : JSON.stringify(body), { status });
+const svc = (f: ReturnType<typeof vi.fn>) =>
+  createHttpCustomDictionaryService(createApiHttpClient({ baseUrl: 'https://api.test', fetch: f as unknown as typeof fetch, accessToken: async () => 't' }));
+type Call = (...a: unknown[]) => Promise<unknown>;
+const call = (f: ReturnType<typeof vi.fn>, name: string, args: unknown[]) => (svc(f) as unknown as Record<string, Call>)[name](...args);
+
+const CALLS: { name: string; kind: string; verb: string; path: string; body?: unknown; args: unknown[]; missing: unknown; fallback: unknown }[] = [
+  { name: 'listPersonal', kind: 'result', verb: 'GET', path: '/api/spellcheck/custom-dictionary/list-personal?userId=userId-1', args: ['userId-1'], missing: {}, fallback: {} },
+  { name: 'addPersonal', kind: 'result', verb: 'POST', path: '/api/spellcheck/custom-dictionary/add-personal', body: {"userId":"userId-1","word":"word-1","actor":{"sample":1}}, args: ['userId-1', 'word-1', { sample: 1 } as never], missing: {}, fallback: {} },
+  { name: 'removePersonal', kind: 'result', verb: 'POST', path: '/api/spellcheck/custom-dictionary/remove-personal', body: {"userId": "userId-1", "word": "word-1"}, args: ['userId-1', 'word-1'], missing: {}, fallback: {} },
+  { name: 'listFacility', kind: 'result', verb: 'GET', path: '/api/spellcheck/custom-dictionary/list-facility?facilityId=facilityId-1', args: ['facilityId-1'], missing: {}, fallback: {} },
+  { name: 'addFacility', kind: 'result', verb: 'POST', path: '/api/spellcheck/custom-dictionary/add-facility', body: {"facilityId":"facilityId-1","word":"word-1","actor":{"sample":1},"facilityLabel":"facilityLabel-1"}, args: ['facilityId-1', 'word-1', { sample: 1 } as never, 'facilityLabel-1'], missing: {}, fallback: {} },
+  { name: 'removeFacility', kind: 'result', verb: 'POST', path: '/api/spellcheck/custom-dictionary/remove-facility', body: {"facilityId":"facilityId-1","word":"word-1","actor":{"sample":1},"facilityLabel":"facilityLabel-1"}, args: ['facilityId-1', 'word-1', { sample: 1 } as never, 'facilityLabel-1'], missing: {}, fallback: {} },
+];
+
+describe('createHttpCustomDictionaryService', () => {
+  it('has a call for every method of the interface', () => {
+    expect(Object.keys(svc(vi.fn())).sort()).toEqual(["addFacility","addPersonal","listFacility","listPersonal","removeFacility","removePersonal"]);
+  });
+  it.each(CALLS)('$name sends $verb $path and returns the data', async (c) => {
+    const payload = c.kind === 'list' ? { items: [{ id: 'r1' }] } : { id: 'r1' };
+    const f = vi.fn().mockResolvedValue(reply(200, payload));
+    const r = await call(f, c.name, c.args);
+    if (c.kind === 'result') expect(r).toMatchObject({ ok: true });
+    else if (c.kind === 'done') expect(r).toBeUndefined();
+    else if (c.kind === 'required') expect(r).toEqual(payload);
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(f.mock.calls[0][0]).toBe(`https://api.test${c.path}`);
+    const init = f.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe(c.verb);
+    if (c.body === undefined) expect(init.body === undefined || init.body === '{}').toBe(true);
+    else expect(JSON.parse(init.body as string)).toEqual(c.body);
+  });
+  it.each(CALLS)('$name turns a 403 and a 404 into fixed outcomes', async (c) => {
+    const f = vi.fn().mockResolvedValueOnce(reply(403, { message: 'Smith, J. MRN 123' })).mockResolvedValueOnce(reply(404, {}));
+    if (c.kind === 'result') {
+      expect(await call(f, c.name, c.args)).toMatchObject({ ok: false, error: 'NOT_PERMITTED', code: 'NOT_PERMITTED' });
+      expect(await call(f, c.name, c.args)).toMatchObject({ ok: false, error: 'NOT_FOUND', code: 'NOT_FOUND' });
+    } else if (c.kind === 'done' || c.kind === 'required') {
+      await expect(call(f, c.name, c.args)).rejects.toMatchObject({ code: 'NOT_PERMITTED' });
+      await expect(call(f, c.name, c.args)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    } else if (c.kind === 'list') {
+      expect(await call(f, c.name, c.args)).toEqual([]);
+      expect(await call(f, c.name, c.args)).toEqual([]);
+    } else {
+      expect(await call(f, c.name, c.args)).toEqual(c.fallback);
+      expect(await call(f, c.name, c.args)).toEqual(c.missing);
+    }
+  });
+});

@@ -59,13 +59,67 @@ export const DEFAULT_TUMOR_BOARD_RULES: readonly TumorBoardAutoFlagRule[] = [
 export interface FacilityTumorBoardRuleOverride {
   id: ID;
   facilityId: string;
+  /** A margin rule's id (DEFAULT_TUMOR_BOARD_RULES) or an admin-added criteria rule's id. */
   ruleId: string;
+  /** Margin rules only; ignored for a criteria rule. */
   marginThresholdMm?: number;
   active?: boolean;
+  /** Batch 610 (#71): routing override. When set, a case this facility's rule
+   *  flags goes to this board instead of the rule's own board. */
+  board?: TumorBoardName;
   updatedAt: string;
 }
 
-export type TumorBoardRuleChange = Partial<Pick<TumorBoardAutoFlagRule, 'marginThresholdMm' | 'active'>>;
+export type TumorBoardRuleChange = Partial<Pick<TumorBoardAutoFlagRule, 'marginThresholdMm' | 'active' | 'board'>>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 610 (#71): admin-added diagnosis and biomarker rules. A rule holds a
+// list of criteria that must ALL match (Pete's worked example: "Invasive Ductal
+// Carcinoma, ER Negative, Margin < 1mm"), and flags the case to one board at
+// sign-out with a trigger reason. The criteria are matched against the signed
+// synoptic answers by field label, see criteriaRuleEvaluation.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type TumorBoardCriterion =
+  /** The diagnosis text of the signed workup contains this text (any case). */
+  | { kind: 'diagnosis'; text: string }
+  /** A field whose label contains `marker` has an answer containing `result` as a whole word. */
+  | { kind: 'biomarker'; marker: string; result: string }
+  /** A recorded margin distance is below this many mm (the same extraction the margin rules use). */
+  | { kind: 'margin'; belowMm: number };
+
+export const MAX_CRITERIA_RULES = 25;
+export const MAX_CRITERIA_PER_RULE = 6;
+
+export interface TumorBoardCriteriaRule {
+  id: ID;
+  /** Admin-entered description, shown on the Configuration screen (data, not chrome). */
+  label: string;
+  board: TumorBoardName;
+  criteria: TumorBoardCriterion[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewTumorBoardCriteriaRule {
+  label: string;
+  board: TumorBoardName;
+  criteria: TumorBoardCriterion[];
+  active?: boolean;
+}
+
+export type TumorBoardCriteriaRuleChange = Partial<NewTumorBoardCriteriaRule>;
+
+export interface ITumorBoardCriteriaRuleService {
+  getAll(): Promise<ServiceResult<TumorBoardCriteriaRule[]>>;
+  /** Protected (config:tumor-board-rules:manage). */
+  create(input: NewTumorBoardCriteriaRule): Promise<ServiceResult<TumorBoardCriteriaRule>>;
+  /** Protected (config:tumor-board-rules:manage). */
+  update(id: string, changes: TumorBoardCriteriaRuleChange): Promise<ServiceResult<TumorBoardCriteriaRule>>;
+  /** Protected (config:tumor-board-rules:manage). */
+  remove(id: string): Promise<ServiceResult<void>>;
+}
 
 export interface ITumorBoardRuleService {
   /** The enterprise baseline — the fixed 4 rules, admin-editable fields only. */

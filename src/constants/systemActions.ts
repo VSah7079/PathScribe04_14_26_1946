@@ -28,6 +28,8 @@
 // Append to the relevant group. Pick the next PSxxx number in that Fnn block.
 // Never reuse or reassign an internalKey even if an action is removed.
 // ─────────────────────────────────────────────────────────────────────────────
+import { DEFAULT_ACTION_GRANTS } from './defaultActionGrants';
+import { OUTBOUND_QUEUE_ACTION_GROUP } from './outboundQueueActionGroup';
 
 export type ActionId =
   // ── System (always available) ────────────────────────────────────────────
@@ -135,7 +137,53 @@ export type ActionId =
   // ── Report template ───────────────────────────────────────────────────────
   | 'report.selectTemplate' | 'report.overrideTemplate'
   // ── Specimen LIS ──────────────────────────────────────────────────────────
-  | 'specimen.syncLIS' | 'specimen.editLISStatus';
+  | 'specimen.syncLIS' | 'specimen.editLISStatus'
+  // ── Batch 600: record-changing commands that had a voice or shortcut but no roles-list entry ──
+  | 'finalise.confirm' | 'report.addAddendum' | 'report.addAmendment' | 'diagnosis.signOutAndNext'
+  | 'report.saveDraft' | 'report.discardChanges' | 'report.chooseTemplate' | 'report.recall'
+  | 'report.returnToTrainee' | 'ai.confirmFinding' | 'ai.overrideFinding' | 'notes.save'
+  | 'delegation.confirm' | 'delegation.requestConsultation' | 'pool.claimCase' | 'pool.declineCase'
+  | 'flags.save' | 'flags.applyStat' | 'team.addMember' | 'team.assignParticipation'
+  | 'table.deleteRow' | 'orders.blockRecut' | 'orders.stainSectioning' | 'orders.newSpecimen'
+  | 'orders.confirmBlock' | 'orders.addOnAdd' | 'orders.addOnSubmit'
+  | 'print.cassette' | 'print.caseSlides' | 'intraop.logSurgeonReport' | 'intraop.touchPrepPerformed'
+  | 'intraop.touchPrepSkip' | 'intraop.frozenSectionCut' | 'intraop.logSquashPrep' | 'intraop.logCytologyFluid'
+  | 'intraop.logGrossOnly' | 'intraop.startSession' | 'intraop.saveSpecimenNext' | 'intraop.saveSpecimenClose'
+  | 'intraop.mergeSession' | 'cytology.addResidualFluid' | 'cytology.addCellBlock' | 'cytology.saveSynoptic'
+  | 'cytology.insertNarrative' | 'cytology.saveReview' | 'cytology.saveCisoea' | 'cytology.completeRetrospective'
+  | 'cytology.recordCorrelation' | 'workstation.microtomyComment' | 'workstation.microtomyStain' | 'workstation.embeddingConfirm'
+  | 'workstation.embeddingComment' | 'workstation.slideCheckout' | 'workstation.slideScanner' | 'workstation.createContainer'
+  | 'workstation.createPlate' | 'workstation.placeRack' | 'dispatch.sendNow' | 'dispatch.retry'
+  // ── Batch 601: commands that only open, filter, move, select or cancel ──
+  | 'view.openDelegateModal' | 'view.delegatePeerReview' | 'view.delegateFormalConsult' | 'view.delegateFullTransfer'
+  | 'view.aiReviewSkip' | 'view.aiReviewCancel' | 'view.openPreFinalise' | 'view.finaliseCancel'
+  | 'view.skipField' | 'view.fullView' | 'view.tabbedView' | 'view.maxView'
+  | 'view.minView' | 'view.previewReport' | 'view.voiceCaseComment' | 'view.voiceSpecimenComment'
+  | 'view.voiceInternalNote' | 'view.voiceAddSynoptic' | 'view.noteAdd' | 'view.noteDictate'
+  | 'view.noteVisibilityPrivate' | 'view.noteVisibilityShared' | 'view.noteCancel' | 'view.noteClose'
+  | 'view.gotoCodes' | 'view.voiceAddCode' | 'view.selectSpecimen' | 'view.openHistory'
+  | 'view.closeHistory' | 'view.voiceCancel' | 'view.flagSelectCase' | 'view.flagSelectAllSpecimens'
+  | 'view.flagDeselectAll' | 'view.flagCancel' | 'view.openCaseTeam'
+  | 'view.flagOpenManager' | 'view.addOrders'
+  | 'view.openHome' | 'view.openEnhancementRequest' | 'view.openTestingFeedback' | 'view.viewHelp'
+  | 'view.openResources' | 'view.systemLogout' | 'view.openRoutingRules' | 'view.testRouting'
+  | 'view.openParticipationTypes' | 'view.focusCaseSearch' | 'view.openIntraopQueue' | 'view.intraopStartNewEntry'
+  | 'view.tableFilterPhysician' | 'view.readFlags' | 'view.readSpecimen' | 'view.readDigitalReadiness'
+  | 'view.readDpTriage' | 'view.openSlideDetails' | 'view.tableFilterDp' | 'view.tableFilterGyncyto'
+  | 'view.tableFilterNongyncyto' | 'view.tableFilterAutopsy' | 'view.tableFilterNewcases' | 'view.tableFilterCompleted'
+  | 'view.tableSortByColumn' | 'view.tableClearSort' | 'view.tableFilterParticipating' | 'view.tableFilterCountersign'
+  | 'view.tableFilterPool' | 'view.searchExecute' | 'view.searchClear' | 'view.searchLoadSaved'
+  | 'view.msgMarkReadAll' | 'view.msgViewMessages' | 'view.tatShowFirstTouch' | 'view.tatShowTotalCase'
+  | 'view.tatShowFrozenSection' | 'view.tatShowGrossing' | 'view.tatShowSignOut' | 'view.tatShowColdIschemia'
+  | 'view.tatShowConsultResponse' | 'view.tatShowConsultAwaiting' | 'view.cytologyOpenMaterial' | 'view.cytologyOpenSynoptic'
+  | 'view.cytologySelectTemplateThyroid' | 'view.cytologySelectTemplatePancreaticobiliary' | 'view.cytologySelectTemplateSalivaryGland' | 'view.cytologySelectTemplateLymphNode'
+  | 'view.cytologySelectTemplateUrine'
+  // Batch 617 (docs/product/ACTIONS_COVERAGE.md)
+  | 'related.attachCases' | 'patientSummary.print' | 'caseAccess.request' | 'caseAccess.approve'
+  | 'caseAccess.deny' | 'caseAccess.revoke' | 'searchReport.save' | 'searchReport.export'
+  | 'searchReport.schedule' | 'followUp.expect' | 'followUp.recordOutcome' | 'followUp.reopen'
+  | 'followUp.emailClinician' | 'codes.searchFlagged' | 'biometric.enrol' | 'biometric.disable'
+  | 'outboundQueue.hold' | 'outboundQueue.release' | 'outboundQueue.retry' | 'outboundQueue.retract' | 'outboundQueue.overrideRelease' | 'outboundQueue.markNotReportable';
 
 export interface SystemAction {
   id: ActionId;
@@ -515,7 +563,6 @@ export const ACTION_GROUPS: ActionGroup[] = [
     ],
   },
 
-
   // ── AI Assist ────────────────────────────────────────────────────────────
   {
     id: 'ai_assist',
@@ -606,6 +653,256 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'synoptic.overrideField',      label: 'Override Field',                description: 'Mark AI suggestion as disputed and enter own value (Alt+E, voice: "override field")', internalKey: 'F17+PS053', shortcutable: true },
     ],
   },
+  // ── Batch 600: record-changing commands the roles list was missing (see docs/product/ACTIONS_COVERAGE.md).
+  // Each keeps the internalKey its voice/shortcut action already has, which is what joins the two lists. ──
+  {
+    id: 'report_flow',
+    title: 'Report Workflow',
+    actions: [
+      { id: 'finalise.confirm', label: 'Confirm Finalise', internalKey: 'F17+PS044' },
+      { id: 'report.addAddendum', label: 'Add Addendum', internalKey: 'F17+PS027' },
+      { id: 'report.addAmendment', label: 'Add Amendment', internalKey: 'F17+PS028' },
+      { id: 'diagnosis.signOutAndNext', label: 'Sign Out and Next', internalKey: 'F17+PS029' },
+      { id: 'report.saveDraft', label: 'Save Report Draft', internalKey: 'F13+PS250' },
+      { id: 'report.discardChanges', label: 'Discard Unsaved Changes', internalKey: 'F13+PS251' },
+      { id: 'report.chooseTemplate', label: 'Select Report Template', internalKey: 'F13+PS260' },
+      { id: 'report.recall', label: 'Recall Report', internalKey: 'F17+PS042' },
+      { id: 'report.returnToTrainee', label: 'Return to Trainee', internalKey: 'F17+PS041' },
+      { id: 'ai.confirmFinding', label: 'Confirm AI Finding', internalKey: 'F13+PS160' },
+      { id: 'ai.overrideFinding', label: 'Override AI Finding', internalKey: 'F13+PS161' },
+      { id: 'notes.save', label: 'Save Note', internalKey: 'F17+PS024' },
+    ],
+  },
+  {
+    id: 'case_flow',
+    title: 'Case Handling',
+    actions: [
+      { id: 'delegation.confirm', label: 'Confirm Delegation', internalKey: 'F13+PS154' },
+      { id: 'delegation.requestConsultation', label: 'Request Consultation', internalKey: 'F17+PS046' },
+      { id: 'pool.claimCase', label: 'Accept Pool Case', internalKey: 'F13+PS165' },
+      { id: 'pool.declineCase', label: 'Pass Pool Case', internalKey: 'F13+PS166' },
+      { id: 'flags.save', label: 'Save Flags', internalKey: 'F17+PS038' },
+      { id: 'flags.applyStat', label: 'Apply STAT Flag', internalKey: 'F13+PS241' },
+      { id: 'team.addMember', label: 'Add Team Member', internalKey: 'F13+PS201' },
+      { id: 'team.assignParticipation', label: 'Assign to Participation Type', internalKey: 'F13+PS202' },
+      { id: 'table.deleteRow', label: 'Delete Row', internalKey: 'F15+PS039' },
+    ],
+  },
+  {
+    id: 'orders_print',
+    title: 'Orders & Printing',
+    actions: [
+      { id: 'orders.blockRecut', label: 'Add Block / Recut', internalKey: 'F24+PS041' },
+      { id: 'orders.stainSectioning', label: 'Order Stain / Sectioning', internalKey: 'F24+PS042' },
+      { id: 'orders.newSpecimen', label: 'Add New Specimen', internalKey: 'F24+PS043' },
+      { id: 'orders.confirmBlock', label: 'Add Block (Add Orders)', internalKey: 'F20+PS013' },
+      { id: 'orders.addOnAdd', label: 'Add to Add-On Order', internalKey: 'F30+PS001' },
+      { id: 'orders.addOnSubmit', label: 'Submit Add-On Order', internalKey: 'F30+PS002' },
+      { id: 'print.cassette', label: 'Print Current Cassette', internalKey: 'F13+PS276' },
+      { id: 'print.caseSlides', label: 'Batch Print Case Slides', internalKey: 'F13+PS277' },
+    ],
+  },
+  {
+    id: 'intraop',
+    title: 'Intraoperative',
+    actions: [
+      { id: 'intraop.logSurgeonReport', label: 'Log Surgeon Report', internalKey: 'F13+PS275' },
+      { id: 'intraop.touchPrepPerformed', label: 'Log Touch Prep Performed', internalKey: 'F13+PS272' },
+      { id: 'intraop.touchPrepSkip', label: 'Skip Touch Prep', internalKey: 'F13+PS273' },
+      { id: 'intraop.frozenSectionCut', label: 'Log Frozen Section Cut', internalKey: 'F13+PS274' },
+      { id: 'intraop.logSquashPrep', label: 'Log Squash Prep', internalKey: 'F13+PS279' },
+      { id: 'intraop.logCytologyFluid', label: 'Log Cytology / Fluid Evaluation', internalKey: 'F13+PS280' },
+      { id: 'intraop.logGrossOnly', label: 'Log Gross Only / Intraoperative Consultation', internalKey: 'F13+PS281' },
+      { id: 'intraop.startSession', label: 'Start Intraop Session (Continue to Specimen)', internalKey: 'F27+PS001' },
+      { id: 'intraop.saveSpecimenNext', label: 'Save Specimen and Next (Intraop)', internalKey: 'F27+PS002' },
+      { id: 'intraop.saveSpecimenClose', label: 'Save Specimen and Close Session (Intraop)', internalKey: 'F27+PS003' },
+      { id: 'intraop.mergeSession', label: 'Merge Intraop Session into Case', internalKey: 'F27+PS004' },
+    ],
+  },
+  {
+    id: 'cytology',
+    title: 'Cytology Screening',
+    actions: [
+      { id: 'cytology.addResidualFluid', label: 'Add Residual Fluid', internalKey: 'F26+PS002' },
+      { id: 'cytology.addCellBlock', label: 'Add Cell Block', internalKey: 'F26+PS003' },
+      { id: 'cytology.saveSynoptic', label: 'Save Cytology Synoptic', internalKey: 'F26+PS005' },
+      { id: 'cytology.insertNarrative', label: 'Insert Generated Narrative', internalKey: 'F26+PS006' },
+      { id: 'cytology.saveReview', label: 'Save Cytology Review', internalKey: 'F26+PS012' },
+      { id: 'cytology.saveCisoea', label: 'Save CISOE-A Review', internalKey: 'F26+PS013' },
+      { id: 'cytology.completeRetrospective', label: 'Complete Retrospective Review', internalKey: 'F26+PS014' },
+      { id: 'cytology.recordCorrelation', label: 'Record Cyto-Histologic Correlation', internalKey: 'F26+PS015' },
+    ],
+  },
+  {
+    id: 'workstations',
+    title: 'Workstations',
+    actions: [
+      { id: 'workstation.microtomyComment', label: 'Add Comment (Microtomy)', internalKey: 'F26+PS016' },
+      { id: 'workstation.microtomyStain', label: 'Add Stain to Slide Grid', internalKey: 'F26+PS017' },
+      { id: 'workstation.embeddingConfirm', label: 'Confirm Embedding (Piece Count)', internalKey: 'F28+PS001' },
+      { id: 'workstation.embeddingComment', label: 'Add Comment (Embedding)', internalKey: 'F28+PS002' },
+      { id: 'workstation.slideCheckout', label: 'Confirm Physical Routing (Slide Distribution)', internalKey: 'F29+PS001' },
+      { id: 'workstation.slideScanner', label: 'Confirm Scanner Routing (Slide Distribution)', internalKey: 'F29+PS002' },
+      { id: 'workstation.createContainer', label: 'Create Container (Batch Management)', internalKey: 'F31+PS001' },
+      { id: 'workstation.createPlate', label: 'Create Plate (Molecular)', internalKey: 'F32+PS001' },
+      { id: 'workstation.placeRack', label: 'Place Rack on Instrument (Molecular)', internalKey: 'F32+PS002' },
+    ],
+  },
+  {
+    id: 'dispatch',
+    title: 'Result Dispatch',
+    actions: [
+      { id: 'dispatch.sendNow', label: 'Dispatch Now', internalKey: 'F25+PS009' },
+      { id: 'dispatch.retry', label: 'Retry Dispatch', internalKey: 'F25+PS010' },
+    ],
+  },
+  // ── Batch 601: the 89 commands that only open, filter, move, select or cancel. They change nothing, but a role
+  // can now grant or withhold them like any other command. Each keeps its voice/shortcut key. ──
+  {
+    id: 'view_report',
+    title: 'Report Screen Dialogs & Views',
+    actions: [
+      { id: 'view.openDelegateModal', label: 'Open Delegation Menu', internalKey: 'F13+PS150' },
+      { id: 'view.delegatePeerReview', label: 'Select Peer Review', internalKey: 'F13+PS151' },
+      { id: 'view.delegateFormalConsult', label: 'Select Formal Consult', internalKey: 'F13+PS152' },
+      { id: 'view.delegateFullTransfer', label: 'Select Full Transfer', internalKey: 'F13+PS153' },
+      { id: 'view.aiReviewSkip', label: 'Skip AI Finding', internalKey: 'F13+PS162' },
+      { id: 'view.aiReviewCancel', label: 'Cancel AI Review', internalKey: 'F13+PS163' },
+      { id: 'view.openPreFinalise', label: 'Finalise Report', internalKey: 'F17+PS043' },
+      { id: 'view.finaliseCancel', label: 'Cancel Finalise', internalKey: 'F17+PS045' },
+      { id: 'view.skipField', label: 'Skip Field', internalKey: 'F17+PS054' },
+      { id: 'view.fullView', label: 'Full View', internalKey: 'F17+PS055' },
+      { id: 'view.tabbedView', label: 'Tabbed View', internalKey: 'F17+PS056' },
+      { id: 'view.maxView', label: 'Maximise View', internalKey: 'F17+PS012' },
+      { id: 'view.minView', label: 'Minimise View', internalKey: 'F17+PS013' },
+      { id: 'view.previewReport', label: 'Preview Report', internalKey: 'F17+PS014' },
+      { id: 'view.voiceCaseComment', label: 'Case Comment', internalKey: 'F17+PS015' },
+      { id: 'view.voiceSpecimenComment', label: 'Specimen Comment', internalKey: 'F17+PS016' },
+      { id: 'view.voiceInternalNote', label: 'Internal Note', internalKey: 'F17+PS017' },
+      { id: 'view.voiceAddSynoptic', label: 'Add Synoptic', internalKey: 'F17+PS018' },
+      { id: 'view.noteAdd', label: 'Add Note', internalKey: 'F17+PS020' },
+      { id: 'view.noteDictate', label: 'Dictate Note', internalKey: 'F17+PS021' },
+      { id: 'view.noteVisibilityPrivate', label: 'Note Visibility Private', internalKey: 'F17+PS022' },
+      { id: 'view.noteVisibilityShared', label: 'Note Visibility Shared', internalKey: 'F17+PS023' },
+      { id: 'view.noteCancel', label: 'Cancel Note', internalKey: 'F17+PS025' },
+      { id: 'view.noteClose', label: 'Close Notes', internalKey: 'F17+PS026' },
+      { id: 'view.gotoCodes', label: 'Go to Codes', internalKey: 'F17+PS030' },
+      { id: 'view.voiceAddCode', label: 'Add Code', internalKey: 'F17+PS040' },
+      { id: 'view.selectSpecimen', label: 'Select Specimen', internalKey: 'F17+PS031' },
+      { id: 'view.openHistory', label: 'Open History', internalKey: 'F17+PS032' },
+      { id: 'view.closeHistory', label: 'Close History', internalKey: 'F17+PS033' },
+      { id: 'view.voiceCancel', label: 'Cancel', internalKey: 'F17+PS034' },
+      { id: 'view.flagSelectCase', label: 'Select Case', internalKey: 'F17+PS035' },
+      { id: 'view.flagSelectAllSpecimens', label: 'Select All Specimens', internalKey: 'F17+PS036' },
+      { id: 'view.flagDeselectAll', label: 'Deselect All', internalKey: 'F17+PS037' },
+      { id: 'view.flagCancel', label: 'Cancel Flags', internalKey: 'F17+PS039' },
+      { id: 'view.openCaseTeam', label: 'Open Case Team', internalKey: 'F13+PS200' },
+      { id: 'view.flagOpenManager', label: 'Open Flag Manager', internalKey: 'F13+PS240' },
+      { id: 'view.addOrders', label: 'Add Orders', internalKey: 'F24+PS040' },
+    ],
+  },
+  {
+    id: 'view_app',
+    title: 'Go To & Help',
+    actions: [
+      { id: 'view.openHome', label: 'Go Home', internalKey: 'F13+PS300' },
+      { id: 'view.openEnhancementRequest', label: 'Open Enhancement Request', internalKey: 'F13+PS301' },
+      { id: 'view.openTestingFeedback', label: 'Open Testing Feedback', internalKey: 'F13+PS302' },
+      { id: 'view.viewHelp', label: 'View System Help', internalKey: 'F13+PS303' },
+      { id: 'view.openResources', label: 'Open Clinical Resources', internalKey: 'F13+PS304' },
+      { id: 'view.systemLogout', label: 'Log Out', internalKey: 'F13+PS308' },
+      { id: 'view.openRoutingRules', label: 'Open Routing Rules', internalKey: 'F13+PS210' },
+      { id: 'view.testRouting', label: 'Test Routing Rule', internalKey: 'F13+PS211' },
+      { id: 'view.openParticipationTypes', label: 'Open Participation Types', internalKey: 'F13+PS220' },
+      { id: 'view.focusCaseSearch', label: 'Focus Case Search', internalKey: 'F13+PS011' },
+      { id: 'view.openIntraopQueue', label: 'Open Intraop Queue', internalKey: 'F13+PS270' },
+      { id: 'view.intraopStartNewEntry', label: 'Start New Intraop Entry', internalKey: 'F13+PS271' },
+    ],
+  },
+  {
+    id: 'view_worklist',
+    title: 'Worklist Views & Filters',
+    actions: [
+      { id: 'view.tableFilterPhysician', label: 'Filter by Physician', internalKey: 'F15+PS034' },
+      { id: 'view.readFlags', label: 'Read Flags', internalKey: 'F15+PS035' },
+      { id: 'view.readSpecimen', label: 'Read Specimen', internalKey: 'F15+PS036' },
+      { id: 'view.readDigitalReadiness', label: 'Read Digital Readiness', internalKey: 'F15+PS040' },
+      { id: 'view.readDpTriage', label: 'Read AI Triage', internalKey: 'F15+PS041' },
+      { id: 'view.openSlideDetails', label: 'Open Slide Details', internalKey: 'F15+PS042' },
+      { id: 'view.tableFilterDp', label: 'Filter Digital Pathology', internalKey: 'F15+PS043' },
+      { id: 'view.tableFilterGyncyto', label: 'Filter GYN Cytology', internalKey: 'F15+PS044' },
+      { id: 'view.tableFilterNongyncyto', label: 'Filter Non-GYN Cytology / FNA', internalKey: 'F15+PS045' },
+      { id: 'view.tableFilterAutopsy', label: 'Filter Autopsy', internalKey: 'F15+PS046' },
+      { id: 'view.tableFilterNewcases', label: 'Filter New Cases', internalKey: 'F15+PS047' },
+      { id: 'view.tableFilterCompleted', label: 'Filter Completed', internalKey: 'F15+PS037' },
+      { id: 'view.tableSortByColumn', label: 'Sort By Column', internalKey: 'F15+PS038' },
+      { id: 'view.tableClearSort', label: 'Clear Sort', internalKey: 'F15+PS033' },
+      { id: 'view.tableFilterParticipating', label: 'Filter My Cases', internalKey: 'F15+PS030' },
+      { id: 'view.tableFilterCountersign', label: 'Filter Awaiting Countersign', internalKey: 'F15+PS031' },
+      { id: 'view.tableFilterPool', label: 'Filter Pool Cases', internalKey: 'F15+PS032' },
+    ],
+  },
+  {
+    id: 'view_search',
+    title: 'Search & Messages Views',
+    actions: [
+      { id: 'view.searchExecute', label: 'Execute Search', internalKey: 'F13+PS305' },
+      { id: 'view.searchClear', label: 'Clear Search', internalKey: 'F13+PS306' },
+      { id: 'view.searchLoadSaved', label: 'Load Saved Search', internalKey: 'F13+PS307' },
+      { id: 'view.msgMarkReadAll', label: 'Mark All as Read', internalKey: 'F18+PS024' },
+      { id: 'view.msgViewMessages', label: 'View Messages', internalKey: 'F18+PS023' },
+    ],
+  },
+  {
+    id: 'view_contribution',
+    title: 'My Contribution Views',
+    actions: [
+      { id: 'view.tatShowFirstTouch', label: 'Show First Touch TAT Trend', internalKey: 'F25+PS001' },
+      { id: 'view.tatShowTotalCase', label: 'Show Total Case TAT Trend', internalKey: 'F25+PS002' },
+      { id: 'view.tatShowFrozenSection', label: 'Show Frozen Section TAT Trend', internalKey: 'F25+PS003' },
+      { id: 'view.tatShowGrossing', label: 'Show Grossing TAT Trend', internalKey: 'F25+PS004' },
+      { id: 'view.tatShowSignOut', label: 'Show Sign-Out TAT Trend', internalKey: 'F25+PS005' },
+      { id: 'view.tatShowColdIschemia', label: 'Show Cold Ischaemia TAT Trend', internalKey: 'F25+PS006' },
+      { id: 'view.tatShowConsultResponse', label: 'Show My Response Time Trend', internalKey: 'F25+PS007' },
+      { id: 'view.tatShowConsultAwaiting', label: 'Show Awaiting Response Trend', internalKey: 'F25+PS008' },
+    ],
+  },
+  {
+    id: 'view_cytology',
+    title: 'Cytology Screen Views',
+    actions: [
+      { id: 'view.cytologyOpenMaterial', label: 'Open Material', internalKey: 'F26+PS001' },
+      { id: 'view.cytologyOpenSynoptic', label: 'Open Cytology Synoptic', internalKey: 'F26+PS004' },
+      { id: 'view.cytologySelectTemplateThyroid', label: 'Select Thyroid Template', internalKey: 'F26+PS007' },
+      { id: 'view.cytologySelectTemplatePancreaticobiliary', label: 'Select Pancreaticobiliary Template', internalKey: 'F26+PS008' },
+      { id: 'view.cytologySelectTemplateSalivaryGland', label: 'Select Salivary Gland Template', internalKey: 'F26+PS009' },
+      { id: 'view.cytologySelectTemplateLymphNode', label: 'Select Lymph Node Template', internalKey: 'F26+PS010' },
+      { id: 'view.cytologySelectTemplateUrine', label: 'Select Urine Template', internalKey: 'F26+PS011' },
+    ],
+  },
+  {
+    id: 'case_access_reports',
+    title: 'Related Cases, Case Access, Search Reports & Follow-up',
+    actions: [
+      { id: 'related.attachCases', label: 'Attach Related Cases at Sign-Out', internalKey: 'F33+PS001' },
+      { id: 'patientSummary.print', label: 'Print Patient Summary', internalKey: 'F33+PS002' },
+      { id: 'caseAccess.request', label: "Request Access to a Patient's Other Cases", internalKey: 'F33+PS003' },
+      { id: 'caseAccess.approve', label: "Approve Access to a Patient's Other Cases", internalKey: 'F33+PS004' },
+      { id: 'caseAccess.deny', label: 'Deny an Access Request', internalKey: 'F33+PS005' },
+      { id: 'caseAccess.revoke', label: "Revoke Access to a Patient's Other Cases", internalKey: 'F33+PS006' },
+      { id: 'searchReport.save', label: 'Save Case Search Report', internalKey: 'F33+PS007' },
+      { id: 'searchReport.export', label: 'Export Case Search Report', internalKey: 'F33+PS008' },
+      { id: 'searchReport.schedule', label: 'Schedule Case Search Report', internalKey: 'F33+PS009' },
+      { id: 'followUp.expect', label: 'Mark Follow-Up Expected', internalKey: 'F33+PS010' },
+      { id: 'followUp.recordOutcome', label: 'Record Follow-Up Outcome', internalKey: 'F33+PS011' },
+      { id: 'followUp.reopen', label: 'Reopen Follow-Up', internalKey: 'F33+PS012' },
+      { id: 'followUp.emailClinician', label: 'Email Ordering Clinician About Follow-Up', internalKey: 'F33+PS013' },
+      { id: 'codes.searchFlagged', label: 'Search Codes for a Flagged Finding', internalKey: 'F33+PS014' },
+      { id: 'biometric.enrol', label: 'Enrol Biometric Sign-In', internalKey: 'F33+PS015' },
+      { id: 'biometric.disable', label: 'Turn Off My Biometric Sign-In', internalKey: 'F33+PS016' },
+    ],
+  },
+  OUTBOUND_QUEUE_ACTION_GROUP, // Batch 619 (PS-800)
 ];
 
 // ─── Flat lookup maps ─────────────────────────────────────────────────────────
@@ -614,7 +911,6 @@ export const ACTION_MAP: Record<ActionId, SystemAction> =
 
 /** internalKey → action — used by keyboard handler to dispatch */
 const INTERNAL_KEY_MAP: Record<string, SystemAction> = {};
-
 ACTION_GROUPS.forEach(g =>
   g.actions.forEach(a => {
     ACTION_MAP[a.id] = a;
@@ -1004,3 +1300,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
   },
   Superadmin: Object.fromEntries(ACTION_GROUPS.flatMap(g => g.actions.map(a => [a.id, true]))) as PermissionSet,
 };
+
+// Batch 600: the 60 record-changing commands added to the roles list start with these grants.
+for (const [role, ids] of Object.entries(DEFAULT_ACTION_GRANTS)) {
+  const set = DEFAULT_ROLE_PERMISSIONS[role];
+  if (set) ids.forEach(id => { set[id] = true; });
+}

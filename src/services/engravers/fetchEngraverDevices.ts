@@ -10,6 +10,8 @@
 
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase';
+import { isFirebaseConfigured } from '@/firebase/isFirebaseConfigured';
+import { simulatedEngraverDevices } from './simulatedEngraverData';
 import type { EngraverStatus, SupplyWarning } from '@/types/events/EngraverStatusEventPayload';
 
 export interface EngraverDevice {
@@ -28,7 +30,10 @@ export interface EngraverDevice {
 
 const COLLECTION_NAME = 'engraver_devices';
 
+export function engraversAreSimulated(): boolean { return !isFirebaseConfigured(); }
+
 export async function fetchEngraverDevices(): Promise<EngraverDevice[]> {
+  if (!isFirebaseConfigured()) return simulatedEngraverDevices();
   const snap = await getDocs(collection(db, COLLECTION_NAME));
   return snap.docs.map(d => d.data() as EngraverDevice);
 }

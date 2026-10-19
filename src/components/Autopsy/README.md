@@ -55,3 +55,7 @@ No behavior change. `AutopsyAuthorizationCompletionForm.tsx`/`.test.tsx` and `Au
 ## Batch 495
 
 `AutopsyBodyReleaseForm.tsx` shows translated text only: the gate's reason codes via `autopsyBodyRelease.blockedReasons.<code>`, and a failed release via `autopsyBodyRelease.errors.<reasonCode>` (falling back to `genericError`). Before, both the gate's English sentences and the service's English `error` were shown as-is. See `services/autopsy/README.md`.
+
+## Batch 610 (part A) — AutopsyTatChip
+
+The turnaround chip for the current report tier: label from `autopsyTat.state.*`, tooltip with elapsed, target, source, deadline and hold time. Renders nothing when there is no clock start.

@@ -1,0 +1,18 @@
+Batch 585: the review tests (e2e/review/) for PS-60, PS-269, PS-292, PS-474 and PS-475, Playwright in Chromium against the demo, run 2026-10-16. 13 passed, 1 skipped.
+
+PASSED: e2e/review/ps-60.sso-login.spec.ts › Step 1: Google and Microsoft show "Soon", are disabled and do nothing
+PASSED: e2e/review/ps-60.sso-login.spec.ts › Step 2: a wrong password and an unknown e-mail are refused with the same message
+SKIPPED: e2e/review/ps-60.sso-login.spec.ts › Step 3: a deep link while signed out lands back on that page after sign-in (PS_DEMO_PASSWORD is not set; written, never run)
+PASSED: e2e/review/ps-60.sso-login.spec.ts › Step 6: Configuration → Staff → Pete Nimmo shows the "Linked sign-in accounts" panel
+PASSED: e2e/review/ps-269.i18n-sweep.spec.ts › Steps 1–2: Korean on Home, the Worklist and a case report
+PASSED: e2e/review/ps-269.i18n-sweep.spec.ts › Step 3: French, the MRN label reads "IPP" on the Worklist and a case
+PASSED: e2e/review/ps-292.preliminary-release.spec.ts › Step 1: the button shows on an open case and not on a closed one
+PASSED: e2e/review/ps-292.preliminary-release.spec.ts › Step 2: Release as Preliminary gives a result and the case is not finalised
+PASSED: e2e/review/ps-292.preliminary-release.spec.ts › Steps 3–4: add a delivery rule, then Resolve shows the action and the matched rule
+PASSED: e2e/review/ps-474.security-headers.spec.ts › Step 1: the README exists and names each generated file
+PASSED: e2e/review/ps-474.security-headers.spec.ts › Step 2: the generator writes the five files
+PASSED: e2e/review/ps-474.security-headers.spec.ts › Steps 2–3 (file side): every file carries the same strict header set
+PASSED: e2e/review/ps-475.load-size-languages.spec.ts › Steps 2–3: sign-in and Home fetch only the English language file
+PASSED: e2e/review/ps-475.load-size-languages.spec.ts › Step 5: German, Korean, French (Belgium) and Dutch (Belgium) each download once, with no raw keys
+
+Not run: the independent review agent; Firefox; the full vitest and type-check runs (this batch changes only e2e/review specs and documentation).

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/macros/
 
 Text-expansion macro dictionary for the report editor (e.g. '.norm' shortcuts).
@@ -22,3 +24,7 @@ A person's own macro is theirs to change; a shared (enterprise or facility) macr
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 616 (part E) — server version
+
+API-server version of `Macro` (`httpMacroService.ts`, contract `MACROS_API.md`), picked by `macroServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

@@ -69,8 +69,9 @@ export interface ModelAdoption {
   adoptedBy?: string;
   retiredDate?: string;
   /** Tenant configuration parameters and threshold overrides for this
-   *  model (PS-58 design note). Nothing reads these yet; they are here so
-   *  the schema has a tenant-side home for them from the start. */
+   *  model (PS-58 design note). Batch 609 (#173): a closed set of keys
+   *  (modelOverrides.ts), edited in Configuration → Models and read by the
+   *  AI call path (maxTokens) and the confidence threshold. */
   configOverrides?: Record<string, string | number | boolean>;
   thresholdOverrides?: Record<string, number>;
   /** Ids this model had under the pre-PS-58 unscoped store (a store
@@ -113,6 +114,9 @@ export interface AIModel {
    *  which is PathScribe's own branded version label shown to users;
    *  this is what actually goes in the request body. */
   apiModelId:    string;
+  /** Batch 609 (#173): this organisation's overrides for the model, when set. */
+  configOverrides?:    Record<string, string | number | boolean>;
+  thresholdOverrides?: Record<string, number>;
 }
 
 /** Error strings the model service returns, so screens can translate
@@ -124,7 +128,8 @@ export type ModelServiceError =
   | 'ALREADY_ADOPTED'
   | 'CANNOT_DEFAULT_RETIRED'
   | 'CANNOT_RETIRE_DEFAULT'
-  | 'CATALOG_FIELDS_READ_ONLY'; // update() tried to change a platform-owned field
+  | 'CATALOG_FIELDS_READ_ONLY' // update() tried to change a platform-owned field
+  | 'INVALID_OVERRIDE';        // update() was given an override outside the allowed keys or ranges
 
 /** Every read and write is scoped to the organisation in session. */
 export interface IModelService {

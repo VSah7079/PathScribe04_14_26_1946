@@ -11,7 +11,7 @@
 //
 // Renders and dispatches: hooks/useMyExports.ts.
 // ─────────────────────────────────────────────────────────────────────────────
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMyExports } from '@/hooks/useMyExports';
 import { LoadingState } from '@/components/Common/LoadingState';
@@ -22,7 +22,9 @@ const K = 'myExports';
 
 const MyExportsPage: React.FC<{ tracker?: ExportTracker }> = ({ tracker }) => {
   const { t, i18n } = useTranslation();
-  const { viaServer, jobs, problem, actionProblem, reload, download, cancel } = useMyExports(tracker);
+  const { viaServer, simulated, simulation, jobs, problem, actionProblem, reload, download, cancel } = useMyExports(tracker);
+  // Batch 611 (#194): the simulated export server's one control.
+  const [longBuilds, setLongBuilds] = useState(() => simulation?.longBuilds() ?? false);
 
   return (
     <div className="ps-regx-page">
@@ -39,6 +41,18 @@ const MyExportsPage: React.FC<{ tracker?: ExportTracker }> = ({ tracker }) => {
       </header>
 
       {!viaServer && <p className="ps-myexports-note">{t(`${K}.demoNote`)}</p>}
+      {simulated && (
+        <div className="ps-myexports-simulated" role="note">
+          <span className="ps-simulated-badge">{t(`${K}.simulatedBadge`)}</span>
+          <span>{t(`${K}.simulatedNote`)}</span>
+          {simulation && (
+            <label className="ps-myexports-simulated-toggle">
+              <input type="checkbox" checked={longBuilds} onChange={e => { simulation.setLongBuilds(e.target.checked); setLongBuilds(e.target.checked); }} />
+              <span>{t(`${K}.longToggle`)}</span>
+            </label>
+          )}
+        </div>
+      )}
       {viaServer && problem && <p className="ps-myexports-note" role="alert">{t(exportProblemKey(problem))}</p>}
 
       {viaServer && jobs === null && <LoadingState variant="inline" className="ps-regx-empty" label={t(`${K}.loading`)} />}

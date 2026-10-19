@@ -18,7 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { cytologyCaseIsReleased } from './cytologyCaseReportMessage';
 
 export interface CytologyRevisionRelease {
@@ -44,7 +44,7 @@ export async function publishCytologyRevision(release: CytologyRevisionRelease):
     ...event,
     source: 'CYTOLOGY',
     generatePdf: release.generatePdf ?? (async () => {
-      const records = await mockCytologySignOutRecordService.getByCaseId(release.caseId);
+      const records = await cytologySignOutRecordService.getByCaseId(release.caseId);
       const [{ resolveCytologyCaseReport }, { generateCytologyCaseReportPdfSnapshot }] = await Promise.all([
         import('./resolveCytologyCaseReport'), import('./generateCytologyCaseReportPdf'),
       ]);

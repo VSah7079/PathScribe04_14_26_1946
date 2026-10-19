@@ -17,7 +17,7 @@
 // tagBatch — the one, real place a PrintJob.batchId is ever written.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockPrintQueueService } from './mockPrintQueueService';
+import { printQueueService } from './printQueueServiceInstance';
 import { aggregatePrintJobsForBatch } from './aggregatePrintJobsForBatch';
 import type { BatchAggregationConfig, BatchAggregationResult } from '@/types/printing/PrintBatch';
 
@@ -38,7 +38,7 @@ export async function runScheduledBatchAggregation(
    *  real ids this run will produce before it runs. */
   batchIdSeed: string,
 ): Promise<ScheduledBatchAggregationRunResult> {
-  const allRes = await mockPrintQueueService.getAll();
+  const allRes = await printQueueService.getAll();
   const allJobs = allRes.ok ? allRes.data : [];
   const queuedJobs = allJobs.filter(j => j.status === 'QUEUED');
 
@@ -46,7 +46,7 @@ export async function runScheduledBatchAggregation(
 
   let taggedJobCount = 0;
   for (const group of result.groups) {
-    const tagRes = await mockPrintQueueService.tagBatch(group.jobIds, group.batchId);
+    const tagRes = await printQueueService.tagBatch(group.jobIds, group.batchId);
     if (tagRes.ok) taggedJobCount += tagRes.data.succeededIds.length;
   }
 

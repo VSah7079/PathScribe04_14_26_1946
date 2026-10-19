@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/facilityOpsDashboard/
 
 Real, per PS-288 (Enterprise Laboratory Operations Dashboard Engine),
@@ -138,3 +140,9 @@ limitation immediately above. Covered by
 - `mockDisplayProfileService`: `add`, `update`, `deactivate` need `config:display-profiles:manage`.
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 603: Display Token device binding (replaces the typed device-token check above)
+
+A display binds to a profile only with the Display Token an administrator issues in Configuration (Display Profiles → "Display token"). The earlier typed comparison against `deviceToken` is gone; `deviceToken` remains an optional asset note. The bound display re-checks its token every minute and blanks when it is revoked or expired. This page shows no patient identifiers. See `services/displayAccess/README.md` and `docs/architecture/DISPLAY_ACCESS_API.md`.
+
+Batch 616 (part D, PS-510): server version of DisplayProfileService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/INTRAOP_OPS_API.md`.

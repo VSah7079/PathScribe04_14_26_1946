@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/reportChangeLog/
 
 Batch 368 (PS-353): the report change log. It records who changed what on a case, when, and from which workstation, so a log can be pulled.
@@ -80,3 +82,5 @@ Batch 368 (PS-353): the report change log. It records who changed what on a case
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+Batch 616 (part A, PS-483): `httpReportChangeLogService.ts` and `reportChangeLogInstance.ts`; routes follow `REPORT_CHANGE_LOG_API.md` (`/api/cases/{id}/change-log`).

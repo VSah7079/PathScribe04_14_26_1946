@@ -337,7 +337,7 @@ const LabelConfigEditor: React.FC<{ config: LabelConfig; onChange: (c: LabelConf
   // passed through as CSS custom properties so the actual property/value
   // pairs stay defined in pathscribe.css rather than as inline style rules.
   const previewVars: React.CSSProperties = {
-    ['--lc-fontsize' as string]: `${config.fontSize ?? (config.position === 'above' ? 12 : 11)}px`,
+    ['--lc-fontsize' as string]: `${config.fontSize ?? (config.position === 'above' ? 12 : 11)}pt`,
     ['--lc-weight' as string]: config.weight === 'bold' ? 700 : 600,
     ['--lc-decoration' as string]: config.decoration === 'underline' ? 'underline' : 'none',
     ['--lc-transform' as string]: config.transform === 'uppercase' ? 'uppercase' : config.transform === 'capitalize' ? 'capitalize' : 'none',

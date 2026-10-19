@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/cassetteColors/
 
 The real color dictionary — White, Blue, Red, Pink, Green/Mesh, Yellow, and any admin-added colors — that `services/cassetteRouting/`'s rules reference by key. Fully admin-manageable through Configuration → System → Cassette Colors (Lab Materials & Workflows): an admin can add a genuinely new color (name, hex, fallback policy) without any code change, and every routing rule referencing it updates automatically.
@@ -25,3 +27,6 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+
+Batch 616: server version in `httpCassetteColorService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `cassetteColorServiceInstance.ts`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.

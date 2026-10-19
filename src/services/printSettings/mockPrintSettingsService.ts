@@ -4,7 +4,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import { ServiceResult } from '../types';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
-const load    = () => storageGet<PrintSettingsConfig>('printSettings', DEFAULT_PRINT_SETTINGS_CONFIG);
+const load    = () => ({ ...DEFAULT_PRINT_SETTINGS_CONFIG, ...storageGet<PrintSettingsConfig>('printSettings', DEFAULT_PRINT_SETTINGS_CONFIG) });
 const persist = (d: PrintSettingsConfig) => storageSet('printSettings', d);
 let MOCK_CONFIG: PrintSettingsConfig = load();
 

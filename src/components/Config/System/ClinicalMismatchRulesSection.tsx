@@ -36,6 +36,8 @@ const ClinicalMismatchRulesSection: React.FC = () => {
   const [newKind, setNewKind] = useState<ClinicalMismatchKind>('unexpected-malignancy');
   const [newSpecimen, setNewSpecimen] = useState('');
   const [saved, setSaved] = useState(false);
+  // Batch 609 (#31): whether a high-risk mismatch holds the release of an amendment, correction or addendum.
+  const [holdsRevision, setHoldsRevision] = useState(true);
 
   const load = useCallback(async () => {
     const res = await clinicalMismatchRuleService.list();
@@ -43,6 +45,7 @@ const ClinicalMismatchRulesSection: React.FC = () => {
   }, []);
   useEffect(() => {
     void load();
+    void clinicalMismatchRuleService.revisionHoldsRelease().then(setHoldsRevision).catch(() => {});
     specimenDictionaryService.getAll()
       .then(r => { if (r.ok) setSpecimens(r.data.filter(e => e.active).map(e => ({ id: e.id, name: e.name }))); })
       .catch(() => {});
@@ -57,6 +60,11 @@ const ClinicalMismatchRulesSection: React.FC = () => {
     } else if (res.error) {
       setProblems(p => ({ ...p, [ruleId]: res.error! }));
     }
+  };
+
+  const saveRevisionHold = async (holds: boolean) => {
+    const res = await clinicalMismatchRuleService.saveRevisionHoldsRelease(holds);
+    if (res.ok) { setHoldsRevision(res.data); setSaved(true); setTimeout(() => setSaved(false), 2000); }
   };
 
   const save = async (rule: ClinicalMismatchRule) => done(rule.id, await clinicalMismatchRuleService.save(rule));
@@ -162,6 +170,15 @@ const ClinicalMismatchRulesSection: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="ps-conf-card ps-conf-card--spaced">
+        <div className="ps-conf-card-title">{t(`${K}.revision.title`)}</div>
+        <p className="ps-conf-card-description--tight">{t(`${K}.revision.description`)}</p>
+        <label className="ps-conf-toggle-label-row">
+          <input type="checkbox" checked={holdsRevision} onChange={e => { void saveRevisionHold(e.target.checked); }} />
+          {t(`${K}.revision.label`)}
+        </label>
       </div>
 
       <div className="ps-conf-card ps-conf-card--spaced">

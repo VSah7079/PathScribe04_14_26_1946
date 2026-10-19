@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/intraopDashboard/
 
 Real, per the RFP-APLIS-2026-GLOBAL Intraoperative/Frozen Section
@@ -244,3 +246,17 @@ Before, anyone who could open Configuration could change this; now each change i
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 589 — OR PIN role (PS-262)
+
+`resolveStaffByQuickAuthPin` identifies the OR Staff role by its id (`or-staff`) and also accepts the role name the Staff screen stores (`staffHasRole`), so a PIN set on the Staff screen works.
+
+## Batch 603: wall display binding and masking
+
+The OR Suite board binds to a terminal only with a valid Display Token (Configuration → OR Suite Terminals → "Display token") and blanks within a minute of revocation or expiry. `maskForWallDisplay.ts` replaces the patient name with the surgical case ID and room and empties the MRN as rows are read, so neither reaches the page. The dismissal confirmation shows case ID, room and diagnosis. See `services/displayAccess/README.md`.
+
+## Batch 610 (part A) — configured frozen section clock
+
+`resolveActiveIntraopRequestsForLocations` takes an optional `clockFor(entry, urgency)` returning target and warning minutes; each request carries its `urgency`.
+
+Batch 616 (part D, PS-510): server versions of OrEventLogService, OrSuiteTerminalService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/INTRAOP_OPS_API.md`.

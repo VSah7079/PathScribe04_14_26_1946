@@ -219,3 +219,28 @@ describe('molecular label printing (PS-231) — what reaches the print window', 
     expect(writes).toHaveLength(1);
   });
 });
+
+describe('molecular labels via Direct via Interface Engine (Batch 606, PS-63)', () => {
+  it('each label goes to the simulated engine route in the demo and none opens the print dialog', async () => {
+    const { listSimulatedPrints, resetSimulatedPrintForTests } = await import('@/services/printing/simulatedPrint');
+    resetSimulatedPrintForTests();
+    const { mockPrinterProfileService } = await import('@/services/printerProfiles/mockPrinterProfileService');
+    const { mockPrintSettingsService } = await import('@/services/printSettings/mockPrintSettingsService');
+    const profile = await mockPrinterProfileService.add({
+      printerId: 'IE-MOL-1', model: 'ZT411', dpi: 203, supportsDataMatrix: true, supportsGS1: false,
+      zplVersion: 'II', maxPrintDensity: 8, moduleSize: 4, vendor: 'zebra', bridgeType: 'direct_interface_engine',
+    } as any);
+    if (!profile.ok) throw new Error('setup failed');
+    await mockPrintSettingsService.update({ molecularLabelPrinterProfileId: profile.data.id });
+    const openSpy = vi.fn();
+    vi.stubGlobal('open', openSpy);
+    const { printMolecularSpecimenLabels, printMolecularPlateLabel, printMolecularRackLabel, printMolecularDeckLocationLabel } = await import('./printMolecularLabels');
+    expect(await printMolecularSpecimenLabels(makeBatch())).toBe(true);
+    expect(await printMolecularPlateLabel(makeBatch())).toBe(true);
+    expect(await printMolecularRackLabel(7)).toBe(true);
+    expect(await printMolecularDeckLocationLabel(makeBatch())).toBe(true);
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(listSimulatedPrints()).toHaveLength(4);
+    expect(listSimulatedPrints().every(r => r.transport === 'direct_interface_engine' && r.destination === 'IE-MOL-1')).toBe(true);
+  });
+});
