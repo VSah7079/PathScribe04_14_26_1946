@@ -19,6 +19,18 @@ Every entry is written four ways (Pete, Oct 20, 2026): **for the practitioner** 
 - **Marketing:** The Home screen shows live system health from the server, checked when you open it and when you return to it, and it only says what it has checked.
 - **FormedrixAI/partners (plain reality):** The server route does not exist yet (contract written, HS-1 to HS-5); in the demo the status only reflects whether the browser is online and is labelled simulated. No HIPAA or CAP compliance statement is printed anywhere on these screens. The secure-email send is still simulated. The CAP wording is "structured on", not certified.
 
+## Batch 699: the Codes window says "Checked origin", not "From" or "Source"
+
+**For the practitioner (User Guide).** Under each AI-suggested code the line now reads **Checked origin: the microscopic description** (or the narrative, gross, ancillary studies or synoptic answers, with the specimen when the text names one). When the AI did not say where a code came from, or the part it named does not exist, it says **Origin not stated**. Hover the line for a reminder: the software checked that the part of the case exists and holds text; a person has not verified it. Nothing else about the suggestions changed.
+
+**For the system administrator (Admin Guide).** No setting and no permission. New text key `addCodeModal.origin.checkedHint`; `addCodeModal.origin.from`, `fromSpecimen` and `notStated` were reworded in all six languages. The audit entry for a bound AI code (`AI_CODE_BOUND`) is unchanged and already records the origin as a checked field.
+
+**For marketing (positive).** The screen says exactly what was done: the origin of each suggested code is checked by the software, and the pathologist still reviews and applies every code.
+
+**For FormedrixAI and partners (the plain reality).** The wording follows Pete's decision of Oct 27, 2026, after the Intended Use Statement review. "Checked" means a machine plausibility check (the named part exists and holds text; the specimen is named in the text); it does not mean a person verified it, and the screen does not say "verified". No source text is quoted or highlighted (Oct 26 decision). The translations are machine-made and need native review. The numeric Confidence Threshold in administrator settings and the "Strong match / Possible match" labels stay, per the same decision.
+
+**Guides updated for Batches 653 to 699 (Oct 27, 2026).** Administrator Guide (English only; the five other languages are held for the content freeze, and nothing was machine-translated without your go-ahead): Codes window "Checked origin" and the Similar Cases (Demonstration) rename (AI framework); MFA policy on a server build (Session Security); permissions added in Batches 653 to 669 (Role Dictionary); what an outside consultant sees, view cap and audit events (Audit Log, consult links) and the glossary line. User Guide: the critical-finding window now says low-confidence "Abnormal" findings are set aside. Every other change in this period (sex at birth and NHS badge, Release Hold Print Policy, collaborators, Edit Field, Sign Out & Next, single sign-on only) was already in the guides.
+
 ## Batch 697: Two technical-writer sign-ins for the guides
 
 - **Practitioner:** Nothing changes on a clinical screen. Two new demo sign-ins exist for the technical writers who update the guides.

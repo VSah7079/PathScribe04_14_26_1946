@@ -23,7 +23,7 @@ export const AiSuggestionMeta: React.FC<{ sug: AiCodeSuggestion }> = ({ sug }) =
       {showsConfidence()
         ? <span className={sug.confidence >= 85 ? 'acd-confidence-hi' : 'acd-confidence-lo'}>{sug.confidence}%</span>
         : <span className="acd-confidence-lo" data-testid="code-match-strength">{t(`addCodeModal.match.${matchStrength(sug.confidence)}`)}</span>}
-      <span className="acd-sug-origin" data-testid="code-suggestion-origin">{origin}</span>
+      <span className="acd-sug-origin" data-testid="code-suggestion-origin" title={section ? t('addCodeModal.origin.checkedHint') : undefined}>{origin}</span>
       {sug.verifiedBy && <span className="acd-sug-verified" data-testid="code-suggestion-verified" title={t(`addCodeModal.verified.${sug.verifiedBy}`)}>✓</span>}
     </>
   );

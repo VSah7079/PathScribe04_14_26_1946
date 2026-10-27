@@ -1193,6 +1193,7 @@
 
 <p><strong>6. Field reference.</strong></p>
 <h4>List page</h4>
+<p><strong>Permissions added in October 2026 (Batches 654 to 669).</strong> Give these to the roles that need them: <em>Print a report during its release hold (supervisor override)</em> (Lab Director and Admin have it by default; used by the Release Hold Print Policy), <code>qa:management-review:submit</code>, <code>config:molecular-control-rules:view</code> (seeded to Administrator, Laboratory Director, Quality Reviewer and Molecular Technologist; changing the rules still needs the manage permission), <code>add-on:exception:flag</code> and <code>add-on:block:mark-retrieved</code> (offered once to Pathologist, Fellow, Resident, Histotechnologist and custom roles with <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> access), and <code>config:macros:manage</code> (replaces the role-name test for seeing every <a class="term" href="99-glossary.html#g-macro" title="A saved piece of text or a set of settings, such as a report phrase or a stain order, that can be inserted in one step.">macro</a> and creating Enterprise macros). A facility-limited person can now act on cases at their own <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> (Batch 653); a case with no facility on record is still refused.</p>
 <table>
 <thead>
 <tr>
@@ -1861,6 +1862,7 @@
 </tr>
 </tbody>
 </table>
+<p><strong>On a <a class="term" href="99-glossary.html#g-server-build" title="A build of PathScribe for a real deployment, with no demonstration accounts, that signs in through the identity provider and talks to the API server.">server build</a> (Batch 675).</strong> The policy is read from and saved to the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server, which checks <code>config:session-security:manage</code> itself and writes <code>MFA_POLICY_ENABLED</code>, <code>MFA_POLICY_DISABLED</code> and <code>MFA_STEPUP_CHANGED</code> to the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> with the old and new values. If the policy cannot be read at sign-in, nobody is let in (the "sign-in service unavailable" message appears). <strong>Known limit:</strong> the two server routes (<code>/api/session-security/mfa-policy/get</code> and <code>/save</code>) are specified in <code>ACCESS_SESSION_API.md</code> but not built, so a live build cannot yet load or save the policy, and the server does not yet enforce it on API requests. Only Microsoft Entra ID, Okta and Keycloak have documented set-up notes (<code>MFA.md</code>).</p>
 <h4>Sign-out policy</h4>
 <table>
 <thead>

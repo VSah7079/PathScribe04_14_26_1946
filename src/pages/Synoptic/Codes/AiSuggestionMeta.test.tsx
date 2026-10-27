@@ -11,16 +11,16 @@ describe('AiSuggestionMeta', () => {
   afterEach(cleanup);
   it('shows the part of the case and the specimen, and the dictionary check', () => {
     render(<AiSuggestionMeta sug={{ ...base, model: 'm', sourceSection: 'microscopic', specimenLabel: 'A', verifiedBy: 'dictionary' }} />);
-    expect(screen.getByTestId('code-suggestion-origin').textContent).toBe('From the microscopic description, specimen A');
+    expect(screen.getByTestId('code-suggestion-origin').textContent).toBe('Checked origin: the microscopic description, specimen A');
     expect(screen.getByTestId('code-suggestion-verified').getAttribute('title')).toBe('Checked against the code dictionary');
   });
-  it('says "Source not stated" rather than guess when the AI gave no checked source', () => {
+  it('says "Origin not stated" rather than guess when the AI gave no checked source', () => {
     render(<AiSuggestionMeta sug={{ ...base, model: 'm' }} />);
-    expect(screen.getByTestId('code-suggestion-origin').textContent).toBe('Source not stated');
+    expect(screen.getByTestId('code-suggestion-origin').textContent).toBe('Origin not stated');
   });
   it('a code taken from a template option (no model) comes from the synoptic answers', () => {
     render(<AiSuggestionMeta sug={base} />);
-    expect(screen.getByTestId('code-suggestion-origin').textContent).toBe('From the synoptic answers');
+    expect(screen.getByTestId('code-suggestion-origin').textContent).toBe('Checked origin: the synoptic answers');
   });
   it('the documentation profile shows the plain match label, never a percentage', () => {
     render(<AiSuggestionMeta sug={{ ...base, model: 'm' }} />);

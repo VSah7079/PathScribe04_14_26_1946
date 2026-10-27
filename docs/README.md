@@ -12,6 +12,8 @@
 
 **Batch 650:** `product/KNOWN_GAPS.md` lists the registered voice and key commands with no screen handler.
 
+**Batch 701:** `quality/evidence/` gains `PathScribe-Batches693-700-xray-catchup.json` and `PathScribe-Batch661-xray-catchup.json`.
+
 **Batch 649:** `product/` guides updated (Guide Updates, Feature Overview, Capabilities now 338, Known Gaps); `architecture/AUTHORIZATION_API.md` lists the 17 new capabilities; `quality/` has the Batch 649 Xray file and translation-review rows.
 
 **Batch 648:** the product guides now cover Lockbox Drop-Off; the Admin Guide's Lockbox section notes the demo seed and Demo Reset in all six languages.

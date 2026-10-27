@@ -188,13 +188,13 @@ How the commands behave:
 2. **Fixation time required.** **Fixation Time Required Before Sign-Out** appears for specimen types that need documented fixation timing. Enter the fixation time, enter an estimate, or choose **No time or estimate possible — override** and give a reason.
 3. **Stain quality control.** **Stain QC Gate — Sign-Out Blocked** lists the stain batches to resolve. Confirm the visual read checklist for each. A batch with a reported instrument failure blocks sign-out until its deficiency is resolved in Quality.
 4. **Margin inking.** **Sign-out cannot be completed** when an inking issue is compliance critical. Resolve it, or, if your role allows, record an **Administrative Override** with a reason.
-5. **Clinical mismatch.** The AI may suggest a possible mismatch between the clinical picture and the findings. A high-risk one asks for a decision (Resolved or Unresolved); a low-risk one is only logged.
+5. **Clinical mismatch.** The AI may suggest a possible mismatch between the clinical picture and the findings. The flag shows the words it relied on from each side ("Clinical side: …", "Pathology side: …"); a quote that cannot be found in the case text says "not found in the record, check it yourself". Read the quotes before you decide. In the default setup a mismatch is a plain flag: it is logged for quality review and does not hold sign-out. Where your laboratory has switched on the clinical-support setup, a high-risk one asks for a decision (Resolved or Unresolved) and may hold the release.
 6. **Peer review.** Where your laboratory requires an independent peer review of a first-time malignancy, sign-out waits for it. Ask a colleague, or choose **Sign out now** for urgent care and give the reason; the review is still owed within 24 hours.
 7. **Frozen section reconciliation.** If a frozen section was done, you compare it with the final diagnosis in **Frozen-to-Permanent Reconciliation**. If the categories differ it must be logged as a discordance (comment required). This window shows only when your laboratory has "Require Review Screen at Sign-Out" on.
 
 **Other stops.**
 
-8. **Critical finding.** A window lists critical or malignant findings. Record the notification (clinician, method, read-back) or select **Acknowledge without recording**.
+8. **Critical finding.** A window lists critical or malignant findings. Record the notification (clinician, method, read-back) or select **Acknowledge without recording**. The list always includes a finding flagged Critical or Malignant. A finding the AI flagged only as Abnormal, with low confidence (under 50), is set aside and counted, not listed; you still read the report and decide.
 9. **Missing code system.** If your country requires a code system and the case has none, you are asked to confirm before signing out. Going on is recorded in the audit log.
 10. **You are not allowed to sign this case.** The message reads "Only an active participant on this case whose participation type can finalize may sign it out." Ask the primary pathologist, or have yourself added to the case team (see [Case Team](help:report/case-team)). Holding the sign-out permission is not enough on its own.
 11. **Already Pending Release.** "This report is already Pending Release — recall it first if you need to make further changes."
@@ -234,8 +234,16 @@ How the commands behave:
 6. Every specimen's microscopic description is saved and complete. The screen opens the specimen's microscopic panel.
 7. Critical or malignant findings have been acknowledged or recorded.
 8. Every visible required field is answered, and no required AI suggestion is unverified. Sign Out Case checks every synoptic on the case that is not yet finalized; Finalize checks the report you have open.
+9. Every section of AI-drafted narrative has been accepted, edited, or kept as the earlier text. The message reads "The AI-drafted text in (section) has not been accepted yet. Accept or edit it before signing out." Accepting, editing and rejecting AI text are recorded in the audit log, as is adding an AI-suggested code.
 
 After these, PathScribe checks your sign-in confirmation, the code-system rule, whether a countersign is needed, whether you are allowed to sign this case, and then the collection and fixation, stain, inking, mismatch, peer-review and frozen-section checks described above.
+
+## Unconfirmed AI values are left out
+
+Before the **Sign Out Case** or **Finalize** window opens, PathScribe clears every optional field that still holds an unchanged AI value you have not confirmed or overridden. The window shows a note such as "2 optional AI-filled fields you have not confirmed were left out of this report (recorded in the audit log). Cancel and Confirm them to keep them." To keep a value, select **Cancel**, **Confirm** the field, and sign again. Values you edited, and fields you confirmed, are untouched. The signed report is made from what is left. When the sign-out checks pass, the audit log records how many fields were left out (no values).
+
+!!! warning "Cancelling does not bring the values back by itself"
+    The cleared fields stay empty until you select Confirm on them again.
 
 ## Sign Out & Next: what ends the arming
 
@@ -322,6 +330,7 @@ When you sign, the confirmation box asks for your credentials. Depending on how 
 ### Common mistakes
 
 - **Leaving an AI suggestion unverified on a required field.** The sign-out stops with a message naming the field. Confirm or override it.
+- **Expecting an unconfirmed optional AI value to appear in the signed report.** It is left out. Confirm it before you sign.
 - **Pressing Sign Out Case and expecting to move on.** Only **Sign Out & Next** (or the hotkey) moves to the next case.
 - **Opening a case from Search and using Sign Out & Next.** There is no queue, so you stay on the case.
 - **Trying to amend while the report is Pending Release.** Recall it instead.
@@ -370,6 +379,8 @@ When you sign, the confirmation box asks for your credentials. Depending on how 
 | "Only an active participant on this case..." | You are not on the case team with a participation type that may finalize. |
 | "This case is on hold" | A case hold is active. Release it in the left list. |
 | "n AI suggestions still need your review" | A required field has an unconfirmed AI suggestion. |
+| "The AI-drafted text in (section) has not been accepted yet" | AI-drafted narrative has not been accepted or edited. Accept it, edit it, or keep the earlier text. |
+| A value I expected is missing from the signed report | It was an optional AI value you had not confirmed, and it was left out. The sign-out window said how many. |
 | Sign-out window did not open after pressing the button | A review check stopped you, or the billing review opened because a base code is missing. |
 | Sign Out & Next stayed on the case | No next case in your list, a check stopped the sign-out, or ten minutes passed. |
 | Request Amendment / Addendum is greyed out | Your role may not release amendments, corrections or addenda. |

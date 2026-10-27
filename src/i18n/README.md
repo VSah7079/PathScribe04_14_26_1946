@@ -1,3 +1,14 @@
+## Batch 700 — guides caught up with Batches 653 to 699
+
+Administrator Guide (English only; other languages held for the content freeze): Codes window checked origin, Similar Cases (Demonstration), MFA policy on a server build, permissions added in Batches 654 to 669, consult link masking and view cap, glossary. User Guide: critical-finding window and the confidence floor. Rebuilt with `build.py --langs=en --publish` and the User Guide build. See `docs/product/GUIDE_UPDATES.md`.
+
+## Batch 699 — "Checked origin" wording in the Codes window
+
+Founder decision (Oct 27, 2026) after the Intended Use Statement review: the origin line under an AI-suggested code is worded as a checked origin, never as verified by a person.
+- `addCodeModal.origin.from`, `fromSpecimen` and `notStated` reworded and `addCodeModal.origin.checkedHint` added, in en, fr, de, nl, ko and es (machine-translated; native review needed, listed in `docs/quality/TRANSLATION_REVIEW.md`).
+- `AiSuggestionMeta.tsx` shows the hint as the line's tooltip; `AiSuggestionMeta.test.tsx` updated.
+- Docs: `services/coding/README.md`, `docs/product/REGULATORY_PROFILE.md`, User Guide Report > Synoptic reporting, `GUIDE_UPDATES.md`.
+
 ## Batch 698 — handover note for the development team
 Documentation only: `docs/developer/HANDOVER_FIRST_RELEASE.md` (status, remaining work by workstream, decisions, outside parties, release steps). No code and no UI text changed. The Jira counts in it were read on Oct 26, 2026.
 

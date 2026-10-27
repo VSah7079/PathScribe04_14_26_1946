@@ -777,8 +777,9 @@
     "noResultsFor": "\"{{query}}\"에 대한 결과가 없습니다",
     "opcs4DemoNotApplicable": "이 버전의 OPCS-4 코드는 짧은 시연용 목록에서 가져온 것이며 증례에 적용할 수 없습니다.",
     "origin": {
-      "from": "출처: {{section}}",
-      "fromSpecimen": "출처: {{section}}, 검체 {{label}}",
+      "checkedHint": "소프트웨어가 사례의 이 부분이 존재하고 텍스트가 있는지 확인했습니다. 사람이 검증한 것은 아닙니다.",
+      "from": "확인된 출처: {{section}}",
+      "fromSpecimen": "확인된 출처: {{section}}, 검체 {{label}}",
       "notStated": "출처 미기재",
       "section": {
         "ancillary": "보조 검사",

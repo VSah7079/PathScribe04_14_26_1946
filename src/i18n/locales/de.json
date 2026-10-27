@@ -777,9 +777,10 @@
     "noResultsFor": "Keine Ergebnisse für „{{query}}“",
     "opcs4DemoNotApplicable": "Die OPCS-4-Codes in dieser Version stammen aus einer kurzen Demonstrationsliste und können nicht auf einen Fall angewendet werden.",
     "origin": {
-      "from": "Quelle: {{section}}",
-      "fromSpecimen": "Quelle: {{section}}, Probe {{label}}",
-      "notStated": "Quelle nicht angegeben",
+      "checkedHint": "Die Software hat geprüft, dass dieser Teil des Falls vorhanden ist und Text enthält. Eine Person hat ihn nicht überprüft.",
+      "from": "Geprüfter Ursprung: {{section}}",
+      "fromSpecimen": "Geprüfter Ursprung: {{section}}, Probe {{label}}",
+      "notStated": "Ursprung nicht angegeben",
       "section": {
         "ancillary": "die Zusatzuntersuchungen",
         "gross": "die makroskopische Beschreibung",

@@ -1,3 +1,5 @@
+**Batches 693 to 700 and Batch 661 (Oct 27, 2026):** `evidence/PathScribe-Batches693-700-xray-catchup.json` and `evidence/PathScribe-Batch661-xray-catchup.json` (catch-ups; the tests were re-run on 2026-10-27 against today's code). Batches 677, 678, 693, 694, 695, 698 and 700 are documents or guides only. Both files are not yet imported into Xray (Pete runs `scripts/import-xray.ps1`).
+
 **Batches 679 to 692:** `evidence/PathScribe-Batches679-692-xray-catchup.json` (catch-up; Batch 688 is the Readiness Matrix and has no test; Batches 677, 678 and 684 are documents only, so have no tests).
 
 **Batches 669j to 676:** `evidence/PathScribe-Batches669-676-xray-catchup.json` (catch-up; no Xray file had been made since Batch 668). Full run after 675: 15,298 passed, 33 skipped; only `firestore.rules.test.ts` fails (needs the emulator).

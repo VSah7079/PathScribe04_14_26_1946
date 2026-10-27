@@ -788,8 +788,9 @@
     "noResultsFor": "Sin resultados para «{{query}}»",
     "opcs4DemoNotApplicable": "Los códigos OPCS-4 de esta versión proceden de una breve lista de demostración y no pueden aplicarse a un caso.",
     "origin": {
-      "from": "Origen: {{section}}",
-      "fromSpecimen": "Origen: {{section}}, muestra {{label}}",
+      "checkedHint": "El software ha comprobado que esta parte del caso existe y contiene texto. Ninguna persona lo ha verificado.",
+      "from": "Origen comprobado: {{section}}",
+      "fromSpecimen": "Origen comprobado: {{section}}, muestra {{label}}",
       "notStated": "Origen no indicado",
       "section": {
         "ancillary": "los estudios complementarios",

@@ -777,9 +777,10 @@
     "noResultsFor": "Aucun résultat pour « {{query}} »",
     "opcs4DemoNotApplicable": "Les codes OPCS-4 de cette version proviennent d'une courte liste de démonstration et ne peuvent pas être appliqués à un dossier.",
     "origin": {
-      "from": "Source : {{section}}",
-      "fromSpecimen": "Source : {{section}}, prélèvement {{label}}",
-      "notStated": "Source non indiquée",
+      "checkedHint": "Le logiciel a contrôlé que cette partie du dossier existe et contient du texte. Aucune personne ne l’a vérifiée.",
+      "from": "Origine contrôlée : {{section}}",
+      "fromSpecimen": "Origine contrôlée : {{section}}, prélèvement {{label}}",
+      "notStated": "Origine non indiquée",
       "section": {
         "ancillary": "les examens complémentaires",
         "gross": "la description macroscopique",

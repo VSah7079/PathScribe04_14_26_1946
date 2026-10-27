@@ -44,7 +44,7 @@ Each term below is linked the first time it is used in a section of the guide. A
 - **client service level**: The agreed time in which a client's cases should be reported, held per client facility.
 - **CMS**: The Centers for Medicare and Medicaid Services, the US agency that sets Medicare billing rules, including NCCI edits.
 - **config.json**: The file on the web server that gives a deployment its settings, such as the API server address. A wrong value stops PathScribe from starting.
-- **consult link**: A view-only link issued to an outside consultant for one case. It can be revoked at once and expires on its own.
+- **consult link**: A view-only link issued to an outside consultant for one case. It can be revoked at once and expires on its own. After the consultant signs, it allows at most 3 more views over 48 hours, and by default shows initials and birth year only.
 - **COSD**: Cancer Outcomes and Services Dataset, the English national dataset for cancer registration.
 - **countersign**: A second signature on a report from another qualified person, for example a pathologist on a cytotechnologist's work.
 - **CPT**: Current Procedural Terminology, the AMA's code set for medical and laboratory procedures, used for billing in the United States.

@@ -777,9 +777,10 @@
     "noResultsFor": "No results for \"{{query}}\"",
     "opcs4DemoNotApplicable": "OPCS-4 codes in this build come from a short demonstration list and cannot be applied to a case.",
     "origin": {
-      "from": "From {{section}}",
-      "fromSpecimen": "From {{section}}, specimen {{label}}",
-      "notStated": "Source not stated",
+      "checkedHint": "The software checked that this part of the case exists and holds text. A person has not verified it.",
+      "from": "Checked origin: {{section}}",
+      "fromSpecimen": "Checked origin: {{section}}, specimen {{label}}",
+      "notStated": "Origin not stated",
       "section": {
         "ancillary": "the ancillary studies",
         "gross": "the gross description",

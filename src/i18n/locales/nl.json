@@ -777,9 +777,10 @@
     "noResultsFor": "Geen resultaten voor \"{{query}}\"",
     "opcs4DemoNotApplicable": "De OPCS-4-codes in deze versie komen uit een korte demonstratielijst en kunnen niet op een casus worden toegepast.",
     "origin": {
-      "from": "Bron: {{section}}",
-      "fromSpecimen": "Bron: {{section}}, specimen {{label}}",
-      "notStated": "Bron niet vermeld",
+      "checkedHint": "De software heeft gecontroleerd dat dit deel van de casus bestaat en tekst bevat. Een persoon heeft het niet geverifieerd.",
+      "from": "Gecontroleerde herkomst: {{section}}",
+      "fromSpecimen": "Gecontroleerde herkomst: {{section}}, specimen {{label}}",
+      "notStated": "Herkomst niet vermeld",
       "section": {
         "ancillary": "het aanvullend onderzoek",
         "gross": "de macroscopische beschrijving",

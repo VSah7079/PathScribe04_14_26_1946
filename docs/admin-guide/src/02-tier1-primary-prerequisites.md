@@ -452,6 +452,8 @@ Unlocks: [Members](#screen-staff-members), [Support Access](#screen-support_acce
 
 #### List page
 
+**Permissions added in October 2026 (Batches 654 to 669).** Give these to the roles that need them: *Print a report during its release hold (supervisor override)* (Lab Director and Admin have it by default; used by the Release Hold Print Policy), `qa:management-review:submit`, `config:molecular-control-rules:view` (seeded to Administrator, Laboratory Director, Quality Reviewer and Molecular Technologist; changing the rules still needs the manage permission), `add-on:exception:flag` and `add-on:block:mark-retrieved` (offered once to Pathologist, Fellow, Resident, Histotechnologist and custom roles with case access), and `config:macros:manage` (replaces the role-name test for seeing every macro and creating Enterprise macros). A facility-limited person can now act on cases at their own facility (Batch 653); a case with no facility on record is still refused.
+
 | Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
 |---|---|---|---|---|
 | Search | Text | Optional | Placeholder "Search roles". | Blank |
@@ -682,6 +684,8 @@ Unlocks: None.
 | Step-up minutes | Whole number, 1 to 720 | Optional | How long a second-factor check stays valid. | 30 |
 | Session hours | Whole number, 1 to 72 | Optional | | 12 |
 | Enrolment table | List with **Reset enrolment** | Not applicable | Reset needs `auth:mfa-enrolment:reset`. | Not applicable |
+
+**On a server build (Batch 675).** The policy is read from and saved to the API server, which checks `config:session-security:manage` itself and writes `MFA_POLICY_ENABLED`, `MFA_POLICY_DISABLED` and `MFA_STEPUP_CHANGED` to the audit log with the old and new values. If the policy cannot be read at sign-in, nobody is let in (the "sign-in service unavailable" message appears). **Known limit:** the two server routes (`/api/session-security/mfa-policy/get` and `/save`) are specified in `ACCESS_SESSION_API.md` but not built, so a live build cannot yet load or save the policy, and the server does not yet enforce it on API requests. Only Microsoft Entra ID, Okta and Keycloak have documented set-up notes (`MFA.md`).
 
 #### Sign-out policy
 
