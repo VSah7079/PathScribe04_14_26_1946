@@ -1,3 +1,5 @@
+**Batch 645:** `/lockbox-drop-off` is in `SUPPORT_ROUTE_PATTERNS` (`supportTicketRules.ts`), so a support ticket raised from the Lockbox Drop-Off screen carries its route. The screen shows no case, so no support reference is needed.
+
 # services/supportReferences/
 
 Support references (Batch 364; PS-349, PS-350): non-identifying IDs that support staff use instead of case numbers.

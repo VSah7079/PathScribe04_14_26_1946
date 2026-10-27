@@ -147,7 +147,7 @@ No composition rules and no forced expiry, as NIST SP 800-63B advises.
 - expected issuer and audience;
 - lifetime, with a small clock skew.
 
-**Hub:** the SignalR hub reads the same token from the `access_token` query string (`LIVE_UPDATES_SIGNALR.md` §4). The client sends it for SSO users.
+**Hub:** the SignalR hub authenticates from the same session cookie as every other endpoint, never from a token in the query string (the Oct 3 decision at the top of this document; `LIVE_UPDATES_SIGNALR.md` §4). *(Earlier text here had the hub read an `access_token` query-string value; withdrawn in Batch 652 because it contradicted the decision.)* The current browser build still sends the SSO access token through SignalR's `accessTokenFactory`, which is a demonstration-build stand-in until the server session exists; it is to be removed then.
 
 **Every endpoint** requires an authenticated caller, except the public routes: OR boards use device tokens, and consult and critical-alert links use their own tokens.
 

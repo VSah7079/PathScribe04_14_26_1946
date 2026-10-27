@@ -1667,6 +1667,10 @@ New section `SmartCaptureSection` (id `smart_capture`, Lab Materials & Workflows
 
 **`MfaPolicyCard.tsx`**: in Session Security, below the biometric card: who is asked for a second factor, the step-up minutes and the session hours, and the people enrolled in the Simulated authenticator with **Reset enrolment** (`CapabilityButton`, `auth:mfa-enrolment:reset`). Saving is checked in `mfaService` (`config:session-security:manage`). Test: `MfaPolicyCard.test.tsx`.
 
+## Batch 642
+
+**`SignOutPolicyCard.tsx`**: in Session Security, below the second-factor card: the enterprise sign-out authentication default (password every sign-out or once per session, session length, second factor at sign-out), the lock on facility overrides, a table of performing facilities (default or override, with the policy in force) and an audit CSV export. Saving needs `config:session-security:manage`; the service audits who changed what. Test: `SignOutPolicyCard.test.tsx`.
+
 ## Batch 612 (workstations and scope reference)
 
 **`WorkstationsSection.tsx`**: register, change, rotate, revoke and test workstations; token shown once. **`ScopeReferenceSection.tsx`**: read-only list of enterprise versus facility scope by setting area. **`PrintRoutingRuleSection.tsx`**: the workstation field now suggests registered workstations.
@@ -1683,3 +1687,29 @@ When each feed (and each registry separately) goes out, set for the enterprise a
 
 ### BillingReleaseSection (Batch 619, PS-800)
 When a generated charge is released to billing, set for the enterprise and overridden per performing facility: a card per rule (billing type, optional case types, ordering site, pathologist, amended/original; release at once, after a hold, in a batch or by a person), an editor (`BillingReleaseEditor.tsx`), and a "Try a charge" panel (`BillingReleaseTestPanel.tsx`). Registered as `billing_release` (Administration & Compliance), capability `config:billing-release:manage`. Logic in `services/billingRelease/`; the draft helpers in `billingReleaseForm.ts`; styles reuse `DeliverySchedulesSection.css`. Contract: `docs/architecture/BILLING_RELEASE_API.md`.
+
+### CosdDestinationSection (Batch 620 part C, PS-800)
+
+How the UK cancer registry submission is sent and how many working days a rejected one has to be corrected (5 by default), set for the enterprise and overridden per performing facility: a card showing the settings in force and where they come from, an editor (transport label, working days, the lab's non-working dates), and a check panel (`CosdCheckPanel.tsx`) for a sample submission with its findings, a labelled simplified preview, and a correction due date. Logic in `services/cosd/` and `cosdDestinationForm.ts`. Needs `config:cosd-destination:manage`.
+
+### HistoryExtractionSection (Batch 621)
+
+Whether the AI reads historical reports and keeps the synoptic fields it finds beside the case (advisory only, off by default): choose the enterprise or a performing facility, a card showing whether it is on and where that comes from, turn on / turn off (behind `config:history-extraction:manage`), use the enterprise setting again, and the accuracy counts (reports read, fields extracted, flagged as wrong). Logic: `services/historyExtraction/`. Contract: `docs/architecture/HISTORY_AI_EXTRACTION_API.md`.
+
+### UsEpathSection (Batch 620 part E, PS-800)
+US ePath: a card per state profile (the labelled example plus any added), add, edit (`UsEpathProfileEditor`, state, required and optional fields, transport, checks, field extensions, facility basis) and remove; choose the profile for the enterprise or a performing facility, with the profile its state would use shown. Needs `config:us-epath:manage`. Contract: `docs/architecture/US_EPATH_API.md`.
+
+### BatchRegistryFeedSection (Batch 620 part S, PS-800)
+Registry batch files: a card per profile (example and NAACCR XML shipped; NAACCR XML marked later and not selectable), turn on/off, edit, remove, check (counts of waiting, due, held back, overdue, next run) and make the file now (downloads it; behind `registry:batch-file:generate`). `BatchProfileEditor.tsx` edits the format, columns and file name with a live layout preview; `batchRegistryFeedForm.ts` holds the draft logic; styles in `BatchRegistryFeedSection.css`. Logic: `services/batchRegistryFeed/`.
+
+## Batch 623 (PS-130)
+
+`TerminologyLicencesCard.tsx` (new, shown under the table in `CodeSystemsSection.tsx`): record the SNOMED CT and ICD-O-3 licences the customer holds. Saves through the enterprise settings (`updateEnterpriseConfig`), which checks `config:code-systems:manage`. `AbnormalTriggerRulesSection.tsx`: the rule form has optional Real codes (SNOMED CT and ICD-O-3 code and term), used only while that licence is on. Tests: `TerminologyLicencesCard.test.tsx`.
+
+## Batch 626 (PS-163)
+
+`ReactiveChangesPolicyCard.tsx` (+ test), shown at the top of `CytologyCategoriesSection` for Bethesda: the lab's choice of who signs out a negative GYN case with reactive changes.
+
+## Batch 652 (defect fixes)
+
+`ExternalResourcesSection.tsx` (+ `.css`): https-only validation through `externalResourceUrl.ts`; stored http links show an "Insecure link" warning.

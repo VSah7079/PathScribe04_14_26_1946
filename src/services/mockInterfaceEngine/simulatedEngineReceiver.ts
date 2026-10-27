@@ -8,7 +8,7 @@
 // leaves the browser. With an engine address configured, this is not used.
 // ─────────────────────────────────────────────────
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { getMockInterfaceEngineSettings } from './mockInterfaceEngineSettings';
 import { dataMayPersistInBrowser } from '../browserData/browserDataPolicy';
 import { appEnv } from '../runtimeConfig/runtimeEnv';
@@ -60,7 +60,7 @@ function record(envelope: InterfaceDispatchEnvelope, outcome: SimulatedEngineMes
   persist();
   notify();
   // Only the type and the outcome: a payload holds patient data.
-  mockAuditService.logEvent({
+  auditService.logEvent({
     type: 'system', event: 'Simulated Engine Message Received',
     detail: `SIMULATED (no interface engine): ${envelope.transactionType} ${outcome}${reason ? ` (${reason})` : ''}. Nothing left the browser.`,
     user: 'system', caseId: null, confidence: null,

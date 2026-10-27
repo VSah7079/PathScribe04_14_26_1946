@@ -1,7 +1,7 @@
 // src/services/molecular/controlRuleDraft.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch 406. The Control Rules page's decisions, moved out of the page:
-//   - what's wrong with a rule before it is saved (assay, fixed wells);
+//   - what's wrong with a rule before it is saved (assay, duplicate assay, no controls, fixed wells, reason);
 //   - which deck slots a rule may name for its assay's sample rack: every
 //     slot, on any active analyser, that takes a sample rack (Pete: "Sample
 //     Rack 1 must be in Slot A1 or Slot A2"); a slot a rule already names is
@@ -15,12 +15,24 @@ import type { DeckSlot } from '../equipment/IEquipmentService';
 
 export type ControlRuleDraftProblem =
   | { code: 'assayRequired' }
-  | { code: 'fixedPositionMissingWell'; sampleType: string };
+  | { code: 'duplicateAssay' }
+  | { code: 'controlsRequired' }
+  | { code: 'fixedPositionMissingWell'; sampleType: string }
+  | { code: 'reasonRequired' };
 
-export function controlRuleDraftProblem(draft: { assayCode: string; requiredControls: readonly MolecularRequiredControl[] }): ControlRuleDraftProblem | null {
+/** What is wrong with a rule before it is saved. Batch 669 (mol-14): a rule with no controls, another rule already on the
+ *  assay (checked on Edit as on Create: `otherRules` are the rules other than the one being edited), and no reason given. */
+export function controlRuleDraftProblem(
+  draft: { assayCode: string; requiredControls: readonly MolecularRequiredControl[]; reason?: string },
+  otherRules: readonly { assayCode: string }[] = [],
+): ControlRuleDraftProblem | null {
   if (!draft.assayCode.trim()) return { code: 'assayRequired' };
+  if (otherRules.some(r => r.assayCode === draft.assayCode.trim())) return { code: 'duplicateAssay' };
+  if (draft.requiredControls.length === 0) return { code: 'controlsRequired' };
   const unpinned = draft.requiredControls.find(c => c.positionMode === 'fixed' && !c.fixedWellPosition?.trim());
-  return unpinned ? { code: 'fixedPositionMissingWell', sampleType: unpinned.sampleType } : null;
+  if (unpinned) return { code: 'fixedPositionMissingWell', sampleType: unpinned.sampleType };
+  if (draft.reason !== undefined && !draft.reason.trim()) return { code: 'reasonRequired' };
+  return null;
 }
 
 /** The slot ids a rule can offer, sorted. */

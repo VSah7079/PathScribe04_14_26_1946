@@ -3,7 +3,7 @@
 import type { RegistryAckDeps } from './recordRegistryAcknowledgement';
 import { cytologyRegistryOutboundQueueService } from '../cytology/cytologyRegistryOutboundQueueServiceInstance';
 import { cancerRegistryOutboundQueueService } from '../cancerRegistry/cancerRegistryOutboundQueueServiceInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { RegistryRevisionDeps } from './recordRegistryRevision';
 import { specimenDeficiencyService as mockSpecimenDeficiencyService } from '../deficiencies/specimenDeficiencyServiceInstance';
 import { caseRouter } from '../cases/CaseRouter';
@@ -21,7 +21,7 @@ export const registryAckDeps: RegistryAckDeps = {
       markFailed: (id, f) => cancerRegistryOutboundQueueService.markFailed(id, f),
     },
   },
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
   now: () => new Date(),
 };
 
@@ -40,6 +40,6 @@ export const registryRevisionDeps: RegistryRevisionDeps = {
     return found?.id;
   },
   raiseDeficiency: d => mockSpecimenDeficiencyService.raise(d as any) as any,
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
   now: () => new Date(),
 };

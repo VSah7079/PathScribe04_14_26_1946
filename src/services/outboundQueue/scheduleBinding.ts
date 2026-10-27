@@ -16,8 +16,8 @@ export const SCHEDULE_FEED_OF: Readonly<Partial<Record<OutboundFeed, DeliveryFee
   report_delivery: 'report_delivery', registry: 'registry',
 };
 
-/** A registry's key in the schedules: "cancer:<id>" (the demo's registries are cancer registries). */
-export const registryKeyOf = (kind: string): string => `cancer:${kind}`;
+/** A registry's key in the schedules: "cancer:<id>", or "screening:<id>" for a screening programme that takes a batch file (Batch 620). */
+export const registryKeyOf = (kind: string): string => (kind.startsWith('screening:') ? kind : `cancer:${kind}`);
 
 export function createScheduleBinding(entries: () => Promise<DeliveryScheduleEntry[]>, now: () => string) {
   const resolve = async (feed: OutboundFeed, facilityId: string | undefined, kind: string) => {

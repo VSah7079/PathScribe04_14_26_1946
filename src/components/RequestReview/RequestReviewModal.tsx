@@ -25,7 +25,9 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 
-import { informalReviewService, messageService, codeReviewPoolService } from '@/services';
+import { codeReviewPoolService } from '@/services';
+import { sendReviewRequest } from '@/services/reports/sendReviewRequest';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { userService, subspecialtyService } from '@/services';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { ServiceResult } from '@/services/types';
@@ -120,12 +122,13 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
   const [query,       setQuery]       = useState('');
   const [reviewers,   setReviewers]   = useState<ReviewerOption[]>([]);
   const [loadingReviewers, setLoadingReviewers] = useState(true);
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   // Reset + fetch real reviewers when opened
   React.useEffect(() => {
     if (isOpen) {
       setSelectedId(''); setNoteType('informal_review');
-      setMessage(''); setStatus('compose'); setQuery('');
+      setMessage(''); setStatus('compose'); setQuery(''); setRefusal(null);
       setLoadingReviewers(true);
       Promise.all([userService.getAll(), subspecialtyService.getAll()]).then(([res, subsRes]: [ServiceResult<StaffUser[]>, ServiceResult<import('@/services/subspecialties/ISubspecialtyService').Subspecialty[]>]) => {
         if (res.ok) {
@@ -149,7 +152,10 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
   const selected = reviewers.find(r => r.id === selectedId);
   const isCodeReview = noteType === 'code_review';
-  const canSend  = isCodeReview ? true : !!selectedId;
+  // Batch 649: asking a colleague needs case:informal-review:request (the service checks it again).
+  const { has, loading: capabilitiesLoading } = useCapabilities();
+  const mayRequest = isCodeReview || has('case:informal-review:request', { caseId });
+  const canSend  = mayRequest && (isCodeReview ? true : !!selectedId);
 
   const handleSend = async () => {
     if (!canSend) return;
@@ -169,43 +175,14 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
     }
     if (!selected) return;
     setStatus('sending');
-
-    const typeLabel = NOTE_TYPES.find(nt => nt.value === noteType)?.label ?? 'Review';
-    const body = message.trim()
-      ? `${typeLabel} requested for case ${caseId}${caseLabel ? ` (${caseLabel})` : ''}.\n\n${message.trim()}\n\nPlease open the case link below to review the report and leave an internal note.`
-      : `${typeLabel} requested for case ${caseId}${caseLabel ? ` (${caseLabel})` : ''}.\n\nPlease open the case link below to review the report and leave an internal note.`;
-
-    await messageService.send({
-      senderId:      fromUserId,
-      senderName:    fromUserName,
-      recipientId:   selected.id,
-      recipientName: selected.name,
-      subject:       `${typeLabel} request — ${caseLabel ?? caseId}`,
-      body,
-      caseNumber:    caseId,
-      timestamp:     new Date(),
-      isUrgent:      false,
+    setRefusal(null);
+    // Batch 649: the message and (for an informal review) the worklist request, with their capability
+    // (case:informal-review:request), are services/reports/sendReviewRequest.ts.
+    const sent = await sendReviewRequest({
+      caseId, caseLabel, from: { id: fromUserId, name: fromUserName }, to: { id: selected.id, name: selected.name },
+      noteType, typeLabel: NOTE_TYPES.find(nt => nt.value === noteType)?.label ?? 'Review', message,
     });
-
-    // Real feature, per direct follow-up: "I want informal reviews to
-    // be handled differently than delegations types... queue these
-    // informal requests on the worklist with a Tile." The message
-    // above is still real and useful (an immediate "heads up"), but
-    // it alone can't power a real, trackable Worklist tile — only
-    // informal_review specifically gets this real, separate,
-    // dedicated request record. Every other note type here stays
-    // message-only, unchanged.
-    if (noteType === 'informal_review') {
-      await informalReviewService.create({
-        caseId,
-        caseLabel,
-        fromUserId,
-        fromUserName,
-        toUserId:   selected.id,
-        toUserName: selected.name,
-        note:       message.trim() || undefined,
-      });
-    }
+    if (sent.ok === false) { setRefusal(sent.reason); setStatus('compose'); return; }
 
     setStatus('sent');
     onSent?.();
@@ -347,6 +324,9 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
                 {isCodeReview ? t('requestReviewModal.codeReviewNotice') : t('requestReviewModal.ownershipNotice')}
               </span>
             </div>
+
+            {/* Batch 649: why it can't be sent (no case:informal-review:request). */}
+            {(refusal || (!mayRequest && !capabilitiesLoading)) && <div className="ps-conf-error-text" role="alert">{refusal ?? t('caseActionPermissions.reviewRequest')}</div>}
 
             {/* Actions */}
             <div className="rrm-actions-row">

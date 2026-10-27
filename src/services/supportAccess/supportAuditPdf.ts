@@ -28,7 +28,13 @@ function wrap(text: string, max: number): string[] {
 
 export async function buildSupportAuditPdf(input: SupportAuditPdfInput): Promise<Uint8Array> {
   const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
-  const pdf = await PDFDocument.create();
+  // Batch 652: the same input gives the same bytes. pdf-lib stamps the creation and modification dates with the clock
+  // unless told not to, so both are the export time the caller gives (a fixed epoch if that is not a date).
+  const pdf = await PDFDocument.create({ updateMetadata: false });
+  const exported = new Date(input.exportedAt);
+  const stamp = Number.isNaN(exported.getTime()) ? new Date(0) : exported;
+  pdf.setCreationDate(stamp);
+  pdf.setModificationDate(stamp);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const W = 612, H = 792, M = 40, LH = 11;

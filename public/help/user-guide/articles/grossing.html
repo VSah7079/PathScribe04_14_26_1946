@@ -1,0 +1,327 @@
+<h1 id="top">Grossing</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Grossing screen is where the person cutting up a case records the physical work: which blocks (cassettes) each specimen produced and how many pieces are in each, the stains ordered on each block, how long the tissue was in fixative, the margins and the ink used on them, and then marks the case as grossed. It works from the protocol attached to each specimen, so the blocks and stains a protocol calls for appear ready for you to adjust.</p>
+<p><strong>Intended users.</strong> Pathology assistants and pathologists who gross specimens. By default pathologists, fellows, residents and pathology assistants may complete grossing. If a button is greyed out, your role must allow it; ask your manager.</p>
+<p><strong>Where it fits.</strong> Grossing comes after the case has been logged in <a href="/help/accession">Accession</a> and before the tissue goes on to processing, embedding and cutting at the stations under <a href="/help/pathology-workspace">Pathology Workspace</a>. Completing grossing moves the case to Gross Complete, and the case can then be sent to a pathologist pool.</p>
+<div class="admonition note">
+<p class="admonition-title">How you reach this screen</p>
+<p>There is no tile for Grossing on Home. Open the case on the <a href="/help/report">report</a> screen, select the Material tab, and choose <strong>Open Grossing Screen</strong>. <strong>Back to Case</strong> returns you to the report screen.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/grossing-overview.png" alt="The Grossing screen for a case, with one section per specimen"><figcaption>The Grossing screen for a case, with one section per specimen</figcaption></figure>
+
+<p>The title reads "Grossing" followed by the accession number. Under it are the clinical history bar, the <strong>Complete grossing</strong> bar, and then one section for each specimen in the case. Work is saved as you go, except where a button says otherwise.</p>
+<div class="admonition note">
+<p class="admonition-title">Work done on other screens</p>
+<p>This screen does not print cassette or slide labels, does not hold the triage checklist and does not take photos. Releasing and printing the cassettes, the triage checklist that must be confirmed before they are released, and the printed labels are on the report screen's Material tab. Gross description text is written on the report screen too. Photos taken during an intraoperative consultation are in the <a href="/help/intraop-queue">Intraop Queue</a>. Block face photos are taken from the block editor on the report screen's Material tab, in a window headed "Capture Block Face Photo". Under a block's piece count or piece description the editor shows "Needed before grossing can be completed." when your laboratory requires the item.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimen A, description</td>
+<td>The specimen's label and description from accessioning.</td>
+</tr>
+<tr>
+<td>Protocol: … (v…)</td>
+<td>The grossing protocol attached to the specimen and its version, for example "Protocol: Breast core (v2)".</td>
+</tr>
+<tr>
+<td>Protocol Modified</td>
+<td>A badge shown when you have changed what the protocol produced (for example by adding a stain).</td>
+</tr>
+<tr>
+<td>No protocol assigned</td>
+<td>The specimen has no protocol. You cannot add blocks from this screen.</td>
+</tr>
+<tr>
+<td>Fixation ended</td>
+<td>The time the tissue left fixative. Shows "Record now" until recorded.</td>
+</tr>
+<tr>
+<td>Fixative-to-tissue ratio</td>
+<td>Your confirmation that the ratio was adequate. Shows "Confirm adequate ratio" until confirmed, then who confirmed it and when.</td>
+</tr>
+<tr>
+<td>Block ID</td>
+<td>The specimen letter and block, for example A1.</td>
+</tr>
+<tr>
+<td>Piece Count</td>
+<td>The number of tissue pieces in the block. Starts from the protocol's default.</td>
+</tr>
+<tr>
+<td>Stains</td>
+<td>The stains ordered on the block. Each is tagged Auto-generated (from the protocol) or User-added.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Where the block is. Only a block that is still Pending can be removed.</td>
+</tr>
+<tr>
+<td>Slide ID, Stain, Imager Batch, FOV Count</td>
+<td>For cytology preparations only. Imager Batch shows "Not yet imaged" until the slide has been imaged.</td>
+</tr>
+<tr>
+<td>Margins &amp; Ink Applications</td>
+<td>The margins recorded on the specimen or on a block: name, orientation, laterality, Examined or Pending, and each ink applied with who applied it and when. They are grouped under "On specimen" and "On block …" (for example "On block A1"). Until one is recorded the section says "No margins recorded yet."</td>
+</tr>
+<tr>
+<td>Audit Trail (n overrides)</td>
+<td>A collapsible list of changes you made to what the protocol produced: piece counts changed, stains added, protocol stains removed. When there are none it says "No overrides recorded."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Back to Case</td>
+<td>Returns to the case on the report screen.</td>
+</tr>
+<tr>
+<td>Complete grossing</td>
+<td>Marks grossing finished and moves the case to Gross Complete. Greyed out while required items are missing.</td>
+</tr>
+<tr>
+<td>Record now</td>
+<td>Records the current time as the end of fixation.</td>
+</tr>
+<tr>
+<td>Confirm adequate ratio</td>
+<td>Records that you confirmed the fixative-to-tissue ratio.</td>
+</tr>
+<tr>
+<td>Raise deficiency</td>
+<td>Raises a quality deficiency for missing fixation information.</td>
+</tr>
+<tr>
+<td>Add Block (pathway name)</td>
+<td>Adds another block following that protocol pathway, with its default stains and piece count.</td>
+</tr>
+<tr>
+<td>Remove Block</td>
+<td>Removes a block that is still Pending.</td>
+</tr>
+<tr>
+<td>Add Stain</td>
+<td>Opens a list of the stains allowed for that block, which starts at "— select stain —"; choose one and select <strong>Add</strong>.</td>
+</tr>
+<tr>
+<td>x beside a stain</td>
+<td>Removes the stain. Hover text: "Remove stain".</td>
+</tr>
+<tr>
+<td>Add margin / Add ink application</td>
+<td>Records a margin, or a further ink on an existing margin. The margin form starts with a list "Attach to: specimen" or "Attach to: block …" (for example "Attach to: block A1"), then boxes prompting "Margin name (e.g. Lateral, Deep)", "Orientation (optional)" and "Laterality (optional)", and an ink list that starts at "Select ink color".</td>
+</tr>
+<tr>
+<td>Audit Trail</td>
+<td>Opens or closes the list of overrides for the specimen.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grossing completed (with a tick)</td>
+<td>Grossing has been completed for this case.</td>
+</tr>
+<tr>
+<td>This case is past grossing.</td>
+<td>The case has moved beyond the stage where grossing can be completed.</td>
+</tr>
+<tr>
+<td>Highlighted block row</td>
+<td>The block was changed from the protocol.</td>
+</tr>
+<tr>
+<td>Auto-generated / User-added</td>
+<td>Whether a stain came from the protocol or you added it.</td>
+</tr>
+<tr>
+<td>Examined / Pending</td>
+<td>Whether a margin has been examined.</td>
+</tr>
+<tr>
+<td>Deficiency raised</td>
+<td>A fixation deficiency is already open for the specimen.</td>
+</tr>
+<tr>
+<td>Note under the Complete grossing button</td>
+<td>"Still required" lists what is missing and where, for example "Piece count (A2)".</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>These work on the Grossing screen. Each does what its button does, with the same checks.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+Shift+F9</td>
+<td>Complete grossing. You can also say "complete grossing", "finish grossing" or "grossing done".</td>
+</tr>
+<tr>
+<td>Alt+Shift+F10</td>
+<td>Confirm completing without a protocol, while that window is open.</td>
+</tr>
+<tr>
+<td>Alt+Shift+F11</td>
+<td>Cancel that window.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the case on the report screen, select the Material tab, and select <strong>Open Grossing Screen</strong>. The Grossing screen opens with one section per specimen.</li>
+<li>Read the protocol line for the first specimen. If it says "No protocol assigned", see Exception handling.</li>
+<li>Select <strong>Record now</strong> next to "Fixation ended" if the time the tissue left fixative is not yet recorded. The current time appears in its place.</li>
+<li>Select <strong>Confirm adequate ratio</strong> once you have judged the fixative-to-tissue ratio. Your name and the time appear.</li>
+<li>In the block table, check each block. Type the number of pieces in <strong>Piece Count</strong> and move to the next field. The change is saved and, if it differs from the protocol, listed in the audit trail.</li>
+<li>To add a stain to a block, select <strong>+ Add Stain</strong>, choose the stain and select <strong>Add</strong>. The stain appears tagged User-added.</li>
+<li>To add another block, select <strong>+ Add Block</strong> with the pathway name. The new block appears with its protocol stains.</li>
+<li>Record the margins: select <strong>+ Add margin</strong>, choose whether it belongs to the specimen or a block, enter the margin name (for example Lateral, Deep), optionally the orientation and laterality, choose the ink colour, tick <strong>Mark this margin examined</strong> if it applies, and select <strong>Add</strong>. The margin appears with its ink history.</li>
+<li>Repeat for each specimen.</li>
+<li>When no required item is missing, select <strong>Complete grossing</strong>. The bar changes to "Grossing completed", and the case is moved to the pathologist pool your laboratory has set up for it. A line reads "Routed to (pool name) pool." when that happens.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To add a further colour to a margin already recorded, select <strong>+ Add ink application</strong> under that margin, choose the colour and select <strong>Save</strong>. The earlier inks stay in the history.</li>
+<li>Use Alt+Shift+F9 or say "complete grossing" instead of selecting the button.</li>
+<li>To see what has been changed from the protocol on a specimen, open its <strong>Audit Trail</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If a specimen has no protocol, you cannot add blocks here. If your laboratory requires a protocol (the default), <strong>Complete grossing</strong> stays greyed out and the note names the specimen. Attach a protocol or grossing template on the report screen.</li>
+<li>If your laboratory has switched the protocol rule off, a note says the specimen will be routed for secondary review. Selecting <strong>Complete grossing</strong> opens "Complete grossing without a protocol?". Select <strong>Complete and route for review</strong> (or press Alt+Shift+F10) to continue, or <strong>Cancel</strong> (Alt+Shift+F11). A "Grossed without protocol" deficiency is raised for each specimen.</li>
+<li>If you remove a stain that came from the protocol, a window "Remove Protocol Default Stain?" asks you to confirm and the removal is recorded as an override. Removing a stain you added yourself needs no confirmation.</li>
+<li>If fixation details are missing and you cannot supply them, select <strong>Raise deficiency</strong>. It changes to "Deficiency raised".</li>
+<li>If a margin issue is shown under a margin ("Not yet examined", "No ink applied", or an ink colour that is not in the dictionary), fix it before completing. Depending on your laboratory's inking mode, an unresolved issue either opens a window headed "Unresolved margin-inking issue(s)" that lists the issues and lets you continue with <strong>Proceed with Advisory Note</strong>, or stops completion with "Grossing cannot be completed". There is no bypass on this screen.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If <strong>Remove Block</strong> is greyed out, the block has already moved on from Pending. Hold the pointer over the button to see its status. It cannot be removed here.</li>
+<li>If "This block can't be removed." appears, reload the case and try again.</li>
+<li>If the message "This case was updated elsewhere. Reload to see the latest version." appears, select <strong>Reload</strong>. Your earlier changes were saved; redo the last one.</li>
+<li>If a margin will not save, read the message under the form (for example, someone else changed the case, or you lack permission), reload and try again.</li>
+<li>If "Grossing couldn't be completed. Try again." appears, select <strong>Complete grossing</strong> again.</li>
+<li>If the Complete grossing button is gone and the screen says "This case is past grossing.", nothing more is needed here.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Completing grossing is recorded</p>
+<p>Completing grossing moves the case on and is written to the audit trail. There is no button to undo it on this screen. Check piece counts and margins first.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Typing a piece count and not leaving the field. The count is saved when you move out of the box.</li>
+<li>Adding a stain to the wrong block. Remove it with the x beside it, then add it to the right one.</li>
+<li>Removing a protocol stain without meaning to. The confirmation window and the audit trail exist for this; read the window.</li>
+<li>Looking here for the cassette labels or the triage checklist. They are on the report screen's Material tab.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use Alt+Shift+F9 when your hands are busy; the button's checks still apply.</li>
+<li>Look at "Still required" under the button to see exactly which block or specimen needs attention, instead of searching the table.</li>
+<li>Use <strong>Record now</strong> at the bench the moment the tissue leaves fixative so the time is accurate.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Gross one specimen completely, then the next, so the "Still required" list stays short.</li>
+<li>Record margins and ink while the specimen is in front of you. The ink dictionary is set by your laboratory.</li>
+<li>Complete grossing before the tissue goes to processing so that it can be routed.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">What is limited today</p>
+<p>Each block has a piece count and a piece description, and the case's matrix blocks (one cassette shared by several specimens) are listed under <strong>Matrix blocks</strong> with the same two fields. Your laboratory chooses whether Complete grossing requires them. The Next Block and Previous Block keys work on the report screen, not here. Pool routing and the demonstration protocols use sample data in this build.</p>
+</div>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: the case and its specimens are logged and given grossing protocols.</li>
+<li><a href="/help/worklist">Worklist</a>: find the case waiting for grossing.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: the Material tab, cassette release and printing, and the gross description.</li>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>: processing, embedding and cutting stations that receive the blocks.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Complete grossing is greyed out</td>
+<td>Required items are missing (see the note below the button), or your role may not complete grossing.</td>
+</tr>
+<tr>
+<td>No Add Block button</td>
+<td>The specimen has no protocol, or its protocol has no block pathway.</td>
+</tr>
+<tr>
+<td>Remove Block is greyed out</td>
+<td>The block is no longer Pending.</td>
+</tr>
+<tr>
+<td>Stain list is short</td>
+<td>Only the stains your protocol allows for that block are offered.</td>
+</tr>
+<tr>
+<td>"Grossing can only be completed while the case is waiting for it."</td>
+<td>The case has already moved past grossing.</td>
+</tr>
+<tr>
+<td>"Grossing completed" shown but the case is not in a pool</td>
+<td>No pool rule applied, or routing did not run. Ask your manager.</td>
+</tr>
+<tr>
+<td>A line says a specimen could not be routed for secondary review</td>
+<td>The deficiency could not be raised. Raise one by hand.</td>
+</tr>
+<tr>
+<td>Margin issue prevents completion</td>
+<td>An unresolved inking issue under your laboratory's inking rules.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the note under <strong>Complete grossing</strong> and fix each item named.</li>
+<li>Reload the page to get the latest version of the case.</li>
+<li>Open the case on the report screen and check the specimen's protocol and the Material tab.</li>
+<li>Ask your laboratory manager to check your role if a button stays greyed out.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a block cannot be saved, the case does not reach Gross Complete after every item is complete, or a margin ink colour is missing from the list. Have the case number and the time of the problem ready.</p>

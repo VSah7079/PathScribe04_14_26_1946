@@ -61,3 +61,16 @@ describe('resolveIntraopDiagnosisText (PS-318 merged intraoperative entry)', () 
     expect(resolveIntraopDiagnosisText([{ status: 'merged', mergedIntoCaseId: 'C2', specimens: [{ specimenLabel: 'A' }] }] as any[], 'C2')).toBeNull();
   });
 });
+
+describe('resolveIntraopDiagnosisText with the findings carried onto the case (Batch 655)', () => {
+  const carried = [{ specimenLabel: 'A', frozenSectionDiagnosis: 'Benign' }, { specimenLabel: 'B', frozenSectionDiagnosis: undefined }, { specimenLabel: 'C', frozenSectionDiagnosis: 'Carcinoma, defer to permanents' }];
+  it('shows the carried copy when the session is not available, one line per frozen specimen with a diagnosis', () => {
+    expect(resolveIntraopDiagnosisText([], 'C1', carried)).toBe('A: Benign\nC: Carcinoma, defer to permanents');
+  });
+  it('the merged session still wins when it is there; nothing at all gives null', () => {
+    const entries = [{ status: 'merged' as const, mergedIntoCaseId: 'C1', specimens: [{ specimenLabel: 'A', frozenSectionDiagnosis: 'From session' }] }] as never;
+    expect(resolveIntraopDiagnosisText(entries, 'C1', carried)).toBe('A: From session');
+    expect(resolveIntraopDiagnosisText([], 'C1', [])).toBeNull();
+    expect(resolveIntraopDiagnosisText([], 'C1')).toBeNull();
+  });
+});

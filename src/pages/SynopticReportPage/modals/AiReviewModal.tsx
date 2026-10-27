@@ -9,6 +9,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 export interface ReviewField {
   fieldId:      string;
@@ -145,9 +146,11 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
           <div className="ps-ai-review-card">
             <div className="ps-ai-review-card-header">
               <span className="ps-ai-review-card-eyebrow">✦ {t('aiContributionTab.overrides.aiCol')}</span>
-              <span className={`ps-ai-review-confidence ps-ai-review-confidence--${tier}`}>
-                {t('aiReviewModal.confidencePercent', { percent: current.confidence })}
-              </span>
+              {showsConfidence() && (
+                <span className={`ps-ai-review-confidence ps-ai-review-confidence--${tier}`}>
+                  {t('aiReviewModal.confidencePercent', { percent: current.confidence })}
+                </span>
+              )}
             </div>
             <div className="ps-ai-review-card-value">{displayValue || '—'}</div>
             <div className="ps-ai-review-card-source">{current.source}</div>

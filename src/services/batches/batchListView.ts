@@ -54,3 +54,19 @@ export function reconciliationGate(batch: Pick<Batch, 'status' | 'items' | 'unex
     : null;
   return { missingItems, unexpectedCount, coldChainPending, blocker, canComplete: batch.status === 'reconciling' && blocker === null };
 }
+
+/** What a scan during reconciliation did (decided from the batch before and after, not from the scan alone). */
+export type ReconciliationScanOutcome = 'matched' | 'already-matched' | 'unexpected';
+
+/**
+ * Batch 669 (finding batch-1): a rescan of an item that is already Matched changes nothing, so it must not look like an
+ * Unexpected scan. Unexpected only when the Unexpected list grew; Matched only when an item newly became Matched.
+ */
+export function reconciliationScanOutcome(
+  before: Pick<Batch, 'items' | 'unexpectedScans'>,
+  after: Pick<Batch, 'items' | 'unexpectedScans'>,
+): { outcome: ReconciliationScanOutcome; newlyMatchedDisplayId: string | null } {
+  if (after.unexpectedScans.length > before.unexpectedScans.length) return { outcome: 'unexpected', newlyMatchedDisplayId: null };
+  const newly = after.items.find(i => i.reconciliationStatus === 'matched' && !before.items.some(b => b.id === i.id && b.reconciliationStatus === 'matched'));
+  return newly ? { outcome: 'matched', newlyMatchedDisplayId: newly.displayId } : { outcome: 'already-matched', newlyMatchedDisplayId: null };
+}

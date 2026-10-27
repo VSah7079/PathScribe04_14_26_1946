@@ -11,10 +11,10 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import '../../pathscribe.css';
-import { screenAccessService, type ScreenId, type HomeTileId } from '@/services';
+import { screenAccessService, type ScreenId, type HomeTileId, type SubScreenId } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const ScreenGate: React.FC<{ screen: ScreenId | HomeTileId; children: React.ReactNode }> = ({ screen, children }) => {
+export const ScreenGate: React.FC<{ screen: ScreenId | HomeTileId | SubScreenId; children: React.ReactNode }> = ({ screen, children }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();

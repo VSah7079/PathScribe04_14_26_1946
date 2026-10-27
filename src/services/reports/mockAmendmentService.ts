@@ -33,6 +33,8 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { AmendmentRecord } from '@/types/reports/AmendmentRecord';
 import type { IAmendmentService } from './IAmendmentService';
 import { dataStorage } from '../browserData/dataStorage';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { enforceRevisionRelease, revisionReleaseRefusal } from './revisionReleaseCapability';
 
 // Phase 3 helper — reused wherever the "here's what changed since the
 // last signed-out version" confirmation is built (SynopticReportPage's
@@ -372,6 +374,10 @@ export const mockAmendmentService: IAmendmentService = {
     const idx = records.findIndex(r => r.id === id);
     if (idx === -1) return err(`Amendment/addendum ${id} not found`);
     const record = records[idx];
+    // Batch 649: the capability for this kind of revision (surgical:amendment|correction|addendum:release), audited.
+    if (!(await enforceRevisionRelease(record.type, record.caseId, (c, ctx) => authorizationService.enforce(c, ctx)))) {
+      return err(revisionReleaseRefusal(record.type));
+    }
 
     if (!fields.body.trim()) {
       return err(record.type === 'addendum' ? 'Addendum body cannot be empty.' : record.type === 'correction' ? 'Correction body cannot be empty.' : 'Amendment body cannot be empty.');

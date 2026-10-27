@@ -25,7 +25,7 @@ import type { ServiceResult } from '../types';
 import type { NewAuditLog } from '../auditlog/IAuditService';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import { CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID } from '../quality/capaRecommendationRules';
-import type { ClinicalMismatchDiscipline, ClinicalMismatchKind } from './detectClinicalPathologicMismatch';
+import type { ClinicalMismatchDiscipline, ClinicalMismatchEvidence, ClinicalMismatchKind } from './detectClinicalPathologicMismatch';
 
 export type ClinicalMismatchResolution = 'RESOLVED' | 'UNRESOLVED' | 'DEFERRED' | 'LOGGED';
 /** What a person can choose; LOGGED is written by the sign-out itself. */
@@ -47,6 +47,8 @@ export interface ClinicalMismatchDecisionInput {
   risk?: ClinicalMismatchRiskLevel;
   /** Batch 530: the rule that decided the risk. */
   ruleId?: string;
+  /** Batch 651: the version of the approved AI instructions the suggestion was made with (0: PathScribe's own). Absent for a rule-based suggestion. */
+  instructionVersion?: number;
   quickReason?: ClinicalMismatchQuickReason;
   note?: string;
   /** Batch 523: where the check ran (surgical when absent). */
@@ -57,6 +59,8 @@ export interface ClinicalMismatchDecisionInput {
   reviewOf?: string;
   /** Batch 531: the fingerprint of the text the decision was made on (a changed text is checked again). */
   inputFingerprint?: string;
+  /** Batch 685: the two quotes the flag showed (kept with the QA record so a reviewer sees the same words). */
+  evidence?: ClinicalMismatchEvidence;
 }
 
 export type ClinicalMismatchProblem = 'DECISION_REQUIRED' | 'DEFER_HIGH_RISK' | 'UNKNOWN_REASON';
@@ -71,6 +75,21 @@ export function clinicalMismatchProblem(
   if (resolution === 'DEFERRED' && risk === 'high') return 'DEFER_HIGH_RISK';
   if (quickReason && !CLINICAL_MISMATCH_QUICK_REASONS.includes(quickReason as ClinicalMismatchQuickReason)) return 'UNKNOWN_REASON';
   return null;
+}
+
+/** Batch 685: the evidence quotes as QA field values (the words, and whether they were found in the case text). Pure. */
+export function evidenceFieldValues(evidence: ClinicalMismatchEvidence | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (evidence?.clinical) { out.evidenceClinical = evidence.clinical.text; out.evidenceClinicalFound = evidence.clinical.found ? 'yes' : 'no'; }
+  if (evidence?.pathology) { out.evidencePathology = evidence.pathology.text; out.evidencePathologyFound = evidence.pathology.found ? 'yes' : 'no'; }
+  return out;
+}
+
+/** Batch 685: the evidence quotes back out of a QA record's field values; undefined for a record made before quotes were kept. Pure. */
+export function evidenceFromFieldValues(fv: Record<string, unknown> | undefined): ClinicalMismatchEvidence | undefined {
+  const one = (text: unknown, found: unknown) => (typeof text === 'string' && text ? { text, found: found === 'yes' } : undefined);
+  const clinical = one(fv?.evidenceClinical, fv?.evidenceClinicalFound), pathology = one(fv?.evidencePathology, fv?.evidencePathologyFound);
+  return clinical || pathology ? { ...(clinical ? { clinical } : {}), ...(pathology ? { pathology } : {}) } : undefined;
 }
 
 /** The QA record the decision writes (pure). */
@@ -92,11 +111,13 @@ export function qaRecordForMismatchDecision(
       ...(input.confidence !== undefined ? { suggestionConfidence: input.confidence } : {}),
       ...(input.risk ? { risk: input.risk } : {}),
       ...(input.ruleId ? { ruleId: input.ruleId } : {}),
+      ...(input.instructionVersion !== undefined ? { instructionVersion: input.instructionVersion } : {}),
       ...(input.quickReason ? { quickReason: input.quickReason } : {}),
       ...(input.discipline ? { discipline: input.discipline } : {}),
       ...(input.specimenId ? { specimenId: input.specimenId } : {}),
       ...(input.reviewOf ? { reviewOf: input.reviewOf } : {}),
       ...(input.inputFingerprint ? { inputFingerprint: input.inputFingerprint } : {}),
+      ...evidenceFieldValues(input.evidence),
     },
     // The suggestion flagged a discrepancy; only a decision concludes it.
     outcome: 'discordant',
@@ -124,7 +145,7 @@ const RESOLUTION_TEXT: Record<ClinicalMismatchResolution, string> = {
 /** The audit text (literal English). */
 export function clinicalMismatchAuditDetail(input: ClinicalMismatchDecisionInput): string {
   const where = input.discipline && input.discipline !== 'surgical' ? ` [${input.discipline}${input.specimenId ? `, specimen ${input.specimenId}` : ''}]` : '';
-  const how = `${input.kind}, suggested by ${input.source}${input.confidence !== undefined ? ` at ${input.confidence}%` : ''}${input.risk ? `, ${input.risk} risk` : ''}`;
+  const how = `${input.kind}, suggested by ${input.source}${input.confidence !== undefined ? ` at ${input.confidence}%` : ''}${input.risk ? `, ${input.risk} risk` : ''}${input.instructionVersion !== undefined ? `, AI instructions version ${input.instructionVersion}` : ''}`;
   const reason = input.quickReason ? ` Reason: ${input.quickReason}.` : '';
   const review = input.reviewOf ? ` Secondary review of ${input.reviewOf}.` : '';
   return `Clinical-pathologic correlation${where} (${how}): ${RESOLUTION_TEXT[input.resolution]}.${reason}${review}${input.note?.trim() ? ` ${input.note.trim()}` : ''}`;

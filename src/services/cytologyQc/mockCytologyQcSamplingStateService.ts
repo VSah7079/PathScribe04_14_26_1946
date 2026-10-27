@@ -11,13 +11,11 @@
 
 import { storageGet, storageSet } from '../mockStorage';
 import type { QcSamplingState } from './resolveQcSamplingDecision';
+import type { ICytologyQcSamplingStateService } from './ICytologyQcSamplingStateService';
 
 const KEY = 'cytologyQcSamplingStates';
 
-export interface ICytologyQcSamplingStateService {
-  getAll(): Promise<Map<string, QcSamplingState>>;
-  saveAll(states: Map<string, QcSamplingState>): Promise<void>;
-}
+export type { ICytologyQcSamplingStateService };
 
 export const mockCytologyQcSamplingStateService: ICytologyQcSamplingStateService = {
   async getAll() {

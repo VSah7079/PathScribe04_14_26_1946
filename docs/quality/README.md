@@ -1,3 +1,19 @@
+**Batches 679 to 692:** `evidence/PathScribe-Batches679-692-xray-catchup.json` (catch-up; Batch 688 is the Readiness Matrix and has no test; Batches 677, 678 and 684 are documents only, so have no tests).
+
+**Batches 669j to 676:** `evidence/PathScribe-Batches669-676-xray-catchup.json` (catch-up; no Xray file had been made since Batch 668). Full run after 675: 15,298 passed, 33 skipped; only `firestore.rules.test.ts` fails (needs the emulator).
+
+**Batch 666:** `TRANSLATION_REVIEW.md` has a Batches 650 to 665 section (112 new and 17 reworded strings) and describes the five review workbooks (French, German, Dutch, Korean, Spanish) rebuilt from 20,166 keys; `evidence/PathScribe-Batch666-xray.json`.
+
+**Batch 667:** the User Guide covers every control on the user-facing screens, checked by `scripts/user-guide/coverage.py` and a test; see `docs/user-guide/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+## Batches 650, 651 and 652
+
+`evidence/PathScribe-Batch650-xray.json` (voice and hotkeys), `-Batch651-xray.json` (AI correctness and audit entries), `-Batch652-xray.json` (UI and workflow, specimen pipeline, documentation consistency). Translation rows: `TRANSLATION_REVIEW.md`. The Jira Test keys in the files are placeholders (PS-TBD-<batch>-<n>) to replace before import.
+
+## Batch 649
+
+`evidence/PathScribe-Batch649-xray.json`: sign-out gates, permissions, privacy redaction, scanner keys, signature link, release order, registry timing. Translation rows: `TRANSLATION_REVIEW.md`, "Waiting for review: Batch 649". The Jira Test keys in the file are placeholders to replace before import.
+
 ## Batch 602
 
 `evidence/PathScribe-Batch602-xray.json`: screen-wins hotkeys and voice, Alt+J Go to prefix, six hotkey remaps, nine duplicate voice phrases removed. *(Jira Test PS-765.)* Not run: browser check on real keyboards (Mac Option, AltGr, AZERTY); native review of fr/de/nl/ko text.
@@ -444,3 +460,5 @@ Full run: 9,556 passed and 33 skipped, in 1,129 test files. The only failing fil
 | PS-539 phase 2a (deployment readiness review) | PS-585 | PS-586 |
 
 `evidence/PathScribe-Batch537-xray.json`.
+
+- Batch 684: native-language review Procedure in `HANDOVER_REVIEW_TESTS.md`; Batches 679 to 683 strings in `TRANSLATION_REVIEW.md`.

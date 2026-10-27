@@ -13,6 +13,13 @@
 import type { WsiScanSlide } from './IWsiScanBatchService';
 import type { AiScreeningResult } from '@/types/digitalPathology/AiScreeningResult';
 
+// Batch 624: wording PathScribe builds itself (the readiness line, "AI-Flagged Finding(s)", "Review
+// Recommended") is also returned as a translation key plus values, which the screen renders with t().
+// Wording that comes from the scanner or the AI vendor ("Out-of-focus", "Malignancy Detected", biomarker
+// lines) is NEVER translated, on purpose (Pete, Oct 19, 2026): it did not originate in PathScribe, and a
+// mistranslated clinical finding is a risk. It is shown exactly as received, and only inserted as a value.
+export interface DpLabel { key: string; params?: Record<string, string | number> }
+
 export type DigitalReadinessLevel = 'ready' | 'partial' | 'error';
 
 export interface DigitalReadinessBadge {
@@ -21,6 +28,8 @@ export interface DigitalReadinessBadge {
    *  "2/3 Error (Focus Fail)" — matches the real spec's own worklist
    *  summary format. */
   summaryText: string;
+  /** Batch 624: the same line as a translatable label (`reason` inside it is the scanner's own wording). */
+  summaryLabel: DpLabel;
 }
 
 /** Real, per direct guidance's own confirmed spec: green requires
@@ -41,13 +50,19 @@ export function resolveDigitalReadinessBadge(slides: WsiScanSlide[] | undefined)
 
   if (failed.length > 0) {
     const reason = failed.find(s => s.failureReason)?.failureReason;
-    return { level: 'error', summaryText: `${readyCount}/${total} Error${reason ? ` (${reason})` : ''}` };
+    return {
+      level: 'error', summaryText: `${readyCount}/${total} Error${reason ? ` (${reason})` : ''}`,
+      summaryLabel: reason ? { key: 'worklistDp.readiness.errorReason', params: { ready: readyCount, total, reason } } : { key: 'worklistDp.readiness.error', params: { ready: readyCount, total } },
+    };
   }
   if (readyCount === total) {
-    return { level: 'ready', summaryText: `${readyCount}/${total} Ready (QC Passed)` };
+    return { level: 'ready', summaryText: `${readyCount}/${total} Ready (QC Passed)`, summaryLabel: { key: 'worklistDp.readiness.ready', params: { ready: readyCount, total } } };
   }
   const scanning = slides.filter(s => s.scanStatus === 'scanning').length;
-  return { level: 'partial', summaryText: `${readyCount}/${total} Partial${scanning ? ` (${scanning} Scanning)` : ''}` };
+  return {
+    level: 'partial', summaryText: `${readyCount}/${total} Partial${scanning ? ` (${scanning} Scanning)` : ''}`,
+    summaryLabel: scanning ? { key: 'worklistDp.readiness.partialScanning', params: { ready: readyCount, total, scanning } } : { key: 'worklistDp.readiness.partial', params: { ready: readyCount, total } },
+  };
 }
 
 export type DpTriageLevel = 'high_risk' | 'equivocal' | 'unremarkable';
@@ -58,6 +73,8 @@ export interface DpTriageBadge {
    *  "Pre-screened Unremarkable" — the one, real headline label a
    *  worklist row shows. */
   primaryText: string;
+  /** Batch 624: set only when PathScribe wrote the wording; absent when it is the vendor's own (shown as received). */
+  primaryLabel?: DpLabel;
   /** Real, e.g. "Ki-67: 18% | Gleason: 4+3 (Est)" — undefined for a
    *  real vendor that reports no real, quantitative biomarkers. */
   biomarkerSummary?: string;
@@ -88,6 +105,7 @@ export function resolveDpTriageBadge(result: AiScreeningResult | undefined): DpT
     return {
       level: levelMap[triage.triageLevel],
       primaryText: triage.primaryFinding ?? result.findings[0]?.label ?? 'AI Result Available',
+      primaryLabel: triage.primaryFinding ?? result.findings[0]?.label ? undefined : { key: 'worklistDp.triage.resultAvailable' },
       biomarkerSummary,
     };
   }
@@ -95,6 +113,7 @@ export function resolveDpTriageBadge(result: AiScreeningResult | undefined): DpT
     return {
       level: triage.reviewRecommended ? 'equivocal' : 'unremarkable',
       primaryText: triage.reviewRecommended ? 'Review Recommended' : 'No Further Review',
+      primaryLabel: { key: triage.reviewRecommended ? 'worklistDp.triage.reviewRecommended' : 'worklistDp.triage.noFurtherReview' },
       biomarkerSummary,
     };
   }
@@ -102,8 +121,13 @@ export function resolveDpTriageBadge(result: AiScreeningResult | undefined): DpT
     return {
       level: 'equivocal',
       primaryText: `${result.findings.length} AI-Flagged Finding${result.findings.length === 1 ? '' : 's'}`,
+      primaryLabel: { key: 'worklistDp.triage.flaggedFinding', params: { count: result.findings.length } },
       biomarkerSummary,
     };
   }
-  return { level: 'unremarkable', primaryText: 'Pre-screened Unremarkable', biomarkerSummary };
+  return { level: 'unremarkable', primaryText: 'Pre-screened Unremarkable', primaryLabel: { key: 'worklistDp.triage.preScreenedUnremarkable' }, biomarkerSummary };
 }
+
+/** The line to show: PathScribe's own wording translated, the vendor's wording as received. */
+export const dpLabelText = (label: DpLabel | undefined, received: string, t: (key: string, params?: Record<string, string | number>) => string): string =>
+  label ? t(label.key, label.params) : received;

@@ -1,3 +1,25 @@
+**Batch 698:** `developer/HANDOVER_FIRST_RELEASE.md`, the handover note for the development team: what is finished, what remains for a code-complete first release (front end, server, decisions, outside parties, process), and how to check the work. The Batch 697 sign-ins for the technical writers (Helen Schollars, Shelly Krill) are in `product/DEMO_GUIDE.md`.
+
+**Batch 678:** `compliance-guide/` gains the three-layer Readiness Matrix (`readiness/requirements.json`, generated workbook) and `IMPLEMENTATION_PLAN.md`; the Batch 677 tracker is replaced.
+
+**Batch 676:** `compliance-guide/`, the Regulatory Compliance Guide (English; eight chapters and open questions), beside the User Guide and Administrator Guide.
+
+**Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; see `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 666:** `user-guide/` has 61 articles and `route-exemptions.json`; `admin-guide/` is updated to Batch 665 in six languages; `product/PHRASE_REVIEW_LIST.md` and `quality/TRANSLATION_REVIEW.md` are regenerated and extended.
+
+**Batch 667:** the User Guide covers every control on the user-facing screens, checked by `scripts/user-guide/coverage.py` and a test; see `docs/user-guide/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 650:** `product/KNOWN_GAPS.md` lists the registered voice and key commands with no screen handler.
+
+**Batch 649:** `product/` guides updated (Guide Updates, Feature Overview, Capabilities now 338, Known Gaps); `architecture/AUTHORIZATION_API.md` lists the 17 new capabilities; `quality/` has the Batch 649 Xray file and translation-review rows.
+
+**Batch 648:** the product guides now cover Lockbox Drop-Off; the Admin Guide's Lockbox section notes the demo seed and Demo Reset in all six languages.
+
+**Batch 647:** `admin-guide/` now holds five translations (`src/<lang>/`, rules in `TRANSLATION.md`), the full set of screenshots, and a language selector in both built editions.
+
+**Batch 646:** `admin-guide/` is the Administrator Guide: chapters in Markdown, real screen captures, a builder that checks every link and the setup order, and two built editions (customer, internal). The customer edition is published to `public/help/admin-guide/` for the app's Help buttons.
+
 ## Batch 617 (part R) — one route style for every server version of a service (PS-488 dev notes, Pete)
 
 - **One route style.** Every server (HTTP) version now uses `/api/<area>/<service>/<method-kebab>`; a read whose arguments are all plain values is `GET` (arguments in the query string), everything else is `POST`; `PUT`, `PATCH` and `DELETE` are no longer used and no id or text is in the path. About 85 services written as REST resources were converted (code, fake-fetch tests, contract docs); the earlier-to-current path of every call is in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
@@ -261,6 +283,7 @@ Phase 2d item 2: the connection banner and the waiting states. See `architecture
 ## Batch 583 and 584
 
 - `architecture/TEMPLATE_NOTIFICATIONS_API.md` (new): the server contract for template lifecycle e-mails (event in; recipients, language and sending on the server), with the English wording to start from.
+- `architecture/SERVERLESS_FRONTEND_AUDIT.md`: the Oct 21 audit of the front end and all READMEs against the serverless, event-driven direction (CLAUDE.md rule 11), with the four open decisions.
 - `architecture/AUTHENTICATION_OIDC.md`: the Oct 15 decisions (server-held tokens, user sync now, group mapping later with its rules). `architecture/LIVE_UPDATES_SIGNALR.md`: the deployment matrix (Azure SignalR Service for shared SaaS, Redis backplane for private cloud).
 - `quality/PLAYWRIGHT_REVIEW_GUIDE.md`: the ticket table now lists 34 tickets, and what a "known bug" test is.
 - `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `quality/README.md`: Batches 583 to 588.
@@ -268,3 +291,31 @@ Phase 2d item 2: the connection banner and the waiting states. See `architecture
 ## Batch 581 and 582
 
 - `quality/PLAYWRIGHT_REVIEW_GUIDE.md` (new): running the review tests, step by step, on Windows.
+
+## Batch 641
+
+Batch 641 (Oct 20, 2026): recall documentation corrected (no sign-off needed for windows or wording; codes belong to the interface engine); PS-539 readiness status refreshed; recall card loading fix.
+
+## Batch 642
+
+Batch 642 (Oct 20, 2026): sign-out authentication policy. An administrator sets, in Session Security, whether signing a case out asks for a password every time (default) or once per session, with an optional second factor, an enterprise default, per-performing-facility overrides and a lock; the Sign Out button shows "(Password Required)" when a password is needed; every policy change, authentication, in-session sign-out and expiry is audited with full context. Remote sign-out limits and workstation lock need the API server (phase 2e). See `docs/architecture/SIGN_OUT_AUTHENTICATION.md`.
+
+## Batch 643
+
+Batch 643 (Oct 20, 2026): `docs/product/GUIDE_UPDATES.md` is now written in four voices (practitioner, system administrator, marketing, FormedrixAI and partners) for every entry.
+
+## Batch 644
+
+Batch 644 (Oct 20, 2026): `docs/product/FEATURE_OVERVIEW.md` now opens each of its 108 feature sections with the same four voices as `GUIDE_UPDATES.md` (practitioner, system administrator, marketing, FormedrixAI and partners); the original technical detail follows unchanged under "Technical detail". Drafted from the technical text; needs Pete's review.
+
+- Batch 679: `services/regulatoryProfile/` (documentation / clinical_support switch); `docs/product/REGULATORY_PROFILE.md`.
+
+- Batch 680: `services/aiGovernance/` (audit of AI accept/reject/code binding); sign-out gate for unaccepted AI narrative.
+
+- Batch 682: AI settings follow the regulatory profile (mismatch rules note; unused confidence checkbox removed).
+
+- Batch 683: the clinical-pathologic mismatch flag shows two checked source quotes.
+
+- Batch 684: native-language review Procedure in `HANDOVER_REVIEW_TESTS.md`; Batches 679 to 683 strings in `TRANSLATION_REVIEW.md`.
+
+- Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.

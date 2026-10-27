@@ -35,3 +35,11 @@ The first of three pieces of the margin-distance rule-condition spec: "Regex / T
 ## Batch 617 (part B): server version (PS-514)
 
 The margin extraction service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/EQUIPMENT_MIGRATION_API.md`.
+
+## Batch 669 — Resolve / Dismiss audited, rules re-run, history listed (findings ws-16, ws-17)
+
+- `reviewMarginException.ts` (+ test): `resolveMarginExceptionWithFollowUp` / `dismissMarginExceptionWithFollowUp`. After the service's own `case:margin-exception:resolve` check passes, each writes one audit entry (`Margin exception resolved` / `Margin exception dismissed`: literal English; who, when, case, item id, field, the original reason in plain English, and the value or the dismiss reason; the typed text is never written), then runs `runMarginRuleEvaluation` again for the case so a recorded margin flags it at once. Neither a rule-check failure nor an audit failure undoes the decision; both are returned (`ruleCheck.status = 'failed'`, `auditWritten = false`) and the screen says so. Also here: `partitionMarginExceptions` (pending vs decided, newest decision first) and `marginOutcomeNotices` (the inline messages).
+- `defaultReviewMarginExceptionDeps.ts`: the real services behind it (same case facility and template-field lookups as the sign-out run).
+- `mockMarginExtractionService.extractAndStore` now leaves a field alone when a person already decided that exact text (Resolved or Dismissed). Without this, re-running the rules would have replaced the human-recorded number with nothing and reopened the item. Edited text is read afresh.
+- The API-server version (`httpMarginExtractionService`) is unchanged; the audit entry written here goes to the app's audit service in either case.
+- Still open (ruled out of scope): Resolve records an exact number only (no "less than" / "greater than"); the reason `empty` ("No answer given yet") is unreachable because an empty answer is skipped, not flagged. No undo (not required).

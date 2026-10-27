@@ -110,6 +110,13 @@ const SurgicalQaWorklistPage: React.FC = () => {
                 {d.confidence !== undefined && <span className="ps-qcqueue-badge-pill">{t('surgicalQaWorklist.mismatch.confidence', { confidence: d.confidence })}</span>}
                 <span className="ps-specreq-meta">{t('surgicalQaWorklist.mismatch.deferredBy', { name: d.deferredBy ?? '—', date: formatDateTime(d.deferredAt, i18n.language) })}</span>
               </div>
+              {d.evidence
+                ? (['clinical', 'pathology'] as const).map(side => d.evidence?.[side] && (
+                  <p key={side} className="ps-specreq-meta">
+                    {t(`clinicalMismatch.evidence.${side}`, { quote: d.evidence[side]!.text })}
+                    {!d.evidence[side]!.found && <> <span className="ps-syn-source-notfound">{t('clinicalMismatch.evidence.notFound')}</span></>}
+                  </p>))
+                : <p className="ps-specreq-meta">{t('surgicalQaWorklist.mismatch.noEvidence')}</p>}
               <div className="ps-qcqueue-row-actions">
                 <button className="ps-conf-btn-secondary" onClick={() => void openCasePage(d.caseId, 'report', { state: { returnTo: '/worklist?view=surgicalQa' } })}>
                   {t('surgicalQaWorklist.openCaseBtn')}

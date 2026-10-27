@@ -12,6 +12,21 @@ describe('controlRuleDraftProblem', () => {
   });
 });
 
+describe('Batch 669 (mol-14): controlRuleDraftProblem', () => {
+  const ntc = [{ sampleType: 'CONTROL_NTC' as const, positionMode: 'random' as const }];
+  it('refuses a rule with no controls', () => {
+    expect(controlRuleDraftProblem({ assayCode: 'a', requiredControls: [] })).toEqual({ code: 'controlsRequired' });
+  });
+  it('refuses an assay another rule already has (Edit passes the other rules), but not the rule\'s own', () => {
+    expect(controlRuleDraftProblem({ assayCode: 'a', requiredControls: ntc }, [{ assayCode: 'a' }])).toEqual({ code: 'duplicateAssay' });
+    expect(controlRuleDraftProblem({ assayCode: 'a', requiredControls: ntc }, [{ assayCode: 'b' }])).toBeNull();
+  });
+  it('needs a reason once one is asked for', () => {
+    expect(controlRuleDraftProblem({ assayCode: 'a', requiredControls: ntc, reason: '  ' })).toEqual({ code: 'reasonRequired' });
+    expect(controlRuleDraftProblem({ assayCode: 'a', requiredControls: ntc, reason: 'Kit changed' })).toBeNull();
+  });
+});
+
 describe('sampleRackSlotChoices', () => {
   it('every sample-rack slot on any analyser, plus ones the rule already names, sorted', () => {
     const decks = [

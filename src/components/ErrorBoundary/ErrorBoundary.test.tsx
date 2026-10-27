@@ -106,3 +106,22 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('errorBoundary.reference:ERR-TEST')).toBeTruthy();
   });
 });
+
+import { rememberPagePath, previousPagePath } from './ErrorBoundary';
+import { tabDataStorage } from '@/services/browserData/dataStorage';
+describe('previous page for the error screen (Batch 686)', () => {
+  beforeEach(() => tabDataStorage.clear());
+  it('remembers the page before the current one', () => {
+    expect(previousPagePath()).toBeNull();
+    rememberPagePath('/home'); rememberPagePath('/configuration'); rememberPagePath('/configuration');
+    expect(previousPagePath()).toBe('/home');
+  });
+  it('the recovery screen offers the previous page, else the worklist', () => {
+    rememberPagePath('/home'); rememberPagePath('/configuration');
+    render(<ErrorBoundary scope="route" name="route"><Bomb explode /></ErrorBoundary>);
+    expect(screen.getByText('errorBoundary.backToPrevious')).toBeTruthy();
+    cleanup(); tabDataStorage.clear();
+    render(<ErrorBoundary scope="route" name="route"><Bomb explode /></ErrorBoundary>);
+    expect(screen.getByText('errorBoundary.backToWorklist')).toBeTruthy();
+  });
+});

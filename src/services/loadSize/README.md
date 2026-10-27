@@ -9,15 +9,13 @@ Batch 505 (PS-475): what keeps PathScribe's first page load small.
   over the target (3 MB for Stage 1; PS-465 lowers it to 1 MB once the mock
   services leave the bundle).
 - **`loadSize.guard.test.ts`** catches the known regressions in a normal
-  test run: no static import of a locale file, the guide PDFs
-  (`utils/guideAssets`), `pdf-lib`, or the seed template JSON.
+  test run: no static import of a locale file, `pdf-lib`, or the seed template JSON (the guide-PDF check went with the PDFs, Batch 669c).
 
 What loads on demand, and where:
 
 | What | Size | Loaded by |
 |---|---|---|
 | Languages other than the person's | ~0.26 MB gzipped each | `i18n/config.ts` (`lazyLocales`, `loadLanguage`) |
-| User and admin guide PDFs | 5.5 MB raw | `hooks/useGuideAssets.ts`, when the About menu opens |
 | Seed synoptic templates | ~420 KB raw | `services/templates/templateService.ts` (`ensureSeedTemplate`) |
 | `pdf-lib` | ~170 KB gzipped | the three PDF post-processing services, when a PDF is built |
 

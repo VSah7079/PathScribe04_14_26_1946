@@ -1,0 +1,339 @@
+<h1 id="top">Rack</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> This screen, titled "Extraction Rack Loading" in its breadcrumb and headed by the rack's barcode, does two jobs. First it creates a new extraction rack. Second, for an existing rack, it lets you scan each specimen tube into a numbered position, give every tube its accession (the sample ID), and then place the finished rack on an instrument's deck, with a check that the deck slot is the right one.</p>
+<p><strong>Intended users.</strong> Molecular technologists preparing specimens for lysis and extraction.</p>
+<p><strong>Where it fits.</strong> It sits between accessioning and the plate. Open the rack from the <a href="/help/molecular/rack-board">Rack Board</a>. When the rack is on the instrument, build the plate and send the worklist in <a href="/help/molecular/batch">Batch</a>. Each tube you scan records a movement from the primary vial to the rack, with your name, the workstation and the time. That record appears later in the Trace of the run result.</p>
+<div class="admonition note">
+<p class="admonition-title">No tube can be removed here</p>
+<p>A position holds one tube at a time. The screen has no way to take a tube out or replace it once it is scanned in. Tubes that have no accession can be given one. If a tube was scanned into the wrong position, tell your laboratory manager before you place the rack; see Error recovery.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/molecular-rack-overview.png" alt="The extraction rack with numbered positions, one flagged for a missing sample ID, and the Place on instrument panel"><figcaption>The extraction rack with numbered positions, one flagged for a missing sample ID, and the Place on instrument panel</figcaption></figure>
+
+<p>There are two forms of the page. With the address ending <strong>/new</strong> it is the new rack form. With a rack's own number it is the rack itself.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>New Extraction Rack</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rack identifier / barcode *</td>
+<td>Scan or type the rack's own barcode (the box shows the example "e.g. RK-HPV-0417"). Leave it blank and PathScribe generates one (RACK-MOLE- and a number). Letters are made upper case. It must be 3 to 40 letters, digits, dashes or underscores, starting with a letter or digit.</td>
+</tr>
+<tr>
+<td>Capacity</td>
+<td>How many tube positions the rack has. It starts at 24; the box accepts 1 to 384.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The rack</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Heading</td>
+<td>The rack barcode.</td>
+</tr>
+<tr>
+<td>Position grid</td>
+<td>One button per position, numbered 1, 2, 3 and so on.</td>
+</tr>
+<tr>
+<td>Instruction line</td>
+<td>"Select an empty position, then scan a specimen vial to load it. Each load records the vial-to-rack movement with the current user and station. When every tube has its sample ID, place the rack on its instrument below."</td>
+</tr>
+<tr>
+<td>"Needs a sample ID: position 3, 4. Click a flagged position to record its accession."</td>
+<td>Shown when a tube has no accession. It lists the positions.</td>
+</tr>
+<tr>
+<td>Hover text on a position</td>
+<td>"Position 1 — empty"; "Position 1: SPEC-0001 (S26-1001)" for a tube with its accession; "Position 1: SPEC-0001, no accession yet" for a tube without one.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Loading a tube</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tube barcode</td>
+<td>The tube's barcode, when you type it.</td>
+</tr>
+<tr>
+<td>Accession number</td>
+<td>The accession the tube belongs to. Optional when you load, but the rack cannot be placed until every tube has one.</td>
+</tr>
+<tr>
+<td>Accession for position N (barcode) *</td>
+<td>Appears when you click a flagged position, to record the missing accession.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Place on instrument</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Instrument *</td>
+<td>The active analyser the rack is going on. The list shows the analysers of this workstation's laboratory first. Until you choose, it reads "Select an instrument".</td>
+</tr>
+<tr>
+<td>Assay</td>
+<td>The test the rack is for. Optional unless your laboratory requires it. Until you choose, the list reads "Select an assay". It narrows the slots to the ones the test's control rule allows. When the rule names slots, a line reads "This assay's sample rack goes in A1, A2."</td>
+</tr>
+<tr>
+<td>Deck slot</td>
+<td>The slot on the instrument. Until you choose, it reads "Select a slot". It lists only slots that take a sample rack and suit the test. Required only when the instrument has more than one such slot. Otherwise you see "This instrument has one slot for a sample rack, so no slot is needed." or "No deck layout is recorded for this instrument (Configuration → Equipment)."</td>
+</tr>
+<tr>
+<td>Placed line</td>
+<td>After placing: "Placed on PANTHER_01, slot A1, by Name, date."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>← Back to Racks</td>
+<td>Returns to the <a href="/help/molecular/rack-board">Rack Board</a>.</td>
+</tr>
+<tr>
+<td>Create Rack</td>
+<td>Creates the rack and opens it. Shows "Creating…" while it works.</td>
+</tr>
+<tr>
+<td>Scan into position N</td>
+<td>Waits for a barcode scan for the selected empty position. The button then reads "Waiting for scan into position N…".</td>
+</tr>
+<tr>
+<td>Scan not working? Enter specimen ID manually</td>
+<td>Opens boxes for the tube barcode and accession. <strong>Load</strong> puts the tube in the position (Enter does the same). <strong>Cancel</strong> closes the boxes.</td>
+</tr>
+<tr>
+<td>Save</td>
+<td>Records the accession for a flagged tube (Enter does the same).</td>
+</tr>
+<tr>
+<td>Scan deck position</td>
+<td>Waits for a scan of the label on the instrument's deck slot. The button reads "Waiting for the deck position's barcode…".</td>
+</tr>
+<tr>
+<td>Place rack</td>
+<td>Places the rack on the chosen instrument and slot. After a first placement the button reads <strong>Record new placement</strong>. Shows "Placing…" while it works.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain position</td>
+<td>Empty.</td>
+</tr>
+<tr>
+<td>Occupied position</td>
+<td>Holds a tube. Not selectable unless it is flagged.</td>
+</tr>
+<tr>
+<td>Flagged (unmapped) position</td>
+<td>Holds a tube but no accession. Click it to record one.</td>
+</tr>
+<tr>
+<td>Selected position</td>
+<td>The one that the next scan will fill.</td>
+</tr>
+<tr>
+<td>"Still required: …"</td>
+<td>The placement fields still missing: for example "Sample ID for every occupied position", "Instrument", "Deck slot". The rack must also hold at least one tube.</td>
+</tr>
+<tr>
+<td>Red warning under Place on instrument</td>
+<td>The slot or scan is wrong. See Exception handling.</td>
+</tr>
+<tr>
+<td>Green "Scanned: …, slot …." (for example "Scanned: PANTHER_01, slot A1.")</td>
+<td>A deck scan was accepted.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+Alt+Shift+P</td>
+<td>Place the rack. Works on a saved rack and acts exactly as <strong>Place rack</strong>, including all the checks.</td>
+</tr>
+</tbody>
+</table>
+<p>You can also say "place rack" or "rack on instrument".</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p>Creating a rack and loading it:</p>
+<ol>
+<li>On the <a href="/help/molecular/rack-board">Rack Board</a> select <strong>+ New Rack</strong>. You see "New Extraction Rack".</li>
+<li>In <strong>Rack identifier / barcode</strong>, scan or type the barcode on the physical rack. Leave it blank if the rack has none.</li>
+<li>Set <strong>Capacity</strong> to the number of tube positions on the rack.</li>
+<li>Select <strong>Create Rack</strong>. The rack opens, headed by its barcode, with an empty numbered grid.</li>
+<li>Click position 1. It is highlighted, and the button <strong>Scan into position 1</strong> appears.</li>
+<li>Select the button, then scan the first tube. You see the tube in position 1; position 2 is selected and the scan is armed again ("Waiting for scan into position 2…").</li>
+<li>Scan the rest of the tubes in order. If your scanner recognises the accession from the tube, it is stored with the tube.</li>
+<li>Look at the line "Needs a sample ID: …". For each flagged position, click it, type the accession in <strong>Accession for position N</strong>, and press <strong>Save</strong> or Enter. The position stops being flagged and the selection clears.</li>
+<li>When no position is flagged, scroll to <strong>Place on instrument</strong>.</li>
+<li>Choose the <strong>Instrument</strong>. Choose the <strong>Assay</strong> if your laboratory uses it. Choose the <strong>Deck slot</strong> if it is offered.</li>
+<li>Select <strong>Place rack</strong>. You see "Placed on PANTHER_01, slot A1, by Name, date." The Rack Board now shows the rack as on that instrument.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Typing a tube instead of scanning.</strong> Select the empty position, then <strong>Scan not working? Enter specimen ID manually</strong>. Type the <strong>Tube barcode</strong> and the <strong>Accession number</strong>, then select <strong>Load</strong> or press Enter. The boxes close and the next empty position is selected.</li>
+<li><strong>Placing by scanning the deck.</strong> Select <strong>Scan deck position</strong> and scan the label on the deck slot (it reads LOC-INST-, the instrument, and the slot). The instrument and slot fill in. You see "Scanned: PANTHER_01, slot A1." and the rack's place is recorded as a deck scan.</li>
+<li><strong>Placing by voice.</strong> Say "place rack" once the fields are complete.</li>
+<li><strong>Moving a rack.</strong> Change the instrument or slot and select <strong>Record new placement</strong>. The placed line is updated with who moved it and when.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>"A rack barcode is 3 to 40 letters, digits, dashes or underscores."</strong> The barcode you typed is not allowed. Remove spaces and symbols other than dash and underscore.</li>
+<li><strong>"Another rack already has this barcode."</strong> A rack with that barcode exists. Open it from the board instead.</li>
+<li><strong>"That position already holds a tube. A position holds one tube at a time."</strong> Someone filled it (possibly on another workstation). Select another position.</li>
+<li><strong>The deck scan is not a deck position.</strong> You see "That isn't a deck position barcode. Scan the label on the deck slot." You scanned something else, such as a tube. Scan the deck label.</li>
+<li><strong>Scan names a different instrument.</strong> "Wrong instrument: that position is on PANTHER_02, not PANTHER_01." Choose the right instrument or scan the right label.</li>
+<li><strong>Scan names an instrument that is not active.</strong> "The deck barcode names X, which isn't an active analyser."</li>
+<li><strong>Wrong slot.</strong> "Wrong slot: A5 on PANTHER_01 doesn't take a sample rack. Move the rack." or "Wrong slot: this assay's sample rack doesn't go in B1. Move the rack." or "PANTHER_01 has no slot Z9." The slot is shown in the list marked "(not valid here)". Place the physical rack in a valid slot and choose it. <strong>Place rack</strong> stays off while a slot problem is shown.</li>
+<li><strong>"No slot on this instrument suits this rack and assay."</strong> The deck layout or the test's control rule is wrong. Ask an administrator to check Configuration → System → Workstation &amp; Hardware → Equipment, and the <a href="/help/molecular/control-rules">Control Rules</a>.</li>
+<li><strong>"The rack can't be placed until every required field is filled in."</strong> Read the "Still required:" line.</li>
+<li><strong>"That instrument isn't an active analyser."</strong> The instrument was retired. Choose another.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Scan each tube against the tube in your hand</p>
+<p>A tube in the wrong position, or with the wrong accession, ties a result to the wrong patient. There is no way to unload a tube on this screen. Check the accession and the position before you press Load or Save.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>A tube has the wrong accession.</strong> Only a tube with no accession can be given one on this screen. If the accession is wrong, do not place the rack. Tell your laboratory manager, who can have a new rack created and the specimens rescanned.</li>
+<li><strong>A tube went into the wrong position.</strong> The same: the position cannot be cleared. Tell your laboratory manager before the rack goes on an instrument.</li>
+<li><strong>The rack was placed in the wrong slot.</strong> Choose the right slot and select <strong>Record new placement</strong>.</li>
+<li><strong>A scan did not register.</strong> The screen goes on waiting. Select the button again to turn the wait off and on, or use manual entry.</li>
+<li><strong>A message appears that you do not understand.</strong> Messages that PathScribe does not recognise read "Something went wrong. Try again." or "Unknown error loading specimen into rack." Try again once; if it repeats, report it.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li><strong>Scanning with no position selected.</strong> The scan has nowhere to go. Select a position first; after the first scan the next is selected for you.</li>
+<li><strong>Forgetting the accession.</strong> The tube loads but the rack will not place. Look for flagged positions.</li>
+<li><strong>Using a barcode with spaces or symbols.</strong> Only letters, digits, dashes and underscores.</li>
+<li><strong>Trying to place an empty rack.</strong> At least one tube is needed.</li>
+<li><strong>Choosing a slot by memory.</strong> Pick from the list or scan the deck label; the screen checks it.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>After the first scan the screen selects the next empty position and arms the scanner. Keep scanning; do not click.</li>
+<li>Scan the deck position instead of choosing the instrument and slot by hand.</li>
+<li>Use manual entry only when the barcode is damaged. Type the accession at the same time to avoid a flagged position.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Load racks in the order the specimens arrive and finish one rack before starting the next.</li>
+<li>Place the rack on the instrument before you send the plate's worklist (<a href="/help/molecular/batch">Batch</a>).</li>
+<li>Let your laboratory manager know about any tube that cannot be fixed on screen before the run is dispatched.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/molecular/rack-board">Rack Board</a>: the list from which you open or create a rack.</li>
+<li><a href="/help/accession">Accession</a>: where each specimen's accession number comes from.</li>
+<li><a href="/help/molecular/control-rules">Control Rules</a>: which deck slots a test's sample rack may use.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/molecular/batch">Batch</a>: the plate and its worklist.</li>
+<li><a href="/help/molecular">Molecular</a>: follow the run through its tabs.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Place rack is greyed out.</td>
+<td>A field is missing, a tube has no accession, the rack is empty, or a slot problem is showing.</td>
+</tr>
+<tr>
+<td>The Deck slot list is empty.</td>
+<td>The instrument has no deck layout, or none of its slots suit the rack or the test.</td>
+</tr>
+<tr>
+<td>The Deck slot list is greyed out.</td>
+<td>No instrument is chosen yet.</td>
+</tr>
+<tr>
+<td>I cannot click a position.</td>
+<td>It holds a tube that already has an accession.</td>
+</tr>
+<tr>
+<td>The scan fills nothing.</td>
+<td>No position is selected, or the scan button was not pressed.</td>
+</tr>
+<tr>
+<td>The Assay list does not offer my test.</td>
+<td>The test is not an active molecular test in the diagnostic catalog.</td>
+</tr>
+<tr>
+<td>Capacity will not go above 384.</td>
+<td>That is the limit.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the red or "Still required:" line near the Place button; it names the problem in words.</li>
+<li>Click a flagged position and record its accession.</li>
+<li>If the slot is not allowed, move the physical rack and choose or scan the valid slot.</li>
+<li>Reload the page and look at the rack again if it seems out of date.</li>
+<li>If the instrument or slot you need is not offered, ask an administrator to check the equipment register and the control rule.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a rack will not place although every field is filled and no warning shows, or when a scan keeps landing in the wrong position. Have the rack barcode, the position and the time ready.</p>

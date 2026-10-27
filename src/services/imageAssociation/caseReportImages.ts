@@ -34,7 +34,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService as auditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { isHttpsLink } from '../links/externalLink';
 import type { ImageAssociation } from '@/types/imageAssociation/ImageAssociation';
 import type { FetchAssetBytes } from './embedImageAssociationsIntoPdf';

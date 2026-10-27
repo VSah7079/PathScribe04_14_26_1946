@@ -3,15 +3,15 @@
 import type { RecordRegistryConsentDeps } from './recordPatientRegistryConsent';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { patientIndexService } from '../patients/patientServicesInstance';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 export const recordPatientRegistryConsentDeps: RecordRegistryConsentDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   getCase: caseId => caseRouter.getCase(caseId) as any,
   // PS-71 (Batch 458): forwards the version the service built the save from.
   updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
-  setInMpi: (patientId, consent) => mockPatientIndexService.setRegistryConsent(patientId, consent),
-  logAudit: event => mockAuditService.logEvent(event),
+  setInMpi: (patientId, consent) => patientIndexService.setRegistryConsent(patientId, consent),
+  logAudit: event => auditService.logEvent(event),
   now: () => new Date().toISOString(),
 };

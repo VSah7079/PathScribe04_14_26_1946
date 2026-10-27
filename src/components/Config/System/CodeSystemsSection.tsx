@@ -19,6 +19,7 @@ import { policyStatuses } from '@/services/coding/codeSystemPolicy';
 import type { Jurisdiction } from '@/types/systemConfig';
 import { formatDate } from '@/utils/formatDate';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import TerminologyLicencesCard from './TerminologyLicencesCard';
 import '@/pathscribe.css';
 
 const K = 'codeSystemsSection';
@@ -69,6 +70,7 @@ const CodeSystemsSection: React.FC = () => {
     setEditing(e => e && ({ ...e, rows: e.rows.map((r, n) => (n === i ? { ...r, ...patch } : r)) }));
 
   return (
+    <>
     <div className="ps-conf-card ps-conf-card--spaced">
       <div className="ps-conf-card-title">{t(`${K}.title`)}</div>
       <p className="ps-conf-card-description--tight">{t(`${K}.description`)}</p>
@@ -160,6 +162,8 @@ const CodeSystemsSection: React.FC = () => {
       {problem && <p className="ps-mmrules-problem" role="alert">{t(`${K}.problems.${problem}`, { defaultValue: t(`${K}.problems.error`) })}</p>}
       {saved && <div className="ps-concordance__saved">✓ {t(`${K}.saved`)}</div>}
     </div>
+    <TerminologyLicencesCard />
+    </>
   );
 };
 

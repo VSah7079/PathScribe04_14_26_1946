@@ -114,19 +114,19 @@ export async function deleteBlockInProcess(input: DeleteBlockInput, deps: Delete
 
 /** The delete against the app's own services. */
 export async function deleteBlockInProcessLive(input: DeleteBlockInput, save?: DeleteBlockDeps['save']): Promise<DeleteBlockResult> {
-  const [{ caseRouter }, { authorizationService }, { mockBillingDeficiencyService }, { mockAuditService }] = await Promise.all([
+  const [{ caseRouter }, { authorizationService }, { billingDeficiencyService }, { auditService }] = await Promise.all([
     import('../cases/CaseRouter'),
     import('../authorization/defaultAuthorizationService'),
-    import('../billing/mockBillingDeficiencyService'),
-    import('../auditlog/mockAuditService'),
+    import('../billing/billingDeficiencyServiceInstance'),
+    import('../auditlog/auditServiceInstance'),
   ]);
   return deleteBlockInProcess(input, {
     save,
     getCase: async id => (await caseRouter.getCase(id)) as Case | null | undefined,
     updateCase: async (id, updates, v) => { await caseRouter.updateCase(id, updates as never, v); },
     enforce: (cap, ctx) => authorizationService.enforce(cap, ctx as never),
-    deficiencies: mockBillingDeficiencyService,
-    auditService: mockAuditService,
+    deficiencies: billingDeficiencyService,
+    auditService,
     now: () => new Date(),
   });
 }

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 634 \u2014 Surgical dispatch live patient-index lookup and audit on skip; demo cytology patients in the patient index (PS-171 follow-on)",
+    "description": "Vitest, 2026-10-20: full suite 1686 files (1681 passed, 4 skipped, 1 failed); 14,206 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean."
+  },
+  "tests": [
+    {
+      "testKey": "PS-836",
+      "start": "2026-10-20T07:00:00Z",
+      "finish": "2026-10-20T07:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/interfaceDispatch/resolveDispatchOrganisation.test.ts\nPASSED: src/services/patients/demoCytologyPatients.test.ts\nPASSED: src/services/reports/dispatchAmendedCaseInstance.test.ts\nPASSED: src/services/cytology/dispatchCytologyCaseInstances.test.ts\nPASSED: src/services/cytology/dispatchCytologyAmendedCaseInstance.test.ts\nPASSED: src/services/cytology/dispatchCytologyPreliminary.test.ts\nNot tested: against a running API server."
+    }
+  ]
+}

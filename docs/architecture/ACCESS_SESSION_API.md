@@ -61,3 +61,26 @@ Screens and the sign-in flow use `biometricFlow` (`IBiometricFlow`), never the m
 - **No simulated fallback.** A browser without WebAuthn gets `UNAVAILABLE`; at sign-out the person confirms with their password. A cancelled prompt is `DECLINED`.
 - The sign-in flow asks `shouldShowWizard` after sign-in (so the invitation to enrol follows the server's policy and the person's enrolment).
 - Nothing is kept in browser storage in a server deployment.
+
+## 5. Second-factor policy (`IMfaPolicyService`) — Batch 675, access-14
+
+The organisation's second-factor policy is held by the server. The organisation is taken from the sign-in token; the browser never sends one.
+
+| Method | Call | Reply |
+|---|---|---|
+| `get()` | `GET /api/session-security/mfa-policy/get` | `{ "mode": "off" \| "signing_roles" \| "all", "stepUpMinutes": 30, "sessionMaxHours": 12 }`. Any signed-in person in the organisation (the sign-in check needs it). With no saved policy, the defaults above with `mode: "off"`. |
+| `save(next)` | `POST /api/session-security/mfa-policy/save` with the fields to change | the saved policy. Needs `config:session-security:manage`; `403` otherwise. |
+
+**Differences from the first sketch (dev note access-14).** The sketch had `GET/PUT /api/session-security` with `{ "mfaRequired", "stepUpMinutes" }`. The browser's real policy has three fields: `mode` (off, signing roles, everyone — `mfaRequired: true` cannot say which), `stepUpMinutes` (1–720) and `sessionMaxHours` (1–72). The route follows the repo's `/api/<area>/<service>/<method>` rule (Batch 617). Say if the server team would rather have `PUT /api/session-security`; only `httpMfaPolicyService.ts` changes.
+
+**The server must:**
+1. Check the permission on `save` itself; the browser's check is presentation.
+2. Validate the ranges and reject, not clamp, anything outside them.
+3. Write the policy and its audit entry in one transaction. Audit detail is literal English, PHI-free, with old and new values:
+   - `MFA_POLICY_ENABLED` — `mode` went from `off` to `signing_roles` or `all`.
+   - `MFA_POLICY_DISABLED` — `mode` went to `off`.
+   - `MFA_STEPUP_CHANGED` — `stepUpMinutes` or `sessionMaxHours` changed (name as in the dev note; the browser does not read it). A change of `mode` between `signing_roles` and `all` is also recorded (suggested `MFA_POLICY_SCOPE_CHANGED`).
+   One save can write more than one entry.
+4. Enforce the saved policy on the API: a request from a person the policy covers needs the identity provider's `amr` / `acr` claim, and a signature needs one no older than `stepUpMinutes` (AUTHENTICATION_MODEL.md). The browser's check is for the person's benefit only.
+
+**The browser:** on single sign-on it reads the policy before deciding (`mfaService.loadPolicy`). If it cannot be read the sign-in is refused (`server_unavailable`), never treated as "no policy". The Session Security card reads it when it opens. In the demo the policy stays in the browser store, as before, with the browser audit entry. Enrolments and lock counts remain demo-only.

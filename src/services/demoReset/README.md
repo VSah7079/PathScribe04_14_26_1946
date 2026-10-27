@@ -1,5 +1,7 @@
 # services/demoReset/
 
+**Batch 648:** the Lockbox Drop-Off demo (`services/lockbox/lockboxDemoSeed.ts`) is covered by the existing mock-prefix sweep: its two keys are removed by a Full Reset and the mock store re-seeds on the next read, with fresh times. `lockbox/lockboxDemoSeed.test.ts` checks the round trip.
+
 The demo data reset (mock backend only). Moved out of `components/Config/System/DemoResetTab.tsx` in Batch 370 (PS-356), so the screen no longer touches browser storage and the decision to reset is made here.
 
 - **`resetAllDemoData({ authorization })`** clears every tester's demo data. It needs the capability `config:demo-data:reset` (checked and audited) and refuses without it.

@@ -1,3 +1,5 @@
+**Batch 649:** corrected the screenshot description below. The button captures nothing; capture is opt-in inside the modal. The redaction now covers every `data-phi` / `data-pii` element whatever its value (`services/phiSelectors.ts`), so the three kinds the old per-kind list missed (`diagnosis`, `finding`, `case`) are covered too.
+
 # components/EnhancementRequest/
 
 Product enhancement request / QA feedback submission — trigger button +
@@ -14,8 +16,12 @@ modal with PHI-redacted screenshot capture.
   'production', validation instances included, so it hid the QA button on
   every real deployment whatever the setting said. The setting now decides
   alone.
-- **`EnhancementRequestModal.tsx`** — Receives a pre-captured, PHI-redacted
-  screenshot from the button; user can approve/discard before submitting.
+- **`EnhancementRequestModal.tsx`** — The screenshot is opt-in inside the
+  modal (corrected in Batch 649; this README and the file's header comment said
+  the button passes in a pre-captured one, but the button captures nothing):
+  **Capture current screen** calls `useScreenCapture().capture()`, the
+  person sees the PHI-redacted image, and can include or exclude it before
+  submitting.
   Uses the inline-style modal-overlay pattern — logged as one of the ~14
   instances in the modal-consolidation opportunity, see `Common/README.md`.
   No other issues. *(Since closed: it uses the shared `ps-overlay` class,

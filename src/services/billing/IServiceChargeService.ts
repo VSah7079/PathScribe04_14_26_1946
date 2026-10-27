@@ -64,12 +64,9 @@ export interface IServiceChargeService {
   /** Real, per direct guidance's own Four-Eyes Principle requirement -
    *  moves a real DRAFT charge to PENDING_APPROVAL, locking it from
    *  further edits by its own author. Rejects if the charge isn't
-   *  currently a real DRAFT. actorRole is optional and backward-
-   *  compatible: omitted, this skips the real
-   *  canDraftOrApproveBillingCharge permission check entirely
-   *  (matching this feature's own "Opt-in Core" default); a real
-   *  caller passing the acting user's real role enables real
-   *  enforcement. */
+   *  currently a real DRAFT. Batch 663: actorRole is ignored (kept so the API
+   *  contract is unchanged); who may do this is billing:charge:approve,
+   *  checked in chargeApproval.ts, not a role name. */
   submitForApproval(chargeId: string, submittedBy: string, actorRole?: string): Promise<ServiceResult<ServiceChargeRecord>>;
 
   /** Real, per direct guidance's own Four-Eyes Principle (dual
@@ -83,8 +80,7 @@ export interface IServiceChargeService {
    *  real, separate, high-priority audit alert by the caller (this
    *  service has no audit dependency of its own - see this app's
    *  established UI-layer-logs pattern, mockBillingRuleService.ts's
-   *  own callers). actorRole is optional and backward-compatible,
-   *  same posture as submitForApproval's own. */
+   *  own callers). actorRole is ignored, as in submitForApproval. */
   approveCharge(chargeId: string, approvedBy: string, bypassAuthorized?: boolean, actorRole?: string): Promise<ServiceResult<ServiceChargeRecord>>;
 
   /** Real, per direct guidance's own Four-Eyes Principle requirement -
@@ -93,8 +89,7 @@ export interface IServiceChargeService {
    *  Per direct guidance's own state diagram, a rejected charge's
    *  real path back is "Edit & Resubmit" - the caller re-drafts the
    *  underlying charge and calls submitForApproval again; this method
-   *  never auto-resubmits anything itself. actorRole is optional and
-   *  backward-compatible, same posture as submitForApproval's own. */
+   *  never auto-resubmits anything itself. actorRole is ignored, as in submitForApproval. */
   rejectCharge(chargeId: string, reviewedBy: string, rejectionReason: string, actorRole?: string): Promise<ServiceResult<ServiceChargeRecord>>;
 
   /** Real, per direct guidance's own status enum - a manual, real

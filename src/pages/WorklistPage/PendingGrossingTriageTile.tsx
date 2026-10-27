@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import type { Case } from '@/types/case/Case';
 import type { SpecimenTriage } from '@/types/case/Specimen';
+import { isTriagePending } from '@/services/grossing/triageReleaseGate';
 
 interface PendingTriageItem {
   caseId: string;
@@ -32,16 +33,7 @@ interface PendingTriageItem {
   totalCount: number;
 }
 
-/** Real, pure — a specimen is genuinely pending exactly when it has a
- *  SpecimenTriage record, no override reason was recorded, and at
- *  least one checklist item is still unconfirmed. Exported for direct
- *  unit testing, same real reasoning as every other pure predicate
- *  extracted elsewhere in this app. */
-export function isTriagePending(triage: SpecimenTriage | undefined): boolean {
-  if (!triage) return false;
-  if (triage.overrideReason) return false;
-  return !triage.checklistItems.every(ci => ci.confirmed);
-}
+export { isTriagePending };
 
 export const PendingGrossingTriageTile: React.FC<{ cases: Case[] }> = ({ cases }) => {
   const { t } = useTranslation();

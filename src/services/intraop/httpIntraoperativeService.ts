@@ -11,13 +11,13 @@ import type { IIntraoperativeService } from './IIntraoperativeService';
 
 type P<K extends keyof IIntraoperativeService, N extends number> = Parameters<IIntraoperativeService[K]>[N];
 
-type RoutedIntraoperativeService = Omit<IIntraoperativeService, 'seedOrBoardDemoData' | 'advanceDemoSpecimen'>;
+type RoutedIntraoperativeService = Omit<IIntraoperativeService, 'seedOrBoardDemoData' | 'advanceDemoSpecimen' | 'removeOrBoardDemoData'>;
 type Args<K extends keyof RoutedIntraoperativeService> = Parameters<RoutedIntraoperativeService[K]>;
 const BASE = '/api/intraop/intraoperative';
 const route = (method: string): string => methodPath(BASE, method);
 
 export function createHttpIntraoperativeService(client: ApiHttpClient): IIntraoperativeService {
-  const routes = buildHttpService<Omit<IIntraoperativeService, 'seedOrBoardDemoData' | 'advanceDemoSpecimen'>>(client, {
+  const routes = buildHttpService<Omit<IIntraoperativeService, 'seedOrBoardDemoData' | 'advanceDemoSpecimen' | 'removeOrBoardDemoData'>>(client, {
     lookupAdtRecord: result('POST', () => route('lookupAdtRecord'), { body: (mrn: P<'lookupAdtRecord', 0>) => ({ mrn }) }),
     getAll: result('GET', () => route('getAll')),
     getPending: result('GET', () => route('getPending')),
@@ -41,5 +41,7 @@ export function createHttpIntraoperativeService(client: ApiHttpClient): IIntraop
     seedOrBoardDemoData: notOffered,
     // Demo-only: a server deployment has no demo data to advance.
     advanceDemoSpecimen: notOffered,
+    // Demo-only: a server deployment has no demo data to remove.
+    removeOrBoardDemoData: notOffered,
   };
 }

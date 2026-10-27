@@ -66,6 +66,7 @@ const VoiceSettings: React.FC = () => {
               </option>
             ))}
           </select>
+          {accent === 'NL-BE' && <p className="vset-card-desc" role="note">{t('voiceSettings.nlBeUntested')}</p>}
         </div>
 
         {/* Mic Sensitivity Card */}

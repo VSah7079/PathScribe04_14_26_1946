@@ -29,7 +29,7 @@ import { mockCytologyScreeningHoursService } from './mockCytologyScreeningHoursS
 import { mockCytologyWorkloadCapSettingsService } from './mockCytologyWorkloadCapSettingsService';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
-import { qaActivityRecordService } from '@/services';
+import { qaActivityRecordService } from '../quality/qaActivityRecordServiceInstance';
 import { mockFacilityService } from '@/services/facilities/mockFacilityService';
 import { GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaActivityTypeService';
 import { resolveCytologyHistologyCorrelationReport } from './resolveCytologyHistologyCorrelationReport';

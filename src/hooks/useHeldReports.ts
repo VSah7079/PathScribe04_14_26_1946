@@ -8,6 +8,7 @@ import type { HeldRelease } from '@/types/reportRelease/HeldRelease';
 import { listHeldReports, recallHeldReport } from '@/services/reportRelease/releaseThroughDelay';
 import { heldRecallRefusal } from '@/services/reportRelease/heldReleaseRules';
 import { useLiveData } from './useLiveData';
+import { useCapabilities } from './useCapabilities';
 
 const REFRESH_MS = 5_000;
 
@@ -46,8 +47,9 @@ export function useHeldReports(caseId: string | null | undefined, user: { id: st
     return result;
   }, [user?.id, user?.name, refresh, onRecalled]);
 
-  /** Whether this person can recall it now. */
-  const canRecall = (h: HeldRelease) => !!user?.id && heldRecallRefusal(h, user.id, now) === null;
+  /** Whether this person can recall it now (Batch 649: and holds report:release:recall; the service checks it again). */
+  const { has } = useCapabilities();
+  const canRecall = (h: HeldRelease) => !!user?.id && heldRecallRefusal(h, user.id, now) === null && has('report:release:recall', { caseId: h.caseId });
 
   return { held, recall, canRecall, refresh };
 }

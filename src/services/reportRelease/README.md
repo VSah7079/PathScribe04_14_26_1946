@@ -1,3 +1,5 @@
+**Batch 649:** Recall needs `report:release:recall` (audited) *and* being the person who released the report, before the delay ends. The cancer registry submission now goes with the release of the surgical FINAL (`surgicalSignOut/releaseSurgicalFinal.ts`, called at sign-out when no delay applies and from `checkAndReleaseIfExpired` when the delay runs out), not with the signature; a report held for the delay, and possibly recalled, is no longer already at the registry. Tests: `releaseReport.test.ts`, `mockReportReleaseService.test.ts`, `releaseOnExpiryRegistry.test.ts`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/reportRelease/
@@ -570,3 +572,7 @@ Why (found in the Batch 538 review): a revision released during the buffer was r
 - `releaseCountdown.ts` (Batch 555, new): when a held surgical sign-out's countdown ends on the report page, the page releases it, or (once the server runs `release.dueSweep`) reads the case again every 15 s until the server has released it.
 
 Batch 616 (part A, PS-483): `httpReportReleaseService.ts` and `reportReleaseInstance.ts`. The server owns the release clock; `resolveBufferForCase` throws a code rather than assuming no delay; a refused start or recall is `{ ok: false, reason: <code> }`. Contract `REPORTS_API.md` section 3.
+
+## Batch 654 — Release Hold Print Policy
+
+`restrictHardcopyPrinting` (on/off) is replaced by `releaseHoldPrintPolicy`: `allow`, `warn` (default: warn that the copy is a watermarked draft and confirm), `supervisor` (only a person with `print:release-hold:override`, who must give a reason) or `block`. Decisions are pure functions in `heldPrintPolicy.ts` (`heldPrintOutcome`, `releaseHoldPrintPolicyOf` reads an old config as warn or allow). `planReportPrint` (services/printing) applies the policy on both print paths and checks the capability for the case's facility. Any printed copy still carries `watermarkText`. Set on System > Release Buffer. One organisation-wide setting; a per-facility override is not built, and second-person credential approval needs the server.

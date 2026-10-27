@@ -11,8 +11,8 @@ import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '../printSettings/IPrintSettingsSe
 import { printerProfileService } from '../printerProfiles/printerProfileServiceInstance';
 
 async function printItem(item: ReprintItem, printerProfileId: string | undefined): Promise<{ ok: boolean; message?: string }> {
-  const { mockCaseService } = await import('../cases/mockCaseService');
-  const caseData = await mockCaseService.getCase(item.caseId);
+  const { caseService } = await import('../cases/caseServiceInstance');
+  const caseData = await caseService.getCase(item.caseId);
   if (!caseData) return { ok: false, message: 'The case could not be loaded.' };
   if (item.kind === 'requisition') {
     const { printRequisitionLabel } = await import('@/utils/labels/printRequisitionAndContainerLabels');

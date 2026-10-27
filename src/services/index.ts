@@ -40,6 +40,7 @@ export { interfaceMonitoringService } from './interfaceMonitoring/interfaceMonit
 export { siteAgentAdminService } from './siteAgent/siteAgentAdminInstance';
 // PS-60 (Batch 343): signing in and out (password demo accounts, SSO).
 export { authSession, authConfig, signerConfirmation, signatureGate } from './auth/authSessionInstance';
+export { signOutPolicyService } from './auth/signOutPolicy/signOutPolicyInstance';
 export { mfaService } from './auth/mfa/mfaInstance';
 // Batch 345: the signature records (one per signature applied to a case).
 export { signatureRecordService } from './signatures/signatureRecordServiceInstance';
@@ -86,6 +87,12 @@ export { grossingRoutingOverrideService } from './grossingRoutingOverrides/gross
 // Batch 619 (PS-800): when things go out, set at the enterprise with performing-facility overrides.
 export { deliveryScheduleService } from './deliverySchedules/deliveryScheduleServiceInstance';
 export { billingReleaseService } from './billingRelease/billingReleaseServiceInstance';
+export { batchRegistryFeedService } from './batchRegistryFeed/batchRegistryFeedServiceInstance';
+// Batch 620 (part E, PS-800): US ePath state profiles and which profile each facility uses.
+export { usEpathService } from './usEpath/usEpathServiceInstance';
+export { cosdDestinationService } from './cosd/cosdDestinationServiceInstance';
+// Batch 621: AI extraction of historical reports (advisory only; services/historyExtraction/advisoryOnly.guard.test.ts).
+export { historyExtractionService, historyExtractionSettingsService } from './historyExtraction/historyExtractionServiceInstance';
 export { templateSuggestionSignalService } from './templateSuggestions/templateSuggestionSignalServiceInstance';
 export { lisSyncService } from './lisSync/lisSyncServiceInstance';
 export { specimenDictionaryService } from './specimenDictionary/specimenDictionaryServiceInstance';
@@ -190,7 +197,8 @@ export { aiBehaviorService } from './aiBehavior/aiBehaviorServiceInstance';
 export { printSettingsService } from './printSettings/printSettingsServiceInstance';
 export { facilityPrintSettingsService } from './printSettings/facilityPrintSettingsServiceInstance';
 // PS-282 (Batch 437): print and export audit.
-export { recordDocumentOutput, planReportPrint } from './printing/recordDocumentOutput';
+export { recordDocumentOutput, planReportPrint, releaseHoldPolicyFor } from './printing/recordDocumentOutput';
+export { RELEASE_HOLD_PRINT_POLICIES, DEFAULT_RELEASE_HOLD_PRINT_POLICY, type ReleaseHoldPrintPolicy } from './reportRelease/heldPrintPolicy';
 export { DESTINATION as DOCUMENT_DESTINATION, printPromptComplete } from './printing/documentOutputAudit';
 export type { DocumentOutputEvent, PrintPlan } from './printing/documentOutputAudit';
 export { beginExport, recordExport, type GatedExport } from './printing/exportGate';
@@ -258,6 +266,7 @@ export type {
   IDelegationService, DelegationRecord, DelegationStatus, DelegationRecipient, DelegationRequest, DelegationError,
 } from './delegations/IDelegationService';
 export { auditService } from './auditlog/auditServiceInstance';
+export { recordAiCodeBinds, unreviewedAiValueCount } from './aiGovernance/aiReviewAudit';
 // Batch 615 (PS-481, PS-482): the mock in the demo, the API server's with an address.
 export { caseService } from './cases/caseServiceInstance';
 export { caseMaterialService } from './material/caseMaterialServiceInstance';
@@ -363,6 +372,8 @@ export { molecularExtractionRackService } from './molecular/molecularExtractionR
 export { MOLECULAR_RACK_ERRORS, type MolecularExtractionRack, type MolecularRackPosition, type MolecularRackPlacement } from './molecular/IMolecularExtractionRackService';
 export { resolveMolecularMovementRecord, molecularActor, UNKNOWN_STATION_NAME } from './molecular/resolveMolecularMovementRecord';
 export { molecularAssayTypes } from './molecular/molecularAssays';
+export { supersedeMolecularBatchNow } from './molecular/supersedeMolecularBatchLive';
+export { molecularBatchErrorKey } from './molecular/molecularBatchErrors';
 export { controlRuleDraftProblem, sampleRackSlotChoices, withControlPatch, type ControlRuleDraftProblem } from './molecular/controlRuleDraft';
 export { rackWorklistRows, type RackWorklistRow, type RackWorklistStatus } from './molecular/rackWorklist';
 export { slotsForRack, deckSlotRequired, checkDeckSlot, parseDeckLocationBarcode, resolveDeckScan, type DeckSlotProblem, type DeckScanResult } from './molecular/deckSlots';
@@ -420,7 +431,7 @@ export {
 export { screenAccessService } from './screens/defaultScreenAccessService';
 export {
   SCREEN_CAPABILITY, HUB_SCREENS, TILE_SCREENS, canOpenTile, visibleTiles, worklistViews, resolveWorklistView,
-  type ScreenId, type HubId, type HomeTileId, type WorklistView, type IScreenAccessService,
+  type SubScreenId, type ScreenId, type HubId, type HomeTileId, type WorklistView, type IScreenAccessService,
 } from './screens/screenAccess';
 
 // Batch 375: services the Worklist page used by their mock file paths.
@@ -527,7 +538,7 @@ export { generateAiSuggestionsForReport, generateGrossingFieldSuggestionsFromDic
 export { clinicalHistoryDictionaryService } from './clinicalHistory/clinicalHistoryDictionaryServiceInstance';
 export { accessionOutboundQueueService } from './accessioning/accessionOutboundQueueInstance';
 export { molecularOrderOutboundQueueService } from './molecularOrders/molecularOrderOutboundQueueServiceInstance';
-export { queueEntriesNewestFirst, isMolecularOrderPayload } from './molecularOrders/orderQueueView';
+export { queueEntriesNewestFirst, isMolecularOrderPayload, simulatedResultMessage } from './molecularOrders/orderQueueView';
 // Batch 467: the in-house molecular order engine (spec "In-House Molecular Order Queue & Plate Binding Engine").
 export { molecularOrderEngine, simulateMolecularRunResults, simulateSendOutResult } from './molecularOrders/molecularOrderEngineLive';
 export { molecularRoutingChoices } from './molecularOrders/molecularRouting';
@@ -592,7 +603,9 @@ export { registryGoLiveDeps } from './registryGoLive/registryGoLiveDeps';
 export { snomedCervicalHistologySeverityMappingService } from './cytology/snomedCervicalHistologySeverityMappingServiceInstance';
 export { staffCytologyQcOverrideService } from './cytology/staffCytologyQcOverrideServiceInstance';
 export { staffCytologyWorkloadCapOverrideService } from './cytology/staffCytologyWorkloadCapOverrideServiceInstance';
-export { claimPoolCase, acceptPoolCase, passPoolCase } from './cases/mockCaseService';
+// Batch 649: with their capabilities (case:pool:claim, case:pool:pass).
+export { postCaseComment, commentAuditEntry } from './cases/postCaseComment';
+export { claimPoolCase, acceptPoolCase, passPoolCase, releasePoolClaim, isPoolActionNotPermitted } from './cases/poolCaseActions';
 // Batch 572: cases another tab changed (the demo's stand-in for the hub's caseReport topic).
 export { subscribeCasesChangedElsewhere } from './cases/mockCaseService';
 // Batch 572 (F7, option C): screening hours and their end-of-day sign-off.
@@ -805,3 +818,16 @@ export type { SmartCapturePayload } from './smartCapture/smartCapturePayload';
 // Batch 613: saved case-report definitions and report schedules (Simulated runs).
 export { caseReportsStore as savedCaseReportService } from './caseReports/caseReportStore';
 export { scheduledReportService } from './scheduledReports/scheduledReportServiceInstance';
+// Batch 645: Lockbox Drop-Off (after-hours specimens: the scan kiosk and the Overnight folder).
+export { lockboxService } from './lockbox/lockboxServiceInstance';
+export type { ILockboxService } from './lockbox/ILockboxService';
+export type {
+  LockboxReceipt, LockboxResolution, LockboxLookup, LockboxReceiveInput, LockboxPlaceholderInput, LockboxFolder, LockboxFolderEntry,
+  LockboxFolderStatus, LockboxTimeSummary, LockboxState, LockboxRefusal,
+} from './lockbox/lockboxTypes';
+export { scanStepFor, dropTimeFromLocalInput, dwellParts, dwellLabel, accessionLinkForReceipt, localInputValueFromDate, normalizeBarcode, normalizeCallbackNumber, type ScanStep } from './lockbox/lockboxRules';
+
+// Batch 669h (footer): the Home footer's system status (docs/architecture/HEALTH_STATUS_API.md).
+export { healthStatusService } from './healthStatus/healthStatusServiceInstance';
+export type { IHealthStatusService } from './healthStatus/IHealthStatusService';
+export { footerStatusKind, shouldRecheck, parseHealthStatus, HEALTH_RECHECK_AFTER_MS, type HealthStatus, type HealthState, type FooterPhase, type FooterStatusKind } from './healthStatus/healthStatusContract';

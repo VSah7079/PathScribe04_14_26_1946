@@ -29,7 +29,7 @@ import { getEffectiveBiopsyResectionRule } from './biopsyResectionCorrelationSet
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { intraoperativeService } from '@/services';
 import { specimenDictionaryService as mockSpecimenDictionaryService } from '@/services/specimenDictionary/specimenDictionaryServiceInstance';
-import { SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID } from './mockQaActivityTypeService';
+import { SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID } from './qaActivityTypeIds';
 import { qaActivityTypeService as mockQaActivityTypeService } from './qaActivityTypeServiceInstance';
 import { surgicalPeerReviewRiskWeightService as mockSurgicalPeerReviewRiskWeightService } from './surgicalPeerReviewRiskWeightServiceInstance';
 import { resolveQaCaseSelectionContext } from './resolveQaCaseSelectionContext';

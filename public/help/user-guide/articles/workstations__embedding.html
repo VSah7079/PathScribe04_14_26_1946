@@ -1,0 +1,431 @@
+<h1 id="top">Embedding Station</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Embedding Station is the bench screen for the person embedding tissue in wax. You scan a cassette, check that the number of pieces in it matches the number counted at grossing, record the mold size and how the tissue is oriented, and mark the block as embedded. If something is wrong with the cassette (broken, empty, unprocessed, extra tissue) you report it with one touch. You can also reprint a cassette label that has become damaged or covered in wax, and you can link cassettes that hold one specimen's tissue split across several blocks.</p>
+<p><strong>Intended users.</strong> Histotechnologists and pathology assistants at the embedding bench, and laboratory managers. The screen opens only for roles that have the Embedding screen switched on; by default these are the Histotechnologist and Pathology Assistant roles.</p>
+<p><strong>Where it fits.</strong> Embedding follows grossing and tissue processing and comes before cutting. The block you confirm here is the block you cut at the <a href="/help/workstations/microtomy">Microtomy Workstation</a>. The piece count you compare against was recorded in <a href="/help/grossing">Grossing</a>. A mismatch or a reported discrepancy raises a Tissue Discrepancy item in <a href="/help/quality">Quality</a> for the supervisor. The embedding step is also part of the chain of custody tracked in <a href="/help/batch-management">Batch Management</a>. Open the screen from the <a href="/help/pathology-workspace">Pathology Workspace</a> (the <strong>Embedding Workspace</strong> tile) or with the <strong>Go to Bench</strong> button when your station is an embedding station.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/workstations-embedding-overview.png" alt="The Embedding Station with a cassette open: specimen blocks on the left, piece count and mold controls in the middle, printer on the right"><figcaption>The Embedding Station with a cassette open: specimen blocks on the left, piece count and mold controls in the middle, printer on the right</figcaption></figure>
+
+<p>The page is titled <strong>Embedding Station</strong>. The <strong>Back</strong> button at the top left returns to the Worklist. Before a scan the screen shows only "Scan a cassette barcode to begin" and a scan box. After a scan a grey identity bar appears, with three columns below it.</p>
+<div class="admonition note">
+<p class="admonition-title">Cassettes only</p>
+<p>This station takes block cassettes. A cassette shared by several specimens (a matrix block), a cell-block cassette, a decant or a bare specimen barcode is refused with "The Embedding station takes block cassettes only. Matrix or cell-block cassettes, decants and specimen barcodes aren’t supported yet." A slide barcode opens the block it belongs to.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Identity bar</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accession</td>
+<td>The case number.</td>
+</tr>
+<tr>
+<td>Patient</td>
+<td>Patient name.</td>
+</tr>
+<tr>
+<td>DOB</td>
+<td>Date of birth, shown in your language's date format.</td>
+</tr>
+<tr>
+<td>Specimen/Block</td>
+<td>The specimen letter and block label.</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>The specimen description.</td>
+</tr>
+<tr>
+<td>Scan next cassette →</td>
+<td>Closes this cassette and returns to the scan box.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Left column: Specimen Blocks</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimen Blocks</td>
+<td>Every block on this specimen with its status. The one on screen is marked "(current)". The status is shown in your language (for example Grossed, Embedded).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Center column</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Block Summary: alert badges</td>
+<td><strong>Tiny Tissue</strong>, <strong>Fragile</strong> and <strong>Decal Required</strong> are switches on the block (bright means on). <strong>Biopsy</strong> and <strong>Needle Core</strong> are fixed badges worked out from the specimen type and procedure; you cannot change them here.</td>
+</tr>
+<tr>
+<td>Status, Tissue</td>
+<td>The block's status (Pending, Grossed, Embedded and so on) and its tissue description.</td>
+</tr>
+<tr>
+<td>Block comments</td>
+<td>Opens the comment window. The number in brackets is how many comments exist.</td>
+</tr>
+<tr>
+<td>Expected (from grossing)</td>
+<td>The piece count recorded at grossing. A dash if none was recorded.</td>
+</tr>
+<tr>
+<td>Observed count</td>
+<td>Your count of the pieces in the cassette. It starts with the grossing count filled in. A whole number of 0 or more. Locked once the block is embedded.</td>
+</tr>
+<tr>
+<td>Confirm</td>
+<td>Marks the block Embedded with your observed count. Off while a discrepancy is flagged.</td>
+</tr>
+<tr>
+<td>Observed at embedding</td>
+<td>After confirming: the count you recorded.</td>
+</tr>
+<tr>
+<td>Discrepancy Reporting</td>
+<td>Four buttons: Damaged Cassette/Broken Hinge, Extra Tissue Found, Missing Tissue/Empty Cassette, Unopened Cassette/Unprocessed Tissue.</td>
+</tr>
+<tr>
+<td>Last flagged</td>
+<td>The most recent discrepancy reason and the name of the person who reported it, with a <strong>Clear flag</strong> button. While a flag is showing, <strong>Confirm</strong> is off.</td>
+</tr>
+<tr>
+<td>Base Mold Size</td>
+<td>Quick-select buttons: 7 × 7 mm, 15 × 15 mm, 24 × 24 mm, 24 × 30 mm, Mega mold. The chosen one is highlighted.</td>
+</tr>
+<tr>
+<td>Orientation Instructions</td>
+<td>A free-text box ("Free-text orientation notes…") with three quick fills: Cross-section up, Epithelial surface down, Embed on edge. A quick fill replaces the text.</td>
+</tr>
+<tr>
+<td>Multi-Cassette / Split-Block</td>
+<td>Lists the other ungrouped blocks on this specimen as tick boxes, with <strong>Group as split cassettes</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p>Some fields can be required by your organisation. A red star marks them, and a line beginning "Still required" under the box names what is missing. <strong>Confirm</strong> stays grey until it is complete. By default the observed count is required; the mold size and the orientation text are optional.</p>
+<p><strong>Right column</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Device Status</td>
+<td>The cassette printer for your station and whether it is Ready, in Print Error, or Offline, with the reason when it is not ready.</td>
+</tr>
+<tr>
+<td>Cassette Reprint</td>
+<td>The <strong>Reprint Cassette</strong> button, and once used, "Reprinted 2×, last reason: …".</td>
+</tr>
+<tr>
+<td>Label Preview</td>
+<td>A drawing of the cassette label with its size in millimetres. It is a picture, not a barcode.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="prompts-and-messages">Prompts and messages</h3>
+<table>
+<thead>
+<tr>
+<th>Text</th>
+<th>Where and what it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan or type a barcode…</td>
+<td>Grey hint in the scan box. Scan the cassette, or type the barcode and select <strong>Go</strong>.</td>
+</tr>
+<tr>
+<td>No comments yet.</td>
+<td>Shown in the comment window when the block has no comments.</td>
+</tr>
+<tr>
+<td>Reprinted {{count}}×, last reason:</td>
+<td>Under <strong>Reprint Cassette</strong> once a label has been reprinted: how many times, followed by the last reason chosen. The number replaces the braces.</td>
+</tr>
+<tr>
+<td>Last flagged: {{reason}} (by {{by}})</td>
+<td>A warning on the block after a discrepancy was reported: the reason and the name of who reported it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan next cassette →</td>
+<td>Returns to the scan box.</td>
+</tr>
+<tr>
+<td>Block comments</td>
+<td>Opens the comment window. Add Comment saves a note on the block; Close closes the window.</td>
+</tr>
+<tr>
+<td>Confirm</td>
+<td>Records the piece count and marks the block Embedded.</td>
+</tr>
+<tr>
+<td>Discrepancy buttons</td>
+<td>One touch records the reason on the block, alerts quality and stops <strong>Confirm</strong> until the flag is cleared.</td>
+</tr>
+<tr>
+<td>Clear flag</td>
+<td>Removes the discrepancy flag (one click, no confirmation) and records who cleared it in the audit log.</td>
+</tr>
+<tr>
+<td>Mold chips and quick fills</td>
+<td>Save at once.</td>
+</tr>
+<tr>
+<td>Group as split cassettes</td>
+<td>Links this cassette with the ticked ones.</td>
+</tr>
+<tr>
+<td>Reprint Cassette</td>
+<td>Opens the reason window; <strong>Reprint</strong> in that window prints the label.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bright or dim alert badge</td>
+<td>Tiny Tissue, Fragile or Decal Required is on or off.</td>
+</tr>
+<tr>
+<td>Fixed Biopsy / Needle Core badge</td>
+<td>Derived from the specimen. Not editable.</td>
+</tr>
+<tr>
+<td>Warning line "Last flagged: …"</td>
+<td>A discrepancy has been reported on this block and <strong>Confirm</strong> is off until you select <strong>Clear flag</strong>.</td>
+</tr>
+<tr>
+<td>Green line "A Tissue Discrepancy item has been raised for QA."</td>
+<td>The Tissue Discrepancy item reached Quality.</td>
+</tr>
+<tr>
+<td>Red line "The Tissue Discrepancy item could not be raised for QA…"</td>
+<td>The block was flagged but the item for Quality was not created. Tell your supervisor.</td>
+</tr>
+<tr>
+<td>Red line "Not saved…"</td>
+<td>The last change was not saved; see Error recovery.</td>
+</tr>
+<tr>
+<td>Banner "Split across A2, A3 — not every cassette is embedded yet."</td>
+<td>The block is linked to others and at least one is not yet Embedded.</td>
+</tr>
+<tr>
+<td>Banner "Split across A2, A3 — all cassettes embedded."</td>
+<td>Every linked cassette is Embedded.</td>
+</tr>
+<tr>
+<td>Device Status</td>
+<td>Ready, Print Error or Offline.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>Both keys work while this screen is open and do exactly what the button does, including the "Still required" checks. An administrator can change the keys.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Spoken phrase</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+Alt+Shift+C</td>
+<td>"confirm count" or "confirm embedding"</td>
+<td>Presses <strong>Confirm</strong> with the count in the box.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+A</td>
+<td>"add comment" or "save comment"</td>
+<td>Saves the text in the comment window, while it is open.</td>
+</tr>
+<tr>
+<td>Foot pedal 1</td>
+<td>none</td>
+<td>Confirms the piece count <strong>as the grossing count</strong>. Does nothing if no grossing count exists or the block is already Embedded. Set up per workstation by an administrator.</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>none</td>
+<td>Opens this help article.</td>
+</tr>
+</tbody>
+</table>
+<p>Phrases are also available in French, German, Dutch, Korean and Spanish. See <a href="/help/voice-and-keyboard">Voice and Keyboard</a>.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Check the station indicator in the top bar names your embedding bench. If it does not, select it and choose your station.</li>
+<li>Open the <strong>Embedding Workspace</strong> tile in the <a href="/help/pathology-workspace">Pathology Workspace</a>. The scan box is ready.</li>
+<li>Scan the cassette barcode. The identity bar and the three columns appear. The block status shows in the Block Summary.</li>
+<li>Compare the identity bar with the cassette in your hand. Look at the alert badges and any block comments.</li>
+<li>Count the pieces of tissue in the cassette. Type the number in <strong>Observed count</strong>, replacing the number that was filled in. Do not accept the filled-in number unless you have counted.</li>
+<li>Select a <strong>Base Mold Size</strong> button. The chosen size is highlighted.</li>
+<li>Type orientation notes, or select a quick fill such as <strong>Cross-section up</strong>. The text is saved when you leave the box.</li>
+<li>Select <strong>Confirm</strong>. The status changes to Embedded, the box is locked, and "Observed at embedding" shows your count.</li>
+<li>Scan the next cassette. The new cassette replaces the one on screen.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">A count that differs from grossing</p>
+<p>If the count you confirm is different from the grossing count, PathScribe raises a Tissue Discrepancy item for your supervisor and says so on the screen. Check your count before you confirm.</p>
+</div>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Confirm by foot pedal.</strong> With the grossing count known and the block not yet embedded, tap foot pedal 1. This confirms the grossing count as the observed count. Use it only when you have counted and the count matches.</li>
+<li><strong>Confirm by voice or key.</strong> Say "confirm count" or press Ctrl+Alt+Shift+C once the box holds your count.</li>
+<li><strong>Split cassettes.</strong> When one specimen's tissue was split over several cassettes (A1, A2, A3), scan one of them, tick the others in <strong>Multi-Cassette / Split-Block</strong> and select <strong>Group as split cassettes</strong>. The banner then lists the group and tells you whether every cassette is embedded yet.</li>
+<li><strong>Comment on a block.</strong> Select <strong>Block comments</strong>, type in the <strong>Comment</strong> box and select <strong>Add Comment</strong>. Comments stay on the block for the next person.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Something is wrong with the cassette.</strong> Select the matching discrepancy button: Damaged Cassette/Broken Hinge, Extra Tissue Found, Missing Tissue/Empty Cassette or Unopened Cassette/Unprocessed Tissue. The block's status does not change, "Last flagged: …" appears, <strong>Confirm</strong> goes grey, and a Tissue Discrepancy item is raised in <a href="/help/quality">Quality</a> for the supervisor; the screen tells you it was raised, or that it could not be. There is no confirmation. When the problem has been dealt with, select <strong>Clear flag</strong> next to "Last flagged": one click, and <strong>Confirm</strong> works again. Clearing is recorded in the audit log with your name.</li>
+<li><strong>The count really differs.</strong> Type the number you counted and select <strong>Confirm</strong>. The block is embedded with your count and a Tissue Discrepancy item records both numbers.</li>
+<li><strong>The label is damaged or covered in wax.</strong> Select <strong>Reprint Cassette</strong>. In the window titled "Reason required" choose Faded barcode, Mechanical jam, Wax buildup or Other, then select <strong>Reprint</strong>. The label prints and the panel shows "Reprinted 1×, last reason: …". <strong>Cancel</strong> closes the window without printing.</li>
+<li><strong>The cassette is the wrong kind.</strong> This screen cannot embed a matrix block, cell block or decant. Ask your supervisor how your laboratory records them. Once embedded they can be opened at the <a href="/help/workstations/microtomy">Microtomy Workstation</a>.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">A reported discrepancy stops Confirm</p>
+<p>Reporting a discrepancy records the reason, alerts quality and switches <strong>Confirm</strong> off (also for the key, voice and foot pedal) until the flag is cleared. <strong>Clear flag</strong> does not close the Tissue Discrepancy item in Quality; the supervisor does that there.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If "That scan didn’t match a case or block. Check the barcode and try again." appears, scan again, or type the barcode and select <strong>Go</strong>.</li>
+<li>If "Block A2 wasn’t found." appears, the block is not on that case. Check the cassette label against the case.</li>
+<li>If <strong>Confirm</strong> is grey, read the "Still required" line and fill the field it names.</li>
+<li>If <strong>Reprint Cassette</strong> reports "Reprint failed — see the message above.", the reason has already been recorded on the block, and the printer's own message is shown under the button. Fix the printer and reprint; the count will rise by one more.</li>
+<li>If Device Status says "This station isn't configured for real cassette-label printing." or "No scan station selected for this device — set one from the NavBar station indicator.", choose your station from the indicator, or tell your administrator.</li>
+<li>If a red line says "Not saved: …", the change you just made was not stored. The screen has reloaded the block as it is now (PathScribe first tried again on the newest copy of the case). Look at the block and repeat the change. Nothing was printed or raised for an unsaved change.</li>
+<li>If you confirmed the wrong count, tell your supervisor with the case number. The count box is locked once the block is Embedded.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Pressing Confirm with the count that was filled in, without counting. The box starts with the grossing count, which makes a mismatch invisible.</li>
+<li>Using foot pedal 1 without counting. It confirms the grossing count, so it can never record a mismatch.</li>
+<li>Expecting <strong>Clear flag</strong> to close the item in Quality. It only lifts the hold on this screen.</li>
+<li>Choosing a quick fill and then typing more text before leaving the box, expecting the quick fill to stay. The quick fill replaces the whole text.</li>
+<li>Grouping cassettes by mistake. There is no way to ungroup from this screen; tell your supervisor.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Scan one cassette after another; a scan opens the next cassette at once, and a handheld scanner works whether or not the cursor is in the scan box.</li>
+<li>Use the mold chips and quick fills rather than typing.</li>
+<li>Use the keys or voice for <strong>Confirm</strong> when your hands are in the wax.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Start the shift by checking the station indicator and the printer in Device Status.</li>
+<li>Report discrepancies as soon as you see them, before you embed, so the supervisor can decide.</li>
+<li>Use block comments to pass on anything that matters at the microtome, such as "orient edge toward blade".</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/grossing">Grossing</a>: the piece count you check against, and the block's tissue description.</li>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>: the Embedding Workspace tile.</li>
+<li><a href="/help/batch-management">Batch Management</a>: processing steps that bring the cassettes to the embedding bench.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/workstations/microtomy">Microtomy Workstation</a>: the embedded block is cut and its slide labels printed.</li>
+<li><a href="/help/quality">Quality</a>: where a Tissue Discrepancy item raised here is followed up.</li>
+<li><a href="/help/workstations/slide-distribution">Slide Distribution Station</a>: finished slides.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Embedding Workspace tile</td>
+<td>Your role does not include the Embedding screen.</td>
+</tr>
+<tr>
+<td>"Takes block cassettes only"</td>
+<td>You scanned a matrix block, cell block, decant or specimen barcode.</td>
+</tr>
+<tr>
+<td>Confirm is grey</td>
+<td>A required field is empty, a discrepancy is flagged (select <strong>Clear flag</strong> once dealt with), or the block is already Embedded.</td>
+</tr>
+<tr>
+<td>The count box cannot be edited</td>
+<td>The block is already Embedded.</td>
+</tr>
+<tr>
+<td>Foot pedal 1 does nothing</td>
+<td>There is no grossing count, the block is already Embedded, a discrepancy is flagged, or a required field (for example the mold size, if your organisation requires it) is empty.</td>
+</tr>
+<tr>
+<td>Mold or orientation not kept</td>
+<td>The orientation text is saved when you leave the box; click elsewhere before scanning the next cassette.</td>
+</tr>
+<tr>
+<td>"Reprint failed"</td>
+<td>The printer refused the label. The attempt is still counted.</td>
+</tr>
+<tr>
+<td>A red "Not saved" line</td>
+<td>The change was not stored; the block was reloaded. Repeat the change.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the line under the button or the red message under the scan box.</li>
+<li>Scan the cassette again, or type its barcode and select <strong>Go</strong>.</li>
+<li>Check the station indicator and Device Status.</li>
+<li>If a "Not saved" line shows, the block is already reloaded; repeat the change. Otherwise reload the page and scan the cassette again to see what was saved.</li>
+<li>If a count or a mold size looks wrong after reloading, repeat it.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a cassette will not open although its barcode is correct, a Confirm does not stick after reloading, or a cassette label prints for the wrong block. Have the case number, the cassette label and the time ready.</p>

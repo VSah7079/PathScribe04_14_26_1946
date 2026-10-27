@@ -136,6 +136,9 @@ export const PERMISSION_ONLY_ACTIONS: Readonly<Record<string, PermissionOnlyEntr
   'outboundQueue.retract': RISKY,
   'outboundQueue.overrideRelease': RISKY,
   'outboundQueue.markNotReportable': RISKY,
+  // Batch 645: a folder row is picked first, and each adds a permanent entry; the placeholder link needs the real number typed.
+  'lockbox.markAccessioned': RISKY,
+  'lockbox.resolvePlaceholder': CHOICE,
   'searchReport.schedule': CHOICE,
   'followUp.expect': CHOICE,
   'followUp.recordOutcome': CHOICE,
@@ -144,4 +147,13 @@ export const PERMISSION_ONLY_ACTIONS: Readonly<Record<string, PermissionOnlyEntr
   'codes.searchFlagged': CHOICE,
   'biometric.enrol': CHOICE,
   'biometric.disable': CHOICE,
+  // Batch 637: actions added by Batches 620-636. Each needs a result or case picked on screen first, or is a deliberate click.
+  'hpvResult.recordManual': CHOICE,
+  'hpvResult.approveManual': RISKY,
+  'hpvResult.rejectManual': RISKY,
+  'csms.verifyEligibility': RISKY,
+  'csms.recordNotEligible': CHOICE,
+  'historyExtraction.run': CHOICE,
+  'historyExtraction.flag': CHOICE,
+  'registryBatch.makeFile': RISKY,
 };

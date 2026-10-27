@@ -71,7 +71,7 @@ describe.each([
     await waitFor(() => expect(badges(container)).toHaveLength(3));
     const byClass = (sev: string) => badges(container).find(b => b.className === `wl-abnormal-dot--${sev}`)!;
     expect(byClass('Malignant').title).toBe(
-      'Malignant finding confirmed at sign-out — TEST-363346000 (Malignant neoplastic disease (test)); TEST-8500/3 (Infiltrating duct carcinoma (test))',
+      'Malignant finding confirmed at sign-out — demonstration code, not a real SNOMED CT or ICD-O-3 code: TEST-363346000 (Malignant neoplastic disease (test)); TEST-8500/3 (Infiltrating duct carcinoma (test))',
     );
     // No synthetic code recorded: the tooltip just names the severity.
     expect(byClass('Critical').title).toBe('Critical finding confirmed at sign-out');

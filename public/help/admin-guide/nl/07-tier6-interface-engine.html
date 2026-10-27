@@ -1,0 +1,2136 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Niveau 6: Interface-engine en integraties met externe systemen · PathScribe-beheerdershandleiding</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="customer" data-lang="nl" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Beheerdershandleiding</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Zoek schermen, velden, foutcodes" aria-label="Zoeken in de handleiding" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Taal"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl" selected>Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Afdrukken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Hoofdstukken van de handleiding"><a href="index.html">Inhoud</a><a href="setup-sequence.html">Volgorde van inrichting</a><a href="01-system-overview.html">1. Systeemoverzicht en architectuur</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1: Primaire systeemvoorwaarden (eerst inrichten)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2: Stamwoordenboeken en klinische basisgegevens (als tweede inrichten)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3: Workflow-engines en operationele configuratie (als derde inrichten)</a><a href="05-tier4-ai-framework.html">5. Niveau 4: Het ingebedde AI-framework van PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner</a><a href="07-tier6-interface-engine.html" aria-current=page>7. Niveau 6: Interface-engine en integraties met externe systemen</a><a href="08-tier7-billing-registry.html">8. Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen</a><a href="09-appendices.html">9. Bijlagen: probleemoplossing en verificatie van het auditlogboek</a><a href="99-glossary.html">99. Bijlage: Verklarende woordenlijst met termen en afkortingen</a></nav><main id="main"><aside class="pagetoc" aria-label="Op deze pagina"><b>Op deze pagina</b><ul><li class="l2"><a href="#ch7-order">De volgorde van inrichting voor niveau 6</a></li><li class="l2"><a href="#ch7-status">Wat dit niveau wel en niet bevat</a></li><li class="l2"><a href="#ch7-architecture">Hoe de interface-engine past</a></li><li class="l3"><a href="#ch7-pie-term">De term &quot;PathScribe Interface Engine&quot;</a></li><li class="l3"><a href="#ch7-hosting">Waar de engine draait</a></li><li class="l3"><a href="#ch7-today">Wat vandaag draait en wat Gepland is</a></li><li class="l3"><a href="#ch7-facility-settings">Instellingen voor faciliteitsinterfaces die worden opgeslagen maar niet gebruikt</a></li><li class="l2"><a href="#ch7-hl7">Inkomend en uitgaand HL7 v2.x</a></li><li class="l3"><a href="#ch7-hl7-types">Berichttypen</a></li><li class="l3"><a href="#screen-crosswalk">Specimencode-koppeling</a></li><li class="l3"><a href="#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a></li><li class="l3"><a href="#screen-outbound_message_preview">Voorbeeld van uitgaande interfaceberichten</a></li><li class="l2"><a href="#ch7-fhir">FHIR R4-endpoint en OAuth2-clientreferenties</a></li><li class="l2"><a href="#ch7-ehr">EPD-integratie: Epic, Cerner, MEDITECH en AthenaHealth</a></li><li class="l3"><a href="#screen-mock-emr">Mock EMR</a></li><li class="l2"><a href="#ch7-reflab">Interfaces met referentielaboratoria</a></li><li class="l2"><a href="#ch7-monitoring">Interfacebewaking, foutwachtrijen en opnieuw verwerken</a></li><li class="l3"><a href="#ch7-reprocessing">Regels voor opnieuw verwerken in één oogopslag</a></li><li class="l3"><a href="#screen-audit-interfaces">Systeemlogboeken: interfaces</a></li><li class="l3"><a href="#screen-interface-engines">Interface-engines</a></li><li class="l3"><a href="#screen-outbound-interface-dlq">Uitgaande interface-DLQ</a></li><li class="l3"><a href="#screen-outbound-dispatches">Uitgaande verzendingen</a></li><li class="l3"><a href="#screen-outbound-queue">Uitgaande wachtrij</a></li><li class="l2"><a href="#ch7-other">Overige integraties en testtools</a></li><li class="l3"><a href="#screen-bi_feed">Rapportagefeed (Power BI)</a></li><li class="l3"><a href="#screen-migration_field_mappings">Migratie-veldkoppelingen</a></li><li class="l3"><a href="#screen-migration-jobs">Historische gegevensmigratietaken</a></li><li class="l3"><a href="#screen-simulated_mail">Gesimuleerde postvak-uit</a></li><li class="l3"><a href="#screen-mock-interface-engine">Gesimuleerde interface-engine</a></li></ul></aside><article><h1 id="ch7"><a class="anchor" href="#ch7" aria-label="Link to this section">#</a> Niveau 6: Interface-engine en integraties met externe systemen</h1>
+<p>Dit hoofdstuk beschrijft hoe PathScribe berichten uitwisselt met andere systemen: het elektronisch patiëntendossier (<a class="term" href="99-glossary.html#g-emr" title="Elektronisch patiëntendossier, het ziekenhuissysteem dat het dossier van de patiënt bevat en aanvragen verstuurt.">EPD</a>) van het ziekenhuis, een laboratoriuminformatiesysteem (<a class="term" href="99-glossary.html#g-lis" title="Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.">LIS</a>), referentielaboratoria, factureringssystemen, registers en rapportagetools. Het beschrijft ook de schermen waarmee een beheerder die uitwisselingen bewaakt en de mislukte uitwisselingen afhandelt.</p>
+<p>Lees de status van elk onderdeel voordat u er een project omheen plant. Een groot deel van dit niveau is een contract dat is geschreven en een browserkant die is gebouwd, terwijl de server en de interface-engine aan de andere kant nog niet zijn aangesloten. Waar iets niet is gerealiseerd, staat in de sectie <strong>Niet gerealiseerd</strong> of <strong>Gepland</strong> en wordt het dichtstbijzijnde onderdeel genoemd dat wel bestaat.</p>
+<p><strong>De regel van dit hoofdstuk.</strong> PathScribe bepaalt wat er wordt verzonden en wanneer. De interface-engine bepaalt hoe: de HL7-tekst, de verbinding, de nieuwe pogingen op de lijn en de eigen terminologie van de leverancier. PathScribe vertaalt nooit veldnamen of codes van een leverancier en beweert niet een gecertificeerde connector voor een EPD te zijn.</p>
+<h2 id="ch7-order"><a class="anchor" href="#ch7-order" aria-label="Link to this section">#</a> De volgorde van inrichting voor niveau 6</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p>Niveau 6 is grotendeels optioneel. Een laboratorium dat PathScribe zelfstandig gebruikt, zonder <a class="term" href="99-glossary.html#g-lis" title="Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.">LIS</a>, zonder registerfeed en zonder rapportagetool, kan het hele niveau overslaan. Voer de onderstaande stappen alleen uit voor de integraties die u gebruikt, in deze volgorde. Bij elke stap staan de schermen die eerst moeten zijn ingericht (niveaus 1 tot en met 5). Dezelfde informatie staat in het kader Inrichtingsvolgorde op elk scherm.</p>
+<ol>
+<li><a href="#screen-crosswalk">Specimencode-koppeling</a>: koppel de eigen specimencodes van elke verzendende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> aan uw Specimenwoordenboek, zodat inkomende aanvragen worden herkend. Vereist het Faciliteitenwoordenboek en het Specimenwoordenboek.</li>
+<li><a href="#" data-removed="1">Interfacewoordenboek</a> (alleen voor medewerkers van ForMedrixAI): beschrijf de eigen velden van een leverancier. Klanten voeren deze stap niet uit; zij staat in de lijst zodat de nummering compleet is.</li>
+<li><a href="#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>: voor een laboratorium waarvan het LIS eigenaar van de <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> is en PathScribe ondersteunt met AI-concepten. Vereist AI-gedrag en de Synoptische bibliotheek.</li>
+<li><a href="#screen-bi_feed">Rapportagefeed (Power BI)</a>: laat een rapportagetool PathScribe-gegevens lezen. Vereist de faciliteiten met <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a> in het Faciliteitenwoordenboek.</li>
+<li><a href="#screen-migration_field_mappings">Migratie-veldkoppelingen</a>: koppel de veldnamen van een legacysysteem, vóór elke import van historische gegevens.</li>
+<li><a href="#screen-migration-jobs">Historische gegevensmigratietaken</a>: importeer een legacybestand en controleer de taak. Vereist stap 5.</li>
+</ol>
+<p>De bewakingsschermen (<a href="#screen-audit-interfaces">Systeemlogboeken: interfaces</a>, <a href="#screen-interface-engines">Interface-engines</a>, <a href="#screen-outbound-interface-dlq">Uitgaande interface-DLQ</a>, <a href="#screen-outbound-dispatches">Uitgaande verzendingen</a> en de <a href="#screen-outbound-queue">Uitgaande wachtrij</a>) en de testtools (<a href="#screen-outbound_message_preview">Voorbeeld van uitgaande interfaceberichten</a>, <a href="#screen-simulated_mail">Gesimuleerde postvak-uit</a>, <a href="#screen-mock-interface-engine">Gesimuleerde interface-engine</a> en <a href="#screen-mock-emr">Mock EMR</a>) zijn geen inrichtingsstappen. Elk scherm vermeldt <code>Reference, not part of setup</code> en noemt wat er moet bestaan om gegevens te tonen.</p>
+<h2 id="ch7-status"><a class="anchor" href="#ch7-status" aria-label="Link to this section">#</a> Wat dit niveau wel en niet bevat</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Onderdeel van de opzet</th>
+<th>Status</th>
+<th>Wat er vandaag bestaat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architectuur van de interface-engine</td>
+<td>Gedeeltelijk</td>
+<td>Het berichtcontract en de browserkant zijn gebouwd. De engine (BridgeLink) en de serverendpoints die hij nodig heeft zijn Gepland. Zie <a href="#ch7-architecture">Hoe de interface-engine past</a>.</td>
+</tr>
+<tr>
+<td>Uitgaand <a class="term" href="99-glossary.html#g-hl7-v2" title="Het veelgebruikte HL7-berichtformaat dat bestaat uit regels met door een verticale streep gescheiden velden, waarbij elk bericht begint met een MSH-segment.">HL7 v2</a>.x (<a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer (opname, ontslag, overplaatsing). De familie van HL7-berichten voor patiëntregistratie en patiëntbewegingen, zoals A01 (opname), A08 (patiënt bijwerken) en A40 (patiënten samenvoegen).">ADT</a>, <a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a>, <a class="term" href="99-glossary.html#g-orm" title="Het algemene HL7-berichttype voor aanvragen (ORM^O01).">ORM</a>)</td>
+<td>Gedeeltelijk</td>
+<td>PathScribe verstuurt een JSON-bericht dat de engine tot <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> omzet, behalve drie berichten die het zelf als HL7-tekst opbouwt. Zie <a href="#ch7-hl7-types">Berichttypen</a>.</td>
+</tr>
+<tr>
+<td>Inkomend HL7 v2.x</td>
+<td>Gedeeltelijk</td>
+<td>De processors bestaan en u kunt ze testen met geplakte berichten. Er ontvangt nog geen listener een live HL7-bericht.</td>
+</tr>
+<tr>
+<td><a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, een HL7-standaard voor het uitwisselen van gezondheidsgegevens via webinterfaces.">FHIR</a> R4-endpoint en OAuth2-clientreferenties</td>
+<td>Niet gerealiseerd</td>
+<td>Geen endpoint en geen inrichtingsscherm. Zie <a href="#ch7-fhir">FHIR R4 en OAuth2</a>.</td>
+</tr>
+<tr>
+<td>EPD-integratie (Epic, Cerner, MEDITECH, AthenaHealth)</td>
+<td>Niet gerealiseerd</td>
+<td>Geen leveranciersconnector, gecertificeerd of niet. Zie <a href="#ch7-ehr">EPD-integratie</a>.</td>
+</tr>
+<tr>
+<td>Verzending naar en ontvangst terug van referentielaboratoria</td>
+<td>Gedeeltelijk</td>
+<td>Verzendlijsten van doorverwijzingen worden verstuurd en een uitslagpayload wordt verwerkt. Er ontvangt nog geen inkomend endpoint een uitslag. Zie <a href="#ch7-reflab">Interfaces met referentielaboratoria</a>.</td>
+</tr>
+<tr>
+<td>Interfacebewaking, foutwachtrijen en opnieuw verwerken</td>
+<td>Gerealiseerd (browserkant)</td>
+<td>De schermen en hun bevoegdheden werken. De heartbeat van de engine en nieuwe pogingen aan de kant van de engine zijn Gepland. Zie <a href="#ch7-monitoring">Bewaking</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch7-architecture"><a class="anchor" href="#ch7-architecture" aria-label="Link to this section">#</a> Hoe de interface-engine past</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<h3 id="ch7-pie-term"><a class="anchor" href="#ch7-pie-term" aria-label="Link to this section">#</a> De term "PathScribe Interface Engine"</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p>In de opzet van deze handleiding heet de interfacelaag de PathScribe Interface Engine (PIE). Die naam komt niet voor in het product, in de schermen of in de ontwerpdocumenten, en deze handleiding verzint geen productnaam. Het product heeft twee onderdelen die samen het werk doen dat de opzet beschrijft:</p>
+<ul>
+<li><strong>De PathScribe-kant.</strong> Services in de toepassing bepalen wat er wordt verzonden en wanneer, bouwen het JSON-bericht, zetten het in de wachtrij, leggen de uitkomst vast en laten een beheerder het opnieuw verzenden, aanhouden of vrijgeven. Alles in dit hoofdstuk waarop u kunt klikken, staat aan deze kant.</li>
+<li><strong>De interface-engine.</strong> Het ontwerp gebruikt BridgeLink, een opensourcefork van Mirth Connect, als engine. Hij zet de <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a> van PathScribe om in <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> (of een ander formaat), heeft een eigen berichtenopslag, verstuurt naar het ontvangende systeem en ontvangt antwoorden. BridgeLink is de werknaam in de ontwerpdocumenten (<code>INTERFACE_ENGINE_EDGE.md</code>). De kanaalsjablonen zijn Gepland, niet gebouwd.</li>
+</ul>
+<h3 id="ch7-hosting"><a class="anchor" href="#ch7-hosting" aria-label="Link to this section">#</a> Waar de engine draait</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p>De engine is één containerimage dat op twee plaatsen wordt gebruikt, te kiezen per ziekenhuis (besluit D6). ForMedrixAI kan hem hosten in de regio van de <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a>, of hij kan worden geïnstalleerd op een virtuele machine in het ziekenhuis. Het scherm <a href="#screen-interface-engines">Interface-engines</a> toont van welk van de twee elke engine is (<strong>Gehost</strong> of <strong>Op locatie</strong>). Het image, de kanaalsjablonen en de healthendpoints zijn Gepland, bij het serverteam.</p>
+<p>HL7-berichten reizen niet over de SQL Server-berichtenbus (besluit D1). De API-server geeft een bericht aan de engine door als taak van het soort <code>interface.dispatch</code>, en de engine bewaart <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> in zijn eigen berichtenopslag.</p>
+<h3 id="ch7-today"><a class="anchor" href="#ch7-today" aria-label="Link to this section">#</a> Wat vandaag draait en wat Gepland is</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Onderdeel</th>
+<th>Status</th>
+<th>Wat het voor u betekent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uitgaande berichten, JSON-envelop</td>
+<td>Gerealiseerd (browserkant)</td>
+<td>De browser post <code>{queueEntryId, transactionType, dispatchedAt, payload}</code> naar het adres in de build-instelling <code>VITE_INTERFACE_RECEIVER_ENDPOINT</code>. In een productiebuild moet het adres <code>https</code> zijn; een ontbrekend adres of een adres met gewoon HTTP wordt geweigerd voordat er iets wordt verzonden. De wachttijd is 15 seconden.</td>
+</tr>
+<tr>
+<td>Wat als verzonden geldt</td>
+<td>Gerealiseerd (browserkant)</td>
+<td>Elk 2xx-antwoord markeert het bericht als verzonden. Er is nog geen HL7-bevestiging (<a class="term" href="99-glossary.html#g-ack" title="In HL7 het bevestigingsbericht (acknowledgement) dat een ontvangend systeem terugstuurt om te melden dat het een bericht heeft geaccepteerd of geweigerd.">ACK</a>). Een time-out, een onbereikbare engine en een afwijzing zijn drie verschillende fouten op de schermen.</td>
+</tr>
+<tr>
+<td>Demonstratiebuild</td>
+<td>Demonstratie</td>
+<td>Zonder ingesteld engineadres ontvangt een gesimuleerde engine elk bericht en bewaart het in een lijst. Zie <a href="#screen-mock-interface-engine">Gesimuleerde interface-engine</a>.</td>
+</tr>
+<tr>
+<td>Inkomende gebeurtenissen van instrumenten</td>
+<td>Gerealiseerd (browserkant)</td>
+<td>Er bestaan vier webhooks voor de Cassette Engine: blokuitzondering, uitkomst van cassetteverzending, materiaallocatie en status van de graveermachine. Zij gebruiken een gedeeld geheim in de header <code>X-API-Key</code>, met een optionele HMAC-handtekening.</td>
+</tr>
+<tr>
+<td>Inkomende HL7-berichten</td>
+<td>Niet gerealiseerd</td>
+<td>De processors voor <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer (opname, ontslag, overplaatsing). De familie van HL7-berichten voor patiëntregistratie en patiëntbewegingen, zoals A01 (opname), A08 (patiënt bijwerken) en A40 (patiënten samenvoegen).">ADT</a> en patiëntbeheer bestaan en zijn getest, maar niets ontvangt een live HL7-bericht en roept ze aan.</td>
+</tr>
+<tr>
+<td>Serverendpoints voor de engine (<code>POST /api/interface/inbound</code>, <code>POST /api/interface/outbound-acks</code>, <code>POST /api/interface/heartbeat</code>, <code>GET /api/interface/engines</code>)</td>
+<td>Gepland</td>
+<td>Vastgelegd als contract (fase 2e). Zij voegen overdracht, uitkomsten die door een bevestiging zijn afgehandeld, termijnen voor nieuwe pogingen, dead letters en enginestatus toe.</td>
+</tr>
+<tr>
+<td>Engineauthenticatie per <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a></td>
+<td>Gepland</td>
+<td>OAuth2-clientreferenties of mutual <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, de versleuteling die een webverbinding beschermt en zichtbaar is als https.">TLS</a> per tenantengine. Zie <a href="#ch7-fhir">FHIR R4 en OAuth2</a>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Geplande termijnen voor nieuwe pogingen.</strong> Het contract bepaalt dat inkomende berichten 10 seconden, 30 seconden, 1 minuut, 5 minuten en daarna 15 minuten wachten, met een <a class="term" href="99-glossary.html#g-dead-letter" title="Een bericht of taak waarvan alle automatische nieuwe pogingen zijn mislukt en dat nu wacht tot iemand het opnieuw verzendt of verwijdert.">dead letter</a> na 24 uur. Uitgaande berichten worden opnieuw verzonden na 1, 5, 15 en 60 minuten, daarna elk uur, gedurende 24 uur. Registerinzendingen worden 72 uur bewaard. Een bevestiging van AA wordt verzonden; CA wordt verzonden of wacht op de applicatiebevestiging; AR en CE worden binnen de termijn opnieuw geprobeerd; AE en CR mislukken onmiddellijk. Een uitslag die als dead letter is aangemerkt, houdt latere berichten voor dezelfde <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> tegen. Dit draait nog niet. Vandaag wacht een mislukte verzending tot een beheerder haar opnieuw verzendt.</p>
+<h3 id="ch7-facility-settings"><a class="anchor" href="#ch7-facility-settings" aria-label="Link to this section">#</a> Instellingen voor faciliteitsinterfaces die worden opgeslagen maar niet gebruikt</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p>De Faciliteitseditor (niveau 1, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>) heeft een tabblad <strong>LIS-integratie</strong>. Het slaat een engineadres op, de HL7-versie, het type authenticatie (geen, basic, OAuth2 of API-sleutel), een vlag die zegt of er een referentie is ingericht, of het <a class="term" href="99-glossary.html#g-lis" title="Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.">LIS</a> de casusstatussen beheert, of PathScribe handelingen na de finalisatie toestaat, en de routeringsidentificaties voor de verzendende en de ontvangende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> en een overschrijving van het uitgaande kanaal. Deze instellingen worden bij de faciliteit opgeslagen. Geen enkel verzendpad leest ze vandaag. Een bericht gaat naar het ene adres op implementatieniveau hierboven. De referentie wordt nooit opgeslagen: alleen een vlag Ja/Nee.</p>
+<h2 id="ch7-hl7"><a class="anchor" href="#ch7-hl7" aria-label="Link to this section">#</a> Inkomend en uitgaand HL7 v2.x</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<h3 id="ch7-hl7-types"><a class="anchor" href="#ch7-hl7-types" aria-label="Link to this section">#</a> Berichttypen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p>Er is geen scherm waarmee u berichttypen in- of uitschakelt. De onderstaande typen liggen vast in het product. Dit deel noemt alleen wat de code ondersteunt. Wat niet wordt genoemd, wordt niet ondersteund.</p>
+<p><strong>Uitgaand.</strong> PathScribe zet deze transactietypen in de wachtrij. De engine bouwt de <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> voor alle typen behalve de drie die als "PathScribe builds HL7" zijn gemarkeerd.</p>
+<table>
+<thead>
+<tr>
+<th>Transactietype</th>
+<th>Wat het bevat</th>
+<th>HL7-vorm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A08</code></td>
+<td>Wijziging van patiëntgegevens</td>
+<td>Engine bouwt <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer (opname, ontslag, overplaatsing). De familie van HL7-berichten voor patiëntregistratie en patiëntbewegingen, zoals A01 (opname), A08 (patiënt bijwerken) en A40 (patiënten samenvoegen).">ADT</a>^A08. Geslacht wordt in PID-8 verzonden als M, F, U of A voor onbepaald (de code A is een aanname in afwachting van bevestiging met de ontvangende systemen). Voor Britse locaties is de NHS-code M naar 1, F naar 2, I naar 9, U naar X.</td>
+</tr>
+<tr>
+<td><code>A40</code></td>
+<td>Samenvoeging van patiënten</td>
+<td>Engine bouwt ADT^A40</td>
+</tr>
+<tr>
+<td><code>A47</code></td>
+<td>Wijziging van patiëntidentificatie</td>
+<td>Engine bouwt ADT^A47</td>
+</tr>
+<tr>
+<td><code>ORU_R01</code></td>
+<td>Definitieve, aangevulde of gecorrigeerde pathologie-uitslag</td>
+<td>Engine bouwt <a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a>^R01. Voor Amerikaanse elektronische pathologie (niveau 7) bouwt PathScribe zelf een ORU^R01 v2.5.1.</td>
+</tr>
+<tr>
+<td><code>LIS_SYNC</code></td>
+<td>Casusgegevens en het synoptische resultaat van een Assist-casus, voor het <a class="term" href="99-glossary.html#g-lis" title="Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.">LIS</a></td>
+<td>Engine bouwt het</td>
+</tr>
+<tr>
+<td><code>ORDER_CREATED</code></td>
+<td>Een nieuwe aanvraag</td>
+<td>Engine bouwt het</td>
+</tr>
+<tr>
+<td><code>ACCESSION_EVENT</code></td>
+<td>Een aanvraag die is geaccessioneerd, of een accessietekortkoming</td>
+<td>Engine bouwt het</td>
+</tr>
+<tr>
+<td><code>REGISTRY_REPORT</code>, <code>CANCER_REGISTRY_REPORT</code></td>
+<td>Registerinzendingen (niveau 7)</td>
+<td>Engine bouwt het. Bevestigingen komen terug.</td>
+</tr>
+<tr>
+<td><code>REPORT_DELIVERY</code></td>
+<td>Een ondertekende verslag-PDF voor e-fax of bestandsafgifte</td>
+<td>Engine of afleverservice</td>
+</tr>
+<tr>
+<td><code>PRINT_JOB</code></td>
+<td>Een verslag-PDF die de engine afdrukt</td>
+<td>Engine</td>
+</tr>
+<tr>
+<td><code>REFERRAL_MANIFEST</code></td>
+<td>De verzendlijst van een doorverwijsbatch voor een <a class="term" href="99-glossary.html#g-reference-lab" title="Een laboratorium waarnaar onderzoek wordt doorgestuurd. Een faciliteit krijgt de rol Referentielaboratorium.">referentielaboratorium</a></td>
+<td>Engine bouwt het. Uitslagen komen terug.</td>
+</tr>
+<tr>
+<td><code>MOLECULAR_ORDER</code></td>
+<td>Een aanvraag voor een moleculaire assay of een instrumentaanvraag</td>
+<td>Engine bouwt het</td>
+</tr>
+<tr>
+<td><code>WSI_SCAN_MANIFEST</code></td>
+<td>De preparaten die in een scanbatch voor whole slide imaging zijn geladen</td>
+<td>Engine bouwt het. De scanstatus van de preparaten komt terug.</td>
+</tr>
+<tr>
+<td><code>BLOCK_ORDER</code></td>
+<td>De kleuringsaanvragen van één <a class="term" href="99-glossary.html#g-block" title="Een stukje weefsel dat in een cassette in was is ingebed en waarvan coupes worden gesneden.">blok</a> voor een inbed- of kleuringsinstrument</td>
+<td>PathScribe builds HL7: <a class="term" href="99-glossary.html#g-orm" title="Het algemene HL7-berichttype voor aanvragen (ORM^O01).">ORM</a>^O01</td>
+</tr>
+<tr>
+<td><code>SLIDE_ORDER</code>, <code>SPECIMEN_LABEL</code></td>
+<td>Een preparaataanvraag; een label voor een monstercontainer</td>
+<td>Engine bouwt het</td>
+</tr>
+<tr>
+<td><code>MATERIAL_SCAN_EVENT</code></td>
+<td>Een barcodescan van een <a class="term" href="99-glossary.html#g-cassette" title="De kunststof houder waarin een weefselblok wordt ingebed en gelabeld voor het snijden.">cassette</a> of een preparaat</td>
+<td>Engine bouwt het</td>
+</tr>
+<tr>
+<td><code>CHARGE_DFT</code></td>
+<td>Een kostenregel voor het factureringssysteem</td>
+<td>PathScribe builds HL7: <a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, het HL7-bericht dat kosten naar een factureringssysteem overbrengt.">DFT</a>^P03</td>
+</tr>
+<tr>
+<td><code>CHARGE_JSON</code></td>
+<td>Een kostenregel als JSON-webhook voor facturering</td>
+<td><a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a>, geen HL7</td>
+</tr>
+<tr>
+<td><code>FINANCIAL_CLASS</code></td>
+<td>Payload voor de financiële klasse voor een factureringsengine</td>
+<td>Een voorbeeldpayload totdat de formaten bestaan</td>
+</tr>
+<tr>
+<td><code>CRITICAL_ALERT</code></td>
+<td>Kanalen voor kritieke meldingen na de livegang</td>
+<td>Niet aangesloten. Niets produceert het vandaag.</td>
+</tr>
+</tbody>
+</table>
+<p>De "ORM" in de opzet is dus de ORM^O01 die PathScribe bouwt voor blokaanvragen aan een instrument. PathScribe bouwt zelf geen ORM voor een <a class="term" href="99-glossary.html#g-emr" title="Elektronisch patiëntendossier, het ziekenhuissysteem dat het dossier van de patiënt bevat en aanvragen verstuurt.">EPD</a> of een LIS. De engine bepaalt in welke HL7 een bericht over een aangemaakte aanvraag wordt omgezet, en er is geen scherm om een berichttype toe te voegen.</p>
+<p><strong>Inkomend.</strong> Deze processors bestaan in de toepassing. Geen ervan is aangesloten op een live listener, behalve de instrumentwebhooks hierboven. In de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> kunt u een geplakt bericht erdoorheen halen met de <a href="#screen-mock-interface-engine">Gesimuleerde interface-engine</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Familie</th>
+<th>Berichten</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Opname, ontslag en overplaatsing (<code>adtParser.ts</code>)</td>
+<td>A01, A03, A04, A08, A02, A09, A10, A05, A06, A07, A11, A12, A13, A31</td>
+<td>Processor gebouwd; geen listener</td>
+</tr>
+<tr>
+<td>Patiëntbeheer (<code>patientManagementParser.ts</code>)</td>
+<td>A40 samenvoegen, A24 koppelen, A47 wijziging van identificatie, A43 verplaatsen</td>
+<td>Processor gebouwd; geen listener. Een bericht dat niet kan worden gekoppeld, wordt als interface-uitzondering in de wachtrij gezet en nooit geraden.</td>
+</tr>
+<tr>
+<td>Bezoekwijzigingen (<code>processVisitMessage.ts</code>)</td>
+<td>A45, A50, A34</td>
+<td>Processor gebouwd; geen listener</td>
+</tr>
+<tr>
+<td>Status van LIS-aanvragen (de Assist-adapter)</td>
+<td>ORU^R01, ORM^O01, <a class="term" href="99-glossary.html#g-oml" title="Het HL7-berichttype voor laboratoriumaanvragen (OML^O21).">OML</a>^O21</td>
+<td>Alleen status. U kunt er een plakken in <a href="#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>.</td>
+</tr>
+<tr>
+<td>JSON-gebeurtenissen</td>
+<td>HPV-uitslag, blokuitzondering, materiaallocatie, doorverwijsuitslag, uitslagen van moleculaire runs, scanstatus van whole slide imaging</td>
+<td>Processors gebouwd; de instrumentwebhooks zijn de enige live route</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Inkomende aanvragen worden niet uit HL7 geparseerd.</strong> De service voor aanvraagontvangst neemt een gestructureerde aanvraag aan, geen ORM-bericht, dus een live HL7-aanvraag van een EPD wordt vandaag niet geaccepteerd. De <a href="#screen-crosswalk">Specimencode-koppeling</a> zet de codes van een aanvraag om zodra een aanvraag de service bereikt.</p>
+<p><strong>Leveranciersadapters.</strong> Adapters voor Cerebro en Vantage zijn bewust stubs die niets doen.</p>
+<h3 id="screen-crosswalk"><a class="anchor" href="#screen-crosswalk" aria-label="Link to this section">#</a> Specimencode-koppeling</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties &gt; Ordertypen &amp; inkomende regels"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span> <span aria-hidden="true">›</span> <span>Ordertypen &amp; inkomende regels</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Integraties</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Ordertypen &amp; inkomende regels (de menunaam). De titel op het scherm is <strong>Specimencode-koppeling</strong>.</p>
+<p><strong>3. Doel en bereik.</strong> Een verzendend systeem gebruikt eigen codes voor specimens, en dezelfde code kan bij verschillende verzendende systemen iets anders betekenen. Dit scherm koppelt de code van elke verzendende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> aan één item in het Specimenwoordenboek. Elke inkomende aanvraag wordt aan deze tabel getoetst. Als er geen item overeenkomt, blokkeert PathScribe de aanvraag niet. Het maakt een item aan dat is gemarkeerd als <strong>Automatisch aangeleerd: wacht op beoordeling</strong>, maakt een openstaand item in het Specimenwoordenboek aan zodat de aanvraag kan doorlopen, en zet een interface-uitzondering van het type <code>unmapped_order_code</code> in de wachtrij zodat iemand die oplost. U beoordeelt de automatisch aangeleerde items hier, of u voegt vooraf een echt item toe zodat een bekende code nooit hoeft te worden aangeleerd.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> De lijst <strong>Faciliteit</strong> is het Faciliteitenwoordenboek en de lijst <strong>Komt overeen met</strong> is het Specimenwoordenboek, dus beide worden eerst ingericht. Als u ze overslaat, zijn de lijsten leeg en kan een koppeling niet worden opgeslagen, omdat faciliteit, externe code en specimentype alle drie verplicht zijn.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 6, stap 1</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>, <a href="03-tier2-master-dictionaries.html#screen-specimens">Specimenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-audit-interfaces">Systeemlogboeken: interfaces</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-crosswalk.webp" alt="Lijst van de Specimencode-koppeling met de knoppen Koppeling toevoegen, Spreadsheet importeren en Exporteren" loading="lazy"><figcaption>Lijst van de Specimencode-koppeling met de knoppen Koppeling toevoegen, Spreadsheet importeren en Exporteren</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>De lijst.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-crosswalk-facility"><td>Faciliteit</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>De verzendende faciliteit waarvan de code afkomstig is.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-external-code"><td>Externe code</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>De eigen specimencode van het verzendende systeem.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-resolves-to"><td>Komt overeen met</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Het item in het Specimenwoordenboek waaraan de code is gekoppeld.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-source"><td>Bron</td>
+<td><strong>Bevestigd door beheerder</strong> of <strong>Automatisch aangeleerd: wacht op beoordeling</strong></td>
+<td>Niet van toepassing</td>
+<td><strong>Automatisch aangeleerde</strong> items zijn door het systeem aangemaakt toen er geen item overeenkwam. Een tellerbanner boven de lijst zegt hoeveel items op beoordeling wachten.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-pending-review-banner"><td>Banner Wacht op beoordeling</td>
+<td>Aantal en koppeling</td>
+<td>Niet van toepassing</td>
+<td>Wordt getoond wanneer er uitzonderingen voor niet-gekoppelde ordercodes openstaan. De koppeling <strong>Niet-gekoppelde stubs bekijken in auditwachtrij</strong> opent Systeemlogboeken, Interfaces, gefilterd op <code>unmapped_order_code</code>.</td>
+<td>Verborgen wanneer het aantal 0 is</td>
+</tr>
+<tr id="f-crosswalk-add-mapping"><td>Koppeling toevoegen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het paneel Koppeling toevoegen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-import-spreadsheet"><td>Spreadsheet importeren</td>
+<td>Knop, CSV-bestand</td>
+<td>Niet van toepassing</td>
+<td>Leest een <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> met de kolommen Facility, ExternalCode en ResolvesTo en toont een voorbeeld voordat er iets wordt opgeslagen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-export"><td>Exporteren</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Downloadt <code>SpecimenCodeCrosswalk.csv</code> met de kolommen Facility, ExternalCode, ResolvesTo en Source. De export wordt in het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> vastgelegd.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Het paneel Koppeling toevoegen.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-crosswalk-facility"><td>Faciliteit</td>
+<td>Keuzelijst uit het <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></td>
+<td>Verplicht</td>
+<td>De verzendende faciliteit. Dezelfde code bij twee verschillende faciliteiten is toegestaan.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-crosswalk-external-code"><td>Externe code</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De code precies zoals de afzender die gebruikt. Bij het vergelijken wordt het verschil tussen hoofdletters en kleine letters genegeerd. De plaatsaanduiding toont <code>TISSUE-01</code>.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-crosswalk-site-optional"><td>Locatie (optioneel)</td>
+<td>Keuzelijst met locaties, of <strong>Alle locaties</strong></td>
+<td>Optioneel</td>
+<td>Beperkt de koppeling tot één locatie. Een nieuwe koppeling die zonder locatie wordt opgeslagen, geldt voor alle locaties.</td>
+<td>Alle locaties</td>
+</tr>
+<tr id="f-crosswalk-resolves-to-specimen-type"><td>Komt overeen met specimentype</td>
+<td>Doorzoekbare keuzelijst uit het <a href="03-tier2-master-dictionaries.html#screen-specimens">Specimenwoordenboek</a>, doorzoekt namen en synoniemen</td>
+<td>Verplicht</td>
+<td>Het item dat een aanvraag met deze code wordt.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-crosswalk-save-mapping"><td>Koppeling opslaan</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Wordt met een melding geweigerd als dezelfde faciliteit, code en locatie al aan een item zijn gekoppeld ("Faciliteit koppelt externe code al aan item").</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Het voorbeeld van de spreadsheet.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-crosswalk-summary-line"><td>Samenvattingsregel</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td>Het aantal rijen dat gereed is, hoeveel een bestaande koppeling bijwerken, hoeveel nieuw zijn en hoeveel met fouten zijn overgeslagen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-row-errors"><td>Rijfouten</td>
+<td>Tekstlijst</td>
+<td>Niet van toepassing</td>
+<td>Een faciliteitsnaam die met geen enkele faciliteit overeenkomt, een lege externe code, of een specimennaam die met geen enkel item in het Specimenwoordenboek overeenkomt. Namen worden op naam vergeleken, zonder onderscheid tussen hoofdletters en kleine letters. Een rij met een fout wordt overgeslagen, nooit geraden.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-crosswalk-apply-import"><td>Import toepassen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Slaat elke rij zonder fout op. Een rij waarvan de faciliteit en code al bestaan, werkt het specimentype van die koppeling bij. Geïmporteerde rijen hebben geen locatie.</td>
+<td>Uitgeschakeld wanneer elke rij een fout heeft</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Koppelingen toevoegen, importeren en bijwerken: <code>config:crosswalk:manage</code> (hoog risico). Beheerder en Laboratoriumdirecteur hebben die standaard; Superbeheerder heeft elke bevoegdheid behalve <code>config:ai-prompt:approve</code>, die wordt onthouden met het oog op <a class="term" href="99-glossary.html#g-separation-of-duties" title="Een regel dat twee bevoegdheden niet bij één persoon mogen berusten, zoals het wijzigen van de klinische discrepantieregels en het goedkeuren van de AI-instructies.">functiescheiding</a> (de Laboratoriumdirecteur keurt AI-instructies goed; ForMedrixAI-support nooit). Zonder deze <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> is het scherm alleen-lezen. Het oplossen van een uitzondering voor een niet-gekoppelde code vanuit het beoordelingsvenster maakt hetzelfde item aan.</p>
+<p><strong>Bekende beperkingen.</strong> De menunaam (<strong>Ordertypen &amp; inkomende regels</strong>) verschilt van de titel op het scherm (<strong>Specimencode-koppeling</strong>); beide zijn hetzelfde scherm. Er is geen bewerken of verwijderen in de lijst, alleen toevoegen en bijwerken via een spreadsheet. Een live HL7-aanvraag wordt nog door geen enkele listener ontvangen, dus items worden gebruikt wanneer een aanvraag de service voor aanvraagontvangst bereikt, niet uit een bericht van de lijn.</p>
+<h3 id="screen-assist_lis_polling"><a class="anchor" href="#screen-assist_lis_polling" aria-label="Link to this section">#</a> LIS-ontvangst (Assist-modus)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties &gt; LIS-ontvangst (Assist-modus)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span> <span aria-hidden="true">›</span> <span>LIS-ontvangst (Assist-modus)</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Integraties</strong>
+<strong>2. Onderhoudsonderdeel:</strong> LIS-ontvangst (Assist-modus)</p>
+<p><strong>3. Doel en bereik.</strong> In de <a class="term" href="99-glossary.html#g-assist-mode" title="Een manier om PathScribe naast een bestaand LIS te laten draaien, waarbij het LIS eigenaar van de casus blijft en PathScribe de wijzigingen leest en conceptverslagen opstelt voor beoordeling door de patholoog.">assistentiemodus</a> is het externe <a class="term" href="99-glossary.html#g-lis" title="Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.">LIS</a> eigenaar van de <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>. Zijn wijzigingen bereiken PathScribe op drie manieren: door bevraging, door een <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> v2-bericht of door een JSON-webhook, en alle drie lopen via één ontvangstwachtrij. Wanneer het LIS Macroscopie voltooid meldt, kiest de AI de synoptische sjablonen en stelt zij de velden op die zij uit de macroscopische tekst kan afleiden. Wanneer het LIS Microscopie/diagnose voltooid meldt, stelt zij de rest op uit de diagnose. Dit scherm bevat de instellingen, een testvak voor geplakte berichten, de ontvangstwachtrij en het runlogboek.</p>
+<p><strong>Wat is gebouwd en wat niet.</strong> Gebouwd: de instellingen, de statuskoppeling, het testvak, de ontvangstwachtrij met zijn nieuwe pogingen, het runlogboek en de regels voor het opstellen door de AI. Gesimuleerd in de demonstratie: de planning (de app bevraagt op het opgeslagen interval zolang zij geopend is en bevraging aan staat, en het scherm toont een melding <strong>Gesimuleerde planning</strong> met de laatste en de volgende run) en het LIS dat <strong>Nu bevragen</strong> aanroept. Niet gebouwd: een live listener voor HL7- of webhookberichten, en een veld voor het adres van het te bevragen LIS. Het scherm heeft zo'n veld niet.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> De AI-stap gebruikt de schakelaars van AI-gedrag en de synoptische sjablonen. Als <strong>AI uitgeschakeld in AI-gedrag</strong> van toepassing is, wijzigt een update alleen de casustekst en wordt er geen concept gemaakt. Alleen een casus in de assistentiemodus wordt verwerkt; een casus die niet in de assistentiemodus staat, wordt overgeslagen met het resultaat <strong>Geen Assist-zaak</strong>.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 6, stap 3</p><dl><dt>Eerst inrichten</dt><dd><a href="05-tier4-ai-framework.html#screen-tab-ai">AI-gedrag</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-tab-protocols">Synoptische bibliotheek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-audit-interfaces">Systeemlogboeken: interfaces</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-assist_lis_polling.webp" alt="LIS-ontvangst (Assist-modus) met Bevraging, statuskoppeling, testvak, ontvangstwachtrij en activiteit" loading="lazy"><figcaption>LIS-ontvangst (Assist-modus) met Bevraging, statuskoppeling, testvak, ontvangstwachtrij en activiteit</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Bevraging en statuskoppeling.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-poll-the-lis-on-a-schedule"><td>LIS volgens schema bevragen</td>
+<td>Ja/nee-schakelaar. Het label luidt <strong>Geplande bevraging aan</strong> of <strong>Geplande bevraging uit</strong>.</td>
+<td>Optioneel</td>
+<td>Zet de geplande bevraging aan. Op de productieserver draait het schema op de PathScribe-server. <strong>Nu bevragen</strong> werkt of dit nu aan of uit staat.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-assist_lis_polling-poll-every-minutes"><td>Bevragen elke (minuten)</td>
+<td>Geheel getal van 1 tot 1440</td>
+<td>Verplicht</td>
+<td>De tijd tussen geplande bevragingen. Een waarde buiten het bereik of een breuk wordt geweigerd met "Het interval moet een geheel aantal minuten zijn van 1 tot 1440."</td>
+<td>5</td>
+</tr>
+<tr id="f-assist_lis_polling-lis-status-each-row"><td>LIS-status (elke rij)</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Een van de eigen statuswoorden van uw LIS, bijvoorbeeld <code>GROSSED</code>. Bij het vergelijken worden spaties aan de uiteinden en het verschil tussen hoofdletters en kleine letters genegeerd. Een lege status wordt geweigerd. Dezelfde status kan niet twee keer in de lijst staan.</td>
+<td>Vier rijen, hieronder</td>
+</tr>
+<tr id="f-assist_lis_polling-milestone-each-row"><td>Mijlpaal (elke rij)</td>
+<td>Keuze uit <strong>Macroscopie voltooid</strong> of <strong>Microscopie/diagnose voltooid</strong></td>
+<td>Verplicht</td>
+<td>Wat de status betekent. Macroscopie voltooid start een concept voor de macroscopiefase. Microscopie/diagnose voltooid start een volledig concept. Een status die niet in de lijst staat, start niets.</td>
+<td>Macroscopie voltooid bij een nieuwe rij</td>
+</tr>
+<tr id="f-assist_lis_polling-remove"><td>Verwijderen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verwijdert de rij. Zonder rijen zegt het scherm "Geen LIS-statussen gekoppeld. Niets zal een AI-concept starten."</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-add-status"><td>+ Status toevoegen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Voegt een lege rij toe.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-discard-changes-save"><td>Wijzigingen verwerpen, Opslaan</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td>Beide blijven uitgeschakeld totdat er iets wijzigt. Als u het scherm met niet-opgeslagen wijzigingen verlaat, wordt eerst gevraagd wat u wilt doen.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>De vier standaardrijen zijn <code>GROSS_COMPLETE</code> en <code>GROSSED</code> (Macroscopie voltooid), en <code>MICRO_COMPLETE</code> en <code>DX_COMPLETE</code> (Microscopie/diagnose voltooid).</p>
+<p>Een inkomend bericht testen.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-message-format"><td>Berichtformaat</td>
+<td>Keuze uit <strong>HL7 v2-bericht</strong> of <strong>JSON-webhook</strong></td>
+<td>Verplicht</td>
+<td>Welke adapter de geplakte tekst leest.</td>
+<td>HL7 v2-bericht</td>
+</tr>
+<tr id="f-assist_lis_polling-load-example"><td>Voorbeeld laden</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Vult het vak met een voorbeeld voor het gekozen formaat.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-inbound-message"><td>Inkomend bericht</td>
+<td>Vrije tekst</td>
+<td>Verplicht</td>
+<td>Het bericht zoals het LIS het zou verzenden. Het loopt door dezelfde adapter en ontvangstwachtrij als een echt bericht en wordt direct verwerkt. Een bericht dat niet kan worden gelezen, toont een reden, bijvoorbeeld "Dit is geen HL7 v2-bericht (het moet beginnen met een MSH-segment)."</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-assist_lis_polling-send-to-staging-queue"><td>Naar de wachtrij sturen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont "In wachtrij: n, Nu verwerkt: n" of de reden.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Wat de adapters lezen. Een HL7-bericht moet een <a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a>^R01, <a class="term" href="99-glossary.html#g-orm" title="Het algemene HL7-berichttype voor aanvragen (ORM^O01).">ORM</a>^O01 of <a class="term" href="99-glossary.html#g-oml" title="Het HL7-berichttype voor laboratoriumaanvragen (OML^O21).">OML</a>^O21 zijn; elk ander type wordt geweigerd. Per OBR-segment wordt één update gemaakt. Het <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a> is OBR-3, anders OBR-2, anders ORC-3. De status is ORC-5, anders OBR-25. De tijd is OBR-22, anders MSH-7, en een tijd zonder offset wordt als <a class="term" href="99-glossary.html#g-utc" title="Gecoördineerde wereldtijd (Coordinated Universal Time), de tijdstandaard waarin auditvermeldingen worden opgeslagen en getoond.">UTC</a> gelezen, dus vraag het LIS een offset mee te sturen. De tekst komt uit OBX-5 op basis van de LOINC-code in OBX-3: <code>22634-0</code> macroscopisch, <code>22635-7</code> microscopisch en <code>22637-3</code> definitieve diagnose. Een JSON-body is één object of een lijst, met <code>accession</code>, <code>status</code> en <code>updatedAt</code> (ISO 8601) verplicht, en <code>grossText</code>, <code>microscopicText</code>, <code>diagnosisText</code>, <code>placerOrderNumber</code> en <code>fillerOrderNumber</code> optioneel. De ordernummers worden overgenomen in het synoptische resultaat.</p>
+<p>Ontvangstwachtrij.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-counts-line"><td>Tellerregel</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td>De aantallen Wachtend, Mislukt en Verwerkt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-retry-failed"><td>Mislukte opnieuw proberen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Probeert elke mislukte vermelding opnieuw die minder dan 5 pogingen heeft gehad. Uitgeschakeld wanneer er niets is mislukt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-received-source-accession-lis-status-state-result-attempts"><td>Ontvangen, Bron, Accessienummer, LIS-status, Status, Resultaat, Pogingen</td>
+<td>Alleen-lezen kolommen</td>
+<td>Niet van toepassing</td>
+<td>Bron is <strong>Bevraging</strong>, <strong>HL7 v2-bericht</strong> of <strong>JSON-webhook</strong>. Status is <strong>Wachtend</strong>, <strong>Mislukt</strong> of <strong>Verwerkt</strong>. Resultaat is de uitkomst of de fout. Het accessienummer is getagd als patiëntgegeven voor redactie. De lijst toont de nieuwste 25 rijen. Een vermelding wordt na 5 pogingen niet meer opnieuw geprobeerd. De nieuwste 200 verwerkte gebeurtenissen worden bewaard.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Activiteit.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-poll-now"><td>Nu bevragen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Vraagt het LIS direct om wijzigingen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-cursor-line"><td>Cursorregel</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td>"Wijzigingen tot (tijd) zijn verwerkt" of "Het LIS is nog niet bevraagd."</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-run-table"><td>Runtabel</td>
+<td>Alleen-lezen kolommen: Tijd, Aanleiding, Van het LIS, Nieuw in wachtrij, AI-concepten, Alleen tekst, Overgeslagen, Mislukt</td>
+<td>Niet van toepassing</td>
+<td>Aanleiding is <strong>Nu bevragen</strong>, <strong>Schema</strong>, <strong>Inkomend bericht</strong> of <strong>Nieuwe poging</strong>. Het logboek bewaart de laatste 20 runs.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-assist_lis_polling-latest-poll"><td>Laatste bevraging</td>
+<td>Alleen-lezen kolommen: Accessienummer, LIS-status, Mijlpaal, Resultaat, Details</td>
+<td>Niet van toepassing</td>
+<td>Eén rij per casus in de nieuwste run. Een resultaat is een van: AI-concept voorbereid; Geen wijziging sinds het laatste concept; Zaak niet in PathScribe; Al afgetekend; Mislukt (wordt opnieuw geprobeerd); Status niet gekoppeld; Geen Assist-zaak; Tekst bijgewerkt, AI uitgeschakeld in AI-gedrag; Tekst bijgewerkt, concept al voltooid. De details geven nieuwe concepten, voorgestelde velden en sjabloonwijzigingen die te beoordelen zijn.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Instellingen opslaan: <code>config:assist-polling:manage</code> (hoog risico). Nu bevragen, testbericht en Mislukte opnieuw proberen: <code>assist:lis-message:ingest</code> (hoog risico, gecontroleerd via het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>); de geplande bevraging is die van het systeem en wordt niet gecontroleerd. Beheerder en Laboratoriumdirecteur hebben beide standaard.</p>
+<p><strong>Bekende beperkingen.</strong> De bron van de bevraging en de planning worden gesimuleerd in de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a>, en geen enkele listener ontvangt een HL7- of webhookbericht van een echt LIS. De HL7-adapter leest de status uit ORC-5, daarna OBR-25, en de broncode beschrijft dit als een instelling per locatie, maar het scherm heeft er geen bediening voor. Een afgetekende casus wordt nooit gewijzigd. Een late of aangevulde macroscopie na het volledige concept werkt alleen de tekst bij.</p>
+<h3 id="screen-outbound_message_preview"><a class="anchor" href="#screen-outbound_message_preview" aria-label="Link to this section">#</a> Voorbeeld van uitgaande interfaceberichten</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties &gt; Voorbeeld van uitgaande interfaceberichten"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span> <span aria-hidden="true">›</span> <span>Voorbeeld van uitgaande interfaceberichten</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Integraties</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Voorbeeld van uitgaande interfaceberichten</p>
+<p><strong>3. Doel en bereik.</strong> Een controletool. Hij bouwt het JSON-bericht dat PathScribe voor één echte patiënt of <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> voor de interface-engine in de wachtrij zou zetten, toont het en laat u het als bestand downloaden. Gebruik hem om een interfaceanalist een echt voorbeeld te geven om op voort te bouwen, of om te controleren wat de engine zal ontvangen voordat een kanaal is gebouwd. Hij verzendt niets en zet niets in de wachtrij. Hij toont alleen vier berichttypen: <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer (opname, ontslag, overplaatsing). De familie van HL7-berichten voor patiëntregistratie en patiëntbewegingen, zoals A01 (opname), A08 (patiënt bijwerken) en A40 (patiënten samenvoegen).">ADT</a>^A08, ADT^A40, ADT^A47 en <a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a>^R01.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Er hoeft eerst niets te worden ingericht. Hij heeft een bestaand patiëntdossier nodig (voor de ADT-typen) of een casus met een gefinaliseerd <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> verslag (voor de uitslag). Zonder een van beide meldt het scherm dat de patiënt niet is gevonden of dat de payloadbouwer niets heeft teruggegeven.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-outbound_message_preview.webp" alt="Keuze van het berichttype, id-velden en de JSON-uitvoer" loading="lazy"><figcaption>Keuze van het berichttype, id-velden en de JSON-uitvoer</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound_message_preview-message-type"><td>Berichttype</td>
+<td>Keuze uit ADT^A08 — Demografische update, ADT^A40 — Patiënt samenvoegen, ADT^A47 — Identificatie wijzigen, ORU^R01 — Pathologieresultaat</td>
+<td>Verplicht</td>
+<td>Bepaalt welke velden hieronder verschijnen. Wijzigen wist de uitvoer.</td>
+<td>ADT^A08</td>
+</tr>
+<tr id="f-outbound_message_preview-patient-id-a08"><td>Patiënt-ID (A08)</td>
+<td>Tekst, een id van een patiëntdossier</td>
+<td>Verplicht voor A08</td>
+<td>De patiënt voor wie de demografische update wordt gebouwd. Getagd als patiëntgegeven.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-prior-merged-away-patient-id-a40"><td>Vorige (samengevoegde) patiënt-ID (A40)</td>
+<td>Tekst</td>
+<td>Verplicht voor A40</td>
+<td>Het dossier dat is samengevoegd.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-surviving-patient-id-a40"><td>Overblijvende patiënt-ID (A40)</td>
+<td>Tekst</td>
+<td>Verplicht voor A40</td>
+<td>Het dossier dat blijft bestaan.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-downtime-temporary-patient-id-a47"><td>Tijdelijke patiënt-ID (A47)</td>
+<td>Tekst</td>
+<td>Verplicht voor A47</td>
+<td>Het tijdelijke dossier waarvan de identificatie wordt gecorrigeerd.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-confirmed-patient-id-a47"><td>Bevestigde patiënt-ID (A47)</td>
+<td>Tekst</td>
+<td>Verplicht voor A47</td>
+<td>Het bevestigde dossier.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-reason-code-a47"><td>Redencode (A47)</td>
+<td>Tekst</td>
+<td>Verplicht voor A47</td>
+<td>Waarom de identificatie wijzigt.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-notes-a47"><td>Notities (A47)</td>
+<td>Tekst</td>
+<td>Verplicht voor A47</td>
+<td>Een opmerking in vrije tekst.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-case-id-oru-r01"><td>Casus-ID (ORU^R01)</td>
+<td>Tekst</td>
+<td>Verplicht voor ORU</td>
+<td>De casus. Getagd als <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a>.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-synoptic-instance-id-oru-r01"><td>Synoptische instantie-ID (ORU^R01)</td>
+<td>Tekst</td>
+<td>Verplicht voor ORU</td>
+<td>Een gefinaliseerd synoptisch verslag van die casus.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound_message_preview-result-state-oru-r01"><td>Uitslagstatus (ORU^R01)</td>
+<td>Keuze uit <strong>Definitief</strong>, <strong>Gecorrigeerd</strong>, <strong>Addendum</strong></td>
+<td>Verplicht voor ORU</td>
+<td>De status van de uitslag waarvan u het voorbeeld bekijkt.</td>
+<td>Definitief</td>
+</tr>
+<tr id="f-outbound_message_preview-preview-payload"><td>Pakket bekijken</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Bouwt en toont de <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a>. Uitgeschakeld totdat de <a class="term" href="99-glossary.html#g-field-requirements" title="De instellingen die bepalen welke velden op een pagina moeten zijn ingevuld voordat een stap kan worden voltooid.">verplichte velden</a> voor het gekozen type zijn ingevuld.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound_message_preview-download-json"><td>JSON downloaden</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Slaat het getoonde bericht op als <code>&lt;type&gt;_&lt;time&gt;.json</code>. De download wordt in het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> vastgelegd.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Twee waarschuwingen verschijnen op het scherm en zijn juist. Bij A40 en A47 staan de aantallen omgezette casus en contacten op 0, omdat het voorbeeld de samenvoeging niet uitvoert. Bij ORU^R01 ontbreken de verslag-PDF en de verslagtekst, omdat zij de renderpijplijn voor verslagen nodig hebben die dit scherm niet heeft. Elk ander veld heeft de vorm die de engine zou ontvangen. Het ORU-voorbeeld vereist bovendien dat de casus in de rapportagemodus orchestrator staat, en een ontbrekende <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a> wordt gemeld als "Er is geen pdf van het verslag voor deze uitslag".</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Een voorbeeld bouwen en downloaden: <code>config:interface-preview:view</code> (hoog risico). Beheerder en Laboratoriumdirecteur hebben die standaard.</p>
+<p><strong>Bekende beperkingen.</strong> De eigen ondertitel van het scherm zegt "PathScribe never builds or sends <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> itself". Dat klopt niet helemaal: PathScribe bouwt HL7 voor blokaanvragen (<a class="term" href="99-glossary.html#g-orm" title="Het algemene HL7-berichttype voor aanvragen (ORM^O01).">ORM</a>^O01), kostenregels (<a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, het HL7-bericht dat kosten naar een factureringssysteem overbrengt.">DFT</a>^P03) en Amerikaanse uitslagen voor elektronische pathologie. Dit scherm toont alleen de JSON. De vier typen zijn de enige die het kan tonen; de andere transactietypen in <a href="#ch7-hl7-types">Berichttypen</a> kunnen hier niet worden bekeken. Het verzonden bericht is achteraf te zien in <a href="#screen-outbound-dispatches">Uitgaande verzendingen</a> voor gebeurtenissen waarbij een aanvraag wordt aangemaakt.</p>
+<h2 id="ch7-fhir"><a class="anchor" href="#ch7-fhir" aria-label="Link to this section">#</a> FHIR R4-endpoint en OAuth2-clientreferenties</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p><strong>Status:</strong> Niet gerealiseerd</p>
+<p>PathScribe heeft geen <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, een HL7-standaard voor het uitwisselen van gezondheidsgegevens via webinterfaces.">FHIR</a> R4-endpoint. Het publiceert geen FHIR-server, accepteert geen FHIR-resource van een ander systeem en heeft geen scherm om een FHIR-basisadres, een client-id, een clientgeheim of een tokenadres in te stellen. Er is ook geen inrichtingsscherm voor OAuth2-clientreferenties. Plan geen livegang die van een van beide afhangt.</p>
+<p>Wat er het dichtst bij komt, zodat u weet waar een vraag over kan gaan:</p>
+<table>
+<thead>
+<tr>
+<th>Wat</th>
+<th>Wat het is</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Casusservice voor een FHIR-bron (<code>FHIRCaseService.ts</code>)</td>
+<td>Een steiger om <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> uit een FHIR-server te lezen. Het basisadres is een plaatshouder en de functie die een toegangstoken ophaalt, geeft een fout. Het is niet aan een scherm of instelling gekoppeld.</td>
+<td>Niet gerealiseerd</td>
+</tr>
+<tr>
+<td>FHIR als berichtformaat in het <a href="#" data-removed="1">Interfacewoordenboek</a></td>
+<td>Een leveranciersprofiel kan worden geschreven voor een FHIR-resource zoals <code>Observation</code>, en de test leest een geplakt voorbeeld. Niets ontvangt een FHIR-bericht van een leverancier.</td>
+<td>Gedeeltelijk, alleen ForMedrixAI</td>
+</tr>
+<tr>
+<td>Type authenticatie in de Faciliteitseditor</td>
+<td>Op het tabblad <strong>LIS-integratie</strong> kunt u <code>OAuth2</code> kiezen als type authenticatie voor de engineverbinding van een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>. Het is een opgeslagen keuze. Geen code leest haar.</td>
+<td>Alleen opgeslagen</td>
+</tr>
+<tr>
+<td>OAuth2-clientreferenties, of mutual <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, de versleuteling die een webverbinding beschermt en zichtbaar is als https.">TLS</a>, voor de engine van elke <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a></td>
+<td>Het contract voor hoe de engine zich bij de PathScribe <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a> legitimeert (<code>INTERFACE_ENGINE_EDGE.md</code>).</td>
+<td>Gepland</td>
+</tr>
+<tr>
+<td>Aanmelden van medewerkers via OpenID Connect (<a class="term" href="99-glossary.html#g-oidc" title="OpenID Connect, de aanmeldstandaard die PathScribe gebruikt voor single sign-on.">OIDC</a>)</td>
+<td>Single sign-on voor mensen, niet voor berichten tussen systemen. Behandeld in niveau 1.</td>
+<td>Gerealiseerd (browserkant)</td>
+</tr>
+<tr>
+<td>Tokens voor de <a href="#screen-bi_feed">Rapportagefeed (Power BI)</a></td>
+<td>Bearer-tokens die PathScribe uitgeeft, eenmaal toont en alleen als vingerafdruk bewaart. Het zijn geen OAuth2-tokens.</td>
+<td>Gedeeltelijk</td>
+</tr>
+</tbody>
+</table>
+<p>De pagina <a href="#screen-mock-emr">Mock EMR</a> bevat de opmerking "Production uses FHIR R4 API to sync with <a class="term" href="99-glossary.html#g-lis" title="Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.">LIS</a>". Niets in de code onderbouwt die zin. Beschouw haar als een ontwerpintentie.</p>
+<h2 id="ch7-ehr"><a class="anchor" href="#ch7-ehr" aria-label="Link to this section">#</a> EPD-integratie: Epic, Cerner, MEDITECH en AthenaHealth</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p><strong>Status:</strong> Niet gerealiseerd</p>
+<p>PathScribe heeft geen connector voor enig <a class="term" href="99-glossary.html#g-emr" title="Elektronisch patiëntendossier, het ziekenhuissysteem dat het dossier van de patiënt bevat en aanvragen verstuurt.">EPD</a>, gecertificeerd of niet. Het staat in geen enkele marktplaats van een leverancier en heeft volgens het bewijs in deze handleiding geen enkele validatie van een leverancier doorstaan. Wat een EPD ook verstuurt of ontvangt, loopt via de interface-engine, die het interfaceteam van het ziekenhuis inricht, en PathScribe ziet alleen de berichten in <a href="#ch7-hl7-types">Berichttypen</a>. Beschrijf PathScribe aan een klant niet als "Epic-gecertificeerd", "Cerner-gecertificeerd" of iets dergelijks.</p>
+<table>
+<thead>
+<tr>
+<th>EPD</th>
+<th>Wat er in PathScribe bestaat</th>
+<th>Wat er niet bestaat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Epic</td>
+<td>Een voorinstelling voor het identificatieformaat met de naam <strong>Epic Beaker</strong> (<a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a> en een patroon voor een 2D-preparaatbarcode). Ingesteld op het tabblad Identificatieformaten van de Faciliteitseditor, niveau 1.</td>
+<td>Een connector, een Epic-specifiek berichtprofiel, een certificering, een registratie van een FHIR-app.</td>
+</tr>
+<tr>
+<td>Cerner</td>
+<td>Een voorinstelling voor het identificatieformaat met de naam <strong>Cerner PathNet</strong>.</td>
+<td>Hetzelfde.</td>
+</tr>
+<tr>
+<td>MEDITECH</td>
+<td>Een voorinstelling voor het identificatieformaat met de naam <strong>MEDITECH</strong>.</td>
+<td>Hetzelfde.</td>
+</tr>
+<tr>
+<td>AthenaHealth</td>
+<td>Niets. De naam komt niet voor in de code, de schermen of de ontwerpdocumenten.</td>
+<td>Alles.</td>
+</tr>
+</tbody>
+</table>
+<p>Dezelfde lijst voorinstellingen bevat ook Generic, CoPath, Sunquest en Custom. Een voorinstelling bepaalt alleen welke accessie- en barcodepatronen het scanvak herkent. Zij wisselt met niets een bericht uit.</p>
+<p><strong>Hoe een EPD-integratie er vandaag uitziet.</strong> Een EPD kan PathScribe alleen via de engine bereiken, als de uitgaande berichten in <a href="#ch7-hl7-types">Berichttypen</a> (uitslagen, patiëntwijzigingen, aanvraaggebeurtenissen, accessiegebeurtenissen) en als inkomende processors die nog niet op een live listener zijn aangesloten. Het <a href="#" data-removed="1">Interfacewoordenboek</a> heeft geen vooraf geladen leveranciersprofiel voor enig EPD. De <a href="#screen-crosswalk">Specimencode-koppeling</a> koppelt de specimencodes van een EPD zodra een aanvraag de service voor aanvraagontvangst bereikt. Het EPD behoudt het gezag over de patiëntidentiteit: een A40-, A24-, A47- of A43-bericht dat niet kan worden gekoppeld, wordt als interface-uitzondering voor een persoon in de wachtrij gezet en nooit geraden. Zie <a href="#screen-audit-interfaces">Systeemlogboeken: interfaces</a>.</p>
+<h3 id="screen-mock-emr"><a class="anchor" href="#screen-mock-emr" aria-label="Link to this section">#</a> Mock EMR</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Mock EMR"><span>Start</span> <span aria-hidden="true">›</span> <span>Mock EMR</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Een venster dat in de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> vanuit een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> wordt geopend, op het adres <code>/mock-emr?case=&lt;reference&gt;</code>. Het wordt alleen gebouwd wanneer de demonstratietools aan staan (<code>__DEMO_TOOLS__</code>); een build die met een API-server communiceert, bevat het niet.
+<strong>2. Onderhoudsonderdeel:</strong> Mock EMR</p>
+<p><strong>3. Doel en bereik.</strong> Een vervanger voor de patiëntweergave van een <a class="term" href="99-glossary.html#g-emr" title="Elektronisch patiëntendossier, het ziekenhuissysteem dat het dossier van de patiënt bevat en aanvragen verstuurt.">EPD</a>, zodat een demonstratie het EPD-begeleidende venster naast een casus kan tonen. Het zoekt de patiënt van de casus op met het dossiernummer in de demonstratiecasus en toont een vaste klinische samenvatting. Het leest geen echt EPD en is gemarkeerd met <strong>DEMO: SYNTHETISCHE GEGEVENS</strong>. Als het dossiernummer met geen enkele patiënt overeenkomt, zegt het <strong>Geen patiënt gevonden</strong> in plaats van een verkeerde patiënt te tonen.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Geen. Het heeft een casus met een patiënt in de demonstratiegegevens nodig.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-mock-emr.webp" alt="Patiëntweergave van de Mock EMR met de demobadge" loading="lazy"><figcaption>Patiëntweergave van de Mock EMR met de demobadge</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong> Een alleen-lezen pagina. Niets erop kan worden gewijzigd.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-mock-emr-patient-name-mrn-date-of-birth-gender"><td>Patiëntnaam, <a class="term" href="99-glossary.html#g-mrn" title="Medisch dossiernummer (medical record number), de identificatie die een faciliteit aan een patiënt geeft.">MRN</a>, geboortedatum, geslacht</td>
+<td>Tekst (alleen-lezen, getagd als patiëntgegeven)</td>
+<td>Niet van toepassing</td>
+<td>Uit de gekoppelde demonstratiecasus. De geboortedatum luidt "niet geregistreerd" wanneer die ontbreekt. Een NHS-badge verschijnt wanneer een <a class="term" href="99-glossary.html#g-nhs-number" title="De patiëntidentificatie van tien cijfers die in de NHS in Engeland en Wales wordt gebruikt. Het laatste cijfer is een controlecijfer.">NHS-nummer</a> is geverifieerd.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-mock-emr-encounter-status-ward"><td>Opname, Status, Afdeling</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Vaste demonstratiewaarden (Opgenomen, <a class="term" href="99-glossary.html#g-department" title="De grove klasse van een monster bij de intake, zoals chirurgisch weefsel of vloeistofcytologie. Zij stuurt het uitsnijdsjabloon, het zaakmasker en een eventuele afwijking van de bewaartermijn.">afdeling</a> 4B Urologie).</td>
+<td>Vast</td>
+</tr>
+<tr id="f-mock-emr-clinical-summary-active-problems-medications"><td>Klinische samenvatting: Actieve problemen, Medicatie</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Vaste demonstratietekst, niet afkomstig van de patiënt.</td>
+<td>Vast</td>
+</tr>
+<tr id="f-mock-emr-integration-note"><td>Integratienotitie</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>De zin over <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, een HL7-standaard voor het uitwisselen van gezondheidsgegevens via webinterfaces.">FHIR</a> R4. Zie de opmerking onder <a href="#ch7-fhir">FHIR R4 en OAuth2</a>.</td>
+<td>Vast</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Er is geen bevoegdheid en de route heeft geen schermpoort. De pagina bestaat alleen in een demonstratiebuild.</p>
+<p><strong>Bekende beperkingen.</strong> Alleen synthetische gegevens, en de klinische samenvatting is voor elke patiënt hetzelfde. Het is geen integratie.</p>
+<h2 id="ch7-reflab"><a class="anchor" href="#ch7-reflab" aria-label="Link to this section">#</a> Interfaces met referentielaboratoria</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<p>Een <a class="term" href="99-glossary.html#g-reference-lab" title="Een laboratorium waarnaar onderzoek wordt doorgestuurd. Een faciliteit krijgt de rol Referentielaboratorium.">referentielaboratorium</a> is een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> waarnaar u specimens stuurt voor uitbesteed onderzoek, bijvoorbeeld moleculair onderzoek of doorgestuurde immunohistochemie. PathScribe ondersteunt het verzenden met een verzendlijst en het terugontvangen met een uitslagbericht. De uitgaande kant is gebouwd; de inkomende kant heeft een processor maar geen endpoint.</p>
+<p>Er is geen scherm met de naam "interface voor referentielaboratorium". De inrichting is verdeeld over schermen die u al hebt:</p>
+<ol>
+<li><strong>Maak het laboratorium een faciliteit.</strong> Voeg in het <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a> het laboratorium toe en geef het de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> <strong>Referentielaboratorium (bestemming van uitgaande doorverwijzing)</strong>. Die rol maakt het selecteerbaar als bestemming van een doorverwijsbatch. Alleen een actieve faciliteit met de rol wordt aangeboden.</li>
+<li><strong>Koppel het aan de onderzoeken die het uitvoert.</strong> In de <a href="03-tier2-master-dictionaries.html#screen-stains">Diagnostische catalogus</a> noemt een <strong>Moleculair</strong> onderzoek de referentielaboratoria die het mogen uitvoeren en welke de standaard is. De standaard moet een van de goedgekeurde laboratoria zijn. De koppeling wordt alleen bewaard voor de categorie Moleculair, en een aanvullende aanvraag voor dat onderzoek vult de standaard in en biedt alleen de goedgekeurde laboratoria aan.</li>
+<li><strong>Verzenden.</strong> Doorverwijsbatches worden gemaakt in <a href="04-tier3-workflow-engines.html#screen-batch-management">Batchbeheer</a> met het verwerkingsknooppunt <strong>Externe doorverwijzing</strong> en een bestemmingsfaciliteit. Wanneer de batch de afstemming voltooit, zet PathScribe een <code>REFERRAL_MANIFEST</code>-bericht in de wachtrij en maakt het automatisch het volgrecord aan. Een fout hierbij blokkeert de eigen afronding van de batch nooit. De verzendlijst bevat het batch-id, de masterbarcode, de bestemmingsfaciliteit, het aangevraagde onderzoek, de prioriteit (<strong><a class="term" href="99-glossary.html#g-stat" title="Spoed, direct uit te voeren.">STAT</a></strong> of <strong>Routine</strong>), de items (weergave-id, materiaaltype, <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a> van de <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> en specimenlabel) en eventuele moleculaire aanvragen die worden doorgestuurd. PathScribe bepaalt wat en wanneer; de engine bepaalt het transport.</li>
+<li><strong>Volg de verzending.</strong> Het bericht verschijnt in de <a href="#screen-outbound-queue">Uitgaande wachtrij</a> onder de stroom <strong>Verwijzingen</strong>, en in de <a href="#screen-outbound-interface-dlq">Uitgaande interface-DLQ</a> onder de wachtrij <strong>Verzendlijst</strong>, waar een mislukt bericht opnieuw wordt verzonden.</li>
+<li><strong>Terugontvangen.</strong> Een uitslagbericht (<code>ReferralResultEventPayload</code>) bevat het batch-id en ofwel een <strong>discrete</strong> uitslag (tekst) ofwel een <strong>pdf_attachment</strong> (een koppeling naar een <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a>), nooit beide, en optioneel de uitslagen voor elke moleculaire aanvraag die is doorgestuurd. De processor controleert de vorm, vindt de batch, legt de uitslag vast en markeert de batch als <strong>result_received</strong>, en past daarna gecodeerde uitslagen toe op de moleculaire aanvragen. De status van een batch gaat alleen vooruit: verzonden, onderweg, afgeleverd, uitslag ontvangen. Een persoon kan onderweg en afgeleverd met de hand instellen; uitslag ontvangen wordt alleen ingesteld wanneer er een uitslag binnenkomt.</li>
+</ol>
+<p><strong>Wat niet is gebouwd.</strong> Geen endpoint ontvangt een uitslagbericht, dus er komt geen uitslag uit eigen beweging van een referentielaboratorium binnen. De processor onthoudt de bericht-id's die hij heeft verwerkt alleen in het geheugen, dus een herstart vergeet ze. Hij geeft een van vier antwoorden: toegepast, al toegepast, volgrecord niet gevonden of ongeldige payload. Er is geen testvoorbeeld voor een doorverwijsuitslag in de <a href="#screen-mock-interface-engine">Gesimuleerde interface-engine</a>. De eigen terminologie van een referentielaboratorium (zijn onderzoeksnamen en uitslagcodes) wordt door PathScribe niet vertaald; de engine is daar eigenaar van.</p>
+<h2 id="ch7-monitoring"><a class="anchor" href="#ch7-monitoring" aria-label="Link to this section">#</a> Interfacebewaking, foutwachtrijen en opnieuw verwerken</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd (browserkant)</p>
+<p>Alles wat een beheerder nodig heeft om te zien wat is mislukt, en om het opnieuw te verzenden, aan te houden of vrij te geven, staat op de schermen in dit deel. Zij werken vandaag met de demonstratiegegevens en met de services voor de API-server. Wat de engine toevoegt wanneer hij is aangesloten (een heartbeat, uitkomsten die door een bevestiging zijn afgehandeld en automatische termijnen voor nieuwe pogingen) is Gepland. Zie <a href="#ch7-today">Wat vandaag draait en wat Gepland is</a>.</p>
+<h3 id="ch7-reprocessing"><a class="anchor" href="#ch7-reprocessing" aria-label="Link to this section">#</a> Regels voor opnieuw verwerken in één oogopslag</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span></nav>
+
+<p>Een mislukt bericht wordt nooit weggegooid, en er wordt vandaag niets opnieuw verzonden zonder dat een persoon op een knop drukt. De onderstaande regels zijn wat de code afdwingt.</p>
+<table>
+<thead>
+<tr>
+<th>Situatie</th>
+<th>Waar het verschijnt</th>
+<th>Wat u kunt doen</th>
+<th>Bevoegdheid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Een inkomend patiëntbericht kon niet worden gekoppeld (A40, A24, A47, A43)</td>
+<td><a href="#screen-audit-interfaces">Systeemlogboeken: interfaces</a>, Interface-uitzonderingen</td>
+<td>Beoordeel het, koppel de patiënten met de hand of verplaats <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, of wijs het af. Het bericht wordt nooit geraden.</td>
+<td>Geen specifieke. Zie de bekende beperkingen daar.</td>
+</tr>
+<tr>
+<td>Een inkomende ordercode heeft geen overeenkomst in het Specimenwoordenboek</td>
+<td>Interface-uitzonderingen, type <code>unmapped_order_code</code></td>
+<td><strong>Koppelen &amp; linken</strong> maakt het item in de <a href="#screen-crosswalk">Specimencode-koppeling</a> aan, of wijs af.</td>
+<td><code>config:crosswalk:manage</code> voor het item</td>
+</tr>
+<tr>
+<td>Een uitgaand bericht kon niet worden verzonden</td>
+<td><a href="#screen-outbound-interface-dlq">Uitgaande interface-DLQ</a>, en de <a href="#screen-outbound-queue">Uitgaande wachtrij</a> als <strong>Mislukt</strong></td>
+<td><strong>Verzending opnieuw proberen</strong> of <strong>Nu verzenden</strong> stuurt het opnieuw naar de engine.</td>
+<td><code>interface:outbound:resend</code></td>
+</tr>
+<tr>
+<td>Een bericht moet nog niet weg</td>
+<td>Uitgaande wachtrij, <strong>Wachtend</strong> of <strong>Mislukt</strong></td>
+<td><strong>Aanhouden</strong> met een reden, daarna <strong>Vrijgeven</strong>. Een aangehouden bericht wordt door geen enkele andere actie verzonden: opnieuw proberen zegt "Aangehouden in de <a class="term" href="99-glossary.html#g-outbound-queue" title="De lijst van berichten en kosten die PathScribe heeft opgebouwd en die nog niet zijn verzonden, aangehouden, verzonden of mislukt.">uitgaande wachtrij</a>: geef het daar eerst vrij."</td>
+<td><code>interface:outbound:hold</code>, <code>interface:outbound:release</code></td>
+</tr>
+<tr>
+<td>Een bericht is mislukt na zijn automatische nieuwe pogingen</td>
+<td>Uitgaande wachtrij, <strong>Definitief mislukt</strong></td>
+<td><strong>Opnieuw proberen</strong>, of <strong>Charge intrekken</strong> voor een factureringsitem.</td>
+<td><code>interface:outbound:resend</code>, <code>interface:outbound:retract</code></td>
+</tr>
+<tr>
+<td>Een <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> heeft een inzending afgewezen</td>
+<td>Uitgaande wachtrij, <strong>Afgewezen</strong></td>
+<td><strong>Opnieuw proberen</strong> (opnieuw indienen) met een reden, of <strong>Markeren als niet meldingsplichtig</strong> met een reden.</td>
+<td><code>interface:outbound:resend</code>, <code>interface:outbound:mark-not-reportable</code></td>
+</tr>
+<tr>
+<td>Een kostenregel moet eerder weg of worden geannuleerd</td>
+<td>Uitgaande wachtrij, factureringsitems</td>
+<td><strong>Nu vrijgeven</strong> of <strong>Charge intrekken</strong>.</td>
+<td><code>interface:outbound:override-release</code>, <code>interface:outbound:retract</code></td>
+</tr>
+<tr>
+<td>Het afdrukken, faxen of afleveren als bestand van een verslag is mislukt na de nieuwe pogingen</td>
+<td>Verzenduitzonderingen, bovenaan de Uitgaande interface-DLQ</td>
+<td>Verzend opnieuw vanuit de eigen wachtrij (de Afdrukwachtrij, of Verslagverzending). Het verdwijnt uit de lijst wanneer het doorgaat.</td>
+<td><code>interface:outbound:resend</code> voor verslagverzending</td>
+</tr>
+<tr>
+<td>Een kostenregel in de wachtrij is mislukt</td>
+<td>Het subtabblad Uitgaande <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, de lijst van berichten waarvan alle nieuwe pogingen zijn mislukt. Systeemlogboeken heeft er een voor uitgaande interfaceberichten en een voor kosten.">DLQ</a> van Systeemlogboeken, Financieel (niveau 7)</td>
+<td>Zie <a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a>.</td>
+<td>Zie dat scherm</td>
+</tr>
+</tbody>
+</table>
+<p><strong>De ingebouwde rollen.</strong> Beheerder heeft alle bevoegdheden <code>interface:outbound:*</code>, <code>interface:engine-status:view</code> en <code>jobs:server-job:view</code>. Laboratoriumdirecteur heeft er geen en heeft het scherm Uitgaande wachtrij niet. De QA-beoordelaar opent alleen het scherm van het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> en de exports. Superbeheerder heeft elke bevoegdheid behalve <code>config:ai-prompt:approve</code>, die wordt onthouden met het oog op <a class="term" href="99-glossary.html#g-separation-of-duties" title="Een regel dat twee bevoegdheden niet bij één persoon mogen berusten, zoals het wijzigen van de klinische discrepantieregels en het goedkeuren van de AI-instructies.">functiescheiding</a> (de Laboratoriumdirecteur keurt AI-instructies goed; ForMedrixAI-support nooit). Er is geen ingebouwde <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> Interfaceanalist: een ziekenhuis maakt er een en geeft die de bevoegdheden die het wil (het seedbestand zegt dat).</p>
+<p><strong>Wat een nieuwe verzending doet.</strong> Een nieuwe verzending bouwt het bericht opnieuw op uit het record en post het. Als het record waarnaar het verwijst niet meer bestaat, wordt er niets verzonden en zegt het scherm "Niet verzonden: het bericht kon niet worden opgebouwd". Een uitslag waarvoor nog geen verslag-PDF bestaat, wordt aangehouden, niet verzonden, en gaat bij een latere nieuwe poging samen met de <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a> mee. Elke actie die een bericht wijzigt, wordt vastgelegd in het auditlogboek, één vermelding per bericht, en de audittekst bevat nooit een patiëntnaam. De nieuwe poging op de lijn (de engine die een verbinding opnieuw probeert) is van de engine, niet van PathScribe.</p>
+<h3 id="screen-audit-interfaces"><a class="anchor" href="#screen-audit-interfaces" aria-label="Link to this section">#</a> Systeemlogboeken: interfaces</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance &gt; Systeemlogboeken &gt; Interfacelogboek"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Systeemlogboeken</span> <span aria-hidden="true">›</span> <span>Interfacelogboek</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> Start &gt; <strong>Kwaliteit &amp; Compliance</strong> &gt; <strong>Systeemlogboeken</strong> &gt; tabblad <strong>Interfacelogboek</strong> (de tabnaam op het scherm), op <code>/audit?tab=interfaces</code>.
+<strong>2. Onderhoudsonderdeel:</strong> Systeemlogboeken: interfaces</p>
+<p><strong>3. Doel en bereik.</strong> De ene plaats om te zien wat er is misgegaan aan de grens met andere systemen. Het heeft vijf subtabbladen: <strong>Interface-uitzonderingen</strong> (inkomende berichten die niet konden worden verwerkt), <strong>Uitgaande interface-DLQ</strong> (uitgaande berichten die zijn mislukt of wachten), <strong>Uitgaande verzendingen</strong> (het spoor van gebeurtenissen waarbij een aanvraag wordt aangemaakt), <strong>Afdrukwachtrij</strong> en <strong>Engines</strong> (status van de interface-engine, alleen getoond met <code>interface:engine-status:view</code>). Een regel boven de subtabbladen vat de engines samen en opent <strong>Engines</strong> met één klik. Het tabblad toont een badge met het aantal openstaande uitzonderingen.</p>
+<p>Dit hoofdstuk documenteert Interface-uitzonderingen hier en de andere vier subtabbladen op hun eigen schermen: <a href="#screen-outbound-interface-dlq">Uitgaande interface-DLQ</a>, <a href="#screen-outbound-dispatches">Uitgaande verzendingen</a> en <a href="#screen-interface-engines">Interface-engines</a>. Het subtabblad Afdrukwachtrij wordt in deze handleiding niet gedocumenteerd; zie de openstaande vragen.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Hier wordt niets ingericht. De lijst vult zich wanneer een interface-uitzondering ontstaat. Uitzonderingen voor niet-gekoppelde ordercodes verschijnen wanneer de <a href="#screen-crosswalk">Specimencode-koppeling</a> geen item voor een code heeft.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-crosswalk">Specimencode-koppeling</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-audit-interfaces.webp" alt="Tabblad Interfacelogboek met het subtabblad Interface-uitzonderingen, statuslabels en zoekvak" loading="lazy"><figcaption>Tabblad Interfacelogboek met het subtabblad Interface-uitzonderingen, statuslabels en zoekvak</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Subtabblad Interface-uitzonderingen.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-interfaces-status-pills"><td>Statuslabels</td>
+<td>Keuze uit <strong>Alle</strong>, <strong>In behandeling</strong>, <strong>Opgelost</strong>, <strong>Afgewezen</strong>, elk met een aantal</td>
+<td>Optioneel</td>
+<td>Filtert de lijst.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-interfaces-search"><td>Zoeken</td>
+<td>Tekst, plaatsaanduiding "Zoek gebeurtenistype, reden…"</td>
+<td>Optioneel</td>
+<td>Vergelijkt met het gebeurtenistype en de reden. De koppeling van de Specimencode-koppeling opent dit tabblad doorzocht op <code>unmapped_order_code</code>.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-interfaces-export-csv"><td>Exporteren als <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Downloadt de gefilterde lijst. Er is geen patiëntnaam, dossiernummer of geboortedatum in opgenomen. Gecontroleerd via het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-map-patient"><td>Patiënt koppelen</td>
+<td>Knop, getoond wanneer de gebruiker bij een organisatie hoort</td>
+<td>Niet van toepassing</td>
+<td>Opent de break-glass-tool om een tijdelijke patiëntidentiteit opnieuw te koppelen. Een zeldzame, beperkte handeling.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-timestamp"><td>Tijdstempel</td>
+<td>Datum en tijd (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Wanneer de uitzondering ontstond.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-event-type"><td>Gebeurtenistype</td>
+<td>Tekstbadge (alleen-lezen), bijvoorbeeld <code>A40</code>, <code>A24</code>, <code>A47</code>, <code>A43</code>, <code>unmapped_order_code</code></td>
+<td>Niet van toepassing</td>
+<td>Het soort bericht. Een chip met een <a class="term" href="99-glossary.html#g-support-reference" title="Een willekeurige, niet-identificerende code van de vorm `SR-XXXX-XXXX` die medewerkers aan support doorgeven in plaats van een casusnummer.">supportreferentie</a> staat ernaast.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-reason"><td>Reden</td>
+<td>Tekst (alleen-lezen, getagd als patiëntgegeven)</td>
+<td>Niet van toepassing</td>
+<td>De exacte reden waarom het niet kon worden verwerkt, bijvoorbeeld "MRG-5 does not match any known Encounter."</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-source-patient-target-patient"><td>Bronpatiënt, Doelpatiënt</td>
+<td>Tekst (alleen-lezen, getagd als dossiernummer)</td>
+<td>Niet van toepassing</td>
+<td>De identificaties die vóór de fout zijn gehaald. Een streepje wanneer er geen kon worden gelezen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-status"><td>Status</td>
+<td>Knop <strong>Beoordelen</strong> zolang de uitzondering openstaat; badge <strong>Opgelost</strong> of <strong>Afgewezen</strong> daarna</td>
+<td>Niet van toepassing</td>
+<td><strong>Beoordelen</strong> opent het venster hieronder.</td>
+<td>In behandeling</td>
+</tr>
+<tr id="f-audit-interfaces-footer"><td>Voettekst</td>
+<td>"n van n interface-uitzonderingen weergegeven"</td>
+<td>Niet van toepassing</td>
+<td>De getoonde en totale aantallen.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Venster Interface-uitzondering beoordelen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance &gt; Systeemlogboeken &gt; Interfacelogboek &gt; Interface-uitzondering beoordelen"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Systeemlogboeken</span> <span aria-hidden="true">›</span> <span>Interfacelogboek</span> <span aria-hidden="true">›</span> <span>Interface-uitzondering beoordelen</span></nav>
+
+<p>Wat het venster biedt, hangt af van het gebeurtenistype. Afwijzen is voor elk type beschikbaar.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-interfaces-source-patient-target-patient"><td>Bronpatiënt, Doelpatiënt</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>De twee patiënten die het bericht noemde. "De patiëntidentiteit kon niet worden opgelost." verschijnt met de ruwe identificatie wanneer het koppelen mislukte.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-source-patient-s-active-cases-a43-only"><td>Actieve dossiers van de bronpatiënt (alleen A43)</td>
+<td>Lijst met selectievakjes van <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> met specimen, <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> en status</td>
+<td>Optioneel</td>
+<td>Kies welke casus, indien van toepassing, naar de doelpatiënt gaan.</td>
+<td>Geen geselecteerd</td>
+</tr>
+<tr id="f-audit-interfaces-move-selected-cases-a43-only"><td>Geselecteerde dossiers verplaatsen (alleen A43)</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verplaatst elke geselecteerde casus en legt de uitzondering vast als opgelost met een notitie over hoeveel er zijn verplaatst en eventuele fouten. Uitgeschakeld totdat een casus is geselecteerd en beide patiënten bekend zijn.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-search-and-patient-picklists-a40-a24-a47"><td>Zoek- en patiëntkeuzelijsten (A40, A24, A47)</td>
+<td>Zoekvak en keuzelijst, één voor elke kant. A47 heeft alleen de bronkant, "Patiënt wiens identificatie wordt gecorrigeerd". A40 toont "Vorige patiënt (wordt samengevoegd)" en "Overblijvende patiënt". A24 toont "Eerste patiëntdossier" en "Tweede patiëntdossier".</td>
+<td>Verplicht</td>
+<td>Kies het dossier of de dossiers die het bericht bedoelde. "Er wordt niets gegokt."</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-interfaces-apply-a40-a24-a47"><td>Toepassen (A40, A24, A47)</td>
+<td>Knop, "A40 toepassen" enzovoort</td>
+<td>Niet van toepassing</td>
+<td>Past het bericht met de hand toe op de patiënten die u hebt gekozen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-raw-order-code-normalized-coding-system-unmapped-order-code"><td>Ruwe ordercode, Genormaliseerd, Coderingssysteem (<code>unmapped_order_code</code>)</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Wat er binnenkwam en hoe het is genormaliseerd.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-map-to-specimen-dictionary-entry-unmapped-order-code"><td>Koppelen aan specimenwoordenboekvermelding (<code>unmapped_order_code</code>)</td>
+<td>Doorzoekbare keuzelijst</td>
+<td>Verplicht om te koppelen</td>
+<td>Het item waaraan deze code moet worden gekoppeld.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-interfaces-map-amp-link-unmapped-order-code"><td>Koppelen &amp; linken (<code>unmapped_order_code</code>)</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Maakt het item in de <a href="#screen-crosswalk">Specimencode-koppeling</a> direct aan, zodat latere aanvragen met precies deze code worden herkend en de uitzondering niet herhalen. Een uitzondering die is ontstaan voordat het bijhouden van de faciliteit bestond, kan hier niet worden gekoppeld; voeg het item toe in de Specimencode-koppeling en wijs daarna af.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-interfaces-dismiss-no-action-needed"><td>Afwijzen — Geen actie nodig</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Sluit de uitzondering zonder wijziging. Gebruik dit zodra de juiste identiteit stroomopwaarts is bevestigd, bijvoorbeeld door een gecorrigeerde nieuwe verzending van het <a class="term" href="99-glossary.html#g-emr" title="Elektronisch patiëntendossier, het ziekenhuissysteem dat het dossier van de patiënt bevat en aanvragen verstuurt.">EPD</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:audit-log:open</code>. De lijst exporteren: <code>audit:interface-log:export</code> (hoog risico). Patiënt koppelen: <code>patient:break-glass:rebind</code> (hoog risico; Beheerder heeft die standaard). Beheerder, Laboratoriumdirecteur en QA-beoordelaar openen standaard het scherm van het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>. Zie <a href="#ch7-reprocessing">Regels voor opnieuw verwerken in één oogopslag</a> voor de andere subtabbladen.</p>
+<p><strong>Bekende beperkingen.</strong> Het oplossen, afwijzen en koppelen van een interface-uitzondering heeft geen eigen bevoegdheid: iedereen die het scherm kan openen, kan ze uitvoeren. De uitzondering van een inkomend HL7-bericht kan pas verschijnen wanneer het bericht wordt verwerkt, en er bestaat nog geen live listener, dus in de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> komen uitzonderingen van de simulator van de <a href="#screen-mock-interface-engine">Gesimuleerde interface-engine</a>. Beoordelen voor een ander gebeurtenistype dan de vijf hierboven biedt alleen Afwijzen.</p>
+<h3 id="screen-interface-engines"><a class="anchor" href="#screen-interface-engines" aria-label="Link to this section">#</a> Interface-engines</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance &gt; Systeemlogboeken &gt; Interfacelogboek &gt; Engines"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Systeemlogboeken</span> <span aria-hidden="true">›</span> <span>Interfacelogboek</span> <span aria-hidden="true">›</span> <span>Engines</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<p><strong>1. Navigatie:</strong> Systeemlogboeken, tabblad <strong>Interfacelogboek</strong>, subtabblad <strong>Engines</strong>. Het subtabblad verschijnt alleen voor mensen met <code>interface:engine-status:view</code>.
+<strong>2. Onderhoudsonderdeel:</strong> Interface-engines (de titel op het scherm)</p>
+<p><strong>3. Doel en bereik.</strong> Eén lijst van de interface-engine van elk ziekenhuis, die zegt of de listeners actief zijn, wat er wacht en wat er is mislukt. De lijst wordt elke minuut vernieuwd en heeft een knop <strong>Vernieuwen</strong>. Hij is alleen-lezen: kanalen worden op de engine zelf gestart en gestopt, en mislukte uitgaande berichten worden opnieuw verzonden vanuit de <a href="#screen-outbound-interface-dlq">Uitgaande interface-DLQ</a> (de knop <strong>Uitgaand openen</strong> gaat daarheen).</p>
+<p><strong>Wat is gebouwd en wat Gepland is.</strong> Het scherm en de statusregels zijn gebouwd. De gegevens komen van de heartbeat van de engine, die de engine elke 60 seconden post naar een endpoint dat Gepland is (<code>POST /api/interface/heartbeat</code>; de lijst is <code>GET /api/interface/engines</code>). Tot die tijd toont de demonstratie vier voorbeeldengines, één voor elke status, met een badge <strong>Gesimuleerd</strong>, en zegt "In de demo is geen interface-engine." Als er geen engine is geregistreerd, zegt de lijst "Er is nog geen interface-engine geregistreerd."</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Hier wordt niets ingericht. Een engine moet door ForMedrixAI worden geïnstalleerd en geregistreerd; dat is Gepland.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-interface-engines.webp" alt="Interface-engines met status, kanalen, wachtende berichten en dead letters" loading="lazy"><figcaption>Interface-engines met status, kanalen, wachtende berichten en dead letters</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong> Een alleen-lezen pagina.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-interface-engines-summary-line"><td>Samenvattingsregel</td>
+<td>Tekst, "Interface-engines: ..."</td>
+<td>Niet van toepassing</td>
+<td>Aantallen: online, verminderd, offline, die aandacht vragen, listeners uit, berichten wachtend.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-status"><td>Status</td>
+<td><strong>Online</strong>, <strong>Verminderd</strong>, <strong>Offline</strong>, <strong>Aandacht nodig</strong> (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Offline: geen heartbeat gedurende 180 seconden, volgens de klok van de server. Verminderd: PathScribe kan vanaf de engine niet worden bereikt, het certificaat verloopt over minder dan 14 dagen, de vrije schijfruimte is minder dan 15 procent, een kanaal is in fout, gepauzeerd of gestopt, of een bericht heeft langer dan 15 minuten gewacht. Aandacht nodig: voor het overige gezond, maar een kanaal heeft dead letters. Online: niets van dit alles.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-hosting"><td>Hosting</td>
+<td><strong>Gehost</strong> of <strong>Op locatie</strong></td>
+<td>Niet van toepassing</td>
+<td>Waar de engine draait (besluit D6).</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-version-last-check-in"><td>Versie, Laatste melding</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td>De engineversie, en "Nooit gemeld" wanneer er geen is.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-reaches-pathscribe"><td>Bereikt PathScribe</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td><strong>Bereikt PathScribe</strong>, of "Bereikt PathScribe niet: berichten worden opgeslagen om door te sturen".</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-disk-free-certificate-expires"><td>Schijfruimte vrij, Certificaat verloopt</td>
+<td>Percentage, datum</td>
+<td>Niet van toepassing</td>
+<td>De twee gezondheidsinvoeren hierboven.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-channel"><td>Kanaal</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td>Het kanaal van de engine.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-direction"><td>Richting</td>
+<td><strong>Inkomend (listener)</strong> of <strong>Uitgaand</strong></td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-state"><td>Status</td>
+<td><strong>Gestart</strong>, <strong>Gepauzeerd</strong>, <strong>Gestopt</strong>, <strong>Fout</strong></td>
+<td>Niet van toepassing</td>
+<td>Een regel met het kanaalprobleem legt het uit: Wacht meer dan n minuten; Definitief mislukte berichten af te handelen; Fout; Gepauzeerd, wachtrij bewaard; Gestopt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-waiting-oldest-waiting-dead-letters"><td>Wachtend, Langst wachtend, Definitief mislukt</td>
+<td>Getal, minuten, getal</td>
+<td>Niet van toepassing</td>
+<td>Wachtrijlengte, leeftijd van het langst wachtende bericht en het aantal berichten dat definitief is mislukt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-totals"><td>Totalen</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td>Wachtende berichten, dead letters en listeners die uit staan, over alle engines.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-interface-engines-refresh-open-outbound"><td>Vernieuwen, Uitgaand openen</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> <code>interface:engine-status:view</code> (standaard risico; vereist <code>screen:audit-log:open</code>). Beheerder heeft die standaard; een ziekenhuis kan haar toekennen aan zijn interfaceanalisten. Wie haar niet heeft, ziet het subtabblad niet, en een geweigerde leesactie zegt "U hebt geen toestemming om de interface-engines te zien."</p>
+<p><strong>Bekende beperkingen.</strong> Nog geen enkele engine meldt zich, dus de echte lijst is leeg totdat het heartbeat-endpoint en het engine-image bestaan (Gepland, fase 2e). De gezondheidsgrenzen liggen vast in de code en hebben geen instelling.</p>
+<h3 id="screen-outbound-interface-dlq"><a class="anchor" href="#screen-outbound-interface-dlq" aria-label="Link to this section">#</a> Uitgaande interface-DLQ</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance &gt; Systeemlogboeken &gt; Interfacelogboek &gt; Uitgaande interface-DLQ"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Systeemlogboeken</span> <span aria-hidden="true">›</span> <span>Interfacelogboek</span> <span aria-hidden="true">›</span> <span>Uitgaande interface-DLQ</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> Systeemlogboeken, tabblad <strong>Interfacelogboek</strong>, subtabblad <strong>Uitgaande interface-DLQ</strong>.
+<strong>2. Onderhoudsonderdeel:</strong> Uitgaande interface-DLQ</p>
+<p><strong>3. Doel en bereik.</strong> Een dead-letter queue (<a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, de lijst van berichten waarvan alle nieuwe pogingen zijn mislukt. Systeemlogboeken heeft er een voor uitgaande interfaceberichten en een voor kosten.">DLQ</a>) is de lijst van berichten die niet konden worden verzonden. Dit scherm toont mislukte en wachtende uitgaande interfaceberichten voor één wachtrij tegelijk en laat u ze opnieuw verzenden. <strong>Nu verzenden</strong> en <strong>Opnieuw proberen</strong> sturen het bericht naar de interface-engine. De knoppen <strong>Simuleren</strong> zijn een testhulp en verzenden nooit. Een mislukte kostenregel staat in de afzonderlijke financiële DLQ (<a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a>). Het paneel met verzenduitzonderingen (hieronder) staat bovenaan.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Hier wordt niets ingericht. Een bericht verschijnt nadat een uitgaande verzending is mislukt. Als <code>VITE_INTERFACE_RECEIVER_ENDPOINT</code> niet is ingesteld, accepteert of weigert de demonstratie-engine volgens zijn antwoordmodus (zie <a href="#screen-mock-interface-engine">Gesimuleerde interface-engine</a>).</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-outbound-interface-dlq.webp" alt="Uitgaande interface-DLQ met wachtrijkeuze, mislukte rijen en verzenduitzonderingen" loading="lazy"><figcaption>Uitgaande interface-DLQ met wachtrijkeuze, mislukte rijen en verzenduitzonderingen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-interface-dlq-queue"><td>Wachtrij</td>
+<td>Keuze uit acht wachtrijen: Pathologieresultaat (<a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a>^R01); Cytologie-uitslag (ORU^R01); Patiënt-ADT (A08/A40/A47); Assist-modus LIS-synchronisatie; Accessiegebeurtenissen (geaccessioneerd / tekortkoming); Verslagverzending (e-fax, bestandslevering); Verzendlijst; Moleculaire / instrumentaanvraag</td>
+<td>Verplicht</td>
+<td>Kiest de wachtrij. De eerste twee kolommen voor identificatie en soort veranderen mee (bijvoorbeeld Casus en Uitslagstatus; Bronpatiënt en Gebeurtenistype; Batchbarcode en Prioriteit; Monster of barcode en Assay; Accessienummer en Kanaal · verslag). Het wisselen van wachtrij wist de uitkomstmeldingen.</td>
+<td>Pathologieresultaat</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-identifier-kind"><td>Mislukt: identificatie, soort</td>
+<td>Tekst (alleen-lezen, getagd als patiëntgegeven)</td>
+<td>Niet van toepassing</td>
+<td>Het record en zijn soort.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-error"><td>Mislukt: Fout</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Een van <strong>Verzending afgewezen</strong>, <strong>Time-out bij verzending</strong>, <strong>Engine onbereikbaar</strong> of <strong>Onbekend</strong>, met de melding eronder.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-retries"><td>Mislukt: Pogingen</td>
+<td>Getal</td>
+<td>Niet van toepassing</td>
+<td>Hoe vaak het opnieuw is verzonden. "(maximum overschreden)" verschijnt wanneer de vermelding die vlag heeft. De eigen verzending van de browser zet de vlag vandaag nooit.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-retry-dispatch"><td>Mislukt: Verzending opnieuw proberen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verzendt opnieuw. Het antwoord verschijnt ernaast: "Verzonden en aanvaard door de interface-engine"; "Niet verzonden: de reden staat in de kolom Fout"; "Vastgehouden: de pdf van het verslag is nog niet beschikbaar"; "Niet verzonden: het bericht kon niet worden opgebouwd"; "Dat bericht staat niet meer in de wachtrij"; "Aangehouden in de <a class="term" href="99-glossary.html#g-outbound-queue" title="De lijst van berichten en kosten die PathScribe heeft opgebouwd en die nog niet zijn verzonden, aangehouden, verzonden of mislukt.">uitgaande wachtrij</a>: geef het daar eerst vrij"; of "U hebt geen toestemming om interfaceberichten opnieuw te verzenden."</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-capture-as-capa"><td>Mislukt: Vastleggen als <a class="term" href="99-glossary.html#g-capa" title="Corrigerende en preventieve actie. Een bijgehouden reactie op een kwaliteitsprobleem, met een eigenaar en een reden om de actie te openen of af te wijzen.">CAPA</a></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Legt de fout vast als een item voor corrigerende en preventieve actie (CAPA). De rij toont daarna <strong>Vastgelegd</strong>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-queued-identifier-kind-queued-at"><td>In wachtrij: identificatie, soort, In wachtrij sinds</td>
+<td>Alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Berichten die wachten om te worden verzonden.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-queued-dispatch-now"><td>In wachtrij: Nu verzenden</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verzendt het bericht nu.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-queued-simulate-rejected-simulate-timeout-simulate-unreachable"><td>In wachtrij: Afwijzing simuleren, Time-out simuleren, Onbereikbaarheid simuleren</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td>Fabriceren een fout van die soort om te testen. Zij weerspiegelen nooit een echte verzending.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-interface-dlq-delivery-exceptions-n"><td>Verzenduitzonderingen (n)</td>
+<td>Alleen-lezen lijst: Casus, Kanaal, Pogingen, Laatste fout, Terugvaloptie, Opgegeven</td>
+<td>Niet van toepassing</td>
+<td>Afdrukken, faxen en bestandsafgiften die na hun automatische nieuwe pogingen nog steeds zijn mislukt. De terugvalkanalen van een regel verschijnen als "Verzonden via ...". Beheerder en Laboratoriumdirecteur krijgen een bericht wanneer er een bijkomt. Een verzending die bij een nieuwe verzending slaagt, verdwijnt bij de volgende controleronde uit de lijst. "No delivery exceptions." wanneer de lijst leeg is.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:audit-log:open</code>. Nu verzenden, Verzending opnieuw proberen en de knoppen Simuleren: <code>interface:outbound:resend</code> (hoog risico, gecontroleerd via het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>). Beheerder heeft die standaard. Een ziekenhuis kan haar toekennen aan zijn eigen <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> voor interfaceanalist. Vastleggen als CAPA heeft geen eigen bevoegdheid.</p>
+<p><strong>Bekende beperkingen.</strong> De ondertitel zegt "seven queues", maar het scherm biedt er acht. Er is geen automatische nieuwe poging in de browser: een mislukt bericht wacht op een persoon. De geplande termijnen voor nieuwe pogingen staan in <a href="#ch7-today">Wat vandaag draait en wat Gepland is</a>.</p>
+<h3 id="screen-outbound-dispatches"><a class="anchor" href="#screen-outbound-dispatches" aria-label="Link to this section">#</a> Uitgaande verzendingen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance &gt; Systeemlogboeken &gt; Interfacelogboek &gt; Uitgaande verzendingen"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Systeemlogboeken</span> <span aria-hidden="true">›</span> <span>Interfacelogboek</span> <span aria-hidden="true">›</span> <span>Uitgaande verzendingen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> Systeemlogboeken, tabblad <strong>Interfacelogboek</strong>, subtabblad <strong>Uitgaande verzendingen</strong>.
+<strong>2. Onderhoudsonderdeel:</strong> Uitgaande verzendingen</p>
+<p><strong>3. Doel en bereik.</strong> Het spoor van elke gebeurtenis waarbij een aanvraag wordt aangemaakt die PathScribe naar de interface-engine heeft verzonden (categorie E), met de uitkomst. Het is een registratie, geen foutwachtrij. Mislukte verzendingen van uitslagen en patiëntwijzigingen staan in de <a href="#screen-outbound-interface-dlq">Uitgaande interface-DLQ</a>. Open een rij om de exacte <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a> te zien die is verzonden. PathScribe verzendt JSON; de engine bouwt daaruit het HL7-bericht.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Hier wordt niets ingericht. Rijen verschijnen wanneer een bericht over een aangemaakte aanvraag wordt verzonden.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-outbound-dispatches.webp" alt="Tabel Uitgaande verzendingen en payloadlade" loading="lazy"><figcaption>Tabel Uitgaande verzendingen en payloadlade</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-dispatches-status-filter"><td>Statusfilter</td>
+<td>Keuze uit <strong>Alle</strong>, <strong>Afgeleverd</strong>, <strong>Mislukt</strong>, <strong>Resultaat onbekend</strong></td>
+<td>Optioneel</td>
+<td>Filtert de tabel. Resultaat onbekend betekent dat het bericht is vastgelegd maar dat er geen uitkomst terugkwam.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-outbound-dispatches-search"><td>Zoeken</td>
+<td>Tekst, "Zoek op bericht-ID of registratienummer..."</td>
+<td>Optioneel</td>
+<td>Vergelijkt met het bericht-id en het <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a>.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound-dispatches-timestamp"><td>Tijdstempel</td>
+<td>Datum en tijd (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Wanneer het is verzonden.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-message-id"><td>Bericht-ID</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Het id van het bericht.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-accession"><td>Registratienummer</td>
+<td>Tekst (alleen-lezen, getagd als patiëntgegeven)</td>
+<td>Niet van toepassing</td>
+<td>De <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-category"><td>Categorie</td>
+<td>Tekst, <strong>E: aanvraag</strong></td>
+<td>Niet van toepassing</td>
+<td>De categorie van de transactie.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-message-type"><td>Berichttype</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>Het transactietype.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-ordering-facility"><td>Aanvragende instelling</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>De <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> waarvan de aanvraag kwam.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-status"><td>Status</td>
+<td><strong>Afgeleverd</strong>, <strong>Mislukt</strong>, <strong>Resultaat onbekend</strong>, met "n pogingen"</td>
+<td>Niet van toepassing</td>
+<td>De uitkomst.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-outbound-payload-drawer"><td>Lade Verzonden payload</td>
+<td>Alleen-lezen JSON met <strong>Payload kopiëren</strong></td>
+<td>Niet van toepassing</td>
+<td>De exacte JSON die is verzonden, en de fout als het mislukte. Kopiëren zet hem op het klembord.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-dispatches-footer"><td>Voettekst</td>
+<td>"n van n uitgaande verzendingen weergegeven"</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:audit-log:open</code>. Er is geen bevoegdheid op de tabel of de kopieerknop. Beheerder, Laboratoriumdirecteur en QA-beoordelaar openen standaard het scherm van het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>.</p>
+<p><strong>Bekende beperkingen.</strong> Alleen gebeurtenissen waarbij een aanvraag wordt aangemaakt staan in dit spoor. Andere transactietypen staan in de <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, de lijst van berichten waarvan alle nieuwe pogingen zijn mislukt. Systeemlogboeken heeft er een voor uitgaande interfaceberichten en een voor kosten.">DLQ</a> zolang zij mislukken en in de <a href="#screen-outbound-queue">Uitgaande wachtrij</a>.</p>
+<h3 id="screen-outbound-queue"><a class="anchor" href="#screen-outbound-queue" aria-label="Link to this section">#</a> Uitgaande wachtrij</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Kwaliteit &amp; Compliance &gt; Uitgaande wachtrij"><span>Start</span> <span aria-hidden="true">›</span> <span>Kwaliteit &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Uitgaande wachtrij</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> Start &gt; <strong>Kwaliteit &amp; Compliance</strong> &gt; <strong>Uitgaande wachtrij</strong>, op <code>/outbound-queue</code>.
+<strong>2. Onderhoudsonderdeel:</strong> Uitgaande wachtrij</p>
+<p><strong>3. Doel en bereik.</strong> Elk uitgaand bericht op één plek: houd het aan, geef het vrij of probeer het opnieuw, en corrigeer wat een <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> heeft afgewezen. Het brengt tien stromen samen (Resultaten, Patiënt-ADT, Accessie, LIS-synchronisatie, Facturatie, Rapportbezorging, Cytologieresultaten, Verwijzingen, Moleculaire orders, Register) en toont de bestemming van elk bericht (Interface-engine, Factureringssysteem, LIS-partner, Bezorgdienst of Register), het transport dat de engine gebruikt (REST + mTLS, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, een beveiligde manier om bestanden naar een ander systeem te kopiëren.">SFTP</a>, Portaaluploaden, <a class="term" href="99-glossary.html#g-phin-ms" title="Het Public Health Information Network Messaging System, een Amerikaans transportsysteem voor het verzenden van volksgezondheidsrapporten.">PHIN-MS</a>, Directe TCP-verbinding of HTTPS-API, die alleen als onderdeel van het label van de bestemming worden getoond) en de status. PathScribe bepaalt wat wanneer wordt vrijgegeven; de engine verzorgt het transport.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> De wachtrij leest wanneer een bericht vertrekt, en zijn meldingstermijn, uit de <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Verzendschema's</a>: het eigen schema van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> met <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a>, anders dat van de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a>, anders de standaard van de stroom. Zonder schema volgt een bericht de standaard van de stroom. Facturatie-items volgen bovendien de instellingen voor facturatievrijgave, en registeritems de registerinstellingen, beide in niveau 7.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Verzendschema&#x27;s</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-outbound-queue.webp" alt="Uitgaande wachtrij met stroomfilters, termijntegels, statuskolom en actiebalk" loading="lazy"><figcaption>Uitgaande wachtrij met stroomfilters, termijntegels, statuskolom en actiebalk</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Filters en tegels.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-queue-filter-by-feed"><td>Filteren op stroom</td>
+<td>Tien schakelchips</td>
+<td>Optioneel</td>
+<td>Toont alleen de gekozen stromen.</td>
+<td>Alle stromen</td>
+</tr>
+<tr id="f-outbound-queue-facility"><td>Faciliteit</td>
+<td>Keuzelijst, <strong>Alle faciliteiten</strong> of één faciliteit</td>
+<td>Optioneel</td>
+<td>Beperkt tot een faciliteit.</td>
+<td>Alle faciliteiten</td>
+</tr>
+<tr id="f-outbound-queue-search-by-accession-number"><td>Zoeken op <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Vergelijkt met het accessienummer.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-outbound-queue-needs-review-tile"><td>Tegel Te controleren</td>
+<td>Schakelaar met aantal</td>
+<td>Optioneel</td>
+<td>Toont facturatie-items die voor een persoon zijn geparkeerd (<strong>Controle nodig: CPT-code niet gekoppeld</strong>, <strong>geen faciliteit voor de technische component</strong>, <strong>delta-charge van een gewijzigde <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a></strong>) en register-items die moeten worden nagekeken (een verplicht veld is leeg, geen uitvoerende faciliteit, geen staatsprofiel, een staatsregel zoals "Geen ICD-O-3-code bij de casus").</td>
+<td>Uit</td>
+</tr>
+<tr id="f-outbound-queue-amendment-deltas-tile"><td>Tegel Delta-charges</td>
+<td>Aantal</td>
+<td>Niet van toepassing</td>
+<td>Kostenregels van gewijzigde casus.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-reporting-deadlines-tiles"><td>Tegels Meldingstermijnen</td>
+<td>Aantallen, <strong>Te laat</strong> en <strong>Binnenkort verschuldigd</strong></td>
+<td>Niet van toepassing</td>
+<td>Meldingstermijnen van registers.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-sort-by-direction"><td>Sorteren op, richting</td>
+<td>Keuze uit Stroom, Status, Tijd in wachtrij, Geplande tijd, Pogingen, Meldingstermijn; oplopend of aflopend</td>
+<td>Optioneel</td>
+<td>De standaardvolgorde zet eerst afgewezen, dan definitief mislukt, mislukt, aangehouden, wachtend, verzonden, bevestigd, niet meldingsplichtig, ingetrokken.</td>
+<td>Volgorde van status</td>
+</tr>
+</tbody>
+</table>
+<p>De lijst.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-queue-select-row-and-select-all"><td>Selecteren (rij en alles selecteren)</td>
+<td>Selectievakje</td>
+<td>Optioneel</td>
+<td>Kiest berichten voor een bulkactie. Het aantal luidt "Geselecteerd: n".</td>
+<td>Geen</td>
+</tr>
+<tr id="f-outbound-queue-feed-accession-destination"><td>Stroom, Accessie, Bestemming</td>
+<td>Tekst (alleen-lezen)</td>
+<td>Niet van toepassing</td>
+<td>De stroom, de casus en de bestemming met het transport.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-state"><td>Status</td>
+<td>Een van <strong>Wachtend</strong>, <strong>Aangehouden</strong>, <strong>Verzonden</strong>, <strong>Bevestigd</strong>, <strong>Mislukt</strong>, <strong>Definitief mislukt</strong>, <strong>Afgewezen</strong>, <strong>Niet meldingsplichtig</strong>, <strong>Ingetrokken</strong></td>
+<td>Niet van toepassing</td>
+<td>Wachtend: in de wachtrij, gaat op zijn tijd weg. Aangehouden: een persoon heeft het gestopt. Verzonden: de engine heeft het. Bevestigd: de ontvanger heeft bevestigd. Mislukt: een verzending is mislukt. Definitief mislukt: mislukt na de automatische nieuwe pogingen. Afgewezen: een register heeft het met fouten teruggestuurd. Niet meldingsplichtig en Ingetrokken zijn gesloten.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-attempts-scheduled-deadline-detail"><td>Pogingen, Gepland, Termijn, Details</td>
+<td>Alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Details bevat de reden van het aanhouden ("Aangehouden: ..."), de fout, een geplande vrijgavedatum, een uiterste datum voor correctie, "Eerder vrijgegeven dan gepland (gebruiker id)", "Wijzigt een eerder bericht", of de reden van het register.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Acties, die gelden voor de geselecteerde berichten en de bevoegdheid eenmaal voor de selectie controleren. Elk bericht krijgt zijn eigen resultaat; een weigering voor één bericht stopt de rest niet.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-queue-hold"><td>Aanhouden</td>
+<td>Knop, daarna een paneel</td>
+<td>Reden verplicht</td>
+<td>Toegestaan voor Wachtend en Mislukt. Reden: Storing bij ontvanger, Onderhoud bij ontvanger, Gegevens controleren, Factuurcontrole, Mogelijk dubbel of Anders. Een optionele notitie van maximaal 200 tekens, met de plaatsaanduiding "Geen patiëntgegevens".</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-release"><td>Vrijgeven</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toegestaan voor Aangehouden. Zet het terug in de wachtrij.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-retry"><td>Opnieuw proberen</td>
+<td>Knop, daarna een paneel voor een afgewezen bericht</td>
+<td>Reden verplicht bij afgewezen</td>
+<td>Toegestaan voor Mislukt, Definitief mislukt en Afgewezen. Een afgewezen bericht vraagt de reden van de correctie: Gegevens gecorrigeerd, Codering gecorrigeerd, Gecorrigeerd door patholoog of Anders.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-mark-not-reportable"><td>Markeren als niet meldingsplichtig</td>
+<td>Knop, daarna een paneel</td>
+<td>Reden verplicht</td>
+<td>Toegestaan voor Afgewezen. Reden: Geen meldingsplichtige aandoening, Buiten het rechtsgebied van het register, Al gemeld of Anders. Er wordt niets meer verzonden.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-retract-charge"><td>Charge intrekken</td>
+<td>Knop, daarna een paneel</td>
+<td>Reden verplicht</td>
+<td>Alleen facturatie-items; toegestaan voor Wachtend, Aangehouden, Mislukt en Definitief mislukt. Reden: Casus gewijzigd, Casus ingetrokken, Dubbele charge of Anders. Eindstatus.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-outbound-queue-release-now"><td>Nu vrijgeven</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Alleen facturatie-items; toegestaan voor Wachtend en Aangehouden. Verzendt vóór het schema en legt het id van de gebruiker vast.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Een weigering wordt als aantal gemeld: niet toegestaan, niet meer in de wachtrij, kan niet worden aangehouden, niet aangehouden, kan niet opnieuw worden geprobeerd, niet afgewezen, kan niet worden ingetrokken, kan niet worden vrijgegeven, reden vereist, of niet verzonden (zie de kolom Details). De samenvatting zegt "Gewijzigd: n" en "Niet van toepassing op de status: n."</p>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:outbound-queue:open</code>. Opnieuw proberen: <code>interface:outbound:resend</code>. Aanhouden: <code>interface:outbound:hold</code>. Vrijgeven: <code>interface:outbound:release</code>. Markeren als niet meldingsplichtig: <code>interface:outbound:mark-not-reportable</code>. Charge intrekken: <code>interface:outbound:retract</code>. Nu vrijgeven: <code>interface:outbound:override-release</code>. Alle zijn hoog risico en worden gecontroleerd via het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>. Elk van de vijf behalve resend vereist de bevoegdheid voor het scherm. Beheerder heeft ze allemaal en het scherm standaard. Laboratoriumdirecteur en QA-beoordelaar hebben het scherm niet. Aanhouden en vrijgeven worden voor een bulkselectie eenmaal gecontroleerd.</p>
+<p><strong>Bekende beperkingen.</strong> De wachtrij bevat de berichten die de PathScribe-kant kent. Of een bericht zijn ontvanger heeft bereikt, hangt af van de bevestiging van de engine, die Gepland is: vandaag telt elk 2xx-antwoord als verzonden. Bevestigd verschijnt alleen voor stromen die een bevestiging meebrengen (register). Het transport dat in de bestemming wordt genoemd, is een label, omdat de engine eigenaar van het transport is.</p>
+<h2 id="ch7-other"><a class="anchor" href="#ch7-other" aria-label="Link to this section">#</a> Overige integraties en testtools</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<p>Deze schermen horen bij niveau 6 maar gaan niet over de interface-engine: een rapportagefeed voor analysetools, de import van de historie van een legacysysteem, en de demonstratietools die systemen vervangen die niet zijn aangesloten.</p>
+<h3 id="screen-bi_feed"><a class="anchor" href="#screen-bi_feed" aria-label="Link to this section">#</a> Rapportagefeed (Power BI)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties &gt; Rapportagefeed (Power BI)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span> <span aria-hidden="true">›</span> <span>Rapportagefeed (Power BI)</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Integraties</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Rapportagefeed (Power BI)</p>
+<p><strong>3. Doel en bereik.</strong> Laat Power BI, Excel, Tableau of een script PathScribe-gegevens lezen via een rapportage-API op de API-server. Zij maken nooit verbinding met de database. U kiest wat de feed aanbiedt (datasets en faciliteiten met <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a>), geeft per tool één token uit en houdt identificerende gegevens buiten tenzij een met naam genoemde persoon ze heeft goedgekeurd. Standaard is een token gede-identificeerd: namen, dossiernummers, geboortedata en vrije tekst worden verwijderd, datums worden teruggebracht tot de maand en leeftijden van 90 en ouder verschijnen als 90+.</p>
+<p><strong>Wat is gebouwd en wat niet.</strong> Gebouwd: de instellingen, het goedkeuringsrecord, het aanmaken, vervangen en intrekken van tokens, de veldencatalogus en de ophaaltest. Een token wordt eenmaal getoond; PathScribe bewaart alleen een vingerafdruk en kan het niet opnieuw tonen. Niet aangesloten: de feed zelf. De leesaanroep, <code>GET /api/bi/v1/{dataset}</code> met <code>Authorization: Bearer psbi_...</code>, is een beschreven contract en het serverwerkitem PS-787. In de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> worden de instellingen en tokens in de browser bewaard, en <strong>Ophaalactie testen</strong> simuleert alleen hoe de server zou antwoorden (er komen geen rijen terug). Een banner zegt dat.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Een token kan alleen worden beperkt tot faciliteiten met de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> uitvoerend laboratorium, dus die faciliteiten komen eerst. Als u ze overslaat, zegt het scherm "Er zijn geen uitvoerende laboratoriumvestigingen ingesteld" en kan geen token worden aangemaakt, omdat minstens één <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> moet worden aangeboden.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 6, stap 4</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-bi_feed.webp" alt="Instellingen van de rapportagefeed, goedkeuring van geïdentificeerde tokens, tokenlijst, ophaaltest en veldencatalogus" loading="lazy"><figcaption>Instellingen van de rapportagefeed, goedkeuring van geïdentificeerde tokens, tokenlijst, ophaaltest en veldencatalogus</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Wat de feed aanbiedt.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-reporting-feed-is-on"><td>Rapportagefeed staat aan</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Zolang hij uit staat, wordt elk token geweigerd en kunnen geen nieuwe tokens worden aangemaakt.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-bi_feed-datasets"><td>Datasets</td>
+<td>Selectievakjes: Auditsamenvattingen, Factureringsgebeurtenissen, Dossiers en doorlooptijden, Kwaliteit en <a class="term" href="99-glossary.html#g-discordance" title="Een verschil tussen twee beoordelingen van hetzelfde materiaal, zoals een voorlopige en een definitieve diagnose, of een eerste en een tweede patholoog.">discordantie</a>, Specimens, Werklast en productiviteit. Die een patiënt kunnen identificeren, zijn getagd met "kan een patiënt identificeren" (<a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, specimens, facturatie, kwaliteit).</td>
+<td>Optioneel</td>
+<td>De datasets die een token mag lezen. Auditsamenvattingen zijn dagelijkse aantallen zonder gebruikers- of patiëntdetails. Werklast bevat geen patiëntgegevens.</td>
+<td>Geen aangevinkt</td>
+</tr>
+<tr id="f-bi_feed-performing-lab-facilities"><td>Uitvoerende laboratoriumvestigingen</td>
+<td>Selectievakjes</td>
+<td>Optioneel</td>
+<td>De faciliteiten die de feed aanbiedt. Een token kan tot enkele ervan worden beperkt en kan nooit een faciliteit bereiken die niet is aangevinkt.</td>
+<td>Geen aangevinkt</td>
+</tr>
+<tr id="f-bi_feed-discard-changes-save-settings"><td>Wijzigingen verwerpen, Instellingen opslaan</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td>Uitgeschakeld totdat er iets wijzigt.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Geïdentificeerde tokens.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-approved-by"><td>Goedgekeurd door</td>
+<td>Tekst, tot 80 tekens</td>
+<td>Verplicht om vast te leggen</td>
+<td>De met naam genoemde persoon die identificerende gegevens heeft goedgekeurd.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-bi_feed-reason"><td>Reden</td>
+<td>Tekst, tot 500 tekens</td>
+<td>Verplicht om vast te leggen</td>
+<td>Waarom identificerende gegevens nodig zijn.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-bi_feed-record-approval"><td>Goedkeuring vastleggen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Legt de goedkeuring vast, met wie haar heeft vastgelegd en wanneer. Daarna kunnen geïdentificeerde tokens worden aangemaakt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-bi_feed-withdraw-approval"><td>Goedkeuring intrekken</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verwijdert haar. Een geïdentificeerd token krijgt dan niets identificerends totdat een nieuwe goedkeuring is vastgelegd. Geweigerd met "Er is geen goedkeuring vastgelegd om in te trekken" wanneer er geen is.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Een nieuw token.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-name"><td>Naam</td>
+<td>Tekst, tot 60 tekens. Plaatsaanduiding "Kwaliteitsdashboard".</td>
+<td>Verplicht</td>
+<td>Uniek onder de actieve tokens van de faciliteit ("Een ander actief <a class="term" href="99-glossary.html#g-workstation" title="Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.">werkstation</a> in deze faciliteit heeft die naam" is de formulering die het scherm toont).</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-bi_feed-what-the-token-receives"><td>Wat het token ontvangt</td>
+<td>Keuze uit <strong>Gede-identificeerd</strong> of <strong>Geïdentificeerd</strong></td>
+<td>Verplicht</td>
+<td>Geïdentificeerd is vergrendeld totdat een goedkeuring is vastgelegd. Geïdentificeerd is alleen van belang voor de datasets dossiers, specimens, facturatie en kwaliteit; voor andere datasets wordt het geweigerd.</td>
+<td>Gede-identificeerd</td>
+</tr>
+<tr id="f-bi_feed-datasets-this-token-may-read"><td>Datasets die dit token mag lezen</td>
+<td>Selectievakjes van de datasets die de feed aanbiedt</td>
+<td>Verplicht (minstens één)</td>
+<td>Een dataset die de feed niet aanbiedt, wordt geweigerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-bi_feed-facilities-this-token-may-read"><td>Vestigingen die dit token mag lezen</td>
+<td>Selectievakjes van de faciliteiten die de feed aanbiedt</td>
+<td>Optioneel</td>
+<td>Vink niets aan voor alle faciliteiten die de feed aanbiedt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-bi_feed-create-token"><td>Token aanmaken</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont het token eenmaal met Kopiëren. De formulering "Kopieer dit token nu ... Het wordt maar één keer getoond." Een token begint met <code>psbi_</code> en blijft 365 dagen geldig.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>De tokenlijst en de ophaaltest.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-name-datasets-facilities-mode-token-last-pulled-status"><td>Naam, Datasets, Vestigingen, Modus, Token, Laatst opgehaald, Status</td>
+<td>Alleen-lezen kolommen</td>
+<td>Niet van toepassing</td>
+<td>Token toont de laatste vier tekens en de vervaldatum. Status is <strong>Actief</strong>, <strong>Verloopt binnenkort</strong> (binnen 30 dagen), <strong>Token verlopen</strong> of <strong>Ingetrokken</strong>. Laatst opgehaald toont de dataset, de rijen en de tijd.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-bi_feed-new-token-replace"><td>Nieuw token (vervangen)</td>
+<td>Knop op een rij</td>
+<td>Niet van toepassing</td>
+<td>Geeft een vervangend token uit. Het vorige token blijft 24 uur werken zodat de tool kan worden bijgewerkt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-bi_feed-revoke"><td>Intrekken</td>
+<td>Knop, daarna Reden en Notitie</td>
+<td>Reden verplicht</td>
+<td>Redenen: Mogelijk gecompromitteerd, Per vergissing ingeschreven, Naar een andere site verplaatst, Machine vervangen, Machine buiten gebruik, Andere. Een notitie is verplicht voor Andere en anders optioneel. <strong>Nu intrekken</strong> bevestigt. Een ingetrokken token werkt direct niet meer.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-bi_feed-token-test-a-pull"><td>Token (Ophaalactie testen)</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Een geplakt token.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-bi_feed-dataset-test-a-pull"><td>Dataset (Ophaalactie testen)</td>
+<td>Keuze uit datasets</td>
+<td>Verplicht</td>
+<td>De dataset waarom wordt gevraagd.</td>
+<td>Eerste dataset</td>
+</tr>
+<tr id="f-bi_feed-pull"><td>Ophalen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont hoe de server zou antwoorden: Geaccepteerd (rijen en velden, en de modus), of Geweigerd omdat het niet de vorm van een feedtoken heeft, geen token overeenkomt, het is ingetrokken, het is verlopen, de dataset niet is toegestaan, de feed uit staat, een geïdentificeerd token geen goedkeuring heeft, of het token de afgelopen minuut 60 keer is opgehaald.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-bi_feed-field-catalogue"><td>Veldencatalogus</td>
+<td>Alleen-lezen tabel: Veld, Type, Gede-identificeerde feed</td>
+<td>Niet van toepassing</td>
+<td>Elk veld van elke dataset zoals een analist de kolom ziet. De laatste kolom toont <strong>Behouden</strong>, <strong>Verwijderd</strong> of <strong>Teruggebracht tot de maand</strong>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>De lees-API geeft standaard 1.000 rijen per pagina terug en hoogstens 10.000.</p>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Instellingen: <code>config:bi-feed:manage</code>. Tokens aanmaken, vervangen en intrekken en Ophaalactie testen: <code>config:bi-feed-tokens:manage</code>. De goedkeuring voor geïdentificeerde gegevens vastleggen en intrekken: <code>config:bi-feed-identified:approve</code>. Alle drie zijn hoog risico. Beheerder en Laboratoriumdirecteur hebben ze standaard, dus de persoon die een geïdentificeerd token aanmaakt en de persoon die het goedkeurt kunnen dezelfde persoon zijn, tenzij een ziekenhuis ze scheidt in het Rollenwoordenboek.</p>
+<p><strong>Bekende beperkingen.</strong> De feed wordt nog niet geleverd; in de demonstratiebuild werken alleen de instellingen en tokens. Terwijl de gegevens laden, en in sommige probleemmeldingen, zegt het scherm "werkstation" waar een feedtoken wordt bedoeld (een formuleringsfout in de tekst). De limiet van 60 keer ophalen per minuut en de levensduur van 365 dagen liggen vast in de code.</p>
+<h3 id="screen-migration_field_mappings"><a class="anchor" href="#screen-migration_field_mappings" aria-label="Link to this section">#</a> Migratie-veldkoppelingen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows &gt; Migratie-veldkoppelingen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span> <span aria-hidden="true">›</span> <span>Migratie-veldkoppelingen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Labmaterialen &amp; workflows</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Migratie-veldkoppelingen</p>
+<p><strong>3. Doel en bereik.</strong> Koppelt de eigen bronveldnamen van een legacy-LIS aan de doelvelden voor migratie van PathScribe, per bronsysteem. Een klant met meerdere instellingen kan vanuit meer dan één legacysysteem migreren, dus elke koppeling hoort bij één bronsysteem. De import van historische records leest deze koppelingen. Een bronveld zonder koppeling wordt bij de import gemeld en niet gekopieerd.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Er hoeft eerst niets te worden ingericht. De import in <a href="#screen-migration-jobs">Historische gegevensmigratietaken</a> heeft minstens één actieve koppeling voor het bronsysteem nodig. Als u dit overslaat, zegt de import "Dit bronsysteem heeft geen actieve veldkoppelingen."</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 6, stap 5</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-migration-jobs">Historische gegevensmigratietaken</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-migration_field_mappings.webp" alt="Lijst Migratie-veldkoppelingen met bronsysteemfilter en Koppeling toevoegen" loading="lazy"><figcaption>Lijst Migratie-veldkoppelingen met bronsysteemfilter en Koppeling toevoegen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-migration_field_mappings-source-system-filter"><td>Bronsysteemfilter</td>
+<td>Keuzelijst, <strong>Alle bronsystemen</strong> of één systeem</td>
+<td>Optioneel</td>
+<td>Filtert de lijst.</td>
+<td>Alle bronsystemen</td>
+</tr>
+<tr id="f-migration_field_mappings-list-row"><td>Lijstrij</td>
+<td>Alleen-lezen: bronveld, doelveld, categorie, en <strong>Inactief</strong> wanneer uitgeschakeld</td>
+<td>Niet van toepassing</td>
+<td>Eén koppeling per rij, met <strong>Bewerken</strong>. "Geen veldkoppelingen geregistreerd." wanneer de lijst leeg is.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-migration_field_mappings-legacy-source-system"><td>Legacy bronsysteem</td>
+<td>Tekst, plaatsaanduiding <code>LegacyLIS-Cerner</code></td>
+<td>Verplicht</td>
+<td>De naam van het legacysysteem. De lijst met bronsystemen van de import wordt uit deze namen opgebouwd.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-migration_field_mappings-category"><td>Categorie</td>
+<td>Keuze uit Demografische gegevens, Accessiedetail, Macro-/microtekst, SNOMED/ICD-O-codering, Objectglaasje-/blokinventaris, PDF-rapportarchief, Discreet <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> veld</td>
+<td>Verplicht</td>
+<td>Bepaalt welke doelvelden worden aangeboden.</td>
+<td>Eerste categorie</td>
+</tr>
+<tr id="f-migration_field_mappings-source-field-name"><td>Bronveldnaam</td>
+<td>Tekst, plaatsaanduiding <code>PT_FNAME</code></td>
+<td>Verplicht</td>
+<td>De naam van het legacyveld of de kolom, zoals die in de koptekst van het bestand of in de <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a> staat.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-migration_field_mappings-target-field"><td>Doelveld</td>
+<td>Keuzelijst met de velden van de categorie</td>
+<td>Verplicht</td>
+<td>Demografische gegevens: voornaam, achternaam, geboortedatum, <a class="term" href="99-glossary.html#g-mrn" title="Medisch dossiernummer (medical record number), de identificatie die een faciliteit aan een patiënt geeft.">MRN</a>, geslacht. Accessiedetail: legacy <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a>, accessiedatum, naam van de aanvragend arts, faciliteitsnaam, omschrijving van het specimen. Macro-/microtekst: macroscopische beschrijving, microscopische beschrijving, definitieve diagnose. Codering: SNOMED-codes, ICD-O-codes. Objectglaasje-/blokinventaris: blok-id's, preparaat-id's. PDF-archief: URL van het gearchiveerde verslag. Synoptisch veld: synoptische velden.</td>
+<td>Geen geselecteerd</td>
+</tr>
+<tr id="f-migration_field_mappings-transform-note-optional"><td>Transformatienotitie (optioneel)</td>
+<td>Tekst, plaatsaanduiding "bijv. converteer MM/DD/JJJJ naar ISO"</td>
+<td>Optioneel</td>
+<td>Een notitie voor de persoon die de koppeling leest.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-migration_field_mappings-add-mapping-edit-save-cancel"><td>Koppeling toevoegen, Bewerken, Opslaan, Annuleren</td>
+<td>Knoppen en venster</td>
+<td>Niet van toepassing</td>
+<td>Een tweede actieve koppeling voor hetzelfde bronsysteem en hetzelfde bronveld wordt geweigerd: "Er bestaat al een koppeling voor (veld) bij (systeem)."</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Toevoegen en bewerken: <code>config:migration-mappings:manage</code> (hoog risico). Beheerder en Laboratoriumdirecteur hebben die standaard. Dezelfde bevoegdheid beveiligt het uitvoeren van een import.</p>
+<p><strong>Bekende beperkingen.</strong> De Transformatienotitie is alleen een opmerking: geen enkele code past haar toe, dus een datum in een ander formaat wordt niet omgezet door een notitie te schrijven. De vlag actief op een koppeling wordt opgeslagen en door de import gerespecteerd, maar het venster heeft geen schakelaar om haar te wijzigen, dus een nieuwe koppeling is altijd actief. Er is geen verwijderknop.</p>
+<h3 id="screen-migration-jobs"><a class="anchor" href="#screen-migration-jobs" aria-label="Link to this section">#</a> Historische gegevensmigratietaken</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Historische gegevensmigratietaken"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Historische gegevensmigratietaken</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<p><strong>1. Navigatie:</strong> Het adres <code>/migration-jobs</code>, beschikbaar voor iedereen die het scherm Configuratie heeft. Er is geen menu-item dat het opent, dus geef uw beheerders het adres.
+<strong>2. Onderhoudsonderdeel:</strong> Historische gegevensmigratietaken</p>
+<p><strong>3. Doel en bereik.</strong> Status- en kruisvalidatierapportage voor migratietaken van een legacy-LIS, en het venster <strong>Verouderd bestand importeren</strong> dat er een start. Een taak meldt hoeveel records zijn geslaagd, mislukt of beoordeling nodig hebben, en stemt het aantal af op het aantal dat het bronsysteem opgaf. Dubbelzinnige patiëntkoppelingen die tijdens de import worden gevonden, gaan naar de bestaande wachtrij voor patiëntmatchbeoordeling en worden hier niet apart bijgehouden.</p>
+<p><strong>Wat is gebouwd en wat Gesimuleerd is.</strong> Gebouwd: een bestand lezen, de koppelingen toepassen, valideren, aan patiënten koppelen, de taak en zijn resultaten per record vastleggen, en het afstemmen. Gesimuleerd: de import draait in de browser, en de conceptcasus die hij aanmaakt, zijn gemarkeerd als <strong>Gesimuleerd</strong>. Een banner zegt dat een bulkimport op de server hem vervangt. Het bestand zelf wordt niet bewaard.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Het bronsysteem moet actieve veldkoppelingen hebben, dus <a href="#screen-migration_field_mappings">Migratie-veldkoppelingen</a> komt eerst. Als u dit overslaat, is de lijst met systemen in het venster leeg ("Nog geen enkel bronsysteem heeft actieve veldkoppelingen").</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 6, stap 6</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-migration_field_mappings">Migratie-veldkoppelingen</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-migration-jobs.webp" alt="Lijst met migratietaken met statuslabels en de knop Verouderd bestand importeren" loading="lazy"><figcaption>Lijst met migratietaken met statuslabels en de knop Verouderd bestand importeren</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>De lijst en het detail.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-migration-jobs-import-legacy-file"><td>Verouderd bestand importeren</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het importvenster. Grijs zonder de bevoegdheid.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-migration-jobs-job-row"><td>Taakrij</td>
+<td>Alleen-lezen: bronsysteem, statuslabel, label <strong>Gesimuleerd</strong>, badge <strong>Kruisvalidatieafwijking</strong>, aantallen "n ok, n mislukt, n te beoordelen"</td>
+<td>Niet van toepassing</td>
+<td>Klik om het detail te openen. Status is <strong>In afwachting</strong>, <strong>Actief</strong>, <strong>Voltooid</strong>, <strong>Voltooid met fouten</strong> of <strong>Mislukt</strong>. "Geen migratietaken aanwezig." wanneer de lijst leeg is.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-migration-jobs-cross-validation"><td>Kruisvalidatie</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td><strong>Afgestemd</strong> (verwerkt van opgegeven), <strong>Afwijking</strong> (opgegeven, verwerkt en hoeveel ontbrekend of extra), of "Geen opgegeven bronaantal aanwezig, afstemmen niet mogelijk".</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-migration-jobs-counts"><td>Aantallen</td>
+<td>Tekst</td>
+<td>Niet van toepassing</td>
+<td>Geslaagd, mislukt, te beoordelen, van het totaal verwerkt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-migration-jobs-records-needing-attention"><td>Records die aandacht nodig hebben</td>
+<td>Lijst: conceptcasus of foutmelding</td>
+<td>Niet van toepassing</td>
+<td>Mislukte records tonen de fout; dubbelzinnige koppelingen tonen <strong>MPI-beoordeling vereist</strong>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-migration-jobs-records"><td>Records</td>
+<td>Lijst van elk recordresultaat, met <strong>Geslaagd</strong>, <strong>Mislukt</strong> of <strong>MPI-controle nodig</strong></td>
+<td>Niet van toepassing</td>
+<td>De uitkomst van elk record en het id van zijn conceptcasus.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Het venster Verouderd bestand importeren.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-migration-jobs-source-system"><td>Bronsysteem</td>
+<td>Keuzelijst met systemen met actieve koppelingen</td>
+<td>Verplicht</td>
+<td>"Kies een bronsysteem."</td>
+<td>Geen</td>
+</tr>
+<tr id="f-migration-jobs-legacy-file-csv-or-json"><td>Verouderd bestand (<a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> of <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a>)</td>
+<td>Bestand, <code>.csv</code>, <code>.tsv</code>, <code>.txt</code> of <code>.json</code>, tot 2.000 records</td>
+<td>Verplicht</td>
+<td>Een CSV heeft een koprij met de veldnamen van het oude systeem nodig. JSON is een lijst met records, of een object met een lijst <code>records</code>. Geneste waarden worden weggelaten en geteld. Meer dan 2.000 records wordt geweigerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-migration-jobs-record-count-claimed-by-the-source-system-optional"><td>Door het bronsysteem opgegeven aantal records (optioneel)</td>
+<td>Geheel getal</td>
+<td>Optioneel</td>
+<td>Als u het weet, stemt de taak het af op de verwerkte records.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-migration-jobs-create-draft-cases-from-succeeded-records"><td>Conceptdossiers aanmaken uit geslaagde records</td>
+<td>Ja/nee-selectievakje</td>
+<td>Optioneel</td>
+<td>Maakt voor elk record dat slaagt een conceptcasus aan, gemarkeerd als <strong>Gesimuleerd</strong>, en slaat een legacy <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a> over dat al is geïmporteerd ("Al geïmporteerd" laat dat record mislukken).</td>
+<td>Aan</td>
+</tr>
+<tr id="f-migration-jobs-run-import"><td>Import starten</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Voert uit en toont: aantallen, records die zijn overgeslagen omdat ze al zijn geïmporteerd, aangemaakte conceptcasus (gesimuleerd) en bronvelden die geen koppeling dekt. Een knop <strong>Taak bekijken</strong> opent de taak.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Andere weigeringen: het bestand is leeg of geen geldige JSON, de eerste rij heeft geen veldnamen, het bestand heeft geen records, en "U hebt geen toestemming om oude records te importeren."</p>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code> (de route wordt beveiligd door het scherm Configuratie). Importeren: <code>config:migration-mappings:manage</code> (hoog risico, gecontroleerd via het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>). Beheerder en Laboratoriumdirecteur hebben die standaard.</p>
+<p><strong>Bekende beperkingen.</strong> De route heeft geen navigatie-item. De import is Gesimuleerd in de browser; grote of productie-imports wachten op de bulkimport op de server. De limiet van 2.000 records ligt vast in de code.</p>
+<h3 id="screen-simulated_mail"><a class="anchor" href="#screen-simulated_mail" aria-label="Link to this section">#</a> Gesimuleerde postvak-uit</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Integraties &gt; Gesimuleerde postvak-uit"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Integraties</span> <span aria-hidden="true">›</span> <span>Gesimuleerde postvak-uit</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Integraties</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Gesimuleerde postvak-uit</p>
+<p><strong>3. Doel en bereik.</strong> In de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> is geen mailservice aangesloten. Elke e-mail die het systeem zou hebben verzonden (een opvolging, een uitnodiging voor het <a class="term" href="99-glossary.html#g-tumor-board" title="Een multidisciplinair overleg om kankercasus te bespreken. Ook MDO genoemd.">tumor board</a>, een gebeurtenis bij sjabloonbeoordeling, een supportticket) wordt hier bewaard, gemarkeerd als <strong>Gesimuleerd</strong>, zodat u kunt zien wat er zou zijn verzonden. Er verlaat niets de browser. Een melding zegt "Gesimuleerde e-mail vastgelegd, niet verstuurd" en verwijst hiernaartoe.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Geen. Items verschijnen wanneer een functie e-mail verzendt.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-simulated_mail.webp" alt="Lijst van de Gesimuleerde postvak-uit en een geopend bericht" loading="lazy"><figcaption>Lijst van de Gesimuleerde postvak-uit en een geopend bericht</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-simulated_mail-count"><td>Aantal</td>
+<td>Tekst, "n gesimuleerde e-mail(s)"</td>
+<td>Niet van toepassing</td>
+<td>De bewaarde items. De postvak-uit bewaart de nieuwste 200.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-simulated_mail-recorded-type-to-subject"><td>Vastgelegd, Soort, Aan, Onderwerp</td>
+<td>Alleen-lezen kolommen</td>
+<td>Niet van toepassing</td>
+<td>Soort is <strong>E-mail</strong> of <strong>Sjabloongebeurtenis</strong>. Een ontvanger die de server zou kiezen, toont "(bepaald door de server)".</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-simulated_mail-open"><td>Openen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont Aan, Cc, Onderwerp, tekst en Bijlagen, met de opmerking "Gesimuleerd: dit bericht is aan niemand verstuurd."</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-simulated_mail-clear-outbox"><td>Postvak-uit legen</td>
+<td>Knop, met een bevestiging</td>
+<td>Niet van toepassing</td>
+<td>Verwijdert elke gesimuleerde e-mail uit deze browser.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. De sectie toont zich als bewerkbaar voor iedereen die <code>config:vendor-integrations:manage</code> heeft; er is geen bevoegdheid op de knop Postvak-uit legen.</p>
+<p><strong>Bekende beperkingen.</strong> Alleen demonstratie. Een <a class="term" href="99-glossary.html#g-server-build" title="Een build van PathScribe voor een echte implementatie, zonder demonstratieaccounts, die zich via de identiteitsprovider aanmeldt en met de API-server communiceert.">serverbuild</a> verstuurt echte e-mail via zijn mailservice en bewaart geen gesimuleerde lijst.</p>
+<h3 id="screen-mock-interface-engine"><a class="anchor" href="#screen-mock-interface-engine" aria-label="Link to this section">#</a> Gesimuleerde interface-engine</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Gesimuleerde interface-engine"><span>Start</span> <span aria-hidden="true">›</span> <span>Gesimuleerde interface-engine</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Het adres <code>/dev/mock-interface-engine</code>, alleen in de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> (<code>__DEMO_TOOLS__</code>). Een build die met een API-server communiceert, bevat het niet. De pagina heeft geen menu-item.
+<strong>2. Onderhoudsonderdeel:</strong> Gesimuleerde interface-engine (PS-239)</p>
+<p><strong>3. Doel en bereik.</strong> Een tool voor ontwikkelaars en demonstraties. Hij antwoordt in de plaats van systemen die nog niet bestaan, zodat u een moleculaire werklijst kunt verzenden, een scanbatch voor whole slide imaging of een ander interfacebericht, en een realistisch antwoord ziet: succes, een specifieke afwijzing of een vastgelopen verbinding. De pagina opent met de waarschuwing "Developer tool, not real functionality." Hij heeft vier delen: de antwoordinstellingen, een simulator voor inkomende berichten, een logboek van wat de gesimuleerde engine heeft ontvangen en een simulator voor antwoorden van een <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a>.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Geen. Hij heeft de demonstratiebuild nodig.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-mock-interface-engine.webp" alt="Instellingen van de Gesimuleerde interface-engine, simulator voor inkomende berichten, enginelogboek en simulator voor registerantwoorden" loading="lazy"><figcaption>Instellingen van de Gesimuleerde interface-engine, simulator voor inkomende berichten, enginelogboek en simulator voor registerantwoorden</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Antwoordinstellingen.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-mock-interface-engine-enabled-switch-and-status"><td>Schakelaar Ingeschakeld en status</td>
+<td>Knop, met de status "echte verzendaanroepen worden onderschept", "wordt gestart" of "geen onderschepping"</td>
+<td>Optioneel</td>
+<td>Start of stopt de interceptor in de browser voor de aanroep van de moleculaire werklijst.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-mock-interface-engine-response-mode"><td>Antwoordmodus</td>
+<td>Keuze uit <strong>Altijd slagen</strong>, <strong>Altijd mislukken</strong>, <strong>Time-out</strong></td>
+<td>Verplicht</td>
+<td>Slagen antwoordt met HTTP 200. Mislukken antwoordt met de status hieronder. Time-out antwoordt nooit, dus de verzending blijft op "Verzenden...".</td>
+<td>Altijd slagen</td>
+</tr>
+<tr id="f-mock-interface-engine-failure-http-status"><td>HTTP-foutstatus</td>
+<td>Geheel getal</td>
+<td>Optioneel</td>
+<td>Getoond bij Altijd mislukken. Een lege of nulwaarde keert terug naar 500.</td>
+<td>500</td>
+</tr>
+<tr id="f-mock-interface-engine-answer-for-the-slide-scanner"><td>Antwoorden namens de glaasjesscanner</td>
+<td>Ja/nee-selectievakje</td>
+<td>Optioneel</td>
+<td>Nadat een scanbatch is aanvaard, meldt elk preparaat als bezig met scannen en daarna als gescand, zodat het scannen van preparaten van begin tot eind kan worden getoond.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-mock-interface-engine-molecular-instrument-results"><td>Uitslagen van het moleculaire instrument</td>
+<td>Keuze uit <strong>Positief</strong>, <strong>Negatief</strong>, <strong>Geen uitslagen</strong></td>
+<td>Optioneel</td>
+<td>Nadat een moleculaire werklijst is aanvaard, meldt die uitslag voor elk patiëntmonster, met controles zoals verwacht.</td>
+<td>Geen uitslagen</td>
+</tr>
+</tbody>
+</table>
+<p>De drie panelen.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-mock-interface-engine-inbound-message-simulator-sample-message"><td>Simulator voor inkomende berichten: Voorbeeldbericht</td>
+<td>Keuzelijst met 14 voorbeelden: A01 opname; A01 opname met geverifieerd <a class="term" href="99-glossary.html#g-nhs-number" title="De patiëntidentificatie van tien cijfers die in de NHS in Engeland en Wales wordt gebruikt. Het laatste cijfer is een controlecijfer.">NHS-nummer</a>; A08 bijwerken; A24 koppelen; A34 samenvoegen (oudere vorm); A40 samenvoegen; A40 met onbekende patiënten (gaat naar de uitzonderingswachtrij); A43 een bezoek verplaatsen; A45 een bezoek verplaatsen (bezoekniveau); A47 identificatie wijzigen; A50 bezoeknummer wijzigen; en drie gebeurtenissen (<a class="term" href="99-glossary.html#g-block" title="Een stukje weefsel dat in een cassette in was is ingebed en waarvan coupes worden gesneden.">blok</a> beschadigd of kwijt, HPV-uitslag ontvangen, materiaal naar opslag verplaatst)</td>
+<td>Optioneel</td>
+<td><strong>Voorbeeld laden</strong> vult het vak.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-mock-interface-engine-inbound-message-simulator-message-hl7-or-json-event"><td>Simulator voor inkomende berichten: Bericht (<a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> of JSON-gebeurtenis)</td>
+<td>Vrije tekst, getagd als patiëntgegeven</td>
+<td>Verplicht</td>
+<td>Een bericht of gebeurtenis om door dezelfde processors te halen die een live listener zou gebruiken.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-mock-interface-engine-inbound-message-simulator-process-message"><td>Simulator voor inkomende berichten: Bericht verwerken</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont <strong>Verwerkt</strong> of <strong>Niet toegepast</strong>. Een bericht dat niet kan worden gekoppeld, wordt als interface-uitzondering in de wachtrij gezet: "Open Audit, Foutenlogboek, Interfaces om het handmatig te koppelen." Gemarkeerd als <strong>Gesimuleerd</strong>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-mock-interface-engine-received-by-the-simulated-interface-engine"><td>Ontvangen door de gesimuleerde interface-engine</td>
+<td>Alleen-lezen lijst: Wanneer, Berichttype, Resultaat (<strong>Geaccepteerd</strong>, <strong>Afgewezen</strong>, <strong>Time-out</strong>), Openen</td>
+<td>Niet van toepassing</td>
+<td>Zonder ingesteld engineadres komt elk uitgaand bericht hier terecht in plaats van de browser te verlaten. <strong>Openen</strong> toont het bericht; <strong>Lijst wissen</strong> maakt haar leeg.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-mock-interface-engine-receive-a-registry-acknowledgement-registry-status-answer"><td>Een registerbevestiging ontvangen: Register, Status, Antwoord</td>
+<td>Keuzelijsten</td>
+<td>Verplicht</td>
+<td>Kies wat het register zou zeggen over een verzonden inzending: Geaccepteerd, Geaccepteerd met waarschuwingen, Afgewezen (kan worden gecorrigeerd), Afgewezen (definitief) of Geen antwoord. <strong>Ontvangen</strong> voert het uit via de functie die het echte inkomende endpoint zal gebruiken. Bij Geen antwoord blijft de inzending wachten op een antwoord.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> De route wordt beveiligd door het scherm Configuratie (<code>screen:configuration:open</code>). Er is geen bevoegdheid op de bedieningselementen.</p>
+<p><strong>Bekende beperkingen.</strong> Alleen demonstratie. De instellingen worden in de browser bewaard en niet gedeeld. De modi Altijd mislukken en Time-out werken in op de aanroep van de moleculaire werklijst die de interceptor afhandelt; de gesimuleerde engine in het logboek volgt dezelfde antwoordmodus voor andere berichten. Er is geen voorbeeld voor een doorverwijsuitslag, dus het terugontvangen van een <a class="term" href="99-glossary.html#g-reference-lab" title="Een laboratorium waarnaar onderzoek wordt doorgestuurd. Een faciliteit krijgt de rol Referentielaboratorium.">referentielaboratorium</a> kan hier niet worden getoond.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

@@ -31,6 +31,8 @@ import { useAuditLog } from '@/components/Audit/useAuditLog';
 import "../../pathscribe.css";
 import type { FlagDefinition } from "../../types/FlagDefinition";
 import { pressable } from '@/utils/a11y/pressable';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { hasFlagChanges, saveFlagChanges } from '@/services/flags/flagChangeAudit';
 
 // ─── Payload types (previously in missing caseFlagsApi) ──────────────────────
 interface ApplyFlagPayload  { caseId: string; flagDefinitionId: string; specimenId?: string; }
@@ -176,6 +178,8 @@ const FlagManagerModal: React.FC<Props> = ({
   onClose, caseData: initialCaseData, flagDefinitions, onApplyFlags, onRemoveFlag, onDirtyChange,
 }) => {
   const { t } = useTranslation();
+  // Batch 649: applying and removing need case:flag:apply / case:flag:remove (the save checks them again).
+  const { has } = useCapabilities();
   // The ONLY thing edited while this modal is open. Nothing here touches
   // the real backend until handleSave runs. initialCaseData itself is
   // kept around, untouched, as the "what did this look like when we
@@ -187,6 +191,8 @@ const FlagManagerModal: React.FC<Props> = ({
     clone.specimens.forEach((s: any) => { if (!Array.isArray(s.flags)) s.flags = []; });
     return clone;
   });
+  const mayApply  = has('case:flag:apply', { caseId: localCase.id });
+  const mayRemove = has('case:flag:remove', { caseId: localCase.id });
   const [caseOn, setCaseOn]         = useState(true);
   const [spIds, setSpIds]           = useState<Set<string>>(new Set());
   const [query, setQuery]           = useState("");
@@ -222,8 +228,6 @@ const FlagManagerModal: React.FC<Props> = ({
 
   // ── draft edits — local only, no API calls ────────────────────────────────────
   const addFlagLocally = useCallback((defId: string, specimenId?: string) => {
-    const def = flagDefinitions.find(f => f.id === defId);
-    if (def) log('flag_applied', { caseId: localCase?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const inst: FlagInstance = {
       id: `local-${Date.now()}-${Math.random()}`,
       flagDefinitionId: defId,
@@ -248,7 +252,7 @@ const FlagManagerModal: React.FC<Props> = ({
       }
       return next;
     });
-  }, [flagDefinitions, log, localCase?.id]);
+  }, []);
 
   // Soft-delete within the draft only. If the instance was added THIS
   // session (local- id), this is the only trace of it ever existing --
@@ -257,9 +261,6 @@ const FlagManagerModal: React.FC<Props> = ({
   // FlagChip's own Undo button (unchanged, see below) is the safety net,
   // not a blocking dialog -- see this file's header note on that choice.
   const removeFlagLocally = useCallback((instanceId: string, specimenId?: string) => {
-    const inst = [...(localCase?.flags ?? []), ...(localCase?.specimens?.flatMap((sp: any) => sp.flags) ?? [])].find((f: any) => f.id === instanceId);
-    const def  = inst ? flagDefinitions.find(f => f.id === inst.flagDefinitionId) : undefined;
-    if (def) log('flag_removed', { caseId: localCase?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const now = new Date().toISOString();
     setLocalCase(prev => {
       const next = deepClone(prev);
@@ -276,7 +277,7 @@ const FlagManagerModal: React.FC<Props> = ({
       }
       return next;
     });
-  }, [flagDefinitions, log, localCase]);
+  }, []);
 
   // ── apply — draft only ────────────────────────────────────────────────────────
   const handleApply = useCallback((def: FlagDefinition) => {
@@ -334,22 +335,7 @@ const FlagManagerModal: React.FC<Props> = ({
   }, [flagDefinitions, localCase.specimens, doRemoveSingle, doRemoveAll]);
 
   // ── dirty check — real ID-set comparison against the original snapshot ────────
-  const isDraftDirty = useMemo(() => {
-    const diff = (origFlags: FlagInstance[], nowFlags: FlagInstance[]) => {
-      const origIds = new Set(activeInst(origFlags).map(f => f.id));
-      const nowIds  = new Set(activeInst(nowFlags).map(f => f.id));
-      if (origIds.size !== nowIds.size) return true;
-      for (const id of origIds) if (!nowIds.has(id)) return true;
-      for (const id of nowIds) if (!origIds.has(id)) return true;
-      return false;
-    };
-    if (diff(initialCaseData.flags ?? [], localCase.flags)) return true;
-    for (const sp of localCase.specimens) {
-      const origSp = initialCaseData.specimens.find((s: any) => s.id === sp.id);
-      if (diff(origSp?.flags ?? [], sp.flags)) return true;
-    }
-    return false;
-  }, [initialCaseData, localCase]);
+  const isDraftDirty = useMemo(() => hasFlagChanges(initialCaseData, localCase), [initialCaseData, localCase]);
 
   // Report dirty state up to the page -- reset to false on unmount so a
   // closed modal never leaves a stale "dirty" flag behind.
@@ -364,44 +350,31 @@ const FlagManagerModal: React.FC<Props> = ({
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     setSaveError(null);
-    let succeededAny = false;
     try {
-      const commit = async (origFlags: FlagInstance[], nowFlags: FlagInstance[], specimenId?: string) => {
-        const origIds = new Set(activeInst(origFlags).map(f => f.id));
-        for (const f of nowFlags) {
-          const wasActive = origIds.has(f.id);
-          const isActive  = !f.deletedAt;
-          if (!wasActive && isActive) {
-            await onApplyFlags({ caseId: localCase.id, flagDefinitionId: f.flagDefinitionId, specimenId });
-            succeededAny = true;
-          } else if (wasActive && !isActive) {
-            await onRemoveFlag({ caseId: localCase.id, flagInstanceId: f.id, specimenId });
-            succeededAny = true;
-          }
-        }
-      };
-      await commit(initialCaseData.flags ?? [], localCase.flags);
-      for (const sp of localCase.specimens) {
-        const origSp = initialCaseData.specimens.find((s: any) => s.id === sp.id);
-        await commit(origSp?.flags ?? [], sp.flags, sp.id);
-      }
-      onClose();
-    } catch (e) {
-      // Real, surfaced failure instead of silently doing nothing — the
-      // user needs to know a save didn't fully complete, and needs an
-      // accurate picture if some items DID succeed before this one
-      // failed (some flag changes may already be persisted even though
-      // the modal is still showing "unsaved changes").
-      const detail = (e as Error)?.message ?? t('flagManagerModal.unknownError');
-      setSaveError(
-        succeededAny
-          ? t('flagManagerModal.partialSaveError', { detail })
-          : t('flagManagerModal.saveFailedError', { detail })
+      // Batch 669 (everyday-17): the changes are stored, and audited, here at Save (services/flags/flagChangeAudit.ts); Cancel writes nothing.
+      const { saved, error } = await saveFlagChanges(
+        { caseId: localCase.id, initial: initialCaseData, draft: localCase, definitions: flagDefinitions },
+        {
+          applyFlag: onApplyFlags, removeFlag: onRemoveFlag,
+          audit: (e) => {
+            const detail = { caseId: e.caseId, flagName: e.flagName, specimenId: e.specimenId };
+            if (e.action === 'flag_applied') log('flag_applied', detail); else log('flag_removed', detail);
+          },
+        },
       );
+      if (!error) { onClose(); return; }
+      // Real, surfaced failure instead of silently doing nothing: the
+      // user needs an accurate picture if some items DID succeed before
+      // this one failed (some flag changes may already be persisted even
+      // though the modal is still showing "unsaved changes").
+      const detail = error.message || t('flagManagerModal.unknownError');
+      setSaveError(saved > 0
+        ? t('flagManagerModal.partialSaveError', { detail })
+        : t('flagManagerModal.saveFailedError', { detail }));
     } finally {
       setIsSaving(false);
     }
-  }, [localCase, initialCaseData, onApplyFlags, onRemoveFlag, onClose, t]);
+  }, [localCase, initialCaseData, flagDefinitions, onApplyFlags, onRemoveFlag, onClose, log, t]);
 
   const handleClose = useCallback(() => {
     if (isDraftDirty) { setShowDirtyWarn(true); return; }
@@ -511,7 +484,8 @@ const FlagManagerModal: React.FC<Props> = ({
             <button
               className="fm-chip-remove-btn"
               onClick={() => requestRemove(inst, specimenId)}
-              title={t('flagManagerModal.removeFlag')}
+              disabled={!mayRemove}
+              title={mayRemove ? t('flagManagerModal.removeFlag') : t('caseActionPermissions.flagRemove')}
             >
               <IcoTrash />
             </button>
@@ -690,7 +664,7 @@ const FlagManagerModal: React.FC<Props> = ({
                     <div
                       key={def.id}
                       className={`fm-flag-card${applied ? " applied" : ""}`}
-                      {...pressable(() => !applied && handleApply(def))}
+                      {...pressable(() => !applied && mayApply && handleApply(def))}
                     >
                       <div>
                         <span className={`fm-code-chip${applied ? " applied" : ""}`}>

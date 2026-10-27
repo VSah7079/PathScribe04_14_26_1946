@@ -358,3 +358,5 @@ Each service here (the billing and charge-capture services) now has an API-serve
 ## Batch 618 (PS-336): which lab performed each charge
 
 `resolveChargeFacilities.ts` (+ test): `resolveSplitTechnicalFacility` (a technical lab that is a different lab from the reporting lab) and `resolveChargePerformingFacilityId` (TC goes to the technical lab on a split case; 26 and Global to the reporting lab). `jsonWebhookBuilder.ts` adds `performingFacilityId` per charge and `technicalComponentFacility` on a split case. Release rules are unchanged (`codeMapTable.ts`); the test proves TC at grossing and 26 at sign-out.
+
+- Batch 663: `canDraftOrApproveBillingCharge.ts` was removed (no caller passed a role). Charges are guarded by `billing:charge:approve` in `chargeApproval.ts`; the `actorRole` parameter on submit, approve and reject is ignored and kept only so the API contract is unchanged.

@@ -9,9 +9,13 @@
 //     both Global) blocks the save; an edit doesn't collide with itself;
 //   • Add carries a duplicated rule's synthetic coding (the form doesn't
 //     show it); Edit writes the form's fields only.
+//   • Batch 623 (PS-130): the form's optional real codes (SNOMED CT, ICD-O-3) are
+//     checked for shape and stored as the rule's licensedCoding; they are only
+//     used while the customer's licence is on (resolveFindingCoding.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { findDuplicate } from '@/utils/validateUnique';
+import { parseRuleCoding, EMPTY_RULE_CODING_DRAFT, type RuleCodingDraft, type RuleCodingError } from '../terminologyLicence/terminologyLicence';
 import type { AbnormalSeverity, AbnormalTriggerRule, IAbnormalTriggerRuleService } from './IAbnormalTriggerRuleService';
 
 export interface AbnormalTriggerRuleDraft {
@@ -23,6 +27,8 @@ export interface AbnormalTriggerRuleDraft {
   active: boolean;
   /** '' = Global. */
   performingLabFacilityId: string;
+  /** Batch 623: the optional real codes. */
+  coding?: RuleCodingDraft;
 }
 
 export interface AbnormalTriggerRuleEdit {
@@ -32,7 +38,7 @@ export interface AbnormalTriggerRuleEdit {
 }
 
 export type AbnormalTriggerRuleSaveOutcome =
-  | { kind: 'invalid'; error: 'fieldLabelRequired' | 'triggerValueRequired' }
+  | { kind: 'invalid'; error: 'fieldLabelRequired' | 'triggerValueRequired' | RuleCodingError }
   | { kind: 'duplicate'; scope: 'lab' | 'global'; label: string }
   /** `rule` is the stored rule, or undefined when the service refused the write. */
   | { kind: 'saved'; mode: 'add' | 'edit'; rule?: AbnormalTriggerRule };
@@ -48,6 +54,9 @@ export async function saveAbnormalTriggerRule(
   const triggerValues = draft.triggerValues.split(',').map(v => v.trim()).filter(Boolean);
   if (triggerValues.length === 0) return { kind: 'invalid', error: 'triggerValueRequired' };
 
+  const parsed = parseRuleCoding(draft.coding ?? EMPTY_RULE_CODING_DRAFT);
+  if (!parsed.ok) return { kind: 'invalid', error: parsed.errors[0] };
+
   const excludeId = edit?.mode === 'edit' ? edit.item?.id : undefined;
   const collision = findDuplicate(existing, { performingLabFacilityId: draft.performingLabFacilityId || undefined, fieldLabel }, ['performingLabFacilityId', 'fieldLabel'], excludeId);
   if (collision) return { kind: 'duplicate', scope: draft.performingLabFacilityId ? 'lab' : 'global', label: collision.fieldLabel };
@@ -57,6 +66,7 @@ export async function saveAbnormalTriggerRule(
     description: draft.description.trim() || undefined,
     status: (draft.active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
     performingLabFacilityId: draft.performingLabFacilityId || undefined,
+    licensedCoding: parsed.coding,
   };
   if (edit?.mode === 'add') {
     const res = await service.add({ ...payload, syntheticCoding: edit.item?.syntheticCoding });

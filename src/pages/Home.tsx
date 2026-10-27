@@ -18,6 +18,7 @@ import { visibleTiles, type HomeTileId } from '@/services/screens/screenAccess';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
 import { pressable } from '@/utils/a11y/pressable';
+import SystemStatusIndicator from '@/components/Common/SystemStatusIndicator';
 
 interface Card {
   /** Batch 374: which screen (or hub) the tile opens, for the access check. */
@@ -135,6 +136,17 @@ export default function Home() {
     // route, just a real, discoverable Configuration entry point
     // instead of a flat top-level Home tile aimed at every user.
     { id: 'intraopQueue', title: t('home.intraopQueueTile.title'), description: t('home.intraopQueueTile.description'), route: '/intraop-queue', color: '#38BDF8', image: '/intraop.webp' },
+    // ⭐ New tile — Batch 645 (Pete): Lockbox Drop-Off, the after-hours specimen kiosk and the Overnight folder for the
+    // morning team (/lockbox-drop-off, screen:lockbox-drop-off:open). Alphabetical: after Intraop Queue, before My
+    // Contribution. Color #86EFAC (a light green): the 11th color, chosen and checked the way the header comment says. A
+    // from-scratch search over hue, saturation and lightness for the color with the largest minimum distance to the ten
+    // others, in normal vision and under protanopia, deuteranopia and tritanopia (Viénot linear-RGB projection and the
+    // Machado matrices, as simulated sRGB distance), keeping 3:1 against both dark surfaces (#0B1120, #0D1829). Result:
+    // minimum distance ≈90 in every simulation (≈120 in normal vision; the nearest tile is Intraop Queue, Search or Bench Contributions), against
+    // ≈34–37 for the Tumor Board violet, and contrast ≈12.7:1 on the dark tile. It is light where the other ten are
+    // mid-tone, which is why it survives the simulations (the ten were already crowded in hue). Home.tileColors.test.tsx
+    // repeats the check on the colors the page really renders, so a twelfth tile or a changed color is caught.
+    { id: 'lockboxDropOff', title: t('home.lockboxDropOffTile.title'), description: t('home.lockboxDropOffTile.description'), route: '/lockbox-drop-off', color: '#86EFAC', image: '/lockbox.webp' },
     // ⭐ New tile
     {
       id: 'myContributions', title: t('home.myContributionTile.title'),
@@ -307,10 +319,7 @@ export default function Home() {
         {/* Footer Status */}
         <footer className="ps-home-footer">
           <div>{t('home.footerCopyright')}</div>
-          <div className="ps-home-footer-status">
-            <span className="ps-home-status-dot" />
-            {t('home.systemsOperational')}
-          </div>
+          <SystemStatusIndicator />
         </footer>
       </div>
     </div>

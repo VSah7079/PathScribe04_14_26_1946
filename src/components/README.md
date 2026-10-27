@@ -1,3 +1,16 @@
+**Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone (`Help/TopBarHelpButtons`, in `NavBar`).
+
+**Batch 650:** `Worklist/PoolClaimModal` (Accept / Pass), `PatientHistory/PatientHistoryModal` (Close history), `Contribution/QualityTab` (TAT tiles) answer registered voice and key commands.
+
+**Batch 649:** Flag Manager, Request Review and the pool Claim window grey their actions without the new capabilities (`Flags/`, `RequestReview/`, `Worklist/`); the Enhancement Request README is corrected (the screenshot is opt-in inside the modal).
+
+## Batch 647
+`Config/help/RouteHelpButton.tsx`: the floating Help button for screens outside Configuration, mounted once in `SignedInApp.tsx`.
+
+## Batch 645 — Lockbox Drop-Off
+
+`Lockbox/LockboxNavigation.tsx` (new): the "Go to Lockbox Drop-Off" command, mounted once in `SignedInApp.tsx` so `AppShell.tsx` does not grow. See `Lockbox/README.md`.
+
 ## Batch 613 (part A) — case search reporting
 
 `Search/Report/`: `CaseReportPanel`, `ColumnPicker`, `ReportSchedulesPanel`, `SynopticValueFilters` and the `useCaseReport` hook.
@@ -14,6 +27,8 @@
 New `Autopsy/AutopsyTatChip.tsx` (on the worklist and the report page). `Config/System/TATConfigSection.tsx`: Autopsy PAD and FAD rule types, a warning-minutes field for frozen section, and the `as any` casts removed. `Worklist/AutopsyWorklistBadges.tsx` shows the chip after the SLA badge.
 
 # components/
+
+**Batch 646:** `Config/help/` is the Help button that opens the matching section of the Administrator Guide (Configuration screens and Migration Jobs).
 
 Master index for `src/components/`. One line per top-level folder,
 cross-linked to that folder's own `README.md` for real detail.
@@ -1005,3 +1020,33 @@ Performance targets and client service levels are saved and judged by `services/
 - Batch 612 (part A): `InterfaceDictionary/` (mapping editor, test panel, scope reference) and `VendorFields/` (case sidebar panel).
 
 Batch 614: `Coding/CodeSystemOffNote.tsx`, the short note a coding screen shows when the Code Systems setting has switched a system off.
+## Batch 638
+
+Batch 638 (Oct 20, 2026): CSMS messages wait for the eligibility check; Belgian Dutch dictation option; colleague reassignment room prorated by logged hours; surgical demo patients in the patient index. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+## Batch 640
+
+Batch 640 (Oct 20, 2026): self-collected HPV recall windows and wording are set per country (Australia, New Zealand) by the laboratory's administrator, from a dropdown. See `docs/architecture/HPV_RESULT_INBOUND.md` section 8.
+
+## Batch 641
+
+Batch 641 (Oct 20, 2026): recall documentation corrected (no sign-off needed for windows or wording; codes belong to the interface engine); PS-539 readiness status refreshed; recall card loading fix.
+
+## Batch 642
+
+Batch 642 (Oct 20, 2026): sign-out authentication policy. An administrator sets, in Session Security, whether signing a case out asks for a password every time (default) or once per session, with an optional second factor, an enterprise default, per-performing-facility overrides and a lock; the Sign Out button shows "(Password Required)" when a password is needed; every policy change, authentication, in-session sign-out and expiry is audited with full context. Remote sign-out limits and workstation lock need the API server (phase 2e). See `docs/architecture/SIGN_OUT_AUTHENTICATION.md`.
+
+## Batch 651: AI answers checked in code
+See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSuggestions.ts`, `orchestrator/narrativeProvenance.ts` and `docs/product/GUIDE_UPDATES.md` (Batch 651).
+
+## Batch 652 (defect fixes)
+
+See `Config/System/README.md`: External Resources accepts https only.
+
+Batch 669: `Flags/FlagManagerModal.tsx` audits flag changes at Save only (Cancel leaves no audit entries).
+
+## Batch 669f
+
+`CytologyQc/CytologyQcDiscrepancyModal`: optional secondary code with an in-window confirmation; `AppShell`: message rows show unread per person.
+
+- **Batch 669 (access-11):** `ExternalConsult/ExternalConsultAccessModal` has the audited, default-off "show full name and date of birth" opt-in for outside consult links.

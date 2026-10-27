@@ -29,6 +29,8 @@
 // see docs/architecture/AUTHENTICATION_OIDC.md §5.4.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { isSignOutPolicyAction } from './signOutPolicy/signOutPolicy';
+import type { SignOutPolicyService } from './signOutPolicy/signOutPolicyService';
 import type { IAuditService } from '../auditlog/IAuditService';
 import { findProvider, type AuthConfig } from './authConfig';
 import { checkIdTokenClaims, identityFromClaims } from './externalIdentity';
@@ -68,6 +70,8 @@ export const SIGNER_FAILURES = [
   'cancelled', 'popup_blocked', 'provider_error', 'locked', 'no_session', 'unavailable',
   // Batch 611 (#157): the fresh second factor a signature can ask for.
   'mfa_code_required', 'mfa_invalid', 'mfa_not_asserted',
+  // Batch 642: a sign-out that asks for a second factor from someone not enrolled.
+  'mfa_not_enrolled',
 ] as const;
 export type SignerFailure = typeof SIGNER_FAILURES[number];
 
@@ -87,6 +91,12 @@ export interface SignatureConfirmation {
    * the demo password and simulated biometric.
    */
   proof: { kind: 'oidc-id-token'; idToken: string } | null;
+  /**
+   * Batch 642: a later sign-out inside a sign-out session (policy mode
+   * 'session'): nothing was asked, and this names the session that
+   * authenticated. The server checks the session and the policy.
+   */
+  sessionReuse?: { sessionId: string };
 }
 
 export type SignerResult =
@@ -178,11 +188,13 @@ export interface SignerConfirmationDeps {
     challenge(profile: SessionProfile, code: string): Promise<{ ok: true; stamp: MfaStamp } | { ok: false; reason: string; lockedUntil?: string; attemptsLeft?: number }>;
     stepUpWithClaims(profile: SessionProfile, claims: Record<string, unknown>): { ok: true; stamp: MfaStamp } | { ok: false };
   };
+  /** Batch 642: the sign-out authentication policy and session (signOutPolicy/). */
+  signOutPolicy?: Pick<SignOutPolicyService, 'stateFor' | 'mfaRequired' | 'recordAuthentication' | 'recordSessionSignOut'>;
   now?: () => Date;
   newId?: () => string;
 }
 
-export interface SigningContext { action: SigningAction; caseRef?: string | null; /** Batch 611: the second-factor code, when a signature asks for one. */ mfaCode?: string }
+export interface SigningContext { action: SigningAction; caseRef?: string | null; /** Batch 642: the case's performing facility, which picks the sign-out policy. */ facilityId?: string | null; facilityName?: string | null; /** Batch 611: the second-factor code, when a signature asks for one. */ mfaCode?: string }
 
 export function createSignerConfirmation(deps: SignerConfirmationDeps) {
   const now = deps.now ?? (() => new Date());
@@ -198,7 +210,7 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
 
   const lockFor = (profile: SessionProfile) => currentSigningLock(deps.lockStore.read(profile.id), now());
 
-  const succeed = (profile: SessionProfile, method: SignatureConfirmation['method'], ctx: SigningContext, proof: SignatureConfirmation['proof'] = null): SignerResult => {
+  const succeed = (profile: SessionProfile, method: SignatureConfirmation['method'], ctx: SigningContext, proof: SignatureConfirmation['proof'] = null, mfaUsed = false): SignerResult => {
     deps.lockStore.write(profile.id, NO_SIGNING_LOCK);
     const session = deps.signingSession.current();
     if (session) deps.signingSession.markConfirmed(session);
@@ -207,6 +219,9 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
       signerId: profile.id, signerName: profile.name, method, action: ctx.action,
       caseRef: ctx.caseRef ?? null, confirmedAt: now().toISOString(), proof,
     };
+    if (deps.signOutPolicy && isSignOutPolicyAction(ctx.action)) {
+      deps.signOutPolicy.recordAuthentication(profile, { facilityId: ctx.facilityId ?? null, facilityName: ctx.facilityName, caseId: ctx.caseRef ?? null, method, mfa: mfaUsed });
+    }
     audit(profile, 'Signature confirmed', `Signer identity confirmed by ${methodText(profile, method)} for ${SIGNING_ACTION_AUDIT_TEXT[ctx.action]}.`, ctx.caseRef);
     return { ok: true, confirmation };
   };
@@ -236,15 +251,23 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
 
   /** Batch 611: the fresh code a password or biometric signature needs, checked after the password so a wrong password never spends a code. */
   const stepUpWithCode = async (profile: SessionProfile, ctx: SigningContext): Promise<{ stop: SignerResult } | { stamp: MfaStamp | undefined }> => {
-    if (!deps.mfa || !deps.mfa.stepUpNeeded(profile)) return { stamp: undefined };
-    const r = await deps.mfa.challenge(profile, ctx.mfaCode ?? '');
+    if (!secondFactorAsked(profile, ctx)) return { stamp: undefined };
+    const r = await deps.mfa!.challenge(profile, ctx.mfaCode ?? '');
     if (r.ok) return { stamp: r.stamp };
     if (r.reason === 'locked' && r.lockedUntil) return { stop: { ok: false, reason: 'locked', lockedUntil: r.lockedUntil } };
+    if (r.reason === 'not_enrolled') return { stop: { ok: false, reason: 'mfa_not_enrolled' } };
     return { stop: { ok: false, reason: 'mfa_invalid', attemptsLeft: r.attemptsLeft } };
   };
 
+  /** Batch 642: the sign-out policy asks for a second factor at this facility, whatever the organisation policy says. */
+  const signOutAsksMfa = (action: SigningAction, facilityId?: string | null): boolean =>
+    !!deps.signOutPolicy && isSignOutPolicyAction(action) && deps.signOutPolicy.mfaRequired(facilityId);
+
+  const secondFactorAsked = (profile: SessionProfile, ctx: Pick<SigningContext, 'action' | 'facilityId'>): boolean =>
+    !!deps.mfa && (deps.mfa.stepUpNeeded(profile) || signOutAsksMfa(ctx.action, ctx.facilityId));
+
   const mfaCodeMissing = (profile: SessionProfile, ctx: SigningContext): boolean =>
-    !!deps.mfa && deps.mfa.stepUpNeeded(profile) && !(ctx.mfaCode ?? '').trim();
+    secondFactorAsked(profile, ctx) && !(ctx.mfaCode ?? '').trim();
 
   const needsUsername = (): boolean => {
     const current = deps.signingSession.current();
@@ -261,9 +284,36 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
     needsUsername,
 
     /** Batch 611 (#157): this signature needs a fresh second-factor code typed in (password sessions; single sign-on asks at the provider). */
-    mfaCodeNeeded(): boolean {
+    mfaCodeNeeded(action?: SigningAction, facilityId?: string | null): boolean {
       const profile = deps.readProfile();
-      return !!profile && signerMethodFor(profile, deps.config) !== 'sso' && !!deps.mfa && deps.mfa.stepUpNeeded(profile);
+      return !!profile && signerMethodFor(profile, deps.config) !== 'sso' && secondFactorAsked(profile, { action: action ?? 'case-sign-out', facilityId: action ? facilityId : null });
+    },
+
+    /**
+     * Batch 642: where this person stands for a sign-out at this facility.
+     * `passwordRequired` drives the button; `valid` means nothing is asked.
+     */
+    signOutState(action: SigningAction, facilityId?: string | null) {
+      const profile = deps.readProfile();
+      if (!deps.signOutPolicy || !profile || !isSignOutPolicyAction(action)) return null;
+      return deps.signOutPolicy.stateFor(profile, facilityId);
+    },
+
+    /**
+     * Batch 642: a sign-out inside a valid sign-out session (policy mode
+     * 'session'). Nothing is asked; the confirmation names the session.
+     * Null when a prompt is needed.
+     */
+    confirmWithinSession(ctx: SigningContext): SignatureConfirmation | null {
+      const profile = deps.readProfile();
+      if (!deps.signOutPolicy || !profile || !isSignOutPolicyAction(ctx.action)) return null;
+      const state = deps.signOutPolicy.stateFor(profile, ctx.facilityId);
+      if (state.kind !== 'valid') return null;
+      deps.signOutPolicy.recordSessionSignOut(profile, state.session, { facilityId: ctx.facilityId ?? null, facilityName: ctx.facilityName, caseId: ctx.caseRef ?? null, method: state.session.method, mfa: state.session.mfa });
+      return {
+        confirmationId: newId(), signerId: profile.id, signerName: profile.name, method: state.session.method, action: ctx.action,
+        caseRef: ctx.caseRef ?? null, confirmedAt: now().toISOString(), proof: null, sessionReuse: { sessionId: state.session.sessionId },
+      };
     },
 
     /** Simulated biometric is offered only in demo builds. */
@@ -291,7 +341,7 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
       if (!account || account.id !== profile.id) return fail(profile, 'password', input, 'wrong_credentials');
       const second = await stepUpWithCode(profile, input);
       if ('stop' in second) return second.stop;
-      const done = succeed(profile, 'password', input);
+      const done = succeed(profile, 'password', input, null, !!second.stamp);
       return second.stamp && done.ok ? { ...done, mfa: second.stamp } : done;
     },
 
@@ -313,12 +363,13 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
         if (problem) return fail(profile, 'sso', ctx, problem);
         // Batch 611: the provider's fresh sign-in must report a second factor when this signature asks for one.
         let stamp: MfaStamp | undefined;
-        if (deps.mfa && deps.mfa.stepUpNeeded(profile)) {
-          const second = deps.mfa.stepUpWithClaims(profile, r.claims);
+        const secondAsked = secondFactorAsked(profile, ctx);
+        if (secondAsked) {
+          const second = deps.mfa!.stepUpWithClaims(profile, r.claims);
           if (second.ok === false) return fail(profile, 'sso', ctx, 'mfa_not_asserted');
           stamp = second.stamp;
         }
-        const done = succeed(profile, 'sso', ctx, { kind: 'oidc-id-token', idToken: r.idToken });
+        const done = succeed(profile, 'sso', ctx, { kind: 'oidc-id-token', idToken: r.idToken }, secondAsked);
         return stamp && done.ok ? { ...done, mfa: stamp } : done;
       });
     },
@@ -332,7 +383,7 @@ export function createSignerConfirmation(deps: SignerConfirmationDeps) {
       if (!r.ok) return fail(profile, 'biometric', ctx, 'wrong_credentials');
       const second = await stepUpWithCode(profile, ctx);
       if ('stop' in second) return second.stop;
-      const done = succeed(profile, 'biometric', ctx);
+      const done = succeed(profile, 'biometric', ctx, null, !!second.stamp);
       return second.stamp && done.ok ? { ...done, mfa: second.stamp } : done;
     },
 

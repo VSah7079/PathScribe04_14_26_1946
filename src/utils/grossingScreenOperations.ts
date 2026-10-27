@@ -177,3 +177,36 @@ export function updateGrossingPieceCount(
   };
   return { ok: true, specimen: { ...specimen, blocks: updatedBlocks, grossingOverrides: logOverride(specimen, overrideEntry) } };
 }
+
+/** Batch 659: a block's piece description (the Grossing screen now takes it; Complete grossing can ask for it). */
+export function updateGrossingPieceDescription(
+  specimen: Specimen,
+  blockId: string,
+  text: string,
+  actor: string,
+): GrossingOperationResult {
+  const block = (specimen.blocks ?? []).find(b => b.id === blockId);
+  if (!block) return { ok: false, error: 'Block not found.' };
+  const next = text.trim();
+  const updatedBlocks = (specimen.blocks ?? []).map(b => b.id !== blockId ? b : { ...b, pieceDescription: next || undefined });
+  const overrideEntry: SpecimenGrossingOverride = {
+    field: 'pieceDescription', blockLabel: block.label,
+    originalValue: block.pieceDescription || '(none)', newValue: next || '(none)',
+    actor, timestamp: new Date().toISOString(),
+  };
+  return { ok: true, specimen: { ...specimen, blocks: updatedBlocks, grossingOverrides: logOverride(specimen, overrideEntry) } };
+}
+
+/** Batch 659: the piece count and description of one matrix block (a cassette shared by several specimens). */
+export function updateMatrixBlockPieces<M extends { id: string; pieceCount?: number; pieceDescription?: string }>(
+  matrixBlocks: readonly M[],
+  matrixBlockId: string,
+  patch: { pieceCount?: number; pieceDescription?: string },
+): M[] | null {
+  if (!matrixBlocks.some(m => m.id === matrixBlockId)) return null;
+  return matrixBlocks.map(m => m.id !== matrixBlockId ? m : {
+    ...m,
+    ...(patch.pieceCount !== undefined ? { pieceCount: patch.pieceCount } : {}),
+    ...(patch.pieceDescription !== undefined ? { pieceDescription: patch.pieceDescription.trim() || undefined } : {}),
+  });
+}

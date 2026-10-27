@@ -195,6 +195,14 @@ export const SETTINGS_KEYS = [
   'delivery_schedules_v1', // Batch 619 (PS-800)
   'outbound_holds_v1', // Batch 619 (PS-800): holds, overrides and retractions on the Outbound Queue
   'billing_release_rules_v1', // Batch 619 (PS-800)
+  'us_epath_profiles_v1', // Batch 620 (part E, PS-800)
+  'us_epath_assignments_v1', // Batch 620 (part E, PS-800)
+  'batch_registry_profiles_v1', // Batch 620 (PS-800)
+  'batch_registry_runs_v1', // Batch 620 (PS-800)
+  'cosd_destinations_v1', // Batch 620 part C (PS-800)
+  'history_extraction_settings_v1', // Batch 621 (the AI extraction of historical reports setting)
+  'history_extractions_v1', // Batch 621 (what the AI read from historical reports)
+  'history_extraction_flags_v1', // Batch 621 ("flag as wrong" records)
   'pathscribe_incoming_orders',
   'pathscribe_management_reviews',
 
@@ -225,7 +233,7 @@ export const SETTINGS_KEYS = [
   'pathscribe_validation_studies_v1',
   'pathscribe_pubmed_ticker_backoff', 'pathscribe_pubmed_ticker_cache', 'pathscribe_research_feed_config', 'pathscribe_research_feed_health',
   // Org-level config toggles/settings
-  'pathscribe_orchestrator_mode', 'pathscribe_idle_timeout_minutes',
+  'pathscribe_orchestrator_mode', 'pathscribe_idle_timeout_minutes', 'pathscribe_signout_policy',
   'pathscribe_release_buffer_org_config',
   'pathscribe_org_document_style_footer', 'pathscribe_org_document_style_header', 'pathscribe_org_document_style_body',
   // Batch 431: the lab's page size and margins (services/reportAppearance/pageSetup.ts).

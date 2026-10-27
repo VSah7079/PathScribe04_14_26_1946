@@ -11,13 +11,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
 
 import type { MasterPatientRecord } from '@/services/patients/IPatientIndexService';
-import { queryRealPatientHistory } from '@/services/patients/patientHistoryQuery';
-import { messageService, userService, type PatientHistoryCase, type AiMatchedCase, findSimilarCases, patientIndexService } from '@/services';
+import { queryRealPatientHistory, type PatientHistoryCaseWithFacility } from '@/services/patients/patientHistoryQuery';
+import { actionRegistryService, messageService, userService, type PatientHistoryCase, type AiMatchedCase, findSimilarCases, patientIndexService } from '@/services';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
 import { getPatientCaseAccess } from '@/services/patientCaseAccess/patientCaseAccessService';
 import { RestrictedCasesNotice } from './RestrictedCasesNotice';
 import { PatientSummaryPanel } from '@/components/RelatedCases/PatientSummaryPanel';
+// Batch 621: what the AI read from a historical report's text (advisory only, labelled, flaggable).
+import { HistoryExtractionPanel } from './HistoryExtractionPanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -105,6 +107,7 @@ function ReportField({ label, value, phi }: { label: string; value: string | num
 
 function FullReport({ item }: { item: ReportItem }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const ai = isAiCase(item);
   const a = item as AiMatchedCase;
   const h = item as PatientHistoryCase;
@@ -135,6 +138,7 @@ function FullReport({ item }: { item: ReportItem }) {
           <div className="ps-ph-field-value ps-ph-field-value--loose">{ai ? a.microscopic : h.microscopic}</div>
         </div>
       </div>
+      {!ai && <HistoryExtractionPanel item={{ id: h.id, diagnosis: h.diagnosis, microscopic: h.microscopic, facilityId: (h as PatientHistoryCaseWithFacility).facilityId }} userName={user?.name ?? ''} />}
       {ai && a.ancillaryStudies && (
         <div className="ps-ph-field-mb">
           <div className="ps-ph-field-label">{t('patientHistoryModal.field.ancillaryStudies')}</div>
@@ -164,6 +168,8 @@ function FullReport({ item }: { item: ReportItem }) {
 
 export default function PatientHistoryModal({ patientName: initialPatientName, mrn: initialMrn, dateOfBirth: initialDateOfBirth, patientId: initialPatientId, currentCaseId, onClose }: PatientHistoryModalProps) {
   const { t } = useTranslation();
+  // Batch 650: "close history" (Alt+Shift+H) is the Close button while this window is open.
+  useEffect(() => actionRegistryService.onAction((actionId: string) => { if (actionId === 'CLOSE_HISTORY') onClose(); }), [onClose]);
   // Real, per direct guidance ("Molecular testing across siblings"):
   // a real, distinct person shown under "Related Patients" below is
   // exactly who a reviewer would want to actually navigate to — e.g.
@@ -454,7 +460,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
               )}
             </div>
 
-            {/* Right: AI Matched Cases — populated by findSimilarCases() */}
+            {/* Right: Similar Cases (Demonstration) — populated by findSimilarCases() */}
             <div className="ps-ph-panel">
               <div className="ps-ph-panel-title">
                 <span className="ps-ph-accent-text">★</span>

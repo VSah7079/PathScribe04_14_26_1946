@@ -2,7 +2,7 @@
 // it marks the entry sent to the (simulated) engine, so it then waits for an answer like a real one, and audits it.
 // The audit text holds ids and counts only, no patient data.
 import { cancerRegistryOutboundQueueService } from '../cancerRegistry/cancerRegistryOutboundQueueServiceInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { CancerRegistryOutboundQueueEntry } from '@/types/case/CancerRegistryOutboundQueueEntry';
 
 export async function listCaseRegistryReports(caseId: string): Promise<CancerRegistryOutboundQueueEntry[]> {
@@ -21,7 +21,7 @@ export async function submitQueuedRegistryReportsSimulated(caseId: string, actor
     const r = await cancerRegistryOutboundQueueService.markSent(e.id);
     if (r.ok) {
       submitted += 1;
-      mockAuditService.logEvent({ type: 'system', event: 'Simulated Registry Submission', detail: `SIMULATED (no registry): queue entry ${e.id} for registry ${e.registryId} handed to the simulated engine; now awaiting an answer.`, user: actor, caseId, confidence: null });
+      auditService.logEvent({ type: 'system', event: 'Simulated Registry Submission', detail: `SIMULATED (no registry): queue entry ${e.id} for registry ${e.registryId} handed to the simulated engine; now awaiting an answer.`, user: actor, caseId, confidence: null });
     }
   }
   return { submitted, held };

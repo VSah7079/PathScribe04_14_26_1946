@@ -36,12 +36,12 @@ import type { ICaseService, CaseFilterParams } from './ICaseService';
 import type { ServiceResult }                                 from '../types';
 import { AuditLogger }                                        from './AuditLogger';
 import { ConcurrencyConflictError }                            from './ConcurrencyConflictError';
-import { mockCaseService }             from './mockCaseService';
+import { caseService } from './caseServiceInstance';
 import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { getSessionUser, canAccessCaseWithPools, filterAccessibleCasesWithPools, deriveEligibleFinalizerIds, isCrossTenantSupportAccess, type CaseAccessSubspecialty } from '../auth/caseAccessControl';
 import { subspecialtyService } from '../subspecialties/subspecialtyServiceInstance';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import type { Facility } from '../facilities/IFacilityService';
 import { getParticipationTypeLookup } from '../../utils/participationTypeLookup';
 import { isOrchCaseId } from './reportingModeRouting';
@@ -102,7 +102,7 @@ function sessionAgent(session: NonNullable<ReturnType<typeof getSessionUser>>) {
 
 async function getEnterpriseFacilityLookup(): Promise<Facility[]> {
   if (!enterpriseFacilityLookupPromise) {
-    enterpriseFacilityLookupPromise = mockFacilityService.getAll()
+    enterpriseFacilityLookupPromise = facilityService.getAll()
       .then(res => (res.ok ? res.data.filter(f => f.isEnterprise) : []))
       .catch(() => []);
     enterpriseFacilityLookupPromise.catch(() => { enterpriseFacilityLookupPromise = null; });
@@ -350,7 +350,7 @@ class CaseRouter implements ICaseService {
     const [subspecialties, enterpriseFacilities, allFacilities] = await Promise.all([
       getSubspecialtyLookup(),
       getEnterpriseFacilityLookup(),
-      mockFacilityService.getAll().then(r => (r.ok ? r.data : [])).catch(() => [] as Facility[]),
+      facilityService.getAll().then(r => (r.ok ? r.data : [])).catch(() => [] as Facility[]),
     ]);
     const accessible = filterAccessibleCasesWithPools(session, res.data as any, subspecialties, enterpriseFacilities) as unknown as Case[];
     const facilitiesById = new Map(allFacilities.map(f => [f.id, f as any]));
@@ -511,4 +511,4 @@ class CaseRouter implements ICaseService {
 //   import { fhirCaseService }      from './FHIRCaseService';
 //   import { firestoreCaseService } from './FirestoreCaseService';
 //   export const caseRouter = new CaseRouter(fhirCaseService, firestoreCaseService);
-export const caseRouter = new CaseRouter(mockCaseService, mockOrchestratorCaseService);
+export const caseRouter = new CaseRouter(caseService, mockOrchestratorCaseService);

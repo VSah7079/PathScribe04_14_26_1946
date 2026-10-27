@@ -40,7 +40,7 @@ describe('sameCode and addEntry', () => {
     expect(sameCode(e('ICD10', 'C50.9', { release: '2025' }), e('ICD10', 'C50.9', { release: '2026' }))).toBe(false);
   });
   it('does not add a duplicate and keeps the first entry source', () => {
-    const first = e('ICD10', 'C50.9', { source: 'ai', ai: { model: 'm', confidence: 0.9 } });
+    const first = e('ICD10', 'C50.9', { source: 'ai', ai: { model: 'm', confidence: 90 } });
     const out = addEntry([first], e('ICD10', 'C50.9', { source: 'typed' }));
     expect(out).toHaveLength(1);
     expect(out[0].source).toBe('ai');

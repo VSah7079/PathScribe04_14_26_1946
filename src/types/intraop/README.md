@@ -17,3 +17,7 @@ Data model for the Intraop Pre-Check capture flow's desktop side — the "Unlink
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 652 — Specimen pipeline gaps
+
+- `CaseIntraoperativeFinding.ts`: what a merged session leaves on the case (frozen diagnosis text, category, time, photo links), always labelled `intraoperative`.

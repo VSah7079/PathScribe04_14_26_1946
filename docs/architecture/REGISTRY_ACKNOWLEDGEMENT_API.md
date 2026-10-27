@@ -123,3 +123,14 @@ Before a cancer registry report is emitted, it is checked against the registry's
 - a registry keyed on a national identifier: that identifier too, verified or at least the right format.
 
 A report missing any is queued and held (`status FAILED`, `errorCode HOLD_MISSING_MANDATORY_DATA`, the missing items in `errorMessage`). It is never sent, and shows on the worklist as **Held**. A resend re-checks it against today's data. The case's sign-out is never held for this (Pete's answer). The server runs the same check before it emits the JSON; the lists are to be confirmed against each registry's own specification at sign-off.
+
+## 10. The CSMS eligibility gate (Batch 638)
+
+For a registry whose definition carries an eligibility flag (today CSMS, `csms_uk`, flag `f36`), the sign-out message is **held until a person answers the eligibility check**. The clinical report is never held.
+
+- At sign-out with no reason for study, the server queues the submission as usual with its header, then marks it `status FAILED`, `errorCode AWAITING_ELIGIBILITY`, and raises the `f36` flag on the case. Nothing is sent to the engine. A correction or addendum for the same case follows the first submission: still waiting, or `NOT_ELIGIBLE`.
+- **Verified** (`cytology:csms-eligibility:verify`): the server clears the flag, rebuilds each waiting submission from today's data and sends it as the same submission. If it is still not ready for another reason (identifier, codes, go-live approval) it stays held under that reason (`REGISTRY_NOT_READY` and so on).
+- **Not eligible** (with one of the four reasons): the server clears the flag and closes each waiting submission as `errorCode NOT_ELIGIBLE`, `maxRetriesExceeded true`, with the reason in `errorMessage`. It is never sent, never shown on the Registry Exceptions worklist, and left out of batch files.
+- **Resend** (`registry:submission:resend`) must refuse an `AWAITING_ELIGIBILITY` submission. Only the eligibility answer releases it, and that path does not need the resend permission.
+- Both outcomes are audited with who, when and the reason. Browser build: `submitScreeningRegistryResult.ts`, `releaseCsmsHeldSubmissions.ts`, `verifyCsmsEligibility.ts`.
+

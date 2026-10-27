@@ -3,7 +3,7 @@
 // screens and the release path take these, never the mock files).
 import type { Case } from '@/types/case/Case';
 import type { ReportDeliveryDeps } from './deliverReport';
-import { mockReportDeliveryQueueService } from './mockReportDeliveryQueueService';
+import { reportDeliveryQueueService } from './reportDeliveryQueueServiceInstance';
 import { savedReportPdf, type GenerateReportPdf } from '../reports/resolveOruReportPdf';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 
@@ -14,11 +14,11 @@ import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterface
  */
 function cytologyReportPdf(caseId: string, _reportType: string): GenerateReportPdf {
   return async () => {
-    const [{ mockCytologySignOutRecordService }, { caseRouter }, { resolveCytologyCaseReport }, { generateCytologyCaseReportPdfSnapshot }] = await Promise.all([
-      import('../cytology/mockCytologySignOutRecordService'), import('../cases/CaseRouter'),
+    const [{ cytologySignOutRecordService }, { caseRouter }, { resolveCytologyCaseReport }, { generateCytologyCaseReportPdfSnapshot }] = await Promise.all([
+      import('../cytology/cytologySignOutRecordServiceInstance'), import('../cases/CaseRouter'),
       import('../cytology/resolveCytologyCaseReport'), import('../cytology/generateCytologyCaseReportPdf'),
     ]);
-    const [records, caseData] = await Promise.all([mockCytologySignOutRecordService.getByCaseId(caseId), caseRouter.getCase(caseId)]);
+    const [records, caseData] = await Promise.all([cytologySignOutRecordService.getByCaseId(caseId), caseRouter.getCase(caseId)]);
     if (!caseData || !records.ok || !records.data.length) return { generationError: 'no cytology sign-out record for this case' };
     return generateCytologyCaseReportPdfSnapshot(resolveCytologyCaseReport(caseData, records.data));
   };
@@ -30,13 +30,13 @@ export const reportDeliveryDeps: ReportDeliveryDeps = {
     return (await caseRouter.getCase(caseId)) as Case | undefined;
   },
   async getPhysician(id) {
-    const { mockPhysicianService } = await import('../physicians/mockPhysicianService');
-    const r = await mockPhysicianService.getById(id).catch(() => null);
+    const { physicianService } = await import('../physicians/physicianServiceInstance');
+    const r = await physicianService.getById(id).catch(() => null);
     return r && r.ok ? r.data : undefined;
   },
   async getFacility(id) {
-    const { mockFacilityService } = await import('../facilities/mockFacilityService');
-    const r = await mockFacilityService.getById(id).catch(() => null);
+    const { facilityService } = await import('../facilities/facilityServiceInstance');
+    const r = await facilityService.getById(id).catch(() => null);
     return r && r.ok ? r.data : undefined;
   },
   reportPdf: (caseId, reportType, source) => (source === 'CYTOLOGY' ? cytologyReportPdf(caseId, reportType) : savedReportPdf(caseId, reportType)),
@@ -47,6 +47,6 @@ export const reportDeliveryDeps: ReportDeliveryDeps = {
     ]);
     return documentPdf(documentId, reportDocumentService)();
   },
-  queue: mockReportDeliveryQueueService,
+  queue: reportDeliveryQueueService,
   send: (id, payload) => dispatchInterfaceMessage(id, 'REPORT_DELIVERY', payload),
 };

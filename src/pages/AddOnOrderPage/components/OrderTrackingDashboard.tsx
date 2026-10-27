@@ -20,6 +20,9 @@
 //   - Approving destructive cutting is greyed without
 //     add-on:exception:approve-destructive-cut; cancel and modify without
 //     add-on:order:place (checked again in services/addOnOrders).
+//   - Batch 669 (ws-19): Mark Block Retrieved and Flag Exception are greyed without add-on:block:mark-retrieved and
+//     add-on:exception:flag (checked again in services/addOnOrders). A slide with an open exception is listed even when
+//     it was not ordered here (ws-3), so the notice sent to the Supervisor / Accessioning Desk can be answered.
 //   - Exception reasons, routing queues and panel names are shown in the
 //     user's language (stored in English); each form is kept per order, so
 //     typing on one row no longer fills another's.
@@ -121,9 +124,9 @@ const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({ orders,
               </div>
 
               {row.stage === 'Requested' && (
-                <button type="button" className="ps-addon-row-btn" onClick={() => onMarkBlockRetrieved(orderId)}>
+                <CapabilityButton capability="add-on:block:mark-retrieved" context={{ caseId }} className="ps-addon-row-btn" onClick={() => onMarkBlockRetrieved(orderId)}>
                   {t('addOnOrder.tracking.markRetrieved')}
-                </button>
+                </CapabilityButton>
               )}
 
               {row.stage !== 'Exception' && row.stage !== 'Cancelled' && row.stage !== 'Checked Out / Scanned' && (
@@ -145,9 +148,9 @@ const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({ orders,
                     </div>
                   </div>
                 ) : (
-                  <button type="button" className="ps-addon-row-btn ps-addon-row-btn--warn" onClick={() => { setFlagTargetId(orderId); setFlagNote(''); }}>
+                  <CapabilityButton capability="add-on:exception:flag" context={{ caseId }} className="ps-addon-row-btn ps-addon-row-btn--warn" onClick={() => { setFlagTargetId(orderId); setFlagNote(''); }}>
                     {t('addOnOrder.tracking.flagException')}
-                  </button>
+                  </CapabilityButton>
                 )
               )}
 

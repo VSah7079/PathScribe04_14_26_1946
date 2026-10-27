@@ -260,3 +260,6 @@ The OR Suite board binds to a terminal only with a valid Display Token (Configur
 `resolveActiveIntraopRequestsForLocations` takes an optional `clockFor(entry, urgency)` returning target and warning minutes; each request carries its `urgency`.
 
 Batch 616 (part D, PS-510): server versions of OrEventLogService, OrSuiteTerminalService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/INTRAOP_OPS_API.md`.
+
+## Batch 669 (finding ops-15)
+`dismissFromBoardWithAudit.ts` gained `dismissalNoticeKey(outcome)`: a dismissal whose event-log write fails (`dismissedLogFailed`) now shows `orSuiteDashboard.dismissLogFailed` on the board, as well as logging to the console. `dismissFromBoardWithAudit.test.ts` is new.

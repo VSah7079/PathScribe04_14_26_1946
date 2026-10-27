@@ -17,7 +17,7 @@ Batch 616 (PS-484). The calls the browser makes to the API server for audit, aut
 | Method | Call | Permission | Notes |
 |---|---|---|---|
 | `getAuditLogs(filters)` | `GET /api/audit/logs?type&user&dateFrom&dateTo&search` | `screen:audit-log:open` | `type` and `user` of "all" are left out. |
-| `logEvent(entry)` | `POST /api/auditlog/audit/log-event` | any signed-in user (own actions) | Body is the entry without `id` or `timestamp`. The server sets both and the actor. |
+| `logEvent(entry)` | `POST /api/auditlog/audit/log-event` | any signed-in user (own actions) | Body is the entry without `id` or `timestamp`, plus `stationId`: the scan station the action was done at, which only the browser knows (Batch 670). The server sets the id, the timestamp and the actor, and must store `stationId` as sent. |
 | `getErrorLogs(filters)` | `GET /api/audit/errors?severity&resolved&search` | `screen:audit-log:open` | |
 | `logError(entry)` | `POST /api/auditlog/audit/log-error` | any signed-in user | |
 | `resolveError(id)` | `POST /api/auditlog/audit/resolve-error` | `audit:error:resolve` | The server records who resolved it. |

@@ -14,6 +14,8 @@
 // collision with i18next's own `t()`, surfaced only once this sweep added
 // useTranslation() here. Renamed to its own name at both of its two call
 // sites rather than aliasing around the clash.
+import { roleDisplayName } from '@/services/staff/roleDisplayName';
+import { canSeePeerComparison } from '@components/Contribution/productivityCalculations';
 import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
@@ -35,11 +37,11 @@ import type {
 import { getOrgOrchestratorDefault } from "@components/Config/AI/orchestratorModeConfig";
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { useNavigate } from 'react-router';
-import { actionRegistryService, flagService, rvuCodeMapService, tatTargetService, performanceTargetService, clientSlaService, facilityService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
+import { actionRegistryService, userService, flagService, rvuCodeMapService, tatTargetService, performanceTargetService, clientSlaService, facilityService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
 import type { Subspecialty } from '../services';
 import { caseRouter } from '../services/cases/CaseRouter';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '../services/quality/reconciliationRecordMapping';
-import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTargetAmounts, computeTopQualityFlags, qualityFlagText, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
+import { computeOverviewKpis, computePeerKpiAverages, peerValuesByTile, type PeerKpiAverages, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTargetAmounts, computeTopQualityFlags, qualityFlagText, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
 import { specimenDictionaryService } from '@/services';
 import { toCsv, downloadCsv } from '../utils/csv';
 import type { DeficiencyType } from '../services/deficiencies/IDeficiencyService';
@@ -62,10 +64,11 @@ import { buildClientSlaRows, type ClientSlaRow } from '@/services/clientSLA/clie
 // Batch 610 (#87): targetPct was a fixed 107 and 72 with no source; it is now
 // the real "% of target" for the cases tile (from Performance Targets, below)
 // and absent for the others.
-const kpiExtras: { peer: number; targetPct: number | null }[] = [
-  { peer: 109, targetPct: null },
-  { peer: 18,  targetPct: null },
-  { peer: 76,  targetPct: null },
+// Batch 652: the peer averages are no longer fixed numbers; they are computed from the real cases (see peerAverages below).
+const kpiExtras: { targetPct: number | null }[] = [
+  { targetPct: null },
+  { targetPct: null },
+  { targetPct: null },
 ];
 
 // mockKpis removed - real fix, now derived from overviewKpis state
@@ -381,7 +384,7 @@ export const TeachingCasesTile: React.FC<{
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ContributionDashboardPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { config } = useSystemConfig();
   const navigate = useNavigate();
@@ -433,7 +436,7 @@ const ContributionDashboardPage: React.FC = () => {
         label: flag.caseId,
         value: qualityFlagText(flag, t),
         severity: flag.severity,
-        onClick: () => { if (flag.kind === 'deficiency') navigate(`/deficiencies?open=${flag.id}`); else void openCasePage(flag.caseId); },
+        onClick: () => { if (flag.kind === 'deficiency') navigate(`/quality-assurance?open=${encodeURIComponent(flag.id)}`); else void openCasePage(flag.caseId); },
       })));
     });
   }, [user?.id, navigate, openCasePage, t]);
@@ -441,6 +444,9 @@ const ContributionDashboardPage: React.FC = () => {
   // Real fix: replaces mockKpis/mockCaseMixData - see
   // contributionDashboardCalculations.ts for the real transform logic.
   const [overviewKpis, setOverviewKpis]     = useState<RealOverviewKpis | null>(null);
+  // Batch 652: real peer averages (same role + facility, at least 3 peers), shown only to people allowed to see peer comparison.
+  const canSeePeer = canSeePeerComparison(user?.role, config.showPeerAveragesToPathologists);
+  const [peerAverages, setPeerAverages]     = useState<PeerKpiAverages | null>(null);
   const [caseMixData,  setCaseMixData]      = useState<RealCaseMixData | null>(null);
   const [tatPerformance, setTatPerformance] = useState<RealTatPerformance | null>(null);
   const [rvu30, setRvu30]                   = useState<RealRvu30 | null>(null);
@@ -463,6 +469,15 @@ const ContributionDashboardPage: React.FC = () => {
       const versions = versionsRes.ok ? versionsRes.data : [];
       const dictionaryEntries = dictionaryRes.ok ? dictionaryRes.data : [];
       setOverviewKpis(computeOverviewKpis(res.data, user.id));
+      if (canSeePeer) {
+        userService.getAll().then(usersRes => {
+          if (!usersRes.ok) return;
+          const staff = usersRes.data;
+          setPeerAverages(computePeerKpiAverages(res.data, staff.find(u => u.id === user.id), staff));
+        });
+      } else {
+        setPeerAverages(null);
+      }
       setCaseMixData(computeCaseMixData(res.data, user.id));
       setRvu30(computeRvu30(res.data, user.id, versions, new Date(), dictionaryEntries));
       setWeeklyDaily(computeWeeklyDaily(res.data, user.id, config.facilityTimezone, versions, new Date(), dictionaryEntries));
@@ -475,7 +490,7 @@ const ContributionDashboardPage: React.FC = () => {
       // TatPerformanceTile's own "weighted across N clients" framing.
       setTatPerformance(computeOrgWideTatPerformance(res.data, tatEntries));
     });
-  }, [user?.id, config.facilityTimezone]);
+  }, [user?.id, config.facilityTimezone, canSeePeer]);
 
   // Real fix: derives the three real KPI tiles from overviewKpis -
   // formats a null delta (no real prior-30-day baseline to compare
@@ -654,7 +669,7 @@ const ContributionDashboardPage: React.FC = () => {
           {t('contributionDashboard.title')}
         </h1>
         <p className="ps-contrib-subtitle">
-          {user?.name} · {t('contributionDashboard.subtitleRole')}
+          {user?.name} · {roleDisplayName(user?.role) || t('contributionDashboard.subtitleRole')}
         </p>
       </div>
 
@@ -699,11 +714,15 @@ const ContributionDashboardPage: React.FC = () => {
                 </div>
                 {/* Divider */}
                 <div className="ps-contrib-kpi-divider" />
-                {/* Peer average */}
-                <div className="ps-contrib-kpi-row">
-                  <span className="ps-contrib-kpi-row-label">{t('contributionDashboard.peerAvg')}</span>
-                  <span className="ps-contrib-kpi-row-value">{ext?.peer ?? "—"}</span>
-                </div>
+                {/* Peer average: real, same role + facility, hidden unless the person may see peer comparison */}
+                {canSeePeer && peerAverages && (
+                  <div className="ps-contrib-kpi-row">
+                    <span className="ps-contrib-kpi-row-label">{t('contributionDashboard.peerAvg')}</span>
+                    <span className="ps-contrib-kpi-row-value">
+                      {peerValuesByTile(peerAverages)[ki]?.toLocaleString(i18n.language) ?? t('contributionDashboard.peerNotEnoughData')}
+                    </span>
+                  </div>
+                )}
                 {/* % of target */}
                 {ext?.targetPct != null && (
                   <div className="ps-contrib-kpi-row">

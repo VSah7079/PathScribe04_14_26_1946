@@ -179,3 +179,7 @@ Batch 553 (PS-539 phase 2d; `SITE_AGENT_API.md` §3):
 ## Batch 617 (part B): server version (PS-514)
 
 The print queue service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELIVERY_PRINTING_API.md`.
+
+## Batch 652 (defect fixes)
+
+`reportBarcodePrintCss.guard.test.ts`: the report footer barcode CSS stays solid black (the PDF side is tested in `functions/test_main.py`).

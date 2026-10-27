@@ -121,3 +121,35 @@ describe('syncPrimaryAssignee with a cytotech primary (possible before Batch 441
     expect(syncPrimaryAssignee(c, 'P1', 'P1', 'P1').participants?.[0].participationTypeIds).toEqual(['attending']);
   });
 });
+
+// Batch 651: a saved team change is audited (ids only); a refused or unchanged save writes nothing.
+describe('saveCaseTeam audit (Batch 651)', () => {
+  const withFacility = (c: Case) => ({ ...c, order: { ...c.order, facilityId: 'F9' } }) as Case;
+  const audited = (allowed: boolean, stored: Case) => {
+    const base = deps(allowed, stored);
+    const auditService = { logEvent: vi.fn(async () => ({ ok: true }) as any) };
+    return { ...base, auditService, d: { ...base.deps, auditService, actorName: async () => 'Pat One' } };
+  };
+
+  it('writes one entry with actor, case id, facility and slot ids, and no names', async () => {
+    const start = withFacility(caseOf('P1', [p('P1', ['primary'])]));
+    const { d, auditService } = audited(true, start);
+    const res = await saveCaseTeam({ caseData: start, participants: [p('P1', ['primary']), p('P2', ['consultant'])], updatedBy: 'P1' }, d);
+    expect(res.ok).toBe(true);
+    await vi.waitFor(() => expect(auditService.logEvent).toHaveBeenCalledTimes(1));
+    const entry = (auditService.logEvent.mock.calls[0] as any[])[0];
+    expect(entry).toMatchObject({ type: 'user', event: 'Case team changed', user: 'Pat One', caseId: 'C1', facilityId: 'F9', detail: 'Added: P2 as consultant.' });
+    expect(JSON.stringify(entry)).not.toMatch(/Pat Two|staffName/);
+  });
+
+  it('writes nothing when refused, or when the active team is the same', async () => {
+    const start = withFacility(caseOf('P1', [p('P1', ['primary'])]));
+    const refused = audited(false, start);
+    await saveCaseTeam({ caseData: start, participants: [p('P1', ['primary']), p('P2', ['consultant'])], updatedBy: 'P1' }, refused.d);
+    const same = audited(true, start);
+    await saveCaseTeam({ caseData: start, participants: [p('P1', ['primary'])], updatedBy: 'P1' }, same.d);
+    await new Promise(r => setTimeout(r, 20));
+    expect(refused.auditService.logEvent).not.toHaveBeenCalled();
+    expect(same.auditService.logEvent).not.toHaveBeenCalled();
+  });
+});

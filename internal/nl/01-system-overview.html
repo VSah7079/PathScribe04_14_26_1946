@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Systeemoverzicht en architectuur · PathScribe-beheerdershandleiding (interne editie van ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="nl" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Beheerdershandleiding</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Zoek schermen, velden, foutcodes" aria-label="Zoeken in de handleiding" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Taal"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl" selected>Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Afdrukken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Hoofdstukken van de handleiding"><a href="index.html">Inhoud</a><a href="setup-sequence.html">Volgorde van inrichting</a><a href="01-system-overview.html" aria-current=page>1. Systeemoverzicht en architectuur</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1: Primaire systeemvoorwaarden (eerst inrichten)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2: Stamwoordenboeken en klinische basisgegevens (als tweede inrichten)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3: Workflow-engines en operationele configuratie (als derde inrichten)</a><a href="05-tier4-ai-framework.html">5. Niveau 4: Het ingebedde AI-framework van PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner</a><a href="07-tier6-interface-engine.html">7. Niveau 6: Interface-engine en integraties met externe systemen</a><a href="08-tier7-billing-registry.html">8. Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen</a><a href="09-appendices.html">9. Bijlagen: probleemoplossing en verificatie van het auditlogboek</a><a href="99-glossary.html">99. Bijlage: Verklarende woordenlijst met termen en afkortingen</a></nav><main id="main"><aside class="pagetoc" aria-label="Op deze pagina"><b>Op deze pagina</b><ul><li class="l2"><a href="#ch1-how-to-use">Hoe u deze handleiding gebruikt</a></li><li class="l2"><a href="#ch1-executive-summary">Samenvatting voor het management</a></li><li class="l2"><a href="#ch1-architecture">Architectuuroverzicht</a></li><li class="l3"><a href="#ch1-parts">De onderdelen</a></li><li class="l3"><a href="#ch1-data-flow">Hoe gegevens stromen</a></li><li class="l3"><a href="#ch1-hosting">Hosting en schaalbaarheid</a></li><li class="l2"><a href="#ch1-current-state">De stand van het product vandaag</a></li><li class="l2"><a href="#ch1-prerequisites">Systeemvereisten</a></li><li class="l3"><a href="#ch1-prereq-hardware">Serverhardware en hosting</a></li><li class="l3"><a href="#ch1-prereq-database">Database</a></li><li class="l3"><a href="#ch1-prereq-network">Netwerk</a></li><li class="l3"><a href="#ch1-prereq-workstation">Clientwerkstation</a></li><li class="l2"><a href="#ch1-security">Beveiligingsmodel</a></li><li class="l3"><a href="#ch1-sso">Single sign-on</a></li><li class="l3"><a href="#ch1-rbac">Rolgebaseerde toegangscontrole</a></li><li class="l3"><a href="#ch1-mfa">Multifactorauthenticatie en herauthenticatie bij ondertekening</a></li><li class="l3"><a href="#ch1-session">Sessiebeveiliging</a></li><li class="l3"><a href="#ch1-support">Supporttoegang</a></li><li class="l3"><a href="#ch1-audit">Auditregistratie</a></li><li class="l3"><a href="#ch1-phi">Afschermen van patiëntgegevens in schermafbeeldingen voor support</a></li><li class="l3"><a href="#ch1-ai-policy">AI-leveranciersbeleid en hostingregio&#x27;s</a></li><li class="l3"><a href="#ch1-retention">Gegevensbewaring</a></li><li class="l3"><a href="#ch1-regulatory">HIPAA en CLIA: de maatregelen die het product heeft</a></li></ul></aside><article><h1 id="ch1"><a class="anchor" href="#ch1" aria-label="Link to this section">#</a> Systeemoverzicht en architectuur</h1>
+<p>Dit hoofdstuk is bedoeld voor de beheerder of engineer die een PathScribe-implementatie voorbereidt. Het beschrijft uit welke onderdelen PathScribe bestaat, hoe gegevens tussen die onderdelen stromen, wat een locatie moet aanleveren en welke beveiligingsmaatregelen er zijn. Het beschrijft wat het product vandaag doet. Wat niet is gerealiseerd, is gelabeld als <strong>Gepland</strong> of <strong>Niet gerealiseerd</strong>, en het hoofdstuk vermeldt waar de dichtstbijzijnde werkende functie te vinden is.</p>
+<h2 id="ch1-how-to-use"><a class="anchor" href="#ch1-how-to-use" aria-label="Link to this section">#</a> Hoe u deze handleiding gebruikt</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Hoe u deze handleiding gebruikt"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Hoe u deze handleiding gebruikt</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd (deze handleiding en de knop Help in de toepassing).</p>
+<p><strong>De hoofdstukken volgen de volgorde van inrichting.</strong> Hoofdstuk 2 behandelt niveau 1, hoofdstuk 3 niveau 2, enzovoort tot en met hoofdstuk 8, dat niveau 7 behandelt. Hoofdstuk N beschrijft niveau N-1. Als u een locatie van het eerste tot het laatste hoofdstuk inricht, zijn bij elk scherm dat u bereikt de schermen waarvan het afhangt al ingericht. Hoofdstuk 9 bevat de bijlagen (naslag over het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> en de woordenlijst).</p>
+<p><strong>Elk scherm heeft een kader Inrichtingsvolgorde.</strong> Elk onderhoudsscherm in deze handleiding bevat drie regels:</p>
+<ul>
+<li><strong>Inrichtingsstap:</strong> de plaats van het scherm in de volgorde, bijvoorbeeld "Niveau 2, stap 6". Een scherm dat een logboek, een wachtrij of een dashboard is en dagelijks wordt gebruikt, vermeldt "Naslag, geen onderdeel van de inrichting".</li>
+<li><strong>Vereist:</strong> de schermen die eerst moeten zijn ingericht. Elk daarvan is een koppeling. De handleiding zegt ook wat er gebeurt als u het overslaat (een lege keuzelijst of een weigering bij het opslaan).</li>
+<li><strong>Maakt mogelijk:</strong> wat het scherm mogelijk maakt zodra het is ingericht.</li>
+</ul>
+<p><strong>De centrale pagina Volgorde van inrichting.</strong> <a href="setup-sequence.html">Volgorde van inrichting</a> (<code>setup-sequence.html</code>) toont elk scherm in de volgorde waarin u het moet inrichten, opgebouwd uit die drie regels. Gebruik de pagina als controlelijst voor een nieuwe locatie.</p>
+<p><strong>De knop Help.</strong> <strong>Gerealiseerd.</strong> Een knop <strong>Help</strong> staat rechtsboven op elk scherm van Configuratie en opent deze handleiding in een nieuw tabblad bij de eigen sectie van dat scherm, zodat niet-opgeslagen wijzigingen niet verloren gaan. De knop volgt het geopende tabblad en de sectie in de zijbalk: bij het Rollenwoordenboek op het tabblad Personeel opent hij de sectie <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollenwoordenboek</a> en bij <strong>Systeem &gt; Afdelingen</strong> opent hij <a href="03-tier2-master-dictionaries.html#screen-departments">Afdelingen</a>. Het scherm Migration Jobs heeft er een onder zijn titel. De knop opent <code>go.html#&lt;screen id&gt;</code>, waarbij <code>&lt;screen id&gt;</code> de id van het scherm in deze handleiding is (bijvoorbeeld <code>screen-departments</code>); <code>go.html</code> wordt door de build van de handleiding gemaakt en vindt de juiste hoofdstukpagina. Het Auditlogboek heeft er nog geen. Een test mislukt als een tabblad of sectie van Configuratie geen sectie in deze handleiding heeft, zodat een nieuw scherm niet zonder documentatie kan worden opgeleverd.</p>
+<p><strong>Statuswoorden.</strong> Elk scherm en elk onderdeel van dit hoofdstuk gebruikt een van vijf vaste woorden:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Betekenis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gerealiseerd</strong></td>
+<td>Werkt op de demonstratiegegevens en heeft een beschreven servicecontract (<code>docs/architecture/*_API.md</code>) voor de productieserver.</td>
+</tr>
+<tr>
+<td><strong>Demonstratie</strong></td>
+<td>Werkt alleen in de browser op de demonstratiegegevens. De kant van de productieserver is nog niet aangesloten.</td>
+</tr>
+<tr>
+<td><strong>Gedeeltelijk</strong></td>
+<td>Een deel van wat de kop zegt is gerealiseerd. De sectie vermeldt precies welk deel.</td>
+</tr>
+<tr>
+<td><strong>Gepland</strong></td>
+<td>Niet gerealiseerd. Een korte alinea zegt wat de bedoeling is en wat over de timing bekend is.</td>
+</tr>
+<tr>
+<td><strong>Niet gerealiseerd</strong></td>
+<td>Gevraagd, maar er bestaat geen scherm of contract. De sectie zegt dat in één zin en noemt het dichtstbijzijnde onderdeel dat wel bestaat.</td>
+</tr>
+</tbody>
+</table>
+<p>Lees "Gerealiseerd" zorgvuldig. Het betekent dat de browserkant werkt en dat het contract voor de server is geschreven. Het betekent niet dat de productieserver bestaat. Het volgende deel van dit hoofdstuk beschrijft de huidige stand van de productieserver.</p>
+<p><strong>FORMEDRIXAI INTERNAL ONLY.</strong> Sommige instellingen mogen alleen worden gewijzigd door implementatie- of service-engineers van ForMedrixAI. Het zijn de machtigingen in het domein <code>platform:</code>, of elke <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> die is gemarkeerd als <code>platformOnly</code>, en schermen die alleen aan dat personeel worden getoond. In deze handleiding begint hun kop met <code>[FORMEDRIXAI INTERNAL ONLY]</code> en opent de sectie met een omkaderde mededeling die zegt wie de instelling mag wijzigen en waarom ze beperkt is. De klanteneditie van de handleiding laat die secties weg. De interne editie bewaart ze. Als u klantbeheerder bent en een instelling niet ziet die een engineer van ForMedrixAI noemt, is het waarschijnlijk een van deze.</p>
+<h2 id="ch1-executive-summary"><a class="anchor" href="#ch1-executive-summary" aria-label="Link to this section">#</a> Samenvatting voor het management</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Samenvatting voor het management"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Samenvatting voor het management</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. De browsertoepassing is gerealiseerd. De productie-API-server, het databaseschema en de permanent draaiende services zijn vastgelegd in beschreven contracten en nog niet gebouwd (zie <a href="#ch1-current-state">De stand van het product vandaag</a>).</p>
+<p>PathScribe is een AI-ondersteund systeem voor klinisch pathologierapportage en een laboratoriuminformatiesysteem (<a class="term" href="99-glossary.html#g-lis" title="Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.">LIS</a>) van ForMedrixAI LLC. Het is gebouwd voor de VS, het Verenigd Koninkrijk, de <a class="term" href="99-glossary.html#g-eu" title="Europese Unie.">EU</a> en andere markten, en de schermen zijn vertaald in zes talen (Engels, Frans, Duits, Nederlands, Koreaans en Spaans; de andere vertalingen dan het Engels moeten voor klinisch gebruik nog door moedertaalsprekers worden beoordeeld).</p>
+<p>Een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> draait in een van twee modi, per casus bepaald:</p>
+<ul>
+<li><strong>CoPilot.</strong> PathScribe is een laag voor synoptische gegevensvastlegging bovenop een gast-LIS. Het gast-LIS is eigenaar van de casus en het definitieve verslag, en PathScribe stuurt gestructureerde synoptische gegevens terug naar dat LIS.</li>
+<li><strong>Orchestratie.</strong> PathScribe is eigenaar van de casus van begin tot eind als een lichtgewicht LIS, inclusief AI-ondersteunde vrije tekst. Het wordt gebruikt voor outreachcasus zonder gast-LIS.</li>
+</ul>
+<p>Wat een beheerder beheert, is de configuratie: personeel en rollen, de woordenboeken en opzoeklijsten, de workflowregels, het gedrag van de AI, verslagsjablonen, interfaces en factureringsregels. De hoofdstukken hierna beschrijven die schermen in de volgorde waarin een locatie wordt ingericht.</p>
+<p>Drie feiten zijn van belang voor de planning:</p>
+<ol>
+<li><strong>De productiedatabase is Microsoft SQL Server</strong>, bereikt via een PathScribe API-server die is gebouwd op <a class="term" href="99-glossary.html#g-asp-net-core" title="Het webframework van Microsoft waarop de API-server van PathScribe is gebouwd.">ASP.NET Core</a>, met liveupdates via <a class="term" href="99-glossary.html#g-signalr" title="De Microsoft-technologie die PathScribe gebruikt om live updates van de server naar geopende schermen te pushen.">SignalR</a>. PathScribe gebruikt Firebase niet als productiedatabase. Een aantal Firebase-bestanden staat nog in de repository uit eerder werk en moet worden vervangen.</li>
+<li><strong>De hosting is de keuze van de klant of van ForMedrixAI.</strong> Het ontwerp gebruikt standaardonderdelen (containers, SQL Server, TLS-certificaten) en hangt niet af van één cloudaanbieder. Een locatie kan een openbare cloud, een private of soevereine cloud, of een eigen datacenter gebruiken.</li>
+<li><strong>PathScribe kan nog niet in productie worden genomen.</strong> De browsertoepassing is compleet genoeg om te demonstreren en om tegen contracten te testen. De server die echte patiëntgegevens zou bevatten, is niet gebouwd. Plan een eerste implementatie als gezamenlijk project met ForMedrixAI, niet als installatie.</li>
+</ol>
+<h2 id="ch1-architecture"><a class="anchor" href="#ch1-architecture" aria-label="Link to this section">#</a> Architectuuroverzicht</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Architectuuroverzicht"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Architectuuroverzicht</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Elk onderdeel hieronder heeft zijn eigen status.</p>
+<h3 id="ch1-parts"><a class="anchor" href="#ch1-parts" aria-label="Link to this section">#</a> De onderdelen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Architectuuroverzicht &gt; De onderdelen"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Architectuuroverzicht</span> <span aria-hidden="true">›</span> <span>De onderdelen</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Onderdeel</th>
+<th>Wat het is</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Browsertoepassing</strong></td>
+<td>Een React- en TypeScript-single-pagetoepassing, aangeboden als statische bestanden. Ze bevat geen sleutels en schrijft, wanneer een API-server is geconfigureerd, geen patiëntgegevens naar de opslag van de browser. Eén build bedient elke locatie: de instellingen van elke locatie komen uit een bestand <code>config.json</code> naast <code>index.html</code>.</td>
+<td>Gerealiseerd</td>
+</tr>
+<tr>
+<td><strong>PathScribe API-server</strong></td>
+<td><a class="term" href="99-glossary.html#g-asp-net-core" title="Het webframework van Microsoft waarop de API-server van PathScribe is gebouwd.">ASP.NET Core</a>. Hij dwingt machtigingen af, bewaart de aanmeldsessie, voert de databasetransacties en geplande taken uit en roept de AI-leveranciers, de verslagrenderer en de interface-engine aan.</td>
+<td>Gepland. Contracten zijn beschreven in <code>docs/architecture/*_API.md</code>. In de repository staat geen servercode.</td>
+</tr>
+<tr>
+<td><strong>Hub voor liveupdates</strong></td>
+<td>Een SignalR-hub op de API-server op <code>/hubs/live</code>. Hij meldt geopende schermen dat er iets is veranderd, uitsluitend met identificaties en nooit met patiënttekst.</td>
+<td>Gepland. De browserkant is gerealiseerd en getest tegen een testhub.</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>Microsoft SQL Server.</td>
+<td>Gepland. In de repository staan geen schema of scripts.</td>
+</tr>
+<tr>
+<td><strong>Interface-engine</strong></td>
+<td>BridgeLink, een opensourcefork van Mirth Connect (een Java-server). PathScribe geeft hem een JSON-bericht; de engine bouwt en verstuurt de HL7-berichten en ontvangt de antwoorden.</td>
+<td>Gedeeltelijk. Het berichtcontract is beschreven. De engine is nog niet uitgerold of aangesloten en de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> gebruikt een nagebootste engine.</td>
+</tr>
+<tr>
+<td><strong>AI-proxy en AI-leveranciers</strong></td>
+<td>De API-server stuurt AI-verzoeken door naar de geconfigureerde leverancier en voegt de sleutel van de leverancier toe, die de browser nooit bezit.</td>
+<td>Gedeeltelijk. De browserkant en de controle van de leverancier per <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a> zijn gerealiseerd. De serverroutes zijn gepland.</td>
+</tr>
+<tr>
+<td><strong>Verslagrenderer</strong></td>
+<td>Een service die een vrijgegeven verslag omzet in een <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a>, met headless Chromium aangestuurd door Playwright.</td>
+<td>Gepland. Er bestaat alleen een noodoplossing voor de ontwikkeling.</td>
+</tr>
+<tr>
+<td><strong>Site-agent</strong></td>
+<td>Een Windows-service die op elke locatie wordt geïnstalleerd. Hij maakt uitgaand verbinding via HTTPS, drukt verslagen en labels af op netwerkprinters en schrijft bestanden naar Windows-shares.</td>
+<td>Gedeeltelijk. De beheerschermen en het contract zijn gerealiseerd. De agent zelf is gepland.</td>
+</tr>
+<tr>
+<td><strong>Afdrukbridges op het <a class="term" href="99-glossary.html#g-workstation" title="Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.">werkstation</a></strong></td>
+<td><a class="term" href="99-glossary.html#g-qz-tray" title="Een klein programma op een computer waarmee een webpagina zonder afdrukvenster naar een lokale printer kan afdrukken, zoals een labelprinter.">QZ Tray</a> of de PathScribe-werkstationagent, draaiend op een computer op de werkplek om labels af te drukken op de printer ernaast.</td>
+<td>QZ Tray: Gerealiseerd (labels worden erdoor afgedrukt). Werkstationagent: Gerealiseerd (browserkant).</td>
+</tr>
+<tr>
+<td><strong>Viewers voor whole slide imaging (<a class="term" href="99-glossary.html#g-wsi" title="Whole slide imaging, het scannen van een glazen preparaat tot een digitaal beeld dat op een scherm kan worden bekeken.">WSI</a>)</strong></td>
+<td>De eigen viewertoepassing van de leverancier (bijvoorbeeld Leica, Roche of Hamamatsu). PathScribe houdt scanbatches bij en opent de viewer van de leverancier in een nieuw browsertabblad voor het juiste preparaat. Het tekent nooit preparaatbeelden.</td>
+<td>Gerealiseerd (startlink). Statusupdates van scanbatches vereisen de <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch1-data-flow"><a class="anchor" href="#ch1-data-flow" aria-label="Link to this section">#</a> Hoe gegevens stromen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Architectuuroverzicht &gt; Hoe gegevens stromen"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Architectuuroverzicht</span> <span aria-hidden="true">›</span> <span>Hoe gegevens stromen</span></nav>
+
+<pre><code> Hospital or lab network                         PathScribe hosting (cloud or on-premises)
+ -----------------------                         ----------------------------------------
+ Bench workstation                               Static web host (browser app, config.json)
+   Browser app  --- https ---------------------&gt; PathScribe API server (ASP.NET Core)
+     |   ^                                         |        |         |          |
+     |   +---- wss /hubs/live (SignalR) &lt;----------+        |         |          |
+     |                                                      |         |          |
+     +-- QZ Tray / workstation agent (localhost)            v         v          v
+         labels to the printer beside it                SQL Server   AI proxy   Report renderer
+                                                         (database)    |        (Chromium PDF)
+ Site agent (Windows service) --- https, outward ------&gt;     |         v
+   report and label printers, Windows shares                 |    AI vendors (per jurisdiction policy)
+                                                             |
+ Interface engine (BridgeLink) &lt;---- JSON ---- API server ---+
+   HL7 to and from the host LIS, EMR, instruments
+   (hosted by ForMedrixAI, or installed at the hospital)
+</code></pre>
+<p>Zo leest u het:</p>
+<ol>
+<li><strong>Browser naar API-server.</strong> Elke handeling loopt via de API-server met de identiteit van de aangemelde gebruiker. De eigen machtigingscontroles van de browser verbergen alleen knoppen; de server beslist. De server geeft vaste foutcodes terug (<code>NOT_PERMITTED</code>, <code>NOT_FOUND</code>, <code>CONFLICT</code>, <code>INVALID</code>, <code>SIGNED_OUT</code>, <code>TOO_MANY_REQUESTS</code>, <code>TIMED_OUT</code>, <code>UNAVAILABLE</code>) en stuurt nooit tekst terug die een patiënt zou kunnen noemen. Namen en identificaties van patiënten reizen mee in de body van een verzoek, nooit in een webadres.</li>
+<li><strong>API-server naar <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a> naar browsers.</strong> Nadat een databasewijziging is vastgelegd, schrijft de server in dezelfde transactie een gebeurtenis naar een outbox-tabel. Een dispatcher publiceert die vervolgens via de hub. De gebeurtenis bevat alleen identificaties. Een scherm dat haar ontvangt, leest de gegevens opnieuw via de normale aanroep met machtigingscontrole. De eerste schermen die dit gebruiken zijn het Live Board van de operatiekamer en de Intraoperative Queue; de ontwerpdoelstelling is minder dan 500 milliseconden van vastlegging tot het tweede bord. Zonder hub pollen dezelfde schermen (elke 15 seconden op de intraoperatieve schermen).</li>
+<li><strong>API-server naar AI.</strong> De browser roept <code>/api/ai/...</code> aan op zijn eigen origin. De server voegt de sleutel van de leverancier toe, controleert het leverancier- en regiobeleid van de <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a>, stuurt het verzoek door en schrijft een auditregistratie zonder prompttekst.</li>
+<li><strong>API-server naar interface-engine.</strong> De API-server stuurt een JSON-envelop met een transactietype (15 uitgaande typen staan in <code>INTERFACE_TRANSACTIONS.md</code>). De engine zet die om naar <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> en verstuurt hem. PathScribe bouwt zelf nooit HL7 voor de verbinding. HL7-verkeer blijft in het eigen berichtenarchief van de engine, niet op de PathScribe-berichtenbus.</li>
+<li><strong>API-server naar <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a>.</strong> De site-agent is de enige manier waarop een in de cloud gehoste server een printer of share binnen het ziekenhuis bereikt. Hij maakt uitgaand verbinding met de server via HTTPS met een clientcertificaat, zodat geen inkomende firewallopening nodig is.</li>
+<li><strong>Verslagen.</strong> De server rendert elke <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a> die PathScribe verlaat, bewaart per vrijgave één onveranderlijk, gehasht document en verstuurt precies dat document via elk kanaal. De browser toont een voorbeeld dat is gebouwd om overeen te komen met wat wordt verzonden.</li>
+</ol>
+<h3 id="ch1-hosting"><a class="anchor" href="#ch1-hosting" aria-label="Link to this section">#</a> Hosting en schaalbaarheid</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Architectuuroverzicht &gt; Hosting en schaalbaarheid"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Architectuuroverzicht</span> <span aria-hidden="true">›</span> <span>Hosting en schaalbaarheid</span></nav>
+
+<p><strong>Status:</strong> Gepland. Dit is het ontwerp in <code>DEPLOYMENT_READINESS_REVIEW.md</code>; niets daarvan is uitgerold.</p>
+<ul>
+<li><strong>Twee ondersteunde manieren om te hosten.</strong> Een openbare cloud, met de beheerde database en containerhosting van de aanbieder waar dat past. Of een overdraagbaar pakket: dezelfde containers op Kubernetes of Docker in een private cloud, een soevereine cloud of het eigen datacenter van het ziekenhuis. Het pakket wordt eenmaal gevalideerd en elke hostinglocatie krijgt daarna een controlelijst voor installatiekwalificatie.</li>
+<li><strong>Permanent draaiende onderdelen.</strong> De <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a> (minstens één warme instantie), de database (in productie nooit automatisch gepauzeerd), de <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a> voor liveupdates, de verslagrenderer en de interface-engine die de HL7-verbindingen vasthoudt. Terugschalen naar nul is niet verenigbaar met een schermvernieuwing per seconde of met STAT-casus 's nachts. Terugkerende taken (nieuwe pogingen, vrijgavetimers, verloopcontroles) kunnen als korte geplande taken draaien.</li>
+<li><strong>De hub schalen.</strong> Gedeelde SaaS gebruikt Azure <a class="term" href="99-glossary.html#g-signalr" title="De Microsoft-technologie die PathScribe gebruikt om live updates van de server naar geopende schermen te pushen.">SignalR</a> Service. Private cloud en on-premises gebruiken een Redis-backplane of één enkele instantie. Zonder Azure SignalR Service heeft de load balancer sticky sessions nodig, met WebSockets ingeschakeld en een idle timeout van meer dan 15 seconden. Het ontwikkelteam moet deze matrix nog bevestigen.</li>
+<li><strong>De interface-engine draait op beide manieren</strong> (besloten op 13 okt 2026): gehost door ForMedrixAI in de regio van de <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a>, of geïnstalleerd in het ziekenhuis, vanuit hetzelfde containerimage.</li>
+<li><strong>Eén build, vele locaties.</strong> <code>npm run build:server</code> maakt de build voor productie. Die bevat geen demonstratieaccounts of demonstratiehulpmiddelen. De adressen en aanmeldinstellingen van elke locatie staan in zijn <code>config.json</code> (37 instellingen, vermeld in <code>RUNTIME_SETTINGS</code>), aangeboden met <code>Cache-Control: no-store</code>. PathScribe weigert te starten, en noemt de onjuiste instellingen, als het bestand een regel schendt (bijvoorbeeld een adres dat niet <code>https://</code> is).</li>
+<li><strong>Beveiligingsheaders van de browser.</strong> De Content-Security-Policy, HSTS en de andere headers worden voor nginx, IIS en Azure App Service, Azure Static Web Apps, Azure Front Door of een gewone lijst gegenereerd uit één definitie in <code>deploy/security-headers/</code>. Voer na het wijzigen van een adres in <code>config.json</code> de generator opnieuw uit, zodat het nieuwe adres is toegestaan.</li>
+<li><strong>Schemawijzigingen</strong> zijn geversioneerde SQL-scripts die door de releasepijplijn worden toegepast, nooit bij het opstarten van de toepassing, en elke wijziging laat de database bruikbaar voor de vorige versie.</li>
+</ul>
+<h2 id="ch1-current-state"><a class="anchor" href="#ch1-current-state" aria-label="Link to this section">#</a> De stand van het product vandaag</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; De stand van het product vandaag"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>De stand van het product vandaag</span></nav>
+
+<p><strong>Status:</strong> Demonstratie voor vrijwel elk gegevensscherm; zie de tabel hieronder voor uitzonderingen.</p>
+<p>Lees dit deel voordat u een klant een livegangdatum belooft. Het is gecontroleerd tegen de repository op 21 okt 2026.</p>
+<p><strong>Wat vandaag draait.</strong> De browsertoepassing draait op <strong>in de browser bewaarde demonstratieservices</strong>. Ongeveer 170 servicemappen in <code>src/services/</code> volgen één patroon: een interface, een demonstratieversie die haar gegevens in de browser bewaart en (voor bijna alle) een serverversie die de <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a> aanroept. De toepassing kiest de serverversie wanneer <code>VITE_API_BASE_URL</code> in <code>config.json</code> is ingesteld, en anders de demonstratieversie. Wanneer een API-server is geconfigureerd, worden demonstratiegegevens in het geheugen bewaard en niet naar de opslag van de browser geschreven.</p>
+<p><strong>Wat is aangesloten op een productie-API.</strong> Niets. De serverversies bestaan in de browsercode en hebben tests met een nagebootste server die elke route controleren, maar de API-server die ze zou beantwoorden staat niet in de repository en is niet gebouwd (het werk is, vanuit de contracten, toegewezen aan het team in India). Er is niets uitgeprobeerd tegen een echte server. Voor alle services op drie na zijn serverversies in de browsercode geschreven:</p>
+<table>
+<thead>
+<tr>
+<th>Service zonder serverversie</th>
+<th>Waarom</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="term" href="99-glossary.html#g-action-registry" title="De lijst met spraak- en toetsenbordopdrachten die PathScribe kent. De opdrachten zijn geen toegangsbeheer; machtigingen zijn dat wel.">Actieregister</a> (spraak- en sneltoetsherkenning)</td>
+<td>Synchroon en in het geheugen. Alleen de opgeslagen instellingen zouden via de configuratieservice naar de server gaan.</td>
+</tr>
+<tr>
+<td>AI-instructieservice</td>
+<td>De regels draaien in de browser over geïnjecteerde opslag; de opslag loopt via de configuratie- en auditservices.</td>
+</tr>
+<tr>
+<td>Interfacewoordenboekservice</td>
+<td>Idem: de regels draaien in de browser. De opslag loopt via de configuratie- en auditservices.</td>
+</tr>
+</tbody>
+</table>
+<p>Liveupdates gebruiken in de browser al <a class="term" href="99-glossary.html#g-signalr" title="De Microsoft-technologie die PathScribe gebruikt om live updates van de server naar geopende schermen te pushen.">SignalR</a> (<code>signalRLiveUpdateService.ts</code>), maar de <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a> is niet gebouwd.</p>
+<p><strong>Wat een productie-implementatie blokkeert</strong> (uit de readiness review, status bij Batch 641):</p>
+<table>
+<thead>
+<tr>
+<th>Blokkade</th>
+<th>Stand</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API-server en SQL Server-schema</td>
+<td>Open. Niet gestart.</td>
+</tr>
+<tr>
+<td>Blobopslag voor verslag-PDF's, exports en vastgehouden vrijgaven</td>
+<td>Contract beschreven. Opslag en endpoints open.</td>
+</tr>
+<tr>
+<td>Geplande taken aan de serverkant (ongeveer tien timers)</td>
+<td>Open. Totdat elke taak is verplaatst, voert de browser hem uit zolang iemand is aangemeld. <code>VITE_SERVER_JOBS</code> draagt een taak op naam over aan de server.</td>
+</tr>
+<tr>
+<td>Verslagrendererservice</td>
+<td>Cytologiesjabloon klaar. De gehoste service is open.</td>
+</tr>
+<tr>
+<td>Aanmelden via de server (backend-for-frontend), configuratie van de <a class="term" href="99-glossary.html#g-identity-provider" title="De dienst die mensen aanmeldt voor single sign-on, zoals de Microsoft Entra-directory van een ziekenhuis.">identiteitsprovider</a> tijdens runtime</td>
+<td>Runtimeconfiguratie klaar. Het servergedeelte is open.</td>
+</tr>
+<tr>
+<td>Interface-engine, permanent draaiend, met de edge-regels</td>
+<td>Contract beschreven. Hosting en endpoints open.</td>
+</tr>
+<tr>
+<td>Site-agent</td>
+<td>Contract en schermen klaar. De agent is open.</td>
+</tr>
+<tr>
+<td>Hub en pushupdates</td>
+<td>Browserkant klaar. De hub is open.</td>
+</tr>
+<tr>
+<td>De eerdere Vercel-functies in <code>api/</code>, de Firebase-services en <code>functions/</code> buiten gebruik stellen</td>
+<td>Open. Drie schermen (Graveermonitor, QA-lijst met tekortkomingen, historie van materiaalopvolging) lezen nog Firebase-services.</td>
+</tr>
+</tbody>
+</table>
+<p>Andere openstaande punten die een beheerder moet kennen:</p>
+<ul>
+<li><strong>De browser dwingt machtigingen vandaag af en de handhaving aan de serverkant is niet gebouwd.</strong> De machtigingscontroles draaien in de services van de browser. Een server moet elke controle herhalen voordat echte patiëntgegevens worden bewaard. Zie <a href="#ch1-security">Beveiligingsmodel</a>.</li>
+<li><strong>Testen met een schermlezer door een persoon is niet gedaan.</strong> Geautomatiseerde toegankelijkheidscontroles (<a class="term" href="99-glossary.html#g-wcag" title="Web Content Accessibility Guidelines, de standaard om webinhoud bruikbaar te maken voor mensen met een beperking.">WCAG</a> 2.1 A- en AA-regels, in Chromium) slagen, maar een persoon heeft nog niet getest met NVDA of VoiceOver (PS-687).</li>
+<li><strong>Firefox is niet door de geautomatiseerde testreeks gehaald</strong> in de bouwomgeving. Een handmatige controle in Chrome, Edge en Firefox is open (PS-718).</li>
+<li><strong>Vertalingen</strong> in het Frans, Duits, Nederlands, Koreaans en Spaans moeten voor klinisch gebruik door moedertaalsprekers worden beoordeeld.</li>
+<li><strong>De pijplijn voor continue integratie</strong> is geschreven maar draait pas zodra de repository op GitHub staat (gepland voor eind oktober 2026).</li>
+</ul>
+<h2 id="ch1-prerequisites"><a class="anchor" href="#ch1-prerequisites" aria-label="Link to this section">#</a> Systeemvereisten</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Systeemvereisten"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Systeemvereisten</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. De repository bevat de eisen voor software, netwerk en browser. Ze bevat <strong>geen dimensioneringscijfers</strong> voor servers, databaseopslag, bandbreedte, back-up of herstel. Waar dit deel "Nog niet gespecificeerd" zegt, bestaat in de repository geen cijfer en wordt hier geen cijfer verzonnen; de openstaande punten staan in het bestand met open vragen van het hoofdstuk, zodat ForMedrixAI kan beslissen voordat een klant de capaciteit plant.</p>
+<h3 id="ch1-prereq-hardware"><a class="anchor" href="#ch1-prereq-hardware" aria-label="Link to this section">#</a> Serverhardware en hosting</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Systeemvereisten &gt; Serverhardware en hosting"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Systeemvereisten</span> <span aria-hidden="true">›</span> <span>Serverhardware en hosting</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Onderdeel</th>
+<th>Wat de repository zegt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Omvang van de API-server (CPU, geheugen, aantal instanties)</td>
+<td>Nog niet gespecificeerd. Het ontwerp vraagt minstens één warme instantie, met bedrijfslogica in klassenbibliotheken en een containerimage.</td>
+</tr>
+<tr>
+<td>Omvang van de <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a> (<a class="term" href="99-glossary.html#g-signalr" title="De Microsoft-technologie die PathScribe gebruikt om live updates van de server naar geopende schermen te pushen.">SignalR</a>) en aantal verbindingen</td>
+<td>Nog niet gespecificeerd. De acceptatietest gebruikt minstens 50 verbonden borden.</td>
+</tr>
+<tr>
+<td>Verslagrenderer</td>
+<td>Een warme pool van 2 tot 4 Chromium-browserprocessen (begin met 2), een time-out van 5 seconden per verslag, een browser die na 500 renders wordt vernieuwd, geen uitgaand netwerkverkeer, een grotere <code>/dev/shm</code> en ongeveer 100 MB aan lettertypen (inclusief CJK). CPU en geheugen per instantie: Nog niet gespecificeerd.</td>
+</tr>
+<tr>
+<td>Interface-engine</td>
+<td>BridgeLink, een langdurig draaiende Java-server, als container. Omvang: Nog niet gespecificeerd.</td>
+</tr>
+<tr>
+<td>Containerplatform</td>
+<td>Kubernetes of Docker voor het overdraagbare pakket; de containerhosting van de aanbieder voor een openbare cloud. Versies: Nog niet gespecificeerd.</td>
+</tr>
+<tr>
+<td>Berichtenbroker</td>
+<td>Geen. De berichtenbus bestaat uit tabellen in de SQL Server-database, achter een interface (<code>IMessageBus</code>). RabbitMQ of een cloudwachtrij zou pas worden toegevoegd als belastingtests laten zien dat de tabellen een knelpunt vormen.</td>
+</tr>
+<tr>
+<td>Buildtools (voor engineers die de front-end bouwen)</td>
+<td>Node.js 24.x (<code>engines</code> in <code>package.json</code>). Niet nodig op een productieserver, die statische bestanden aanbiedt.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch1-prereq-database"><a class="anchor" href="#ch1-prereq-database" aria-label="Link to this section">#</a> Database</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Systeemvereisten &gt; Database"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Systeemvereisten</span> <span aria-hidden="true">›</span> <span>Database</span></nav>
+
+<p><strong>Status:</strong> Gepland. In de repository staan geen schema, scripts of databasecode.</p>
+<ul>
+<li><strong>Engine.</strong> Microsoft SQL Server. Dezelfde engine draait als Azure SQL Database (serverless of provisioned), SQL Server op een virtuele machine, SQL Server in Linux-containers (officiële Microsoft-images voor 2017 tot 2025; alleen x86-64 Linux-hosts; een licentie is vereist) of AWS RDS for SQL Server.</li>
+<li><strong>Pauzeer een productiedatabase nooit automatisch.</strong> Een gepauzeerde database maakt van het eerste scherm 's ochtends, of van een STAT-casus 's nachts, een mislukt verzoek. Automatisch pauzeren is alleen aanvaardbaar voor test- en opleidingstenants. Op Azure SQL serverless wordt het uitgezet met <code>-1</code>.</li>
+<li><strong>Uitgangspunt voor de omvang.</strong> De readiness review adviseert voor een productietenant een minimum van 2 virtuele cores "totdat belastingtests anders uitwijzen". Het is een aanbeveling, geen geteste eis. Opslag, geheugen, IOPS en groei per <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>: Nog niet gespecificeerd.</li>
+<li><strong>Schemawijzigingen.</strong> Geversioneerde scripts die door de releasepijplijn worden toegepast voordat de API-container start, nooit bij het opstarten van de toepassing.</li>
+<li><strong>Back-ups.</strong> Point-in-time-herstel is het ontwerp voor de audittabellen. Back-upschema, bewaartermijn, hersteltijddoelstelling en herstelpuntdoelstelling: Nog niet gespecificeerd.</li>
+<li><strong>AWS-opmerking.</strong> AWS heeft geen serverless SQL Server, en een gewijzigde instantieklasse betekent downtime (korter met Multi-AZ). Licentiekosten zijn van toepassing.</li>
+<li><strong>Blobopslag</strong> voor verslag-PDF's, exports en vastgehouden vrijgaven: Azure Blob of een S3-compatibele opslag, per <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a>, privé, versleuteld in rust en in de <a class="term" href="99-glossary.html#g-hosting-region" title="De geografische regio waar een AI-clouddienst gegevens verwerkt. Het AI-leveranciersbeleid kan regio&#x27;s toestaan of weigeren.">hostingregio</a> van de tenant (contract: <code>BLOB_STORAGE_API.md</code>). PathScribe bewaart geen beelden of bijlagen, alleen koppelingen naar het beeldvormingssysteem van het laboratorium.</li>
+</ul>
+<h3 id="ch1-prereq-network"><a class="anchor" href="#ch1-prereq-network" aria-label="Link to this section">#</a> Netwerk</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Systeemvereisten &gt; Netwerk"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Systeemvereisten</span> <span aria-hidden="true">›</span> <span>Netwerk</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Behoefte</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, de versleuteling die een webverbinding beschermt en zichtbaar is als https.">TLS</a> overal</td>
+<td>Elk serveradres in <code>config.json</code> moet <code>https://</code> zijn. Gewoon <code>http://</code> is alleen toegestaan naar dezelfde computer in een ontwikkelbuild, of voor een interne implementatie die <code>"https": false</code> instelt in haar bestand met origins voor beveiligingsheaders (waardoor HSTS vervalt).</td>
+</tr>
+<tr>
+<td>Browser naar <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a> en <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a></td>
+<td>HTTPS naar de API-server. WebSockets (<code>wss://</code>) naar <code>/hubs/live</code>. Laat Server-Sent Events en long polling ingeschakeld als terugvaloptie, omdat sommige ziekenhuisproxy's WebSockets blokkeren. Load balancers hebben WebSockets ingeschakeld nodig en een idle timeout van meer dan 15 seconden.</td>
+</tr>
+<tr>
+<td>Toegestane adressen</td>
+<td>De adressen in <code>config.json</code> (API, identiteitsproviders, hub, renderer, interface-ontvanger, AI- en terminologie-endpoints, foutbewaking) vormen de Content-Security-Policy van de browser. Voer de headergenerator opnieuw uit na elke wijziging.</td>
+</tr>
+<tr>
+<td>Identiteitsprovider</td>
+<td>Bereikbaar vanuit de browser (en vanuit de server, zodra de server de aanmelding beheert). Omleidingsadressen voor Microsoft Entra ID: <code>https://&lt;pathscribe host&gt;/auth/callback/microsoft</code> en <code>https://&lt;pathscribe host&gt;/auth/signing/microsoft</code>.</td>
+</tr>
+<tr>
+<td>Site-agent</td>
+<td>Alleen uitgaand HTTPS (poort 443), op een eigen hostnaam (bijvoorbeeld <code>agent.&lt;tenant domain&gt;</code>) die een clientcertificaat eist. Geen inkomende firewallopening. Een proxy die TLS inspecteert moet die host ongemoeid doorlaten, omdat inspectie het clientcertificaat breekt.</td>
+</tr>
+<tr>
+<td>Bereik van de <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a> (lokaal ingesteld door de IT van het ziekenhuis)</td>
+<td>De printersubnetten, de printerpoorten (standaard 9100, 515, 631 en 443), de UNC-roots voor shares en de hosts waarvan documenten mogen worden gedownload. PathScribe kan deze lijst niet wijzigen.</td>
+</tr>
+<tr>
+<td>HL7-koppeling</td>
+<td>Aanvragen binnen en uitslagen buiten lopen via de interface-engine. De koppeling is beveiligd met een site-to-site-VPN of MLLP over TLS. Een bericht wordt pas bevestigd zodra het duurzaam is opgeslagen.</td>
+</tr>
+<tr>
+<td>Vast uitgaand adres</td>
+<td>SFTP-bestandsuitwisselingen hebben een vast uitgaand IP-adres nodig voor de toegestane lijst van het ziekenhuis (een NAT-gateway of firewall-egress) en een vastgezette hostsleutel.</td>
+</tr>
+<tr>
+<td>E-fax en e-mail</td>
+<td>Een SMTP-gateway op poort 587 met authenticatie.</td>
+</tr>
+<tr>
+<td>Bandbreedte en latentie</td>
+<td>Nog niet gespecificeerd. De ontwerpdoelstelling voor een gewone schermvernieuwing is 800 ms bij het 95e percentiel van vastlegging tot weergave; voor de borden van de operatiekamer minder dan 500 ms. Het eerste laden van de pagina is 0,70 MB gecomprimeerd (doel 1 MB).</td>
+</tr>
+<tr>
+<td>Hostingregio</td>
+<td>Per implementatie wordt één regio gekozen. De <code>/api/config</code> van de API-server kan de database- en blobregio's rapporteren, die het tabblad AI-gedrag toont (zie <a href="05-tier4-ai-framework.html#screen-tab-ai">AI-gedrag</a>). Dat endpoint is gepland.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch1-prereq-workstation"><a class="anchor" href="#ch1-prereq-workstation" aria-label="Link to this section">#</a> Clientwerkstation</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Systeemvereisten &gt; Clientwerkstation"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Systeemvereisten</span> <span aria-hidden="true">›</span> <span>Clientwerkstation</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd, met open controles zoals vermeld.</p>
+<ul>
+<li><strong>Ondersteunde browsers</strong> (besloten op 15 okt 2026): actuele versies van Chrome, Microsoft Edge en Firefox. <strong>Safari wordt niet ondersteund.</strong> De geautomatiseerde tests draaien in Chromium (de engine van Chrome en Edge). Firefox wordt alleen op verzoek gedraaid, is nog niet gedraaid in de bouwomgeving, en een handmatige controle in alle drie is open (PS-718). In Chrome en Edge worden keuzelijsten getekend als opgemaakte vlakken; Firefox toont zijn eigen lijst. Het gedrag is hetzelfde.</li>
+<li><strong>Gebruikte browserfuncties.</strong> WebAssembly (de spellingcontrole), Web Workers en (wanneer de gebruiker toestemming geeft) camera, microfoon en schermopname, voor foto's bij het <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a>, dicteren en schermafbeeldingen bij verbeteringsverzoeken. De Permissions-Policy-header staat deze alleen toe voor PathScribe.</li>
+<li><strong>Labels afdrukken vanaf een computer op de werkplek.</strong> <a class="term" href="99-glossary.html#g-qz-tray" title="Een klein programma op een computer waarmee een webpagina zonder afdrukvenster naar een lokale printer kan afdrukken, zoals een labelprinter.">QZ Tray</a> (Gerealiseerd) of de PathScribe-werkstationagent (Gerealiseerd, browserkant) moet op de computer draaien. Ze luisteren alleen op de computer zelf: de werkstationagent op <code>wss://127.0.0.1</code> poorten 9100 tot 9102 en QZ Tray op <code>localhost</code> poorten 8181, 8282, 8383 en 8484. Als de pagina QZ Tray niet kan bereiken, opent het label in het afdrukvenster van de browser en meldt een bericht dat de labelprinter niet is verbonden.</li>
+<li><strong>Toegang tot het lokale netwerk toestaan.</strong> Chrome en Edge vragen de gebruiker om toestemming voor lokale adressen. De IT van het ziekenhuis kan PathScribe vooraf goedkeuren met het beleid <code>LocalNetworkAccessAllowedForUrls</code>.</li>
+<li><strong>Meldingen van QZ Tray.</strong> QZ Tray vraagt "Allow this website to use your printers?" totdat afdrukverzoeken met het certificaat van de klant worden ondertekend. Het ondertekenen is <strong>gepland</strong> (het vereist de API-server). Tot die tijd kan de gebruiker eenmaal per <a class="term" href="99-glossary.html#g-workstation" title="Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.">werkstation</a> worden gevraagd. Het besluit (16 okt 2026) is één zelfondertekend certificaat per klant, met een vervaldatum die de IT moet verlengen en opnieuw uitrollen; zie <code>docs/product/QZ_TRAY_CERTIFICATE_GUIDE.md</code>. De stappen voor elk hulpmiddel voor apparaatbeheer zijn gemarkeerd met "Test first", omdat ze niet op een pilotcomputer zijn uitgevoerd.</li>
+<li><strong>Labelprinters.</strong> Thermische printers die <a class="term" href="99-glossary.html#g-zpl" title="Zebra Programming Language, de printertaal die de indeling van een label beschrijft voor labelprinters van het Zebra-type.">ZPL</a> accepteren. Verslagprinters op het netwerk worden via de <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a> bereikt. Netwerkafdrukken van verslagen werkt vandaag niet vanuit de browser.</li>
+<li><strong>Schermlezers.</strong> Geautomatiseerde toegankelijkheidscontroles slagen; testen door een persoon met NVDA of VoiceOver is open (PS-687).</li>
+<li><strong>Talen.</strong> Engels, Frans, Duits, Nederlands, Koreaans en Spaans, plus de woordkeuze voor Belgisch Nederlands en Belgisch Frans.</li>
+<li><strong>Monitorgrootte, minimale processor en minimaal geheugen:</strong> Nog niet gespecificeerd.</li>
+<li><strong>Viewers voor whole slide imaging.</strong> De viewer van de leverancier moet vanaf het werkstation zijn geïnstalleerd of bereikbaar, zoals die leverancier vereist. PathScribe opent de viewer alleen in een nieuw tabblad, met een sjabloon voor het startadres dat u eenmaal per viewer invoert, waarin de barcode van het preparaat wordt ingevuld. Het wordt ingesteld in <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Leveranciersintegraties</a>. PathScribe levert geen viewer-adres mee.</li>
+</ul>
+<h2 id="ch1-security"><a class="anchor" href="#ch1-security" aria-label="Link to this section">#</a> Beveiligingsmodel</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Vrijwel elke maatregel hieronder is gerealiseerd in de browser en heeft een beschreven servercontract. De server die elke controle moet herhalen, is niet gebouwd (zie <a href="#ch1-current-state">De stand van het product vandaag</a>). Een controle in de browser is een beleefdheid; de controle van de server is de maatregel. Beschrijf geen enkele maatregel hier als bescherming van echte patiëntgegevens zolang de serverkant niet bestaat.</p>
+<p>Dit deel zegt wat elke maatregel doet. Het zegt niet dat het gebruik ervan een laboratorium conform enige wet of norm maakt. Dat wordt bepaald door het eigen beleid, de contracten en het kwaliteitssysteem van het laboratorium.</p>
+<h3 id="ch1-sso"><a class="anchor" href="#ch1-sso" aria-label="Link to this section">#</a> Single sign-on</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Single sign-on"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Single sign-on</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. OpenID Connect (<a class="term" href="99-glossary.html#g-oidc" title="OpenID Connect, de aanmeldstandaard die PathScribe gebruikt voor single sign-on.">OIDC</a>): browserkant Gerealiseerd. Serverkant Gepland.</p>
+<ul>
+<li><strong>Protocol.</strong> OpenID Connect, authorization code flow met PKCE, waarbij de app is geregistreerd als publieke single-pageapplicatieclient (geen clientgeheim). Het is generiek, dus het werkt met Microsoft Entra ID, Okta, Ping en Keycloak. Microsoft Entra ID is het eerste doel. De Entra-authority moet een <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a> noemen: <code>/common</code>, <code>/organizations</code> en <code>/consumers</code> worden geweigerd omdat ze elk Microsoft-account zouden toelaten.</li>
+<li><strong>Google</strong>-aanmelding wordt niet aangeboden, omdat het tokenendpoint van Google een clientgeheim eist. Een ziekenhuis op Google Workspace kan Google federeren via Entra ID of Okta.</li>
+<li><strong>Niemand wordt aangemaakt door aan te melden.</strong> Alleen personeel dat al is ingericht en actief is, kan zich aanmelden. De identiteit wordt gekoppeld aan een personeelsrecord via het permanente subject van de provider (<code>oid</code> van Entra, anders <code>sub</code>), nooit alleen via het e-mailadres. De eerste aanmelding mag via het e-mailadres koppelen als dat e-mailadres wordt vertrouwd (geverifieerd, of een tenantspecifieke Entra-authority); een instelling kan dat uitzetten, zodat een beheerder elk account koppelt. Weigeringen (niet ingericht, inactief, dubbelzinnig, al gekoppeld, geen toegang tot de toepassing) worden met een duidelijk bericht getoond en geaudit. Zie <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a>.</li>
+<li><strong>Demonstratiebuilds</strong> bieden ook aanmelding met een wachtwoord. Een productiebuild (<code>VITE_AUTH_MODE</code> ingesteld op <code>sso</code>) bevat geen demonstratieaccounts.</li>
+<li><strong>Tokens.</strong> Vandaag bewaart de browser de tokens in <code>sessionStorage</code> (alleen dit tabblad, weg zodra het tabblad sluit). <strong>Gepland voor productie</strong> (besloten op 3 en 15 okt 2026): de API-server bewaart de tokens en de browser krijgt alleen een sessiecookie met <code>HttpOnly</code>, <code>Secure</code> en <code>SameSite</code>, met een anti-forgery-header. De browser draagt nooit een JWT en de <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a> gebruikt dezelfde cookie. Dit vereist gedeelde sessieopslag (SQL Server of Redis) op de server.</li>
+<li><strong>De app registreren in Entra ID</strong> (stappen voor de IT van het ziekenhuis, uit <code>AUTHENTICATION_OIDC.md</code>): een registratie voor één tenant met het platform Single-page application en de twee omleidingsadressen die onder <a href="#ch1-prereq-network">Netwerk</a> staan, geen clientgeheim, de optionele claim <code>email</code> in het ID-token en een beschikbaar gestelde API-scope die aan de toepassing is verleend.</li>
+<li><strong>Accounts en rollen uit de directory.</strong> Automatische accountsynchronisatie (<a class="term" href="99-glossary.html#g-scim" title="System for Cross-domain Identity Management, een standaard waarmee een identiteitsprovider automatisch medewerkersaccounts aanmaakt en deactiveert.">SCIM</a>: nieuwe medewerkers, wijzigingen en vertrekkers) is <strong>gepland</strong> voor de serverfase. Het koppelen van directorygroepen aan PathScribe-rollen is <strong>gepland</strong> voor na de eerste release. Wanneer het er is, mag een groep alleen werkplekrollen verlenen, nooit Beheerder, Laboratoriumdirecteur, Sjabloongoedkeurder of iets met <a class="term" href="99-glossary.html#g-signing-authority" title="De soorten verslag die een persoon mag autoriseren, bepaald door deelnametype en de regels van het land.">ondertekeningsbevoegdheid</a>, en elke koppeling vraagt de goedkeuring van een tweede beheerder. Vandaag worden rollen met de hand toegewezen in <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a> en <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>.</li>
+</ul>
+<h4 id="ch1-saml"><a class="anchor" href="#ch1-saml" aria-label="Link to this section">#</a> SAML 2.0</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Single sign-on &gt; SAML 2.0"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Single sign-on</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-saml" title="Security Assertion Markup Language, een oudere single sign-on-standaard. De single sign-on van PathScribe gebruikt OIDC.">SAML</a> 2.0</span></nav>
+
+<p><strong>Status:</strong> Niet gerealiseerd.</p>
+<p>PathScribe heeft geen SAML 2.0-aanmelding, geen SAML-bibliotheek en geen SAML-scherm. Een zoekactie in de hele repository vindt het woord alleen in twee ontwerpdocumenten. Het dichtstbijzijnde dat werkt is <a class="term" href="99-glossary.html#g-oidc" title="OpenID Connect, de aanmeldstandaard die PathScribe gebruikt voor single sign-on.">OIDC</a>, hierboven. De gedocumenteerde richting voor gedeelde SaaS-hosting is dat ziekenhuizen zich aanmelden via een PathScribe-identiteitsbroker (Microsoft Entra ID External ID), die SAML of OIDC spreekt met de directory van het ziekenhuis en gewone OIDC met PathScribe, zodat "PathScribe nooit SAML verwerkt". Die broker is <strong>gepland</strong> en niet gebouwd. Een private-clouddeployment of een dedicated implementatie maakt rechtstreeks via OIDC verbinding met de eigen Entra ID van het ziekenhuis. Een ziekenhuis dat vandaag alleen SAML kan bieden, moet dat tijdens de planning aan ForMedrixAI melden, of SAML federeren naar Entra ID of Okta, die dan OIDC spreken met PathScribe.</p>
+<h3 id="ch1-rbac"><a class="anchor" href="#ch1-rbac" aria-label="Link to this section">#</a> Rolgebaseerde toegangscontrole</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Rolgebaseerde toegangscontrole"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Rolgebaseerde toegangscontrole</span></nav>
+
+<p><strong>Status:</strong> Demonstratie. De controles draaien in de services van de browser. De handhaving aan de serverkant (<code>AUTHORIZATION_API.md</code>, fase 4) is <strong>gepland</strong>.</p>
+<ul>
+<li><strong>Machtigingen.</strong> Alles wat PathScribe afdwingt, is een benoemde <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> in de vorm <code>domain:object:verb</code>, bijvoorbeeld <code>config:retention-policy:manage</code>. De catalogus (<code>capabilityCatalog.ts</code>) is de enige lijst en bevat ongeveer 320 machtigingen (322 op het moment van schrijven; het aantal groeit met de releases). Een machtiging wordt alleen samen met haar controle toegevoegd en een test laat de build mislukken als een machtiging geen controle heeft. Elke machtiging heeft een risiconiveau. Voor een machtiging met <strong>hoog risico</strong> wordt elke controle bij een handeling vastgelegd in het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>, toegestaan of geweigerd, en elke export heeft een hoog risico.</li>
+<li><strong>Rollen.</strong> Een <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> is een set machtigingen. Een medewerker heeft een of meer rollen en een toewijzing aan faciliteiten (een lege toewijzing betekent alle faciliteiten). Het bereik hoort bij de toewijzing, niet bij de rol. Een controle slaagt alleen als een toegekende rol de machtiging verleent, elke machtiging die ze vereist ook is verleend en de handeling binnen de faciliteiten van de persoon valt. Een weigering geeft een reden (niet verleend, vereiste niet verleend, buiten bereik, <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> onbekend).</li>
+<li><strong>Ingebouwde rollen.</strong> Zestien: Patholoog, Assistent in opleiding, Fellow, Patholoog-assistent, Beheerder, Arts, OK-personeel, Sjabloonauteur, Sjabloongoedkeurder, Laboratoriumdirecteur, QA-beoordelaar, Accessiemedewerker, Histotechnoloog, Cytotechnoloog, Moleculair technoloog en Superadmin. Arts en OK-personeel zijn directoryvermeldingen zonder toegang tot de toepassing. De standaardinstellingen volgen het principe van minimale rechten: een patholoog heeft standaard geen configuratiemachtigingen. Een beheerder kan rollen wijzigen en rollen toevoegen in <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, behalve Superadmin.</li>
+<li><strong>Geen omzeiling voor welke rol dan ook.</strong> Superadmin is een rol waaraan machtigingen worden verleend zoals aan elke andere, en de controle kent er geen sluiproute voor. Beheerder impliceert evenmin iets.</li>
+<li><strong>Superadmin is gereserveerd voor ForMedrixAI-support.</strong> De rol wordt alleen gehouden via een supportaanmelding. Een ziekenhuis kan hem niet toewijzen, bewerken of zien in de rolkiezer voor personeel, en een personeelsrecord die hem noemt, krijgt er niets van. De bron van die identiteit aan de serverkant (de eigen identiteitstenant van ForMedrixAI) is <strong>gepland</strong>.</li>
+<li><strong>Machtigingen alleen voor het platform.</strong> Zes machtigingen in het domein <code>platform:</code> tellen alleen mee voor Superadmin (<a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> bekijken over tenants heen, toezichthoudende instanties, ondertekeningsregels, en beheren, publiceren en simuleren van het interfacewoordenboek). Een rol van een ziekenhuis kan ze niet hebben. Hun schermen zijn in deze handleiding gemarkeerd met <code>[FORMEDRIXAI INTERNAL ONLY]</code>.</li>
+<li><strong>Tenantgrens.</strong> Elke gebruiker en elke casus draagt een <code>organisationId</code>. Bereik over tenants heen is beperkt tot supporttoegang (hieronder). De handhaving gebeurt vandaag in de browser; een querylaag aan de serverkant die dit afdwingt, is gepland.</li>
+<li><strong>Privacy van casus.</strong> Een persoon die een casus niet kan openen, krijgt dezelfde neutrale melding als bij een casus die niet bestaat. Een getypt of geplakt <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a> bewijst niets, en een bericht maakt van een nummer alleen een koppeling als de lezer die casus kan openen. De server moet hetzelfde antwoord geven (bijvoorbeeld <code>404</code>) voor "geen zo'n casus" en "u mag hem niet zien", zonder verschil in body, headers of timing.</li>
+<li><strong>Schermen.</strong> Elk scherm heeft zijn eigen machtiging <code>screen:&lt;name&gt;:open</code>. Start en de hubs tonen alleen de tegels die de persoon mag openen, en de route controleert opnieuw.</li>
+<li><strong>Spraak- en toetsenbordopdrachten</strong> zijn geen toegangsbeheer en worden nooit gebruikt om toegang te verlenen.</li>
+<li><strong>Waar u het beheert.</strong> <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a> en het <a href="02-tier1-primary-prerequisites.html#screen-tab-staff">tabblad Personeel</a>. Wijzigingen in rollen en machtigingen worden geaudit.</li>
+</ul>
+<h3 id="ch1-mfa"><a class="anchor" href="#ch1-mfa" aria-label="Link to this section">#</a> Multifactorauthenticatie en herauthenticatie bij ondertekening</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Multifactorauthenticatie en herauthenticatie bij ondertekening"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Multifactorauthenticatie en herauthenticatie bij ondertekening</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Browserkant Gerealiseerd. De authenticator voor demonstratieaccounts is <strong>Gesimuleerd</strong>. Serverkant Gepland.</p>
+<ul>
+<li><strong>Gebruikers van <a class="term" href="99-glossary.html#g-single-sign-on" title="Eenmaal aanmelden met de identiteitsprovider van een organisatie in plaats van met een PathScribe-wachtwoord. Ook geschreven als SSO.">single sign-on</a>.</strong> De <a class="term" href="99-glossary.html#g-identity-provider" title="De dienst die mensen aanmeldt voor single sign-on, zoals de Microsoft Entra-directory van een ziekenhuis.">identiteitsprovider</a> vraagt om de tweede factor. PathScribe leest het ID-token en accepteert <a class="term" href="99-glossary.html#g-mfa" title="Multifactorauthenticatie, aanmelden met een tweede bewijs, zoals een code uit een authenticator-app, naast een wachtwoord.">MFA</a> wanneer <code>amr</code> de waarde <code>mfa</code> bevat, of methoden uit twee verschillende families noemt (kennis, bezit, inherentie), of wanneer <code>acr</code> een multifactorklasse noemt. Een wachtwoord alleen is geen MFA. Als de organisatie MFA vereist en het token dat niet zegt, wordt de aanmelding met een duidelijk bericht geweigerd. De provider moet zo zijn ingesteld dat hij deze claims meestuurt (Entra: een Conditional Access-beleid dat MFA vereist; Okta: een authenticatiebeleid met een bezitsfactor; Keycloak: koppel het authenticatieniveau aan <code>acr</code> en voeg een <code>amr</code>-mapper toe).</li>
+<li><strong>Beleid per organisatie.</strong> In <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a>: wie wordt gevraagd (niemand, de rollen die verslagen ondertekenen, of iedereen; standaard niemand), hoeveel minuten voordat een handtekening een nieuwe code nodig heeft (1 tot 720, standaard 30) en na hoeveel uur de tweede factor verloopt en de sessie eindigt (1 tot 72, standaard 12). Opgeslagen met <code>config:session-security:manage</code> en geaudit.</li>
+<li><strong>Stap omhoog bij een handtekening.</strong> Wanneer de laatste tweede factor ouder is dan de step-uptijd, vraagt het ondertekenen opnieuw: een nieuwe code voor wachtwoordsessies, of een nieuwe aanmelding bij de provider (<code>prompt=login</code>) waarvan het token opnieuw MFA moet bevestigen.</li>
+<li><strong>Demonstratieaccounts.</strong> Een <strong>gesimuleerde</strong> tijdgebaseerde authenticator (RFC 6238) met herstelcodes die eenmaal worden getoond. Hij zit alleen in de <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a>. Een <a class="term" href="99-glossary.html#g-server-build" title="Een build van PathScribe voor een echte implementatie, zonder demonstratieaccounts, die zich via de identiteitsprovider aanmeldt en met de API-server communiceert.">serverbuild</a> heeft geen gesimuleerde factor, dus een persoon die geen single sign-on gebruikt en om MFA wordt gevraagd, krijgt te horen dat dit niet beschikbaar is en kan zich niet aanmelden. Het opnieuw instellen van een registratie vereist <code>auth:mfa-enrolment:reset</code>.</li>
+<li><strong>Blokkering.</strong> Vijf mislukte codes blokkeren de controle gedurende 15 minuten. Vijf mislukte aanmeldingen met een wachtwoord blokkeren een e-mailadres gedurende 15 minuten. Deze tellers worden vandaag in de browser bijgehouden; de server moet ze bijhouden. Bij single sign-on past de provider zijn eigen blokkering toe.</li>
+<li><strong>Authenticatiebeleid voor ondertekening</strong> (Gerealiseerd, Demonstratie). Per uitvoerende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>: een wachtwoord bij elke ondertekening (de standaard, <code>strict</code>) of eenmaal per sessie (<code>session</code>, met een duur van 15, 30, 60 of 240 minuten), met een optionele tweede factor. Een sessie eindigt bij een time-out, afmelden of een rolwijziging. Het scherm waarschuwt dat de modus eenmaal per sessie afwijkt van wat 21 CFR Part 11 (11.200(a)(1)) verwacht voor latere ondertekeningen, dus het kwaliteitssysteem van de klant beslist.</li>
+<li><strong>Biometrische ondertekening</strong> (WebAuthn, Touch ID of Windows Hello) is een optionele bevestiging. Elke persoon registreert zijn eigen apparaat en het wachtwoord werkt altijd ook. De serverversie van de biometrische aanroepen is geschreven, maar de schermen gebruiken hem nog niet.</li>
+<li><strong>Niet gerealiseerd:</strong> beperking van afmelden op afstand per netwerk, verlopen van een ondertekeningssessie bij vergrendeling van het <a class="term" href="99-glossary.html#g-workstation" title="Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.">werkstation</a>, SMS en hardwaresleutels als tweede factor, een beleidsopslag aan de serverkant.</li>
+<li><strong>Waar u het beheert.</strong> <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a>.</li>
+</ul>
+<h3 id="ch1-session"><a class="anchor" href="#ch1-session" aria-label="Link to this section">#</a> Sessiebeveiliging</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Sessiebeveiliging"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Sessiebeveiliging</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Time-out bij inactiviteit Gerealiseerd (browser). Sessie bewaard door de server Gepland.</p>
+<ul>
+<li><strong>Time-out bij inactiviteit.</strong> Een organisatiebrede standaard in <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a>, te kiezen uit 5, 10, 15, 20, 30 of 60 minuten. De standaard is 15. Een <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a> kan een eigen waarde instellen in het <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>. Wanneer een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> is geopend, geldt de waarde van het laboratorium; elders (Start, Werklijst) geldt de waarde van de organisatie. Bij een time-out wordt de persoon afgemeld en blijven niet-opgeslagen concepten bewaard, ze worden niet verwijderd.</li>
+<li><strong>Hetzelfde account, tweede tabblad.</strong> Opnieuw aanmelden als dezelfde gebruiker in een ander tabblad vervangt de eerdere sessie in dezelfde browser, met een melding.</li>
+<li><strong>Regel van de server.</strong> De server beëindigt ook een sessie waarvan het token is verlopen, zodat een gesloten of vastgelopen browser er geen open kan houden.</li>
+<li><strong>Opslag in de browser.</strong> Als een API-server is geconfigureerd, worden geen patiëntgegevens naar de opslag van de browser geschreven. Alleen weergavevoorkeuren, werkstationinstellingen (<a class="term" href="99-glossary.html#g-scan-station" title="Een benoemde opstelling van een werkplekcomputer, met printers en beeldscherm, die een persoon selecteert zodat labels en scans op de juiste plaats terechtkomen.">scanstation</a>, <a class="term" href="99-glossary.html#g-display-profile" title="Een opgeslagen indeling van dashboardtegels die een wandscherm toont.">weergaveprofiel</a>, vensterposities) en de aanmeldsessie raken die opslag.</li>
+<li><strong>Transport en paginabescherming.</strong> De gegenereerde headers stellen een strikte Content-Security-Policy in (geen inline script, geen <code>eval</code>, geen framing), HSTS op https-implementaties, <code>nosniff</code>, een beleid <code>no-referrer</code> (adressen kunnen casus-id's bevatten) en een beperkte Permissions-Policy. Verslag-HTML wordt gesaneerd voordat hij wordt getoond. De browser bezit geen AI-, terminologie- of leverancierssleutel, en een test laat de build mislukken als er een in de front-end verschijnt.</li>
+<li><strong>Foutrapporten.</strong> Crashrapporten kunnen naar Sentry of naar de eigen verzamelaar van een ziekenhuis, <strong>standaard uit</strong>. Een rapport bevat alleen een foutnaam, een opgeschoond bericht (geen geciteerde tekst, e-mailadressen of reeksen van drie of meer cijfers), hooguit tien stackframes, de route met numerieke segmenten vervangen, en een referentie. Het vereist twee instellingen in <code>config.json</code> en, voor een Amerikaanse klant, een ondertekende Business Associate Agreement met de aanbieder, of voor de <a class="term" href="99-glossary.html#g-eu" title="Europese Unie.">EU</a> en het VK een verwerkersovereenkomst en gegevensopslag in de EU. Zelf hosten voorkomt beide.</li>
+<li><strong>Waar u het beheert.</strong> <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a> en <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>.</li>
+</ul>
+<h3 id="ch1-support"><a class="anchor" href="#ch1-support" aria-label="Link to this section">#</a> Supporttoegang</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Supporttoegang"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Supporttoegang</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Browserkant Gerealiseerd. Serverkant Gepland.</p>
+<p>Het ziekenhuis, als verwerkingsverantwoordelijke, beslist of ForMedrixAI-support bij zijn gegevens mag. "Supporttoegang" betekent een Superadmin-sessie die een organisatie bereikt waarvan de persoon geen medewerker is.</p>
+<ul>
+<li><strong>Beleid per organisatie.</strong> Uitgeschakeld (support krijgt niets, ook Superadmin niet), <strong>Goedkeuring vereist</strong> (de standaard) of Altijd toegestaan. Bij Goedkeuring vereist vraagt support per ticket toegang, met een reden van minstens 10 tekens. Een goedkeurder in het ziekenhuis (niet de aanvrager) keurt goed of af. Een goedkeuring duurt zolang het toegangsvenster van de organisatie (30 minuten, 1, 2, 4 of 8 uur; de standaard is 2) of korter als support haar beëindigt of het ziekenhuis haar intrekt.</li>
+<li><strong>De eigen auditstroom van het ziekenhuis.</strong> Gescheiden van het hoofdauditlogboek: aanvragen, besluiten, verlopen, geweigerde openingen, openen en bewerken van <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, elke lijst of zoekopdracht die casus openbaarde (casus-id's; namen van zoekcriteria, nooit waarden), beleidswijzigingen en exports. Elke vermelding is met een hash gekoppeld aan de vorige, zodat een gewijzigde of verwijderde vermelding de keten verbreekt, en het scherm toont de controle op manipulatie. Exporteren kan als <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> of <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a>.</li>
+<li><strong>Machtigingen.</strong> <code>config:support-access:policy</code>, <code>config:support-access:approve</code> en <code>config:support-audit:view</code>, standaard toegekend aan Beheerder. Het openen van de casus van een andere organisatie vereist ook <code>platform:cross-tenant-cases:view</code>, die alleen Superadmin kan hebben, en wordt geaudit.</li>
+<li><strong>Niet gerealiseerd (werk aan de serverkant):</strong> het oorspronkelijke IP-adres en land (de browser legt ze leeg vast), melding per e-mail en <a class="term" href="99-glossary.html#g-webhook" title="Een webadres dat het ene systeem aanroept om een update naar een ander te pushen, zoals een LIS dat een statuswijziging als JSON verstuurt.">webhook</a> aan goedkeurders (vandaag een bericht in de toepassing), beëindiging van de toegang zodra het ticket sluit, PDF-export van de stroom (CSV en JSON bestaan; een PDF-functie is geschreven in de browser), de stroom in een eigen alleen-toevoegentabel per <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a>, en supportsessietokens die aan het ticket en de vervaltijd zijn gebonden.</li>
+<li><strong>Waar u het beheert.</strong> <a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a>.</li>
+</ul>
+<h3 id="ch1-audit"><a class="anchor" href="#ch1-audit" aria-label="Link to this section">#</a> Auditregistratie</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Auditregistratie"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Auditregistratie</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Browserkant Gerealiseerd. Serveropslag Gepland.</p>
+<ul>
+<li><strong>Wat wordt vastgelegd.</strong> Handelingen van gebruikers, ondertekeningen, amendementen, spraakgebeurtenissen, systeemgebeurtenissen en AI-aanroepen. Elke controle van een <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> met hoog risico wordt vastgelegd, toegestaan of geweigerd. Configuratiewijzigingen door een bevoegd persoon worden geaudit. Sommige leggen de oude en nieuwe waarden vast (bijvoorbeeld het <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Een regel per jurisdictie die bepaalt welke AI-diensten en hostingregio&#x27;s mogen worden gebruikt. Een aanroep die door de regel wordt geweigerd, wordt niet verzonden en de functie werkt verder zonder AI.">AI-leveranciersbeleid</a> en overschrijvingen van de <a class="term" href="99-glossary.html#g-signing-authority" title="De soorten verslag die een persoon mag autoriseren, bepaald door deelnametype en de regels van het land.">ondertekeningsbevoegdheid</a>); voor veel instellingen bevat het logboek alleen de vermelding dat de machtigingscontrole was toegestaan, niet de nieuwe waarde. Zie <a href="09-appendices.html#screen-audit-log">Systeemlogboeken</a> voor wat elke vermelding bevat.</li>
+<li><strong>Geen patiëntgegevens in het detail.</strong> De <code>detail</code>-tekst van het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> is letterlijk Engels en is zo opgebouwd dat hij geen namen van patiënten, geboortedata, <a class="term" href="99-glossary.html#g-mrn" title="Medisch dossiernummer (medical record number), de identificatie die een faciliteit aan een patiënt geeft.">MRN</a>'s of klinische waarden bevat. Hij gebruikt identificaties en configuratienamen. Wachtwoorden, codes en geheimen worden nooit vastgelegd.</li>
+<li><strong>Serverontwerp.</strong> Alleen-toevoegentabellen (alleen invoeg- en selectierechten), elke auditrij geschreven in dezelfde transactie als de wijziging die ze vastlegt, een met hash gekoppelde stroom voor supporttoegang en point-in-time-back-ups. Geëxporteerde auditarchieven op onveranderlijke opslag zijn een optie per ziekenhuis. <strong>Gepland:</strong> niets daarvan bestaat totdat de server is gebouwd. De browserversie bewaart het logboek in demonstratieopslag.</li>
+<li><strong>Bewaring.</strong> Zie <a href="#ch1-retention">Gegevensbewaring</a>.</li>
+<li><strong>Waar u het leest.</strong> <a href="09-appendices.html#screen-audit-log">Systeemlogboeken</a>, met de weergaven voor interfaces en financiën <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a> en <a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a>.</li>
+</ul>
+<h3 id="ch1-phi"><a class="anchor" href="#ch1-phi" aria-label="Link to this section">#</a> Afschermen van patiëntgegevens in schermafbeeldingen voor support</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Afschermen van patiëntgegevens in schermafbeeldingen voor support"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Afschermen van patiëntgegevens in schermafbeeldingen voor support</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd.</p>
+<p>Wanneer een gebruiker een Verbeteringsverzoek verstuurt, maakt de app een schermafbeelding en dekt ze elk element af dat als patiëntgegevens is getagd voordat de afbeelding de browser verlaat. Alles wat een naam, geboortedatum, <a class="term" href="99-glossary.html#g-mrn" title="Medisch dossiernummer (medical record number), de identificatie die een faciliteit aan een patiënt geeft.">MRN</a> of nationale identificatie van een patiënt, een accessie- of casusnummer, of contact- of verzekeringsgegevens van een patiënt toont, is met zijn soort getagd als <code>data-phi</code>. Toasts die een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> noemen, zijn verpakt zodat ze ook worden afgedekt. Namen van medewerkers worden niet als patiëntgegevens behandeld. Een test leest elk bronbestand en laat de build mislukken bij een niet-getagde plaats, zonder uitzonderingenlijst. Beperkingen om rekening mee te houden: vrije tekst die toevallig een identificatie bevat (auditdetail, redenen van interface-uitzonderingen) kan door geen enkele codecontrole worden herkend, dus die cellen worden in hun geheel afgedekt; en de controle leest namen, geen typen, dus een waarde die via een generieke lijst wordt doorgegeven, kan worden gemist (zo'n geval is gevonden en opgelost in Batch 368, waarna twintig schermen in een browser zijn gecontroleerd).</p>
+<h3 id="ch1-ai-policy"><a class="anchor" href="#ch1-ai-policy" aria-label="Link to this section">#</a> AI-leveranciersbeleid en hostingregio's</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; AI-leveranciersbeleid en hostingregio&#x27;s"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Een regel per jurisdictie die bepaalt welke AI-diensten en hostingregio&#x27;s mogen worden gebruikt. Een aanroep die door de regel wordt geweigerd, wordt niet verzonden en de functie werkt verder zonder AI.">AI-leveranciersbeleid</a> en <a class="term" href="99-glossary.html#g-hosting-region" title="De geografische regio waar een AI-clouddienst gegevens verwerkt. Het AI-leveranciersbeleid kan regio&#x27;s toestaan of weigeren.">hostingregio</a>&#x27;s</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Controle in de browser Gerealiseerd. Controle door de serverproxy Gepland.</p>
+<ul>
+<li><strong>Waarom.</strong> Sommige jurisdicties noemen welke AI-leveranciers zijn toegestaan of verboden. PathScribe is leveranciersneutraal en controleert elke AI-aanroep voordat hij wordt verzonden.</li>
+<li><strong>De regel.</strong> Per <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a>, en optioneel per <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>: de toegestane AI-diensten en de toegestane hostingregio's voor elke dienst. Zonder regel is elke dienst toegestaan. Een regel van een faciliteit beperkt de regel van haar jurisdictie en de aanroep moet beide doorstaan. Waar een regel regio's beperkt, wordt een aanroep waarvan de regio niet is vastgelegd, geweigerd. De diensten worden benoemd naar de vorm van het verzoek: gestructureerde berichten (Anthropic), chatvoltooiingen (OpenAI), beheerde chatvoltooiingen (Azure OpenAI), modelgateway (AWS Bedrock), gestructureerde inhoud (Google Gemini) en aangepast (een zelf gehost model). De geconfigureerde hostingregio wordt opgeslagen bij de instelling van de AI-aanbieder.</li>
+<li><strong>Bij weigering.</strong> De functie gaat verder zonder AI en zegt waar mogelijk "AI is niet beschikbaar voor deze jurisdictie". De aanroep wordt nooit in plaats daarvan naar een andere leverancier verstuurd.</li>
+<li><strong>De server moet de controle herhalen.</strong> Een controle in de browser kan worden omzeild, dus de AI-proxy van de server moet op elke route dezelfde controle uitvoeren en is degene die telt. Hij moet de dienst en de regio kiezen uit de opgeslagen instelling, nooit uit de body van het verzoek, antwoorden met <code>403</code> en code <code>AI_VENDOR_NOT_ALLOWED</code>, en de weigering auditen. <strong>Gepland.</strong></li>
+<li><strong>Sleutels.</strong> De browser bezit nooit een sleutel van een AI-leverancier. In productie staan de sleutels in de geheimenopslag van de server (bijvoorbeeld Azure Key Vault). De opgeslagen instelling bevat de aanbieder, het model, het endpoint en de naam van de deployment, nooit een sleutel.</li>
+<li><strong>Wat de server ook zou moeten doen (Gepland):</strong> elke AI-aanroep auditen (wie, <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, gecontroleerde faciliteit en jurisdictie, dienst, model, hostingregio, functie, tokens, uitkomst; nooit de prompt, die patiëntgegevens kan bevatten), een limiet per gebruiker en organisatie instellen, en controleren of voor de gekozen aanbieder een Business Associate Agreement of verwerkersovereenkomst bestaat.</li>
+<li><strong>Bekende leemte.</strong> In de browser stuurt een aanbiederinstelling <code>mock</code> AI-verzoeken via de proxy naar de Anthropic-route, zodat een demonstratielocatie met de instelling <code>mock</code> de proxy toch aanroept. Een jurisdictie die Anthropic niet toestaat, weigert dit.</li>
+<li><strong>Menselijke beoordeling.</strong> AI-uitvoer is een suggestie. De schermen die haar gebruiken, tonen haar zodat de clinicus haar kan accepteren of afwijzen; zie het AI-hoofdstuk (hoofdstuk 5).</li>
+<li><strong>Waar u het beheert.</strong> De kaart AI-leveranciersbeleid en de kaart hostingregio's op het tabblad <a href="05-tier4-ai-framework.html#screen-tab-ai">AI-gedrag</a>. Het wijzigen van een regel vereist <code>config:ai-vendor-policy:manage</code> (standaard Beheerder en Laboratoriumdirecteur) en elke wijziging wordt geaudit als <code>AI_VENDOR_POLICY_CHANGED</code>.</li>
+</ul>
+<h3 id="ch1-retention"><a class="anchor" href="#ch1-retention" aria-label="Link to this section">#</a> Gegevensbewaring</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; Gegevensbewaring"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span>Gegevensbewaring</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. De instellingen zijn Gerealiseerd. <strong>Niets verwijdert nog gegevens op grond daarvan</strong>; de opschoontaak is werk aan de serverkant.</p>
+<p><a href="02-tier1-primary-prerequisites.html#screen-retention">Gegevensbewaring</a> bevat vier termijnen: AI-suggesties (standaard 90 dagen), auditlogboeken (standaard 365 dagen), casusmomentopnamen (standaard 7 jaar) en het verslagarchief (standaard 10 jaar). Het scherm waarschuwt dat de minimale bewaartermijn van het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> 90 dagen is en dat verkortingen tot onder de wettelijke minima de goedkeuring van de compliance officer van de instelling vereisen. Opslaan vereist <code>config:retention-policy:manage</code>. De <a class="term" href="99-glossary.html#g-retention" title="Hoe lang een soort gegevens of materiaal wordt bewaard. Bewaartermijnen worden per jurisdictie vastgesteld, met een optionele afwijking.">bewaring</a> van fysieke monsters en blokken wordt afgehandeld door de vernietigingswachtrij en de Bewaarblokkades op casusniveau, die de <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a> volgen (RCPath voor het VK, <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a> en <a class="term" href="99-glossary.html#g-clia" title="Clinical Laboratory Improvement Amendments, de Amerikaanse federale regelgeving voor laboratoriumonderzoek. CLIA stelt onder meer grenzen aan de werkbelasting in de cytologie.">CLIA</a> voor de VS). Onveranderlijke verslagdocumenten in blobopslag vormen zelf een bescherming tegen verwijdering. Bewaartermijnen voor back-ups: Nog niet gespecificeerd.</p>
+<h3 id="ch1-regulatory"><a class="anchor" href="#ch1-regulatory" aria-label="Link to this section">#</a> HIPAA en CLIA: de maatregelen die het product heeft</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Systeemoverzicht en architectuur &gt; Beveiligingsmodel &gt; HIPAA en CLIA: de maatregelen die het product heeft"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Systeemoverzicht en architectuur</span> <span aria-hidden="true">›</span> <span>Beveiligingsmodel</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-hipaa" title="De Amerikaanse Health Insurance Portability and Accountability Act, die regels stelt voor de bescherming van gezondheidsgegevens van patiënten.">HIPAA</a> en <a class="term" href="99-glossary.html#g-clia" title="Clinical Laboratory Improvement Amendments, de Amerikaanse federale regelgeving voor laboratoriumonderzoek. CLIA stelt onder meer grenzen aan de werkbelasting in de cytologie.">CLIA</a>: de maatregelen die het product heeft</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. De tabel noemt maatregelen die in de browserbuild bestaan. Geen enkele maatregel beschermt echte patiëntgegevens zolang de serverkant niet bestaat, en het gebruik van deze maatregelen maakt een laboratorium <strong>niet conform</strong> HIPAA, CLIA of enige andere wet. Conformiteit hangt af van het beleid, de contracten, de hosting en het kwaliteitssysteem van het laboratorium.</p>
+<table>
+<thead>
+<tr>
+<th>Gebied</th>
+<th>Wat PathScribe heeft</th>
+<th>Status</th>
+<th>Waar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unieke gebruikersidentiteit</td>
+<td>Personeelsrecords, met <a class="term" href="99-glossary.html#g-single-sign-on" title="Eenmaal aanmelden met de identiteitsprovider van een organisatie in plaats van met een PathScribe-wachtwoord. Ook geschreven als SSO.">single sign-on</a> gekoppeld via het permanente subject van de provider</td>
+<td>Gedeeltelijk</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Toegangsbeheer (minimale rechten)</td>
+<td>Machtigingen en rollen, bereik per <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>, geen omzeiling voor welke <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> dan ook, privacy van <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a></td>
+<td>Demonstratie</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Automatisch afmelden</td>
+<td>Time-out bij inactiviteit (standaard van de organisatie, overschrijving per laboratorium); concepten blijven bewaard</td>
+<td>Gerealiseerd (browser)</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a></td>
+</tr>
+<tr>
+<td>Authenticatie van personen</td>
+<td>Single sign-on, <a class="term" href="99-glossary.html#g-mfa" title="Multifactorauthenticatie, aanmelden met een tweede bewijs, zoals een code uit een authenticator-app, naast een wachtwoord.">MFA</a> van de provider gecontroleerd aan de hand van het token, step-up bij een handtekening, optionele apparaatcontrole</td>
+<td>Gedeeltelijk</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a></td>
+</tr>
+<tr>
+<td>Auditcontroles</td>
+<td>Auditlogboek van handelingen, controles met hoog risico en configuratiewijzigingen; met hash gekoppelde supportstroom</td>
+<td>Gedeeltelijk</td>
+<td><a href="09-appendices.html#screen-audit-log">Systeemlogboeken</a></td>
+</tr>
+<tr>
+<td>Beveiliging van verzending</td>
+<td>https vereist voor elk serveradres, HSTS, strikt inhoudsbeleid; wederzijdse <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, de versleuteling die een webverbinding beschermt en zichtbaar is als https.">TLS</a> voor de <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a></td>
+<td>Gerealiseerd (browser en headers). Server gepland</td>
+<td><a href="#ch1-prereq-network">Netwerk</a></td>
+</tr>
+<tr>
+<td>Toegang van leveranciers</td>
+<td>Door het ziekenhuis beheerde, aan een ticket gekoppelde, tijdelijke supporttoegang met een eigen audit</td>
+<td>Gedeeltelijk</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a></td>
+</tr>
+<tr>
+<td>Minimaal noodzakelijk in hulpmiddelen</td>
+<td>Patiëntgegevens afgeschermd in schermafbeeldingen voor support; geen patiënttekst in webadressen, fouten of hubberichten; crashrapporten opgeschoond</td>
+<td>Gerealiseerd</td>
+<td><a href="#ch1-phi">Afschermen</a></td>
+</tr>
+<tr>
+<td>Derden die patiëntgegevens verwerken</td>
+<td><a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Een regel per jurisdictie die bepaalt welke AI-diensten en hostingregio&#x27;s mogen worden gebruikt. Een aanroep die door de regel wordt geweigerd, wordt niet verzonden en de functie werkt verder zonder AI.">AI-leveranciersbeleid</a> per <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a>, regiobeperkingen, sleutels beheerd door de server; Business Associate Agreement of verwerkersovereenkomst nodig voor elke aanbieder</td>
+<td>Gedeeltelijk</td>
+<td><a href="05-tier4-ai-framework.html#screen-tab-ai">AI-gedrag</a></td>
+</tr>
+<tr>
+<td>Integriteit van het verslag</td>
+<td>Eén onveranderlijk, gehasht (<a class="term" href="99-glossary.html#g-sha-256" title="Een cryptografische hash die een bestand of registratie omzet in een vaste vingerafdruk, gebruikt om een wijziging op te sporen.">SHA-256</a>) verslagdocument per vrijgave, ongewijzigd verzonden via elk kanaal; geversioneerde casusopslag met detectie van conflicten</td>
+<td>Gerealiseerd (contract); server gepland</td>
+<td>Hoofdstuk 6</td>
+</tr>
+<tr>
+<td>Gegevensbewaring</td>
+<td>Configureerbare termijnen; vernietigingswachtrij en Bewaarblokkades voor monsters</td>
+<td>Gedeeltelijk</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-retention">Gegevensbewaring</a></td>
+</tr>
+<tr>
+<td>CLIA: <a class="term" href="99-glossary.html#g-signing-authority" title="De soorten verslag die een persoon mag autoriseren, bepaald door deelnametype en de regels van het land.">ondertekeningsbevoegdheid</a></td>
+<td>Deelnametypen en ondertekeningsregels per land bepalen wie mag ondertekenen, met geauditeerde lokale overschrijvingen</td>
+<td>Gerealiseerd</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-participation_types">Deelnametypen</a>, <a href="04-tier3-workflow-engines.html#screen-country_signing_rules">Ondertekeningsregels per land</a></td>
+</tr>
+<tr>
+<td>CLIA: werklast en competentie in de cytologie</td>
+<td>Een dagelijkse werklastlimiet voor GYN-cytologiescreening, met overschrijvingen per medewerker en faciliteit, en het doorsturen van de ondertekeningen van een nieuwe <a class="term" href="99-glossary.html#g-cytotechnologist" title="Een laboratoriumprofessional die cytologische preparaten screent en afwijkende doorverwijst naar een patholoog.">cytotechnoloog</a> naar een supervisor voor medeondertekening totdat competentiebeoordelingen zijn vastgelegd</td>
+<td>Gerealiseerd (browser). De server registreert de screeningtijd met zijn eigen klok; gepland</td>
+<td><a href="04-tier3-workflow-engines.html#screen-cytology_workload_cap">Dagelijkse werklastlimiet</a>, <a href="03-tier2-master-dictionaries.html#screen-cytology_compliance_features">Regels per land en laboratorium</a></td>
+</tr>
+<tr>
+<td>Faciliteitsidentiteit op verslagen</td>
+<td>Een faciliteitsrecord bevat haar CLIA- of ISO 15189-nummer, getoond in verslagkoppen</td>
+<td>Gerealiseerd</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Niet gerealiseerd of niet gespecificeerd:</strong> versleuteling in rust voor de SQL Server-database (in de repository is geen instelling of eis beschreven; de blobcontainers zijn gespecificeerd als versleuteld in rust); een specificatie voor back-up en disaster recovery; een tamper-evident auditopslag aan de serverkant; een onafhankelijke penetratietest of beveiligingscertificering (er is er geen vastgelegd in de repository); en elke verklaring van conformiteit.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

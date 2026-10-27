@@ -1,0 +1,196 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batches 679 to 690 \u2014 regulatory profile, AI review gates and audits, mismatch evidence quotes, error screen back-navigation, unused AI settings removed (catch-up)",
+  "description": "Vitest, 2026-10-26. Tests are created by this import (testInfo). Batches 677, 678 and 684 changed documents and the Readiness Matrix only (no automated tests). Not run: browser checks of the changed screens; native review of fr/de/nl/ko/es text. Jira Test keys are created by the import."
+ },
+ "tests": [
+  {
+   "testInfo": {
+    "summary": "Regulatory profile: documentation vs clinical_support capabilities",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 679): src/services/regulatoryProfile/regulatoryProfile.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Mismatch rules: documentation profile never holds sign-out; clinical_support keeps thresholds",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 679): src/services/clinical/clinicalMismatchRules.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Mismatch gates and amendment check under both profiles",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 679): src/services/clinical/clinicalMismatchGates.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Mismatch amendment check",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 679): src/services/clinical/amendmentMismatch.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Post-amendment mismatch check hook",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 679): src/pages/SynopticReportPage/hooks/__tests__/checkAmendmentMismatch.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "AI narrative accept/reject audit and AI code-bind audit; unreviewed AI values audit",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batches 680-681): src/services/aiGovernance/aiReviewAudit.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Orchestrator draft: accept, edit, reject recorded",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 680): src/pages/SynopticReportPage/hooks/__tests__/useOrchestratorDraft.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Sign-out gates including unaccepted AI narrative stop",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 680): src/services/signoutGates/signOutReviewGates.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "AI settings tab: confidence checkbox removed",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 682): src/components/Config/AI/aiTabProfile.test.tsx"
+  },
+  {
+   "testInfo": {
+    "summary": "Mismatch rules screen note in the documentation profile",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 682): src/components/Config/System/ClinicalMismatchRulesSection.test.tsx"
+  },
+  {
+   "testInfo": {
+    "summary": "Assist polling: filled values forced to unverified",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 682): src/services/assistPolling/assistMilestoneRules.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Mismatch flag shows two checked source quotes",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 683): src/components/ClinicalMismatch/ClinicalMismatchSummary.evidence.test.tsx"
+  },
+  {
+   "testInfo": {
+    "summary": "Evidence quotes kept in the QA record; read back; old records show none; activity type declares the fields",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batches 683 and 685): src/services/clinical/mismatchFallbackAndVersion.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Error screen returns to the previous page, else the worklist",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 686): src/components/ErrorBoundary/ErrorBoundary.test.tsx"
+  },
+  {
+   "testInfo": {
+    "summary": "AI settings: no setting shown that nothing reads",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T18:00:00Z",
+   "finish": "2026-10-26T18:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 687): src/components/Config/AI/aiTabProfile.test.tsx"
+  },
+  {
+   "testInfo": {
+    "summary": "AI auto-fill: only empty fields, audited without values",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T20:00:00Z",
+   "finish": "2026-10-26T20:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 689): src/services/aiGovernance/aiAutoFill.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Code match strength label and where it is used",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-26T20:00:00Z",
+   "finish": "2026-10-26T20:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 690): src/services/aiGovernance/matchStrength.test.ts"
+  }
+ ]
+}

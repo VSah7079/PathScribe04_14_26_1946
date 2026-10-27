@@ -26,11 +26,11 @@ import { isoDayOf } from '../coding/codePolicyEnforcement';
 import { getCurrentJurisdiction } from '../retentionPolicy/RetentionPolicy';
 import type { Case } from '@/types/case/Case';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
-import { mockPatientIndexService as patientIndexService } from '@/services/patients/mockPatientIndexService';
-import { mockEncounterService } from '@/services/encounters/mockEncounterService';
+import { patientIndexService } from '@/services/patients/patientServicesInstance';
+import { encounterService } from '@/services/encounters/encounterInstance';
 import { validateChargeMetadata } from './validateChargeMetadata';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
-import { mockFacilityService } from '@/services/facilities/mockFacilityService';
+import { facilityService } from '@/services/facilities/facilityServiceInstance';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { resolveBillingDateOfService, checkMolecularPathologyDosException } from './resolveBillingDateOfService';
 import { billingRuleService } from './billingRuleServiceInstance';
@@ -221,7 +221,7 @@ export async function buildJsonWebhookPayload(
   charges: ServiceChargeRecord[]
 ): Promise<ChargeCaptureEventPayload> {
   const mpr = caseData.patient?.id ? await patientIndexService.getById(caseData.patient.id) : null;
-  const encounterRes = caseData.encounterId ? await mockEncounterService.getById(caseData.encounterId) : null;
+  const encounterRes = caseData.encounterId ? await encounterService.getById(caseData.encounterId) : null;
   const encounter = encounterRes?.ok ? encounterRes.data : null;
 
   // Real, per direct guidance's own billing date-of-service work -
@@ -236,7 +236,7 @@ export async function buildJsonWebhookPayload(
   // Facility.billingDosRule's own doc comment for the full reasoning
   // on migrating this specific field.
   const country = getOrganisationByHospitalId(caseData.originHospitalId ?? '')?.country;
-  const originSiteFacility = caseData.originSiteId ? (await mockFacilityService.getById(caseData.originSiteId)) : null;
+  const originSiteFacility = caseData.originSiteId ? (await facilityService.getById(caseData.originSiteId)) : null;
   const siteOverrideRule = originSiteFacility?.ok ? originSiteFacility.data.billingDosRule : undefined;
   // Real, per direct follow-up - the real performing facility for
   // this case's own CLIA number, resolved the same way every other
@@ -247,13 +247,13 @@ export async function buildJsonWebhookPayload(
   // Facility are two real, different concepts (see Facility.
   // cliaOrIsoNumber's own doc comment), and this payload's own real
   // performingFacility.cliaOrIsoNumber needs the latter.
-  const orderingFacilityRes = caseData.order?.facilityId ? await mockFacilityService.getById(caseData.order.facilityId) : null;
+  const orderingFacilityRes = caseData.order?.facilityId ? await facilityService.getById(caseData.order.facilityId) : null;
   const orderingFacility = orderingFacilityRes?.ok ? orderingFacilityRes.data : null;
   const performingLabFacilityId = orderingFacility ? resolvePerformingLabFacilityId(orderingFacility) : undefined;
-  const performingFacilityRes = performingLabFacilityId ? await mockFacilityService.getById(performingLabFacilityId) : null;
+  const performingFacilityRes = performingLabFacilityId ? await facilityService.getById(performingLabFacilityId) : null;
   const performingLabFacility = performingFacilityRes?.ok ? performingFacilityRes.data : null;
   // Batch 618 (PS-336): the technical-component lab, when it is a different lab from the reporting lab.
-  const technicalRes = caseData.order?.technicalComponentFacilityId ? await mockFacilityService.getById(caseData.order.technicalComponentFacilityId) : null;
+  const technicalRes = caseData.order?.technicalComponentFacilityId ? await facilityService.getById(caseData.order.technicalComponentFacilityId) : null;
   const splitTechnical = resolveSplitTechnicalFacility(performingLabFacility ?? undefined, technicalRes?.ok ? technicalRes.data : undefined);
   // Real, honest proxy for "when the test was ordered" - see
   // resolveBillingDateOfService.ts's own doc comment on orderedAt for

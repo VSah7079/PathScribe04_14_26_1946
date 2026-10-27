@@ -1,12 +1,16 @@
 // src/api/caseFlagsApi.ts
-// Flag operations — delegates to mockCaseService which now persists to localStorage.
+// Flag operations — delegates to caseService which now persists to localStorage.
 // Replace with real API calls when the backend is ready.
 
 import { CaseWithFlags, FlagInstance } from '../types/flagsRuntime';
-import { mockCaseService } from '../services/cases/mockCaseService';
+
+import { caseService } from '../services/cases/caseServiceInstance';
 import { updateCaseWithRetryOrThrow } from '../services/cases/caseWrite';
 // Batch 452 (PS-57): the typed view replaces the old `any` mapper here.
 import { toCaseWithFlags as toView } from '../services/flags/caseFlagView';
+// Batch 649: applying and removing a flag each need their capability (case:flag:apply, case:flag:remove), checked here.
+import i18n from '@/i18n/config';
+import { authorizationService } from '../services/authorization/defaultAuthorizationService';
 
 const toCaseWithFlags = (c: Parameters<typeof toView>[0] | null | undefined): CaseWithFlags => {
   if (!c) throw new Error('Case not found after the flag change');
@@ -76,7 +80,8 @@ function makeInstance(flagDefinitionId: string, byUserName?: string): FlagInstan
 // retries throws ConcurrencyConflictError to the screen.
 
 export async function applyFlags(payload: ApplyFlagPayload): Promise<CaseWithFlags> {
-  const c = await mockCaseService.getCase(payload.caseId);
+  if (!(await authorizationService.enforce('case:flag:apply', { caseId: payload.caseId })).allowed) throw new Error(i18n.t('caseActionPermissions.flagApply'));
+  const c = await caseService.getCase(payload.caseId);
   if (!c) throw new Error(`Case ${payload.caseId} not found`);
 
   const inst = makeInstance(payload.flagDefinitionId, payload.byUserName);
@@ -96,16 +101,17 @@ export async function applyFlags(payload: ApplyFlagPayload): Promise<CaseWithFla
     }
     const flags: FlagInstance[] = Array.isArray(current.caseFlags) ? current.caseFlags : [];
     return flags.some(isActive) ? null : { caseFlags: [...flags, inst] };
-  }, mockCaseService);
+  }, caseService);
 
-  const updated = await mockCaseService.getCase(payload.caseId);
+  const updated = await caseService.getCase(payload.caseId);
   return toCaseWithFlags(updated);
 }
 
 // ─── deleteFlags ──────────────────────────────────────────────────────────────
 
 export async function deleteFlags(payload: DeleteFlagPayload): Promise<CaseWithFlags> {
-  const c = await mockCaseService.getCase(payload.caseId);
+  if (!(await authorizationService.enforce('case:flag:remove', { caseId: payload.caseId })).allowed) throw new Error(i18n.t('caseActionPermissions.flagRemove'));
+  const c = await caseService.getCase(payload.caseId);
   if (!c) throw new Error(`Case ${payload.caseId} not found`);
 
   const now = new Date().toISOString();
@@ -127,8 +133,8 @@ export async function deleteFlags(payload: DeleteFlagPayload): Promise<CaseWithF
     }
     const flags: FlagInstance[] = Array.isArray(current.caseFlags) ? current.caseFlags : [];
     return { caseFlags: markDeleted(flags) };
-  }, mockCaseService);
+  }, caseService);
 
-  const updated = await mockCaseService.getCase(payload.caseId);
+  const updated = await caseService.getCase(payload.caseId);
   return toCaseWithFlags(updated);
 }

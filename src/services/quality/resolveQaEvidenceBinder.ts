@@ -55,6 +55,7 @@ export const REGULATORY_CLAUSE_BY_JURISDICTION: Record<Jurisdiction, string> = {
   NL: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
   DE: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
   FR: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
+  ES: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
 };
 
 export interface QaEvidenceBinderRecordRow {

@@ -144,3 +144,72 @@ describe('single sign-on signature with the second factor required', () => {
     expect(await t.svc.withSso({ action: 'case-sign-out' })).toMatchObject({ ok: false, reason: 'mfa_not_asserted' });
   });
 });
+
+// ── Batch 642: the sign-out authentication policy ───────────────────────────
+import { createSignOutPolicyService } from './signOutPolicy/signOutPolicyService';
+import type { SignOutSession } from './signOutPolicy/signOutPolicy';
+
+function setupPolicy(cfg: { mode: 'strict' | 'session'; mfa: boolean }) {
+  const t = setup(pwUser, { mode: 'all' });
+  let session: SignOutSession | null = null;
+  const audit: NewAuditLog[] = [];
+  let now = NOW;
+  const policy = createSignOutPolicyService({
+    store: { readConfig: () => ({ enterprise: { mode: cfg.mode, mfa: cfg.mfa, timeoutMinutes: 15 } }), writeConfig: () => {}, readSession: () => session, writeSession: (_i, s) => { session = s; }, readAny: () => session },
+    audit: { logEvent: async e => { audit.push(e); return { ok: true as const, data: { ...e, id: 'a', timestamp: '' } }; } },
+    enforce: async () => true, deviceFingerprint: () => 'dev-1', network: () => 'n', now: () => now,
+  });
+  const locks = new Map<string, SigningLockState>();
+  const svc = createSignerConfirmation({
+    config: resolveAuthConfig(ENTRA, true), readProfile: () => pwUser,
+    verifyDemoCredentials: async (e, p) => (e === pwUser.email && p === 'right' ? ({ id: pwUser.id, email: pwUser.email } as DemoAccount) : null),
+    ssoClient: () => ({ reauthenticate: () => Promise.resolve({ ok: false, reason: 'cancelled' }), completeReauthPopup: async () => {} } as unknown as ISsoClient),
+    auditService: { logEvent: async e => { audit.push(e); return { ok: true as const, data: { ...e, id: 'a', timestamp: '' } }; } },
+    lockStore: { read: id => locks.get(id) ?? null, write: (id, s) => { locks.set(id, s); } },
+    signingSession: { current: () => 'tab-1', lastConfirmed: () => 'tab-1', markConfirmed: () => {} },
+    biometric: { verify: async () => ({ ok: true }) },
+    mfa: { stepUpNeeded: () => false, challenge: (p, c) => t.mfa.challenge(p, c, 'step-up'), stepUpWithClaims: (p, c) => t.mfa.stepUpWithClaims(p, c) },
+    signOutPolicy: policy, now: () => now,
+  });
+  return { svc, t, audit, advance: (ms: number) => { now = new Date(now.getTime() + ms); } };
+}
+
+describe('sign-out authentication policy at a signature', () => {
+  it('strict mode asks for the password every time and audits each one', async () => {
+    const p = setupPolicy({ mode: 'strict', mfa: false });
+    expect((await p.svc.withPassword({ username: '', password: 'right', action: 'case-sign-out', caseRef: 'S1', facilityId: 'F1' })).ok).toBe(true);
+    expect(p.svc.confirmWithinSession({ action: 'case-sign-out', caseRef: 'S2', facilityId: 'F1' })).toBeNull();
+    expect(p.audit.some(e => e.event === 'Sign-out authentication')).toBe(true);
+  });
+  it('session mode asks once, then the next sign-out names the session and asks nothing', async () => {
+    const p = setupPolicy({ mode: 'session', mfa: false });
+    expect(p.svc.confirmWithinSession({ action: 'case-sign-out', caseRef: 'S1', facilityId: 'F1' })).toBeNull();
+    await p.svc.withPassword({ username: '', password: 'right', action: 'case-sign-out', caseRef: 'S1', facilityId: 'F1' });
+    const again = p.svc.confirmWithinSession({ action: 'case-sign-out', caseRef: 'S2', facilityId: 'F1' });
+    expect(again).toMatchObject({ method: 'password', caseRef: 'S2', proof: null });
+    expect(again?.sessionReuse?.sessionId).toBeTruthy();
+    expect(p.svc.signOutState('case-sign-out', 'F1')?.kind).toBe('valid');
+  });
+  it('the session does not cover other signing actions', async () => {
+    const p = setupPolicy({ mode: 'session', mfa: false });
+    await p.svc.withPassword({ username: '', password: 'right', action: 'case-sign-out', facilityId: 'F1' });
+    expect(p.svc.confirmWithinSession({ action: 'report-finalize', facilityId: 'F1' })).toBeNull();
+  });
+  it('the session ends at the timeout', async () => {
+    const p = setupPolicy({ mode: 'session', mfa: false });
+    await p.svc.withPassword({ username: '', password: 'right', action: 'case-sign-out', facilityId: 'F1' });
+    p.advance(16 * 60_000);
+    expect(p.svc.confirmWithinSession({ action: 'case-sign-out', facilityId: 'F1' })).toBeNull();
+  });
+  it('a second factor at sign-out is asked even when the organisation policy would not', async () => {
+    const p = setupPolicy({ mode: 'strict', mfa: true });
+    expect(p.svc.mfaCodeNeeded('case-sign-out', 'F1')).toBe(true);
+    expect(await p.svc.withPassword({ username: '', password: 'right', action: 'case-sign-out', facilityId: 'F1' })).toEqual({ ok: false, reason: 'mfa_code_required' });
+  });
+  it('a person with no second factor enrolled is blocked, not signed', async () => {
+    const p = setupPolicy({ mode: 'strict', mfa: true });
+    const r = await p.svc.withPassword({ username: '', password: 'right', action: 'case-sign-out', facilityId: 'F1', mfaCode: '123456' });
+    expect(r).toEqual({ ok: false, reason: 'mfa_not_enrolled' });
+    expect(p.audit.some(e => e.event === 'Sign-out authentication')).toBe(false);
+  });
+});

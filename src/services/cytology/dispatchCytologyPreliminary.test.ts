@@ -3,14 +3,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../cases/CaseRouter', () => ({ caseRouter: { getCase: vi.fn() } }));
-vi.mock('../patients/mockPatientIndexService', () => ({ mockPatientIndexService: { getById: vi.fn() } }));
+vi.mock('../patients/patientServicesInstance', () => ({ patientIndexService: { getById: vi.fn() } }));
 vi.mock('./mockCytologyOutboundResultQueueService', () => ({
   mockCytologyOutboundResultQueueService: { enqueue: vi.fn(), markSent: vi.fn(), markFailed: vi.fn() },
 }));
 vi.mock('../interfaceDispatch/dispatchInterfaceMessage', () => ({ dispatchInterfaceMessage: vi.fn() }));
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
+import { patientIndexService } from '../patients/patientServicesInstance';
 import { mockCytologyOutboundResultQueueService as queue } from './mockCytologyOutboundResultQueueService';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { dispatchCytologyPreliminary, buildCytologyPreliminaryMessage } from './dispatchCytologyPreliminary';
@@ -26,7 +26,7 @@ const theCase = { id: 'C1', patient: { id: 'PT' }, specimens: [{ id: 'SP1', labe
 
 beforeEach(() => {
   vi.mocked(caseRouter.getCase).mockReset().mockResolvedValue(theCase);
-  vi.mocked(mockPatientIndexService.getById).mockReset().mockResolvedValue({ organisationId: 'ORG' } as any);
+  vi.mocked(patientIndexService.getById).mockReset().mockResolvedValue({ organisationId: 'ORG' } as any);
   vi.mocked(queue.enqueue).mockReset().mockResolvedValue({ ok: true, data: { id: 'q1' } } as any);
   vi.mocked(queue.markSent).mockReset();
   vi.mocked(queue.markFailed).mockReset();
@@ -54,7 +54,7 @@ describe('dispatchCytologyPreliminary', () => {
   });
   it('no release id, no case or no patient record: nothing queued', async () => {
     expect(await dispatchCytologyPreliminary('C1', undefined)).toBe(0);
-    vi.mocked(mockPatientIndexService.getById).mockResolvedValue(null);
+    vi.mocked(patientIndexService.getById).mockResolvedValue(null);
     expect(await dispatchCytologyPreliminary('C1', 'P1')).toBe(0);
     vi.mocked(caseRouter.getCase).mockResolvedValue(undefined);
     expect(await dispatchCytologyPreliminary('C1', 'P1')).toBe(0);

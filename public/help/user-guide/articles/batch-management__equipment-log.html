@@ -1,0 +1,275 @@
+<h1 id="top">Equipment Log</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Equipment Log shows each active instrument in the laboratory with its maintenance and calibration state, and lets bench staff record what they did: maintenance, calibration, function checks, malfunctions and repairs. The history is a permanent record for inspections.</p>
+<p><strong>Intended users.</strong> Histotechnologists, cytotechnologists and molecular technologists, who can record entries by default, and laboratory managers. Recording an entry needs the "record maintenance" permission. Adding, editing or scheduling equipment is not done here; that is in Configuration, System, Equipment.</p>
+<p><strong>Where it fits.</strong> Instruments such as tissue processors, stainers, slide scanners and engravers appear in the batch workflows and on other screens. An overdue or faulted instrument is flagged but never blocked: the device is marked, and the decision to use it is yours.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-equipment-log-overview.png" alt="The Equipment Log table with service state for each instrument"><figcaption>The Equipment Log table with service state for each instrument</figcaption></figure>
+
+<p>The page title is <strong>Equipment log</strong>. The subtitle reads: "Each active instrument's maintenance and calibration status. Record what you did with Log entry; adding or changing equipment is in Configuration → System → Equipment."</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Table</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Equipment</td>
+<td>The instrument's name.</td>
+</tr>
+<tr>
+<td>Code</td>
+<td>Its short code, as other records and labels carry it.</td>
+</tr>
+<tr>
+<td>Kind</td>
+<td>Analyser, Camera, Engraver, Label printer, Scale, Slide scanner, Stainer, Storage unit, Tissue processor or Other.</td>
+</tr>
+<tr>
+<td>Service</td>
+<td>The service state, and below it the next due date ("Next due (date)") or, if passed, "Was due (date)".</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>The <strong>Log entry</strong> button.</td>
+</tr>
+</tbody>
+</table>
+<p>If no active equipment exists the table says "No equipment matches the current filter."</p>
+<p>Rows in a red tint have an alert state: Malfunction or Overdue.</p>
+<p><strong>Service states</strong></p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Up to date</td>
+<td>Everything scheduled has been done within its interval.</td>
+</tr>
+<tr>
+<td>Due soon</td>
+<td>Something is due within 14 days.</td>
+</tr>
+<tr>
+<td>Overdue</td>
+<td>A scheduled maintenance or calibration is past due.</td>
+</tr>
+<tr>
+<td>Not yet done</td>
+<td>A schedule exists but nothing passing has ever been logged.</td>
+</tr>
+<tr>
+<td>Malfunction</td>
+<td>A malfunction was logged and no passing repair or function check has been logged on or after that day.</td>
+</tr>
+<tr>
+<td>Not scheduled</td>
+<td>The instrument has no maintenance or calibration interval.</td>
+</tr>
+</tbody>
+</table>
+<p>When several apply, the worst one is shown, in that order: Malfunction, Overdue, Not yet done, Due soon, Up to date. Due dates count from the last passing entry. A Maintenance entry with outcome Not applicable also counts toward maintenance, but not toward calibration.</p>
+<p><strong>Log entry window</strong> (title: "Service Log — (name) ((code))")</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open malfunction notice</td>
+<td>"Open malfunction: no passing repair or function check has been recorded since." Shown when the state is Malfunction.</td>
+</tr>
+<tr>
+<td>Maintenance, Calibration lines</td>
+<td>For each: Up to date, Due soon, Overdue or Not yet done, "Last done (date)" and "Due (date)", or "Not scheduled".</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Maintenance, Calibration, Function check, Malfunction or Repair. Starts on Maintenance.</td>
+</tr>
+<tr>
+<td>Date Done</td>
+<td>The day it was done. Starts today. It cannot be in the future.</td>
+</tr>
+<tr>
+<td>Outcome</td>
+<td>Pass, Fail or Not applicable. Starts on Pass.</td>
+</tr>
+<tr>
+<td>Done By</td>
+<td>Who did it. Starts with your name. Change it for a service engineer's name. Required.</td>
+</tr>
+<tr>
+<td>Notes</td>
+<td>Free text. Required for a Fail outcome or a Malfunction type.</td>
+</tr>
+<tr>
+<td>History</td>
+<td>A table of earlier entries: Date, Type, Outcome, By and Notes, newest first.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log entry</td>
+<td>Opens the Service Log window for that instrument. Dimmed with a tooltip if you lack the permission.</td>
+</tr>
+<tr>
+<td>Add Entry</td>
+<td>In the window. Saves the entry. The window stays open, the notes box is cleared and the history and state update.</td>
+</tr>
+<tr>
+<td>Close (x)</td>
+<td>Closes the window.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red row</td>
+<td>Malfunction or Overdue.</td>
+</tr>
+<tr>
+<td>Outcome tag</td>
+<td>Pass, Fail or Not applicable in the history.</td>
+</tr>
+<tr>
+<td>"Entries can't be changed or deleted. Correct a mistake with a new entry."</td>
+<td>The log is permanent.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Equipment log</strong> tile. The list of instruments appears with their service states.</li>
+<li>Find the instrument. Check the state and due date in the Service column.</li>
+<li>Select <strong>Log entry</strong>. The Service Log window opens.</li>
+<li>Choose the <strong>Type</strong> of work, check the <strong>Date Done</strong>, leave <strong>Outcome</strong> on Pass or change it, and confirm <strong>Done By</strong>.</li>
+<li>Add <strong>Notes</strong> if you wish, or if you chose Fail or Malfunction.</li>
+<li>Select <strong>Add Entry</strong>. The entry appears at the top of the history and the instrument's state updates.</li>
+<li>Select the close mark when you are finished.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Record several entries for one instrument in one visit; the window stays open between entries.</li>
+<li>To close a malfunction, log a Repair or a Function check with Outcome Pass dated on or after the malfunction.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>An instrument is broken.</strong> Log type Malfunction, outcome Fail (or Pass), and describe it in Notes. The instrument turns red with state Malfunction. Tell your laboratory manager; the device is not blocked from use.</li>
+<li><strong>A service engineer did the work.</strong> Type their name in Done By.</li>
+<li><strong>You forgot to log yesterday's work.</strong> Set Date Done to yesterday. Dates in the future are refused.</li>
+<li><strong>A check failed.</strong> Choose Fail and explain in Notes. A failed maintenance or calibration does not count toward being up to date.</li>
+<li><strong>The instrument is not listed.</strong> Only active equipment appears. Ask your administrator to add or reactivate it.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"Choose a type." Select a type.</li>
+<li>"Enter the date it was done." Fill in the date.</li>
+<li>"The date can't be in the future." Use today or earlier.</li>
+<li>"Enter who did it." Fill in Done By.</li>
+<li>"Choose an outcome." Select Pass, Fail or Not applicable.</li>
+<li>"Describe what happened: required for a failure or malfunction." Add Notes.</li>
+<li>"The entry could not be saved." Try again; if it persists contact support.</li>
+<li>A wrong entry was saved. Entries cannot be changed or deleted. Add a new entry that corrects it, with an explanation in Notes.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Logging maintenance as Not applicable and thinking calibration is covered. It is not.</li>
+<li>Forgetting that a Fail does not reset the due date.</li>
+<li>Leaving Done By as your own name when an engineer did the work.</li>
+<li>Expecting the page to stop use of a red instrument. It only flags it.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Log entries as you finish the work; the date defaults to today and your name is pre-filled.</li>
+<li>Keep Notes short and specific: what was done, which part, which reagent.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Check the board each morning for red rows.</li>
+<li>Close every malfunction with a passing repair or function check.</li>
+<li>Use the history during inspections.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li>Configuration, System, Equipment (administrators): adds instruments and sets maintenance and calibration intervals.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management/wsi-scan">Slide Scanning</a>: scanners are chosen from the same equipment list.</li>
+<li><a href="/help/batch-management/engraver-monitor">Engraver Monitor</a>: live engraver status.</li>
+<li><a href="/help/batch-management">Batch Management</a>: the module page.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log entry is dimmed</td>
+<td>Your role lacks the record maintenance permission.</td>
+</tr>
+<tr>
+<td>An instrument is missing</td>
+<td>It is inactive or not yet added.</td>
+</tr>
+<tr>
+<td>State is Not yet done on a new instrument</td>
+<td>A schedule exists and nothing passing has been logged.</td>
+</tr>
+<tr>
+<td>State stays Malfunction after a repair</td>
+<td>The repair was logged with Fail, or dated before the malfunction.</td>
+</tr>
+<tr>
+<td>Not scheduled</td>
+<td>No interval was set in Configuration.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Open the history and read the entries.</li>
+<li>Add the missing passing entry with the right date.</li>
+<li>Ask your administrator to set or correct the intervals.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when entries do not save, or a state does not match the history. Have the instrument code, the date and the message ready.</p>

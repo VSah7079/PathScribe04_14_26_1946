@@ -31,10 +31,9 @@ import {
   calcTemplateCoverage, canDraftTemplates, decideApprove, decidePublish, withEditor, SNOMED_PUBLISH_THRESHOLD,
   type TemplateActor,
 } from './templatePublishingRules';
-import { roleIdsForNames } from '../roles/systemRoles';
 import { getTemplateGovernanceSettings } from './templateGovernanceSettings';
 import { dataStorage } from '../browserData/dataStorage';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { templateLifecycleAuditEntry, type TemplateLifecycleEvent, type TemplateLifecycleSubject } from './templateLifecycleAudit';
 
 // â”€â”€â”€ Shared types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -152,31 +151,15 @@ const now = () => new Date().toISOString();
 
 // ─── PS-63 review governance helpers ────────────────────────────────────────
 
-/** The signed-in user as the publishing rules see them. Roles are read
- *  live from the staff record and the role catalog at the moment of the
- *  action (not from the login session), and matched to built-in role ids
- *  (services/roles/systemRoles.ts). `displayName` is the name the reviewer
+/** The signed-in user as the publishing rules see them: the capabilities held at the moment of the
+ *  action (Batch 664: no role names). `displayName` is the name the reviewer
  *  page shows (AuthContext user.name). */
 async function currentActor(displayName?: string): Promise<TemplateActor | null> {
   const session = getSessionUser();
   if (!session) return null;
-  let roleIds: string[] = [];
-  try {
-    const { userService, roleService } = await import('../../services');
-    const [users, roles] = await Promise.all([userService.getAll(), roleService.getAll()]);
-    const staff = users.ok ? users.data.find(u => u.id === session.id) : undefined;
-    if (staff && roles.ok) roleIds = roleIdsForNames(staff.roles, roles.data);
-  } catch { /* no staff record or catalog: app role only */ }
-  // Batch 428: the person's capabilities decide (the rules fall back to roles only without them).
   let capabilities: string[] = [];
-  try { capabilities = [...await (await authz()).grantedCapabilities()]; } catch { /* none */ }
-  return {
-    id: session.id,
-    name: displayName ?? resolveOwnerDisplayName(),
-    appRole: session.role,
-    roleIds,
-    capabilities,
-  };
+  try { capabilities = [...await (await authz()).grantedCapabilities()]; } catch { /* none: nothing is permitted */ }
+  return { id: session.id, name: displayName ?? resolveOwnerDisplayName(), capabilities };
 }
 
 /** Batch 428: the protocol capabilities are checked at each action, audited
@@ -407,7 +390,7 @@ function resolveOwnerDisplayName(): string {
 
 /** Batch 609 (#39): a lifecycle step goes to the Audit Log (it used to go to the console only). Never blocks the step. */
 async function auditLifecycle(event: TemplateLifecycleEvent, subject: TemplateLifecycleSubject): Promise<void> {
-  try { await mockAuditService.logEvent(templateLifecycleAuditEntry(event, subject, resolveOwnerDisplayName())); } catch { /* the audit service is best-effort here */ }
+  try { await auditService.logEvent(templateLifecycleAuditEntry(event, subject, resolveOwnerDisplayName())); } catch { /* the audit service is best-effort here */ }
 }
 
 export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResult> {

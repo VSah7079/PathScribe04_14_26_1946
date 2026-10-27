@@ -1,3 +1,5 @@
+**Batch 649:** `caseFlagsApi.ts` checks `case:flag:apply` and `case:flag:remove` when a flag is applied or removed (the Flag Manager greys the buttons without them; the save checks again).
+
 # src/api/
 
 One file: `caseFlagsApi.ts` — `applyFlags`/`deleteFlags`, delegating to

@@ -268,3 +268,7 @@ Three mechanisms, in order of precedence, with **one open QC assignment per spec
 ## Batch 616 (part C): server versions (PS-498 to PS-504)
 
 Each service here (the cytology QC services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/CYTOLOGY_API.md`. The mocks are unchanged.
+
+## Batch 669f — optional secondary code, confirmation on a large divergence (cyt-6)
+
+`resolveQcCodeDivergence.ts`: `resolveQcCodeDivergence` and `nextDiscrepancySubmitStep`. The Secondary Diagnostic Code of a discrepancy is optional. "Diverge significantly" is defined on the cytology category scale (`diagnosticRank`, the scale `classifyCytologyAgreement` uses): ranks two or more steps apart, or on opposite sides of the low-grade / high-grade line (`HIGH_GRADE_RANK_THRESHOLD`). Typed codes are matched to a category by abbreviation or label; an unmatched PRIMARY code is not compared, but an unmatched SECONDARY code is unrecognised (`isUnrecognisedSecondaryCode`; step `'unrecognised'` blocks Submit, `recordDiscrepancy` returns `QC_SECONDARY_CODE_UNRECOGNISED`, so it is never stored; nothing is blocked when the category list could not be read). `recordDiscrepancy` takes `divergenceConfirmed` and otherwise returns `QC_DIVERGENCE_NOT_CONFIRMED`. Tests: `resolveQcCodeDivergence.test.ts`, `mockCytologyQcCaseAssignmentService.test.ts`.

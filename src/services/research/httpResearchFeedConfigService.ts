@@ -9,12 +9,12 @@
 import type { ApiHttpClient } from '../apiServer/apiHttpClient';
 import { buildHttpService, required, value } from '../apiServer/httpServiceKit';
 import type { IResearchFeedConfigService } from './IResearchFeedConfigService';
-import { mockResearchFeedConfigService } from './mockResearchFeedConfigService';
+import { researchFeedConfigService as defaultResearchFeedConfigService } from './researchFeedConfigServiceInstance';
 
 type P<K extends keyof IResearchFeedConfigService> = Parameters<IResearchFeedConfigService[K]>;
 const BASE = '/api/research/research-feed-config';
 
-export const createHttpResearchFeedConfigService = (client: ApiHttpClient, local: Pick<IResearchFeedConfigService, 'getDefaults' | 'getHealth' | 'recordHealth'> = mockResearchFeedConfigService): IResearchFeedConfigService =>
+export const createHttpResearchFeedConfigService = (client: ApiHttpClient, local: Pick<IResearchFeedConfigService, 'getDefaults' | 'getHealth' | 'recordHealth'> = defaultResearchFeedConfigService): IResearchFeedConfigService =>
   // getDefaults, getHealth, recordHealth answer from memory in the browser (no server call): researchFeedConfigService keeps them local.
   ({ ...buildHttpService<Omit<IResearchFeedConfigService, 'getDefaults' | 'getHealth' | 'recordHealth'>>(client, {
     getConfig: value('GET', () => `${BASE}/get-config`, { missing: local.getDefaults(), fallback: local.getDefaults() }),

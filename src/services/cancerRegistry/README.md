@@ -188,3 +188,7 @@ Resend on those exceptions now rebuilds the submission and stops at the instance
 ## Batch 616 (part C): server versions (PS-498 to PS-504)
 
 Each service here (the cancer registry services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/REGISTRY_API.md`. The mocks are unchanged.
+
+## Batch 620 (part E)
+
+A fourteenth registry definition, `epath_npcr_us` (US state electronic pathology, HL7 v2.5.1 ePath), reported through `services/usEpath/`. The state registry follows the performing facility's state, not the patient's.

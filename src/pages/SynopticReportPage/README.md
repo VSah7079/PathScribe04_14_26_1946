@@ -1,3 +1,9 @@
+**Batch 650:** the bottom bar's Sign Out Case, Sign Out and Next (Assist), Finalise, Add Amendment, History and Codes answer voice and key commands (`hooks/useBottomBarActionEvents.ts`, decided by `services/reports/bottomBarActions.ts`); the Finalise window answers Cancel finalise and the History window Close history. No command signs: the sign-out and finalise windows still need the signer's credentials.
+
+**Batch 649 (Amendment window):** the Amendment window, the Amend button and the draft banner's Edit button now grey out by the release capabilities (`surgical:amendment|correction|addendum:release`) instead of refusing at the end; see `modals/`, `components/` and `hooks/useRevisionReleaseAvailability.ts`.
+
+**Batch 649:** the sign-out paths changed. Both **Sign Out Case** (Orchestration) and **Finalize** (Assist) now run the same review gates (`services/signoutGates/signOutReviewGates.ts`), then write in the order set by `services/surgicalSignOut/` (status first, rolled back if a later step fails, signature linked to the report version). Sign Out, Finalize, Claim, Release as preliminary and Recall are greyed without their capability (`BottomActionBar`, `ReleaseBufferBanner`). Codes saved from the report page check `case:diagnosis-code:apply`. See `hooks/README.md`.
+
 ## Batch 613 (part B)
 The sign-out modal carries the related cases panel; the render payload carries `intraoperativeDiagnosis` and `relatedCases` (PDF, text and outbound result all come from it); the attachment is frozen when the case reaches pending-release, finalized or closed; `RelatedCasesAmendedNotice` shows beside the restricted-cases notice.
 
@@ -664,3 +670,30 @@ Confirm Field shortcut (`RightSynopticPanel`), critical findings from typed Micr
 ## Batch 618 (PS-336)
 
 `buildReportRenderPayload` sends `technicalBranding` only when the case is signed out (`technicalBrandingForRender`).
+
+## Batch 639
+
+Discard Unsaved Changes (Alt+U or voice) now asks before it reloads the report; Print Current Cassette is Alt+Shift+O. `SynopticReportPage.tsx` is 5 lines shorter (7,181 to 7,176).
+
+## Batch 650 (650a)
+
+`SynopticReportPage.tsx` 7,171 to 7,123 lines: the Report Draft voice list moved to `hooks/useReportDraftVoiceActions.ts` (+ `services/voice/reportDraftVoiceActions.ts`). See `hooks/README.md`.
+
+
+
+## Batch 651: AI answers checked in code
+See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSuggestions.ts`, `orchestrator/narrativeProvenance.ts` and `docs/product/GUIDE_UPDATES.md` (Batch 651).
+
+Batch 651 (audit gaps): `handleAddCaseComment` / `handleAddSpecimenComment` in `SynopticReportPage.tsx` now call `services/cases/postCaseComment.ts`, which builds, saves and audits the comment (the text is never audited); the file is 42 lines shorter (7,123 to 7,081). The Case Team save is audited by `saveCaseTeam.ts`.
+
+## Batch 652 — Specimen pipeline gaps
+
+- Pool routing after Gross Complete is `services/grossing/routeCaseAfterGrossing.ts` (shared with the Grossing screen); the release triage gate is `services/grossing/triageReleaseGate.ts`; sign-out reconciles every frozen specimen in turn (`services/quality/frozenReconciliationPlan.ts`, modal keyed by specimen).
+
+- Batch 664: see `hooks/README.md` and `components/README.md`. `SynopticReportPage.tsx` stays at 7,074 lines (new hooks are called on existing lines).
+
+## Batch 669 (everyday-22)
+
+The `FLAG_APPLY_STAT` action (Alt+S / voice "flag stat") now applies the STAT flag to the open case and shows a toast; it no longer opens the Flag Manager (`FLAG_OPEN_MANAGER`, Alt+F, still does). Line count 7,075 to 7,073.
+
+- Batch 681: `aiGovernance.css` (tint for unreviewed AI values, sign-out note).

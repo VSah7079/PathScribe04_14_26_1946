@@ -8,6 +8,7 @@
 //   approvedFonts                                  config:report-appearance:manage
 //   showPeerAveragesToPathologists, facilityTimezone config:contribution-settings:manage
 //   enterprise features.abnormalDetectionEnabled   config:abnormal-triggers:manage
+//   enterprise terminologyLicences (Batch 623)     config:code-systems:manage
 // A field no Configuration screen changes needs nothing.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -44,11 +45,12 @@ export async function permitSystemConfigPatch(patch: Record<string, unknown>, de
 }
 
 /** Whether the signed-in person may apply this change to the enterprise settings. */
-export async function permitEnterpriseConfigPatch(patch: { features?: Record<string, unknown> }, deps?: ConfigCheckDeps): Promise<boolean> {
+export async function permitEnterpriseConfigPatch(patch: { features?: Record<string, unknown>; terminologyLicences?: unknown }, deps?: ConfigCheckDeps): Promise<boolean> {
   const checks: ((d: ConfigCheckDeps) => Promise<{ allowed: boolean }>)[] = [];
   const caps: string[] = [];
   if (patch.features && 'abnormalDetectionEnabled' in patch.features) {
     checks.push(d => d.enforce('config:abnormal-triggers:manage')); caps.push('config:abnormal-triggers:manage');
   }
+  if ('terminologyLicences' in patch) { checks.push(d => d.enforce('config:code-systems:manage')); caps.push('config:code-systems:manage'); }
   return checkAll(checks, caps, deps);
 }

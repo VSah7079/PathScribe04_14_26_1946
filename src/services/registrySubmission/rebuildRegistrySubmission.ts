@@ -54,5 +54,7 @@ export async function rebuildRegistrySubmission(queue: RegistryQueueName, entry:
   if (p.registryId !== entry.registryId) return { status: 'notApplicable', reason: `The facility now reports to ${p.registryId}, not ${entry.registryId}.` };
   // Batch 425: still missing the registry's mandatory data.
   if (p.outcome === 'missingMandatoryData') return { status: 'held', message: p.holdMessage ?? '' };
+  // Batch 620 (part E): the US ePath state profile still finds something to look at.
+  if (p.outcome === 'epathReview') return { status: 'held', message: p.holdMessage ?? '' };
   return gated(await deps.sendGate('cancer', entry.registryId, isSyntheticCaseId(entry.caseId)), p.body!, p.contentHash!);
 }

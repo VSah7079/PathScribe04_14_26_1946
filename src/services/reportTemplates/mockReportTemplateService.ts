@@ -70,7 +70,7 @@ const reportHeaderSection = (): SectionNode => section(
     { id: 'hdr-dept',      type: 'text-field', label: 'Department',         bindingKey: 'institution.department', colSpan: 6,  required: false, hideIfEmpty: false, fhirExport: false },
     { id: 'hdr-patient',   type: 'text-field', label: 'Patient Name',       bindingKey: 'patient.name',          colSpan: 4,  required: true,  hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-dob',       type: 'date',       label: 'Date of Birth',      bindingKey: 'patient.dob',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true, format: 'date' },
-    { id: 'hdr-sex',       type: 'text-field', label: 'Sex',                bindingKey: 'patient.sex',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
+    { id: 'hdr-sex',       type: 'text-field', label: 'Sex at birth',      bindingKey: 'patient.sexAtBirth',        colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-mrn',       type: 'text-field', label: 'MRN',                bindingKey: 'patient.mrn',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-accession', type: 'text-field', label: 'Accession',          bindingKey: 'case.accession',        colSpan: 4,  required: true,  hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-received',  type: 'date',       label: 'Date Received',      bindingKey: 'case.receivedDate',     colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: false, format: 'date' },

@@ -316,6 +316,9 @@ def _fix_timestamp(canvas: Canvas, iso: str | None) -> None:
     canvas._doc._timeStamp = stamp
 
 
+fix_timestamp = _fix_timestamp  # Batch 652: public name; main.py gives the surgical report the same fixed date
+
+
 def _watermark(text: str, fonts: tuple):
     def on_page(canvas, doc):
         if not text:

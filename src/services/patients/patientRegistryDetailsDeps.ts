@@ -1,16 +1,16 @@
 // src/services/patients/patientRegistryDetailsDeps.ts
 // Batch 425: the real services behind patientRegistryDetails.ts (intake and the Accession page's prefill).
 import type { PatientRegistryDetailsDeps } from './patientRegistryDetails';
-import { mockPatientIndexService } from './mockPatientIndexService';
+import { patientIndexService } from './patientServicesInstance';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 export const patientRegistryDetailsDeps: PatientRegistryDetailsDeps = {
-  resolvePatient: (authority, value) => mockPatientIndexService.resolveByIdentifier(authority, value),
-  getPatient: id => mockPatientIndexService.getById(id) as any,
-  listNationalIdentifiers: id => mockPatientIndexService.listNationalIdentifiers(id),
-  recordInMpi: (id, identifier) => mockPatientIndexService.recordNationalIdentifier(id, identifier),
-  setConsentInMpi: (id, consent) => mockPatientIndexService.setRegistryConsent(id, consent),
+  resolvePatient: (authority, value) => patientIndexService.resolveByIdentifier(authority, value),
+  getPatient: id => patientIndexService.getById(id) as any,
+  listNationalIdentifiers: id => patientIndexService.listNationalIdentifiers(id),
+  recordInMpi: (id, identifier) => patientIndexService.recordNationalIdentifier(id, identifier),
+  setConsentInMpi: (id, consent) => patientIndexService.setRegistryConsent(id, consent),
   // System to system: every case of the patient, not only those the signed-in user can see.
   casesForPatient: async id => {
     const all = await caseRouter.getAll(undefined, { bypassAccessControl: true });
@@ -23,5 +23,5 @@ export const patientRegistryDetailsDeps: PatientRegistryDetailsDeps = {
     return all.ok ? (all.data as any[]).find(c => c.id === caseId) : undefined;
   },
   updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
 };

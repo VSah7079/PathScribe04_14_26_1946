@@ -1,0 +1,263 @@
+<h1 id="top">Slide Scanning</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Slide Scanning is the bench hand-off to the slide scanners. Slides that were routed to Digital wait in a scanning queue. You choose a scanner, tick the slides to put on it and load them as a scan batch. You then send the batch to the scanner and, when every slide has a result, unload it. Slides that scanned and passed image quality check are marked Scanned. The rest go back to the queue.</p>
+<p><strong>Intended users.</strong> Histotechnologists, cytotechnologists and molecular technologists, and laboratory managers. Loading, sending and unloading are separate permissions, checked against the scanner's laboratory. Administrators can open the screen but do not have those permissions unless they are added to their role.</p>
+<p><strong>Where it fits.</strong> The <a href="/help/workstations/slide-distribution">Slide Distribution</a> workstation decides where each slide goes: to a pathologist's desk, or Digital. A slide routed to Digital appears here. After scanning, images can be opened in the <a href="/help/wsi-viewer">WSI viewer</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>Scanner traffic goes through the interface engine. In this version the scanner is simulated, so sending a batch does not drive a real machine, and the progress of the slides comes from the demonstration. The scanners listed come from the Equipment register.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-wsi-scan-overview.png" alt="The Slide Scanning screen with the scanning queue and the scan batches table"><figcaption>The Slide Scanning screen with the scanning queue and the scan batches table</figcaption></figure>
+
+<p>The page title is <strong>Slide scanning</strong>. The subtitle reads: "Load slides from the scanning queue onto a slide scanner, send the batch to the scanner, and unload it when every slide has its result. Slides that didn't scan go back to the queue."</p>
+<p>The screen has two parts: the scanning queue with a load bar, and the scan batches table.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Scanning queue</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scanning queue (n slides)</td>
+<td>The slides routed to Digital and not yet in a scan batch. STAT cases come first, then Rush, then the rest, oldest first.</td>
+</tr>
+<tr>
+<td>Slide scanner</td>
+<td>The scanner to load. The list holds the active slide scanners in the Equipment register ("— Select a scanner —").</td>
+</tr>
+<tr>
+<td>Choose (tick box)</td>
+<td>One tick box per slide. Its label reads "Choose (block) (stain)".</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The case accession number.</td>
+</tr>
+<tr>
+<td>Slide</td>
+<td>The block and the stain, for example "A1 · H&amp;E".</td>
+</tr>
+<tr>
+<td>Priority</td>
+<td>The case priority, or a dash.</td>
+</tr>
+<tr>
+<td>Routed to</td>
+<td>The scanner that Slide Distribution assigned, shown by name.</td>
+</tr>
+<tr>
+<td>Rack / slot</td>
+<td>The rack and slot recorded at distribution, or a dash.</td>
+</tr>
+</tbody>
+</table>
+<p>If no scanners exist: "No slide scanners are set up. Add them in Configuration → Equipment (kind "Slide scanner")." If the queue is empty: "No slides are waiting. Slides routed to Digital at the Slide Distribution Station appear here."</p>
+<p><strong>Scan batches</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Batch</td>
+<td>The scan batch barcode with an arrow. Select it to open or close the list of its slides.</td>
+</tr>
+<tr>
+<td>Scanner</td>
+<td>The scanner's name.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Loaded, not sent; Scanning; Scanned, ready to unload; Finished with failures, ready to unload; or Unloaded. A failed send adds "Not sent ((code), (time))" in red.</td>
+</tr>
+<tr>
+<td>Progress</td>
+<td>"(n) scanned · (n) failed · (n) waiting (of (total))".</td>
+</tr>
+<tr>
+<td>Loaded</td>
+<td>When the batch was loaded. Newest batches first.</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td><strong>Send to scanner</strong> or <strong>Send again</strong>, and <strong>Unload</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p>When a batch is opened, each slide row shows its position, the case, the slide, its status (Waiting, Scanning, Scanned or Scan failed), the failure reason if any ("Image QC failed: (reason)") and when the scan finished. If no batch exists: "No scan batches yet."</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Live status badge</td>
+<td>Shows whether the page is receiving changes by itself. The batch list updates without reloading when a scanner reports.</td>
+</tr>
+<tr>
+<td>Refresh</td>
+<td>Reads the queue, batches and scanners again. Reads "Refreshing..." meanwhile.</td>
+</tr>
+<tr>
+<td>Load (n) slide(s)</td>
+<td>Loads the ticked slides onto the chosen scanner as a new scan batch. Greyed out until a scanner is chosen and at least one slide is ticked (tooltip: "Choose a scanner and at least one slide"). Dimmed if you lack the load permission.</td>
+</tr>
+<tr>
+<td>Send to scanner / Send again</td>
+<td>Sends the batch's manifest to the scanner. Shown for a batch that is Loaded, not sent. "Send again" appears after a failed send.</td>
+</tr>
+<tr>
+<td>Unload</td>
+<td>Takes the batch off the scanner. Shown for a Loaded, not sent batch, and for a batch where every slide has a result.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Green message</td>
+<td>"(n) slide(s) loaded on (scanner)." "(batch) sent to the scanner." "(batch) unloaded."</td>
+</tr>
+<tr>
+<td>Red message</td>
+<td>A refusal. See Error recovery.</td>
+</tr>
+<tr>
+<td>Status text</td>
+<td>The batch's state, as listed above.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Slide scanning</strong> tile. The queue and the batches load.</li>
+<li>In <strong>Slide scanner</strong>, choose the scanner you are loading.</li>
+<li>Tick the slides you have placed on that scanner. The button now reads "Load (n) slides".</li>
+<li>Select <strong>Load</strong>. The message "(n) slides loaded on (scanner)." appears, the slides leave the queue and a new batch appears in the table as "Loaded, not sent". Where Slide Distribution recorded a rack and slot, that position is used; otherwise positions are numbered in the order you ticked.</li>
+<li>Select <strong>Send to scanner</strong> on the new batch. The message "(batch) sent to the scanner." appears and the status becomes Scanning.</li>
+<li>Watch the progress column. When every slide has a result, the status changes to Scanned or Finished with failures and <strong>Unload</strong> appears.</li>
+<li>Select <strong>Unload</strong>. The message "(batch) unloaded." appears. Slides that scanned and passed image quality check are marked Scanned. Others return to the scanning queue.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Check a batch's slides.</strong> Select the batch name to expand it and read each slide's status and any failure reason.</li>
+<li><strong>Cancel a load.</strong> Before sending, select <strong>Unload</strong> on a Loaded, not sent batch. Every slide returns to the queue.</li>
+<li><strong>Rely on live updates.</strong> With the Live badge on, leave the page open; it refreshes when the scanner reports.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>A send fails.</strong> The batch stays loaded. The status shows "Not sent ((code), (time))" and the button reads <strong>Send again</strong>. Wait until the interface engine is reachable and try again.</li>
+<li><strong>A slide fails or fails image QC.</strong> It is marked Scan failed or "Image QC failed", with a reason. After you unload, it returns to the scanning queue. Re-clean the slide if needed and load it again.</li>
+<li><strong>A slide was picked by someone else.</strong> "A chosen slide is no longer in the scanning queue. Refresh and try again."</li>
+<li><strong>You cannot unload.</strong> Slides are still scanning. Wait until every slide has a result.</li>
+<li><strong>A scanner is missing from the list.</strong> It is inactive or is not of kind Slide scanner in the Equipment register. Ask your administrator.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"Choose a slide scanner." Pick a scanner.</li>
+<li>"Choose at least one slide." Tick a slide.</li>
+<li>"That scanner isn't an active slide scanner in the Equipment register."</li>
+<li>"You don't have permission to do this for this scanner's lab." Ask your laboratory manager.</li>
+<li>"The interface engine didn't accept the batch. It stays loaded; send it again when the engine is reachable."</li>
+<li>"Slides are still scanning. Unload when every slide has its result."</li>
+<li>"This batch has already been sent." Someone else sent it; refresh.</li>
+<li>"That scan batch no longer exists." Refresh.</li>
+<li>"That couldn't be saved. Try again."</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Loading slides in PathScribe that you did not put on the scanner. Load only what is physically on the machine.</li>
+<li>Choosing the wrong scanner in the list.</li>
+<li>Unloading before the scanner is finished and then wondering why slides came back.</li>
+<li>Ignoring the red "Not sent" note.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Tick slides in the order they sit in the rack when no rack and slot were recorded.</li>
+<li>Leave the page open with the Live badge on.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Load STAT slides first; they are listed first.</li>
+<li>Check failed slides on the batch's expanded list before the next load.</li>
+<li>Log scanner maintenance in the <a href="/help/batch-management/equipment-log">Equipment Log</a>.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/workstations/slide-distribution">Slide Distribution</a>: routes slides to Digital.</li>
+<li><a href="/help/batch-management/equipment-log">Equipment Log</a>: the scanner's service state.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/wsi-viewer">WSI Viewer</a>: opening scanned images.</li>
+<li><a href="/help/batch-management">Batch Management</a>: the module page.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The queue is empty</td>
+<td>No slides are routed to Digital, or they are already in a batch.</td>
+</tr>
+<tr>
+<td>The scanner list is empty</td>
+<td>No active slide scanner in the Equipment register.</td>
+</tr>
+<tr>
+<td>Load is greyed out</td>
+<td>No scanner chosen or no slide ticked.</td>
+</tr>
+<tr>
+<td>Load, Send or Unload is dimmed</td>
+<td>Missing permission for that scanner's lab.</td>
+</tr>
+<tr>
+<td>A batch stays on Scanning</td>
+<td>The scanner has not reported all slides.</td>
+</tr>
+<tr>
+<td>Slides keep returning to the queue</td>
+<td>They fail the scan or the image quality check.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Select <strong>Refresh</strong>.</li>
+<li>Open the batch and read each slide's status.</li>
+<li>Send again if the send failed.</li>
+<li>Check the scanner's state in the Equipment Log.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when sends fail repeatedly, or a batch never receives results. Have the batch barcode, the scanner name and the time ready.</p>

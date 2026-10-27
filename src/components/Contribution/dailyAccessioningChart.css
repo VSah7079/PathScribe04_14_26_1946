@@ -1,0 +1,7 @@
+.ps-daily-chart { margin-top: 16px; }
+.ps-daily-chart-title { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+.ps-daily-chart-bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; }
+.ps-daily-chart-col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
+.ps-daily-chart-bar { width: 100%; height: var(--bar-h); min-height: 1px; border-radius: 3px 3px 0 0; background: #38BDF8; }
+.ps-daily-chart-bar--zero { background: rgba(148,163,184,0.35); }
+.ps-daily-chart-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: #94A3B8; }

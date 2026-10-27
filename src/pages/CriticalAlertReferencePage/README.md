@@ -57,3 +57,6 @@ Files here that imported a mock service directly now import it from `@/services`
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 669 (finding access-12)
+"Viewed n times" now includes this view (`services/clinical/openCriticalAlertReference.ts`); the expiry time is shown in the facility time zone (`SystemConfig.facilityTimezone`, set in Configuration) with the zone named, via `utils/formatFacilityDateTime.ts`; the plural uses `viewedLabel_one` / `_other` (Spanish `_many`). The page reads the facility time zone from `useSystemConfig()`; on this public route with the API server the setting must be readable without a sign-in, otherwise the default (America/Phoenix) shows. Test: `CriticalAlertReferencePage.test.tsx`.

@@ -10,7 +10,7 @@
 // POST /api/notifications/email; with a server, this file is simply not used.
 // ─────────────────────────────────────────────────
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService as auditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import i18n from 'i18next';
 import { toast } from 'react-toastify';
 import type { EmailPayload } from './types';

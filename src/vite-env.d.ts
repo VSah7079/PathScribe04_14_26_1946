@@ -65,6 +65,8 @@ interface ImportMetaEnv {
   readonly VITE_VOICE_ENABLED?: string;
   /** Batch 617 (PS-512): "false" turns biometric sign-in off for the whole deployment. See services/biometric/biometricDeploymentSwitch.ts. */
   readonly VITE_BIOMETRIC_SIGN_IN?: string;
+  /** Batch 679: "documentation" (default) or "clinical_support". See services/regulatoryProfile/regulatoryProfile.ts. */
+  readonly VITE_REGULATORY_PROFILE?: string;
   /** Batch 555: the recurring jobs the API server runs (comma-separated, MESSAGE_BUS_API.md §5); the browser stops standing in for those. */
   readonly VITE_SERVER_JOBS?: string;
 }

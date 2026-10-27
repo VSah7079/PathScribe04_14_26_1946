@@ -7,6 +7,8 @@
 
 import { IAIIntegrationService, AIProcessingOptions, AiFieldSuggestionResult, SynopticEvaluationInput, SynopticEvaluationResult } from './IAIIntegrationService';
 import { callAi } from './aiProviderService';
+import { buildSynopticFieldsPrompt } from './synopticFieldsPrompt';
+import { cleanSuggestedAnswers } from './aiSuggestionRules';
 import { resolveAiConfigOverrideForClient } from '../../components/Config/AI/resolveClientAiModel';
 import type { VoiceMacro } from '../../types';
 // PS-67 (Batch 348): the app's one result shape, { ok, data } | { ok: false, error }.
@@ -80,38 +82,20 @@ export class PathScribeAIService implements IAIIntegrationService {
     facilityId?: string
   ): Promise<ServiceResult<Record<string, AiFieldSuggestionResult>>> {
     try {
-      const fieldList = fields.map(f => {
-        const opts = f.options?.map(o => `${o.id} (${o.label})`).join(', ');
-        return opts
-          ? `- ${f.id} | ${f.label} | options: [${opts}]`
-          : `- ${f.id} | ${f.label} | free text`;
-      }).join('\n');
-
+      const built = buildSynopticFieldsPrompt(caseText, fields);
       const { text: raw } = await callAi({
-        system: 'You are a pathology AI assistant. Return only valid JSON — no markdown, no preamble.',
-        prompt: `Analyse the following pathology case and suggest answers for each synoptic field.
-
-GROSS: ${caseText.gross}
-MICROSCOPIC: ${caseText.microscopic}
-ANCILLARY: ${caseText.ancillary}
-
-FIELDS (id | label | allowed option ids):
-${fieldList}
-
-Return JSON: { "field_id": { "value": "option_id_or_string", "confidence": 85, "source": "short quote" } }
-Rules:
-- value must be an option id when options are listed
-- confidence 0–100
-- source ≤12 words from the case text
-- Only include fields you can answer with confidence ≥30`,
-        maxTokens: 1000,
+        system: built.system,
+        prompt: built.prompt,
+        maxTokens: built.maxTokens,
         configOverride: await resolveAiConfigOverrideForClient(facilityId),
         context: { feature: 'synoptic-suggestions', facilityId: facilityId },
       });
 
       const clean  = raw.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      return { ok: true, data: parsed };
+      // Batch 651: the minimum confidence (30) and the listed-options rule are enforced here, not only asked for in the prompt.
+      const { accepted, rejected } = cleanSuggestedAnswers(JSON.parse(clean), fields);
+      if (rejected.length) console.warn(`[PathScribe AI] ${rejected.length} synoptic suggestion(s) rejected: ${rejected.map(r => `${r.fieldId} (${r.reason})`).join(', ')}`);
+      return { ok: true, data: accepted };
     } catch (error: any) {
       return { ok: false, error: error.message };
     }

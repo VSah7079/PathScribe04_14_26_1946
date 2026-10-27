@@ -143,3 +143,19 @@ The same rules apply to print, e-fax and file drop. PathScribe implements them i
 ---
 
 *Batch 537: the serverless notes above are taken further, across every server component, in [`DEPLOYMENT_READINESS_REVIEW.md`](DEPLOYMENT_READINESS_REVIEW.md) (PS-539).*
+
+## IReportDeliveryQueueService (Batch 672)
+
+`/api/delivery/report-delivery-queue`. Service: `services/delivery/httpReportDeliveryQueueService.ts`; chosen in `reportDeliveryQueueServiceInstance.ts`. Every call answers with the standard ServiceResult shape (fixed error codes only). Fax numbers and recipient names are PHI-adjacent: the server must not log request bodies.
+
+| Method | Call | Arguments |
+|---|---|---|
+| `getAll` | `GET /api/delivery/report-delivery-queue/get-all` | none |
+| `getByCaseId` | `GET /api/delivery/report-delivery-queue/get-by-case-id` | `caseId` (query) |
+| `enqueue` | `POST /api/delivery/report-delivery-queue/enqueue` | `entry` (the body) |
+| `getFailed` | `GET /api/delivery/report-delivery-queue/get-failed` | none |
+| `markFailed` | `POST /api/delivery/report-delivery-queue/mark-failed` | `id`, `failure` (body fields) |
+| `retryDispatch` | `POST /api/delivery/report-delivery-queue/retry-dispatch` | `id` |
+| `markSent` | `POST /api/delivery/report-delivery-queue/mark-sent` | `id`, `sent?` (`pdfSha256`) |
+| `setFaxRecipient` | `POST /api/delivery/report-delivery-queue/set-fax-recipient` | `id`, `fax` |
+| `setTransmission` | `POST /api/delivery/report-delivery-queue/set-transmission` | `id`, `transmission` |

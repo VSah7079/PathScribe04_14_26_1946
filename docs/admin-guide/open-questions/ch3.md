@@ -1,0 +1,24 @@
+# Chapter 3 open questions (for Pete)
+
+- AUTHORING.md's Department example says Departments requires Grossing Templates and Retention, and that skipping templates empties the Default Grossing Template list. The code has a fixed list of three templates, and the retention floor comes from Governing Bodies. The chapter follows the code.
+- Chapter 3 lists `screen-clients` (Facility Configuration) and Chapter 2 lists `screen-facility-dictionary`. They are the same component (`FacilityDictionaryPage`). Chapter 3 is a short section that links to Chapter 2. Decide whether the outline should drop one.
+- Governing Bodies: the page subtitle says it controls the Synoptic Library and a nightly protocol sync. Nothing reads the Auto-sync flag and no sync job exists. The chapter calls it saved but unused.
+- Governing Bodies retention versions record `createdBy` as the fixed text "super-admin", not the signed-in person.
+- Cytology service notes say `suggestedAbnormalSeverity` is "NOT consumed". `clinicalMismatchInputs` and `resolveCytologyAbnormalSeverity` do read it. The chapter says it is read.
+- `config:cytology-compliance:manage` is in the Administration group, so Lab Director does not hold it by default, unlike every other cytology capability. The screen also has no view-only gating. Intended?
+- Cyto-Histologic Correlation (SNOMED): the page text says the list is intentionally empty, but the demo seeds five synthetic TEST-SNOMED entries. The 0 to 5 rank limit is enforced by the input box only.
+- Code Systems: the policy is saved in the browser and nothing reads it yet (KNOWN_GAPS agrees). Marked Demonstration. The licence card saves through the enterprise configuration.
+- Organ maps: `ORGAN_MAPPING_API.md` says the server endpoints are not built and the settings are in browser storage. Marked Demonstration.
+- Cold Chain: no sensor feed. Marked Partial. Smart containers are listed here read-only and registered elsewhere. Which chapter documents the hardware container registry?
+- Client service levels: KNOWN_GAPS says browser-only, but `httpClientSlaService` and a contract exist in CONFIG_SERVICES_API.md. Marked Built.
+- Container Types: the page text says "9 standard defaults are seeded". The seed has 20 entries.
+- Container Types, Protocol Dictionary: the fixative and processing format dictionaries (15 and 4 entries) have no maintenance screen. Is one planned?
+- Cassette Routing Rules: the engine supports a decant-type condition (cell block or residual fluid) and the seeded Cell Block rule uses it, but the window has no field for it.
+- Code Import (Bulk): it imports billing codes (CPT, HCPCS, OPCS-4, local) into the Billing Dictionary, not diagnosis codes. The outline lists it under Diagnostic Code Libraries.
+- Terminology Services: has no capability. The environment variable toggle is Superadmin only. Should it count as an internal-only section?
+- Abnormal Trigger Rules: the enterprise-wide switch calls `updateEnterpriseConfig` and no capability check was found on that path.
+- Reagent & Solution Lots: no rule was found that blocks an expired or failed lot from a batch. The batch window lists only active lots.
+- Slide types: no slide type dictionary or screen exists. Chapter 3 says so in Part C.
+- Autopsy, hematopathology, dermatopathology: no dedicated screens (Part A table). Autopsy settings are spread across six screens. Confirm this is acceptable for the outline.
+- Specimen Dictionary: the save records the editor as "admin" in `updatedBy`.
+- Physicians: the NPI format is not checked on the screen (placeholder only says 10-digit).

@@ -21,6 +21,8 @@ import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssig
 import { CONFIG_NOT_PERMITTED, permitConfigChange, notifyConfigWritten } from '../authorization/guardConfigWrites';
 import { computeFppeProgress } from '@/services/cases/fppeEndCondition';
 
+import { FROZEN_FINAL_ACTIVITY_TYPE_ID, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID, FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from './qaActivityTypeIds';
+export { FROZEN_FINAL_ACTIVITY_TYPE_ID, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID, FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID };
 const STORAGE_KEY = 'qa_supervision_assignments';
 
 /** Real, stable id of the "Credentialing / FPPE Review" activity type -
@@ -30,7 +32,7 @@ const STORAGE_KEY = 'qa_supervision_assignments';
  *  migration work in a later stage) - exported now so every real
  *  future consumer can start referencing a real, stable id rather than
  *  a string literal repeated in each file. */
-export const FPPE_ACTIVITY_TYPE_ID = 'qa-activity-fppe-credentialing';
+
 
 /** Real, per direct follow-up ("We also should account for Cytotecs
  *  trained and new staff while we are here") — this archetype's own
@@ -49,7 +51,7 @@ export const FPPE_ACTIVITY_TYPE_ID = 'qa-activity-fppe-credentialing';
  *  track here and is real, separate, not-yet-built work (most likely
  *  its own periodic-reminder mechanism, not a QaSupervisionAssignment
  *  at all). Not overstating what this covers. */
-export const CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID = 'qa-activity-cytotech-competency';
+
 
 const SEED_ASSIGNMENTS: QaSupervisionAssignment[] = [
   // Active, mid-progress — a real, common state to demo/verify against.

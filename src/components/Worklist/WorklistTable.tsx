@@ -6,7 +6,8 @@ import { buildAmendmentGroupRows, type AmendmentDividerRow } from './amendmentGr
 import { buildAutopsyGroupRows, type AutopsyDividerRow } from './autopsyGrouping';
 import AutopsyWorklistBadges from './AutopsyWorklistBadges';
 import type { AmendmentType } from '@/types/reports/AmendmentRecord';
-import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
+import { resolveDigitalReadinessBadge, resolveDpTriageBadge, dpLabelText } from '@/services/digitalPathology/resolveWorklistDpBadges';
+import { flagDisplayName } from '@/services/flags/shippedFlagNames';
 import { getUiPreference, setUiPreference } from '@/utils/uiPreferences';
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystemConfig } from "@/contexts/SystemConfigContext";
@@ -18,7 +19,7 @@ import { useMessaging } from "@/contexts/MessagingContext";
 import { getOrganisationByHospitalId, getOrganisationShortName } from '../../services/organisation/organisationService';
 import { formatDate as formatDateLocale, localeForJurisdiction, formatAge } from '@/utils/formatDate';
 import { getCaseStatusLabel, hasDisplayableRevision, REVISION_ACCENT } from '@/utils/caseRevisionDisplay';
-import { isUrgentCase } from '@/utils/caseUrgency';
+import { isUrgentCase } from '@/utils/caseUrgency'; import { sexAtBirthText } from '@/services/patients/patientSexAtBirth';
 import type { RevisionType } from '@/types/reports/AmendmentRecord';
 import type { Jurisdiction } from '@/types/systemConfig';
 import '../../pathscribe.css';
@@ -34,6 +35,7 @@ import { openComposeTo } from '@/utils/openComposeTo';
 import { setCaseOpenedFrom } from '@/utils/search/searchSession';
 import { getPersonalSetting, setPersonalSetting } from '@/services/userSettings/personalSettings';
 import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { codingTermText } from '@/services/abnormalDetection/codingTermText';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -352,12 +354,9 @@ const getStatusStyle = (status: string) => {
 const FlagChip: React.FC<{ flag: any; flagDefById: Map<string, Flag>; isSpecimen?: boolean }> = React.memo(({ flag, flagDefById, isSpecimen }) => {
   const { t } = useTranslation();
   const def = flagDefById.get(flag.flagDefinitionId);
-  // Real, honest gap: the real Flag/FlagDefinition catalog has no color
-  // field at all (confirmed directly) — getFlagPalette's own fallback
-  // below already handles this gracefully, not something to paper over
-  // with a field that was never real.
+  // The flag catalog has no color field, so getFlagPalette's fallback applies.
   const palette = getFlagPalette(undefined);
-  const label: string = def?.name ?? flag.label ?? flag.name ?? t('worklistTable.flagChip.fallbackLabel');
+  const label: string = flagDisplayName(def?.name ?? flag.label ?? flag.name, t) ?? t('worklistTable.flagChip.fallbackLabel');
   const scope = isSpecimen ? t('worklistTable.flagChip.scopeSpecimen') : t('worklistTable.flagChip.scopeCase');
   const title = def?.description
     ? t('worklistTable.flagChip.titleWithDescription', { scope, label, description: def.description })
@@ -485,7 +484,7 @@ const UrgentDot: React.FC = React.memo(() => {
  * suggestion — that only ever exists transiently during the sign-out
  * modal, never reaches here). One color per real severity level.
  */
-const AbnormalDot: React.FC<{ severity: 'Abnormal' | 'Critical' | 'Malignant'; syntheticCoding?: { code: string; display: string }[] }> = React.memo(({ severity, syntheticCoding }) => {
+const AbnormalDot: React.FC<{ severity: 'Abnormal' | 'Critical' | 'Malignant'; syntheticCoding?: { system: string; code: string; display: string }[] }> = React.memo(({ severity, syntheticCoding }) => {
   const { t } = useTranslation();
   // Real, per direct guidance: architecture-testing only — see
   // resolveSyntheticCoding.ts's own header for the full safety
@@ -494,9 +493,8 @@ const AbnormalDot: React.FC<{ severity: 'Abnormal' | 'Critical' | 'Malignant'; s
   // actually worked — never rendered as if it were a real code. Left
   // untranslated like the rest of this synthetic-coding suffix's own
   // codes/display terms — it's diagnostic/testing output, not UI copy.
-  const codingSuffix = syntheticCoding?.length
-    ? ` — ${syntheticCoding.map(c => `${c.code} (${c.display})`).join('; ')}`
-    : '';
+  const { demo, real } = codingTermText(syntheticCoding); // Batch 652: TEST- codes labelled "demonstration code"
+  const codingSuffix = (demo ? t('worklistTable.abnormalDot.codingSuffixDemo', { terms: demo }) : '') + (real ? t('worklistTable.abnormalDot.codingSuffix', { terms: real }) : '');
   const severityLabel = t(`worklistTable.abnormalDot.severity.${severity}`);
   return <span title={t('worklistTable.abnormalDot.title', { severity: severityLabel, codingSuffix })} className={`wl-abnormal-dot--${severity}`} />;
 });
@@ -1623,7 +1621,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                           </div>
                         ) : (
                           <div className="wl-card__field-sub" data-phi="dob">
-                            {c.patient.sex?.charAt(0) ?? '—'}
+                            {sexAtBirthText(c.patient.sex, t)}
                             {' · '}
                             {formatDate(c.patient.dateOfBirth, c.order?.facilityId)}
                             {' '}
@@ -1964,8 +1962,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       {isRestricted(c) ? '—' : (c.patient.mrn ?? '—')}
                     </td>
 
-                    {/* Sex */}
-                    <td className="wl-td-center">
+                    {/* Sex at birth: the narrow column keeps the letter; the word is the tooltip and the accessible name */}
+                    <td className="wl-td-center" title={isRestricted(c) ? undefined : sexAtBirthText(c.patient.sex, t)} aria-label={isRestricted(c) ? undefined : sexAtBirthText(c.patient.sex, t)}>
                       {isRestricted(c) ? '—' : (c.patient.sex?.charAt(0) ?? '—')}
                     </td>
 
@@ -2041,7 +2039,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         <td className="wl-td wl-td-dp" {...clickableContainer(badge ? (e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }) : undefined)}>
                           {badge && (
                             <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewSlideDetails')}>
-                              {badge.summaryText}
+                              {dpLabelText(badge.summaryLabel, badge.summaryText, t)}
                             </button>
                           )}
                         </td>
@@ -2053,7 +2051,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         <td className="wl-td wl-td-dp" {...clickableContainer(badge ? (e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }) : undefined)}>
                           {badge && (
                             <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewAiTriageDetails')}>
-                              <div>{badge.primaryText}</div>
+                              <div>{dpLabelText(badge.primaryLabel, badge.primaryText, t)}</div>
                               {badge.biomarkerSummary && <div className="wl-dp-badge-sub">{badge.biomarkerSummary}</div>}
                             </button>
                           )}

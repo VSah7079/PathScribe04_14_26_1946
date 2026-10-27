@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { getCase, updateCase } = vi.hoisted(() => ({ getCase: vi.fn(), updateCase: vi.fn() }));
 vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getCase, updateCase } }));
 
-const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }));
-vi.mock('../molecularOrders/mockMolecularOrderOutboundQueueService', () => ({ mockMolecularOrderOutboundQueueService: { enqueue } }));
+const { enqueue, getByCaseId } = vi.hoisted(() => ({ enqueue: vi.fn(), getByCaseId: vi.fn() }));
+vi.mock('../molecularOrders/mockMolecularOrderOutboundQueueService', () => ({ mockMolecularOrderOutboundQueueService: { enqueue, getByCaseId } }));
 
 import { processInboundHpvResultEvent, _resetProcessedHpvMessageIdsForTests } from './processInboundHpvResultEvent';
 import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
@@ -27,6 +27,8 @@ describe('processInboundHpvResultEvent — real, "ingest our own specification" 
     getCase.mockResolvedValue(CASE);
     updateCase.mockResolvedValue(undefined);
     enqueue.mockResolvedValue({ ok: true, data: {} });
+    getByCaseId.mockReset();
+    getByCaseId.mockResolvedValue({ ok: true, data: [] });
     _resetProcessedHpvMessageIdsForTests();
   });
 
@@ -98,6 +100,24 @@ describe('processInboundHpvResultEvent — real, "ingest our own specification" 
         accessionNumber: 'S26-5001-CYT-001', specimenLetter: 'A', assayCode: 'st-hpv-genotyping',
         orderReason: 'hpv_reflex_genotyping', priority: 'Routine', reflexFromMessageId: 'msg-1',
       });
+    });
+
+    it('Batch 669 (mol-3): the same positive screen under a NEW message id adds no second reflex order for the specimen', async () => {
+      const first = await processInboundHpvResultEvent(payload({ messageId: 'msg-a', assayStainTypeId: 'st-hpv-highrisk-screen' }));
+      expect(first.reflex).toBe('queued');
+      // The queue now holds the first order.
+      getByCaseId.mockResolvedValue({ ok: true, data: [{ id: 'q1', eventType: 'order.molecular', status: 'QUEUED', payload: enqueue.mock.calls[0][0].payload }] });
+      const second = await processInboundHpvResultEvent(payload({ messageId: 'msg-b', assayStainTypeId: 'st-hpv-highrisk-screen' }));
+      expect(second.outcome).toBe('applied');
+      expect(second.reflex).toBe('already-queued');
+      expect(enqueue).toHaveBeenCalledTimes(1);
+    });
+
+    it('Batch 669 (mol-3): an unreadable queue does not lose the order', async () => {
+      getByCaseId.mockRejectedValue(new Error('down'));
+      const r = await processInboundHpvResultEvent(payload({ assayStainTypeId: 'st-hpv-highrisk-screen' }));
+      expect(r.reflex).toBe('queued');
+      expect(enqueue).toHaveBeenCalledTimes(1);
     });
 
     it('a Positive result from the bundled st-hpv-reflex assay does NOT fire the standalone reflex trigger — that assay already implies reflex on its own', async () => {

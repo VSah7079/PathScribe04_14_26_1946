@@ -287,7 +287,9 @@ export function createMolecularOrderEngine(deps: MolecularOrderEngineDeps) {
     // Taking it off its plate (removing, or cancelling an assigned order).
     if (order.status === 'PLATE_ASSIGNED' && order.plate) {
       const batch = (await deps.getBatches()).find(b => b.id === order.plate!.batchId);
-      if (batch) {
+      // Batch 669: a superseded plate is a closed record; its orders are taken off without editing it (Take off plate used
+      // to be refused there with plateNotDraft, leaving only Cancel).
+      if (batch && batch.status !== 'superseded') {
         const unbound = unbindOrderFromPlate(batch, order.orderId);
         if (unbound.ok === false) return { ok: false, refused: unbound.refused };
         if (!(await deps.updateBatchWells(batch.batchUuid, unbound.wells))) return { ok: false, refused: 'plateNotFound' };
@@ -316,6 +318,21 @@ export function createMolecularOrderEngine(deps: MolecularOrderEngineDeps) {
     if (!running.length) return;
     update(running.map(o => ({ orderId: o.orderId, expect: ['PLATE_ASSIGNED'] as const, change: f => ({ ...f, status: 'IN_RUN' as const }) })));
     for (const o of running) await audit('WORKLIST_DISPATCHED', o, `Molecular order ${o.orderId} running: plate ${o.plate!.plateBarcode} worklist dispatched`, 'PathScribe');
+  }
+
+  /** Batch 669 (mol-9): Clone & Supersede kept the orders' wells on the new plate; the orders now point at it. Only orders still
+   *  waiting on the superseded plate move (PLATE_ASSIGNED, and the new plate holds their well); a running order stays with the plate
+   *  it runs on. Returns how many moved. */
+  async function onPlateSuperseded(originalBatchUuid: string, clone: Pick<MolecularBatch, 'id' | 'batchUuid' | 'plateBarcode' | 'wells'>): Promise<number> {
+    const moving = deps.loadOrders().filter(o => o.status === 'PLATE_ASSIGNED' && o.plate?.batchUuid === originalBatchUuid
+      && clone.wells.some(w => w.orderId === o.orderId));
+    if (!moving.length) return 0;
+    const positionOf = (o: MolecularOrder) => clone.wells.find(w => w.orderId === o.orderId)!.wellPosition;
+    const saved = update(moving.map(o => ({ orderId: o.orderId, expect: ['PLATE_ASSIGNED'] as const,
+      change: f => ({ ...f, plate: { batchId: clone.id, batchUuid: clone.batchUuid, plateBarcode: clone.plateBarcode, wellPosition: positionOf(f) } }) })));
+    if (!saved) return 0;
+    for (const o of moving) await audit('PLATE_ASSIGNED', o, `Molecular order ${o.orderId} moved to plate ${clone.plateBarcode}, well ${positionOf(o)} (replaces superseded plate ${o.plate!.plateBarcode})`);
+    return moving.length;
   }
 
   /** A signed-out report is never changed: an addendum draft is opened for the case's pathologist instead. */
@@ -489,7 +506,7 @@ export function createMolecularOrderEngine(deps: MolecularOrderEngineDeps) {
     if (failed) throw new Error(`${failed} reference lab result(s) could not be applied; the message can be processed again`);
   }
 
-  return { ingest, queueView, dispatchAction, onWorklistDispatched, onRunResults, onReferralDispatched, onSendOutResults };
+  return { ingest, queueView, dispatchAction, onWorklistDispatched, onPlateSuperseded, onRunResults, onReferralDispatched, onSendOutResults };
 }
 
 export type MolecularOrderEngine = ReturnType<typeof createMolecularOrderEngine>;

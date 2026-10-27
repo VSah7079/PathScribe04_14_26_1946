@@ -139,6 +139,7 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
     const res = await mockMolecularBatchService.cloneAndSupersede('mb-001', '   ', 'u1', 'Test User');
     expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('reasonRequired'); // Batch 669: a code the screen translates, not an English sentence
     const original = await mockMolecularBatchService.getById('mb-001');
     if (original.ok) expect(original.data.status).toBe('active'); // real, genuinely untouched
   });
@@ -147,6 +148,7 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
     const res = await mockMolecularBatchService.cloneAndSupersede('does-not-exist', 'Well A03 was mis-scanned', 'u1', 'Test User');
     expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('batchNotFound');
   });
 
   it('real, per direct guidance\'s own regulatory/audit-integrity reasoning: a successful clone creates a genuinely new, separate real batch record, distinct from the original', async () => {
@@ -218,6 +220,7 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     await mockMolecularBatchService.cloneAndSupersede('mb-001', 'First correction', 'u2', 'Second Tech');
     const secondAttempt = await mockMolecularBatchService.cloneAndSupersede('mb-001', 'Trying again', 'u3', 'Third Tech');
     expect(secondAttempt.ok).toBe(false);
+    expect('error' in secondAttempt && secondAttempt.error).toBe('alreadySuperseded');
   });
 
   it('real, honest refusal, never a partial state: if the real create() gating rejects the clone, the original is left completely untouched', async () => {
@@ -244,6 +247,7 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     storageSet('molecular_batches', stored);
     const cloneAttempt = await mockMolecularBatchService.cloneAndSupersede(created.data.id, 'Trying to clone an expired-lot batch', 'u1', 'Test User');
     expect(cloneAttempt.ok).toBe(false);
+    expect('error' in cloneAttempt && cloneAttempt.error).toBe('lotGatingFailed'); // Batch 669: a code, not the English summary
     const originalAfter = await mockMolecularBatchService.getById(created.data.id);
     if (originalAfter.ok) expect(originalAfter.data.status).toBe('draft'); // real, genuinely untouched, not superseded
   });
@@ -299,5 +303,22 @@ describe('Batch 406: the plate goes in a deck slot that takes an extraction plat
     const res = await mockMolecularBatchService.cloneAndSupersede(created.data.id, 'Instrument fault', 'u1', 'Test User');
     expect(res.ok).toBe(true);
     expect(res.ok && res.data.deckSlot).toBeUndefined();
+  });
+});
+
+describe('Batch 669 (mol-9): a plate with in-house orders on it keeps them through Clone & Supersede', () => {
+  it('the wells bound to orders carry onto the clone with their order, accession and specimen, but not a scan', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const draft = await mockMolecularBatchService.getById('mb-demo-467-egfr');
+    if (!draft.ok) throw new Error('demo plate missing');
+    // An order on the draft EGFR plate (the demo baseline's draft), as the Order Queue binds it.
+    await mockMolecularBatchService.updateByUuid(draft.data.batchUuid, { wells: [...draft.data.wells, { wellPosition: 'A03', sampleType: 'PATIENT_SPECIMEN', orderId: 'MO-9', accessionNumber: 'S26-9', specimenUuid: 'sp-9' }] });
+    const res = await mockMolecularBatchService.cloneAndSupersede('mb-demo-467-egfr', 'Instrument fault', 'u1', 'Tech');
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const well = res.data.wells.find(w => w.wellPosition === 'A03');
+    expect(well).toMatchObject({ sampleType: 'PATIENT_SPECIMEN', orderId: 'MO-9', accessionNumber: 'S26-9', specimenUuid: 'sp-9' });
+    expect(well?.containerBarcode).toBeUndefined();
+    expect(res.data.status).toBe('draft');
   });
 });

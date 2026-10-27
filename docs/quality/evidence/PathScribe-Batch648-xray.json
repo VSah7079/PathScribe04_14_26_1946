@@ -1,0 +1,16 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batch 648 \u2014 Lockbox Drop-Off demonstration seed cases restored by Demo Reset; product guides updated",
+  "description": "Vitest, 2026-10-21: full suite 1710 files (1706 passed, 4 skipped), 14,416 tests passed, 11 skipped, 0 failed. Type-check clean."
+ },
+ "tests": [
+  {
+   "testKey": "PS-872",
+   "start": "2026-10-21T19:45:00Z",
+   "finish": "2026-10-22T03:10:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/lockbox/lockboxDemoSeed.test.ts (six seed cases cover every state; urgent first then longest waiting; unique ids and barcodes; no patient fields; matched receipts name real pending orders; live-scan barcodes still match; Demo Reset restores the seed after a receipt and a link were added)\nPASSED: mockLockboxService.test.ts (store stays append-only; a write before any read keeps the seed), demoReset tests, demoResetKeys guard\nPASSED: scripts/admin-guide/build.py (six languages, 0 errors, 0 missing captures); parity.py fr, de, nl, ko, es (0 problems)\nNot tested or not built: native-speaker review of the translated Admin Guide sentence; the API server that stamps receipt time and user (the demo uses the browser clock); PDF versions of the User Guide and Admin Guide in public/help are edited outside this repository."
+  }
+ ]
+}

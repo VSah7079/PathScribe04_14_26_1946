@@ -32,6 +32,11 @@ vi.mock('@/services/auth/caseAccessControl', () => ({
   getSessionUser: () => ({ id: 'user-1', role: sessionRole }),
 }));
 
+// Batch 663: the panel asks for the capability config:macros:manage (not a role name); here the test role stands in for the grant.
+vi.mock('@/hooks/useCapabilities', () => ({
+  useCapabilities: () => ({ loading: false, decide: () => null, has: (c: string) => c === 'config:macros:manage' && ['admin', 'pathologist-admin', 'superadmin'].includes(sessionRole ?? '') }),
+}));
+
 vi.mock('@/utils/performingLabs', () => ({
   getActivePerformingLabs: () => Promise.resolve([]),
 }));

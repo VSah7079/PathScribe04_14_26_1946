@@ -16,7 +16,7 @@ import { buildFinancialClassPayload } from '../billing/buildFinancialClassPayloa
 import { canCaseExportDft } from '../billing/canCaseExportDft';
 import { dispatchInterfaceMessage, type InterfaceTransactionType } from './dispatchInterfaceMessage';
 import { isEngineSimulated } from '../mockInterfaceEngine/simulatedEngineReceiver';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { OutboundChargeQueueEntry } from '@/types/billing/OutboundChargeQueueEntry';
 
 export interface ChargeDispatchResult {
@@ -30,7 +30,7 @@ export interface ChargeDispatchResult {
 const RCM_CONTEXT = { sendingApplication: 'PATHSCRIBE', sendingFacility: 'FORMEDRIX', receivingApplication: 'RCM', receivingFacility: 'RCM_FAC', processingId: 'T' as const };
 
 async function audit(event: string, detail: string, caseId: string, actor: string): Promise<void> {
-  await mockAuditService.logEvent({ type: 'system', event, detail, user: actor, caseId, confidence: null }).catch(() => {});
+  await auditService.logEvent({ type: 'system', event, detail, user: actor, caseId, confidence: null }).catch(() => {});
 }
 
 /** Sends one queued charge. Moves the queue entry to SENT or FAILED. Never throws. */

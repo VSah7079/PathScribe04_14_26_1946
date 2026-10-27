@@ -1,3 +1,5 @@
+**Batch 650:** `tatTileActions.ts`: the eight `TAT_SHOW_*` commands choose their Contribution tile (the tab listened for an event nothing sent). Test: `tatTileActions.test.ts`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/quality/
@@ -186,3 +188,11 @@ Batch 616 (part D, PS-501): server versions of QaActivityRecordService, QaActivi
 ## Batch 617 (part C): server versions (PS-514)
 
 The peer review, peer-review settings, CAPA recommendation and QA trend policy services here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/QUALITY_SETTINGS_API.md`. The mocks are unchanged.
+
+## Batch 625 (PS-118)
+
+`validateQaReviewSubmission` returns message codes (`fieldRequired`, `deltaRequired`, ...) instead of English text; `QaReviewCaptureForm` translates them (`qaReviewCaptureForm.errors.*`).
+
+## Batch 652 — Specimen pipeline gaps
+
+- **`frozenReconciliationPlan.ts`**: which frozen specimens the signer reconciles at sign-out (every non-deferred frozen specimen of every session merged into the case, not just the first) and the queue that hands them to the reconciliation modal one at a time. The comparison is a category match (`discordanceStage`), not AI; the setting key `aiComparisonEnabled` is kept for saved settings. Test: `frozenReconciliationPlan.test.ts`.

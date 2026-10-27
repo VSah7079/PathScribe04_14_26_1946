@@ -1,4 +1,14 @@
+**Batch 651 (audit gaps):** the report page posts case and specimen comments through `services/cases/postCaseComment.ts` (audited, no comment text); see `services/auditlog/README.md`.
+
+**Batch 650:** screens now answer registered voice and key commands they ignored: Report bar (Sign Out Case, History, Codes, Finalise, Add Amendment), Worklist tiles, Search (Execute, Clear). See `SynopticReportPage/`, `WorklistPage/`, and `docs/product/KNOWN_GAPS.md`.
+
+**Batch 649:** the surgical report page's sign-out paths (see `SynopticReportPage/README.md`), the Accession page's case creation, the Codes window, the cytology pool buttons and the Quality Assurance deficiency actions are gated by the 17 new capabilities (`services/authorization/README.md`).
+
+**Batch 645:** `LockboxDropOffPage/` is Lockbox Drop-Off (`/lockbox-drop-off`, Home tile after Intraop Queue; capability `screen:lockbox-drop-off:open`): a scan-first kiosk for specimens dropped after hours (a pending order is received at once; an unknown barcode asks a few optional placeholder details; Urgent with an optional callback number) and, with `lockbox:folder:review`, the Overnight folder with Mark accessioned, Link to order and the time-to-receipt summary. Service `services/lockbox/`; contract `docs/architecture/LOCKBOX_API.md`. Home gains the tile (`Home.tsx`, colour `#86EFAC`, checked by `Home.tileColors.test.tsx`).
+
 # pages/
+
+**Batch 646:** `ConfigurationPage` shows a Help button (top right) that opens the open tab's or section's page in the Administrator Guide; `MigrationJobsPage` shows one under its title.
 
 Top-level route pages.
 
@@ -224,7 +234,7 @@ with no folder of their own — filled in incrementally as the
     registered under the same `'operations'` pillar as
     `patient-match-review` — full account in that folder's own README.
 
-- **`AuditLogPage.tsx`** — System audit/error log viewer with role-based
+- **`AuditLogPage.tsx`** — *(Batch 669: the page footer with the fixed "SYSTEMS OPERATIONAL" and "HIPAA Compliant" text was removed; only the computed per-tab "Showing x of y" counts remain. `AuditLogPage.noFixedClaims.test.ts` guards it.)* System audit/error log viewer with role-based
   scoping (pathologists see only their own case activity; validation
   study events hidden from non-admins), CSV export, and date-range
   filtering. Heaviest file reviewed so far after `FullReportPage.tsx` —
@@ -708,8 +718,10 @@ with no folder of their own — filled in incrementally as the
   (`NewEntryForm`, `SkipReasonMenu`, `MilestoneActions`, `MergeModal`,
   `SpecimenCard`, `EntryCard`), no `any` casts, no direct-DOM-mutation
   hover hacks, and consistently honest inline documentation about real
-  limitations (e.g. the barcode scanner is a genuine simulation, not a
-  real camera read — stated plainly rather than glossed over). Only 3
+  limitations (corrected Batch 652: patient match has a real camera
+  barcode scan, `components/BarcodeScanner`, plus manual entry and a
+  separate labeled "simulated scan" demo link; the scan uses the whole
+  decoded text as the MRN). Only 3
   inline styles found and fixed (`.ps-intraop-discard-body`,
   `.ps-intraop-report-actions`, `.ps-intraop-desktop-switch-link`).
   Also resolved a contrast fix flagged
@@ -1929,3 +1941,66 @@ Performance targets and client service levels are saved and judged by `services/
 - Batch 612 (part A): SynopticReportPage sidebar gains the read-only Vendor fields panel.
 
 **Batch 618 (part A):** `AccessionPage/AccessionTechnicalFacilityField.tsx` (optional technical-component lab on the Accession screen, PS-336); `SynopticReportPage` sends the technical lab block on signed-out reports only.
+
+**Batch 630 (PS-174):** `CytologyWorklistPage`: Record Positive / Negative open `ManualHpvResultModal` (required Result Source) and are permission-controlled; a waiting entry shows Approve / Reject.
+
+**Batch 631:** `CytologyWorklistPage`: Recall needed rows show the Australia/NZ recall priority, target window and wording (`SelfCollectedRecallDetail`).
+
+## Batch 638
+
+Batch 638 (Oct 20, 2026): CSMS messages wait for the eligibility check; Belgian Dutch dictation option; colleague reassignment room prorated by logged hours; surgical demo patients in the patient index. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+## Batch 639
+
+Batch 639 (Oct 20, 2026): hotkey decisions answered. Print Current Cassette moves to Alt+Shift+O; Discard Unsaved Changes asks for confirmation. See `docs/product/HOTKEY_DECISIONS.md`.
+
+## Batch 640
+
+Batch 640 (Oct 20, 2026): self-collected HPV recall windows and wording are set per country (Australia, New Zealand) by the laboratory's administrator, from a dropdown. See `docs/architecture/HPV_RESULT_INBOUND.md` section 8.
+
+## Batch 650 (650a)
+
+Report page: the Report Draft's spoken commands now register (`SynopticReportPage/hooks/useReportDraftVoiceActions.ts`). See `SynopticReportPage/README.md`.
+
+
+
+## Batch 651: AI answers checked in code
+See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSuggestions.ts`, `orchestrator/narrativeProvenance.ts` and `docs/product/GUIDE_UPDATES.md` (Batch 651).
+
+## Batch 652 — Specimen pipeline gaps
+
+Worklist: Assignment Timeout sweep (`WorklistPage/hooks/`). Grossing screen: pool routing on Complete grossing. Report page: sign-out reconciles every frozen specimen. Accession: lockbox receipt linked to the new case.
+
+## Batch 652 (defect fixes)
+
+`contributionDashboardCalculations.ts`: `computePeerKpiAverages`, `selectPeerGroup`, `peerValuesByTile` give the My Contribution Overview tiles real peer averages (same role + shared facility, at least 3 peers, else "Not enough data"; hidden from people who may not see peer comparison). `ContributionDashboardPage.tsx` no longer holds fixed 109/18/76. `WorklistPage/ResourcesModal.tsx` shows http links as warnings. `Synoptic/Delegate/DelegateModal.tsx` takes several recipients for multi-recipient types.
+
+## Batch 658 — `contributionDashboardCalculations.ts`: `peerGroupForComparison` is the one peer rule for the Overview and Productivity > Peer Comparison.
+
+Batch 660: `benchContributionCalculations.ts` gained `dailyAccessioningBars`.
+
+## Batch 669 — Margin Exception Review
+
+`MarginExceptionReviewPage.tsx` now also shows the rule-check / audit notices after Resolve or Dismiss and a read-only "Resolved and dismissed" list under the pending list. Decisions live in `services/marginExtraction/reviewMarginException.ts`.
+
+Batch 669: `EmbeddingStationPage`, `SlideDistributionStationPage` and `AddOnOrderPage` save through `services/workstationSave/` and show "Not saved" when a save fails (ws-8); Embedding also stops Confirm on a flagged discrepancy, can clear it, names the flagger and says whether the Tissue Discrepancy item was raised (ws-10, ws-11).
+
+Batch 669: Alt+S "Apply STAT Flag" on the report page now applies STAT (toast, audited) instead of opening the Flag Manager (`Synoptic/useSynopticFlags.ts`, `SynopticReportPage/`).
+
+## Batch 669 (ops, access, batch)
+`OrSuiteDashboardPage.tsx`: Start/Stop demo is a `CapabilityButton` (`config:or-board-demo:run`), Stop demo removes the demo cases it created, a refused Start demo or failed removal and a dismissal whose event-log write failed each show a closable message on the board (`ps-orboard-error`, `role="alert"`). `OutboundQueuePage`: Dead-lettered tile removed. `BatchManagement/BatchDetailView.tsx`: rescanning a Matched item shows "Already matched". `CriticalAlertReferencePage`: viewed count and facility time zone.
+
+## Batch 669f — Workstations (ws-2 to ws-6, ws-14, ws-19, ws-20)
+
+`MicrotomyWorkstationPage`: decant slide comment and Reprint work, Print/Etch Next shows refusals and printer failures, Accept suggestion no longer adds duplicates, Remove and Reprint offer a quick Undo toast, Block exhausted needs `add-on:exception:flag`. `AddOnOrderPage`: Mark Block Retrieved and Flag Exception are permission-gated, exception notices with no ordering pathologist go to the Supervisor / Accessioning Desk, the primary pathologist shows as a name, a missing IHC panel stain gets a warning. `SlideDistributionStationPage`: the replacement label gets the configured layout.
+
+## Batch 669 — molecular screens
+
+`MolecularBatchPage/` (Control Rules view-only note and reasons; plate builder control-well panel, translated dispatch and clone messages) and `MolecularOrderQueuePage/` (translated outcome line). See their READMEs.
+
+## Batch 669h (footer)
+
+`Home.tsx`: the footer prints the copyright line and `SystemStatusIndicator`; the fixed "HIPAA Compliant" and "SYSTEMS OPERATIONAL" texts are gone. `noFixedComplianceClaims.guard.test.ts` keeps them out of every component.
+
+- **Batch 669 (access-11):** `ExternalConsultViewPage` shows a masked patient (initials, birth year) unless the link was issued with the audited full-identity opt-in.
+- **Batch 669 (access-11 follow-up):** `ConsultLinksAuditSection` shows, after a signed opinion, the views and hours left (3 views / 48 hours, `services/consultAccess/consultLinkLifetime.ts`) and has **Preview identity** for people who hold `case:consult-link:reveal-identity` (audited; `consultLinksAudit.css`). `ExternalConsultViewPage` shows the expiry banner (`externalConsultLifetime.css`). Dates of birth on the consult page are `DD-MMM-YYYY` (24-OCT-1980).

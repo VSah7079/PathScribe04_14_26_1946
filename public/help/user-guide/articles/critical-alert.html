@@ -1,0 +1,211 @@
+<h1 id="top">Critical Alert</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> When a case has a critical finding, PathScribe can send the responsible physician a short message by secure email or text. The message carries a reference link. The link opens the Critical Alert page, a small reference page that shows which case and which physician the alert is for, and lets the physician mark it as reviewed. This article describes that page and what the laboratory sees afterwards.</p>
+<p><strong>Intended users.</strong> The physician who receives the alert. The pathologist and laboratory manager, who track whether alerts were opened and acknowledged.</p>
+<p><strong>Where it fits.</strong> The alert is sent in addition to the pathologist's own recorded verbal notification, never instead of it. The recipient opens the link, reads the reference page, and selects <strong>Acknowledge Reviewed</strong>. The laboratory follows the result on the Critical Alerts tab of the <a href="/help/audit-log">Audit Log</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">The page never shows the patient or the finding</p>
+<p>By design the page shows no patient name, date of birth, medical record number or clinical detail, and never says what the critical finding is. It shows only the accession number, the physician's name and the status of the link. The physician must get the result itself from the laboratory or from the hospital record. In production, tapping the link is meant to hand off to the hospital's own sign-in; that handoff is not connected in this environment, so only the reference information is shown.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Demonstration and simulated delivery today</p>
+<p>The page carries the banner "This is a demo/pilot reference link, not a production-secure one." The channels that send the alert (secure email, text message, EHR inbox push) are stand-ins in this environment. The Audit Log marks them <strong>Simulated</strong> and the alert text shows what would have been sent. Do not rely on this page to reach a real physician.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/critical-alert-overview.png" alt="The Critical Alert reference page with the accession number, physician and Acknowledge Reviewed button"><figcaption>The Critical Alert reference page with the accession number, physician and Acknowledge Reviewed button</figcaption></figure>
+
+<p>The page is one dark card. There is no menu and no sign-in. The link is the only way in, and it works for a limited time.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Banner</td>
+<td>The notice described above, with a red warning triangle.</td>
+</tr>
+<tr>
+<td>PathScribe Critical Alert</td>
+<td>The heading line.</td>
+</tr>
+<tr>
+<td>Accession number</td>
+<td>The laboratory's number for the case. It is the only case identifier shown.</td>
+</tr>
+<tr>
+<td>For</td>
+<td>The name of the physician the alert was sent to.</td>
+</tr>
+<tr>
+<td>Active / Expired</td>
+<td>The status of the link. You will normally see Active; an expired link does not open.</td>
+</tr>
+<tr>
+<td>Link expires (date and time)</td>
+<td>When the link stops working. The time is shown in the time zone of the laboratory's facility, and the zone is named beside it (for example MST), so it means the same moment wherever you open the link.</td>
+</tr>
+<tr>
+<td>Viewed {{count}} time</td>
+<td>Reads "Viewed 1 time" or "Viewed 3 times" (the number replaces the braces). How many times the link has been opened, including this view.</td>
+</tr>
+<tr>
+<td>Acknowledge Reviewed</td>
+<td>The button that records your review.</td>
+</tr>
+<tr>
+<td>Thanks, this review has been recorded.</td>
+<td>Shown in place of the button after you acknowledge.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acknowledge Reviewed</td>
+<td>Records that you reviewed the alert, with the time. The laboratory sees it on the Critical Alerts tab.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Green Active badge</td>
+<td>The link is valid now.</td>
+</tr>
+<tr>
+<td>Expired badge</td>
+<td>The link's time has passed.</td>
+</tr>
+<tr>
+<td>Green tick with the thank-you text</td>
+<td>The review has been recorded.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>For the physician</strong></p>
+<ol>
+<li>Open the link in the secure email or text. The page says "Loading..." and then shows the reference card.</li>
+<li>Check the accession number and your name against what you expect.</li>
+<li>Obtain the result itself from the laboratory or the hospital record. The page does not show it.</li>
+<li>Select <strong>Acknowledge Reviewed</strong>. A green tick and "Thanks, this review has been recorded." replace the button.</li>
+</ol>
+<p><strong>For the laboratory</strong></p>
+<ol>
+<li>Open the <a href="/help/audit-log">Audit Log</a> and choose the <strong>Critical Alerts</strong> tab.</li>
+<li>Find the case, using <strong>Filter by case</strong> if needed.</li>
+<li>Read the Channels column to see how it was sent, the Reference Link column to see whether it is Active or Expired and how often it was viewed, and the Acknowledged column for the time of acknowledgement, or "Not yet acknowledged".</li>
+<li>If an alert is not acknowledged within your laboratory's expected time, contact the physician directly and record the call as your procedure requires.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>An alert sent only by EHR inbox push has no reference link. The Critical Alerts tab says "No reference link (EHR push only)".</li>
+<li>If no channel could be resolved (for example no contact details), the tab says "No channel could be resolved". Notify the physician by telephone.</li>
+<li>Reopening a link after acknowledging shows the confirmation instead of the button, as long as the link has not expired.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The link is invalid or expired.</strong> The page says "This link is invalid or no longer active. It may have expired or never existed. Contact the laboratory directly for this result." It does not say which. Do not wait: call the laboratory.</li>
+<li><strong>You opened the link on a shared device.</strong> The page shows an accession number and a physician name only. Close the tab.</li>
+<li><strong>The link was sent to the wrong person.</strong> Tell the laboratory. The Audit Log shows how many times it was viewed.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the page stays on "Loading...", check your connection and reopen the link.</li>
+<li>If <strong>Acknowledge Reviewed</strong> seems to do nothing, wait a moment and look for the green tick. If it is still not there, reload; if the button returns, select it again.</li>
+<li>If you acknowledged the wrong alert, tell the laboratory. The acknowledgement cannot be undone from the page.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Acknowledging is not receiving the result</p>
+<p><strong>Acknowledge Reviewed</strong> records that you opened the reference. It does not carry the finding. Never treat an acknowledgement as the clinical handover; the pathologist's recorded verbal notification is the handover.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Looking on the page for the finding. It is never shown; ask the laboratory.</li>
+<li>Forwarding the link. It identifies the physician and counts views.</li>
+<li>Waiting on an expired link instead of calling.</li>
+<li>Treating an acknowledgement as proof the physician knows the finding. Only the recorded verbal notification does.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Open the link as soon as it arrives; it expires.</li>
+<li>Laboratory staff: filter the Critical Alerts tab by case, then look at the Acknowledged column first.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review the Critical Alerts tab each shift for alerts with "Not yet acknowledged".</li>
+<li>Treat the automated alert as a prompt, always followed by the pathologist's own call.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: sign-out of a case with a critical finding triggers the alert.</li>
+<li><a href="/help/external-consult">External Consult</a>: the other page an outside person opens without signing in.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/audit-log">Audit Log</a>: the Critical Alerts tab shows dispatch, views and acknowledgement.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"This link is invalid or no longer active"</td>
+<td>The link expired, was mistyped, or never existed.</td>
+</tr>
+<tr>
+<td>The page shows no patient or finding</td>
+<td>That is by design.</td>
+</tr>
+<tr>
+<td>The expiry time looks wrong</td>
+<td>It is shown in the facility's time zone, named beside the time, not your device's. If your laboratory's time zone setting is wrong, ask your administrator to correct it under Configuration.</td>
+</tr>
+<tr>
+<td>The acknowledgement time is not shown to me</td>
+<td>The page shows only a confirmation; the laboratory sees the time.</td>
+</tr>
+<tr>
+<td>The Audit Log shows Simulated</td>
+<td>The alert channels are stand-ins in this environment; nothing was delivered.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Reopen the link from the original message.</li>
+<li>Check the time against the expiry shown on the card.</li>
+<li>Telephone the laboratory for the result.</li>
+<li>Ask the laboratory to check the Critical Alerts tab for the alert.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact the laboratory directly for the result. Contact your laboratory's PathScribe support when alerts are not arriving, a link is refused straight away, or the Critical Alerts tab does not match what was sent. Have the accession number and the time of the alert ready.</p>

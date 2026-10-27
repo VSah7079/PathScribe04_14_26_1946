@@ -40,7 +40,7 @@ import type { AuditLogFn } from '@/components/Audit/useAuditLog';
 import { useState, useCallback, useRef, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { routeCase, routeStatCase } from '@/services/cases/casePoolAssignmentService';
+import { routeCaseAfterGrossing } from '@/services/grossing/routeCaseAfterGrossing';
 import { aiBehaviorService, authorizationService, auditService, specimenDeficiencyService, serviceChargeService, outboundChargeQueueService, billingTypeTriggerConfigService } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
@@ -387,17 +387,10 @@ export function useGrossingCompletion({
       // transition above - only the first, genuine completion routes;
       // a later re-finalize on an already-in-progress case does not.
       if (!hasRealDiagnosticWorkBegun) {
-        try {
-          const casePriority = caseData?.order?.priority;
-          const routingResult = casePriority === 'STAT'
-            ? await routeStatCase({ ...caseData, ...patch })
-            : await routeCase({ ...caseData, ...patch });
-          if (routingResult.outcome === 'routed_to_pool' || routingResult.outcome === 'routed_to_fallback') {
-            showToast(t('useGrossingCompletion.toast.routedToPool', { poolName: routingResult.poolName }));
-          }
-        } catch (e) {
-          console.error('Pool routing failed (non-blocking):', e);
-        }
+        // Batch 652: the same call the Grossing screen makes (services/grossing/routeCaseAfterGrossing.ts).
+        const routing = await routeCaseAfterGrossing({ ...caseData, ...patch });
+        if (routing.error) console.error('Pool routing failed (non-blocking):', routing.error);
+        if (routing.routed) showToast(t('useGrossingCompletion.toast.routedToPool', { poolName: routing.poolName }));
       }
 
       log(isUpdate ? 'gross_updated' : 'gross_complete', {

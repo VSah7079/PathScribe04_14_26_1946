@@ -96,3 +96,5 @@ The cases are S26-4670..4673 (new, in `cases/demoBaselineCases.ts`), plus S26-46
 ## Batch 617 (part C): server versions (PS-514)
 
 The tumor board service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/TUMOR_BOARD_API.md`. The mocks are unchanged.
+
+`tumorBoardRefusal` (Batch 659): maps service refusals to the message shown on the workspace.

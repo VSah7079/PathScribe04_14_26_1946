@@ -55,7 +55,7 @@ kiosk/device-identity substitute for one.
 - **The page reads no case itself.** `consultTokenService.openConsult` returns only what the link covers (`ConsultCaseView`). The slide filtering moved to the service.
 - **Opinions go with the token.**
   - A link revoked meanwhile refuses them, with a translated reason.
-  - Once a signed opinion is in, the form is replaced by a note.
+  - Once a signed opinion is in, the form is replaced by a note, and a small banner (`consultLifetime.banner`, class `ps-extconsult-lifetime-banner` in `externalConsultLifetime.css`) says how many views and hours the link has left; both numbers come from `ConsultCaseView.lifetime` (the service), the page computes nothing. Dates of birth are written DD-MMM-YYYY by the service (24-OCT-1980) in every language, the one deliberate exception to locale date formats.
 - **Dates** use the reader's locale (`formatDateTime`).
 - **Route:** `/consult`, plus `/consult/:token` for links issued before Batch 522.
 
@@ -66,3 +66,8 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 669 (access-11)
+
+A Draft no longer shows the "recorded and returned" confirmation. It shows `externalConsultViewPage.draftSavedConfirmation` (saved as a draft, not yet returned to the requester) in an amber box and keeps the form so the consultant can choose Signed and send. The text comes from `consultSubmitConfirmationKey()` in `services/consultAccess/consultLinkRules.ts`. 
+**Patient identity (second half of access-11):** the page shows a **masked** patient by default (initials with the rest starred, `J*** S****`, and the date of birth as the year only, `**-***-1980`, with `externalConsultViewPage.identityMaskedNote`). The full name and date of birth appear only when the link was issued with the audited opt-in (`ConsultCaseView.patient.identity === 'full'`). The page only renders what the service returned: the choice is made in `services/consultAccess/consultIdentityMask.ts` before the data reaches the page, so a masked page never holds the surname or the full date (not hidden with CSS). The line stays tagged `data-phi`. A passcode check by e-mail is Planned (needs the server): `docs/architecture/CONSULT_ACCESS_API.md` CA-26.

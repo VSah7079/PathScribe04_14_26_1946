@@ -261,3 +261,7 @@ WSI scan batch stain updates are versioned; the count of slides sent back comes 
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
 
 Batch 616 (part D, PS-502): server versions of AiScreeningResultService, AiStalledResultSettingsService, DpVendorService, WsiScanBatchService, WsiViewerVendorService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/DIGITAL_PATHOLOGY_API.md`.
+
+## Batch 624
+
+`resolveWorklistDpBadges.ts`: each badge also returns a translatable label (`summaryLabel`, `primaryLabel`: a key plus values) for the wording PathScribe writes, and `dpLabelText` picks it or the received text. Scanner and AI vendor wording is never translated: `primaryLabel` is absent when the headline is the vendor's, and a scanner failure reason is only inserted as a value. The English `summaryText` / `primaryText` stay (voice summaries, tests).

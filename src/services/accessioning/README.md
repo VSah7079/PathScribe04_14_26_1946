@@ -1,3 +1,5 @@
+**Batch 649:** `createAccessionedCase.ts` checks `case:accession:create` (high risk, audited; requires the Accession screen) before anything is saved; a refusal throws its reason and saves nothing. An order arriving from the LIS, a legacy import or a control slide is not this action.
+
 # services/accessioning/
 
 Real, per the uploaded "Structured Clinical History Dictionary &
@@ -80,3 +82,9 @@ Batch 616 (part A, PS-505): `httpAccessionOutboundQueueService.ts` and `accessio
 ## Batch 618 (PS-336)
 
 `resolveTechnicalFacilityOffer.ts` (+ test): `shouldOfferTechnicalFacility` (outside intake, or a department named Consultation), `technicalFacilityChoices` (active performing labs), `technicalFacilityForOrder` (what is saved on `order.technicalComponentFacilityId`).
+
+## Batch 652 — Specimen pipeline gaps
+
+- **`linkLockboxReceipt.ts`**: `linkLockboxReceiptAtAccession`, called by the Accession screen after it links the source order to the new case. Returns `linked`, `noReceipt`, `notPermitted` or `failed`; never throws and never undoes accessioning. Test: `services/lockbox/lockboxCaseLink.test.ts`.
+
+## Batch 658 — `downtimeReasonRule.ts`: a downtime accession needs a reason (`isDowntimeReasonMissing`), checked at submit.

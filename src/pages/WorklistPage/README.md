@@ -1,5 +1,7 @@
 # pages/WorklistPage/
 
+**Batch 650:** `WorklistPage.tsx` chooses the Pool and Awaiting countersign tiles for their voice and key commands (Alt+Shift+P, Alt+A). File size baseline lowered to 1315.
+
 The main case worklist — filter tiles, the case table (rendered via
 `components/Worklist/WorklistTable.tsx`, documented separately in
 `components/Worklist/README.md`), and the supporting modals/tiles
@@ -207,3 +209,12 @@ The Autopsy branch tab's rows now show real autopsy state — case authority, an
 ## Batch 568
 
 - The LIS and Outreach tiles' on/off colours come from modifier classes in `pathscribe.css` (`.ps-wl-mode-tile--lis`, `--outreach`, `--active`), not values set in the page; they look exactly as before.
+
+## Batch 652 — Specimen pipeline gaps
+
+- `isTriagePending` now lives in `services/grossing/triageReleaseGate.ts`; the tile re-exports it.
+- `hooks/usePoolAssignmentTimeout.ts` starts the Assignment Timeout sweep (`services/cases/poolAssignmentTimeout.ts`) with the page and marks cases it routed as pool cases.
+
+## Batch 652 (defect fixes)
+
+`ResourcesModal.tsx` (+ `ResourcesModal.css`): a stored http link is shown as text with an "Insecure link" tag and never opened. `WorklistPage.tsx` maps links through `toQuickLinks`.

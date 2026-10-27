@@ -23,7 +23,7 @@
 // never silently dropped.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockReportTemplateService } from './mockReportTemplateService';
+import { reportTemplateService } from './reportTemplateServiceInstance';
 import { reportPartService as mockReportPartService } from '../reportParts/reportPartServiceInstance';
 import type { TemplateNode } from '@/types/template';
 
@@ -64,7 +64,7 @@ export async function resolveFinalDiagnosisText(
   templateId: string,
   answers: Record<string, unknown>,
 ): Promise<string | undefined> {
-  const templateRes = await mockReportTemplateService.getById(templateId);
+  const templateRes = await reportTemplateService.getById(templateId);
   if (!templateRes.ok) return undefined;
   const template = templateRes.data;
 

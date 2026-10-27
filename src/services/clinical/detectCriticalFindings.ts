@@ -23,7 +23,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { callAi } from '@/services/aiIntegration/aiProviderService';
-import type { SyntheticCodingTerm } from '../abnormalDetection/IAbnormalTriggerRuleService';
+import type { CodingTerm } from '../abnormalDetection/IAbnormalTriggerRuleService';
 import type { ServiceResult } from '../types';
 import type { AbnormalSeverity } from '../abnormalDetection/IAbnormalTriggerRuleService';
 import { partitionNegatedFindings } from './negatedFindingCheck';
@@ -64,11 +64,33 @@ export interface CriticalFindingFlag {
    *  (`handleRecordCriticalNotification`, useSignOutWorkflow.ts) falls
    *  back to the real, severity-keyed default (`resolveSyntheticCoding`)
    *  for those. */
-  syntheticCoding?: SyntheticCodingTerm[];
+  syntheticCoding?: CodingTerm[];
+}
+
+/**
+ * Batch 655 (Pete, Oct 23, 2026: "consider changing this if we have no safeguards against low-confidence critical
+ * findings generating excessive noise"). Until now nothing looked at the model's confidence. The model's confidence is
+ * its own, never calibrated, so it is not trusted to switch off anything that matters. The floor therefore applies only to
+ * the lowest severity, 'Abnormal' ("clinically significant but not immediately urgent"): an Abnormal flag the model itself
+ * is under 50 percent sure of is not put in front of the pathologist as a sign-out finding. 'Critical' and 'Malignant'
+ * flags are NEVER dropped for low confidence: a missed critical result is worse than an extra prompt (the same posture
+ * as negatedFindingCheck.ts). Dropped flags are returned in `belowFloor`, not discarded, so a caller or test can see them.
+ */
+export const ABNORMAL_CONFIDENCE_FLOOR = 50;
+
+/** Splits flags by the confidence floor (pure). Only 'Abnormal' flags below the floor are set aside. */
+export function applyConfidenceFloor<T extends Pick<CriticalFindingFlag, 'severity' | 'confidence'>>(
+  flags: readonly T[], floor: number = ABNORMAL_CONFIDENCE_FLOOR,
+): { kept: T[]; belowFloor: T[] } {
+  const kept: T[] = []; const belowFloor: T[] = [];
+  for (const f of flags) (f.severity === 'Abnormal' && f.confidence < floor ? belowFloor : kept).push(f);
+  return { kept, belowFloor };
 }
 
 export interface CriticalFindingDetectionResult {
   flags: CriticalFindingFlag[];
+  /** Batch 655: 'Abnormal' flags the model was under ABNORMAL_CONFIDENCE_FLOOR percent sure of; set aside, never 'Critical' or 'Malignant'. */
+  belowFloor?: CriticalFindingFlag[];
   /** Batch 452 (PS-131, PS-105): findings the model returned that the
    *  code-side negation check (negatedFindingCheck.ts) dropped because the
    *  narrative negates the term everywhere it appears ("no evidence of
@@ -148,8 +170,9 @@ Rules:
       }));
     // Batch 452 (PS-131, PS-105): don't rely on the prompt alone - re-read
     // the narrative and drop a flag whose term it negates everywhere.
-    const { kept, negated } = partitionNegatedFindings(valid, caseText);
-    return { ok: true, data: { flags: kept, negated } };
+    const { kept: notNegated, negated } = partitionNegatedFindings(valid, caseText);
+    const { kept, belowFloor } = applyConfidenceFloor(notNegated);
+    return { ok: true, data: { flags: kept, negated, belowFloor } };
   } catch (error: any) {
     return { ok: false, error: error?.message ?? 'Critical finding detection failed' };
   }

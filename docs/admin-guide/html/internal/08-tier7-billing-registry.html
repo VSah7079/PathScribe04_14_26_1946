@@ -1,0 +1,2207 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tier 7: Billing, Revenue Cycle Management and Registry Reporting · PathScribe Administrator Guide (ForMedrixAI internal edition)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="en" data-root="">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administrator Guide</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option></select>
+<button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html">3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html" aria-current=page>8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html">10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html">11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch8-billing-architecture">Billing engine architecture</a></li><li class="l3"><a href="#screen-billing_type_triggers">Charge Release Triggers (TC/26/Global)</a></li><li class="l2"><a href="#ch8-charge-capture">Charge capture rules, CPT/HCPCS mapping and fee schedules</a></li><li class="l3"><a href="#screen-modifier_dictionary">CPT Modifier Dictionary</a></li><li class="l3"><a href="#screen-rvu_code_map">RVU Code Map (Productivity)</a></li><li class="l3"><a href="#screen-billing_dictionary">Billing Dictionary (Charge Capture)</a></li><li class="l2"><a href="#ch8-autocoding-holds">Auto-coding engine and billing hold rules</a></li><li class="l3"><a href="#screen-ncci_edit_rules">NCCI Edit Rules (Bundling)</a></li><li class="l3"><a href="#screen-pending_approvals">Pending Billing Rule Approvals</a></li><li class="l3"><a href="#screen-billing_release">Billing Release</a></li><li class="l3"><a href="#screen-dft_export_preview">Billing Export Preview</a></li><li class="l2"><a href="#ch8-cancer-registry">Cancer registry configuration</a></li><li class="l3"><a href="#screen-cancer_registry_settings">Cancer Registry Reporting</a></li><li class="l3"><a href="#screen-cosd_destination">UK Cancer Registry (COSD)</a></li><li class="l3"><a href="#screen-us_epath">US Electronic Pathology</a></li><li class="l3"><a href="#screen-cytology_registry">Cytology Registry Reporting</a></li><li class="l3"><a href="#screen-batch_registry_feed">Registry Batch Files</a></li><li class="l2"><a href="#ch8-quality-reporting">Quality and public health reporting (MIPS/MACRA)</a></li><li class="l2"><a href="#ch8-payment-reference">Jurisdiction payment mappings, master payment types and the financial log</a></li><li class="l3"><a href="#screen-master_payment_types">Master Payment Type Dictionary</a></li><li class="l3"><a href="#screen-jurisdiction_payment_mappings">Jurisdiction Payment Mapping</a></li><li class="l3"><a href="#screen-audit-financial">System Logs: Financial</a></li></ul></aside><article><h1 id="ch8"><a class="anchor" href="#ch8" aria-label="Link to this section">#</a> Tier 7: Billing, Revenue Cycle Management and Registry Reporting</h1>
+<p>This chapter covers how PathScribe decides what to charge, when a charge may leave the system, and which cancer and screening registries a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is reported to. It also covers the payment lookups that the charge payload uses and the System Logs page where you watch financial events.</p>
+<p>Read these three points first, because they set what you can and cannot expect.</p>
+<ol>
+<li><strong>What PathScribe does with money.</strong> PathScribe resolves each charge once, at finalisation, into a fixed record: <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> or <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a> code, relative value units (<a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a>), and <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a>. It does not hold prices. <strong>Fee schedules: Not built.</strong> There is no dollar amount, price or payer rate field anywhere in the billing rules. The charge payload carries no dollar amounts. Reimbursement is worked out by your billing system or the interface engine, not by PathScribe.</li>
+<li><strong>What PathScribe does with registries.</strong> PathScribe decides whether a case is reportable, checks the mandatory data, and builds a structured <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> payload. It does not itself write <a class="term" href="99-glossary.html#g-naaccr" title="The North American Association of Central Cancer Registries, which sets data standards for cancer registry reporting in North America.">NAACCR</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a>, <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, the English national dataset for cancer registration.">COSD</a> XML or any <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> wire format. The interface engine (ForMedrixAI's engine, shipped with PathScribe) translates and transmits. No registry specification in the product is confirmed against the registry's own published specification unless the section says so.</li>
+<li><strong>Most of this chapter is Demonstration today.</strong> Production storage is Microsoft SQL Server behind an <a class="term" href="99-glossary.html#g-asp-net-core" title="The Microsoft web framework PathScribe&#x27;s API server is built on.">ASP.NET Core</a> <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a>. The services behind these screens are browser-held demonstration services, and the API contracts in <code>docs/architecture</code> say nothing there was tried against a real server. Each screen carries its own status.</li>
+</ol>
+<h2>Setup order for Tier 7</h2>
+<p>Do the screens in this order. Each screen's own "Setup sequence" box shows what it requires.</p>
+<ol>
+<li><a href="#screen-modifier_dictionary">CPT Modifier Dictionary</a>: the <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> list that the Billing Dictionary offers.</li>
+<li><a href="#screen-rvu_code_map">RVU Code Map</a>: the <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> and relative value list that every billing rule points to.</li>
+<li><a href="#screen-billing_dictionary">Billing Dictionary (Charge Capture)</a>: the versioned billing rules.</li>
+<li><a href="#screen-ncci_edit_rules">NCCI Edit Rules</a>: the bundling pairs (you upload them; none ship).</li>
+<li><a href="#screen-pending_approvals">Pending Billing Rule Approvals</a>: a second person approves steps 1 to 4 before anything takes effect.</li>
+<li><a href="#screen-billing_type_triggers">Charge Release Triggers</a>: the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> milestone at which each billing type creates its charge.</li>
+<li><a href="#screen-billing_release">Billing Release</a>: hold and batch rules for charges that are ready.</li>
+<li><a href="#screen-master_payment_types">Master Payment Type Dictionary</a>: the payment categories.</li>
+<li><a href="#screen-jurisdiction_payment_mappings">Jurisdiction Payment Mapping</a>: local payer schemes mapped to those categories.</li>
+<li><a href="#screen-dft_export_preview">Billing Export Preview</a>: check what a real case would send.</li>
+<li><a href="#screen-cancer_registry_settings">Cancer Registry Reporting</a>: the <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> per <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> and the go-live approval.</li>
+<li><a href="#screen-cosd_destination">UK Cancer Registry (COSD)</a>: England destination settings.</li>
+<li><a href="#screen-us_epath">US Electronic Pathology</a>: state profiles for the US <a class="term" href="99-glossary.html#g-epath" title="Electronic pathology reporting, the sending of pathology reports to a cancer registry in a standard electronic form.">ePath</a> feed.</li>
+<li><a href="#screen-cytology_registry">Cytology Registry Reporting</a>: cervical screening programme settings.</li>
+<li><a href="#screen-batch_registry_feed">Registry Batch Files</a>: file-based registry deliveries.</li>
+</ol>
+<p>The <a href="#screen-audit-financial">System Logs financial tab</a> is a reference page. It is not part of setup.</p>
+<p>Not built in this chapter: fee schedules, AI or natural-language billing suggestions from report text, <a class="term" href="99-glossary.html#g-x12" title="The ANSI standard for electronic business transactions, including healthcare claims in the United States.">X12</a> 837P, KVDT and SESAM-Vitale output, <a class="term" href="99-glossary.html#g-naaccr" title="The North American Association of Central Cancer Registries, which sets data standards for cancer registry reporting in North America.">NAACCR</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a> batch files, and <a class="term" href="99-glossary.html#g-mips" title="The Merit-based Incentive Payment System, a US Medicare program that adjusts payment by reported quality measures.">MIPS</a> and <a class="term" href="99-glossary.html#g-macra" title="The US Medicare Access and CHIP Reauthorization Act, which created the Quality Payment Program that includes MIPS.">MACRA</a> quality reporting.</p>
+<h2 id="ch8-billing-architecture"><a class="anchor" href="#ch8-billing-architecture" aria-label="Link to this section">#</a> Billing engine architecture</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span></nav>
+
+<p><strong>How a charge is modelled.</strong> PathScribe splits a charge into a technical component, a professional component, or both together. The product calls these billing types:</p>
+<table>
+<thead>
+<tr>
+<th>Billing type</th>
+<th>On-screen label</th>
+<th>What it covers</th>
+<th>Modifier set</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a></td>
+<td>Technical (TC)</td>
+<td>Laboratory work: <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a>, processing, slides, stains</td>
+<td><code>-TC</code></td>
+</tr>
+<tr>
+<td>26</td>
+<td>Professional (26 Prof.)</td>
+<td>The pathologist's interpretation</td>
+<td><code>-26</code></td>
+</tr>
+<tr>
+<td>Global</td>
+<td>Combined (Global)</td>
+<td>Both parts billed together</td>
+<td>Neither</td>
+</tr>
+</tbody>
+</table>
+<p>PathScribe sets the <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> from the billing type with no exceptions: TC takes <code>-TC</code>, 26 takes <code>-26</code>, Global takes none. Other modifiers are informational only.</p>
+<p><strong>When a charge is created.</strong> By default the technical component is created when the <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> is grossed. The professional and global components are created at final sign-out. You can change this for the whole <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> or for one site on <a href="#screen-billing_type_triggers">Charge Release Triggers</a>.</p>
+<p><strong>Charges are fixed once created.</strong> At finalisation PathScribe resolves the charge once into an immutable charge record that keeps a snapshot of the <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a>, <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a>, <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> and modifier. Later edits to a billing rule do not change a charge already made. A correction after sign-out uses a credit and rebill pair, not an edit.</p>
+<p><strong>Billing rules are versioned.</strong> A billing rule is identified by billing code, scope and version. Versions are only ever added. The statuses are DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED and RETIRED. The person who drafts or submits a version cannot approve it (the Four-Eyes principle, enforced in the services). On approval, the new version takes effect and the version it replaces ends.</p>
+<p><strong>Scope.</strong> A rule applies enterprise-wide or to one Site. The word Site is used on these screens, not Facility.</p>
+<p><strong>Split cases.</strong> When the technical component is performed at a different laboratory than the professional reading, the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> carries a technical component <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> and the performing facility. The release decision checks for this (see <a href="#screen-billing_release">Billing Release</a>).</p>
+<p><strong>Where charges go.</strong> Ready charges go to the Outbound Queue. A charge in PENDING_APPROVAL or HOLD status is skipped by the outbound sweep. The interface engine does the transport, translation and retries. PathScribe only decides what is released and when.</p>
+<p><strong>Optional charge approval.</strong> A charge can be held for approval. The approval <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> <code>billing:charge:approve</code> is checked per performing laboratory. It is in the <a class="term" href="99-glossary.html#g-capability-catalog" title="The complete list of capabilities, with each one&#x27;s risk level and any capability it requires.">capability catalog</a> but no built-in <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> holds it by default, so grant it through <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a> if you use charge approval.</p>
+<h3 id="screen-billing_type_triggers"><a class="anchor" href="#screen-billing_type_triggers" aria-label="Link to this section">#</a> Charge Release Triggers (TC/26/Global)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Charge Release Triggers (TC/26/Global)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Charge Release Triggers (<a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>/26/Global)</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> Charge Release Triggers (TC/26/Global)</p>
+<p><strong>3. Business purpose and scope.</strong> Sets the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> milestone at which each billing type creates its charge. The defaults are: TC at <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> grossed, 26 and Global at case signed out. You can override a default for the whole <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> or for one site. A site with no override of its own uses the enterprise setting.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A site override can only be set for a site that exists, so set up facilities first. Without a site in the list you can still set enterprise-wide triggers.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 6</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></dd><dt>This unlocks</dt><dd><a href="#screen-billing_release">Billing Release</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-billing_type_triggers.webp" alt="Charge Release Triggers with one milestone list per billing type" loading="lazy"><figcaption>Charge Release Triggers with one milestone list per billing type</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_type_triggers-scope-selector"><td>Scope selector</td>
+<td>Choice of Enterprise or one Site</td>
+<td>Required</td>
+<td>Chooses whose triggers you are viewing and changing.</td>
+<td>Enterprise</td>
+</tr>
+<tr id="f-billing_type_triggers-technical-tc-trigger"><td>Technical (TC) trigger</td>
+<td>Choice of case milestones</td>
+<td>Required</td>
+<td>The milestone at which the technical charge is created. Saving the dropdown saves immediately.</td>
+<td>Specimen grossed (<code>SPECIMEN_GROSSED</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-professional-26-prof-trigger"><td>Professional (26 Prof.) trigger</td>
+<td>Choice of case milestones</td>
+<td>Required</td>
+<td>The milestone at which the professional charge is created. Saves immediately.</td>
+<td>Case signed out (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-combined-global-trigger"><td>Combined (Global) trigger</td>
+<td>Choice of case milestones</td>
+<td>Required</td>
+<td>The milestone at which the global charge is created. Saves immediately.</td>
+<td>Case signed out (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-reset-to-default"><td>Reset to default</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Removes the override for the chosen scope and returns it to the built-in default.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:billing-triggers:manage</code>. Admin and Lab Director hold it by default. Each change writes an audit event ("Charge release trigger changed", "Charge release triggers reset to default").</p>
+<p><strong>Known limits.</strong> Demonstration service only. A trigger change affects charges created from then on and does not change charges already created.</p>
+<h2 id="ch8-charge-capture"><a class="anchor" href="#ch8-charge-capture" aria-label="Link to this section">#</a> Charge capture rules, CPT/HCPCS mapping and fee schedules</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span></nav>
+
+<p><strong>Fee schedules: Not built.</strong> The outline asks for fee schedules. There is no screen, contract or field for a dollar amount, price or payer-specific rate. A billing rule carries only the <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> code, <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a> code, and <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> values for work, practice expense (PE) and malpractice (MP). The nearest things that exist are the RVU values on the <a href="#screen-billing_dictionary">Billing Dictionary</a> and the <a href="#screen-rvu_code_map">RVU Code Map</a>. The check called <code>ZERO_FEE_MAPPING_ERROR</code> is worded as a fee check, but it tests for a charge that resolved with zero RVU across work, PE and MP and has no suppression advisory.</p>
+<p><strong>Bulk loading codes.</strong> To load CPT, HCPCS or other code lists in bulk, use <a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import (Bulk)</a>. It is documented with the other lookups.</p>
+<p><strong>Auto-coding.</strong> See the status paragraph under <a href="#ch8-autocoding-holds">Auto-coding engine and billing hold rules</a>.</p>
+<h3 id="screen-modifier_dictionary"><a class="anchor" href="#screen-modifier_dictionary" aria-label="Link to this section">#</a> CPT Modifier Dictionary</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; CPT Modifier Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> Modifier Dictionary</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> CPT Modifier Dictionary</p>
+<p><strong>3. Business purpose and scope.</strong> The list of CPT <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> codes (for example 26, <a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>, 59, XS) that the Billing Dictionary's Coding Rules tab offers. Modifiers here are informational. PathScribe does not check or add a modifier other than the fixed TC and 26 rule described in the chapter introduction.</p>
+<p>The shipped descriptions are placeholders such as "Modifier 59", marked synthetic, because the American Medical Association (<a class="term" href="99-glossary.html#g-ama" title="American Medical Association, the publisher and owner of the CPT code set.">AMA</a>) text is licensed. If you hold a licence, load your own descriptions.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> This is a starting point. Every change becomes a new version waiting for approval, so a second person with approval rights is needed before a change takes effect.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 1</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><a href="#screen-billing_dictionary">Billing Dictionary (Charge Capture)</a>, <a href="#screen-pending_approvals">Pending Billing Rule Approvals</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-modifier_dictionary.webp" alt="CPT Modifier Dictionary with active version and code list" loading="lazy"><figcaption>CPT Modifier Dictionary with active version and code list</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-modifier_dictionary-version-label"><td>Version label</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>The active dictionary version. Seed version id <code>modifier-v-seed-2026</code>. A second, pending licensed version is also seeded.</td>
+<td>Seed version</td>
+</tr>
+<tr id="f-modifier_dictionary-code"><td>Code</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>The modifier code. Seeded: 26, TC, 22, 52, 53, 59, XE, XS, XP, XU, 76, 77, 90, 91, 92 (15 codes).</td>
+<td>15 seeded codes</td>
+</tr>
+<tr id="f-modifier_dictionary-description"><td>Description</td>
+<td>Text</td>
+<td>Required when editing a row</td>
+<td>The description shown to staff. Saving creates a new version in PENDING_APPROVAL; it is never activated automatically.</td>
+<td>"Modifier {code}" (synthetic)</td>
+</tr>
+<tr id="f-modifier_dictionary-license-status"><td>License status</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>Shows <code>synthetic</code> for the shipped placeholders.</td>
+<td>synthetic</td>
+</tr>
+<tr id="f-modifier_dictionary-upload-csv"><td>Upload <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></td>
+<td>File, CSV</td>
+<td>Optional</td>
+<td>Replaces the dictionary from a file with columns Code and Description. Template: <code>ModifierDictionaryTemplate.csv</code>. Creates a pending version.</td>
+<td>None</td>
+</tr>
+<tr id="f-modifier_dictionary-licence-confirmation"><td>Licence confirmation</td>
+<td>Checkbox</td>
+<td>Required to upload</td>
+<td>You confirm you hold the right to use the uploaded descriptions. The upload does not proceed without it.</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-modifier_dictionary-version-label-for-the-upload"><td>Version label for the upload</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Names the pending version.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Create or edit: <code>config:billing-modifiers:manage</code>. Approve, reject or activate a version: <code>config:billing-tables:approve</code>, used on <a href="#screen-pending_approvals">Pending Billing Rule Approvals</a>. Admin and Lab Director hold both by default. The person who submitted a version cannot approve it.</p>
+<p><strong>Known limits.</strong> The dictionary is a list only. No screen or check enforces a modifier on a charge. The shipped text is synthetic.</p>
+<h3 id="screen-rvu_code_map"><a class="anchor" href="#screen-rvu_code_map" aria-label="Link to this section">#</a> RVU Code Map (Productivity)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; RVU Code Map (Productivity)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> Code Map (Productivity)</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> RVU Code Map (Productivity)</p>
+<p><strong>3. Business purpose and scope.</strong> A small curated list of <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> codes with their relative value units, used for pathologist productivity (work RVU) and as the source list the Billing Dictionary picks CPT codes from. It is not a billing system and carries no dollar amounts. The seed is a subset of the <a class="term" href="99-glossary.html#g-cms" title="The Centers for Medicare and Medicaid Services, the US agency that sets Medicare billing rules, including NCCI edits.">CMS</a> 2026 physician fee schedule relative value file, labelled "CMS 2026 (April update)" (version id <code>rvu-v-seed-2026</code>). Several rows have no work RVU and show as Unverified.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> This is a starting point. A pending or rejected version is never used to resolve a charge, so nothing you upload counts until a second person approves it.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 2</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><a href="#screen-billing_dictionary">Billing Dictionary (Charge Capture)</a>, <a href="#screen-pending_approvals">Pending Billing Rule Approvals</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-rvu_code_map.webp" alt="RVU Code Map table with upload and edit" loading="lazy"><figcaption>RVU Code Map table with upload and edit</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-version"><td>Version</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>The active version label.</td>
+<td>CMS 2026 (April update)</td>
+</tr>
+<tr id="f-rvu_code_map-search"><td>Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filters the table.</td>
+<td>None</td>
+</tr>
+<tr id="f-rvu_code_map-upload-csv"><td>Upload <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></td>
+<td>File, CSV</td>
+<td>Optional</td>
+<td>Columns: Code or <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a>, Description, WorkRVU. Honours the CMS status code (only A, R and T rows are payable) and skips <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> rows. Uploaded rows get their level inferred from the description (default <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>) and billing type Global. Creates a pending version. Template: <code>RvuCodeMapTemplate.csv</code>.</td>
+<td>None</td>
+</tr>
+<tr id="f-rvu_code_map-version-label-for-the-upload"><td>Version label for the upload</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Names the pending version.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h4>Edit window</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-code"><td>Code</td>
+<td>Text</td>
+<td>Required</td>
+<td>The <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> code. Locked when you edit an existing row. A duplicate code is refused.</td>
+<td>None</td>
+</tr>
+<tr id="f-rvu_code_map-billing-code"><td>Billing Code</td>
+<td>Text</td>
+<td>Required</td>
+<td>The PathScribe billing code. Locked when you edit.</td>
+<td>None</td>
+</tr>
+<tr id="f-rvu_code_map-description"><td>Description</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Plain description.</td>
+<td>None</td>
+</tr>
+<tr id="f-rvu_code_map-level"><td>Level</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>, <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a>, <a class="term" href="99-glossary.html#g-stain" title="A dye or antibody applied to a slide so a feature of the tissue can be seen.">stain</a>, decant</td>
+<td>Required</td>
+<td>What the code is counted against.</td>
+<td>specimen</td>
+</tr>
+<tr id="f-rvu_code_map-component-type"><td>Component Type</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>, 26, Global</td>
+<td>Required</td>
+<td>The billing type this row applies to.</td>
+<td>Global</td>
+</tr>
+<tr id="f-rvu_code_map-work-rvu"><td>Work <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a></td>
+<td>Positive number</td>
+<td>Optional</td>
+<td>Leave blank to mark the row Unverified.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-pe"><td>RVU PE</td>
+<td>Number</td>
+<td>Optional</td>
+<td>Practice expense RVU.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-mp"><td>RVU MP</td>
+<td>Number</td>
+<td>Optional</td>
+<td>Malpractice RVU.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-rvu_code_map-hcpcs"><td><a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Level II code if one applies.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Edit or upload: <code>config:billing-rvu:manage</code>. Approve: <code>config:billing-tables:approve</code>. Admin and Lab Director hold both by default. Four-Eyes applies.</p>
+<p><strong>Known limits.</strong> The list is a curated subset, not the full <a class="term" href="99-glossary.html#g-cms" title="The Centers for Medicare and Medicaid Services, the US agency that sets Medicare billing rules, including NCCI edits.">CMS</a> file. Specimen-level base code selection (88302, 88305, 88309) cannot be worked out from the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data, so it is not automatic.</p>
+<h3 id="screen-billing_dictionary"><a class="anchor" href="#screen-billing_dictionary" aria-label="Link to this section">#</a> Billing Dictionary (Charge Capture)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Dictionary (Charge Capture)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Dictionary (Charge Capture)</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> Billing Dictionary (Charge Capture)</p>
+<p><strong>3. Business purpose and scope.</strong> The versioned list of billing rules. Each rule ties a PathScribe billing code to a <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> code, an optional <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a> code, a billing type and <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> values, for the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> or for one site. A site override takes the place of the enterprise rule for that site. Charges are resolved from these rules when a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is finalised.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The CPT picker reads the RVU Code Map and the <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> checkboxes read the CPT Modifier Dictionary. Skip them and the CPT search is empty and no modifiers are offered.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 3</p><dl><dt>Configure first</dt><dd><a href="#screen-rvu_code_map">RVU Code Map</a>, <a href="#screen-modifier_dictionary">CPT Modifier Dictionary</a></dd><dt>This unlocks</dt><dd><a href="#screen-pending_approvals">Pending Billing Rule Approvals</a>, <a href="#screen-billing_release">Billing Release</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-billing_dictionary.webp" alt="Billing Dictionary table with site selector" loading="lazy"><figcaption>Billing Dictionary table with site selector</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-viewing"><td>Viewing</td>
+<td>Choice of Enterprise or one Site</td>
+<td>Required</td>
+<td>Whose rules the table shows.</td>
+<td>Enterprise</td>
+</tr>
+<tr id="f-billing_dictionary-billing-code"><td>Billing Code</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>The PathScribe billing code.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td>CPT</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>The CPT code.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Description</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>The rule description.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td>RVU (Work)</td>
+<td>Number, column</td>
+<td>Not applicable</td>
+<td>Work RVU. A "Code Map: N" <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> shows when the stored RVU differs from the RVU Code Map.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Effective From</td>
+<td>Date, column</td>
+<td>Not applicable</td>
+<td>The date the active version starts.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Scope</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Enterprise-Wide, Site Override or Inherited.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Status</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>The version status.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-versions"><td>Versions</td>
+<td>Number, column</td>
+<td>Not applicable</td>
+<td>How many versions exist.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Actions</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>History, Duplicate, New Version.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>New Version window, tab Billing &amp; RVU</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-billing-code"><td>Billing Code</td>
+<td>Text</td>
+<td>Required for a new code</td>
+<td>The code this rule belongs to.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Scope</td>
+<td>Choice of Enterprise or a Site</td>
+<td>Required</td>
+<td>Where the rule applies.</td>
+<td>The viewed scope</td>
+</tr>
+<tr id="f-billing_dictionary-country"><td>Country</td>
+<td>Choice: US, UK, AU, CA, the 27 <a class="term" href="99-glossary.html#g-eu" title="European Union.">EU</a> states, NZ</td>
+<td>Optional</td>
+<td>The country the code is meant for.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-hcpcs-code"><td><a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a> Code</td>
+<td>Search</td>
+<td>Optional</td>
+<td>Searches the embedded public-domain HCPCS Level II dictionary.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-billing_dictionary-cpt-code"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> Code</td>
+<td>Search of <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> Code Map entries</td>
+<td>Required</td>
+<td>The CPT code to bill.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Description</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Rule description.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-billing_dictionary-level"><td>Level</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>, <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a>, <a class="term" href="99-glossary.html#g-stain" title="A dye or antibody applied to a slide so a feature of the tissue can be seen.">stain</a>, decant</td>
+<td>Required</td>
+<td>What the code is counted against.</td>
+<td>specimen</td>
+</tr>
+<tr id="f-billing_dictionary-component-type"><td>Component Type</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>, 26, Global</td>
+<td>Required</td>
+<td>The billing type.</td>
+<td>Global</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work-pe-mp"><td>RVU Work, PE, MP</td>
+<td>Numbers</td>
+<td>Optional</td>
+<td>The three RVU values.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Effective From</td>
+<td>Date</td>
+<td>Required</td>
+<td>Start date of the version.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Change Reason</td>
+<td>Text</td>
+<td>Required when the scope already has versions</td>
+<td>Kept on the version for audit.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-billing_dictionary-notes"><td>Notes</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Free notes.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<h4>New Version window, tab Coding Rules</h4>
+<p>These are informational and never enforced.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-modifiers-commonly-associated"><td>Modifiers Commonly Associated</td>
+<td>Checkboxes from the <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> Modifier Dictionary</td>
+<td>Optional</td>
+<td>Reminder of modifiers that often go with this code.</td>
+<td>None ticked</td>
+</tr>
+<tr id="f-billing_dictionary-quantity-rule"><td>Quantity Rule</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Advice on units.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-billing_dictionary-bundling-rule"><td>Bundling Rule</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Advice on bundling. <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, a set of US Medicare edits that say which code pairs cannot be billed together.">NCCI</a> pairs are held on <a href="#screen-ncci_edit_rules">NCCI Edit Rules</a>.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-billing_dictionary-documentation-requirements"><td>Documentation Requirements</td>
+<td>Comma-separated text</td>
+<td>Optional</td>
+<td>What the record should show.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-billing_dictionary-suppression-advisory"><td>Suppression Advisory</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Marks a zero-RVU rule as intended, so the zero-fee check stays quiet.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<h4>History window</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-version"><td>Version</td>
+<td>Number, column</td>
+<td>Not applicable</td>
+<td>Version number.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a></td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>CPT on that version.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> (Work)</td>
+<td>Number, column</td>
+<td>Not applicable</td>
+<td>Work RVU.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from-effective-to"><td>Effective From, Effective To</td>
+<td>Dates, columns</td>
+<td>Not applicable</td>
+<td>The period the version applied.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Status</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED or RETIRED.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Change Reason</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>The reason entered.</td>
+<td>None</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Actions</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>Duplicate. Submit for Approval (DRAFT versions). Retire (ACTIVE versions).</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>A new version is always saved as DRAFT. <strong>Submit for Approval</strong> moves it to PENDING_APPROVAL.</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Create, submit and retire: <code>config:billing-rules:manage</code>. Approve or reject: <code>config:billing-tables:approve</code>. Admin and Lab Director hold both by default. Audit events are written for submitted, approved and rejected ("Billing rule submitted for approval").</p>
+<p><strong>Known limits.</strong> There is no price or fee field (see Fee schedules above). Coding Rules are advice only.</p>
+<h2 id="ch8-autocoding-holds"><a class="anchor" href="#ch8-autocoding-holds" aria-label="Link to this section">#</a> Auto-coding engine and billing hold rules</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span></nav>
+
+<p><strong>Auto-coding engine: Partial.</strong> What is built is rule-based and always confirmed by a person:</p>
+<ul>
+<li>Suggested codes from structured <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data: <a class="term" href="99-glossary.html#g-stain" title="A dye or antibody applied to a slide so a feature of the tissue can be seen.">stain</a> categories, 88312 for a special stain, 88342 and +88341 for immunohistochemistry per <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>, and 88331 or 88332 for a <a class="term" href="99-glossary.html#g-frozen-section" title="A tissue sample frozen and cut while the patient is in surgery so a pathologist can give a quick answer.">frozen section</a>.</li>
+<li>A fallback list of default codes. It is not billing-ready.</li>
+<li>Manual code entry in the code window and the billing review panel.</li>
+</ul>
+<p><strong>Not built:</strong> suggestions from the report text by AI or natural-language processing. That work is gated on attorney and compliance input. Base specimen codes (88302, 88305, 88309) are not worked out automatically. The nearest configuration screen is <a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>.</p>
+<p><strong>Sign-out billing checks.</strong> At sign-out PathScribe runs six checks and records a deficiency for each finding:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Code</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td><code>UNSUPPORTED_CPT_LEVEL</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>B</td>
+<td><code>NCCI_BUNDLING_VIOLATION</code> (only pairs with <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> indicator 0)</td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>C</td>
+<td><code>MISSING_DIAGNOSTIC_ICD10</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>D</td>
+<td><code>UNATTACHED_ANCILLARY_ORDER</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>E</td>
+<td><code>MODIFIER_MISMATCH</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>F</td>
+<td><code>ZERO_FEE_MAPPING_ERROR</code></td>
+<td>REVENUE_LEAKAGE</td>
+</tr>
+</tbody>
+</table>
+<p><code>MISSING_CHARGE</code>, <code>POST_SIGNOUT_CORRECTION</code> and <code>BLOCK_DELETED</code> are raised outside sign-out. These checks never stop the pathologist signing out. A toast says billing items were flagged for <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> and the findings go to QA. They do <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> export: a case cannot be exported while any deficiency is OPEN or UNDER_REVIEW. The statuses are OPEN, UNDER_REVIEW, RESOLVED and OVERRIDDEN_WITH_JUSTIFICATION.</p>
+<h3 id="screen-ncci_edit_rules"><a class="anchor" href="#screen-ncci_edit_rules" aria-label="Link to this section">#</a> NCCI Edit Rules (Bundling)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; NCCI Edit Rules (Bundling)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, a set of US Medicare edits that say which code pairs cannot be billed together.">NCCI</a> Edit Rules (Bundling)</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> NCCI Edit Rules (Bundling)</p>
+<p><strong>3. Business purpose and scope.</strong> Holds the National Correct Coding Initiative (NCCI) procedure-to-procedure pairs: a column 1 code and a column 2 code that may not be billed together. A pair with <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> indicator 0 raises a deficiency at sign-out. Real <a class="term" href="99-glossary.html#g-cms" title="The Centers for Medicare and Medicaid Services, the US agency that sets Medicare billing rules, including NCCI edits.">CMS</a> data is not shipped. The seed is one synthetic pair (88305 with 88300, indicator 0, quarter <code>DEMO</code>) and the screen shows a warning. The licence holder uploads the <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a>.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> This is a starting point. An upload or edit becomes a pending import, so approval is needed before the pairs are used.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 4</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><a href="#screen-pending_approvals">Pending Billing Rule Approvals</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-ncci_edit_rules.webp" alt="NCCI Edit Rules with synthetic data warning and pair table" loading="lazy"><figcaption>NCCI Edit Rules with synthetic data warning and pair table</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-quarter-version"><td>Quarter Version</td>
+<td>Text, for example <code>2026Q3</code></td>
+<td>Required to upload</td>
+<td>Names the import.</td>
+<td>None</td>
+</tr>
+<tr id="f-ncci_edit_rules-upload-csv"><td>Upload CSV</td>
+<td>File, CSV</td>
+<td>Optional</td>
+<td>Columns: Column 1, Column 2, Modifier Indicator (0, 1 or 9), Effective Date, Deletion Date. Template: <code>NcciPtpEditTemplate.csv</code>. Creates a pending import.</td>
+<td>None</td>
+</tr>
+<tr id="f-ncci_edit_rules-pair-table"><td>Pair table</td>
+<td>Table, read-only</td>
+<td>Not applicable</td>
+<td>Column 1, Column 2, indicator, dates for the active import.</td>
+<td>One synthetic pair</td>
+</tr>
+<tr id="f-ncci_edit_rules-synthetic-data-warning"><td>Synthetic data warning</td>
+<td>Notice</td>
+<td>Not applicable</td>
+<td>Shown while the active import is the synthetic seed.</td>
+<td>Shown</td>
+</tr>
+</tbody>
+</table>
+<h4>Edit window</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-modifier-indicator"><td>Modifier Indicator</td>
+<td>Choice: 0 never bypass, 1 can bypass with a <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a>, 9 edit does not apply</td>
+<td>Required</td>
+<td>Only 0 pairs raise a deficiency at sign-out.</td>
+<td>Current value</td>
+</tr>
+<tr id="f-ncci_edit_rules-deletion-date"><td>Deletion Date</td>
+<td>Date</td>
+<td>Optional</td>
+<td>The date the pair stops applying.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<p>Each edit sends the whole table again as a new PENDING_APPROVAL import named "Manual edit" with the pair.</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Upload or edit: <code>config:billing-ncci:manage</code>. Approve: <code>config:billing-tables:approve</code>. Admin and Lab Director hold both by default.</p>
+<p><strong>Known limits.</strong> No real <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, a set of US Medicare edits that say which code pairs cannot be billed together.">NCCI</a> data ships. Indicators 1 and 9 do not raise a deficiency.</p>
+<h3 id="screen-pending_approvals"><a class="anchor" href="#screen-pending_approvals" aria-label="Link to this section">#</a> Pending Billing Rule Approvals</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Pending Billing Rule Approvals"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Pending Billing Rule Approvals</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> Pending Billing Rule Approvals</p>
+<p><strong>3. Business purpose and scope.</strong> The second-person approval queue. Billing rule versions, <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> dictionary versions, <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, a set of US Medicare edits that say which code pairs cannot be billed together.">NCCI</a> imports, <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> versions and code import jobs wait here. Nothing takes effect until a person other than the submitter approves it.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The queue only shows items that the earlier screens have submitted. The person approving needs the approve <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> and must not be the submitter.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 5</p><dl><dt>Configure first</dt><dd><a href="#screen-modifier_dictionary">CPT Modifier Dictionary</a>, <a href="#screen-rvu_code_map">RVU Code Map</a>, <a href="#screen-billing_dictionary">Billing Dictionary (Charge Capture)</a>, <a href="#screen-ncci_edit_rules">NCCI Edit Rules</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-pending_approvals.webp" alt="Pending Billing Rule Approvals and Pending Dictionary Updates tables" loading="lazy"><figcaption>Pending Billing Rule Approvals and Pending Dictionary Updates tables</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-pending_approvals-billing-code"><td>Billing Code</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Rules table: the rule's code.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a></td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Rules table.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-rvu-work"><td>RVU (Work)</td>
+<td>Number, column</td>
+<td>Not applicable</td>
+<td>Rules table.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-effective-from"><td>Effective From</td>
+<td>Date, column</td>
+<td>Not applicable</td>
+<td>Rules table.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-scope"><td>Scope</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Rules table.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-drafted-by"><td>Drafted By</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Rules table: the person who drafted.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-submitted-by"><td>Submitted By</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Rules table: the person who submitted.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-change-reason"><td>Change Reason</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Rules table.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-dictionary"><td>Dictionary</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Dictionary table: which dictionary (code import, modifier, NCCI, RVU).</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-label"><td>Label</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Dictionary table: version or job label.</td>
+<td>None</td>
+</tr>
+<tr id="f-pending_approvals-approve"><td>Approve</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Activates the item. For a code import it applies the whole job. If you submitted it the button is locked and a hint says why.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-pending_approvals-reject"><td>Reject</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Opens a reason box; <strong>Confirm Reject</strong> ends the item.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-pending_approvals-rejection-reason"><td>Rejection reason</td>
+<td>Text</td>
+<td>Required to reject</td>
+<td>Stored with the decision.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Approve and reject: <code>config:billing-tables:approve</code>. Admin and Lab Director hold it by default. Decisions write audit events.</p>
+<p><strong>Known limits.</strong> On a one-person system nobody can approve, because the submitter cannot approve their own item.</p>
+<h3 id="screen-billing_release"><a class="anchor" href="#screen-billing_release" aria-label="Link to this section">#</a> Billing Release</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Billing Release"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Billing Release</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Billing Release</p>
+<p><strong>3. Business purpose and scope.</strong> The hold rules. Each rule says which charges it matches and what to do with them: release at once, hold for a time, or release in a scheduled batch, with or without manual review. The most specific matching rule wins. PathScribe decides what and when. The interface engine moves the message.</p>
+<p><strong>Specificity points:</strong> <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> 100, billing type 8, <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> types 4, ordering site 4, pathologist 2, amendment 1.</p>
+<p><strong>When no rule matches:</strong> release at the milestone, manual review on, auto-release on.</p>
+<p><strong>Always applies:</strong> an amendment change is parked for review; a charge whose <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> has no mapping is parked (<code>unmappedCpt</code>); a split case with no technical facility is parked (<code>missingTechnicalFacility</code>).</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A rule can name a facility or ordering site, so set those up first. A scheduled batch is sent on a timetable defined in Delivery Schedules.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 7</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>, <a href="#screen-billing_type_triggers">Charge Release Triggers</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Delivery Schedules</a></dd><dt>This unlocks</dt><dd><a href="#screen-dft_export_preview">Billing Export Preview</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-billing_release.webp" alt="Billing Release rule list with Try a charge panel" loading="lazy"><figcaption>Billing Release rule list with Try a charge panel</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_release-billing-type"><td>Billing type</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>, 26, Global, any</td>
+<td>Required</td>
+<td>Criterion.</td>
+<td>any</td>
+</tr>
+<tr id="f-billing_release-case-types"><td>Case types</td>
+<td>Comma-separated list</td>
+<td>Optional</td>
+<td>Criterion.</td>
+<td>Blank (any)</td>
+</tr>
+<tr id="f-billing_release-ordering-site"><td>Ordering site</td>
+<td>Choice of sites</td>
+<td>Optional</td>
+<td>Criterion.</td>
+<td>Any</td>
+</tr>
+<tr id="f-billing_release-primary-pathologist"><td>Primary pathologist</td>
+<td>Choice of staff</td>
+<td>Optional</td>
+<td>Criterion.</td>
+<td>Any</td>
+</tr>
+<tr id="f-billing_release-amendment"><td>Amendment</td>
+<td>Choice: any, original, amended</td>
+<td>Required</td>
+<td>Criterion.</td>
+<td>any</td>
+</tr>
+<tr id="f-billing_release-release-mode"><td>Release mode</td>
+<td>Choice: DYNAMIC_WITH_HOLD, SCHEDULED_BATCH</td>
+<td>Required</td>
+<td>Release after a hold, or at the next batch.</td>
+<td>DYNAMIC_WITH_HOLD</td>
+</tr>
+<tr id="f-billing_release-hold-duration-minutes"><td>Hold duration (minutes)</td>
+<td>Whole number, 0 to 43,200</td>
+<td>Required for a hold</td>
+<td>How long to hold before release.</td>
+<td>0</td>
+</tr>
+<tr id="f-billing_release-batch-schedule"><td>Batch schedule</td>
+<td>Schedule settings</td>
+<td>Required for a batch</td>
+<td>Editor starts at weekly, Monday to Friday, 22:00, America/New_York.</td>
+<td>See left</td>
+</tr>
+<tr id="f-billing_release-auto-release-on-complete"><td>Auto-release on complete</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Release when the hold ends.</td>
+<td>On</td>
+</tr>
+<tr id="f-billing_release-manual-review-required"><td>Manual review required</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>A person reviews before release.</td>
+<td>On</td>
+</tr>
+<tr id="f-billing_release-try-a-charge"><td>Try a charge</td>
+<td>Test panel</td>
+<td>Optional</td>
+<td>Runs the decision for a sample charge and shows the rule that matched.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Rule checks raise these problem codes: <code>billingTypeInvalid</code>, <code>modeInvalid</code>, <code>holdInvalid</code>, <code>batchRequired</code>, <code>amendmentInvalid</code>, <code>caseTypesInvalid</code>. Three <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> rules (TC, 26, Global) are seeded, each DYNAMIC_WITH_HOLD, 0 minutes, auto-release on, manual review on.</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:billing-release:manage</code>. Admin and Lab Director hold it by default. Saves are audited. Releasing, holding, retracting and resending messages are separate interface capabilities (<code>interface:outbound:release</code>, <code>hold</code>, <code>retract</code>, <code>resend</code>), held by Admin.</p>
+<p><strong>Known limits.</strong> Wired to the Outbound Queue in the demonstration service only.</p>
+<h3 id="screen-dft_export_preview"><a class="anchor" href="#screen-dft_export_preview" aria-label="Link to this section">#</a> Billing Export Preview</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Export Preview"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Export Preview</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> Billing Export Preview</p>
+<p><strong>3. Business purpose and scope.</strong> Look up a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> and see what PathScribe would send for billing. The <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> payload is what PathScribe sends. The <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> <a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, the HL7 message that carries charges to a billing system.">DFT</a>^P03 text is a preview of what the interface engine would build. PathScribe does not make or send HL7. <a class="term" href="99-glossary.html#g-x12" title="The ANSI standard for electronic business transactions, including healthcare claims in the United States.">X12</a> 837P, KVDT and SESAM-Vitale do not exist.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> You need a finalised case with charges. If the case has an open billing deficiency the export is blocked.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 10</p><dl><dt>Configure first</dt><dd><a href="#screen-billing_dictionary">Billing Dictionary (Charge Capture)</a>, <a href="#screen-billing_release">Billing Release</a>, <a href="#screen-jurisdiction_payment_mappings">Jurisdiction Payment Mapping</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-dft_export_preview.webp" alt="Billing Export Preview with JSON payload and HL7 preview" loading="lazy"><figcaption>Billing Export Preview with JSON payload and HL7 preview</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-dft_export_preview-case-id-or-accession"><td>Case id or <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a></td>
+<td>Text</td>
+<td>Required</td>
+<td>The case to preview.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-dft_export_preview-json-payload"><td>JSON payload</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>The <a class="term" href="99-glossary.html#g-webhook" title="A web address that one system calls to push an update to another, such as an LIS sending a status change as JSON.">webhook</a> payload plus the financial class.</td>
+<td>None</td>
+</tr>
+<tr id="f-dft_export_preview-hl7-dft-p03-preview"><td>HL7 DFT^P03 preview</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>Illustration only.</td>
+<td>None</td>
+</tr>
+<tr id="f-dft_export_preview-send-to-billing-engine"><td>Send to billing engine</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Sends to the simulated engine ("Simulated" badge). Blocked while a deficiency is open.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-dft_export_preview-send-financial-class-preview"><td>Send financial class (preview)</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Shows the financial class payload.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open and use: <code>config:interface-preview:view</code>. Admin and Lab Director hold it by default.</p>
+<p><strong>Known limits.</strong> Sending is simulated. No real billing engine is connected.</p>
+<h2 id="ch8-cancer-registry"><a class="anchor" href="#ch8-cancer-registry" aria-label="Link to this section">#</a> Cancer registry configuration</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span></nav>
+
+<p><strong>What exists.</strong> PathScribe has 14 <a class="term" href="99-glossary.html#g-cancer-registry" title="A body that collects cancer diagnoses for a country or region, such as NAACCR registries in North America or the COSD collection in England.">cancer registry</a> definitions and 12 cervical screening <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> definitions. Every cancer registry is marked <code>configurable</code>, meaning the specification is not verified against the registry's published specification. Of the screening registries, three are marked verified: the UK cervical screening management system (CSMS), PALGA in the Netherlands and the Australian National Cancer Screening Register (NCSR).</p>
+<table>
+<thead>
+<tr>
+<th>Cancer registry id</th>
+<th>Wire format named</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>naaccr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-naaccr" title="The North American Association of Central Cancer Registries, which sets data standards for cancer registry reporting in North America.">NAACCR</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a></td>
+</tr>
+<tr>
+<td><code>epath_npcr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-hl7-v2" title="The widely used HL7 message format made of lines of pipe-separated fields, each message starting with an MSH segment.">HL7 v2</a> <a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a></td>
+</tr>
+<tr>
+<td><code>cpac_canada</code></td>
+<td>NAACCR XML</td>
+</tr>
+<tr>
+<td><code>cosd_uk</code></td>
+<td><a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, the English national dataset for cancer registration.">COSD</a> XML (GB_EW)</td>
+</tr>
+<tr>
+<td><code>phs_scotland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nicr_northern_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>ncri_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nkr_netherlands</code></td>
+<td>PALGA <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a></td>
+</tr>
+<tr>
+<td><code>inca_france</code></td>
+<td>CDA CR-ACP</td>
+</tr>
+<tr>
+<td><code>adt_gekid_germany</code></td>
+<td>oBDS XML</td>
+</tr>
+<tr>
+<td><code>bcr_belgium</code></td>
+<td>HD-S4S <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a></td>
+</tr>
+<tr>
+<td><code>aihw_australia</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nz_cancer_registry</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>kccr_korea</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What each format means today.</strong> PathScribe builds one structured JSON payload. The named format is the target the interface engine would translate to. PathScribe does not write NAACCR XML, COSD XML, oBDS, CDA or the other formats. <strong>There is no Spain cancer registry or Spain screening registry</strong>, although Spain is a <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a> in the product. <strong>NAACCR XML as a batch file: Not built.</strong> <strong><a class="term" href="99-glossary.html#g-mips" title="The Merit-based Incentive Payment System, a US Medicare program that adjusts payment by reported quality measures.">MIPS</a> and <a class="term" href="99-glossary.html#g-macra" title="The US Medicare Access and CHIP Reauthorization Act, which created the Quality Payment Program that includes MIPS.">MACRA</a>: Not built</strong> (see <a href="#ch8-quality-reporting">Quality and public health reporting</a>).</p>
+<p><strong>Reporting rules built in.</strong></p>
+<ul>
+<li>The trigger is surgical pathology sign-out only. Cytology never triggers a cancer report. Reporting is fire-and-forget and never holds sign-out.</li>
+<li>Mandatory data: date of birth, diagnosis date, primary diagnosis and <a class="term" href="99-glossary.html#g-icd-o" title="International Classification of Diseases for Oncology, which codes tumour site and type (morphology). The third edition is ICD-O-3, with codes such as 8500/3.">ICD-O</a> code. A registry that keys on a patient identifier also needs that identifier. A report with missing data is held as <code>HOLD_MISSING_MANDATORY_DATA</code> and appears on Registry Exceptions.</li>
+<li>Reportability: only the documented NAACCR exclusions are built (cervical carcinoma in situ and CIN III, prostatic intraepithelial neoplasia III, and skin basal and squamous cell carcinoma). The list is not exhaustive.</li>
+<li>Send gate: a validation instance never sends real cases. A production instance holds a report until go-live is approved for that registry.</li>
+<li>Patient opt-out: the <strong>Honours opt-out</strong> setting is off by default. When off, an opted-out patient is still reported and the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> records that.</li>
+</ul>
+<h3 id="screen-cancer_registry_settings"><a class="anchor" href="#screen-cancer_registry_settings" aria-label="Link to this section">#</a> Cancer Registry Reporting</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Cancer Registry Reporting"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Cancer Registry Reporting</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Lab Materials &amp; Workflows</strong>
+<strong>2. Maintenance item:</strong> Cancer Registry Reporting</p>
+<p><strong>3. Business purpose and scope.</strong> Chooses which <a class="term" href="99-glossary.html#g-cancer-registry" title="A body that collects cancer diagnoses for a country or region, such as NAACCR registries in North America or the COSD collection in England.">cancer registry</a> the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> reports to by default and lets a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> override it. It also holds the go-live approval for each <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>. Each registry row shows its specification status badge, its jurisdictions, its identifier and its wire format.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Facility overrides pick from the facility list, so set up facilities first. Without a registry chosen, no cancer report is made.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 11</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></dd><dt>This unlocks</dt><dd><a href="#screen-batch_registry_feed">Registry Batch Files</a>, <a href="#screen-cosd_destination">UK Cancer Registry (COSD)</a>, <a href="#screen-us_epath">US Electronic Pathology</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-cancer_registry_settings.webp" alt="Enterprise default registry, facility overrides and registry connection panel" loading="lazy"><figcaption>Enterprise default registry, facility overrides and registry connection panel</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-enterprise-default-registry"><td>Enterprise Default registry</td>
+<td>Choice of None plus the 14 registries</td>
+<td>Required</td>
+<td>The registry used for any facility with no override.</td>
+<td>None (the demonstration seed sets Metro General to <code>naaccr_us</code>)</td>
+</tr>
+<tr id="f-cancer_registry_settings-honours-opt-out"><td>Honours opt-out</td>
+<td>Checkbox</td>
+<td>Optional</td>
+<td>When ticked, a patient who has opted out is not reported.</td>
+<td>Off</td>
+</tr>
+<tr id="f-cancer_registry_settings-save"><td>Save</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Saves the two fields above.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-go-live"><td>Registry (go-live)</td>
+<td>Choice</td>
+<td>Required when more than one registry is in use</td>
+<td>Chooses which registry the connection panel below shows.</td>
+<td>The first in use</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-override"><td>Add Override</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Opens a new facility override row.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-facility"><td>Facility</td>
+<td>Choice of facilities</td>
+<td>Required for an override</td>
+<td>The facility the override applies to.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry"><td>Registry</td>
+<td>Choice of the 14 registries</td>
+<td>Required for an override</td>
+<td>The registry for that facility.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-save-cancel-remove"><td>Save, Cancel, Remove</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>Save or discard an override, or remove a saved one.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Registry connection panel (go-live)</h4>
+<p>The same panel appears on <a href="#screen-cytology_registry">Cytology Registry Reporting</a>. It runs a <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> through Pending, Testing, Validated and Live. An instance has one of two roles. A validation instance never sends real data and only runs the test suite. A production instance sends real results only to live registers with a current approval; results are held otherwise and caught up on approval.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-template-version-and-status"><td>Template version and status</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>The registry template version and whether it is current.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-changed"><td>What changed</td>
+<td>List, read-only</td>
+<td>Not applicable</td>
+<td>Changes since the version you last confirmed.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-agreement-reference"><td>Agreement reference</td>
+<td>Text</td>
+<td>Required to record</td>
+<td>The data-sharing agreement reference. <strong>Record agreement</strong> saves it.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cancer_registry_settings-run-test-suite"><td>Run test suite</td>
+<td>Button (validation instance)</td>
+<td>Optional</td>
+<td>Runs the synthetic test cases (<code>SYN-</code> patients): 3 screening and 2 cancer. At least 1 accepted result is needed (<code>REGISTRY_GO_LIVE_MIN_TEST_ACCEPTS</code>).</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-export-validation-record"><td>Export validation record</td>
+<td>Button (validation instance)</td>
+<td>Optional</td>
+<td>Downloads the validation record file.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-validation-record-file"><td>Validation record file</td>
+<td><a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> file (production instance)</td>
+<td>Optional</td>
+<td>Imports a record exported from a validation instance.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-pre-checks"><td>Go-live pre-checks</td>
+<td>List, read-only</td>
+<td>Not applicable</td>
+<td><code>agreementRecorded</code>, <code>templateCurrent</code>, <code>validationRecord</code>, <code>testEvidence</code>, <code>specificationConfirmed</code>, <code>codesMapped</code>, <code>identifierHold</code>, <code>overridesReviewed</code>.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-test-sign-off-reference"><td>Registry test sign-off reference</td>
+<td>Text</td>
+<td>Optional</td>
+<td>The registry's own sign-off reference.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cancer_registry_settings-specification-confirmed"><td>Specification confirmed</td>
+<td>Checkbox</td>
+<td>Required for <code>configurable</code> registries</td>
+<td>You confirm the specification against the registry's own.</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-cancer_registry_settings-request-go-live"><td>Request go-live</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Starts the approval.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-i-am-approving-as"><td>I am approving as</td>
+<td>Choice: Site Administrator, Lab Director, Delegated Lab Director designee</td>
+<td>Required to approve</td>
+<td>The capacity you approve in.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-approve-with-my-credentials"><td>Approve with my credentials</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Asks you to re-enter your credentials, then records the approval.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-withdraw-request-stop-live-reporting"><td>Withdraw request, Stop live reporting</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>Cancel a pending request, or stop a live registry.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-part-of-the-template"><td>Part of the template</td>
+<td>Choice</td>
+<td>Required for a local rule</td>
+<td>Which part of the template a local change touches.</td>
+<td>None</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-the-rule-does"><td>What the rule does</td>
+<td>Text</td>
+<td>Required for a local rule</td>
+<td>Describes the local change or adapter rule.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-rule-remove-confirm-reviewed"><td>Add rule, Remove, Confirm reviewed</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>Manage local rules and confirm they were reviewed.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-the-person-who-requests-go-live-may-also-approve-it"><td>The person who requests go-live may also approve it</td>
+<td>Yes/No (production only)</td>
+<td>Optional</td>
+<td>Allows the requester to approve.</td>
+<td>On</td>
+</tr>
+<tr id="f-cancer_registry_settings-approvals-required"><td>Approvals required</td>
+<td>Whole number, 1 to 3 (production only)</td>
+<td>Optional</td>
+<td>How many approvals are needed.</td>
+<td>1</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-history"><td>Go-live history</td>
+<td>List, read-only</td>
+<td>Not applicable</td>
+<td>Every request, approval and stop.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change the registry settings: <code>config:cancer-registry:manage</code>. Run the test suite: <code>registry:test-suite:run</code>. Approve go-live: <code>registry:live-register:approve</code>. Admin holds these by default; the Lab Director does not hold <code>config:cancer-registry:manage</code>, and holds the go-live approval through its own seed. Approval requires a credential re-entry.</p>
+<p><strong>Known limits.</strong> ICD-O-3 capture is open: the code window's <a class="term" href="99-glossary.html#g-icd-o" title="International Classification of Diseases for Oncology, which codes tumour site and type (morphology). The third edition is ICD-O-3, with codes such as 8500/3.">ICD-O</a> tab stores SNOMED morphology identifiers, not codes such as <code>8500/3</code>. The registry specifications are unverified. This screen has no section-level change <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> in the access table; its buttons grey out through the capability buttons.</p>
+<h3 id="screen-cosd_destination"><a class="anchor" href="#screen-cosd_destination" aria-label="Link to this section">#</a> UK Cancer Registry (COSD)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; UK Cancer Registry (COSD)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>UK Cancer Registry (<a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, the English national dataset for cancer registration.">COSD</a>)</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> UK Cancer Registry (COSD)</p>
+<p><strong>3. Business purpose and scope.</strong> Destination settings for the Cancer Outcomes and Services Dataset (COSD), shown on screen as COSD (England). You set the transport label, the correction window and the non-working dates, once for the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> and optionally once per <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>. The element names in the check panel are PathScribe's simplified model, not the official COSD schema.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Choose the COSD <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> on the <a class="term" href="99-glossary.html#g-cancer-registry" title="A body that collects cancer diagnoses for a country or region, such as NAACCR registries in North America or the COSD collection in England.">cancer registry</a> screen first. Removing a facility entry sends that facility back to the enterprise settings.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 12</p><dl><dt>Configure first</dt><dd><a href="#screen-cancer_registry_settings">Cancer Registry Reporting</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-cosd_destination.webp" alt="COSD destination settings with check panel and correction due calculator" loading="lazy"><figcaption>COSD destination settings with check panel and correction due calculator</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-scope"><td>Scope</td>
+<td>Enterprise or one facility</td>
+<td>Required</td>
+<td>One entry per scope.</td>
+<td>Enterprise</td>
+</tr>
+<tr id="f-cosd_destination-transport"><td>Transport</td>
+<td>Choice: restMtls, sftp, portalUpload</td>
+<td>Required</td>
+<td>A label only. The interface engine holds the address and credentials.</td>
+<td>Secure <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> (restMtls)</td>
+</tr>
+<tr id="f-cosd_destination-correction-working-days"><td>Correction working days</td>
+<td>Whole number, 1 to 30</td>
+<td>Required</td>
+<td>Working days allowed to correct a rejected submission.</td>
+<td>5</td>
+</tr>
+<tr id="f-cosd_destination-non-working-dates"><td>Non-working dates</td>
+<td>List of dates, YYYY-MM-DD</td>
+<td>Optional</td>
+<td>Days not counted as working days. None are assumed.</td>
+<td>None</td>
+</tr>
+<tr id="f-cosd_destination-remove"><td>Remove</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Facility entries only; reverts to enterprise settings.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Check a sample submission</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-nhs-number"><td><a class="term" href="99-glossary.html#g-nhs-number" title="The ten-digit patient identifier used in the NHS in England and Wales. The last digit is a check digit.">NHS number</a></td>
+<td>Text</td>
+<td>Required</td>
+<td>The sample patient.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cosd_destination-date-of-birth"><td>Date of birth</td>
+<td>Date</td>
+<td>Required</td>
+<td>Sample.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cosd_destination-diagnosis-date"><td>Diagnosis date</td>
+<td>Date</td>
+<td>Required</td>
+<td>Sample.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cosd_destination-icd-o-3"><td>ICD-O-3</td>
+<td>Text</td>
+<td>Required</td>
+<td>Sample.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cosd_destination-primary-diagnosis"><td>Primary diagnosis</td>
+<td>Text</td>
+<td>Required</td>
+<td>Sample.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<h4>When is a correction due?</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-rejected-on"><td>Rejected on</td>
+<td>Date</td>
+<td>Required</td>
+<td>Counts the correction working days forward, skipping weekends and your non-working dates.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:cosd-destination:manage</code>. Admin and Lab Director hold it by default.</p>
+<p><strong>Known limits.</strong> The items still to be confirmed against the real <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, the English national dataset for cancer registration.">COSD</a> specification are: element names, the mandatory item list, code list values, date rules, the submission envelope, rejection codes and the correction window start.</p>
+<h3 id="screen-us_epath"><a class="anchor" href="#screen-us_epath" aria-label="Link to this section">#</a> US Electronic Pathology</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; US Electronic Pathology"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>US Electronic Pathology</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> US Electronic Pathology</p>
+<p><strong>3. Business purpose and scope.</strong> Electronic pathology (<a class="term" href="99-glossary.html#g-epath" title="Electronic pathology reporting, the sending of pathology reports to a cancer registry in a standard electronic form.">ePath</a>) reporting to US state cancer registries. A generic National Program of Cancer Registries (NPCR) base message (<a class="term" href="99-glossary.html#g-hl7-v2" title="The widely used HL7 message format made of lines of pipe-separated fields, each message starting with an MSH segment.">HL7 v2</a>.5.1 <a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a>^R01) is adjusted by a state profile and sent over a transport (<a class="term" href="99-glossary.html#g-phin-ms" title="The Public Health Information Network Messaging System, a US transport for sending public health reports.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a>, Direct TCP or an HTTPS <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a>). The state is picked from the performing <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s state, never the patient's address. Only a labelled example profile ships.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The facility needs its state set in the facility dictionary. With no facility or profile, the report is parked (<code>routing:noFacility</code>, <code>routing:noProfile</code>) and sign-out is not held.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 13</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>, <a href="#screen-cancer_registry_settings">Cancer Registry Reporting</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-us_epath.webp" alt="US ePath profile list and assignments" loading="lazy"><figcaption>US ePath profile list and assignments</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-assignment-scope"><td>Assignment scope</td>
+<td>Enterprise or one facility</td>
+<td>Required</td>
+<td>Where a profile applies. A facility falls back to a profile for its own state, then to the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default.</td>
+<td>Enterprise</td>
+</tr>
+<tr id="f-us_epath-assigned-profile"><td>Assigned profile</td>
+<td>Choice of profiles</td>
+<td>Required</td>
+<td>The profile used.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h4>Profile window</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-state"><td>State</td>
+<td>Two letters</td>
+<td>Required</td>
+<td>The state the profile is for.</td>
+<td>None</td>
+</tr>
+<tr id="f-us_epath-name"><td>Name</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Display name.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-us_epath-required-fields"><td>Required fields</td>
+<td>List of segment-field codes such as <code>PID-11</code></td>
+<td>Optional</td>
+<td>Must be filled. Never <code>MSH</code>. Cannot overlap Optional fields.</td>
+<td>None</td>
+</tr>
+<tr id="f-us_epath-optional-fields"><td>Optional fields</td>
+<td>List of segment-field codes</td>
+<td>Optional</td>
+<td>Sent when present.</td>
+<td>None</td>
+</tr>
+<tr id="f-us_epath-transport"><td>Transport</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-phin-ms" title="The Public Health Information Network Messaging System, a US transport for sending public health reports.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a>, Direct TCP, HTTPS <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a></td>
+<td>Required</td>
+<td>Transport label for the interface engine.</td>
+<td>None</td>
+</tr>
+<tr id="f-us_epath-which-facility-decides-the-state"><td>Which <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> decides the state</td>
+<td>Choice: technical component facility, reading facility</td>
+<td>Required</td>
+<td>Picks the facility whose state selects the profile.</td>
+<td>Technical component</td>
+</tr>
+<tr id="f-us_epath-final-report-only"><td>Final report only</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Check.</td>
+<td>Off</td>
+</tr>
+<tr id="f-us_epath-icd-o-morphology-required"><td><a class="term" href="99-glossary.html#g-icd-o" title="International Classification of Diseases for Oncology, which codes tumour site and type (morphology). The third edition is ICD-O-3, with codes such as 8500/3.">ICD-O</a> morphology required</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Check.</td>
+<td>Off</td>
+</tr>
+<tr id="f-us_epath-snomed-required"><td>SNOMED required</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Check.</td>
+<td>Off</td>
+</tr>
+<tr id="f-us_epath-specimen-identifier-required"><td>Specimen identifier required</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Check.</td>
+<td>Off</td>
+</tr>
+<tr id="f-us_epath-provider-npi-required"><td>Provider <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, the ten-digit identifier of a US healthcare provider, needed on a charge.">NPI</a> required</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Check. Fails on demonstration cases, which have no NPI.</td>
+<td>Off</td>
+</tr>
+<tr id="f-us_epath-state-specific-fields"><td>State-specific fields</td>
+<td>Rows of field, mode (required or fixed), value</td>
+<td>Optional</td>
+<td>Extra state rules.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p>A report that fails a check is held for review (<code>HOLD_EPATH_PROFILE</code>).</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:us-epath:manage</code>. Admin and Lab Director hold it by default.</p>
+<p><strong>Known limits.</strong> The OBR and OBX identifiers are defaults, to be confirmed against the NPCR guide. No state profile is verified.</p>
+<h3 id="screen-cytology_registry"><a class="anchor" href="#screen-cytology_registry" aria-label="Link to this section">#</a> Cytology Registry Reporting</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Cytology &gt; Registry Reporting"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Cytology</span> <span aria-hidden="true">›</span> <span>Registry Reporting</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Cytology</strong> &gt; section <strong>Registry Reporting</strong>
+<strong>2. Maintenance item:</strong> Registry Reporting</p>
+<p><strong>3. Business purpose and scope.</strong> Cervical screening programme reporting, separate from cancer registries. A screening result never triggers a cancer report. There are 12 definitions: <code>csms_uk</code>, <code>nicsp_northern_ireland</code>, <code>sccrs_scotland</code>, <code>cervicalcheck_ireland</code>, <code>palga_netherlands</code>, <code>germany_okfe</code>, <code>france_crcdc</code>, <code>belgium_chr</code>, <code>ncsr_australia</code>, <code>ncsp_new_zealand</code>, <code>canada_provincial</code> and <code>kncsp_kccr_korea</code>. There is no US or Spain screening <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>. Each registry's mapping connects your cytology categories to the registry's codes for adequacy, primary interpretation, additional interpretation and recommendation.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The mapping table lists your cytology interpretation categories, so those come first. Skip them and the table is empty.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 14</p><dl><dt>Configure first</dt><dd><a href="03-tier2-master-dictionaries.html#screen-cytology_categories">Interpretation and Recommendations</a>, <a href="03-tier2-master-dictionaries.html#screen-cytology_nomenclature">Nomenclature System</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></dd><dt>This unlocks</dt><dd><a href="#screen-batch_registry_feed">Registry Batch Files</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/cytology-cytology_registry.webp" alt="Cytology Registry Reporting with enterprise default, overrides and mapping table" loading="lazy"><figcaption>Cytology Registry Reporting with <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default, overrides and mapping table</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-enterprise-default-registry"><td>Enterprise Default registry</td>
+<td>Choice of None plus the 12 registries</td>
+<td>Required</td>
+<td>Used by any <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> with no override.</td>
+<td>None</td>
+</tr>
+<tr id="f-cytology_registry-save"><td>Save</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Saves the default.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cytology_registry-add-override"><td>Add Override</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Starts a facility override.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-cytology_registry-facility"><td>Facility</td>
+<td>Choice of facilities</td>
+<td>Required for an override</td>
+<td>The facility.</td>
+<td>None</td>
+</tr>
+<tr id="f-cytology_registry-registry"><td>Registry</td>
+<td>Choice of the 12 registries</td>
+<td>Required for an override</td>
+<td>The registry for it.</td>
+<td>None</td>
+</tr>
+<tr id="f-cytology_registry-save-cancel-configure-remove"><td>Save, Cancel, Configure, Remove</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>Save or discard an override, open its configuration, or remove it.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Registry configuration</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-registry"><td>Registry</td>
+<td>Choice</td>
+<td>Required</td>
+<td>The <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> being configured.</td>
+<td>The first</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-until-every-category-it-uses-has-a-registry-code"><td>Hold a result until every category it uses has a registry code</td>
+<td>Checkbox</td>
+<td>Optional</td>
+<td>Disabled for built-in registries.</td>
+<td>Off</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-unless-the-patient-has-a-verified-identifier"><td>Hold a result unless the patient has a verified identifier</td>
+<td>Checkbox</td>
+<td>Optional</td>
+<td>Shown only when the registry has an identifier format.</td>
+<td>Off</td>
+</tr>
+<tr id="f-cytology_registry-category"><td>Category</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Your cytology category.</td>
+<td>None</td>
+</tr>
+<tr id="f-cytology_registry-field"><td>Field</td>
+<td>Text, column</td>
+<td>Not applicable</td>
+<td>Adequacy, primary interpretation, additional interpretation or recommendation.</td>
+<td>None</td>
+</tr>
+<tr id="f-cytology_registry-registry-code"><td>Registry code</td>
+<td>Text</td>
+<td>Optional</td>
+<td>The registry's code.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cytology_registry-registry-text"><td>Registry text</td>
+<td>Text</td>
+<td>Optional</td>
+<td>The registry's text, for registries that use text coding.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-cytology_registry-save-registry-configuration"><td>Save registry configuration</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Saves the mapping.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>Registry connection panel</strong> is described under <a href="#screen-cancer_registry_settings">Cancer Registry Reporting</a>. Here it uses the screening capabilities.</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:screening-registry:manage</code>. Run the test suite: <code>registry:test-suite:run</code>. Approve go-live: <code>registry:live-register:approve</code>. Admin holds these by default. The Lab Director does not hold <code>config:screening-registry:manage</code> by default.</p>
+<p><strong>Known limits.</strong> Three registries are marked verified (CSMS, PALGA, NCSR); the others are configurable and unverified. Germany, France and Belgium are batch-file registries (see Registry Batch Files).</p>
+<h3 id="screen-batch_registry_feed"><a class="anchor" href="#screen-batch_registry_feed" aria-label="Link to this section">#</a> Registry Batch Files</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Registry Batch Files"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Registry Batch Files</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Lab Materials &amp; Workflows</strong>
+<strong>2. Maintenance item:</strong> Registry Batch Files</p>
+<p><strong>3. Business purpose and scope.</strong> For a <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> that takes files rather than messages, a batch profile says which records go in, how the file is laid out and how it is named. Formats: <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a> and <a class="term" href="99-glossary.html#g-naaccr" title="The North American Association of Central Cancer Registries, which sets data standards for cancer registry reporting in North America.">NAACCR</a> XML. <strong>NAACCR XML is listed but Not built</strong>: the shipped NAACCR profile is disabled. One example profile ships (based on <code>germany_okfe</code>, CSV, <code>;</code> delimiter, 10 columns, off) and is not a programme specification. Real programme layouts are Not built.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A batch is made on the timetable in Delivery Schedules and sent by the interface engine over <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a>. Choose the registry on the cancer or cytology screen first.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 15</p><dl><dt>Configure first</dt><dd><a href="#screen-cancer_registry_settings">Cancer Registry Reporting</a>, <a href="#screen-cytology_registry">Cytology Registry Reporting</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Delivery Schedules</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-batch_registry_feed.webp" alt="Registry Batch Files profile cards" loading="lazy"><figcaption>Registry Batch Files profile cards</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-waiting"><td>Waiting</td>
+<td>Counts, read-only</td>
+<td>Not applicable</td>
+<td><strong>Check what is waiting</strong> shows waiting, due now, held back, overdue and next file.</td>
+<td>None</td>
+</tr>
+<tr id="f-batch_registry_feed-make-the-file-now"><td>Make the file now</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Makes a file by hand. It downloads once and is never stored. A manifest lists <a class="term" href="99-glossary.html#g-sha-256" title="A cryptographic hash that turns a file or record into a fixed fingerprint, used to detect a change.">SHA-256</a>, sequence, counts and held-back records.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-batch_registry_feed-turn-on-turn-off"><td>Turn on, Turn off</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Enables the profile.</td>
+<td>Off</td>
+</tr>
+<tr id="f-batch_registry_feed-edit"><td>Edit</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Opens the profile editor.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-batch_registry_feed-remove"><td>Remove</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Not available for shipped profiles.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-batch_registry_feed-run-status"><td>Run status</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>awaitingAck, accepted, partlyRejected or rejected.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h4>Profile editor</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-program-name"><td>Program name</td>
+<td>Text</td>
+<td>Required</td>
+<td>Names the programme.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-batch_registry_feed-registry"><td>Registry</td>
+<td>Choice of all 26 registries (screening and cancer)</td>
+<td>Required</td>
+<td>Which <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>.</td>
+<td>None</td>
+</tr>
+<tr id="f-batch_registry_feed-file-format"><td>File format</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a>, <a class="term" href="99-glossary.html#g-naaccr" title="The North American Association of Central Cancer Registries, which sets data standards for cancer registry reporting in North America.">NAACCR</a> XML</td>
+<td>Required</td>
+<td>NAACCR XML is refused (<code>formatNotAvailable</code>).</td>
+<td>CSV</td>
+</tr>
+<tr id="f-batch_registry_feed-delimiter"><td>Delimiter</td>
+<td>Choice: comma, semicolon, tab</td>
+<td>Required for CSV</td>
+<td>Column separator.</td>
+<td>Comma</td>
+</tr>
+<tr id="f-batch_registry_feed-first-row-holds-headings"><td>First row holds headings</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Writes a heading row.</td>
+<td>On</td>
+</tr>
+<tr id="f-batch_registry_feed-protect-against-spreadsheet-formulas"><td>Protect against spreadsheet formulas</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Guards text that starts like a formula.</td>
+<td>On</td>
+</tr>
+<tr id="f-batch_registry_feed-xml-root-and-record-element"><td>XML root and record element</td>
+<td>Text, two boxes</td>
+<td>Required for XML</td>
+<td>Valid and different names.</td>
+<td>Results, Result</td>
+</tr>
+<tr id="f-batch_registry_feed-code-in-file-name"><td>Code in file name</td>
+<td>Text, 1 to 20 letters, digits, hyphen or underscore</td>
+<td>Optional</td>
+<td>The programme code in the file name.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-batch_registry_feed-file-name-pattern"><td>File name pattern</td>
+<td>Text using {program} {date} {time} {seq}</td>
+<td>Required</td>
+<td>Must contain {date} or {seq}.</td>
+<td><code>{program}_{date}_{seq}</code></td>
+</tr>
+<tr id="f-batch_registry_feed-columns"><td>Columns</td>
+<td>List: field (15 fields), Heading, Required, move up, move down, remove, Add a column</td>
+<td>Required</td>
+<td>Each field once. A record missing a required column is held back as <code>REGISTRY_NOT_READY</code>.</td>
+<td>None</td>
+</tr>
+<tr id="f-batch_registry_feed-live-preview"><td>Live preview</td>
+<td>Text, read-only</td>
+<td>Not applicable</td>
+<td>Shows the file layout.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Manage profiles: <code>config:batch-registry-feed:manage</code> (Admin and Lab Director). Make a file: <code>registry:batch-file:generate</code> (Admin, and it needs the first <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>).</p>
+<p><strong>Known limits.</strong> A single-record resend from Registry Exceptions still sends a message for a batch programme. The schedule comes from Delivery Schedules. <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a> delivery belongs to the interface engine.</p>
+<h2 id="ch8-quality-reporting"><a class="anchor" href="#ch8-quality-reporting" aria-label="Link to this section">#</a> Quality and public health reporting (MIPS/MACRA)</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span></nav>
+
+<p><strong>Status:</strong> Not built</p>
+<p>PathScribe has no Merit-based Incentive Payment System (<a class="term" href="99-glossary.html#g-mips" title="The Merit-based Incentive Payment System, a US Medicare program that adjusts payment by reported quality measures.">MIPS</a>), Medicare Access and CHIP Reauthorization Act (<a class="term" href="99-glossary.html#g-macra" title="The US Medicare Access and CHIP Reauthorization Act, which created the Quality Payment Program that includes MIPS.">MACRA</a>) or Quality Payment Program measure, screen, export or contract. A search of the source and documents found none. Nothing here calculates a quality measure or builds a submission file.</p>
+<p><strong>The nearest things that exist:</strong></p>
+<ul>
+<li>The <a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a> sends <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data to a business intelligence tool, where you can build your own measures.</li>
+<li>Exports: users with the right <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> can download exports from the application, and the <a href="#screen-audit-financial">System Logs financial tab</a> exports billing events as <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a>.</li>
+<li>Cancer and cervical screening <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> reporting (above) is the public health reporting that is built, in the limits described.</li>
+</ul>
+<h2 id="ch8-payment-reference"><a class="anchor" href="#ch8-payment-reference" aria-label="Link to this section">#</a> Jurisdiction payment mappings, master payment types and the financial log</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span></nav>
+
+<p>PathScribe describes who pays in two layers. A <strong>master payment type</strong> is a category used everywhere (for example commercial insurance). A <strong><a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a> payment mapping</strong> says that a local scheme (for example <code>DE_GKV</code>) belongs to one category and which outbound format it is meant for. The financial class that goes with a charge is built from both. The outbound formats named on the mapping are labels only: <a class="term" href="99-glossary.html#g-x12" title="The ANSI standard for electronic business transactions, including healthcare claims in the United States.">X12</a> 837P, KVDT and SESAM-Vitale are Planned and none is generated.</p>
+<h3 id="screen-master_payment_types"><a class="anchor" href="#screen-master_payment_types" aria-label="Link to this section">#</a> Master Payment Type Dictionary</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Master Payment Type Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Master Payment Type Dictionary</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> Master Payment Type Dictionary</p>
+<p><strong>3. Business purpose and scope.</strong> The payment categories that mappings, accessioning and the charge payload use. Eleven are seeded: SELF_PAY, PATIENT_COPAY_GAP, COMMERCIAL_INSURANCE, MUTUELLE_COMPLEMENTARY, STATUTORY_SOCIAL_HEALTH, PUBLIC_UNIVERSAL_BENEFIT, PUBLIC_NHS (identifier label "NHS Number"), RECIPROCAL_INTERNATIONAL, SPONSOR_CLINICAL_TRIAL, OCCUPATIONAL_WORKERS_COMP (identifier label "Claim #") and DIRECT_CONTRACT_INSTITUTIONAL.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> This is a starting point for payment. Mappings can only pick an active type here.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 8</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><a href="#screen-jurisdiction_payment_mappings">Jurisdiction Payment Mapping</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-master_payment_types.webp" alt="Master Payment Type Dictionary list" loading="lazy"><figcaption>Master Payment Type Dictionary list</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-master_payment_types-id"><td>Id</td>
+<td>Text</td>
+<td>Required</td>
+<td>Stored in capitals, spaces become underscores. Locked after you create it, because mappings refer to it. A duplicate is refused.</td>
+<td>None</td>
+</tr>
+<tr id="f-master_payment_types-display-name"><td>Display name</td>
+<td>Text</td>
+<td>Required</td>
+<td>The name staff see.</td>
+<td>None</td>
+</tr>
+<tr id="f-master_payment_types-requires-subscriber-id"><td>Requires subscriber id</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Staff must enter a subscriber or policy number.</td>
+<td>Off</td>
+</tr>
+<tr id="f-master_payment_types-subscriber-id-label"><td>Subscriber id label</td>
+<td>Text</td>
+<td>Optional</td>
+<td>The label for that number (for example "Claim #").</td>
+<td>Blank</td>
+</tr>
+<tr id="f-master_payment_types-requires-guarantor"><td>Requires guarantor</td>
+<td>Choice: required, optional, not required</td>
+<td>Required</td>
+<td>Whether a guarantor is needed.</td>
+<td>not required</td>
+</tr>
+<tr id="f-master_payment_types-supports-split-billing"><td>Supports split billing</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Whether technical and professional parts may go to different payers.</td>
+<td>Off</td>
+</tr>
+<tr id="f-master_payment_types-notes"><td>Notes</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Free notes.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-master_payment_types-active"><td>Active</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td><strong>Deactivate</strong> and <strong>Reactivate</strong> buttons.</td>
+<td>Active</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:payment-types:manage</code>. Admin and Lab Director hold it by default.</p>
+<p><strong>Known limits.</strong> Deactivating a type is not checked against the mappings that use it.</p>
+<h3 id="screen-jurisdiction_payment_mappings"><a class="anchor" href="#screen-jurisdiction_payment_mappings" aria-label="Link to this section">#</a> Jurisdiction Payment Mapping</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Jurisdiction Payment Mapping"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Jurisdiction Payment Mapping</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Financial &amp; Revenue Lookups</strong>
+<strong>2. Maintenance item:</strong> Jurisdiction Payment Mapping</p>
+<p><strong>3. Business purpose and scope.</strong> Maps each local payer scheme to a master payment type. The Accessioning "Outside Patient Data" tab reads these (Primary Jurisdiction selector), and the financial class payload uses them. Thirteen rows are seeded: US_MEDICARE, US_COMMERCIAL, CA_OHIP (country code CA_ON), UK_NHS_TRUST, DE_GKV, DE_BG, FR_CPAM, FR_MUTUELLE, NL_BASIS, BE_MUT, AU_MBS, NZ_ACC and KR_NHIS. <strong>There is no row for Spain, Scotland, Northern Ireland or Ireland</strong>, although the code defines 14 jurisdictions including Spain.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The master type list must hold the category first. Only active types are offered.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 7, step 9</p><dl><dt>Configure first</dt><dd><a href="#screen-master_payment_types">Master Payment Type Dictionary</a>, <a href="02-tier1-primary-prerequisites.html#screen-jurisdiction_overview">Jurisdiction overview</a></dd><dt>This unlocks</dt><dd><a href="#screen-dft_export_preview">Billing Export Preview</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-jurisdiction_payment_mappings.webp" alt="Jurisdiction Payment Mapping list with country filter" loading="lazy"><figcaption>Jurisdiction Payment Mapping list with country filter</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-jurisdiction_payment_mappings-country-filter"><td>Country filter</td>
+<td>Choice of countries</td>
+<td>Optional</td>
+<td>Narrows the list.</td>
+<td>All</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-show-inactive"><td>Show inactive</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>Includes inactive rows.</td>
+<td>Off</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-country-code"><td>Country code</td>
+<td>Text</td>
+<td>Required</td>
+<td>Stored in capitals. Free text, not checked against the <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a> list.</td>
+<td>None</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-scheme-code"><td>Local scheme code</td>
+<td>Text</td>
+<td>Required</td>
+<td>Stored in capitals.</td>
+<td>None</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-display-terminology"><td>Local display terminology</td>
+<td>Text</td>
+<td>Required</td>
+<td>The name staff see.</td>
+<td>None</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-master-payment-type"><td>Master payment type</td>
+<td>Choice of active master types</td>
+<td>Required</td>
+<td>The category.</td>
+<td>None</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-primary-outbound-format"><td>Primary outbound format</td>
+<td>Text</td>
+<td>Required</td>
+<td>A label such as <a class="term" href="99-glossary.html#g-x12" title="The ANSI standard for electronic business transactions, including healthcare claims in the United States.">X12</a> 837P. No file is generated.</td>
+<td>None</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-notes"><td>Notes</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Free notes.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-active"><td>Active</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td>Inactive rows are hidden from the Primary Jurisdiction selector.</td>
+<td>Active</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:payment-mappings:manage</code>. Admin and Lab Director hold it by default.</p>
+<p><strong>Known limits.</strong> There is no duplicate check on country and scheme code. X12 837P, KVDT and SESAM-Vitale output are Planned.</p>
+<h3 id="screen-audit-financial"><a class="anchor" href="#screen-audit-financial" aria-label="Link to this section">#</a> System Logs: Financial</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; System Logs &gt; Financial"><span>Home</span> <span aria-hidden="true">›</span> <span>System Logs</span> <span aria-hidden="true">›</span> <span>Financial</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> <strong>System Logs</strong> page &gt; tab <strong>Financial</strong>
+<strong>2. Maintenance item:</strong> Not applicable, this is a log page.</p>
+<p><strong>3. Business purpose and scope.</strong> A read-only view of billing events and of failed or queued outbound charges. It has two sub-tabs: <strong>Billing Logs</strong> and <strong>Outbound <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a></strong> (<a class="term" href="99-glossary.html#g-dead-letter" title="A message or job that failed every automatic retry and now waits for a person to resend or discard it.">dead letter</a> queue, the list of charges that failed to send).</p>
+<p><strong>4. Prerequisites and dependencies.</strong> It shows data only after charges exist.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#screen-billing_dictionary">Billing Dictionary (Charge Capture)</a>, <a href="#screen-billing_release">Billing Release</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-audit-financial.webp" alt="System Logs Financial tab, Billing Logs filters and results" loading="lazy"><figcaption>System Logs Financial tab, Billing Logs filters and results</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<h4>Billing Logs filters</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-number"><td>Case Number</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-patient-name"><td>Patient Name</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-patient-name-range-a-z"><td>Patient Name Range (A-Z)</td>
+<td>Two letters</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-patient-id-mrn-mpi"><td>Patient ID (<a class="term" href="99-glossary.html#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a>/<a class="term" href="99-glossary.html#g-mpi" title="Master patient index, the record that links the different identifiers one patient has.">MPI</a>)</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-billing-event-date-from-to"><td>Billing Event Date from, to</td>
+<td>Dates</td>
+<td>Optional</td>
+<td>Filter on the event date.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-date-of-service-from-to"><td>Date of Service from, to</td>
+<td>Dates</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-report-sign-out-date-from-to"><td>Report Sign-out Date from, to</td>
+<td>Dates</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-type"><td>Type</td>
+<td>Choice: Charge, Credit, Deficiency, Code Review, Dispatch, Amendment, Audit</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>All</td>
+</tr>
+<tr id="f-audit-financial-billing-type"><td>Billing Type</td>
+<td>Choice</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>All</td>
+</tr>
+<tr id="f-audit-financial-status"><td>Status</td>
+<td>Choice: Draft, Pending Approval, Approved, Exported, Rejected, Hold</td>
+<td>Optional</td>
+<td>Filter.</td>
+<td>All</td>
+</tr>
+<tr id="f-audit-financial-staff-signing-pathologist-ordering-facility"><td>Staff, Signing Pathologist, Ordering Facility</td>
+<td>Lookups (Browse)</td>
+<td>Optional</td>
+<td>Filters.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-detail-text-search"><td>Detail text search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Searches the detail text.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-financial-saved-queries"><td>Saved queries</td>
+<td>Choice and Save</td>
+<td>Optional</td>
+<td>Kept as personal settings.</td>
+<td>None</td>
+</tr>
+<tr id="f-audit-financial-clear-search"><td>Clear, Search</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>Reset or run.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-financial-export-csv"><td>Export <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></td>
+<td>Button</td>
+<td>Optional</td>
+<td>Needs <code>audit:billing-log:export</code>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Billing Logs results</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-patient-patient-id"><td>Case, Patient, Patient ID</td>
+<td>Columns</td>
+<td>Not applicable</td>
+<td>Patient data is tagged as protected health information.</td>
+<td>None</td>
+</tr>
+<tr id="f-audit-financial-timestamp-type-billing-type-status-event-detail"><td>Timestamp, Type, Billing Type, Status, Event, Detail</td>
+<td>Columns</td>
+<td>Not applicable</td>
+<td>The event.</td>
+<td>None</td>
+</tr>
+<tr id="f-audit-financial-staff-pathologist-facility"><td>Staff, Pathologist, Facility</td>
+<td>Columns</td>
+<td>Not applicable</td>
+<td>Who and where.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p>The search shows at most 50 cases. A "Case limit reached" message appears when more match.</p>
+<h4>Outbound DLQ</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-lab-filter"><td>Lab filter</td>
+<td>Choice, "All Performing Labs"</td>
+<td>Optional</td>
+<td>Limits both tables.</td>
+<td>All Performing Labs</td>
+</tr>
+<tr id="f-audit-financial-failed-case-performing-lab-component-error-retries"><td>Failed: Case, Performing Lab, Component, Error, Retries</td>
+<td>Columns</td>
+<td>Not applicable</td>
+<td>Error codes: <code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_REJECTED</code>. The last two appear only through the test buttons.</td>
+<td>None</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-save-amp-re-queue"><td>Fix &amp; Retry: Save &amp; Re-queue</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Attaches an <a class="term" href="99-glossary.html#g-icd-10" title="The International Classification of Diseases, tenth revision, a diagnosis code set.">ICD-10</a> code or provider <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, the ten-digit identifier of a US healthcare provider, needed on a charge.">NPI</a> to the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> (audited) and re-queues.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-retry-dispatch"><td>Fix &amp; Retry: Retry Dispatch</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Tries again.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-financial-capa-capture-as-capa"><td><a class="term" href="99-glossary.html#g-capa" title="Corrective and preventive action. A tracked response to a quality problem, with an owner and a reason for opening or dismissing it.">CAPA</a>: Capture as CAPA</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Raises a deficiency of type <code>def-outbound-dispatch-failure</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-financial-queued-case-performing-lab-component-trigger"><td>Queued: Case, Performing Lab, Component, Trigger</td>
+<td>Columns</td>
+<td>Not applicable</td>
+<td>Charges waiting to send.</td>
+<td>None</td>
+</tr>
+<tr id="f-audit-financial-simulate-timeout-simulate-rejected"><td>Simulate Timeout, Simulate Rejected</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>For testing only. Real dispatch is not built.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:audit-log:open</code>, held by Admin, Lab Director and <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> Reviewer by default. Export billing logs to <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a>: <code>audit:billing-log:export</code>. The same page has the Audit Log, Error Log, Interface Log, Quality Assurance, Critical Alerts, Consult links and Server jobs tabs; see <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Interface logs</a> and <a href="09-appendices.html#screen-audit-log">Audit Log</a>.</p>
+<p><strong>Known limits.</strong> The dispatch simulation is a testing aid. No live billing system receives charges.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

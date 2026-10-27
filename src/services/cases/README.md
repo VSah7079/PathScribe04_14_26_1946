@@ -1,3 +1,7 @@
+**Batch 650:** `poolClaimWindow.ts`: Accept case / Pass case (Alt+A, Ctrl+Alt+P) press the pool claim window's buttons only once it is ready and the capability (`case:pool:claim` / `case:pool:pass`) is held; the window takes the context the registry files them under (`POOL_WINDOW_VOICE_CONTEXT`). Test: `poolClaimWindow.test.ts`.
+
+**Batch 649:** `poolCaseActions.ts`: claiming (`case:pool:claim`, high risk, audited) and passing (`case:pool:pass`) a pool case check their capability in the service; pool membership rules still apply. A refusal is reported as `isPoolActionNotPermitted`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/cases/
@@ -393,3 +397,16 @@ The AI calls in `mockCaseService.ts` (synoptic suggestions, template assignment,
 ## Batch 617 (part A): server versions (PS-514)
 
 `countersignService`, `onDemandCaseFetchService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_WORKFLOWS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 651
+`generateAiSuggestionsForReport` (`mockCaseService.ts`) drops suggestions below confidence 30 or off the template's option list (`aiIntegration/aiSuggestionRules.ts`).
+Batch 651 (audit gaps): `poolCaseActions.ts` writes "Pool case claimed / passed" and "Pool claim hold taken / released" (the 30-second claim lock); `saveCaseTeam.ts` with the new `caseTeamAudit.ts` writes "Case team changed" (slot ids, no names); the new `postCaseComment.ts` builds, saves and audits case and specimen comments (moved out of `SynopticReportPage.tsx`, which got shorter; comment text is never audited). See `auditlog/README.md` for the event list. Tests: `poolCaseActions.test.ts`, `saveCaseTeam.test.ts`, `postCaseComment.test.ts`.
+
+## Batch 652 — Specimen pipeline gaps
+
+- **`poolAssignmentTimeout.ts`**: the caller for `RoutingConfig.assignmentTimeoutSec` (300 s by default). `assignmentWaitExpired` (pure), `expireUnassignedCases` and `startAssignmentTimeoutSweep` (scheduler used by the Worklist, `pages/WorklistPage/hooks/usePoolAssignmentTimeout.ts`). A case still unassigned and unpooled that long after grossing completed is routed with `routeCase`; a case a pathologist holds is never touched. Interim browser timer; a scheduled server function should replace it. Audit: "Case routed to pool after assignment timeout". Test (fake timers): `poolAssignmentTimeout.test.ts`.
+- `Case.lockboxReceiptId` is written by the Lockbox link (below).
+
+- Batch 664: `collaboratorCommand.ts` (pure) and `collaboratorVoice.test.ts`: "Add Collaborator [name]" matches one active staff member by first/last name (accents folded, titles dropped; none or several = nobody added), and `withCollaborator` adds them to the case team as a `consultant` (a removed member comes back as one record). The save is `saveCaseTeam` (case:team:manage, cytotech rule, newer-team protection), run by `pages/SynopticReportPage/hooks/useCollaboratorCommand.ts`.
+
+- Batch 665: `collaboratorNotice` builds the message the new collaborator receives (an app notice sent through `messageService.send` after the team save; a failed send is reported and never undoes the add).

@@ -511,3 +511,39 @@ describe('Batch 467b: send-out orders', () => {
     expect((await engine.dispatchAction({ type: 'SET_SEND_OUT_LAB', orderId: 'MO-1', labId: 'ref-2' })).ok).toBe(true);
   });
 });
+
+describe('Batch 669 (mol-9): Clone & Supersede keeps the orders on a plate that can still be dispatched', () => {
+  const clone = (over: Partial<MolecularBatch> = {}): MolecularBatch => plate({
+    id: 'mb-2', batchUuid: 'uuid-2', plateBarcode: 'PLT-2', clonedFromBatchId: 'mb-1',
+    wells: [...plate().wells, { wellPosition: 'A03', sampleType: 'PATIENT_SPECIMEN', orderId: 'MO-1', accessionNumber: 'S26-1', specimenUuid: 'sp1' }],
+    ...over,
+  });
+
+  it('an order waiting on the superseded plate is pointed at the clone, in the same well', async () => {
+    const engine = await queuedAndAssigned();
+    const wellBefore = orders[0].plate!.wellPosition;
+    const moved = await engine.onPlateSuperseded('uuid-1', clone({ wells: [...plate().wells, { wellPosition: wellBefore, sampleType: 'PATIENT_SPECIMEN', orderId: 'MO-1' }] }));
+    expect(moved).toBe(1);
+    expect(orders[0]).toMatchObject({ status: 'PLATE_ASSIGNED', plate: { batchId: 'mb-2', batchUuid: 'uuid-2', plateBarcode: 'PLT-2', wellPosition: wellBefore } });
+    expect(audits[audits.length - 1]).toMatchObject({ event: 'PLATE_ASSIGNED' });
+    expect(audits[audits.length - 1]!.detail).toContain('PLT-2');
+  });
+
+  it('an order the clone does not hold (cleared, or already running) stays where it is', async () => {
+    const engine = await queuedAndAssigned();
+    expect(await engine.onPlateSuperseded('uuid-1', clone({ wells: plate().wells }))).toBe(0);
+    expect(orders[0].plate!.batchUuid).toBe('uuid-1');
+    await engine.onWorklistDispatched('uuid-1');
+    expect(await engine.onPlateSuperseded('uuid-1', clone())).toBe(0);
+    expect(orders[0]).toMatchObject({ status: 'IN_RUN', plate: { batchUuid: 'uuid-1' } });
+  });
+
+  it('Take off plate works for an order still pointing at a superseded plate (it used to be refused, leaving only Cancel)', async () => {
+    const engine = await queuedAndAssigned();
+    batches = batches.map(b => ({ ...b, status: 'superseded' as const }));
+    const r = await engine.dispatchAction({ type: 'REMOVE_FROM_PLATE', orderId: 'MO-1' });
+    expect(r.ok).toBe(true);
+    expect(orders[0].status).toBe('QUEUED');
+    expect(orders[0].plate).toBeUndefined();
+  });
+});

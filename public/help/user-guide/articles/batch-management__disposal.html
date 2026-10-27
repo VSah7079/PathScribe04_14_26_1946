@@ -1,0 +1,227 @@
+<h1 id="top">Disposal Queue</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Disposal Queue lists the specimens, blocks and slides that may be thrown away today, and lets you record the disposal by scanning the physical item. Before it accepts a scan, PathScribe re-checks that the item is really allowed to go. Anything that is not is refused at once with a full-screen red warning, so the wrong block is not discarded.</p>
+<p><strong>Intended users.</strong> Staff who handle retained material: histotechnologists, cytotechnologists, molecular technologists and laboratory managers. Scanning to dispose needs its own permission, which the bench roles have by default.</p>
+<p><strong>Where it fits.</strong> Material enters this list when the case has been signed out and the retention period for that kind of material has ended, and no retention hold is active on the case. Placing a hold on the case removes its material from the list. What is disposed here appears in the <a href="/help/batch-management/disposal-report">Waste Tracking Report</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Disposal cannot be undone</p>
+<p>A successful scan marks the item as disposed on the case, with your name and the time. There is no undo on this screen. Scan only the item you hold in your hand, and put it in the waste stream straight after the green confirmation.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Retention periods</p>
+<p>How long each kind of material is kept comes from your laboratory's retention policy and jurisdiction, set by your administrator. In this version some of the supplied retention figures are placeholders that your records or compliance lead must confirm before relying on them. Ask your laboratory manager which policy is active.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-disposal-overview.png" alt="The Disposal Queue listing items qualifying for disposal"><figcaption>The Disposal Queue listing items qualifying for disposal</figcaption></figure>
+
+<p>The page title is <strong>Disposal Queue</strong>. The subtitle reads: "A real, computed list of blocks and slides that genuinely qualify for disposal right now — retention period elapsed, no active hold, not already disposed. Scan a physical item's own barcode to dispose it; anything that doesn't match gets rejected immediately, on screen." After it comes either "Scoped to (facility)." or "No scan station set — showing all locations. Set a station for a location-scoped queue."</p>
+<p>Under that is the line "Scan a cassette or slide barcode to dispose it. Hands-free — no need to click into a field first." You do not click anywhere before scanning.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Qualifying for Disposal (n)</td>
+<td>The number of items that may be disposed of now.</td>
+</tr>
+<tr>
+<td>Item identifier</td>
+<td>The identifier on the item's label.</td>
+</tr>
+<tr>
+<td>Type</td>
+<td><strong>Tissue Block</strong>, <strong>Slide</strong> or <strong>Wet Tissue</strong> (a specimen or a decanted portion). Cassettes are shown as Tissue Block.</td>
+</tr>
+<tr>
+<td>Specimen / Eligible since / location</td>
+<td>For example "A · Eligible since 12 Mar 2026 · Histology Store". The last part is the item's last known location and is left out if none was recorded. A block shared by several specimens (a matrix block) shows "A, B (shared)" so you can see that more than one specimen is affected.</td>
+</tr>
+</tbody>
+</table>
+<p>Which items appear:</p>
+<ul>
+<li>The case must be signed out. The retention clock starts at sign-out.</li>
+<li>The retention period for that kind of material, and for the specimen type, must have ended. When specimens of different types share a block, the longest period applies.</li>
+<li>The case must have no active retention hold.</li>
+<li>The item must not be disposed of already.</li>
+<li>If a scan station is set, the item's last known location must belong to that station's facility. "Last known location" is one rule everywhere (the queue, the scan check and the Waste Tracking Report): the location event with the latest time. A location entered late with an earlier time does not count as the current one, and for two events at the same time the one recorded later wins.</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<p>None. The screen has no buttons. You act by scanning.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Green flash "(identifier) disposed"</td>
+<td>The scan was accepted. The item has been recorded as disposed and removed from the list. A beep sounds. The flash stays for about two and a half seconds.</td>
+</tr>
+<tr>
+<td>Full red screen with a stop sign</td>
+<td>The scan was refused. The message names the reason. It clears itself after about four seconds, or when you click it ("Tap anywhere to dismiss"). An error tone sounds.</td>
+</tr>
+<tr>
+<td>Computing the real, current queue...</td>
+<td>The list is being worked out.</td>
+</tr>
+<tr>
+<td>Nothing qualifies for disposal right now at this location.</td>
+<td>The list is empty.</td>
+</tr>
+</tbody>
+</table>
+<p>The red screen messages:</p>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(identifier) was already disposed on (date).</td>
+<td>Nothing; it has already been recorded. Check that you are not holding a second copy.</td>
+</tr>
+<tr>
+<td>"(text)" doesn't match any cassette, slide or container on any case.</td>
+<td>The label could not be matched to anything. Check the barcode.</td>
+</tr>
+<tr>
+<td>(identifier) couldn't be found in its case record.</td>
+<td>The label matches a case but not a record on it. Tell your laboratory manager.</td>
+</tr>
+<tr>
+<td>(identifier) can't be disposed until (date), when its retention period ends.</td>
+<td>Keep it. Put it back. If the date is not known the message reads "an unknown date" in its place; ask your laboratory manager when the retention ends.</td>
+</tr>
+<tr>
+<td>(identifier)'s case isn't signed out yet, so its retention period hasn't started.</td>
+<td>Keep it.</td>
+</tr>
+<tr>
+<td>(identifier) can't be disposed: its case has an active retention hold ((note)).</td>
+<td>Keep it. The hold's note is shown. See Retention Holds.</td>
+</tr>
+<tr>
+<td>(identifier) was last recorded at another location, not this facility.</td>
+<td>The item is recorded as belonging elsewhere. Do not discard it here.</td>
+</tr>
+<tr>
+<td>You don't have permission to dispose of retained material.</td>
+<td>Your role does not include this permission.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None. Any barcode scan on this page is read as a disposal scan.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Disposal</strong> tile. The Disposal Queue opens with the list of items that qualify.</li>
+<li>Check the scope line. If the page says no scan station is set, ask your laboratory manager to set one for this computer so that you see only your own location.</li>
+<li>Take the physical item to be discarded and scan its label.</li>
+<li>If the screen shows a green "(identifier) disposed", place the item in the waste. The row disappears and the count falls by one.</li>
+<li>If the screen turns red, read the message. Do not discard the item. Dismiss the message by clicking it and carry on with the next item.</li>
+<li>Continue until the pile is finished. The list should show only items you have not yet reached.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To dispose of an item that is not on the list because it was scanned at another location, take it to a computer whose station belongs to its facility.</li>
+<li>To see what has already been disposed of, open the <a href="/help/batch-management/disposal-report">Waste Tracking Report</a>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>An item is on the list but the scan is refused.</strong> The list can be a few moments old; the scan always re-checks. For example, a colleague may have placed a hold after the list loaded. Believe the red screen.</li>
+<li><strong>A hold is shown.</strong> Do not discard. If the hold should have been released, a person with the right permission releases it on <a href="/help/batch-management/retention-holds">Retention Holds</a>.</li>
+<li><strong>The label will not scan.</strong> Reprint it from <a href="/help/batch-management/label-reprint">Label Reprint</a>, or ask for the item to be identified from its case.</li>
+<li><strong>Two specimens share a block.</strong> The row shows "(shared)". Disposing of it affects every specimen on the block. The longest of their retention periods has already been applied.</li>
+<li><strong>Permission refused.</strong> Ask your laboratory manager. The permission is separate from simply seeing the screen.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>You scanned the wrong item and got a green flash. There is no undo here. Tell your laboratory manager at once. The disposal is on the record with your name; the case history will show it, and the item must be located if it is still on the bench.</li>
+<li>A red screen covers the page. Click anywhere or wait about four seconds. The next scan works straight away.</li>
+<li>The count looks wrong. The list is worked out when the page opens and is not refreshed by itself, apart from the rows you dispose of. Reload the page to recompute it.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Scanning a stack of items without watching the screen. A red screen means keep it. Watch every scan.</li>
+<li>Discarding an item before the green flash.</li>
+<li>Assuming that an item on the list is still safe to discard an hour later. A hold or a change can appear at any time; the scan re-checks.</li>
+<li>Working without a scan station set, then wondering why items from other sites appear.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Keep the scanner in your hand and the screen in view. No clicking is needed.</li>
+<li>Dispose of by case or by shelf so the count falls steadily and you can see you are finished.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Dispose on a regular schedule so the list does not grow.</li>
+<li>Check <a href="/help/batch-management/retention-holds">Retention Holds</a> before a large disposal run.</li>
+<li>Keep the Waste Tracking Report for audits; do not keep paper lists.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: sign-out of the case starts the retention clock, and the Retention Hold control on the case's Specimens &amp; Reports section stops disposal.</li>
+<li><a href="/help/batch-management/retention-holds">Retention Holds</a>: cases with holds never appear here.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management/disposal-report">Waste Tracking Report</a>: the permanent record of everything disposed of.</li>
+<li><a href="/help/batch-management">Batch Management</a>: the tile that opens this screen.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The list is empty</td>
+<td>Nothing is past its retention period, or a hold covers it, or the station's facility has no eligible items.</td>
+</tr>
+<tr>
+<td>An item I expect is missing</td>
+<td>The case is not signed out, the retention period is not over, a hold is active, or its last location is at another facility.</td>
+</tr>
+<tr>
+<td>Every scan is refused for permission</td>
+<td>Your role does not include disposal.</td>
+</tr>
+<tr>
+<td>The red screen is unreadable or too quick</td>
+<td>Click it to dismiss; the message is the same one every time for the same reason. Scan again to see it.</td>
+</tr>
+<tr>
+<td>The scan does nothing</td>
+<td>The scanner is not sending a barcode to the page, or the browser window is not in focus.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Reload the page to recompute the list.</li>
+<li>Check the scope line and your scan station.</li>
+<li>Read the red message carefully and act on its reason.</li>
+<li>Ask your laboratory manager to check the retention policy and holds on the case.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when an item that should qualify is refused repeatedly, when an item is recorded as disposed that you did not dispose of, or when the retention dates look wrong for the policy. Have the item identifier, the case number and the time ready.</p>

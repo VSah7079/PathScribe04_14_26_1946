@@ -35,8 +35,9 @@ import { resolveCytologyRoseEvaluationAdded } from './resolveCytologyRoseEvaluat
 import { resolveUpdatedCodingFromModalSubmission } from './resolveUpdatedCodingFromModalSubmission';
 import { resolveCytologyReportContent } from './resolveCytologyReportContent';
 import { decantIdentifier } from '@/types/labels/LabelData';
-import { CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID } from '../quality/mockQaActivityTypeService';
+import { CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID } from '../quality/qaActivityTypeIds';
 import { saveCaseChangeFrom } from './cytologyCaseWriteDeps';
+import { assertDiagnosisCodeApply } from '../codes/diagnosisCodeApply';
 
 
 type Actor = { id: string; name: string };
@@ -364,6 +365,7 @@ export async function recordCytologyRoseEvaluation(
  */
 export async function applyCytologyCodeChanges(input: { caseData: Case; codes: any[]; user: { id?: string; name?: string } }, deps: CytologyWorkspaceDeps) {
   const { caseData } = input;
+  await assertDiagnosisCodeApply(caseData.id, deps); // Batch 649: case:diagnosis-code:apply (throws the reason)
   // PS-71 (Batch 458): the codes are applied to the case as saved, with its
   // version; on a conflict, to the newer case (the audit names what that save added and removed).
   let resolved!: ReturnType<typeof resolveUpdatedCodingFromModalSubmission>;

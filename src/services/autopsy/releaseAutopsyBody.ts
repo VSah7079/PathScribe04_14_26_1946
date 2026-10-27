@@ -18,7 +18,7 @@ import { resolveAutopsyBodyReleaseGate, type AutopsyBodyReleaseBlockReason } fro
 import { buildAutopsyBodyReleaseLocationEvent, type AutopsyBodyReleaseDetails } from './buildAutopsyBodyReleaseLocationEvent';
 import { resolveCurrentAutopsyCustodian } from './recordAutopsyCustodyTransfer';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { AutopsyCustodyTransferEvent } from '@/types/autopsy/AutopsyCaseDetails';
 
 /** Batch 495: a stable code for each failure, so the screen shows
@@ -104,7 +104,7 @@ export async function releaseAutopsyBody(
   if (write.ok === true) {
     // Batch 469: the one real audit-log write this file was missing
     // (same choke point recordAutopsyCustodyTransfer.ts already uses).
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_BODY_RELEASED',
       detail: `Body released to ${releaseDetails.releasedTo}`,

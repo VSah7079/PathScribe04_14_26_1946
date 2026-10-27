@@ -1,0 +1,1401 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nivel 4: El marco de IA integrado de PathScribe · Guía del administrador de PathScribe (edición interna de ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="es" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Guía del administrador</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Buscar pantallas, campos, códigos de error" aria-label="Buscar en la guía" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Idioma"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es" selected>Español</option></select>
+<button class="print" type="button" onclick="window.print()">Imprimir / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Capítulos de la guía"><a href="index.html">Contenido</a><a href="setup-sequence.html">Orden de configuración</a><a href="01-system-overview.html">1. Descripción general y arquitectura del sistema</a><a href="02-tier1-primary-prerequisites.html">2. Nivel 1: Requisitos previos del sistema principal (configurar primero)</a><a href="03-tier2-master-dictionaries.html">3. Nivel 2: diccionarios maestros y datos clínicos básicos (configurar en segundo lugar)</a><a href="04-tier3-workflow-engines.html">4. Nivel 3: Motores de flujo de trabajo y configuración operativa (configurar en tercer lugar)</a><a href="05-tier4-ai-framework.html" aria-current=page>5. Nivel 4: El marco de IA integrado de PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Nivel 5: informes, formularios sinópticos y configuración del programador</a><a href="07-tier6-interface-engine.html">7. Nivel 6: Motor de interfaces e integraciones con sistemas externos</a><a href="08-tier7-billing-registry.html">8. Nivel 7: Facturación, gestión del ciclo de ingresos e informes a registros</a><a href="09-appendices.html">9. Apéndices: resolución de problemas y verificación del registro de auditoría</a><a href="99-glossary.html">99. Apéndice: Glosario de términos y abreviaturas</a></nav><main id="main"><aside class="pagetoc" aria-label="En esta página"><b>En esta página</b><ul><li class="l2"><a href="#ch5-setup-order">Cómo se configura el Nivel 4</a></li><li class="l2"><a href="#ch5-ai-infrastructure">Infraestructura de IA y arquitectura de modelos</a></li><li class="l3"><a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a></li><li class="l2"><a href="#ch5-specimen-vision">Seguimiento de muestras y asistencia de visión artificial en el tallado</a></li><li class="l3"><a href="#screen-smart_capture">Captura inteligente</a></li><li class="l2"><a href="#ch5-nlp">Motor de PLN y de estructuración automática</a></li><li class="l3"><a href="#screen-history_extraction">Extracción de antecedentes con IA</a></li><li class="l2"><a href="#ch5-dp-ai">Análisis de imagen con IA en patología digital</a></li><li class="l2"><a href="#ch5-smart-qc">Control de calidad inteligente y reglas de detección de anomalías diagnósticas</a></li><li class="l3"><a href="#screen-clinical_mismatch_rules">Reglas de discordancia clínica</a></li><li class="l2"><a href="#ch5-governance">Gobernanza de la IA, umbrales con intervención humana y calibración</a></li><li class="l3"><a href="#screen-ai_instructions">Instrucciones de IA</a></li><li class="l3"><a href="#screen-tab-validation">Estudios de validación (pestaña)</a></li><li class="l3"><a href="#screen-validation-studies">Estudios de validación: Estudios</a></li><li class="l3"><a href="#screen-validation-dashboard">Estudios de validación: Panel</a></li><li class="l3"><a href="#screen-validation-reports">Estudios de validación: Informes</a></li></ul></aside><article><h1 id="ch5"><a class="anchor" href="#ch5" aria-label="Link to this section">#</a> Nivel 4: El marco de IA integrado de PathScribe</h1>
+<p>El Nivel 4 abarca todos los ajustes que deciden si PathScribe utiliza inteligencia artificial (IA), dónde y cómo la utiliza, y las comprobaciones que mantienen al patólogo al mando del resultado. Lea este capítulo teniendo presente un hecho: el marco es más reducido que su esquema. PathScribe llama a un modelo de lenguaje externo para ayudar con los informes y con el dictado, e incorpora resultados de productos de análisis de imagen de proveedores. No contiene un motor de visión artificial, un detector de tumores, un contador de células, un evaluador de biomarcadores, un motor independiente de procesamiento del lenguaje natural (PLN) ni una herramienta de calibración de los pesos de los modelos. Cada uno de ellos se rotula <strong>No construido</strong> más abajo, con lo más parecido que sí existe.</p>
+<p>La producción se ejecuta en Microsoft SQL Server detrás de una <a class="term" href="99-glossary.html#g-api" title="Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.">API</a> <a class="term" href="99-glossary.html#g-asp-net-core" title="El marco web de Microsoft sobre el que se construye el servidor de la API de PathScribe.">ASP.NET Core</a>. La mayoría de las pantallas de este capítulo funcionan hoy con los datos de demostración del navegador, y la línea de estado de cada pantalla indica hasta dónde llega su contrato de servidor.</p>
+<h2 id="ch5-setup-order"><a class="anchor" href="#ch5-setup-order" aria-label="Link to this section">#</a> Cómo se configura el Nivel 4</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p>Complete primero los Niveles 1 a 3. El Nivel 4 lee de ellos los centros, los médicos, los tipos de <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> y los sistemas de códigos. Después trabaje las pantallas en este orden. La parte 4 de cada pantalla repite sus propios requisitos previos.</p>
+<ol>
+<li><a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a>: elija el servicio y el modelo de IA, y establezca la política de proveedores, el umbral de confianza y el valor predeterminado del orquestador.</li>
+<li><a href="#screen-tab-validation">Estudios de validación (pestaña)</a>: el punto de entrada de las pruebas de que un modelo funciona con sus datos.</li>
+<li><a href="#screen-validation-studies">Estudios de validación: Estudios</a>: cree, apruebe y active un estudio.</li>
+<li><a href="#screen-validation-reports">Estudios de validación: Informes</a>: cierre un estudio e imprima el informe que lo califica.</li>
+<li><a href="#screen-ai_instructions">Instrucciones de IA</a>: apruebe el texto que la comprobación de <a class="term" href="99-glossary.html#g-discordance" title="Una diferencia entre dos lecturas del mismo material, como un diagnóstico preliminar y uno final, o el de un primer y un segundo patólogo.">discordancia</a> clínica envía al modelo.</li>
+<li><a href="#screen-clinical_mismatch_rules">Reglas de discordancia clínica</a>: establezca cuándo una discordancia avisa, se registra o bloquea la firma.</li>
+<li><a href="#screen-history_extraction">Extracción de antecedentes con IA</a>: active la lectura orientativa de casos históricos.</li>
+<li><a href="#screen-smart_capture">Captura inteligente</a>: el interruptor del prototipo de sugerencias de facturación y su lista de comprobación para producción.</li>
+</ol>
+<p><a href="#screen-validation-dashboard">Estudios de validación: Panel</a> es una página de uso diario y no forma parte de la configuración. La excepción de un modelo para un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> necesita una plantilla de informe publicada y un estudio superado, así que termine el <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Capítulo 6</a> para las plantillas antes de basarse en una excepción de centro.</p>
+<p><strong>Estado de las seis áreas del esquema</strong></p>
+<table>
+<thead>
+<tr>
+<th>Área</th>
+<th>Estado</th>
+<th>Dónde se configura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Infraestructura de IA y arquitectura de modelos</td>
+<td>Construido para las pantallas y los ajustes; Parcial para el lado del servidor (véase cada pantalla)</td>
+<td>Configuración, pestaña <strong>Comportamiento de la IA</strong>; Diccionario de centros, pestaña <strong>IA y rendimiento</strong> (<a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Capítulo 2</a>)</td>
+</tr>
+<tr>
+<td>Seguimiento de muestras y asistencia de visión artificial en el <a class="term" href="99-glossary.html#g-grossing" title="El examen y corte de una muestra quirúrgica por un patólogo o un ayudante de patólogo, describiéndola y eligiendo las piezas que se van a procesar.">tallado</a></td>
+<td>No construido. Existen un diccionario de proveedores y un prototipo de facturación basado en reglas</td>
+<td>Integraciones con proveedores, categoría de imágenes macroscópicas (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Capítulo 4</a>); <a href="#screen-smart_capture">Captura inteligente</a></td>
+</tr>
+<tr>
+<td>Motor de PLN y de estructuración automática</td>
+<td>Parcial. Existen funciones sueltas; no hay un motor independiente</td>
+<td><a href="#screen-history_extraction">Extracción de antecedentes con IA</a>; pestañas Voz y Macros (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Capítulo 4</a>); herramientas de la página de informe</td>
+</tr>
+<tr>
+<td>Análisis de imagen con IA en patología digital</td>
+<td>Parcial. Existe la incorporación de resultados de proveedores. La detección de tumores, el recuento de células y la evaluación de biomarcadores son No construido</td>
+<td>Integraciones con proveedores, categorías de IA de patología digital y visores de preparaciones (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Capítulo 4</a>); pestaña Discordancia de la IA de Garantía de calidad (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Capítulo 4</a>)</td>
+</tr>
+<tr>
+<td>Reglas de control de calidad inteligente y de detección de anomalías</td>
+<td>Construido para las pantallas; Demostración para el lado del servidor de las Instrucciones de IA</td>
+<td><a href="#screen-clinical_mismatch_rules">Reglas de discordancia clínica</a>; <a href="#screen-ai_instructions">Instrucciones de IA</a>; Reglas de activación por resultado anómalo (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Capítulo 3</a>)</td>
+</tr>
+<tr>
+<td>Gobernanza de la IA, umbrales con intervención humana, calibración</td>
+<td>Construido para la gobernanza y los umbrales. Calibración de pesos: no existe</td>
+<td><a href="#screen-ai_instructions">Instrucciones de IA</a>; <a href="#screen-tab-validation">Estudios de validación</a>; panel Versiones del modelo en la pestaña Comportamiento de la IA</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch5-ai-infrastructure"><a class="anchor" href="#ch5-ai-infrastructure" aria-label="Link to this section">#</a> Infraestructura de IA y arquitectura de modelos</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p><strong>Estado:</strong> Construido para las pantallas de ajustes. Parcial para el servidor: las llamadas de producción están documentadas y algunas todavía no están conectadas (se enumeran en cada pantalla).</p>
+<p>Esta sección explica cómo se realiza una llamada de IA y quién decide qué utiliza. A continuación sigue la pantalla que establece todo ello, <a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a>.</p>
+<p><strong>El proxy de IA.</strong> El navegador nunca guarda una clave de IA. Llama a las rutas <code>/api/ai/...</code> propias de PathScribe y el servidor añade la clave desde un almacén de secretos como Azure Key Vault. Existen rutas para Anthropic, Google Gemini (generar, transmitir y lista de modelos), OpenAI, Azure OpenAI (<code>/api/ai/azure/chat/completions</code>), un punto de conexión personalizado, AWS Bedrock (invocar e invocar con transmisión) y las consultas de terminología de <a class="term" href="99-glossary.html#g-umls" title="El Unified Medical Language System, una colección de vocabularios médicos de la National Library of Medicine de Estados Unidos.">UMLS</a> y de la National Library of Medicine. El servidor debe escribir una entrada de auditoría por cada llamada (sin el texto de la consulta) y limitar la frecuencia de los llamantes. El proxy que utiliza la compilación de desarrollo no existe en producción. La rotación de una clave de <a class="term" href="99-glossary.html#g-api" title="Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.">API</a> la realiza el soporte de ForMedrixAI en el almacén de secretos del servidor. Ninguna pantalla establece ni <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> una clave.</p>
+<p><strong>Proveedores.</strong> La pantalla muestra nombres de proveedores. Internamente, cada uno se guarda con un id que lleva el nombre del <a class="term" href="99-glossary.html#g-protocol" title="Un conjunto estructurado de preguntas para notificar un tipo de caso, como un protocolo de cáncer del CAP, a partir del cual se construye un informe sinóptico.">protocolo</a> que habla.</p>
+<table>
+<thead>
+<tr>
+<th>Se muestra como</th>
+<th>Id guardado</th>
+<th>Modelos ofrecidos (el primero es el predeterminado al elegir el proveedor)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Anthropic (Claude)</td>
+<td><code>structured_messages</code></td>
+<td><code>claude-sonnet-4-6</code> (recomendado), <code>claude-opus-4-8</code> (máxima precisión), <code>claude-haiku-4-5</code> (el más rápido)</td>
+</tr>
+<tr>
+<td>OpenAI (GPT-4)</td>
+<td><code>chat_completions</code></td>
+<td><code>gpt-4o</code> (recomendado), <code>gpt-4-turbo</code>, <code>gpt-4</code></td>
+</tr>
+<tr>
+<td>Azure OpenAI</td>
+<td><code>chat_completions_managed</code></td>
+<td><code>gpt-4o</code> (Azure), <code>gpt-4-turbo</code> (Azure)</td>
+</tr>
+<tr>
+<td>AWS Bedrock</td>
+<td><code>model_gateway</code></td>
+<td><code>anthropic.claude-sonnet-4-6-v1:0</code>, <code>anthropic.claude-opus-4-8-v1:0</code>, <code>amazon.nova-pro-v1:0</code></td>
+</tr>
+<tr>
+<td>Google (Gemini)</td>
+<td><code>structured_content</code></td>
+<td><code>gemini-1.5-flash</code> (recomendado), <code>gemini-1.5-pro</code></td>
+</tr>
+<tr>
+<td>Autoalojado / punto de conexión personalizado</td>
+<td><code>custom</code></td>
+<td><code>custom</code></td>
+</tr>
+<tr>
+<td>Simulado, modo de demostración</td>
+<td><code>mock</code></td>
+<td><code>mock-v1</code></td>
+</tr>
+</tbody>
+</table>
+<p>Si el id de proveedor guardado no es ninguno de estos, PathScribe utiliza <code>structured_messages</code>. Un ajuste de proveedor <code>mock</code> o un valor desconocido sigue enviando la llamada a la ruta de Anthropic a través del proxy (un comportamiento declarado del proxy, no un atajo de demostración). Bedrock necesita una ruta de servidor que firme las solicitudes y devuelva un flujo normalizado; esa ruta forma parte del contrato del proxy.</p>
+<p><strong>Qué ajuste prevalece.</strong> PathScribe resuelve la configuración de IA en este orden: una sustitución personal (solo en una vista de desarrollo; ninguna pantalla la establece para un administrador), después el ajuste del laboratorio de la organización y, por último, los valores predeterminados de la compilación <code>VITE_AI_PROVIDER</code>, <code>VITE_AI_MODEL</code>, <code>VITE_AI_PROXY_URL</code>, <code>VITE_AI_GATEWAY_REGION</code> (predeterminado <code>us-east-1</code>), <code>VITE_AI_HOSTING_REGION</code> y <code>VITE_AI_MAX_TOKENS</code> (predeterminado 1000). El ajuste de la organización se guarda con la clave <code>pathscribe_ai_org_config</code>.</p>
+<p><strong>Qué modelo utiliza cada tarea.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tarea</th>
+<th>Modelo utilizado</th>
+<th>Notas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ayuda con el informe y la narrativa (Generar narración, Sugerir campos sinópticos, sugerencias de macros, análisis de hallazgos críticos, asignación de plantilla)</td>
+<td>El modelo predeterminado de la organización, o el modelo propio del <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> ejecutor si se ha establecido uno en el Diccionario de centros, pestaña <strong>IA y rendimiento</strong></td>
+<td>Un centro solo puede elegir un modelo que tenga un estudio comunicado y calificado como APTO para ese centro (<a href="#screen-validation-reports">Estudios de validación: Informes</a>). El límite de tokens del centro y el formato de la solicitud acompañan al modelo.</td>
+</tr>
+<tr>
+<td>Refinamiento del dictado</td>
+<td>El modelo predeterminado de toda la organización de tipo Dictado por voz</td>
+<td>Sin capa de centro. Un modelo de voz solo pasa a ser el predeterminado con un estudio calificado como APTO. Se establece en la pestaña Voz (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Capítulo 4</a>).</td>
+</tr>
+<tr>
+<td>Asignación de plantilla sinóptica y de <a class="term" href="99-glossary.html#g-grossing" title="El examen y corte de una muestra quirúrgica por un patólogo o un ayudante de patólogo, describiéndola y eligiendo las piezas que se van a procesar.">tallado</a> con IA</td>
+<td>Igual que la ayuda con el informe</td>
+<td>El umbral de confianza de estas dos está fijado en 60 en el código; no hay ningún ajuste. La asignación de tallado recurre a la plantilla estándar de tejido.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Política de proveedores.</strong> Una regla por <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a> y, opcionalmente, una regla más restrictiva por centro indican qué servicios de IA y qué regiones de alojamiento pueden utilizarse para el trabajo en ese lugar. Una llamada debe cumplir la regla de la jurisdicción y la del centro. Sin regla, se permiten todos los servicios. Dentro de una regla, los servicios permitidos pueden ser todos o una lista, y cada servicio permitido puede llevar una lista de regiones permitidas; sin lista, se admite cualquier región. Una llamada cuya región no está registrada se rechaza donde las regiones están limitadas. Un rechazo nunca pasa a otro servicio: la función continúa sin IA y muestra "La IA no está disponible para esta jurisdicción". El proveedor simulado siempre está permitido. El servidor debe responder a una llamada rechazada con 403 y el código <code>AI_VENDOR_NOT_ALLOWED</code>, y auditarla como <code>AI_CALL_REFUSED</code>.</p>
+<p><strong>Registro de auditoría de la IA.</strong> Cada llamada de IA escribe un <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> con: <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a>, sección, proveedor, modelo, estado (completada, error, cancelada o rechazada), número de tokens, tiempo empleado, <a class="term" href="99-glossary.html#g-hosting-region" title="La región geográfica donde un servicio de IA en la nube procesa los datos. La política de proveedores de IA puede permitir o rechazar regiones.">región de alojamiento</a>, jurisdicción, centro y función. El registro conserva las últimas 2000 entradas y se mantiene en el navegador hasta que el servidor lo registre. Ninguna pantalla lo muestra.</p>
+<p><strong>Modo orquestador.</strong> El modo orquestador redacta la narrativa de un informe en cuatro pasos fijos en lugar de una sola solicitud. El motor de <code>src/orchestrator/</code> es el código en uso. <a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a> establece el valor predeterminado de la organización, y un centro puede sustituirlo. La redacción y el orden de los pasos no se pueden editar.</p>
+<h3 id="screen-tab-ai"><a class="anchor" href="#screen-tab-ai" aria-label="Link to this section">#</a> Comportamiento de la IA (pestaña)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p><strong>Estado:</strong> Construido</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Comportamiento de la IA</strong>
+<strong>2. Elemento de mantenimiento:</strong> Comportamiento de la IA (la pestaña completa)</p>
+<p><strong>3. Finalidad y alcance.</strong> Esta pestaña contiene los ajustes de IA de la organización: qué motor de IA se utiliza, si la IA actúa en el trabajo macroscópico y microscópico, con qué confianza debe contar una sugerencia para mostrarse o insertarse, qué servicio y modelo hay detrás de las llamadas, adónde permite la política de proveedores que vayan las llamadas, si el modo orquestador está activado y qué versiones de modelo están disponibles. Todo es válido para toda la organización. Un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> solo puede sustituir el modelo y el interruptor del borrador automático de la narrativa, en su propio <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> del <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a>.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Los ámbitos de la política de proveedores son las jurisdicciones y los centros que ya definió, así que configúrelos primero. Si omite los centros, la sección de la política solo puede ofrecer la <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a> del propio laboratorio, de modo que no se puede escribir ninguna regla de centro.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 1</p><dl><dt>Configurar primero</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a></dd><dt>Esto habilita</dt><dd><a href="#screen-tab-validation">Estudios de validación (pestaña)</a>, <a href="#screen-ai_instructions">Instrucciones de IA</a>, <a href="#screen-clinical_mismatch_rules">Reglas de discordancia clínica</a>, <a href="#screen-history_extraction">Extracción de antecedentes con IA</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/tab-ai.webp" alt="Pestaña Comportamiento de la IA: distintivo Motor de IA, interruptores de comportamiento, ajustes del proveedor, política de proveedores, Configuración del orquestador y Versiones del modelo" loading="lazy"><figcaption>Pestaña Comportamiento de la IA: distintivo Motor de IA, interruptores de comportamiento, ajustes del proveedor, política de proveedores, Configuración del orquestador y Versiones del modelo</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong> Las secciones aparecen de arriba abajo en este orden. Los cambios del primer grupo se guardan al hacerlos.</p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-engine-badge"><td>Distintivo <strong>Motor de IA</strong></td>
+<td>Distintivo de solo lectura</td>
+<td>No aplicable</td>
+<td>Muestra el id del modelo en uso, o "Simulado - modo de demostración" con una etiqueta <strong>DEMO</strong> cuando se selecciona el proveedor simulado.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-gross-driven-ai-enabled"><td><strong>IA guiada por la descripción macroscópica</strong>, <strong>Activado</strong></td>
+<td>Casilla Sí/No (<code>grossEnabled</code>)</td>
+<td>Opcional</td>
+<td>Si está desactivada, la finalización del <a class="term" href="99-glossary.html#g-grossing" title="El examen y corte de una muestra quirúrgica por un patólogo o un ayudante de patólogo, describiéndola y eligiendo las piezas que se van a procesar.">tallado</a> y el sondeo de asistencia omiten la evaluación por IA de la descripción macroscópica.</td>
+<td>Activado</td>
+</tr>
+<tr id="f-tab-ai-microscopic-driven-ai-enabled"><td><strong>IA guiada por la descripción microscópica</strong>, <strong>Activado</strong></td>
+<td>Casilla Sí/No (<code>microscopicEnabled</code>)</td>
+<td>Opcional</td>
+<td>Si está desactivada, el flujo de enmiendas, el panel lateral <a class="term" href="99-glossary.html#g-synoptic" title="Un informe construido a partir de un conjunto fijo de preguntas estructuradas, de modo que cada elemento obligatorio se responde con el mismo formato.">sinóptico</a> y el sondeo de asistencia omiten el trabajo de IA sobre el texto microscópico.</td>
+<td>Activado</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Umbral de confianza</strong></td>
+<td>Control deslizante, número entero de 0 a 100 (<code>confidenceThreshold</code>)</td>
+<td>Opcional</td>
+<td>El porcentaje de confianza que necesita una sugerencia. El panel lateral sinóptico y el distintivo de revisión del informe sinóptico lo utilizan para marcar las sugerencias. Un modelo puede llevar su propio valor en su ventana de <strong>Ajustes</strong> (más abajo). Se guarda al cambiarlo.</td>
+<td>75</td>
+</tr>
+<tr id="f-tab-ai-advanced-auto-insert-suggestions-at-or-above-confidence-threshold"><td><strong>Avanzado</strong>: Insertar automáticamente las sugerencias con confianza igual o superior al umbral</td>
+<td>Casilla Sí/No (<code>autoInsertSuggestions</code>)</td>
+<td>Opcional</td>
+<td>Si está activada, el panel lateral sinóptico rellena el campo con una sugerencia sin esperar a que el patólogo la acepte, siempre que su confianza alcance el umbral.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-tab-ai-advanced-show-confidence-scores-in-the-editor-ui"><td><strong>Avanzado</strong>: Mostrar las puntuaciones de confianza en la interfaz del editor</td>
+<td>Casilla Sí/No (<code>showConfidenceScores</code>)</td>
+<td>Opcional</td>
+<td>Solo se guarda. Ninguna otra pantalla lo lee hoy, de modo que cambiarlo no tiene efecto.</td>
+<td>Activado</td>
+</tr>
+<tr id="f-tab-ai-advanced-suggest-macros-based-on-diagnosis-context"><td><strong>Avanzado</strong>: Sugerir macros según el contexto del diagnóstico</td>
+<td>Casilla Sí/No (<code>macroSuggestions</code>)</td>
+<td>Opcional</td>
+<td>Solo se guarda. Ninguna otra pantalla lo lee hoy, de modo que cambiarlo no tiene efecto.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-tab-ai-advanced-filter-ai-suggestions-by-subspecialty"><td><strong>Avanzado</strong>: Filtrar las sugerencias de la IA por <a class="term" href="99-glossary.html#g-subspecialty" title="Un área de la patología, como mama o digestivo, utilizada para encaminar casos. Una subespecialidad puede pasar a modo de reserva común.">subespecialidad</a></td>
+<td>Casilla Sí/No (<code>subspecialtyRouting</code>)</td>
+<td>Opcional</td>
+<td>Solo se guarda. Ninguna otra pantalla lo lee hoy, de modo que cambiarlo no tiene efecto.</td>
+<td>Activado</td>
+</tr>
+<tr id="f-tab-ai-reset-to-defaults"><td><strong>Restablecer valores predeterminados</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Devuelve todos los ajustes de comportamiento anteriores a sus valores predeterminados. No cambia el proveedor, la política de proveedores ni el interruptor del orquestador.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Ajustes del proveedor de IA</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p>Se <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> con el título <strong>Proveedor de IA - Ajustes de la organización</strong> solo a una persona cuyo <a class="term" href="99-glossary.html#g-role" title="Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.">rol</a> sea administrador, patólogo administrador o superadministrador. Cualquier otra persona ve una nota que indica que el administrador gestiona el proveedor. Un cuadro de advertencia recuerda que el texto del <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> sale del sistema hacia el servicio elegido. Los campos que no corresponden al proveedor elegido están ocultos.</p>
+<figure class="shot"><img src="../img/tab-ai-provider.webp" alt="Ajustes del proveedor de IA con proveedor, modelo y región de alojamiento" loading="lazy"><figcaption>Ajustes del proveedor de IA con proveedor, modelo y <a class="term" href="99-glossary.html#g-hosting-region" title="La región geográfica donde un servicio de IA en la nube procesa los datos. La política de proveedores de IA puede permitir o rechazar regiones.">región de alojamiento</a></figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-provider"><td><strong>Proveedor de IA</strong></td>
+<td>Lista de opciones, agrupadas en <strong>Proveedores de producción</strong> y <strong>Desarrollo y demostración</strong></td>
+<td>Obligatorio</td>
+<td>Selecciona el servicio. Al elegir un proveedor, <strong>Modelo</strong> pasa al primer modelo de ese proveedor. Una breve indicación bajo el campo describe el proveedor.</td>
+<td>Anthropic (Claude) cuando no hay nada guardado</td>
+</tr>
+<tr id="f-tab-ai-model"><td><strong>Modelo</strong></td>
+<td>Lista de opciones con los modelos del proveedor (tabla anterior)</td>
+<td>Obligatorio</td>
+<td>El id del modelo que se envía en cada llamada.</td>
+<td>Primer modelo del proveedor</td>
+</tr>
+<tr id="f-tab-ai-azure-resource-endpoint"><td><strong>Punto de conexión del recurso de Azure</strong></td>
+<td>Enlace https; texto de ejemplo <code>https://my-org.openai.azure.com</code></td>
+<td>Obligatorio para Azure OpenAI</td>
+<td>La dirección de su recurso de Azure. Solo se muestra para Azure OpenAI.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-tab-ai-deployment-name"><td><strong>Nombre de la implementación</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>La implementación de Azure a la que se llama. Solo se conserva si también se ha establecido un punto de conexión. Solo se muestra para Azure OpenAI.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-tab-ai-aws-region"><td><strong>Región de AWS</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>La región de Bedrock. Solo se muestra para AWS Bedrock.</td>
+<td><code>us-east-1</code></td>
+</tr>
+<tr id="f-tab-ai-hosting-region"><td><strong>Región de alojamiento</strong></td>
+<td>Texto; texto de ejemplo <code>eu-west-1</code></td>
+<td>Opcional</td>
+<td>La región donde el proveedor procesa la llamada, con el nombre que le da el proveedor. Se registra en cada llamada para que la política de proveedores pueda comprobarla. Se muestra para todos los proveedores salvo AWS Bedrock y Simulado.</td>
+<td>En blanco (región sin registrar)</td>
+</tr>
+<tr id="f-tab-ai-endpoint-base-url"><td><strong>URL base del punto de conexión</strong></td>
+<td>Enlace https</td>
+<td>Obligatorio para Personalizado</td>
+<td>La dirección base de un servicio compatible con OpenAI. PathScribe envía las solicitudes a <code>/chat/completions</code> bajo ella. Solo se muestra para Autoalojado / punto de conexión personalizado.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-tab-ai-policy-warning"><td>Advertencia de política</td>
+<td>Mensaje de solo lectura</td>
+<td>No aplicable</td>
+<td>Aparece antes de guardar un servicio o una región que una regla de <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a> o de <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> de la política siguiente no permite.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-save-org-config"><td><strong>Guardar configuración de la organización</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Guarda el ajuste de la organización. Requiere <code>config:ai-provider:manage</code>. Si sale de la pestaña con cambios sin guardar, se le avisa.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-test-connection"><td><strong>Probar conexión</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Envía una solicitud de prueba (función <code>connection-test</code>, 20 tokens, pidiendo la respuesta exacta "PathScribe AI connection OK"). El resultado indica Probando, Conexión correcta o Error con el motivo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-clear-override"><td><strong>Borrar sustitución</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Aparece solo en la vista de desarrollo, donde se puede establecer una sustitución personal. No se muestra a un administrador.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Dónde guarda PathScribe los datos</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p>Una tarjeta de solo lectura.</p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-database"><td><strong>Base de datos</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>La región de la base de datos, tomada del <code>/api/config</code> del servidor. Muestra <strong>No comunicada</strong> cuando el servidor no la proporciona (la demostración no tiene servidor).</td>
+<td>No comunicada</td>
+</tr>
+<tr id="f-tab-ai-file-storage-reports-exports"><td><strong>Almacenamiento de archivos (informes, exportaciones)</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>La región del almacenamiento de archivos, de la misma fuente.</td>
+<td>No comunicada</td>
+</tr>
+<tr id="f-tab-ai-ai-service"><td><strong>Servicio de IA</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>La <a class="term" href="99-glossary.html#g-hosting-region" title="La región geográfica donde un servicio de IA en la nube procesa los datos. La política de proveedores de IA puede permitir o rechazar regiones.">región de alojamiento</a> establecida en los Ajustes del proveedor de IA.</td>
+<td>Sin registrar</td>
+</tr>
+</tbody>
+</table>
+<h4>Política de proveedores de IA</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p>Una tabla de reglas, con una fila para la <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a> del propio laboratorio y una para cada <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> al que presta servicio, además de un control <strong>Añadir una regla de centro</strong>. La regla de un centro restringe la regla de su jurisdicción. El evento de auditoría de un cambio es <code>AI_VENDOR_POLICY_CHANGED</code> (antes y después).</p>
+<figure class="shot"><img src="../img/tab-ai-vendor-policy.webp" alt="Tabla de reglas de la política de proveedores de IA y editor de reglas" loading="lazy"><figcaption>Tabla de reglas de la <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Una regla por jurisdicción que indica qué servicios de IA y qué regiones de alojamiento pueden utilizarse. Una llamada que la regla rechaza no se envía, y la función continúa sin IA.">política de proveedores de IA</a> y editor de reglas</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-jurisdiction-or-facility"><td><strong>Jurisdicción o centro</strong></td>
+<td>Texto de solo lectura (el centro se <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> como centro y jurisdicción)</td>
+<td>No aplicable</td>
+<td>El ámbito de la regla.</td>
+<td>La jurisdicción del laboratorio, más cada centro atendido</td>
+</tr>
+<tr id="f-tab-ai-allowed"><td><strong>Permitido</strong></td>
+<td>Texto de solo lectura: <strong>Sin regla: todos los servicios</strong>, <strong>Todos los servicios</strong> o la lista de servicios</td>
+<td>No aplicable</td>
+<td>Lo que permite la regla.</td>
+<td>Sin regla: todos los servicios</td>
+</tr>
+<tr id="f-tab-ai-service-in-use"><td><strong>Servicio en uso</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>Muestra el servicio, el modelo y la región en uso y si este ámbito lo permite: <strong>Permitido</strong>, <strong>No permitido: servicio</strong>, <strong>No permitido: región</strong> o <strong>No permitido: región sin registrar</strong>.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-actions-edit-remove-rule"><td><strong>Acciones</strong>: <strong>Editar</strong>, <strong>Eliminar regla</strong></td>
+<td>Botones</td>
+<td>No aplicable</td>
+<td><strong>Editar</strong> abre el editor de reglas siguiente. <strong>Eliminar regla</strong> borra la regla, de modo que el ámbito vuelve a permitir todos los servicios.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-add-a-facility-rule-choose-a-facility"><td><strong>Añadir una regla de centro</strong>, <strong>Elija un centro…</strong></td>
+<td>Lista de opciones de los centros atendidos</td>
+<td>Opcional</td>
+<td>Inicia una regla para un centro.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-tab-ai-allow-every-service"><td><strong>Permitir todos los servicios</strong></td>
+<td>Casilla Sí/No</td>
+<td>Opcional</td>
+<td>Permite todos los servicios. Si está desactivada, marque los servicios que desea permitir.</td>
+<td>Activada en una regla nueva</td>
+</tr>
+<tr id="f-tab-ai-allowed-services"><td>Servicios permitidos</td>
+<td>Una casilla por cada servicio de IA</td>
+<td>Obligatorio cuando <strong>Permitir todos los servicios</strong> está desactivada</td>
+<td>Debe permitirse al menos un servicio o el guardado se rechaza (<strong>Permita al menos un servicio o elimine la regla.</strong>).</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-tab-ai-allowed-regions-for-service"><td><strong>Regiones permitidas para</strong> (servicio)</td>
+<td>Texto, regiones separadas por comas, por ejemplo <code>eu-west-1, uksouth</code></td>
+<td>Opcional</td>
+<td>Déjelo vacío para permitir cualquier región. Las regiones se recortan, se pasan a minúsculas y se eliminan los duplicados. Se rechaza una entrada en blanco, o regiones en un servicio que no está permitido.</td>
+<td>Vacío (cualquier región)</td>
+</tr>
+<tr id="f-tab-ai-save-rule"><td><strong>Guardar regla</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Guarda la regla. El resultado indica <strong>Guardado</strong> o el motivo del rechazo.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Configuración del orquestador</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p>Una sección plegable. El distintivo <strong>ON - click to toggle</strong> u <strong>OFF - click to toggle</strong> es el valor predeterminado de toda la organización para el modo orquestador.</p>
+<figure class="shot"><img src="../img/tab-ai-orchestrator.webp" alt="Configuración del orquestador con los cuatro pasos de generación" loading="lazy"><figcaption>Configuración del orquestador con los cuatro pasos de generación</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-on-off-switch"><td>Interruptor ON/OFF</td>
+<td>Interruptor Sí/No</td>
+<td>Opcional</td>
+<td>El valor predeterminado de la organización. Un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> puede sustituirlo con <strong>Borrador automático del texto narrativo</strong> (Heredar el valor de la organización, Activado para el laboratorio, Desactivado para el laboratorio) en el Diccionario de centros, pestaña <strong>IA y rendimiento</strong>. Guardar requiere <code>config:ai-provider:manage</code>.</td>
+<td>ON</td>
+</tr>
+<tr id="f-tab-ai-steps-summary"><td>Resumen de pasos</td>
+<td>Texto de solo lectura, "N de 4 pasos de generación activos"</td>
+<td>No aplicable</td>
+<td>Cuenta los pasos activos.</td>
+<td>4 de 4</td>
+</tr>
+<tr id="f-tab-ai-step-cards"><td>Tarjetas de pasos</td>
+<td>Solo lectura: nombre del paso, <strong>ACTIVO</strong> o <strong>DESACTIVADO</strong>, <strong>Instrucción para la IA</strong>, <strong>Campos de contexto</strong></td>
+<td>No aplicable</td>
+<td>Cuatro pasos fijos se ejecutan en orden: Encabezado administrativo y clínico, Muestra y descripción macroscópica, Resumen de datos sinópticos, Pruebas complementarias y diagnóstico final. Los pasos anteriores aportan contexto a los posteriores.</td>
+<td>Fijo en el código</td>
+</tr>
+</tbody>
+</table>
+<h4>Versiones del modelo</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<p>Una sección plegable marcada como <strong>Solo administradores</strong> que contiene el panel de modelos.</p>
+<figure class="shot"><img src="../img/tab-ai-models.webp" alt="Tabla Versiones del modelo" loading="lazy"><figcaption>Tabla Versiones del modelo</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-model"><td><strong>Modelo</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>El nombre del modelo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-vendor"><td><strong>Proveedor</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>El fabricante del modelo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-type"><td><strong>Tipo</strong></td>
+<td>Solo lectura: Solo macroscópico, Solo microscópico, Macroscópico + microscópico, Solo diagnóstico, Dictado por voz</td>
+<td>No aplicable</td>
+<td>Para qué sirve el modelo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-accuracy"><td><strong>Precisión</strong></td>
+<td>Porcentaje de solo lectura</td>
+<td>No aplicable</td>
+<td>La cifra de referencia registrada para el modelo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-cases-processed"><td><strong>Casos procesados</strong></td>
+<td>Número entero de solo lectura</td>
+<td>No aplicable</td>
+<td>Los casos que el modelo ha tratado para su organización.</td>
+<td>0 para un modelo recién adoptado</td>
+</tr>
+<tr id="f-tab-ai-status"><td><strong>Estado</strong></td>
+<td>Solo lectura: Activo, Beta, Retirado</td>
+<td>No aplicable</td>
+<td>Un modelo adoptado de la tienda de ForMedrixAI empieza en Beta.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-facilities-approved"><td><strong>Centros aprobados</strong></td>
+<td>Lista de solo lectura</td>
+<td>No aplicable</td>
+<td>Los centros cuyo modelo fijado es este.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-default"><td><strong>Predeterminado</strong></td>
+<td>Marca de solo lectura</td>
+<td>No aplicable</td>
+<td>El modelo predeterminado de la organización.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-set-default"><td><strong>Establecer como predeterminado</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Convierte el modelo en el predeterminado. Un modelo de voz no puede pasar a ser el predeterminado sin un estudio comunicado y calificado como APTO.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-retire"><td><strong>Retirar</strong></td>
+<td>Botón y después una confirmación</td>
+<td>No aplicable</td>
+<td>Retira el modelo. La confirmación nombra los centros que lo tienen fijado. El modelo predeterminado no se puede retirar.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-ai-settings"><td><strong>Ajustes</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Abre la ventana Ajustes del modelo siguiente.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h5>Ventana Ajustes del modelo</h5>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Comportamiento de la IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Comportamiento de la IA</span></nav>
+
+<figure class="shot"><img src="../img/tab-ai-model-settings.webp" alt="Ventana Ajustes del modelo" loading="lazy"><figcaption>Ventana Ajustes del modelo</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-longest-answer-tokens"><td><strong>Respuesta más larga (tokens)</strong></td>
+<td>Número entero de 50 a 8000</td>
+<td>Opcional</td>
+<td>Lo máximo que el modelo puede escribir en una respuesta. En blanco utiliza el ajuste de la organización.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Umbral de confianza (%)</strong></td>
+<td>Número entero de 0 a 100</td>
+<td>Opcional</td>
+<td>El umbral propio de este modelo. En blanco utiliza el <strong>Umbral de confianza</strong> de la organización.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<p>Cualquier otro valor se rechaza con "Introduzca números enteros dentro de los intervalos indicados o deje el campo en blanco". Estas son las únicas dos sustituciones por modelo que existen.</p>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. La pestaña es de solo lectura para quien no tenga ninguna de estas cuatro: <code>config:ai-behavior:manage</code> (ajustes de comportamiento y <strong>Restablecer valores predeterminados</strong>), <code>config:ai-provider:manage</code> (ajustes del proveedor e interruptor del orquestador), <code>config:ai-model:manage</code> (establecer como predeterminado, actualizar, retirar y adoptar un modelo) y <code>config:ai-vendor-policy:manage</code> (la política de proveedores). El panel Proveedor de IA exige además el <a class="term" href="99-glossary.html#g-role" title="Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.">rol</a> de administrador, patólogo administrador o superadministrador, que es una comprobación de rol y no de <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a>. Administrador y Director del laboratorio tienen las cuatro capacidades de forma predeterminada a través de los grupos de configuración, y Superadministrador tiene todas. El cambio de la política de proveedores se audita como <code>AI_VENDOR_POLICY_CHANGED</code>. Un cambio en los ajustes de comportamiento registra solo la comprobación de permiso, no lo que cambió.</p>
+<p><strong>Límites conocidos.</strong>
+- <code>showConfidenceScores</code>, <code>macroSuggestions</code> y <code>subspecialtyRouting</code> se guardan y ninguna otra parte los lee.
+- Los ajustes de comportamiento y la política de proveedores tienen contratos de servidor (<code>CONFIG_SERVICES_API.md</code>, <code>AI_VENDOR_POLICY_API.md</code>; modelos en <code>MODELS_API.md</code>). Hasta que se conecte el servidor, funcionan con los datos de demostración del navegador.
+- La redacción, el orden y la correspondencia de campos de los pasos de la Configuración del orquestador son Planificado: la pantalla indica "configurable en una versión futura".
+- El corrector ortográfico con IA se retiró y no tiene ningún ajuste.
+- Ningún ajuste desactiva por sí solo el análisis de hallazgos críticos con IA. Sigue al proveedor, a la política de proveedores y a las <a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Reglas de activación por resultado anómalo</a>.</p>
+<h2 id="ch5-specimen-vision"><a class="anchor" href="#ch5-specimen-vision" aria-label="Link to this section">#</a> Seguimiento de muestras y asistencia de visión artificial en el tallado</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Materiales y flujos de trabajo del laboratorio &gt; Captura inteligente"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Materiales y flujos de trabajo del laboratorio</span> <span aria-hidden="true">›</span> <span>Captura inteligente</span></nav>
+
+<p><strong>Estado:</strong> No construido para la visión artificial. Existen dos elementos próximos que se describen aquí para que nadie los confunda con ella.</p>
+<p>PathScribe no tiene ningún motor de visión artificial para muestras. Nada del producto lee una fotografía de una <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>, de un <a class="term" href="99-glossary.html#g-cassette" title="El soporte de plástico en el que un bloque de tejido se incluye y se etiqueta para el corte.">casete</a> o de una preparación para identificarla, contar bloques, medir una lesión o hacerle seguimiento. Lo más parecido que existe es lo siguiente.</p>
+<ul>
+<li><strong>El diccionario de proveedores de imágenes de <a class="term" href="99-glossary.html#g-grossing" title="El examen y corte de una muestra quirúrgica por un patólogo o un ayudante de patólogo, describiéndola y eligiendo las piezas que se van a procesar.">tallado</a>.</strong> Una lista de proveedores de imágenes (por ejemplo PAX-it!/PAXcam, PathoZoom y MacroPATH, citados en el comentario de la interfaz) y la forma de acceder a cada uno: nombre, cómo se autentica el enlace (ninguna, enlace firmado, token de portador OAuth 2 o <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, el cifrado que protege una conexión web y que se muestra como https.">TLS</a> mutuo), la dirección base https y si el proveedor admite telepatología. Es una categoría (<code>gross_imaging</code>) de <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Integraciones con proveedores</a> en el <a href="04-tier3-workflow-engines.html#ch4">Capítulo 4</a>, que documenta sus campos. Contiene solo direcciones y no realiza ningún análisis de imagen. El control de la cámara de tallado en el <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> es una simple captura de fotografías; guarda la imagen dentro del propio caso, lo cual está señalado como no conforme, y trasladarlo a esta categoría de proveedores queda aplazado.</li>
+<li><strong>Equipos de tallado</strong> (<a href="02-tier1-primary-prerequisites.html#screen-grossing_hardware">Capítulo 2</a>) para balanzas, cámaras y dispositivos de códigos de barras.</li>
+<li><strong><a href="#screen-smart_capture">Captura inteligente</a></strong>, más abajo. A pesar del nombre, no llama a ningún modelo de IA y no examina ninguna imagen. Es un conjunto fijo de reglas que sugiere líneas de facturación.</li>
+</ul>
+<h3 id="screen-smart_capture"><a class="anchor" href="#screen-smart_capture" aria-label="Link to this section">#</a> Captura inteligente</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Materiales y flujos de trabajo del laboratorio &gt; Captura inteligente"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Materiales y flujos de trabajo del laboratorio</span> <span aria-hidden="true">›</span> <span>Captura inteligente</span></nav>
+
+<p><strong>Estado:</strong> Construido (prototipo). Funciona con los datos de demostración y tiene un contrato de servidor (<code>SIGNATURES_SMART_CAPTURE_API.md</code>), y el panel del <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> lleva la etiqueta "Prototipo, sin revisión de cumplimiento normativo".</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Materiales y flujos de trabajo del laboratorio</strong>
+<strong>2. Elemento de mantenimiento:</strong> Captura inteligente</p>
+<p><strong>3. Finalidad y alcance.</strong> Smart Capture sugiere líneas de cargo de Current Procedural Terminology (<a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a>) para un caso a partir de las palabras de la descripción de la <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>, el número de bloques y el número de tinciones. Las reglas son fijas y llevan versión (<code>sim-rules-1.0</code>): SC-LEVEL (88302 a 88309 según el nivel de la muestra), SC-SPECIAL (88312), SC-IHC-FIRST y SC-IHC-ADDL (88342 y 88341) y SC-DECAL (88311). No es IA ni visión artificial. El flujo es sugerir, revisar (aceptar o rechazar cada línea), aprobar (un patólogo lo confirma) y exportar. En la demostración, la exportación va a un motor simulado. Esta pantalla activa o desactiva el prototipo y registra la lista de comprobación para producción que debe estar completa antes de permitir una exportación a un motor de interfaz real.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Las reglas necesitan que CPT esté activado para la <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a> en Sistemas de códigos. Si lo omite, el panel no sugiere nada e informa <code>CPT_OFF</code>.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 8</p><dl><dt>Configurar primero</dt><dd><a href="03-tier2-master-dictionaries.html#screen-code_systems">Sistemas de códigos</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-smart_capture.webp" alt="Interruptor del prototipo Smart Capture, lista de comprobación para producción y puerta de exportación" loading="lazy"><figcaption>Interruptor del prototipo Smart Capture, lista de comprobación para producción y puerta de exportación</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-smart_capture-offer-the-smart-capture-drawer-in-the-billing-review"><td><strong>Ofrecer el panel de Smart Capture en la revisión de facturación</strong></td>
+<td>Interruptor Sí/No</td>
+<td>Opcional</td>
+<td>Si está desactivado, el panel de Smart Capture no se ofrece en el panel de Facturación del caso. Se audita como "Smart Capture Prototype Switched".</td>
+<td>Activado</td>
+</tr>
+<tr id="f-smart_capture-clinical-validation-done"><td><strong>Validación clínica realizada</strong></td>
+<td>Marca Sí/No; registra quién la marcó y cuándo</td>
+<td>Opcional</td>
+<td>Elemento de la lista de comprobación para producción. Desmarcar cualquiera de las seis cierra la puerta de exportación. Se audita como "Smart Capture Checklist Changed".</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-smart_capture-security-review-done"><td><strong>Revisión de seguridad realizada</strong></td>
+<td>Marca Sí/No; registra quién y cuándo</td>
+<td>Opcional</td>
+<td>Elemento de la lista de comprobación para producción.</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-smart_capture-privacy-review-done"><td><strong>Revisión de privacidad realizada</strong></td>
+<td>Marca Sí/No; registra quién y cuándo</td>
+<td>Opcional</td>
+<td>Elemento de la lista de comprobación para producción.</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-smart_capture-legal-review-done"><td><strong>Revisión jurídica realizada</strong></td>
+<td>Marca Sí/No; registra quién y cuándo</td>
+<td>Opcional</td>
+<td>Elemento de la lista de comprobación para producción.</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-smart_capture-claims-and-coding-policy-review-done"><td><strong>Revisión de reclamaciones y política de codificación realizada</strong></td>
+<td>Marca Sí/No; registra quién y cuándo</td>
+<td>Opcional</td>
+<td>Elemento de la lista de comprobación para producción.</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-smart_capture-real-receiving-system-tested"><td><strong>Sistema receptor real probado</strong></td>
+<td>Marca Sí/No; registra quién y cuándo</td>
+<td>Opcional</td>
+<td>Elemento de la lista de comprobación para producción.</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-smart_capture-allow-export-to-a-real-interface-engine"><td><strong>Permitir la exportación a un motor de interfaz real</strong></td>
+<td>Interruptor Sí/No</td>
+<td>Opcional</td>
+<td>Desactivado hasta que se marquen las seis casillas. Si está desactivado, la exportación va solo al motor simulado. Se audita como "Smart Capture Production Gate Changed".</td>
+<td>Desactivado</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar cualquier ajuste: <code>config:smart-capture:manage</code> (Administrador y Director del laboratorio de forma predeterminada). En el caso, <code>billing:smart-capture:review</code>, <code>billing:smart-capture:approve</code> y <code>billing:smart-capture:send</code> corresponden al <a class="term" href="99-glossary.html#g-role" title="Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.">rol</a> Patólogo. Todos los cambios anteriores se auditan.</p>
+<p><strong>Límites conocidos.</strong> Las reglas son un prototipo y no han pasado una revisión de cumplimiento normativo; las marcas registran que alguien afirma que la revisión se hizo y no llevan a cabo ninguna revisión. Nada utiliza IA ni imágenes. La exportación a un motor de interfaz real es solo una puerta: no hay ningún sistema receptor real conectado.</p>
+<h2 id="ch5-nlp"><a class="anchor" href="#ch5-nlp" aria-label="Link to this section">#</a> Motor de PLN y de estructuración automática</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Extracción de antecedentes con IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Extracción de antecedentes con IA</span></nav>
+
+<p><strong>Estado:</strong> Parcial. Existen funciones de lenguaje sueltas. No existe un motor independiente de PLN ni de estructuración automática, y no hay ninguna pantalla para uno.</p>
+<p>Lo que existe hoy, y que envía texto al modelo elegido en <a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a> y está sujeto a la política de proveedores:</p>
+<ul>
+<li><strong>Extracción de antecedentes</strong> (<a href="#screen-history_extraction">Extracción de antecedentes con IA</a>): lee casos históricos y rellena campos estructurados como información orientativa.</li>
+<li><strong>Sugerir sinóptica a partir de la narración</strong>: en la página de informe, rellena los campos sinópticos a partir de la narrativa. Cada sugerencia lleva una confianza de 0 a 100 y una cita del texto de origen. Funciona en los modos orquestador y asistencia.</li>
+<li><strong>Generar narración a partir de la sinóptica</strong>: en la página de informe, redacta la narrativa a partir de los datos sinópticos. Solo en modo orquestador.</li>
+<li><strong>Asignación de plantilla sinóptica</strong>: el modelo propone qué plantilla sinóptica necesita un <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a>, con un umbral de confianza fijo de 60.</li>
+<li><strong>Análisis de hallazgos críticos</strong> en la firma: un análisis que tiene en cuenta las negaciones, solo del texto narrativo.</li>
+<li><strong>Refinamiento del dictado</strong> (pestaña Voz, <a href="04-tier3-workflow-engines.html#screen-tab-voice">Capítulo 4</a>) y <strong>sugerencia de macros</strong> (pestaña Macros, <a href="04-tier3-workflow-engines.html#screen-tab-macros">Capítulo 4</a>).</li>
+</ul>
+<p>No construido: una canalización general de texto libre a datos estructurados más allá de las funciones anteriores, una pantalla para configurarla y cualquier modelo de PLN clínico entrenado propio de PathScribe. El antiguo Computational Sidecar se retiró el 18 de octubre de 2026.</p>
+<h3 id="screen-history_extraction"><a class="anchor" href="#screen-history_extraction" aria-label="Link to this section">#</a> Extracción de antecedentes con IA</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Extracción de antecedentes con IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Extracción de antecedentes con IA</span></nav>
+
+<p><strong>Estado:</strong> Parcial. La pantalla y las reglas funcionan con los datos de demostración y el contrato de servidor está redactado (<code>HISTORY_AI_EXTRACTION_API.md</code>), pero no se ha probado nada con un servidor real. El enlace de resumen para el <a class="term" href="99-glossary.html#g-assist-mode" title="Una forma de ejecutar PathScribe junto a un LIS existente, en la que el LIS conserva la titularidad del caso y PathScribe lee sus actualizaciones y redacta informes para que los revise el patólogo.">modo de asistencia</a> no está construido.</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Administración y cumplimiento</strong>
+<strong>2. Elemento de mantenimiento:</strong> Extracción de antecedentes con IA</p>
+<p><strong>3. Finalidad y alcance.</strong> Cuando un patólogo abre un <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> histórico, el modelo puede leer su Diagnóstico final y su texto Microscópico y proponer valores para los campos de una plantilla estructurada. Los resultados llevan la etiqueta "Extraído por IA, no verificado" y son solo orientativos: los informes, la impresión, el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a>, la facturación, las reglas y las exportaciones nunca los utilizan (una prueba del código lo vigila). Realiza dos llamadas al modelo por caso (elegir la plantilla y después rellenar los campos) y descarta cualquier campo con una confianza inferior a 30 (fijado en el código). Los resultados se guardan en caché según un hash del texto de origen, y una ejecución fallida se reintenta la próxima vez que se abre el caso. El evento de auditoría <code>HISTORY_EXTRACTION_RUN</code> no contiene texto del paciente.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> La función necesita un servicio de IA operativo y la lista de centros. Sin servicio de IA, o con uno que la política de proveedores rechaza, no se extrae nada y el caso no <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> datos orientativos.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 7</p><dl><dt>Configurar primero</dt><dd><a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-history_extraction.webp" alt="Ámbito de la extracción de antecedentes con IA, estado y tarjeta de precisión" loading="lazy"><figcaption>Ámbito de la extracción de antecedentes con IA, estado y tarjeta de precisión</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-history_extraction-applies-to"><td><strong>Se aplica a</strong></td>
+<td>Lista de opciones: <strong>Empresa (todos los centros)</strong> o un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> activo</td>
+<td>Obligatorio</td>
+<td>El ámbito que está viendo y cambiando.</td>
+<td>Empresa</td>
+</tr>
+<tr id="f-history_extraction-state-card"><td>Tarjeta de estado</td>
+<td><strong>Activado</strong> o <strong>Desactivado</strong> de solo lectura</td>
+<td>No aplicable</td>
+<td>El ajuste en vigor para el ámbito elegido. Se resuelve como el ajuste propio del centro, después el ajuste de la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a> y, por último, desactivado.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-history_extraction-source-tag"><td>Etiqueta de origen</td>
+<td>Solo lectura: <strong>Valor predeterminado integrado</strong>, <strong>Ajuste de la empresa</strong> o <strong>Ajuste propio de este centro</strong></td>
+<td>No aplicable</td>
+<td>De dónde procede el estado.</td>
+<td>Valor predeterminado integrado</td>
+</tr>
+<tr id="f-history_extraction-turn-on-turn-off"><td><strong>Activar</strong> / <strong>Desactivar</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Establece el estado para el ámbito elegido.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-history_extraction-use-the-enterprise-setting"><td><strong>Usar el ajuste de la empresa</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Aparece solo cuando el centro elegido tiene una entrada propia. La elimina para que el centro siga a la empresa.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-history_extraction-accuracy-so-far"><td><strong>Precisión hasta ahora</strong></td>
+<td>Tarjeta de solo lectura: informes leídos, campos extraídos, marcados como erróneos</td>
+<td>No aplicable</td>
+<td>Cuenta, para el ámbito elegido, cuántos informes se leyeron, cuántos campos se extrajeron y cuántos marcó un patólogo como erróneos.</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:history-extraction:manage</code> (Administrador y Director del laboratorio). En el caso, <code>ai:history-extraction:run</code> y <code>ai:history-extraction:flag</code> corresponden a Patólogo, Fellow y Residente, y <code>case:clinical-history:record</code> a esos tres y a Ayudante de patólogo. Se aplica la política de proveedores, que rechaza un servicio no permitido con <code>vendorNotAllowed</code>. La ejecución de una extracción se audita como <code>HISTORY_EXTRACTION_RUN</code>.</p>
+<p><strong>Límites conocidos.</strong> Solo orientativo por diseño. El enlace de resumen del modo de asistencia es No construido. El corte de confianza de 30 puntos no tiene ningún ajuste.</p>
+<h2 id="ch5-dp-ai"><a class="anchor" href="#ch5-dp-ai" aria-label="Link to this section">#</a> Análisis de imagen con IA en patología digital</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Materiales y flujos de trabajo del laboratorio &gt; Integraciones con proveedores"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Materiales y flujos de trabajo del laboratorio</span> <span aria-hidden="true">›</span> <span>Integraciones con proveedores</span></nav>
+
+<p><strong>Estado:</strong> Parcial. Existe la recepción y la presentación de resultados de productos de proveedores. La detección de tumores, el recuento de células y la evaluación de biomarcadores realizados por el propio PathScribe son <strong>No construido</strong>.</p>
+<p>PathScribe no analiza imágenes. Registra lo que informa el producto de un proveedor. Lo más parecido a un módulo de análisis con IA es esta cadena, que se configura en otros capítulos:</p>
+<ul>
+<li><strong>Diccionario de proveedores</strong> (categoría de IA de patología digital en <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Integraciones con proveedores</a>, <a href="04-tier3-workflow-engines.html#ch4">Capítulo 4</a>): nombre del proveedor, nombre del producto, modalidad (texto libre), una casilla <strong>Aprobado por la FDA</strong> (un <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> puntual del administrador, no una comprobación) y un interruptor de activo. Se suministra con Paige Prostate, Ibex Prostate Detect, PathAI AISight Dx, Proscia Concentriq AP-Dx, Hologic Genius Digital Diagnostics (citología cervical) y BD FocalPoint GS (marcado como no aprobado, ya que es una aprobación previa a la comercialización y no una autorización 510(k)). Junto a él están los proveedores de visores de preparaciones (plantillas de dirección de lanzamiento) y los lotes de escaneado de imágenes de preparación completa.</li>
+<li><strong>Registro de resultado</strong>: un estado (solicitado, completado, fallido o con tiempo agotado), hallazgos (una etiqueta de texto libre, una confianza de 0 a 1 y una región opcional), lecturas de biomarcadores como texto libre (nombre y valor) y una clasificación de triaje de preparaciones con una recomendación de revisión al estilo de los quintiles de BD.</li>
+<li><strong>Incorporación</strong>: un resultado del proveedor llega como un evento entrante del motor de interfaces. En la demostración, completar un lote de Imagen de citología genera automáticamente una solicitud de cribado con IA al primer proveedor activo de citología cervical.</li>
+<li><strong>Distintivo de la lista de trabajo de citología y aviso de concordancia</strong>: se registra la respuesta del patólogo. Un desacuerdo genera una deficiencia abierta y nunca inicia por sí solo una acción correctiva.</li>
+<li><strong>Pestaña Discordancia de la IA de Garantía de calidad</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Capítulo 4</a>): un informe de <a class="term" href="99-glossary.html#g-discordance" title="Una diferencia entre dos lecturas del mismo material, como un diagnóstico preliminar y uno final, o el de un primer y un segundo patólogo.">discordancia</a> por proveedor y un informe de resultados estancados. El tiempo de espera de los resultados estancados se establece allí (horas enteras de 1 a 720, predeterminado 24).</li>
+</ul>
+<p>No construido: un detector de tumores, un contador de células o un evaluador de biomarcadores propiedad de PathScribe, y cualquier control que ajuste el análisis de un proveedor. Las integraciones reales con proveedores no están cerradas. El contrato es <code>DIGITAL_PATHOLOGY_API.md</code>. Configuración relacionada: Instrumentación de citología (<a href="03-tier2-master-dictionaries.html#screen-cytology_instrumentation">Capítulo 3</a>).</p>
+<h2 id="ch5-smart-qc"><a class="anchor" href="#ch5-smart-qc" aria-label="Link to this section">#</a> Control de calidad inteligente y reglas de detección de anomalías diagnósticas</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Reglas de discrepancia clínica"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Reglas de discrepancia clínica</span></nav>
+
+<p><strong>Estado:</strong> Construido para las pantallas de reglas. Demostración para el lado del servidor de las Instrucciones de IA. No existe un único módulo de "detección de anomalías"; las comprobaciones siguientes son independientes y cada una está documentada donde se configura.</p>
+<ul>
+<li><strong>Comprobación de <a class="term" href="99-glossary.html#g-discordance" title="Una diferencia entre dos lecturas del mismo material, como un diagnóstico preliminar y uno final, o el de un primer y un segundo patólogo.">discordancia</a> clínica</strong> (<a href="#screen-clinical_mismatch_rules">Reglas de discordancia clínica</a> e <a href="#screen-ai_instructions">Instrucciones de IA</a>, en este capítulo): el modelo compara la indicación y los antecedentes clínicos con el diagnóstico, y las reglas deciden qué hace un resultado.</li>
+<li><strong>Reglas de activación por resultado anómalo</strong> (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Capítulo 3</a>): reglas discretas con las gravedades Anómalo, Crítico y Maligno. Las reglas suministradas son Estado de los márgenes, Invasión perineural, Estado de los ganglios linfáticos e Invasión linfovascular.</li>
+<li><strong>Análisis de la narrativa en busca de hallazgos críticos</strong>: el modelo analiza la narrativa en la firma, teniendo en cuenta las negaciones, y envía solo el texto narrativo. No tiene ningún ajuste propio.</li>
+<li><strong>Política de tendencia de discordancias de Calidad</strong> (<a href="04-tier3-workflow-engines.html#screen-qa_trend_policy">Capítulo 4</a>), la pestaña <strong>Discordancia de la IA</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Capítulo 4</a>) y las <strong>Reglas de control de calidad de citología</strong> (<a href="04-tier3-workflow-engines.html#screen-cytology_qc_rules">Capítulo 4</a>).</li>
+</ul>
+<p>No construido: un detector de anomalías estadístico o de aprendizaje automático que vigile los tiempos de respuesta, los volúmenes o los resultados entre casos.</p>
+<h3 id="screen-clinical_mismatch_rules"><a class="anchor" href="#screen-clinical_mismatch_rules" aria-label="Link to this section">#</a> Reglas de discordancia clínica</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Reglas de discrepancia clínica"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Reglas de discrepancia clínica</span></nav>
+
+<p><strong>Estado:</strong> Construido. Funciona con los datos de demostración y tiene un contrato de servidor (<code>CONFIG_SERVICES_API.md</code>, <code>/api/clinical/clinical-mismatch-rule/*</code>).</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Administración y cumplimiento</strong>
+<strong>2. Elemento de mantenimiento:</strong> Reglas de discrepancia clínica</p>
+<p><strong>3. Finalidad y alcance.</strong> En la firma, el modelo compara lo que el clínico comunicó al laboratorio con lo que el patólogo diagnosticó, y devuelve un tipo de <a class="term" href="99-glossary.html#g-discordance" title="Una diferencia entre dos lecturas del mismo material, como un diagnóstico preliminar y uno final, o el de un primer y un segundo patólogo.">discordancia</a> y una confianza de 0 a 100. Estas reglas convierten esa confianza en un resultado. Por debajo del umbral de visualización, el resultado se descarta. Desde el umbral de visualización hasta el umbral de acción es de riesgo bajo: el patólogo ve una alerta y el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> de Calidad lo anota. Con el umbral de acción o por encima se aplica la acción de la regla: <strong>Bloquear</strong> lo convierte en riesgo alto y retiene la firma hasta que se registre una decisión, <strong>Avisar</strong> emite una alerta y <strong>Registrar</strong> lo anota. Las decisiones se registran como RESOLVED, UNRESOLVED o DEFERRED. El flujo completo está en <code>docs/product/CLINICAL_MISMATCH_CHECK.md</code>. Una regla por tipo de discordancia abarca todos los tipos de <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>, y puede añadir una regla para un solo tipo de muestra.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> La comprobación llama al servicio de IA configurado en la pestaña Comportamiento de la IA, y las reglas por tipo de muestra se eligen entre los tipos de muestra activos. Sin servicio de IA, o con uno que la política de proveedores rechaza, la comprobación no se ejecuta. Si omite el Diccionario de muestras, la lista <strong>Una regla para un tipo de muestra</strong> queda vacía.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 6</p><dl><dt>Configurar primero</dt><dd><a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a>, <a href="03-tier2-master-dictionaries.html#screen-specimens">Diccionario de muestras</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-clinical_mismatch_rules.webp" alt="Tabla de Reglas de discordancia clínica y control para añadir una regla" loading="lazy"><figcaption>Tabla de Reglas de discordancia clínica y control para añadir una regla</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong> Los umbrales se guardan al salir del cuadro o al pulsar Intro. La acción se guarda al elegirla.</p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-clinical_mismatch_rules-kind-of-mismatch"><td><strong>Tipo de discordancia</strong></td>
+<td>Solo lectura: neoplasia maligna inesperada, causa de muerte, localización u órgano, neoplasia maligna esperada ausente, otro</td>
+<td>No aplicable</td>
+<td>Una fila por tipo para todos los tipos de muestra, más las filas de cada tipo de muestra.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-specimen-type"><td><strong>Tipo de muestra</strong></td>
+<td>Solo lectura: todos los tipos de muestra, o un tipo del Diccionario de muestras</td>
+<td>No aplicable</td>
+<td>El ámbito de la fila.</td>
+<td>Todos los tipos de muestra</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-alert-from"><td><strong>Alerta desde</strong></td>
+<td>Número entero de 0 a 100 (umbral de visualización, %)</td>
+<td>Obligatorio</td>
+<td>Los resultados por debajo de este valor se suprimen.</td>
+<td>60 para todos los tipos</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action-at"><td><strong>Acción a partir de</strong></td>
+<td>Número entero de 0 a 100 (umbral de acción, %)</td>
+<td>Opcional</td>
+<td>Debe ser como mínimo el valor de <strong>Alerta desde</strong>. En blanco significa que la acción empieza en el valor de <strong>Alerta desde</strong>.</td>
+<td>neoplasia maligna inesperada 70, causa de muerte 70, localización u órgano 65, neoplasia maligna esperada ausente en blanco, otro 65</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action"><td><strong>Acción</strong></td>
+<td>Lista de opciones: <strong>Bloquear</strong>, <strong>Avisar</strong>, <strong>Registrar</strong></td>
+<td>Obligatorio</td>
+<td>Lo que ocurre con el valor de <strong>Acción a partir de</strong> o por encima.</td>
+<td>neoplasia maligna inesperada Bloquear, causa de muerte Bloquear, localización u órgano Bloquear, neoplasia maligna esperada ausente Registrar, otro Registrar</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-remove"><td><strong>Eliminar</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Elimina una regla de tipo de muestra. La regla para todas las muestras de un tipo no se puede eliminar.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-add-a-rule-for-one-specimen-type"><td><strong>Una regla para un tipo de muestra</strong></td>
+<td>Lista de opciones de tipo de discordancia y lista de opciones de tipo de muestra activo</td>
+<td>Opcional</td>
+<td>Crea una regla que parte como copia de la regla para todos los tipos de ese tipo de discordancia. Se rechaza una segunda regla para el mismo tipo de discordancia y de muestra.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-amendments-corrections-and-addenda"><td><strong>Enmiendas, correcciones y adendas</strong></td>
+<td>Casilla Sí/No</td>
+<td>Opcional</td>
+<td>Si está activada, "Una discordancia de alto riesgo retiene la liberación hasta que se registre una decisión" se aplica también a las enmiendas, las correcciones y las adendas.</td>
+<td>Activada</td>
+</tr>
+</tbody>
+</table>
+<p>Una entrada rechazada muestra uno de estos problemas: umbral fuera de intervalo, acción por debajo de la visualización, duplicado, no se puede eliminar la regla predeterminada, acción desconocida o categoría desconocida.</p>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Verla: <code>config:clinical-mismatch-rules:view</code> (Patólogo, Revisor de calidad y Director del laboratorio de forma predeterminada). Modificarla: <code>config:clinical-mismatch-rules:manage</code>, que requiere <code>view</code> y no tiene ningún <a class="term" href="99-glossary.html#g-role" title="Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.">rol</a> predeterminado, así que concédala de forma deliberada. Sin <code>manage</code>, la pantalla es de solo lectura. Los cambios se auditan como <code>CLINICAL_MISMATCH_RULE_CHANGED</code>. <code>case:clinical-mismatch:record</code> (registrar una decisión en la firma) corresponde a Patólogo y Fellow. Separación de funciones: nadie puede tener <code>config:clinical-mismatch-rules:manage</code> junto con <code>config:ai-prompt:approve</code>, y Superadministrador no está exento.</p>
+<p><strong>Límites conocidos.</strong> El modelo puede equivocarse; los umbrales son el control del laboratorio sobre cuánto se interrumpe a un patólogo. Una discordancia en la firma es orientativa salvo que la acción de una regla sea <strong>Bloquear</strong>.</p>
+<h2 id="ch5-governance"><a class="anchor" href="#ch5-governance" aria-label="Link to this section">#</a> Gobernanza de la IA, umbrales con intervención humana y calibración</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span></nav>
+
+<p><strong>Estado:</strong> Construido para la gobernanza y los umbrales. Calibración de pesos: no existe.</p>
+<p>Los controles de PathScribe mantienen a una persona entre el modelo y el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a>.</p>
+<ul>
+<li><strong>Instrucciones aprobadas.</strong> El texto que la comprobación de <a class="term" href="99-glossary.html#g-discordance" title="Una diferencia entre dos lecturas del mismo material, como un diagnóstico preliminar y uno final, o el de un primer y un segundo patólogo.">discordancia</a> clínica envía al modelo lleva versión, y una segunda persona debe aprobarlo (<a href="#screen-ai_instructions">Instrucciones de IA</a>).</li>
+<li><strong>Pruebas.</strong> Un estudio de validación mide con qué frecuencia los patólogos aceptan sin cambios las sugerencias del modelo, y una calificación APTO es lo que permite a un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> fijar un modelo o a un modelo de voz pasar a ser el predeterminado (<a href="#screen-tab-validation">Estudios de validación</a>).</li>
+<li><strong>Umbrales.</strong> Aquí se enumeran todos los umbrales del producto.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Umbral</th>
+<th>Valor</th>
+<th>Dónde se establece</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Umbral de confianza (sugerencias)</td>
+<td>0 a 100, predeterminado 75</td>
+<td>Pestaña <strong>Comportamiento de la IA</strong>; sustitución por modelo en <strong>Ajustes del modelo</strong></td>
+</tr>
+<tr>
+<td>Inserción automática con el umbral o por encima</td>
+<td>Desactivada de forma predeterminada</td>
+<td>Pestaña <strong>Comportamiento de la IA</strong>, <strong>Avanzado</strong></td>
+</tr>
+<tr>
+<td>Umbrales de visualización y de acción de la discordancia clínica</td>
+<td>0 a 100, visualización predeterminada 60</td>
+<td><a href="#screen-clinical_mismatch_rules">Reglas de discordancia clínica</a></td>
+</tr>
+<tr>
+<td>Asignación de plantilla sinóptica y de <a class="term" href="99-glossary.html#g-grossing" title="El examen y corte de una muestra quirúrgica por un patólogo o un ayudante de patólogo, describiéndola y eligiendo las piezas que se van a procesar.">tallado</a></td>
+<td>Fijo 60</td>
+<td>Código; sin ajuste</td>
+</tr>
+<tr>
+<td>Corte de campos de la extracción de antecedentes</td>
+<td>Fijo 30</td>
+<td>Código; sin ajuste</td>
+</tr>
+<tr>
+<td>Tasa de aceptación objetivo del estudio y ratio medio máximo de edición</td>
+<td>70 % y 30 % de forma predeterminada</td>
+<td><a href="#screen-validation-studies">Estudios de validación: Estudios</a></td>
+</tr>
+<tr>
+<td>Resultado de cribado con IA estancado</td>
+<td>Horas enteras de 1 a 720, predeterminado 24</td>
+<td>Pestaña <strong>Discordancia de la IA</strong> de Calidad (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Capítulo 4</a>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Calibración de pesos y ajustes solo internos.</strong> En PathScribe no hay ningún ajuste de calibración de pesos de modelos, de ajuste fino ni de recalibración, y ningún ajuste de IA está limitado al personal de ForMedrixAI. Una búsqueda en el código solo encuentra calibración de equipos y de citología, que no guardan relación. Ninguna <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a> del catálogo está marcada como exclusiva de la plataforma para la IA. Conviene conocer dos hechos relacionados. La clave de <a class="term" href="99-glossary.html#g-api" title="Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.">API</a> la rota el soporte de ForMedrixAI en el almacén de secretos del servidor, y no hay ninguna pantalla para ello. El catálogo de modelos que ofrece la tienda de ForMedrixAI pertenece a la plataforma, y tampoco hay una pantalla de personal para él. Como no existe ningún ajuste de ese tipo, este capítulo no tiene ninguna sección marcada como solo interna de ForMedrixAI.</p>
+<h3 id="screen-ai_instructions"><a class="anchor" href="#screen-ai_instructions" aria-label="Link to this section">#</a> Instrucciones de IA</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Instrucciones de IA"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Instrucciones de IA</span></nav>
+
+<p><strong>Estado:</strong> Demostración. Las reglas se ejecutan en el navegador sobre un almacenamiento inyectado y el servicio no tiene una ruta de servidor propia (<code>HTTP_SERVICES_REMAINING.md</code>).</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Administración y cumplimiento</strong>
+<strong>2. Elemento de mantenimiento:</strong> Instrucciones de IA</p>
+<p><strong>3. Finalidad y alcance.</strong> La comprobación de <a class="term" href="99-glossary.html#g-discordance" title="Una diferencia entre dos lecturas del mismo material, como un diagnóstico preliminar y uno final, o el de un primer y un segundo patólogo.">discordancia</a> clínica envía al modelo un texto de instrucciones. Esta pantalla controla ese texto para cada una de tres disciplinas: Quirúrgica, Citología y Autopsia (se muestran como pestañas). Un cambio pasa por la edición y después por la aprobación de otra persona, de modo que nadie puede cambiar por sí solo lo que se le dice al modelo. El <a class="term" href="99-glossary.html#g-block" title="Una pieza de tejido incluida en parafina dentro de un casete, de la que se cortan las preparaciones.">bloque</a> de datos del <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> y el formato <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un formato de datos en texto sin formato utilizado por la API, por `config.json` y por los webhooks.">JSON</a> de la respuesta están fijados en el código y no se pueden editar aquí. Solo se utiliza la versión aprobada. La versión 0 es el texto integrado de PathScribe.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> El texto lo utiliza la comprobación con el servicio de la pestaña Comportamiento de la IA, así que el servicio de IA se configura primero. Si lo omite, un texto aprobado no tiene sobre qué ejecutarse y <strong>Probar este texto</strong> informa de que la IA no está disponible.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 5</p><dl><dt>Configurar primero</dt><dd><a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a></dd><dt>Esto habilita</dt><dd><a href="#screen-clinical_mismatch_rules">Reglas de discordancia clínica</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-ai_instructions.webp" alt="Pestañas de disciplina de Instrucciones de IA con las tarjetas En uso, A la espera de aprobación, Editar, Prueba e Historial" loading="lazy"><figcaption>Pestañas de disciplina de Instrucciones de IA con las tarjetas En uso, A la espera de aprobación, Editar, Prueba e Historial</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ai_instructions-discipline-tabs"><td>Pestañas de disciplina</td>
+<td>Lista de opciones: Quirúrgica, Citología, Autopsia</td>
+<td>Obligatorio</td>
+<td>Cada disciplina tiene su propio texto y su propio historial.</td>
+<td>Quirúrgica</td>
+</tr>
+<tr id="f-ai_instructions-in-use-version-n"><td><strong>En uso: versión N</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>La versión aprobada que la comprobación utiliza ahora.</td>
+<td>Versión 0 (texto integrado)</td>
+</tr>
+<tr id="f-ai_instructions-awaiting-approval"><td><strong>A la espera de aprobación</strong></td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>La versión pendiente, si la hay. Una nueva edición retira la pendiente anterior.</td>
+<td>Ninguna</td>
+</tr>
+<tr id="f-ai_instructions-approve"><td><strong>Aprobar</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Convierte la versión pendiente en la que se utiliza. Se rechaza para quien haya editado el texto desde la última aprobación (SELF_APPROVAL). Requiere <code>config:ai-prompt:approve</code>.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-ai_instructions-reject-reason"><td>Motivo del rechazo</td>
+<td>Texto</td>
+<td>Obligatorio para rechazar</td>
+<td>El motivo se conserva en el historial.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-ai_instructions-reject"><td><strong>Rechazar</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Desactivado hasta que se introduce un motivo. La versión aprobada sigue en uso.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-ai_instructions-edit-text"><td>Texto de edición</td>
+<td>Área de texto, hasta 6000 caracteres, con contador</td>
+<td>Obligatorio</td>
+<td>No debe estar vacío, no superar los 6000 caracteres y ser distinto del texto actual (en caso contrario: vacío, demasiado largo o sin cambios).</td>
+<td>El texto en uso</td>
+</tr>
+<tr id="f-ai_instructions-save-for-approval"><td><strong>Guardar para aprobación</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Crea una nueva versión pendiente.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-ai_instructions-clinical-indication"><td><strong>Indicación clínica</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Entrada de ejemplo para la prueba. Se rellena con un ejemplo integrado.</td>
+<td>Texto de ejemplo</td>
+</tr>
+<tr id="f-ai_instructions-clinical-history"><td><strong>Historia clínica</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Entrada de ejemplo para la prueba.</td>
+<td>Texto de ejemplo</td>
+</tr>
+<tr id="f-ai_instructions-findings"><td><strong>Hallazgos</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Entrada de ejemplo para la prueba.</td>
+<td>Texto de ejemplo</td>
+</tr>
+<tr id="f-ai_instructions-diagnosis"><td><strong>Diagnóstico</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Entrada de ejemplo para la prueba.</td>
+<td>Texto de ejemplo</td>
+</tr>
+<tr id="f-ai_instructions-pathologist-confirmed-malignant-finding"><td><strong>Hallazgo maligno confirmado por el patólogo</strong></td>
+<td>Casilla Sí/No</td>
+<td>Opcional</td>
+<td>Entrada de ejemplo para la prueba.</td>
+<td>Desactivada</td>
+</tr>
+<tr id="f-ai_instructions-test-this-text"><td><strong>Probar este texto</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Ejecuta una vez el texto pendiente o editado sobre el ejemplo. El resultado es discordancia, ninguna, no permitido (por la política de proveedores) o no disponible.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-ai_instructions-history"><td>Historial</td>
+<td>Lista de solo lectura</td>
+<td>No aplicable</td>
+<td>Cada versión con su estado: pendiente, aprobada, rechazada, sustituida o retirada.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>, más <code>config:ai-prompt:edit</code> o <code>config:ai-prompt:approve</code>. Para listar las versiones se necesita <code>config:ai-prompt:view</code> (Revisor de calidad y Director del laboratorio). <code>config:ai-prompt:edit</code> no tiene ningún <a class="term" href="99-glossary.html#g-role" title="Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.">rol</a> integrado y requiere <code>view</code>. <code>config:ai-prompt:approve</code> corresponde solo a Director del laboratorio y se le niega a Superadministrador; requiere <code>view</code>. Superadministrador tiene <code>view</code> y <code>edit</code>. Separación de funciones: <code>config:ai-prompt:approve</code> no puede tenerse junto con <code>config:clinical-mismatch-rules:manage</code>. Se audita como <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code> y <code>AI_PROMPT_REJECTED</code>.</p>
+<p><strong>Límites conocidos.</strong> El lado del servidor es No construido. Una persona que tenga solo <code>view</code>, como un Revisor de calidad, no puede abrir la pantalla aunque la lista se cargaría para ella.</p>
+<h3 id="screen-tab-validation"><a class="anchor" href="#screen-tab-validation" aria-label="Link to this section">#</a> Estudios de validación (pestaña)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span></nav>
+
+<p><strong>Estado:</strong> Construido. Funciona con los datos de demostración y tiene un contrato de servidor (<code>QUALITY_API.md</code>, <code>/api/validation-studies/...</code>).</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Estudios de validación</strong>
+<strong>2. Elemento de mantenimiento:</strong> Estudios de validación (la pestaña completa)</p>
+<p><strong>3. Finalidad y alcance.</strong> Un estudio de validación reúne pruebas de que un modelo de IA funciona con sus propios casos. Los patólogos trabajan con normalidad; en la firma, PathScribe registra, por cada sugerencia de la IA, si se aceptó sin cambios y cuánto se editó. Las señales están desidentificadas. Cuando se cierra el estudio, el informe califica el modelo, y solo una calificación APTO permite a un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> fijar ese modelo. La pestaña tiene tres subpestañas, <strong>Estudios</strong>, <strong>Panel</strong> e <strong>Informes</strong>, que se eligen con <code>?section=studies</code>, <code>dashboard</code> o <code>reports</code>. Los estudios son orientativos: <code>validationMode</code> es siempre orientativo. Un aviso lo indica, y un interruptor <strong>Cómo funciona, con un ejemplo</strong> explica el proceso.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Un estudio valida un modelo elegido en la pestaña Comportamiento de la IA e inscribe centros del Diccionario de centros. Si omite los modelos y los centros, el formulario del estudio no tiene nada que elegir.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 2</p><dl><dt>Configurar primero</dt><dd><a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a></dd><dt>Esto habilita</dt><dd><a href="#screen-validation-studies">Estudios de validación: Estudios</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/tab-validation.webp" alt="Pestaña Estudios de validación con el aviso de carácter orientativo y las tres subpestañas" loading="lazy"><figcaption>Pestaña Estudios de validación con el aviso de carácter orientativo y las tres subpestañas</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-validation-advisory-banner"><td>Aviso de carácter orientativo</td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>Indica que un estudio es orientativo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-tab-validation-how-this-works-with-an-example"><td><strong>Cómo funciona, con un ejemplo</strong></td>
+<td>Interruptor</td>
+<td>Opcional</td>
+<td>Muestra u oculta la explicación con un ejemplo práctico.</td>
+<td>Oculto</td>
+</tr>
+<tr id="f-tab-validation-sub-tabs-studies-dashboard-reports"><td>Subpestañas <strong>Estudios</strong>, <strong>Panel</strong>, <strong>Informes</strong></td>
+<td>Lista de opciones</td>
+<td>Obligatorio</td>
+<td>Abre la pantalla correspondiente siguiente.</td>
+<td>Estudios</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> La pestaña aparece solo para una persona cuyo <a class="term" href="99-glossary.html#g-role" title="Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.">rol</a> sea administrador, patólogo administrador o superadministrador. Es una comprobación de rol, no de <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a>. Dentro, la pestaña es de solo lectura sin <code>config:validation-studies:manage</code> y <code>validation:approval:record</code>. Ambas las tienen Administrador y Director del laboratorio a través del grupo de configuración de calidad. El rol Director del laboratorio no figura en la comprobación de rol, de modo que tiene las capacidades pero no puede abrir la pestaña.</p>
+<p><strong>Límites conocidos.</strong> Véase <a href="#screen-validation-studies">Estudios de validación: Estudios</a>.</p>
+<h3 id="screen-validation-studies"><a class="anchor" href="#screen-validation-studies" aria-label="Link to this section">#</a> Estudios de validación: Estudios</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación &gt; Estudios"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span> <span aria-hidden="true">›</span> <span>Estudios</span></nav>
+
+<p><strong>Estado:</strong> Construido.</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Estudios de validación</strong> &gt; subpestaña <strong>Estudios</strong>
+<strong>2. Elemento de mantenimiento:</strong> Estudios</p>
+<p><strong>3. Finalidad y alcance.</strong> La lista de estudios y el formulario para crear uno. Un estudio pasa por los estados borrador, pendiente de aprobación, aprobado, activo, cerrado e informado. Los botones dependen del estado: un borrador tiene <strong>Editar</strong>, <strong>Enviar a revisión</strong> y <strong>Eliminar</strong>; un estudio pendiente tiene <strong>Registrar aprobación</strong>; un estudio aprobado tiene <strong>Activar</strong> (se rechaza sin una referencia del IRB); un estudio activo tiene <strong>Cerrar estudio</strong>.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> El formulario del estudio elige un modelo de la pestaña Comportamiento de la IA, los centros activos y los patólogos inscritos (filtrados por los centros elegidos) y, opcionalmente, plantillas de informe publicadas. Si omite los médicos, la lista <strong>Patólogos inscritos</strong> queda vacía y no se puede guardar un estudio. Las plantillas publicadas se configuran en el <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Capítulo 6</a>; si no hay ninguna, deje <strong>Plantillas de informe</strong> en blanco para incluir todas las plantillas.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 3</p><dl><dt>Configurar primero</dt><dd><a href="#screen-tab-validation">Estudios de validación (pestaña)</a>, <a href="#screen-tab-ai">Comportamiento de la IA (pestaña)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Médicos</a></dd><dt>Esto habilita</dt><dd><a href="#screen-validation-reports">Estudios de validación: Informes</a>, <a href="#screen-validation-dashboard">Estudios de validación: Panel</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/validation-studies.webp" alt="Lista de Estudios de validación con Nuevo estudio" loading="lazy"><figcaption>Lista de Estudios de validación con Nuevo estudio</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<h4>Formulario Nuevo estudio / Editar estudio</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación &gt; Estudios"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span> <span aria-hidden="true">›</span> <span>Estudios</span></nav>
+
+<figure class="shot"><img src="../img/validation-studies-new.webp" alt="Formulario Nuevo estudio" loading="lazy"><figcaption>Formulario Nuevo estudio</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-study-name"><td><strong>Nombre del estudio</strong></td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El nombre que se <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> en la lista y en el informe.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-description"><td><strong>Descripción</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Finalidad del estudio.</td>
+<td>Ninguna</td>
+</tr>
+<tr id="f-validation-studies-ai-model-being-validated"><td><strong>Modelo de IA que se valida</strong></td>
+<td>Lista de opciones de modelos</td>
+<td>Obligatorio</td>
+<td>Bloqueado al editar. Un enlace <strong>Explore la tienda de ForMedrixAI</strong> (solo en estudios nuevos) abre la ventana de la tienda siguiente.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-target-acceptance-rate"><td><strong>Tasa de aceptación objetivo</strong></td>
+<td>Control deslizante del 50 % al 100 %, paso de 5</td>
+<td>Obligatorio</td>
+<td>El porcentaje de sugerencias aceptadas sin cambios que da derecho a APTO.</td>
+<td>70 %</td>
+</tr>
+<tr id="f-validation-studies-max-mean-edit-ratio"><td><strong>Ratio medio máximo de edición</strong></td>
+<td>Control deslizante del 10 % al 90 %, paso de 5</td>
+<td>Obligatorio</td>
+<td>Lo máximo que los patólogos pueden editar las sugerencias, de media, para obtener APTO.</td>
+<td>30 %</td>
+</tr>
+<tr id="f-validation-studies-start-date"><td><strong>Fecha de inicio</strong></td>
+<td>Fecha</td>
+<td>Obligatorio</td>
+<td>Cuándo empieza el estudio.</td>
+<td>Hoy</td>
+</tr>
+<tr id="f-validation-studies-irb-ethics-reference"><td><strong>Referencia del comité ético / IRB</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Se muestra en el formulario pero no se guarda. La referencia se registra en el paso de aprobación.</td>
+<td>Ninguna</td>
+</tr>
+<tr id="f-validation-studies-participating-facilities"><td><strong>Centros participantes</strong></td>
+<td>Lista de opciones de centros activos, varios</td>
+<td>Obligatorio</td>
+<td>Las señales solo cuentan para estos.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-enrolled-pathologists"><td><strong>Patólogos inscritos</strong></td>
+<td>Lista de opciones de patólogos, varios, filtrados por los centros elegidos</td>
+<td>Obligatorio</td>
+<td>Solo sus firmas generan señales. El primero que se elige pasa a ser el investigador principal; no hay ningún campo para ello.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-report-templates"><td><strong>Plantillas de informe</strong></td>
+<td>Lista de opciones de plantillas publicadas, varias</td>
+<td>Opcional</td>
+<td>En blanco significa todas las plantillas.</td>
+<td>Todas las plantillas</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana Enviar a revisión ética / IRB</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación &gt; Estudios"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span> <span aria-hidden="true">›</span> <span>Estudios</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-ethics-irb-committee-name"><td><strong>Nombre del comité ético / IRB</strong></td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El comité al que va el estudio.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-submitted-by"><td><strong>Enviado por</strong></td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Quién lo envió.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-expected-review-date"><td><strong>Fecha prevista de revisión</strong></td>
+<td>Fecha</td>
+<td>Opcional</td>
+<td>Cuándo se espera una decisión.</td>
+<td>Ninguna</td>
+</tr>
+<tr id="f-validation-studies-notes-for-committee"><td><strong>Notas para el comité</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Notas libres.</td>
+<td>Ninguna</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana Registrar la aprobación del comité</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación &gt; Estudios"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span> <span aria-hidden="true">›</span> <span>Estudios</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-irb-ethics-reference-number"><td><strong>Número de referencia del comité ético / IRB</strong></td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Sin él, el estudio no se puede activar.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-approved-by"><td><strong>Aprobado por</strong></td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>La persona o el órgano que aprueba.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-validation-studies-approval-date"><td><strong>Fecha de aprobación</strong></td>
+<td>Fecha</td>
+<td>Obligatorio</td>
+<td>La fecha de la aprobación.</td>
+<td>Hoy</td>
+</tr>
+<tr id="f-validation-studies-committee-minutes-reference"><td><strong>Referencia del acta del comité</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Dónde se archiva el acta.</td>
+<td>Ninguna</td>
+</tr>
+<tr id="f-validation-studies-conditions-attached-to-approval"><td><strong>Condiciones asociadas a la aprobación</strong></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Cualquier condición.</td>
+<td>Ninguna</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana Tienda de ForMedrixAI</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación &gt; Estudios"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span> <span aria-hidden="true">›</span> <span>Estudios</span></nav>
+
+<p>Enumera los modelos que ForMedrixAI ha publicado tras sus propias pruebas de regresión y que su organización no ha adoptado. Cada fila <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> el modelo, su fecha de publicación y la cifra de referencia de ForMedrixAI, y un botón <strong>Adoptar</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-adopt"><td><strong>Adoptar</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Añade el modelo a su organización como Beta, nunca como predeterminado y con cero casos, hasta que su propio estudio lo confirme. Rechazos: tienda sin licencia, sin organización, no está en el catálogo, ya adoptado.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> <code>config:validation-studies:manage</code> cubre crear, actualizar, enviar a revisión, activar, cerrar y eliminar. <code>validation:approval:record</code> cubre registrar la aprobación del comité. Adoptar un modelo requiere <code>config:ai-model:manage</code>. Administrador y Director del laboratorio tienen de forma predeterminada las dos primeras. Los eventos del estudio se auditan como <code>validation_study_created</code>, <code>_submitted</code>, <code>_approval_recorded</code>, <code>_activated</code>, <code>_closed</code> y <code>_deleted</code>. Guardar una edición registra <code>validation_study_created</code>, y la activación registra el nombre literal <code>admin</code> como la persona.</p>
+<p><strong>Límites conocidos.</strong> La comprobación de licencia de la tienda es una simulación que siempre se supera, y la autorización de la suscripción es trabajo pendiente (PS-59). La referencia del IRB del formulario del estudio no se guarda. El formulario no registra un segundo revisor, solo el nombre de un comité.</p>
+<h3 id="screen-validation-dashboard"><a class="anchor" href="#screen-validation-dashboard" aria-label="Link to this section">#</a> Estudios de validación: Panel</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación &gt; Panel"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span> <span aria-hidden="true">›</span> <span>Panel</span></nav>
+
+<p><strong>Estado:</strong> Construido.</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Estudios de validación</strong> &gt; subpestaña <strong>Panel</strong>
+<strong>2. Elemento de mantenimiento:</strong> Panel</p>
+<p><strong>3. Finalidad y alcance.</strong> Una vista de solo lectura de cómo va un estudio en curso o cerrado. Utilícela para vigilar la tasa de aceptación antes de que se cierre el estudio.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Muestra datos una vez que un estudio está activo y los patólogos han firmado casos. Sin un estudio activo, la lista de estudios está vacía.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Referencia, no forma parte de la configuración</p><dl><dt>Configurar primero</dt><dd><a href="#screen-validation-studies">Estudios de validación: Estudios</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/validation-dashboard.webp" alt="Panel de validación con el selector de estudio y la tabla de rendimiento" loading="lazy"><figcaption>Panel de validación con el selector de estudio y la tabla de rendimiento</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-dashboard-study-selector"><td>Selector de estudio</td>
+<td>Lista de opciones de estudios activos o cerrados</td>
+<td>Obligatorio</td>
+<td>Elige el estudio que se <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>.</td>
+<td>El primer estudio</td>
+</tr>
+<tr id="f-validation-dashboard-cases-captured"><td>Casos recogidos</td>
+<td>Número entero de solo lectura</td>
+<td>No aplicable</td>
+<td>Casos con al menos una señal.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals"><td>Señales por sección</td>
+<td>Número entero de solo lectura</td>
+<td>No aplicable</td>
+<td>Sugerencias registradas en la firma.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-acceptance-rate-vs-target"><td>Tasa de aceptación frente al objetivo</td>
+<td>Porcentaje de solo lectura</td>
+<td>No aplicable</td>
+<td>Comparada con la <strong>Tasa de aceptación objetivo</strong> del estudio.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-validation-dashboard-accepted-unchanged"><td>Aceptado sin cambios</td>
+<td>Porcentaje de solo lectura</td>
+<td>No aplicable</td>
+<td>Sugerencias conservadas tal como estaban escritas.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals-acceptance-mean-edit-ratio-most-common-edit"><td><strong>Sección</strong>, <strong>Señales</strong>, <strong>Aceptación</strong>, <strong>Ratio medio de edición</strong>, <strong>Edición más frecuente</strong></td>
+<td>Columnas de la tabla</td>
+<td>No aplicable</td>
+<td>Rendimiento por sección del informe.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-validation-dashboard-advisory-notice"><td>Aviso de carácter orientativo</td>
+<td>Texto de solo lectura</td>
+<td>No aplicable</td>
+<td>Indica que las cifras son orientativas.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: las mismas reglas de pestaña que <a href="#screen-tab-validation">Estudios de validación (pestaña)</a>. Nada de la página modifica datos.</p>
+<p><strong>Límites conocidos.</strong> Ninguno conocido.</p>
+<h3 id="screen-validation-reports"><a class="anchor" href="#screen-validation-reports" aria-label="Link to this section">#</a> Estudios de validación: Informes</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Estudios de validación &gt; Informes"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Estudios de validación</span> <span aria-hidden="true">›</span> <span>Informes</span></nav>
+
+<p><strong>Estado:</strong> Construido.</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Estudios de validación</strong> &gt; subpestaña <strong>Informes</strong>
+<strong>2. Elemento de mantenimiento:</strong> Informes</p>
+<p><strong>3. Finalidad y alcance.</strong> Genera el informe impreso que califica un estudio cerrado. La calificación es APTO cuando la tasa de aceptación es como mínimo el objetivo y el ratio medio de edición es como máximo el máximo; APTO CONDICIONAL cuando la tasa de aceptación es al menos el 85 % del objetivo; en <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> contrario, REVISIÓN ADICIONAL. <strong>Generar e imprimir informe</strong> abre una ventana de impresión, registra la salida en el rastro de auditoría, pasa el estudio a informado y guarda la calificación final una sola vez. La calificación no se vuelve a calcular después. Solo un estudio informado y calificado como APTO, con el <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> entre sus participantes, permite a ese centro fijar el modelo como su sustitución de IA.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Un informe necesita un estudio cerrado. Si omite cerrarlo, el estudio no aparece en la lista.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 4, paso 4</p><dl><dt>Configurar primero</dt><dd><a href="#screen-validation-studies">Estudios de validación: Estudios</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/validation-reports.webp" alt="Vista previa del Informe de validación y Generar e imprimir informe" loading="lazy"><figcaption>Vista previa del Informe de validación y Generar e imprimir informe</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-reports-study-selector"><td>Selector de estudio</td>
+<td>Lista de opciones de estudios cerrados o informados</td>
+<td>Obligatorio</td>
+<td>Elige el estudio cuya vista previa se <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>.</td>
+<td>El primer estudio</td>
+</tr>
+<tr id="f-validation-reports-report-preview"><td>Vista previa del informe</td>
+<td>Solo lectura</td>
+<td>No aplicable</td>
+<td>Las cifras y la calificación tal como se imprimirán.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-validation-reports-generate-amp-print-report"><td><strong>Generar e imprimir informe</strong></td>
+<td>Botón</td>
+<td>No aplicable</td>
+<td>Imprime, audita como <code>validation_report_generated</code>, establece informado y guarda la calificación final.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Las mismas reglas de pestaña que <a href="#screen-tab-validation">Estudios de validación (pestaña)</a>. Generar el informe utiliza <code>config:validation-studies:manage</code>.</p>
+<p><strong>Límites conocidos.</strong> La calificación es definitiva una vez guardada; una calificación errónea no se puede volver a calcular desde la pantalla.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

@@ -65,14 +65,14 @@ The vendor-staff idea still holds, in the new setting. PathScribe support staff 
 
 ## Update, Sep 2026 (Batch 369, PS-355)
 
-Capabilities now exist (`src/services/authorization/`, `AUTHORIZATION_API.md`). Superadmin is a built-in role in the catalog, granted every capability, with no bypass in the check. It is held only through a support sign-in (session role `superadmin`) and can't be assigned to a hospital's staff: the staff role picker leaves it out, and a staff record naming it gets nothing from it.
+Capabilities now exist (`src/services/authorization/`, `AUTHORIZATION_API.md`). Superadmin is a built-in role in the catalog, granted every capability except `config:ai-prompt:approve` (withheld for separation of duties, Batch 536: the laboratory approves its own AI instructions, ForMedrixAI support never does), with no bypass in the check. It is held only through a support sign-in (session role `superadmin`) and can't be assigned to a hospital's staff: the staff role picker leaves it out, and a staff record naming it gets nothing from it.
 
 That doesn't settle this plan's question. The two platform screens above still receive `isSuperAdmin` from their parent rather than from a capability, and in-app `superadmin` is still what every demo account signs in as. Turning those two screens into vendor-only capabilities is a candidate for the PS-357 sweep; the vendor identity itself still has to come from ForMedrix's own tenant on the server.
 
 ## Update, Sep 2026 (Batch 371)
 
 Pete decided that Superadmin is reserved for ForMedrixAI support staff and that hospital administrators have no control over it. Built:
-- **Superadmin is locked** to the whole catalog. A hospital's Role Dictionary shows it read-only, and the role service refuses changes.
+- **Superadmin is locked** to the whole catalog except `config:ai-prompt:approve`. A hospital's Role Dictionary shows it read-only, and the role service refuses changes.
 - **Platform-only capabilities** can't be put on a hospital role.
 - **The governing-bodies screen** now needs `platform:governing-bodies:manage`.
 - **Terminology endpoint details** are shown only to superadmin sessions.

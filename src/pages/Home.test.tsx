@@ -54,6 +54,8 @@ vi.mock('@hooks/useLogout', () => ({
 vi.mock('@/components/Common/PubMedTicker', () => ({
   default: () => null,
 }));
+// Batch 669h: the footer status has its own tests (SystemStatusIndicator.test.tsx).
+vi.mock('@/components/Common/SystemStatusIndicator', () => ({ default: () => null }));
 vi.mock('@/components/Common/LogoutWarningModal', () => ({
   default: () => null,
 }));
@@ -107,5 +109,18 @@ describe('Home — real regression guard: no two cards share an accent color', (
     const colors = Array.from(cards).map(el => (el as HTMLElement).style.getPropertyValue('--card-accent'));
     const unique = new Set(colors);
     expect(unique.size).toBe(colors.length);
+  });
+});
+
+describe('Home — Lockbox Drop-Off tile (Batch 645)', () => {
+  it('sits after Intraop Queue and before My Contribution, and opens /lockbox-drop-off', async () => {
+    await renderHome();
+    const titles = Array.from(document.querySelectorAll('.ps-home-card-title')).map(el => el.textContent);
+    const at = (k: string) => titles.indexOf(k);
+    expect(at('home.lockboxDropOffTile.title')).toBe(at('home.intraopQueueTile.title') + 1);
+    expect(at('home.myContributionTile.title')).toBe(at('home.lockboxDropOffTile.title') + 1);
+    const card = screen.getByText('home.lockboxDropOffTile.title').closest('[role="button"]')!;
+    fireEvent.keyDown(card, { key: 'Enter' });
+    expect(mockNavigate).toHaveBeenCalledWith('/lockbox-drop-off');
   });
 });

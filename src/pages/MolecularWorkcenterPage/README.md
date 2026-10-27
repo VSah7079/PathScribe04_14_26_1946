@@ -84,3 +84,6 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 562 (PS-539 phase 2d)
 
 - `MolecularOrderQueueTab.tsx`: re-reads on the hub's `molecularQueue` events; orders that left the queue drop out of the selection; only the latest view is shown.
+
+## Batch 669 (ctl)
+The Control Rules header button shows only when `canOpenTile('molecularControlRules', has)` (view or manage capability).

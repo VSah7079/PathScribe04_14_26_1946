@@ -24,10 +24,9 @@
 // measurements the way touch prep itself can be skipped for dense,
 // fibrotic tissue).
 //
-// Patient match is honestly limited to manual entry and a labeled
-// "simulated" barcode affordance — no real camera/barcode library exists
-// anywhere in this app (checked directly), and pretending otherwise here
-// would be dishonest about what's actually wired.
+// Patient match (Batch 652): manual entry, a real camera scan
+// (components/BarcodeScanner; the whole decoded text is the MRN), and a
+// labeled "simulated scan" link for demos. All feed the same ADT lookup.
 //
 // Batch 397 (PS-359): Field Requirements (page "intraop"). The new session
 // form, the specimen capture, Quick Gross on a specimen card, the touch prep
@@ -50,6 +49,7 @@ import {
 } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { StillRequired, Req } from '@/components/Intraop/IntraopFieldBits';
+import { LateFrozenDiagnosisForm } from '@/components/Intraop/LateFrozenDiagnosisForm';
 import { VerbalReportForm } from '@/components/Intraop/VerbalReportForm';
 import { formatLocationDisplay } from '@/services/locations/formatLocationDisplay';
 import type { IntraoperativeEntry, IntraopSpecimen, MatchCandidate, MilestoneType, SkipReason, FrozenCategory, PreparationType } from '@/types/intraop/IntraoperativeEntry';
@@ -823,7 +823,8 @@ const MergeModal: React.FC<{
   candidates: MatchCandidate[];
   onConfirm: (caseId: string) => void;
   onClose: () => void;
-}> = ({ entry, candidates, onConfirm, onClose }) => {
+  failed?: boolean;
+}> = ({ entry, candidates, onConfirm, onClose, failed }) => {
   const { t } = useTranslation();
   const requirements = useFieldRequirements('intraop');
   const [selected, setSelected] = useState(candidates[0]?.caseId ?? '');
@@ -884,6 +885,7 @@ const MergeModal: React.FC<{
             </div>
           )}
           <StillRequired missing={mergeMissing} />
+          {failed && <p className="ps-field-still-required" role="alert">{t('intraopQueue.mergeModal.mergeFailed')}</p>}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
@@ -903,9 +905,7 @@ const SpecimenCard: React.FC<{ sessionId: string; specimen: IntraopSpecimen; onR
   <div className="ps-intraop-specimen-card">
     <div className="ps-intraop-specimen">
       {specimen.specimenLabel}
-      {/* Batch 610 (#68): one click switches the clock between the STAT and routine
-          frozen-section targets (TAT configuration). Gone once the diagnosis is
-          rendered, because the clock has stopped. */}
+      {/* Batch 610 (#68): one click switches STAT / routine; gone once the diagnosis is rendered (the clock has stopped). */}
       {!specimen.frozenDiagnosisRenderedAt && (
         <button
           type="button"
@@ -952,6 +952,7 @@ const SpecimenCard: React.FC<{ sessionId: string; specimen: IntraopSpecimen; onR
         {specimen.quickGrossDictation}
       </div>
     )}
+    {!specimen.frozenSectionDiagnosis && <LateFrozenDiagnosisForm sessionId={sessionId} specimenId={specimen.id} onSaved={onRefresh} />}
     {specimen.frozenSectionDiagnosis && (
       <div className="ps-intraop-note ps-intraop-note--diagnosis">
         <span className="ps-intraop-note-label">{t('intraopQueue.specimenCard.frozenSectionDiagnosis')}</span>
@@ -1106,15 +1107,11 @@ const IntraopQueuePage: React.FC = () => {
     setMergeTarget({ entry, candidates: res.ok ? res.data : [] });
   };
 
+  const [mergeFailed, setMergeFailed] = useState(false);
   const confirmMerge = async (caseId: string) => {
+    setMergeFailed(false);
     if (!mergeTarget) return;
-    // The modal only returns the final caseId, not which path produced
-    // it — inferred here instead of changing MergeModal's prop signature:
-    // if caseId matches one of the offered candidates, that candidate's
-    // real matchType/confidence apply; otherwise it was typed manually.
-    // wasManualOverride is true specifically when real candidates WERE
-    // offered but the user typed something else instead — not simply
-    // "no candidates existed at all," which isn't an override of anything.
+    // The modal returns only the case id: an offered candidate keeps its match type; anything else was typed (an override when candidates were offered).
     const matchedCandidate = mergeTarget.candidates.find(c => c.caseId === caseId);
     const res = await intraoperativeService.merge(mergeTarget.entry.id, caseId, {
       matchType: matchedCandidate?.matchType ?? 'manual',
@@ -1122,7 +1119,8 @@ const IntraopQueuePage: React.FC = () => {
       wasManualOverride: !matchedCandidate && mergeTarget.candidates.length > 0,
       performedBy: user?.name ?? 'Unknown User',
     });
-    if (res.ok) setEntries(prev => prev.filter(e => e.id !== mergeTarget.entry.id));
+    if (!res.ok) { setMergeFailed(true); return; }
+    setEntries(prev => prev.filter(e => e.id !== mergeTarget.entry.id));
     setMergeTarget(null);
   };
 
@@ -1184,6 +1182,7 @@ const IntraopQueuePage: React.FC = () => {
           entry={mergeTarget.entry}
           candidates={mergeTarget.candidates}
           onConfirm={confirmMerge}
+          failed={mergeFailed}
           onClose={() => setMergeTarget(null)}
         />
       )}

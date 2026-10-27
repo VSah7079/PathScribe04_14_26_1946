@@ -71,8 +71,17 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 
 ## Batch 578
 
+- `RecallWindowsCard.tsx` (+ `.css`): Batch 632, the self-collected HPV recall windows card inside Screening Strategy. `CytologyScreeningStrategySection.tsx` now keeps the other saved strategy settings when it saves the strategy.
 - `CytologyWorkloadCapSettingsSection.tsx`: a cap that isn't saved is said beside its own field (only that field marked invalid); the add pickers offer only facilities and staff without an override, and "+ Add Override" is unavailable, with a note, when nobody is left.
 
 ## Batch 608
 
 - `ScreeningIntervalsCard.tsx`: the per-country, per-age screening interval table, inside Country and laboratory rules.
+
+## Batch 640
+
+`RecallWindowsCard.tsx` (+ test): a Country dropdown (Australia, New Zealand) with that country's target windows, and recall wording per language and kind. Save is audited; the dropdown waits while edits are unsaved.
+
+## Batch 641
+
+`RecallWindowsCard.tsx`: settings that load after the person starts typing no longer overwrite the edit.

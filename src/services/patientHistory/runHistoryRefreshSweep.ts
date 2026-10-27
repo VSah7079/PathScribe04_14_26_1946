@@ -6,7 +6,7 @@
 // each. The audit entry holds counts only.
 // ─────────────────────────────────────────────────
 import { caseRouter } from '../cases/CaseRouter';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { patientHistoryCacheService as mockPatientHistoryCacheService } from './patientHistoryInstance';
 import { resolveCasesNeedingHistoryRefresh } from './resolveCasesNeedingHistoryRefresh';
 import { ensureHistoryFetchStarted, retryHistoryFetch } from './ensureHistoryFetchStarted';
@@ -29,7 +29,7 @@ export async function runHistoryRefreshSweep(actor = 'system'): Promise<HistoryR
     if (entries.some(e => e.caseId === n.caseId)) await retryHistoryFetch(n.caseId, c.patient.mrn);
     else await ensureHistoryFetchStarted(c as never);
   }
-  await mockAuditService.logEvent({
+  await auditService.logEvent({
     type: 'system', event: 'Prior Reports Refresh Run',
     detail: `Prior-report refresh sweep: ${active.length} active Assist case(s) considered, ${need.length} refreshed. Run by a person from Server jobs.`,
     user: actor, caseId: null, confidence: null,
@@ -41,6 +41,6 @@ export async function runHistoryRefreshSweep(actor = 'system'): Promise<HistoryR
 export async function destroyHistoryCacheAtSignOut(caseId: string): Promise<void> {
   try {
     await mockPatientHistoryCacheService.destroy(caseId);
-    await mockAuditService.logEvent({ type: 'system', event: 'Prior Reports Cache Destroyed', detail: 'The case\'s prior-report cache was destroyed at sign-out.', user: 'system', caseId, confidence: null });
+    await auditService.logEvent({ type: 'system', event: 'Prior Reports Cache Destroyed', detail: 'The case\'s prior-report cache was destroyed at sign-out.', user: 'system', caseId, confidence: null });
   } catch { /* non-blocking */ }
 }

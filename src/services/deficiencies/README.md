@@ -1,3 +1,5 @@
+**Batch 649:** `qaDeficiencyActions.ts`: the Quality Assurance screen's four deficiency actions each check their own capability in the service: `qa:deficiency:raise`, `qa:deficiency:escalate` (to CAPA), `qa:deficiency:contain` and `qa:deficiency:verify` (all high risk, audited; each requires the Quality Assurance screen). Raising one from a bench screen is that screen's act, not this one.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/deficiencies/
@@ -65,3 +67,11 @@ Before, anyone who could open Configuration could change this; now each change i
 - `fetchGlobalDeficiencies.ts`: a comment pointed to the removed engine-notification poll; updated.
 
 Batch 616 (part D, PS-501): server versions of DeficiencyTypeService, ResolutionTypeService, ManagementReviewService, SpecimenDeficiencyService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/QUALITY_API.md`.
+
+## Batch 651: deficiency actions are audited on success
+
+`qaDeficiencyActions.ts` now writes "Deficiency raised / escalated to CAPA / contained / effectiveness verified / reopened as recurred" after the change is made (Batch 649 already audited the capability check, allowed or refused, through the authorization service). Ids, outcome and due date only; the comment, root cause and corrective or preventive action are never written. A refusal, or a change the store reports as failed, writes nothing. Tests: `qaDeficiencyActions.test.ts`.
+
+**Batch 655:** a store that fails or throws, or an Engine endpoint that errors, returns `failed`; no audit entry is written.
+
+Batch 659: `submitManagementReview` (capability `qa:management-review:submit`); refusals return an outcome the screen shows inside the window.

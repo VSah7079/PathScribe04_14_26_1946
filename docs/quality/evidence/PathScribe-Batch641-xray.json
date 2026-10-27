@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 641 — Recall docs corrected; PS-539 readiness status refreshed; recall card keeps typed edits",
+    "description": "Vitest, 2026-10-20: full suite 1697 files (1692 passed, 4 skipped, 1 failed); 14,257 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts (needs the Firestore emulator). Type-check clean."
+  },
+  "tests": [
+    {
+      "testKey": "PS-853",
+      "start": "2026-10-21T01:40:00Z",
+      "finish": "2026-10-21T02:10:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Config/Cytology/RecallWindowsCard.test.tsx (late-loading settings do not overwrite typing)\nPASSED: src/i18n/localeParity.test.ts; docs guards (capability inventory, READMEs)\nNot tested: the server contracts added to CYTOLOGY_API.md and REGISTRY_ACKNOWLEDGEMENT_API.md (phase 2e)."
+    }
+  ]
+}

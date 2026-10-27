@@ -1,0 +1,1435 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bijlagen: probleemoplossing en verificatie van het auditlogboek · PathScribe-beheerdershandleiding (interne editie van ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="nl" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Beheerdershandleiding</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Zoek schermen, velden, foutcodes" aria-label="Zoeken in de handleiding" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Taal"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl" selected>Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Afdrukken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Hoofdstukken van de handleiding"><a href="index.html">Inhoud</a><a href="setup-sequence.html">Volgorde van inrichting</a><a href="01-system-overview.html">1. Systeemoverzicht en architectuur</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1: Primaire systeemvoorwaarden (eerst inrichten)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2: Stamwoordenboeken en klinische basisgegevens (als tweede inrichten)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3: Workflow-engines en operationele configuratie (als derde inrichten)</a><a href="05-tier4-ai-framework.html">5. Niveau 4: Het ingebedde AI-framework van PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner</a><a href="07-tier6-interface-engine.html">7. Niveau 6: Interface-engine en integraties met externe systemen</a><a href="08-tier7-billing-registry.html">8. Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen</a><a href="09-appendices.html" aria-current=page>9. Bijlagen: probleemoplossing en verificatie van het auditlogboek</a><a href="99-glossary.html">99. Bijlage: Verklarende woordenlijst met termen en afkortingen</a></nav><main id="main"><aside class="pagetoc" aria-label="Op deze pagina"><b>Op deze pagina</b><ul><li class="l2"><a href="#ch9-matrix">Matrix voor probleemoplossing</a></li><li class="l3"><a href="#ch9-matrix-empty">Lege lijsten en meldingen dat iets niet is ingericht</a></li><li class="l3"><a href="#ch9-matrix-permissions">Opslaan geweigerd, grijze knoppen en schermen die u niet kunt openen</a></li><li class="l3"><a href="#ch9-matrix-print">Etiketten en verslagen die niet worden afgedrukt</a></li><li class="l3"><a href="#ch9-matrix-interfaces">Interfaceberichten die vastzitten</a></li><li class="l3"><a href="#ch9-matrix-signin">Aanmelden mislukt</a></li><li class="l3"><a href="#ch9-matrix-stuck">Een interfacebericht of scherm lijkt vast te zitten</a></li><li class="l2"><a href="#ch9-error-codes">Index van systeemfoutcodes</a></li><li class="l3"><a href="#ch9-codes-http">Codes die elk scherm met een servergegevensbron kan tonen</a></li><li class="l3"><a href="#ch9-codes-exports">Exports</a></li><li class="l3"><a href="#ch9-codes-config">Opstartconfiguratie</a></li><li class="l3"><a href="#ch9-codes-print">Afdrukken, etiketten en de site-agent</a></li><li class="l3"><a href="#ch9-codes-outbound">Uitgaande berichten, verrichtingen, registers en servertaken</a></li><li class="l3"><a href="#ch9-codes-config-screens">Configuratieschermen: weigeringen die u moet kennen</a></li><li class="l2"><a href="#ch9-system-logs">Naslag Systeemlogboeken</a></li><li class="l3"><a href="#screen-audit-log">Systeemlogboeken</a></li><li class="l2"><a href="#ch9-audit-verification">Handleiding voor verificatie van het auditlogboek</a></li><li class="l3"><a href="#ch9-audit-recorded">Wat wordt vastgelegd</a></li><li class="l3"><a href="#ch9-audit-find-setting">Een wijziging van een instelling vinden</a></li><li class="l3"><a href="#ch9-audit-find-permission">Controleren wie een machtiging heeft gewijzigd</a></li><li class="l3"><a href="#ch9-audit-integrity">Hoe recordintegriteit en bewaring werken</a></li><li class="l3"><a href="#ch9-audit-export">Exporteren</a></li><li class="l3"><a href="#ch9-audit-support">Hoe het audit van Supporttoegang erbij past</a></li><li class="l3"><a href="#ch9-audit-routine">Een korte verificatieroutine</a></li></ul></aside><article><h1 id="ch9"><a class="anchor" href="#ch9" aria-label="Link to this section">#</a> Bijlagen: probleemoplossing en verificatie van het auditlogboek</h1>
+<p>Dit hoofdstuk heeft drie delen. Het eerste is een matrix voor probleemoplossing: de problemen die een beheerder het vaakst tegenkomt, elk met de oorzaak en het scherm waar u het oplost. Het tweede is een index van de foutcodes die PathScribe toont of vastlegt. Het derde beschrijft het scherm Systeemlogboeken en geeft een stapsgewijze handleiding om te verifiëren wat het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> bevat. De woordenlijst met termen is het laatste hoofdstuk van de handleiding (<a href="99-glossary.html#ch99">Woordenlijst</a>).</p>
+<p>Elk bericht dat hier wordt aangehaald, is de Nederlandse tekst uit het product. Elke code bestaat in de broncode; een code die in een contract alleen een <a class="term" href="99-glossary.html#g-placeholder" title="Een registratie voor een depositbox-barcode waarvoor nog geen aanvraag bestaat. Zij bevat het ontvangstbewijs en wordt later aan een aanvraag gekoppeld; zij krijgt nooit een accessienummer.">tijdelijke aanduiding</a> is en in het product niet wordt gebruikt, staat er niet bij.</p>
+<h2 id="ch9-matrix"><a class="anchor" href="#ch9-matrix" aria-label="Link to this section">#</a> Matrix voor probleemoplossing</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Bijlagen &gt; Matrix voor probleemoplossing"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Bijlagen</span> <span aria-hidden="true">›</span> <span>Matrix voor probleemoplossing</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>Hoe u de matrix gebruikt.</strong> Zoek het symptoom dat de gebruiker meldt, lees de waarschijnlijke oorzaak en volg de oplossing. De meeste meldingen dat iets kapot is, komen neer op een van twee dingen: een woordenboek dat nooit is ingericht (een lege lijst) of een <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> die een <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> niet bevat (een grijze knop of een geweigerde opslag). Als het symptoom een code in hoofdletters toont, zoekt u die op in de <a href="#ch9-error-codes">index van foutcodes</a>.</p>
+<p><strong>Eerst dit.</strong> Twee controles beantwoorden de meeste vragen.</p>
+<ol>
+<li>Open <a href="#screen-audit-log">Systeemlogboeken</a> en zoek op de naam van de persoon of op de machtigingssleutel. Een geweigerde machtigingscontrole schrijft een vermelding <strong>Capability refused</strong> weg die de machtiging en de sessierol van de persoon noemt.</li>
+<li>Kijk op het tabblad <strong>Foutenlogboek</strong> naar een open fout met een code, bron en tijd die dicht bij de melding liggen.</li>
+</ol>
+<h3 id="ch9-matrix-empty"><a class="anchor" href="#ch9-matrix-empty" aria-label="Link to this section">#</a> Lege lijsten en meldingen dat iets niet is ingericht</h3>
+<p>Een leeg keuzemenu of een melding dat er niets is geconfigureerd, betekent bijna altijd dat een woordenboek eerder in de inrichtingsvolgorde is overgeslagen. De pagina <a href="setup-sequence.html">Volgorde van inrichting</a> toont de volgorde.</p>
+<table>
+<thead>
+<tr>
+<th>Symptoom (wat de gebruiker ziet)</th>
+<th>Waarschijnlijke oorzaak</th>
+<th>Oplossing</th>
+<th>Scherm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In het teamvenster van een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>: <strong>Geen deelnametypen geconfigureerd</strong>, met de hint ‘Stel typen in bij Systeem → Deelnametypen.’</td>
+<td>Er bestaat geen <a class="term" href="99-glossary.html#g-participation-type" title="Een rol die een persoon in een casus vervult, zoals primaire patholoog of screener, met een eigen ondertekeningsbevoegdheid.">deelnametype</a>.</td>
+<td>Voeg de typen toe die het lab gebruikt en open het venster opnieuw.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-participation_types">Deelnametypen</a></td>
+</tr>
+<tr>
+<td>Een testafdruk of een etikettenvenster meldt <strong>Geen printerprofielen geconfigureerd</strong>.</td>
+<td>Er is geen <a class="term" href="99-glossary.html#g-printer-profile" title="De opgeslagen instellingen voor één printermodel, inclusief de verbindingsmethode (bridge).">printerprofiel</a> toegevoegd.</td>
+<td>Voeg voor elk model etikettenprinter een printerprofiel toe.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printerprofielen</a></td>
+</tr>
+<tr>
+<td>Een inbed- of microtomiestation meldt <strong>Geen printer geconfigureerd</strong> of <strong>Het geconfigureerde printerprofiel bestaat niet meer.</strong> Een station voor het verdelen van preparaten meldt <strong>Dit station is niet ingesteld voor het afdrukken van glaasjesetiketten.</strong></td>
+<td>Het station heeft geen printerprofiel, of het profiel is verwijderd.</td>
+<td>Open het station en kies een printerprofiel dat nog bestaat.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-scan_stations">Scanstations</a>, <a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printerprofielen</a></td>
+</tr>
+<tr>
+<td>Een venster voor het verdelen van preparaten of voor een scanbatch meldt <strong>Er zijn geen glaasjesscanners ingesteld</strong> (de tekst noemt Configuratie, Apparatuur, soort ‘Glaasjesscanner’).</td>
+<td>Er is geen apparatuurrecord van de soort Glaasjesscanner.</td>
+<td>Voeg de scanners toe.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-equipment">Apparatuur</a></td>
+</tr>
+<tr>
+<td>Een etiket wordt niet afgedrukt en het bericht luidt <strong>Geen GS1-GTIN ingesteld. Stel er een in bij de afdrukinstellingen voordat u een GS1-cassette-etiket afdrukt</strong> (of objectglasetiket).</td>
+<td>Voor de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> is geen GS1-GTIN ingevoerd.</td>
+<td>Voer de <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, het nummer dat een GS1-barcode bevat. Afdrukinstellingen bevat de GTIN van de faciliteit.">GTIN</a> in bij Afdrukinstellingen.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-print_settings">Afdrukinstellingen</a></td>
+</tr>
+<tr>
+<td>Het dashboard Facility Ops meldt <strong>Er zijn nog geen weergaveprofielen geconfigureerd</strong>.</td>
+<td>Er bestaat geen <a class="term" href="99-glossary.html#g-display-profile" title="Een opgeslagen indeling van dashboardtegels die een wandscherm toont.">weergaveprofiel</a>.</td>
+<td>Voeg er een toe onder Weergaveprofielen.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-display_profiles">Weergaveprofielen</a></td>
+</tr>
+<tr>
+<td>Het OK-dashboard meldt <strong>Nog geen terminals geconfigureerd</strong>.</td>
+<td>Er bestaat geen terminal voor het operatiekamercomplex.</td>
+<td>Voeg de terminals toe.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-or_suite_terminals">OK-terminals</a></td>
+</tr>
+<tr>
+<td>In het venster voor een toewijzingsregel: <strong>Geen actieve pools. Schakel eerst "Pool / Werkgroep" in bij een <a class="term" href="99-glossary.html#g-subspecialty" title="Een deelgebied van de pathologie, zoals borst of maag-darmstelsel, gebruikt om casus te routeren. Een subspecialisme kan op poolmodus worden gezet.">subspecialisme</a>.</strong></td>
+<td>Geen enkel subspecialisme staat in de modus Pool / Werkgroep.</td>
+<td>Schakel Pool / Werkgroep in voor ten minste één subspecialisme en voeg dan de regel toe.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-subspecialties">Subspecialismen</a>, <a href="04-tier3-workflow-engines.html#screen-routing_rules">Routeringsregels</a></td>
+</tr>
+<tr>
+<td>In het venster voor een nieuwe container: <strong>Er is momenteel geen instelling geconfigureerd met de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> Referentielaboratorium.</strong></td>
+<td>Geen enkele faciliteit heeft de rol Referentielaboratorium.</td>
+<td>Geef een faciliteit die rol in haar faciliteitsinstellingen.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></td>
+</tr>
+<tr>
+<td>Een gebruiker die beveiligde e-mail probeert, ziet <strong>Voor uw lab is geen gateway voor beveiligde berichten ingesteld.</strong></td>
+<td>De faciliteit heeft geen gateway op het tabblad Beveiligde berichten.</td>
+<td>Voeg een gateway toe in de instellingen van de faciliteit.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></td>
+</tr>
+<tr>
+<td>De lijst <strong>Toevoegen</strong> bij Serviceniveaus per klant is leeg, met de opmerking dat elke klant al een niveau heeft of dat er geen klanten zijn ingesteld.</td>
+<td>Elke faciliteit heeft al een serviceniveau, of er bestaan geen klantfaciliteiten.</td>
+<td>Voeg eerst de faciliteiten toe, of bewerk het bestaande niveau.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-clients">Faciliteitsconfiguratie</a>, <a href="03-tier2-master-dictionaries.html#screen-client_sla">Serviceniveaus per klant</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-permissions"><a class="anchor" href="#ch9-matrix-permissions" aria-label="Link to this section">#</a> Opslaan geweigerd, grijze knoppen en schermen die u niet kunt openen</h3>
+<p>PathScribe controleert machtigingen twee keer. Het scherm maakt een actie grijs die de persoon niet mag uitvoeren. De service achter de actie controleert opnieuw en weigert hem. In productie herhaalt de API-server de controle en heeft hij het laatste woord. Geen enkele <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> kan dit omzeilen, ook Superadmin niet.</p>
+<table>
+<thead>
+<tr>
+<th>Symptoom</th>
+<th>Waarschijnlijke oorzaak</th>
+<th>Oplossing</th>
+<th>Scherm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Een knop is grijs. De tooltip luidt <strong>Uw rollen bevatten ‘<capability>’ niet.</strong></td>
+<td>Geen van de rollen van de persoon bevat die <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a>.</td>
+<td>Voeg de machtiging toe aan een rol die de persoon heeft. Machtigingen zijn per gebied gegroepeerd in het Rollenwoordenboek.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>De tooltip luidt <strong>‘<capability>’ vereist ook ‘<other>’, dat uw rollen niet bevatten.</strong></td>
+<td>De machtiging vereist een andere machtiging (de lijst <code>requires</code> in de catalogus).</td>
+<td>Verleen beide. Een rol wordt niet opgeslagen met ‘aan een machtiging ontbreekt er een die ze nodig heeft’ totdat ook de vereiste machtiging is verleend.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>De tooltip luidt <strong>‘<capability>’ is hier niet beschikbaar: uw toegewezen instellingen dekken dit niet.</strong></td>
+<td>De persoon heeft de machtiging, maar de actie raakt een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> buiten de toegewezen faciliteiten (of betreft alle faciliteiten).</td>
+<td>Wijzig de faciliteitstoewijzing van de persoon.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Het opslaan van een Configuratie mislukt met <strong>Niet opgeslagen: hiervoor is de toestemming ‘<permission>’ nodig. Een beheerder kan die toekennen via Configuratie → Personeel → Rollenwoordenboek.</strong></td>
+<td>De persoon mist de machtiging <code>config:...:manage</code> voor dat scherm (code <code>CONFIG_NOT_PERMITTED</code>).</td>
+<td>Verleen de genoemde machtiging aan de rol van de persoon.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Het opslaan van een rol mislukt: <strong>Niet opgeslagen: daarna zou geen enkele rol nog rollen kunnen beheren.</strong></td>
+<td>De wijziging zou geen enkele toewijsbare rol met <code>config:roles:manage</code> overlaten.</td>
+<td>Geef eerst <strong>Rollen beheren</strong> aan een andere toewijsbare rol en sla dan op.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Het opslaan van een rol of van medewerkers mislukt met <strong>de discrepantieregels wijzigen en de AI-instructies goedkeuren zijn gescheiden taken</strong>.</td>
+<td>Eén persoon (of één rol) mag niet zowel <code>config:clinical-mismatch-rules:manage</code> als <code>config:ai-prompt:approve</code> hebben (code <code>SEPARATION_OF_DUTIES</code>).</td>
+<td>Verdeel de twee machtigingen over twee rollen die door verschillende personen worden gehouden.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Het opslaan van een rol mislukt met <strong>deze rol wordt beheerd door ForMedrixAI</strong>.</td>
+<td>De rol Superadmin kan in een ziekenhuis niet worden gewijzigd.</td>
+<td>Geen. Gebruik een andere rol.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Een gebruiker opent een scherm en ziet <strong>U hebt geen toegang tot dit scherm</strong>; na het aanmelden meldt de startpagina <strong>Geen van uw rollen geeft u al toegang tot een scherm. Vraag uw beheerder u er een toe te wijzen.</strong></td>
+<td>De rol mist de machtiging <code>screen:&lt;name&gt;:open</code>, dus Start toont geen tegel en de route weigert het adres.</td>
+<td>Voeg de schermmachtiging toe aan de rol.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Een persoon kan zijn eigen wijziging niet goedkeuren: <strong>U hebt deze tekst bewerkt en kunt hem dus niet goedkeuren.</strong></td>
+<td>Zelfgoedkeuring wordt voor AI-instructies geweigerd (code <code>SELF_APPROVAL</code>).</td>
+<td>Laat een andere houder van <code>config:ai-prompt:approve</code> het goedkeuren.</td>
+<td><a href="05-tier4-ai-framework.html#screen-ai_instructions">AI-instructies</a></td>
+</tr>
+<tr>
+<td>Een exportknop doet niets, of het exportscherm toont <strong>U hebt geen toestemming om dit rapport te exporteren.</strong></td>
+<td>Elke export heeft een eigen machtiging (bijvoorbeeld <code>audit:audit-log:export</code>) en de server controleert die bij het downloaden opnieuw.</td>
+<td>Verleen de exportmachtiging die in de tooltip van de knop staat.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-print"><a class="anchor" href="#ch9-matrix-print" aria-label="Link to this section">#</a> Etiketten en verslagen die niet worden afgedrukt</h3>
+<table>
+<thead>
+<tr>
+<th>Symptoom</th>
+<th>Waarschijnlijke oorzaak</th>
+<th>Oplossing</th>
+<th>Scherm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Een etiket gaat naar het afdrukvenster van de browser en het bericht luidt <strong>De etikettenprinter is niet verbonden, daarom is dit etiket naar het afdrukvenster van de browser gestuurd. Controleer of <a class="term" href="99-glossary.html#g-qz-tray" title="Een klein programma op een computer waarmee een webpagina zonder afdrukvenster naar een lokale printer kan afdrukken, zoals een labelprinter.">QZ Tray</a> op deze computer actief is.</strong></td>
+<td>De QZ Tray-service draait niet of is op die computer niet bereikbaar.</td>
+<td>Start QZ Tray op de computer en druk opnieuw af.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printerprofielen</a>, <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Afdrukinstellingen</a></td>
+</tr>
+<tr>
+<td><strong>Etiket <id> is niet afgedrukt: <printer> heeft geen etiketten meer / het lint van <printer> is op / de printkop van <printer> staat open / <printer> is niet bereikbaar.</strong></td>
+<td>De printer meldde die toestand (codes <code>PAPER_OUT</code>, <code>RIBBON_OUT</code>, <code>HEAD_OPEN</code>, <code>PRINTER_UNREACHABLE</code>).</td>
+<td>Los het probleem aan de printer op en probeer het etiket opnieuw. Een etiket wordt nooit uit zichzelf opnieuw geprobeerd, dus het kan niet twee keer worden afgedrukt.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Afdrukwachtrij</a></td>
+</tr>
+<tr>
+<td><strong>...is niet afgedrukt: <printer> heeft de etiketopmaak geweigerd</strong> of <strong>de barcode heeft de GS1-validatie niet doorstaan. Dit is een PathScribe-probleem; meld het alstublieft.</strong></td>
+<td>De inhoud van het etiket is geweigerd (<code>MALFORMED_ZPL</code>, <code>INVALID_GS1</code>). Opnieuw proberen helpt niet.</td>
+<td>Meld het aan de support van ForMedrixAI, met het tijdstip en de opmaak van het etiket.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-label_designer">Labelontwerper</a></td>
+</tr>
+<tr>
+<td>Een afdruktaak voor een verslag is <strong>Mislukt</strong> met ‘Netwerkafdrukken vereist de PathScribe-siteagent.’</td>
+<td>Een verslag is vanuit een browser naar een netwerkprinter gestuurd, die de browser niet kan bereiken (<code>NEEDS_SITE_AGENT</code>).</td>
+<td>Laat het afdrukken van het lab via een printer van een <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a> lopen.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site-agents</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-print_routing_rules">Routeringsregels voor afdrukbestemmingen</a></td>
+</tr>
+<tr>
+<td>Afdrukken ‘werkt’, maar in de demonstratie komt er niets uit.</td>
+<td>De demonstratie legt afdrukken vast in plaats van ze te verzenden.</td>
+<td>Lees het logboek van gesimuleerde afdrukken.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-simulated_print">Logboek gesimuleerde afdrukken</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-interfaces"><a class="anchor" href="#ch9-matrix-interfaces" aria-label="Link to this section">#</a> Interfaceberichten die vastzitten</h3>
+<table>
+<thead>
+<tr>
+<th>Symptoom</th>
+<th>Waarschijnlijke oorzaak</th>
+<th>Oplossing</th>
+<th>Scherm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Een bericht staat in <strong>Uitgaande interface-DLQ</strong> met de fout <strong>Verzending afgewezen</strong>, <strong>Time-out bij verzending</strong> of <strong>Engine onbereikbaar</strong>.</td>
+<td>De interface-engine gaf geen 2xx terug (<code>DISPATCH_REJECTED</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_UNREACHABLE</code>). Het bericht wordt bewaard voor een nieuwe poging.</td>
+<td>Controleer de engine op het subtabblad <strong>Engines</strong>. Als hij in orde is, kiest u <strong>Verzending opnieuw proberen</strong> (vereist <code>interface:outbound:resend</code>).</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a></td>
+</tr>
+<tr>
+<td>Opnieuw proberen antwoordt <strong>Aangehouden in de <a class="term" href="99-glossary.html#g-outbound-queue" title="De lijst van berichten en kosten die PathScribe heeft opgebouwd en die nog niet zijn verzonden, aangehouden, verzonden of mislukt.">uitgaande wachtrij</a>: geef het daar eerst vrij.</strong></td>
+<td>Het bericht is in de uitgaande wachtrij aangehouden.</td>
+<td>Geef het op dat scherm vrij en verzend het dan opnieuw.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a></td>
+</tr>
+<tr>
+<td>Opnieuw proberen antwoordt <strong>Vastgehouden: de pdf van het verslag is nog niet beschikbaar.</strong></td>
+<td>Het verslagdocument is nog niet gegenereerd.</td>
+<td>Wacht. Het wordt bij een latere poging met de pdf verzonden.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a></td>
+</tr>
+<tr>
+<td>Een verrichting staat in de <strong>Uitgaande <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, de lijst van berichten waarvan alle nieuwe pogingen zijn mislukt. Systeemlogboeken heeft er een voor uitgaande interfaceberichten en een voor kosten.">DLQ</a></strong> (financieel) met <strong>ICD-10-code ontbreekt</strong> of <strong><a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, de identificatie van tien cijfers van een Amerikaanse zorgverlener, vereist op een kostenregel.">NPI</a> van zorgverlener ontbreekt</strong>.</td>
+<td>De verrichting kan zonder de code of de NPI niet worden opgebouwd (<code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>).</td>
+<td>Voer de waarde in op de regel; de regel heeft voor elk een invoerveld.</td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a></td>
+</tr>
+<tr>
+<td>Een taak onder <strong>Servertaken</strong> kan niet opnieuw in de wachtrij worden gezet: <strong>Verzend deze taak opnieuw vanuit Interfaces.</strong></td>
+<td>Interface- en afdruktaken worden vanuit hun eigen schermen opnieuw verzonden (<code>WRONG_SCREEN</code>).</td>
+<td>Gebruik de interface- of <a class="term" href="99-glossary.html#g-print-queue" title="De lijst van afdrukopdrachten voor verslagen en labels met hun status, van in de wachtrij tot afgedrukt of mislukt.">afdrukwachtrij</a>, met <code>interface:outbound:resend</code> of <code>print:job:retry</code>.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a></td>
+</tr>
+<tr>
+<td>Een nieuwe poging antwoordt <strong>Deze taak is niet meer mislukt; misschien is hij al opnieuw in de wachtrij gezet.</strong></td>
+<td>Iemand heeft hem al opnieuw in de wachtrij gezet (<code>NOT_DEAD_LETTERED</code>).</td>
+<td>Vernieuw. Geen actie nodig.</td>
+<td><a href="#screen-audit-log">Systeemlogboeken</a></td>
+</tr>
+<tr>
+<td>Openstaande interface-uitzonderingen (een tellerbadge op het tabblad <strong>Interfacelogboek</strong>).</td>
+<td>Inkomende berichten die niet aan een patiënt of <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> konden worden gekoppeld, wachten op een persoon.</td>
+<td>Open het subtabblad <strong>Interface-uitzonderingen</strong> en beoordeel elk bericht.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-signin"><a class="anchor" href="#ch9-matrix-signin" aria-label="Link to this section">#</a> Aanmelden mislukt</h3>
+<table>
+<thead>
+<tr>
+<th>Symptoom</th>
+<th>Waarschijnlijke oorzaak</th>
+<th>Oplossing</th>
+<th>Scherm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Onjuist e-mailadres of wachtwoord</strong>, daarna <strong>Nog één mislukte poging blokkeert het aanmelden met dit e-mailadres gedurende 15 minuten.</strong></td>
+<td>Aanmelden met een wachtwoord blokkeert een e-mailadres na 5 mislukte pogingen achter elkaar, gedurende 15 minuten. De teller geldt per ingetypt e-mailadres, ook als dat bij geen enkel account hoort.</td>
+<td>Wacht 15 minuten, of stel een nieuw wachtwoord in voor de persoon: een wachtwoord instellen heft de blokkade op. Het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> bevat <strong>Sign-in failed</strong>, <strong>Sign-in locked</strong> en <strong>Sign-in refused</strong>.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td><strong>Vraag uw beheerder uw wachtwoord opnieuw in te stellen via het scherm Medewerkers.</strong></td>
+<td>De persoon is het wachtwoord vergeten. Het aanmeldformulier biedt geen zelfservice voor opnieuw instellen.</td>
+<td>Stel een tijdelijk wachtwoord in op het record van de persoon. De persoon moet bij de volgende aanmelding een eigen wachtwoord kiezen.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>U bent aangemeld, maar er is geen actief PathScribe-account voor u.</strong></td>
+<td>Er komt geen personeelsrecord overeen (<code>not_provisioned</code>).</td>
+<td>Voeg de persoon toe als medewerker. De eerste <a class="term" href="99-glossary.html#g-single-sign-on" title="Eenmaal aanmelden met de identiteitsprovider van een organisatie in plaats van met een PathScribe-wachtwoord. Ook geschreven als SSO.">single sign-on</a> koppelt via het e-mailadres.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Uw PathScribe-account is inactief.</strong></td>
+<td>Het personeelsrecord is inactief.</td>
+<td>Activeer het opnieuw.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Meer dan één PathScribe-account komt overeen met deze aanmelding.</strong></td>
+<td>Twee personeelsrecords hebben hetzelfde e-mailadres (<code>ambiguous</code>).</td>
+<td>Verwijder het duplicaat.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Dit PathScribe-account is al gekoppeld aan een ander aanmeldaccount.</strong></td>
+<td>Een opnieuw toegewezen mailbox: het record is bij dezelfde provider aan een andere identiteit gekoppeld (<code>already_linked</code>).</td>
+<td>Ontkoppel het oude account op het record van de persoon en meld u opnieuw aan.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Uw PathScribe-account geeft geen toegang tot deze toepassing.</strong></td>
+<td>De rollen van de persoon geven geen toegang tot casussen en ook niet tot configuratie (<code>no_app_access</code>).</td>
+<td>Geef de persoon een <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> met toegang.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Uw organisatie vereist een tweede factor en de aanmeldservice heeft er geen gemeld.</strong></td>
+<td>De <a class="term" href="99-glossary.html#g-identity-provider" title="De dienst die mensen aanmeldt voor single sign-on, zoals de Microsoft Entra-directory van een ziekenhuis.">identiteitsprovider</a> meldde geen tweede factor (<code>mfa_required</code>).</td>
+<td>Voltooi de tweede factor bij de identiteitsprovider.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a></td>
+</tr>
+<tr>
+<td><strong>Aanmelden is voor deze installatie niet ingesteld. Neem contact op met uw systeembeheerder.</strong></td>
+<td>De build heeft geen aanmelding geconfigureerd.</td>
+<td>Corrigeer <code>config.json</code> (zie de opstartcodes hieronder).</td>
+<td><a href="#ch9-codes-config">Opstartconfiguratiecodes</a></td>
+</tr>
+<tr>
+<td>Een <strong>PathScribe kan niet starten: de configuratie moet worden gecorrigeerd</strong> over de volle pagina, met een lijst codes.</td>
+<td><code>config.json</code> bevat een instelling die het product weigert. PathScribe start niet met onjuiste instellingen.</td>
+<td>Corrigeer <code>config.json</code> op de webserver en laad opnieuw. Elke code staat in de index.</td>
+<td><a href="#ch9-codes-config">Opstartconfiguratiecodes</a></td>
+</tr>
+<tr>
+<td>Codes voor de tweede factor: <strong>Die code is al gebruikt. Wacht op de volgende.</strong> of <strong>Te veel pogingen. Codes voor de tweede factor zijn geblokkeerd tot <time>.</strong></td>
+<td>De code is opnieuw gebruikt, of er zijn te veel onjuiste codes ingevoerd.</td>
+<td>Wacht op de volgende code, of tot het tijdstip waarop de blokkade eindigt.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a></td>
+</tr>
+<tr>
+<td><strong>Dit account is al aangemeld op een ander tabblad of venster in deze browser.</strong></td>
+<td>PathScribe staat per account en per browser één actieve sessie toe.</td>
+<td>Ga door om de andere sessie af te melden (niet-opgeslagen werk blijft bewaard en wordt ter beoordeling aangeboden).</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-stuck"><a class="anchor" href="#ch9-matrix-stuck" aria-label="Link to this section">#</a> Een interfacebericht of scherm lijkt vast te zitten</h3>
+<table>
+<thead>
+<tr>
+<th>Symptoom</th>
+<th>Waarschijnlijke oorzaak</th>
+<th>Oplossing</th>
+<th>Scherm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Een scherm meldt <strong>De PathScribe-server is niet bereikbaar. Probeer het zo meteen opnieuw.</strong></td>
+<td>De browser kon de API-server niet bereiken, of die antwoordde met een serverfout (<code>UNAVAILABLE</code>), of antwoordde niet binnen 30 seconden (<code>TIMED_OUT</code>).</td>
+<td>Controleer het netwerkpad en de gezondheid van de API-server. Het scherm probeert het opnieuw waar het dat zegt (bijvoorbeeld het enginepaneel elke minuut).</td>
+<td><a href="#screen-audit-log">Systeemlogboeken</a></td>
+</tr>
+<tr>
+<td><strong>Uw sessie is beëindigd. Meld u opnieuw aan.</strong></td>
+<td>De server gaf 401 terug (<code>SIGNED_OUT</code>).</td>
+<td>Meld u opnieuw aan.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sessiebeveiliging</a></td>
+</tr>
+<tr>
+<td><strong>Dit is al gedaan. Vernieuw en kijk opnieuw.</strong> of een opslag die een conflict meldt.</td>
+<td>Iemand anders heeft hetzelfde record gewijzigd (<code>CONFLICT</code>).</td>
+<td>Vernieuw het scherm en voer de wijziging opnieuw uit.</td>
+<td><a href="#screen-audit-log">Systeemlogboeken</a></td>
+</tr>
+<tr>
+<td>Een export blijft <strong>Wordt voorbereid</strong>, of eindigt met <strong>De export duurde te lang en is gestopt.</strong></td>
+<td>Een build wordt na 30 minuten gestopt (<code>TIMED_OUT</code>).</td>
+<td>Verfijn de filters en exporteer opnieuw.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a></td>
+</tr>
+<tr>
+<td><strong>Er worden al 3 exports voor u voorbereid.</strong></td>
+<td>Eén gebruiker mag 3 open exports hebben (<code>TOO_MANY_OPEN</code>).</td>
+<td>Wacht tot er één klaar is, of annuleer er één.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-error-codes"><a class="anchor" href="#ch9-error-codes" aria-label="Link to this section">#</a> Index van systeemfoutcodes</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Bijlagen &gt; Index van systeemfoutcodes"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Bijlagen</span> <span aria-hidden="true">›</span> <span>Index van systeemfoutcodes</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>Wat deze index omvat.</strong> De codes in hoofdletters in de broncode die een beheerder op een scherm kan zien, in het Foutenlogboek kan lezen of in een contract kan vinden. Elke rij geeft het scherm waarop de code verschijnt, wat hij betekent en wat u moet doen. Het contract dat in de tweede kolom wordt genoemd, staat in <code>docs/architecture/</code>; waar geen contract een code vermeldt, noemt de rij het servicebestand.</p>
+<p><strong>Hoe codes op een scherm komen.</strong> De API-client geeft elke mislukte aanroep een korte vaste code en gebruikt nooit de berichttekst van de server, omdat die tekst een patiënt zou kunnen noemen. Een servercode wordt gebruikt als hij bestaat uit hoofdletters, cijfers en underscores, 2 tot 40 tekens lang is en met een letter begint. Anders volgt de code uit de HTTP-status.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401</td>
+<td><code>SIGNED_OUT</code></td>
+</tr>
+<tr>
+<td>403</td>
+<td><code>NOT_PERMITTED</code></td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>NOT_FOUND</code></td>
+</tr>
+<tr>
+<td>409</td>
+<td><code>CONFLICT</code></td>
+</tr>
+<tr>
+<td>400, 422</td>
+<td><code>INVALID</code></td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>TOO_MANY_REQUESTS</code></td>
+</tr>
+<tr>
+<td>al het andere</td>
+<td><code>UNAVAILABLE</code></td>
+</tr>
+</tbody>
+</table>
+<p>Er bestaan ook redenen in kleine letters (bijvoorbeeld de aanmeldredenen <code>not_provisioned</code> en <code>inactive</code>, en de <code>capability_refused</code>, <code>support_access_disabled</code> en <code>support_access_not_approved</code> van de server). Het zijn geen codes in hoofdletters, dus ze staan in de matrix hierboven en op het scherm <a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a>, niet in deze index.</p>
+<h3 id="ch9-codes-http"><a class="anchor" href="#ch9-codes-http" aria-label="Link to this section">#</a> Codes die elk scherm met een servergegevensbron kan tonen</h3>
+<table>
+<thead>
+<tr>
+<th>Foutcode</th>
+<th>Waar hij verschijnt</th>
+<th>Betekenis</th>
+<th>Wat u doet</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-signed-out"><td><code>SIGNED_OUT</code></td>
+<td>Elk scherm dat de API-server aanroept. Contract: <code>HTTP_SERVICES_PATTERN.md</code> sectie 4; <code>src/services/apiServer/apiHttpClient.ts</code>.</td>
+<td>De server antwoordde 401: de aanmelding is beëindigd of het token is niet geaccepteerd.</td>
+<td>Meld u opnieuw aan. Komt het meteen na het aanmelden terug, meld het dan aan de support van ForMedrixAI.</td>
+</tr>
+<tr id="e-not-permitted"><td><code>NOT_PERMITTED</code></td>
+<td>Elk scherm met een servergegevensbron. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>AUTHORIZATION_API.md</code>.</td>
+<td>De server antwoordde 403: de <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> ontbreekt, of ligt buiten de faciliteiten van de persoon.</td>
+<td>Zie de matrixrijen over grijze knoppen. Zoek in <a href="#screen-audit-log">Systeemlogboeken</a> naar <strong>Capability refused</strong>.</td>
+</tr>
+<tr id="e-not-found"><td><code>NOT_FOUND</code></td>
+<td>Elk scherm met een servergegevensbron. Contract: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>Het record bestaat niet meer, bijvoorbeeld omdat iemand anders het heeft verwijderd of buiten gebruik gesteld.</td>
+<td>Vernieuw en open het opnieuw.</td>
+</tr>
+<tr id="e-conflict"><td><code>CONFLICT</code></td>
+<td>Elk scherm met een opslag met versiebeheer. Contract: <code>HTTP_SERVICES_PATTERN.md</code> (opslag met versiebeheer).</td>
+<td>De server antwoordde 409: het record is gewijzigd sinds het is gelezen. Bij een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> geeft de server ook de versie terug die hij heeft.</td>
+<td>Vernieuw en voer de wijziging opnieuw uit.</td>
+</tr>
+<tr id="e-invalid"><td><code>INVALID</code></td>
+<td>Elke opslag naar de server. Contract: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>De server antwoordde 400 of 422: hij weigerde de waarden.</td>
+<td>Controleer de invoer op het formulier en sla opnieuw op.</td>
+</tr>
+<tr id="e-too-many-requests"><td><code>TOO_MANY_REQUESTS</code></td>
+<td>Elk scherm met een servergegevensbron. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>STAFF_ADMIN_API.md</code>.</td>
+<td>De server antwoordde 429: een limiet voor het aantal aanvragen is bereikt.</td>
+<td>Wacht even en probeer het opnieuw. Herhaalde gevallen gaan naar de support van ForMedrixAI.</td>
+</tr>
+<tr id="e-timed-out"><td><code>TIMED_OUT</code></td>
+<td>Elk scherm met een servergegevensbron; de lijst met exports. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>ASYNC_EXPORT_API.md</code> sectie 4.</td>
+<td>De aanroep kreeg binnen 30 seconden geen antwoord (de standaard van de client). Bij een exportbuild werd de build na 30 minuten gestopt.</td>
+<td>Probeer het opnieuw. Verfijn bij een export de filters.</td>
+</tr>
+<tr id="e-unavailable"><td><code>UNAVAILABLE</code></td>
+<td>Elk scherm met een servergegevensbron, bijvoorbeeld de lijst met werkstations, de lijst met site-agents, het enginepaneel en Servertaken. Contract: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>De server was niet bereikbaar, antwoordde met een andere status, of stuurde een antwoord dat geen JSON-object was.</td>
+<td>Controleer het netwerk en de API-server. Probeer het opnieuw.</td>
+</tr>
+<tr id="e-not-supported"><td><code>NOT_SUPPORTED</code></td>
+<td>Een actie die alleen in de demonstratie bestaat, op een serverimplementatie. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>src/services/apiServer/httpServiceExtras.ts</code>.</td>
+<td>De methode bestaat alleen voor de demonstratie (het aanmaken van demogegevens). De serverversie doet geen aanroep.</td>
+<td>Niets. Verwacht gedrag bij een serverimplementatie.</td>
+</tr>
+<tr>
+<td id="ch9-codes-permission">### Weigeringen van machtiging en goedkeuring</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Foutcode</th>
+<th>Waar hij verschijnt</th>
+<th>Betekenis</th>
+<th>Wat u doet</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-config-not-permitted"><td><code>CONFIG_NOT_PERMITTED</code></td>
+<td>Elke opslag in Configuratie. Contract: <code>AUTHORIZATION_API.md</code>; <code>src/services/authorization/guardConfigWrites.ts</code>.</td>
+<td>De rollen van de persoon missen de machtiging voor dat scherm, dus er is niets opgeslagen. De pagina Configuratie toont de naam van de machtiging.</td>
+<td>Verleen de machtiging bij <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>.</td>
+</tr>
+<tr id="e-export-not-permitted"><td><code>EXPORT_NOT_PERMITTED</code></td>
+<td>Export van zoekresultaten van casussen en export van casusverslagen. Contract: <code>CASE_SEARCH_API.md</code>; <code>AUTHORIZATION_API.md</code> (exports).</td>
+<td>De exportmachtiging (<code>search:case-results:export</code> of <code>search:case-report:export</code>) ontbreekt. Er worden geen rijen teruggegeven.</td>
+<td>Verleen de machtiging.</td>
+</tr>
+<tr id="e-separation-of-duties"><td><code>SEPARATION_OF_DUTIES</code></td>
+<td>Opslaan van een <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> en opslaan van medewerkers. Contract: <code>AUTHORIZATION_API.md</code> (<a class="term" href="99-glossary.html#g-separation-of-duties" title="Een regel dat twee bevoegdheden niet bij één persoon mogen berusten, zoals het wijzigen van de klinische discrepantieregels en het goedkeuren van de AI-instructies.">functiescheiding</a>).</td>
+<td>Eén rol of één persoon zou zowel <code>config:clinical-mismatch-rules:manage</code> als <code>config:ai-prompt:approve</code> hebben.</td>
+<td>Laat de twee machtigingen bij verschillende rollen en verschillende personen berusten.</td>
+</tr>
+<tr id="e-self-approval"><td><code>SELF_APPROVAL</code></td>
+<td>AI-instructies. Contract: <code>AUTHORIZATION_API.md</code>; <a href="05-tier4-ai-framework.html#screen-ai_instructions">AI-instructies</a>.</td>
+<td>De persoon heeft de openstaande tekst bewerkt en kan hem dus niet goedkeuren.</td>
+<td>Laat een andere houder van <code>config:ai-prompt:approve</code> hem goedkeuren.</td>
+</tr>
+<tr id="e-ai-vendor-not-allowed"><td><code>AI_VENDOR_NOT_ALLOWED</code></td>
+<td>Elke AI-functie. Contract: <code>AI_PROXY.md</code>; <code>src/services/aiIntegration/aiCallPolicy.ts</code>.</td>
+<td>Het <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Een regel per jurisdictie die bepaalt welke AI-diensten en hostingregio&#x27;s mogen worden gebruikt. Een aanroep die door de regel wordt geweigerd, wordt niet verzonden en de functie werkt verder zonder AI.">AI-leveranciersbeleid</a> weigert de dienst of de regio voor de <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a>. De aanroep wordt niet gedaan en wordt geaudit als <code>AI_CALL_REFUSED</code>. De functie gaat zonder AI verder en meldt ‘AI is niet beschikbaar voor deze jurisdictie.’</td>
+<td>Wijzig de regel of de <a class="term" href="99-glossary.html#g-hosting-region" title="De geografische regio waar een AI-clouddienst gegevens verwerkt. Het AI-leveranciersbeleid kan regio&#x27;s toestaan of weigeren.">hostingregio</a> op het tabblad <a href="05-tier4-ai-framework.html#screen-tab-ai">AI-gedrag</a>, als het beleid van het lab dat toestaat.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-exports"><a class="anchor" href="#ch9-codes-exports" aria-label="Link to this section">#</a> Exports</h3>
+<table>
+<thead>
+<tr>
+<th>Foutcode</th>
+<th>Waar hij verschijnt</th>
+<th>Betekenis</th>
+<th>Wat u doet</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-invalid-parameters"><td><code>INVALID_PARAMETERS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a>. Contract: <code>ASYNC_EXPORT_API.md</code> sectie 3.</td>
+<td>De server kon de filters niet gebruiken.</td>
+<td>Wijzig de filters en exporteer opnieuw.</td>
+</tr>
+<tr id="e-too-many-rows"><td><code>TOO_MANY_ROWS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a>. Contract: <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>Er kwamen meer dan 1.000.000 rijen overeen.</td>
+<td>Verfijn de filters.</td>
+</tr>
+<tr id="e-too-many-open"><td><code>TOO_MANY_OPEN</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a>. Contract: <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>De persoon heeft al 3 exports in de wachtrij of in uitvoering.</td>
+<td>Wacht, of annuleer er één.</td>
+</tr>
+<tr id="e-build-failed"><td><code>BUILD_FAILED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a>. Bron: <code>src/services/exports/asyncExportContract.ts</code>.</td>
+<td>De server kon het bestand niet maken. Een build krijgt 2 pogingen.</td>
+<td>Probeer het opnieuw. Mislukt het weer, meld het dan aan de support van ForMedrixAI.</td>
+</tr>
+<tr id="e-cancelled"><td><code>CANCELLED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a>. Bron: <code>src/i18n/locales/en.json</code> (<code>exports.problem</code>).</td>
+<td>De export is geannuleerd.</td>
+<td>Exporteer opnieuw als de export nog nodig is.</td>
+</tr>
+<tr id="e-expired"><td><code>EXPIRED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a>; de <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a>. Contract: <code>ASYNC_EXPORT_API.md</code>; <code>SITE_AGENT_API.md</code> sectie 6.</td>
+<td>Bij een export: het bestand is na de bewaartermijn verwijderd (standaard 7 dagen, 1 tot 30 door het lab in te stellen). Bij een taak van een site-agent: de taak is niet op tijd gestart en is teruggegeven.</td>
+<td>Exporteer opnieuw. Zie voor een taak de afdrukrijen hieronder.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config"><a class="anchor" href="#ch9-codes-config" aria-label="Link to this section">#</a> Opstartconfiguratie</h3>
+<p>Deze verschijnen op het scherm over de volle pagina <strong>PathScribe kan niet starten: de configuratie moet worden gecorrigeerd</strong>. PathScribe start niet totdat ze zijn gecorrigeerd. De instellingen en de regels staan in <code>RUNTIME_CONFIG.md</code> sectie 3. De code is <code>src/services/runtimeConfig/runtimeSettings.ts</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Foutcode</th>
+<th>Waar hij verschijnt</th>
+<th>Betekenis</th>
+<th>Wat u doet</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-unreadable"><td><code>UNREADABLE</code></td>
+<td>Opstartscherm.</td>
+<td><code>config.json</code> is geen geldige <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a>.</td>
+<td>Corrigeer het bestand.</td>
+</tr>
+<tr id="e-not-an-object"><td><code>NOT_AN_OBJECT</code></td>
+<td>Opstartscherm.</td>
+<td><code>config.json</code> moet een lijst met instellingen en waarden zijn (een JSON-object).</td>
+<td>Corrigeer het bestand.</td>
+</tr>
+<tr id="e-unknown-setting"><td><code>UNKNOWN_SETTING</code></td>
+<td>Opstartscherm.</td>
+<td>De naam is geen van de instellingen die PathScribe kent, of is een naam die alleen voor de build geldt.</td>
+<td>Controleer de spelling aan de hand van <code>RUNTIME_CONFIG.md</code>.</td>
+</tr>
+<tr id="e-not-text"><td><code>NOT_TEXT</code></td>
+<td>Opstartscherm.</td>
+<td>Een waarde moet tekst, een getal, of waar of onwaar zijn.</td>
+<td>Corrigeer de waarde.</td>
+</tr>
+<tr id="e-too-long"><td><code>TOO_LONG</code></td>
+<td>Opstartscherm.</td>
+<td>Een waarde is langer dan 2.000 tekens.</td>
+<td>Kort hem in.</td>
+</tr>
+<tr id="e-invalid-url"><td><code>INVALID_URL</code></td>
+<td>Opstartscherm.</td>
+<td>De waarde moet een webadres zijn, of een pad op deze site dat met <code>/</code> begint, zonder gebruikersnaam of wachtwoord erin.</td>
+<td>Corrigeer het adres.</td>
+</tr>
+<tr id="e-not-https"><td><code>NOT_HTTPS</code></td>
+<td>Opstartscherm.</td>
+<td>Een adres moet https gebruiken. Gewoon http is alleen toegestaan naar deze computer in een ontwikkelbuild.</td>
+<td>Gebruik een https-adres.</td>
+</tr>
+<tr id="e-not-this-site"><td><code>NOT_THIS_SITE</code></td>
+<td>Opstartscherm.</td>
+<td>Een proxypad leidt naar een andere site (bijvoorbeeld <code>//host</code>).</td>
+<td>Gebruik een pad op deze site, of een https-adres.</td>
+</tr>
+<tr id="e-api-server-required"><td><code>API_SERVER_REQUIRED</code></td>
+<td>Opstartscherm.</td>
+<td>Een <a class="term" href="99-glossary.html#g-server-build" title="Een build van PathScribe voor een echte implementatie, zonder demonstratieaccounts, die zich via de identiteitsprovider aanmeldt en met de API-server communiceert.">serverbuild</a> heeft het adres van de PathScribe-server nodig en er is er geen ingesteld.</td>
+<td>Stel het API-adres in.</td>
+</tr>
+<tr id="e-sso-required"><td><code>SSO_REQUIRED</code></td>
+<td>Opstartscherm.</td>
+<td>Een serverbuild meldt uitsluitend aan via de <a class="term" href="99-glossary.html#g-identity-provider" title="De dienst die mensen aanmeldt voor single sign-on, zoals de Microsoft Entra-directory van een ziekenhuis.">identiteitsprovider</a>, dus <code>VITE_AUTH_MODE</code> moet <code>sso</code> zijn.</td>
+<td>Stel dat in, samen met de instellingen van de provider.</td>
+</tr>
+<tr id="e-api-server-in-demo-build"><td><code>API_SERVER_IN_DEMO_BUILD</code></td>
+<td>Opstartscherm.</td>
+<td>Een <a class="term" href="99-glossary.html#g-demonstration-build" title="Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.">demonstratiebuild</a> praat nooit met een echte server.</td>
+<td>Installeer een serverbuild.</td>
+</tr>
+<tr id="e-not-in-demo-build"><td><code>NOT_IN_DEMO_BUILD</code></td>
+<td>Opstartscherm.</td>
+<td>Een demonstratiebuild kan geen <a class="term" href="99-glossary.html#g-hub" title="De SignalR-service die live updates van de API-server naar geopende schermen pusht.">hub</a>, renderer, interfaceontvanger of instelling voor servertaken gebruiken en is nooit productie.</td>
+<td>Installeer een serverbuild.</td>
+</tr>
+<tr id="e-address-not-from-server"><td><code>ADDRESS_NOT_FROM_SERVER</code></td>
+<td>Opstartscherm, gemarkeerd met ‘(uit /api/config van de PathScribe-server)’.</td>
+<td>De server mag geen adres instellen, omdat het beveiligingsbeleid van de site uit <code>config.json</code> wordt opgebouwd.</td>
+<td>Zet het adres in <code>config.json</code>.</td>
+</tr>
+<tr id="e-not-from-server"><td><code>NOT_FROM_SERVER</code></td>
+<td>Opstartscherm, gemarkeerd met ‘(uit /api/config van de PathScribe-server)’.</td>
+<td>Alleen <code>config.json</code> of de build mag deze instelling bepalen (aanmelding, de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> van de instantie, welke taken de server uitvoert).</td>
+<td>Verplaats de instelling naar <code>config.json</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-print"><a class="anchor" href="#ch9-codes-print" aria-label="Link to this section">#</a> Afdrukken, etiketten en de site-agent</h3>
+<p>De eerste zes codes hebben een eigen berichttekst. Het contract voor de codes van de agent is <code>SITE_AGENT_API.md</code> sectie 6; de lijst is <code>AGENT_ERROR_CODES</code> in <code>src/services/siteAgent/siteAgentContract.ts</code>. Het afdrukken van verslagen wordt opnieuw geprobeerd volgens het bezorgschema van het lab (standaard na 1, 5 en 15 minuten, tot 10 nieuwe pogingen). Etiketten worden nooit uit zichzelf opnieuw geprobeerd.</p>
+<table>
+<thead>
+<tr>
+<th>Foutcode</th>
+<th>Waar hij verschijnt</th>
+<th>Betekenis</th>
+<th>Wat u doet</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-printer-unreachable"><td><code>PRINTER_UNREACHABLE</code></td>
+<td>Melding bij een etiket; Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>Geen verbinding met de printer. Bij verslagen wordt het opnieuw geprobeerd.</td>
+<td>Controleer de stroom en het netwerk van de printer en probeer het opnieuw.</td>
+</tr>
+<tr id="e-paper-out"><td><code>PAPER_OUT</code></td>
+<td>Melding bij een etiket; Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De etikettenprinter heeft geen etiketten meer.</td>
+<td>Plaats etiketten en probeer het opnieuw.</td>
+</tr>
+<tr id="e-ribbon-out"><td><code>RIBBON_OUT</code></td>
+<td>Melding bij een etiket; Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>Het lint van de etikettenprinter is op.</td>
+<td>Plaats een lint en probeer het opnieuw.</td>
+</tr>
+<tr id="e-head-open"><td><code>HEAD_OPEN</code></td>
+<td>Melding bij een etiket; Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De printkop staat open.</td>
+<td>Sluit hem en probeer het opnieuw.</td>
+</tr>
+<tr id="e-malformed-zpl"><td><code>MALFORMED_ZPL</code></td>
+<td>Melding bij een etiket. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De printer heeft de etiketopmaak geweigerd. Wordt niet opnieuw geprobeerd.</td>
+<td>Meld het aan de support van ForMedrixAI.</td>
+</tr>
+<tr id="e-invalid-gs1"><td><code>INVALID_GS1</code></td>
+<td>Melding bij een etiket. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De barcode van het etiket heeft de GS1-validatie niet doorstaan. Wordt niet opnieuw geprobeerd.</td>
+<td>Meld het aan de support van ForMedrixAI. Controleer de <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, het nummer dat een GS1-barcode bevat. Afdrukinstellingen bevat de GTIN van de faciliteit.">GTIN</a> bij <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Afdrukinstellingen</a>.</td>
+</tr>
+<tr id="e-needs-site-agent"><td><code>NEEDS_SITE_AGENT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Afdrukwachtrij</a>. Contract: <code>SITE_AGENT_API.md</code>; <code>src/services/printing/printJobFailureReason.ts</code>.</td>
+<td>Een browser kan niet naar een netwerkprinter verzenden. De taak mislukt meteen en gaat naar de uitzonderingswachtrij.</td>
+<td>Gebruik een printer van een <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a>. Zie <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site-agents</a>.</td>
+</tr>
+<tr id="e-printer-offline"><td><code>PRINTER_OFFLINE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Afdrukwachtrij</a>. Bron: <code>src/services/printing/attemptPrintDelivery.ts</code>.</td>
+<td><a class="term" href="99-glossary.html#g-qz-tray" title="Een klein programma op een computer waarmee een webpagina zonder afdrukvenster naar een lokale printer kan afdrukken, zoals een labelprinter.">QZ Tray</a> is op de afdrukcomputer niet verbonden. Wordt opnieuw geprobeerd.</td>
+<td>Start QZ Tray.</td>
+</tr>
+<tr id="e-print-rejected"><td><code>PRINT_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Afdrukwachtrij</a>. Bron: <code>attemptPrintDelivery.ts</code>, <code>redispatchPrintJob.ts</code>.</td>
+<td>Een taak kan niet worden afgedrukt, bijvoorbeeld omdat er geen printer is geconfigureerd voor aflevering via QZ Tray, of omdat het verslagdocument niet kon worden gemaakt.</td>
+<td>Corrigeer de printerinstellingen en probeer het opnieuw.</td>
+</tr>
+<tr id="e-printer-rejected"><td><code>PRINTER_REJECTED</code></td>
+<td>Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De printer heeft de taak geweigerd. Wordt niet opnieuw geprobeerd.</td>
+<td>Kijk op de eigen foutweergave van de printer.</td>
+</tr>
+<tr id="e-document-unavailable"><td><code>DOCUMENT_UNAVAILABLE</code></td>
+<td>Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De downloadlink van de agent is mislukt of verlopen. Wordt opnieuw geprobeerd.</td>
+<td>In eerste instantie niets. Houdt het aan, meld het dan aan de support van ForMedrixAI.</td>
+</tr>
+<tr id="e-document-integrity"><td><code>DOCUMENT_INTEGRITY</code></td>
+<td>Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De <a class="term" href="99-glossary.html#g-sha-256" title="Een cryptografische hash die een bestand of registratie omzet in een vaste vingerafdruk, gebruikt om een wijziging op te sporen.">SHA-256</a> van het bestand kwam niet overeen, dus het is nooit afgedrukt. Wordt niet opnieuw geprobeerd.</td>
+<td>Meld het aan de support van ForMedrixAI.</td>
+</tr>
+<tr id="e-unknown-destination"><td><code>UNKNOWN_DESTINATION</code></td>
+<td>Afdrukwachtrij; bestandsafgifte. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De agent heeft geen printer of share met die id (zijn configuratie is verouderd).</td>
+<td>Werk de printerlijst van de agent bij op <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site-agents</a>.</td>
+</tr>
+<tr id="e-share-unreachable"><td><code>SHARE_UNREACHABLE</code></td>
+<td>Aflevering via bestandsafgifte. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De share kon niet worden bereikt. Wordt opnieuw geprobeerd.</td>
+<td>Controleer de share.</td>
+</tr>
+<tr id="e-share-access-denied"><td><code>SHARE_ACCESS_DENIED</code></td>
+<td>Aflevering via bestandsafgifte. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De agent mag niet naar de share schrijven. Wordt niet opnieuw geprobeerd.</td>
+<td>Corrigeer de rechten van de share.</td>
+</tr>
+<tr id="e-share-full"><td><code>SHARE_FULL</code></td>
+<td>Aflevering via bestandsafgifte. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De share is vol. Wordt opnieuw geprobeerd.</td>
+<td>Maak ruimte vrij.</td>
+</tr>
+<tr id="e-in-doubt"><td><code>IN_DOUBT</code></td>
+<td>Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>De agent stopte nadat hij was begonnen met verzenden en voordat hij het resultaat kende. Wordt nooit uit zichzelf opnieuw verzonden.</td>
+<td>Controleer de printer. Druk opnieuw af als de pagina er niet is.</td>
+</tr>
+<tr id="e-agent-error"><td><code>AGENT_ERROR</code></td>
+<td>Afdrukwachtrij. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>Elke andere fout van de agent. Wordt opnieuw geprobeerd.</td>
+<td>Controleer de agent op <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site-agents</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-outbound"><a class="anchor" href="#ch9-codes-outbound" aria-label="Link to this section">#</a> Uitgaande berichten, verrichtingen, registers en servertaken</h3>
+<table>
+<thead>
+<tr>
+<th>Foutcode</th>
+<th>Waar hij verschijnt</th>
+<th>Betekenis</th>
+<th>Wat u doet</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-dispatch-rejected"><td><code>DISPATCH_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a> (getoond als ‘Verzending afgewezen’). Contract: <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>De engine gaf geen 2xx terug. Het bericht wordt bewaard voor een nieuwe poging.</td>
+<td>Controleer de engine en kies dan <strong>Verzending opnieuw proberen</strong>.</td>
+</tr>
+<tr id="e-dispatch-timeout"><td><code>DISPATCH_TIMEOUT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a> (getoond als ‘Time-out bij verzending’). Contract: <code>OUTBOUND_QUEUE_API.md</code>; <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>De engine antwoordde niet op tijd.</td>
+<td>Zoals hierboven.</td>
+</tr>
+<tr id="e-dispatch-unreachable"><td><code>DISPATCH_UNREACHABLE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a> (getoond als ‘Engine onbereikbaar’). Contract: <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>De engine kon niet worden bereikt.</td>
+<td>Zoals hierboven.</td>
+</tr>
+<tr id="e-missing-icd10"><td><code>MISSING_ICD10</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a>. Contract: <code>DIAGNOSIS_CODING.md</code>; <code>src/services/billing/validateChargeMetadata.ts</code>.</td>
+<td>Een verrichting heeft geen ICD-10-code.</td>
+<td>Voer de code in op de regel.</td>
+</tr>
+<tr id="e-missing-provider-npi"><td><code>MISSING_PROVIDER_NPI</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a>. Bron: <code>validateChargeMetadata.ts</code>.</td>
+<td>Een verrichting heeft geen <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, de identificatie van tien cijfers van een Amerikaanse zorgverlener, vereist op een kostenregel.">NPI</a> van de zorgverlener.</td>
+<td>Voer de NPI in op de regel.</td>
+</tr>
+<tr id="e-registry-not-ready"><td><code>REGISTRY_NOT_READY</code></td>
+<td>Uitgaande wachtrij; Registeruitzonderingen. Contract: <code>BATCH_REGISTRY_FEED_API.md</code>; <code>REGISTRY_ACKNOWLEDGEMENT_API.md</code>.</td>
+<td>Een inzending aan een <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> wordt vastgehouden: een verplicht veld of een instelling ontbreekt.</td>
+<td>Vul het ontbrekende onderdeel aan dat bij de vermelding staat.</td>
+</tr>
+<tr id="e-registry-live-not-approved"><td><code>REGISTRY_LIVE_NOT_APPROVED</code></td>
+<td>Uitgaande wachtrij; Registeruitzonderingen. Contract: <code>REGISTRY_GO_LIVE_API.md</code>.</td>
+<td>Een echte <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> is geautoriseerd, maar de registerverbinding is niet live goedgekeurd. De vermelding toont ‘Vastgehouden: attestatie vereist’.</td>
+<td>Voltooi de goedkeuring voor livegang op het instellingenscherm van het register.</td>
+</tr>
+<tr id="e-not-dead-lettered"><td><code>NOT_DEAD_LETTERED</code></td>
+<td>Servertaken. Contract: <code>MESSAGE_BUS_API.md</code>.</td>
+<td>De taak is niet meer mislukt (409).</td>
+<td>Vernieuw.</td>
+</tr>
+<tr id="e-wrong-screen"><td><code>WRONG_SCREEN</code></td>
+<td>Servertaken. Bron: <code>src/services/serverJobs/serverJobsContract.ts</code>.</td>
+<td>Interface- en afdruktaken worden hier niet opnieuw in de wachtrij gezet.</td>
+<td>Verzend opnieuw vanuit de interface- of <a class="term" href="99-glossary.html#g-print-queue" title="De lijst van afdrukopdrachten voor verslagen en labels met hun status, van in de wachtrij tot afgedrukt of mislukt.">afdrukwachtrij</a>.</td>
+</tr>
+<tr id="e-consult-link-not-active"><td><code>CONSULT_LINK_NOT_ACTIVE</code></td>
+<td>Tabblad Consultlinks. Contract: <code>CONSULT_ACCESS_API.md</code>.</td>
+<td>De link is al ingetrokken of verlopen.</td>
+<td>Vernieuw.</td>
+</tr>
+<tr id="e-no-recipients"><td><code>NO_RECIPIENTS</code></td>
+<td>Rapportageschema's. Contract: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>Er is geen actieve ontvanger meer over.</td>
+<td>Kies ten minste één ontvanger.</td>
+</tr>
+<tr id="e-too-many-schedules"><td><code>TOO_MANY_SCHEDULES</code></td>
+<td>Rapportageschema's. Contract: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>De persoon heeft het maximaal toegestane aantal schema's.</td>
+<td>Verwijder of voeg een schema samen.</td>
+</tr>
+<tr id="e-recipient-access-unknown"><td><code>RECIPIENT_ACCESS_UNKNOWN</code></td>
+<td>Rapportageschema's. Contract: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>Wat een ontvanger mag zien, kon niet worden bepaald, dus er is niets opgebouwd.</td>
+<td>Controleer de rollen en faciliteiten van de ontvanger.</td>
+</tr>
+<tr id="e-run-failed"><td><code>RUN_FAILED</code></td>
+<td>Rapportageschema's. Bron: <code>src/services/scheduledReports/createScheduledReportService.ts</code>.</td>
+<td>Een geplande uitvoering is mislukt.</td>
+<td>Kijk in het Foutenlogboek.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config-screens"><a class="anchor" href="#ch9-codes-config-screens" aria-label="Link to this section">#</a> Configuratieschermen: weigeringen die u moet kennen</h3>
+<table>
+<thead>
+<tr>
+<th>Foutcode</th>
+<th>Waar hij verschijnt</th>
+<th>Betekenis</th>
+<th>Wat u doet</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-reason-required"><td><code>REASON_REQUIRED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>, intrekking van werkstations en feeds, en verschillende casusacties. Bron: de service van elk scherm.</td>
+<td>Voor de wijziging is een reden vereist.</td>
+<td>Voer een reden in.</td>
+</tr>
+<tr id="e-bad-date"><td><code>BAD_DATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codesystemen</a>. Bron: <code>src/services/coding/codeSystemPolicyRules.ts</code>.</td>
+<td>Een datum is geen bestaande kalenderdatum.</td>
+<td>Corrigeer hem.</td>
+</tr>
+<tr id="e-bad-role"><td><code>BAD_ROLE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codesystemen</a>. Bron: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Een <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> in een regel is niet geldig.</td>
+<td>Kies een geldige rol.</td>
+</tr>
+<tr id="e-bad-system"><td><code>BAD_SYSTEM</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codesystemen</a>. Bron: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Een codesysteem is leeg of niet geldig.</td>
+<td>Kies een codesysteem.</td>
+</tr>
+<tr id="e-duplicate"><td><code>DUPLICATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codesystemen</a>. Bron: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Hetzelfde codesysteem heeft twee rijen met dezelfde begindatum.</td>
+<td>Verwijder één rij of geef haar een andere datum.</td>
+</tr>
+<tr id="e-no-rules"><td><code>NO_RULES</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codesystemen</a>. Bron: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Er zijn geen regels.</td>
+<td>Voeg een regel toe, of herstel de standaard.</td>
+</tr>
+<tr id="e-too-many"><td><code>TOO_MANY</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codesystemen</a>. Bron: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Er zijn te veel regels.</td>
+<td>Verwijder er een aantal.</td>
+</tr>
+<tr id="e-same-person"><td><code>SAME_PERSON</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>src/services/billing/codeEngine/planImportJob.ts</code>.</td>
+<td>De persoon die de import heeft geüpload, kan hem niet goedkeuren of afwijzen (<a class="term" href="99-glossary.html#g-four-eyes-principle" title="Een regel dat één persoon een wijziging voorbereidt en een andere persoon die goedkeurt. Het importeren van factureringscodes gebruikt dit.">vierogenprincipe</a>).</td>
+<td>Een andere persoon moet beslissen.</td>
+</tr>
+<tr id="e-job-not-approved"><td><code>JOB_NOT_APPROVED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>planImportJob.ts</code>.</td>
+<td>Alleen een goedgekeurde import kan worden teruggedraaid.</td>
+<td>Geen.</td>
+</tr>
+<tr id="e-job-not-pending"><td><code>JOB_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>planImportJob.ts</code>.</td>
+<td>De import wacht niet meer op goedkeuring.</td>
+<td>Vernieuw.</td>
+</tr>
+<tr id="e-mapping-incomplete"><td><code>MAPPING_INCOMPLETE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>src/services/billing/mockCodeImportService.ts</code>.</td>
+<td>De kolommen voor factuurcode, CPT-code en ingangsdatum zijn niet alle gekoppeld.</td>
+<td>Koppel ze, of geef één ingangsdatum voor het hele bestand.</td>
+</tr>
+<tr id="e-no-rows"><td><code>NO_ROWS</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>mockCodeImportService.ts</code>.</td>
+<td>Het bestand heeft geen rijen die kunnen worden geïmporteerd.</td>
+<td>Controleer het bestand.</td>
+</tr>
+<tr id="e-rows-refused"><td><code>ROWS_REFUSED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>mockCodeImportService.ts</code>.</td>
+<td>Een aantal rijen kan niet worden geïmporteerd.</td>
+<td>Corrigeer ze, of kies ervoor ze over te slaan.</td>
+</tr>
+<tr id="e-row-missing"><td><code>ROW_MISSING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>mockCodeImportService.ts</code>.</td>
+<td>Een codeversie uit de import bestaat niet meer, dus hij kan niet worden goedgekeurd.</td>
+<td>Upload de import opnieuw.</td>
+</tr>
+<tr id="e-row-not-pending"><td><code>ROW_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import</a>. Bron: <code>mockCodeImportService.ts</code>.</td>
+<td>Een codeversie uit de import wacht niet meer op goedkeuring.</td>
+<td>Upload de import opnieuw.</td>
+</tr>
+<tr id="e-name-taken"><td><code>NAME_TAKEN</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Werkstations</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a>. Bron: <code>src/services/workstationRegistry/workstationRegistryRules.ts</code>; <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>Een ander actief <a class="term" href="99-glossary.html#g-workstation" title="Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.">werkstation</a> van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> heeft die naam.</td>
+<td>Kies een andere naam.</td>
+</tr>
+<tr id="e-already-revoked"><td><code>ALREADY_REVOKED</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Werkstations</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a>. Bron: dezelfde twee services.</td>
+<td>Het werkstation is al ingetrokken.</td>
+<td>Geen.</td>
+</tr>
+<tr id="e-revoke-reason-invalid"><td><code>REVOKE_REASON_INVALID</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Werkstations</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a>. Bron: dezelfde twee services.</td>
+<td>Er moet een reden worden gekozen, met een toelichting bij Overig.</td>
+<td>Kies een reden.</td>
+</tr>
+<tr id="e-feed-off"><td><code>FEED_OFF</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a>. Bron: <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>De feed staat uit.</td>
+<td>Zet hem aan in de feedinstellingen.</td>
+</tr>
+<tr id="e-dataset-not-in-feed"><td><code>DATASET_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a>. Bron: <code>biFeedRules.ts</code>.</td>
+<td>Een dataset wordt niet door de feed aangeboden.</td>
+<td>Voeg hem eerst toe aan de feedinstellingen.</td>
+</tr>
+<tr id="e-facility-not-in-feed"><td><code>FACILITY_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a>. Bron: <code>biFeedRules.ts</code>.</td>
+<td>Een faciliteit wordt niet door de feed aangeboden.</td>
+<td>Voeg haar eerst toe aan de feedinstellingen.</td>
+</tr>
+<tr id="e-identified-not-approved"><td><code>IDENTIFIED_NOT_APPROVED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a>. Bron: <code>biFeedRules.ts</code>.</td>
+<td>Voor identificerende tokens moet een goedkeuring zijn vastgelegd.</td>
+<td>Leg de goedkeuring vast.</td>
+</tr>
+<tr id="e-not-hl7"><td><code>NOT_HL7</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>. Bron: <code>src/services/lisIngestion/adapters/hl7v2StatusAdapter.ts</code>.</td>
+<td>Het bericht is geen <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> v2-bericht (het moet met een MSH-segment beginnen).</td>
+<td>Controleer het verzendende systeem.</td>
+</tr>
+<tr id="e-unsupported-message-type"><td><code>UNSUPPORTED_MESSAGE_TYPE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>. Bron: <code>hl7v2StatusAdapter.ts</code>.</td>
+<td>Alleen <a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a>^R01-, <a class="term" href="99-glossary.html#g-orm" title="Het algemene HL7-berichttype voor aanvragen (ORM^O01).">ORM</a>^O01- en <a class="term" href="99-glossary.html#g-oml" title="Het HL7-berichttype voor laboratoriumaanvragen (OML^O21).">OML</a>^O21-berichten worden geaccepteerd.</td>
+<td>Stuur een ondersteund type.</td>
+</tr>
+<tr id="e-missing-accession"><td><code>MISSING_ACCESSION</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>. Bron: <code>hl7v2StatusAdapter.ts</code>, <code>webhookJsonAdapter.ts</code>.</td>
+<td>Het bericht heeft geen <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a>.</td>
+<td>Corrigeer de afzender.</td>
+</tr>
+<tr id="e-missing-status"><td><code>MISSING_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>. Bron: <code>src/services/lisIngestion/types.ts</code>.</td>
+<td>Het bericht heeft geen LIS-status.</td>
+<td>Corrigeer de afzender.</td>
+</tr>
+<tr id="e-invalid-json"><td><code>INVALID_JSON</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>. Bron: <code>types.ts</code>.</td>
+<td>Het bericht is geen geldige <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a>.</td>
+<td>Corrigeer de afzender.</td>
+</tr>
+<tr id="e-crosswalk-duplicate-status"><td><code>CROSSWALK_DUPLICATE_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>. Bron: <code>src/services/assistPolling/mockAssistPollingService.ts</code>.</td>
+<td>Een LIS-status is twee keer gekoppeld.</td>
+<td>Koppel elke status één keer.</td>
+</tr>
+<tr id="e-interval-out-of-range"><td><code>INTERVAL_OUT_OF_RANGE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-ontvangst (Assist-modus)</a>. Bron: <code>mockAssistPollingService.ts</code>.</td>
+<td>Het pollinginterval ligt buiten de toegestane hele minuten.</td>
+<td>Voer een waarde in binnen het getoonde bereik.</td>
+</tr>
+<tr id="e-nhs-number-check-digit"><td><code>NHS_NUMBER_CHECK_DIGIT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Brits kankerregister (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>Het <a class="term" href="99-glossary.html#g-nhs-number" title="De patiëntidentificatie van tien cijfers die in de NHS in Engeland en Wales wordt gebruikt. Het laatste cijfer is een controlecijfer.">NHS-nummer</a> voldoet niet aan zijn controlecijfer.</td>
+<td>Corrigeer het nummer bij de <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>.</td>
+</tr>
+<tr id="e-nhs-number-format"><td><code>NHS_NUMBER_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Brits kankerregister (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>Het NHS-nummer bestaat niet uit tien cijfers.</td>
+<td>Corrigeer het.</td>
+</tr>
+<tr id="e-patient-identifier-missing"><td><code>PATIENT_IDENTIFIER_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Brits kankerregister (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>Het NHS-nummer ontbreekt.</td>
+<td>Voer het in.</td>
+</tr>
+<tr id="e-icdo-missing"><td><code>ICDO_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Brits kankerregister (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>Er is geen ICD-O-3-code.</td>
+<td>Voeg hem toe aan de casus.</td>
+</tr>
+<tr id="e-icdo-format"><td><code>ICDO_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Brits kankerregister (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>Een ICD-O-3-code heeft niet de vorm <code>8500/3</code>.</td>
+<td>Corrigeer hem.</td>
+</tr>
+<tr id="e-diagnosis-date-missing"><td><code>DIAGNOSIS_DATE_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Brits kankerregister (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>De diagnosedatum ontbreekt.</td>
+<td>Voer hem in.</td>
+</tr>
+<tr id="e-xml-not-well-formed"><td><code>XML_NOT_WELL_FORMED</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Brits kankerregister (COSD)</a>; upload van protocollen. Contract: <code>UK_COSD_API.md</code>; bron: <code>protocolUploadValidation.ts</code>.</td>
+<td>Het voorbeeld, of het geüploade bestand, is geen goed gevormde <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.">XML</a>.</td>
+<td>Corrigeer de gegevens of het bestand.</td>
+</tr>
+<tr id="e-unsupported-format"><td><code>UNSUPPORTED_FORMAT</code></td>
+<td>Upload van protocollen in de Synoptische bibliotheek (<a href="06-tier5-reporting-synoptic-scheduler.html#screen-tab-protocols">Synoptische bibliotheek</a>). Bron: <code>src/services/templates/protocolUploadValidation.ts</code>.</td>
+<td>Het bestandstype wordt niet ondersteund. Gebruik JSON, XML of XLSX.</td>
+<td>Converteer het bestand.</td>
+</tr>
+<tr id="e-file-too-large"><td><code>FILE_TOO_LARGE</code></td>
+<td>Upload van protocollen. Bron: <code>protocolUploadValidation.ts</code>.</td>
+<td>Het bestand is groter dan 10 MB.</td>
+<td>Verklein het.</td>
+</tr>
+<tr id="e-json-invalid"><td><code>JSON_INVALID</code></td>
+<td>Upload van protocollen. Bron: <code>protocolUploadValidation.ts</code>.</td>
+<td>Het bestand is geen geldige JSON.</td>
+<td>Corrigeer het.</td>
+</tr>
+<tr id="e-json-newer-format"><td><code>JSON_NEWER_FORMAT</code></td>
+<td>Upload van protocollen. Bron: <code>protocolUploadValidation.ts</code>.</td>
+<td>Het bestand is geëxporteerd door een nieuwere versie van PathScribe.</td>
+<td>Werk PathScribe bij, of exporteer vanuit dezelfde versie.</td>
+</tr>
+<tr id="e-xml-not-sdc"><td><code>XML_NOT_SDC</code></td>
+<td>Upload van protocollen. Bron: <code>protocolUploadValidation.ts</code>.</td>
+<td>De XML is geen <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a> eCC-formulier (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, de XML-formaatstandaard waarmee CAP electronic cancer checklists worden verspreid.">SDC</a>).</td>
+<td>Gebruik het juiste bestand.</td>
+</tr>
+<tr id="e-not-importable"><td><code>NOT_IMPORTABLE</code></td>
+<td>Upload van protocollen. Bron: <code>protocolUploadValidation.ts</code>.</td>
+<td>De indeling kan worden gecontroleerd maar nog niet worden geïmporteerd. Importeren werkt voor PathScribe-protocolbestanden (JSON).</td>
+<td>Gebruik een PathScribe-JSON-bestand.</td>
+</tr>
+<tr id="e-xlsx-not-mapped"><td><code>XLSX_NOT_MAPPED</code></td>
+<td>Upload van protocollen. Bron: <code>protocolUploadValidation.ts</code>.</td>
+<td>De bladen van de werkmap zijn niet gelezen, dus kolommen zijn niet aan vragen gekoppeld.</td>
+<td>Gebruik een ondersteunde indeling.</td>
+</tr>
+<tr id="e-production-gated"><td><code>PRODUCTION_GATED</code></td>
+<td><a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>. Bron: <code>src/services/smartCapture/smartCaptureStates.ts</code>.</td>
+<td>Er is een echte interface-engine geconfigureerd en de <a class="term" href="99-glossary.html#g-production-gate" title="Een schakelaar die gesloten blijft totdat een laboratorium het verzenden van echte gegevens naar een echte interface-engine goedkeurt.">productiepoort</a> is gesloten, dus er is niets verzonden.</td>
+<td>Open de productiepoort als het lab er klaar voor is.</td>
+</tr>
+<tr id="e-already-accessioned"><td><code>ALREADY_ACCESSIONED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox-afgifte</a>. Contract: <code>LOCKBOX_API.md</code>.</td>
+<td>Het ontvangstbewijs is al geaccessioneerd (409).</td>
+<td>Geen.</td>
+</tr>
+<tr id="e-placeholder-unresolved"><td><code>PLACEHOLDER_UNRESOLVED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox-afgifte</a>. Contract: <code>LOCKBOX_API.md</code>.</td>
+<td>Accessie is gevraagd voor een <a class="term" href="99-glossary.html#g-placeholder" title="Een registratie voor een depositbox-barcode waarvoor nog geen aanvraag bestaat. Zij bevat het ontvangstbewijs en wordt later aan een aanvraag gekoppeld; zij krijgt nooit een accessienummer.">tijdelijke aanduiding</a> zonder gekoppeld aanvraagnummer (409).</td>
+<td>Koppel de tijdelijke aanduiding eerst aan haar aanvraag.</td>
+</tr>
+<tr id="e-not-a-placeholder"><td><code>NOT_A_PLACEHOLDER</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox-afgifte</a>. Contract: <code>LOCKBOX_API.md</code>.</td>
+<td>Alleen een tijdelijke aanduiding kan aan een aanvraag worden gekoppeld.</td>
+<td>Geen.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-system-logs"><a class="anchor" href="#ch9-system-logs" aria-label="Link to this section">#</a> Naslag Systeemlogboeken</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Bijlagen &gt; Naslag Systeemlogboeken"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Bijlagen</span> <span aria-hidden="true">›</span> <span>Naslag Systeemlogboeken</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p>Systeemlogboeken is waar het overzicht van wat mensen, het systeem en de AI hebben gedaan, wordt gelezen. Dit deel beschrijft het scherm. Het volgende deel (<a href="#ch9-audit-verification">Handleiding voor verificatie van het auditlogboek</a>) zegt hoe u het gebruikt om de vragen van een auditor te beantwoorden.</p>
+<h3 id="screen-audit-log"><a class="anchor" href="#screen-audit-log" aria-label="Link to this section">#</a> Systeemlogboeken</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Systeemlogboeken"><span>Start</span> <span aria-hidden="true">›</span> <span>Systeemlogboeken</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd. In de demonstratie wordt het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> in de browser bewaard; met een API-server wordt het door de server bewaard (zie Bekende beperkingen).</p>
+<p><strong>1. Navigatie:</strong> Starttegel <strong>Systeemlogboeken</strong> (adres <code>/audit</code>).
+<strong>2. Onderhoudsitem:</strong> Systeemlogboeken (een naslagscherm; hier wordt niets ingericht).</p>
+<p><strong>3. Doel en reikwijdte.</strong> Eén scherm voor het compliancedossier van het lab: AI-acties, gebruikerswijzigingen, systeemgebeurtenissen, fouten, kwaliteitsborgingsactiviteit, interface- en afdrukactiviteit, mislukte financiële verzendingen, kritieke meldingen, externe consultlinks en de achtergrondtaken van de API-server. Het scherm is alleen-lezen, op drie acties na: een fout als <strong>Oplossen</strong> markeren, een mislukt interfacebericht of een mislukte afdruktaak opnieuw verzenden en een <a class="term" href="99-glossary.html#g-consult-link" title="Een alleen-lezenlink die voor één casus aan een externe consulent wordt verstrekt. Hij kan direct worden ingetrokken en verloopt vanzelf.">consultlink</a> intrekken. Elk tabblad is een ander overzicht dat door een andere service wordt bijgehouden. De tabbladen Auditlogboek en Foutenlogboek worden hier beschreven. Het tabblad <strong>Interfacelogboek</strong> wordt beschreven in <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a> en het tabblad <strong>Financieel</strong> in <a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a>.</p>
+<p><strong>4. Randvoorwaarden en afhankelijkheden.</strong> Het scherm toont alleen wat er is gebeurd, dus er hoeft niets vooraf te worden geconfigureerd, behalve wie het mag openen. Een persoon zonder <code>screen:audit-log:open</code> ziet geen starttegel en krijgt, als hij het adres intypt, de melding ‘U hebt geen toegang tot dit scherm’.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-audit-log.webp" alt="Systeemlogboeken, tabblad Auditlogboek met typefilters, filters en CSV exporteren" loading="lazy"><figcaption>Systeemlogboeken, tabblad Auditlogboek met typefilters, filters en <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> exporteren</figcaption></figure>
+
+<p>De paginakop luidt <strong>Systeemlogboeken</strong> met de ondertitel ‘Volledig overzicht van AI-acties, gebruikerswijzigingen, systeemgebeurtenissen, fouten en kwaliteitsborgingsactiviteiten’. Daarna volgt een tabbladenrij, dan een vak <strong>Supportreferentie opzoeken</strong> en dan het actieve tabblad. Een tellerbadge op <strong>Foutenlogboek</strong> toont de open fouten, op <strong>Interfacelogboek</strong> de openstaande interface-uitzonderingen en op <strong>Kwaliteitsborging</strong> de open kwaliteitsitems. Een persoon met de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> Patholoog ziet de mededeling ‘Alleen uw eigen dossieractiviteit wordt getoond — validatiestudie-gebeurtenissen zijn niet zichtbaar voor pathologen’.</p>
+<figure class="shot"><img src="../img/screen-audit-log-errors.webp" alt="Systeemlogboeken, tabblad Foutenlogboek" loading="lazy"><figcaption>Systeemlogboeken, tabblad Foutenlogboek</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong> Het scherm heeft filters, kolommen en knoppen in plaats van formuliervelden. Rijnamen beginnen met het tabblad.</p>
+<h4>Tabbladen</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-tab-audit-log"><td>Tabblad: Auditlogboek</td>
+<td>Tabblad</td>
+<td>Niet van toepassing</td>
+<td>Elke auditvermelding die de persoon mag zien. Hieronder beschreven.</td>
+<td>Geselecteerd bij het openen</td>
+</tr>
+<tr id="f-audit-log-tab-error-log"><td>Tabblad: Foutenlogboek</td>
+<td>Tabblad</td>
+<td>Niet van toepassing</td>
+<td>Fouten die het systeem heeft vastgelegd, met een code. Hieronder beschreven.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-tab-interface-log"><td>Tabblad: Interfacelogboek</td>
+<td>Tabblad met subtabbladen Interface-uitzonderingen, Uitgaande interface-DLQ, Uitgaande verzendingen, Afdrukwachtrij, Engines</td>
+<td>Niet van toepassing</td>
+<td>Zie <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: interfaces</a>. Het adres <code>?tab=interfaces</code> opent het.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-tab-quality-assurance"><td>Tabblad: Kwaliteitsborging</td>
+<td>Tabblad met een keuze Groep</td>
+<td>Niet van toepassing</td>
+<td>Acht groepen kwaliteitsrecords: Tekortkomingen, Peroperatieve koppeling, Discordantie &amp; reconciliatie, Doorlooptijd medeondertekening, Bevoegdheidsbeoordeling, Afwijking na finalisatie, Beoordeling patiëntkoppeling en Managementbeoordelingen. Elke groep heeft eigen Status-keuzes.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-tab-financial"><td>Tabblad: Financieel</td>
+<td>Tabblad met subtabbladen Factureringslogboeken en Uitgaande <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, de lijst van berichten waarvan alle nieuwe pogingen zijn mislukt. Systeemlogboeken heeft er een voor uitgaande interfaceberichten en een voor kosten.">DLQ</a></td>
+<td>Niet van toepassing</td>
+<td>Zie <a href="08-tier7-billing-registry.html#screen-audit-financial">Systeemlogboeken: financieel</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-tab-critical-alerts"><td>Tabblad: Kritieke meldingen</td>
+<td>Tabblad</td>
+<td>Niet van toepassing</td>
+<td>Het overzicht van meldingen over kritieke uitslagen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-tab-consult-links"><td>Tabblad: Consultlinks</td>
+<td>Tabblad</td>
+<td>Niet van toepassing</td>
+<td>Elke externe <a class="term" href="99-glossary.html#g-consult-link" title="Een alleen-lezenlink die voor één casus aan een externe consulent wordt verstrekt. Hij kan direct worden ingetrokken en verloopt vanzelf.">consultlink</a> bij elke <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, met <strong>Alleen actief</strong> en <strong>Intrekken</strong>. Getoond aan personen met <code>audit:consult-links:view</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-tab-server-jobs"><td>Tabblad: Servertaken</td>
+<td>Tabblad</td>
+<td>Niet van toepassing</td>
+<td>De achtergrondtaken van de API-server: gezondheid en dead letters, met opnieuw in de wachtrij zetten. Alleen getoond aan personen met <code>jobs:server-job:view</code>. Een link die zonder die <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> wordt geopend, komt op Auditlogboek uit.</td>
+<td>Verborgen zonder de machtiging</td>
+</tr>
+<tr id="f-audit-log-find-a-support-reference"><td>Supportreferentie opzoeken</td>
+<td>Tekst, vorm <code>SR-XXXX-XXXX</code></td>
+<td>Optioneel</td>
+<td>Noemt de casus, de auditvermelding, de foutvermelding of de interface-uitzondering waar een <a class="term" href="99-glossary.html#g-support-reference" title="Een willekeurige, niet-identificerende code van de vorm `SR-XXXX-XXXX` die medewerkers aan support doorgeven in plaats van een casusnummer.">supportreferentie</a> naar verwijst. Een opzoeking wordt zelf geaudit (<code>support_reference.resolved</code>). Valt de vermelding buiten het geladen bereik, dan zegt het scherm dat u de periode moet verruimen.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<h4>Tabblad Auditlogboek</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-audit-log-type-pills"><td>Auditlogboek: Typefilters</td>
+<td>Keuze: Alle, AI, Gebruiker, Systeem, met aantallen</td>
+<td>Optioneel</td>
+<td>Filtert op het type van de vermelding.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-log-audit-log-patient-management-only"><td>Auditlogboek: Alleen patiëntbeheer</td>
+<td>Ja/nee-selectievakje met aantal</td>
+<td>Optioneel</td>
+<td>Toont alleen gebeurtenissen waarvan de naam met <code>mpi.</code> begint (samenvoegen, verplaatsen, koppelen, opnieuw koppelen, bijwerken van demografische gegevens). Combineert met de andere filters. Een toekomstige <code>mpi.</code>-gebeurtenis wordt automatisch meegenomen.</td>
+<td>Nee</td>
+</tr>
+<tr id="f-audit-log-audit-log-user-filter"><td>Auditlogboek: Gebruikersfilter</td>
+<td>Keuze uit elke gebruiker in de geladen vermeldingen</td>
+<td>Optioneel</td>
+<td>Alleen getoond in een Superadmin-sessie. Alle anderen vinden een persoon door de naam in het zoekvak te typen.</td>
+<td>Alle gebruikers</td>
+</tr>
+<tr id="f-audit-log-audit-log-date-range"><td>Auditlogboek: Periode</td>
+<td>Keuze: Vandaag, Laatste 7 dagen, Laatste 30 dagen, Laatste 90 dagen, Aangepaste periode</td>
+<td>Optioneel</td>
+<td>Afkapping in de tijdzone van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>. Aangepaste periode voegt een <strong>van</strong>- en een <strong>tot</strong>-datum toe; de einddatum omvat de hele dag.</td>
+<td>Laatste 7 dagen</td>
+</tr>
+<tr id="f-audit-log-audit-log-search"><td>Auditlogboek: Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Komt overeen met de gebeurtenisnaam, de detailtekst, de gebruiker en het casus-id (<a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a>), zonder onderscheid tussen hoofdletters en kleine letters.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-log-audit-log-export-csv"><td>Auditlogboek: Exporteren als <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Vereist <code>audit:audit-log:export</code>. Zie de verificatiehandleiding. Grijs zonder die <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-audit-log-timestamp"><td>Auditlogboek: Tijdstempel</td>
+<td>Kolom, <code>YYYY-MM-DD HH:MM:SS.mmm UTC</code></td>
+<td>Niet van toepassing</td>
+<td>Wanneer de vermelding is geschreven, altijd getoond in <a class="term" href="99-glossary.html#g-utc" title="Gecoördineerde wereldtijd (Coordinated Universal Time), de tijdstandaard waarin auditvermeldingen worden opgeslagen en getoond.">UTC</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-audit-log-type"><td>Auditlogboek: Type</td>
+<td>Kolom</td>
+<td>Niet van toepassing</td>
+<td>AI, Gebruiker of Systeem.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-audit-log-event"><td>Auditlogboek: Gebeurtenis</td>
+<td>Kolom</td>
+<td>Niet van toepassing</td>
+<td>De gebeurtenisnaam, gevolgd door een chip met de <a class="term" href="99-glossary.html#g-support-reference" title="Een willekeurige, niet-identificerende code van de vorm `SR-XXXX-XXXX` die medewerkers aan support doorgeven in plaats van een casusnummer.">supportreferentie</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-audit-log-detail"><td>Auditlogboek: Detail</td>
+<td>Kolom</td>
+<td>Niet van toepassing</td>
+<td>Engelse tekst, zonder patiëntnamen, geboortedatums, <a class="term" href="99-glossary.html#g-mrn" title="Medisch dossiernummer (medical record number), de identificatie die een faciliteit aan een patiënt geeft.">MRN</a>'s en klinische waarden.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-audit-log-user"><td>Auditlogboek: Gebruiker</td>
+<td>Kolom</td>
+<td>Niet van toepassing</td>
+<td>De weergavenaam van de persoon of de systeemactor. Automatische acties tonen een systeemactor zoals <code>SYSTEM</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-audit-log-case"><td>Auditlogboek: Dossier</td>
+<td>Kolom</td>
+<td>Niet van toepassing</td>
+<td>Het accessienummer wanneer de vermelding een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> betreft. Klik erop om de casus te openen.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>De vermelding bevat ook een betrouwbaarheidswaarde (voor AI-vermeldingen), een faciliteits-id en een scanstation-id. Ze worden opgeslagen en staan in het servercontract, maar het scherm toont er geen kolom voor en de CSV bevat de faciliteit of het station niet. Het faciliteits-id ontbreekt bij vermeldingen die zijn vastgelegd voordat het bestond of door code die het niet meegeeft.</p>
+<h4>Tabblad Foutenlogboek</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-error-log-severity-pills"><td>Foutenlogboek: Ernstfilters</td>
+<td>Keuze: Alle, Fout, Waarschuwing, Info, met aantallen</td>
+<td>Optioneel</td>
+<td>Filtert op ernst.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-log-error-log-status"><td>Foutenlogboek: Status</td>
+<td>Keuze: Alle statussen, Alleen open, Alleen opgelost</td>
+<td>Optioneel</td>
+<td>Filtert op oplossing.</td>
+<td>Alle statussen</td>
+</tr>
+<tr id="f-audit-log-error-log-search"><td>Foutenlogboek: Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Komt overeen met bericht, code en bron.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-log-error-log-resolve"><td>Foutenlogboek: Oplossen</td>
+<td>Knop op elke open rij</td>
+<td>Niet van toepassing</td>
+<td>Vereist <code>audit:error:resolve</code>. Legt vast wie de fout heeft opgelost en wanneer; de rij toont dan ‘Opgelost door <name>, <time>’.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-error-log-export-csv"><td>Foutenlogboek: Exporteren als <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Vereist <code>audit:error-log:export</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-log-error-log-columns"><td>Foutenlogboek: kolommen</td>
+<td>Tijdstempel, Ernst, Code, Bericht, Bron, Dossier, Status</td>
+<td>Niet van toepassing</td>
+<td>De kolom Code bevat de codes uit de <a href="#ch9-error-codes">index</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong>
+- Het scherm openen: <code>screen:audit-log:open</code>. Beheerder, Laboratoriumdirecteur en QA-beoordelaar hebben die standaard. De <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> Patholoog heeft die standaard niet.
+- Exporteren: één <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> per logboek, elk met hoog risico, elk met <code>screen:audit-log:open</code> als vereiste: <code>audit:audit-log:export</code>, <code>audit:error-log:export</code>, <code>audit:interface-log:export</code>, <code>audit:qa-log:export</code> en <code>audit:billing-log:export</code>. Rollen die het scherm openen, krijgen alle vijf vooraf toegekend. Elke export wordt zelf geaudit.
+- Een fout oplossen: <code>audit:error:resolve</code> (hoog risico).
+- Tabblad Consultlinks: <code>audit:consult-links:view</code>. Servertaken: <code>jobs:server-job:view</code>, en opnieuw in de wachtrij zetten met <code>jobs:server-job:requeue</code>.
+- Afbakening op het scherm: Pathologen zien elke vermelding die een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> noemt, plus hun eigen vermeldingen zonder casus. Gebeurtenissen van validatiestudies (<code>validation_study_created</code>, <code>validation_study_activated</code>, <code>validation_study_closed</code>, <code>validation_study_deleted</code>, <code>validation_report_generated</code> en de drie <code>validation_routing_rule_*</code>-gebeurtenissen) zijn voor iedereen verborgen, behalve voor Beheerder, Patholoog-beheerder en Superadmin.
+- Het bekijken van het logboek wordt zelf niet geaudit. Exports, het oplossen van een fout en een opzoeking van een <a class="term" href="99-glossary.html#g-support-reference" title="Een willekeurige, niet-identificerende code van de vorm `SR-XXXX-XXXX` die medewerkers aan support doorgeven in plaats van een casusnummer.">supportreferentie</a> wel.</p>
+<p><strong>Bekende beperkingen.</strong>
+- <strong>Geen bewijs van manipulatie in het hoofd-auditlogboek.</strong> Het hoofd-auditlogboek is bewust <a class="term" href="99-glossary.html#g-append-only" title="Een registratie waaraan de toepassing wel iets kan toevoegen maar die zij nooit kan bewerken of verwijderen. Het auditlogboek is van ontwerp alleen-toevoegen.">alleen-toevoegen</a> (de service kent geen aanroep om te wijzigen of te verwijderen en het servercontract geeft de databaseaanmelding van de toepassing zulke rechten niet), maar de vermeldingen zijn niet via hashes aan elkaar gekoppeld en niets op het scherm verifieert ze. Het enige record met een hashketen is het audit van <a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a>. Zie de verificatiehandleiding.
+- <strong>Bewaring is een instelling, wordt niet afgedwongen.</strong> De bewaartermijn van het logboek wordt ingesteld bij <a href="02-tier1-primary-prerequisites.html#screen-retention">Gegevensbewaring</a>. Nog geen enkele opschoningstaak leest hem (PS-345), dus er wordt vandaag niets door verwijderd.
+- <strong>De <code>detail</code> van het audit is bewust Engels.</strong> Het is een compliancedocument, geen interfacetekst. De kolomkoppen, filters en knoppen zijn vertaald; de detailtekst en het geëxporteerde bestand niet.
+- <strong>Demonstratie.</strong> Zonder API-server wordt het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> in de browser opgeslagen en begint het met vooraf aangemaakte voorbeeldvermeldingen. De tijd en de handelende gebruiker komen uit de browser. Met een API-server bepaalt de server de tijd en de actor aan de hand van het aanmeldtoken.
+- <strong>Geen kolom voor <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> of station</strong> op het scherm of in de CSV, hoewel beide worden vastgelegd (zie hierboven).</p>
+<h2 id="ch9-audit-verification"><a class="anchor" href="#ch9-audit-verification" aria-label="Link to this section">#</a> Handleiding voor verificatie van het auditlogboek</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Beheerdershandleiding &gt; Bijlagen &gt; Handleiding voor verificatie van het auditlogboek"><span>Start</span> <span aria-hidden="true">›</span> <span>Beheerdershandleiding</span> <span aria-hidden="true">›</span> <span>Bijlagen</span> <span aria-hidden="true">›</span> <span>Handleiding voor verificatie van het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a></span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Het vastleggen, zoeken en exporteren zijn gerealiseerd. Bewijs van manipulatie voor het hoofd-auditlogboek en automatisch opschonen volgens de bewaartermijn zijn niet gerealiseerd.</p>
+<p><strong>Voor wie dit is.</strong> Een beheerder of een servicesengineer van ForMedrixAI die een auditor of inspecteur moet laten zien wat er is gewijzigd, wie het heeft gewijzigd en wanneer. Het gebruikt alleen wat er vandaag bestaat.</p>
+<h3 id="ch9-audit-recorded"><a class="anchor" href="#ch9-audit-recorded" aria-label="Link to this section">#</a> Wat wordt vastgelegd</h3>
+<p>Elke auditvermelding bevat: een id; een tijd (opgeslagen in <a class="term" href="99-glossary.html#g-utc" title="Gecoördineerde wereldtijd (Coordinated Universal Time), de tijdstandaard waarin auditvermeldingen worden opgeslagen en getoond.">UTC</a>); een type (<strong>AI</strong>, <strong>Gebruiker</strong> of <strong>Systeem</strong>); een gebeurtenisnaam; een detailzin in het Engels; de weergavenaam van de handelende gebruiker; het <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a> van een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> wanneer er een is; een AI-betrouwbaarheid waar die van toepassing is; een faciliteits-id waar de code er een meegeeft; en het <a class="term" href="99-glossary.html#g-scan-station" title="Een benoemde opstelling van een werkplekcomputer, met printers en beeldscherm, die een persoon selecteert zodat labels en scans op de juiste plaats terechtkomen.">scanstation</a> waar de actie is uitgevoerd. Het station-id wordt automatisch toegevoegd aan elke vermelding die de auditservice schrijft.</p>
+<p>Wat in het logboek terechtkomt:</p>
+<ul>
+<li><strong>Elke controle van een <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> met hoog risico</strong>, toegestaan of geweigerd. De gebeurtenis is <strong>Capability allowed</strong> of <strong>Capability refused</strong>. Het detail noemt de machtigingssleutel, de rollen die haar verleenden of de reden van de weigering, de sessierol van de persoon en de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>. De <a class="term" href="99-glossary.html#g-capability-catalog" title="De volledige lijst van machtigingen, met per machtiging het risiconiveau en elke machtiging die vereist is.">machtigingencatalogus</a> markeert welke machtigingen een hoog risico hebben. Het opslaan van een configuratiescherm is zo'n controle.</li>
+<li><strong>Wijzigingen van rollen en medewerkers.</strong> <strong>Role capabilities changed</strong> noemt wat voor een <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> is verleend en ingetrokken. <strong>Staff access changed</strong> legt een wijziging van de rollen, faciliteiten, pediatrietoegang, orkestratietoegang of cross-tenant QA-toegang van een persoon vast, elk met van en naar. <strong>Staff credentials changed</strong> legt wijzigingen van aanmeldgegevens vast.</li>
+<li><strong>Aanmeldgebeurtenissen.</strong> <strong>Signed in</strong>, <strong>Sign-in failed</strong> (poging n van 5), <strong>Sign-in locked</strong>, <strong>Sign-in refused</strong>, <strong><a class="term" href="99-glossary.html#g-sso" title="Single sign-on. Zie single sign-on.">SSO</a> account linked</strong>, <strong>SSO account unlinked</strong> en <strong>SSO sign-in refused</strong>. Het logboek legt nooit vast wat er is ingetypt.</li>
+<li><strong>Benoemde wijzigingsgebeurtenissen voor sommige instellingen.</strong> Bijvoorbeeld <code>AI_VENDOR_POLICY_CHANGED</code>, <code>CLINICAL_MISMATCH_RULE_CHANGED</code>, <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code>, <code>FEEDBACK_SETTINGS_CHANGED</code>, <code>RECALL_SETTINGS_CHANGED</code>, <code>QA_TREND_POLICY_CHANGED</code>, <code>CODE_SYSTEM_POLICY_CHANGED</code>, <code>PEER_REVIEW_GATE_CHANGED</code>, <strong>Template review settings changed</strong>, <strong>Organ map colours changed</strong>, <strong>Signing-authority country profile changed</strong> en de vier gebeurtenissen <strong>Signing-authority facility override</strong> (toegevoegd, gewijzigd, verwijderd, motivering bijgewerkt). De gebeurtenissen voor de uitzondering per faciliteit bevatten elke gewijzigde vlag met van en naar, en de motivering van de beheerder of ‘Justification: none given’.</li>
+<li><strong>Afdrukken en exports.</strong> <code>DOCUMENT_PRINTED</code>, <code>DOCUMENT_REPRINTED</code>, <code>DOCUMENT_RENDERED</code>, <code>DOCUMENT_EXPORTED</code>, <code>DOCUMENT_FAXED</code>: wie, de <a class="term" href="99-glossary.html#g-accession" title="Het ontvangen van een monster en het toekennen van een permanent casusnummer; ook dat nummer zelf (het accessienummer). Het verbindt een casus met het fysieke weefsel en de bijbehorende chain of custody.">accessie</a>, de bestemming, de status en, bij een export, het aantal rijen.</li>
+<li><strong>Casusgebeurtenissen</strong>, zoals het genereren van een <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> verslag, veldwijzigingen, finalisatie, protocolkeuze, detectie en correctie van afwijkingen, correcties van facturatie en patiëntbeheer (<code>mpi.*</code>).</li>
+<li><strong>Automatische acties</strong> onder een systeemactor.</li>
+</ul>
+<p>Twee beperkingen zijn belangrijk wanneer u het overzicht leest.</p>
+<ol>
+<li>Een machtigingsvermelding toont dat een persoon een machtiging heeft gebruikt en of dat was toegestaan. Voor de meeste instellingen toont zij de oude en de nieuwe waarde <strong>niet</strong>. Alleen de hierboven genoemde gebeurtenissen en enkele andere bevatten de wijziging zelf.</li>
+<li>Een wijziging die wordt gemaakt terwijl een Superadmin-sessie in een andere organisatie handelt, wordt ook in het overzicht van <a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a> van die organisatie geschreven.</li>
+</ol>
+<p><strong>De detailtekst is bewust Engels.</strong> Auditrecords zijn compliancedocumenten, geen interfacetekst, dus het detail blijft letterlijk Engels in elke taal van het product en in de export. Zoek op de Engelse gebeurtenisnaam of op de machtigingssleutel.</p>
+<h3 id="ch9-audit-find-setting"><a class="anchor" href="#ch9-audit-find-setting" aria-label="Link to this section">#</a> Een wijziging van een instelling vinden</h3>
+<ol>
+<li>Open <a href="#screen-audit-log">Systeemlogboeken</a>, tabblad <strong>Auditlogboek</strong>.</li>
+<li>Stel de <strong>Periode</strong> in. De standaard is <strong>Laatste 7 dagen</strong>; kies <strong>Aangepaste periode</strong> voor een oudere wijziging. Vermeldingen buiten de periode zijn verborgen, niet verdwenen.</li>
+<li>Typ bij <strong>Zoeken</strong> de machtigingssleutel van het scherm dat u controleert. De wijzigingsmachtiging van elk Configuratiescherm staat in het onderdeel <strong>Machtigingen</strong> in deze handleiding (bijvoorbeeld <code>config:retention-policy:manage</code> voor <a href="02-tier1-primary-prerequisites.html#screen-retention">Gegevensbewaring</a>). De zoekopdracht komt overeen met de detailtekst, dus ze vindt de vermeldingen <strong>Capability allowed</strong>.</li>
+<li>Lees de kolommen <strong>Gebruiker</strong> en <strong>Tijdstempel</strong> voor wie en wanneer. Het detail noemt de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> die de <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> verleende.</li>
+<li>Heeft het scherm een benoemde wijzigingsgebeurtenis (zie de lijst hierboven), zoek dan ook op die gebeurtenisnaam. Die bevat de wijziging zelf, niet alleen de machtigingscontrole.</li>
+<li>Om ruis uit te sluiten, gebruikt u de typefilters (<strong>Gebruiker</strong> toont de menselijke acties).</li>
+<li>Om alleen weigeringen te zien, zoekt u op <code>Capability refused</code>.</li>
+</ol>
+<p>Een vermelding die <strong>Capability allowed</strong> zegt, toont dat de persoon de wijziging mocht maken en dat de wijziging is geprobeerd. Ze bewijst op zichzelf niet welke waarde is opgeslagen. Vergelijk voor een instelling zonder eigen wijzigingsgebeurtenis met de huidige waarde van het scherm en, als het lab die bewaart, met een configuratie-export (zie <strong>Exporteren</strong> hieronder).</p>
+<h3 id="ch9-audit-find-permission"><a class="anchor" href="#ch9-audit-find-permission" aria-label="Link to this section">#</a> Controleren wie een machtiging heeft gewijzigd</h3>
+<ol>
+<li>Zoek op het tabblad <strong>Auditlogboek</strong> naar <code>Role capabilities changed</code>. Elke vermelding luidt <code>Role "&lt;name&gt;": granted &lt;keys&gt;; removed &lt;keys&gt;.</code> De kolom <strong>Gebruiker</strong> is de persoon die de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> heeft opgeslagen.</li>
+<li>Om te zien wie een rol heeft gekregen of verloren, zoekt u naar <code>Staff access changed</code>. Het detail noemt elke wijziging met van en naar (rollen, faciliteiten, pediatrietoegang, orkestratietoegang, cross-tenant QA-toegang).</li>
+<li>Om wijzigingen van aanmeldgegevens te zien, zoekt u naar <code>Staff credentials changed</code>.</li>
+<li>Om te zien of een persoon een <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> daadwerkelijk heeft gebruikt, zoekt u op de machtigingssleutel en leest u de vermeldingen <strong>Capability allowed</strong> en <strong>Capability refused</strong>.</li>
+<li>Om te zien wie vandaag iets mag doen, gebruikt u <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a> en <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Medewerkers</a>; het logboek toont de geschiedenis, die schermen tonen de huidige toestand.</li>
+<li>Voor een rol die het ziekenhuis niet kan wijzigen: een wijziging van de rol Superadmin wordt in een ziekenhuis geweigerd, dus er is geen vermelding die er een toont. Superadmin wordt gehouden door supportmedewerkers van ForMedrixAI en wordt buiten de personeelsdirectory van het ziekenhuis verleend.</li>
+</ol>
+<p>Het opslaan van een rol wordt ook geweigerd, voordat er iets wordt geschreven, als er daardoor geen rol meer zou zijn die rollen kan beheren, als een paar voor <a class="term" href="99-glossary.html#g-separation-of-duties" title="Een regel dat twee bevoegdheden niet bij één persoon mogen berusten, zoals het wijzigen van de klinische discrepantieregels en het goedkeuren van de AI-instructies.">functiescheiding</a> zou worden doorbroken, of als een machtiging zou worden verleend zonder de vereiste machtiging. Een geweigerde opslag schrijft geen vermelding <strong>Role capabilities changed</strong>.</p>
+<h3 id="ch9-audit-integrity"><a class="anchor" href="#ch9-audit-integrity" aria-label="Link to this section">#</a> Hoe recordintegriteit en bewaring werken</h3>
+<p><strong>Alleen-toevoegen.</strong> De auditservice heeft geen aanroep om een vermelding te wijzigen of te verwijderen; ze kan alleen nieuwe schrijven en lezen. Het servercontract (<code>STAFF_ADMIN_API.md</code> sectie 1; <code>AUTHORIZATION_API.md</code>) schrijft voor dat de audittabel <a class="term" href="99-glossary.html#g-append-only" title="Een registratie waaraan de toepassing wel iets kan toevoegen maar die zij nooit kan bewerken of verwijderen. Het auditlogboek is van ontwerp alleen-toevoegen.">alleen-toevoegen</a> is: er bestaat geen aanroep om te wijzigen of te verwijderen en de databaseaanmelding van de toepassing heeft zo'n recht niet. Een opgeloste fout is de enige wijziging die aan een record is toegestaan, en ze wordt vastgelegd als wie en wanneer op de foutvermelding, niet als overschrijving van het bericht.</p>
+<p><strong>Wie de tijd en de actor bepaalt.</strong> Met de API-server bepaalt de server de tijd en de handelende gebruiker aan de hand van het bearer-token. De browser stuurt alleen de gebeurtenis, dus een gebruiker kan de weergegeven naam niet kiezen. In de demonstratie doet de browser dat wel.</p>
+<p><strong>Unieke id's.</strong> Elke vermelding krijgt een uniek id. De tabel van de server moet naar verwachting ook de uniciteit afdwingen.</p>
+<p><strong>Bewijs van manipulatie: het hoofd-auditlogboek heeft er geen.</strong> Het hoofd-auditlogboek is <strong>niet</strong> via hashes aan elkaar gekoppeld en niet ondertekend. Niets op het scherm Systeemlogboeken bewijst dat een vermelding niet is gewijzigd door iemand met directe databasetoegang, en er is geen knop ‘verifiëren’ voor. De integriteit rust op de regel alleen-toevoegen hierboven en op databaserechten. Het enige record met een hashketen is het audit van <a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a> (zie hieronder). Als uw auditor cryptografisch bewijs van manipulatie voor het hoofdlogboek eist, meld dat dan aan ForMedrixAI: het is niet gerealiseerd.</p>
+<p><strong>Bewaring.</strong> De bewaartermijn voor het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> is een instelling bij <a href="02-tier1-primary-prerequisites.html#screen-retention">Gegevensbewaring</a>: het veld <strong>Auditlogboeken</strong>, in dagen, van 90 tot 3650, standaard 365. Het scherm zegt dat een wijziging ‘wordt van kracht bij de volgende opschoningscyclus’. <strong>Nog geen enkele opschoningstaak leest deze instelling (PS-345)</strong>, dus er wordt vandaag niets door verwijderd. Beschouw het getal als vastgelegd beleid, niet als afgedwongen beleid. Een record van elke export (wie, wat, wanneer, aantal rijen en bestandshash) wordt bewaard met de bewaartermijn van het auditlogboek.</p>
+<p><strong>Exports zijn werkkopieën.</strong> De geëxporteerde <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> is een kopie van wat op het scherm stond. Het record van de export is de auditvermelding.</p>
+<h3 id="ch9-audit-export"><a class="anchor" href="#ch9-audit-export" aria-label="Link to this section">#</a> Exporteren</h3>
+<ol>
+<li>Stel op het tabblad dat u nodig hebt eerst de filters in. De export omvat de rijen die de filters overlaten, niet het hele logboek.</li>
+<li>Kies <strong>Exporteren als <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a></strong>. De knop is grijs, met een tooltip die de <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> noemt, tenzij de persoon de exportmachtiging voor dat tabblad heeft (zie Machtigingen hierboven).</li>
+<li>De service controleert de machtiging voordat ze het bestand opbouwt. Een weigering bouwt niets op.</li>
+<li>Met een API-server wordt de export door de server opgebouwd (zie <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mijn exports</a>): het bestand is een werkkopie die standaard 7 dagen wordt bewaard (1 tot 30), een persoon mag 3 open exports hebben en meer dan 1.000.000 rijen wordt geweigerd. In de demonstratie bouwt de browser het bestand op en downloadt hij het meteen.</li>
+<li>Een bestandsnaam heeft de vorm <code>pathscribe-audit-log-&lt;date&gt;.csv</code>. De eerste regels zijn een kop die het rapport, wie het heeft aangevraagd, de gebruikte filters en het aantal rijen noemt. Daarna volgen de kolommen: <strong>ID, Timestamp, Type, Event, Detail, Actioned By, Accession No., AI Confidence</strong>. Cellen die met <code>=</code>, <code>+</code>, <code>-</code> of <code>@</code> beginnen, worden onschadelijk gemaakt zodat een spreadsheet ze niet als formule uitvoert.</li>
+<li>Elke export schrijft een vermelding <code>DOCUMENT_EXPORTED</code> met de persoon, de bestandsnaam, de indeling en het aantal rijen. Zoek op <code>DOCUMENT_EXPORTED</code> om te zien wie het logboek heeft geëxporteerd.</li>
+<li>De CSV bevat de faciliteits- of stationsid's niet. Als een inspecteur ze nodig heeft, meld dat dan aan ForMedrixAI services: de server heeft ze.</li>
+<li>De andere tabbladen exporteren op dezelfde manier, elk met een eigen machtiging en eigen kolommen: Foutenlogboek (ID, Timestamp, Severity, Code, Message, Source, Accession No., Resolved), Kwaliteitsborging (ID, Group, Date, Case, Specimen, Detail, Status, User), Interfacelogboek en het factureringslogboek van Financieel.</li>
+</ol>
+<h3 id="ch9-audit-support"><a class="anchor" href="#ch9-audit-support" aria-label="Link to this section">#</a> Hoe het audit van Supporttoegang erbij past</h3>
+<p>Wanneer de support van ForMedrixAI bij uw gegevens komt, wordt dat vastgelegd in een eigen stroom, gescheiden van het hoofd-auditlogboek, en die stroom is van uw organisatie. Ze wordt beschreven bij <a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a>.</p>
+<ul>
+<li><strong>Wat het vastlegt.</strong> Beleidswijzigingen; aanvragen, goedkeuringen, afwijzingen, verlopen, vroegtijdige beëindigingen en intrekkingen; geweigerde openingen; het openen en bewerken van casussen; elke lijst, zoekopdracht of elk rapport dat uw casussen heeft getoond (met de casus-id's); de namen, nooit de waarden, van zoekcriteria; en exports van dit audit. De eigen exports en configuratiewijzigingen van een supportmedewerker worden hier ook vastgelegd (als <code>supportExport</code> en <code>supportConfigChange</code>), en ook in het hoofd-auditlogboek.</li>
+<li><strong>Vermeldingen worden nooit verwijderd.</strong> Elke vermelding bevat een volgnummer, de tijd, de actor, het ticket, de actie, de casus-id's en een Engels detail zonder patiëntgegevens.</li>
+<li><strong>Het heeft een hashketen.</strong> Elke vermelding draagt een <a class="term" href="99-glossary.html#g-sha-256" title="Een cryptografische hash die een bestand of registratie omzet in een vaste vingerafdruk, gebruikt om een wijziging op te sporen.">SHA-256</a> over haar velden en de hash van de vorige vermelding, beginnend bij 64 nullen. Een gewijzigde, verwijderde of van volgorde veranderde vermelding verbreekt de keten. Het scherm meldt <strong>Logboek intact (N regels)</strong> of <strong>Logboek gewijzigd bij regel N</strong>, en de JSON-export bevat de ketencontrole.</li>
+<li><strong>Verifiëren.</strong> Open Supporttoegang, lees de ketenregel van het auditpaneel en exporteer <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a> voor een onafhankelijke controle. U hebt <code>config:support-audit:view</code> nodig.</li>
+<li><strong>Exportindelingen.</strong> <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a>, JSON en <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a>, met de kolommen Tijdstip, Naam supportmedewerker, IP van herkomst, Land van herkomst, Ticketnummer, Uitgevoerde actie, Casus-ID's, Detail.</li>
+<li><strong>Beperkingen.</strong> IP en land van herkomst kunnen alleen door de server naar waarheid uit het verzoek worden vastgelegd, dus de demonstratie laat ze leeg. Opslag per <a class="term" href="99-glossary.html#g-tenant" title="De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.">tenant</a>, geïsoleerd in een eigen alleen-toevoegen-tabel, is werk aan de serverkant (PS-358).</li>
+</ul>
+<p>Dit is het enige record in het product met ingebouwd bewijs van manipulatie. Het omvat alleen supporttoegang, niet het hoofd-auditlogboek.</p>
+<h3 id="ch9-audit-routine"><a class="anchor" href="#ch9-audit-routine" aria-label="Link to this section">#</a> Een korte verificatieroutine</h3>
+<p>Werk voor een routinebeoordeling van een steekproefperiode deze stappen af.</p>
+<ol>
+<li>Stel de periode van het <strong>Auditlogboek</strong> in op de periode. Noteer het aantal in de voet (‘N van M gebeurtenissen weergegeven’).</li>
+<li>Zoek op <code>Role capabilities changed</code>, <code>Staff access changed</code> en <code>Capability refused</code> en lees elke vermelding.</li>
+<li>Zoek op <code>Sign-in locked</code> en <code>Sign-in refused</code> naar aanmeldproblemen.</li>
+<li>Zoek op <code>DOCUMENT_EXPORTED</code> om te zien wie gegevens heeft meegenomen.</li>
+<li>Open het tabblad <strong>Foutenlogboek</strong>, filter op <strong>Alleen open</strong> en controleer dat er niets belangrijks onopgelost is.</li>
+<li>Open <a href="02-tier1-primary-prerequisites.html#screen-support_access">Supporttoegang</a> en bevestig dat de ketenregel intact meldt; lees de vermeldingen over de periode.</li>
+<li>Exporteer de <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> van het Auditlogboek voor de periode en bewaar het bestand bij uw beoordelingsnotities. De export wordt zelf vastgelegd.</li>
+</ol></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

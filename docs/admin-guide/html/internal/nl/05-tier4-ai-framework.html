@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Niveau 4: Het ingebedde AI-framework van PathScribe · PathScribe-beheerdershandleiding (interne editie van ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="nl" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Beheerdershandleiding</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Zoek schermen, velden, foutcodes" aria-label="Zoeken in de handleiding" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Taal"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl" selected>Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Afdrukken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Hoofdstukken van de handleiding"><a href="index.html">Inhoud</a><a href="setup-sequence.html">Volgorde van inrichting</a><a href="01-system-overview.html">1. Systeemoverzicht en architectuur</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1: Primaire systeemvoorwaarden (eerst inrichten)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2: Stamwoordenboeken en klinische basisgegevens (als tweede inrichten)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3: Workflow-engines en operationele configuratie (als derde inrichten)</a><a href="05-tier4-ai-framework.html" aria-current=page>5. Niveau 4: Het ingebedde AI-framework van PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner</a><a href="07-tier6-interface-engine.html">7. Niveau 6: Interface-engine en integraties met externe systemen</a><a href="08-tier7-billing-registry.html">8. Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen</a><a href="09-appendices.html">9. Bijlagen: probleemoplossing en verificatie van het auditlogboek</a><a href="99-glossary.html">99. Bijlage: Verklarende woordenlijst met termen en afkortingen</a></nav><main id="main"><aside class="pagetoc" aria-label="Op deze pagina"><b>Op deze pagina</b><ul><li class="l2"><a href="#ch5-setup-order">Hoe Niveau 4 wordt ingericht</a></li><li class="l2"><a href="#ch5-ai-infrastructure">AI-infrastructuur en modelarchitectuur</a></li><li class="l3"><a href="#screen-tab-ai">AI-gedrag (tabblad)</a></li><li class="l2"><a href="#ch5-specimen-vision">Monsterregistratie en computervisie-assistentie bij het uitsnijden</a></li><li class="l3"><a href="#screen-smart_capture">Smart Capture</a></li><li class="l2"><a href="#ch5-nlp">NLP- en autostructureringsengine</a></li><li class="l3"><a href="#screen-history_extraction">AI-extractie van historie</a></li><li class="l2"><a href="#ch5-dp-ai">AI-beeldanalyse voor digitale pathologie</a></li><li class="l2"><a href="#ch5-smart-qc">Regels voor slimme kwaliteitscontrole en detectie van diagnostische anomalieën</a></li><li class="l3"><a href="#screen-clinical_mismatch_rules">Regels voor klinische discrepantie</a></li><li class="l2"><a href="#ch5-governance">AI-governance, drempels met een mens in de lus en kalibratie</a></li><li class="l3"><a href="#screen-ai_instructions">AI-instructies</a></li><li class="l3"><a href="#screen-tab-validation">Validatiestudies (tabblad)</a></li><li class="l3"><a href="#screen-validation-studies">Validatiestudies: Studies</a></li><li class="l3"><a href="#screen-validation-dashboard">Validatiestudies: Dashboard</a></li><li class="l3"><a href="#screen-validation-reports">Validatiestudies: Rapporten</a></li></ul></aside><article><h1 id="ch5"><a class="anchor" href="#ch5" aria-label="Link to this section">#</a> Niveau 4: Het ingebedde AI-framework van PathScribe</h1>
+<p>Niveau 4 omvat alle instellingen die bepalen of, waar en hoe PathScribe kunstmatige intelligentie (AI) gebruikt, en de controles waarmee een patholoog de regie over de uitkomst houdt. Lees dit hoofdstuk met één feit in gedachten: het framework is smaller dan zijn opzet. PathScribe roept een extern taalmodel aan voor hulp bij verslagen en dictaat, en neemt uitslagen over van beeldanalyseproducten van leveranciers. Het bevat geen computervisie-engine, geen tumordetector, geen celteller, geen biomarkerscorer, geen zelfstandige engine voor natuurlijketaalverwerking (NLP) en geen hulpmiddel om modelgewichten te kalibreren. Elk daarvan is hieronder gemarkeerd als <strong>Niet gerealiseerd</strong>, met het dichtstbijzijnde onderdeel dat wel bestaat.</p>
+<p>De productieomgeving draait op Microsoft SQL Server achter een <a class="term" href="99-glossary.html#g-asp-net-core" title="Het webframework van Microsoft waarop de API-server van PathScribe is gebouwd.">ASP.NET Core</a> <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a>. De meeste schermen in dit hoofdstuk werken vandaag nog op de demonstratiegegevens in de browser. De statusregel van elk scherm geeft aan hoe ver het servercontract reikt.</p>
+<h2 id="ch5-setup-order"><a class="anchor" href="#ch5-setup-order" aria-label="Link to this section">#</a> Hoe Niveau 4 wordt ingericht</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p>Rond eerst Niveau 1 tot en met 3 af. Niveau 4 leest faciliteiten, artsen, monstertypen en codesystemen uit die niveaus. Werk de schermen daarna in deze volgorde af. Deel 4 van elk scherm herhaalt de eigen voorwaarden.</p>
+<ol>
+<li><a href="#screen-tab-ai">AI-gedrag (tabblad)</a>: kies de AI-dienst en het model, stel het leveranciersbeleid, de betrouwbaarheidsdrempel en de standaardinstelling voor de Orchestrator in.</li>
+<li><a href="#screen-tab-validation">Validatiestudies (tabblad)</a>: het beginpunt voor het bewijs dat een model werkt voor uw gegevens.</li>
+<li><a href="#screen-validation-studies">Validatiestudies: Studies</a>: maak een studie aan, keur haar goed en activeer haar.</li>
+<li><a href="#screen-validation-reports">Validatiestudies: Rapporten</a>: sluit een studie af en druk het rapport af waarmee zij wordt beoordeeld.</li>
+<li><a href="#screen-ai_instructions">AI-instructies</a>: keur de tekst goed die de klinische discrepantiecontrole naar het model stuurt.</li>
+<li><a href="#screen-clinical_mismatch_rules">Regels voor klinische discrepantie</a>: stel in wanneer een discrepantie een waarschuwing geeft, wordt vastgelegd of het ondertekenen blokkeert.</li>
+<li><a href="#screen-history_extraction">AI-extractie van historie</a>: schakel de adviserende lezing van historische <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> in.</li>
+<li><a href="#screen-smart_capture">Smart Capture</a>: de schakelaar voor het prototype van factuursuggesties en de bijbehorende checklist voor productie.</li>
+</ol>
+<p><a href="#screen-validation-dashboard">Validatiestudies: Dashboard</a> is een pagina voor dagelijks gebruik en maakt geen deel uit van de inrichting. Voor een faciliteitsoverschrijving van een model zijn een gepubliceerd verslagsjabloon en een geslaagde studie nodig. Rond daarom <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Hoofdstuk 6</a> over de sjablonen af voordat u op een faciliteitsoverschrijving vertrouwt.</p>
+<p><strong>Status van de zes gebieden uit de opzet</strong></p>
+<table>
+<thead>
+<tr>
+<th>Gebied</th>
+<th>Status</th>
+<th>Waar het wordt ingesteld</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI-infrastructuur en modelarchitectuur</td>
+<td>Gerealiseerd voor de schermen en instellingen; Gedeeltelijk voor de serverkant (zie elk scherm)</td>
+<td>Configuratie, tabblad <strong>AI-gedrag</strong>; Faciliteitenwoordenboek, tabblad <strong>AI &amp; prestaties</strong> (<a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Hoofdstuk 2</a>)</td>
+</tr>
+<tr>
+<td>Hulp bij monsterregistratie en <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a> met computervisie</td>
+<td>Niet gerealiseerd. Er bestaan wel een leverancierswoordenboek en een regelgebaseerd factuurprototype</td>
+<td>Leveranciersintegraties, categorie beeldvorming bij het uitsnijden (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Hoofdstuk 4</a>); <a href="#screen-smart_capture">Smart Capture</a></td>
+</tr>
+<tr>
+<td>NLP- en autostructureringsengine</td>
+<td>Gedeeltelijk. Afzonderlijke functies bestaan; er is geen zelfstandige engine</td>
+<td><a href="#screen-history_extraction">AI-extractie van historie</a>; de tabbladen Spraak en Macro's (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Hoofdstuk 4</a>); hulpmiddelen op de verslagpagina</td>
+</tr>
+<tr>
+<td>AI-beeldanalyse voor digitale pathologie</td>
+<td>Gedeeltelijk. Het overnemen van leveranciersuitslagen bestaat. Tumordetectie, celtelling en biomarkerscoring zijn Niet gerealiseerd</td>
+<td>Leveranciersintegraties, categorieën AI voor digitale pathologie en preparaatviewers (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Hoofdstuk 4</a>); tabblad AI-discordantie van Kwaliteitsborging (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Hoofdstuk 4</a>)</td>
+</tr>
+<tr>
+<td>Regels voor slimme kwaliteitscontrole en anomaliedetectie</td>
+<td>Gerealiseerd voor de schermen; Demonstratie voor de serverkant van AI-instructies</td>
+<td><a href="#screen-clinical_mismatch_rules">Regels voor klinische discrepantie</a>; <a href="#screen-ai_instructions">AI-instructies</a>; Regels voor abnormale triggers (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Hoofdstuk 3</a>)</td>
+</tr>
+<tr>
+<td>AI-governance, drempels met een mens in de lus, kalibratie</td>
+<td>Gerealiseerd voor governance en drempels. Kalibratie van gewichten: bestaat niet</td>
+<td><a href="#screen-ai_instructions">AI-instructies</a>; <a href="#screen-tab-validation">Validatiestudies</a>; paneel Modelversies op het tabblad AI-gedrag</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch5-ai-infrastructure"><a class="anchor" href="#ch5-ai-infrastructure" aria-label="Link to this section">#</a> AI-infrastructuur en modelarchitectuur</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd voor de instellingenschermen. Gedeeltelijk voor de server: de productieaanroepen zijn beschreven en enkele zijn nog niet aangesloten (vermeld bij elk scherm).</p>
+<p>Dit onderdeel legt uit hoe een AI-aanroep wordt gedaan en wie bepaalt wat die gebruikt. Het scherm dat dit alles instelt, <a href="#screen-tab-ai">AI-gedrag (tabblad)</a>, volgt hierna.</p>
+<p><strong>De AI-proxy.</strong> De browser bewaart nooit een AI-sleutel. Hij roept de eigen routes <code>/api/ai/...</code> van PathScribe aan en de server voegt de sleutel toe uit een geheimenopslag, zoals Azure Key Vault. Er bestaan routes voor Anthropic, Google Gemini (genereren, streamen en modellijst), OpenAI, Azure OpenAI (<code>/api/ai/azure/chat/completions</code>), een eigen eindpunt, AWS Bedrock (aanroepen en aanroepen met stream) en de terminologieopzoekingen van <a class="term" href="99-glossary.html#g-umls" title="Het Unified Medical Language System, een verzameling medische vocabulaires van de Amerikaanse National Library of Medicine.">UMLS</a> en de National Library of Medicine. De server moet voor elke aanroep een auditvermelding schrijven (zonder de prompttekst) en het aantal aanroepen per aanroeper beperken. De proxy die de ontwikkelbuild gebruikt, bestaat niet in productie. Het roteren van een API-sleutel gebeurt door de support van ForMedrixAI in de geheimenopslag van de server. Geen enkel scherm stelt een sleutel in of toont er een.</p>
+<p><strong>Providers.</strong> Het scherm toont namen van leveranciers. Intern wordt elke provider opgeslagen onder een id die is genoemd naar het <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a> dat zij spreekt.</p>
+<table>
+<thead>
+<tr>
+<th>Weergegeven als</th>
+<th>Opgeslagen id</th>
+<th>Aangeboden modellen (het eerste is de standaard wanneer u de provider kiest)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Anthropic (Claude)</td>
+<td><code>structured_messages</code></td>
+<td><code>claude-sonnet-4-6</code> (aanbevolen), <code>claude-opus-4-8</code> (hoogste nauwkeurigheid), <code>claude-haiku-4-5</code> (snelste)</td>
+</tr>
+<tr>
+<td>OpenAI (GPT-4)</td>
+<td><code>chat_completions</code></td>
+<td><code>gpt-4o</code> (aanbevolen), <code>gpt-4-turbo</code>, <code>gpt-4</code></td>
+</tr>
+<tr>
+<td>Azure OpenAI</td>
+<td><code>chat_completions_managed</code></td>
+<td><code>gpt-4o</code> (Azure), <code>gpt-4-turbo</code> (Azure)</td>
+</tr>
+<tr>
+<td>AWS Bedrock</td>
+<td><code>model_gateway</code></td>
+<td><code>anthropic.claude-sonnet-4-6-v1:0</code>, <code>anthropic.claude-opus-4-8-v1:0</code>, <code>amazon.nova-pro-v1:0</code></td>
+</tr>
+<tr>
+<td>Google (Gemini)</td>
+<td><code>structured_content</code></td>
+<td><code>gemini-1.5-flash</code> (aanbevolen), <code>gemini-1.5-pro</code></td>
+</tr>
+<tr>
+<td>Zelf gehost / eigen eindpunt</td>
+<td><code>custom</code></td>
+<td><code>custom</code></td>
+</tr>
+<tr>
+<td>Simulatie, demomodus</td>
+<td><code>mock</code></td>
+<td><code>mock-v1</code></td>
+</tr>
+</tbody>
+</table>
+<p>Als het opgeslagen provider-id niet een van deze is, gebruikt PathScribe <code>structured_messages</code>. Een providerinstelling <code>mock</code> of een onbekende waarde stuurt de aanroep nog steeds via de proxy naar de route van Anthropic (een openlijk vermeld gedrag van de proxy, geen demosnelweg). Bedrock vraagt om een serverroute die aanvragen ondertekent en een genormaliseerde stream teruggeeft; die route maakt deel uit van het proxycontract.</p>
+<p><strong>Welke instelling voorrang heeft.</strong> PathScribe bepaalt de AI-configuratie in deze volgorde: een persoonlijke overschrijving (alleen in een ontwikkelaarsweergave; geen enkel scherm stelt die in voor een beheerder), dan de labinstelling van de organisatie, dan de standaardwaarden van de build <code>VITE_AI_PROVIDER</code>, <code>VITE_AI_MODEL</code>, <code>VITE_AI_PROXY_URL</code>, <code>VITE_AI_GATEWAY_REGION</code> (standaard <code>us-east-1</code>), <code>VITE_AI_HOSTING_REGION</code> en <code>VITE_AI_MAX_TOKENS</code> (standaard 1000). De organisatie-instelling wordt opgeslagen onder de sleutel <code>pathscribe_ai_org_config</code>.</p>
+<p><strong>Welk model elke taak gebruikt.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Taak</th>
+<th>Gebruikt model</th>
+<th>Opmerkingen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hulp bij verslag en tekst (Generate Narrative, Suggest Synoptic Fields, macrosuggesties, scan op kritieke uitslagen, sjabloontoewijzing)</td>
+<td>Het standaardmodel van de organisatie, of het eigen model van het <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a> als dat is ingesteld in het Faciliteitenwoordenboek, tabblad <strong>AI &amp; prestaties</strong></td>
+<td>Een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> mag alleen een model kiezen waarvoor voor die faciliteit een gerapporteerde studie met oordeel GESLAAGD bestaat (<a href="#screen-validation-reports">Validatiestudies: Rapporten</a>). De tokenlimiet en het aanvraagformaat van de faciliteit gaan met het model mee.</td>
+</tr>
+<tr>
+<td>Verfijning van dictaat</td>
+<td>Het standaardmodel van de hele organisatie van het type Spraakdictaat</td>
+<td>Geen faciliteitslaag. Een spraakmodel wordt alleen standaard met een studie met oordeel GESLAAGD. In te stellen op het tabblad Spraak (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Hoofdstuk 4</a>).</td>
+</tr>
+<tr>
+<td>AI-toewijzing van synoptische sjablonen en uitsnijdsjablonen</td>
+<td>Zoals hulp bij verslagen</td>
+<td>De betrouwbaarheidsdrempel voor deze twee ligt in de code vast op 60; er is geen instelling. De toewijzing voor het <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a> valt terug op het standaardsjabloon voor weefsel.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Leveranciersbeleid.</strong> Eén regel per <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a>, en eventueel één engere regel per faciliteit, bepaalt welke AI-diensten en <a class="term" href="99-glossary.html#g-hosting-region" title="De geografische regio waar een AI-clouddienst gegevens verwerkt. Het AI-leveranciersbeleid kan regio&#x27;s toestaan of weigeren.">hostingregio</a>'s voor werk op die plaats mogen worden gebruikt. Een aanroep moet de regel van de jurisdictie en de regel van de faciliteit doorstaan. Zonder regel is elke dienst toegestaan. Binnen een regel kunnen de toegestane diensten alle diensten of een lijst zijn, en elke toegestane dienst kan een lijst met toegestane regio's hebben; zonder lijst is elke regio toegestaan. Een aanroep waarvan de regio niet is vastgelegd, wordt geweigerd waar regio's zijn beperkt. Een weigering valt nooit terug op een andere dienst: de functie gaat verder zonder AI en toont "AI is not available for this jurisdiction". De simulatieprovider is altijd toegestaan. De server moet een geweigerde aanroep beantwoorden met 403 en de code <code>AI_VENDOR_NOT_ALLOWED</code>, en vastleggen als <code>AI_CALL_REFUSED</code>.</p>
+<p><strong>AI-auditlogboek.</strong> Elke AI-aanroep schrijft een registratie van: <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, onderdeel, provider, model, status (voltooid, fout, geannuleerd of geweigerd), aantal tokens, benodigde tijd, hostingregio, jurisdictie, faciliteit en functie. Het logboek bevat de laatste 2000 vermeldingen en wordt in de browser bewaard totdat de server het vastlegt. Geen enkel scherm toont het.</p>
+<p><strong>Orchestrator-modus.</strong> De Orchestrator-modus schrijft een verslagtekst in vier vaste stappen in plaats van met één aanvraag. De engine in <code>src/orchestrator/</code> is de werkende code. <a href="#screen-tab-ai">AI-gedrag (tabblad)</a> stelt de standaard van de organisatie in en een faciliteit kan die overschrijven. De formulering en volgorde van de stappen zijn niet te bewerken.</p>
+<h3 id="screen-tab-ai"><a class="anchor" href="#screen-tab-ai" aria-label="Link to this section">#</a> AI-gedrag (tabblad)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>AI-gedrag</strong>
+<strong>2. Onderhoudsonderdeel:</strong> AI-gedrag (het hele tabblad)</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> Dit tabblad bevat de AI-instellingen van de organisatie: welke AI-engine in gebruik is, of AI draait voor macroscopisch en microscopisch werk, hoe betrouwbaar een suggestie moet zijn voordat zij wordt getoond of ingevoegd, welke dienst en welk model achter de aanroepen zitten, waar het leveranciersbeleid aanroepen naartoe laat gaan, of de Orchestrator-modus aan staat en welke modelversies beschikbaar zijn. Alles geldt voor de hele organisatie. Een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> kan alleen het model en de schakelaar voor het automatische concept van de verslagtekst overschrijven, op haar eigen record in het <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De scopes van het leveranciersbeleid zijn de jurisdicties en faciliteiten die u al hebt gedefinieerd, dus richt die eerst in. Slaat u de faciliteiten over, dan kan het beleidsonderdeel alleen de eigen <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a> van het lab aanbieden, zodat er geen faciliteitsregel kan worden opgesteld.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 1</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-tab-validation">Validatiestudies (tabblad)</a>, <a href="#screen-ai_instructions">AI-instructies</a>, <a href="#screen-clinical_mismatch_rules">Regels voor klinische discrepantie</a>, <a href="#screen-history_extraction">AI-extractie van historie</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/tab-ai.webp" alt="Tabblad AI-gedrag: badge AI-engine, gedragsschakelaars, providerinstellingen, leveranciersbeleid, Orchestrator-configuratie en Modelversies" loading="lazy"><figcaption>Tabblad AI-gedrag: badge AI-engine, gedragsschakelaars, providerinstellingen, leveranciersbeleid, Orchestrator-configuratie en Modelversies</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong> De onderdelen staan van boven naar beneden in deze volgorde. Wijzigingen in de eerste groep worden opgeslagen terwijl u ze aanbrengt.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-engine-badge"><td>Badge <strong>AI-engine</strong></td>
+<td>Alleen-lezenbadge</td>
+<td>Niet van toepassing</td>
+<td>Toont het model-id dat nu in gebruik is, of "Simulatie — demomodus" met een label <strong>DEMO</strong> wanneer de simulatieprovider is gekozen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-gross-driven-ai-enabled"><td><strong>Macroscopie-gestuurde AI</strong>, <strong>Ingeschakeld</strong></td>
+<td>Ja/nee-selectievakje (<code>grossEnabled</code>)</td>
+<td>Optioneel</td>
+<td>Wanneer uit, slaan het afronden van het <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a> en de assistentiepolling de AI-beoordeling van de macroscopische beschrijving over.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-tab-ai-microscopic-driven-ai-enabled"><td><strong>Microscopie-gestuurde AI</strong>, <strong>Ingeschakeld</strong></td>
+<td>Ja/nee-selectievakje (<code>microscopicEnabled</code>)</td>
+<td>Optioneel</td>
+<td>Wanneer uit, slaan de wijzigingsworkflow, het synoptische zijpaneel en de assistentiepolling AI-werk aan de microscopische tekst over.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Betrouwbaarheidsdrempel</strong></td>
+<td>Schuifregelaar, geheel getal 0 tot 100 (<code>confidenceThreshold</code>)</td>
+<td>Optioneel</td>
+<td>Het deel betrouwbaarheid dat een suggestie nodig heeft. Het synoptische zijpaneel en de badge voor de beoordeling van het <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> verslag gebruiken de drempel om suggesties te markeren. Een model kan een eigen waarde hebben in zijn venster <strong>Instellingen</strong> (hieronder). Wordt opgeslagen zodra u de waarde wijzigt.</td>
+<td>75</td>
+</tr>
+<tr id="f-tab-ai-advanced-auto-insert-suggestions-at-or-above-confidence-threshold"><td><strong>Geavanceerd</strong>: Suggesties automatisch invoegen op of boven de betrouwbaarheidsdrempel</td>
+<td>Ja/nee-selectievakje (<code>autoInsertSuggestions</code>)</td>
+<td>Optioneel</td>
+<td>Wanneer aan, vult het synoptische zijpaneel een suggestie in het veld in zonder te wachten tot de patholoog haar accepteert, als de betrouwbaarheid de drempel haalt.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-tab-ai-advanced-show-confidence-scores-in-the-editor-ui"><td><strong>Geavanceerd</strong>: Betrouwbaarheidsscores tonen in de editor</td>
+<td>Ja/nee-selectievakje (<code>showConfidenceScores</code>)</td>
+<td>Optioneel</td>
+<td>Wordt alleen opgeslagen. Geen enkel ander scherm leest de waarde vandaag, dus wijzigen heeft geen effect.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-tab-ai-advanced-suggest-macros-based-on-diagnosis-context"><td><strong>Geavanceerd</strong>: Macro’s voorstellen op basis van de diagnosecontext</td>
+<td>Ja/nee-selectievakje (<code>macroSuggestions</code>)</td>
+<td>Optioneel</td>
+<td>Wordt alleen opgeslagen. Geen enkel ander scherm leest de waarde vandaag, dus wijzigen heeft geen effect.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-tab-ai-advanced-filter-ai-suggestions-by-subspecialty"><td><strong>Geavanceerd</strong>: AI-suggesties filteren op <a class="term" href="99-glossary.html#g-subspecialty" title="Een deelgebied van de pathologie, zoals borst of maag-darmstelsel, gebruikt om casus te routeren. Een subspecialisme kan op poolmodus worden gezet.">subspecialisme</a></td>
+<td>Ja/nee-selectievakje (<code>subspecialtyRouting</code>)</td>
+<td>Optioneel</td>
+<td>Wordt alleen opgeslagen. Geen enkel ander scherm leest de waarde vandaag, dus wijzigen heeft geen effect.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-tab-ai-reset-to-defaults"><td><strong>Terugzetten naar standaardwaarden</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Zet alle gedragsinstellingen hierboven terug op hun standaardwaarden. Wijzigt de provider, het leveranciersbeleid en de Orchestrator-schakelaar niet.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>AI-providerinstellingen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p>Wordt getoond met de kop <strong>AI-provider - Organisatie-instellingen</strong> en alleen aan een persoon met de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> admin, pathologist-admin of superadmin. Anderen zien een opmerking dat de provider door de beheerder wordt beheerd. Een waarschuwingsvak herinnert u eraan dat casustekst het systeem verlaat naar de gekozen dienst. Velden die niet gelden voor de gekozen provider zijn verborgen.</p>
+<figure class="shot"><img src="../img/tab-ai-provider.webp" alt="AI-providerinstellingen met provider, model en hostingregio" loading="lazy"><figcaption>AI-providerinstellingen met provider, model en <a class="term" href="99-glossary.html#g-hosting-region" title="De geografische regio waar een AI-clouddienst gegevens verwerkt. Het AI-leveranciersbeleid kan regio&#x27;s toestaan of weigeren.">hostingregio</a></figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-provider"><td><strong>AI-provider</strong></td>
+<td>Keuze, gegroepeerd in <strong>Productieproviders</strong> en <strong>Ontwikkeling &amp; demo</strong></td>
+<td>Verplicht</td>
+<td>Kiest de dienst. Een provider kiezen zet <strong>Model</strong> op het eerste model van die provider. Een korte aanwijzing onder het veld beschrijft de provider.</td>
+<td>Anthropic (Claude) wanneer er niets is opgeslagen</td>
+</tr>
+<tr id="f-tab-ai-model"><td><strong>Model</strong></td>
+<td>Keuze uit de lijst van de provider (tabel hierboven)</td>
+<td>Verplicht</td>
+<td>Het model-id dat bij elke aanroep wordt meegestuurd.</td>
+<td>Eerste model van de provider</td>
+</tr>
+<tr id="f-tab-ai-azure-resource-endpoint"><td><strong>Azure-resource-eindpunt</strong></td>
+<td>https-link; plaatsaanduiding <code>https://my-org.openai.azure.com</code></td>
+<td>Verplicht voor Azure OpenAI</td>
+<td>Het adres van uw Azure-resource. Alleen getoond voor Azure OpenAI.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-tab-ai-deployment-name"><td><strong>Implementatienaam</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>De Azure-implementatie die wordt aangeroepen. Wordt alleen bewaard als ook een eindpunt is ingesteld. Alleen getoond voor Azure OpenAI.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-tab-ai-aws-region"><td><strong>AWS-regio</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>De Bedrock-regio. Alleen getoond voor AWS Bedrock.</td>
+<td><code>us-east-1</code></td>
+</tr>
+<tr id="f-tab-ai-hosting-region"><td><strong>Hostingregio</strong></td>
+<td>Tekst; plaatsaanduiding <code>eu-west-1</code></td>
+<td>Optioneel</td>
+<td>De regio waar de leverancier de aanroep verwerkt, zoals de leverancier haar noemt. Wordt bij elke aanroep vastgelegd zodat het leveranciersbeleid haar kan controleren. Getoond voor elke provider behalve AWS Bedrock en Simulatie.</td>
+<td>Leeg (regio niet vastgelegd)</td>
+</tr>
+<tr id="f-tab-ai-endpoint-base-url"><td><strong>Basis-URL van eindpunt</strong></td>
+<td>https-link</td>
+<td>Verplicht voor Eigen eindpunt</td>
+<td>Het basisadres van een met OpenAI compatibele dienst. PathScribe stuurt aanvragen naar <code>/chat/completions</code> onder dit adres. Alleen getoond voor Zelf gehost / eigen eindpunt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-tab-ai-policy-warning"><td>Beleidswaarschuwing</td>
+<td>Alleen-lezenbericht</td>
+<td>Niet van toepassing</td>
+<td>Verschijnt voordat u een dienst of regio opslaat die een regel van een <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a> of <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> in het beleid hieronder niet toestaat.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-save-org-config"><td><strong>Organisatieconfiguratie opslaan</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Slaat de organisatie-instelling op. Vereist <code>config:ai-provider:manage</code>. Verlaat u het tabblad met niet-opgeslagen wijzigingen, dan krijgt u een waarschuwing.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-test-connection"><td><strong>Verbinding testen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Stuurt één testaanvraag (functie <code>connection-test</code>, 20 tokens, met het verzoek om het exacte antwoord "PathScribe AI connection OK"). Het resultaat luidt Wordt getest, Verbinding OK of Mislukt met de fout.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-clear-override"><td><strong>Override wissen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verschijnt alleen in de ontwikkelaarsweergave, waar een persoonlijke overschrijving kan worden ingesteld. Wordt niet getoond aan een beheerder.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Waar PathScribe gegevens bewaart</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p>Een alleen-lezenkaart.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-database"><td><strong>Database</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>De regio van de database, overgenomen uit <code>/api/config</code> van de server. Toont <strong>Niet opgegeven</strong> wanneer de server haar niet geeft (de demonstratie heeft geen server).</td>
+<td>Niet opgegeven</td>
+</tr>
+<tr id="f-tab-ai-file-storage-reports-exports"><td><strong>Bestandsopslag (verslagen, exports)</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>De regio van de bestandsopslag, uit dezelfde bron.</td>
+<td>Niet opgegeven</td>
+</tr>
+<tr id="f-tab-ai-ai-service"><td><strong>AI-dienst</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>De <a class="term" href="99-glossary.html#g-hosting-region" title="De geografische regio waar een AI-clouddienst gegevens verwerkt. Het AI-leveranciersbeleid kan regio&#x27;s toestaan of weigeren.">hostingregio</a> die is ingesteld in de AI-providerinstellingen.</td>
+<td>Niet vastgelegd</td>
+</tr>
+</tbody>
+</table>
+<h4>AI-leveranciersbeleid</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p>Een tabel met regels: één rij voor de eigen <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a> van het lab en één voor elke <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> die u bedient, plus een bediening <strong>Instellingsregel toevoegen</strong>. Een faciliteitsregel beperkt de regel van haar jurisdictie. De auditgebeurtenis voor een wijziging is <code>AI_VENDOR_POLICY_CHANGED</code> (voor en na).</p>
+<figure class="shot"><img src="../img/tab-ai-vendor-policy.webp" alt="Regeltabel van het AI-leveranciersbeleid en regeleditor" loading="lazy"><figcaption>Regeltabel van het <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Een regel per jurisdictie die bepaalt welke AI-diensten en hostingregio&#x27;s mogen worden gebruikt. Een aanroep die door de regel wordt geweigerd, wordt niet verzonden en de functie werkt verder zonder AI.">AI-leveranciersbeleid</a> en regeleditor</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-jurisdiction-or-facility"><td><strong>Jurisdictie of instelling</strong></td>
+<td>Alleen-lezentekst (faciliteit getoond als faciliteit en jurisdictie)</td>
+<td>Niet van toepassing</td>
+<td>De scope van de regel.</td>
+<td>De jurisdictie van het lab, plus elke bediende faciliteit</td>
+</tr>
+<tr id="f-tab-ai-allowed"><td><strong>Toegestaan</strong></td>
+<td>Alleen-lezentekst: <strong>Geen regel: elke dienst</strong>, <strong>Elke dienst</strong>, of de lijst met diensten</td>
+<td>Niet van toepassing</td>
+<td>Wat de regel toestaat.</td>
+<td>Geen regel: elke dienst</td>
+</tr>
+<tr id="f-tab-ai-service-in-use"><td><strong>Gebruikte dienst</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>Toont de dienst, het model en de regio die nu in gebruik zijn en of deze scope ze toestaat: <strong>Toegestaan</strong>, <strong>Niet toegestaan: dienst</strong>, <strong>Niet toegestaan: regio</strong> of <strong>Niet toegestaan: regio niet vastgelegd</strong>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-actions-edit-remove-rule"><td><strong>Acties</strong>: <strong>Bewerken</strong>, <strong>Regel verwijderen</strong></td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td><strong>Bewerken</strong> opent de regeleditor hieronder. <strong>Regel verwijderen</strong> verwijdert de regel, zodat de scope weer elke dienst toestaat.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-add-a-facility-rule-choose-a-facility"><td><strong>Instellingsregel toevoegen</strong>, <strong>Kies een instelling…</strong></td>
+<td>Keuze uit bediende faciliteiten</td>
+<td>Optioneel</td>
+<td>Start een regel voor één faciliteit.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-tab-ai-allow-every-service"><td><strong>Elke dienst toestaan</strong></td>
+<td>Ja/nee-selectievakje</td>
+<td>Optioneel</td>
+<td>Staat alle diensten toe. Wanneer uit, vinkt u de toe te staan diensten aan.</td>
+<td>Aan voor een nieuwe regel</td>
+</tr>
+<tr id="f-tab-ai-allowed-services"><td>Toegestane diensten</td>
+<td>Eén selectievakje per AI-dienst</td>
+<td>Verplicht wanneer <strong>Elke dienst toestaan</strong> uit staat</td>
+<td>Er moet minstens één dienst zijn toegestaan, anders wordt het opslaan geweigerd (<strong>Sta minstens één dienst toe, of verwijder de regel.</strong>).</td>
+<td>Geen</td>
+</tr>
+<tr id="f-tab-ai-allowed-regions-for-service"><td><strong>Toegestane regio’s voor</strong> (dienst)</td>
+<td>Tekst, regio's gescheiden door komma's, bijvoorbeeld <code>eu-west-1, uksouth</code></td>
+<td>Optioneel</td>
+<td>Laat leeg om elke regio toe te staan. Regio's worden getrimd, in kleine letters gezet en ontdubbeld. Een lege invoer, of regio's bij een dienst die niet is toegestaan, worden geweigerd.</td>
+<td>Leeg (elke regio)</td>
+</tr>
+<tr id="f-tab-ai-save-rule"><td><strong>Regel opslaan</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Slaat de regel op. Het resultaat luidt <strong>Opgeslagen</strong> of de reden van de weigering.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Orchestrator-configuratie</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p>Een inklapbaar onderdeel. De badge <strong>AAN — klik om te wisselen</strong> of <strong>UIT — klik om te wisselen</strong> is de standaard voor de hele organisatie voor de Orchestrator-modus.</p>
+<figure class="shot"><img src="../img/tab-ai-orchestrator.webp" alt="Orchestrator-configuratie met de vier generatiestappen" loading="lazy"><figcaption>Orchestrator-configuratie met de vier generatiestappen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-on-off-switch"><td>Aan/uit-schakelaar</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>De standaard van de organisatie. Een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> kan die overschrijven met <strong>Automatisch conceptverslag</strong> (Organisatiestandaard overnemen, Ingeschakeld voor deze faciliteit, Uitgeschakeld voor deze faciliteit) in het Faciliteitenwoordenboek, tabblad <strong>AI &amp; prestaties</strong>. Opslaan vereist <code>config:ai-provider:manage</code>.</td>
+<td>AAN</td>
+</tr>
+<tr id="f-tab-ai-steps-summary"><td>Samenvatting van de stappen</td>
+<td>Alleen-lezentekst, "N van 4 generatiestappen actief"</td>
+<td>Niet van toepassing</td>
+<td>Telt de actieve stappen.</td>
+<td>4 van 4</td>
+</tr>
+<tr id="f-tab-ai-step-cards"><td>Stapkaarten</td>
+<td>Alleen-lezen: stapnaam, <strong>ACTIEF</strong> of <strong>UITGESCHAKELD</strong>, <strong>AI-instructie</strong>, <strong>Contextvelden</strong></td>
+<td>Niet van toepassing</td>
+<td>Vier vaste stappen worden in volgorde uitgevoerd: Administratieve en klinische kop, Monster en macroscopische beschrijving, Samenvatting van synoptische gegevens, Aanvullend onderzoek en eindconclusie. Eerdere stappen geven context aan latere.</td>
+<td>Vast in de code</td>
+</tr>
+</tbody>
+</table>
+<h4>Modelversies</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<p>Een inklapbaar onderdeel met de <a class="term" href="99-glossary.html#g-flag" title="Een teken op een casus of monster, bijvoorbeeld om een extra kleuring aan te vragen of een casus aan te houden.">markering</a> <strong>Alleen beheerders</strong> dat het modellenpaneel bevat.</p>
+<figure class="shot"><img src="../img/tab-ai-models.webp" alt="Tabel Modelversies" loading="lazy"><figcaption>Tabel Modelversies</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-model"><td><strong>Model</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>De naam van het model.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-vendor"><td><strong>Leverancier</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>De maker van het model.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-type"><td><strong>Type</strong></td>
+<td>Alleen-lezen: Alleen macroscopie, Alleen microscopie, Macro + micro, Alleen diagnose, Spraakdictaat</td>
+<td>Niet van toepassing</td>
+<td>Waarvoor het model dient.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-accuracy"><td><strong>Nauwkeurigheid</strong></td>
+<td>Alleen-lezenpercentage</td>
+<td>Niet van toepassing</td>
+<td>Het benchmarkcijfer dat voor het model is vastgelegd.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-cases-processed"><td><strong>Verwerkte dossiers</strong></td>
+<td>Alleen-lezen geheel getal</td>
+<td>Niet van toepassing</td>
+<td>Casus die het model voor uw organisatie heeft verwerkt.</td>
+<td>0 voor een nieuw overgenomen model</td>
+</tr>
+<tr id="f-tab-ai-status"><td><strong>Status</strong></td>
+<td>Alleen-lezen: Actief, Bèta, Ingetrokken</td>
+<td>Niet van toepassing</td>
+<td>Een model dat uit de ForMedrixAI-winkel is overgenomen, begint als Bèta.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-facilities-approved"><td><strong>Goedgekeurde instellingen</strong></td>
+<td>Alleen-lezenlijst</td>
+<td>Niet van toepassing</td>
+<td>Faciliteiten waarvan het vastgezette model dit model is.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-default"><td><strong>Standaard</strong></td>
+<td>Alleen-lezenmarkering</td>
+<td>Niet van toepassing</td>
+<td>Het standaardmodel van de organisatie.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-set-default"><td><strong>Als standaard instellen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Maakt het model de standaard. Een spraakmodel kan niet de standaard worden zonder een gerapporteerde studie met oordeel GESLAAGD.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-retire"><td><strong>Uit gebruik nemen</strong></td>
+<td>Knop, daarna een bevestiging</td>
+<td>Niet van toepassing</td>
+<td>Neemt het model uit gebruik. De bevestiging noemt de faciliteiten die eraan zijn vastgezet. Het standaardmodel kan niet uit gebruik worden genomen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-ai-settings"><td><strong>Instellingen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het venster Modelinstellingen hieronder.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h5>Venster Modelinstellingen</h5>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; AI-gedrag"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>AI-gedrag</span></nav>
+
+<figure class="shot"><img src="../img/tab-ai-model-settings.webp" alt="Venster Modelinstellingen" loading="lazy"><figcaption>Venster Modelinstellingen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-longest-answer-tokens"><td><strong>Langste antwoord (tokens)</strong></td>
+<td>Geheel getal 50 tot 8000</td>
+<td>Optioneel</td>
+<td>Het maximum dat het model in één antwoord mag schrijven. Leeg gebruikt de organisatie-instelling.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Betrouwbaarheidsdrempel (%)</strong></td>
+<td>Geheel getal 0 tot 100</td>
+<td>Optioneel</td>
+<td>De eigen drempel van dit model. Leeg gebruikt de <strong>Betrouwbaarheidsdrempel</strong> van de organisatie.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<p>Al het andere wordt geweigerd met "Voer gehele getallen binnen de getoonde bereiken in, of laat het veld leeg". Dit zijn de enige twee overschrijvingen per model die bestaan.</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Het tabblad is alleen-lezen voor een persoon die geen van deze vier heeft: <code>config:ai-behavior:manage</code> (gedragsinstellingen en <strong>Terugzetten naar standaardwaarden</strong>), <code>config:ai-provider:manage</code> (providerinstellingen en de Orchestrator-schakelaar), <code>config:ai-model:manage</code> (een model als standaard instellen, bijwerken, uit gebruik nemen en overnemen) en <code>config:ai-vendor-policy:manage</code> (het leveranciersbeleid). Het AI-providerpaneel vereist ook de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> admin, pathologist-admin of superadmin; dat is een rolcontrole, geen controle van een <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a>. Admin en Lab Director hebben de vier machtigingen standaard via de configuratiegroepen, en Superadmin heeft alles (behalve <code>config:ai-prompt:approve</code>, om <a class="term" href="99-glossary.html#g-separation-of-duties" title="Een regel dat twee bevoegdheden niet bij één persoon mogen berusten, zoals het wijzigen van de klinische discrepantieregels en het goedkeuren van de AI-instructies.">functiescheiding</a> achtergehouden). De wijziging van het leveranciersbeleid wordt vastgelegd als <code>AI_VENDOR_POLICY_CHANGED</code>. Een wijziging van de gedragsinstellingen legt alleen de machtigingscontrole vast, niet wat er is gewijzigd.</p>
+<p><strong>Bekende beperkingen.</strong>
+- <code>showConfidenceScores</code>, <code>macroSuggestions</code> en <code>subspecialtyRouting</code> worden opgeslagen en door niets anders gelezen.
+- De gedragsinstellingen en het leveranciersbeleid hebben servercontracten (<code>CONFIG_SERVICES_API.md</code>, <code>AI_VENDOR_POLICY_API.md</code>; modellen in <code>MODELS_API.md</code>). Zolang de server niet is aangesloten, werken ze op de demonstratiegegevens in de browser.
+- Formulering, volgorde en veldtoewijzing van de stappen in de Orchestrator-configuratie zijn Gepland: het scherm meldt "Volgorde van stappen en veldtoewijzing worden in een toekomstige release configureerbaar".
+- De AI-spellingcontrole is stopgezet en heeft geen instelling.
+- Geen enkele instelling schakelt de AI-scan op kritieke uitslagen afzonderlijk uit. Die volgt de provider, het leveranciersbeleid en de <a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Regels voor abnormale triggers</a>.
+- De betrouwbaarheidsondergrens voor een bevinding "Abnormaal" is 50 (Batch 655). Het is een constante in de code, nog geen instelling, dus een laboratorium kan haar hier niet wijzigen.
+- <strong>Het venster Codes (Batch 656).</strong> Elke voorgestelde medische code wordt op twee manieren bevestigd: door de code zelf op te zoeken en, naast elkaar, aan de hand van de eigen bewoording van de AI; een van beide bevestigt haar. Een code waarvan het opzoeken mislukt, blijft buiten de lijst en wordt in een notitie meegeteld, zoals voorheen. SNOMED CT-controles lopen via de serverroute die <code>UMLS_API_KEY</code> bevat; start de ontwikkelserver opnieuw op nadat u <code>.env</code> hebt bewerkt.</p>
+<h2 id="ch5-specimen-vision"><a class="anchor" href="#ch5-specimen-vision" aria-label="Link to this section">#</a> Monsterregistratie en computervisie-assistentie bij het uitsnijden</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows &gt; Smart Capture"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span> <span aria-hidden="true">›</span> <span>Smart Capture</span></nav>
+
+<p><strong>Status:</strong> Niet gerealiseerd voor computervisie. Twee verwante onderdelen bestaan wel en worden hier beschreven zodat niemand ze voor computervisie aanziet.</p>
+<p>PathScribe heeft geen computervisie-engine voor monsters. Niets in het product leest een foto van een <a class="term" href="99-glossary.html#g-specimen" title="Een van een patiënt genomen staal, zoals één biopsie of één gereseceerd orgaan. Een casus bevat een of meer monsters.">monster</a>, een <a class="term" href="99-glossary.html#g-cassette" title="De kunststof houder waarin een weefselblok wordt ingebed en gelabeld voor het snijden.">cassette</a> of een preparaat om het te identificeren, blokken te tellen, een laesie te meten of te volgen. De dichtstbijzijnde onderdelen die wel bestaan, zijn deze.</p>
+<ul>
+<li><strong>Het leverancierswoordenboek voor beeldvorming bij het <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a>.</strong> Een lijst met leveranciers van beeldvorming (bijvoorbeeld PAX-it!/PAXcam, PathoZoom en MacroPATH, genoemd in de commentaartekst van de interface) en hoe elk te bereiken is: naam, hoe de koppeling wordt geauthenticeerd (geen, ondertekende link, OAuth 2-bearertoken of wederzijdse <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, de versleuteling die een webverbinding beschermt en zichtbaar is als https.">TLS</a>), het https-basisadres, en of de leverancier telepathologie ondersteunt. Het is één categorie (<code>gross_imaging</code>) van <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Leveranciersintegraties</a> in <a href="04-tier3-workflow-engines.html#ch4">Hoofdstuk 4</a>, dat de velden beschrijft. Het bevat alleen adressen en voert geen beeldanalyse uit. De cameraknop voor het uitsnijden in de <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> legt alleen een foto vast; hij slaat de afbeelding inline op, wat als niet-conform is aangemerkt, en het verplaatsen naar deze leverancierscategorie is uitgesteld.</li>
+<li><strong>Macroscopie-apparatuur</strong> (<a href="02-tier1-primary-prerequisites.html#screen-grossing_hardware">Hoofdstuk 2</a>) voor weegschalen, camera's en barcodeapparatuur.</li>
+<li><strong><a href="#screen-smart_capture">Smart Capture</a></strong>, hieronder. Ondanks de naam roept het geen AI-model aan en bekijkt het geen afbeelding. Het is een vaste regelset die factuurregels voorstelt.</li>
+</ul>
+<h3 id="screen-smart_capture"><a class="anchor" href="#screen-smart_capture" aria-label="Link to this section">#</a> Smart Capture</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows &gt; Smart Capture"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span> <span aria-hidden="true">›</span> <span>Smart Capture</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd (prototype). Het werkt op de demonstratiegegevens en heeft een servercontract (<code>SIGNATURES_SMART_CAPTURE_API.md</code>), en het casuspaneel draagt het label "Prototype, niet op compliance beoordeeld".</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Systeem</strong> &gt; groep <strong>Labmaterialen &amp; workflows</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Smart Capture</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> Smart Capture stelt voor een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> Current Procedural Terminology (<a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, de codeset van de AMA voor medische en laboratoriumhandelingen, gebruikt voor facturering in de Verenigde Staten.">CPT</a>)-factuurregels voor op basis van de woorden in de monsterbeschrijving, het aantal blokken en het aantal kleuringen. De regels zijn vast en voorzien van een versie (<code>sim-rules-1.0</code>): SC-LEVEL (88302 tot 88309 naar niveau van het <a class="term" href="99-glossary.html#g-specimen" title="Een van een patiënt genomen staal, zoals één biopsie of één gereseceerd orgaan. Een casus bevat een of meer monsters.">monster</a>), SC-SPECIAL (88312), SC-IHC-FIRST en SC-IHC-ADDL (88342 en 88341) en SC-DECAL (88311). Het is geen AI en geen computervisie. De stroom is voorstellen, beoordelen (elke regel accepteren of afwijzen), goedkeuren (een patholoog bevestigt) en exporteren. In de demonstratie gaat de export naar een gesimuleerde engine. Dit scherm schakelt het prototype in of uit en legt de checklist voor productie vast die compleet moet zijn voordat een export naar een echte interface-engine is toegestaan.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De regels vereisen dat CPT voor de <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a> is ingeschakeld in Codesystemen. Slaat u dat over, dan stelt het paneel niets voor en meldt het <code>CPT_OFF</code>.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 8</p><dl><dt>Eerst inrichten</dt><dd><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codesystemen</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-smart_capture.webp" alt="Smart Capture-prototypeschakelaar, productiechecklist en exportpoort" loading="lazy"><figcaption>Smart Capture-prototypeschakelaar, productiechecklist en exportpoort</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-smart_capture-offer-the-smart-capture-drawer-in-the-billing-review"><td><strong>Het Smart Capture-paneel aanbieden in de factuurbeoordeling</strong></td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Wanneer uit, wordt het Smart Capture-paneel niet aangeboden in het factuurpaneel van de casus. Vastgelegd in het audit als "Smart Capture Prototype Switched".</td>
+<td>Aan</td>
+</tr>
+<tr id="f-smart_capture-clinical-validation-done"><td><strong>Klinische validatie uitgevoerd</strong></td>
+<td>Ja/nee-vinkje; legt vast wie het zette en wanneer</td>
+<td>Optioneel</td>
+<td>Item van de productiechecklist. Het uitvinken van een van de zes sluit de exportpoort. Vastgelegd in het audit als "Smart Capture Checklist Changed".</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-smart_capture-security-review-done"><td><strong>Beveiligingsbeoordeling uitgevoerd</strong></td>
+<td>Ja/nee-vinkje; legt vast wie en wanneer</td>
+<td>Optioneel</td>
+<td>Item van de productiechecklist.</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-smart_capture-privacy-review-done"><td><strong>Privacybeoordeling uitgevoerd</strong></td>
+<td>Ja/nee-vinkje; legt vast wie en wanneer</td>
+<td>Optioneel</td>
+<td>Item van de productiechecklist.</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-smart_capture-legal-review-done"><td><strong>Juridische beoordeling uitgevoerd</strong></td>
+<td>Ja/nee-vinkje; legt vast wie en wanneer</td>
+<td>Optioneel</td>
+<td>Item van de productiechecklist.</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-smart_capture-claims-and-coding-policy-review-done"><td><strong>Beoordeling van facturatie- en coderingsbeleid uitgevoerd</strong></td>
+<td>Ja/nee-vinkje; legt vast wie en wanneer</td>
+<td>Optioneel</td>
+<td>Item van de productiechecklist.</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-smart_capture-real-receiving-system-tested"><td><strong>Echt ontvangend systeem getest</strong></td>
+<td>Ja/nee-vinkje; legt vast wie en wanneer</td>
+<td>Optioneel</td>
+<td>Item van de productiechecklist.</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-smart_capture-allow-export-to-a-real-interface-engine"><td><strong>Export naar een echte interface-engine toestaan</strong></td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Uitgeschakeld totdat alle zes vinkjes zijn gezet. Wanneer uit, gaat de export alleen naar de gesimuleerde engine. Vastgelegd in het audit als "Smart Capture Production Gate Changed".</td>
+<td>Uit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Een instelling wijzigen: <code>config:smart-capture:manage</code> (standaard Admin en Lab Director). In de casus gaan <code>billing:smart-capture:review</code>, <code>billing:smart-capture:approve</code> en <code>billing:smart-capture:send</code> naar de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> Pathologist. Elke wijziging hierboven wordt vastgelegd in het audit.</p>
+<p><strong>Bekende beperkingen.</strong> De regels zijn een prototype en niet op compliance beoordeeld; de vinkjes leggen vast dat iemand zegt dat de beoordeling is uitgevoerd en voeren zelf geen beoordeling uit. Niets gebruikt AI of afbeeldingen. De export naar een echte interface-engine is alleen een poort: er is geen echt ontvangend systeem aangesloten.</p>
+<h2 id="ch5-nlp"><a class="anchor" href="#ch5-nlp" aria-label="Link to this section">#</a> NLP- en autostructureringsengine</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; AI-extractie van historie"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>AI-extractie van historie</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Afzonderlijke taalfuncties bestaan. Een zelfstandige NLP- of autostructureringsengine bestaat niet en er is geen scherm voor.</p>
+<p>Wat vandaag bestaat; elk onderdeel stuurt tekst naar het model dat op <a href="#screen-tab-ai">AI-gedrag (tabblad)</a> is gekozen en valt onder het leveranciersbeleid:</p>
+<ul>
+<li><strong>Extractie van historie</strong> (<a href="#screen-history_extraction">AI-extractie van historie</a>): leest historische <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> en vult gestructureerde velden in als adviserende informatie.</li>
+<li><strong>Suggest Synoptic from Narrative</strong>: op de verslagpagina, vult synoptische velden in vanuit de verslagtekst. Elke suggestie heeft een betrouwbaarheid van 0 tot 100 en een citaat uit de brontekst. Werkt in de Orchestrator-modus en de <a class="term" href="99-glossary.html#g-assist-mode" title="Een manier om PathScribe naast een bestaand LIS te laten draaien, waarbij het LIS eigenaar van de casus blijft en PathScribe de wijzigingen leest en conceptverslagen opstelt voor beoordeling door de patholoog.">assistentiemodus</a>.</li>
+<li><strong>Generate Narrative from Synoptic</strong>: op de verslagpagina, schrijft de verslagtekst vanuit de synoptische gegevens. Alleen in de Orchestrator-modus.</li>
+<li><strong>Toewijzing van synoptische sjablonen</strong>: het model stelt voor welk <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> sjabloon een casus nodig heeft, met een vaste betrouwbaarheidsdrempel van 60.</li>
+<li><strong>Scan op kritieke uitslagen</strong> bij het ondertekenen: een scan van alleen de verslagtekst die rekening houdt met ontkenning.</li>
+<li><strong>Verfijning van dictaat</strong> (tabblad Spraak, <a href="04-tier3-workflow-engines.html#screen-tab-voice">Hoofdstuk 4</a>) en <strong>macrosuggestie</strong> (tabblad Macro's, <a href="04-tier3-workflow-engines.html#screen-tab-macros">Hoofdstuk 4</a>).</li>
+</ul>
+<p>Niet gerealiseerd: een algemene pijplijn van vrije tekst naar gestructureerde gegevens buiten de bovenstaande functies, een scherm om er een in te stellen, en elk getraind klinisch NLP-model van PathScribe zelf. De eerdere Computational Sidecar is op 18 oktober 2026 stopgezet.</p>
+<h3 id="screen-history_extraction"><a class="anchor" href="#screen-history_extraction" aria-label="Link to this section">#</a> AI-extractie van historie</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; AI-extractie van historie"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>AI-extractie van historie</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Het scherm en de regels werken op de demonstratiegegevens en het servercontract is beschreven (<code>HISTORY_AI_EXTRACTION_API.md</code>), maar niets is geprobeerd tegen een echte server. De samenvattingshook voor de <a class="term" href="99-glossary.html#g-assist-mode" title="Een manier om PathScribe naast een bestaand LIS te laten draaien, waarbij het LIS eigenaar van de casus blijft en PathScribe de wijzigingen leest en conceptverslagen opstelt voor beoordeling door de patholoog.">assistentiemodus</a> is niet gerealiseerd.</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> AI-extractie van historie</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> Wanneer een patholoog een historische <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> opent, kan het model de tekst van de Einddiagnose en de microscopische beschrijving lezen en waarden voorstellen voor de velden van een gestructureerd sjabloon. De resultaten dragen het label "Door AI geëxtraheerd, niet geverifieerd" en zijn alleen adviserend: verslagen, afdrukken, het <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a>, facturatie, regels en exports gebruiken ze nooit (een test in de code bewaakt dit). Het doet twee modelaanroepen per casus (het sjabloon kiezen, daarna de velden invullen) en laat elk veld met een betrouwbaarheid onder 30 vallen (vast in de code). Resultaten worden in de cache bewaard op basis van een hash van de brontekst, en een mislukte run wordt opnieuw geprobeerd de volgende keer dat de casus wordt geopend. De auditgebeurtenis <code>HISTORY_EXTRACTION_RUN</code> bevat geen patiëntentekst.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De functie vereist een werkende AI-dienst en de faciliteitenlijst. Zonder AI-dienst, of met een dienst die het leveranciersbeleid weigert, wordt niets geëxtraheerd en toont de casus geen adviserende gegevens.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 7</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-tab-ai">AI-gedrag (tabblad)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-history_extraction.webp" alt="Scope, status en nauwkeurigheidskaart van AI-extractie van historie" loading="lazy"><figcaption>Scope, status en nauwkeurigheidskaart van AI-extractie van historie</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-history_extraction-applies-to"><td><strong>Geldt voor</strong></td>
+<td>Keuze: <strong>Onderneming (alle vestigingen)</strong> of één actieve <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a></td>
+<td>Verplicht</td>
+<td>De scope die u bekijkt en wijzigt.</td>
+<td>Onderneming</td>
+</tr>
+<tr id="f-history_extraction-state-card"><td>Statuskaart</td>
+<td>Alleen-lezen <strong>Aan</strong> of <strong>Uit</strong></td>
+<td>Niet van toepassing</td>
+<td>De instelling die geldt voor de gekozen scope. Bepaald als de eigen instelling van de faciliteit, dan de instelling van de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a>, dan uit.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-history_extraction-source-tag"><td>Bronlabel</td>
+<td>Alleen-lezen: <strong>Ingebouwde standaard</strong>, <strong>Instelling van de onderneming</strong> of <strong>Eigen instelling van deze vestiging</strong></td>
+<td>Niet van toepassing</td>
+<td>Waar de status vandaan komt.</td>
+<td>Ingebouwde standaard</td>
+</tr>
+<tr id="f-history_extraction-turn-on-turn-off"><td><strong>Inschakelen</strong> / <strong>Uitschakelen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Zet de status voor de gekozen scope.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-history_extraction-use-the-enterprise-setting"><td><strong>Instelling van de onderneming gebruiken</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verschijnt alleen wanneer de gekozen faciliteit een eigen vermelding heeft. Verwijdert die zodat de faciliteit de onderneming volgt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-history_extraction-accuracy-so-far"><td><strong>Nauwkeurigheid tot nu toe</strong></td>
+<td>Alleen-lezenkaart: gelezen verslagen, geëxtraheerde velden, als fout gemarkeerd</td>
+<td>Niet van toepassing</td>
+<td>Telt, voor de gekozen scope, hoeveel verslagen zijn gelezen, hoeveel velden zijn geëxtraheerd en hoeveel een patholoog als fout heeft gemarkeerd.</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:history-extraction:manage</code> (Admin en Lab Director). In de casus gaan <code>ai:history-extraction:run</code> en <code>ai:history-extraction:flag</code> naar Pathologist, Fellow en Resident, en <code>case:clinical-history:record</code> gaat naar deze drie en Pathologist Assistant. Het leveranciersbeleid is van toepassing en weigert een niet-toegestane dienst met <code>vendorNotAllowed</code>. Het uitvoeren van een extractie wordt vastgelegd als <code>HISTORY_EXTRACTION_RUN</code>.</p>
+<p><strong>Bekende beperkingen.</strong> Ontworpen als alleen adviserend. De samenvattingshook voor de assistentiemodus is Niet gerealiseerd. De afkapwaarde van 30 punten voor de betrouwbaarheid heeft geen instelling.</p>
+<h2 id="ch5-dp-ai"><a class="anchor" href="#ch5-dp-ai" aria-label="Link to this section">#</a> AI-beeldanalyse voor digitale pathologie</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows &gt; Leveranciersintegraties"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span> <span aria-hidden="true">›</span> <span>Leveranciersintegraties</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk. Het ontvangen en tonen van uitslagen van leveranciersproducten bestaat. Tumordetectie, celtelling en biomarkerscoring door PathScribe zelf zijn <strong>Niet gerealiseerd</strong>.</p>
+<p>PathScribe analyseert geen beelden. Het legt vast wat het product van een leverancier meldt. Het dichtstbijzijnde onderdeel bij een AI-analysemodule is deze keten, die in andere hoofdstukken wordt ingesteld:</p>
+<ul>
+<li><strong>Leverancierswoordenboek</strong> (categorie AI voor digitale pathologie in <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Leveranciersintegraties</a>, <a href="04-tier3-workflow-engines.html#ch4">Hoofdstuk 4</a>): naam van de leverancier, productnaam, modaliteit (vrije tekst), een selectievakje <strong>FDA-goedgekeurd</strong> (een momentopname die een beheerder vastlegt, geen controle) en een actief-schakelaar. Het is vooraf gevuld met Paige Prostate, Ibex Prostate Detect, PathAI AISight Dx, Proscia Concentriq AP-Dx, Hologic Genius Digital Diagnostics (cervixcytologie) en BD FocalPoint GS (gemarkeerd als niet goedgekeurd, omdat het een premarket approval is en geen 510(k)-clearance). Leveranciers van preparaatviewers (sjablonen voor startadressen) en scanbatches van whole slide images staan ernaast.</li>
+<li><strong>Uitslagregistratie</strong>: een status (besteld, voltooid, mislukt of time-out), bevindingen (een vrijetekstlabel, een betrouwbaarheid van 0 tot 1 en een optionele regio), biomarkeruitslagen als vrije tekst (naam en waarde), en een triagerangorde van het preparaat met een beoordelingsaanbeveling in de stijl van de kwintielen van BD.</li>
+<li><strong>Opname</strong>: een uitslag van een leverancier komt binnen als inkomende gebeurtenis van de interface-engine. In de demonstratie plaatst het voltooien van een batch Cytologie-beeldvorming automatisch een AI-screeningsopdracht bij de eerste actieve leverancier van cervixcytologie.</li>
+<li><strong>Badge op de cytologiewerklijst en concordantievraag</strong>: het antwoord van de patholoog wordt vastgelegd. Een onenigheid leidt tot een openstaande tekortkoming en start nooit zelf een corrigerende actie.</li>
+<li><strong>Tabblad AI-discordantie van Kwaliteitsborging</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Hoofdstuk 4</a>): een discordantierapport per leverancier en een rapport van vastgelopen uitslagen. De time-out voor een vastgelopen uitslag wordt daar ingesteld (hele uren 1 tot 720, standaard 24).</li>
+</ul>
+<p>Niet gerealiseerd: een tumordetector, celteller of biomarkerscorer van PathScribe zelf, en elke bediening die de analyse van een leverancier afstemt. De echte leveranciersintegraties zijn niet afgerond. Het contract is <code>DIGITAL_PATHOLOGY_API.md</code>. Verwante inrichting: Cytologie-instrumentatie (<a href="03-tier2-master-dictionaries.html#screen-cytology_instrumentation">Hoofdstuk 3</a>).</p>
+<h2 id="ch5-smart-qc"><a class="anchor" href="#ch5-smart-qc" aria-label="Link to this section">#</a> Regels voor slimme kwaliteitscontrole en detectie van diagnostische anomalieën</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Regels voor klinische discrepantie"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Regels voor klinische discrepantie</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd voor de regelschermen. Demonstratie voor de serverkant van AI-instructies. Er is geen enkele module "anomaliedetectie"; de onderstaande controles staan los van elkaar en elk is beschreven waar het wordt ingesteld.</p>
+<ul>
+<li><strong>Klinische discrepantiecontrole</strong> (<a href="#screen-clinical_mismatch_rules">Regels voor klinische discrepantie</a> en <a href="#screen-ai_instructions">AI-instructies</a>, dit hoofdstuk): het model vergelijkt de klinische indicatie en historie met de diagnose, en de regels bepalen wat een resultaat doet.</li>
+<li><strong>Regels voor abnormale triggers</strong> (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Hoofdstuk 3</a>): afzonderlijke regels met de ernstniveaus Abnormaal, Kritiek en Maligne. De vooraf gevulde regels zijn Margestatus, Perineurale invasie, Lymfklierstatus en Lymfovasculaire invasie.</li>
+<li><strong>Scan van de verslagtekst op kritieke uitslagen</strong>: het model scant de verslagtekst bij het ondertekenen, houdt rekening met ontkenning en stuurt alleen verslagtekst. Het heeft geen eigen instelling.</li>
+<li><strong>Beleid voor discordantietrends van kwaliteitsborging</strong> (<a href="04-tier3-workflow-engines.html#screen-qa_trend_policy">Hoofdstuk 4</a>), het tabblad <strong>AI-discordantie</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Hoofdstuk 4</a>) en <strong>Regels voor cytologie-QC</strong> (<a href="04-tier3-workflow-engines.html#screen-cytology_qc_rules">Hoofdstuk 4</a>).</li>
+</ul>
+<p>Niet gerealiseerd: een statistische of door machine learning gestuurde anomaliedetector die doorlooptijden, volumes of uitslagen over <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> heen bewaakt.</p>
+<h3 id="screen-clinical_mismatch_rules"><a class="anchor" href="#screen-clinical_mismatch_rules" aria-label="Link to this section">#</a> Regels voor klinische discrepantie</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Regels voor klinische discrepantie"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Regels voor klinische discrepantie</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd. Het werkt op de demonstratiegegevens en heeft een servercontract (<code>CONFIG_SERVICES_API.md</code>, <code>/api/clinical/clinical-mismatch-rule/*</code>).</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Regels voor klinische discrepantie</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> Bij het ondertekenen vergelijkt het model wat de clinicus het lab heeft meegedeeld met wat de patholoog heeft gediagnosticeerd, en geeft het een soort discrepantie en een betrouwbaarheid van 0 tot 100 terug. Deze regels zetten die betrouwbaarheid om in een uitkomst. Onder de weergavedrempel wordt het resultaat verworpen. Vanaf de weergavedrempel tot de actiedrempel is het laag risico: de patholoog ziet een waarschuwing en het QA-logboek legt het vast. Vanaf de actiedrempel geldt de actie van de regel: <strong>Blokkeren</strong> maakt het hoog risico en houdt het ondertekenen tegen totdat een beslissing is vastgelegd, <strong>Waarschuwen</strong> geeft een waarschuwing en <strong>Registreren</strong> legt het vast. Beslissingen worden vastgelegd als RESOLVED, UNRESOLVED of DEFERRED. De volledige workflow staat in <code>docs/product/CLINICAL_MISMATCH_CHECK.md</code>. Eén regel per soort discrepantie geldt voor alle monstertypen, en u kunt een regel toevoegen voor één monstertype.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De controle roept de AI-dienst aan die op het tabblad AI-gedrag is ingesteld, en de regels per monstertype kiezen uit de actieve monstertypen. Zonder AI-dienst, of met een dienst die het leveranciersbeleid weigert, draait de controle niet. Slaat u het Specimenwoordenboek over, dan is de lijst <strong>Een regel voor één specimentype</strong> leeg.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 6</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-tab-ai">AI-gedrag (tabblad)</a>, <a href="03-tier2-master-dictionaries.html#screen-specimens">Specimenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-clinical_mismatch_rules.webp" alt="Tabel met regels voor klinische discrepantie en bediening om een regel toe te voegen" loading="lazy"><figcaption>Tabel met regels voor klinische discrepantie en bediening om een regel toe te voegen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong> Drempels worden opgeslagen wanneer u het vak verlaat of op Enter drukt. De actie wordt opgeslagen wanneer u haar kiest.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-clinical_mismatch_rules-kind-of-mismatch"><td><strong>Soort discrepantie</strong></td>
+<td>Alleen-lezen: onverwachte maligniteit, doodsoorzaak, locatie of orgaan, verwachte maligniteit niet gevonden, overig</td>
+<td>Niet van toepassing</td>
+<td>Eén rij per soort voor alle monstertypen, plus eventuele rijen per monstertype.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-specimen-type"><td><strong>Specimentype</strong></td>
+<td>Alleen-lezen: alle specimentypes, of één type uit het Specimenwoordenboek</td>
+<td>Niet van toepassing</td>
+<td>De scope van de rij.</td>
+<td>Alle specimentypes</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-alert-from"><td><strong>Waarschuwing vanaf</strong></td>
+<td>Geheel getal 0 tot 100 (weergavedrempel, %)</td>
+<td>Verplicht</td>
+<td>Resultaten hieronder worden onderdrukt.</td>
+<td>60 voor elke soort</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action-at"><td><strong>Actie vanaf</strong></td>
+<td>Geheel getal 0 tot 100 (actiedrempel, %)</td>
+<td>Optioneel</td>
+<td>Moet minstens gelijk zijn aan <strong>Waarschuwing vanaf</strong>. Leeg betekent dat de actie begint bij de waarde van <strong>Waarschuwing vanaf</strong>.</td>
+<td>onverwachte maligniteit 70, doodsoorzaak 70, locatie of orgaan 65, verwachte maligniteit niet gevonden leeg, overig 65</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action"><td><strong>Actie</strong></td>
+<td>Keuze: <strong>Blokkeren</strong>, <strong>Waarschuwen</strong>, <strong>Registreren</strong></td>
+<td>Verplicht</td>
+<td>Wat er gebeurt vanaf <strong>Actie vanaf</strong>.</td>
+<td>onverwachte maligniteit Blokkeren, doodsoorzaak Blokkeren, locatie of orgaan Blokkeren, verwachte maligniteit niet gevonden Registreren, overig Registreren</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-remove"><td><strong>Verwijderen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Verwijdert een regel voor een monstertype. De regel voor alle monsters van een soort kan niet worden verwijderd.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-add-a-rule-for-one-specimen-type"><td><strong>Een regel voor één specimentype</strong></td>
+<td>Keuze van soort en keuze van actief specimentype</td>
+<td>Optioneel</td>
+<td>Maakt een regel die begint als kopie van de regel voor alle typen van die soort. Een tweede regel voor dezelfde soort en hetzelfde specimentype wordt geweigerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-amendments-corrections-and-addenda"><td><strong>Amendementen, correcties en addenda</strong></td>
+<td>Ja/nee-selectievakje</td>
+<td>Optioneel</td>
+<td>Wanneer aan, geldt "Een afwijking met hoog risico houdt de vrijgave tegen tot een beslissing is vastgelegd" ook voor amendementen, correcties en addenda.</td>
+<td>Aan</td>
+</tr>
+</tbody>
+</table>
+<p>Een geweigerde invoer toont een van deze problemen: drempel buiten het bereik, actie onder weergave, dubbel, standaard kan niet worden verwijderd, onbekende actie of onbekende categorie.</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Het bekijken: <code>config:clinical-mismatch-rules:view</code> (standaard Pathologist, <a class="term" href="99-glossary.html#g-qa" title="Kwaliteitsborging (quality assurance), de beoordeling van werk om problemen te vinden en te corrigeren.">QA</a> Reviewer en Lab Director). Het wijzigen: <code>config:clinical-mismatch-rules:manage</code>, dat <code>view</code> vereist en geen standaardrol heeft, dus ken het bewust toe. Zonder <code>manage</code> is het scherm alleen-lezen. Wijzigingen worden vastgelegd als <code>CLINICAL_MISMATCH_RULE_CHANGED</code>. <code>case:clinical-mismatch:record</code> (een beslissing vastleggen bij het ondertekenen) gaat naar Pathologist en Fellow. Functiescheiding: niemand mag <code>config:clinical-mismatch-rules:manage</code> samen met <code>config:ai-prompt:approve</code> hebben, en Superadmin is hiervan niet uitgezonderd.</p>
+<p><strong>Bekende beperkingen.</strong> Het model kan het mis hebben; de drempels zijn de controle van het lab over hoe vaak een patholoog wordt onderbroken. Een discrepantie bij het ondertekenen is adviserend, tenzij de actie van een regel <strong>Blokkeren</strong> is.</p>
+<h2 id="ch5-governance"><a class="anchor" href="#ch5-governance" aria-label="Link to this section">#</a> AI-governance, drempels met een mens in de lus en kalibratie</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd voor governance en drempels. Kalibratie van gewichten: bestaat niet.</p>
+<p>De controles van PathScribe houden een persoon tussen het model en het dossier.</p>
+<ul>
+<li><strong>Goedgekeurde instructies.</strong> De tekst die de klinische discrepantiecontrole naar het model stuurt, heeft versies en een tweede persoon moet haar goedkeuren (<a href="#screen-ai_instructions">AI-instructies</a>).</li>
+<li><strong>Bewijs.</strong> Een validatiestudie meet hoe vaak pathologen de suggesties van het model ongewijzigd accepteren, en een oordeel GESLAAGD is wat een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> in staat stelt een model vast te zetten of een spraakmodel de standaard te laten worden (<a href="#screen-tab-validation">Validatiestudies</a>).</li>
+<li><strong>Drempels.</strong> Elke drempel in het product staat hier vermeld.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Drempel</th>
+<th>Waarde</th>
+<th>Waar ingesteld</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Betrouwbaarheidsdrempel (suggesties)</td>
+<td>0 tot 100, standaard 75</td>
+<td>Tabblad <strong>AI-gedrag</strong>; overschrijving per model in <strong>Modelinstellingen</strong></td>
+</tr>
+<tr>
+<td>Automatisch invoegen op of boven de drempel</td>
+<td>Standaard uit</td>
+<td>Tabblad <strong>AI-gedrag</strong>, <strong>Geavanceerd</strong></td>
+</tr>
+<tr>
+<td>Weergave- en actiedrempels van klinische discrepantie</td>
+<td>0 tot 100, weergave standaard 60</td>
+<td><a href="#screen-clinical_mismatch_rules">Regels voor klinische discrepantie</a></td>
+</tr>
+<tr>
+<td>Toewijzing van synoptische sjablonen en uitsnijdsjablonen</td>
+<td>Vast 60</td>
+<td>Code; geen instelling</td>
+</tr>
+<tr>
+<td>Afkapwaarde voor velden bij extractie van historie</td>
+<td>Vast 30</td>
+<td>Code; geen instelling</td>
+</tr>
+<tr>
+<td>Streefpercentage voor acceptatie van een studie en maximale gemiddelde bewerkingsverhouding</td>
+<td>Standaard 70% en 30%</td>
+<td><a href="#screen-validation-studies">Validatiestudies: Studies</a></td>
+</tr>
+<tr>
+<td>Vastgelopen AI-screeninguitslag</td>
+<td>Hele uren 1 tot 720, standaard 24</td>
+<td>Tabblad <strong>AI-discordantie</strong> van kwaliteitsborging (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Hoofdstuk 4</a>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Kalibratie van gewichten en instellingen alleen voor intern gebruik.</strong> Er is nergens in PathScribe een instelling voor kalibratie van modelgewichten, fine-tuning of herkalibratie, en geen enkele AI-instelling is beperkt tot medewerkers van ForMedrixAI. Een zoekopdracht in de code vindt alleen kalibratie van apparatuur en van cytologie, die geen verband houden met AI. Geen enkele <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> in de catalogus is voor AI als alleen-platform gemarkeerd. Twee verwante feiten zijn goed om te weten. De API-sleutel wordt geroteerd door de support van ForMedrixAI in de geheimenopslag van de server, en er is geen scherm voor. De modelcatalogus die de ForMedrixAI-winkel aanbiedt, is eigendom van het platform, en daarvoor is ook geen scherm voor medewerkers. Omdat zo'n instelling niet bestaat, bevat dit hoofdstuk geen onderdeel dat als alleen intern ForMedrixAI is gemarkeerd.</p>
+<h3 id="screen-ai_instructions"><a class="anchor" href="#screen-ai_instructions" aria-label="Link to this section">#</a> AI-instructies</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; AI-instructies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>AI-instructies</span></nav>
+
+<p><strong>Status:</strong> Demonstratie. De regels draaien in de browser op geïnjecteerde opslag en de service heeft geen eigen serverroute (<code>HTTP_SERVICES_REMAINING.md</code>).</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> AI-instructies</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> De klinische discrepantiecontrole stuurt het model een instructietekst. Dit scherm beheert die tekst voor elk van drie disciplines: Histologie, Cytologie en Autopsie (getoond als tabbladen). Een wijziging loopt via bewerken en daarna goedkeuring door een andere persoon, zodat niemand alleen kan wijzigen wat het model te horen krijgt. Het <a class="term" href="99-glossary.html#g-block" title="Een stukje weefsel dat in een cassette in was is ingebed en waarvan coupes worden gesneden.">blok</a> met casusgegevens en het JSON-antwoordformaat liggen vast in de code en kunnen hier niet worden bewerkt. Alleen de goedgekeurde versie wordt gebruikt. Versie 0 is de ingebouwde tekst van PathScribe.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De tekst wordt gebruikt door de controle op de dienst van het tabblad AI-gedrag, dus de AI-dienst wordt eerst ingericht. Slaat u die over, dan heeft een goedgekeurde tekst niets om op te draaien en meldt <strong>Deze tekst testen</strong> dat de AI niet beschikbaar is.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 5</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-tab-ai">AI-gedrag (tabblad)</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-clinical_mismatch_rules">Regels voor klinische discrepantie</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-ai_instructions.webp" alt="Disciplinetabbladen van AI-instructies met de kaarten In gebruik, Wacht op goedkeuring, Bewerken, Testen en Geschiedenis" loading="lazy"><figcaption>Disciplinetabbladen van AI-instructies met de kaarten In gebruik, Wacht op goedkeuring, Bewerken, Testen en Geschiedenis</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ai_instructions-discipline-tabs"><td>Disciplinetabbladen</td>
+<td>Keuze: Histologie, Cytologie, Autopsie</td>
+<td>Verplicht</td>
+<td>Elke discipline heeft een eigen tekst en geschiedenis.</td>
+<td>Histologie</td>
+</tr>
+<tr id="f-ai_instructions-in-use-version-n"><td><strong>In gebruik: versie N</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>De goedgekeurde versie die de controle nu gebruikt.</td>
+<td>Versie 0 (ingebouwde tekst)</td>
+</tr>
+<tr id="f-ai_instructions-awaiting-approval"><td><strong>Wacht op goedkeuring</strong></td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>De wachtende versie, indien aanwezig. Een nieuwe bewerking trekt de vorige wachtende versie in.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-ai_instructions-approve"><td><strong>Goedkeuren</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Maakt de wachtende versie de versie in gebruik. Geweigerd voor iedereen die de tekst sinds de laatste goedkeuring heeft bewerkt (SELF_APPROVAL). Vereist <code>config:ai-prompt:approve</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-ai_instructions-reject-reason"><td>Reden voor afwijzing</td>
+<td>Tekst</td>
+<td>Verplicht om af te wijzen</td>
+<td>De reden wordt bewaard in de geschiedenis.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-ai_instructions-reject"><td><strong>Afwijzen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Uitgeschakeld totdat een reden is ingevoerd. De goedgekeurde versie blijft in gebruik.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-ai_instructions-edit-text"><td>Tekst bewerken</td>
+<td>Tekstvak, maximaal 6000 tekens, met een teller</td>
+<td>Verplicht</td>
+<td>Mag niet leeg zijn, niet langer dan 6000 tekens en moet verschillen van de huidige tekst (anders: leeg, te lang of ongewijzigd).</td>
+<td>De tekst in gebruik</td>
+</tr>
+<tr id="f-ai_instructions-save-for-approval"><td><strong>Opslaan voor goedkeuring</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Maakt een nieuwe wachtende versie.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-ai_instructions-clinical-indication"><td><strong>Klinische indicatie</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Voorbeeldinvoer voor de test. Gevuld vanuit een ingebouwd voorbeeld.</td>
+<td>Voorbeeldtekst</td>
+</tr>
+<tr id="f-ai_instructions-clinical-history"><td><strong>Klinische voorgeschiedenis</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Voorbeeldinvoer voor de test.</td>
+<td>Voorbeeldtekst</td>
+</tr>
+<tr id="f-ai_instructions-findings"><td><strong>Bevindingen</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Voorbeeldinvoer voor de test.</td>
+<td>Voorbeeldtekst</td>
+</tr>
+<tr id="f-ai_instructions-diagnosis"><td><strong>Diagnose</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Voorbeeldinvoer voor de test.</td>
+<td>Voorbeeldtekst</td>
+</tr>
+<tr id="f-ai_instructions-pathologist-confirmed-malignant-finding"><td><strong>Door de patholoog bevestigde maligne bevinding</strong></td>
+<td>Ja/nee-selectievakje</td>
+<td>Optioneel</td>
+<td>Voorbeeldinvoer voor de test.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-ai_instructions-test-this-text"><td><strong>Deze tekst testen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Laat de wachtende of bewerkte tekst eenmaal op het voorbeeld draaien. Het resultaat is discrepantie, geen, niet toegestaan (door het leveranciersbeleid) of niet beschikbaar.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-ai_instructions-history"><td>Geschiedenis</td>
+<td>Alleen-lezenlijst</td>
+<td>Niet van toepassing</td>
+<td>Elke versie met haar status: wacht op goedkeuring, in gebruik, afgewezen, vervangen of vervangen vóór goedkeuring.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>, plus <code>config:ai-prompt:edit</code> of <code>config:ai-prompt:approve</code>. Het weergeven van versies vereist <code>config:ai-prompt:view</code> (<a class="term" href="99-glossary.html#g-qa" title="Kwaliteitsborging (quality assurance), de beoordeling van werk om problemen te vinden en te corrigeren.">QA</a> Reviewer en Lab Director). <code>config:ai-prompt:edit</code> heeft geen ingebouwde <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> en vereist <code>view</code>. <code>config:ai-prompt:approve</code> gaat alleen naar Lab Director en wordt onthouden aan Superadmin; het vereist <code>view</code>. Superadmin heeft <code>view</code> en <code>edit</code>. Functiescheiding: <code>config:ai-prompt:approve</code> mag niet samen met <code>config:clinical-mismatch-rules:manage</code> worden gehouden. Vastgelegd als <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code> en <code>AI_PROMPT_REJECTED</code>.</p>
+<p><strong>Bekende beperkingen.</strong> De serverkant is Niet gerealiseerd. Een persoon die alleen <code>view</code> heeft, zoals een QA Reviewer, kan het scherm niet openen, ook al zou de lijst voor hem laden.</p>
+<h3 id="screen-tab-validation"><a class="anchor" href="#screen-tab-validation" aria-label="Link to this section">#</a> Validatiestudies (tabblad)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd. Het werkt op de demonstratiegegevens en heeft een servercontract (<code>QUALITY_API.md</code>, <code>/api/validation-studies/...</code>).</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Validatiestudies</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Validatiestudies (het hele tabblad)</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> Een validatiestudie verzamelt bewijs dat een AI-model werkt op uw eigen <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>. Pathologen werken zoals gewoonlijk; bij het ondertekenen legt PathScribe voor elke AI-suggestie vast of zij ongewijzigd is geaccepteerd en hoeveel zij is bewerkt. De signalen zijn geanonimiseerd. Wanneer de studie wordt gesloten, beoordeelt het rapport het model, en alleen een oordeel GESLAAGD laat een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> dat model vastzetten. Het tabblad heeft drie subtabbladen, <strong>Studies</strong>, <strong>Dashboard</strong> en <strong>Rapporten</strong>, gekozen met <code>?section=studies</code>, <code>dashboard</code> of <code>reports</code>. De studies zijn adviserend: <code>validationMode</code> is altijd adviserend. Een banner meldt dat, en een schakelaar <strong>Hoe dit werkt — met een voorbeeld</strong> legt het proces uit.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Een studie valideert een model dat op het tabblad AI-gedrag is gekozen en schrijft faciliteiten in uit het Faciliteitenwoordenboek. Slaat u de modellen en de faciliteiten over, dan heeft het studieformulier niets om uit te kiezen.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 2</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-tab-ai">AI-gedrag (tabblad)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-validation-studies">Validatiestudies: Studies</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/tab-validation.webp" alt="Tabblad Validatiestudies met de adviesbanner en de drie subtabbladen" loading="lazy"><figcaption>Tabblad Validatiestudies met de adviesbanner en de drie subtabbladen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-validation-advisory-banner"><td>Adviesbanner</td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>Meldt dat een studie adviserend is.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-tab-validation-how-this-works-with-an-example"><td><strong>Hoe dit werkt — met een voorbeeld</strong></td>
+<td>Schakelaar</td>
+<td>Optioneel</td>
+<td>Toont of verbergt de uitgewerkte uitleg.</td>
+<td>Verborgen</td>
+</tr>
+<tr id="f-tab-validation-sub-tabs-studies-dashboard-reports"><td>Subtabbladen <strong>Studies</strong>, <strong>Dashboard</strong>, <strong>Rapporten</strong></td>
+<td>Keuze</td>
+<td>Verplicht</td>
+<td>Opent het bijbehorende scherm hieronder.</td>
+<td>Studies</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het tabblad verschijnt alleen voor een persoon met de <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> admin, pathologist-admin of superadmin. Dat is een rolcontrole, geen controle van een <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a>. Binnen het tabblad is het alleen-lezen zonder <code>config:validation-studies:manage</code> en <code>validation:approval:record</code>. Beide worden door Admin en Lab Director gehouden via de configuratiegroep voor kwaliteit. De rol Lab Director staat niet in de rolcontrole, dus hij heeft de machtigingen maar kan het tabblad niet openen.</p>
+<p><strong>Bekende beperkingen.</strong> Zie <a href="#screen-validation-studies">Validatiestudies: Studies</a>.</p>
+<h3 id="screen-validation-studies"><a class="anchor" href="#screen-validation-studies" aria-label="Link to this section">#</a> Validatiestudies: Studies</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies &gt; Studies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd.</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Validatiestudies</strong> &gt; subtabblad <strong>Studies</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Studies</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> De lijst met studies en het formulier om er een aan te maken. Een studie doorloopt de statussen concept, in afwachting van goedkeuring, goedgekeurd, actief, gesloten en gerapporteerd. De knoppen hangen af van de status: een concept heeft <strong>Bewerken</strong>, <strong>Indienen ter beoordeling</strong> en <strong>Verwijderen</strong>; een studie in afwachting heeft <strong>Goedkeuring vastleggen</strong>; een goedgekeurde studie heeft <strong>Activeren</strong> (geweigerd zonder METC-referentie); een actieve studie heeft <strong>Studie sluiten</strong>.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Het studieformulier kiest een model van het tabblad AI-gedrag, actieve faciliteiten en ingeschreven pathologen (gefilterd op de gekozen faciliteiten), en optioneel gepubliceerde verslagsjablonen. Slaat u de artsen over, dan is de lijst <strong>Ingeschreven pathologen</strong> leeg en kan een studie niet worden opgeslagen. Gepubliceerde sjablonen worden ingericht in <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Hoofdstuk 6</a>; zijn er geen, laat dan <strong>Rapportsjablonen</strong> leeg om alle sjablonen mee te nemen.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 3</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-tab-validation">Validatiestudies (tabblad)</a>, <a href="#screen-tab-ai">AI-gedrag (tabblad)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Artsen</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-validation-reports">Validatiestudies: Rapporten</a>, <a href="#screen-validation-dashboard">Validatiestudies: Dashboard</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/validation-studies.webp" alt="Lijst met validatiestudies met Nieuwe studie" loading="lazy"><figcaption>Lijst met validatiestudies met Nieuwe studie</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<h4>Formulier Nieuwe studie / Studie bewerken</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies &gt; Studies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<figure class="shot"><img src="../img/validation-studies-new.webp" alt="Formulier Nieuwe studie" loading="lazy"><figcaption>Formulier Nieuwe studie</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-study-name"><td><strong>Studienaam</strong></td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De naam die in de lijst en op het rapport wordt getoond.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-description"><td><strong>Beschrijving</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Doel van de studie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-ai-model-being-validated"><td><strong>Te valideren AI-model</strong></td>
+<td>Keuze uit modellen</td>
+<td>Verplicht</td>
+<td>Vergrendeld wanneer u bewerkt. Een link <strong>Blader door de ForMedrixAI-winkel</strong> (alleen nieuwe studies) opent het winkelvenster hieronder.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-target-acceptance-rate"><td><strong>Streefacceptatiegraad</strong></td>
+<td>Schuifregelaar 50% tot 100%, stap 5</td>
+<td>Verplicht</td>
+<td>Het deel van de suggesties dat ongewijzigd wordt geaccepteerd en een oordeel GESLAAGD oplevert.</td>
+<td>70%</td>
+</tr>
+<tr id="f-validation-studies-max-mean-edit-ratio"><td><strong>Maximale gemiddelde bewerkingsratio</strong></td>
+<td>Schuifregelaar 10% tot 90%, stap 5</td>
+<td>Verplicht</td>
+<td>Het maximum dat de pathologen suggesties gemiddeld mogen bewerken voor een oordeel GESLAAGD.</td>
+<td>30%</td>
+</tr>
+<tr id="f-validation-studies-start-date"><td><strong>Startdatum</strong></td>
+<td>Datum</td>
+<td>Verplicht</td>
+<td>Wanneer de studie begint.</td>
+<td>Vandaag</td>
+</tr>
+<tr id="f-validation-studies-irb-ethics-reference"><td><strong>METC-/ethiek-referentie</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Getoond op het formulier maar niet opgeslagen. De referentie wordt vastgelegd bij de goedkeuringsstap.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-participating-facilities"><td><strong>Deelnemende faciliteiten</strong></td>
+<td>Keuze uit actieve faciliteiten, meerdere</td>
+<td>Verplicht</td>
+<td>Signalen tellen alleen voor deze.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-enrolled-pathologists"><td><strong>Ingeschreven pathologen</strong></td>
+<td>Keuze uit pathologen, meerdere, gefilterd op de gekozen faciliteiten</td>
+<td>Verplicht</td>
+<td>Alleen hun ondertekeningen genereren signalen. De eerst gekozene wordt de hoofdonderzoeker; hiervoor is geen veld.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-report-templates"><td><strong>Rapportsjablonen</strong></td>
+<td>Keuze uit gepubliceerde sjablonen, meerdere</td>
+<td>Optioneel</td>
+<td>Leeg betekent alle sjablonen.</td>
+<td>Alle sjablonen</td>
+</tr>
+</tbody>
+</table>
+<h4>Venster Indienen voor ethiek-/METC-toetsing</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies &gt; Studies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-ethics-irb-committee-name"><td><strong>Naam ethiek-/METC-commissie</strong></td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De commissie waaraan de studie wordt voorgelegd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-submitted-by"><td><strong>Ingediend door</strong></td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Wie haar heeft ingediend.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-expected-review-date"><td><strong>Verwachte beoordelingsdatum</strong></td>
+<td>Datum</td>
+<td>Optioneel</td>
+<td>Wanneer een besluit wordt verwacht.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-notes-for-committee"><td><strong>Notities voor de commissie</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Vrije notities.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<h4>Venster Commissiegoedkeuring vastleggen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies &gt; Studies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-irb-ethics-reference-number"><td><strong>METC-/ethiek-referentienummer</strong></td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Zonder dit kan de studie niet worden geactiveerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-approved-by"><td><strong>Goedgekeurd door</strong></td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De goedkeurende persoon of instantie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-approval-date"><td><strong>Goedkeuringsdatum</strong></td>
+<td>Datum</td>
+<td>Verplicht</td>
+<td>De datum van goedkeuring.</td>
+<td>Vandaag</td>
+</tr>
+<tr id="f-validation-studies-committee-minutes-reference"><td><strong>Referentie commissienotulen</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Waar de notulen zijn gearchiveerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-validation-studies-conditions-attached-to-approval"><td><strong>Voorwaarden verbonden aan goedkeuring</strong></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Eventuele voorwaarden.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<h4>Venster ForMedrixAI Store</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies &gt; Studies"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<p>Toont modellen die ForMedrixAI na eigen regressietests heeft gepubliceerd en die uw organisatie niet heeft overgenomen. Elke rij toont het model, de publicatiedatum en het benchmarkcijfer van ForMedrixAI, en een knop <strong>Overnemen</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-adopt"><td><strong>Overnemen</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Voegt het model als Bèta aan uw organisatie toe, nooit als standaard, met nul <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, totdat uw eigen studie het bevestigt. Weigeringen: winkel niet gelicentieerd, geen organisatie, niet in de catalogus, al overgenomen.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> <code>config:validation-studies:manage</code> dekt aanmaken, bijwerken, ter beoordeling indienen, activeren, sluiten en verwijderen. <code>validation:approval:record</code> dekt het vastleggen van de commissiegoedkeuring. Het overnemen van een model vereist <code>config:ai-model:manage</code>. Admin en Lab Director hebben de eerste twee standaard. De studiegebeurtenissen worden vastgelegd als <code>validation_study_created</code>, <code>_submitted</code>, <code>_approval_recorded</code>, <code>_activated</code>, <code>_closed</code> en <code>_deleted</code>. Het opslaan van een bewerking logt <code>validation_study_created</code>, en bij activering wordt de letterlijke naam <code>admin</code> als persoon vastgelegd.</p>
+<p><strong>Bekende beperkingen.</strong> De licentiecontrole van de winkel is een simulatie die altijd slaagt, en autorisatie van het abonnement is openstaand werk (PS-59). De METC-referentie op het studieformulier wordt niet opgeslagen. Het formulier legt geen tweede beoordelaar vast, alleen een commissienaam.</p>
+<h3 id="screen-validation-dashboard"><a class="anchor" href="#screen-validation-dashboard" aria-label="Link to this section">#</a> Validatiestudies: Dashboard</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies &gt; Dashboard"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span> <span aria-hidden="true">›</span> <span>Dashboard</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd.</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Validatiestudies</strong> &gt; subtabblad <strong>Dashboard</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Dashboard</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> Een alleen-lezenweergave van hoe een lopende of gesloten studie ervoor staat. Gebruik haar om de acceptatiegraad te volgen voordat de studie sluit.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Het toont gegevens zodra een studie actief is en pathologen <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> hebben ondertekend. Zonder actieve studie is de studielijst leeg.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-validation-studies">Validatiestudies: Studies</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/validation-dashboard.webp" alt="Validatiedashboard met de studiekeuze en de prestatietabel" loading="lazy"><figcaption>Validatiedashboard met de studiekeuze en de prestatietabel</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-dashboard-study-selector"><td>Studiekeuze</td>
+<td>Keuze uit actieve of gesloten studies</td>
+<td>Verplicht</td>
+<td>Kiest de getoonde studie.</td>
+<td>De eerste studie</td>
+</tr>
+<tr id="f-validation-dashboard-cases-captured"><td>Vastgelegde cases</td>
+<td>Alleen-lezen geheel getal</td>
+<td>Niet van toepassing</td>
+<td>Casus met minstens één signaal.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals"><td>Sectiesignalen</td>
+<td>Alleen-lezen geheel getal</td>
+<td>Niet van toepassing</td>
+<td>Suggesties die bij het ondertekenen zijn vastgelegd.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-acceptance-rate-vs-target"><td>Acceptatiegraad ten opzichte van streefwaarde</td>
+<td>Alleen-lezenpercentage</td>
+<td>Niet van toepassing</td>
+<td>Vergeleken met de <strong>Streefacceptatiegraad</strong> van de studie.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-validation-dashboard-accepted-unchanged"><td>Onveranderd geaccepteerd</td>
+<td>Alleen-lezenpercentage</td>
+<td>Niet van toepassing</td>
+<td>Suggesties die zijn aangehouden zoals geschreven.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals-acceptance-mean-edit-ratio-most-common-edit"><td><strong>Sectie</strong>, <strong>Signalen</strong>, <strong>Acceptatie</strong>, <strong>Gemiddelde bewerkingsratio</strong>, <strong>Meest voorkomende bewerking</strong></td>
+<td>Tabelkolommen</td>
+<td>Niet van toepassing</td>
+<td>Prestaties per verslagsectie.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-validation-dashboard-advisory-notice"><td>Adviesmelding</td>
+<td>Alleen-lezentekst</td>
+<td>Niet van toepassing</td>
+<td>Meldt dat de cijfers adviserend zijn.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: dezelfde tabbladregels als <a href="#screen-tab-validation">Validatiestudies (tabblad)</a>. Niets op de pagina wijzigt gegevens.</p>
+<p><strong>Bekende beperkingen.</strong> Geen bekend.</p>
+<h3 id="screen-validation-reports"><a class="anchor" href="#screen-validation-reports" aria-label="Link to this section">#</a> Validatiestudies: Rapporten</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Validatiestudies &gt; Rapporten"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Validatiestudies</span> <span aria-hidden="true">›</span> <span>Rapporten</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd.</p>
+<p><strong>1. Navigatie:</strong> Configuratie, tabblad <strong>Validatiestudies</strong> &gt; subtabblad <strong>Rapporten</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Rapporten</p>
+<p><strong>3. Zakelijk doel en reikwijdte.</strong> Maakt het afgedrukte rapport dat een gesloten studie beoordeelt. Het oordeel is GESLAAGD wanneer de acceptatiegraad minstens de streefwaarde is en de gemiddelde bewerkingsratio hoogstens het maximum; VOORWAARDELIJK GESLAAGD wanneer de acceptatiegraad minstens 85% van de streefwaarde is; anders NADERE BEOORDELING. <strong>Rapport genereren en afdrukken</strong> opent een afdrukvenster, legt de uitvoer vast in het auditspoor, zet de studie op gerapporteerd en slaat het eindoordeel één keer op. Het oordeel wordt daarna nooit herberekend. Alleen een gerapporteerde studie met oordeel GESLAAGD, waarvan de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> onder de deelnemers valt, laat die faciliteit het model vastzetten als haar AI-overschrijving.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Een rapport vereist een gesloten studie. Sluit u haar niet, dan verschijnt de studie niet in de lijst.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 4, stap 4</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-validation-studies">Validatiestudies: Studies</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/validation-reports.webp" alt="Voorbeeld van het validatierapport en Rapport genereren en afdrukken" loading="lazy"><figcaption>Voorbeeld van het validatierapport en Rapport genereren en afdrukken</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-reports-study-selector"><td>Studiekeuze</td>
+<td>Keuze uit gesloten of gerapporteerde studies</td>
+<td>Verplicht</td>
+<td>Kiest de studie om te bekijken.</td>
+<td>De eerste studie</td>
+</tr>
+<tr id="f-validation-reports-report-preview"><td>Rapportvoorbeeld</td>
+<td>Alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>De cijfers en het oordeel zoals ze worden afgedrukt.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-validation-reports-generate-amp-print-report"><td><strong>Rapport genereren en afdrukken</strong></td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Drukt af, legt vast als <code>validation_report_generated</code>, zet de status op gerapporteerd en slaat het eindoordeel op.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Dezelfde tabbladregels als <a href="#screen-tab-validation">Validatiestudies (tabblad)</a>. Het genereren van het rapport gebruikt <code>config:validation-studies:manage</code>.</p>
+<p><strong>Bekende beperkingen.</strong> Het oordeel is definitief zodra het is opgeslagen; een onjuist oordeel kan niet vanuit het scherm opnieuw worden berekend.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

@@ -47,3 +47,5 @@ Pete, Oct 13, 2026: PathScribe stores links to images, never the images. `staffF
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - `staffFormChecks.ts`: `isHttpsLink` moved to `services/links/externalLink.ts`, shared with the logo and imaging address checks; re-exported here, so callers don't change.
+
+## Batch 658 — `roleDisplayName.ts`: a stored role name tidied for display (My Contribution subtitle), with a test.

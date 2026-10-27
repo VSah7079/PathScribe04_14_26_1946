@@ -25,3 +25,6 @@ New tests: `contextBuilder.prelimOverride.test.ts` (a template without a Prelimi
 ## Batch 612 (part C)
 
 `contextBuilder.ts`: the resolved narrative template carries `fontUnits` next to `documentStyle`.
+
+## Batch 651: confidence and source quote per section
+`narrativeProvenance.ts`: after a section streams, `OrchestratorEngine` makes one short non-streaming call under a closed schema (`{confidence, quote}`), reads the confidence on the 0 to 100 scale and checks the quote against the source text (`matchSourceInText`). `SectionResult.provenance` is `verified`, `unverified` (quote not found) or `unavailable`. It never affects the section text. Test: `narrativeProvenance.test.ts`.

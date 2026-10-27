@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { processInboundTelemetryReadingEvent } from './processInboundTelemetryReadingEvent';
 import type { MonitoredAssetType } from './ITelemetryReadingService';
 
@@ -49,7 +49,7 @@ export async function postSimulatedTelemetryReading(input: SimulatedReadingInput
   const excursion = !!result.excursion;
   const held = result.heldBatchId ? ' The batch is held until the excursion is acknowledged.' : '';
   const capa = result.deficienciesRaised ? ` ${result.deficienciesRaised} open cold-chain deficiency record(s) raised.` : '';
-  mockAuditService.logEvent({
+  auditService.logEvent({
     type: 'system', event: 'Simulated Temperature Reading',
     detail: `SIMULATED (no sensor feed): ${input.temperatureCelsius}°C posted for ${input.assetType === 'storage_unit' ? 'storage unit' : 'container'} ${input.assetLabel}. ${excursion ? 'Excursion.' : 'Within range.'}${held}${capa}`,
     user: input.user, caseId: null, confidence: null,

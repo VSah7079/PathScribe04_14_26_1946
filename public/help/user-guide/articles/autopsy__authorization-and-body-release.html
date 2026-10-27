@@ -1,0 +1,232 @@
+<h1 id="top">Autopsy Authorization and Body Release</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> An autopsy case can be opened before its legal authority is complete. This article covers the two windows on the report screen that finish an autopsy case at either end: <strong>Complete Authorization</strong>, where the written order or the family's consent is entered so that gross examination can go ahead, and <strong>Release Body</strong>, where you record where the body went once the preliminary diagnosis is signed.</p>
+<p><strong>Intended users.</strong> Pathologists, pathology assistants and the laboratory staff who handle autopsy paperwork. The release needs a specific permission, so the button is greyed out for roles without it.</p>
+<p><strong>Where it fits.</strong> The case is started on <a href="/help/accession">Accession</a> as a temporary accession. Both windows open from the case's <a href="/help/report">report</a> screen. The turnaround figures for the same cases are on the <a href="/help/autopsy">Autopsy Dashboards</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure ps-ug-figure--missing" data-capture="autopsy-authorization-and-body-release-overview"><figcaption>Screenshot to come: The Complete Authorization window for a hospital-consented autopsy</figcaption></figure>
+
+<p>Neither window has a menu entry of its own. A banner on the report screen opens each one, so this article has no address of its own and is reached from the links in related articles.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Complete Authorization window</strong></p>
+<p>The window is titled <strong>Complete Authorization</strong>. Its introduction says to enter the written authorization once it arrives, and that gross examination stays blocked until it is on file. A <strong>Temporary Accession</strong> badge shows while the case is still blocked. What follows depends on how the autopsy was authorized.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Already on File</td>
+<td>A heading above what was recorded at intake: for a legal (medicolegal) case, who gave the verbal order and when; for a hospital-consented case, the family point of contact and their relationship.</td>
+</tr>
+<tr>
+<td>Written Order</td>
+<td>Legal cases only. The heading above the two fields below.</td>
+</tr>
+<tr>
+<td>Order Reference</td>
+<td>The reference number of the written order, for example a coroner's order or form number.</td>
+</tr>
+<tr>
+<td>Order Date</td>
+<td>The date on the written order.</td>
+</tr>
+<tr>
+<td>Consent Grant</td>
+<td>Hospital-consented cases only. The heading above the consent fields.</td>
+</tr>
+<tr>
+<td>Consent Given At</td>
+<td>The date and time the family gave consent.</td>
+</tr>
+<tr>
+<td>Consent Scope</td>
+<td>What the consent covers, typed as words, for example "full" or "no organ retention", separated by commas.</td>
+</tr>
+<tr>
+<td>Excluded Organs</td>
+<td>Organs the consent leaves out of examination or retention, the hint in the box reads "e.g. brain, heart (comma-separated)". Terms the system does not recognise are ignored. Optional.</td>
+</tr>
+<tr>
+<td>Retention of tissue/organs is permitted</td>
+<td>A tick box, ticked at first. Clear it when the family did not agree to keep tissue or organs.</td>
+</tr>
+</tbody>
+</table>
+<p>A red star marks any field your organisation requires. A line beginning "Still required" lists what is missing, and <strong>Save Authorization</strong> stays grey until it is complete. A second badge below the fields previews the result: <strong>Temporary Accession</strong> with the note that gross examination cannot begin until full authorization is on file, or <strong>Fully Authorized</strong> with a note that saving will allow gross examination to proceed.</p>
+<p><strong>Release Body window</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Released To</td>
+<td>Who received the body. The hint reads "e.g. Smith Family Funeral Home".</td>
+</tr>
+<tr>
+<td>Released By</td>
+<td>The staff member who handed it over. The hint reads "e.g. Tech: M. Davis".</td>
+</tr>
+</tbody>
+</table>
+<p>The window is titled <strong>Release Body</strong>, with the line "Record where the body is being released to. This becomes part of the specimen's own permanent location history." If the case is not ready, the window lists the reasons instead of the fields: release needs a signed Preliminary Anatomical Diagnosis (the final report is not required), and it is blocked while an ancillary hold is active.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Complete authorization</td>
+<td>On the amber report-screen banner "Autopsy: temporary accession, written authorization pending". Opens the Complete Authorization window. Another button beside it lets a person with the override permission continue with a recorded reason.</td>
+</tr>
+<tr>
+<td>Save Authorization</td>
+<td>Saves the authorization on the case and closes the window. A message reads "Authorization recorded". Grey until the required fields are complete.</td>
+</tr>
+<tr>
+<td>Release Body</td>
+<td>On the banner "Autopsy — Ready for Body Release", which appears once the preliminary diagnosis is signed and no hold is active. Opens the Release Body window.</td>
+</tr>
+<tr>
+<td>Confirm Release</td>
+<td>Records the release and closes the window. A message reads "Body released". It shows "Releasing…" while it works, and is grey until both fields are filled or when you lack the release permission.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Temporary Accession</td>
+<td>Authority is not complete. Gross examination is blocked.</td>
+</tr>
+<tr>
+<td>Fully Authorized</td>
+<td>The order or consent is on file.</td>
+</tr>
+<tr>
+<td>Autopsy — Ready for Body Release</td>
+<td>The preliminary diagnosis is signed and nothing is holding the case.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Spoken phrase</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+Alt+Shift+3</td>
+<td>"record authorization"</td>
+<td>Saves the authorization while the window is open, with the same checks as the button.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+4</td>
+<td>"release body"</td>
+<td>Confirms the release while the window is open, with the same checks.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the autopsy case's report screen. If the banner reads "Autopsy: temporary accession, written authorization pending", select <strong>Complete authorization</strong>.</li>
+<li>For a legal case, type the <strong>Order Reference</strong> and choose the <strong>Order Date</strong>. For a hospital-consented case, enter <strong>Consent Given At</strong> and <strong>Consent Scope</strong>, list any <strong>Excluded Organs</strong>, and clear <strong>Retention of tissue/organs is permitted</strong> if retention was refused.</li>
+<li>Check that the badge below reads <strong>Fully Authorized</strong>, then select <strong>Save Authorization</strong>. The window closes and gross examination can proceed.</li>
+<li>After the preliminary diagnosis is signed, the banner "Autopsy — Ready for Body Release" appears. Select <strong>Release Body</strong>.</li>
+<li>Type <strong>Released To</strong>, for example "Smith Family Funeral Home", and <strong>Released By</strong>, for example "Tech: M. Davis". Select <strong>Confirm Release</strong>. The banner disappears and the release joins the body's location history.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Use the keys or spoken phrases in the Hotkeys table instead of the buttons.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The authorization has not arrived.</strong> Leave the case as a temporary accession. Do not enter an order reference you do not have; a person with the override permission can continue with a recorded reason.</li>
+<li><strong>The release window lists reasons instead of fields.</strong> Sign the preliminary diagnosis, or wait for the ancillary hold to be lifted.</li>
+<li><strong>The consent was narrowed or withdrawn later.</strong> This window does not do that. Use the consent controls on the autopsy panel of the report screen.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If <strong>Confirm Release</strong> shows "Something went wrong. Please try again.", select it again. If the case changed while you worked, reopen the case first.</li>
+<li>If you do not have permission, the message says so; ask a colleague who holds it.</li>
+<li>A release cannot be undone from this window. Check both names before you confirm.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Leaving the retention box ticked when the family refused retention.</li>
+<li>Typing the person who released the body into <strong>Released To</strong>.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Enter the written order as soon as it arrives so that gross examination is not held up.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Record the release the same day, while the names are fresh.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: where the temporary autopsy accession is created.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: sign-out of the preliminary and final diagnoses.</li>
+<li><a href="/help/autopsy">Autopsy Dashboards</a>: turnaround against target.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Save Authorization is grey</td>
+<td>A required field is empty; read the "Still required" line.</td>
+</tr>
+<tr>
+<td>No Release Body banner</td>
+<td>The preliminary diagnosis is not signed, a hold is active, or the body was already released.</td>
+</tr>
+<tr>
+<td>Confirm Release is grey</td>
+<td>Released To or Released By is empty, or your role lacks the release permission.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the line under the fields and fill what it names.</li>
+<li>Check the case for a hold and for a signed preliminary diagnosis.</li>
+<li>Ask your laboratory manager about the release permission.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a saved authorization does not clear the banner, or a release is confirmed but does not appear in the body's history. Have the case number and the time of the problem ready.</p>

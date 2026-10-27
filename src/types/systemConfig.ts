@@ -141,7 +141,8 @@ export type Jurisdiction =
   | 'BE'
   | 'NL'
   | 'DE'
-  | 'FR';
+  | 'FR'
+  | 'ES';
 
 /** Human-readable label for each jurisdiction. Used in the admin UI. */
 export const JURISDICTION_LABELS: Record<Jurisdiction, string> = {
@@ -158,6 +159,7 @@ export const JURISDICTION_LABELS: Record<Jurisdiction, string> = {
   NL:     'Netherlands',
   DE:     'Germany',
   FR:     'France',
+  ES:     'Spain',
 };
 
 /** ICD-10 variant for a given jurisdiction. */
@@ -183,6 +185,9 @@ export const icd10VariantForJurisdiction = (j: Jurisdiction): string => ({
   NL:     'ICD-10 (WHO)',
   DE:     'ICD-10-GM',
   FR:     'CIM-10',
+  // CIE-10-ES (Spanish Ministry of Health): the Spanish adaptation of the
+  // US ICD-10-CM / ICD-10-PCS, not the WHO ICD-10 (docs/product/SPAIN_RESEARCH.md).
+  ES:     'CIE-10-ES',
 }[j]);
 
 /** SNOMED CT release name for a given jurisdiction. */
@@ -204,6 +209,9 @@ export const snomedReleaseForJurisdiction = (j: Jurisdiction): string => ({
   NL:     'SNOMED CT Netherlands Edition (DHD/Nictiz)',
   DE:     'SNOMED CT Germany Edition (BfArM)',
   FR:     'SNOMED CT France Edition (ANS)',
+  // Spain is a SNOMED International member. Whether a US vendor qualifies for
+  // the free national licence is unverified (SPAIN_RESEARCH.md): treat as unlicensed. A customer that holds one records it under Configuration > System > Code Systems (Batch 623, PS-130).
+  ES:     'SNOMED CT Spanish Edition (Ministerio de Sanidad)',
 }[j]);
 
 /** True if a manually obtained license is required before seeding production. */
@@ -250,6 +258,8 @@ export const JURISDICTION_LOCALE: Record<Jurisdiction, JurisdictionLocale> = {
   NL:     { locale: 'nl-NL', dateFormat: 'DD-MM-YYYY', timeFormat: '24h', spellLang: 'nl-NL' },
   DE:     { locale: 'de-DE', dateFormat: 'DD.MM.YYYY', timeFormat: '24h', spellLang: 'de-DE' },
   FR:     { locale: 'fr-FR', dateFormat: 'DD/MM/YYYY', timeFormat: '24h', spellLang: 'fr-FR' },
+  // Spain: day first with slashes, 24-hour clock (es-ES).
+  ES:     { locale: 'es-ES', dateFormat: 'DD/MM/YYYY', timeFormat: '24h', spellLang: 'es-ES' },
 };
 
 // ── Patient identifier standards ──────────────────────────────────────────────
@@ -365,6 +375,11 @@ export const PATIENT_ID_BY_JURISDICTION: Record<Jurisdiction, PatientIdStandard>
   // key = 97-40 = 57, giving 183126912345657 — verified valid before
   // use here, the same discipline as NL's own BSN example above.
   FR:     { labelKey: 'systemConfig.patientIdStandard.FR.label', pattern: '^[12]\\d{2}(0[1-9]|1[0-2])\\d{10}$', formatKey: 'systemConfig.patientIdStandard.FR.format', example: '183126912345657', luhnCheck: true  },
+  // DNI (8 digits + control letter) or NIE (X, Y or Z + 7 digits + letter). The
+  // letter is the number mod 23 (TRWAGMYFPDXBNJZSQVHLCKE); 12345678Z is a valid
+  // DNI. luhnCheck: false because no validator for it is wired yet. The regional
+  // health card (CIP) and the national SNS code are not modelled here.
+  ES:     { labelKey: 'systemConfig.patientIdStandard.ES.label', pattern: '^(\\d{8}|[XYZ]\\d{7})[A-Z]$', formatKey: 'systemConfig.patientIdStandard.ES.format', example: '12345678Z', luhnCheck: false },
 };
 
 
@@ -479,6 +494,7 @@ export const IDENTIFIER_FORMAT_LIBRARY: IdentifierFormat[] = [
   { id: 'mrn_bsn',                  kind: 'mrn',         label: 'BSN (Burgerservicenummer)',             description: 'Netherlands citizen service number: 8 or 9 digits, elfproef (eleven-test) checksum.',                     pattern: '^\\d{8,9}$',                                          barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['NL'],                           lisPresets: [],                             enabled: false, example: '111222333'       },
   { id: 'mrn_kvnr',                 kind: 'mrn',         label: 'KVNR (Krankenversichertennummer)',      description: 'Germany health insurance number: 1 uppercase letter + 9 digits — a dedicated, healthcare-only identifier, not the general Sozialversicherungsnummer.', pattern: '^[A-Z]\\d{9}$', barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['DE'],                           lisPresets: [],                             enabled: false, example: 'A123456789'      },
   { id: 'mrn_ins',                  kind: 'mrn',         label: 'INS (numéro de sécurité sociale / NIR)', description: 'France national health identity, numerically built on the NIR: 15 digits (13-digit identification + Modulus 97 check key).', pattern: '^[12]\\d{2}(0[1-9]|1[0-2])\\d{10}$',  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['FR'],                           lisPresets: [],                             enabled: false, example: '183126912345657' },
+  { id: 'mrn_dni_nie',               kind: 'mrn',         label: 'DNI / NIE (España)', description: 'Spain national identity number: DNI (8 digits + control letter) or NIE (X, Y or Z + 7 digits + control letter). The letter is the number mod 23; no check is wired yet. The regional health card (CIP) is not modelled.', pattern: '^(\\d{8}|[XYZ]\\d{7})[A-Z]$',  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['ES'],                           lisPresets: [],                             enabled: false, example: '12345678Z' },
   // Batch 417 (Registry Engine SRS v2.1, §5.2): national identifiers the
   // registries key on that had no entry. kind 'mrn' so scanning and search
   // treat them as patient identifiers; off by default like the others.
@@ -517,7 +533,7 @@ export function defaultFormatsForJurisdiction(j: Jurisdiction): IdentifierFormat
     // Real, same honest choice as KR above — accession numbering
     // isn't a government-mandated format for these four either.
     BE: 'accession_generic_uk', NL: 'accession_generic_uk',
-    DE: 'accession_generic_uk', FR: 'accession_generic_uk',
+    DE: 'accession_generic_uk', FR: 'accession_generic_uk', ES: 'accession_generic_uk',
   };
   const mrnMap: Record<Jurisdiction, string> = {
     US: 'mrn_us', CA: 'mrn_us',
@@ -525,7 +541,7 @@ export function defaultFormatsForJurisdiction(j: Jurisdiction): IdentifierFormat
     GB_NIR: 'mrn_hc', IE: 'mrn_us',
     AU: 'mrn_ihi', NZ: 'mrn_nhi',
     KR: 'mrn_krn',
-    BE: 'mrn_be', NL: 'mrn_bsn', DE: 'mrn_kvnr', FR: 'mrn_ins',
+    BE: 'mrn_be', NL: 'mrn_bsn', DE: 'mrn_kvnr', FR: 'mrn_ins', ES: 'mrn_dni_nie',
   };
   const enabledIds = new Set([accessionMap[j], mrnMap[j], 'block_generic']);
   return IDENTIFIER_FORMAT_LIBRARY.map(f => ({ ...f, enabled: enabledIds.has(f.id) }));

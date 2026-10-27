@@ -1,3 +1,9 @@
+**Batch 650:** `BottomActionBar.tsx` draws Sign Out Case, Finalise / Finalise & Next and Request Amendment from `bottomBarVisibility` and calls `useBottomBarActionEvents`, so a command and its button can never disagree.
+
+**Batch 649 (Amendment window):** `BottomActionBar.tsx` Amend is greyed (title: `caseActionPermissions.revisionNone`) when the person may release none of an amendment, a correction or an addendum; `AmendmentDraftBanner.tsx` Edit likewise. Test: `AmendmentDraftBanner.capability.test.tsx`.
+
+**Batch 649:** `BottomActionBar.tsx` Claim, Release preliminary, Sign out and Finalize are `CapabilityButton`s (`BottomActionBar.css` styles them); `ReleaseBufferBanner.tsx` Recall is greyed without `report:release:recall`.
+
 # pages/SynopticReportPage/components/
 
 Presentational and semi-presentational pieces specific to the case report page — real business logic lives in `../hooks/`, not here. 27 component files (plus tests).
@@ -257,3 +263,16 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 `SmartCaptureLauncher.tsx`: the Smart Capture prototype drawer in `BillingReviewPanel` (suggested lines with rule and evidence, accept/reject, pathologist confirmation, payload preview, export). Labelled *Prototype, not compliance-reviewed*.
 
 - Batch 612 (part A): `Sidebar.tsx` mounts `VendorFieldsPanel` after the add-synoptic button.
+
+## Batch 650 (650a)
+
+`OrchestratorSectionEditor.tsx` and `MicroscopicEntryPanel.tsx` put dictated text in through `dictationWriterFor(editor)` (replace the provisional text once; learn corrections). The Report Draft listens for `PATHSCRIBE_ORCH_DICTATE_SECTION` with a `kind` (gross, microscopic, synoptic, diagnosis, admin) as well as an index; the Microscopic entry listens for `PATHSCRIBE_ENTER_MICRO`. The effects that waited for dictation phase with no target (never produced) are removed.
+
+
+
+## Batch 651
+`NarrativeProvenanceNote.tsx`: the AI's confidence and source quote under an AI-written narrative section in `OrchestratorSectionEditor` (same inline style as the synoptic suggestions; unverified when the quote is not found).
+
+- Batch 664: `BottomActionBar.tsx` has a Sign Out & Next button (Orchestration, shown with Sign Out Case, same capability); `OrchestratorSectionEditor.tsx` and `MicroscopicEntryPanel.tsx` give their dictation targets `uncommitted` / `discard` so Cancel can remove a session's dictated text.
+
+- Batch 665: `RightSynopticPanel.tsx` calls `useSynopticEditField` (no line added; still 1,886 lines).

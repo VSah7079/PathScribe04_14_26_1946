@@ -1,6 +1,6 @@
 // src/pages/contributionDashboardCalculations.test.ts
 import { describe, it, expect } from 'vitest';
-import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, qualityFlagText, catalogueFlagSeverity, type CatalogueFlagForQualityFlags, type CaseForDashboardCalc, type DeficiencyForQualityFlags, type DiscordanceRecordForQualityFlags, type CaseForQualityFlagsScoping } from './contributionDashboardCalculations';
+import { computeOverviewKpis, peerGroupForComparison, type PeerStaffRecord, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, qualityFlagText, catalogueFlagSeverity, type CatalogueFlagForQualityFlags, type CaseForDashboardCalc, type DeficiencyForQualityFlags, type DiscordanceRecordForQualityFlags, type CaseForQualityFlagsScoping } from './contributionDashboardCalculations';
 import type { RvuTableVersion } from '../services/billing/RvuTableVersion';
 
 function makeCase(over: Partial<CaseForDashboardCalc> = {}): CaseForDashboardCalc {
@@ -565,5 +565,57 @@ describe('computeTopQualityFlags', () => {
     expect(q.deficiencySpecimen).toContain('{{specimen}}');
     expect(q.deficiencyCase).toContain('{{name}}');
     expect(q.discordance).toContain('{{name}}');
+  });
+});
+
+describe('computePeerKpiAverages (Batch 652) - real peer averages, replacing the fixed 109 / 18 / 76', () => {
+  const now = new Date('2026-04-01T00:00:00.000Z');
+  const staff = (id: string, over: Partial<import('./contributionDashboardCalculations').PeerStaffRecord> = {}) =>
+    ({ id, roles: ['Pathologist'], status: 'Active', facilityIds: ['F1'], ...over });
+  const finalized = (by: string, n: number) => Array.from({ length: n }, (_, i) =>
+    makeCase({ id: `${by}-${i}`, order: { assignedTo: by }, status: 'finalized', diagnostic: { finalizedBy: by, issuedDate: '2026-03-20T00:00:00.000Z' } }));
+
+  it('averages the peers who share the role and a facility, excluding the person', async () => {
+    const { computePeerKpiAverages } = await import('./contributionDashboardCalculations');
+    const cases = [...finalized('a', 2), ...finalized('b', 4), ...finalized('c', 6), ...finalized('me', 50)];
+    const r = computePeerKpiAverages(cases, staff('me'), [staff('me'), staff('a'), staff('b'), staff('c')], now);
+    expect(r.enough).toBe(true);
+    expect(r.peerCount).toBe(3);
+    expect(r.casesFinalized30d).toBe(4);
+  });
+
+  it('says not enough data with fewer than 3 peers, and returns no figure', async () => {
+    const { computePeerKpiAverages } = await import('./contributionDashboardCalculations');
+    const r = computePeerKpiAverages(finalized('a', 9), staff('me'), [staff('me'), staff('a'), staff('b')], now);
+    expect(r.enough).toBe(false);
+    expect(r.peerCount).toBe(2);
+    expect(r.casesFinalized30d).toBeNull();
+    expect(r.casesInProgress).toBeNull();
+    expect(r.aiAssistedCases30d).toBeNull();
+  });
+
+  it('leaves out other roles, inactive staff and staff at no common facility; empty facilities means all', async () => {
+    const { selectPeerGroup } = await import('./contributionDashboardCalculations');
+    const ids = selectPeerGroup(staff('me'), [
+      staff('me'), staff('same'), staff('tech', { roles: ['Histotech'] }), staff('gone', { status: 'Inactive' }),
+      staff('other-site', { facilityIds: ['F2'] }), staff('all-sites', { facilityIds: [] }),
+    ]);
+    expect(ids.sort()).toEqual(['all-sites', 'same']);
+  });
+
+  it('has no peers when the person has no record or no role', async () => {
+    const { selectPeerGroup } = await import('./contributionDashboardCalculations');
+    expect(selectPeerGroup(undefined, [staff('a')])).toEqual([]);
+    expect(selectPeerGroup(staff('me', { roles: [] }), [staff('a')])).toEqual([]);
+  });
+});
+
+describe('peerGroupForComparison (Batch 658: one peer rule)', () => {
+  const mk = (id: string, roles = ['Pathologist']): PeerStaffRecord => ({ id, roles, status: 'Active' });
+  it('gives the same-role group, or nobody under three peers', () => {
+    const me = mk('me');
+    expect(peerGroupForComparison(me, [me, mk('a'), mk('b'), mk('c'), mk('t', ['Technician'])])).toEqual(['a', 'b', 'c']);
+    expect(peerGroupForComparison(me, [me, mk('a'), mk('b')])).toEqual([]);
+    expect(peerGroupForComparison(undefined, [mk('a')])).toEqual([]);
   });
 });

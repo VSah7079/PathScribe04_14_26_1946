@@ -38,8 +38,10 @@ describe('resolveCytologySignOutAuthority', () => {
     expect(resolveCytologySignOutAuthority({ ...input, context: ctx(labGrants) }).finalizeDecision).toMatchObject({ granted: true });
   });
 
-  it('keeps the administrator override on the pathologist track', () => {
+  it('Batch 649: no administrator override; a superadmin who is not a participant is refused, one who is an active primary is granted', () => {
     const r = resolveCytologySignOutAuthority({ isPathologistTrack: true, session: { id: 'a-1', role: 'superadmin' }, participants: [], context: ctx() });
-    expect(r.finalizeDecision).toMatchObject({ granted: true });
+    expect(r.finalizeDecision).toMatchObject({ granted: false, dimension: 'not-a-participant' });
+    const asParticipant = resolveCytologySignOutAuthority({ isPathologistTrack: true, session: { id: 'a-1', role: 'superadmin' }, participants: [part('a-1', ['primary'])], context: ctx() });
+    expect(asParticipant.finalizeDecision).toMatchObject({ granted: true });
   });
 });

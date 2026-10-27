@@ -1,0 +1,349 @@
+<h1 id="top">Autopsy Dashboards</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Autopsy Dashboards screen shows how the autopsy service is performing. It answers four questions at three levels: are the preliminary (PAD) and final (FAD) anatomic diagnosis reports being signed on time, what is the state of consent, how much tissue is being kept (organ retention), and what are the causes of death. The three levels are <strong>Case</strong> (one autopsy against its targets), <strong>Department</strong> (one facility, with the reports overdue right now) and <strong>Enterprise</strong> (every facility and jurisdiction side by side).</p>
+<p><strong>Intended users.</strong> Laboratory directors, quality reviewers, administrators and anyone your laboratory has given the "Open Autopsy Dashboards" permission. The screen is for oversight. It does not change a case, sign a report or send a reminder.</p>
+<p><strong>Where it fits.</strong> Open it from Home, then <strong>Quality &amp; Compliance</strong>, then the <strong>Autopsy Dashboards</strong> tile. The cases themselves are worked in the <a href="/help/worklist">Worklist</a> and the <a href="/help/report">report</a> screen. The screen reads those cases and the turnaround targets your laboratory has set, and works out the figures every time you open it.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>Simulated cases are switched on by default. They give a demonstration site enough volume for a percentage to mean something. They carry ids beginning <strong>SIM-A</strong>, their facility names end in "(Simulated)", and a banner says how many are included. They are not real patients, and nothing about them is written to the audit log. Tick off <strong>Include Simulated cases</strong> to see only real cases. Real autopsy cases have no recorded cause of death yet, so they are counted as "Not recorded" (see Field definitions). The figures come from the cases held in this browser session in the demonstration build; the reporting store for a live installation is not built yet.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/autopsy-overview.png" alt="The Autopsy Dashboards at Enterprise level with the four panels and the facility and jurisdiction tables"><figcaption>The Autopsy Dashboards at Enterprise level with the four panels and the facility and jurisdiction tables</figcaption></figure>
+
+<p>At the top are the title and a one-line description, then three controls: the level tabs, the <strong>Period</strong> choice and the <strong>Include Simulated cases</strong> tick box. Under them, a level-specific picker (for Case and Department), the four panels, and then, for Department and Enterprise, an extra table.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Controls</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case / Department / Enterprise (tabs)</td>
+<td>The level of the dashboard. It opens on Enterprise.</td>
+</tr>
+<tr>
+<td>Period</td>
+<td><strong>Last 30 days</strong>, <strong>Last 90 days</strong> (the default), <strong>Last 12 months</strong> or <strong>All time</strong>. A case belongs to the period by the date the body arrived, not by the date a report was signed.</td>
+</tr>
+<tr>
+<td>Include Simulated cases</td>
+<td>On by default. Adds the demonstration cases to every figure.</td>
+</tr>
+<tr>
+<td>Case (picker, Case level)</td>
+<td>Lists the cases in the period, newest arrival first. It opens on the most recent. Simulated cases show "Simulated" after the id.</td>
+</tr>
+<tr>
+<td>Department (picker, Department level)</td>
+<td>Lists the facilities that have cases in the period, in alphabetical order. It opens on the first.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Case detail (Case level only)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Facility</td>
+<td>The facility the case belongs to.</td>
+</tr>
+<tr>
+<td>Authority</td>
+<td><strong>Hospital (consented)</strong> or <strong>Statutory / judicial</strong> (for example a coroner's or forensic case).</td>
+</tr>
+<tr>
+<td>Body arrived</td>
+<td>The date and time the clock started (see "How the turnaround clock works" below).</td>
+</tr>
+<tr>
+<td>Preliminary (PAD) / Final (FAD)</td>
+<td>A coloured badge, then "X h of Y h": hours used so far against the whole window. If the case spent time on ancillary hold (for example waiting for toxicology), "N h on hold not counted" is added.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Turnaround panel</strong> (one block for <strong>Preliminary (PAD)</strong> and one for <strong>Final (FAD)</strong>)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"N% within target"</td>
+<td>Of the reports that are decided, the share signed inside the target. A report is <em>decided</em> once it is signed (on time or late) or has gone overdue unsigned. It reads "No reports decided yet" when there are none.</td>
+</tr>
+<tr>
+<td>"X of Y decided"</td>
+<td>X reports were signed on time out of Y decided.</td>
+</tr>
+<tr>
+<td>"N open"</td>
+<td>Reports not yet signed and not yet overdue (badges <strong>On track</strong> and <strong>Due soon</strong>).</td>
+</tr>
+<tr>
+<td>"N overdue"</td>
+<td>Reports not signed and past their deadline. Shown in red when above zero.</td>
+</tr>
+<tr>
+<td>"median N h"</td>
+<td>The middle value of the hours taken, for reports that were signed (on time or late). With an even number of reports it is the average of the two middle values, rounded. Hold time is removed. It is left out when no report is signed.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Consent panel.</strong> A bar and a count for each of <strong>Consent in force</strong>, <strong>Narrowed</strong>, <strong>Consent revoked</strong> and <strong>Not applicable (statutory)</strong>. Statutory or judicial cases are always counted as not applicable. A hospital case with no consent record counts as in force.</p>
+<p><strong>Organ retention panel.</strong> A bar and a count for <strong>No tier recorded</strong>, <strong>Tier 0: none kept</strong>, <strong>Tier 1: diagnostic tissue only</strong>, <strong>Tier 2: full organs</strong> and <strong>Tier 3: education, research, genomic</strong>.</p>
+<p><strong>Cause of death panel.</strong> One bar per broad category (Cardiovascular, Respiratory, Infection, Neoplasm, Neurological, External causes, Undetermined, Not recorded), largest first. A note explains that a case without a recorded cause is counted as not recorded, and that a live case holds its cause in the signed report text.</p>
+<p>For the consent, retention and cause bars, the bar length is the count divided by the number of cases at that level, so the bars show shares of the whole.</p>
+<p><strong>Reports overdue now (Department level only)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case id and "PAD overdue by N h"</td>
+<td>The report the case is working towards that is past its deadline, longest overdue first. "Nothing is overdue." appears when the list is empty.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>By facility and By jurisdiction (Enterprise level only)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cases</td>
+<td>Cases in the period for that facility or jurisdiction.</td>
+</tr>
+<tr>
+<td>PAD in target / FAD in target</td>
+<td>The "within target" percentage described above, or a dash when nothing is decided yet.</td>
+</tr>
+<tr>
+<td>Overdue now</td>
+<td>Cases whose PAD or FAD is overdue. Red when above zero.</td>
+</tr>
+<tr>
+<td>Consent revoked</td>
+<td>Cases whose hospital consent has been revoked.</td>
+</tr>
+</tbody>
+</table>
+<p>The tables list the largest group first.</p>
+<p><strong>How the figures are worded</strong></p>
+<p>The numbers replace the braces in these lines.</p>
+<table>
+<thead>
+<tr>
+<th>Line</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>median {{hours}} h</td>
+<td>On the panels: the middle time in hours for signed reports.</td>
+</tr>
+<tr>
+<td>{{within}} of {{decided}} decided</td>
+<td>On the panels: how many of the decided reports met the target.</td>
+</tr>
+<tr>
+<td>{{tier}} overdue by {{hours}} h</td>
+<td>In the Department list of overdue reports: PAD or FAD, and how far past its deadline.</td>
+</tr>
+<tr>
+<td>{{elapsed}} h of {{target}} h</td>
+<td>On a Case: hours used against the target for that report.</td>
+</tr>
+</tbody>
+</table>
+<p>Where the case details are shown, a link to the window for finishing the paperwork is in <a href="/help/autopsy/authorization-and-body-release">Authorization and Body Release</a>.</p>
+<h3 id="how-the-turnaround-clock-works">How the turnaround clock works</h3>
+<ul>
+<li><strong>Clock start.</strong> Body arrival: the earliest specimen receipt time on the case, otherwise the order's received date, otherwise the time the case was created.</li>
+<li><strong>Target.</strong> If your administrator has set an active "Autopsy PAD" or "Autopsy FAD" turnaround rule (calendar hours, which can differ by facility), that rule is used. Otherwise the target for the case's jurisdiction is used. For example, in the United States the PAD is due within 2 working days and the FAD within 60 days; in England and Wales the PAD is due within 48 hours and the FAD within 21 working days. A range counts to its upper end.</li>
+<li><strong>Working days.</strong> Saturdays and Sundays are skipped. Public holidays are not known, so a working-day target can only come out later than it should, never earlier.</li>
+<li><strong>Hold time.</strong> Time on ancillary hold is added to the deadline and taken off the hours used.</li>
+<li><strong>Verdict.</strong> Once signed: <strong>Target met</strong> or <strong>Signed late</strong>. Not yet signed: <strong>Overdue</strong> after the deadline, <strong>Due soon</strong> in the last fifth of the window, otherwise <strong>On track</strong>.</li>
+<li><strong>The PAD and the FAD.</strong> Each has its own deadline from the same start time. A case works towards its PAD until the PAD is signed, then towards its FAD. The Reports overdue now list shows only that current report, so a FAD that is past its deadline while the PAD is still unsigned is counted in the totals but is not yet listed as someone's task.</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<p>There is no toolbar, no export and no print button. The three controls at the top are the only buttons on the screen. There is no Refresh button either: the figures are worked out when the screen opens, so open it again to bring them up to date.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Target met</strong> badge</td>
+<td>The report was signed inside its target.</td>
+</tr>
+<tr>
+<td><strong>Signed late</strong> badge</td>
+<td>The report was signed after its deadline.</td>
+</tr>
+<tr>
+<td><strong>On track</strong> badge</td>
+<td>Not signed, plenty of time left.</td>
+</tr>
+<tr>
+<td><strong>Due soon</strong> badge</td>
+<td>Not signed, in the last fifth of the window.</td>
+</tr>
+<tr>
+<td><strong>Overdue</strong> badge or red numbers</td>
+<td>Past the deadline and not signed.</td>
+</tr>
+<tr>
+<td><strong>Simulated</strong> tag</td>
+<td>A demonstration case. Never a real patient.</td>
+</tr>
+<tr>
+<td>Banner "N Simulated cases are included…"</td>
+<td>Simulated cases are in the figures.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None. The screen has no keyboard shortcuts of its own.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>From Home, open <strong>Quality &amp; Compliance</strong>, then <strong>Autopsy Dashboards</strong>. The screen opens at <strong>Enterprise</strong> level for the last 90 days, with Simulated cases included. If your role cannot open the screen, you see a short "no access" page with a way back to Home.</li>
+<li>Decide whether you want demonstration cases. For real figures only, untick <strong>Include Simulated cases</strong>. The banner disappears and every figure recalculates.</li>
+<li>Choose a <strong>Period</strong>. The figures recalculate at once. If nothing falls in the period you see "No autopsy cases in this period."</li>
+<li>Read the Enterprise tables. Look at <strong>Overdue now</strong> and the two "in target" columns for each facility and each jurisdiction.</li>
+<li>Select the <strong>Department</strong> tab, then pick a facility. The four panels now describe that facility only, and <strong>Reports overdue now</strong> lists each late case.</li>
+<li>Select the <strong>Case</strong> tab, then pick a case. The case detail shows its two badges and the hours used against each target.</li>
+<li>To act on an overdue case, open it from the <a href="/help/worklist">Worklist</a> (the case id is shown in the list; the dashboard does not open the case itself).</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>For a monthly or quarterly review, work from the top down: Enterprise (which facility or jurisdiction is the problem), then Department (which cases), then Case (why: look for hours on hold).</li>
+<li>To compare a recent period with a longer one, switch <strong>Period</strong> between Last 30 days and Last 12 months and note the change in the "within target" percentages.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>A case seems missing.</strong> The period uses the body arrival date. A case that arrived 100 days ago does not appear under Last 90 days. Choose Last 12 months or All time.</li>
+<li><strong>A case has no arrival time at all.</strong> It is left out of the dashboards, because the clock cannot start.</li>
+<li><strong>A facility you expect is not in the Department picker.</strong> The picker lists only facilities that have cases in the period and the Simulated setting you chose.</li>
+<li><strong>The cause-of-death panel is mostly "Not recorded".</strong> Expected for real cases today. Only Simulated cases carry a cause category.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the figures look out of date, open the screen again; there is nothing to refresh on it.</li>
+<li>If you change facility or period and the case you were looking at disappears, the Case picker moves to the most recent case in the new view. Choose the case again.</li>
+<li>If a target looks wrong (for example a 48-hour PAD you expected to be 24), ask your administrator to check the Autopsy PAD and Autopsy FAD turnaround rules and the case's jurisdiction. Do not work around it by changing dates on the case.</li>
+</ol>
+<h2 id="case-timeline-on-an-autopsy-case">Case Timeline on an autopsy case</h2>
+<p>On the Report screen of an autopsy case, the <strong>Case Timeline</strong> lists what happened to the case in order. When nothing has happened it says "No events recorded yet." Each line names who did it; if the person cannot be identified the line says "an unknown person".</p>
+<p>Lines you may see include:</p>
+<ul>
+<li>Next-of-kin consent given by (name), and "Consent status changed to (status)".</li>
+<li>Verbal order received from (name), and "Written authorization on file" with its reference.</li>
+<li>Toxicology ordered, cancelled, or result received, each with the specimen barcode.</li>
+<li>Organ/tissue retained by (recipient) at (location), "Organ/tissue disposed of" with the method, and a line for each organ tag.</li>
+<li>An item transferred from one person to another (custody transfer).</li>
+<li><strong>Ancillary hold started</strong> and <strong>Ancillary hold ended</strong>.</li>
+<li>A report tier signed by (name), and "Addendum added by (name)".</li>
+<li>A tier signed over a blocked authorization gate, with the reason that was given.</li>
+</ul>
+<p>The timeline is read-only.</p>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Quoting a percentage that includes Simulated cases. On a live system, untick the box first.</li>
+<li>Reading "within target" as including reports still open. Only decided reports are counted; open ones appear separately.</li>
+<li>Reading the Enterprise "Overdue now" as the number of late reports. It counts cases, so a case with both reports overdue counts once.</li>
+<li>Expecting hold time to make a case late. It does the opposite: hold time is not counted.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>The Enterprise level is the quickest health check: scan the Overdue now column for anything above zero.</li>
+<li>Keep the period at 90 days for day-to-day review and use All time only for annual figures.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review the Department level weekly and chase every case under Reports overdue now.</li>
+<li>Treat a rising "Consent revoked" count as a prompt to check that retained tissue for those cases has been dealt with.</li>
+<li>Quality staff can cite the median hours and percentages in management review, with the period stated.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/worklist">Worklist</a>: where autopsy cases are tracked day to day and carry their own turnaround chip, worked out the same way.</li>
+<li><a href="/help/report">report</a>: where the PAD and FAD are signed. Signing is what stops each clock.</li>
+<li><a href="/help/quality">Quality</a>: the Quality &amp; Compliance area that holds this screen.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/registry-exceptions">Registry Exceptions</a> and <a href="/help/outbound-queue">Outbound Queue</a>: the other oversight screens in the same area.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Autopsy Dashboards tile in Quality &amp; Compliance</td>
+<td>Your role does not hold the permission to open the screen. By default administrators, laboratory directors and quality reviewers have it.</td>
+</tr>
+<tr>
+<td>"No autopsy cases in this period."</td>
+<td>No case arrived in the chosen period, or Simulated cases are off and there are no real autopsies.</td>
+</tr>
+<tr>
+<td>Every figure shows "No reports decided yet"</td>
+<td>No report in the period has been signed or gone overdue.</td>
+</tr>
+<tr>
+<td>Case ids start with SIM-A</td>
+<td>They are Simulated cases.</td>
+</tr>
+<tr>
+<td>A deadline differs from the one on the Worklist chip</td>
+<td>It should not, since both use the same rule. Report it to support with the case id.</td>
+</tr>
+<tr>
+<td>Cause of death is "Not recorded" for real cases</td>
+<td>Real cases hold the cause in the signed report text, not as a field the dashboard can count.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check the Period and the Simulated tick box.</li>
+<li>Open the screen again to reload the cases and targets.</li>
+<li>Compare the case with its row in the Worklist.</li>
+<li>Ask your administrator to check the turnaround rules and your role's permissions.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a real case is missing from every period, when a deadline disagrees with the Worklist, or when the screen shows an error instead of figures. Have the case id (not the patient's name) and the time ready.</p>

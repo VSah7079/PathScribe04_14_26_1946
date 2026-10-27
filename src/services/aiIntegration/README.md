@@ -60,3 +60,8 @@ Every method here now returns `ServiceResult` from `services/types.ts` (`{ ok: t
 ## Batch 616 (part E) — server version
 
 API-server version of `AiVendorPolicy` (`httpAiVendorPolicyService.ts`, contract `AI_VENDOR_POLICY_API.md`), picked by `aiVendorPolicyServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.
+- **`synopticFieldsPrompt.ts`** (Batch 621): the one "suggest answers for each synoptic field" prompt, used by `suggestSynopticFields` (unchanged wording) and by the historical report extraction (`services/historyExtraction/`, which adds a FINAL DIAGNOSIS line). `AiFeature` has a new `history-extraction` member so the PS-558 vendor policy and the AI call log name the feature.
+
+
+## Batch 651: AI answers checked in code
+**`aiSuggestionRules.ts`** is the one place for the rules every AI answer must pass: confidence is a whole percent 0 to 100 (`normaliseAiConfidence` converts a vendor's 0 to 1 where the answer is read), an answer below 30 is dropped (`AI_MIN_CONFIDENCE`), and a question with listed options accepts only those option ids (`checkSuggestedAnswer`, `cleanSuggestedAnswers`). `PathScribeAIService.suggestSynopticFields` and `generateAiSuggestionsForReport` (`cases/mockCaseService.ts`) now enforce them; the historical extraction uses the same check. Tests: `aiSuggestionRules.test.ts`, `suggestSynopticFields.rules.test.ts`.

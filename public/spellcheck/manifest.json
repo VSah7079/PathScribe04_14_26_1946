@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generatedAt": "2026-10-18T15:46:29.918Z",
+  "generatedAt": "2026-10-26T23:21:16.942Z",
   "locales": {
     "en-US": {
       "base": {
@@ -76,6 +76,15 @@
       "medical": {
         "dic": "medical/de-DE.dic"
       }
+    },
+    "es-ES": {
+      "base": {
+        "aff": "base/es-ES.aff",
+        "dic": "base/es-ES.dic"
+      },
+      "medical": {
+        "dic": "medical/es-ES.dic"
+      }
     }
   },
   "sources": [
@@ -126,6 +135,12 @@
       "tier": "base",
       "package": "dictionary-de@3.0.0",
       "license": "(GPL-2.0 OR GPL-3.0)"
+    },
+    {
+      "locale": "es-ES",
+      "tier": "base",
+      "package": "dictionary-es@4.0.0",
+      "license": "(GPL-3.0 OR LGPL-3.0 OR MPL-1.1)"
     },
     {
       "tier": "medical",

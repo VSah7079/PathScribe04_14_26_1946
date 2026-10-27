@@ -1,4 +1,16 @@
+**Batch 678:** `compliance/build_readiness_matrix.py` (Python 3, openpyxl) builds `docs/compliance-guide/PathScribe_Regulatory_Readiness_Matrix.xlsx` from `docs/compliance-guide/readiness/requirements.json`; it fails when an evidence path is missing.
+
+**Batch 666:** `translation-review-workbook.py` builds Korean as well (`fr,nl,de,es,ko`); `user-guide/build.py` fails when a screen route has no article (reasoned exceptions in `docs/user-guide/route-exemptions.json`) and accepts an article with no screen address (`routes: []`).
+
+**Batch 667:** `user-guide/verify-live.cjs` is the browser check of the User Guide against the running screens; it writes `docs/user-guide/LIVE_CHECK.md` and saves the overview screenshots.
+
+**Batch 667:** `user-guide/coverage.py [--list]` checks that every short on-screen label is explained in the guides (rules in `docs/user-guide/coverage-scope.json` and `coverage-ignore.json`); exit 1 on a gap.
+
 # scripts/
+
+**Batch 647:** `admin-guide/build.py` builds every language that has all ten chapter files (`docs/admin-guide/src/<lang>/`); `parity.py` (checks a translation against the English), `chunks.py` (splits and joins a chapter for translation), `uitext.py` (looks up the app's own wording in `src/i18n/locales`), `strings.json` (the builder's own words in six languages) and `capture.mjs` (now scripts the click-opened windows too) support it. Rules: `docs/admin-guide/TRANSLATION.md`.
+
+**Batch 646:** `admin-guide/build.py` builds the Administrator Guide from `docs/admin-guide/src/` (HTML pages, search index, setup-order checklist, print page; fails on a broken link or a setup-order error; `--publish` copies the customer edition to `public/help/admin-guide/`). `admin-guide/capture.mjs` takes the guide's screen captures with Playwright against the running demo. `admin-guide/guide.css` and `guide.js` are the built pages' styles and behaviour.
 
 Real, local, developer-run Node scripts — never deployed, never part of the app's own build or runtime.
 
@@ -80,3 +92,8 @@ Imports a batch's Xray execution file (`docs/quality/evidence/PathScribe-BatchN-
 
 - `static-chunk-closure.mjs` (+ `.d.mts`, new): the chunks to preload for the app's start (`startApp.tsx` and its static imports). Pure; used by `vite/preloadAppStart.ts`.
 - `vite/preloadAppStart.ts` (new): the build plugin that adds those `modulepreload` tags to `index.html` (`vite.config.ts`). See `vite/README.md`.
+
+## Batch 637 (translation review workbooks)
+
+- `translation-review-workbook.py` (new, Python 3 with openpyxl): builds `PathScribe_<Language>_Review.xlsx` for French, Dutch, German and Spanish from `src/i18n/locales/`. Run `python3 scripts/translation-review-workbook.py fr,nl,de,es`; output goes to `review-workbooks/` (ignored by git).
+- `translation-review-glossary.json` (new): the glossary terms and their meanings.

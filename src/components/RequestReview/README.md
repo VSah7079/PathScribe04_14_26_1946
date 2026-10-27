@@ -1,3 +1,5 @@
+**Batch 649:** `RequestReviewModal.tsx`: sending is greyed, with the reason shown, without `case:informal-review:request`; `services/reports/sendReviewRequest.ts` checks again.
+
 # components/RequestReview/
 
 ## Files

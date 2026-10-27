@@ -34,6 +34,10 @@ export interface CytologyWorkspaceDeps {
   listCasesForUser: (userId: string) => Promise<Case[]>;
   /** Put a case back in the cytology pool, unassigned (workload reassignment). */
   returnToCytologyPool: (caseData: Case) => Promise<unknown>;
+  /** Batch 635: the active cytotechnologists a blocked reviewer's queue can go to. */
+  listCytotechnologists: () => Promise<{ id: string; name: string }[]>;
+  /** Batch 635: give a case to a named colleague (case assignment only; accession status untouched). */
+  assignCaseToUser: (caseData: Case, userId: string) => Promise<unknown>;
 
   // Dictionaries and settings
   getSpecimenDictionary: () => Promise<PortResult<any[]>>;

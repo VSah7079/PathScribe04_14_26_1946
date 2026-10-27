@@ -1,0 +1,75 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 663: report voice commands, Worklist go-to-row and open-by-accession, capability-based macro and billing checks",
+    "description": "Batch 663: report voice commands, Worklist go-to-row and open-by-accession, capability-based macro and billing checks"
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "rowCommands.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T01:49:44.368155Z",
+      "finish": "2026-10-24T01:49:44.368155Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/worklist/rowCommands.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "rowCommandsVoice.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T01:49:44.368155Z",
+      "finish": "2026-10-24T01:49:44.368155Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/worklist/rowCommandsVoice.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "addendumCommand.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T01:49:44.368155Z",
+      "finish": "2026-10-24T01:49:44.368155Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reports/addendumCommand.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "macroAccess.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T01:49:44.368155Z",
+      "finish": "2026-10-24T01:49:44.368155Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/macros/macroAccess.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "MacroPanel.test.tsx",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T01:49:44.368155Z",
+      "finish": "2026-10-24T01:49:44.368155Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Macros/MacroPanel.test.tsx"
+    },
+    {
+      "testInfo": {
+        "summary": "useAmendmentWorkflow.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T01:49:44.368155Z",
+      "finish": "2026-10-24T01:49:44.368155Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/pages/SynopticReportPage/hooks/__tests__/useAmendmentWorkflow.test.ts"
+    }
+  ]
+}

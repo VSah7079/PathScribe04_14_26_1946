@@ -1,3 +1,31 @@
+**Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; see `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 666:** the User Guide now covers every screen (61 articles, including a Voice and Keyboard reference of all 286 commands; the build fails when a screen has no article); the Administrator Guide carries the Batch 653 to 665 settings and permissions in all six languages; the language review workbooks (now including Korean) and the voice phrase list are regenerated from the live text and commands. 126 oddities found in the screens while writing are listed in `docs/user-guide/FINDINGS_666_*.md` for Pete to rule on.
+
+**Batch 667:** the User Guide covers every control on the user-facing screens, checked by `scripts/user-guide/coverage.py` and a test; see `docs/user-guide/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 651 (audit gaps):** pool claim, pass and the 30-second claim hold, delegations, case team changes, case and specimen comments (never the text), personal dictionary words, screen-language changes and the Quality and Compliance deficiency actions are now written to the audit log by the services that do them. The general clinical audit log is still append-only by interface only, not tamper-evident; server-side tamper-evidence is Planned. See `src/services/auditlog/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 651:** AI answers are checked in code, not only in the prompt: one 0 to 100 confidence scale, a 30% minimum and listed-options-only answers for live-case suggestions, the real model recorded on AI codes, the rule-based mismatch fallback shown (low risk), the mismatch instruction version stored with the decision, an OPCS-4 Simulated demonstration lookup, and a confidence and source quote on AI-written narrative sections. The Save Draft background template re-check remains Planned. See `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 650:** voice and keyboard commands that were registered but answered by no screen now work for Sign Out Case (opens the sign-out window, never signs), Sign Out and Next (Assist), History, Codes, Accept / Pass in the pool window, the Worklist pool and countersign tiles, Search, Finalise and the Contribution trend tiles; 29 others are listed with reasons in `docs/product/KNOWN_GAPS.md`, and a build test fails on a new one. No new text, so no translation rows.
+
+**Batch 649:** safety and access bugs. Screenshots for support tickets now hide every patient identifier, including diagnosis and finding text; the barcode listener ignores keystrokes sent by scripts; **Sign Out Case** now runs the same checks as Finalize (hold, microscopic documentation, critical findings, required fields, unverified AI); a sign-out that fails part way puts the case back; each signature is linked to the exact report version and PDF; an addendum released from the amendment window is now sent; the cancer registry gets the FINAL after the release delay, not at signature; 17 new permissions (338 in all); the administrative override on signing is removed, and residents do not issue preliminary releases (Pete, Oct 22, 2026). Known remaining items are in `docs/product/KNOWN_GAPS.md`. See `src/i18n/README.md`.
+
+**Batch 648:** Lockbox Drop-Off opens in the demonstration with six seeded after-hours receipts, restored by Demo Reset; the Demo Guide, Guide Updates and Feature Overview describe it.
+
+**Batch 657:** the online **User Guide** (`docs/user-guide/`, published to `public/help/user-guide/`, shown in the app at `/help`): a Help button (and F1) opens the page for the screen you are on, with search, a workflow trail and previous and next steps. Thirteen first pages are drafted.
+**Batch 661 and 662:** sex never defaults at Accession; sex at birth in words (with Indeterminate) on the banner, report header, Accession and Search; NHS number with a status badge on the banner; four more report voice commands; signing time sent with the surgical report.
+**Batch 660:** Worklist Collaborating Cases tile (Ctrl+Alt+F), Bench Contributions daily accessioning chart. The release-sweep server job (every minute; a missed window releases late and is flagged) is decided but not built.
+
+**Batch 659:** late frozen diagnosis on the Intraop log, grossing piece descriptions and matrix blocks, Lockbox opens Accession with the order, Search and Worklist handlers fixed, Tumor Board and Quality now say why a change was not saved (new capability `qa:management-review:submit`). Still open: Worklist "Filter My Cases" (needs a definition) and finding 14 (`docs/user-guide/FINDINGS.md`).
+
+**Batch 658:** Orchestration Sign Out Case reachable, Downtime Reason enforced at Accession, View Help is F1, one shared peer-average rule, role labels fixed. Findings 6 to 12 and 14 remain open (`docs/user-guide/FINDINGS.md`).
+
+**Batch 647:** the Administrator Guide is now in English, French, German, Dutch, Korean and Spanish (machine translated; native-speaker review pending), all screenshots are captured, and **Help** opens the guide in the interface language and floats on the non-Configuration screens that have a guide page.
+
+**Batch 646:** the Administrator Guide (`docs/admin-guide/`, published to `public/help/admin-guide/`) and a **Help** button on every Configuration screen that opens that screen's section of it.
+
 ## Batch 618 (part C) — server version of case material (PS-482)
 
 `caseMaterialService` is now a service with a demo version and an API-server version (`services/material/`, `docs/architecture/CASE_MATERIAL_API.md`): one `POST /api/material/case-material/apply-decant-change` returns the whole updated material tree and the affected billing lines. Exported from `@/services`; `applyDecantChangeLive` calls the chosen version. The optimistic store and selection state stay in the browser. Nothing was tried against a real server.
@@ -109,6 +137,26 @@ A labelled prototype drawer in the case Billing panel suggests charge lines from
 
 Targets for cases and RVUs and per-client service levels are now saved in Configuration, System. The Productivity dashboard shows a Targets tile, the Quality tab and dashboard show each client's service level results, and the worklist badges open cases already past their client's target. A read-only Jurisdiction Overview gathers each country's setup with links to change it. Details in `docs/product/GUIDE_UPDATES.md`.
 
+## Batch 620 (part S) — Registry batch files
+
+Configuration > System > Registry Batch Files sets up a screening programme or registry that takes a CSV or XML file instead of a message: the columns, the file name and when it goes (the registry's own delivery schedule, or on demand). Records missing a required field are held back, each file is recorded by checksum, and the registry's answer reaches each record. An example profile ships, labelled; the NAACCR XML feed is not built yet.
+
+## Batch 620 (part C) — UK cancer registry (COSD)
+
+Configuration > System > UK Cancer Registry (COSD) sets how the UK registry submission is sent and how many working days a rejected one has to be corrected (5 by default), for the enterprise and per performing facility. A sample check shows what PathScribe would hold back, with a labelled simplified preview (not the official COSD file). The real file and transport are the interface engine's; nothing was tried against a real registry.
+
+## Batch 645 — Lockbox Drop-Off
+
+A new Lockbox Drop-Off screen (Home, after Intraop Queue) is a scan-first kiosk for specimens dropped in a lockbox after hours: scan the container, and a permanent "Received in Lockbox" receipt is written with the server's time and your name. A barcode with a pending order shows only its accession number and ordering facility; an unknown barcode takes a quick placeholder (client and physician from the lists, or free text; no accession number is made); Urgent, with an optional callback number, puts a drop first. With the folder permission, an Overnight folder lists what is waiting (urgent first, then oldest) with waiting times, and lets the team mark a specimen accessioned or link a placeholder to its real order, with time-to-receipt figures for QA. Seeded to Accessioner (Admin sees the folder only). Demonstration only until the API server and a device-bound kiosk sign-in exist. Details: `docs/architecture/LOCKBOX_API.md`.
+
+## Batch 637 — Review workbooks; roles list names the newer actions
+
+A script builds an Excel review workbook per language (French, Dutch, German, Spanish) from the live text for native-speaker reviewers (`scripts/translation-review-workbook.py`). The Role Dictionary now names 8 more actions from Batches 620 to 636 (manual hrHPV entry and its approval, CSMS eligibility answers, the AI history reading, registry batch files); 385 entries in all. See `src/i18n/README.md` and `docs/product/ACTIONS_COVERAGE.md`.
+
+## Batch 621 — AI extraction of historical reports (advisory only)
+
+When a historical case is opened in the patient history, the AI can read its Final Diagnosis and Microscopic text and show the synoptic fields it finds beside it, labelled "AI-extracted, not verified", with "flag as wrong" to measure accuracy. It is cached by a hash of the text, off by default (Configuration > System > AI history extraction, enterprise with facility overrides), follows the AI vendor rules, and is never used by reports, printing, registries, billing, rules or exports (a test enforces it). Contract: `docs/architecture/HISTORY_AI_EXTRACTION_API.md`.
+
 ## Batch 619 (part Q) — Outbound Queue
 
 A new Outbound Queue screen (Quality & Compliance) lists every outbound message in one place: results, admissions, accession, LIS sync, billing charges, report delivery, referrals, molecular orders and registry submissions. Hold, release and retry them; fix and resubmit what a registry rejected or mark it not reportable; see which are close to or past their reporting deadline; retract a queued charge or release it now. Details: `docs/architecture/OUTBOUND_QUEUE_API.md` and `docs/product/GUIDE_UPDATES.md`.
@@ -127,7 +175,7 @@ The clinical-pathologic mismatch check also runs on an unlocked amendment or cor
 
 ## Batch 609 (part C) — AI model settings, dictation languages, German/French/Dutch medical spell check
 
-Each adopted AI model has organisation-only settings (longest answer, confidence threshold) that the AI path reads. Dictation refinement follows the lab's spelling (US, UK/IE, AU/NZ, CA) and keeps French, German, Dutch and Korean text in that language; an admin switch stops mis-heard non-English phrases from fuzzy-matching English commands. German, French and Dutch have starter pathology word lists. Details: `docs/product/GUIDE_UPDATES.md`, `src/services/spellcheck/README.md`.
+Each adopted AI model has organisation-only settings (longest answer, confidence threshold) that the AI path reads. Dictation refinement follows the lab's spelling (US, UK/IE, AU/NZ, CA) and keeps French, German, Dutch, Spanish and Korean text in that language; an admin switch stops mis-heard non-English phrases from fuzzy-matching English commands. German, French, Dutch and Spanish have starter pathology word lists. Batch 622 adds Spain: a Spain jurisdiction and Castilian Spanish as the sixth language (AI-translated, native review pending); screening, registries, e-invoicing and SNOMED for Spain are Planned (`docs/product/SPAIN_RESEARCH.md`). Batch 623 adds a Licensed terminologies card (Configuration > System > Code Systems): the customer records the SNOMED CT / ICD-O-3 licences it holds, and real codes entered on abnormal-result rules replace the test codes only while that licence is on and unexpired. Details: `docs/product/GUIDE_UPDATES.md`, `src/services/spellcheck/README.md`.
 
 ## Batch 604 — Simulated mail, alerts and notices
 
@@ -440,3 +488,90 @@ Batch 611 (part F): Migration Jobs can import a legacy CSV/JSON file as draft ca
 
 
 **Batch 618 (part A):** a consultation or outside case can name the lab that did the technical component (PS-336): the technical charge goes to that lab at grossing, the professional line waits for sign-out, and the signed-out report names the technical lab.
+
+## Batch 630 — Manual hrHPV result entry, controlled (PS-174)
+
+Record Positive / Negative on the Cytology Worklist's HPV Triage tile now need a permission, a required Result Source (paper report, interface downtime, telephoned result, back-entry), and are audited with who, when and the earlier result. An entry that would replace a result from the interface waits for a different authorised person to approve it. Details: `docs/architecture/HPV_RESULT_INBOUND.md` section 7, `docs/product/GUIDE_UPDATES.md`.
+
+## Batch 636 — CSMS eligibility check
+
+The CSMS QA tab can record the eligibility answer (verified, or not eligible with a reason): permission-controlled, clears the case's verification flag, audited. Details: `src/services/cytology/README.md`.
+
+## Batch 635 — Workload reassignment to named colleagues
+
+When the CLIA daily limit blocks a cytotechnologist, the rest of the queue goes to colleagues with room under their own cap (named, audited), and only the remainder to the pool. Details: `src/services/cytology/README.md`.
+
+## Batch 634 — Surgical dispatch lookup and demo cytology patients
+
+Surgical result messages use the same patient-index lookup and audit-on-skip as cytology; the demo's cytology patients are in the patient index. Details: `src/services/interfaceDispatch/README.md`, `src/services/patients/README.md`.
+
+## Batch 633 — Cytology result dispatch (PS-171)
+
+Cytology result messages now look the patient up in the patient index the app is using, and a result that cannot be queued leaves an audit entry instead of vanishing. Details: `src/services/cytology/README.md`.
+
+## Batch 632 — Configurable recall windows and recommendation codes
+
+The Australia/NZ self-collected recall windows are now a Configuration setting (Screening Strategy), the register payload carries six internal recommendation codes, and repeat collections use each country's own wording and timing. Details: `docs/architecture/HPV_RESULT_INBOUND.md` section 8.
+
+## Batch 631 — Self-collected HPV recall, Australia and New Zealand
+
+The Recall needed tile now shows an Urgent or Routine recall, target window and programme wording by genotype in Australian and New Zealand facilities; an Invalid self-collected result asks for a repeat collection; a recall closes when the clinician-collected sample arrives. Codes, windows and wording await programme sign-off; register feeds are interface-engine work. Details: `docs/architecture/HPV_RESULT_INBOUND.md` section 8.
+
+## Batch 638
+
+Batch 638 (Oct 20, 2026): CSMS messages wait for the eligibility check; Belgian Dutch dictation option; colleague reassignment room prorated by logged hours; surgical demo patients in the patient index. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+## Batch 639
+
+Batch 639 (Oct 20, 2026): hotkey decisions answered. Print Current Cassette moves to Alt+Shift+O; Discard Unsaved Changes asks for confirmation. See `docs/product/HOTKEY_DECISIONS.md`.
+
+## Batch 640
+
+Batch 640 (Oct 20, 2026): self-collected HPV recall windows and wording are set per country (Australia, New Zealand) by the laboratory's administrator, from a dropdown. See `docs/architecture/HPV_RESULT_INBOUND.md` section 8.
+
+## Batch 641
+
+Batch 641 (Oct 20, 2026): recall documentation corrected (no sign-off needed for windows or wording; codes belong to the interface engine); PS-539 readiness status refreshed; recall card loading fix.
+
+## Batch 642
+
+Batch 642 (Oct 20, 2026): sign-out authentication policy. An administrator sets, in Session Security, whether signing a case out asks for a password every time (default) or once per session, with an optional second factor, an enterprise default, per-performing-facility overrides and a lock; the Sign Out button shows "(Password Required)" when a password is needed; every policy change, authentication, in-session sign-out and expiry is audited with full context. Remote sign-out limits and workstation lock need the API server (phase 2e). See `docs/architecture/SIGN_OUT_AUTHENTICATION.md`.
+
+## Batch 650a: voice engine
+
+Report Draft voice phrases now register (they never did); Enter Gross / Micro / Diagnosis start dictation in their section; AI-refined dictation no longer lands twice in a report section; corrections are learned in the report editors as in Internal Notes; Delete Row, Delete Message, Delete All Selected, Recall Report, Release Case From Hold and Release Autopsy Body must be said twice; voice follows the same station eligibility as keys; each spoken command is audited (no speech, no case). Details: `src/services/voice/README.md`, `docs/product/GUIDE_UPDATES.md`.
+
+
+
+## Batch 652 — Specimen pipeline gaps
+
+Specimen pipeline gaps closed in the demonstration build; the server-side repeats (triage gate, pool timeout, Lockbox link) are still planned. See `docs/product/GAP_REGISTER.md` (A.8, A.10) and `docs/product/KNOWN_GAPS.md`.
+
+## Batch 652 (defect fixes)
+
+Defect fixes in My Contribution peer averages, microtomy scan labels, multi-recipient delegation, https-only External Resources and the report footer barcode. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 663:** report voice commands (Maximise, Minimise, Preview, Internal Note, Skip Field, Add Addendum), Worklist "go to row N" and "open accession X", macro access by capability, dead billing role check removed, four multi-row Worklist commands switched off.
+
+**Batch 664:** Add Collaborator [name], Edit Field [section] and Cancel (dictation) voice commands, Sign Out and Next for Orchestration, template approve/publish/draft by capability only. My Cases phrases taken off Clear Filter (Pete). Disclosed: Assist "Finalise & Next" does not open the next case. See `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 665:** Assist Finalise & Next opens the next case; Sign Out and Next survives parked checks; Add Collaborator messages the collaborator; Edit Field reaches synoptic questions (focus only).
+- Batch 669a: User Guide and Administrator Guide screenshots re-captured by script (`scripts/user-guide/capture.cjs`, `scripts/admin-guide/capture.mjs`); one User Guide picture (autopsy authorization) still missing.
+
+- Batch 669b: the User Guide route (`/help/*`) moved into the no-top-bar shell in `SignedInApp.tsx`, so the guide window shows only the guide.
+
+- Batch 669c: old embedded guide PDFs and the About-menu guide links removed; guides open only from the top-bar Help buttons.
+
+- Batch 669d: the top-bar Help buttons now appear on Configuration (the page publishes its open tab and section through `services/help/helpAnchorStore.ts`, `hooks/usePublishHelpAnchor.ts`), the ? shows on every screen, and the Administrator Guide re-scrolls to the section as screenshots load (`scripts/admin-guide/guide.js`).
+
+- Batch 669e: fixes for ws-8, ws-10, ws-11, ws-16, ws-17, everyday-17, everyday-22, access-1, access-11 (see `docs/product/GUIDE_UPDATES.md`).
+
+- Batch 669f: second group of findings fixed (workstations, molecular, operations, messaging, cytology); three new capabilities (see `docs/product/CAPABILITIES.md`).
+
+- Batch 669g: unrecognised secondary cytology code blocked with an inline message; a reply moves its conversation up; Mark as unread disabled when you wrote last.
+
+- Batch 669h: Control Rules has its own view permission; External Consult is masked by default (audited opt-in for full identity); the Home footer status is real and the static compliance claims are removed.
+
+- Batch 669i: External Consult links stop at 3 views or 48 hours after signature; Audit Log can preview identity; date of birth is fixed DD-MMM-YYYY.
+
+Batch 670: audit writes (and the rest of the audit path) now go through the switched `auditService`; see `src/services/apiServer/README.md`.

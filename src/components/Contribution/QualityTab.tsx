@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import {
   qaActivityRecordService, facilityService, clientSlaService, intraoperativeService, amendmentService, informalReviewService,
-  delegationService, tatTargetService,
+  delegationService, tatTargetService, actionRegistryService,
 } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { tatTileForAction } from '@/services/quality/tatTileActions';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '@/services/quality/reconciliationRecordMapping';
 import { withPerformingLabs, facilityNamesById, consultationRecords } from '@/services/quality/qualityTatInputs';
@@ -481,15 +482,11 @@ const QualityTab: React.FC = () => {
   const [metric,        setMetric]        = useState<MetricView>("total");
   const [activeTatTile, setActiveTatTile] = useState<TatTileKey | null>('firstTouch');
 
-  // ── Voice: TAT tile switching ─────────────────────────────────────────────
-  React.useEffect(() => {
-    const handler = (e: Event) => {
-      const key = (e as CustomEvent).detail?.key as TatTileKey;
-      if (key && ENABLED_TAT_TYPES.some(tt => tt.key === key)) setActiveTatTile(key);
-    };
-    window.addEventListener('PATHSCRIBE_TAT_TILE', handler);
-    return () => window.removeEventListener('PATHSCRIBE_TAT_TILE', handler);
-  }, []);
+  // ── Voice: TAT tile switching (Batch 650: choosing the tile is what clicking it does; services/quality/tatTileActions.ts) ──
+  React.useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    const key = tatTileForAction(actionId, ENABLED_TAT_TYPES.map(tt => tt.key));
+    if (key) setActiveTatTile(key);
+  }), []);
 
   // Date-range button/period labels — three fixed values, resolved via t()
   // here so both the range selector buttons and the summary-tile "Last …"

@@ -24,7 +24,7 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { applyAutopsyConsentReinstatement, type AutopsyConsentReinstatementInput } from './applyAutopsyConsentReinstatement';
 
 export type RecordAutopsyConsentReinstatementReasonCode =
@@ -67,7 +67,7 @@ export async function recordAutopsyConsentReinstatement(
   }, caseRouter);
 
   if (write.ok === true) {
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_CONSENT_REINSTATED',
       detail: `Consent status reinstated to ${input.status} (${input.reinstatementNote})`,

@@ -1,3 +1,7 @@
+**Batch 649:** 17 new capabilities in `workflowCapabilities.ts` (spread into the catalog, like `lockboxCapabilities.ts`), for actions that had none: `surgical:report:sign-out`, `surgical:preliminary:release`, `surgical:amendment:release`, `surgical:correction:release`, `surgical:addendum:release`, `report:release:recall`, `case:pool:claim`, `case:pool:pass`, `case:flag:apply`, `case:flag:remove`, `case:diagnosis-code:apply`, `case:accession:create`, `case:informal-review:request`, `qa:deficiency:raise`, `qa:deficiency:escalate`, `qa:deficiency:contain` and `qa:deficiency:verify` (13 high risk, 4 standard). Each is checked by `authorizationService.enforce` in the service that does the work; screens grey the button with `CapabilityButton`. Seeds (`capabilitySeeds.ts`, least privilege): sign-out, diagnosis codes and informal review requests go to Pathologist, Fellow and Resident; **preliminary release and the amendment, correction and addendum releases go to Pathologist and Fellow only** (Pete, Oct 22, 2026: residents do not issue preliminary releases independently, and a hospital's own roles do not get the preliminary release by default; they do get the three revision releases with case access); pool claim and pass and recall go to Pathologist, Fellow, Resident and Cytotechnologist; flags to every case-access role; creating a case to every role with the Accession screen; the four QA deficiency actions to every role with the Quality Assurance screen. **`admin-override` is gone from `canFinalizeCase`** (`services/auth/`): signing needs the capability *and* being an active participant whose participation type can finalize. The catalog now has **338 capabilities, 287 high risk** (321 and 274 before); rows in `AUTHORIZATION_API.md` and `docs/product/CAPABILITIES.md`. Tests: `authorization.test.ts`, `workflowSeeds.test.ts`.
+
+**Batch 645:** four capabilities for Lockbox Drop-Off, in `lockboxCapabilities.ts` (spread into the catalog so `capabilityCatalog.ts` stays under 1,000 lines): `screen:lockbox-drop-off:open`, and, in the Case work group, `lockbox:specimen:receive`, `lockbox:folder:review` and `lockbox:placeholder:resolve` (all three high risk; each checked with `authorizationService.enforce` in `lockbox/lockboxService.ts`). Seeds: **Accessioner** all four; **Admin** the screen and folder review only (oversight and the QA figures); nobody else, so a Pathologist gets none. Custom roles that get case access are not offered the screen automatically. Locale text in all six languages; rows in `AUTHORIZATION_API.md` and `docs/product/CAPABILITIES.md`. The catalog now has 319 capabilities.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/authorization/
@@ -25,7 +29,7 @@ Server contract: [`docs/architecture/AUTHORIZATION_API.md`](../../../docs/archit
   - `capabilityAuditEntry`, the literal-English audit record naming the granting role or the refusal reason.
 
   A PathScribe support sign-in (session role `superadmin`) holds the built-in Superadmin role. A staff record naming that role gets nothing from it. There is no bypass.
-- **`capabilitySeeds.ts`** (pure): the day-one grants. Superadmin gets everything; Admin gets every export, administration and every Configuration capability; Lab Director every Configuration capability but drafting protocols; QA Reviewer the exports. Every built-in role also gets the screens it opens and the actions it already did before each capability existed (Pete's "keep today's users"; see the batch entries below). Least privilege applies to anything new. `applyCapabilitySeeds` offers each built-in role only the seeds it hasn't been offered before (`Role.seededCapabilities`), so an administrator's removal sticks and a new capability still arrives.
+- **`capabilitySeeds.ts`** (pure): the day-one grants. Superadmin gets everything except `config:ai-prompt:approve` (separation of duties, Batch 536); Admin gets every export, administration and every Configuration capability; Lab Director every Configuration capability but drafting protocols; QA Reviewer the exports. Every built-in role also gets the screens it opens and the actions it already did before each capability existed (Pete's "keep today's users"; see the batch entries below). Least privilege applies to anything new. `applyCapabilitySeeds` offers each built-in role only the seeds it hasn't been offered before (`Role.seededCapabilities`), so an administrator's removal sticks and a new capability still arrives.
 - **`roleCapabilityRules.ts`** (pure):
   - `roleCapabilityProblem`: the role service refuses a save with an unknown key or an unmet requirement.
   - `roleCapabilityChangeAudit`: the "Role capabilities changed" entry.
@@ -106,7 +110,7 @@ Pete: Superadmin is for ForMedrixAI support staff, and hospital administrators h
 - **Platform-only capabilities** (`platformOnly: true`, group "ForMedrixAI platform support") count only from a role staff can't be given, which is Superadmin. `roleCapabilityProblem` refuses them on any hospital role, and a copy of Superadmin drops them. There are two so far:
   - `platform:cross-tenant-cases:view`: support opening another organisation's case. `CaseRouter.getCase` checks and audits it on every such open. Lists aren't audited per case.
   - `platform:governing-bodies:manage`: the platform-wide governing-body content settings (`services/governingBodies/governingBodyAdministration.ts`).
-- **Superadmin is locked.** `lockPlatformRoles` puts it back to the whole catalog on every load. `saveRole` refuses any edit to it (`platformRole`), and so does the mock role service. The Role Dictionary shows it read-only with a banner.
+- **Superadmin is locked.** `lockPlatformRoles` puts it back to the whole catalog (minus `config:ai-prompt:approve`, `SUPERADMIN_WITHHELD`) on every load. `saveRole` refuses any edit to it (`platformRole`), and so does the mock role service. The Role Dictionary shows it read-only with a banner.
 
 ## Batch 374: screens
 
@@ -180,7 +184,7 @@ Three new permissions (high risk, casework): `batch:reconciliation:override`, `b
 
 ## Batch 406
 
-`config:molecular-control-rules:manage` (high risk, administration) covers adding, changing and deleting a molecular assay control rule: its required controls and the deck slots its sample rack may use. Pete: "default to admin but it remains an assignable permission". It's in the administration group, so Admin starts with it and nobody else does; a Lab Director (or any role) gets it in the Role Dictionary. Checked in `services/molecular/mockMolecularAssayControlRuleService.ts`.
+`config:molecular-control-rules:manage` (high risk, administration) covers adding, changing and deleting a molecular assay control rule: its required controls and the deck slots its sample rack may use. Pete: "default to admin but it remains an assignable permission". It's in the administration group, so Admin starts with it; Batch 669 (Pete's ruling, view-only for molecular technologists) also seeds it to the Lab Director (`MOLECULAR_CONTROL_RULES_MANAGE`), and any other role gets it in the Role Dictionary. Without it the Control Rules screen is read-only. It needs `config:molecular-control-rules:view` (Batch 669, ctl). Checked in `services/molecular/mockMolecularAssayControlRuleService.ts`.
 
 **System Capabilities:** `docs/architecture/AUTHORIZATION_API.md` now has a "Capability catalog" section listing all 64 capabilities with their group, risk, default roles and the service that checks each. Its endpoint table had stopped at Batch 380 and now covers every action through Batch 406. `capabilityDocs.guard.test.ts` fails when the catalog and that list disagree.
 
@@ -562,3 +566,19 @@ Batch 611 (#157): `auth:mfa-enrolment:reset` (administration group, high risk; n
 
 
 Batch 616: server version in `httpAuthorizationService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `defaultAuthorizationService.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.
+- Batch 630: `cytology:hpv-result:record-manual` (high risk; Pathologist and Lab Director): entering an hrHPV result by hand and approving, as a second person, an entry that replaces an interface result. Checked in `cytology/recordManualHpvResult.ts`.
+
+Batch 653: a check that names a case and no facility is judged against the case's ordering facility (`caseFacility` dependency; looked up only for a facility-limited person; unknown case or failed lookup still refuses). See `caseFacility.test.ts`.
+
+Batch 659: new capability `qa:management-review:submit` (high risk, Quality deficiency actions).
+
+## Batch 669
+`config:or-board-demo:run` (high risk, administration): Start and Stop demo on the OR Suite Live Board. Checked in `services/intraop/mockIntraoperativeService.ts`; Admin gets it with the administration group; the board's buttons are `CapabilityButton`s.
+
+## Batch 669f
+`add-on:exception:flag` and `add-on:block:mark-retrieved` (standard risk, casework; in `workflowCapabilities.ts`): flagging a block exception and marking a block retrieved, both open to anyone with the screen until now. Seeded (`ADD_ON_BENCH_ACTIONS`) to every role with the Add-On Orders or Microtomy screen (Pathologist, Fellow, Resident, Histotechnologist) and to a hospital's own roles with case access. Checked in `addOnOrders/addOnOrderActions.ts`; the Add-On Orders tracking buttons and the Microtomy Block exhausted button are `CapabilityButton`s.
+
+## Batch 669 (ctl) — Control Rules view capability
+`config:molecular-control-rules:view` (standard risk, administration), defined with `manage` in `molecularControlRulesCapabilities.ts` and spread into the catalog (capabilityCatalog.ts does not grow). The Control Rules route no longer rides on `screen:molecular:open`, which neither Admin nor Lab Director holds by default. Seeds: Admin (administration group), Lab Director (`MOLECULAR_CONTROL_RULES_VIEW` with manage), QA Reviewer, and every role that holds the Molecular screen (Molecular Technologist; a hospital's own role with case access gets it too, keeping today's users). `manage` now `requires` view. Read in `listForReview` (see `services/molecular/README.md`).
+
+- Batch 669 (access-11): `case:consult-link:reveal-identity` (casework, high), opting in when issuing an outside consult link to show the consultant the patient's full name and date of birth (masked by default). Seeded to Pathologist and Lab Director (`CONSULT_LINK_REVEAL_IDENTITY`); checked in `consultAccess/mockConsultTokenService.ts` `issue`, only when the opt-in is ticked.

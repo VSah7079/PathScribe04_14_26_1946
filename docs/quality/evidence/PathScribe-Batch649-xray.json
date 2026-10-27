@@ -1,0 +1,65 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batch 649 \u2014 Safety and access bugs: sign-out gates and write order, 17 new capabilities, screenshot redaction and scanner key filtering",
+  "description": "Vitest, 2026-10-22: full suite 1727 files (1723 passed, 4 skipped), 14,518 tests passed, 11 skipped, 0 failed. Type-check clean. Documentation run (authorization, styleRules, i18n, phi, scanner, signoutGates, surgicalSignOut, reports, reportRelease, auth and related folders): 169 files, 1,670 tests, 0 failed."
+ },
+ "tests": [
+  {
+   "testKey": "PS-874",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/signoutGates/signOutReviewGates.test.ts (14: hold, report map, Mohs, margins, counts, microscopic documentation, critical findings, required fields, unverified AI, in order, first stop wins)\nPASSED: src/pages/SynopticReportPage/hooks/__tests__/useSignOutWorkflow.orchestrationGates.test.ts (12: Orchestration Sign Out Case is stopped by an active hold, microscopic documentation, an unacknowledged Critical finding, a missing required field and an unverified AI answer; a stored report on the case is still checked)\nNot tested or not built: a real browser run of the stop windows; one-transaction sign-out on the API server (planned)."
+  },
+  {
+   "testKey": "PS-875",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/authorization/authorization.test.ts (39), workflowSeeds.test.ts (7), capabilities.guard.test.ts (6), capabilityDocs.guard.test.ts (AUTHORIZATION_API.md lists all 338 capabilities with their risk)\nPASSED: poolCaseActions.test.ts (claim and pass refused), diagnosisCodeApply.test.ts, qaDeficiencyActions.test.ts, createAccessionedCase.test.ts (nothing saved on a refusal), caseFlagsApi.test.ts, sendReviewRequest.test.ts, releaseReport.test.ts (recall), mockAmendmentService.test.ts (amendment, correction and addendum release), authorizeSurgicalSignOut.test.ts, caseAccessControl.test.ts (no admin-override: signing needs the capability and an active participant)\nNot tested or not built: the server-side check of the 17 capabilities (contract in docs/architecture/AUTHORIZATION_API.md); permission checks that pass only the case id (facility-limited staff are refused); AmendmentModal not greyed out."
+  },
+  {
+   "testKey": "PS-876",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/authorization/workflowSeeds.test.ts (preliminary and revision releases go to Pathologist and Fellow, not Resident; a hospital's own case-access role never gets preliminary release by default; Superadmin holds the actions as a role, no bypass)\nPASSED: src/services/reports/releasePreliminaryReport.test.ts (15; refused without surgical:preliminary:release, nothing sent or written, reason returned; allowed releases go ahead)\nDecision: Pete, Oct 22, 2026 (residents do not issue preliminary releases independently)."
+  },
+  {
+   "testKey": "PS-877",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/phi/phiSelectors.guard.test.ts (6: every data-phi / data-pii value used in src, including values set at run time, is matched by the screenshot redaction; the scan is not vacuous; it fails on a per-kind list that misses a kind)\nPASSED: phiTagging guard, uiText guard, inlineCss guard (services/phi, styleRules, i18n runs)\nNot tested or not built: a visual check of a real screenshot in a browser (the hook is exercised through the selector list)."
+  },
+  {
+   "testKey": "PS-878",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/scanner/scanKeyFilter.test.ts (5: trusted events accepted; script-dispatched events ignored, including a real KeyboardEvent built by script; events with no key ignored; untrusted accepted only through the explicit test seam)\nNot tested or not built: a physical HID scanner; the app's own scripted key events (AppShell Enter, Escape, shortcuts) no longer feed the scan buffer, by design."
+  },
+  {
+   "testKey": "PS-879",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/surgicalSignOut/completeSurgicalSignOut.test.ts (11: status first; signature linked to the exact version id, number and PDF SHA-256; a version whose PDF failed to render is linked by id and number without a hash; a resident's release linked to the submitted version)\nPASSED: completeAssistFinalize.test.ts (4: Assist signature recorded after the version and linked; recorded unlinked when no version was written)\nPASSED: useSignOutWorkflow.orchestrationGates.test.ts (signature linked to the version saved; a conflict at the status write leaves no version and no signature; a countersign failure is shown and the status put back)\nNot tested or not built: a version already written stays when a later step fails (append-only) until the server transaction exists."
+  },
+  {
+   "testKey": "PS-880",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/surgicalSignOut/releaseRevisionsAtSignOut.test.ts (6: Assist revisions are released before the LIS send; a refused release is never sent; a send that fails after an accepted release is counted as not transmitted; a save that fails sends nothing)\nPASSED: src/services/reports/publishDirectAddendum.test.ts (3: an addendum released from the amendment window is sent), useAmendmentWorkflow.test.ts (37: a refused release is not marked released or sent)\nNot tested or not built: corrections released before a later failure are not undone."
+  },
+  {
+   "testKey": "PS-881",
+   "start": "2026-10-22T18:00:00Z",
+   "finish": "2026-10-22T21:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: src/services/surgicalSignOut/releaseSurgicalFinal.test.ts (3: the FINAL is published, then the registry submission; Assist cases send none; failures never throw)\nPASSED: useSignOutWorkflow.orchestrationGates.test.ts (no registry submission at sign-out while the report is held for the release delay; with no delay the registry follows the release), mockReportReleaseService.test.ts (21), releaseOnExpiryRegistry.test.ts\nNot tested or not built: the registry endpoint itself (demonstration service)."
+  }
+ ]
+}

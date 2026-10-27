@@ -12,6 +12,7 @@
 // services/marginExtraction/.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import './marginExceptionHistory.css';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
@@ -22,6 +23,7 @@ import { useMarginExceptionReview } from '@/hooks/useMarginExceptionReview';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { isServiceOk } from '@/services/types';
 import { formatDisplayNameForLanguage } from '@/utils/personName';
+import { formatDateTime } from '@/utils/formatDate';
 
 const MarginExceptionReviewPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -32,7 +34,7 @@ const MarginExceptionReviewPage: React.FC = () => {
   // gap as TumorBoardWorkspacePage.tsx) — AppShell only shows the
   // breadcrumb bar once crumbs.length > 1, so it was silently absent.
   useEffect(() => { pushCrumb(t('marginExceptionReview.pageTitle'), '/margin-exception-review'); }, [pushCrumb, t]);
-  const { rows, loading, error, resolve, dismiss, busyId } = useMarginExceptionReview();
+  const { rows, decidedRows, notices, loading, error, resolve, dismiss, busyId } = useMarginExceptionReview();
   const [resolveValues, setResolveValues] = useState<Record<string, string>>({});
   const [resolveError, setResolveError] = useState<{ id: string; message: string } | null>(null);
   const [dismissing, setDismissing] = useState<{ id: string; reason: string } | null>(null);
@@ -67,6 +69,11 @@ const MarginExceptionReviewPage: React.FC = () => {
       <h1 className="ps-qcqueue-title">{t('marginExceptionReview.pageTitle')}</h1>
       <p className="ps-mex-subtitle">{t('marginExceptionReview.subtitle')}</p>
       {error && <div className="ps-qcqueue-error" role="alert">{error}</div>}
+      {notices.map(n => (
+        <div key={n.key} className={`ps-conf-hint ${n.kind === 'warning' ? 'ps-conf-hint--warning' : 'ps-conf-hint--success'}`} role="status">
+          {t(n.key, n.params?.board ? { board: t(`tumorBoard.boards.${n.params.board}`, { defaultValue: n.params.board }) } : undefined)}
+        </div>
+      ))}
 
       <div className="ps-qcqueue-list">
         {rows.map(({ exception: exc, caseAccession, patientName }) => (
@@ -119,6 +126,36 @@ const MarginExceptionReviewPage: React.FC = () => {
           </div>
         ))}
         {!loading && rows.length === 0 && <div className="ps-conf-empty-row">{t('marginExceptionReview.emptyRow')}</div>}
+      </div>
+
+      <h2 className="ps-mex-history-title">{t('marginExceptionReview.history.title')}</h2>
+      <div className="ps-qcqueue-list" data-testid="mex-history">
+        {decidedRows.map(({ exception: exc, caseAccession, patientName }) => (
+          <div key={exc.id} className="ps-qcqueue-row ps-mex-row ps-mex-history-row">
+            <div className="ps-qcqueue-row-patient" data-phi="name">
+              {(patientName && formatDisplayNameForLanguage(patientName, i18n.language)) || exc.caseId}
+              <span className="ps-qcqueue-row-accession" data-phi="accession">{caseAccession}</span>
+            </div>
+            <div className="ps-mex-problem">
+              <div className="ps-mex-field-label">{exc.fieldLabel}</div>
+              <div className="ps-mex-raw-text" data-phi="true">{exc.rawText}</div>
+              <div className="ps-mex-outcome" data-phi="true">
+                {exc.status === 'Resolved'
+                  ? t('marginExceptionReview.history.resolved', { value: exc.resolvedValueMm })
+                  : t('marginExceptionReview.history.dismissed', { reason: exc.dismissReason })}
+              </div>
+              <div className="ps-mex-field-label">
+                {t('marginExceptionReview.history.by', { name: exc.resolvedByUserName, when: formatDateTime(exc.resolvedAt, i18n.language) })}
+              </div>
+            </div>
+            <div className="ps-qcqueue-row-actions ps-mex-row-actions">
+              <button className="ps-conf-btn-secondary" onClick={() => void openCasePage(exc.caseId, 'report', { state: { returnTo: '/margin-exception-review' } })}>
+                {t('marginExceptionReview.openCaseBtn')}
+              </button>
+            </div>
+          </div>
+        ))}
+        {!loading && decidedRows.length === 0 && <div className="ps-conf-empty-row">{t('marginExceptionReview.history.empty')}</div>}
       </div>
 
       {dismissing && (

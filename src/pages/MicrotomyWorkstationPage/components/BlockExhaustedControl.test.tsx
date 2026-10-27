@@ -5,6 +5,12 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }));
 
+// Permissions granted: the button shows as usable (the real button is covered by CapabilityButton's own tests).
+vi.mock('@/components/Common/CapabilityButton', () => ({
+  CapabilityButton: ({ children, onClick, disabled, className, capability }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; className: string; capability: string }) =>
+    <button className={className} disabled={disabled} data-capability={capability} onClick={onClick}>{children}</button>,
+}));
+
 import BlockExhaustedControl from './BlockExhaustedControl';
 import type { HistologyBlock } from '@/types/case/Specimen';
 
@@ -53,5 +59,31 @@ describe('BlockExhaustedControl', () => {
   it('shows no banner for an ordinary block', () => {
     render(<BlockExhaustedControl block={block('Embedded')} onFlag={vi.fn()} />);
     expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('ws-19: the button needs add-on:exception:flag', () => {
+    render(<BlockExhaustedControl block={block('Embedded')} onFlag={vi.fn()} />);
+    expect(screen.getByText('microtomyWorkstation.exhausted.button').getAttribute('data-capability')).toBe('add-on:exception:flag');
+  });
+
+  it('ws-19: says the flag is not permitted when the service refuses it', async () => {
+    render(<BlockExhaustedControl block={block('Embedded')} onFlag={async () => ({ ok: false, notPermitted: true })} />);
+    fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.button'));
+    fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.confirm'));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('microtomyWorkstation.exhausted.notPermitted'));
+  });
+
+  it('ws-3: says the notice went to the Supervisor / Accessioning Desk when no ordering pathologist is recorded', async () => {
+    render(<BlockExhaustedControl block={block('Embedded')} onFlag={async () => ({ ok: true, noticeToDesk: true })} />);
+    fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.button'));
+    fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.confirm'));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('microtomyWorkstation.exhausted.sentToDesk'));
+  });
+
+  it('ws-3: warns when nobody could be told', async () => {
+    render(<BlockExhaustedControl block={block('Embedded')} onFlag={async () => ({ ok: true, noticeNotSent: true })} />);
+    fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.button'));
+    fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.confirm'));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('microtomyWorkstation.exhausted.nobodyNotified'));
   });
 });

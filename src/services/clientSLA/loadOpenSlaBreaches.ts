@@ -5,11 +5,11 @@
 // client) and applies clientSlaRules.openCaseSlaBreaches. Read-only.
 // ─────────────────────────────────────────────────────────────────────────────
 import { clientSlaService } from './clientSlaServiceInstance';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { openCaseSlaBreaches, type CaseForSla, type SlaBreachKind } from './clientSlaRules';
 
 export async function loadOpenSlaBreaches(cases: readonly CaseForSla[], now: Date = new Date()): Promise<Map<string, SlaBreachKind>> {
-  const [slas, facilities] = await Promise.all([clientSlaService.getAll(), mockFacilityService.getAll()]);
+  const [slas, facilities] = await Promise.all([clientSlaService.getAll(), facilityService.getAll()]);
   if (!slas.ok || slas.data.length === 0 || !facilities.ok) return new Map();
   return openCaseSlaBreaches(cases, slas.data, facilities.data, now);
 }

@@ -57,7 +57,7 @@ import { useTranslation } from 'react-i18next';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useNavigate, useSearchParams } from 'react-router';
 import '../../pathscribe.css';
-import { equipmentService, equipmentLogService, molecularBatchService, type Equipment, type EquipmentLogEntry } from '@/services';
+import { equipmentService, equipmentLogService, molecularBatchService, canOpenTile, type Equipment, type EquipmentLogEntry } from '@/services';
 import { formatDateTime } from '@/utils/formatDate';
 import type { MolecularBatch, MolecularBatchStatus } from '../../services/molecular/IMolecularBatchService';
 import MolecularBatchManagementPage from '../MolecularBatchManagement/MolecularBatchManagementPage';
@@ -73,6 +73,7 @@ import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { getFacilityIsoDate } from '@/utils/facilityTime';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { useCapabilities } from '@/hooks/useCapabilities';
 
 const STATUS_LABEL_KEY: Record<MolecularBatchStatus, { key: string; color: string }> = {
   draft:             { key: 'protocolShared.lifecycle.draft',              color: '#9ca3af' },
@@ -121,6 +122,7 @@ const MolecularWorkcenterPage: React.FC = () => {
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('pathologyWorkspace.molecularTile.title'), '/molecular'); }, [pushCrumb, t]);
   const navigate = useNavigate();
+  const { has } = useCapabilities();
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab');
   // Real, per direct guidance ("Primary View (Default Tab): Active
@@ -213,7 +215,8 @@ const MolecularWorkcenterPage: React.FC = () => {
         {activeTab !== 'qc' && (
           <div className="ps-flex-row-gap-8">
             <button className="ps-btn-small" onClick={() => navigate('/molecular-rack')}>{t('molecularRackWorklistPage.title')}</button>
-            <button className="ps-btn-small" onClick={() => navigate('/molecular-control-rules')}>{t('molecularWorkcenterPage.controlRulesButton')}</button>
+            {/* Batch 669 (ctl): Control Rules has its own view capability; the button shows only to someone who can open it. */}
+            {canOpenTile('molecularControlRules', has) && <button className="ps-btn-small" onClick={() => navigate('/molecular-control-rules')}>{t('molecularWorkcenterPage.controlRulesButton')}</button>}
             <button className="ps-conf-btn-secondary" onClick={() => navigate('/molecular-batch/new')}>+ {t('molecularWorkcenterPage.newBatchButton')}</button>
           </div>
         )}

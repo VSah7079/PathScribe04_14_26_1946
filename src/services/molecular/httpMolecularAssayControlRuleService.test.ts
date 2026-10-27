@@ -11,10 +11,11 @@ const call = (f: ReturnType<typeof vi.fn>, name: string, args: unknown[]) => (sv
 
 const CALLS: { name: string; verb: string; path: string; body?: unknown; args: unknown[] }[] = [
   { name: 'getAll', verb: 'GET', path: '/api/molecular/molecular-assay-control-rule/get-all', args: [] },
+  { name: 'listForReview', verb: 'GET', path: '/api/molecular/molecular-assay-control-rule/list-for-review', args: [] },
   { name: 'getByAssayCode', verb: 'GET', path: '/api/molecular/molecular-assay-control-rule/get-by-assay-code?assayCode=assayCode-1', args: ['assayCode-1'] },
-  { name: 'create', verb: 'POST', path: '/api/molecular/molecular-assay-control-rule/create', body: {"sample":1}, args: [{ sample: 1 } as never] },
-  { name: 'update', verb: 'POST', path: '/api/molecular/molecular-assay-control-rule/update', body: {"id":"id-1","patch":{"sample":1}}, args: ['id-1', { sample: 1 } as never] },
-  { name: 'delete', verb: 'POST', path: '/api/molecular/molecular-assay-control-rule/delete', body: {"id":"id-1"}, args: ['id-1'] },
+  { name: 'create', verb: 'POST', path: '/api/molecular/molecular-assay-control-rule/create', body: {"sample":1,"reason":"r"}, args: [{ sample: 1 } as never, 'r'] },
+  { name: 'update', verb: 'POST', path: '/api/molecular/molecular-assay-control-rule/update', body: {"id":"id-1","patch":{"sample":1},"reason":"r"}, args: ['id-1', { sample: 1 } as never, 'r'] },
+  { name: 'delete', verb: 'POST', path: '/api/molecular/molecular-assay-control-rule/delete', body: {"id":"id-1","reason":"r"}, args: ['id-1', 'r'] },
 ];
 
 describe('createHttpMolecularAssayControlRuleService', () => {

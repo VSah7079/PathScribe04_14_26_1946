@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 628 (bug PS-829) — Voice matching picks the best exact phrase: \"open messages\" no longer runs Open Selected on the worklist, in all languages",
+    "description": "Vitest, 2026-10-19: full suite 1672 files (1667 passed, 4 skipped, 1 failed); 14,121 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean. Not run: a real microphone."
+  },
+  "tests": [
+    {
+      "testKey": "PS-828",
+      "start": "2026-10-19T23:20:00Z",
+      "finish": "2026-10-19T23:40:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/actionRegistry/findExactTriggerMatch.test.ts\nPASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts\nPASSED: src/services/actionRegistry/findActionByTrigger.language.test.ts\nPASSED: src/services/actionRegistry/spanishVoiceTriggers.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts\nNot tested: a real microphone."
+    }
+  ]
+}

@@ -21,6 +21,7 @@ const LAB = { facilityId: 'c-ent-dvmc', defaultGatewayId: 'PAUBOX', gateways: [
 
 import { mockMessageService } from './mockMessageService';
 import { MESSAGE_NOT_PERMITTED } from './IMessageService';
+import { isUnreadFor } from './messageUnread';
 
 const EMAIL = { fromName: 'A', fromEmail: 'a@x.org', to: 'b@x.org', subject: 'S', body: 'B', organisationId: 'ORG-DVMC' };
 const draft = { senderId: 'u1', senderName: 'Dr. A', recipientId: 'u2', recipientName: 'Lab Manager', subject: 'S', body: 'B', timestamp: new Date(), isUrgent: false };
@@ -70,5 +71,25 @@ describe('mockMessageService permissions', () => {
     ]);
     expect(covered.ok).toBe(true);
     expect(uncoveredNoPhi.ok).toBe(true);
+  });
+
+  // Batch 669f (everyday-1, everyday-3)
+  it('a reply keeps the opening message body (the list preview) and adds to the thread', async () => {
+    const sent = await mockMessageService.send({ ...draft, body: 'Original question' });
+    if (!sent.ok) throw new Error('send failed');
+    const r = await mockMessageService.reply(sent.data.id, 'u2', 'Lab Manager', 'My answer');
+    if (!r.ok) throw new Error('reply failed');
+    expect(r.data.body).toBe('Original question');
+    expect(r.data.thread.map(t => t.text)).toEqual(['Original question', 'My answer']);
+  });
+  it('a reply sets the message unread again, for the other participant only', async () => {
+    const sent = await mockMessageService.send(draft);
+    if (!sent.ok) throw new Error('send failed');
+    await mockMessageService.markRead(sent.data.id);
+    const r = await mockMessageService.reply(sent.data.id, 'u2', 'Lab Manager', 'Done');
+    if (!r.ok) throw new Error('reply failed');
+    expect(r.data.isRead).toBe(false);
+    expect(isUnreadFor(r.data, 'u1')).toBe(true); // the original sender is told
+    expect(isUnreadFor(r.data, 'u2')).toBe(false); // the replier is not
   });
 });

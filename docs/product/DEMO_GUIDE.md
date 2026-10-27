@@ -7,6 +7,7 @@ This guide covers who to sign in as, and which seeded case to open, to demo each
 - It clears every tester's changes.
 - It restores the seeded cases, people, delegations and reviews.
 - It puts the seeded billing and modifier versions back to "pending approval", so the approval demo can be repeated. Versions someone created themselves are kept.
+- It puts the Lockbox Drop-Off demo back to its six starting receipts (Batch 648; see the Lockbox section below), so anything scanned, linked or accessioned on that screen is removed.
 - Passwords set on the Staff screen are cleared, but the built-in demo sign-ins below keep working.
 
 All demo sign-ins use the same password as `demo@pathscribe.ai`. The password is not written here; ask Pete.
@@ -21,7 +22,7 @@ All are at Desert Valley (Metro General Hospital) unless noted.
 
 | Sign in as | Email | Role | Use for |
 |---|---|---|---|
-| Pete Nimmo | demo@pathscribe.ai | Superadmin (Pathologist, Admin) | Everything; the attending in two-person pairs |
+| Pete Nimmo | demo@pathscribe.ai | Superadmin (Pathologist, Admin) | Every capability except approving the AI instructions (`config:ai-prompt:approve`, separation of duties); the attending in two-person pairs |
 | Dr. Sarah Johnson | sarah.johnson@demo.pathscribe.ai | Pathologist | Second pathologist: her own cases, second opinions, informal reviews, surgical peer review |
 | Dr. James Okafor | james.okafor@demo.pathscribe.ai | Resident | Releasing a draft for countersign (S26-4610) |
 | Dr. Lucas Moreau | lucas.moreau@demo.pathscribe.ai | Fellow | Fellow drafting; claiming from subspecialty pools |
@@ -31,6 +32,8 @@ All are at Desert Valley (Metro General Hospital) unless noted.
 | Hannah Price | hannah.price@demo.pathscribe.ai | Template Author | Drafting a synoptic template and submitting it for review |
 | Dr. Samuel Osei | samuel.osei@demo.pathscribe.ai | Template Approver | Approving and publishing a template someone else wrote |
 | Grace Liu | grace.liu@demo.pathscribe.ai | QA Reviewer | Quality Assurance: exports, follow-up outcomes, the clinician email; viewing registry exceptions |
+| Helen Schollars | helen.schollars@demo.pathscribe.ai | Admin and Pathologist | Technical writer: opens every screen to capture it for the Admin and User Guides (not read-only; passwords reset from Staff) |
+| Shelly Krill | shelly.krill@demo.pathscribe.ai | Admin and Pathologist | Technical writer: same as Helen Schollars |
 | Maria Lopez | maria.lopez@demo.pathscribe.ai | Accessioner | Accessioning |
 | Kevin Brooks | kevin.brooks@demo.pathscribe.ai | Histotechnologist | Embedding, microtomy, slide distribution, Batch Management |
 | Daniel Kim | daniel.kim@demo.pathscribe.ai | Molecular Technologist | Molecular Workspace and Extraction Racks (HPV runs on the baseline Paps) |
@@ -277,4 +280,31 @@ The stage maps are drawn from the Mohs synoptic's answers and are always part of
 1. On **A26-4663**'s still-open toxicology order, press **Cancel Order**, give a reason, and save: the order's status and a cancellation reason/date appear in the log, and (if nothing else has claimed the case's ancillary hold since) the hold clears.
 2. On **A26-4664**, use the new **Organ Retention Detail** panel (above the existing disposal panel) to record a recipient name and location — overwrite it a second time to see it replace rather than append.
 3. On **A26-4661**, after narrowing consent per the Batch 469 demo above, a **Reinstate Consent** button now appears. Press it, enter a required note (e.g. "Family confirmed consent restored in writing"), and save: status returns to active and the exclusions/retention permission widen back to what the note's input specified. The button disappears again once status is active.
+
+## Demo: Lockbox Drop-Off, after-hours specimens (Batch 645; seeded cases and Demo Reset, Batch 648)
+
+**Sign in as** Maria Lopez (Accessioner): she can scan, see the Overnight folder, link a placeholder and mark a receipt accessioned. Michelle Nimmo (Admin) can open the Overnight folder and the time figures, but cannot scan. Open **Lockbox Drop-Off** from Home (or Alt+Shift+Z).
+
+**What is already there.** The demo starts with six receipts, timed back from the moment the demo data was loaded, so the folder always reads "last night and this morning". Open the **Overnight folder** tab:
+
+| Barcode | What it is | What to point out |
+|---|---|---|
+| `SCUH-ORD-22014` | Matched order, **Urgent**, callback number | First in the folder. The order's number and ordering facility only: no patient name. |
+| `LBXDEMO-0001` | Placeholder, **Urgent** (an intraoperative drop), client and physician picked from the lists | A temporary record that keeps the chain of custody. It has an id like `LBX-PH-…` and never an accession number. |
+| `LBXDEMO-0002` | Placeholder, routine, client typed in ("not in the client list") | The longest wait in the folder. |
+| `FGH-ORD-88301` | Matched order, routine | The ordinary case: the order was already in the system. |
+| `LBXDEMO-0003` | Placeholder **already linked** to its real order `FGH-ORD-88322` | State "Placeholder linked to an order": now it can be **Mark accessioned**. |
+| `WSSC-ORD-71042` | Matched order, **already accessioned** | Not in the folder; it is what the **Time to receipt** figures (median, mean, longest) are built from. |
+
+**Scan live.** On the **Drop-Off** tab, scan or type:
+- `WSSC-ORD-71058` or `WSSC-ORD-71075`: pending orders with no receipt yet. The receipt card shows the order's number and ordering facility and the kiosk is ready for the next container.
+- Any other barcode, for example `NEWDROP-1`: no order matches, so the placeholder form opens. Every field is optional; Enter records it, Escape cancels.
+- A barcode from the table above: the earlier receipt is shown and no second receipt is made (one receipt per barcode).
+- Turn on **Urgent** first (Alt+G) to see an urgent drop go to the top of the folder.
+
+**Link and accession.** In the folder, **Link to order** on `LBXDEMO-0001` and enter `FGH-ORD-88322` (or any number); then **Mark accessioned** is available. An unlinked placeholder cannot be accessioned.
+
+**Reset.** Sign in as Michelle Nimmo or Pete, Configuration → ⟳ **Demo Reset** → **Full Reset**. Everything scanned, linked or accessioned is removed and the six starting receipts are loaded again, with fresh times. The reset also clears the rest of the demo data, as it always does.
+
+**Limits.** The demo's "server time" is the browser's clock and the person who received a drop is the signed-in user; the API server (which stamps both) is not built. The seeded receipts name the kiosk and accessioner as "(demo)". No patient data is on any receipt.
 

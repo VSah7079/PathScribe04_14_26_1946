@@ -39,7 +39,7 @@
 
 import { readSiteSetting, saveSiteSetting } from '@/services/siteSettings/siteSettingsStore';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { InkingValidationMode } from './resolveInkingValidationSeverity';
 
 const INKING_VALIDATION_MODE_KEY = 'inkingValidationMode';
@@ -70,7 +70,7 @@ export async function setInkingValidationMode(facilityId: string, mode: InkingVa
   const previous = getInkingValidationMode(facilityId);
   saveSiteSetting(facilityId, INKING_VALIDATION_MODE_KEY, mode);
   if (previous !== mode) {
-    await mockAuditService.logEvent({
+    await auditService.logEvent({
       type: 'user', event: 'Inking validation mode changed', user: actorName ?? 'unknown', caseId: null, confidence: null,
       facilityId, detail: `Inking validation mode for facility ${facilityId} changed from ${previous} to ${mode}.`,
     });

@@ -34,21 +34,28 @@
 // label reprint now needs a reason (Pete). Messages the page shows are
 // returned as locale keys (slideDistribution.*), and the scan station comes
 // from @/services rather than the mock directly.
+//
+// Batch 669 (ws-8): every change goes through `commit`, which saves with services/workstationSave/runCaseAction.ts
+// (via hooks/useWorkstationSave.ts): retried on a conflict, and a save that still fails shows "Not saved"
+// (`saveError`) and reloads the queued slides from the stored case, instead of leaving the change on screen as
+// saved. A label reprint is only printed once its reason was saved.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { slideLevelOf, stainAtLevel } from '@/services/material/slideLevels';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
-import { caseRouter } from '@/services/cases/CaseRouter';
 import {
   printerProfileService, printSettingsService, userService, subspecialtyService, scanStationService, equipmentService,
   slideCheckoutMissing, scannerLoadMissing, slideExceptionMissing, slideReprintMissing,
 } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { useWorkstationSave } from '@/hooks/useWorkstationSave';
+import { replaceSpecimenById, type SpecimenOpResult } from '@/services/workstationSave/runCaseAction';
 import { printSlideLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
+import { DEFAULT_SLIDE_LABEL_LAYOUT, type SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { Subspecialty } from '@/services/subspecialties/ISubspecialtyService';
 import type { Equipment } from '@/services/equipment/IEquipmentService';
@@ -72,6 +79,8 @@ export interface SlideDistributionActionResult {
   message?: SlideDistributionMessage;
   /** A printer's own error text, shown as given. */
   printerMessage?: string;
+  /** Batch 669: the change was not saved ("Not saved" is showing on the page, and the slides were reloaded). */
+  notSaved?: boolean;
 }
 
 export interface SlideQueueItem {
@@ -91,6 +100,7 @@ export interface ScanException {
 
 const notInQueue: SlideDistributionActionResult = { ok: false, message: { key: 'slideDistribution.errors.notInQueue' } };
 const failed: SlideDistributionActionResult = { ok: false, message: { key: 'slideDistribution.destination.assignFailed' } };
+const notSaved: SlideDistributionActionResult = { ok: false, notSaved: true };
 
 function levelLabelFor(stains: StainOrder[], stainId: string): string {
   const idx = stains.findIndex(s => s.id === stainId);
@@ -110,7 +120,7 @@ export function useSlideDistributionStation() {
   const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   // Batch 434: the slide scanners in the Equipment register (the Digital destination picks one).
   const [scanners, setScanners] = useState<Equipment[]>([]);
-  const versionsRef = useRef<Map<string, number>>(new Map());
+  const { saveError, saveChange } = useWorkstationSave();
 
   const actor = { id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' };
 
@@ -192,33 +202,39 @@ export function useSlideDistributionStation() {
     setActiveQueueId(prev => (prev === id ? null : prev));
   }, []);
 
-  /** Real, same real persistence shape as useEmbeddingStation.ts's own
-   *  persist — but this station's queue can span MULTIPLE cases at
-   *  once (a tech works through a continuous scan stream, not one case
-   *  at a time), so this also refreshes every other queued item that
-   *  shares the same real, just-updated Specimen object, and tracks a
-   *  real per-case version counter rather than a single shared one. */
-  const persist = useCallback(async (caseData: Case, updatedSpecimen: Specimen): Promise<Specimen> => {
-    const updatedSpecimens = (caseData.specimens ?? []).map(sp => sp.id === updatedSpecimen.id ? updatedSpecimen : sp);
-    const updatedCaseData = { ...caseData, specimens: updatedSpecimens };
+  /** The queued slides of `caseData` taken from that copy of the case (an item whose slide is gone is left as it is). */
+  const refreshQueueFrom = useCallback((caseData: Case) => {
     setQueue(prev => prev.map(q => {
-      if (q.caseData.id !== caseData.id || q.specimen.id !== updatedSpecimen.id) return q;
-      const block = updatedSpecimen.blocks?.find(b => b.id === q.block.id);
+      if (q.caseData.id !== caseData.id) return q;
+      const specimen = (caseData.specimens ?? []).find(sp => sp.id === q.specimen.id);
+      const block = specimen?.blocks?.find(b => b.id === q.block.id);
       const stain = block?.stains?.find(s => s.id === q.stain.id);
-      return block && stain ? { ...q, caseData: updatedCaseData, specimen: updatedSpecimen, block, stain } : q;
+      return specimen && block && stain ? { ...q, caseData, specimen, block, stain } : q;
     }));
-    try {
-      const version = versionsRef.current.get(caseData.id) ?? (caseData as unknown as { version?: number }).version ?? 0;
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens }, version);
-      versionsRef.current.set(caseData.id, version + 1);
-    } catch (e) {
-      // Real, honest simplification, same posture as the other two
-      // workstations' own persist — logged, not silently hidden, but
-      // doesn't block the tech's own next scan.
-      console.error('[SlideDistributionStation] Failed to persist:', e);
-    }
-    return updatedSpecimen;
   }, []);
+
+  /** Batch 669 (ws-8): applies `op` to the queued slide's specimen, shows the result at once and saves it (retried on a
+   *  conflict, the operation re-applied to the newest copy). This station's queue can span several cases, so every
+   *  other queued slide of the same case is refreshed too. Returns null when the operation refuses; `saved: false`
+   *  when the save failed ("Not saved" is showing and the queue was reloaded from the stored case). */
+  const commit = useCallback(async (item: SlideQueueItem, op: (specimen: Specimen) => SpecimenOpResult): Promise<{ saved: boolean; specimen: Specimen } | null> => {
+    const local = op(item.specimen);
+    if (!local.ok) return null;
+    refreshQueueFrom({ ...item.caseData, specimens: replaceSpecimenById(item.caseData.specimens, local.specimen) });
+    const outcome = await saveChange(item.caseData.id, current => {
+      const sp = (current.specimens ?? []).find(x => x.id === item.specimen.id);
+      const res = sp ? op(sp) : null;
+      return res && res.ok ? replaceSpecimenById(current.specimens, res.specimen) : null;
+    });
+    if (outcome.status === 'saved') {
+      refreshQueueFrom(outcome.caseData);
+      return { saved: true, specimen: (outcome.caseData.specimens ?? []).find(x => x.id === item.specimen.id) ?? local.specimen };
+    }
+    // Not saved: show the stored case, so the tech can redo the change.
+    if (outcome.latest) refreshQueueFrom(outcome.latest);
+    else refreshQueueFrom(item.caseData);
+    return { saved: false, specimen: item.specimen };
+  }, [saveChange, refreshQueueFrom]);
 
   const handleAssignPhysical = useCallback(async (id: string, assignment: PhysicalAssignment): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
@@ -229,42 +245,38 @@ export function useSlideDistributionStation() {
     // services/reports/README.md et al.): strictNullChecks: false
     // means a discriminated union doesn't reliably narrow on
     // `if (!result.ok)` — handled with an explicit cast instead.
-    const result = assignPhysicalSlide(item.specimen, item.block.id, item.stain.id, assignment, actor.id);
-    if (!result.ok) return failed;
-    await persist(item.caseData, result.specimen);
-    return { ok: true };
-  }, [queue, persist, actor.id, requirements]);
+    const saved = await commit(item, sp => assignPhysicalSlide(sp, item.block.id, item.stain.id, assignment, actor.id));
+    if (!saved) return failed;
+    return saved.saved ? { ok: true } : notSaved;
+  }, [queue, commit, actor.id, requirements]);
 
   const handleAssignScanner = useCallback(async (id: string, assignment: ScannerAssignment): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
     if (!item) return notInQueue;
     const missing = scannerLoadMissing(assignment, requirements);
     if (missing.length > 0) return { ok: false, missing };
-    const result = assignScannerSlide(item.specimen, item.block.id, item.stain.id, assignment, actor.id);
-    if (!result.ok) return failed;
-    await persist(item.caseData, result.specimen);
-    return { ok: true };
-  }, [queue, persist, actor.id, requirements]);
+    const saved = await commit(item, sp => assignScannerSlide(sp, item.block.id, item.stain.id, assignment, actor.id));
+    if (!saved) return failed;
+    return saved.saved ? { ok: true } : notSaved;
+  }, [queue, commit, actor.id, requirements]);
 
   const handleFlagException = useCallback(async (id: string, reason: SlideExceptionReason, note?: string): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
     if (!item) return notInQueue;
     const missing = slideExceptionMissing(note, requirements);
     if (missing.length > 0) return { ok: false, missing };
-    const result = flagSlideException(item.specimen, item.block.id, item.stain.id, reason, actor.id, note?.trim() || undefined);
-    if (!result.ok) return { ok: false };
-    await persist(item.caseData, result.specimen);
-    return { ok: true };
-  }, [queue, persist, actor.id, requirements]);
+    const saved = await commit(item, sp => flagSlideException(sp, item.block.id, item.stain.id, reason, actor.id, note?.trim() || undefined));
+    if (!saved) return { ok: false };
+    return saved.saved ? { ok: true } : notSaved;
+  }, [queue, commit, actor.id, requirements]);
 
   const handleResolveException = useCallback(async (id: string) => {
     const item = queue.find(q => q.queueId === id);
     if (!item) return;
-    const result = resolveSlideException(item.specimen, item.block.id, item.stain.id, actor.id);
-    if (result.ok) await persist(item.caseData, result.specimen);
-  }, [queue, persist, actor.id]);
+    await commit(item, sp => resolveSlideException(sp, item.block.id, item.stain.id, actor.id));
+  }, [queue, commit, actor.id]);
 
-  const getPrinterContext = useCallback(async (): Promise<{ printer: PrinterProfile; gtin: string } | { error: string }> => {
+  const getPrinterContext = useCallback(async (): Promise<{ printer: PrinterProfile; gtin: string; layout: SlideLabelLayoutConfig } | { error: string }> => {
     if (!effectiveStationId) return { error: 'slideDistribution.errors.noStation' };
     const stationRes = await scanStationService.getById(effectiveStationId);
     if (!stationRes.ok) return { error: 'slideDistribution.errors.stationNotFound' };
@@ -275,7 +287,9 @@ export function useSlideDistributionStation() {
     if (!printerRes.ok || !printerRes.data) return { error: 'slideDistribution.errors.profileMissing' };
     const settingsRes = await printSettingsService.get();
     const gtin = settingsRes.ok ? settingsRes.data.gs1Gtin : '';
-    return { printer: printerRes.data, gtin };
+    // Batch 669 (ws-14): the configured slide label layout travels with the printer, as on the Microtomy workstation.
+    const layout = settingsRes.ok ? settingsRes.data.slideLabelLayout ?? DEFAULT_SLIDE_LABEL_LAYOUT : DEFAULT_SLIDE_LABEL_LAYOUT;
+    return { printer: printerRes.data, gtin, layout };
   }, [effectiveStationId]);
 
   /** Real, per the spec's own "trigger a replacement label print"
@@ -288,9 +302,11 @@ export function useSlideDistributionStation() {
     if (!item) return notInQueue;
     const missing = slideReprintMissing(reason, requirements);
     if (missing.length > 0) return { ok: false, missing };
-    const recorded = recordLabelReprintRequest(item.specimen, item.block.id, item.stain.id, actor.id, reason as SlideLabelReprintReason);
-    if (!recorded.ok) return { ok: false, missing: ['reprintReason'] };
-    const specimen = await persist(item.caseData, recorded.specimen);
+    const recorded = await commit(item, sp => recordLabelReprintRequest(sp, item.block.id, item.stain.id, actor.id, reason as SlideLabelReprintReason));
+    if (!recorded) return { ok: false, missing: ['reprintReason'] };
+    // The reason is saved before a replacement label is printed; nothing is printed for an unsaved change.
+    if (!recorded.saved) return notSaved;
+    const specimen = recorded.specimen;
     const block = specimen.blocks?.find(b => b.id === item.block.id);
     const stain = block?.stains.find(s => s.id === item.stain.id);
     if (!block || !stain) return notInQueue;
@@ -302,10 +318,10 @@ export function useSlideDistributionStation() {
     const slideId = stain.displayId ?? `${specimen.label}${block.label}-${level}`;
     const result = await printSlideLabel(
       { fullAccession, specimenLabel: specimen.label, blockLabel: block.label, level, stainName: stain.stainName, slideId },
-      ctx.printer, ctx.gtin,
+      ctx.printer, ctx.gtin, ctx.layout,
     );
     return result.ok ? { ok: true } : { ok: false, printerMessage: (result as { ok: false; message: string }).message };
-  }, [queue, persist, getPrinterContext, actor.id, requirements]);
+  }, [queue, commit, getPrinterContext, actor.id, requirements]);
 
   const splitDestinationWarningFor = useCallback((id: string): SplitDestinationWarning | null => {
     const item = queue.find(q => q.queueId === id);
@@ -314,7 +330,7 @@ export function useSlideDistributionStation() {
   }, [queue]);
 
   return {
-    queue, activeQueueId, setActiveQueueId, scanError, scanExceptions, resolveScan, removeFromQueue, requirements,
+    queue, activeQueueId, setActiveQueueId, scanError, saveError, scanExceptions, resolveScan, removeFromQueue, requirements,
     pathologists, subspecialties, scanners, loadDirectories, resolveDefaultRouting,
     handleAssignPhysical, handleAssignScanner, handleFlagException, handleResolveException, handleRequestReprint,
     splitDestinationWarningFor, effectiveStationId, actor,

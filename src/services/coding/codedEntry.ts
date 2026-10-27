@@ -25,10 +25,17 @@ export type CodeSystemId = string;
 export type CodeSource = 'typed' | 'map' | 'ai' | 'rule' | 'legacy';
 
 export interface CodedEntryAiDetail {
-  /** The model that made the suggestion, as the AI settings name it. */
+  /** The model id the call really used, as the AI settings name it ('unknown' only for a code no model was recorded for). */
   model: string;
-  /** 0 to 1. */
+  /** Batch 651: the configured AI service the call went to. */
+  provider?: string;
+  /** 0 to 100 (a whole percent), the one scale used for every AI confidence. Batch 651: this said 0 to 1 while the modal stored 0 to 100. */
   confidence: number;
+  /** Batch 696: which check confirmed the code: the terminology dictionary, or (CPT) the billing code table. */
+  verifiedBy?: 'dictionary' | 'code-map';
+  /** Batch 696: the part of the case the AI said it took the code from (checked), and the specimen if the text names one. */
+  sourceSection?: string;
+  specimen?: string;
 }
 
 export interface CodedEntry {

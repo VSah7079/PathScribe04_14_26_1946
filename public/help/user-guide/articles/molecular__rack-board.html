@@ -1,0 +1,196 @@
+<h1 id="top">Rack Board</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Rack Board is the list of extraction racks. On screen its heading is "Extraction Racks", with the line "Physical tube racks holding input specimens prior to or during lysis/extraction, ahead of plate loading." Each row is one physical rack of specimen tubes, with how full it is and where it stands: still being loaded, waiting for sample IDs, or already placed on an instrument. From here you start a new rack or open an existing one.</p>
+<p><strong>Intended users.</strong> Molecular technologists who prepare specimens for a run. Laboratory managers use it to see what is waiting.</p>
+<p><strong>Where it fits.</strong> The rack comes before the plate. Specimens are scanned into tube positions on a rack (<a href="/help/molecular/rack">Rack</a>), the rack is placed on the instrument's deck, and then the plate for the run is built and its worklist sent (<a href="/help/molecular/batch">Batch</a>). You reach the board from the <strong>Extraction Racks</strong> button on the <a href="/help/molecular">Molecular</a> screen. Like the rest of the Molecular screens it needs the Molecular screen permission; by default that belongs to the Molecular Technologist role. If the button or the address does not open, you will see "You don't have access to this screen" with a <strong>Back to Home</strong> button; ask your administrator to add the Molecular screen to your role.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/molecular-rack-board-overview.png" alt="The Extraction Racks list showing racks with capacity, occupied tubes and status"><figcaption>The Extraction Racks list showing racks with capacity, occupied tubes and status</figcaption></figure>
+
+<p>The page has the heading and subtitle at the top left, a <strong>+ New Rack</strong> button at the top right, and a table below.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rack</td>
+<td>The rack's own barcode, for example RK-HPV-0417. If you did not give a barcode when you created the rack, PathScribe made one that starts RACK-MOLE- followed by a number.</td>
+</tr>
+<tr>
+<td>Capacity</td>
+<td>How many tube positions the rack has.</td>
+</tr>
+<tr>
+<td>Occupied</td>
+<td>How many positions hold a tube, shown as for example "9 / 24".</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Where the rack stands (see the table of indicators).</td>
+</tr>
+<tr>
+<td>Created</td>
+<td>The date and time the rack was created, in your language's format.</td>
+</tr>
+</tbody>
+</table>
+<p>The newest rack is at the top. While the list loads you see "Loading…". When there is no rack at all you see "No extraction racks yet."</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+ New Rack</td>
+<td>Opens a blank "New Extraction Rack" form (<a href="/help/molecular/rack">Rack</a>).</td>
+</tr>
+<tr>
+<td>A row</td>
+<td>Click anywhere on a row (or select it with the keyboard and press Enter) to open that rack.</td>
+</tr>
+</tbody>
+</table>
+<p>There is no search box, filter or sort control on this page. The board shows every rack, newest first.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Loading</td>
+<td>The rack is still being filled, and every tube on it already has its accession. This word means the rack is being loaded, not that the page is loading.</td>
+</tr>
+<tr>
+<td>Needs sample IDs</td>
+<td>At least one tube is on the rack but has no accession against it. The rack cannot be placed on an instrument until each tube has one.</td>
+</tr>
+<tr>
+<td>On <em>instrument</em></td>
+<td>The rack has been placed on that instrument.</td>
+</tr>
+<tr>
+<td>On <em>instrument</em>, <em>slot</em></td>
+<td>The rack has been placed on that instrument in that deck slot.</td>
+</tr>
+</tbody>
+</table>
+<p>The status is worked out each time the page opens from what is on the rack. A rack that has been placed always reads as placed, even if a tube was added afterwards.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None on this screen.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>On the <a href="/help/molecular">Molecular</a> screen select <strong>Extraction Racks</strong>. The board opens with the newest rack first.</li>
+<li>Look at the Status column. Racks that read <strong>Needs sample IDs</strong> are the ones that still need work before they can go on an instrument. Racks that read <strong>On</strong> an instrument are done.</li>
+<li>To start a rack, select <strong>+ New Rack</strong>. The "New Extraction Rack" form opens. Complete it as described in <a href="/help/molecular/rack">Rack</a>.</li>
+<li>To carry on with a rack, click its row. The rack's page opens with its positions.</li>
+<li>When you are finished, use <strong>← Back to Racks</strong> on the rack's page. The board shows your rack with its new Occupied count and Status.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Finding a rack for a run.</strong> Go to the Rack Board, look for the rack barcode written on the physical rack, and click it. The barcode in the Rack column is what is printed or scanned.</li>
+<li><strong>Checking what is ready to run.</strong> Read down the Status column. A rack on an instrument is ready for the worklist. Then go to the plate in <a href="/help/molecular/batch">Batch</a>.</li>
+<li><strong>Going back from a plate.</strong> The plate screen has no link to the Rack Board. Use <strong>Extraction Racks</strong> on the Molecular screen.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>A rack reads "Needs sample IDs" and you cannot see why.</strong> Open the rack. Positions that hold a tube without an accession are marked in a different colour and a line under the instructions lists their numbers. Give each one its accession.</li>
+<li><strong>The rack count looks wrong.</strong> Occupied counts positions that hold a tube barcode. A position that was never scanned does not count.</li>
+<li><strong>A rack you expect is missing.</strong> The board lists every rack. Check you are signed in to the right site, and look at the barcode on the physical rack. A new rack is created only by someone using <strong>+ New Rack</strong>.</li>
+<li><strong>A rack was placed on the wrong instrument.</strong> Open it and record a new placement. See <a href="/help/molecular/rack">Rack</a>.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>You created a rack by mistake.</strong> There is no delete on the board or on the rack's page. An empty rack that is never used does no harm; leave it. If it carries a wrong barcode, create a new one and use that.</li>
+<li><strong>The page says "Loading…" for a long time.</strong> Reload the page. If the board is still empty and you know racks exist, tell your laboratory manager.</li>
+<li><strong>You opened the wrong rack.</strong> Select <strong>← Back to Racks</strong> and choose the right row. Nothing changes until you scan or save.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li><strong>Reading "Loading" as a problem.</strong> It is the normal word for a rack being filled.</li>
+<li><strong>Placing a rack with tubes missing accessions.</strong> The rack will not place; fix the tubes first.</li>
+<li><strong>Creating a second rack for the same physical rack.</strong> Check the board first and open the existing one. A duplicate barcode is refused ("Another rack already has this barcode.").</li>
+<li><strong>Searching for a patient here.</strong> The board shows racks, not patients. A tube is found by opening its rack.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use the rack's barcode label: scan or type it when you create the rack and the barcode shown in the Rack column will match the physical rack.</li>
+<li>Start each shift on the board and clear the <strong>Needs sample IDs</strong> racks first.</li>
+<li>Leave the barcode blank when your laboratory does not label racks. PathScribe will number them for you.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Finish a rack in one sitting where you can. A half-loaded rack with tubes that have no accession is the commonest reason a run is late.</li>
+<li>Keep the physical rack barcode and the board in agreement. The board is the record of what is on each rack.</li>
+<li>Place the rack on the instrument before you send the worklist for the plate.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/molecular">Molecular</a>: the workspace that opens the board.</li>
+<li><a href="/help/accession">Accession</a>: the specimens that go on racks are accessioned first.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/molecular/rack">Rack</a>: load tubes into a rack and place it on an instrument.</li>
+<li><a href="/help/molecular/batch">Batch</a>: build the plate and send its worklist.</li>
+<li><a href="/help/molecular/control-rules">Control Rules</a>: the deck slots a test's rack may use are set here.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I cannot open the Rack Board.</td>
+<td>Your role does not have the Molecular screen.</td>
+</tr>
+<tr>
+<td>The board is empty.</td>
+<td>No rack has been created yet: "No extraction racks yet."</td>
+</tr>
+<tr>
+<td>A rack reads Needs sample IDs.</td>
+<td>A tube on it has no accession.</td>
+</tr>
+<tr>
+<td>Occupied shows fewer than I loaded.</td>
+<td>Only positions with a tube barcode count.</td>
+</tr>
+<tr>
+<td>The Extraction Racks button is missing from the Molecular screen.</td>
+<td>You are on the QC &amp; Specimen Association tab, where the header buttons are hidden. Choose another tab.</td>
+</tr>
+<tr>
+<td>The status did not change after I placed the rack.</td>
+<td>Go back to the board; the status is read when the page opens.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check which tab of the Molecular screen you are on, then select <strong>Extraction Racks</strong>.</li>
+<li>Reload the Rack Board if the list looks stale.</li>
+<li>Open the rack and read the line above the positions.</li>
+<li>Ask your administrator to check your role if the screen will not open.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a rack you created is missing from the board, or when a rack's status does not match what is on it after you reload. Have the rack barcode and the time of the problem ready.</p>

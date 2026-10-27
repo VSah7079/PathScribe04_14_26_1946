@@ -50,8 +50,8 @@ const defaultDeps: RevisionDelayDeps = {
     return (c as { status?: string } | null)?.status;
   },
   heldReleases: async caseId => {
-    const { mockHeldReleaseService } = await import('./mockHeldReleaseService');
-    const res = await mockHeldReleaseService.getByCaseId(caseId);
+    const { heldReleaseService } = await import('./heldReleaseServiceInstance');
+    const res = await heldReleaseService.getByCaseId(caseId);
     return res.ok ? res.data : [];
   },
 };

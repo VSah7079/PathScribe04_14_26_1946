@@ -3,7 +3,6 @@
 // Authoritative Case domain model for PathScribe.
 // FHIR-aligned (ServiceRequest, DiagnosticReport, Specimen, Task)
 // ─────────────────────────────────────────────────────────────
-
 import { Patient } from "./Patient";
 import { Specimen } from "./Specimen";
 import type { FlagInstance } from "../flagsRuntime";
@@ -625,12 +624,12 @@ export interface ProtocolChange {
    *
    * Previously ProtocolChange existed only transiently as
    * evaluateSynopticAssignment's input/output — nothing persisted what
-   * happened to a proposal after the modal closed. Needed now so a
-   * Stage 2 background check (fires on Save Draft with non-empty
-   * Microscopic content, separate from the blocking pre-finalize check)
-   * can leave a quiet, PERSISTENT badge for the pathologist to review on
-   * their own schedule, rather than only ever surfacing as an ephemeral
-   * toast or a forced interruption.
+   * happened to a proposal after the modal closed. It is persisted so a
+   * proposal can leave a quiet, PERSISTENT badge for the pathologist to
+   * review on their own schedule. Batch 651 correction: today the only
+   * writer is the Assist-mode LIS poll (services/assistPolling/). The
+   * Stage 2 BACKGROUND check on Save Draft in Orchestration mode that this
+   * comment used to describe was never built (Planned; KNOWN_GAPS.md).
    */
   reviewStatus?: 'pending' | 'accepted' | 'dismissed';
 }
@@ -678,16 +677,12 @@ export interface Case {
    *  cost/latency concern) for every row on every render. null/undefined
    *  = no confirmed abnormal finding on this case. */
   abnormalDetectionStatus?: { severity: 'Abnormal' | 'Critical' | 'Malignant'; confirmedAt: string } | null;
-  /** Real, per direct guidance: architecture-testing only, NEVER a
-   *  real, licensed SNOMED CT / ICD-O-3 code — PS-130 (the real
-   *  implementation) stays genuinely blocked on a real terminology
-   *  source. See resolveSyntheticCoding.ts (services/abnormalDetection/)
-   *  for the full safety reasoning — every real code value here is
-   *  structurally, unmistakably fake even read completely alone,
-   *  never relying on this field's own name/comment as the only
-   *  safeguard. Set alongside abnormalDetectionStatus above, same
-   *  real confirm moment, same lifecycle. */
-  syntheticAbnormalCoding?: { system: 'TEST-SNOMED' | 'TEST-ICDO3'; code: string; display: string }[];
+  /** The code(s) attached to the confirmed abnormal finding. Test codes ("TEST-" inside the
+   *  code string itself, so they can never pass for real ones) until the customer records a
+   *  SNOMED CT / ICD-O-3 licence; after that, the rule's own real codes while that licence is
+   *  on and unexpired (Batch 623, PS-130; resolveFindingCoding.ts). Set alongside
+   *  abnormalDetectionStatus above, at the same confirm moment. The name predates real codes. */
+  syntheticAbnormalCoding?: { system: 'TEST-SNOMED' | 'TEST-ICDO3' | 'SNOMED-CT' | 'ICD-O-3'; code: string; display: string }[];
 
   /** When grossing was first, genuinely completed for this case - real
    *  fix, added specifically for TAT (turnaround time) calculation
@@ -744,20 +739,16 @@ export interface Case {
   // finalize-blocking rules built against this field.
   microscopicReports?: MicroscopicReportInstance[];
 
-  // ── Synoptic fit re-evaluation (Orchestration Stage 2) ─────
-  // Persisted result of the most recent evaluateSynopticAssignment() run
-  // triggered by the Stage 2 BACKGROUND check (Save Draft with non-empty
-  // Microscopic content — see SynopticReportPage.tsx's handleSaveDraft).
-  // Distinct from the Stage 2 BLOCKING check at pre-finalize time
-  // (handlePreFinalConfirm), which surfaces its own ProtocolChangeModal
-  // immediately and doesn't need to persist anything past that moment —
-  // this field exists specifically so a quiet background-check result
-  // survives until the pathologist chooses to look at it (this session's
-  // stated design: persistent over ephemeral), shown as a badge in
-  // Sidebar.tsx next to the affected specimen/synoptic row. Cleared (or
-  // its entries marked 'accepted'/'dismissed') once the pathologist
-  // reviews them via ProtocolChangeModal, opened on demand by clicking
-  // the badge — see ProtocolChange.reviewStatus.
+  // ── Synoptic fit re-evaluation ─────
+  // Persisted template-fit proposals from evaluateSynopticAssignment(). Batch 651
+  // correction: this field is written ONLY by the Assist-mode LIS poll
+  // (services/assistPolling/runAssistPollCycle.ts), not by any Orchestration
+  // Save Draft. The "Stage 2 background check on Save Draft" this comment used to
+  // describe (handleSaveDraft in SynopticReportPage.tsx, which does not exist)
+  // is PLANNED, not built: Orchestration re-evaluates only at Gross Complete
+  // (useGrossingCompletion.ts, Stage 1). Shown as a badge in Sidebar.tsx next to
+  // the affected specimen/synoptic row; entries are marked 'accepted'/'dismissed'
+  // once the pathologist reviews them via ProtocolChangeModal (ProtocolChange.reviewStatus).
   pendingProtocolChanges?: ProtocolChange[];
 
   // ── Legacy single-report fields (kept for backwards compat) ──
@@ -823,9 +814,10 @@ export interface Case {
   order: OrderMetadata;
   assignmentHistory?: AssignmentEvent[];
   diagnostic?: DiagnosticMetadata;
+  intraoperativeFindings?: import('@/types/intraop/CaseIntraoperativeFinding').CaseIntraoperativeFinding[]; // Batch 652: intraop frozen dx + photos, never the final diagnosis
   coding?: CaseCoding;
-  /** Batch 611 (#132, #166): set only on a draft case a legacy import created. 'simulated_bulk_import' is the browser-side demo; a server import would use its own kind. */
-  importSource?: { kind: 'simulated_bulk_import'; jobId: string; sourceSystemName: string; importedAt: string };
+  importSource?: { kind: 'simulated_bulk_import'; jobId: string; sourceSystemName: string; importedAt: string }; // Batch 611: set only on a draft a legacy import created ('simulated_bulk_import' is the browser-side demo)
+  lockboxReceiptId?: string; // Batch 652: the Lockbox receipt this case was accessioned from (LockboxResolution.caseId is the other way)
   // Real, confirmed fix, per direct follow-up (Jira PS-57: "two
   // incompatible flag-tracking systems corrupt each other's data",
   // plus the follow-up "should be able to assign Flags at either a

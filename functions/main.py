@@ -933,6 +933,11 @@ def technical_facility_line(payload: dict, labels: dict) -> str:
     return template.replace('{{facility}}', facility)
 
 
+# Batch 652: the watermark is a faint red; the footer barcode is always solid black.
+WATERMARK_COLOR = colors.Color(0.86, 0.15, 0.15, alpha=0.16)
+BARCODE_COLOR = colors.Color(0, 0, 0, alpha=1)
+
+
 def watermark_text(payload: dict) -> str:
     text = payload.get('watermarkText')
     return text.strip() if isinstance(text, str) else ''
@@ -983,22 +988,31 @@ def _page_decorator(payload: dict, labels: dict, footer_flows: list | None = Non
     footer_text = '  ·  '.join(x for x in [rev[0] if rev else '', reference] if x)
     fonts = _current_fonts.get()
 
+    signed_at = signing_time(payload)
+
     def on_page(canvas, doc):
+        # Batch 652: the PDF's creation date is the signing time, never the clock (same bytes for the same request).
+        cytology_report.fix_timestamp(canvas, signed_at)
         width, height = doc.pagesize
         canvas.saveState()
         if mark:
+            # Batch 652: the watermark's faint red fill is set inside its own saved state. It used to be set
+            # outside one, so it stayed in force for the footer and the accession barcode (the bars are drawn
+            # with the current fill) printed faint red, too light to scan, on a pending-release print.
+            canvas.saveState()
             # Sized so the rotated line stays inside the page width.
             size = 30
             while size > 10 and canvas.stringWidth(mark, fonts[1], size) > width * 0.9:
                 size -= 1
             canvas.setFont(fonts[1], size)
-            canvas.setFillColor(colors.Color(0.86, 0.15, 0.15, alpha=0.16))
+            canvas.setFillColor(WATERMARK_COLOR)
             for frac in (0.28, 0.55, 0.82):
                 canvas.saveState()
                 canvas.translate(width / 2, height * frac)
                 canvas.rotate(32)
                 canvas.drawCentredString(0, 0, mark)
                 canvas.restoreState()
+            canvas.restoreState()
         left = doc.leftMargin + inset  # the text's left edge (the frame has its own 6 pt padding)
         if footer_flows:
             avail = width - left - (doc.rightMargin + inset)
@@ -1011,6 +1025,9 @@ def _page_decorator(payload: dict, labels: dict, footer_flows: list | None = Non
             x = left
             try:
                 barcode = Code128(accession, barHeight=7 * mm, barWidth=0.28 * mm, humanReadable=False)
+                # Solid, opaque black whatever was drawn before (a scanner needs full contrast).
+                canvas.setFillColor(BARCODE_COLOR)
+                canvas.setFillAlpha(1)
                 barcode.drawOn(canvas, x - barcode.lquiet, 8 * mm)
                 x += barcode.width - barcode.lquiet + 4 * mm
             except Exception:  # noqa: BLE001 — an accession the barcode can't encode keeps the readable reference
@@ -1093,6 +1110,16 @@ DEFAULT_MARGINS_MM = (18, 20, 22, 20)
 # The footer reference (accession barcode and document reference) is drawn 8 to 18 mm
 # from the bottom edge, so the bottom margin is never below this, whatever the lab sets.
 FOOTER_BAND_MM = 20
+
+
+def signing_time(payload: dict):
+    """Batch 652: the instant the report was signed, as the request gives it (top-level signedAt, else the workup's, else the
+    first of workups). None when the request has none (a preview): the date is then reportlab's fixed one, still not the clock."""
+    for source in (payload, payload.get('workup') or {}, *(payload.get('workups') or [])):
+        value = source.get('signedAt') if isinstance(source, dict) else None
+        if value:
+            return str(value)
+    return None
 
 
 def build_report_pdf(payload: dict) -> bytes:
@@ -1255,6 +1282,9 @@ def _build_report_pdf(payload: dict) -> bytes:
         topMargin=margin_top - inset, bottomMargin=margin_bottom - inset,
         leftMargin=margin_left - inset, rightMargin=margin_right - inset,
         title=payload.get('caseHeader', {}).get('accession', 'PathScribe Report'),
+        # Batch 652: deterministic output: reportlab's invariant mode (fixed document ID and object order, no
+        # clock), fixed producer text, and the creation date from the signing time (_page_decorator).
+        creator='PathScribe', producer='PathScribe report renderer', invariant=1,
     )
 
     flows = []
@@ -1555,6 +1585,7 @@ def render_report(req: https_fn.Request) -> https_fn.Response:
 #                        | "REGISTRY_REPORT" | "CANCER_REGISTRY_REPORT" | "PRINT_JOB"
 #                        | "CRITICAL_ALERT" | "WSI_SCAN_MANIFEST"
 #                        | "ACCESSION_EVENT" | "REFERRAL_MANIFEST" | "MOLECULAR_ORDER"
+#                        | "MOLECULAR_WORKLIST"
 #                        | "REPORT_DELIVERY",
 #     "dispatchedAt": str,  # real ISO timestamp of this dispatch attempt
 #     "payload": { ... },   # the real, actual payload — Adt08DemographicUpdatePayload /
@@ -1599,6 +1630,8 @@ _VALID_TRANSACTION_TYPES = {
     'A08', 'A40', 'A47', 'ORU_R01', 'LIS_SYNC', 'ORDER_CREATED',
     'REGISTRY_REPORT', 'CANCER_REGISTRY_REPORT', 'PRINT_JOB', 'CRITICAL_ALERT',
     'WSI_SCAN_MANIFEST', 'ACCESSION_EVENT', 'REFERRAL_MANIFEST', 'MOLECULAR_ORDER',
+    # Batch 669 (mol-7): a verified molecular plate's worklist for the instrument.
+    'MOLECULAR_WORKLIST',
     # Batch 520 (PS-280): a signed report PDF to fax or drop as a file; this
     # receiver delivers it (report_delivery.py) and answers with the outcome.
     'REPORT_DELIVERY',

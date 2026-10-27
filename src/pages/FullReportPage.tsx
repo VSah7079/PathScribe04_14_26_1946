@@ -249,6 +249,7 @@ export default function FullReportPage() {
         currentUserId={user?.id ?? 'u1'}
         currentUserName={user?.name ?? 'Unknown'}
         continueToReport={true}
+        restoreVoiceContext={VOICE_CONTEXT.CASE_VIEW}
         fromFilter={fromFilter ?? 'pool'}
         onAccepted={() => setClaimOpen(false)}
         onPassed={() => { setClaimOpen(false); navigate('/worklist', { state: { restoreFilter: fromFilter ?? 'pool' } }); }}

@@ -20,6 +20,7 @@
 // A decision is recorded once per case (surgical, autopsy) or once per
 // specimen (cytology, where each specimen is signed out on its own).
 // ─────────────────────────────────────────────────────────────────────────────
+import { evidenceFromFieldValues } from './clinicalMismatchDecision';
 import type { Case } from '@/types/case/Case';
 import type { CytologyCategoryEntry } from '../cytology/ICytologyCategoryService';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
@@ -137,6 +138,7 @@ export function deferredMismatchDetails(r: Pick<QaActivityRecord, 'id' | 'caseId
     source: (str('suggestionSource') ?? 'ai') as 'ai' | 'rule' | 'pathologist',
     confidence: typeof v.suggestionConfidence === 'number' ? v.suggestionConfidence : undefined,
     clinicalIndication: str('clinicalIndication'),
+    evidence: evidenceFromFieldValues(v), // Batch 685
     discipline: str('discipline') as ClinicalMismatchInput['discipline'],
     specimenId: str('specimenId'),
     deferredAt: r.recordedAt,

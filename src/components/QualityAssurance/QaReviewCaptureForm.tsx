@@ -22,6 +22,9 @@
 // (including the real mandatory-narrative-on-discordant fix already
 // applied to Discordance) can never drift between the two.
 //
+// Batch 625: the discordant-only fields are the shared QaDiscordantSection, also used by the live
+// Discordance window at sign-out, so the two can no longer drift apart.
+//
 // Deliberately NOT wired into useSignOutWorkflow.ts's live Discordance
 // call site in this pass — that's real, working, sign-out-critical code
 // with its own regression surface; migrating it to this generic
@@ -44,6 +47,7 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
 import type { QaDiscordanceDelta, QaDiscordanceRootCause, QaDiscordanceSeverity, QaReviewOutcome } from '@/types/quality/QaActivityRecord';
+import { QaDiscordantSection, GENERIC_WORDING } from './QaDiscordantSection';
 import { validateQaReviewSubmission, type QaReviewSubmissionDraft } from '@/services/quality/validateQaReviewSubmission';
 
 export interface QaReviewCaptureSubmission {
@@ -76,37 +80,6 @@ const OUTCOME_LABEL_KEY: Record<QaReviewOutcome, string> = {
   discordant: 'auditLog.statusLabels.discordant',
 };
 
-// Real, persisted QaDiscordanceDelta values. This generic form's own
-// upgrade/downgrade wording is deliberately shorter than
-// DiscordanceReconciliationModal.tsx's frozen-specific phrasing, but
-// "Minor variance" is identically worded there, so it reuses that
-// exact key.
-const DELTA_LABEL_KEY: Record<QaDiscordanceDelta, string> = {
-  upgrade: 'qaReviewCaptureForm.delta.upgrade',
-  downgrade: 'qaReviewCaptureForm.delta.downgrade',
-  minor_variance: 'discordanceReconciliationModal.delta.minorVariance',
-};
-
-// Real, persisted QaDiscordanceSeverity values — identical tier wording
-// to DiscordanceReconciliationModal.tsx, reused verbatim.
-const SEVERITY_LABEL_KEY: Record<QaDiscordanceSeverity, string> = {
-  low: 'discordanceReconciliationModal.severity.low',
-  medium: 'discordanceReconciliationModal.severity.medium',
-  high: 'discordanceReconciliationModal.severity.high',
-};
-
-// Real, persisted QaDiscordanceRootCause values. "Interpretation error"
-// and "Other" are identically worded to DiscordanceReconciliationModal.
-// tsx/its own reused clientEditorModal key; sampling/technical are this
-// form's own shorter, generic versions (no frozen-section-specific
-// elaboration).
-const ROOT_CAUSE_LABEL_KEY: Record<QaDiscordanceRootCause, string> = {
-  sampling_error: 'qaReviewCaptureForm.rootCause.samplingError',
-  interpretation_error: 'discordanceReconciliationModal.rootCause.interpretationError',
-  technical_artifact: 'qaReviewCaptureForm.rootCause.technicalArtifact',
-  other: 'clientEditorModal.general.other',
-};
-
 export const QaReviewCaptureForm: React.FC<Props> = ({ activityType, onSubmit, busy, submitLabel }) => {
   const { t } = useTranslation();
   const [fieldValues, setFieldValues] = useState<Record<string, string | string[] | number>>({});
@@ -124,6 +97,14 @@ export const QaReviewCaptureForm: React.FC<Props> = ({ activityType, onSubmit, b
     rootCauseNote, comments,
   };
   const validation = validateQaReviewSubmission(activityType, draft);
+  // The validator returns message codes; show them in the user's language.
+  const message = (id: string): string | undefined => {
+    const code = validation.errors[id];
+    if (!code) return undefined;
+    const label = activityType.fields.find(f => f.id === id)?.label;
+    return t(`qaReviewCaptureForm.errors.${code}`, { label });
+  };
+  const messages = Object.fromEntries(Object.keys(validation.errors).map(id => [id, message(id)]));
 
   const setSingle = (fieldId: string, value: string) => setFieldValues(prev => ({ ...prev, [fieldId]: value }));
   const setMulti = (fieldId: string, optionId: string) => setFieldValues(prev => {
@@ -205,7 +186,7 @@ export const QaReviewCaptureForm: React.FC<Props> = ({ activityType, onSubmit, b
           )}
 
           {showErrors && validation.errors[field.id] && (
-            <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{validation.errors[field.id]}</p>
+            <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{message(field.id)}</p>
           )}
         </div>
       ))}
@@ -222,60 +203,20 @@ export const QaReviewCaptureForm: React.FC<Props> = ({ activityType, onSubmit, b
             <span>{t(OUTCOME_LABEL_KEY.discordant)}</span>
           </label>
         </div>
-        {showErrors && validation.errors.outcome && <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{validation.errors.outcome}</p>}
+        {showErrors && validation.errors.outcome && <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{message('outcome')}</p>}
       </div>
 
       {outcome === 'discordant' && (
-        <div className="ps-intraop-action-block">
-          <div className="ps-conf-form-field">
-            <label className="ps-conf-label" htmlFor="qa-delta">{t('discordanceReconciliationModal.deltaLabel')}</label>
-            <select id="qa-delta" className="ps-conf-select ps-qareview-input-base" value={delta} onChange={e => setDelta(e.target.value as QaDiscordanceDelta | '')}>
-              <option value="">{t('discordanceReconciliationModal.selectPlaceholder')}</option>
-              <option value="upgrade">{t(DELTA_LABEL_KEY.upgrade)}</option>
-              <option value="downgrade">{t(DELTA_LABEL_KEY.downgrade)}</option>
-              <option value="minor_variance">{t(DELTA_LABEL_KEY.minor_variance)}</option>
-            </select>
-            {showErrors && validation.errors.delta && <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{validation.errors.delta}</p>}
-          </div>
-
-          <div className="ps-conf-form-field">
-            <label className="ps-conf-label" htmlFor="qa-severity">{t('discordanceReconciliationModal.severityLabel')}</label>
-            <select id="qa-severity" className="ps-conf-select ps-qareview-input-base" value={severity} onChange={e => setSeverity(e.target.value as QaDiscordanceSeverity | '')}>
-              <option value="">{t('discordanceReconciliationModal.selectPlaceholder')}</option>
-              <option value="low">{t(SEVERITY_LABEL_KEY.low)}</option>
-              <option value="medium">{t(SEVERITY_LABEL_KEY.medium)}</option>
-              <option value="high">{t(SEVERITY_LABEL_KEY.high)}</option>
-            </select>
-            {showErrors && validation.errors.severity && <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{validation.errors.severity}</p>}
-          </div>
-
-          <div className="ps-conf-form-field">
-            <label className="ps-conf-label" htmlFor="qa-root-cause">{t('discordanceReconciliationModal.rootCauseLabel')}</label>
-            <select id="qa-root-cause" className="ps-conf-select ps-qareview-input-base" value={rootCause} onChange={e => setRootCause(e.target.value as QaDiscordanceRootCause | '')}>
-              <option value="">{t('discordanceReconciliationModal.selectPlaceholder')}</option>
-              <option value="sampling_error">{t(ROOT_CAUSE_LABEL_KEY.sampling_error)}</option>
-              <option value="interpretation_error">{t(ROOT_CAUSE_LABEL_KEY.interpretation_error)}</option>
-              <option value="technical_artifact">{t(ROOT_CAUSE_LABEL_KEY.technical_artifact)}</option>
-              <option value="other">{t(ROOT_CAUSE_LABEL_KEY.other)}</option>
-            </select>
-            {showErrors && validation.errors.rootCause && <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{validation.errors.rootCause}</p>}
-          </div>
-
-          {rootCause === 'other' && (
-            <div className="ps-conf-form-field">
-              <label className="ps-conf-label" htmlFor="qa-root-cause-note">{t('discordanceReconciliationModal.explainLabel')}</label>
-              <input id="qa-root-cause-note" className="ps-conf-input ps-qareview-input-base" value={rootCauseNote} onChange={e => setRootCauseNote(e.target.value)} placeholder={t('discordanceReconciliationModal.explainPlaceholder')} />
-              {showErrors && validation.errors.rootCauseNote && <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{validation.errors.rootCauseNote}</p>}
-            </div>
-          )}
-
-          <div className="ps-conf-form-field">
-            <label className="ps-conf-label" htmlFor="qa-comments">{t('discordanceReconciliationModal.commentLabel')}</label>
-            <textarea id="qa-comments" className="ps-conf-input ps-conf-textarea ps-qareview-input-base" value={comments} onChange={e => setComments(e.target.value)}
-              placeholder={t('qaReviewCaptureForm.commentsPlaceholder')} />
-            {showErrors && validation.errors.comments && <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">{validation.errors.comments}</p>}
-          </div>
-        </div>
+        <QaDiscordantSection
+          idPrefix="qa" wording={GENERIC_WORDING} inputClass="ps-qareview-input-base"
+          values={{ delta, severity, rootCause, rootCauseNote, comments }}
+          onChange={p => {
+            if ('delta' in p) setDelta(p.delta!); if ('severity' in p) setSeverity(p.severity!);
+            if ('rootCause' in p) setRootCause(p.rootCause!); if ('rootCauseNote' in p) setRootCauseNote(p.rootCauseNote!);
+            if ('comments' in p) setComments(p.comments!);
+          }}
+          errors={showErrors ? messages : undefined}
+        />
       )}
 
       <button className="ps-ms-btn-apply" disabled={!!busy} onClick={handleSubmit}>

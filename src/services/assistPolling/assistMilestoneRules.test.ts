@@ -191,3 +191,13 @@ describe('summarizeRun', () => {
       .toEqual({ drafted: 1, textOnly: 1, failed: 1, skipped: 1 });
   });
 });
+
+describe('a polled fill is always a draft (Batch 682)', () => {
+  it('stores the suggestion as unverified even if the generator said otherwise', () => {
+    const inst = { instanceId: 'i1', templateId: 't', answers: {}, aiSuggestions: {} } as never;
+    const sug = { value: 'x', confidence: 90, source: 'Gross description', verification: 'verified' } as never;
+    const { instance } = mergeSuggestionsIntoInstance(inst, { f1: sug }, '2026-10-26T00:00:00Z');
+    expect((instance.aiSuggestions as Record<string, { verification: string }>).f1.verification).toBe('unverified');
+    expect((instance.answers as Record<string, unknown>).f1).toBe('x');
+  });
+});

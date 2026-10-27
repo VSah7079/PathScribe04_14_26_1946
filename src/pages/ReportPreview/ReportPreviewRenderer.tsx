@@ -7,6 +7,7 @@
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { sexAtBirthEnglish, sexAtBirthLabelKey } from '@/services/patients/patientSexAtBirth';
 import { labelStyleVars } from '@/utils/labelStyleVars';
 import { unitsOf } from '@/services/reportAppearance/fontUnits';
 import { previewPageVars } from '@/services/reportAppearance/previewPage';
@@ -164,7 +165,9 @@ export function buildRenderScope(caseData: Case | null): Record<string, any> {
       dob:  patient?.dateOfBirth
         ? new Date(patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
         : undefined,
-      sex: patient?.sex,
+      sex: patient?.sex, // the stored code; templates written as patient.sex == 'M' keep working
+      sexAtBirth: sexAtBirthEnglish(patient?.sex), // Batch 662: the word printed on the report
+      nhsNumber: patient?.nationalIdentifiers?.find((i: { system: string; value: string }) => i.system === 'mrn_nhs')?.value,
       mrn: patient?.mrn,
       age: computeAge(patient?.dateOfBirth),
     },
@@ -304,7 +307,8 @@ const ReportPreviewRenderer: React.FC<Props> = ({
   const mrn        = caseData?.patient?.mrn ?? '';
   const dob        = caseData?.patient?.dateOfBirth
     ? new Date(caseData.patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
-  const sex        = caseData?.patient?.sex ?? '';
+  const sexKey     = sexAtBirthLabelKey(caseData?.patient?.sex);
+  const sex        = sexKey ? t(sexKey) : '';
   const priority   = (caseData?.order as any)?.priority ?? '';
   const referring  = caseData?.order?.facilityName ?? '';
   const clinician  = caseData?.order?.requestingProvider ?? '';

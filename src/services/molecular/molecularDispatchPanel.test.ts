@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: async () => ({ allowed: true }) } }));
-import { canStartMolecularDispatch, canConfirmMolecularDispatch, molecularDispatchFeedback } from './molecularDispatchPanel';
+import { canStartMolecularDispatch, canConfirmMolecularDispatch, molecularDispatchFeedback, dispatchFailureKey } from './molecularDispatchPanel';
 import { dispatchMolecularWorklist } from './dispatchMolecularWorklist';
 import type { MolecularBatch } from './IMolecularBatchService';
 
@@ -17,6 +17,8 @@ function makeBatch(overrides: Partial<MolecularBatch> = {}): MolecularBatch {
   };
 }
 
+import { setMockInterfaceEngineSettings, getMockInterfaceEngineSettings } from '../mockInterfaceEngine/mockInterfaceEngineSettings';
+
 beforeEach(() => {
   const store: Record<string, string> = {};
   (globalThis as any).localStorage = {
@@ -24,6 +26,8 @@ beforeEach(() => {
     setItem: (k: string, v: string) => { store[k] = v; },
     removeItem: (k: string) => { delete store[k]; },
   };
+  // Batch 669: these tests check the HTTP path, so the simulated engine is off (an engine or API server configured).
+  setMockInterfaceEngineSettings({ ...getMockInterfaceEngineSettings(), enabled: false, simulatedEngine: false });
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -61,12 +65,19 @@ describe('molecularDispatchPanel (PS-236) — plate builder scan-to-verify dispa
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
     const rejected = await dispatchMolecularWorklist(makeBatch(), 'PLT-HPV-20260906-012', 'LOC-INST-PANTHER_02-SLOT_A1', null);
     const feedback = molecularDispatchFeedback(rejected);
-    expect(feedback).toEqual({ success: false, reason: expect.stringContaining('HTTP 503') });
+    expect(feedback).toEqual({ success: false, reason: expect.stringContaining('HTTP 503'), failure: { code: 'rejected', status: 503 } });
   });
 
   it('the Dispatch Worklist action is offered only for an undispatched, non-superseded batch; a dispatched batch shows its timestamp instead', () => {
     expect(canStartMolecularDispatch(makeBatch())).toBe(true);
     expect(canStartMolecularDispatch(makeBatch({ worklistDispatchedAt: '2026-09-07T10:00:00.000Z' }))).toBe(false);
     expect(canStartMolecularDispatch(makeBatch({ status: 'superseded' }))).toBe(false);
+  });
+
+  it('Batch 669 (mol-7): a failure reads through a translated key; the status is named only when known', () => {
+    expect(dispatchFailureKey({ code: 'unreachable' })).toBe('unreachable');
+    expect(dispatchFailureKey({ code: 'timeout' })).toBe('timeout');
+    expect(dispatchFailureKey({ code: 'rejected', status: 503 })).toBe('rejected');
+    expect(dispatchFailureKey({ code: 'rejected' })).toBe('rejectedNoCode');
   });
 });

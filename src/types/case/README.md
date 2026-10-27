@@ -151,3 +151,18 @@ See `services/digitalPathology/wsiScanQueue.ts`.
 ## Batch 611 (part F)
 
 `Case.importSource` marks a case created by the simulated legacy file import (`kind: 'simulated_bulk_import'`, job id, source system, time).
+
+## Batch 630
+
+`HpvManualEntry.ts`: the four manual Result Sources (`MANUAL_PAPER_REPORT`, `MANUAL_DOWNTIME_OVERRIDE`, `MANUAL_PHONE_VERIFICATION`, `MANUAL_RETROSPECTIVE_ENTRY`), the entry and decision records, and (by type merging, because `Specimen.ts` is over its size limit) the screening-record fields `hpvResultSource`, `hpvManualEntries`, `hpvPendingOverride`, `hpvOverrideDecisions`.
+
+## Batch 631
+
+`HpvGenotype.ts`: `HpvGenotypeDetail` (the 16 / 18-or-45 / other grouping, now with optional separate `hpv18` and `hpv45`), used by the specimen's screening record and the inbound HPV result event.
+
+## Batch 651
+`Case.ts`: the `pendingProtocolChanges` and `ProtocolChange.reviewStatus` comments now say the field is written only by the Assist-mode LIS poll; the Orchestration Save Draft background re-check they described was never built (Planned).
+
+## Batch 652 — Specimen pipeline gaps
+
+- `Case.intraoperativeFindings` (`CaseIntraoperativeFinding[]`) and `Case.lockboxReceiptId`. `Case.ts` stays at 1058 lines.

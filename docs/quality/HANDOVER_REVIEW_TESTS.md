@@ -10,6 +10,24 @@ For Pete, the dev team and whoever picks this up next. Plain language; no progra
 - **Still to do from "Can automate":** PS-261, PS-273, PS-493 (Batch 588), then the rest of that group.
 - **One "Needs a person" ticket:** PS-276 (PDF/A rendering).
 
+## Procedure: native-language review of the machine-translated text (added Oct 26, 2026)
+
+**Why:** French, German, Dutch, Korean and Spanish text is machine-translated. It follows standard laboratory terminology, but no native-speaking laboratory professional has checked it. Korean clinical wording in particular needs a native reviewer. This is expected to be one of the last jobs before clinical use. **If a change is needed, a human developer makes the edit.** Claude does not edit locale files from a reviewer's comments without a developer's check.
+
+**What needs fixing:** only what a reviewer marks `Changed` or `Query` in [`TRANSLATION_REVIEW.md`](TRANSLATION_REVIEW.md). That file is the register: one row per string, newest batches first, every language side by side. The newest section (Batches 679 to 683) holds the AI-governance wording, the highest priority because it tells a pathologist what the AI did and what they must still do. Rows marked High (clinical or patient-safety wording) go first.
+
+**Steps**
+
+1. **Give each reviewer their workbook.** Build them with `python3 scripts/translation-review-workbook.py` (one Excel file per language, from the live locale files). Rebuild it first if the app text has changed since the last build.
+2. **The reviewer** checks each translation against the English: is it the term a laboratory in that country actually uses; is the register formal enough for a clinical system; do the `{{placeholders}}` read naturally in the sentence. They write the corrected text in the row, set **Review** to `OK`, `Changed` or `Query`, and add initials and date.
+3. **A developer applies each `Changed` row** in `src/i18n/locales/<language>.json` (`fr`, `de`, `nl`, `ko`, `es`). Rules: keep the keys sorted; keep exactly the same `{{placeholders}}` and `<tags>` as English; plural keys (`_one`, `_other`, and `_many` for French and Spanish) are changed together; Belgian French and Dutch (`fr-BE`, `nl-BE`) are only touched where Belgian wording really differs.
+4. **A developer answers each `Query`** with the reviewer (a question about meaning goes back to the product owner), then treats it as a change or an OK.
+5. **Run the checks:** `npm run type-check`, then `npm test`. `localeParity.test.ts` fails if a key, a placeholder or the sort order is wrong. (Nothing checks the register itself: keep it up to date by hand.)
+6. **Close the row:** the developer writes `Applied` with date and initials in the register, and notes the batch in `src/i18n/README.md`. A language is finished when no row is `Changed` or `Query` and the reviewer has signed the workbook.
+7. **Tell Pete** when each language is done. Only then is the Admin Guide translation work (on hold until content freeze) allowed to start.
+
+**Do not:** change English text in this procedure (a wording change in English is a new batch and reopens review for that key); translate audit-log text (it stays English by design); or send the register to a customer as a quality claim. It is an internal record that review is pending.
+
 ## What only a person can check
 
 | Ticket | What | Why |

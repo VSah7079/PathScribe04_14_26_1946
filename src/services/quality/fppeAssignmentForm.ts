@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
 import type { QaSupervisionEndCondition } from '@/types/quality/QaSupervisionAssignmentType';
-import { FPPE_ACTIVITY_TYPE_ID } from './mockQaSupervisionAssignmentService';
+import { FPPE_ACTIVITY_TYPE_ID } from './qaActivityTypeIds';
 import { computeFppeProgress } from '@/services/cases/fppeEndCondition';
 
 export type FppeEndConditionType = 'case_count' | 'duration_days' | 'either';

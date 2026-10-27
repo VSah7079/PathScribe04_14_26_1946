@@ -3,11 +3,11 @@
 import type { CytologyComplianceSaveDeps } from './saveCytologyComplianceFeatures';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { cytologyComplianceFeaturesService } from './cytologyComplianceFeaturesServiceInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 export const cytologyComplianceSaveDeps: CytologyComplianceSaveDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   setEnterprise: settings => cytologyComplianceFeaturesService.setEnterprise(settings),
   setFacility: (facilityId, settings) => cytologyComplianceFeaturesService.setFacility(facilityId, settings),
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
 };

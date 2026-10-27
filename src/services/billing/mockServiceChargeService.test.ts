@@ -211,49 +211,17 @@ describe('mockServiceChargeService — real Hold / Release lifecycle', () => {
   });
 });
 
-describe('mockServiceChargeService — real, optional actorRole permission check (backward-compatible)', () => {
-  it('submitForApproval succeeds when actorRole is omitted (existing callers unaffected)', async () => {
-    const charge = makeCharge({ approvalStatus: 'DRAFT' });
-    await mockServiceChargeService.saveCharge(charge);
-    const res = await mockServiceChargeService.submitForApproval(charge.id, 'drafter-1');
-    expect(res.ok).toBe(true);
-  });
-
-  it('submitForApproval rejects when a real, explicit actorRole lacks authorization', async () => {
-    const charge = makeCharge({ approvalStatus: 'DRAFT' });
-    await mockServiceChargeService.saveCharge(charge);
-    const res = await mockServiceChargeService.submitForApproval(charge.id, 'drafter-1', 'transcriptionist');
-    expect(res.ok).toBe(false);
-  });
-
-  it('submitForApproval succeeds when a real, authorized actorRole is passed', async () => {
-    const charge = makeCharge({ approvalStatus: 'DRAFT' });
-    await mockServiceChargeService.saveCharge(charge);
-    const res = await mockServiceChargeService.submitForApproval(charge.id, 'drafter-1', 'pathologist');
-    expect(res.ok).toBe(true);
-  });
-
-  it('approveCharge rejects when a real, explicit actorRole lacks authorization, even for a genuinely different approver', async () => {
-    const charge = makeCharge({ approvalStatus: 'DRAFT' });
-    await mockServiceChargeService.saveCharge(charge);
-    await mockServiceChargeService.submitForApproval(charge.id, 'drafter-1');
-    const res = await mockServiceChargeService.approveCharge(charge.id, 'approver-1', undefined, 'billing_clerk_unlisted_role');
-    expect(res.ok).toBe(false);
-  });
-
-  it('approveCharge succeeds when a real, authorized actorRole is passed alongside a genuinely different approver', async () => {
-    const charge = makeCharge({ approvalStatus: 'DRAFT' });
-    await mockServiceChargeService.saveCharge(charge);
-    await mockServiceChargeService.submitForApproval(charge.id, 'drafter-1');
-    const res = await mockServiceChargeService.approveCharge(charge.id, 'approver-1', undefined, 'admin');
-    expect(res.ok).toBe(true);
-  });
-
-  it('rejectCharge rejects when a real, explicit actorRole lacks authorization', async () => {
-    const charge = makeCharge({ approvalStatus: 'DRAFT' });
-    await mockServiceChargeService.saveCharge(charge);
-    await mockServiceChargeService.submitForApproval(charge.id, 'drafter-1');
-    const res = await mockServiceChargeService.rejectCharge(charge.id, 'reviewer-1', 'Real reason', 'unauthorized_role');
-    expect(res.ok).toBe(false);
+describe('mockServiceChargeService — no role-name check (Batch 663)', () => {
+  // Who may draft or approve a charge is the capability billing:charge:approve, checked in chargeApproval.ts. This store
+  // no longer looks at a role name; the optional actorRole parameter is kept only so the API contract is unchanged.
+  it('submits, approves and rejects whatever role string a caller passes', async () => {
+    const a = makeCharge({ approvalStatus: 'DRAFT' });
+    await mockServiceChargeService.saveCharge(a);
+    expect((await mockServiceChargeService.submitForApproval(a.id, 'drafter-1', 'transcriptionist')).ok).toBe(true);
+    expect((await mockServiceChargeService.approveCharge(a.id, 'approver-1', undefined, 'anything')).ok).toBe(true);
+    const b = makeCharge({ approvalStatus: 'DRAFT' });
+    await mockServiceChargeService.saveCharge(b);
+    await mockServiceChargeService.submitForApproval(b.id, 'drafter-1');
+    expect((await mockServiceChargeService.rejectCharge(b.id, 'reviewer-1', 'Real reason', 'anything')).ok).toBe(true);
   });
 });

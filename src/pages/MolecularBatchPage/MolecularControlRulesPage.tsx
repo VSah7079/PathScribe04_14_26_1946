@@ -18,6 +18,13 @@
 //   - A rule can name the deck slots its assay's sample rack may go in (Pete:
 //     "Sample Rack 1 must be in Slot A1 or Slot A2"); Rack Loading offers
 //     only those.
+//
+// Batch 669:
+//   - View only without the permission (mol-1, Pete's ruling): a Molecular Technologist opens the rules to read what a plate
+//     needs; the change buttons are greyed and a note says so. Adding, changing and deleting stay with
+//     config:molecular-control-rules:manage, checked again by the service (a refusal is shown, not silent).
+//   - Saving and deleting take a reason, recorded in the audit log (mol-14); a rule with no controls, or moved onto an
+//     assay that already has a rule, is refused on Edit as on Create.
 //   - Services from @/services (off the deployment baseline); checks moved to
 //     services/molecular/controlRuleDraft.ts; refusals translated; control
 //     types shown by name.
@@ -36,6 +43,7 @@ import {
 import type { StainType } from '@/services/stains/IStainService';
 import type { MolecularSampleType } from '@/services/molecular/IMolecularBatchService';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { formatList } from '@/utils/formatList';
 import { LoadingState } from '@/components/Common/LoadingState';
 
@@ -66,14 +74,19 @@ const MolecularControlRulesPage: React.FC = () => {
   const [draftAssayCode, setDraftAssayCode] = useState('');
   const [draftControls, setDraftControls] = useState<MolecularRequiredControl[]>([emptyRequiredControl()]);
   const [draftSlots, setDraftSlots] = useState<string[]>([]);
+  const { has, loading: capabilitiesLoading } = useCapabilities();
+  const viewOnly = !capabilitiesLoading && !has(MANAGE);
+  const [draftReason, setDraftReason] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<MolecularAssayControlRule | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
   const load = () => {
-    molecularAssayControlRuleService.getAll().then(res => {
+    molecularAssayControlRuleService.listForReview().then(res => {
       if (res.ok) setRules(res.data);
+      else setListError(t('molecularControlRulesPage.listNotPermitted'));
       setLoading(false);
     });
     stainTypeService.getAll().then(res => { if (res.ok) setAssays(molecularAssayTypes(res.data)); });
@@ -90,6 +103,7 @@ const MolecularControlRulesPage: React.FC = () => {
     setDraftAssayCode('');
     setDraftControls([emptyRequiredControl()]);
     setDraftSlots([]);
+    setDraftReason('');
     setSaveError(null);
   };
 
@@ -98,24 +112,25 @@ const MolecularControlRulesPage: React.FC = () => {
     setDraftAssayCode(rule.assayCode);
     setDraftControls(rule.requiredControls.map(c => ({ ...c })));
     setDraftSlots([...(rule.allowedSampleRackSlotIds ?? [])]);
+    setDraftReason('');
     setSaveError(null);
   };
 
   const handleSave = async () => {
     setSaveError(null);
     const payload = { assayCode: draftAssayCode.trim(), requiredControls: draftControls, allowedSampleRackSlotIds: draftSlots };
-    const problem = controlRuleDraftProblem(payload);
+    const problem = controlRuleDraftProblem({ ...payload, reason: draftReason }, rules.filter(r => r.id !== editingId));
     if (problem) {
-      setSaveError(problem.code === 'assayRequired'
-        ? t('molecularControlRulesPage.assayCodeRequired')
-        : t('molecularControlRulesPage.fixedPositionMissingWell', { sampleType: t(`molecularPlateBuilderPage.sampleType.${problem.sampleType}`) }));
+      setSaveError(problem.code === 'fixedPositionMissingWell'
+        ? t('molecularControlRulesPage.fixedPositionMissingWell', { sampleType: t(`molecularPlateBuilderPage.sampleType.${problem.sampleType}`) })
+        : t(`molecularControlRulesPage.draftProblem.${problem.code}`));
       return;
     }
     setSaving(true);
     try {
       const res = editingId === 'new'
-        ? await molecularAssayControlRuleService.create(payload)
-        : await molecularAssayControlRuleService.update(editingId!, payload);
+        ? await molecularAssayControlRuleService.create(payload, draftReason.trim())
+        : await molecularAssayControlRuleService.update(editingId!, payload, draftReason.trim());
       if (!res.ok) { setSaveError(errorText('error' in res ? res.error : 'generic')); return; }
       setEditingId(null);
       load();
@@ -125,9 +140,10 @@ const MolecularControlRulesPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!confirmDelete) return;
-    const res = await molecularAssayControlRuleService.delete(confirmDelete.id);
+    if (!confirmDelete || !deleteReason.trim()) return;
+    const res = await molecularAssayControlRuleService.delete(confirmDelete.id, deleteReason.trim());
     setConfirmDelete(null);
+    setDeleteReason('');
     setListError(res.ok ? null : errorText('error' in res ? res.error : 'generic'));
     load();
   };
@@ -150,6 +166,7 @@ const MolecularControlRulesPage: React.FC = () => {
         {editingId === null && <CapabilityButton capability={MANAGE} className="ps-conf-btn-secondary" onClick={startNew}>{t('molecularControlRulesPage.newRule')}</CapabilityButton>}
       </div>
 
+      {viewOnly && <p className="ps-helper-text" role="status">{t('molecularControlRulesPage.viewOnly')}</p>}
       {loading && <LoadingState label={t('molecularControlRulesPage.loading')} />}
       {listError && <div className="ps-error-text" role="alert">{listError}</div>}
 
@@ -157,9 +174,11 @@ const MolecularControlRulesPage: React.FC = () => {
         <div className="ps-panel-box ps-mb-16" role="alertdialog" aria-labelledby="rule-delete-title">
           <h3 id="rule-delete-title" className="ps-panel-title">{t('molecularControlRulesPage.deleteConfirmTitle')}</h3>
           <p className="ps-helper-text">{t('molecularControlRulesPage.deleteConfirmText', { assay: assayName(confirmDelete.assayCode) })}</p>
+          <label className="ps-label" htmlFor="rule-delete-reason">{t('molecularControlRulesPage.reasonLabel')}<span className="ps-conf-required"> *</span></label>
+          <input id="rule-delete-reason" className="ps-input-dark ps-w-full ps-mb-16" value={deleteReason} placeholder={t('molecularControlRulesPage.reasonPlaceholder')} onChange={e => setDeleteReason(e.target.value)} />
           <div className="ps-flex-row-gap-8">
-            <CapabilityButton capability={MANAGE} className="ps-conf-btn-secondary" onClick={() => void handleDelete()}>{t('molecularControlRulesPage.delete')}</CapabilityButton>
-            <button className="ps-btn-small" onClick={() => setConfirmDelete(null)}>{t('molecularControlRulesPage.cancel')}</button>
+            <CapabilityButton capability={MANAGE} className="ps-conf-btn-secondary" disabled={!deleteReason.trim()} onClick={() => void handleDelete()}>{t('molecularControlRulesPage.delete')}</CapabilityButton>
+            <button className="ps-btn-small" onClick={() => { setConfirmDelete(null); setDeleteReason(''); }}>{t('molecularControlRulesPage.cancel')}</button>
           </div>
         </div>
       )}
@@ -194,7 +213,7 @@ const MolecularControlRulesPage: React.FC = () => {
                     </td>
                     <td className="ps-conf-td">
                       <CapabilityButton capability={MANAGE} className="ps-btn-small ps-mr-8" onClick={() => startEdit(rule)}>{t('molecularControlRulesPage.edit')}</CapabilityButton>
-                      <CapabilityButton capability={MANAGE} className="ps-btn-small" onClick={() => setConfirmDelete(rule)}>{t('molecularControlRulesPage.delete')}</CapabilityButton>
+                      <CapabilityButton capability={MANAGE} className="ps-btn-small" onClick={() => { setDeleteReason(''); setConfirmDelete(rule); }}>{t('molecularControlRulesPage.delete')}</CapabilityButton>
                     </td>
                   </tr>
                 ))}
@@ -243,6 +262,9 @@ const MolecularControlRulesPage: React.FC = () => {
               ))}
             </div>
           </fieldset>
+
+          <label className="ps-label" htmlFor="rule-reason">{t('molecularControlRulesPage.reasonLabel')}<span className="ps-conf-required"> *</span></label>
+          <input id="rule-reason" className="ps-input-dark ps-w-full ps-mb-16" value={draftReason} placeholder={t('molecularControlRulesPage.reasonPlaceholder')} onChange={e => setDraftReason(e.target.value)} />
 
           {saveError && <div className="ps-error-text" role="alert">{saveError}</div>}
           <div className="ps-flex-row-gap-8">

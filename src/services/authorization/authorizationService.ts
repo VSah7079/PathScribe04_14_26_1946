@@ -38,6 +38,14 @@ export interface AuthorizationDeps {
   auditService: Pick<IAuditService, 'logEvent'>;
   /** The signed-in session (defaults to the stored session profile). */
   session?: () => Pick<SessionProfile, 'id' | 'name' | 'role'> | null;
+  /**
+   * Batch 653: the facility a case belongs to (its ordering facility). Used when a
+   * check names a case but not its facility, so a person limited to one facility
+   * is judged against the case's own facility, not refused as "facility unknown".
+   * Returns null when the case or its facility cannot be found (the check then
+   * stays refused for a facility-limited person, as before).
+   */
+  caseFacility?: (caseId: string) => Promise<string | null>;
 }
 
 /** Who is signed in and the role catalog, for a screen to decide what to offer. */
@@ -71,15 +79,29 @@ export function createAuthorizationService(deps: AuthorizationDeps): IAuthorizat
     return { subject: { userId: s.id, userName: s.name, sessionRole: s.role, staffRoles, facilityIds }, roles };
   };
 
+  /** Add the case's facility to a context that names a case and no facility. */
+  const withCaseFacility = async (subject: AuthzSubject | null, context: CapabilityContext): Promise<CapabilityContext> => {
+    if (!deps.caseFacility || !context.caseId) return context;
+    if (context.facilityId || (context.facilityIds?.length ?? 0) > 0 || context.allFacilities) return context;
+    // Only a facility-limited person is judged by facility; skip the lookup for everyone else.
+    if (!subject || (subject.facilityIds ?? []).length === 0) return context;
+    try {
+      const facilityId = await deps.caseFacility(context.caseId);
+      return facilityId ? { ...context, facilityId } : context;
+    } catch {
+      return context;
+    }
+  };
+
   return {
     async evaluate(capability, context = {}) {
       const { subject, roles } = await load();
-      return evaluateCapability(subject, capability, roles, context);
+      return evaluateCapability(subject, capability, roles, await withCaseFacility(subject, context));
     },
 
     async enforce(capability, context = {}) {
       const { subject, roles } = await load();
-      const decision = evaluateCapability(subject, capability, roles, context);
+      const decision = evaluateCapability(subject, capability, roles, await withCaseFacility(subject, context));
       // Unknown keys are audited too: a check against a key that isn't in the
       // catalog is a defect worth seeing in the log.
       const risk = capabilityDefinition(capability)?.risk ?? 'high';

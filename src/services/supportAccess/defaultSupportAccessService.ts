@@ -6,10 +6,10 @@ import { DEMO_SUPPORT_ACCESS_SETTINGS, demoSupportAccessRequests } from './demoS
 import i18n from '@/i18n/config';
 import { storageGet, storageSet } from '../mockStorage';
 import { readSessionProfile } from '../auth/sessionProfile';
-import { mockFacilityService } from '../facilities/mockFacilityService';
-import { mockUserService } from '../users/mockUserService';
-import { mockRoleService } from '../roles/mockRoleService';
-import { mockMessageService } from '../messages/mockMessageService';
+import { facilityService } from '../facilities/facilityServiceInstance';
+import { userService } from '../users/userServiceInstance';
+import { roleService } from '../roles/roleServiceInstance';
+import { messageService } from '../messages/messageServiceInstance';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { createSupportAccessService } from './supportAccessService';
 import { setSupportActivityHandler } from './supportActivity';
@@ -25,15 +25,15 @@ export const supportAccessService = createSupportAccessService({
     return p ? { id: p.id, name: p.name, role: p.role, organisationId: p.organisationId } : null;
   },
   enterpriseFacilities: async () => {
-    const r = await mockFacilityService.getAll();
+    const r = await facilityService.getAll();
     return r.ok ? r.data.filter(f => f.isEnterprise) : [];
   },
-  staff: async () => { const r = await mockUserService.getAll(); return r.ok ? r.data : []; },
-  roles: async () => { const r = await mockRoleService.getAll(); return r.ok ? r.data : []; },
+  staff: async () => { const r = await userService.getAll(); return r.ok ? r.data : []; },
+  roles: async () => { const r = await roleService.getAll(); return r.ok ? r.data : []; },
   // In-app message to each approver, in the app's current language. Email
   // and webhooks are the API server's job (phase 4).
   notify: async m => {
-    await mockMessageService.send({
+    await messageService.send({
       senderId: m.senderId, senderName: m.senderName, recipientId: m.recipientId, recipientName: m.recipientName,
       subject: i18n.t('supportAccess.notification.subject', { ticket: m.ticketId }),
       body: i18n.t('supportAccess.notification.body', { agent: m.senderName, organisation: m.tenantName, ticket: m.ticketId, reason: m.reason }),

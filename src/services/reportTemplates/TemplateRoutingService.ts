@@ -445,9 +445,9 @@ export async function resolveReportTemplateAsync(
     let enterpriseFacilityId: string | undefined;
     let performingLabFacilityId: string | undefined;
     if (input.performingFacilityId) {
-      const { mockFacilityService } = await import('../facilities/mockFacilityService');
+      const { facilityService } = await import('../facilities/facilityServiceInstance');
       const { resolvePerformingLabFacilityId } = await import('../facilities/IFacilityService');
-      const facilityRes = await mockFacilityService.getById(input.performingFacilityId);
+      const facilityRes = await facilityService.getById(input.performingFacilityId);
       if (facilityRes.ok) {
         if (!facilityRes.data.isEnterprise && facilityRes.data.parentId) {
           enterpriseFacilityId = facilityRes.data.parentId;
@@ -456,11 +456,11 @@ export async function resolveReportTemplateAsync(
       }
     }
 
-    const { mockRoutingRuleService } = await import('../routingRules/mockRoutingRuleService');
+    const { routingRuleService } = await import('../routingRules/routingRuleServiceInstance');
     const [facilityMapResult, physicianMapResult, protocolMapResult] = await Promise.all([
-      mockRoutingRuleService.getFacilityMap(performingLabFacilityId),
-      mockRoutingRuleService.getPhysicianMap(performingLabFacilityId),
-      mockRoutingRuleService.getProtocolMap(performingLabFacilityId),
+      routingRuleService.getFacilityMap(performingLabFacilityId),
+      routingRuleService.getPhysicianMap(performingLabFacilityId),
+      routingRuleService.getProtocolMap(performingLabFacilityId),
     ]);
     const facilityOverrides      = (facilityMapResult as any).ok ? (facilityMapResult as any).data : {};
     const physicianOverrides   = (physicianMapResult as any).ok ? (physicianMapResult as any).data : {};

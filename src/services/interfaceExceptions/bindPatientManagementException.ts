@@ -7,9 +7,9 @@
 // a note. The audit entry holds no names or identifiers.
 // ─────────────────────────────────────────────────
 import { parsePatientManagementMessage } from '../hl7/patientManagementParser';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockInterfaceExceptionService } from './mockInterfaceExceptionService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { patientIndexService } from '../patients/patientServicesInstance';
+import { interfaceExceptionService } from './interfaceExceptionServiceInstance';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 export const BINDABLE_EVENT_TYPES = ['A40', 'A24', 'A47'] as const;
 
@@ -24,7 +24,7 @@ export interface BindInput {
 export interface BindResult { ok: boolean; message: string; casesRepointed?: number }
 
 export async function bindPatientManagementException(input: BindInput): Promise<BindResult> {
-  const found = await mockInterfaceExceptionService.getById(input.exceptionId);
+  const found = await interfaceExceptionService.getById(input.exceptionId);
   if (!found.ok) return { ok: false, message: 'That exception could not be found.' };
   const ex = found.data;
   if (ex.status !== 'pending') return { ok: false, message: 'That exception has already been closed.' };
@@ -38,25 +38,25 @@ export async function bindPatientManagementException(input: BindInput): Promise<
       if (!src) return { ok: false, message: 'Choose the patient whose identifier is being corrected.' };
       const parsed = parsePatientManagementMessage(ex.rawMessage);
       if (!parsed.target.assigningAuthority || !parsed.target.identifierValue) return { ok: false, message: 'The message carries no corrected identifier to add.' };
-      await mockPatientIndexService.addIdentifier(src, parsed.target.assigningAuthority, parsed.target.identifierValue, 'manual');
+      await patientIndexService.addIdentifier(src, parsed.target.assigningAuthority, parsed.target.identifierValue, 'manual');
       note = 'A47 bound by a reviewer: corrected identifier added to the chosen patient.';
     } else {
       if (!src || !tgt) return { ok: false, message: 'Choose both patients.' };
       if (src === tgt) return { ok: false, message: 'The two choices are the same patient.' };
       if (ex.eventType === 'A40') {
-        const r = await mockPatientIndexService.mergeIntoExistingPatient(src, tgt);
+        const r = await patientIndexService.mergeIntoExistingPatient(src, tgt);
         casesRepointed = r.casesRepointed;
         note = `A40 bound by a reviewer: prior patient merged into the surviving one (${r.casesRepointed} case(s) repointed).`;
       } else {
-        await mockPatientIndexService.linkPatients(src, tgt, 'same_person', input.actor, 'A24 bound by a reviewer');
+        await patientIndexService.linkPatients(src, tgt, 'same_person', input.actor, 'A24 bound by a reviewer');
         note = 'A24 bound by a reviewer: the two patient records linked.';
       }
     }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'The change could not be applied.' };
   }
-  await mockInterfaceExceptionService.resolve(ex.id, input.actor, note);
-  await mockAuditService.logEvent({
+  await interfaceExceptionService.resolve(ex.id, input.actor, note);
+  await auditService.logEvent({
     type: 'system', event: 'Interface Exception Bound Manually',
     detail: `${ex.eventType} exception resolved by a reviewer choosing the patient(s). ${note}`,
     user: input.actor, caseId: null, confidence: null,

@@ -7,6 +7,7 @@ import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getFacilityDateParts, getFacilityMidnightUtc } from '@/utils/facilityTime';
 import ResourcesModal from './WorklistPage/ResourcesModal';
+import { useViewerResourceLinks } from '@/hooks/useViewerResourceLinks';
 
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 
@@ -707,11 +708,7 @@ const AuditLogPage: React.FC = () => {
   // return — pulled out to a real component-body value, same standard
   // applied to business logic found embedded in the UI elsewhere in this
   // review.
-  const quickLinks = {
-    protocols:  [{ title: 'CAP Cancer Protocols', url: 'https://www.cap.org/protocols-and-guidelines' }, { title: 'WHO Classification', url: 'https://www.who.int/publications' }],
-    references: [{ title: 'PathologyOutlines', url: 'https://www.pathologyoutlines.com' }, { title: 'UpToDate', url: 'https://www.uptodate.com' }],
-    systems:    [{ title: t('searchPage.resourceLinks.hospitalLis'), url: '#' }, { title: t('searchPage.resourceLinks.labManagement'), url: '#' }],
-  };
+  const quickLinks = useViewerResourceLinks();
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -1247,15 +1244,6 @@ const AuditLogPage: React.FC = () => {
           {/* Batch 551 (PS-539 phase 2d): the API server's background jobs. */}
           {activeTab === 'serverJobs' && caps.has('jobs:server-job:view') && <ServerJobsSection onOpenInterfaces={sub => { setInterfacesSubTab(sub); setActiveTab('interfaces'); }} />}
         </main>
-
-        {/* Footer */}
-        <footer className="ps-auditlog-footer">
-          <div>{t('auditLog.page.footer')}</div>
-          <div className="ps-auditlog-footer-status">
-            <span className="ps-auditlog-status-dot" />
-            {t('auditLog.page.systemsOperational')}
-          </div>
-        </footer>
       </div>
 
       <ResourcesModal

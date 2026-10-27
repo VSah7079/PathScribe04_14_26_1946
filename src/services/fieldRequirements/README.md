@@ -345,3 +345,5 @@ The checks:
 ## Batch 530 (Pete, Oct 11, 2026: no hard blocks at intake)
 
 The `clinicalHistory` page's requirements no longer block Accession: what's missing shows as a note ("Clinical history not yet recorded: …") and the case is accessioned. The same for every specialty. The history can be added later (`clinicalHistory/recordClinicalHistoryAfterAccession.ts`), and the mismatch check is deferred while there is no clinical information. The hints say so in the Field Requirements screen. *(Corrects Batch 528, which made them block the Case & Patient step.)* Facility editor: fax, city, region and postal code added (optional).
+
+- Batch 661: Accession `sex` is a locked required field (lock reason: patient identification). Sex never defaults.

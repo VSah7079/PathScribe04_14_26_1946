@@ -34,6 +34,7 @@ import ConfigSectionGate from '../ConfigSectionGate';
 import { useConfigNavigationGuard } from '../configDirtyGuardContext';
 import { pressable, switchable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { useRegisterConfigHelpSection } from '@/components/Config/help/ConfigHelpContext';
 
 // i18n note (batch 117): role names (Role.name / StaffUser.roles),
 // subspecialty names (Subspecialty.name), and VOICE_PROFILES' own
@@ -878,6 +879,7 @@ const StaffTab: React.FC = () => {
     return STAFF_SECTIONS.some(s => s.id === section) ? section as StaffSubTab : null;
   };
   const [subTab, setSubTab] = useState<StaffSubTab>(() => sectionFromAddress() ?? 'members');
+  useRegisterConfigHelpSection(subTab); // Batch 646: the Help button opens this sub-tab's section of the Administrator Guide
   React.useEffect(() => {
     const section = sectionFromAddress();
     if (section) setSubTab(section);

@@ -21,6 +21,8 @@ type CodeModalSystem = 'snomed' | 'icd' | 'SNOMED' | 'ICD-10' | 'ICD-11' | 'ICD-
 //     list; flags are chosen by id.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import ResourcesModal from './WorklistPage/ResourcesModal';
+import { useViewerResourceLinks } from '@/hooks/useViewerResourceLinks';
 import { useOpenCase } from '@/hooks/useOpenCase';
 import { useFillViewportHeight } from '@/hooks/useFillViewportHeight';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -105,15 +107,6 @@ const DATE_SHORTCUT_LABEL_KEY: Record<Exclude<SearchDateShortcut, 'all'>, string
   '90d': 'searchPage.dateShortcuts.days90', '1yr': 'searchPage.dateShortcuts.year1',
 };
 const PAGE_SIZE_PREFERENCE = 'searchPage.pageSize';
-
-// quickLinks' own object keys (Protocols/References/Systems) are data —
-// they drive the JSX .map()/key lookups below — so they stay as-is; this
-// parallel map translates only the on-screen section heading.
-const RESOURCE_SECTION_LABEL_KEY: Record<string, string> = {
-  'Protocols':  'searchPage.resourceSection.protocols',
-  'References': 'searchPage.resourceSection.references',
-  'Systems':    'searchPage.resourceSection.systems',
-};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -1110,7 +1103,9 @@ const SearchPage: React.FC = () => {
 
   // Real, per direct guidance (gap #6): ReassignCasePatientPanel for the
   // selected result row; closed whenever the selection or results change.
+  const quickLinks = useViewerResourceLinks();
   const [reassignPanelOpen, setReassignPanelOpen] = useState(false);
+  const [reassignPicking, setReassignPicking] = useState(false); // Batch 659: Reassign Patient chosen first, then a result clicked
   useEffect(() => { setReassignPanelOpen(false); }, [selectedResultIndex, resultPage]);
 
   // ── Voice: set SEARCH context on mount ─────────────────────────
@@ -1147,8 +1142,10 @@ const SearchPage: React.FC = () => {
     window.addEventListener('PATHSCRIBE_TABLE_FIRST',         first);
     window.addEventListener('PATHSCRIBE_TABLE_LAST',          last);
     window.addEventListener('PATHSCRIBE_TABLE_OPEN_SELECTED', openSelected);
-    window.addEventListener('PATHSCRIBE_TABLE_CLEAR_SEARCH',  clearSearch);
-    window.addEventListener('PATHSCRIBE_TABLE_SEARCH',        runVoiceSearch);
+    // Batch 650: SEARCH_CLEAR (Alt+C) and SEARCH_EXECUTE (Alt+E) are the Clear and Search buttons; Search is disabled while a search runs.
+    const searchEvents: [string, () => void][] = [['TABLE_CLEAR_SEARCH', clearSearch], ['TABLE_SEARCH', runVoiceSearch], ['SEARCH_CLEAR', clearSearch], ['SEARCH_EXECUTE', () => { if (!isSearching) runVoiceSearch(); }],
+      ['SEARCH_LOAD_SAVED', () => savedChipsRef.current?.querySelector<HTMLElement>('[data-saved-open]')?.focus()]]; // Alt+L: into the saved searches; the person chooses
+    searchEvents.forEach(([id, fn]) => window.addEventListener(`PATHSCRIBE_${id}`, fn));
     return () => {
       window.removeEventListener('PATHSCRIBE_TABLE_NEXT',          next);
       window.removeEventListener('PATHSCRIBE_TABLE_PREVIOUS',      previous);
@@ -1157,11 +1154,10 @@ const SearchPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_TABLE_FIRST',         first);
       window.removeEventListener('PATHSCRIBE_TABLE_LAST',          last);
       window.removeEventListener('PATHSCRIBE_TABLE_OPEN_SELECTED', openSelected);
-      window.removeEventListener('PATHSCRIBE_TABLE_CLEAR_SEARCH',  clearSearch);
-      window.removeEventListener('PATHSCRIBE_TABLE_SEARCH',        runVoiceSearch);
+      searchEvents.forEach(([id, fn]) => window.removeEventListener(`PATHSCRIBE_${id}`, fn));
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results, selectedResultIndex, navigate, draft]);
+  }, [results, selectedResultIndex, navigate, draft, isSearching]);
 
   // onF/onB update activeSection via the data-section attribute.
   const onF = (e: React.FocusEvent<HTMLInputElement>) => { setActiveSection(e.currentTarget.dataset.section ?? ''); };
@@ -1187,11 +1183,6 @@ const SearchPage: React.FC = () => {
     : null;
   const range = resultPage ? pageRange(resultPage.page, resultPage.pageSize, resultPage.total) : null;
 
-  const quickLinks = {
-    Protocols:  [{ title:'CAP Cancer Protocols', url:'https://www.cap.org/protocols-and-guidelines' }, { title:'WHO Classification', url:'https://www.who.int/publications' }],
-    References: [{ title:'PathologyOutlines', url:'https://www.pathologyoutlines.com' }, { title:'UpToDate', url:'https://www.uptodate.com' }],
-    Systems:    [{ title: t('searchPage.resourceLinks.hospitalLis'), url:'#' }, { title: t('searchPage.resourceLinks.labManagement'), url:'#' }],
-  };
 
   return (
     <div className={`ps-search-page-root${isLoaded ? ' ps-search-page-root--loaded' : ''}`}>
@@ -1732,17 +1723,19 @@ const SearchPage: React.FC = () => {
                     className="ps-searchpage-export-btn"
                   >{isExporting ? t('searchPage.export.exporting') : t('searchPage.summary.exportCsv')}</CapabilityButton>
                 )}
-                {/* Real, per direct guidance (gap #6): only when a result row is selected. */}
-                {selectedResultIndex>=0 && results?.[selectedResultIndex] && (
+                {/* Gap #6; Batch 659: with no row selected it asks for a click on the result to reassign (a click would otherwise open the case). */}
+                {resultPage && resultPage.total>0 && (
                   <button
                     type="button"
-                    onClick={() => setReassignPanelOpen(true)}
+                    onClick={() => (selectedResultIndex>=0 && results?.[selectedResultIndex] ? setReassignPanelOpen(true) : setReassignPicking(p => !p))}
                     className="ps-searchpage-export-btn"
+                    aria-pressed={reassignPicking}
                   >{t('searchPage.summary.reassignPatient')}</button>
                 )}
               </div>
             </div>
             {exportNotice && <p className="ps-searchpage-notice" role="status">{exportNotice}</p>}
+            {reassignPicking && <p className="ps-searchpage-notice" role="status">{t('searchPage.summary.reassignPickHint')}</p>}
             {searchFailed && <p className="ps-searchpage-notice ps-searchpage-notice--error" role="alert">{t('searchPage.summary.searchFailed')}</p>}
 
             {reassignPanelOpen && selectedResultIndex>=0 && results?.[selectedResultIndex] && (
@@ -1764,7 +1757,8 @@ const SearchPage: React.FC = () => {
                 ? <CaseReportPanel searchedDraft={searchedDraft} timeZone={timeZone} pathologists={pathologists} facilities={facilities} subspecialties={subspecialties}
                     onLoadSearch={d => { loadDraft(d); setSidebarCollapsed(true); void runSearch({ draft: d, page: 1 }); }} />
                 : hasSearched
-                ? <WorklistTable key={searchGeneration} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} navSource="search" preserveOrder tableHeight={tableHeight} forceCardView flagDefinitions={flagDefinitions} />
+                ? <WorklistTable key={searchGeneration} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} navSource="search" preserveOrder tableHeight={tableHeight} forceCardView flagDefinitions={flagDefinitions}
+                    interceptOpen={reassignPicking ? (id: string) => { setSelectedResultIndex((results ?? []).findIndex(c => c.id === id)); setReassignPicking(false); setReassignPanelOpen(true); return true; } : undefined} />
                 : <div className="ps-searchpage-no-search">{t('searchPage.summary.noSearchYet')}</div>
               }
             </div>
@@ -1909,24 +1903,7 @@ const SearchPage: React.FC = () => {
         </LookupModalX>
       )}
 
-      {/* ── Resources modal ──────────────────────────────────────────────── */}
-      {isResourcesOpen&&(
-        <div className="ps-modal-overlay" onClick={()=>setIsResourcesOpen(false)}>
-          <div className="ps-searchpage-resources-modal" onClick={e=>e.stopPropagation()}>
-            <div className="ps-searchpage-modal-title ps-searchpage-modal-title--resources">{t('searchPage.resourcesModal.title')}</div>
-            {Object.entries(quickLinks).map(([section,links])=>(
-              <div key={section} className="ps-searchpage-resource-section">
-                <div className="ps-searchpage-resource-section-label">{t(RESOURCE_SECTION_LABEL_KEY[section] ?? section)}</div>
-                {links.map((link,i)=>(
-                  <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" onClick={()=>setIsResourcesOpen(false)}
-                    className="ps-searchpage-resource-link">{t('searchPage.resourcesModal.linkLabel', { title: link.title })}</a>
-                ))}
-              </div>
-            ))}
-            <button onClick={()=>setIsResourcesOpen(false)} className="ps-searchpage-modal-close-btn">{t('common.close')}</button>
-          </div>
-        </div>
-      )}
+      <ResourcesModal isOpen={isResourcesOpen} onClose={() => setIsResourcesOpen(false)} quickLinks={quickLinks} />
 
     </div>
   );

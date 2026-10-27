@@ -64,9 +64,20 @@ export interface SignalRLiveUpdateDeps {
   log?: (message: string, detail?: unknown) => void;
 }
 
+/**
+ * Batch 655 (Pete, Oct 23, 2026: no access tokens in URLs; the Oct 3 decision, PS-345, says cookie only). A browser
+ * WebSocket cannot send an Authorization header, so SignalR's accessTokenFactory puts the token in the URL query
+ * string (`?access_token=`), where it lands in server logs and proxies. The connection therefore sends the browser's
+ * own HttpOnly session cookie (`withCredentials`) and never a token. Only a factory handed in explicitly (a device
+ * token for a terminal, when device tokens exist) is used.
+ */
+export function hubConnectionOptions(accessTokenFactory?: () => string | Promise<string>): { withCredentials: true; accessTokenFactory?: () => string | Promise<string> } {
+  return accessTokenFactory ? { withCredentials: true, accessTokenFactory } : { withCredentials: true };
+}
+
 export const defaultBuildConnection: NonNullable<SignalRLiveUpdateDeps['buildConnection']> = (hubUrl, retryPolicy, accessTokenFactory, logLevel = LogLevel.Warning) =>
   new HubConnectionBuilder()
-    .withUrl(hubUrl, accessTokenFactory ? { accessTokenFactory } : {})
+    .withUrl(hubUrl, hubConnectionOptions(accessTokenFactory))
     .withAutomaticReconnect(retryPolicy)
     .configureLogging(logLevel)
     .build() as unknown as HubConnectionLike;

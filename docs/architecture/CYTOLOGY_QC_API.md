@@ -63,3 +63,12 @@ The Rules engine skips a case in formal intradepartmental consultation: an activ
 - **The cap (Batch 576).** Enterprise, facility and personal caps are whole numbers of slides from 1 to 100 (CLIA 42 CFR 493.1274(d)(2)); the server refuses anything else (`422 capOutOfRange`) and, reading an older stored value over 100, uses 100. All three need `config:cytology-workload-cap:manage`.
 - **Edits don't count the slide again.** Saving an edit of an existing review adds to the ledger only what its new mode weighs beyond the old (an imager pass becoming a manual rescreen adds 1); the time spent still counts. The save-time check uses the same added weight. Before Batch 574 each edit counted the slide once more.
 
+
+## ICytologyQcSamplingStateService (Batch 672)
+
+`/api/cytology-qc/cytology-qc-sampling-state`. Service: `services/cytologyQc/httpCytologyQcSamplingStateService.ts`; chosen in `cytologyQcSamplingStateServiceInstance.ts`. The server owns the counters and advances them in the same transaction that evaluates the rule; `saveAll` exists for the interface, and a server build should leave the counters to the server.
+
+| Method | Call | Arguments |
+|---|---|---|
+| `getAll` | `GET /api/cytology-qc/cytology-qc-sampling-state/get-all` | none. Returns `{ "states": { "<ruleId>": <QcSamplingState> } }`. |
+| `saveAll` | `POST /api/cytology-qc/cytology-qc-sampling-state/save-all` | `states` (an object keyed by rule id) |

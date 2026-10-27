@@ -14,6 +14,7 @@ vi.mock('@/components/Common/CapabilityButton', () => ({
   CapabilityButton: ({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) =>
     <button type="button" disabled={disabled} onClick={onClick}>{children}</button>,
 }));
+vi.mock('./TerminologyLicencesCard', () => ({ default: () => <div data-testid="licences-card" /> })); // Batch 623: has its own test
 import CodeSystemsSection from './CodeSystemsSection';
 import { codeSystemPolicyService } from '@/services';
 

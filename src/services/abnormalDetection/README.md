@@ -133,3 +133,11 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 617 (part A): server versions (PS-514)
 
 `abnormalTriggerRuleService`, `abnormalDetectionSignalService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 623 (PS-130): real codes while a licence is on
+
+`resolveFindingCoding.ts` decides which code(s) a matched rule attaches: the rule's own real `licensedCoding` for each code system whose licence is on and unexpired (`terminologyLicence/`), otherwise the rule's test codes, otherwise the severity default (`resolveSyntheticCoding.ts`). `evaluateAbnormalTriggerRules` takes the active licences as a fourth argument (default none, so every existing caller keeps test codes). The sign-out hook passes `activeLicensedSystems(enterpriseConfig.terminologyLicences, todayIso())`. `abnormalTriggerRuleEditing.ts` checks and stores the rule form's real codes. `SyntheticCodingTerm` keeps the test systems; the new `LicensedCodingTerm` and the union `CodingTerm` carry the rest. The case field and flag field are still named `syntheticAbnormalCoding` / `syntheticCoding` (renaming them touches stored cases).
+
+## Batch 652
+
+`codingTermText.ts` (+ test) splits a confirmed finding's coded terms into demonstration codes (the `TEST-` systems, `isDemonstrationCode` in `resolveSyntheticCoding.ts`) and real licensed codes; the worklist dot tooltip labels the first group "demonstration code, not a real SNOMED CT or ICD-O-3 code". No demonstration SNOMED lookup exists and none was bound.

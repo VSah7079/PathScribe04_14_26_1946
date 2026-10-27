@@ -21,6 +21,7 @@ import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import { saveAbnormalTriggerRule, toggleAbnormalTriggerRule } from '../../../services/abnormalDetection/abnormalTriggerRuleEditing';
 import { duplicateAbnormalTriggerRule } from '@/services/duplication/duplicateEntities';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { EMPTY_RULE_CODING_DRAFT, ruleCodingDraftOf, type RuleCodingDraft } from '@/services/terminologyLicence/terminologyLicence';
 
 const SEVERITIES: AbnormalSeverity[] = ['Abnormal', 'Critical', 'Malignant'];
 
@@ -39,9 +40,10 @@ const AbnormalTriggerRulesSection: React.FC = () => {
   const [labFilter, setLabFilter] = useState<'All' | 'Global' | string>('All');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; item?: AbnormalTriggerRule } | null>(null);
-  const [draft, setDraft] = useState<{ fieldLabel: string; triggerValues: string; severity: AbnormalSeverity; description: string; active: boolean; performingLabFacilityId: string }>({
-    fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '',
+  const [draft, setDraft] = useState<{ fieldLabel: string; triggerValues: string; severity: AbnormalSeverity; description: string; active: boolean; performingLabFacilityId: string; coding: RuleCodingDraft }>({
+    fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '', coding: EMPTY_RULE_CODING_DRAFT,
   });
+  const setCoding = (patch: Partial<RuleCodingDraft>) => setDraft(d => ({ ...d, coding: { ...d.coding, ...patch } }));
   const [fieldError, setFieldError] = useState('');
 
   const load = () => { abnormalTriggerRuleService.getAll().then(res => { if (res.ok) setItems(res.data); setLoading(false); }); };
@@ -57,9 +59,10 @@ const AbnormalTriggerRulesSection: React.FC = () => {
         fieldLabel: modal.item.fieldLabel, triggerValues: modal.item.triggerValues.join(', '),
         severity: modal.item.severity, description: modal.item.description ?? '',
         active: modal.item.status === 'Active', performingLabFacilityId: modal.item.performingLabFacilityId ?? '',
+        coding: ruleCodingDraftOf(modal.item.licensedCoding),
       });
     } else if (modal?.mode === 'add') {
-      setDraft({ fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '' });
+      setDraft({ fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '', coding: EMPTY_RULE_CODING_DRAFT });
     }
     setFieldError('');
   }, [modal]);
@@ -75,9 +78,7 @@ const AbnormalTriggerRulesSection: React.FC = () => {
   const handleSave = async () => {
     const outcome = await saveAbnormalTriggerRule(draft, modal, items, abnormalTriggerRuleService);
     if (outcome.kind === 'invalid') {
-      setFieldError(outcome.error === 'fieldLabelRequired'
-        ? t('abnormalTriggerRulesSection.errors.fieldLabelRequired')
-        : t('abnormalTriggerRulesSection.errors.triggerValueRequired'));
+      setFieldError(t(`abnormalTriggerRulesSection.errors.${outcome.error}`));
       return;
     }
     if (outcome.kind === 'duplicate') {
@@ -213,6 +214,22 @@ const AbnormalTriggerRulesSection: React.FC = () => {
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.descriptionLabel')}</label>
               <textarea aria-label={t('abnormalTriggerRulesSection.modal.descriptionLabel')} className="ps-ms-textarea" value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.descriptionPlaceholder')} />
+            </div>
+            <div className="ps-ms-field-group">
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.licensedCodesLabel')}</label>
+              <span className="ps-conf-field-hint">{t('abnormalTriggerRulesSection.modal.licensedCodesHint')}</span>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.snomedCodeLabel')}
+                <input className="ps-ms-input" value={draft.coding.snomedCode} onChange={e => setCoding({ snomedCode: e.target.value })} />
+              </label>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.snomedTermLabel')}
+                <input className="ps-ms-input" value={draft.coding.snomedDisplay} onChange={e => setCoding({ snomedDisplay: e.target.value })} />
+              </label>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.icdo3CodeLabel')}
+                <input className="ps-ms-input" value={draft.coding.icdo3Code} onChange={e => setCoding({ icdo3Code: e.target.value })} />
+              </label>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.icdo3TermLabel')}
+                <input className="ps-ms-input" value={draft.coding.icdo3Display} onChange={e => setCoding({ icdo3Display: e.target.value })} />
+              </label>
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.performingLabLabel')}</label>

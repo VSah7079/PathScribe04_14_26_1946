@@ -99,3 +99,23 @@ The block-exception, HPV result, molecular batch and material-location handlers 
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - `notifyBlockExceptionApplied.ts`: the comment no longer points to the removed browser poll. This file and `notifyMaterialLocationApplied.ts` stay, for the hub's case event.
+
+## Batch 620 (part E)
+
+`epathBuilder.ts`: the NPCR ePath base message (HL7 v2.5.1 ORU^R01: MSH, PID, PV1, OBR, SPM, OBX) for US state cancer registry reporting. Pure; profile `fixed` extensions set a state's own values. Identifiers are defaults to confirm against the NPCR guide. See `services/usEpath/` and `docs/architecture/US_EPATH_API.md`.
+
+## Batch 629 (PS-174)
+
+`hpvResultInboundResponse.ts` (+ test): what the API answers the engine for each `processInboundHpvResultEvent` outcome. `processInboundHpvResultEvent.ts` now audits each applied result ("hrHPV Result Received", no patient data) and stores an `Invalid` result (`Specimen.cytologyScreening.hpvResult` accepts it). Contract: `docs/architecture/HPV_RESULT_INBOUND.md`.
+
+## Batch 630 (PS-174)
+
+`processInboundHpvResultEvent.ts` now stores `hpvResultSource: 'INTERFACE'` on an applied result and clears any manual entry still waiting for a second sign-off (the platform's result wins). Manual entry: `services/cytology/recordManualHpvResult.ts`.
+
+## Batch 631
+
+`processInboundHpvResultEvent.ts` keeps the inbound genotype consistent (`normalizeHpvGenotype`): a separately reported `hpv18` or `hpv45` sets the 18/45 group.
+
+## Batch 669 — mol-3
+
+`processInboundHpvResultEvent` checks the order queue (`hasReflexOrder`) before queueing the HPV reflex genotyping order, so a positive standalone screen under a new message id adds no second order. The result carries `reflex: 'queued' | 'already-queued'`. A queue that cannot be read still queues the order. The in-memory message-id ledger is unchanged.

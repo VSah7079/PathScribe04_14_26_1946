@@ -97,6 +97,9 @@ export const LATER_SEED_USERS: StaffUser[] = [
   { id: 'TA-001', firstName: 'Hannah', lastName: 'Price', credentials: '', email: 'hannah.price@demo.pathscribe.ai', roles: ['Template Author'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
   { id: 'TAP-001', firstName: 'Samuel', lastName: 'Osei', credentials: 'MD, FCAP', email: 'samuel.osei@demo.pathscribe.ai', roles: ['Template Approver'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
   { id: 'QA-001', firstName: 'Grace', lastName: 'Liu', credentials: 'MT(ASCP)', email: 'grace.liu@demo.pathscribe.ai', roles: ['QA Reviewer'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  // Batch 697 (Pete): the technical writers for the Admin and User Guides.
+  { id: 'DOC-001', firstName: 'Helen', lastName: 'Schollars', credentials: '', canViewPediatric: true, canViewOrchestration: true, email: 'helen.schollars@demo.pathscribe.ai', roles: ['Admin', 'Pathologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  { id: 'DOC-002', firstName: 'Shelly', lastName: 'Krill', credentials: '', canViewPediatric: true, canViewOrchestration: true, email: 'shelly.krill@demo.pathscribe.ai', roles: ['Admin', 'Pathologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
 ];
 
 const load = () => {

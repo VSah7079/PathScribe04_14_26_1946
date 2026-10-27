@@ -89,6 +89,11 @@ export function effectiveKey(e: KeyPress): EffectiveKey {
   return { ctrl, alt, shift: e.shiftKey, meta: e.metaKey, key, producedText };
 }
 
+/** A key that cannot be typing even without a modifier: a function key (F1 to F24). Batch 658: View Help is F1. */
+export function isFunctionKeyPress(e: Pick<KeyPress, 'key'>): boolean {
+  return /^F([1-9]|1\d|2[0-4])$/.test(e.key);
+}
+
 /** Does this key press match a shortcut written like "Ctrl+Alt+Shift+S" or "Alt+ArrowLeft"? */
 export function matchesShortcut(e: KeyPress, shortcut: string): boolean {
   if (!shortcut) return false;

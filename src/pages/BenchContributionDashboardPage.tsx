@@ -22,6 +22,7 @@ import '../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { caseService, batchService, molecularBatchService } from '@/services';
+import { DailyAccessioningChart } from '@/components/Contribution/DailyAccessioningChart';
 import {
   computeAccessioningRate,
   computeBatchThroughputAndAging,
@@ -107,6 +108,7 @@ export default function BenchContributionDashboardPage() {
           <span className="ps-contrib-tile-title">{t('benchContributions.accessioning.title')}</span>
         </div>
         {accessioning && accessioning.totalAccessioned > 0 ? (
+          <>
           <div className="ps-kpi-grid">
             <div className="ps-contrib-kpi-tile">
               <span className="ps-contrib-kpi-label">{t('benchContributions.accessioning.totalLabel')}</span>
@@ -121,6 +123,8 @@ export default function BenchContributionDashboardPage() {
               </div>
             </div>
           </div>
+          <DailyAccessioningChart daily={accessioning.daily} />
+          </>
         ) : (
           <p className="ps-contrib-tile-subtitle">{t('benchContributions.accessioning.noActivity')}</p>
         )}

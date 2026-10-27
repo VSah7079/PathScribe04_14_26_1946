@@ -54,7 +54,7 @@ export interface SessionMarkers {
 
 export interface AuthSessionDeps {
   /** Batch 611 (#157). Optional: the second-factor rules for single sign-on and for a restored session. */
-  mfa?: Pick<MfaService, 'evaluateSso' | 'sessionStillValid'>;
+  mfa?: Pick<MfaService, 'evaluateSso' | 'sessionStillValid' | 'loadPolicy'>;
   config: AuthConfig;
   /** Null when this build has no demo accounts (VITE_AUTH_MODE=sso). */
   verifyDemoCredentials: ((email: string, password: string) => Promise<DemoAccount | null>) | null;
@@ -249,6 +249,12 @@ export function createAuthSession(deps: AuthSessionDeps) {
       // Batch 611 (#157): when the organisation requires a second factor, the
       // provider must have reported one (amr / acr); otherwise no session.
       if (deps.mfa) {
+        // Batch 675 (access-14): on a server deployment the policy is read from the server first; if it
+        // cannot be read the sign-in is refused (fail closed), never treated as "no policy".
+        if (!(await deps.mfa.loadPolicy(profile))) {
+          await client.signOut(providerId);
+          return { ok: false, reason: 'server_unavailable' };
+        }
         const mfa = deps.mfa.evaluateSso(profile, done.claims as Record<string, unknown>);
         if (mfa.ok === false) {
           await client.signOut(providerId);
@@ -324,7 +330,7 @@ export function createAuthSession(deps: AuthSessionDeps) {
       }
       // Batch 611 (#157): a second factor that has expired (or belongs to
       // another organisation) ends the session; the person signs in again.
-      if (deps.mfa && !deps.mfa.sessionStillValid(profile)) {
+      if (deps.mfa && (!(await deps.mfa.loadPolicy(profile)) || !deps.mfa.sessionStillValid(profile))) {
         if (method === 'sso' && profile.ssoProviderId) void deps.ssoClient().signOut(profile.ssoProviderId);
         deps.profileStore.write(null);
         return null;

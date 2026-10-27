@@ -19,7 +19,7 @@ import type { QaActivityType } from '@/types/quality/QaActivityType';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { ServiceResult } from '../types';
 import type { QaReviewCaptureSubmission } from '@/components/QualityAssurance/QaReviewCaptureForm';
-import { SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID } from './mockQaActivityTypeService';
+import { SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID } from './qaActivityTypeIds';
 import { resolveSurgicalPeerReviewPoolMembership } from './resolveSurgicalPeerReviewPoolMembership';
 import { resolveSurgicalBiopsyToResectionCorrelationPoolMembership } from './resolveSurgicalBiopsyToResectionCorrelationPoolMembership';
 import { updateCaseWithRetry } from '../cases/caseWrite';

@@ -28,9 +28,10 @@ interface Props {
   deficiencyTypes: DeficiencyType[];
   onSubmit: (deficiencyIds: string[], findings: string) => void;
   onClose: () => void;
+  refusal?: string | null;
 }
 
-export const ManagementReviewModal: React.FC<Props> = ({ unreviewedClosed, deficiencyTypes, onSubmit, onClose }) => {
+export const ManagementReviewModal: React.FC<Props> = ({ unreviewedClosed, deficiencyTypes, onSubmit, onClose, refusal }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<Set<string>>(new Set(unreviewedClosed.map(d => d.id)));
   const [findings, setFindings] = useState('');
@@ -71,6 +72,7 @@ export const ManagementReviewModal: React.FC<Props> = ({ unreviewedClosed, defic
             <textarea id="mgmt-review-findings" className="ps-conf-input ps-conf-textarea" value={findings} onChange={e => setFindings(e.target.value)}
               placeholder={t('managementReviewModal.findingsPlaceholder')} />
           </div>
+          {refusal && <p className="ps-field-still-required" role="alert">{refusal}</p>}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>

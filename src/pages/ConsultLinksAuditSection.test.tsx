@@ -5,8 +5,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import type { ConsultToken } from '@/services/consultAccess/IConsultTokenService';
 
-const { listAll, revoke } = vi.hoisted(() => ({ listAll: vi.fn(), revoke: vi.fn(async () => ({ ok: true })) }));
-vi.mock('@/services', () => ({ consultTokenService: { listAll, revoke } }));
+const { listAll, revoke, previewIdentity } = vi.hoisted(() => ({ listAll: vi.fn(), revoke: vi.fn(async () => ({ ok: true })), previewIdentity: vi.fn() }));
+vi.mock('@/services', () => ({ consultTokenService: { listAll, revoke, previewIdentity } }));
 vi.mock('@/components/Common/CapabilityButton', () => ({
   CapabilityButton: ({ children, onClick, className }: { children: React.ReactNode; onClick: () => void; className: string }) => <button className={className} onClick={onClick}>{children}</button>,
 }));
@@ -51,5 +51,39 @@ describe('ConsultLinksAuditSection', () => {
     listAll.mockResolvedValue({ ok: false, error: 'CONSULT_LINK_NOT_PERMITTED' });
     await renderSection();
     expect(screen.getByText(/You don't have permission to see consult links/)).not.toBeNull();
+  });
+
+  it('after a signed opinion the status shows the views and hours left, or why it closed (Batch 669)', async () => {
+    const signedAt = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    listAll.mockResolvedValue({ ok: true, data: [
+      link({ signedAt, viewsAfterSignature: 1 }),
+      link({ id: 'l2', signedAt, viewsAfterSignature: 3 }),
+    ] });
+    await renderSection();
+    fireEvent.click(screen.getByLabelText('Active only'));
+    expect(screen.getByText('After the signed opinion: 2 views or 46 hours left.')).not.toBeNull();
+    expect(screen.getByText('Closed: all views after the signed opinion were used.')).not.toBeNull();
+  });
+
+  it('Preview identity shows the unmasked demographics for review (Batch 669)', async () => {
+    listAll.mockResolvedValue({ ok: true, data: [link({})] });
+    previewIdentity.mockResolvedValue({ ok: true, data: { identity: 'full', lastName: 'Ruiz', firstName: 'Ana', dateOfBirth: '02-JAN-1970' } });
+    await renderSection();
+    fireEvent.click(screen.getByText('Preview identity'));
+    await act(async () => {});
+    expect(previewIdentity).toHaveBeenCalledWith('l1');
+    const panel = document.querySelector('.ps-consult-identity-preview');
+    expect(panel?.getAttribute('data-phi')).toBe('true');
+    expect(panel?.textContent).toContain('Ruiz');
+    expect(panel?.textContent).toContain('02-JAN-1970');
+  });
+
+  it('a refused preview shows no identity', async () => {
+    listAll.mockResolvedValue({ ok: true, data: [link({})] });
+    previewIdentity.mockResolvedValue({ ok: false, error: 'CONSULT_REVEAL_NOT_PERMITTED' });
+    await renderSection();
+    fireEvent.click(screen.getByText('Preview identity'));
+    await act(async () => {});
+    expect(document.querySelector('.ps-consult-identity-preview')?.textContent).not.toContain('Ruiz');
   });
 });

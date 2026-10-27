@@ -1,0 +1,206 @@
+---
+chapter: 99
+id: ch99
+title: Bijlage: Verklarende woordenlijst met termen en afkortingen
+---
+
+# Woordenlijst {#ch99}
+
+Elke term hieronder krijgt de eerste keer dat hij in een onderdeel van de handleiding wordt gebruikt een koppeling. Een standaard of leverancier die hier wordt genoemd, wordt als term gedefinieerd; of PathScribe die ondersteunt, staat in het hoofdstuk over de functie, nooit in de woordenlijst.
+
+- **ACK**: In HL7 het bevestigingsbericht (acknowledgement) dat een ontvangend systeem terugstuurt om te melden dat het een bericht heeft geaccepteerd of geweigerd.
+- **accessie**: Het ontvangen van een monster en het toekennen van een permanent casusnummer; ook dat nummer zelf (het accessienummer). Het verbindt een casus met het fysieke weefsel en de bijbehorende chain of custody.
+- **accessienummer**: De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.
+- **actiegroep**: Een benoemde bundel opdrachten uit het Actieregister die een werkstationgroep standaard kan toestaan of laden.
+- **Actieregister**: De lijst met spraak- en toetsenbordopdrachten die PathScribe kent. De opdrachten zijn geen toegangsbeheer; machtigingen zijn dat wel.
+- **ADT**: Admit, Discharge, Transfer (opname, ontslag, overplaatsing). De familie van HL7-berichten voor patiëntregistratie en patiëntbewegingen, zoals A01 (opname), A08 (patiënt bijwerken) en A40 (patiënten samenvoegen).
+- **AI-leveranciersbeleid**: Een regel per jurisdictie die bepaalt welke AI-diensten en hostingregio's mogen worden gebruikt. Een aanroep die door de regel wordt geweigerd, wordt niet verzonden en de functie werkt verder zonder AI.
+- **AMA**: American Medical Association, de uitgever en eigenaar van de CPT-codeset.
+- **AP-LIS**: Laboratoriuminformatiesysteem voor anatomische pathologie, het systeem dat chirurgisch-pathologische en cytologische casus van accessie tot autorisatie afhandelt.
+- **API**: Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.
+- **APLIS-koppeling**: De waarde waarmee een containertype wordt verzonden in het monsterveld van een HL7-bericht, zodat een ander systeem de container kan herkennen.
+- **alleen-toevoegen**: Een registratie waaraan de toepassing wel iets kan toevoegen maar die zij nooit kan bewerken of verwijderen. Het auditlogboek is van ontwerp alleen-toevoegen.
+- **ASP.NET Core**: Het webframework van Microsoft waarop de API-server van PathScribe is gebouwd.
+- **assistentiemodus**: Een manier om PathScribe naast een bestaand LIS te laten draaien, waarbij het LIS eigenaar van de casus blijft en PathScribe de wijzigingen leest en conceptverslagen opstelt voor beoordeling door de patholoog.
+- **auditlogboek**: Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.
+- **BAA**: Business Associate Agreement. Een overeenkomst die de HIPAA-regels vereisen tussen een Amerikaanse zorgorganisatie en een leverancier die haar beschermde gezondheidsgegevens verwerkt.
+- **Bethesda**: Het rapportagesysteem voor uitslagen van cervixcytologie en monsteradequaatheid, gebruikt in de Verenigde Staten en op veel andere plaatsen.
+- **BI-feed**: De rapportagefeed die datasets levert aan een business-intelligencetool zoals Power BI. Hij kan geanonimiseerd of identificeerbaar zijn, en identificeerbaar gebruik vereist een vastgelegde goedkeuring.
+- **blok**: Een stukje weefsel dat in een cassette in was is ingebed en waarvan coupes worden gesneden.
+- **break-glass**: Een beperkte handeling die een normale beveiliging omzeilt en altijd een reden en een schriftelijke motivering vereist. Het opnieuw koppelen van een patiënt in Systeemlogboeken is een voorbeeld.
+- **BSN**: Burgerservicenummer, het nationale burgerservicenummer van Nederland, gebruikt als patiëntidentificatie.
+- **kankerregister**: Een instantie die kankerdiagnoses verzamelt voor een land of regio, zoals de NAACCR-registers in Noord-Amerika of de COSD-verzameling in Engeland.
+- **CAP**: The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.
+- **CAP eCC**: CAP electronic Cancer Checklists, de gestructureerde vorm van de CAP-kankerprotocollen, verspreid als SDC XML.
+- **CAPA**: Corrigerende en preventieve actie. Een bijgehouden reactie op een kwaliteitsprobleem, met een eigenaar en een reden om de actie te openen of af te wijzen.
+- **machtiging**: Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.
+- **machtigingencatalogus**: De volledige lijst van machtigingen, met per machtiging het risiconiveau en elke machtiging die vereist is.
+- **casus**: Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.
+- **zaakmasker**: Het patroon dat een accessienummer volgt: een voorvoegsel, een patroon zoals het jaar en een volgnummer, en een teller die bij een wijziging van het patroon nooit wordt teruggezet.
+- **cassette**: De kunststof houder waarin een weefselblok wordt ingebed en gelabeld voor het snijden.
+- **kostenregistratie**: Het vastleggen van het factureerbare werk aan een casus zodat het naar facturatie kan worden verzonden.
+- **CHI-nummer**: Community Health Index, de patiëntidentificatie die in Schotland wordt gebruikt.
+- **CLIA**: Clinical Laboratory Improvement Amendments, de Amerikaanse federale regelgeving voor laboratoriumonderzoek. CLIA stelt onder meer grenzen aan de werkbelasting in de cytologie.
+- **serviceniveau van de klant**: De afgesproken tijd waarbinnen de casus van een klant moeten zijn gerapporteerd, vastgelegd per klantfaciliteit.
+- **CMS**: De Centers for Medicare and Medicaid Services, het Amerikaanse agentschap dat de factureringsregels van Medicare vaststelt, waaronder de NCCI-edits.
+- **config.json**: Het bestand op de webserver dat een implementatie haar instellingen geeft, zoals het adres van de API-server. Een onjuiste waarde voorkomt dat PathScribe start.
+- **consultlink**: Een alleen-lezenlink die voor één casus aan een externe consulent wordt verstrekt. Hij kan direct worden ingetrokken en verloopt vanzelf.
+- **COSD**: Cancer Outcomes and Services Dataset, de Engelse nationale dataset voor kankerregistratie.
+- **medeondertekenen**: Een tweede handtekening op een verslag van een andere gekwalificeerde persoon, bijvoorbeeld een patholoog op het werk van een cytotechnoloog.
+- **CPT**: Current Procedural Terminology, de codeset van de AMA voor medische en laboratoriumhandelingen, gebruikt voor facturering in de Verenigde Staten.
+- **CRM**: Circumferentiële resectiemarge, de afstand van een tumor tot de snijrand van een resectie, vastgelegd op colorectale verslagen.
+- **kritieke uitslag**: Een bevinding die het laboratorium snel aan de arts moet melden, waarbij de melding wordt vastgelegd.
+- **conversietabel**: Een tabel die een code uit het ene systeem vertaalt naar een code in een ander systeem, zoals een externe aanvraagcode naar een PathScribe-monstertype.
+- **CSV**: Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.
+- **cytotechnoloog**: Een laboratoriumprofessional die cytologische preparaten screent en afwijkende doorverwijst naar een patholoog.
+- **dead letter**: Een bericht of taak waarvan alle automatische nieuwe pogingen zijn mislukt en dat nu wacht tot iemand het opnieuw verzendt of verwijdert.
+- **delegatie**: Het overdragen van een casus aan een andere patholoog voor een collegiale toetsing, tweede mening, doorverwijzing naar een subspecialisme of bespreking in het tumor board.
+- **demonstratiebuild**: Een build van PathScribe die zijn gegevens in de browser bewaart en demonstratieaccounts bevat. Hij maakt nooit verbinding met een echte API-server.
+- **afdeling**: De grove klasse van een monster bij de intake, zoals chirurgisch weefsel of vloeistofcytologie. Zij stuurt het uitsnijdsjabloon, het zaakmasker en een eventuele afwijking van de bewaartermijn.
+- **DFT**: Detailed Financial Transaction, het HL7-bericht dat kosten naar een factureringssysteem overbrengt.
+- **discordantie**: Een verschil tussen twee beoordelingen van hetzelfde materiaal, zoals een voorlopige en een definitieve diagnose, of een eerste en een tweede patholoog.
+- **weergaveprofiel**: Een opgeslagen indeling van dashboardtegels die een wandscherm toont.
+- **DLQ**: Dead-letter queue, de lijst van berichten waarvan alle nieuwe pogingen zijn mislukt. Systeemlogboeken heeft er een voor uitgaande interfaceberichten en een voor kosten.
+- **DOB**: Geboortedatum (date of birth).
+- **DOS**: Datum van dienstverlening (date of service), de datum waarop een gefactureerde dienst werd verricht.
+- **DPA**: Verwerkersovereenkomst (data processing agreement), de overeenkomst die onder de GDPR vereist is tussen een verwerkingsverantwoordelijke en een verwerker.
+- **inbedding**: De stap waarin verwerkt weefsel in een cassette in was wordt gezet om een blok te maken.
+- **EPD**: Elektronisch patiëntendossier, het ziekenhuissysteem dat het dossier van de patiënt bevat en aanvragen verstuurt.
+- **onderneming**: Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.
+- **ePath**: Elektronische pathologierapportage, het verzenden van pathologieverslagen naar een kankerregister in een standaard elektronische vorm.
+- **foutcode**: Een korte code in hoofdletters, zoals `NOT_PERMITTED`, die een scherm of een beheerder vertelt waarom een aanroep is mislukt. De berichttekst van de server wordt nooit gebruikt, omdat daarin een patiënt kan worden genoemd.
+- **EU**: Europese Unie.
+- **faciliteit**: Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.
+- **FAD**: Final anatomical diagnosis, de definitieve diagnose van een autopsieverslag, het tegenovergestelde van de PAD.
+- **FHIR**: Fast Healthcare Interoperability Resources, een HL7-standaard voor het uitwisselen van gezondheidsgegevens via webinterfaces.
+- **verplichte velden**: De instellingen die bepalen welke velden op een pagina moeten zijn ingevuld voordat een stap kan worden voltooid.
+- **markering**: Een teken op een casus of monster, bijvoorbeeld om een extra kleuring aan te vragen of een casus aan te houden.
+- **FNA**: Fine-needle aspiration (fijnenaaldaspiratie), een biopsie waarbij cellen via een dunne naald worden opgezogen.
+- **FOV**: Field of view (gezichtsveld), een gebied op een cytologisch preparaat dat een AI-tool of een screener beoordeelt.
+- **vierogenprincipe**: Een regel dat één persoon een wijziging voorbereidt en een andere persoon die goedkeurt. Het importeren van factureringscodes gebruikt dit.
+- **FPPE**: Focused professional practice evaluation, een gestructureerde beoordeling van het werk van een clinicus, gebruikt bij nieuwe bevoegdheden of een zorg.
+- **vriescoupe**: Een weefselmonster dat tijdens een operatie wordt ingevroren en gesneden, zodat een patholoog snel antwoord kan geven.
+- **GDPR**: De Algemene verordening gegevensbescherming van de EU (AVG). Het Verenigd Koninkrijk heeft een eigen versie, UK GDPR.
+- **toezichthoudende instantie**: De autoriteit wier regels een jurisdictie volgt, zoals CAP of een nationale vereniging, die minimale bewaartermijnen en eisen vaststelt.
+- **GS1**: De normeringsorganisatie achter de barcodeformaten en de GTIN-nummering op cassette- en preparaatlabels.
+- **GTIN**: Global Trade Item Number, het nummer dat een GS1-barcode bevat. Afdrukinstellingen bevat de GTIN van de faciliteit.
+- **GYN**: Gynaecologisch, zoals in GYN-cytologie, het screenen van cervixmonsters.
+- **uitsnijden**: Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.
+- **HCPCS**: Healthcare Common Procedure Coding System, de Amerikaanse codeset die codes aan CPT toevoegt voor benodigdheden en diensten.
+- **HIPAA**: De Amerikaanse Health Insurance Portability and Accountability Act, die regels stelt voor de bescherming van gezondheidsgegevens van patiënten.
+- **histotechnoloog**: Een laboratoriumprofessional die weefsel inbedt en preparaten snijdt en kleurt.
+- **HL7**: Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.
+- **HL7 v2**: Het veelgebruikte HL7-berichtformaat dat bestaat uit regels met door een verticale streep gescheiden velden, waarbij elk bericht begint met een MSH-segment.
+- **hostingregio**: De geografische regio waar een AI-clouddienst gegevens verwerkt. Het AI-leveranciersbeleid kan regio's toestaan of weigeren.
+- **HPV**: Humaan papillomavirus. Een hoogrisico-HPV-uitslag (hrHPV) wordt gebruikt bij cervixcytologie.
+- **hub**: De SignalR-service die live updates van de API-server naar geopende schermen pusht.
+- **ICD-10**: De International Classification of Diseases, tiende revisie, een diagnosecodeset.
+- **ICD-11**: De elfde revisie van de International Classification of Diseases.
+- **ICD-O**: International Classification of Diseases for Oncology, die tumorlocatie en -type (morfologie) codeert. De derde editie is ICD-O-3, met codes zoals 8500/3.
+- **identiteitsprovider**: De dienst die mensen aanmeldt voor single sign-on, zoals de Microsoft Entra-directory van een ziekenhuis.
+- **IHC**: Immunohistochemie, een kleuring die antilichamen gebruikt om specifieke eiwitten in weefsel zichtbaar te maken.
+- **inkten**: Het markeren van het oppervlak van een monster met gekleurde inkt zodat marges op het preparaat herkenbaar zijn.
+- **peroperatief**: Tijdens de operatie. Peroperatieve consulten, zoals vriescoupes, worden afgehandeld in de peroperatieve wachtrij.
+- **IPP**: Internet Printing Protocol, een netwerkafdrukprotocol. In Franse tekst is IPP ook de patiëntidentificatie die in plaats van MRN wordt gebruikt.
+- **IPPS**: Internet Printing Protocol over TLS. Een printer op IPPS bevestigt dat een opdracht is afgedrukt, daarom moeten de verslagprinters van een locatie het gebruiken waar mogelijk.
+- **ISO 15189**: De internationale norm voor de kwaliteit en competentie van medische laboratoria.
+- **jurisdictie**: Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.
+- **JSON**: JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.
+- **LBC**: Vloeistofcytologie (liquid-based cytology), een manier om cervixmonsters en andere cytologische monsters in vloeistof te prepareren.
+- **LIS**: Laboratoriuminformatiesysteem, de software die de aanvragen, monsters en uitslagen van een laboratorium beheert.
+- **LOINC**: Logical Observation Identifiers Names and Codes, een codeset voor laboratoriumtests en waarnemingen.
+- **depositbox**: Een afgiftepunt waar monsters buiten werktijd worden ontvangen. Elke afgifte krijgt een ontvangstbewijs en een barcode zonder aanvraag krijgt een tijdelijke aanduiding, nooit een accessienummer.
+- **LPR**: Line Printer Remote, een ouder netwerkafdrukprotocol (ook geschreven als LPR/LPD). Het kan niet bevestigen dat een pagina is afgedrukt.
+- **MACRA**: De Amerikaanse Medicare Access and CHIP Reauthorization Act, die het Quality Payment Program creëerde waar MIPS onder valt.
+- **macro**: Een opgeslagen stuk tekst of een set instellingen, zoals een verslagzin of een kleuringsaanvraag, die in één stap kan worden ingevoegd.
+- **MDO**: Multidisciplinair overleg, ook tumor board genoemd, waarin specialisten de zorg voor een patiënt bespreken.
+- **MFA**: Multifactorauthenticatie, aanmelden met een tweede bewijs, zoals een code uit een authenticator-app, naast een wachtwoord.
+- **microtomie**: Het snijden van dunne coupes van een blok met een microtoom om preparaten te maken.
+- **MIPS**: Het Merit-based Incentive Payment System, een Amerikaans Medicare-programma dat de betaling aanpast op basis van gerapporteerde kwaliteitsmaten.
+- **Milan System**: Het rapportagesysteem voor cytologie van fijnenaaldaspiraties van de speekselklier.
+- **modifier**: Een korte code die aan een CPT-code wordt toegevoegd om aan te geven hoe een dienst is verricht, bijvoorbeeld dat alleen de technische component is geleverd.
+- **Mohs**: Mohs micrografische chirurgie, waarbij huidkanker in dunne lagen wordt verwijderd en elke laag onder de microscoop wordt gecontroleerd voordat de volgende wordt genomen.
+- **MPI**: Master patient index, het register dat de verschillende identificaties van één patiënt aan elkaar koppelt.
+- **MRN**: Medisch dossiernummer (medical record number), de identificatie die een faciliteit aan een patiënt geeft.
+- **MSH**: Het eerste segment van een HL7 v2-bericht. Het noemt de afzender, ontvanger, het berichttype en de versie.
+- **NAACCR**: De North American Association of Central Cancer Registries, die gegevensstandaarden vaststelt voor rapportage aan kankerregisters in Noord-Amerika.
+- **NATA**: De National Association of Testing Authorities, die laboratoria in Australië accrediteert.
+- **NCCI**: National Correct Coding Initiative, een set Amerikaanse Medicare-edits die aangeeft welke codeparen niet samen mogen worden gefactureerd.
+- **NCRAS**: De National Cancer Registration and Analysis Service, de Engelse kankerregistratie-instantie die COSD-inzendingen ontvangt.
+- **NHI**: National Health Index, de patiëntidentificatie die in Nieuw-Zeeland wordt gebruikt.
+- **NHS-nummer**: De patiëntidentificatie van tien cijfers die in de NHS in Engeland en Wales wordt gebruikt. Het laatste cijfer is een controlecijfer.
+- **NLM**: De Amerikaanse National Library of Medicine, bron van openbare terminologieopzoekingen zoals UMLS.
+- **non-GYN**: Cytologie anders dan cervixscreening, zoals vloeistoffen, urine en fijnenaaldaspiraten.
+- **NPI**: National Provider Identifier, de identificatie van tien cijfers van een Amerikaanse zorgverlener, vereist op een kostenregel.
+- **OIDC**: OpenID Connect, de aanmeldstandaard die PathScribe gebruikt voor single sign-on.
+- **OML**: Het HL7-berichttype voor laboratoriumaanvragen (OML^O21).
+- **OPCS-4**: De Britse classificatie van chirurgische operaties en procedures.
+- **ORM**: Het algemene HL7-berichttype voor aanvragen (ORM^O01).
+- **ORU**: Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.
+- **uitgaande wachtrij**: De lijst van berichten en kosten die PathScribe heeft opgebouwd en die nog niet zijn verzonden, aangehouden, verzonden of mislukt.
+- **OK-terminal**: Een scherm in een operatiekamercomplex om peroperatieve casus te bekijken en erop te handelen.
+- **PAD**: Preliminary anatomical diagnosis, de eerste diagnose van een autopsieverslag. Een lichaam kan worden vrijgegeven zodra een PAD is ondertekend en er geen aanvullende blokkade actief is.
+- **Paris System**: Het rapportagesysteem voor cytologie van de urinewegen.
+- **deelnametype**: Een rol die een persoon in een casus vervult, zoals primaire patholoog of screener, met een eigen ondertekeningsbevoegdheid.
+- **onderdelenbibliotheek**: De herbruikbare onderdelen, zoals een blok vragen, waaruit verslagsjablonen worden samengesteld.
+- **PDF**: Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.
+- **collegiale toetsing**: Een onafhankelijke beoordeling van een casus door een tweede patholoog, die vóór autorisatie van een eerste maligniteit verplicht kan zijn.
+- **uitvoerend laboratorium**: De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.
+- **PHI**: Beschermde gezondheidsgegevens (protected health information), alle gegevens die een patiënt identificeren samen met gezondheidsinformatie. Patiëntidentificaties op het scherm worden getagd zodat schermafbeeldingen kunnen worden geredigeerd.
+- **PHIN-MS**: Het Public Health Information Network Messaging System, een Amerikaans transportsysteem voor het verzenden van volksgezondheidsrapporten.
+- **tijdelijke aanduiding**: Een registratie voor een depositbox-barcode waarvoor nog geen aanvraag bestaat. Zij bevat het ontvangstbewijs en wordt later aan een aanvraag gekoppeld; zij krijgt nooit een accessienummer.
+- **PPS-nummer**: Het Personal Public Service-nummer dat in Ierland als patiëntidentificatie wordt gebruikt.
+- **afdrukwachtrij**: De lijst van afdrukopdrachten voor verslagen en labels met hun status, van in de wachtrij tot afgedrukt of mislukt.
+- **printerprofiel**: De opgeslagen instellingen voor één printermodel, inclusief de verbindingsmethode (bridge).
+- **productiepoort**: Een schakelaar die gesloten blijft totdat een laboratorium het verzenden van echte gegevens naar een echte interface-engine goedkeurt.
+- **protocol**: Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.
+- **QA**: Kwaliteitsborging (quality assurance), de beoordeling van werk om problemen te vinden en te corrigeren.
+- **QC**: Kwaliteitscontrole (quality control), de controles die bevestigen dat een proces werkt zoals bedoeld, zoals een tweede beoordeling van gescreende preparaten.
+- **QZ Tray**: Een klein programma op een computer waarmee een webpagina zonder afdrukvenster naar een lokale printer kan afdrukken, zoals een labelprinter.
+- **RBAC**: Rolgebaseerde toegangscontrole (role-based access control). Mensen krijgen rollen, rollen bevatten machtigingen en een machtiging bepaalt of een handeling is toegestaan.
+- **reagenscharge**: Een bijgehouden partij van een kleuring, oplossing of reagens, met de bijbehorende data en het gebruik ervan.
+- **referentielaboratorium**: Een laboratorium waarnaar onderzoek wordt doorgestuurd. Een faciliteit krijgt de rol Referentielaboratorium.
+- **register**: Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.
+- **bewaring**: Hoe lang een soort gegevens of materiaal wordt bewaard. Bewaartermijnen worden per jurisdictie vastgesteld, met een optionele afwijking.
+- **bewaarblokkade**: Een blokkade die het vernietigen van het materiaal van een casus na finalisatie tegenhoudt, bijvoorbeeld vanwege een rechtszaak.
+- **rol**: Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.
+- **ROSE**: Rapid on-site evaluation, waarbij de adequaatheid van een monster wordt beoordeeld op het moment van afname.
+- **RVU**: Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.
+- **SAML**: Security Assertion Markup Language, een oudere single sign-on-standaard. De single sign-on van PathScribe gebruikt OIDC.
+- **scanstation**: Een benoemde opstelling van een werkplekcomputer, met printers en beeldscherm, die een persoon selecteert zodat labels en scans op de juiste plaats terechtkomen.
+- **SCIM**: System for Cross-domain Identity Management, een standaard waarmee een identiteitsprovider automatisch medewerkersaccounts aanmaakt en deactiveert.
+- **SDC**: Structured Data Capture, de XML-formaatstandaard waarmee CAP electronic cancer checklists worden verspreid.
+- **functiescheiding**: Een regel dat twee bevoegdheden niet bij één persoon mogen berusten, zoals het wijzigen van de klinische discrepantieregels en het goedkeuren van de AI-instructies.
+- **serverbuild**: Een build van PathScribe voor een echte implementatie, zonder demonstratieaccounts, die zich via de identiteitsprovider aanmeldt en met de API-server communiceert.
+- **SFTP**: SSH File Transfer Protocol, een beveiligde manier om bestanden naar een ander systeem te kopiëren.
+- **SHA-256**: Een cryptografische hash die een bestand of registratie omzet in een vaste vingerafdruk, gebruikt om een wijziging op te sporen.
+- **SignalR**: De Microsoft-technologie die PathScribe gebruikt om live updates van de server naar geopende schermen te pushen.
+- **ondertekeningsbevoegdheid**: De soorten verslag die een persoon mag autoriseren, bepaald door deelnametype en de regels van het land.
+- **single sign-on**: Eenmaal aanmelden met de identiteitsprovider van een organisatie in plaats van met een PathScribe-wachtwoord. Ook geschreven als SSO.
+- **site-agent**: Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.
+- **SLA**: Service level agreement, een afgesproken tijd waarbinnen werk wordt gedaan.
+- **SNOMED CT**: Systematized Nomenclature of Medicine, Clinical Terms, een grote klinische terminologie.
+- **monster**: Een van een patiënt genomen staal, zoals één biopsie of één gereseceerd orgaan. Een casus bevat een of meer monsters.
+- **SSO**: Single sign-on. Zie single sign-on.
+- **kleuring**: Een kleurstof of antilichaam dat op een preparaat wordt aangebracht zodat een kenmerk van het weefsel zichtbaar wordt.
+- **STAT**: Spoed, direct uit te voeren.
+- **subspecialisme**: Een deelgebied van de pathologie, zoals borst of maag-darmstelsel, gebruikt om casus te routeren. Een subspecialisme kan op poolmodus worden gezet.
+- **supportreferentie**: Een willekeurige, niet-identificerende code van de vorm `SR-XXXX-XXXX` die medewerkers aan support doorgeven in plaats van een casusnummer.
+- **synoptisch**: Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.
+- **TAT**: Doorlooptijd (turnaround time), de tijd van de ene stap naar de andere, zoals van ontvangst tot autorisatie.
+- **tenant**: De afzonderlijke ruimte van één klantorganisatie binnen een gedeelde PathScribe-service.
+- **TC**: Technische component, het deel van een dienst dat het werk van het laboratorium dekt en apart van de professionele component wordt gefactureerd (code 26).
+- **TLS**: Transport Layer Security, de versleuteling die een webverbinding beschermt en zichtbaar is als https.
+- **tumor board**: Een multidisciplinair overleg om kankercasus te bespreken. Ook MDO genoemd.
+- **UKAS**: De United Kingdom Accreditation Service, die laboratoria in het Verenigd Koninkrijk accrediteert.
+- **UMLS**: Het Unified Medical Language System, een verzameling medische vocabulaires van de Amerikaanse National Library of Medicine.
+- **UTC**: Gecoördineerde wereldtijd (Coordinated Universal Time), de tijdstandaard waarin auditvermeldingen worden opgeslagen en getoond.
+- **VNA**: Vendor-neutral archive, een beeldopslag die medische beelden in een neutrale vorm bewaart.
+- **WCAG**: Web Content Accessibility Guidelines, de standaard om webinhoud bruikbaar te maken voor mensen met een beperking.
+- **webhook**: Een webadres dat het ene systeem aanroept om een update naar een ander te pushen, zoals een LIS dat een statuswijziging als JSON verstuurt.
+- **werkstation**: Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.
+- **werkstationgroep**: Een set scanstations gegroepeerd naar discipline en gebied, afgebakend tot een faciliteit en voorzien van standaardactiegroepen.
+- **WSI**: Whole slide imaging, het scannen van een glazen preparaat tot een digitaal beeld dat op een scherm kan worden bekeken.
+- **X12**: De ANSI-standaard voor elektronische zakelijke transacties, waaronder zorgdeclaraties in de Verenigde Staten.
+- **XML**: Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.
+- **ZPL**: Zebra Programming Language, de printertaal die de indeling van een label beschrijft voor labelprinters van het Zebra-type.

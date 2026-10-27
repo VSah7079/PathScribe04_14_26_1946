@@ -1,0 +1,199 @@
+<h1 id="top">Pending Batch Load</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Pending Batch Load answers one question: which cassettes and slides have been printed or engraved but have not been scanned into any open batch yet? It is a read-only worklist for finding what still needs to be picked up and loaded. You do not load anything from this screen.</p>
+<p><strong>Intended users.</strong> Histotechnologists, cytotechnologists, molecular technologists and laboratory managers, anyone who has the Batch Management screen.</p>
+<p><strong>Where it fits.</strong> After <a href="/help/grossing">Grossing</a> prints cassettes, and after the <a href="/help/workstations/embedding">Embedding</a> and <a href="/help/workstations/microtomy">Microtomy</a> workstations produce blocks and slides, the items wait here until someone scans them into a batch on the <a href="/help/batch-management">Batch Management</a> page. As soon as an item is scanned into an open batch it leaves this list.</p>
+<div class="admonition note">
+<p class="admonition-title">Nothing is stored on this screen</p>
+<p>The list is worked out fresh each time you open or refresh the page, by comparing every case's physical material with the manifests of all open batches. It cannot be edited, and it cannot go out of date except between refreshes.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-pending-load-overview.png" alt="The Pending Batch Load screen with items grouped by case"><figcaption>The Pending Batch Load screen with items grouped by case</figcaption></figure>
+
+<p>The page title is <strong>Pending Batch Load</strong>. The subtitle explains that it lists cassettes and slides that have been printed or engraved but not yet scanned into an active batch, and that to load one you open or create the batch it belongs in from Batch Management and scan it there. A second line tells you the scope:</p>
+<ul>
+<li>"Scoped to (facility), per the active scan station." when this computer has a scan station set. Only cases from that facility are shown.</li>
+<li>"No scan station set — showing every facility's own pending items. Set a station for a facility-scoped queue." when no station is set.</li>
+</ul>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan or type to search — cassette/slide id, case, or specimen...</td>
+<td>A search box. It matches part of the item identifier (what a barcode holds), the case accession number or the specimen label, ignoring capitals. Scanning a label into it fills in the identifier.</td>
+</tr>
+<tr>
+<td>Awaiting Batch Load (n)</td>
+<td>The number of waiting items. While you search it reads "Awaiting Batch Load (n of total)".</td>
+</tr>
+<tr>
+<td>Case heading</td>
+<td>The case accession number and how many items it has waiting, for example "(accession) — 3 items". Items are grouped by case.</td>
+</tr>
+<tr>
+<td>Item identifier</td>
+<td>The cassette or slide identifier, as printed on the label.</td>
+</tr>
+<tr>
+<td>Type</td>
+<td><strong>Cassette</strong> (a block) or <strong>Slide</strong>.</td>
+</tr>
+<tr>
+<td>Specimen (letter)</td>
+<td>The specimen the item belongs to.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search box</td>
+<td>Narrows the list as you type.</td>
+</tr>
+<tr>
+<td>Clear</td>
+<td>Appears once you have typed something. Empties the search box.</td>
+</tr>
+<tr>
+<td>Refresh</td>
+<td>Works the list out again. Reads "Refreshing..." while it works.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Computing the real, current queue...</td>
+<td>The list is being worked out.</td>
+</tr>
+<tr>
+<td>Nothing printed is currently waiting to be loaded into a batch.</td>
+<td>Every printed item is already in an open batch.</td>
+</tr>
+<tr>
+<td>No pending item matches "(text)".</td>
+<td>Nothing matches your search. Clear it to see the full list.</td>
+</tr>
+</tbody>
+</table>
+<p>What counts as waiting:</p>
+<ul>
+<li>A cassette whose block has been grossed, embedded or marked exhausted. A block that is still a placeholder, with nothing printed yet, is not listed.</li>
+<li>A slide that has been cut. A slide still marked Pending Cut is not listed because nothing physical exists yet.</li>
+<li>Neither is in any Active or Reconciling batch. Items in Complete or Aborted batches that are not in an open batch count as waiting again.</li>
+</ul>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> from the Pathology Workspace and select the <strong>Pending Load</strong> tile. The page shows "Computing the real, current queue..." and then the list.</li>
+<li>Read the second line under the title to check which facility the list covers.</li>
+<li>Look through the groups, or type or scan into the search box to find a specific cassette, case or specimen.</li>
+<li>Collect the physical items.</li>
+<li>Return to <a href="/help/batch-management">Batch Management</a> (use the breadcrumb or the browser back button), open or create the batch they belong in, and scan each one into it.</li>
+<li>Return here and select <strong>Refresh</strong>. The scanned items are gone from the list.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To check a single label, scan it into the search box. If its identifier appears, it is waiting. If it does not, it is already in an open batch, has been disposed of, or was never printed.</li>
+<li>To check a whole case, type its accession number.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>An item you printed is not listed.</strong> Search by the case number. If the case is not there, check that the block was actually grossed and the label printed; a placeholder block is not shown. Check the facility scope too: a station set for another facility hides this case.</li>
+<li><strong>An item you expected to be in a batch is listed.</strong> It is not in any open batch. Perhaps it was in a batch that has since been aborted. Scan it into the right batch.</li>
+<li><strong>A slide is not listed.</strong> It is still Pending Cut, or it is in an open batch already.</li>
+<li><strong>No scan station is set.</strong> The list covers every facility. Set the station for this computer (see your laboratory manager) to scope it.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>The list looks stale after you load items. Select <strong>Refresh</strong>; the page does not update itself.</li>
+<li>The search shows "No pending item matches". Select <strong>Clear</strong> and try fewer letters.</li>
+<li>The list stays on "Computing..." for a long time. Refresh the page and, if it persists, contact support.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Expecting to load items from this page. It is only a list. Loading is done by scanning on a batch's detail page.</li>
+<li>Forgetting that the page does not refresh itself. Select Refresh after you load.</li>
+<li>Reading the list as the whole laboratory when a scan station is set. It is scoped to that station's facility.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Scan a label into the search box instead of typing.</li>
+<li>Search by the case number to see all of a case's waiting cassettes and slides together.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Look at the list at the start of a run and before the end of the shift to catch cassettes that were printed and then left on the bench.</li>
+<li>Use it together with the stage tiles on the Batch Management page to see both what is in batches and what is not.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/grossing">Grossing</a>: prints the cassettes.</li>
+<li><a href="/help/workstations/embedding">Embedding</a> and <a href="/help/workstations/microtomy">Microtomy</a>: turn cassettes into blocks and slides.</li>
+<li><a href="/help/batch-management/label-reprint">Label Reprint</a>: reprint labels for cases whose cassettes were damaged or lost.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management">Batch Management</a>: create the batch and scan the items in.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The list is empty but cassettes are on the bench</td>
+<td>They are already in an open batch, or their blocks are placeholders, or this computer's station is set to another facility.</td>
+</tr>
+<tr>
+<td>The Pending Load tile is missing</td>
+<td>Your role does not include Batch Management.</td>
+</tr>
+<tr>
+<td>An item stays on the list after you scanned it</td>
+<td>The page has not been refreshed, or the scan was refused (for example it is in another open batch).</td>
+</tr>
+<tr>
+<td>Items from other facilities appear</td>
+<td>No scan station is set on this computer.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Select <strong>Refresh</strong>.</li>
+<li>Check the scope line under the title.</li>
+<li>Search for the case number and look at its items.</li>
+<li>Open the batch and check its manifest.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a printed item never appears, or an item you have scanned into a batch stays listed after a refresh. Have the item identifier, the case number and the time ready.</p>

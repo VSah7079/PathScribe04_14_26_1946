@@ -186,13 +186,13 @@ export interface ApplyBillingCorrectionInput {
 
 /** Applies a billing correction (see the header). */
 export async function applyBillingCorrection(input: ApplyBillingCorrectionInput): Promise<{ ok: true; data: BillingCorrectionResult } | { ok: false; error: BillingCorrectionRefusal }> {
-  const [{ authorizationService }, { mockServiceChargeService }, { mockBillingDeficiencyService }, { mockBillingRuleService }, { caseRouter }, { mockAuditService }, { getSessionUser }, { resolveRequireBillingApprovalForCase }] = await Promise.all([
+  const [{ authorizationService }, { serviceChargeService }, { billingDeficiencyService }, { billingRuleService }, { caseRouter }, { auditService }, { getSessionUser }, { resolveRequireBillingApprovalForCase }] = await Promise.all([
     import('../authorization/defaultAuthorizationService'),
-    import('./mockServiceChargeService'),
-    import('./mockBillingDeficiencyService'),
-    import('./mockBillingRuleService'),
+    import('./serviceChargeServiceInstance'),
+    import('./billingDeficiencyServiceInstance'),
+    import('./billingRuleServiceInstance'),
     import('../cases/CaseRouter'),
-    import('../auditlog/mockAuditService'),
+    import('../auditlog/auditServiceInstance'),
     import('../auth/caseAccessControl'),
     import('./shouldRequireBillingApproval'),
   ]);
@@ -205,9 +205,9 @@ export async function applyBillingCorrection(input: ApplyBillingCorrectionInput)
   const byName = me ? ([me.firstName, me.lastName].filter(Boolean).join(' ') || me.id) : 'unknown';
   const at = new Date().toISOString();
   const [chargesRes, caseRecord, rules] = await Promise.all([
-    mockServiceChargeService.getChargesForCase(input.caseId),
+    serviceChargeService.getChargesForCase(input.caseId),
     input.correction.kind === 'addMissing' ? caseRouter.getCase(input.caseId) : Promise.resolve(undefined),
-    input.correction.kind === 'addMissing' ? mockBillingRuleService.getAll() : Promise.resolve(undefined),
+    input.correction.kind === 'addMissing' ? billingRuleService.getAll() : Promise.resolve(undefined),
   ]);
   const plan = planBillingCorrection(input.correction, chargesRes.ok ? chargesRes.data : [], {
     caseRecord: (caseRecord as unknown as CaseForBilling) ?? null, ruleVersions: rules && rules.ok ? rules.data : [], by, at, reason,
@@ -220,7 +220,7 @@ export async function applyBillingCorrection(input: ApplyBillingCorrectionInput)
   const charge = plan.charge && needsApproval ? markAwaitingApproval(plan.charge, by, at) : plan.charge;
   for (const record of [credit, charge]) {
     if (!record) continue;
-    const saved = await mockServiceChargeService.saveCharge(record);
+    const saved = await serviceChargeService.saveCharge(record);
     if (!saved.ok) return { ok: false, error: 'SAVE_FAILED' };
   }
 
@@ -242,9 +242,9 @@ export async function applyBillingCorrection(input: ApplyBillingCorrectionInput)
 
   let deficiencyId = input.deficiencyId;
   if (deficiencyId) {
-    await mockBillingDeficiencyService.resolve(deficiencyId, { resolutionReasonCode: input.correction.kind === 'reverse' ? 'CHARGE_REVERSED' : 'CODE_CORRECTED', resolvedBy: by });
+    await billingDeficiencyService.resolve(deficiencyId, { resolutionReasonCode: input.correction.kind === 'reverse' ? 'CHARGE_REVERSED' : 'CODE_CORRECTED', resolvedBy: by });
   } else if (input.recordDeficiency ?? true) {
-    const raised = await mockBillingDeficiencyService.raise({
+    const raised = await billingDeficiencyService.raise({
       caseId: input.caseId,
       chargeRecordId: plan.original?.id ?? charge?.id,
       deficiencyType: 'POST_SIGNOUT_CORRECTION',
@@ -255,11 +255,11 @@ export async function applyBillingCorrection(input: ApplyBillingCorrectionInput)
     } as Omit<BillingDeficiencyRecord, 'id' | 'status' | 'createdAt' | 'resolvedAt' | 'resolvedBy' | 'resolutionReasonCode'>);
     if (raised.ok) {
       deficiencyId = raised.data.id;
-      await mockBillingDeficiencyService.resolve(raised.data.id, { resolutionReasonCode: input.correction.kind === 'reverse' ? 'CHARGE_REVERSED' : 'CODE_CORRECTED', resolvedBy: by });
+      await billingDeficiencyService.resolve(raised.data.id, { resolutionReasonCode: input.correction.kind === 'reverse' ? 'CHARGE_REVERSED' : 'CODE_CORRECTED', resolvedBy: by });
     }
   }
 
-  await mockAuditService.logEvent({
+  await auditService.logEvent({
     type: 'user',
     event: 'Billing correction',
     detail: describeBillingCorrection(input.correction, plan.original, charge)

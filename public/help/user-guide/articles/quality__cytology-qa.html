@@ -1,0 +1,202 @@
+<h1 id="top">Cytology QA</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Cytology QA gathers the quality and compliance reports for gynaecological cytology in one place: agreement between screeners and pathologists, workload limits, HPV testing, registry reporting, proficiency testing and backlog. Each report is a tile; choosing a tile shows that report below.</p>
+<p><strong>Intended users.</strong> Quality staff, laboratory managers and cytology supervisors.</p>
+<p><strong>Where it fits.</strong> Open <strong>Quality Assurance</strong> and choose the <strong>Cytology QA</strong> pillar. Day-to-day screening happens on the <a href="/help/cytology">Cytology Worklist</a> and the <a href="/help/cytology/screening-case">Screening Case</a> page; this screen reports on that work. See <a href="/help/quality">Quality &amp; Compliance</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/quality-cytology-qa-overview.png" alt="Cytology QA with the report tiles and one report open"><figcaption>Cytology QA with the report tiles and one report open</figcaption></figure>
+
+<p>The screen says "Loading Cytology QA data…" while a report opens. At the top is <strong>Scope:</strong> followed by the chosen scope and a scope switcher; hover over a tile to see "View:" and its name.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p>The tiles are: 10% Random Rescreening, High-Risk Rescreening, CT vs. Path Correlation, Peer Review Correlation, Primary vs Final Diagnosis, CT Statistical Comparison, ASC-US / HPV Reflex, Workload Tracking, Registry Transmission, Secondary Screening Audit, 5-Year Retrospective Lookback, Histology Correlation, Unscreened Backlog, UK HPV Failsafe, EU Compliance, HPV Positivity, Molecular QC Failure, Molecular Lot Trend and APAC Proficiency Testing.</p>
+<p><strong>Agreement reports</strong> (random and high-risk rescreening, CT vs. Path, Peer Review, Primary vs Final). Each opens with a card:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overall Agreement</td>
+<td>Share of compared cases with the same result.</td>
+</tr>
+<tr>
+<td>Major Concordance</td>
+<td>Share with no major difference.</td>
+</tr>
+<tr>
+<td>Cases Compared</td>
+<td>How many cases were compared.</td>
+</tr>
+<tr>
+<td>Exact, Minor Discrepancy, Major Discrepancy</td>
+<td>The counts of each level.</td>
+</tr>
+<tr>
+<td>False Negative, False Positive</td>
+<td>Major differences where the first read missed or over-called.</td>
+</tr>
+<tr>
+<td>Adequacy Discrepancy</td>
+<td>Cases where the two readers disagreed on adequacy.</td>
+</tr>
+<tr>
+<td>Diagnostic Upgrade, Diagnostic Downgrade</td>
+<td>Cases where the second read raised or lowered the category.</td>
+</tr>
+</tbody>
+</table>
+<p>A table lists each case: Case, <strong>Initial Screen</strong> and <strong>Follow-Up Review</strong> (with reader), Result, and Adequacy (<strong>Discrepant</strong> or a dash). With nothing to show it says "No comparisons on file for this report yet."</p>
+<p><strong>CT Statistical Comparison.</strong> One row per cytotechnologist: <strong>Total Screened</strong>, the share of Unsat, NILM, ASC-US, ASC-H, LSIL and HSIL+, the ASC-US:LSIL ratio, the <strong>Lab Avg</strong> ratio and Variance. An <strong>Outlier</strong> badge marks someone whose ratio differs from the laboratory average. Empty: "No reviews on file for this scope yet."</p>
+<p><strong>ASC-US / HPV Reflex.</strong> Per cytotechnologist: <strong>Total ASC-US</strong>, <strong>Reflex HPV Ordered</strong>, <strong>Reflex Order Rate</strong>, <strong>HPV+ Count</strong>, ASC-US HPV+ % and a status: Normal, Over-Calling, Under-Calling or Insufficient Data. Empty: "No calls on file for this scope yet."</p>
+<p><strong>Workload Tracking.</strong> One row per screener per day: <strong>Shift Date</strong>, <strong>Hours Screened</strong> (marked signed off, not signed off, or signed off before more was recorded), Recorded hours, <strong>Manual Slides</strong>, <strong>Imager Slides</strong>, <strong>Total Equiv. Slides</strong>, <strong>Max Allowed</strong> and <strong>Exceedance</strong> (an Exceeded badge). A <strong>Correction flagged</strong> badge and the reason appear when the screener corrected their hours. Empty: "No ledger entries on file for this scope yet."</p>
+<p><strong>Registry Transmission.</strong> Choose the <strong>Registry</strong> (Australia, South Korea, England, Ireland, Netherlands or Northern Ireland). The table shows Accession, MRN, HPV Result, Cytology Result, Transmitted, Status (Queued, Sent or Failed), Error, Sent, Registry status (such as Accepted, Awaiting answer, No answer in 72 h, Rejected, fixable) and Response code.</p>
+<p><strong>Secondary Screening Audit.</strong> Case, Trigger, Outcome (Concordant or Discordant), <strong>Added-By Event</strong>, <strong>Missed-By Event</strong> and Reviewer. Empty: "No events on file for this scope yet."</p>
+<p><strong>5-Year Retrospective Lookback.</strong> A card shows <strong>Total Flagged</strong>, Pending, Completed and <strong>Corrective Action Rate</strong>. The table lists Case, Accession, Triggered, Status, Outcome (Confirmed Negative, Interpretation Error, Sampling Error or Screening Error), Corrective Action and Reviewed By. Empty: "No specimens flagged for this scope yet."</p>
+<p><strong>Histology Correlation.</strong> A line reports how many <strong>cases correlated</strong>, how many were concordant, the <strong>correlation rate</strong> and the <strong>PPV for HSIL+</strong>. The table has Patient MRN, <strong>Cyto Accession</strong>, <strong>Cyto Date</strong>, <strong>Cyto Diagnosis</strong>, <strong>Hist Accession</strong>, <strong>Hist Date</strong>, <strong>Hist Diagnosis</strong>, <strong>Days to Biopsy</strong> and <strong>Correlation Category</strong> (Concordant, Minor Discrepancy, Major Discrepancy or Discordant (Unspecified)).</p>
+<p><strong>Unscreened Backlog.</strong> Case, Accession, Collected, Received, Status (<strong>Unscreened</strong> or <strong>Pending Path Review</strong>), <strong>Elapsed Hours</strong> and <strong>TAT Exceeded</strong>. Empty: "No backlog on file for this scope yet."</p>
+<p><strong>UK HPV Failsafe.</strong> Per jurisdiction: <strong>HPV Primary Positives</strong>, <strong>Cytology Triage Performed</strong>, <strong>Inadequate Cytology Rate</strong>, <strong>Colposcopy referrals</strong> and <strong>No response after 28 days</strong>.</p>
+<p><strong>EU Compliance.</strong> Per country: <strong>Total Cases</strong>, <strong>HPV Primary</strong>, HPV Co-Test, <strong>Internal Audit Non-Conformities</strong>, <strong>National registry ID</strong>, ThinPrep, <strong>SurePath</strong> and interval adherence.</p>
+<p><strong>HPV Positivity.</strong> Per <strong>Testing Site</strong>: indication, assay, <strong>Total Tested</strong>, HR-HPV+ %, HPV16 %, HPV18/45 %, <strong>Other HR %</strong> and <strong>Variance vs. Mean</strong>, in percentage points against the average of all sites.</p>
+<p><strong>Molecular QC Failure.</strong> Run date, instrument, reagent lot, samples run, <strong>Invalid Controls</strong>, <strong>Inhibitors</strong>, <strong>Failure Rate</strong> and threshold, with an Exceeded badge when the rate is above the limit.</p>
+<p><strong>Molecular Lot Trend.</strong> For each reagent change: instrument, <strong>Old Lot</strong>, <strong>New Lot</strong>, <strong>Control Level</strong>, <strong>Mean Ct (Old)</strong>, <strong>Mean Ct (New)</strong>, the shift, and Pass or Fail.</p>
+<p><strong>APAC Proficiency Testing.</strong> A summary line counts satisfactory events. The table has Received, Accession, Provider, <strong>Challenge</strong>, Outcome (Satisfactory or Unsatisfactory), <strong>Score Detail</strong> and Deficiency, with a Flagged badge for a provider with repeated deficiencies. Empty: "No grades on file for this scope yet." Above the table is the <strong>Proficiency test panel</strong> card (see below).</p>
+<p>Where a report has no rows for a scope, other tables say "No data on file for this scope yet."</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope switcher</td>
+<td>Chooses the facility or organisation the reports cover.</td>
+</tr>
+<tr>
+<td>Report tiles</td>
+<td>Select a tile to show that report.</td>
+</tr>
+<tr>
+<td>Download</td>
+<td>On Histology Correlation and Registry Transmission. Saves the table as a spreadsheet file. Your role must allow it.</td>
+</tr>
+<tr>
+<td>Print</td>
+<td>On Histology Correlation. Opens a printable page headed with the scope and the date generated.</td>
+</tr>
+<tr>
+<td>Submit panel</td>
+<td>In the Proficiency test panel. Records your answers.</td>
+</tr>
+<tr>
+<td>Apply simulated result</td>
+<td>Beside a submitted panel. Grades it against a built-in key for demonstration.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outlier, Exceeded, Fail, Flagged</td>
+<td>Red badges: a figure outside its limit.</td>
+</tr>
+<tr>
+<td>Pass, Satisfactory, Concordant</td>
+<td>Green badges.</td>
+</tr>
+<tr>
+<td>Simulated</td>
+<td>The result came from the demonstration key, not from a provider.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Quality Assurance</strong>, choose <strong>Cytology QA</strong>.</li>
+<li>Set the scope, then select a report tile.</li>
+<li>Read the card or table. Select <strong>Download</strong> or <strong>Print</strong> where offered.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Record a proficiency test. Select <strong>APAC Proficiency Testing</strong>. In <strong>Proficiency test panel</strong> type the <strong>Provider</strong> and the <strong>Event reference</strong>. For each challenge slide set the slide ID and choose <strong>Your response</strong> (Negative, LSIL, HSIL, Carcinoma or Unsatisfactory). Select <strong>Submit panel</strong>. "Panel submitted." appears.</li>
+<li>To see a graded example, select <strong>Apply simulated result</strong> on the submitted row.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If the panel will not submit it names what is missing: the provider, the event reference, at least one challenge slide, or a response for every slide.</li>
+<li>A registry other than yours shows no rows; choose the right <strong>Registry</strong>.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If a report stays on the loading message, refresh the page.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Reading simulated proficiency results as provider grades. They are not counted in the rates.</li>
+<li>Comparing screeners with very few cases.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Leave the scope on the whole enterprise and change tiles only.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review Workload Tracking and Unscreened Backlog daily, the agreement reports monthly.</li>
+</ul>
+<h2 id="known-limits">Known limits</h2>
+<ul>
+<li>Proficiency test grading here is a demonstration. A real provider's grade is meant to arrive through an interface; until then Apply simulated result is marked Simulated.</li>
+<li>The Workload Tracking table shows the screener's user number rather than a name under Cytotechnologist.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/cytology">Cytology Worklist</a> and <a href="/help/cytology/screening-case">Screening Case</a>: where the results are produced.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/quality">Quality &amp; Compliance</a>: deficiencies raised from these findings.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A report is empty</td>
+<td>Nothing recorded for the chosen scope.</td>
+</tr>
+<tr>
+<td>Download is greyed out</td>
+<td>Your role does not allow the export, or there are no rows.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Widen the scope.</li>
+<li>Refresh the page.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a figure disagrees with the cases. Have the report name and scope ready.</p>

@@ -1,3 +1,5 @@
+**Batch 649:** `reportDocuments.test.ts` was edited in this batch; no code in this folder changed. (The PDF SHA-256 it computes is the one a signature record now links to; see `services/signatures/README.md`.)
+
 # services/reportDocuments/
 
 Batch 538 (Pete, Oct 12, 2026: the server makes every PDF that leaves PathScribe, and the browser only shows previews, "as long as the preview matches exactly what gets sent out").

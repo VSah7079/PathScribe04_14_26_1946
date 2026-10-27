@@ -267,3 +267,11 @@ The mismatch check is explained for customers and staff in `docs/product/CLINICA
 ## Batch 617 (part A): server versions (PS-514)
 
 `criticalResultNotificationService`, `criticalAlertReferenceTokenService`, `clinicalMismatchRuleService`, `criticalAlertDispatchService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`, `CRITICAL_RESULTS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 651: rule-based fallback and instruction version
+`evaluateClinicalMismatch` (`clinicalMismatchRules.ts`) shows a rule-based suggestion (confidence 50) regardless of the AI display threshold (60), always low risk, never holding sign-out; the AI threshold is unchanged. `instructionVersion` is now on `ClinicalMismatchDecisionInput`, the QA record's `fieldValues` and the audit detail. Test: `mismatchFallbackAndVersion.test.ts`. See `docs/product/CLINICAL_MISMATCH_CHECK.md`.
+
+**Batch 655:** `applyConfidenceFloor` sets aside 'Abnormal' critical-finding flags under confidence 50 (returned as `belowFloor`); 'Critical' and 'Malignant' are never dropped for low confidence.
+
+## Batch 669 (finding access-12)
+`openCriticalAlertReference.ts`: resolves a reference link, records the view first and returns the updated record, so "Viewed n times" on `pages/CriticalAlertReferencePage/` includes the current view (it was read before recording, one behind). An invalid link records nothing.

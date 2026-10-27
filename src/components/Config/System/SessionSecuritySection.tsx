@@ -31,6 +31,7 @@ import '../../../pathscribe.css';
 
 import BiometricPolicyCard from './BiometricPolicyCard';
 import MfaPolicyCard from './MfaPolicyCard';
+import SignOutPolicyCard from './SignOutPolicyCard';
 import { sessionTimeoutService } from '@/services';
 
 const PRESET_MINUTES = [5, 10, 15, 20, 30, 60];
@@ -95,6 +96,9 @@ const SessionSecuritySection: React.FC = () => {
 
       {/* Batch 611 (#157): the second-factor policy and enrolments. */}
       <MfaPolicyCard />
+
+      {/* Batch 642: how a person proves who they are when signing a case out. */}
+      <SignOutPolicyCard />
     </div>
   );
 };

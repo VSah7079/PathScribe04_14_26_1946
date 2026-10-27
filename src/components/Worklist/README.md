@@ -1,3 +1,7 @@
+**Batch 650:** `PoolClaimModal` answers Accept case / Pass case (voice and keys) once the window is ready and the button is not greyed, takes the registry's SYNOPTIC context while open and hands the host's back (`restoreVoiceContext`). Test: `PoolClaimModal.voice.test.tsx`.
+
+**Batch 649:** `PoolClaimModal.tsx`: Claim and Pass are greyed without `case:pool:claim` / `case:pool:pass` and say why; `services/cases/poolCaseActions.ts` checks again.
+
 # components/Worklist/
 
 The case worklist table and its pool-claim workflow.
@@ -379,3 +383,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 610 (#164)
 
 `WorklistTable` takes an optional `slaBreaches` map (case id to `firstTouch` or `total`) and shows an "SLA" badge in both the card and table views for an open case past its client's target. `WorklistPage` builds the map with `loadOpenSlaBreaches`.
+
+## Batch 624
+
+The digital readiness and AI cells (and the slide drawer) show PathScribe's own wording through `t()`; scanner and AI vendor wording is shown as received. The flag chip shows a shipped flag's name in the user's language (`services/flags/shippedFlagNames.ts`). `WorklistTable.tsx` is 2 lines shorter (baseline lowered).

@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
 import { EnhancementRequestButton } from '../EnhancementRequest/EnhancementRequestButton';
 import { VoiceToggleButton } from '../Voice/VoiceToggleButton';
+import TopBarHelpButtons from '../Help/TopBarHelpButtons';
 import { NavBarScanStation } from './NavBarScanStation';
 import LanguageSwitcher from './LanguageSwitcher';
 import CaseSearchBar from '../Search/CaseSearchBar';
@@ -431,6 +432,9 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
           <div onMouseDown={e => e.preventDefault()}>
             <VoiceToggleButton />
           </div>
+
+          {/* Help (Batch 668): the User Guide page for this screen, and the Administrator Guide section where there is one */}
+          <TopBarHelpButtons />
 
           {/* Messages */}
           <button type="button" className="ps-nav-btn nb-messages-btn" onMouseDown={e => e.preventDefault()}

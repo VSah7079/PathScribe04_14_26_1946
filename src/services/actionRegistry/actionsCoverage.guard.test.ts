@@ -39,8 +39,8 @@ describe('actions list accounting', () => {
   it('every voice or shortcut action has a roles-list entry', () => {
     expect(actions.filter(a => !mappedKeys.has(a.internalKey)).map(a => a.id)).toEqual([]);
   });
-  it('every voice and shortcut action has a shortcut and voice phrases in all five languages', () => {
-    const langs = ['fr', 'de', 'nl', 'ko'] as const;
+  it('every voice and shortcut action has a shortcut and voice phrases in all six languages', () => {
+    const langs = ['fr', 'de', 'nl', 'ko', 'es'] as const;
     const bad = actions.filter(a => !a.shortcut || !a.voiceTriggers?.length || langs.some(l => !a.voiceTriggersByLanguage?.[l]?.length));
     expect(bad.map(a => a.id)).toEqual([]);
   });
@@ -112,7 +112,6 @@ describe('actions list accounting', () => {
   'Alt+L: SYSTEM_LOGOUT / SEARCH_LOAD_SAVED',
   'Alt+N: NEXT_CASE / ADD_ORDERS_SPECIMEN',
   'Alt+N: NEXT_CASE / ADD_SPECIMEN',
-  'Alt+P: PREVIOUS_CASE / PRINT_CURRENT_CASSETTE',
   'Alt+P: PREVIOUS_CASE / TABLE_SORT_PRIORITY',
   'Alt+R: OPEN_ROUTING_RULES / MSG_RECIPIENT_ADD',
   'Alt+R: OPEN_ROUTING_RULES / SAVE_DRAFT',
@@ -121,8 +120,6 @@ describe('actions list accounting', () => {
   'Alt+Shift+T: TEST_ROUTING / GROSSING_CONFIRM_TRIAGE',
   'Alt+U: OPEN_AUDIT / DISCARD_CHANGES',
   'Alt+U: OPEN_AUDIT / MSG_MARK_UNREAD',
-  'Alt+V: VIEW_HELP / FULL_VIEW',
-  'Alt+V: VIEW_HELP / MSG_VIEW_DELETED',
 ];
   const KNOWN_SCREEN_VOICE_SHADOWS: readonly string[] = [
   'de "nachrichten anzeigen": OPEN_MESSAGES / MSG_VIEW_MESSAGES',
@@ -134,6 +131,7 @@ describe('actions list accounting', () => {
   'en "go back": GO_BACK / PREVIOUS_FIELD',
   'en "go forward": GO_FORWARD / NEXT_FIELD',
   'en "search": OPEN_SEARCH / MSG_SEARCH',
+  'es "buscar": OPEN_SEARCH / MSG_SEARCH',
   'fr "avancer": GO_FORWARD / NEXT_FIELD',
   'fr "page précédente": GO_BACK / TABLE_PAGE_UP',
   'fr "page suivante": GO_FORWARD / TABLE_PAGE_DOWN',
@@ -164,7 +162,7 @@ describe('actions list accounting', () => {
 
   // Batch 602: voice follows the same rule as hotkeys. A phrase shared between a screen command and an always-on
   // one goes to the screen; the same phrase on two commands that cannot be told apart is a defect.
-  const LANGS = ['en', 'fr', 'de', 'nl', 'ko'] as const;
+  const LANGS = ['en', 'fr', 'de', 'nl', 'ko', 'es'] as const;
   function sharedPhrases(): { lang: string; phrase: string; a: (typeof actions)[number]; b: (typeof actions)[number] }[] {
     const out: { lang: string; phrase: string; a: (typeof actions)[number]; b: (typeof actions)[number] }[] = [];
     for (const lang of LANGS) {
@@ -201,5 +199,13 @@ describe('actions list accounting', () => {
     const [moved, kept] = migrateShortcuts([{ ...base, shortcut: 'Alt+C' }, { ...base, shortcut: 'Ctrl+Shift+R' }]);
     expect(moved.shortcut).toBe('Alt+Q');
     expect(kept.shortcut).toBe('Ctrl+Shift+R');
+  });
+  it('Batch 639: Print Current Cassette is Alt+Shift+O (Alt+P stays Previous Case); an old default moves, a customised key stays', () => {
+    const base = actions.find(a => a.id === 'PRINT_CURRENT_CASSETTE')!;
+    expect(base.shortcut).toBe('Alt+Shift+O');
+    expect(actions.filter(a => a.shortcut === 'Alt+Shift+O').map(a => a.id)).toEqual(['PRINT_CURRENT_CASSETTE']);
+    const [moved, kept] = migrateShortcuts([{ ...base, shortcut: 'Alt+P' }, { ...base, shortcut: 'Ctrl+Shift+K' }]);
+    expect(moved.shortcut).toBe('Alt+Shift+O');
+    expect(kept.shortcut).toBe('Ctrl+Shift+K');
   });
 });

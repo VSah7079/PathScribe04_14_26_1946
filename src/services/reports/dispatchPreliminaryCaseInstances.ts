@@ -28,7 +28,7 @@ import { caseRouter } from '../cases/CaseRouter';
 import { prepareOruR01Dispatch } from './prepareOruR01Dispatch';
 import { resultInstanceIds } from './resultInstances';
 import type { GenerateReportPdf } from './resolveOruReportPdf';
-import { mockOutboundResultQueueService } from './mockOutboundResultQueueService';
+import { outboundResultQueueService } from './reportServicesInstance';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 
 export async function dispatchPreliminaryCaseInstances(
@@ -48,7 +48,7 @@ export async function dispatchPreliminaryCaseInstances(
     const prepared = await prepareOruR01Dispatch(caseId, instance.instanceId, 'PRELIMINARY', { generatePdf });
     if (prepared.ok === false && prepared.reason === 'not_found') continue;
 
-    const enqueueRes = await mockOutboundResultQueueService.enqueue({
+    const enqueueRes = await outboundResultQueueService.enqueue({
       caseId,
       instanceId: instance.instanceId,
       resultState: 'PRELIMINARY',
@@ -60,7 +60,7 @@ export async function dispatchPreliminaryCaseInstances(
     if (!enqueueRes.ok) continue;
     dispatchedCount++; // queued, whether sent now or held for retry
     if (prepared.ok === false) {
-      await mockOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+      await outboundResultQueueService.markFailed(enqueueRes.data.id, {
         errorCode: 'DISPATCH_REJECTED', errorMessage: prepared.error, maxRetriesExceeded: false,
       });
       continue;

@@ -8,6 +8,9 @@
 //     (consultTokenCrypto.ts); the link carries it after `#`, out of server
 //     logs; the consultant sees only the link's scope (consultLinkRules.ts);
 //     issuing, revoking and the cross-case list each need a capability;
+//     Batch 669: the consultant sees a masked patient (initials, birth year)
+//     unless the issuer ticked the audited opt-in, which needs its own
+//     capability (case:consult-link:reveal-identity);
 //     creation, every view, every refusal, expiry and revocation are audited.
 //   - Not yet: a server that checks the token. This mock keeps the links in
 //     the issuing browser, so a link opens only where it was issued (a
@@ -17,6 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { ServiceResult, ID } from '../types';
+import { consultLinkLifetime } from './consultLinkLifetime';
 
 export interface ConsultTokenScope {
   caseId: string;
@@ -56,13 +60,20 @@ export interface ConsultToken {
   consultantIdentifier: string;
   consultantOrganization?: string;
   note?: string;
+  /** Batch 669 (access-11): the issuer opted in to showing the consultant the patient's full name and
+   *  date of birth (needs case:consult-link:reveal-identity). Absent or false: the page shows a masked identity. */
+  revealIdentity?: boolean;
   lastAccessedAt?: string;
   accessCount: number;
+  /** Batch 669 (consultLinkLifetime.ts): when a Signed opinion was accepted on this link. A Draft never sets it. */
+  signedAt?: string;
+  /** Batch 669: opens counted since the signature (the Signed submit itself is not one). */
+  viewsAfterSignature?: number;
 }
 
 export type NewConsultToken = Pick<
   ConsultToken,
-  'scope' | 'issuedByUserId' | 'issuedByName' | 'consultantIdentifier' | 'consultantOrganization' | 'note'
+  'scope' | 'issuedByUserId' | 'issuedByName' | 'consultantIdentifier' | 'consultantOrganization' | 'note' | 'revealIdentity'
 > & {
   /** Caller-supplied override of the default 24h/72h-weekend lifespan —
    *  see computeDefaultConsultTokenExpiry.ts. Optional; issue() applies
@@ -128,6 +139,10 @@ export interface IConsultTokenService {
    *  they may see (consultLinkRules.buildConsultCaseView) and records the
    *  view, once per call. Any failure is the one CONSULT_LINK_INVALID. */
   openConsult(token: string): Promise<ServiceResult<import('./consultLinkRules').ConsultCaseView>>;
+  /** Batch 669 (access-11): someone with case:consult-link:reveal-identity but not :issue reviews the
+   *  unmasked patient demographics a link's consultant would see. Audited as a reveal. Needs the capability;
+   *  refusals CONSULT_REVEAL_NOT_PERMITTED, NOT_FOUND. */
+  previewIdentity(linkId: ID): Promise<ServiceResult<import('./consultIdentityMask').ConsultPatientView>>;
   /** Batch 522: the consultant sends an opinion. The token is checked again,
    *  so a link revoked or expired meanwhile takes nothing. Refusals:
    *  CONSULT_LINK_INVALID, OPINION_REQUIRED, OPINION_ALREADY_SIGNED. */
@@ -140,9 +155,10 @@ export interface IConsultTokenService {
   assessOpinion(id: ID, input: { assessment: import('./outsideConsultRules').OutsideConsultAssessment; note?: string }): Promise<ServiceResult<ConsultOpinion>>;
 }
 
-export function resolveConsultTokenStatus(t: Pick<ConsultToken, 'isActive' | 'expiresAt'>): ConsultTokenStatus {
+/** Batch 669: a link whose post-signature window or views are used up reads as Expired (consultLinkLifetime.ts). */
+export function resolveConsultTokenStatus(t: Pick<ConsultToken, 'isActive' | 'expiresAt' | 'signedAt' | 'viewsAfterSignature'>): ConsultTokenStatus {
   if (!t.isActive) return 'Revoked';
-  if (new Date(t.expiresAt).getTime() <= Date.now()) return 'Expired';
+  if (consultLinkLifetime(t).state !== 'open') return 'Expired';
   return 'Active';
 }
 
@@ -153,5 +169,7 @@ export const CONSULT_LINK_NOT_PERMITTED = 'CONSULT_LINK_NOT_PERMITTED';
 /** Batch 522: the service's refusal codes; screens translate them. */
 export const CONSULT_LINK_INVALID = 'CONSULT_LINK_INVALID';
 export const CONSULT_LINK_NOT_ACTIVE = 'CONSULT_LINK_NOT_ACTIVE';
+/** Batch 669: the issuer asked to show the full identity without case:consult-link:reveal-identity. No link is created. */
+export const CONSULT_REVEAL_NOT_PERMITTED = 'CONSULT_REVEAL_NOT_PERMITTED';
 export const CONSULT_CASE_REQUIRED = 'CONSULT_CASE_REQUIRED';
 export const CONSULTANT_REQUIRED = 'CONSULTANT_REQUIRED';

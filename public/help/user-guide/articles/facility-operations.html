@@ -1,0 +1,363 @@
+<h1 id="top">Facility Operations Display</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Facility Operations display is a wall screen for a laboratory bench or room. It shows, in large high-contrast type, what is waiting and what is late in one department: Grossing and Intake, Embedding and Microtomy, Staining and IHC, Send-Out and Reference Laboratory, or Diagnostic Sign-Out and Scanner. A display can rotate through several of these views by itself.</p>
+<p><strong>Intended users.</strong> Everyone who works in or walks past the area. The screen is read-only for the people watching. It has nothing to click once it is running. An administrator sets it up once.</p>
+<p><strong>Where it fits.</strong> The numbers come from the same batches, cases and scan runs that staff work in <a href="/help/batch-management">Batch Management</a>, the Pathology Workspace and the other bench screens. Nothing is entered here. The display does not use anyone's sign-in, so it carries no patient names or MRNs: only batch barcodes, accession numbers and counts.</p>
+<div class="admonition note">
+<p class="admonition-title">What the display needs</p>
+<p>A display is bound to a <strong>Display Profile</strong> (which facility, which views, how fast they rotate) and needs a <strong>Display Token</strong> that an administrator issued for it. Without them it cannot start. Display Profiles and tokens are set up in Configuration, System, Display Profiles (see the Administrator Guide). The administrator's page has an <strong>Open Facility Ops Dashboard</strong> button; a bench screen can also simply be pointed at the page address.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>In the demonstration build the figures come from the demonstration batches, cases, referrals and scan runs held in the browser. The "Offline / Stale Data" badge reports on the screen's own refresh, not on any real instrument. The check on the Display Token is made in the browser; the server-side check (refusing a revoked token on the server) is planned and not built.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/facility-operations-overview.png" alt="A Facility Operations display showing the Staining and IHC view with stat tiles, alerts and the batch queue"><figcaption>A Facility Operations display showing the Staining and IHC view with stat tiles, alerts and the batch queue</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>First start (setup).</strong> The first time a display opens, it shows <strong>Bind This Display</strong> with the line "Select the Display Profile this wall unit should show." and a list headed "— select display profile —". After you choose one, <strong>Enter Display Token</strong> asks for the token ("Enter the Display Token an administrator issued for "<name>" to start this display.") with <strong>Back</strong> and <strong>Confirm</strong>. If no profile has been set up the screen says "No display profiles are configured yet. Add one under Config → System → Display Profiles."</p>
+<p>If the token is wrong, expired or revoked, the display says so ("That Display Token is not valid for this display. Check it and try again.", "This display's token has expired. Ask an administrator to issue a new one.", "This display's token has been revoked. Ask an administrator to issue a new one.", or "No Display Token has been issued for this display. Ask an administrator."). A display that loses its token goes blank with <strong>Display unavailable</strong> and a button <strong>Enter a new token</strong>. The display checks its token again about every minute while it is running, so a revoked token blanks the screen within a minute.</p>
+<p><strong>Header.</strong> The profile name, the title of the view being shown, the facility name, a live clock, a status note and, when the profile has more than one view, a row of dots marking which view is on screen.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Profile name (small, top)</td>
+<td>The display profile this unit is bound to.</td>
+</tr>
+<tr>
+<td>View title</td>
+<td>One of the five views.</td>
+</tr>
+<tr>
+<td>Clock</td>
+<td>The time on this unit, in your language's format.</td>
+</tr>
+<tr>
+<td>"Updated hh:mm:ss"</td>
+<td>When the figures last refreshed successfully.</td>
+</tr>
+<tr>
+<td><strong>Offline / Stale Data</strong></td>
+<td>The last refresh failed or the data is older than expected (see "Icons and status indicators").</td>
+</tr>
+<tr>
+<td>Dots</td>
+<td>The views in the profile; the filled one is on screen.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Stat tiles.</strong> A row of large numbers. A tile turns amber (warning) or red (overdue) when its state says so.</p>
+<p><strong>Alerts.</strong> Rows under the tiles, each with a short kind label, a title and a detail. Critical alerts and warnings are styled differently.</p>
+<p><strong>Queue.</strong> The list of items in the department, oldest first. Each row shows a label and detail, a <strong>STAT</strong> tag for urgent items, and on the right either a countdown or an age ("2h 10m ago"). "Nothing in queue right now." shows when the list is empty. A countdown row is tinted amber when 30 minutes or fewer remain and red once overdue ("Overdue 1h 5m").</p>
+<h3 id="the-five-views-and-how-the-numbers-are-worked-out">The five views, and how the numbers are worked out</h3>
+<p>All views are filtered to the profile's facility. A batch belongs to a facility through its case's accession number or the workstation it was made on.</p>
+<p><strong>Grossing and Intake</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tile or list</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending Intake</td>
+<td>Specimens or materials in the pending load queue, awaiting intake. Red if any is STAT.</td>
+</tr>
+<tr>
+<td>STAT Pending</td>
+<td>Pending items whose case is STAT.</td>
+</tr>
+<tr>
+<td>Decal / Special Processing</td>
+<td>Active batches at the decalcification or special processing step.</td>
+</tr>
+<tr>
+<td>Processing Batches</td>
+<td>Active batches at the Processing step.</td>
+</tr>
+<tr>
+<td>Alerts</td>
+<td>One critical <strong>STAT</strong> alert per pending STAT specimen, and a critical <strong>Decal Overdue</strong> alert per overdue decalcification batch.</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>Active batches at decal, processing or checkout, oldest first. A decalcification batch with a target time counts down; others show their age.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Embedding and Microtomy</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Embedding Batches</td>
+<td>Active batches at the Embedding step.</td>
+</tr>
+<tr>
+<td>Microtomy Batches</td>
+<td>Active batches at the Microtomy / Sectioning step.</td>
+</tr>
+<tr>
+<td>STAT Batches</td>
+<td>Active batches marked STAT (red when any).</td>
+</tr>
+<tr>
+<td>Cassettes/Slides In Process</td>
+<td>Total items in those batches.</td>
+</tr>
+<tr>
+<td>Alerts and queue</td>
+<td>A critical <strong>STAT</strong> alert for each STAT batch; the queue lists the batches by age.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Staining and IHC</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Active Staining Batches / Cytology Staining Batches</td>
+<td>Active batches at those two steps.</td>
+</tr>
+<tr>
+<td>Slides In Staining</td>
+<td>Stains whose status is Staining.</td>
+</tr>
+<tr>
+<td>Ready for Review</td>
+<td>Stains whose status is Ready for Review.</td>
+</tr>
+<tr>
+<td>Recut Requested</td>
+<td>Stains with a recut requested (amber when any).</td>
+</tr>
+<tr>
+<td>QC Failed</td>
+<td>Stains whose QC failed (red when any).</td>
+</tr>
+<tr>
+<td>Alerts</td>
+<td>Critical <strong>QC Failed</strong> and warning <strong>Recut Requested</strong> alerts with the accession number, block and stain name; critical <strong>STAT</strong> alerts for STAT batches.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Send-Out and Reference Laboratory</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dispatched / In Transit / Delivered / Results Received</td>
+<td>Referral batches by tracked transit status. A batch with no tracking record is not counted in any of these.</td>
+</tr>
+<tr>
+<td>Cold-Chain Excursions</td>
+<td>Referral batches with a temperature excursion that nobody has acknowledged (red when any).</td>
+</tr>
+<tr>
+<td>Alerts</td>
+<td>Critical <strong>Cold-Chain Excursion</strong> (temperature and time) and <strong>STAT</strong> alerts.</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>Referral batches (any not aborted), showing destination, test requested and transit status.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Diagnostic Sign-Out and Scanner</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending / Scanning / Completed</td>
+<td>Slides in slide-scanner runs that are not yet unloaded, by scan status.</td>
+</tr>
+<tr>
+<td>Scan Failed</td>
+<td>Slides whose scan failed (red when any).</td>
+</tr>
+<tr>
+<td>Image QC Failed</td>
+<td>Completed slides whose image quality check failed (amber when any).</td>
+</tr>
+<tr>
+<td>Alerts</td>
+<td>Critical <strong>Scan Failed</strong> and warning <strong>Scan QC Failed</strong>, with the slide position and the reason.</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>Scanner runs, by time since loading.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<p>None. The running display has no buttons.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Amber tile or row</td>
+<td>Warning: for a countdown, 30 minutes or fewer remain.</td>
+</tr>
+<tr>
+<td>Red tile or row</td>
+<td>Overdue, failed or critical.</td>
+</tr>
+<tr>
+<td><strong>STAT</strong> tag</td>
+<td>An urgent item.</td>
+</tr>
+<tr>
+<td><strong>Offline / Stale Data</strong></td>
+<td>The last refresh failed, or no refresh has succeeded for more than two minutes while live updates are on (or about 40 seconds without them). Treat the figures on screen as out of date.</td>
+</tr>
+<tr>
+<td>"Updated hh:mm:ss"</td>
+<td>The figures are current.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Starting a display (for the person setting up the unit)</strong></p>
+<ol>
+<li>Make sure an administrator has created a Display Profile and issued a Display Token for it, and given you the token. The token is shown once, when issued.</li>
+<li>Open the page on the wall unit. It shows <strong>Bind This Display</strong>.</li>
+<li>Choose the profile from the list. The <strong>Enter Display Token</strong> screen opens.</li>
+<li>Type the token (it begins "psd_") and select <strong>Confirm</strong>. The display starts on the first view and refreshes by itself.</li>
+<li>Leave it running. The unit remembers its profile and token, so it comes back after a restart.</li>
+</ol>
+<p><strong>Reading the display</strong></p>
+<ol>
+<li>Look at the view title and the stat tiles first. Red tiles need action.</li>
+<li>Read the alerts, then the queue from the top, which is the oldest item.</li>
+<li>If the display has several views, wait for the next one: the dots show how many there are. With one view it stays on that view.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Run one display per department with a single-view profile, so the numbers stay on screen at all times.</li>
+<li>Run a shared display with several views. Each view shows for the rotation time set in the profile (20 seconds if none is set; never faster than 5 seconds).</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The display shows Offline / Stale Data.</strong> Check the network on the unit. The screen keeps trying and clears the badge once a refresh succeeds. Until then, check the bench screens, not the wall.</li>
+<li><strong>The display went blank with "Display unavailable".</strong> The token was revoked, has expired, or is no longer valid. Select <strong>Enter a new token</strong> and type the new token an administrator issues.</li>
+<li><strong>An item you expect is missing.</strong> The view lists only items for the profile's facility, in the steps that view covers. A batch belongs to another step, or its case belongs to another facility.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"That Display Token is not valid for this display. Check it and try again." Re-type the token carefully. It was shown only once; if you lost it, ask the administrator to issue a new one (which stops the old one at once).</li>
+<li>If you chose the wrong profile, select <strong>Back</strong> on the token screen and choose another.</li>
+<li>If the display shows the wrong facility or views, ask an administrator to change the Display Profile. The display does not offer a way to change it from the wall.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Treat the wall as out of date when the stale badge shows</p>
+<p>The display is a convenience, not the system of record. A STAT specimen or a cold-chain excursion that is not on the wall may still exist. When "Offline / Stale Data" is showing, check the working screens.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Reading the Send-Out transit tiles as a total. A referral batch with no tracking record is in the queue but not in any tile.</li>
+<li>Assuming a quiet wall means nothing is wrong. Look for the stale badge first.</li>
+<li>Leaving a unit bound to the wrong profile after moving it to another room.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Put the screen where the department can see it without leaving the bench.</li>
+<li>Use a single-view profile for the busiest area and a rotating one for common areas.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Agree what a red tile means for your team (who acts and how fast), and use the display as the prompt.</li>
+<li>Review the display at shift handover.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management">Batch Management</a>: where batches are created and moved from step to step.</li>
+<li><a href="/help/batch-management/pending-load">Pending Load</a>: the queue behind the Pending Intake tile.</li>
+<li><a href="/help/batch-management/wsi-scan">WSI Scan</a>: the scanner runs behind the Diagnostic Sign-Out view.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/or-suite">OR Suite Display</a>: the other wall display, for frozen sections in the operating room.</li>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>: the bench screens that act on what the display shows.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No display profiles are configured yet."</td>
+<td>An administrator has not created one.</td>
+</tr>
+<tr>
+<td>Display blank with "Display unavailable"</td>
+<td>Token revoked, expired or never issued.</td>
+</tr>
+<tr>
+<td>Offline / Stale Data</td>
+<td>The unit cannot refresh.</td>
+</tr>
+<tr>
+<td>All tiles show 0</td>
+<td>No active items in the department for that facility, or the facility on the profile is wrong.</td>
+</tr>
+<tr>
+<td>The view does not rotate</td>
+<td>The profile has only one view.</td>
+</tr>
+<tr>
+<td>Tile labels are in English on a translated unit</td>
+<td>The stat tile labels and alert labels are fixed English text; the surrounding messages follow your language.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check the network on the unit and wait one refresh (about 20 seconds).</li>
+<li>Reload the page. The unit keeps its binding.</li>
+<li>Ask an administrator to check the profile's facility and views, and to issue a new token if needed.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a display stays on Offline / Stale Data after the network is confirmed, when a token is refused although an administrator has just issued it, or when the numbers on the wall disagree with the bench screens. Have the profile name, the view and the time ready.</p>

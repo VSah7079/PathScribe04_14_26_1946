@@ -1,6 +1,6 @@
 // Batch 408: the Batch Management list's and Batch Detail's decisions.
 import { describe, it, expect } from 'vitest';
-import { openBatches, closedBatches, openCountByNode, reconciliationGate } from './batchListView';
+import { openBatches, closedBatches, openCountByNode, reconciliationGate, reconciliationScanOutcome } from './batchListView';
 import type { Batch } from './IBatchService';
 
 const b = (id: string, status: Batch['status'], processingNode: Batch['processingNode']) => ({ id, status, processingNode });
@@ -28,5 +28,20 @@ describe('reconciliationGate', () => {
     expect(reconciliationGate({ ...base, coldChainExcursion: excursion })).toMatchObject({ canComplete: false, blocker: 'coldChainUnacknowledged', coldChainPending: true });
     expect(reconciliationGate({ ...base, coldChainExcursion: { ...(excursion as object), acknowledgedAt: 'y' } as never }).canComplete).toBe(true);
     expect(reconciliationGate({ ...base, status: 'active' }).canComplete).toBe(false);
+  });
+});
+
+describe('reconciliationScanOutcome (batch-1)', () => {
+  const it1 = (id: string, matched: boolean) => ({ id, displayId: `D-${id}`, reconciliationStatus: matched ? 'matched' : 'pending' }) as never;
+  const state = (items: unknown[], unexpected = 0) => ({ items: items as never[], unexpectedScans: Array.from({ length: unexpected }, () => ({})) as never[] });
+  it('a first scan of a pending item is Matched', () => {
+    expect(reconciliationScanOutcome(state([it1('a', false)]), state([it1('a', true)]))).toEqual({ outcome: 'matched', newlyMatchedDisplayId: 'D-a' });
+  });
+  it('a rescan of an already Matched item is neither Matched nor Unexpected', () => {
+    const s = state([it1('a', true)]);
+    expect(reconciliationScanOutcome(s, s)).toEqual({ outcome: 'already-matched', newlyMatchedDisplayId: null });
+  });
+  it('an item not on the manifest is Unexpected', () => {
+    expect(reconciliationScanOutcome(state([it1('a', true)]), state([it1('a', true)], 1)).outcome).toBe('unexpected');
   });
 });

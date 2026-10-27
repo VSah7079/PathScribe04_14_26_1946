@@ -24,6 +24,7 @@ import { VoiceProvider } from "./contexts/VoiceProvider";
 import { ScannerProvider } from "./contexts/ScannerProvider";
 import { MaterialScanTrackingBridge } from "./components/MaterialScanTrackingBridge";
 import { DefaultActionOnScanBridge } from "./components/DefaultActionOnScanBridge";
+import { LockboxNavigation } from "./components/Lockbox/LockboxNavigation";
 
 // PathScribe Agent print progress (Batch 346, PS-52)
 import { AgentPrintStatus } from "./components/Printing/AgentPrintStatus";
@@ -81,8 +82,10 @@ const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const RegistryExceptionsPage = lazy(() => import("./pages/RegistryExceptionsPage/RegistryExceptionsPage"));
 const AutopsyDashboardPage = lazy(() => import("./pages/AutopsyDashboardPage/AutopsyDashboardPage"));
 const OutboundQueuePage = lazy(() => import("./pages/OutboundQueuePage/OutboundQueuePage"));
+const LockboxDropOffPage = lazy(() => import("./pages/LockboxDropOffPage/LockboxDropOffPage"));
 // Batch 550 (PS-539 D7): the signed-in user's exports from the API server.
 const MyExportsPage = lazy(() => import("./pages/MyExportsPage"));
+const UserGuidePage = lazy(() => import("./pages/Help/UserGuidePage"));
 const ConfigurationPage = lazy(() => import("./pages/ConfigurationPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const ContributionDashboardPage = lazy(() =>
@@ -156,6 +159,7 @@ const SignedInApp: React.FC = () => (
         <DirtyStateProvider>
           <BreadcrumbProvider>
             <VoiceProvider>
+              <LockboxNavigation />{/* Batch 645: the Go to Lockbox Drop-Off command */}
               <Suspense fallback={<PageLoader />}>
                 <Routes>
 
@@ -203,7 +207,7 @@ const SignedInApp: React.FC = () => (
                           <Route path="/molecular-batch/:batchId" element={<ScreenGate screen="molecular"><MolecularPlateBuilderPage /></ScreenGate>} />
                           <Route path="/molecular-rack" element={<ScreenGate screen="molecular"><MolecularRackWorklistPage /></ScreenGate>} />
                           <Route path="/molecular-rack/:rackId" element={<ScreenGate screen="molecular"><MolecularRackLoadingPage /></ScreenGate>} />
-                          <Route path="/molecular-control-rules" element={<ScreenGate screen="molecular"><MolecularControlRulesPage /></ScreenGate>} />
+                          <Route path="/molecular-control-rules" element={<ScreenGate screen="molecularControlRules"><MolecularControlRulesPage /></ScreenGate>} />
                           {MockInterfaceEnginePage && <Route path="/dev/mock-interface-engine" element={<ScreenGate screen="configuration"><MockInterfaceEnginePage /></ScreenGate>} />}
                           <Route path="/quality-assurance" element={<ScreenGate screen="qualityAssurance"><QualityAssurancePage /></ScreenGate>} />
                           <Route path="/batch-management" element={<ScreenGate screen="batchManagement"><BatchManagementPage /></ScreenGate>} />
@@ -231,6 +235,8 @@ const SignedInApp: React.FC = () => (
                           <Route path="/registry-exceptions" element={<ScreenGate screen="registryExceptions"><RegistryExceptionsPage /></ScreenGate>} />
                           <Route path="/autopsy-dashboards" element={<ScreenGate screen="autopsyDashboards"><AutopsyDashboardPage /></ScreenGate>} />
                           <Route path="/outbound-queue" element={<ScreenGate screen="outboundQueue"><OutboundQueuePage /></ScreenGate>} />
+                          {/* Batch 645: the after-hours specimen kiosk and the Overnight folder (screen:lockbox-drop-off:open). */}
+                          <Route path="/lockbox-drop-off" element={<ScreenGate screen="lockboxDropOff"><LockboxDropOffPage /></ScreenGate>} />
                           <Route path="/my-exports" element={<MyExportsPage />} />
                           <Route
                             path="/configuration"
@@ -256,6 +262,8 @@ const SignedInApp: React.FC = () => (
 
                         {/* Clinical Routes — full-screen, AppShell mounted for drawer/messaging but NavBar hidden */}
                         <Route element={<ScannerProvider><MaterialScanTrackingBridge /><DefaultActionOnScanBridge /><AppShell hideNav /></ScannerProvider>}>
+                          {/* Batch 669b (Pete, Oct 24, 2026): the User Guide window shows only the guide and its own navigation, so it sits in the no-top-bar shell. */}
+                          <Route path="/help/*" element={<UserGuidePage />} />
                           <Route
                             path="/case/:caseId/synoptic"
                             element={<SynopticReportPage />}

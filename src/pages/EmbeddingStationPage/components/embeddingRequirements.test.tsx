@@ -83,13 +83,13 @@ describe('CassetteReprintModal', () => {
 describe('EmbeddingCenterPanel — Confirm', () => {
   const block = (over: Partial<HistologyBlock> = {}): HistologyBlock => ({ id: 'b1', label: '1', status: 'Grossed', pieceCount: 2, ...over } as HistologyBlock);
   const specimen = (b: HistologyBlock): Specimen => ({ id: 's1', label: 'A', blocks: [b] } as Specimen);
-  const panel = (b: HistologyBlock, over: Record<string, boolean> = {}, onConfirm = vi.fn()) => {
+  const panel = (b: HistologyBlock, over: Record<string, boolean> = {}, onConfirm = vi.fn(), onClear = vi.fn(), flaggerName?: string) => {
     render(
       <EmbeddingCenterPanel
         specimen={specimen(b)} block={b} alertBadges={[]} splitBlockGroupStatus={null}
-        onToggleAlertFlag={noop} onConfirmPieceCount={onConfirm} onFlagDiscrepancy={noop}
+        onToggleAlertFlag={noop} onConfirmPieceCount={onConfirm} onFlagDiscrepancy={noop} onClearDiscrepancy={onClear}
         onSetMoldAndOrientation={noop} onGroupSplitBlocks={noop} onOpenComments={noop}
-        requirements={reqs(over)}
+        requirements={reqs(over)} flaggerName={flaggerName}
       />,
     );
     return onConfirm;
@@ -142,5 +142,31 @@ describe('EmbeddingCenterPanel — Confirm', () => {
     expect(screen.getByText('embeddingStation.blockStatus.grossed')).not.toBeNull();
     expect(screen.getByText('embeddingStation.mold.size.megaMold')).not.toBeNull();
     expect(screen.getByText('embeddingStation.orientation.quickFill.onEdge')).not.toBeNull();
+  });
+
+  // Batch 669 (ws-10): a discrepancy flag stops Confirm until it is cleared, in one click, and names the person.
+  const flaggedBlock = () => block({ lastDiscrepancyReason: 'Extra Tissue Found', lastDiscrepancyReportedBy: 'u-17' });
+  it('a flagged discrepancy keeps Confirm off (button and voice) and says why', () => {
+    const onConfirm = panel(flaggedBlock());
+    expect(confirm().disabled).toBe(true);
+    say('EMBEDDING_CONFIRM_PIECE_COUNT');
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByText('embeddingStation.discrepancy.confirmBlocked')).not.toBeNull();
+  });
+  it('Clear flag is one click, with no confirmation in between', () => {
+    const onClear = vi.fn();
+    panel(flaggedBlock(), {}, vi.fn(), onClear);
+    fireEvent.click(button('embeddingStation.discrepancy.clear'));
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+  it('Last flagged shows the person\'s name, not the user id', () => {
+    panel(flaggedBlock(), {}, vi.fn(), vi.fn(), 'Ana Silva');
+    const text = document.querySelector('.ps-embedding-discrepancy-active')?.textContent ?? '';
+    expect(text).toContain('"by":"Ana Silva"');
+    expect(text).not.toContain('u-17');
+  });
+  it('an unflagged block shows no Clear flag button', () => {
+    panel(block());
+    expect(screen.queryByText('embeddingStation.discrepancy.clear')).toBeNull();
   });
 });

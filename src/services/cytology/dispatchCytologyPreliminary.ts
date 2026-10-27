@@ -11,7 +11,7 @@
 
 import type { Case } from '@/types/case/Case';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
+import { resolveCytologyDispatchOrganisation } from './resolveCytologyDispatchOrganisation';
 import { cytologyOutboundResultQueueService } from './cytologyOutboundResultQueueServiceInstance';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import type { CytologyPreliminaryOruR01Payload } from './buildCytologyPreliminaryOruR01Payload';
@@ -40,13 +40,12 @@ export async function dispatchCytologyPreliminary(caseId: string, releaseId: str
   if (!releaseId) return 0;
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return 0;
-  const patientId = caseData.patient?.id;
-  const patientRecord = patientId ? await mockPatientIndexService.getById(patientId) : null;
-  if (!patientRecord) return 0;
+  const organisationId = await resolveCytologyDispatchOrganisation(caseData, 'preliminary');
+  if (!organisationId) return 0;
   // Batch 538: the release's report document; recorded on the entry so a retry sends the same bytes.
   const doc = generatePdf ? await generatePdf().catch((e: unknown) => ({ generationError: e instanceof Error ? e.message : 'unknown error' }) as ReportPdf) : undefined;
   const enqueueRes = await cytologyOutboundResultQueueService.enqueue({
-    caseId, signOutRecordId: releaseId, resultState: 'PRELIMINARY', scope: 'preliminary', organisationId: (patientRecord as { organisationId: string }).organisationId,
+    caseId, signOutRecordId: releaseId, resultState: 'PRELIMINARY', scope: 'preliminary', organisationId,
     ...(doc?.documentId ? { reportDocumentId: doc.documentId, ...(doc.sha256 ? { pdfSha256: doc.sha256 } : {}) } : {}),
   });
   if (!enqueueRes.ok) return 0;

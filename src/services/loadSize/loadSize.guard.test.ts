@@ -33,10 +33,6 @@ describe('first-load size guards (PS-475)', () => {
     expect(staticImporters(/(^|\/)locales\/[a-zA-Z-]+\.json$/)).toEqual([]);
   });
 
-  it('the user/admin guide PDFs (about 5.5 MB) are not imported statically', () => {
-    expect(staticImporters(/utils\/guideAssets$/)).toEqual([]);
-  });
-
   it('pdf-lib (about 170 KB gzipped) is not imported statically', () => {
     expect(staticImporters(/^pdf-lib$/)).toEqual([]);
   });

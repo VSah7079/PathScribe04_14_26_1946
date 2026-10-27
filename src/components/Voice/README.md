@@ -105,3 +105,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 565 (WCAG 2.1 AA)
 
 - Contrast of colours set in code raised from the old greys; filter tiles say which is selected (`aria-pressed`) where this folder has them.
+
+## Batch 638
+
+`VoiceSettings.tsx` shows a note under the accent list when Belgian Dutch is chosen: it has not yet been tested by a Belgian speaker.

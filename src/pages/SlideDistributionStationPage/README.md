@@ -70,3 +70,11 @@ The page follows the organisation's Field Requirements (page "slideDistribution"
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 669 — saving (ws-8)
+
+Every change (checkout, scanner routing, exception flag/resolve, label-reprint reason) goes through `commit` in `hooks/useSlideDistributionStation.ts`, which saves with the shared `services/workstationSave/runCaseAction.ts` (via `hooks/useWorkstationSave.ts`): re-applied to the newest copy of the case on a version conflict (3 tries). A save that still fails shows "Not saved" (`saveError`, a `role="alert"` banner above the queue) and reloads the queued slides from the stored case, instead of leaving the change on screen as saved (it used to log to the console only). A replacement label is printed only after its reason was saved. Every other queued slide of the same case is refreshed after a save or a reload. Tests: `hooks/useSlideDistributionStation.test.tsx` (new).
+
+## Batch 669 (ws-14)
+
+**Trigger Replacement Label** now passes the configured slide label layout to the printer (`getPrinterContext` returns it, as on the Microtomy workstation; the default layout if the settings cannot be read). Before, the call left it out and `printSlideLabel` looked it up itself, so the label was usually right but the screen did not control it. Test: `hooks/useSlideDistributionStation.test.tsx`.

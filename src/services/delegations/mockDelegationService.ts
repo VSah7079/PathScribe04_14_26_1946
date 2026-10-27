@@ -13,6 +13,8 @@ import { assignSynoptic, delegateCase } from '../cases/mockCaseService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockUserService } from '../users/mockUserService';
 import { mockRoleService } from '../roles/mockRoleService';
+import { mockAuditService } from '../auditlog/mockAuditService';
+import { recordDelegation, type DelegationAuditDeps } from './delegationAudit';
 import { isCytotechOnly } from '../participationTypes/cytotechParticipationRules';
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -21,6 +23,20 @@ async function recipientIsCytotechOnly(userId: string): Promise<boolean> {
   const [staff, roles] = await Promise.all([mockUserService.getById(userId), mockRoleService.getAll()]);
   return staff.ok && roles.ok && isCytotechOnly(staff.data.roles, roles.data);
 }
+
+/** Batch 651: where a made delegation is audited (a lazy case lookup, so the case router is not imported at load). */
+const auditDeps: DelegationAuditDeps = {
+  auditService: mockAuditService,
+  actorName: async userId => {
+    const r = await mockUserService.getById(userId);
+    return r.ok ? [r.data.firstName, r.data.lastName].filter(Boolean).join(' ') || userId : userId;
+  },
+  facilityOf: async caseId => {
+    const { caseRouter } = await import('../cases/CaseRouter');
+    const c = await caseRouter.getCase(caseId);
+    return c?.order?.facilityId ?? null;
+  },
+};
 const fail = (error: DelegationError) => ({ ok: false as const, error });
 
 export const mockDelegationService: IDelegationService = {
@@ -45,9 +61,13 @@ export const mockDelegationService: IDelegationService = {
       const record = await assignSynoptic(
         plan.caseId, plan.instanceId, plan.assignedTo, plan.assignedToName, plan.assignedBy, plan.requiresCountersign, plan.note,
       );
-      return record ? { ok: true, data: record } : fail('caseNotFound');
+      if (!record) return fail('caseNotFound');
+      await recordDelegation(request, record, auditDeps);
+      return { ok: true, data: record };
     }
-    return { ok: true, data: await delegateCase(plan.payload) };
+    const record = await delegateCase(plan.payload);
+    await recordDelegation(request, record, auditDeps);
+    return { ok: true, data: record };
   },
 
   async complete(id) {

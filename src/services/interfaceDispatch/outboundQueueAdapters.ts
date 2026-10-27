@@ -76,19 +76,21 @@ const failureText = (what: string, e: OutboundQueueEntry) =>
 
 /** The adapters, built on first use (they load the queue services and payload builders). */
 export async function loadOutboundQueueAdapters(): Promise<Record<OutboundQueueType, OutboundQueueAdapter>> {
+  // The services index is loaded first and alone: loading it at the same moment as the modules below (which import services
+  // of their own) could hand back a half-built index, so a queue service read as undefined (seen in full-suite runs only).
+  const services = await import('../index');
   const [
-    services, adt, oru, assist, assistDeps, cytoRecords, cytoQueue, cytoBuilder, cytoPdf, referral, delivery, deliveryDeps,
+    adt, oru, assist, assistDeps, cytoRecords, cytoQueue, cytoBuilder, cytoPdf, referral, delivery, deliveryDeps,
   ] = await Promise.all([
-    import('../index'),
     import('../patients/buildPatientAdtPayload'),
     import('../reports/prepareOruR01Dispatch'),
     import('../reports/dispatchAssistSynopticResult'),
     import('../reports/dispatchAssistSynopticResultDeps'),
-    import('../cytology/mockCytologySignOutRecordService'),
-    import('../cytology/mockCytologyOutboundResultQueueService'),
+    import('../cytology/cytologySignOutRecordServiceInstance'),
+    import('../cytology/cytologyOutboundResultQueueServiceInstance'),
     import('../cytology/buildCytologyOruR01Payload'),
     import('../cytology/generateCytologyReportPdfSnapshot'),
-    import('../referral/mockReferralOutboundQueueService'),
+    import('../referral/referralOutboundQueueServiceInstance'),
     import('../delivery/deliverReport'),
     import('../delivery/reportDeliveryDeps'),
   ]);
@@ -165,7 +167,7 @@ export async function loadOutboundQueueAdapters(): Promise<Record<OutboundQueueT
       },
     },
     cytology_result: {
-      ...queue(cytoQueue.mockCytologyOutboundResultQueueService),
+      ...queue(cytoQueue.cytologyOutboundResultQueueService),
       transactionType: () => 'ORU_R01',
       identifier: e => (e as CytologyOutboundResultQueueEntry).caseId,
       kind: e => (e as CytologyOutboundResultQueueEntry).resultState,
@@ -175,7 +177,7 @@ export async function loadOutboundQueueAdapters(): Promise<Record<OutboundQueueT
       // correction build it (the record keeps its own "previously reported as").
       buildPayload: async e => {
         const entry = e as CytologyOutboundResultQueueEntry;
-        const records = await cytoRecords.mockCytologySignOutRecordService.getByCaseId(entry.caseId);
+        const records = await cytoRecords.cytologySignOutRecordService.getByCaseId(entry.caseId);
         // Batch 533: an urgent preliminary, rebuilt from the release kept on the case.
         if (entry.scope === 'preliminary') {
           const { caseRouter } = await import('../cases/CaseRouter');
@@ -219,7 +221,7 @@ export async function loadOutboundQueueAdapters(): Promise<Record<OutboundQueueT
       },
     },
     referral: {
-      ...queue(referral.mockReferralOutboundQueueService),
+      ...queue(referral.referralOutboundQueueService),
       transactionType: () => 'REFERRAL_MANIFEST',
       identifier: e => (e as ReferralOutboundQueueEntry).payload.masterBarcode,
       kind: e => (e as ReferralOutboundQueueEntry).payload.priority,

@@ -15,8 +15,29 @@ export interface EnterpriseFeatures {
   abnormalDetectionEnabled: boolean; // default true
 }
 
+/** Batch 623 (PS-130): the code systems a customer can hold a licence for. */
+export type LicensedTerminologySystem = 'SNOMED_CT' | 'ICD_O_3';
+
+/** What the customer tells PathScribe about a licence it holds. PathScribe never ships these code sets. */
+export interface TerminologyLicence {
+  /** Real codes are used only while this is on (and the licence has not expired). */
+  enabled: boolean;
+  /** Who holds the licence (a hospital, a national body or an affiliate). */
+  holder: string;
+  /** The edition or release the customer is licensed for, e.g. "SNOMED CT Spanish Edition". */
+  edition: string;
+  /** The licence or agreement number, for the audit trail. */
+  reference: string;
+  /** YYYY-MM-DD, last day the licence is valid. Empty = no expiry recorded. */
+  expiresOn: string;
+}
+
+export type TerminologyLicences = Partial<Record<LicensedTerminologySystem, TerminologyLicence>>;
+
 export interface EnterpriseConfig {
   id: string;
   name: string;
   features: EnterpriseFeatures;
+  /** Batch 623 (PS-130): the customer's terminology licences. Absent = none recorded (test codes only). */
+  terminologyLicences?: TerminologyLicences;
 }

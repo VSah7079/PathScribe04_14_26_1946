@@ -57,6 +57,7 @@ import { resolveMostConservativeEligibleDate, resolveFacilityIdForLocation } fro
 import { cassetteIdentifier, slideIdentifier, matrixBlockIdentifier, matrixSlideIdentifier, specimenIdentifier, decantIdentifier, decantSlideIdentifier } from '@/types/labels/LabelData';
 import type { Case } from '@/types/case/Case';
 import type { MaterialLocation } from '@/types/case/Material';
+import { mostRecentLocation } from './mostRecentLocation';
 
 export interface DisposalQueueItem {
   /** Composite, real key — caseId + block/slide id — unique across the
@@ -79,19 +80,7 @@ export interface DisposalQueueItem {
   lastKnownLocation?: string;
 }
 
-/** Real fix, found by this app's own inline-CSS/business-logic sweep:
- *  this used to assume append-order and take the last array element,
- *  the same bug class MaterialTreePanel.tsx's own mostRecentLocation()
- *  header comment already documented and fixed for the tree view — a
- *  late-arriving or backfilled location event should never silently
- *  look current just because it happened to append last. This
- *  compliance-facing disposal queue needs the exact same real
- *  "current location" answer the tree view already shows, so it now
- *  sorts by `at` instead of trusting array order. */
-function mostRecentLocation(history: MaterialLocation[] | undefined): MaterialLocation | undefined {
-  if (!history || history.length === 0) return undefined;
-  return [...history].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
-}
+// One shared rule for an item's last location (Batch 669, batch-4): see ./mostRecentLocation.ts.
 
 async function evaluateItem(
   c: Case,

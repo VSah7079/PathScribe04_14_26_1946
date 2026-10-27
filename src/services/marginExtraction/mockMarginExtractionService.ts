@@ -43,6 +43,11 @@ export const mockMarginExtractionService: IMarginExtractionService = {
       const rawText = answerText(answers[field.id]);
       if (!rawText.trim()) continue; // nothing answered yet — nothing to extract or flag
 
+      // Batch 669: a person has already decided this exact text (Resolved or Dismissed): keep their decision and their
+      // recorded value. Running the rules again after Resolve / Dismiss would otherwise throw the human number away and
+      // reopen the item. Edited text is a new answer and is read afresh.
+      if (EXCEPTIONS.some(e => e.caseId === caseId && e.instanceId === instanceId && e.fieldId === field.id && e.status !== 'Pending' && e.rawText === rawText)) continue;
+
       const result = extractMarginDistanceMm(rawText, { fieldUnit: unitForMarginDistanceField(field.id) });
 
       // Upsert: clear any prior attribute/exception for this exact field before writing the new outcome.

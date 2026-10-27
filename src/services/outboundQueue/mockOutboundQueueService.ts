@@ -7,6 +7,8 @@ import { readSessionProfile } from '../auth/sessionProfile';
 import { outboundQueueDeps } from '../interfaceDispatch/outboundQueueDeps';
 import { createMockBillingFeedAdapter } from './billingFeedAdapter';
 import { createMockRegistryFeedAdapter } from './registryFeedAdapter';
+import { combineRegistryFeedAdapters, createScreeningRegistryFeedAdapter } from '../batchRegistryFeed/screeningRegistryFeed';
+import { withCosdCorrection } from '../cosd/cosdFeed';
 import { createFeedSources } from './outboundFeedSources';
 import { outboundHoldStore } from './outboundHoldStore';
 import { createOutboundQueueService } from './outboundQueueService';
@@ -26,11 +28,25 @@ export const mockOutboundQueueService: IOutboundQueueService = createOutboundQue
   sources: async () => {
     const { outboundChargeQueueService } = await import('../billing/outboundChargeQueueServiceInstance');
     const { cancerRegistryOutboundQueueService } = await import('../cancerRegistry/cancerRegistryOutboundQueueServiceInstance');
+    const { cytologyRegistryOutboundQueueService } = await import('../cytology/cytologyRegistryOutboundQueueServiceInstance');
     return createFeedSources(outboundQueueDeps, withBillingRelease(createMockBillingFeedAdapter(outboundChargeQueueService, outboundHoldStore), {
       // Batch 619 (PS-800): the billing release rules decide when each charge goes.
       rules: async () => { const { billingReleaseService } = await import('../billingRelease/billingReleaseServiceInstance'); const r = await billingReleaseService.getAll(); return r.ok ? r.data : []; },
       facts: billingFactsFor, holds: outboundHoldStore, now,
-    }), createMockRegistryFeedAdapter(cancerRegistryOutboundQueueService));
+    }), withCosdCorrection(combineRegistryFeedAdapters(createMockRegistryFeedAdapter(cancerRegistryOutboundQueueService), createScreeningRegistryFeedAdapter(cytologyRegistryOutboundQueueService, async () => {
+      // Batch 620 (part S): the screening programmes that have a batch file profile.
+      const { batchRegistryFeedService } = await import('../batchRegistryFeed/batchRegistryFeedServiceInstance');
+      const r = await batchRegistryFeedService.getProfiles();
+      return new Set(r.ok ? r.data.filter(x => x.registryKey.startsWith('screening:')).map(x => x.registryKey.slice('screening:'.length)) : []);
+    })), {
+      // Batch 620 (part C): the UK COSD correction window and transport come from the destination settings.
+      destinations: async () => { const { cosdDestinationService } = await import('../cosd/cosdDestinationServiceInstance'); const r = await cosdDestinationService.getAll(); return r.ok ? r.data : []; },
+      facilityOfCase: async caseId => {
+        const { caseService } = await import('../cases/caseServiceInstance');
+        const c = await caseService.getCase(caseId) as { order?: { facilityId?: string } } | null | undefined;
+        return c?.order?.facilityId;
+      },
+    }));
   },
   holds: outboundHoldStore,
   enforce: outboundQueueDeps.enforce,

@@ -10,7 +10,7 @@
 // report renderer). Moved here from cytology/ in Batch 392.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { resolvePerformingLabFacilityId, type Facility } from '../facilities/IFacilityService';
 import { resolveReportLanguage, resolveReportDateLocale, type ReportLanguage } from './reportLanguage';
 import { JURISDICTION_LOCALE } from '@/types/systemConfig';
@@ -19,12 +19,12 @@ import { loadLanguage } from '@/i18n/config';
 /** The performing lab behind an ordering facility, or undefined if there is none to be found. */
 export async function resolvePerformingLabFacility(facilityId: string | undefined): Promise<Facility | undefined> {
   if (!facilityId) return undefined;
-  const facilityRes = await mockFacilityService.getById(facilityId);
+  const facilityRes = await facilityService.getById(facilityId);
   if (!facilityRes.ok) return undefined;
   const labId = resolvePerformingLabFacilityId(facilityRes.data);
   if (!labId) return undefined;
   if (labId === facilityRes.data.id) return facilityRes.data;
-  const labRes = await mockFacilityService.getById(labId);
+  const labRes = await facilityService.getById(labId);
   return labRes.ok ? labRes.data : undefined;
 }
 

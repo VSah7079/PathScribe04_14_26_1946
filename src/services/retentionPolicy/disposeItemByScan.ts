@@ -31,8 +31,9 @@ import { isSlideAtLevel, stainAtLevel, stainIndexAtLevel } from '../material/sli
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '@/services/cases/caseWrite';
-import { mockAuditService } from '@/services/auditlog/mockAuditService';
+import { auditService } from '@/services/auditlog/auditServiceInstance';
 import { authorizationService } from '@/services/authorization/defaultAuthorizationService';
+import { mostRecentLocation } from './mostRecentLocation';
 import { getCurrentJurisdiction } from './RetentionPolicy';
 import { resolveMostConservativeEligibleDate, resolveFacilityIdForLocation } from './resolveRetentionEligibility';
 import type { HistologyBlock, StainOrder, Specimen } from '@/types/case/Specimen';
@@ -210,7 +211,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
   }
 
   if (facilityId) {
-    const lastLocation = record.locationHistory && record.locationHistory.length > 0 ? record.locationHistory[record.locationHistory.length - 1] : undefined;
+    const lastLocation = mostRecentLocation(record.locationHistory);
     const itemFacilityId = await resolveFacilityIdForLocation(lastLocation?.location);
     if (itemFacilityId !== facilityId) {
       return refuse('wrongFacility', `${displayId}'s last known location isn't at this facility — expected here, not scanned here before.`, { displayId });
@@ -320,7 +321,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
   }, caseRouter);
   if (!write.ok) return refusal ?? refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
 
-  mockAuditService.logEvent({
+  auditService.logEvent({
     type: 'system', event: 'Specimen Material Disposed',
     detail: `${displayId} disposed — retention-eligible since ${eligibleDate.toISOString().slice(0, 10)}, no active hold, verified at scan.`,
     user: byUserName, caseId: fullAccession, confidence: null,

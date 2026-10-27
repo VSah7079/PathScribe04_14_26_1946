@@ -128,3 +128,25 @@ describe('mockMarginExtractionService exception resolution', () => {
     expect(res.ok).toBe(false);
   });
 });
+
+describe('Batch 669: a person\'s decision survives a later extraction run', () => {
+  it('re-extracting the same text keeps a Resolved value and does not reopen the item', async () => {
+    const first = await svc.extractAndStore({ caseId: 'case-9', instanceId: 'inst-1', fields: FIELDS, answers: { distance_to_crm_mm: 'about two' } });
+    if (!first.ok) throw new Error('setup');
+    await svc.resolveException(first.data.exceptions[0].id, 2, 'u1', 'User One');
+    const again = await svc.extractAndStore({ caseId: 'case-9', instanceId: 'inst-1', fields: FIELDS, answers: { distance_to_crm_mm: 'about two' } });
+    expect(again.ok && again.data.exceptions).toHaveLength(0);
+    const attr = await svc.getShadowAttribute('case-9', 'inst-1', 'distance_to_crm_mm');
+    expect(attr.ok && attr.data?.valueMm).toBe(2);
+  });
+
+  it('re-extracting the same text does not reopen a Dismissed item, but edited text is read afresh', async () => {
+    const first = await svc.extractAndStore({ caseId: 'case-10', instanceId: 'inst-1', fields: FIELDS, answers: { distance_to_crm_mm: 'n/a' } });
+    if (!first.ok) throw new Error('setup');
+    await svc.dismissException(first.data.exceptions[0].id, 'none', 'u1', 'User One');
+    const same = await svc.extractAndStore({ caseId: 'case-10', instanceId: 'inst-1', fields: FIELDS, answers: { distance_to_crm_mm: 'n/a' } });
+    expect(same.ok && same.data.exceptions).toHaveLength(0);
+    const edited = await svc.extractAndStore({ caseId: 'case-10', instanceId: 'inst-1', fields: FIELDS, answers: { distance_to_crm_mm: '4mm' } });
+    expect(edited.ok && edited.data.stored[0].valueMm).toBe(4);
+  });
+});

@@ -9,21 +9,15 @@ import { dataStorage } from '../browserData/dataStorage';
 export interface AIBehaviorConfig {
   confidenceThreshold:    number;
   autoInsertSuggestions:  boolean;
-  showConfidenceScores:   boolean;
-  subspecialtyRouting:    boolean;
   grossEnabled:           boolean;
   microscopicEnabled:     boolean;
-  macroSuggestions:       boolean;
 }
 
 const DEFAULT_AI_BEHAVIOR_CONFIG: AIBehaviorConfig = {
   confidenceThreshold:   75,
   autoInsertSuggestions: false,
-  showConfidenceScores:  true,
-  subspecialtyRouting:   true,
   grossEnabled:          true,
   microscopicEnabled:    true,
-  macroSuggestions:      false,
 };
 
 // Alias for existing code that imports AI_BEHAVIOR_DEFAULTS

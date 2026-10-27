@@ -1,3 +1,11 @@
+**Batch 668:** `useGuideWindow.ts` opens the User or Administrator Guide in a remembered window (`useCompanionWindow`) and falls back to a new tab when refused.
+
+**Batch 649:** `useScreenCapture.ts` covers every `data-phi` and `data-pii` element (see `services/phiSelectors.ts`) and gives an element matching several selectors one overlay. `useHeldReports.ts` reports whether the person can recall a held report only if they also hold `report:release:recall`.
+
+## Batch 645 — Lockbox Drop-Off
+
+`useDefaultActionOnScan.ts` and `useGlobalMaterialScanTracking.ts` skip a scan on `/lockbox-drop-off`, where a scan means "receive this container" (one line each, beside the existing Disposal Queue exclusion). The screen's own hooks live in `pages/LockboxDropOffPage/hooks/`.
+
 ## Batch 619 (part Q) — Outbound Queue (PS-800)
 - `useOutboundQueue.ts`: loads the Outbound Queue for `OutboundQueuePage` (rows, per-state, deadline and billing counts) and holds the filters, sort, selection and last action result. Which actions a state allows and how a bulk action went come from `services/outboundQueue/outboundQueueView.ts`.
 
@@ -457,7 +465,7 @@ New **`useMarginExceptionReview.ts`**: orchestrates `marginExtractionService`/`c
 
 ## Batch 505 (PS-475): `useGuideAssets`
 
-`useGuideAssets(active)` loads `utils/guideAssets` (the user and admin guide PDFs, 5.5 MB) the first time `active` is true and returns it, or `null` while it loads. AppShell passes "About menu open", so the guides are fetched when someone opens that menu, not with every page.
+**Removed in Batch 669c.** `useGuideAssets` and the embedded guide PDFs it loaded are gone; the guides open from the top-bar Help buttons (`useGuideWindow`).
 
 ## Batch 506 (PS-477)
 
@@ -587,3 +595,29 @@ Batch 605: `useAutoBlockOrderDispatch` hands newly created blocks to the simulat
 ## Batch 612
 
 - `useWorkstationRegistry.ts`: state and actions for the Workstations screen (load, register or change, rotate, revoke, Simulated test, "Use this computer"). A new token is held in memory only until the person presses Done.
+
+## Batch 642
+
+`useSignerConfirmation(action, caseRef, orderingFacilityId?)` resolves the case's performing facility, applies its sign-out policy (`sessionValid`, `buttonLabel(base)`, `buttonTitle`) and passes the facility to the confirmation, so the audit names it.
+
+## Batch 652 (defect fixes)
+
+`useGlobalMaterialScanTracking.ts`: `processMicrotomyScan` takes the scanned station and produces labels through `dispatchScanSlideLabel` (print and/or engrave); unproduced slides stay Pending Cut. Test: `useGlobalMaterialScanTracking.test.ts`.
+
+`useViewerResourceLinks` (Batch 659): the admin-managed Quick Links for Search and Audit Log.
+
+- Batch 669d: the top-bar Help buttons now appear on Configuration (the page publishes its open tab and section through `services/help/helpAnchorStore.ts`, `hooks/usePublishHelpAnchor.ts`), the ? shows on every screen, and the Administrator Guide re-scrolls to the section as screenshots load (`scripts/admin-guide/guide.js`).
+
+## Batch 669 — useMarginExceptionReview
+
+Now also returns `decidedRows` (resolved and dismissed items, read-only history) and `notices` (the inline messages after a decision). Resolve and Dismiss go through `services/marginExtraction/reviewMarginException.ts`, which audits and re-runs the tumor board margin rules.
+
+`useWorkstationSave` (Batch 669): the screen side of `services/workstationSave/runCaseAction.ts` for the Embedding, Slide Distribution and Add-On Order stations: runs a save through the real case services (retry on a conflict) and keeps the translated "Not saved" message (`saveError`). Test: via `pages/*/hooks/use*Station.test.tsx`.
+
+## Batch 669f
+
+`useCytologyQcCodeCategories`: the active cytology categories for the QC Record Discrepancy window's divergence check.
+
+## `useSystemStatus.ts` (Batch 669h)
+
+The Home footer's system status: one check when the page loads and one when the tab becomes visible after five minutes; no timer. A failed check is `statusUnavailable`. Rules in `services/healthStatus`.

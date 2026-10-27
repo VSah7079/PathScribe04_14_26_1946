@@ -32,7 +32,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
+import { resolveCytologyDispatchOrganisation } from './resolveCytologyDispatchOrganisation';
 import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { cytologyOutboundResultQueueService } from './cytologyOutboundResultQueueServiceInstance';
 // Batch 527 (PS-486): buildCytologyOruR01Payload is loaded when a report is built (it carries the PDF engine).
@@ -54,10 +54,9 @@ export async function dispatchCytologyCaseInstances(caseId: string, generatePdf?
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData || !cytologyCaseIsReleased(caseData)) return;
 
-  const patientId = (caseData as any)?.patient?.id;
-  const patientRecord = patientId ? await mockPatientIndexService.getById(patientId) : null;
-  // Non-blocking skip: no organisationId to enqueue against.
-  if (!patientRecord) return;
+  // Non-blocking skip (recorded in the audit log): no organisationId to enqueue against.
+  const organisationId = await resolveCytologyDispatchOrganisation(caseData, 'final');
+  if (!organisationId) return;
 
   const existing = await cytologyOutboundResultQueueService.getByCaseId(caseId).catch(() => null);
   if (existing?.ok && existing.data.some(e => e.resultState === 'FINAL')) return;
@@ -65,7 +64,7 @@ export async function dispatchCytologyCaseInstances(caseId: string, generatePdf?
   const recordsRes = await cytologySignOutRecordService.getByCaseId(caseId);
   if (!recordsRes.ok || !recordsRes.data.length) return;
   const closing = [...recordsRes.data].sort((a, b) => String(a.signedAt).localeCompare(String(b.signedAt))).pop()!;
-  await sendCaseMessage(caseData, recordsRes.data, (patientRecord as any).organisationId, 'FINAL', closing.id, undefined, generatePdf);
+  await sendCaseMessage(caseData, recordsRes.data, organisationId, 'FINAL', closing.id, undefined, generatePdf);
 }
 
 /** Enqueues and sends one consolidated message (shared with dispatchCytologyAmendedCaseInstance). */

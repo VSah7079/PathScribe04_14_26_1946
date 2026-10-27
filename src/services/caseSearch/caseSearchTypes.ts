@@ -24,7 +24,7 @@ import type { ClinicalCode } from '../codes/ICodeService';
 import type { SynopticValueCriterion } from './synopticValueCriteria';
 
 /** Recorded patient sex codes (Patient.sex). */
-export type CaseSearchSex = 'M' | 'F' | 'U';
+export type CaseSearchSex = 'M' | 'F' | 'I' | 'U';
 
 // Batch 351 (section 3 of the Sep 27 gap analysis): new searchable case data.
 /** Which date the date range applies to. */
@@ -198,7 +198,7 @@ export const CASE_SEARCH_STATUS_OPTIONS: readonly CaseStatus[] = [
   'pending-countersign', 'finalizing', 'finalized', 'pending-release', 'closed',
 ];
 export const CASE_SEARCH_PRIORITY_OPTIONS: readonly CasePriority[] = ['Routine', 'Rush', 'STAT'];
-export const CASE_SEARCH_SEX_OPTIONS: readonly CaseSearchSex[] = ['M', 'F', 'U'];
+export const CASE_SEARCH_SEX_OPTIONS: readonly CaseSearchSex[] = ['M', 'F', 'I', 'U'];
 export const CASE_SEARCH_DATE_BASES: readonly CaseSearchDateBasis[] = ['accessioned', 'signedOut', 'released'];
 export const CASE_SEARCH_CASE_TYPES: readonly CaseSearchCaseType[] = ['surgical', 'gynCytology', 'nonGynCytology', 'autopsy'];
 export const CASE_SEARCH_PATHOLOGIST_ROLES: readonly CaseSearchPathologistRole[] = ['any', 'assigned', 'signedOut', 'resident', 'countersigner', 'delegatedTo'];

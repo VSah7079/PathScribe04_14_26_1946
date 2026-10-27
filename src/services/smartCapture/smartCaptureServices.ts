@@ -8,12 +8,12 @@
 // rules above do not change.
 // ─────────────────────────────────────────────────
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { resolveCasePerformingLab } from '../facilities/resolveCasePerformingLab';
 import { codeSystemPolicyService } from '../coding/codeSystemPolicyServiceInstance';
 import { roleOn } from '../coding/codeSystemPolicy';
@@ -34,12 +34,12 @@ const actor = () => {
 const deps: SmartCaptureDeps = {
   load: storageGet,
   save: storageSet,
-  audit: e => mockAuditService.logEvent(e),
+  audit: e => auditService.logEvent(e),
   enforce: (capability, context) => authorizationService.enforce(capability, context),
   actor,
   async facilityIdFor(caseId) {
     const c = await caseRouter.getCase(caseId).catch(() => undefined);
-    const all = await mockFacilityService.getAll();
+    const all = await facilityService.getAll();
     return resolveCasePerformingLab(c as { originHospitalId?: string } | undefined, all.ok ? all.data : [])?.id ?? null;
   },
   async specimensFor(caseId) {

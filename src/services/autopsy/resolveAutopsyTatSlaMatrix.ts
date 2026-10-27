@@ -56,6 +56,9 @@ const MATRIX: Record<Jurisdiction, AutopsyTatSlaConfig> = {
   DE: { padUnit: 'hours', padMin: 48, padMax: 48, fadUnit: 'days', fadMin: 30, fadMax: 30, complexFadMin: 60, complexFadMax: 60, governingStandard: 'ISO 15189 / National Acts' },
   FR: { padUnit: 'hours', padMin: 48, padMax: 48, fadUnit: 'days', fadMin: 30, fadMax: 30, complexFadMin: 60, complexFadMax: 60, governingStandard: 'ISO 15189 / National Acts' },
   BE: { padUnit: 'hours', padMin: 48, padMax: 48, fadUnit: 'days', fadMin: 30, fadMax: 30, complexFadMin: 60, complexFadMax: 60, governingStandard: 'ISO 15189 / National Acts' },
+  // Spain: no verified national autopsy turnaround standard (SPAIN_RESEARCH.md); uses the
+  // same generic European defaults as DE/FR/BE/NL until a Spanish reviewer confirms them.
+  ES: { padUnit: 'hours', padMin: 48, padMax: 48, fadUnit: 'days', fadMin: 30, fadMax: 30, complexFadMin: 60, complexFadMax: 60, governingStandard: 'ISO 15189 / National Acts' },
   NL: { padUnit: 'hours', padMin: 48, padMax: 48, fadUnit: 'days', fadMin: 30, fadMax: 30, complexFadMin: 60, complexFadMax: 60, governingStandard: 'ISO 15189 / National Acts' },
   AU: { padUnit: 'hours', padMin: 48, padMax: 48, fadUnit: 'days', fadMin: 28, fadMax: 30, complexFadMin: 60, complexFadMax: 90, governingStandard: 'NATA / NZ Coroners Act' },
   NZ: { padUnit: 'hours', padMin: 48, padMax: 48, fadUnit: 'days', fadMin: 28, fadMax: 30, complexFadMin: 60, complexFadMax: 90, governingStandard: 'NATA / NZ Coroners Act' },

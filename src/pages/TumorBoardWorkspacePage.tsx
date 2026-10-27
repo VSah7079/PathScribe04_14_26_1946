@@ -55,6 +55,7 @@ import { groupTumorBoardRowsBySession } from '@/services/tumorBoard/tumorBoardSe
 import { isPresenterEligibleRoles } from '@/services/tumorBoard/tumorBoardPresenterEligibility';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { isServiceOk } from '@/services/types';
+import { tumorBoardRefusalKey } from '@/services/tumorBoard/tumorBoardRefusal';
 import { formatDate } from '@/utils/formatDate';
 import { formatDisplayNameForLanguage } from '@/utils/personName';
 
@@ -87,46 +88,25 @@ const TumorBoardWorkspacePage: React.FC = () => {
   const statusLabel = (s: TumorBoardCaseStatus) => t(`tumorBoard.statuses.${s}`);
   const windowLabel = (w: MeetingWindow) => t(`tumorBoard.meetingWindows.${w}`);
 
-  const onStatusChange = async (id: string, status: TumorBoardManagedStatus) => {
+  // Batch 659 (finding 11): a refused change is said out loud (the row also goes back); see services/tumorBoard/tumorBoardRefusal.ts.
+  const [refusal, setRefusal] = useState<ReturnType<typeof tumorBoardRefusalKey> | null>(null);
+  const save = async (id: string, call: () => Promise<{ ok: boolean; error?: string }>) => {
     if (!user) return;
     setSavingId(id);
-    await updateListing(id, { status }, user.id, user.name);
+    const res = await call();
+    setRefusal(res.ok ? null : tumorBoardRefusalKey(res.error));
     setSavingId(null);
   };
-
-  const onPresenterChange = async (id: string, presenterUserId: string) => {
-    if (!user) return;
+  const by = () => [user!.id, user!.name] as const;
+  const onStatusChange = (id: string, status: TumorBoardManagedStatus) => save(id, () => updateListing(id, { status }, ...by()));
+  const onPresenterChange = (id: string, presenterUserId: string) => {
     const presenter = presenters.find(p => p.id === presenterUserId);
-    setSavingId(id);
-    await updateListing(id, {
-      presenterUserId: presenterUserId || null,
-      presenterUserName: presenter ? `${presenter.firstName} ${presenter.lastName}` : null,
-    }, user.id, user.name);
-    setSavingId(null);
+    return save(id, () => updateListing(id, { presenterUserId: presenterUserId || null, presenterUserName: presenter ? `${presenter.firstName} ${presenter.lastName}` : null }, ...by()));
   };
-
-  const onClaim = async (id: string) => {
-    if (!user) return;
-    setSavingId(id);
-    await claimListing(id, user.id, user.name);
-    setSavingId(null);
-  };
-
-  const onMeetingDateChange = async (id: string, meetingDate: string) => {
-    if (!user) return;
-    setSavingId(id);
-    await updateListing(id, { meetingDate: meetingDate || null }, user.id, user.name);
-    setSavingId(null);
-  };
-
-  // Batch 493 (Pete, Oct 8): the meeting-time field a real calendar invite
-  // needs — see services/tumorBoard/notifyTumorBoardAssignment.ts.
-  const onMeetingTimeChange = async (id: string, meetingTime: string) => {
-    if (!user) return;
-    setSavingId(id);
-    await updateListing(id, { meetingTime: meetingTime || null }, user.id, user.name);
-    setSavingId(null);
-  };
+  const onClaim = (id: string) => save(id, () => claimListing(id, ...by()));
+  const onMeetingDateChange = (id: string, meetingDate: string) => save(id, () => updateListing(id, { meetingDate: meetingDate || null }, ...by()));
+  // Batch 493: the meeting time a calendar invite needs (services/tumorBoard/notifyTumorBoardAssignment.ts).
+  const onMeetingTimeChange = (id: string, meetingTime: string) => save(id, () => updateListing(id, { meetingTime: meetingTime || null }, ...by()));
 
   // Batch 494: Pete's own spec — "Users can choose to view the list
   // digitally or print a hard-copy checklist for their desk or lab
@@ -143,6 +123,7 @@ const TumorBoardWorkspacePage: React.FC = () => {
         <button className="ps-conf-btn-secondary ps-tb-no-print" onClick={() => window.print()}>{t('tumorBoard.printBtn')}</button>
       </div>
       {error && <div className="ps-qcqueue-error" role="alert">{error}</div>}
+      {refusal && <div className="ps-qcqueue-error" role="alert">{t(`tumorBoard.errors.${refusal}`)}</div>}
 
       <div className="ps-tb-filter-bar ps-tb-no-print">
         <select className="ps-conf-select" value={filters.board} onChange={e => setFilters({ ...filters, board: e.target.value as TumorBoardName | 'all' })} aria-label={t('tumorBoard.filters.board')}>

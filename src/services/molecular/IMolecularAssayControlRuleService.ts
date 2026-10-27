@@ -59,17 +59,30 @@ export type NewMolecularAssayControlRule = Pick<MolecularAssayControlRule, 'assa
 
 /** Batch 406: why a change was refused, as codes the Control Rules page
  *  translates (`molecularControlRules.errors.<code>`). */
-/** The user lacks config:molecular-control-rules:manage. */
+/** The user lacks config:molecular-control-rules:manage (a change) or :view (listForReview). */
 export const MOLECULAR_CONTROL_RULE_NOT_PERMITTED = 'notPermitted';
 /** The assay already has a rule: update that one instead. */
 export const MOLECULAR_CONTROL_RULE_DUPLICATE = 'duplicateAssay';
 /** No rule with that id. */
 export const MOLECULAR_CONTROL_RULE_NOT_FOUND = 'notFound';
+/** Batch 669 (mol-14): saving or deleting a rule needs a reason (it is recorded in the audit log). */
+export const MOLECULAR_CONTROL_RULE_REASON_REQUIRED = 'reasonRequired';
+/** Batch 669 (mol-14): a rule must require at least one control (a rule with none checked nothing and read as "covered"). */
+export const MOLECULAR_CONTROL_RULE_NO_CONTROLS = 'controlsRequired';
 
 export interface IMolecularAssayControlRuleService {
+  /** Every rule, for ENFORCEMENT: the plate builder, the rack screen and the order engine apply them to whoever works a plate (the
+   *  Molecular screen), so this read is not capability-gated; refusing it would silently drop a plate's required controls.
+   *  Batch 669 (ctl): the Control Rules page reads with listForReview instead. */
   getAll(): Promise<ServiceResult<MolecularAssayControlRule[]>>;
+  /** Batch 669 (ctl): every rule, for the Control Rules page. Needs config:molecular-control-rules:view (or manage);
+   *  refused with notPermitted otherwise. */
+  listForReview(): Promise<ServiceResult<MolecularAssayControlRule[]>>;
   getByAssayCode(assayCode: string): Promise<ServiceResult<MolecularAssayControlRule | null>>;
-  create(rule: NewMolecularAssayControlRule): Promise<ServiceResult<MolecularAssayControlRule>>;
-  update(id: ID, patch: Partial<NewMolecularAssayControlRule>): Promise<ServiceResult<MolecularAssayControlRule>>;
-  delete(id: ID): Promise<ServiceResult<void>>;
+  /** Batch 669 (mol-14): create, update and delete take the reason for the change, recorded in the audit log; an empty reason is refused
+   *  (reasonRequired). create and update also refuse a rule with no controls (controlsRequired), and update refuses moving a rule onto an
+   *  assay that already has one (duplicateAssay), as create does. */
+  create(rule: NewMolecularAssayControlRule, reason: string): Promise<ServiceResult<MolecularAssayControlRule>>;
+  update(id: ID, patch: Partial<NewMolecularAssayControlRule>, reason: string): Promise<ServiceResult<MolecularAssayControlRule>>;
+  delete(id: ID, reason: string): Promise<ServiceResult<void>>;
 }

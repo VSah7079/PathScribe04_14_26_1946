@@ -1,3 +1,5 @@
+**Batch 649:** pool Claim and Pass show a refusal for want of `case:pool:claim` / `case:pool:pass` (`isPoolActionNotPermitted`).
+
 # pages/CytologyWorklistPage
 
 The Cytology worklist and the screening page (`CytologyScreeningPage.tsx`), where a screener, secondary reviewer or pathologist records a review of a cytology case.
@@ -258,3 +260,28 @@ One case report per accession (Pete, Oct 12). `CytologyScreeningPage.tsx`: **Pri
 - The workload counter (`components/CytologyWorkloadCounter.tsx`, `hooks/useCytologyWorkloadSummary.ts`) on the worklist and the screening page (with the review open now and the chosen mode); yesterday's screening hours panel above today's.
 
 - Batch 608: the screening page shows `ReturnToTraineeBar`, the suggested-severity badge and `CytologyScreeningDetailsCard`.
+
+## Batch 630 (PS-174)
+
+HPV Triage: Record Negative / Record Positive are now `CapabilityButton`s (`cytology:hpv-result:record-manual`) that open `components/ManualHpvResultModal.tsx` (required Result Source; a notice when the entry would replace an interface result). `hooks/useManualHpvResult.ts` calls `services/cytology/recordManualHpvResult.ts`. A row with an entry waiting for a second sign-off shows Approve / Reject instead.
+
+## Batch 631
+
+Recall needed: in Australia and New Zealand each row shows `components/SelfCollectedRecallDetail.tsx` (Urgent/Routine, target window, programme wording); an Invalid self-collected result shows "repeat collection needed". The jurisdiction is the case's performing lab's, then the institution setting.
+
+
+## Batch 635
+
+`CytologyScreeningPage.tsx`: after a CLIA workload block the message names the colleagues the pending cases went to and how many went back to the pool (`workloadReassignmentNotice`, services/cytology); no line added to the page.
+
+## Batch 636
+
+`components/CsmsEligibilityActions.tsx` (+ `.css`, test): on the CSMS QA tab, Eligibility verified (one click) and Record not eligible (quick-pick reason), through `verifyCsmsEligibility`; Manage flags is kept. `CytologyWorklistPage.tsx` gains one component line.
+
+## Batch 638
+
+The CSMS QA confirmation now says whether the CSMS message is being sent (Verified) or was not sent (Not eligible).
+
+## Batch 640
+
+The Recall needed detail uses the lab administrator's wording for the case's country and the screen language when one is saved, and the country's own windows (Batch 640).

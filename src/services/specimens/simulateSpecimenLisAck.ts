@@ -9,7 +9,7 @@
 import type { Specimen, SpecimenLisSyncState } from '@/types/case/Specimen';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { isEngineSimulated } from '../mockInterfaceEngine/simulatedEngineReceiver';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 /** The state a specimen moves to once the LIS has answered. Pure. */
 export function lisSyncStateAfterAnswer(answered: boolean): Extract<SpecimenLisSyncState, 'sync_sent' | 'sync_rejected'> {
@@ -29,7 +29,7 @@ export async function writeBackSpecimenToLis(caseId: string, specimen: Pick<Spec
     ok = r.ok; error = r.error;
   } catch (e) { error = e instanceof Error ? e.message : 'The write-back failed.'; }
   const state = lisSyncStateAfterAnswer(ok);
-  await mockAuditService.logEvent({
+  await auditService.logEvent({
     type: 'system', event: simulated ? 'Simulated LIS Acknowledgement' : 'LIS Write-back Answered',
     detail: `${simulated ? 'SIMULATED (no LIS): ' : ''}specimen ${specimen.label} write-back ${ok ? 'acknowledged (Sent)' : 'rejected (Rejected)'}.`,
     user: actor, caseId, confidence: null,

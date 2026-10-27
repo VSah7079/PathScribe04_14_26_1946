@@ -378,3 +378,10 @@ Test only: `voiceMacros.test.ts` adds its macro as the signed-in person's own (s
 ## Batch 610 (part A) — TATType, TATEntry, IntraopSpecimen
 
 `TATType` gains `AUTOPSY_PAD`/`AUTOPSY_FAD`; `TATEntry.warningMinutes`; `IntraopSpecimen.urgency`.
+
+## Batch 651: AI answers checked in code
+See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSuggestions.ts`, `orchestrator/narrativeProvenance.ts` and `docs/product/GUIDE_UPDATES.md` (Batch 651).
+
+## Batch 652 — Specimen pipeline gaps
+
+`case/Case.ts`: `intraoperativeFindings`, `lockboxReceiptId`; `intraop/CaseIntraoperativeFinding.ts` (new).

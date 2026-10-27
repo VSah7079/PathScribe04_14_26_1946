@@ -135,6 +135,45 @@ export function flagEmbeddingDiscrepancy(
   };
 }
 
+/** Batch 669 (ws-10): a flagged discrepancy stops Confirm until it is cleared. */
+export function hasOpenEmbeddingDiscrepancy(block: Pick<HistologyBlock, 'lastDiscrepancyReason'>): boolean {
+  return !!block.lastDiscrepancyReason;
+}
+
+/** Batch 669 (ws-10): clears the discrepancy flag (the supervisor's or the tech's own resolution), so Confirm can go
+ *  ahead. The Tissue Discrepancy deficiency raised with the flag is a QA record and stays with QA; the caller writes
+ *  the audit entry (buildEmbeddingDiscrepancyClearedAudit). Refused when no flag is set. */
+export function clearEmbeddingDiscrepancy(specimen: Specimen, blockId: string): EmbeddingOperationResult {
+  const block = findBlock(specimen, blockId);
+  if (!block) return { ok: false, error: 'Block not found.' };
+  if (!hasOpenEmbeddingDiscrepancy(block)) return { ok: false, error: 'No discrepancy is flagged.' };
+  return {
+    ok: true,
+    specimen: replaceBlock(specimen, blockId, { lastDiscrepancyReason: undefined, lastDiscrepancyReportedBy: undefined, lastDiscrepancyReportedAt: undefined }),
+  };
+}
+
+/** Batch 669 (ws-10): the audit entry for a cleared flag. Literal English (compliance record); ids, labels and the
+ *  stored reason only, no patient data. */
+export function buildEmbeddingDiscrepancyClearedAudit(
+  input: { caseId: string; accession: string; specimenLabel: string; block: Pick<HistologyBlock, 'label' | 'lastDiscrepancyReason' | 'lastDiscrepancyReportedBy' | 'lastDiscrepancyReportedAt'>; actor: { id: string; name: string } },
+) {
+  const { block, actor } = input;
+  return {
+    type: 'user' as const,
+    event: 'Embedding discrepancy cleared',
+    detail: `Block ${input.specimenLabel}${block.label}: flag "${block.lastDiscrepancyReason ?? 'unknown'}" raised by ${block.lastDiscrepancyReportedBy ?? 'unknown'}${block.lastDiscrepancyReportedAt ? ` at ${block.lastDiscrepancyReportedAt}` : ''} cleared by ${actor.id}.`,
+    user: actor.name,
+    caseId: input.accession,
+    confidence: null,
+  };
+}
+
+/** Batch 669 (ws-10): the locale key of a block status for display (`embeddingStation.blockStatus.<key>`). The stored value stays English. */
+export function blockStatusLabelKey(status: BlockStatus): string {
+  return `embeddingStation.blockStatus.${BLOCK_STATUS_KEYS[status] ?? 'pending'}`;
+}
+
 /** Real, per "Base Mold Size Picker" + "Orientation Instructions" —
  *  a single, combined setter since the Center Panel's own quick-select
  *  UI sets both together on the same block, same shape as

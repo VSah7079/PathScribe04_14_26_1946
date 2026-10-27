@@ -23,3 +23,7 @@ System, enterprise and hospital configuration is read and saved through `systemC
 ## Batch 617 (part C): server versions (PS-514)
 
 The system configuration service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.
+
+## Batch 623 (PS-130)
+
+`permitEnterpriseConfigPatch` also checks `config:code-systems:manage` when a change carries `terminologyLicences`.

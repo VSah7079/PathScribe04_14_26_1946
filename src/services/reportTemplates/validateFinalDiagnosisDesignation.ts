@@ -16,7 +16,7 @@
 // Final templates are verified against.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockReportTemplateService } from './mockReportTemplateService';
+import { reportTemplateService } from './reportTemplateServiceInstance';
 import { reportPartService as mockReportPartService } from '../reportParts/reportPartServiceInstance';
 import type { TemplateNode } from '@/types/template';
 
@@ -47,14 +47,14 @@ export interface FinalDiagnosisDesignationResult {
 export async function validateFinalDiagnosisDesignation(templateId: string): Promise<FinalDiagnosisDesignationResult> {
   // Real, per direct guidance: the constraint only applies to
   // Final-category templates. This app's own real, existing
-  // convention (mockReportTemplateService.ts) marks a Preliminary
+  // convention (reportTemplateService.ts) marks a Preliminary
   // template's own id with the 'tmpl-prelim-' prefix — the same real
   // signal this function relies on rather than inventing a new,
   // separate category field. Checked before any real fetch at all —
   // a Preliminary template's own real data is never even touched.
   if (templateId.startsWith('tmpl-prelim-')) return { ok: true, count: 0 };
 
-  const templateRes = await mockReportTemplateService.getById(templateId);
+  const templateRes = await reportTemplateService.getById(templateId);
   if (!templateRes.ok) return { ok: false, count: 0, error: `Template ${templateId} not found.` };
   const template = templateRes.data;
 

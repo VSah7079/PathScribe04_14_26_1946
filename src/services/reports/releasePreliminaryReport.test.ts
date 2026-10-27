@@ -9,6 +9,8 @@ vi.mock('@/services/reportRelease/releaseThroughDelay', () => ({
   }),
 }));
 
+// Batch 649: the capability check allows here unless a test passes its own (see the end of the file).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: vi.fn(async () => ({ allowed: true })) } }));
 vi.mock('../cases/CaseRouter', () => ({
   caseRouter: { getCase: vi.fn(), updateCase: vi.fn() },
 }));
@@ -166,5 +168,24 @@ describe('Batch 534: through the release delay', () => {
     expect(vi.mocked(releaseThroughDelay).mock.calls.slice(-1)[0][1]).toEqual({ kind: 'surgical-preliminary', releasedBy: { userId: 'P1', userName: 'Dr P' } });
     expect(caseRouter.updateCase).toHaveBeenCalled();
     expect(publishReportReleasedEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('Batch 649: surgical:preliminary:release', () => {
+  it('refused: nothing is sent or written, and the reason comes back', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValue(makeCase({ order: { facilityId: 'FAC-1' } }) as any);
+    const enforce = vi.fn(async () => ({ allowed: false }));
+    const result = await releasePreliminaryReport('CASE-1', releasingUser, undefined, { enforce });
+    expect(enforce).toHaveBeenCalledWith('surgical:preliminary:release', { caseId: 'CASE-1', facilityId: 'FAC-1' });
+    expect(result).toMatchObject({ ok: false, dispatchedCount: 0, notPermitted: true });
+    expect(result.error).toBeTruthy();
+    expect(publishReportReleasedEvent).not.toHaveBeenCalled();
+    expect(caseRouter.updateCase).not.toHaveBeenCalled();
+  });
+
+  it('allowed: the release goes ahead as before', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValue(makeCase() as any);
+    const result = await releasePreliminaryReport('CASE-1', releasingUser, undefined, { enforce: async () => ({ allowed: true }) });
+    expect(result).toEqual({ ok: true, dispatchedCount: 1 });
   });
 });

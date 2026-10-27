@@ -7,10 +7,10 @@ import { loadPeerReviewStatus, type CaseForPeerReview, type PeerReviewStatus } f
 import type { PriorCaseForMalignancy } from './peerReviewRules';
 
 async function priorCases(patientId: string, excludeCaseId: string): Promise<PriorCaseForMalignancy[]> {
-  const { mockPatientIndexService } = await import('../patients/mockPatientIndexService');
+  const { patientIndexService } = await import('../patients/patientServicesInstance');
   const { caseRouter } = await import('../cases/CaseRouter');
   const [linked, casesRes] = await Promise.all([
-    mockPatientIndexService.getLinkedPatientIds(patientId, 'same_person').catch(() => [patientId]),
+    patientIndexService.getLinkedPatientIds(patientId, 'same_person').catch(() => [patientId]),
     caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
   ]);
   const ids = new Set([patientId, ...linked]);
@@ -29,15 +29,15 @@ export function peerReviewStatusFor(caseData: CaseForPeerReview, findings: Reado
     // The ordering facility's performing lab; failing that, the enterprise
     // facility that lists the case's tenant (resolveTenantFacility).
     performingLabFor: async (orderingFacilityId, tenantId) => {
-      const { mockFacilityService } = await import('../facilities/mockFacilityService');
+      const { facilityService } = await import('../facilities/facilityServiceInstance');
       const { resolvePerformingLabFacilityId } = await import('../facilities/IFacilityService');
       const { resolveTenantFacility } = await import('../auth/resolveTenantFacility');
       if (orderingFacilityId) {
-        const res = await mockFacilityService.getById(orderingFacilityId).catch(() => null);
+        const res = await facilityService.getById(orderingFacilityId).catch(() => null);
         const lab = res?.ok ? resolvePerformingLabFacilityId(res.data) : undefined;
         if (lab) return lab;
       }
-      const all = await mockFacilityService.getAll().catch(() => null);
+      const all = await facilityService.getAll().catch(() => null);
       return all?.ok ? resolveTenantFacility(tenantId, all.data)?.id : undefined;
     },
     priorCases,

@@ -61,6 +61,7 @@ import CytologyPanel from './components/CytologyPanel';
 import CommentDrawer from './components/CommentDrawer';
 import BlockExhaustedControl from './components/BlockExhaustedControl';
 import BatchProgressModal from './components/BatchProgressModal';
+import UndoToast from './components/UndoToast';
 import { computeNextUnprintedStain, MICROTOMY_CANCEL_REASONS, MICROTOMY_REASON_KEYS } from '@/utils/microtomyOperations';
 import '../../pathscribe.css';
 
@@ -193,6 +194,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
           </div>
 
           {w.saveError && <div className="ps-microtomy-save-error" role="alert">{w.saveError}</div>}
+          {w.printNotice && <div className="ps-microtomy-save-error" role="alert">{w.printNotice}</div>}
           <div className="ps-microtomy-layout">
             {/* Left: Work Item Context */}
             <div>
@@ -332,6 +334,8 @@ const MicrotomyWorkstationPage: React.FC = () => {
           }}
         />
       )}
+
+      {w.undoNotice && <UndoToast notice={w.undoNotice} onUndo={w.undoLast} onClose={w.dismissUndo} />}
 
       {w.batchProgress && <BatchProgressModal entries={w.batchProgress} onClose={w.clearBatchProgress} />}
     </div>

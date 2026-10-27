@@ -31,12 +31,14 @@ const ReportPrintPromptModal: React.FC<Props> = ({ plan, onPrint, onCancel }) =>
           {plan.action === 'reprint' ? t('reportPrintPrompt.reprintTitle') : t('reportPrintPrompt.printTitle')}
         </span>
         {plan.warnPendingRelease && (
-          <p className="ps-modal-dark-body ps-modal-dark-body--confirm">{t('reportPrintPrompt.pendingReleaseWarning')}</p>
+          <p className="ps-modal-dark-body ps-modal-dark-body--confirm">
+            {plan.askOverrideReason ? t('reportPrintPrompt.supervisorOverrideWarning') : t('reportPrintPrompt.pendingReleaseWarning')}
+          </p>
         )}
-        {plan.askReason && (
+        {(plan.askReason || plan.askOverrideReason) && (
           <div className="ps-report-print-prompt__reason">
             <label className="ps-conf-label" htmlFor="report-reprint-reason">
-              {t('reportPrintPrompt.reasonLabel')} <span className="ps-conf-required">*</span>
+              {plan.askOverrideReason ? t('reportPrintPrompt.overrideReasonLabel') : t('reportPrintPrompt.reasonLabel')} <span className="ps-conf-required">*</span>
             </label>
             <textarea
               id="report-reprint-reason"
@@ -46,7 +48,7 @@ const ReportPrintPromptModal: React.FC<Props> = ({ plan, onPrint, onCancel }) =>
               placeholder={t('reportPrintPrompt.reasonPlaceholder')}
               autoFocus
             />
-            <span className="ps-conf-field-hint">{t('reportPrintPrompt.reasonHint')}</span>
+            <span className="ps-conf-field-hint">{plan.askOverrideReason ? t('reportPrintPrompt.overrideReasonHint') : t('reportPrintPrompt.reasonHint')}</span>
           </div>
         )}
         <div className="ps-modal-dark-footer">

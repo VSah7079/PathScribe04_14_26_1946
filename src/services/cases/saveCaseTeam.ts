@@ -23,6 +23,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Case, CaseParticipant } from '@/types/case/Case';
+import type { IAuditService } from '../auditlog/IAuditService';
+import { caseTeamAuditEntry } from './caseTeamAudit';
 import { syncPrimaryAssignee } from './caseAssignmentSync';
 import { updateCaseWithRetry, type CaseWriteDeps, type CaseWriteResult } from './caseWrite';
 import { CYTOTECHNOLOGIST_PARTICIPATION_TYPE_ID, cytotechInPathologistSlot, isCytotechOnly, type StaffRef } from '../participationTypes/cytotechParticipationRules';
@@ -41,6 +43,9 @@ export interface SaveCaseTeamDeps {
   /** PS-71 (Batch 458): versioned reads and writes (was: updateCase(caseId, updates), no version). */
   getCase: CaseWriteDeps['getCase'];
   updateCase: CaseWriteDeps['updateCase'];
+  /** Batch 651: where a saved change is audited, and the display name of the person making it (both optional: no audit without them). */
+  auditService?: Pick<IAuditService, 'logEvent'>;
+  actorName?: (userId: string) => Promise<string>;
 }
 
 /**
@@ -126,7 +131,17 @@ export async function saveCaseTeam(
   const r = await updateCaseWithRetry(input.caseData.id, current =>
     seen.has(teamKey(current.participants)) ? caseTeamUpdates(current, input.participants, input.updatedBy) : null,
   deps);
-  if (r.ok === true) return { ok: true, updates: r.updates, version: r.version };
+  if (r.ok === true) {
+    // Batch 651: the saved change is audited (never blocks or fails the save).
+    if (deps.auditService) {
+      void (async () => {
+        const user = (await deps.actorName?.(input.updatedBy).catch(() => null)) || input.updatedBy;
+        const entry = caseTeamAuditEntry(input.caseData, input.openedWith ?? input.caseData.participants, r.updates.participants ?? input.participants, user);
+        if (entry) await deps.auditService!.logEvent(entry);
+      })().catch(() => {});
+    }
+    return { ok: true, updates: r.updates, version: r.version };
+  }
   if (r.ok === false && r.reason === 'notFound') return { ok: false, reason: 'notFound' };
   // 'noChange' (the team changed under us) or 'conflict' (the case kept
   // changing): nothing saved; the person reopens and sees the newest team.

@@ -15,10 +15,10 @@ import { browserRunsServerJob } from '../serverJobs/browserStandIns';
 import i18n from '@/i18n/config';
 import { formatDate } from '@/utils/formatDate';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockMessageService } from '../messages/mockMessageService';
-import { mockUserService } from '../users/mockUserService';
-import { mockPhysicianService } from '../physicians/mockPhysicianService';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { messageService } from '../messages/messageServiceInstance';
+import { userService } from '../users/userServiceInstance';
+import { physicianService } from '../physicians/physicianServiceInstance';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { followUpStore } from './followUpStore';
 import { FOLLOW_UP_PLACEHOLDERS_AS_WRITTEN, getEffectiveFollowUpSettings } from './followUpSettings';
 import { followUpCaseIdsForUser, toFollowUpCaseInfo } from './followUpTracking';
@@ -54,7 +54,7 @@ async function runFollowUpAlertSweep(now: Date): Promise<number> {
   const { items } = await loadFollowUpItems({ allCases: true, now });
   const due = followUpAlertsDue(items);
   if (!due.length) return 0;
-  const users = await mockUserService.getAll();
+  const users = await userService.getAll();
   const staff = users.ok ? users.data : [];
   const date = (iso: string) => formatDate(iso, i18n.language);
   for (const { item, level } of due) {
@@ -64,7 +64,7 @@ async function runFollowUpAlertSweep(now: Date): Promise<number> {
     const recipients = followUpAlertRecipients(item, staff as any);
     const vars = { accession: item.accession, days: item.daysOverdue ?? item.daysRemaining ?? 0, dueDate: date(item.dueAt) };
     const kindLabel = i18n.t(`followUp.kind.${item.kind}`);
-    await Promise.all(recipients.map(u => mockMessageService.send({
+    await Promise.all(recipients.map(u => messageService.send({
       senderId: 'system',
       senderName: i18n.t('followUp.alert.sender'),
       recipientId: u.id,
@@ -117,8 +117,8 @@ export async function draftFollowUpClinicianEmailLive(
   item: FollowUpItem, senderName: string, formatDateFor: (iso: string) => string,
 ): Promise<FollowUpEmailDraft> {
   const [physician, facility, settings] = await Promise.all([
-    item.orderingPhysicianId ? mockPhysicianService.getById(item.orderingPhysicianId) : Promise.resolve(null),
-    item.facilityId ? mockFacilityService.getById(item.facilityId) : Promise.resolve(null),
+    item.orderingPhysicianId ? physicianService.getById(item.orderingPhysicianId) : Promise.resolve(null),
+    item.facilityId ? facilityService.getById(item.facilityId) : Promise.resolve(null),
     getEffectiveFollowUpSettings(item.facilityId),
   ]);
   return draftFollowUpClinicianEmail({

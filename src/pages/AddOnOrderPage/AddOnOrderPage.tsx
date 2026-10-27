@@ -74,6 +74,7 @@ const AddOnOrderPage: React.FC = () => {
 
   /** The text for a refused action. */
   const describeFailure = (result: AddOnActionResult): string => {
+    if (result.notSaved) return t(`workstationSave.${result.notSaved}`);
     if (result.notPermitted) return t('addOnOrder.errors.notPermitted');
     if (result.inHouseNotAvailable?.length) return t('addOnOrder.errors.inHouseNotAvailable', { tests: formatList(result.inHouseNotAvailable, i18n.language) });
     if (result.missing?.length) {
@@ -85,6 +86,12 @@ const AddOnOrderPage: React.FC = () => {
     return t('addOnOrder.errors.failed');
   };
   const report = (result: AddOnActionResult) => { if (!result.ok) setSubmitError(describeFailure(result)); };
+  /** Batch 669 (ws-3): after a flagged exception is saved, who was told (the Supervisor / Accessioning Desk when the slide has no ordering pathologist), or that nobody could be. */
+  const reportFlag = (result: AddOnActionResult) => {
+    report(result);
+    if (result.ok && result.noticeToDesk) setSubmitNotice(t('addOnOrder.tracking.flagSentToDesk'));
+    if (result.ok && result.noticeNotSent) setSubmitError(t('addOnOrder.tracking.flagNobodyNotified'));
+  };
 
   // Batch 375 (Pete): Add-On Orders is an action on a case now, not a Home
   // tile. The report page's "Add-on order" opens this page with ?case=<id>,
@@ -181,7 +188,7 @@ const AddOnOrderPage: React.FC = () => {
         <span><strong data-phi="accession">{fullAccession}</strong></span>
         <span data-phi="name">{patientName}</span>
         <span>{t('addOnOrder.context.caseStatusLine', { status: CASE_STATUS_LABEL_KEY[caseData.status] ? t(CASE_STATUS_LABEL_KEY[caseData.status]) : caseData.status })}</span>
-        {caseData.order?.assignedTo && <span>{t('addOnOrder.context.primaryPathologistLine', { name: caseData.order.assignedTo })}</span>}
+        {w.primaryPathologistName && <span>{t('addOnOrder.context.primaryPathologistLine', { name: w.primaryPathologistName })}</span>}
         {!w.performingLabFacilityId && <span className="ps-addon-warning-inline">{t('addOnOrder.context.noPerformingLab')}</span>}
       </div>
 
@@ -217,9 +224,9 @@ const AddOnOrderPage: React.FC = () => {
         orders={w.trackedOrders()}
         caseId={caseData.id}
         requirements={w.requirements}
-        onMarkBlockRetrieved={id => { setSubmitError(null); void w.handleMarkBlockRetrieved(id).then(report); }}
-        onFlagException={(id, reason, note) => { setSubmitError(null); void w.handleFlagException(id, reason, note).then(report); }}
-        onResolveException={(id, action, note, changes) => { setSubmitError(null); void w.handleResolveException(id, action, note, changes).then(report); }}
+        onMarkBlockRetrieved={id => { setSubmitError(null); setSubmitNotice(null); void w.handleMarkBlockRetrieved(id).then(report); }}
+        onFlagException={(id, reason, note) => { setSubmitError(null); setSubmitNotice(null); void w.handleFlagException(id, reason, note).then(reportFlag); }}
+        onResolveException={(id, action, note, changes) => { setSubmitError(null); setSubmitNotice(null); void w.handleResolveException(id, action, note, changes).then(report); }}
       />
     </div>
   );

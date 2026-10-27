@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MolecularBatch } from './IMolecularBatchService';
-import type { DispatchMolecularWorklistError, DispatchMolecularWorklistResult } from './dispatchMolecularWorklist';
+import type { DispatchMolecularWorklistError, DispatchMolecularWorklistResult, MolecularDispatchFailure } from './dispatchMolecularWorklist';
 
 /** Whether the batch offers the Dispatch Worklist action. */
 export function canStartMolecularDispatch(batch: Pick<MolecularBatch, 'worklistDispatchedAt' | 'status'>): boolean {
@@ -33,7 +33,7 @@ export function canConfirmMolecularDispatch(
 export type MolecularDispatchFeedback =
   | { success: true }
   | { success: false; verificationFailures: Array<'plate' | 'deck' | 'station'> }
-  | { success: false; reason: string };
+  | { success: false; reason: string; failure?: MolecularDispatchFailure };
 
 /** What the screen reports after a dispatch attempt. */
 export function molecularDispatchFeedback(
@@ -43,5 +43,12 @@ export function molecularDispatchFeedback(
   // strictNullChecks, where a boolean discriminant does not narrow.
   if (!('reason' in result)) return { success: true };
   const failures = result.verificationFailures;
-  return failures?.length ? { success: false, verificationFailures: failures } : { success: false, reason: result.reason };
+  return failures?.length ? { success: false, verificationFailures: failures } : { success: false, reason: result.reason, ...(result.failure ? { failure: result.failure } : {}) };
+}
+
+/** Batch 669 (mol-7): which translated message (molecularPlateBuilderPage.dispatchFailure.<key>) says why a verified worklist did not go.
+ *  The technical text stays out of the screen; the receiver's HTTP status is shown only when it is known. */
+export function dispatchFailureKey(failure: MolecularDispatchFailure): 'unreachable' | 'rejected' | 'rejectedNoCode' | 'timeout' {
+  if (failure.code === 'rejected') return failure.status ? 'rejected' : 'rejectedNoCode';
+  return failure.code;
 }

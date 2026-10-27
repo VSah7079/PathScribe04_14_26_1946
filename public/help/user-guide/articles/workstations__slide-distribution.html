@@ -1,0 +1,425 @@
+<h1 id="top">Slide Distribution Station</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Slide Distribution Station is where finished, stained slides leave the laboratory bench. You scan slides one after another and send each either to a pathologist (a physical checkout, with the folder, tray or courier bag recorded) or to a digital slide scanner (with the scanner, rack and slot recorded). The screen keeps a running queue of what you have scanned, warns when slides from one block are going to different places, lets you flag a slide that has a problem, and keeps a chain-of-custody history for every slide.</p>
+<p><strong>Intended users.</strong> Histotechnologists who distribute slides, and laboratory managers. The screen opens only for roles that have the Slide Distribution screen switched on; by default that is the Histotechnologist role.</p>
+<p><strong>Where it fits.</strong> Slides arrive here after cutting at the <a href="/help/workstations/microtomy">Microtomy Workstation</a> and staining. A checked-out slide goes to the pathologist's desk; a slide routed to a scanner appears in the scanning queue in <a href="/help/batch-management">Batch Management</a> (see <a href="/help/batch-management/wsi-scan">WSI Scan</a>), where it is loaded onto the scanner and scanned. Slides ordered through <a href="/help/add-on-orders">Add-On Orders</a> show their progress as "Checked Out / Scanned" once they are checked out or loaded on a scanner here. Open the screen from the <a href="/help/pathology-workspace">Pathology Workspace</a> (the <strong>Slide Distribution Workspace</strong> tile) or with the <strong>Go to Bench</strong> button when your station is a distribution station.</p>
+<div class="admonition note">
+<p class="admonition-title">What the queue is</p>
+<p>The queue lives on the screen while you work. Each routing you confirm is saved on the slide at once, but the list of scanned slides itself is not kept: if you leave the page or reload it, the queue starts empty again. The slides keep their routing and their history.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/workstations-slide-distribution-overview.png" alt="The Slide Distribution Station with a queue of slides, the active slide in the middle and the destination controls on the right"><figcaption>The Slide Distribution Station with a queue of slides, the active slide in the middle and the destination controls on the right</figcaption></figure>
+
+<p>The page is titled <strong>Slide Distribution Station</strong>. <strong>Back</strong> at the top left returns to the Worklist. Unlike the other two stations, the scan box is always on screen, with the prompt "Scan a slide or block/cassette barcode — the queue grows continuously".</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Top bar</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Slides in Queue</td>
+<td>How many slides are in the queue now.</td>
+</tr>
+<tr>
+<td>Destination Mode</td>
+<td>Physical Checkout or Digital Scanner: the side of the destination panel you are on.</td>
+</tr>
+<tr>
+<td>Carrier / Scanner</td>
+<td>For the slide you are working on: its courier bag, tray, folder or scanner, whichever is recorded. A dash if none.</td>
+</tr>
+<tr>
+<td>Tech</td>
+<td>Your name. It is written on every chain-of-custody line you create.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Left: Work Queue</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Row heading</td>
+<td>The accession, specimen and block, and a priority badge (STAT, Rush or Routine) from the case.</td>
+</tr>
+<tr>
+<td>✕</td>
+<td>Takes the slide out of the queue. It does not undo any routing already saved.</td>
+</tr>
+<tr>
+<td>Second line</td>
+<td>The stain and the routing status, or "Not yet routed".</td>
+</tr>
+<tr>
+<td>Third line</td>
+<td>Where it is going: the pathologist's name, "Subspecialty pool", the scanner, or "Unassigned".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Center</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Batch Progress</td>
+<td>One small square for each queued slide, labelled with its block. Colours show physical, digital or exception. Hold the pointer over a square to read the slide and stain. Select a square to make that slide the active one.</td>
+</tr>
+<tr>
+<td>Unresolved Scans</td>
+<td>The last five scans that did not match anything, with the reason and time.</td>
+</tr>
+<tr>
+<td>Active Slide</td>
+<td>The slide you are working on: its name, stain and routing status.</td>
+</tr>
+<tr>
+<td>Split-destination warning</td>
+<td>Appears when slides from the same block are going to different places (see below).</td>
+</tr>
+<tr>
+<td>Scan Exception Log</td>
+<td>A Note box and three reason buttons (Unreadable Barcode, Unassigned Accession, Missing Glass).</td>
+</tr>
+<tr>
+<td>Trigger Replacement Label</td>
+<td>Prints a new label for the active slide.</td>
+</tr>
+<tr>
+<td>Chain of Custody</td>
+<td>Every step recorded for the slide, newest first, with the time.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Right: Destination &amp; Assignment</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Physical Checkout / Digital Scanner</td>
+<td>Chooses the kind of routing.</td>
+</tr>
+<tr>
+<td>Pathologist or pool</td>
+<td>A search box and buttons for pathologists ("Dr. Name") and subspecialty pools. Choosing one clears the other. Selecting the same button again clears it.</td>
+</tr>
+<tr>
+<td>Slide Folder ID, Tray Number, Courier Transit Bag</td>
+<td>Where the physical slide is going.</td>
+</tr>
+<tr>
+<td>Scanner Instrument</td>
+<td>A slide scanner from the laboratory's equipment list.</td>
+</tr>
+<tr>
+<td>Rack ID, Slot Position</td>
+<td>Where the slide sits in the scanner (examples shown: Rack 102, Slot 14).</td>
+</tr>
+</tbody>
+</table>
+<p>When you select a slide that has not been routed, the physical side is filled in with the case's assigned pathologist and subspecialty pool, if the case has them. Your laboratory can require some of these fields, shown by a red star; a line beginning "Still required" names anything missing, and the confirm button stays grey. By default the folder, tray, courier bag, rack and slot are optional, but a checkout always needs at least one of a pathologist, a pool or a location ("a pathologist, pool or location").</p>
+<p><strong>Routing status shown for a slide</strong></p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assigned</td>
+<td>A pathologist or pool is set but no physical location has been recorded.</td>
+</tr>
+<tr>
+<td>Checked out</td>
+<td>A folder, tray or courier bag has been recorded.</td>
+</tr>
+<tr>
+<td>In scanning queue</td>
+<td>A scanner is chosen, but no rack and slot yet.</td>
+</tr>
+<tr>
+<td>Loaded on scanner</td>
+<td>Scanner, rack and slot are all recorded.</td>
+</tr>
+<tr>
+<td>Scanned</td>
+<td>The slide's scan batch was unloaded after a good scan.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="prompts-and-messages">Prompts and messages</h3>
+<table>
+<thead>
+<tr>
+<th>Text</th>
+<th>Where and what it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan or type a barcode…</td>
+<td>Grey hint in the scan box. Scan a slide or block, or type the barcode and select <strong>Go</strong>.</td>
+</tr>
+<tr>
+<td>No slides scanned yet.</td>
+<td>Shown in the Work Queue until the first scan. The queue is not kept when you leave the page.</td>
+</tr>
+<tr>
+<td>Search pathologists or pools…</td>
+<td>Hint in the recipient search for a physical checkout. Type part of a name to narrow the buttons.</td>
+</tr>
+<tr>
+<td>e.g. Rack 102</td>
+<td>Hint in <strong>Rack ID</strong> for a scanner routing.</td>
+</tr>
+<tr>
+<td>e.g. Slot 14</td>
+<td>Hint in <strong>Slot Position</strong> for a scanner routing.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go</td>
+<td>Looks up the barcode typed in the scan box. A scanner does the same without pressing it.</td>
+</tr>
+<tr>
+<td>✕ (queue row)</td>
+<td>Removes the slide from the queue.</td>
+</tr>
+<tr>
+<td>Confirm Physical Routing</td>
+<td>Saves the checkout for the active slide.</td>
+</tr>
+<tr>
+<td>Confirm Scanner Routing</td>
+<td>Saves the scanner routing for the active slide.</td>
+</tr>
+<tr>
+<td>Unreadable Barcode, Unassigned Accession, Missing Glass</td>
+<td>Flags the active slide with that reason, and the note if you typed one.</td>
+</tr>
+<tr>
+<td>Resolve</td>
+<td>Clears the open exception on the active slide.</td>
+</tr>
+<tr>
+<td>Trigger Replacement Label</td>
+<td>Opens a reason window, then prints a new label. The label uses your laboratory's configured slide label layout (the same one the Microtomy Workstation prints with).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Priority badge</td>
+<td>The case priority: STAT, Rush or Routine.</td>
+</tr>
+<tr>
+<td>Highlighted queue row or square</td>
+<td>The active slide.</td>
+</tr>
+<tr>
+<td>Square colours</td>
+<td>Physical routing, digital routing, or an open exception.</td>
+</tr>
+<tr>
+<td>Warning with a triangle in the Active Slide panel</td>
+<td>Either a split-destination warning or the slide's open exception.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Split-destination warning wording.</strong> "Slides on this block are split between physical checkout and digital scanning." / "Slides on this block are checked out to different pathologists or locations." / "Slides on this block are loaded on different scanners." The warning appears only when at least two slides on the block have been routed. When all go to the same place, nothing is shown. It looks at one block only, not at the whole case.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>Both keys work while this screen is open, and each acts only for the side of the destination panel that is on screen. An administrator can change them.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Spoken phrase</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+Alt+Shift+P</td>
+<td>"confirm checkout" or "check out slide"</td>
+<td>Confirm Physical Routing, while Physical Checkout is showing.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+D</td>
+<td>"confirm scanner" or "send to scanner"</td>
+<td>Confirm Scanner Routing, while Digital Scanner is showing.</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>none</td>
+<td>Opens this help article.</td>
+</tr>
+</tbody>
+</table>
+<p>Each key applies the same "Still required" checks as its button. Phrases are also available in French, German, Dutch, Korean and Spanish. See <a href="/help/voice-and-keyboard">Voice and Keyboard</a>. There is no foot pedal action on this screen.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Check the station indicator in the top bar. Open the <strong>Slide Distribution Workspace</strong> tile in the <a href="/help/pathology-workspace">Pathology Workspace</a>. The scan box has the cursor.</li>
+<li>Scan the first slide. It appears in the Work Queue and becomes the active slide; its stain and status show under <strong>Active Slide</strong>. To queue a whole block's slides at once, scan the block (cassette) barcode instead: every slide cut from that block is queued and the first one is active.</li>
+<li>Check the stain and accession against the slide in your hand.</li>
+<li>For a pathologist: on <strong>Physical Checkout</strong>, choose the pathologist or pool (it may be filled in already), type the folder, tray or courier bag if you use them, and select <strong>Confirm Physical Routing</strong>. The status changes to Assigned, or to Checked out if a location was given, and a line is added under Chain of Custody.</li>
+<li>For a scanner: select <strong>Digital Scanner</strong>, choose the <strong>Scanner Instrument</strong>, enter the <strong>Rack ID</strong> and <strong>Slot Position</strong> if the slide is already racked, and select <strong>Confirm Scanner Routing</strong>. The status changes to In scanning queue, or to Loaded on scanner when rack and slot are both given.</li>
+<li>Scan the next slide. Repeat until the tray is empty. The Batch Progress squares show how many are routed, and which are physical and which digital.</li>
+<li>Watch for the split-destination warning. If slides from one block are going to different places on purpose, carry on; otherwise route them together.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Select from the queue.</strong> Select a queue row or a Batch Progress square to make that slide active, then route it. Use this to route slides in an order different from the scan order.</li>
+<li><strong>Route in two stages.</strong> Confirm a pathologist first (status Assigned) and come back later to add the folder or tray. Values already recorded are kept; only the fields you change are replaced. Each confirmation adds its own history line.</li>
+<li><strong>Change a slide's destination.</strong> Select it, switch to the other side of the destination panel and confirm. The new destination is recorded; earlier values stay in the history.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>A slide is missing, or its barcode will not read.</strong> For a scan that matches nothing, a message such as "That scan didn’t match a case, block or slide. Check the barcode and try again." appears and the scan is added to <strong>Unresolved Scans</strong>. For a slide that is in the queue but has a problem (for example the glass is not there), select it, type a <strong>Note</strong> if useful, and select <strong>Missing Glass</strong>, <strong>Unreadable Barcode</strong> or <strong>Unassigned Accession</strong>. The square turns to the exception colour and the slide shows the reason with a <strong>Resolve</strong> button. The note is optional unless your organisation requires it; when it is required, the reason buttons stay grey until you type it.</li>
+<li><strong>Resolve an exception.</strong> Once the problem is fixed, select <strong>Resolve</strong>. A "Resolved" line is added to the history.</li>
+<li><strong>A label is damaged.</strong> Select <strong>Trigger Replacement Label</strong>. In the "Reason required" window the text reads "A reprinted slide label could be a duplicate, so the reason is kept on the slide’s chain-of-custody record." Choose Damaged label, Unreadable barcode, Smudged print or Other, and select <strong>Reprint</strong>. The reason goes in the history.</li>
+<li><strong>No scanner is listed.</strong> The panel says "No slide scanners are set up in Configuration → Equipment." Ask an administrator to add the scanner. Until then a digital routing cannot be confirmed.</li>
+<li><strong>A block with no slides.</strong> "Block A1 has no slides to distribute." Check that the slides were cut and recorded at the <a href="/help/workstations/microtomy">Microtomy Workstation</a>.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Missing glass</p>
+<p>Flagging a slide as Missing Glass records the problem and sends nothing anywhere. Tell your supervisor, and do not route the slide until the glass is found and you have selected <strong>Resolve</strong>.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the red line "Could not save this routing — see the message above." appears, read the message above it. It is either the "Still required" line or a note that the slide is no longer in the queue.</li>
+<li>If "That slide is no longer in the queue." appears, scan the slide again.</li>
+<li>If you sent a slide to the wrong person, select it, choose the right pathologist and confirm again. The earlier line stays in the history, which is intended.</li>
+<li>If you removed a slide from the queue by mistake, scan it again. Its routing is unchanged.</li>
+<li>If a replacement label does not print, a message appears under the button (for example no station selected, or the station is not set up for slide-label printing). The reason has been recorded already. Choose your station in the top bar, or ask your administrator to set up the printer, and try again.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Confirming a physical checkout without a pathologist or location. The button stays grey and the line "Still required: a pathologist, pool or location" explains why.</li>
+<li>Routing one slide of a block to a scanner and the rest to the pathologist without meaning to. Watch for the split-destination warning.</li>
+<li>Leaving the page with unrouted slides in the queue. The queue is not kept; scan the slides again.</li>
+<li>Scanning a slide again to refresh its status after a scanner has loaded it. A slide already in the queue is not reloaded. Remove it with ✕ and scan it again to see the current status.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Scan a block barcode to queue all of its slides at once, then route each in turn.</li>
+<li>Let the case's assigned pathologist or pool fill in, then only add the folder or tray.</li>
+<li>Use the keys or voice to confirm while your hands hold the tray.</li>
+<li>Keep the same side of the destination panel open for a run of similar slides. The panel switches to the right side for each slide you select, so check it each time.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Distribute STAT and Rush slides first; the priority badge in the queue shows them.</li>
+<li>At the end of the run, check that no square shows the exception colour.</li>
+<li>Use the Chain of Custody list to answer "where is this slide" before you go looking.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/workstations/microtomy">Microtomy Workstation</a>: where the slides were cut and labelled.</li>
+<li><a href="/help/add-on-orders">Add-On Orders</a>: additional slides ordered by pathologists reach this bench.</li>
+<li><a href="/help/batch-management">Batch Management</a>: staining and other steps of chain of custody before distribution.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management/wsi-scan">WSI Scan</a>: slides routed to a scanner wait in its scanning queue, are loaded onto the scanner and scanned. A slide that does not scan, fails, or fails the image check goes back to "In scanning queue".</li>
+<li><a href="/help/report">Report</a>: the pathologist reads the slides and reports the case.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Slide Distribution Workspace tile</td>
+<td>Your role does not include the Slide Distribution screen.</td>
+</tr>
+<tr>
+<td>The destination panel says "Select a slide from the queue first."</td>
+<td>No slide is active. Scan one or select one.</td>
+</tr>
+<tr>
+<td>Confirm Physical Routing is grey</td>
+<td>No pathologist, pool or location, or a required field is empty.</td>
+</tr>
+<tr>
+<td>Confirm Scanner Routing is grey</td>
+<td>No scanner chosen, or a required field (rack or slot) is empty.</td>
+</tr>
+<tr>
+<td>The Ctrl+Alt+Shift+P or D key does nothing</td>
+<td>The other side of the destination panel is showing, or a required field is empty.</td>
+</tr>
+<tr>
+<td>"This station takes block and slide barcodes only."</td>
+<td>You scanned a matrix block, cell block, decant or specimen barcode.</td>
+</tr>
+<tr>
+<td>Queue is empty after a reload</td>
+<td>The queue is kept only while the page is open.</td>
+</tr>
+<tr>
+<td>A red "Not saved" line above the queue</td>
+<td>The last routing, flag or reprint reason was not stored. PathScribe tried again on the newest copy of the case, then reloaded the queued slides as they are stored. Repeat the change.</td>
+</tr>
+<tr>
+<td>The case's pathologist did not fill in</td>
+<td>The case has no assigned pathologist or pool.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the red or "Still required" line near the button.</li>
+<li>Select the slide in the queue so the destination panel shows it.</li>
+<li>Scan the barcode again, or type it and select <strong>Go</strong>.</li>
+<li>If a red "Not saved: …" line shows, the queued slides have already been reloaded as stored: the routing you just made is not on them, so repeat it. A replacement label is printed only after its reason has been saved, so an unsaved reason never produces a label. Otherwise reload the page and scan the slides again to check what has been saved; routings already confirmed are kept.</li>
+<li>Check the station indicator if a replacement label will not print.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a routing you confirmed is not shown after you scan the slide again, a slide's history lines are missing, or a replacement label prints wrongly. Have the accession, block and stain, and the time ready.</p>

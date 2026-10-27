@@ -56,6 +56,7 @@ export const mockCancerRegistryOutboundQueueService: ICancerRegistryOutboundQueu
     const updated: CancerRegistryOutboundQueueEntry = {
       ...prior, status: 'FAILED', errorCode: failure.errorCode, errorMessage: failure.errorMessage,
       maxRetriesExceeded: failure.maxRetriesExceeded, lastAttemptAt: new Date().toISOString(),
+      ...(failure.reviewCodes?.length ? { reviewCodes: failure.reviewCodes } : {}),
     };
     const next = [...all]; next[idx] = updated; persist(next);
     auditService.logEvent({

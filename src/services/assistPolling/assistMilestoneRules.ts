@@ -236,7 +236,7 @@ export function mergeSuggestionsIntoInstance(
     const untouched = isEmptyAnswer(current) || (!!prev && prev.verification === 'unverified' && sameValue(current, prev.value));
     if (untouched) {
       answers[field] = sug.value;
-      aiSuggestions[field] = sug;
+      aiSuggestions[field] = { ...sug, verification: 'unverified' }; // Batch 682: a polled fill is always a draft until the pathologist confirms it
       delete reevaluations[field];
       continue;
     }

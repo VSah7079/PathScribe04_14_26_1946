@@ -1,3 +1,9 @@
+**Batch 650 to 652:** `AUTHORIZATION_API.md` (Superadmin statement, new audit events), `LIVE_UPDATES_SIGNALR.md` (the hub signs in with the session cookie; the demonstration build still sends the SSO token as a query string until the server session exists), `LOCKBOX_API.md` (receipt linked to a case at accessioning, `lockbox:folder:review`), `ACCESS_CONTROL_PLAN.md` and `AUTHENTICATION_OIDC.md` (wording aligned with the code). No new capability.
+
+- **Batch 649:** `AUTHORIZATION_API.md` lists 17 new capabilities (sign-out, preliminary and revision release, recall, pool, flags, codes, create case, informal review, four QA deficiency actions), the rule that signing needs the capability *and* case participation (no administrative override), and the preliminary-release ruling (Pathologist and Fellow only).
+
+- **`LOCKBOX_API.md` (new, Batch 645):** the Lockbox Drop-Off contract: server-stamped time and user, append-only receipts, 409 on a duplicate barcode, the five routes under `/api/lockbox/lockbox-drop-off`, refusal codes, capabilities and audit text, the default roles, and what is demonstration only. `HTTP_ROUTE_MAPPING.md` and `AUTHORIZATION_API.md` gain their rows.
+
 - **Batch 617 (part R):** `HTTP_SERVICES_PATTERN.md` section 7 is now the single route rule for every server version (`/api/<area>/<service>/<method-kebab>`, `GET` for plain-value reads, `POST` otherwise); `HTTP_ROUTE_MAPPING.md` (new) lists the earlier and current path of every converted call; the `*_API.md` tables carry the current paths.
 
 ## Batch 616 (part F) — follow-up tracking by commands, and biometric signing through one flow (PS-483, PS-512)
@@ -15,6 +21,7 @@ Follow-up tracking now has a server version that works by commands (`IFollowUpSe
 
 ## Batch 611 (part H)
 
+- `SIGN_OUT_AUTHENTICATION.md` (new, Batch 642): the sign-out authentication policy (strict or once per session, second factor, facility overrides and lock), the sign-out session, what the server must check, the audit fields, and the remote sign-out and workstation-lock rules the API server owns in phase 2e.
 - `MFA.md` (new): multi-factor sign-in. How the identity provider's second factor is read (`amr` / `acr`), the per-organisation policy, the Simulated authenticator for demo accounts, the ten acceptance criteria with the tests that prove each, and what the API server must do instead in production. `AUTHORIZATION_API.md`: one new capability, `auth:mfa-enrolment:reset`.
 
 ## Batch 594
@@ -202,6 +209,8 @@ New `CYTOLOGY_QC_API.md`: one open QC assignment per specimen (ROSE, then the QC
 
 ## Batch 522
 
+**`CONSULT_ACCESS_API.md` (Batch 669 update):** the consult page now shows a masked patient (initials, birth year) by default; full identity is an audited issue-time opt-in (`case:consult-link:reveal-identity`, CA-25); passcode verification by e-mail is Planned (CA-26); expiry verified (CA-27); single-use is a decision.
+
 **`CONSULT_ACCESS_API.md` (new):** outside consult links (PS-290). It covers:
 - tokens (256-bit, stored as SHA-256, carried after `#`, never logged);
 - lifespan, revocation and the expiry job;
@@ -231,6 +240,8 @@ The requirements are numbered CA-1 to CA-24 for the India team.
 `AUTHORIZATION_API.md`: the AI instruction capabilities, endpoints and separation of duties (built); `AI_PROXY.md`: the AI vendor policy, the proxy's check, the `AI_VENDOR_NOT_ALLOWED` refusal and the per-call audit fields (PS-558, with PS-539).
 
 ## Batch 537
+
+`SERVERLESS_FRONTEND_AUDIT.md` (new, Oct 21 2026): the audit of the front end and every README against Pete's serverless, event-driven direction (CLAUDE.md rule 11): no screen controls a server process; browser timers are documented stand-ins; the documents that still describe always-on parts, sticky sessions and server-held tokens, and the four decisions for Pete.
 
 `DEPLOYMENT_READINESS_REVIEW.md` (new, PS-539 phase 2a): every server-side component rated serverless-ready, needs changes, always-on or on-site; the latency budget for a 1-second refresh; the markets and their hosting rules; cost drivers; diagrams for public cloud and the portable package; the required changes ranked; Pete's decisions D1 to D7; and findings F1 to F7 in the code. Cloud-agnostic, per Pete's Oct 10 direction. Its file citations are kept honest by `src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts`.
 
@@ -444,6 +455,9 @@ The requirements are numbered CA-1 to CA-24 for the India team.
 
 - `INTERFACE_DICTIONARY_API.md` (new): vendor profiles, the scope guard, endpoints and what the server must repeat; three new platform-only capabilities in `AUTHORIZATION_API.md`.
 
+- `AUTHENTICATION_MODEL.md` (Batch 674, resolves dev note access-13): server deployments are single sign-on only; the identity provider owns the second factor; one open gap (server-held MFA policy).
+- `ACCESS_SESSION_API.md` §5 (Batch 675, dev note access-14): the server-held MFA policy contract (`get` / `save`), the three audit events and what the server must enforce. Browser side built; server routes not.
+- `SERVER_DECIDES.md` (Batch 673, Pete: "the complexity belongs on the back end"): which actions and background processes the API server must own, in four groups, from a scan of the browser's service layer.
 - `HTTP_SERVICES_PATTERN.md` (Batch 615, PS-481): how a service gets its server version: the kit, the selection rule and the rules every server version follows.
 - `BILLING_API.md`, `CYTOLOGY_API.md`, `MOLECULAR_API.md`, `REGISTRY_API.md` (Batch 616, PS-498 to PS-504): the API server's calls for the billing, cytology, molecular and registry services, one route per interface method.
 
@@ -458,3 +472,12 @@ The requirements are numbered CA-1 to CA-24 for the India team.
 - `DELIVERY_PRINTING_API.md`, `DELEGATIONS_NOTES_API.md`, `CONFIG_DICTIONARIES_API.md`, `EQUIPMENT_MIGRATION_API.md` (Batch 617, PS-514): the API server's calls for 26 more services, one route per interface method.
 - `CONFIG_SERVICES_API.md`, `CASE_WORKFLOWS_API.md`, `CRITICAL_RESULTS_API.md` (Batch 617, PS-514): the API server's calls for 29 more services (settings, dictionaries, case workflows, critical results). `BILLING_API.md`, `CYTOLOGY_API.md`, `CASE_SEARCH_API.md` and `BI_FEED_API.md` gained a Batch 617 section.
 - `QUALITY_SETTINGS_API.md`, `REFERRAL_RESEARCH_API.md`, `SEARCH_REPORTING_API.md`, `SIGNATURES_SMART_CAPTURE_API.md`, `DICTIONARIES_CONFIG_API.md`, `TUMOR_BOARD_API.md`, `LABEL_REPRINT_API.md`, `INTRAOP_CRITICAL_RESULTS_API.md` (Batch 617, PS-514): the API server's calls for those services, one route per interface method.
+- `HPV_RESULT_INBOUND.md` (Batch 629, PS-174): how an hrHPV result from a molecular platform reaches a cytology case (and, from Batch 630, the controlled manual entry): payload, proposed HL7 mapping, what each outcome does, the answers the API gives the engine, and the server work still to build.
+
+## Batch 641
+
+`CYTOLOGY_API.md`: the per-country recall settings the screening strategy body carries. `REGISTRY_ACKNOWLEDGEMENT_API.md` section 10: the CSMS eligibility gate. `DEPLOYMENT_READINESS_REVIEW.md` section 0.8: status refreshed to Batch 641 (PS-539).
+
+## Batch 658 — `RELEASE_SWEEP_SERVER_JOB.md`: design (not built) for sending held reports from a server job.
+
+- Batch 669f: `OUTBOUND_QUEUE_API.md` gained section 7, the planned (not built) dead-letter contract: retry threshold, alert and webhook, list and replay.

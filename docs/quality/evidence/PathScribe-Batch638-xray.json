@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 638 — CSMS message waits for eligibility check; Belgian Dutch dictation; prorated reassignment room; surgical demo patients",
+    "description": "Vitest, 2026-10-20: full suite 1693 files (1688 passed, 4 skipped, 1 failed); 14,240 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean."
+  },
+  "tests": [
+    {
+      "testKey": "PS-850",
+      "start": "2026-10-20T22:30:00Z",
+      "finish": "2026-10-20T23:10:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/screeningRegistry/submitScreeningRegistryResult.test.ts (CSMS held as awaiting eligibility, flag raised, later versions follow)\nPASSED: src/services/cytology/releaseCsmsHeldSubmissions.test.ts (Verified sends, Not eligible closes unsent)\nPASSED: src/services/registrySubmission/registryExceptions.test.ts (Resend cannot release)\nPASSED: src/services/cytology/signOutCytologyCase.test.ts\nPASSED: src/services/patients/demoSurgicalPatients.test.ts (every seeded case's patient is in the index)\nPASSED: src/constants/voiceProfiles.test.ts; resolveWorkloadReassignmentPlan.test.ts\nPASSED: localeParity, explicitAny, capabilities guards\nNot tested: Belgian Dutch dictation with a Belgian speaker; the gate against a real server or interface engine."
+    }
+  ]
+}

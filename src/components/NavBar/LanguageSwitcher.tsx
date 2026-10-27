@@ -24,7 +24,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n/config';
 
-const LANGUAGE_CODES: Record<SupportedLanguage, string> = { en: 'EN', fr: 'FR', 'fr-BE': 'FR-BE', de: 'DE', nl: 'NL', 'nl-BE': 'NL-BE', ko: 'KO' };
+const LANGUAGE_CODES: Record<SupportedLanguage, string> = { en: 'EN', fr: 'FR', 'fr-BE': 'FR-BE', de: 'DE', nl: 'NL', 'nl-BE': 'NL-BE', ko: 'KO', es: 'ES' };
 
 const LanguageSwitcher: React.FC = () => {
   const { i18n, t } = useTranslation();

@@ -20,15 +20,15 @@ import { molecularAssayControlRuleService } from '../molecular/molecularAssayCon
 import { caseRouter } from '../cases/CaseRouter';
 import { updateCaseWithRetry } from '../cases/caseWrite';
 import { getTemplateCached } from '../templates/templateService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { amendmentService as mockAmendmentService } from '../reports/reportServicesInstance';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { activeReferenceLabs } from '../stains/referenceLabLink';
 import { getSessionUser } from '../auth/caseAccessControl';
 import type { MolecularRunResultsPayload } from '@/types/events/MolecularRunResultsPayload';
 
 let labNames: Record<string, string> = {};
-void mockFacilityService.getAll().then(r => { if (r.ok) labNames = Object.fromEntries(r.data.map(f => [f.id, f.name])); }).catch(() => {});
+void facilityService.getAll().then(r => { if (r.ok) labNames = Object.fromEntries(r.data.map(f => [f.id, f.name])); }).catch(() => {});
 
 export const molecularOrderEngine: MolecularOrderEngine = createMolecularOrderEngine({
   loadOrders: loadMolecularOrders,
@@ -44,8 +44,8 @@ export const molecularOrderEngine: MolecularOrderEngine = createMolecularOrderEn
     try { return (await getTemplateCached(templateId)).template as never; } catch { return null; }
   },
   labName: id => labNames[id] ?? id,
-  getReferenceLabs: async () => { const r = await mockFacilityService.getAll(); return r.ok ? activeReferenceLabs(r.data).map(f => ({ id: f.id, name: f.name })) : []; },
-  logAudit: entry => mockAuditService.logEvent(entry),
+  getReferenceLabs: async () => { const r = await facilityService.getAll(); return r.ok ? activeReferenceLabs(r.data).map(f => ({ id: f.id, name: f.name })) : []; },
+  logAudit: entry => auditService.logEvent(entry),
   startAddendum: async input => {
     const r = await mockAmendmentService.startDraft({ caseId: input.caseId, type: 'addendum', authoringPathologist: input.pathologist, reportInstanceId: input.reportInstanceId, specimenId: input.specimenId });
     return r.ok ? r.data.id : undefined;

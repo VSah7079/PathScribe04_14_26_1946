@@ -33,14 +33,15 @@
 //     real specimen descriptions per template is real per-template-field
 //     mapping work, not part of this skeleton.
 // ─────────────────────────────────────────────────────────────
-
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { PhiToastMessage } from '@/components/Common/PhiToastMessage';
-
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { createAccessionedCase } from '@/services/accessioning/createAccessionedCase';
+import { linkLockboxReceiptAtAccession } from '@/services/accessioning/linkLockboxReceipt';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { updateCaseWithRetry, type CaseWriteDeps } from '@/services/cases/caseWrite';
 import { ORCH_ID_PREFIX, isOrchCaseId, formatOrchCaseId } from '@/services/cases/reportingModeRouting';
 import {
@@ -52,6 +53,7 @@ import {
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { formatList } from '@/utils/formatList';
 import { resolveSubmittedPatientId } from '@/services/accessioning/patientIdGeneration';
+import { isDowntimeReasonMissing } from '@/services/accessioning/downtimeReasonRule';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { locationService } from '@/services';
 import type { Location as LocationRecord } from '@/services/locations/ILocationService';
@@ -152,6 +154,7 @@ import { classifyAutopsyOrganCodeFromSiteText } from '@/services/autopsy/classif
 import { AUTOPSY_ORGAN_LABEL_KEY } from './autopsyOrganLabelKeys';
 import { formatConsentingRelativePriorityHint } from '@/services/autopsy/formatConsentingRelativePriorityHint';
 import { pressable } from '@/utils/a11y/pressable';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 /** Real, UI-presentation-only grouping for the Autopsy organ picker
  *  below — deliberately kept out of AutopsyOrganCode.ts itself, which
@@ -335,7 +338,6 @@ interface SpecimenDraft {
   externalId: string;
   externalIdSource: string;
 }
-
 
 // Auto-generates Block A with stain orders from the matched dictionary
 // entry's defaultStains — falls back to H&E if unset, which is most
@@ -531,7 +533,7 @@ const AccessionPage: React.FC = () => {
   const [preferredName, setPreferredName] = useState('');
   const [nameSuffix, setNameSuffix] = useState('');
   const [dob, setDob] = useState('');
-  const [sex, setSex] = useState<'M' | 'F' | 'U'>('F');
+  const [sex, setSex] = useState<'M' | 'F' | 'I' | 'U' | ''>(''); // Batch 661 (Pete): sex never defaults; required before accessioning
   // Real, per direct guidance's own prior requirement ("The User may
   // need to see the LMP and other clinical history dictionaries
   // entries") plus its own direct follow-up: LMP and the three
@@ -1255,9 +1257,7 @@ const AccessionPage: React.FC = () => {
 
   // True if the accessioner has already typed something meaningful into
   // the form — used to decide whether picking an order needs a warning
-  // first. Deliberately not gating on every field (e.g. priority/sex
-  // defaults don't count as "unsaved work").
-  //
+  // first. Priority's default does not count as "unsaved work"; a chosen sex does.
   // Real, direct fix, per direct follow-up ("take a look at the dirty
   // flag logic"): confirmed this list was never updated when the
   // Structured Clinical History Dictionary work added lmp,
@@ -1272,7 +1272,7 @@ const AccessionPage: React.FC = () => {
   // could feed this check automatically instead of relying on every
   // future page author remembering to update this array by hand.
   const hasUnsavedProgress = () =>
-    givenNames.trim() || familyNames.trim() || dob || mrn.trim() ||
+    givenNames.trim() || familyNames.trim() || dob || sex || mrn.trim() ||
     clinicalIndication.trim() || caseComments.length > 0 || specimens.some(s => s.description.trim() || s.clinicalHistory.length > 0) ||
     lmp || hormonalStatus || priorHpvResult || iudOrContraceptionUse.trim() || clinicalHistoryEntries.length > 0;
 
@@ -1327,7 +1327,7 @@ const AccessionPage: React.FC = () => {
       setPreferredName('');
       setNameSuffix('');
       setDob(order.patient.dateOfBirth ?? '');
-      setSex(order.patient.sex ?? 'U');
+      setSex(order.patient.sex ?? '');
       setMrn(order.patient.mrn ?? '');
       setEncounterNumber(order.encounterNumber ?? '');
       setPriority(order.priority ?? 'Routine');
@@ -1467,6 +1467,10 @@ const AccessionPage: React.FC = () => {
     }
     void doImportOrder(orderId);
   }
+
+  // Batch 659 (finding 6): "Open Accession" from the Lockbox folder arrives as /accession?order=<id> and imports that order.
+  const orderFromLink = useSearchParams()[0].get('order');
+  useEffect(() => { if (orderFromLink) void doImportOrder(orderFromLink); }, [orderFromLink]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function confirmImportOrder() {
     if (!pendingImportOrderId) return;
@@ -1799,7 +1803,7 @@ const AccessionPage: React.FC = () => {
   const [fieldRequirements, setFieldRequirements] = useState<ResolvedFieldRequirement[]>(() => resolveFieldRequirements('accession'));
   useEffect(() => { void fieldRequirementService.forSession('accession').then(setFieldRequirements); }, [user?.id]);
   const missingFields = missingRequiredFields(fieldRequirements, {
-    givenNames, familyNames, dateOfBirth: dob, mrn, client: clientId, requestingProvider, location: locationId,
+    givenNames, familyNames, dateOfBirth: dob, sex, mrn, client: clientId, requestingProvider, location: locationId,
     assignedPathologist: assignedTo, clinicalIndication,
     specimenDescription: specimens.map(s => s.description), collectedAt: specimens.map(s => s.collectedAt), processedAt: specimens.map(s => s.processedAt),
   });
@@ -1938,19 +1942,16 @@ const AccessionPage: React.FC = () => {
 
   // ── Submit ───────────────────────────────────────────────────────────────
   const [lastResult, setLastResult] = useState<{ assignments: GrossingTemplateAssignment[]; warnings: string[]; specimenBlocks: { specimenId: string; label: string; blocks: HistologyBlock[] }[] } | null>(null);
-  // Real feature, per direct follow-up on the label-printing
-  // architecture scope. Deliberately separate from lastResult, which
-  // is only set once the background Grossing Template refinement
-  // completes (several real seconds after submit, since it's a real
-  // AI call) — label printing needs none of that; the real Case,
-  // patient, and specimen data it prints from is already fully
-  // available the instant caseRouter.createCase() succeeds. Gating the
-  // print action on lastResult would make the user wait on an AI call
-  // that has nothing to do with what's printed.
+  // Real feature, per direct follow-up on the label-printing architecture scope. Deliberately separate from
+  // lastResult, which is only set once the background Grossing Template refinement completes (several real
+  // seconds after submit, since it's a real AI call) — label printing needs none of that; the real Case, patient,
+  // and specimen data it prints from is already fully available the instant the case is created. Gating the
+  // print action on lastResult would make the user wait on an AI call that has nothing to do with what's printed.
   const [justAccessionedCase, setJustAccessionedCase] = useState<{ caseData: Case; specimens: Specimen[] } | null>(null);
 
   async function handleSubmit() {
     if (!canSubmit) return;
+    if (isDowntimeReasonMissing(isDowntimeAccession, downtimeReasonCode)) { toast.error(t('accessionPage.toast.downtimeReasonRequired')); return; }
     setSubmitting(true);
     setLastResult(null);
 
@@ -1965,28 +1966,8 @@ const AccessionPage: React.FC = () => {
       }
       const nowIso = new Date().toISOString();
 
-      // Real fix, per direct follow-up: "will the User have to wait 6
-      // seconds? That seems wrong since everything should be 1 second
-      // or less." Confirmed directly, not guessed: the real delay
-      // wasn't the intraop lookup itself (a fast, in-memory/
-      // localStorage check) — it was evaluateGrossingTemplateAssignment
-      // below, which makes a real, genuine AI/LLM network call
-      // (services/aiIntegration/aiProviderService.ts's own callAi(),
-      // a real `fetch()`, not a mock or an artificial delay). That
-      // call is real, necessary latency for a real feature, not a bug
-      // to remove — but the intraop lookup was needlessly sequenced
-      // strictly AFTER it finished, when the two are genuinely
-      // independent: this lookup only needs form state already
-      // available right here (patientName/mrn/surgeon) plus the real
-      // caseId, already generated above — nothing it needs depends on
-      // what the AI call returns. Kicked off here, in parallel with
-      // the AI call and everything else below, rather than waiting for
-      // all of that to finish first. Resolved (not started fresh)
-      // after the real Case genuinely exists, further down — a match
-      // found here is never surfaced to the UI before
-      // caseRouter.createCase() has actually succeeded, so there's no
-      // real risk of offering to merge into a Case that doesn't exist
-      // yet.
+      // The intraop lookup needs only form state and the case id, so it starts now and runs alongside the AI template call below
+      // (evaluateGrossingTemplateAssignment); a match is shown only after caseRouter.createCase() has succeeded.
       const intraopMatchPromise = intraoperativeService.findMatchesForNewCase({
         patientName: `${familyNames.trim()}, ${givenNames.trim()}`,
         mrn: mrn.trim(),
@@ -2085,11 +2066,7 @@ const AccessionPage: React.FC = () => {
           // case - this only removes the step where the answer is
           // already fully known.
           coding: entry?.defaultBaseCptCode ? { cpt: [entry.defaultBaseCptCode] } : undefined,
-          // receivedAt defaults to "now" if the accessioner didn't touch
-          // the field; collectedAt/processedAt stay genuinely blank when
-          // not entered, rather than defaulting to "now" — see the
-          // design discussion this was built from (guessing a collection
-          // or fixation time would be actively wrong, not just imprecise).
+          // receivedAt defaults to now; collectedAt/processedAt stay blank when not entered (a guessed time would be wrong).
           receivedAt: s.receivedAt ? new Date(s.receivedAt).toISOString() : nowIso,
           collectedAt: s.collectedAt ? new Date(s.collectedAt).toISOString() : undefined,
           collection: s.collectedAt || s.anatomicSite || s.laterality ? {
@@ -2333,7 +2310,7 @@ const AccessionPage: React.FC = () => {
           firstName: givenNames.trim(),
           lastName: familyNames.trim(),
           dateOfBirth: new Date(dob).toISOString(),
-          sex,
+          sex: sex as 'M' | 'F' | 'I' | 'U', // never blank here: Sex is a locked required field, so a blank form cannot reach this point
           // Real, per direct guidance's own prior requirement ("The
           // User may need to see the LMP and other clinical history
           // dictionaries entries") plus its own direct follow-up:
@@ -2395,7 +2372,7 @@ const AccessionPage: React.FC = () => {
         updatedAt: nowIso,
       };
 
-      await caseRouter.createCase(newCase);
+      await createAccessionedCase(newCase); // Batch 649: checks case:accession:create (a refusal throws its reason; nothing is saved)
 
       // Batch 417: national identifiers go through their own service (permission
       // check, check digit, MPI mirror, audit), once the case exists.
@@ -2734,6 +2711,7 @@ const AccessionPage: React.FC = () => {
 
       if (sourceOrderId) {
         await orderIntakeService.markOrderLinked(sourceOrderId, caseId);
+        await linkLockboxReceiptAtAccession({ caseId, orderId: sourceOrderId }); // Batch 652: a lockbox receipt for this order is linked and marked accessioned
         loadPendingOrders(); // remove it from the pending list now that it's linked
       }
 
@@ -2777,7 +2755,7 @@ const AccessionPage: React.FC = () => {
 
   function resetForm() {
     setNamePrefix(''); setGivenNames(''); setFamilyNames(''); setPreferredName(''); setNameSuffix('');
-    setDob(''); setSex('F'); setMrn('');
+    setDob(''); setSex(''); setMrn('');
     setPriority('Routine'); setRequestingProvider(''); setClientId(''); setTechnicalFacilityId(''); setClinicalIndication(''); setIcd10Codes([]); setCaseComments([]); setAssignedTo(''); setCaseManualDeficiencies([]);
     setSpecimens([emptySpecimen('A')]);
     setLastResult(null);
@@ -3033,9 +3011,11 @@ const AccessionPage: React.FC = () => {
               </div>
               <div>
                 <label className="ps-label" htmlFor="accession-sex">{t('accessionPage.demographics.sex')}</label>
-                <select id="accession-sex" className="ps-input-dark" value={sex} onChange={e => setSex(e.target.value as 'M' | 'F' | 'U')}>
+                <select id="accession-sex" className="ps-input-dark" value={sex} onChange={e => setSex(e.target.value as 'M' | 'F' | 'I' | 'U' | '')}>
+                  <option value="">{t('accessionPage.demographics.sexUnselected')}</option>
                   <option value="F">{t('accessionPage.demographics.sexFemale')}</option>
                   <option value="M">{t('accessionPage.demographics.sexMale')}</option>
+                  <option value="I">{t('accessionPage.demographics.sexIndeterminate')}</option>
                   <option value="U">{t('accessionPage.demographics.sexOther')}</option>
                 </select>
               </div>
@@ -3868,9 +3848,9 @@ const AccessionPage: React.FC = () => {
 
             <div className="ps-accession-actions ps-accession-actions--split">
               <button className="ps-btn-secondary" onClick={() => setTab('case')}>← {t('accessionPage.actions.back')}</button>
-              <button className="ps-btn-primary" onClick={handleSubmit} disabled={!canSubmit}>
+              <CapabilityButton capability="case:accession:create" className="ps-btn-primary" onClick={() => { void handleSubmit(); }} disabled={!canSubmit}>
                 {submitting ? t('accessionPage.actions.assigningTemplates') : t('accessionPage.actions.submitAccession')}
-              </button>
+              </CapabilityButton>
             </div>
             {missingFields.length > 0 && (
               <p className="ps-accession-missing" role="status">{t('fieldRequirements.stillRequired', { fields: missingAllLabel })}</p>
@@ -3895,7 +3875,7 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-assignment-head">
                       <strong className="ps-accession-assignment-name">{a.specimenId.split('-SP-')[1] ?? a.specimenId}</strong>
                       <span className={`ps-accession-assignment-meta ${a.belowThreshold ? 'ps-accession-assignment-meta--warn' : ''}`}>
-                        {a.templateName} {a.fromOverride ? t('accessionPage.grossing.override') : t('accessionPage.grossing.confidence', { value: a.confidence })}
+                        {a.templateName} {a.fromOverride ? t('accessionPage.grossing.override') : showsConfidence() ? t('accessionPage.grossing.confidence', { value: a.confidence }) : ''}
                       </span>
                     </div>
                     <div className="ps-accession-assignment-reason">{a.reason}</div>

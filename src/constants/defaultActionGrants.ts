@@ -59,7 +59,7 @@ const VIEW_ALL: ActionId[] = [
   'view.noteVisibilityPrivate', 'view.noteVisibilityShared', 'view.noteCancel', 'view.noteClose', 'view.gotoCodes',
   'view.voiceAddCode', 'view.selectSpecimen', 'view.openHistory', 'view.closeHistory', 'view.voiceCancel',
   'view.flagSelectCase', 'view.flagSelectAllSpecimens', 'view.flagDeselectAll', 'view.flagCancel',
-  'view.openCaseTeam', 'view.flagOpenManager',
+  'view.openCaseTeam', 'view.flagOpenManager', 'banner.showNhsStatus', 'table.goToRow', 'table.openByAccession', 'caseTeam.addCollaborator',
   'view.addOrders', 'view.openHome', 'view.openEnhancementRequest', 'view.openTestingFeedback', 'view.viewHelp',
   'view.openResources', 'view.systemLogout', 'view.openRoutingRules', 'view.testRouting',
   'view.openParticipationTypes', 'view.focusCaseSearch', 'view.openIntraopQueue', 'view.intraopStartNewEntry',
@@ -94,10 +94,19 @@ const BIOMETRIC: ActionId[] = ['biometric.enrol', 'biometric.disable'];
 // Batch 619 (PS-800): the Outbound Queue's actions follow its capabilities (Admin).
 const OUTBOUND_QUEUE: ActionId[] = ['outboundQueue.hold', 'outboundQueue.release', 'outboundQueue.retry', 'outboundQueue.retract', 'outboundQueue.overrideRelease', 'outboundQueue.markNotReportable'];
 
+// Batch 637: grants for the actions Batches 620-636 added. They follow the matching capabilities in capabilitySeeds.ts;
+// a command grant never widens what the person may do.
+const HPV_MANUAL: ActionId[] = ['hpvResult.recordManual', 'hpvResult.approveManual', 'hpvResult.rejectManual'];
+const CSMS_ELIGIBILITY: ActionId[] = ['csms.verifyEligibility', 'csms.recordNotEligible'];
+// Batch 645: Lockbox Drop-Off. Accessioner (the morning team) gets all seven; Admin only opens it, looks at the folder and marks accessioned.
+const LOCKBOX_ALL: ActionId[] = ['lockbox.open', 'lockbox.focusScan', 'lockbox.markUrgent', 'lockbox.showDropOff', 'lockbox.showFolder', 'lockbox.markAccessioned', 'lockbox.resolvePlaceholder'];
+const LOCKBOX_OVERSIGHT: ActionId[] = ['lockbox.open', 'lockbox.showFolder', 'lockbox.markAccessioned'];
+const HISTORY_READING: ActionId[] = ['historyExtraction.run', 'historyExtraction.flag'];
+
 export const DEFAULT_ACTION_GRANTS: Readonly<Record<string, readonly ActionId[]>> = {
-  Pathologist: [...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...CASE_ACCESS_DECIDE, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...REPORT_FINAL, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
-  Fellow: [...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
-  Resident: [...CASE_ACCESS_ASK, 'codes.searchFlagged', ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY_DAILY],
+  Pathologist: [...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...CASE_ACCESS_DECIDE, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...REPORT_FINAL, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
+  Fellow: [...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
+  Resident: [...HISTORY_READING, ...CASE_ACCESS_ASK, 'codes.searchFlagged', ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY_DAILY],
   'Pathologists Assistant': [
     ...VIEW_ALL, ...BIOMETRIC, 'caseAccess.request',
     'report.saveDraft', 'report.discardChanges', 'notes.save',
@@ -105,11 +114,11 @@ export const DEFAULT_ACTION_GRANTS: Readonly<Record<string, readonly ActionId[]>
     'orders.blockRecut', 'orders.stainSectioning', 'orders.newSpecimen', 'orders.confirmBlock', ...PRINT,
     'intraop.logGrossOnly', 'intraop.logSquashPrep', 'intraop.touchPrepPerformed', 'intraop.touchPrepSkip',
   ],
-  Accessioner: [...BIOMETRIC, ...VIEW_ALL, 'orders.newSpecimen', 'flags.save', 'flags.applyStat', ...PRINT, 'notes.save'],
+  Accessioner: [...LOCKBOX_ALL, ...BIOMETRIC, ...VIEW_ALL, 'orders.newSpecimen', 'flags.save', 'flags.applyStat', ...PRINT, 'notes.save'],
   Histotechnologist: [...BIOMETRIC, ...VIEW_ALL, ...BENCH, ...PRINT, 'orders.blockRecut', 'orders.stainSectioning', 'notes.save'],
   Cytotechnologist: [...BIOMETRIC, ...VIEW_ALL, ...CYTOLOGY, 'flags.save', 'flags.applyStat', ...PRINT, 'notes.save'],
   'Molecular Technologist': [...BIOMETRIC, ...VIEW_ALL, ...MOLECULAR, 'notes.save'],
-  Admin: [...OUTBOUND_QUEUE, ...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, 'caseAccess.approve', 'caseAccess.deny', 'caseAccess.revoke', ...VIEW_BASIC, ...DISPATCH, 'table.deleteRow'],
-  'Lab Director': [...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...VIEW_BASIC, ...DISPATCH],
+  Admin: ['registryBatch.makeFile', ...OUTBOUND_QUEUE, ...LOCKBOX_OVERSIGHT, ...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, 'caseAccess.approve', 'caseAccess.deny', 'caseAccess.revoke', ...VIEW_BASIC, ...DISPATCH, 'table.deleteRow'],
+  'Lab Director': [...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...VIEW_BASIC, ...DISPATCH],
   'QA Reviewer': [...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...VIEW_BASIC],
 };

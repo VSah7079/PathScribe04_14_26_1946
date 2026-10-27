@@ -49,16 +49,20 @@ import { dispatchQueuedChargesForCase, dispatchFinancialClass } from '@/services
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
 import type { AuditLogFn } from '@/components/Audit/useAuditLog';
 import { countBlockMessage, findSynopticEntryChecks, totalWarningsMessage } from '@/services/templates/synopticEntryChecks';
-import { useState, useCallback, useEffect, type MutableRefObject } from 'react';
+import { useState, useCallback, useEffect, useRef, type MutableRefObject } from 'react';
+import { createReconciliationQueue, planFrozenReconciliation } from '@/services/quality/frozenReconciliationPlan';
 import { useTranslation } from 'react-i18next';
-import { getSessionUser, canFinalizeCase, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl';
+import { getSessionUser, canFinalizeCase, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl'; import { authorizeSurgicalSignOut } from '@/services/auth/authorizeSurgicalSignOut'; // Batch 649
 import { countersignService, userService, qaSupervisionAssignmentService, FPPE_ACTIVITY_TYPE_ID, reportReleaseService, serviceChargeService, ncciEditService, billingDeficiencyService, criticalResultNotificationService, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, outboundChargeQueueService, codeReviewPoolService, billingTypeTriggerConfigService } from '@/services';
 
 import { intraoperativeService, codeSystemPolicyService, auditService } from '@/services';
 import { getCurrentJurisdiction } from '@/services/retentionPolicy/RetentionPolicy';
 import { collectCaseEntries, signOutCodeCheck, isoDayOf, codeSignOutOverrideAudit } from '@/services/coding/codePolicyEnforcement';
 import { concordanceReviewSettingsService } from '@/services';
-import { dispatchCancerRegistryReportIfApplicable } from '@/services/cancerRegistry/dispatchCancerRegistryReportIfApplicable';
+import { runSignOutReviewGates, findMicroscopicBlockingSpecimens, findSynopticSignOutFieldProblems, unacceptedAiNarrativeSections, recordAiOmittedAtSignOut } from '@/services/signoutGates/signOutReviewGates';
+import { completeSurgicalSignOut, commitCountersignRelease } from '@/services/surgicalSignOut/completeSurgicalSignOut';
+import { releaseRevisionsAtSignOut, type RevisionsOutcome } from '@/services/surgicalSignOut/releaseRevisionsAtSignOut';
+import { releaseSurgicalFinal, surgicalFinalReleaseDeps, surgicalFinalGoesToRegistry } from '@/services/surgicalSignOut/releaseSurgicalFinal';
 import { amendmentService, reportVersionService, signatureGate } from '@/services';
 import type { SignatureConfirmation } from '@/services/auth/signerConfirmation';
 import { caseRouter } from '@/services/cases/CaseRouter';
@@ -79,6 +83,7 @@ import { dispatchCriticalAlerts } from '@/services/clinical/dispatchCriticalAler
 import { abnormalTriggerRuleService } from '@/services';
 import { evaluateAbnormalTriggerRules, toCriticalFindingFlag } from '@/services/abnormalDetection/evaluateAbnormalTriggerRules';
 import { resolveSyntheticCoding } from '@/services/abnormalDetection/resolveSyntheticCoding';
+import { activeLicensedSystems, todayIso } from '@/services/terminologyLicence/terminologyLicence';
 import { abnormalDetectionSignalService, qaActivityRecordService } from '@/services';
 
 import { applySurgicalPostSignOutQa } from '@/services/quality/applySurgicalPostSignOutQa';
@@ -108,8 +113,6 @@ import { getTemplate } from '@/services/templates/templateService';
 import { PathScribeAIService } from '@/services/aiIntegration/PathScribeAIService';
 import type { EditorTemplate } from '@/components/Config/Protocols/SynopticEditor';
 import { buildReviewFieldsFromAiSuggestions } from './buildReviewFieldsFromAiSuggestions';
-import { evaluateMicroscopicFinalizeGate, type MicroscopicNarrativeStatus } from '@/utils/evaluateMicroscopicFinalizeGate';
-import { isVisible } from '../components/RightSynopticPanel';
 import type { Case, SynopticReportInstance, CaseParticipant } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { Specimen } from '@/types/case/Specimen';
@@ -120,13 +123,15 @@ import type { RightSynopticPanelHandle } from '../components/RightSynopticPanel'
 import type { OrchestratorSection } from '../components/OrchestratorSectionEditor';
 import type { SigningUser, SetConcurrencyConflict, SendSynopticReportToLisFn, GenerateReportPdfSnapshotFn } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
+import { completeAssistFinalize } from '@/services/surgicalSignOut/completeAssistFinalize';
+import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 import { checkStainQcGate } from './checkStainQcGate';
 import { checkInkingSignOutGate } from './checkInkingSignOutGate';
 import type { InkingGateResult } from '@/services/grossing/evaluateInkingGate';
 import { checkClinicalMismatch, checkPeerReviewGate } from './checkPeerReviewAndMismatch';
 import type { ClinicalMismatchAssessment, PeerReviewStatus } from '@/services';
 import type { StainQcGateBlockingItem } from './checkStainQcGate';
-import { partGridRowsOf, synopticFieldAnswered } from '@/services/templates/partGrid';
+import { partGridRowsOf } from '@/services/templates/partGrid';
 import { findDerivedMarginConflicts, findInvasiveMarginGaps, findMohsBlockGaps, findStaleOrganMapFigures } from '@/services/organMapping/organMapLive';
 import { invasiveMarginGapsMessage } from '@/services/organMapping/organMapLabels';
 import { findMolecularResultDifferencesLive, molecularDifferencesMessage } from '@/services/molecularOrders/molecularSignOutCheck';
@@ -214,7 +219,7 @@ interface UseSignOutWorkflowParams {
   setShowAmendmentModal: (show: boolean) => void;
   setShowFinalizeModal: (show: boolean) => void;
   openAmendmentDraft: (mode: 'amendment' | 'correction' | 'addendum') => Promise<void>;
-  releasePendingAmendmentOrAddendum: () => Promise<string | undefined>;
+  releasePendingAmendmentOrAddendum: (onVersion?: (version: ReportVersionRecord) => void) => Promise<string | undefined>;
   // Batch 511 (PS-478): the page's typed audit logger, so each event and its details are checked against the audit catalogue.
   log: AuditLogFn;
 }
@@ -344,149 +349,110 @@ export function useSignOutWorkflow({
   // signature confirmed for one case can't be used on another.
   const signingCaseRef = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? null;
 
+  // Batch 649 (sign-out audit): every sign-out ends here, the frozen-section reconciliation resume included. The
+  // writes go in an order that keeps status, version and signature consistent (status first; a later failure puts
+  // the status back), the signature is linked to the exact version and its PDF hash, a countersign failure is
+  // shown and stops, and the FINAL with its registry submission goes when released (services/surgicalSignOut/).
+  const reconciliationQueue = useRef(createReconciliationQueue());
   const finalizeSignOut = useCallback(async () => {
-    // Stage 2 of the CoPilot amendment pipeline — this is the real
-    // re-sign-out. Real, serious ordering bug caught and fixed here:
-    // release() was firing before sendSynopticReportToLis() resolved,
-    // meaning a synoptic instance could be marked 'released' — and
-    // vanish from the triage tile — even if the transmission itself
-    // failed. The LIS never getting the update while the case
-    // disappears from the pathologist's active view is exactly the
-    // dangerous gray area being guarded against. Fixed: send first,
-    // only release/clear on confirmed success. A failed instance stays
-    // exactly where it was — pendingAmendmentId intact, status
-    // untouched — so it remains visible in the triage tile rather than
-    // silently vanishing while the LIS never received anything.
-    if (caseData?.id) {
-      const pendingInstances = (caseData.synopticReports ?? []).filter((r: SynopticReportInstance) => r.pendingAmendmentId);
-      const successfulInstanceIds = new Set<string>();
-      const releasedRevisionTypes = new Map<string, 'addendum' | 'amendment' | 'correction'>();
-      const failedInstances: string[] = [];
-
-      for (const instance of pendingInstances) {
-        // Orchestration owns its own finalization directly — there's
-        // no external LIS transmission to wait on the way CoPilot has.
-        // It commits immediately; CoPilot still gates on a real,
-        // confirmed send before releasing.
-        if (caseData.reportingMode !== 'assist') {
-          const released = await amendmentService.release(instance.pendingAmendmentId!, {
-            body: `Synoptic instance ${instance.instanceId} corrected and re-signed out.`,
-          });
-          successfulInstanceIds.add(instance.instanceId);
-          // Batch 535 (bug: the correction was marked released but never sent, and the FINAL
-          // skipped this instance as already sent): it goes out as CORRECTED / ADDENDUM,
-          // through the release delay, recallable by whoever signed (publishReleasedRevision).
-          if (released.ok) {
-            releasedRevisionTypes.set(instance.instanceId, released.data.type);
-            void publishReleasedRevision({
-              caseId: caseData.id, instance: { instanceId: instance.instanceId, templateId: instance.templateId, lastRevisionType: instance.lastRevisionType },
-              record: released.data, releasedBy: { id: signingUser?.id ?? '', name: signingUser?.name ?? signingUser?.id ?? '' },
-              performingFacilityId: caseData.order?.facilityId, previousStatus: caseData.status, generatePdf: generateReportPdfSnapshot,
-            }, releasedRevisionDeps).catch(e => console.error('[useSignOutWorkflow] Correction released at sign-out not sent:', e));
-          }
-          continue;
-        }
-        const sendResult = await sendSynopticReportToLis({
-          kind: 'corrected', caseId: caseData.id, instanceId: instance.instanceId,
-          payloadBody: `Synoptic instance ${instance.instanceId} corrected and re-signed out.`,
+    if (!caseData?.id) return;
+    const nextReconciliation = reconciliationQueue.current.next();
+    if (nextReconciliation) { setPendingReconciliation(nextReconciliation); return; }
+    const caseId = caseData.id;
+    let current: Case = caseData;
+    const update = async (patch: Partial<Case>) => {
+      await caseRouter.updateCase(caseId, patch, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
+      current = { ...current, ...patch };
+      setCaseData(current);
+    };
+    const createdBy = { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' };
+    const releasedBy = { id: signingUser?.id ?? '', name: signingUser?.name ?? signingUser?.id ?? '' };
+    const pdfSnapshot = async () => {
+      const pdf = await generateReportPdfSnapshot();
+      if (pdf.generationError) showToast(t('useSignOutWorkflow.toast.versionSavedPdfSnapshotFailed', { error: pdf.generationError }), 'warning');
+      return pdf;
+    };
+    let revisions: RevisionsOutcome | null = null;
+    const result = await completeSurgicalSignOut({ caseData, orchestration: isOrchestrationMode, signerId: signingUser?.id ?? null }, {
+      update, now: () => new Date(),
+      resolveBuffer: c => reportReleaseService.resolveBufferForCase(c),
+      completeCountersign: async () => {
+        const r = await countersignService.countersign({ caseId, attendingId: createdBy.userId, attendingName: createdBy.userName,
+          currentAnswersByInstance: answersByInstance(caseData), attendingFeedback: countersignFeedback.trim() || undefined });
+        if (r.ok) await recordFppeCaseReviewed(caseData);
+        return r;
+      },
+      releaseRevisions: async () => {
+        revisions = await releaseRevisionsAtSignOut(current, {
+          release: (id, body) => amendmentService.release(id, { body }),
+          publish: (instance, record) => publishReleasedRevision({
+            caseId, instance: { instanceId: instance.instanceId, templateId: instance.templateId, lastRevisionType: instance.lastRevisionType },
+            record, releasedBy, performingFacilityId: caseData.order?.facilityId, previousStatus: caseData.status, generatePdf: generateReportPdfSnapshot,
+          }, releasedRevisionDeps),
+          sendToLis: (instance, payloadBody) => sendSynopticReportToLis({ kind: 'corrected', caseId, instanceId: instance.instanceId, payloadBody }),
+          createAssistVersion: async instance => reportVersionService.create({ caseId, mode: 'assist', trigger: 'amendment', createdBy, ...(await pdfSnapshot()),
+            synopticAnswersSnapshot: instance.answers, instanceId: instance.instanceId, amendmentRecordId: instance.pendingAmendmentId }),
+          saveReports: update,
         });
-        if (!sendResult.ok) {
-          failedInstances.push(instance.instanceId);
-          continue; // do NOT release — this instance stays in draft/triage exactly as it was
-        }
-        await amendmentService.release(instance.pendingAmendmentId!, {
-          body: `Synoptic instance ${instance.instanceId} corrected and re-signed out.`,
-        });
-        successfulInstanceIds.add(instance.instanceId);
-
-        {
-          const { pdfBase64, generationError } = await generateReportPdfSnapshot();
-          if (generationError) showToast(t('useSignOutWorkflow.toast.versionSavedPdfSnapshotFailed', { error: generationError }), 'warning');
-          await reportVersionService.create({
-            caseId: caseData.id,
-            mode: 'assist',
-            trigger: 'amendment',
-            createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
-            pdfBase64, generationError,
-            synopticAnswersSnapshot: instance.answers,
-            instanceId: instance.instanceId,
-            amendmentRecordId: instance.pendingAmendmentId,
-          });
-        }
-      }
-
-      if (failedInstances.length > 0) {
-        showToast(t('useSignOutWorkflow.toast.correctedInstancesNotTransmitted', { count: failedInstances.length }), 'warning');
-      }
-
-      if (successfulInstanceIds.size > 0) {
-        const clearedReports = (caseData.synopticReports ?? []).map((r: SynopticReportInstance) =>
-          successfulInstanceIds.has(r.instanceId)
-            // Batch 535: the header then shows Final (Corrected / Amended), and the instance is no longer "unlocked for amendment".
-            ? { ...r, status: 'finalized' as const, pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined,
-                ...(releasedRevisionTypes.has(r.instanceId) ? { lastRevisionType: releasedRevisionTypes.get(r.instanceId) } : {}) }
-            : r
-        );
-        // Batch 535: the case's own revision label too (the header reads it).
-        const caseRevision = [...releasedRevisionTypes.values()].pop();
-        const revisionPatch = caseRevision ? { lastRevisionType: caseRevision } : {};
-        setCaseData({ ...caseData, synopticReports: clearedReports, ...revisionPatch });
-        try {
-          await caseRouter.updateCase(caseData.id, { synopticReports: clearedReports, ...revisionPatch }, knownVersionRef.current);
-          knownVersionRef.current = knownVersionRef.current + 1;
-        } catch (e) {
-          // Deliberately no override option here — this write finalizes
-          // report content. Letting it proceed against a stale view
-          // risks finalizing over data the pathologist never actually
-          // saw, which is a materially worse outcome than blocking and
-          // asking them to reload first.
-          if (handleConcurrencyConflict(e, setConcurrencyConflict, { blockOverride: true })) return;
-          console.error(e);
-        }
-      }
-
-      // Real, saved version of the report as it looks at THIS sign-out
-      // — Version 1 the first time, a new version every re-sign-out
-      // after that. Not a diff, not metadata — the actual exact PDF,
-      // generated through the same real ReportLab pipeline as live
-      // printing, so what gets saved genuinely matches what was signed.
-      if (isOrchestrationMode) {
-        const existingVersions = await reportVersionService.getByCaseId(caseData.id);
-        const versionCount = existingVersions.ok ? existingVersions.data.length : 0;
-        const { pdfBase64, generationError } = await generateReportPdfSnapshot();
-        if (generationError) {
-          showToast(t('useSignOutWorkflow.toast.versionSavedPdfSnapshotFailed', { error: generationError }), 'warning');
-        }
-        await reportVersionService.create({
-          caseId: caseData.id,
-          mode: 'orchestration',
-          trigger: versionCount === 0 ? 'initial_signout' : 'amendment',
-          createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
-          pdfBase64, generationError,
-        });
-      }
+      },
+      createVersion: async () => {
+        const existing = await reportVersionService.getByCaseId(caseId);
+        return reportVersionService.create({ caseId, mode: 'orchestration', trigger: (existing.ok ? existing.data.length : 0) === 0 ? 'initial_signout' : 'amendment', createdBy, ...(await pdfSnapshot()) });
+      },
+      commitSignature: link => signatureGate.commit(caseData.id, 'signed', link),
+    });
+    const done = revisions as RevisionsOutcome | null;
+    if (done?.notTransmitted) showToast(t('useSignOutWorkflow.toast.correctedInstancesNotTransmitted', { count: done.notTransmitted }), 'warning');
+    if (done?.notReleased) showToast(t('useSignOutWorkflow.toast.revisionsNotReleased', { count: done.notReleased }), 'warning');
+    if (result.ok === false) {
+      setShowSignOutModal(false);
+      if (handleConcurrencyConflict(result.error, setConcurrencyConflict, { blockOverride: true })) return;
+      console.error(`[useSignOutWorkflow] Sign-out stopped at ${result.step}:`, result.error);
+      showToast(result.step === 'countersign' ? t('useSignOutWorkflow.toast.countersignFailed', { error: String(result.error) })
+        : t(result.compensated ? 'useSignOutWorkflow.toast.signOutNotCompleted' : 'useSignOutWorkflow.toast.signOutNotCompletedStatusKept'), 'warning');
+      return;
     }
-
-    // Batch 345: the signature accepted in handleSignOutConfirm is stored
-    // now that the case is signed (services/auth/signatureEvidence.ts).
-    if (caseData?.id) await signatureGate.commit(caseData.id, 'signed', { kind: 'report-version' });
+    if (!result.signature) console.error('[useSignOutWorkflow] Signed out, but no signature record was saved for case', caseId);
 
     setCaseSigned(true);
     setShowSignOutModal(false);
     setPendingReconciliation(null);
     showToast(t('useSignOutWorkflow.toast.caseSignedOutSuccessfully'));
 
-    // Batch 454: the signer said a follow-up specimen (a resection or
-    // excision) is expected, so the lab is told if none arrives in the
-    // biopsy-to-resection window. Here, at the one place every sign-out
-    // ends (the gate and frozen-section reconciliation paths resume into
-    // this function too), and only once the sign-out has landed. A
-    // failure is said but never undoes the sign-out.
-    if (caseData?.id && followUpExpected && signingUser?.id) {
-      const marked = await markFollowUpExpectedLive(caseData.id, { id: signingUser.id, name: signingUser.name ?? signingUser.id });
+    // Batch 454: a follow-up specimen the signer said is expected; a failure is said but never undoes the sign-out.
+    if (followUpExpected && signingUser?.id) {
+      const marked = await markFollowUpExpectedLive(caseId, { id: signingUser.id, name: signingUser.name ?? signingUser.id });
       if (marked.ok === false) showToast(t(`useSignOutWorkflow.toast.followUpNotMarked.${followUpMarkFailureKey(marked.reason)}`), 'warning');
     }
-  }, [caseData, sendSynopticReportToLis, generateReportPdfSnapshot, isOrchestrationMode, signingUser, setCaseSigned, setShowSignOutModal, showToast, setCaseData, knownVersionRef, setConcurrencyConflict, setPendingReconciliation, followUpExpected, t]);
+
+    // PS-324 post-sign-out QA and Batch 491 Tumor Board auto-flagging: fire-and-forget, surgical only.
+    applySurgicalPostSignOutQa(caseId).catch(e => console.error('[useSignOutWorkflow] Could not apply surgical post-sign-out QA selection/correlation detection:', e));
+    resolveFinalizeAuthorityContext(caseData).then(({ performingLabFacilityId }) => runMarginRuleEvaluation({
+      caseId, caseAccession: signingCaseRef ?? caseId, facilityId: performingLabFacilityId,
+      instances: (caseData.synopticReports ?? []).map((r: SynopticReportInstance) => ({ instanceId: r.instanceId, templateId: r.templateId, answers: r.answers ?? {} })),
+      getTemplateFields: async (templateId: string) => {
+        const detail = await getTemplate(templateId);
+        return (detail.template.sections ?? []).flatMap(s => (s.fields ?? []).map(f => ({ id: f.id, label: f.label, type: f.type })));
+      },
+      byUserId: createdBy.userId, byUserName: createdBy.userName,
+    })).then(r => {
+      if (r.flagged && r.board) showToast(t('useSignOutWorkflow.toast.autoFlaggedForTumorBoard', { board: t(`tumorBoard.boards.${r.board}`) }));
+    }).catch(e => console.error('[useSignOutWorkflow] Could not run the Tumor Board auto-flag rule evaluation:', e));
+
+    // The release: held for the delay (released when it ends, registry included), or now.
+    if (result.buffer?.applies && result.statusPatch?.releaseBufferExpiresAt) {
+      trackSignOutBufferLazy(caseId, result.statusPatch.releaseBufferExpiresAt, signingUser, caseData.order?.facilityId);
+      log('sign_out_buffered', { caseId, accession: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber, durationMinutes: result.buffer.durationMinutes, facilityId: caseData.originHospitalId });
+      showToast(t('useSignOutWorkflow.toast.reportSignedDispatchIn', { minutes: result.buffer.durationMinutes }));
+    } else if (result.buffer) {
+      void releaseSurgicalFinal(current, { caseId, reportType: 'FINAL', releasedAt: new Date().toISOString(),
+        releasedBy: signingUser?.id ? releasedBy : undefined, performingFacilityId: caseData.order?.facilityId }, surgicalFinalReleaseDeps);
+    } else if (surgicalFinalGoesToRegistry(caseData)) {
+      // No PathScribe-held release on this path (the case's status isn't PathScribe's): the registry goes now, as before.
+      surgicalFinalReleaseDeps.dispatchRegistry(caseData, caseData.order!.facilityId!, caseData.order?.facilityName).catch(() => {});
+    }
+  }, [caseData, sendSynopticReportToLis, generateReportPdfSnapshot, isOrchestrationMode, signingUser, setCaseSigned, setShowSignOutModal, showToast, setCaseData, knownVersionRef, setConcurrencyConflict, setPendingReconciliation, followUpExpected, countersignFeedback, signingCaseRef, log, t]);
 
   // Real, per direct guidance ("Yes we should scope 'Return to
   // Trainee'/'Reject with Notes'. I think the delegation workflow
@@ -557,562 +523,6 @@ export function useSignOutWorkflow({
       showToast(t('useSignOutWorkflow.toast.feedbackRecordedUpdateFailed'), 'warning');
     }
   }, [caseData, countersignFeedback, signingUser, showToast, setShowSignOutModal, knownVersionRef, setCaseData, setConcurrencyConflict, t]);
-
-  const handleSignOutConfirm = useCallback(async (confirmation?: SignatureConfirmation) => {
-    // Real, critical defense-in-depth guard, per direct specification:
-    // Post-Sign-Out Release Buffer. A real, serious bug found during a
-    // post-delivery gap review: this function's own real effect
-    // (finalizeSignOut() below, unconditionally creating a new
-    // ReportVersionRecord for Orchestration mode) has zero awareness of
-    // the release buffer. BottomActionBar.tsx's own button visibility
-    // is the primary fix, but a defense-in-depth check belongs here too
-    // — the same real pattern this session already established for the
-    // Recall action itself (a UI gate AND an independent, real check
-    // underneath it, not just one or the other). Placed first, before
-    // even the resident-countersign gate, since a case already sitting
-    // in its own recall window should never reach any further sign-out
-    // logic at all.
-    if (caseData?.status === 'pending-release') {
-      showToast(t('useSignOutWorkflow.toast.alreadyPendingRelease'), 'warning');
-      setShowSignOutModal(false);
-      return;
-    }
-
-    // Batch 463b review: the Orchestration sign-out (and a resident's release
-    // for countersign) reaches here without the Assist finalize path, so the
-    // report-content gates run here too: no report map out of date with the
-    // answers (Batch 461), and every positive Mohs sector names the block it
-    // was cut in.
-    if ((await findStaleOrganMapFigures(caseData)).length > 0) {
-      showToast(t('organMap.panel.signOutStale'), 'warning');
-      setShowSignOutModal(false);
-      return;
-    }
-    if ((await findMohsBlockGaps(caseData)).length > 0) {
-      showToast(t('organMap.mohs.signOutBlocks'), 'warning');
-      setShowSignOutModal(false);
-      return;
-    }
-    // Batch 466b: the template's generic margin questions agree with the map.
-    if ((await findDerivedMarginConflicts(caseData)).length > 0) {
-      showToast(t('organMap.derived.signOutMismatch'), 'warning');
-      setShowSignOutModal(false); return;
-    }
-    {
-      const checks = await findSynopticEntryChecks(caseData);
-      if (checks.blocking.length) { showToast(t('synopticChecks.signOutBlocked', { problem: countBlockMessage(t, checks.blocking[0]) }), 'warning'); setShowSignOutModal(false); return; }
-      if (checks.warnings.length && confirmWarnings && !(await confirmWarnings(totalWarningsMessage(t, checks.warnings)))) { setShowSignOutModal(false); return; }
-    }
-    // Batch 466d (Pete): invasive carcinoma on the map with its margins not all reported asks first (a warning).
-    {
-      const gaps = await findInvasiveMarginGaps(caseData);
-      if (gaps.length && confirmWarnings && !(await confirmWarnings(invasiveMarginGapsMessage(t, i18n.language, gaps)))) { setShowSignOutModal(false); return; }
-    }
-    // Batch 467b (Pete's engine delta): an answer that still differs from its molecular result asks first (a warning).
-    {
-      const differences = await findMolecularResultDifferencesLive(caseData);
-      if (differences.length && confirmWarnings && !(await confirmWarnings(molecularDifferencesMessage(t, differences)))) { setShowSignOutModal(false); return; }
-    }
-
-    // Batch 345: nothing is signed without a checked signature. The
-    // modal's confirmation is verified here (the check the API server
-    // will make); a resume after a gate reuses the one already accepted
-    // for this case (services/auth/signatureEvidence.ts).
-    if (caseData?.id) {
-      const accepted = await signatureGate.accept(confirmation, {
-        caseId: caseData.id, caseRef: signingCaseRef, actions: ['case-sign-out', 'countersign'],
-      });
-      if (accepted.ok === false) {
-        showToast(t(`signatureEvidence.refused.${accepted.reason}`), 'warning');
-        return;
-      }
-    }
-
-    // Real, per PS-327 ("Yes, complete the work" — wiring requiresCountersign
-    // gating through the same per-lab resolution path canFinalizeCase()
-    // already uses): resolved once, up front, and reused by BOTH the
-    // resident/FPPE/configured-type countersign gate immediately below AND
-    // the canFinalizeCase() write-guard further down. Previously resolved
-    // twice — once implicitly missing here (the countersign gate never
-    // consulted real participation types at all) and again via a second,
-    // separate resolveFinalizeAuthorityContext() call right before
-    // canFinalizeCase(). Same real data either way, so resolving it once
-    // removes a duplicate facility/participation-type fetch from every
-    // sign-out attempt, not just a cosmetic simplification.
-    const { participationTypes: authorityParticipationTypes, performingLabFacilityId: authorityLabId, jurisdiction: authorityJurisdiction } =
-      await resolveFinalizeAuthorityContext(caseData);
-    const countersignRequiredTypeIds = resolveCountersignRequiredTypeIds(authorityParticipationTypes, authorityLabId, authorityJurisdiction);
-
-    // Batch 607 (#161, #182): a system the jurisdiction's code-system policy requires, with no code on the case, asks first.
-    // Proceeding is an override and is audited (system names only). With no way to ask, sign-out stops.
-    {
-      const codePolicy = await codeSystemPolicyService.policyFor(authorityJurisdiction ?? getCurrentJurisdiction());
-      const codeCheck = signOutCodeCheck(collectCaseEntries(caseData ?? {}), codePolicy, isoDayOf(new Date()));
-      if (!codeCheck.ok) {
-        const systems = codeCheck.missing.join(', ');
-        if (!(confirmWarnings && await confirmWarnings(t('codePolicy.signOutMissing', { systems })))) {
-          showToast(t('codePolicy.signOutBlocked', { systems }), 'warning');
-          setShowSignOutModal(false);
-          return;
-        }
-        if (caseData?.id) await auditService.logEvent(codeSignOutOverrideAudit(caseData.id, signingUser?.name ?? '', codeCheck.missing));
-      }
-    }
-
-    // Real resident-countersign gate — must run before anything else in
-    // this function, including the reconciliation check below. If the
-    // current user is acting as a resident (not attending) on this case,
-    // their "sign out" doesn't actually finalize anything; it releases
-    // the case for the attending to review and countersign. Everyone
-    // else (the attending, or any case with no resident participant)
-    // falls through to the existing logic completely unchanged.
-    //
-    // Also covers FPPE provisional hires — same release/countersign
-    // mechanism, but the reviewer is resolved from the active
-    // FppeAssignment's own proctorUserId, not from searching case
-    // participants for an 'attending' type. A provisional hire's case
-    // may not even have a case-level attending participant at all (they're
-    // fully credentialed; there's no clinical requirement for one) — the
-    // FPPE assignment itself is what says who's proctoring them, for
-    // however long the review period lasts.
-    if (caseData?.id) {
-      // Real fix (per direct follow-up on the intraop/FPPE differentiator
-      // review): this used to re-derive the resident/attending decision
-      // inline, in parallel with resolveResidentCountersignRequired.ts's
-      // own identical logic (built for Cytology/Autopsy reuse) — two
-      // independently-maintained copies of the same gate, a real drift
-      // risk if either one ever changed alone. `isAttendingToo` is still
-      // needed locally, on its own, purely to decide whether it's worth
-      // making the async FPPE-assignment lookup below at all — that
-      // pre-check isn't part of the shared decision itself, which stays
-      // synchronous/pure by design (see that file's own header). The
-      // actual required/reason decision now comes from one place.
-      const isAttendingToo = caseData?.participants?.some(
-        (p: CaseParticipant) => p.status === 'active' && p.staffId === signingUser?.id && p.participationTypeIds?.includes('attending')
-      );
-      const provisionalParticipant = caseData?.participants?.find(
-        (p: CaseParticipant) => p.status === 'active' && p.staffId === signingUser?.id && p.participationTypeIds?.includes('provisional_hire')
-      );
-      // PS-114, Stage 4 (gate-check cutover) — reads from the new,
-      // generic qaSupervisionAssignmentService now, not the old
-      // fppeAssignmentService. Same real check as before (does this
-      // provisional hire currently have an active assignment for this
-      // subspecialty), just against the new system, which Stage 3's
-      // id-synchronized shadow-write already proved stays a faithful
-      // mirror. Batch 515 (PS-124): the old system is now retired
-      // altogether; every FPPE screen reads this service.
-      const activeFppeAssignment = provisionalParticipant && !isAttendingToo
-        ? await qaSupervisionAssignmentService.getActiveAssignmentForUser(FPPE_ACTIVITY_TYPE_ID, signingUser?.id ?? '', caseData?.subspecialtyId).then(r => r.ok ? r.data : null).catch(() => null)
-        : null;
-
-      const countersignCheck = resolveResidentCountersignRequired({
-        participants: caseData?.participants,
-        signingUserId: signingUser?.id ?? '',
-        hasActiveFppeAssignment: !!activeFppeAssignment,
-        countersignRequiredTypeIds,
-      });
-
-      if (countersignCheck.required) {
-        const releasedAnswersSnapshot: Record<string, Record<string, string | string[]>> = {};
-        (caseData.synopticReports ?? []).forEach((r: SynopticReportInstance) => { releasedAnswersSnapshot[r.instanceId] = r.answers ?? {}; });
-
-        // Real, per direct follow-up ("Continue with the version-record
-        // creation to the trainee path... per your Path A step 3, the
-        // immutable snapshot should be created there too, just without
-        // triggering dispatch"): the real, immutable snapshot of what
-        // the resident is actually submitting for review — same real
-        // `generateReportPdfSnapshot()`/versionCount-based trigger
-        // inference finalizeSignOut() already uses below, captured
-        // BEFORE countersignService.release() so it genuinely reflects
-        // what was submitted, not some later, possibly-edited state.
-        // Deliberately no instanceId (the same real, whole-case
-        // snapshot shape every orchestration-mode create() call in
-        // this app already uses) — this alone is what correctly keeps
-        // it out of the real ORU^R01 dispatch hook inside create()
-        // itself (mode === 'orchestration' && instanceId), matching
-        // this real step's own explicit "no release buffer starts, no
-        // HL7 is queued" requirement without needing a second, separate
-        // guard.
-        {
-          const existingVersions = await reportVersionService.getByCaseId(caseData.id);
-          const versionCount = existingVersions.ok ? existingVersions.data.length : 0;
-          const { pdfBase64, generationError } = await generateReportPdfSnapshot();
-          if (generationError) showToast(t('useSignOutWorkflow.toast.submittedCountersignPdfFailed', { error: generationError }), 'warning');
-          await reportVersionService.create({
-            caseId: caseData.id,
-            mode: 'orchestration',
-            trigger: versionCount === 0 ? 'initial_signout' : 'amendment',
-            createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
-            pdfBase64, generationError,
-          });
-        }
-
-        await countersignService.release({
-          caseId: caseData.id,
-          subspecialtyId: caseData?.subspecialtyId,
-          residentId: signingUser?.id ?? 'unknown',
-          residentName: signingUser?.name ?? 'Unknown User',
-          releasedAnswersSnapshot,
-        });
-        // Batch 345: the resident's signature on what they released.
-        await signatureGate.commit(caseData.id, 'released_for_countersign', { kind: 'report-version' });
-
-        // Sync per-instance status alongside the case-level status —
-        // previously only Case.status was updated here, leaving
-        // SynopticReportInstance.status untouched. That's a real
-        // inconsistency: RightSynopticPanel.tsx already has a pre-
-        // existing tab-dot indicator checking
-        // synopticReports.some(r => r.status === 'pending-countersign'),
-        // which would never have fired for a case released through this
-        // gate since nothing ever set an instance to that status. Only
-        // 'draft' instances move — a report already 'finalized'
-        // has its own real state that shouldn't be overwritten.
-        const updatedReportsForRelease = (caseData.synopticReports ?? []).map((r: SynopticReportInstance) =>
-          r.status === 'draft' ? { ...r, status: 'pending-countersign' as const } : r
-        );
-
-        try {
-          await caseRouter.updateCase(caseData.id, { status: 'pending-countersign', synopticReports: updatedReportsForRelease }, knownVersionRef.current);
-          knownVersionRef.current = knownVersionRef.current + 1;
-          setCaseData(prev => prev ? ({ ...prev, status: 'pending-countersign', synopticReports: updatedReportsForRelease }) : prev);
-        } catch (e) {
-          // Strict treatment — this releases the case for countersign,
-          // a real status transition, same category as finalize.
-          if (handleConcurrencyConflict(e, setConcurrencyConflict, { blockOverride: true })) return;
-          console.error(e);
-        }
-
-        // Real notification to the reviewer — an attending participant
-        // for the resident path, or the FPPE assignment's own proctor
-        // for the provisional-hire path. Fire-and-forget, same as every
-        // other sendEmail() call in this app; hits a real backend
-        // endpoint that doesn't exist in this dev environment, so it
-        // will log an error to console rather than actually deliver,
-        // but the call itself is architecturally correct for when a
-        // real backend is behind it.
-        const attendingParticipant = caseData?.participants?.find(
-          (p: CaseParticipant) => p.status === 'active' && p.participationTypeIds?.includes('attending')
-        );
-        const reviewerId = activeFppeAssignment?.supervisorUserId ?? attendingParticipant?.staffId;
-        if (reviewerId) {
-          const attendingUserRes = await userService.getById(reviewerId).catch(() => null);
-          const attendingEmail = attendingUserRes?.ok ? attendingUserRes.data?.email : undefined;
-          if (attendingEmail) {
-            sendEmail({
-              to: [attendingEmail],
-              subject: `Case ${caseData.id} ready for your countersign`,
-              bodyText: `${signingUser?.name ?? 'A resident'} has released case ${caseData.id} for your review and countersign.`,
-              bodyHtml: `<p>${signingUser?.name ?? 'A resident'} has released case <strong>${caseData.id}</strong> for your review and countersign.</p>`,
-              metadata: { caseId: caseData.id, action: 'countersign_requested' },
-            }).catch(() => {});
-          }
-        }
-
-        showToast(t('useSignOutWorkflow.toast.caseReleasedForCountersign', { caseId: caseData.id }), 'info', { containsPhi: true });
-        setShowSignOutModal(false);
-        return; // does not proceed to reconciliation check or any finalize logic below
-      }
-    }
-
-    // Real write guard (dimension 4 — case relationship), placed exactly
-    // where the gap was found: anyone falling through past the resident/
-    // FPPE gate above with NO real relationship to this case at all
-    // (no participant record, not primary/attending, not an admin role)
-    // could previously proceed straight into the countersign-completion
-    // and finalize logic below with zero verification. Deliberately
-    // placed after the resident/FPPE gate, not before it — a resident
-    // legitimately reaches this function and gets correctly routed to
-    // release-for-countersign above; this guard only needs to catch
-    // whoever isn't covered by either that routing or a genuine
-    // primary/attending/admin relationship.
-    const signOutFinalizeDecision = canFinalizeCase(getSessionUser(), caseData?.participants, authorityParticipationTypes, authorityLabId, authorityJurisdiction);
-    if (!signOutFinalizeDecision.granted) {
-      showToast(signOutFinalizeDecision.reason, 'warning');
-      setShowSignOutModal(false);
-      return;
-    }
-
-    // Real, per direct guidance ("Path B Execution Plan" — retiring
-    // Finalize for Orchestration Mode): the same two real, hard-block
-    // regulatory gates finalizeCase() already enforces
-    // (checkPreAnalyticAndFixativeGates() — see its own header comment
-    // for the full cross-jurisdiction citations) now also apply here.
-    // Deliberately placed after the resident/countersign gate above,
-    // never before it — a resident's own submission ("I am done
-    // drafting, but this is not a final medical record") is real,
-    // legitimate, and doesn't need these; the attending's real
-    // sign-out, reached only past this point, does.
-    if (caseData) {
-      const { preAnalyticBlocking, fixativeBlocking } = checkPreAnalyticAndFixativeGates(caseData, specimenDictionary);
-      if (preAnalyticBlocking.length > 0) {
-        setPreAnalyticDateGateSpecimens(preAnalyticBlocking);
-        setPendingActionIsSignOut(true);
-        setShowSignOutModal(false);
-        return;
-      }
-      if (fixativeBlocking.length > 0) {
-        setFixativeGateSpecimens(fixativeBlocking);
-        setPendingActionIsSignOut(true);
-        setShowSignOutModal(false);
-        return;
-      }
-      // Real, per PS-289/PS-292's own Gating Strategy — checked after
-      // the two more foundational gates above, same real ordering
-      // principle ("basic accession date/time is more foundational
-      // than biomarker-specific fixation timing") extended one step
-      // further: stain QC is a later-stage concern than either.
-      const stainQcBlocking = await checkStainQcGate(caseData);
-      if (stainQcBlocking.length > 0) {
-        setStainQcGateBlocking(stainQcBlocking);
-        setPendingActionIsSignOut(true);
-        setShowSignOutModal(false);
-        return;
-      }
-
-      // Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic
-      // Engine; PS-519 follow-up). Gate B — checked after stain QC, same
-      // ordering principle as every gate above (a later-stage specimen
-      // concern checked after the more foundational ones).
-      const inkingGate = await checkInkingSignOutGate(caseData, signingUser?.role ? [signingUser.role] : []);
-      if (inkingGate) {
-        setInkingGateBlocking(inkingGate);
-        setPendingActionIsSignOut(true);
-        setShowSignOutModal(false);
-        return;
-      }
-
-      // Batch 439 (PS-145, PS-144): a clinical-pathologic mismatch to
-      // decide, then the peer-review gate where it is switched on. See
-      // checkPeerReviewAndMismatch.ts.
-      const mismatch = await checkClinicalMismatch(caseData);
-      if (mismatch) {
-        setClinicalMismatch(mismatch);
-        setPendingActionIsSignOut(true);
-        setShowSignOutModal(false);
-        return;
-      }
-      const peerGate = await checkPeerReviewGate(caseData);
-      if (peerGate) {
-        setPeerReviewGate(peerGate);
-        setPendingActionIsSignOut(true);
-        setShowSignOutModal(false);
-        return;
-      }
-    }
-
-    // Real attending-side countersign completion — fires when a case
-    // that was released by a resident is now actually being finalized
-    // (by definition not by that same resident, since the gate above
-    // already intercepted them). Captured alongside triggering the
-    // existing finalize logic below, not after — the existing finalize
-    // flow has several internal success paths, and hooking into all of
-    // them individually would be far riskier than recording the
-    // countersign completion here, at the one point every path shares.
-    if (caseData?.id && caseData?.status === 'pending-countersign') {
-      const currentAnswersByInstance: Record<string, Record<string, string | string[]>> = {};
-      (caseData.synopticReports ?? []).forEach((r: SynopticReportInstance) => { currentAnswersByInstance[r.instanceId] = r.answers ?? {}; });
-      await countersignService.countersign({
-        caseId: caseData.id,
-        attendingId: signingUser?.id ?? 'unknown',
-        attendingName: signingUser?.name ?? 'Unknown User',
-        currentAnswersByInstance,
-        attendingFeedback: countersignFeedback.trim() || undefined,
-      }).catch(() => {});
-
-      // Real FPPE case-count increment — if this case's provisional
-      // hire has an active assignment, this countersign counts toward
-      // their review-period threshold. Checked independently of who's
-      // actually completing the sign-out here (the gate above already
-      // guarantees it isn't the provisional hire themselves) — this
-      // only needs to know whether the CASE involves someone under FPPE.
-      const provisionalOnThisCase = caseData?.participants?.find(
-        (p: CaseParticipant) => p.status === 'active' && p.participationTypeIds?.includes('provisional_hire')
-      );
-      if (provisionalOnThisCase) {
-        // PS-114, Stage 4 — the lookup and the properly-awaited,
-        // failure-visible increment now target the new system first:
-        // once the gate-check above reads from qaSupervisionAssignmentService,
-        // an increment that silently failed to land there would leave a
-        // pathologist who's actually graduated still gated, or vice
-        // versa — a real, live-consequence bug a swallowed error could
-        // hide. (Batch 515: the old system's shadow write is gone; the
-        // legacy fppeAssignmentService is retired.)
-        const assignmentRes = await qaSupervisionAssignmentService.getActiveAssignmentForUser(FPPE_ACTIVITY_TYPE_ID, provisionalOnThisCase.staffId, caseData?.subspecialtyId).catch(() => null);
-        if (assignmentRes?.ok && assignmentRes.data) {
-          try {
-            await qaSupervisionAssignmentService.recordCaseReviewed(assignmentRes.data.id);
-          } catch (e) {
-            console.error('[PS-114] Failed to record case review on the new QaSupervisionAssignment system — the sign-out gate reads from this system, so a silent failure here could leave a graduated pathologist incorrectly gated.', e);
-          }
-        }
-      }
-    }
-
-    // Real Frozen-to-Permanent Reconciliation check — only fires when
-    // this case actually has a merged intraop specimen with a real
-    // frozen category (not 'deferred' — no real call was made at
-    // frozen, so there's nothing to reconcile). Everything else signs
-    // out exactly as it always did.
-    //
-    // Real, per direct follow-up ("wire them [the concordance review
-    // settings]"): gated by the real, persisted settings this session
-    // decided (concordanceReviewSettingsService) rather than always
-    // running unconditionally as before. aiComparisonEnabled off
-    // skips this whole check — the case signs out exactly as if this
-    // feature didn't exist. reviewScreenEnabled off still runs the
-    // real detection (a site may still want the comparison to happen)
-    // but never blocks sign-out on it — the same, real "still needs
-    // reconciling" state simply remains open for later, manual
-    // completion via the existing DiscordanceReconciliationModal
-    // trigger, exactly as it would for a case signed out before this
-    // feature existed at all.
-    if (caseData?.id) {
-      const concordanceSettingsRes = await concordanceReviewSettingsService.resolveEffectiveConfigForFacility(caseData.originHospitalId, signingUser?.id).catch(() => null);
-      const concordanceSettings = concordanceSettingsRes?.ok ? concordanceSettingsRes.data : { aiComparisonEnabled: true, reviewScreenEnabled: true };
-
-      if (concordanceSettings.aiComparisonEnabled) {
-        const res = await intraoperativeService.getAll();
-        if (res.ok) {
-          const mergedSession = res.data.find(e => e.status === 'merged' && e.mergedIntoCaseId === caseData.id);
-          const specimenNeedingReconciliation = mergedSession?.specimens.find(s => s.frozenCategory && s.frozenCategory !== 'deferred');
-          if (mergedSession && specimenNeedingReconciliation && concordanceSettings.reviewScreenEnabled) {
-            setPendingReconciliation({
-              specimenId: specimenNeedingReconciliation.id,
-              caseType: specimenNeedingReconciliation.specimenLabel,
-              frozenCategory: specimenNeedingReconciliation.frozenCategory!,
-              frozenDx: specimenNeedingReconciliation.frozenSectionDiagnosis ?? '',
-            });
-            return; // hold sign-out until the reconciliation modal resolves
-          }
-        }
-      }
-    }
-    await finalizeSignOut();
-
-    // Real, per direct guidance (PS-324): post-sign-out peer-review
-    // selection + biopsy-to-resection correlation candidate detection
-    // — surgical pathology only (this hook never runs for Cytology
-    // sign-out, same real jurisdiction as the cancer registry dispatch
-    // immediately below). Fire-and-forget, same real posture as every
-    // other post-sign-out side effect in this function — a real
-    // failure here must never block or retroactively undo the case's
-    // own, already-successful sign-out. See applySurgicalPostSignOutQa.ts's
-    // own header for why this deliberately re-fetches the case fresh
-    // rather than racing this function's own knownVersionRef writes.
-    if (caseData?.id) {
-      applySurgicalPostSignOutQa(caseData.id).catch(e =>
-        console.error('[useSignOutWorkflow] Could not apply surgical post-sign-out QA selection/correlation detection:', e)
-      );
-    }
-
-    // Batch 491 (PS-359 follow-up): the Tumor Board auto-flagging rules
-    // engine — the real wiring Batch 490 deliberately left undone (see
-    // services/marginExtraction/README.md's own disclosed "no call site
-    // wired in" gap). Runs the margin-distance extraction layer over
-    // every synoptic instance on this case, then the rule evaluator;
-    // auto-nominates the case for a board when a rule fires and it isn't
-    // on an agenda already (mockTumorBoardService.create()'s own
-    // one-active-listing rule covers a case that already is). Surgical
-    // pathology only — same real scope as applySurgicalPostSignOutQa()
-    // immediately above (this hook never runs for Cytology sign-out).
-    // Fire-and-forget, same posture as every other post-sign-out side
-    // effect in this function: a real failure here must never block or
-    // retroactively undo the case's own, already-successful sign-out.
-    if (caseData?.id) {
-      runMarginRuleEvaluation({
-        caseId: caseData.id,
-        caseAccession: signingCaseRef ?? caseData.id,
-        facilityId: authorityLabId,
-        instances: (caseData.synopticReports ?? []).map((r: SynopticReportInstance) => ({ instanceId: r.instanceId, templateId: r.templateId, answers: r.answers ?? {} })),
-        getTemplateFields: async (templateId: string) => {
-          const detail = await getTemplate(templateId);
-          return (detail.template.sections ?? []).flatMap(s => (s.fields ?? []).map(f => ({ id: f.id, label: f.label, type: f.type })));
-        },
-        byUserId: signingUser?.id ?? 'unknown',
-        byUserName: signingUser?.name ?? 'Unknown User',
-      }).then(result => {
-        if (result.flagged && result.board) {
-          showToast(t('useSignOutWorkflow.toast.autoFlaggedForTumorBoard', { board: t(`tumorBoard.boards.${result.board}`) }));
-        }
-      }).catch(e => console.error('[useSignOutWorkflow] Could not run the Tumor Board auto-flag rule evaluation:', e));
-    }
-
-    // Real, per the RFP-APLIS-2026-GLOBAL Broader Cancer Registry
-    // Exports gap — per FHIR_DISPATCH_ARCHITECTURE_PLAN.md's own
-    // already-settled, critical finding, this is the ONLY real place
-    // in this app a general cancer registry report may ever be
-    // triggered from: a genuine, confirmed surgical pathology sign-out
-    // — never cytology. Fire-and-forget: a real dispatch-side failure
-    // must never block the case's own, already-successful sign-out,
-    // same real posture as every other post-sign-out side effect in
-    // this function.
-    if (caseData?.id && caseData.order?.facilityId) {
-      dispatchCancerRegistryReportIfApplicable(caseData, caseData.order.facilityId, caseData.order.facilityName).catch(() => {});
-    }
-
-    // Real, per direct guidance ("Path B Execution Plan"): the real
-    // case-level state transition + buffer decision, performed here in
-    // the hooks/orchestration layer — deliberately never inside
-    // reportVersionService.create() itself (a real service-boundary
-    // violation; that service has no business writing Case.status).
-    // Runs only for Orchestration Mode, matching finalizeSignOut()'s
-    // own internal mode check immediately above — defense in depth,
-    // never assuming the UI's own mode-gated button visibility is the
-    // only real protection.
-    if (isOrchestrationMode && caseData?.id) {
-      const bufferResolution = await reportReleaseService.resolveBufferForCase(caseData);
-      const finalizedAt = new Date().toISOString();
-      const patch = {
-        status: (bufferResolution.applies ? 'pending-release' : 'finalized') as CaseStatus,
-        finalizedAt,
-        finalizedBy: signingUser?.id ?? null,
-        releasedAt: bufferResolution.applies ? undefined : finalizedAt,
-        releaseBufferExpiresAt: bufferResolution.applies
-          ? new Date(Date.now() + bufferResolution.durationMinutes * 60_000).toISOString()
-          : undefined,
-        releaseBufferDurationMinutes: bufferResolution.applies ? bufferResolution.durationMinutes : undefined,
-        preReleaseBufferStatus: bufferResolution.applies ? caseData.status : undefined,
-      };
-      try {
-        await caseRouter.updateCase(caseData.id, patch, knownVersionRef.current);
-        knownVersionRef.current = knownVersionRef.current + 1;
-        setCaseData({ ...caseData, ...patch } as typeof caseData);
-
-        if (bufferResolution.applies) {
-          // Batch 534: released when the buffer ends even if nobody has this page open.
-          trackSignOutBufferLazy(caseData.id, patch.releaseBufferExpiresAt!, signingUser, caseData.order?.facilityId);
-          log('sign_out_buffered', {
-            caseId: caseData.id,
-            accession: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber,
-            durationMinutes: bufferResolution.durationMinutes,
-            facilityId: caseData.originHospitalId,
-          });
-          showToast(t('useSignOutWorkflow.toast.reportSignedDispatchIn', { minutes: bufferResolution.durationMinutes }));
-        } else {
-          // Real, per direct guidance: no buffer applies (disabled
-          // config, or a real STAT-priority bypass) — no reason to
-          // make a real, already-signed case wait on a buffer that
-          // was never going to fire. Dispatches immediately,
-          // fire-and-forget — a real, external network dispatch
-          // attempt must never delay this function's own return.
-          publishReportReleasedEvent({
-            caseId: caseData.id,
-            reportType: 'FINAL',
-            releasedAt: new Date().toISOString(),
-            releasedBy: signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : undefined,
-            // Batch 538: the performing facility, so print and fax route (it was missing here).
-            performingFacilityId: caseData.order?.facilityId,
-          }).catch(e =>
-            console.error('[useSignOutWorkflow] Real, non-blocking failure dispatching case instances at sign-out (no buffer applied):', e)
-          );
-        }
-      } catch (e) {
-        if (handleConcurrencyConflict(e, setConcurrencyConflict, { blockOverride: true })) return;
-        console.error('[useSignOutWorkflow] Failed to apply the real sign-out/buffer state transition:', e);
-        showToast(t('useSignOutWorkflow.toast.signedOutBufferFailed'), 'warning');
-      }
-    }
-  }, [caseData, finalizeSignOut, signingUser, showToast, countersignFeedback, setShowSignOutModal, knownVersionRef, setConcurrencyConflict, setCaseData, setPendingReconciliation, isOrchestrationMode, log, t, i18n.language, confirmWarnings, generateReportPdfSnapshot, setClinicalMismatch, setFixativeGateSpecimens, setInkingGateBlocking, setPeerReviewGate, setPendingActionIsSignOut, setPreAnalyticDateGateSpecimens, setStainQcGateBlocking, signingCaseRef, specimenDictionary]);
 
   // ── Build SynopticForReview[] for PreFinalisationModal ─────────────────
   const buildSynopticsForReview = useCallback(async (): Promise<SynopticForReview[]> => {
@@ -1295,11 +705,12 @@ export function useSignOutWorkflow({
       if (rulesRes.ok) {
         const activeRules = rulesRes.data.filter(r => r.status === 'Active' && (!r.performingLabFacilityId || r.performingLabFacilityId === labId));
 
+        const licensedNow = activeLicensedSystems(enterpriseConfig.terminologyLicences, todayIso());
         const matchesPerInstance = await Promise.all(caseData.synopticReports.map(async report => {
           try {
             const detail = await getTemplate(report.templateId);
             const resolved = resolveAnswers(report.answers ?? {}, detail?.template ?? null, partGridRowsOf(caseData.specimens));
-            return evaluateAbnormalTriggerRules(report.specimenId, resolved, activeRules);
+            return evaluateAbnormalTriggerRules(report.specimenId, resolved, activeRules, licensedNow);
           } catch (e) {
             console.error(`[AbnormalDetection] Could not evaluate trigger rules for instance ${report.instanceId}:`, e);
             return [];
@@ -1311,6 +722,224 @@ export function useSignOutWorkflow({
 
     return [...narrativeFindings, ...discreteFindings];
   }, [caseData, enterpriseConfig]);
+
+  // Batch 649 (sign-out audit): the review checks both sign-out paths run, in one order
+  // (services/signoutGates/signOutReviewGates.ts); this only shows the person what stopped it.
+  // Assist Finalize checks the open report's fields (reports can be left out at review);
+  // Orchestration Sign Out Case signs the whole case, so every report not yet finalized.
+  const runReviewGates = useCallback(async (path: 'finalize' | 'signOut'): Promise<boolean> => {
+    if (!caseData) return false;
+    const confirm = confirmWarnings;
+    const outcome = await runSignOutReviewGates(caseData, {
+      staleOrganMapFigures: findStaleOrganMapFigures, mohsBlockGaps: findMohsBlockGaps, derivedMarginConflicts: findDerivedMarginConflicts,
+      synopticEntryChecks: c => findSynopticEntryChecks(c), invasiveMarginGaps: findInvasiveMarginGaps, molecularDifferences: findMolecularResultDifferencesLive,
+      ...(confirm ? { confirm: {
+        entryTotals: w => confirm(totalWarningsMessage(t, w)),
+        invasiveMargins: g => confirm(invasiveMarginGapsMessage(t, i18n.language, g)),
+        molecular: d => confirm(molecularDifferencesMessage(t, d)),
+      } } : {}),
+      microscopicBlocking: c => findMicroscopicBlockingSpecimens(c, getTemplate),
+      criticalAcknowledged: acknowledgedCritical,
+      detectFindings: fetchCriticalFindings, unacceptedNarrative: () => unacceptedAiNarrativeSections(orchSections),
+      rememberCriticalFindings: found => saveCriticalFindings(caseData.id, found),
+      synopticFieldProblems: async () => {
+        const panel = synopticPanelRef.current;
+        const live = panel ? { instanceId: activeReportInstanceId, missing: panel.validateRequired(), unverifiedAi: panel.getBlockingUnverifiedFields() } : undefined;
+        // The panel saves AI verification straight to the store, so the stored copy is the current one.
+        const fresh = await Promise.resolve().then(() => caseRouter.getCase(caseData.id)).catch(() => undefined);
+        const storedSuggestions = Object.fromEntries((fresh?.synopticReports ?? []).map(r => [r.instanceId, r.aiSuggestions]));
+        return findSynopticSignOutFieldProblems(caseData, { scope: path === 'signOut' ? 'case' : 'active', activeInstanceId: activeReportInstanceId, live, storedSuggestions, loadTemplate: getTemplate });
+      },
+    });
+    if (outcome.ok) { recordAiOmittedAtSignOut(auditService, caseData.id, [...(caseData.synopticReports ?? []), ...(caseData.grossingReports ?? [])] as never, signingUser?.name ?? ''); return true; } // Batches 691, 692
+    const s = outcome.stop;
+    switch (s.gate) {
+      case 'pendingRelease': showToast(t('useSignOutWorkflow.toast.alreadyPendingRelease'), 'warning'); break;
+      case 'caseHold': showToast(t('useSignOutWorkflow.toast.caseOnHold', { note: s.note }), 'warning'); break;
+      case 'staleOrganMap': showToast(t('organMap.panel.signOutStale'), 'warning'); break;
+      case 'mohsBlocks': showToast(t('organMap.mohs.signOutBlocks'), 'warning'); break;
+      case 'derivedMargins': showToast(t('organMap.derived.signOutMismatch'), 'warning'); break;
+      case 'entryCount': showToast(t('synopticChecks.signOutBlocked', { problem: countBlockMessage(t, s.block) }), 'warning'); break;
+      case 'microscopic': {
+        const first = s.blocking[0];
+        const reason = t(first.reasonKey);
+        showToast(s.blocking.length === 1
+          ? t('useSignOutWorkflow.toast.specimenBlocking', { label: first.specimenLabel, reason })
+          : t('useSignOutWorkflow.toast.specimensNeedAttention', { count: s.blocking.length, label: first.specimenLabel, reason }), 'warning');
+        setActiveSpecimenId(first.specimenId);
+        setActiveReportType('microscopic');
+        break;
+      }
+      case 'criticalFindings': setCriticalFindings(s.findings); setShowCriticalFindingsModal(true); break;
+      case 'requiredFields': setMissingFields(s.missing); setShowMissingWarning(true); break;
+      case 'unverifiedAi':
+        // An unconfirmed AI value on a required field never signs out, whatever its confidence.
+        showToast(s.fields.length === 1
+          ? t('useSignOutWorkflow.toast.aiSuggestionNeedsReview', { label: s.fields[0].fieldLabel })
+          : t('useSignOutWorkflow.toast.aiSuggestionsNeedReview', { count: s.fields.length, label: s.fields[0].fieldLabel }), 'warning');
+        if (isOrchestrationMode) safeSetLeftTab('draft');
+        setAlertFieldId(s.fields[0].fieldId);
+        break;
+      case 'unacceptedAiNarrative': showToast(t('useSignOutWorkflow.toast.aiNarrativeNeedsAcceptance', { count: s.sections.length, label: s.sections[0].label }), 'warning'); if (isOrchestrationMode) safeSetLeftTab('draft'); break;
+      default: break;
+    }
+    return false;
+  }, [caseData, confirmWarnings, orchSections, t, i18n.language, acknowledgedCritical, fetchCriticalFindings, synopticPanelRef, activeReportInstanceId, showToast, setActiveSpecimenId, setActiveReportType, isOrchestrationMode, safeSetLeftTab, setAlertFieldId]);
+
+  const handleSignOutConfirm = useCallback(async (confirmation?: SignatureConfirmation) => {
+    // Batch 649: the same review checks as Assist Finalize, first (recall window, hold, report content,
+    // microscopic documentation, critical findings, required fields, unverified AI answers).
+    if (!(await runReviewGates('signOut'))) { setShowSignOutModal(false); return; }
+
+    // Batch 345: nothing is signed without a checked signature. The
+    // modal's confirmation is verified here (the check the API server
+    // will make); a resume after a gate reuses the one already accepted
+    // for this case (services/auth/signatureEvidence.ts).
+    if (caseData?.id) {
+      const accepted = await signatureGate.accept(confirmation, {
+        caseId: caseData.id, caseRef: signingCaseRef, actions: ['case-sign-out', 'countersign'],
+      });
+      if (accepted.ok === false) {
+        showToast(t(`signatureEvidence.refused.${accepted.reason}`), 'warning');
+        return;
+      }
+    }
+
+    // PS-327: resolved once and reused by the countersign gate and canFinalizeCase().
+    const { participationTypes: authorityParticipationTypes, performingLabFacilityId: authorityLabId, jurisdiction: authorityJurisdiction } =
+      await resolveFinalizeAuthorityContext(caseData);
+    const countersignRequiredTypeIds = resolveCountersignRequiredTypeIds(authorityParticipationTypes, authorityLabId, authorityJurisdiction);
+
+    // Batch 607 (#161, #182): a system the jurisdiction's code-system policy requires, with no code on the case, asks first.
+    // Proceeding is an override and is audited (system names only). With no way to ask, sign-out stops.
+    {
+      const codePolicy = await codeSystemPolicyService.policyFor(authorityJurisdiction ?? getCurrentJurisdiction());
+      const codeCheck = signOutCodeCheck(collectCaseEntries(caseData ?? {}), codePolicy, isoDayOf(new Date()));
+      if (!codeCheck.ok) {
+        const systems = codeCheck.missing.join(', ');
+        if (!(confirmWarnings && await confirmWarnings(t('codePolicy.signOutMissing', { systems })))) {
+          showToast(t('codePolicy.signOutBlocked', { systems }), 'warning');
+          setShowSignOutModal(false);
+          return;
+        }
+        if (caseData?.id) await auditService.logEvent(codeSignOutOverrideAudit(caseData.id, signingUser?.name ?? '', codeCheck.missing));
+      }
+    }
+
+    // Resident / configured-type / FPPE countersign routing (resolveResidentCountersignRequired):
+    // the trainee's sign-out releases the case for review instead of finalizing it. FPPE
+    // provisional hires are reviewed by their active assignment's supervisor.
+    if (caseData?.id) {
+      const isAttendingToo = caseData?.participants?.some(
+        (p: CaseParticipant) => p.status === 'active' && p.staffId === signingUser?.id && p.participationTypeIds?.includes('attending')
+      );
+      const provisionalParticipant = caseData?.participants?.find(
+        (p: CaseParticipant) => p.status === 'active' && p.staffId === signingUser?.id && p.participationTypeIds?.includes('provisional_hire')
+      );
+      // PS-114 Stage 4 / Batch 515: read from qaSupervisionAssignmentService.
+      const activeFppeAssignment = provisionalParticipant && !isAttendingToo
+        ? await qaSupervisionAssignmentService.getActiveAssignmentForUser(FPPE_ACTIVITY_TYPE_ID, signingUser?.id ?? '', caseData?.subspecialtyId).then(r => r.ok ? r.data : null).catch(() => null)
+        : null;
+
+      const countersignCheck = resolveResidentCountersignRequired({
+        participants: caseData?.participants,
+        signingUserId: signingUser?.id ?? '',
+        hasActiveFppeAssignment: !!activeFppeAssignment,
+        countersignRequiredTypeIds,
+      });
+
+      if (countersignCheck.required) {
+        const createdBy = { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' };
+        // Batch 649: status first, then the immutable submitted version (no instanceId, so no ORU),
+        // the answers snapshot and the resident's signature linked to that version.
+        const released = await commitCountersignRelease(caseData, {
+          update: async patch => {
+            await caseRouter.updateCase(caseData.id, patch, knownVersionRef.current);
+            knownVersionRef.current = knownVersionRef.current + 1;
+            setCaseData(prev => prev ? ({ ...prev, ...patch }) : prev);
+          },
+          createVersion: async () => {
+            const existing = await reportVersionService.getByCaseId(caseData.id);
+            const { pdfBase64, generationError } = await generateReportPdfSnapshot();
+            if (generationError) showToast(t('useSignOutWorkflow.toast.submittedCountersignPdfFailed', { error: generationError }), 'warning');
+            return reportVersionService.create({ caseId: caseData.id, mode: 'orchestration', trigger: (existing.ok ? existing.data.length : 0) === 0 ? 'initial_signout' : 'amendment', createdBy, pdfBase64, generationError });
+          },
+          releaseForCountersign: () => countersignService.release({
+            caseId: caseData.id, subspecialtyId: caseData?.subspecialtyId, residentId: createdBy.userId, residentName: createdBy.userName,
+            releasedAnswersSnapshot: answersByInstance(caseData),
+          }),
+          commitSignature: link => signatureGate.commit(caseData.id, 'released_for_countersign', link),
+        });
+        setShowSignOutModal(false);
+        if (released.ok === false) {
+          if (handleConcurrencyConflict(released.error, setConcurrencyConflict, { blockOverride: true })) return;
+          console.error('[useSignOutWorkflow] Release for countersign stopped:', released.error);
+          showToast(t(released.compensated ? 'useSignOutWorkflow.toast.signOutNotCompleted' : 'useSignOutWorkflow.toast.signOutNotCompletedStatusKept'), 'warning');
+          return;
+        }
+
+        // The reviewer is told (fire-and-forget): the FPPE supervisor, or the case's attending.
+        const attendingParticipant = caseData?.participants?.find(
+          (p: CaseParticipant) => p.status === 'active' && p.participationTypeIds?.includes('attending')
+        );
+        const reviewerId = activeFppeAssignment?.supervisorUserId ?? attendingParticipant?.staffId;
+        if (reviewerId) {
+          const attendingUserRes = await userService.getById(reviewerId).catch(() => null);
+          const attendingEmail = attendingUserRes?.ok ? attendingUserRes.data?.email : undefined;
+          if (attendingEmail) {
+            sendEmail({
+              to: [attendingEmail],
+              subject: `Case ${caseData.id} ready for your countersign`,
+              bodyText: `${signingUser?.name ?? 'A resident'} has released case ${caseData.id} for your review and countersign.`,
+              bodyHtml: `<p>${signingUser?.name ?? 'A resident'} has released case <strong>${caseData.id}</strong> for your review and countersign.</p>`,
+              metadata: { caseId: caseData.id, action: 'countersign_requested' },
+            }).catch(() => {});
+          }
+        }
+
+        showToast(t('useSignOutWorkflow.toast.caseReleasedForCountersign', { caseId: caseData.id }), 'info', { containsPhi: true });
+        return; // does not proceed to reconciliation check or any finalize logic below
+      }
+    }
+
+    // Write guard (case relationship): only the primary/attending (or an
+    // administrative role) past the countersign routing may finalize.
+    const signOutFinalizeDecision = await authorizeSurgicalSignOut(caseData, canFinalizeCase(getSessionUser(), caseData?.participants, authorityParticipationTypes, authorityLabId, authorityJurisdiction));
+    if (!signOutFinalizeDecision.granted) {
+      showToast(signOutFinalizeDecision.reason, 'warning');
+      setShowSignOutModal(false);
+      return;
+    }
+
+    // "Path B": the same hard-block gates finalizeCase() enforces, each with its own
+    // resolution modal; resolving it resumes this function (pendingActionIsSignOut).
+    if (caseData) {
+      const parkFor = (open: () => void) => { open(); setPendingActionIsSignOut(true); setShowSignOutModal(false); };
+      const { preAnalyticBlocking, fixativeBlocking } = checkPreAnalyticAndFixativeGates(caseData, specimenDictionary);
+      if (preAnalyticBlocking.length > 0) { parkFor(() => setPreAnalyticDateGateSpecimens(preAnalyticBlocking)); return; }
+      if (fixativeBlocking.length > 0) { parkFor(() => setFixativeGateSpecimens(fixativeBlocking)); return; }
+      // PS-289/PS-292: stain QC after the more foundational gates; Batch 484: inking Gate B after that.
+      const stainQcBlocking = await checkStainQcGate(caseData);
+      if (stainQcBlocking.length > 0) { parkFor(() => setStainQcGateBlocking(stainQcBlocking)); return; }
+      const inkingGate = await checkInkingSignOutGate(caseData, signingUser?.role ? [signingUser.role] : []);
+      if (inkingGate) { parkFor(() => setInkingGateBlocking(inkingGate)); return; }
+      // Batch 439 (PS-145, PS-144): a clinical-pathologic mismatch to decide, then the peer-review gate.
+      const mismatch = await checkClinicalMismatch(caseData);
+      if (mismatch) { parkFor(() => setClinicalMismatch(mismatch)); return; }
+      const peerGate = await checkPeerReviewGate(caseData);
+      if (peerGate) { parkFor(() => setPeerReviewGate(peerGate)); return; }
+    }
+
+    // Frozen-to-permanent reconciliation (category match, no AI: services/quality/frozenReconciliationPlan.ts).
+    // Every non-deferred frozen specimen is reconciled in turn; finalizeSignOut() hands out the next one.
+    if (caseData?.id) {
+      const concordanceSettingsRes = await concordanceReviewSettingsService.resolveEffectiveConfigForFacility(caseData.originHospitalId, signingUser?.id).catch(() => null);
+      const concordanceSettings = concordanceSettingsRes?.ok ? concordanceSettingsRes.data : { aiComparisonEnabled: true, reviewScreenEnabled: true };
+      const sessions = concordanceSettings.aiComparisonEnabled ? await intraoperativeService.getAll() : null;
+      reconciliationQueue.current.load(sessions?.ok ? planFrozenReconciliation(caseData.id, sessions.data, concordanceSettings) : []);
+    }
+    await finalizeSignOut();
+  }, [caseData, runReviewGates, finalizeSignOut, signingUser, showToast, setShowSignOutModal, knownVersionRef, setConcurrencyConflict, setCaseData, setPendingReconciliation, t, confirmWarnings, generateReportPdfSnapshot, setClinicalMismatch, setFixativeGateSpecimens, setInkingGateBlocking, setPeerReviewGate, setPendingActionIsSignOut, setPreAnalyticDateGateSpecimens, setStainQcGateBlocking, signingCaseRef, specimenDictionary]);
 
   // PS-137: records the pathologist's decision on this session's flagged
   // findings as agreement signals, tagged with the covering Validation
@@ -1380,21 +1009,8 @@ export function useSignOutWorkflow({
       return severityRank[f.severity] > severityRank[best] ? f.severity : best;
     }, null);
     if (highest) {
-      // Real, per direct guidance: "we can use synthetic codes
-      // because we will not have a license until our first customer
-      // or a partnership" — PS-130's real, current, intentional
-      // approach. Prefers a matched PS-129 discrete rule's own,
-      // admin-configured per-rule code (real, specific to the actual
-      // finding, e.g. "Margin Status: Positive" vs. a generic
-      // "Critical" placeholder) when one exists among the findings at
-      // this severity; falls back to the real, severity-keyed default
-      // only when none of them carry one (always true for an
-      // AI-narrative finding, which has no fixed rule to attach one
-      // to). See resolveSyntheticCoding.ts's own header for the full
-      // structural safety reasoning (PS-130's real, licensed
-      // implementation stays genuinely blocked; this never touches
-      // that — it's the real, interim approach until a real
-      // terminology source exists).
+      // PS-130: a matched rule's own code(s) (real ones while the customer's licence is on, else test
+      // codes) win over the severity default, which an AI-narrative finding falls back to.
       const perRuleMatch = criticalFindings.find(f => f.severity === highest && f.syntheticCoding && f.syntheticCoding.length > 0);
       const patch = {
         abnormalDetectionStatus: { severity: highest, confirmedAt: new Date().toISOString() },
@@ -1534,7 +1150,7 @@ export function useSignOutWorkflow({
     // never going to be allowed to sign out anyway.
     const { participationTypes: finalizeParticipationTypes, performingLabFacilityId: finalizeLabId, jurisdiction: finalizeJurisdiction } =
       await resolveFinalizeAuthorityContext(caseData);
-    const finalizeDecision = canFinalizeCase(getSessionUser(), caseData?.participants, finalizeParticipationTypes, finalizeLabId, finalizeJurisdiction);
+    const finalizeDecision = await authorizeSurgicalSignOut(caseData, canFinalizeCase(getSessionUser(), caseData?.participants, finalizeParticipationTypes, finalizeLabId, finalizeJurisdiction));
     if (!finalizeDecision.granted) {
       showToast(finalizeDecision.reason, 'warning');
       return false;
@@ -1816,7 +1432,7 @@ export function useSignOutWorkflow({
       })().catch(e => console.error('[PathScribe] Outbound charge queue sweep failed (non-blocking):', e));
 
       void destroyHistoryCacheAtSignOut(caseData.id); // Batch 605: the prior-report cache must not outlive the case
-      await signatureGate.commit(caseData.id, 'finalized');
+      // Batch 649: the signature is recorded by finalizeAndRelease, once the version exists (completeAssistFinalize).
       return true;
     } catch (err) {
       // The actual finalize action — the highest-stakes write in this
@@ -1831,100 +1447,13 @@ export function useSignOutWorkflow({
     }
   }, [caseData, signingUser, log, showToast, specimenDictionary, knownVersionRef, setCaseData, setConcurrencyConflict, setFixativeGateSpecimens, setStainQcGateBlocking, setPreAnalyticDateGateSpecimens, setPendingFinalizeArgs, fetchBillingDeficiencyFindings, t, setClinicalMismatch, setInkingGateBlocking, setPeerReviewGate, setPendingActionIsSignOut, signingCaseRef]);
 
-  // Real feature, per direct follow-up: "Wire evaluateMicroscopicFinalizeGate
-  // into handleRequestFinalize." Genuinely case-wide, unlike
-  // validateRequired() above (which only ever checks whichever ONE
-  // report instance happens to be active in the sidebar right now) —
-  // finalize blocks the entire case's sign-out, so every specimen's
-  // real microscopic state needs checking, not just whichever one a
-  // pathologist happened to have selected last.
-  //
-  // requiresMicroscopicNarrative hardcoded to false for every
-  // specimen — the real, admin-configurable procedure-code-level
-  // setting per direct decision doesn't have a real config screen
-  // built yet (a real, separate, flagged follow-up). Rule 4 (no
-  // synoptic template assigned at all) still applies regardless, so
-  // this isn't a silent no-op: a case with genuinely nothing
-  // documenting it is still correctly blocked.
-  const getMicroscopicBlockingSpecimens = useCallback(async (): Promise<{ specimenLabel: string; specimenId: string; reasonKey: string }[]> => {
-    if (!caseData) return [];
-    const specimens = caseData.specimens ?? [];
-    const blocking: { specimenLabel: string; specimenId: string; reasonKey: string }[] = [];
-
-    // Real, deliberate cache — several specimens can share the same
-    // real synoptic templateId (e.g. the same CAP protocol assigned
-    // to multiple specimens), and getTemplate() is a real, async
-    // service call not worth repeating per specimen when the result
-    // would be identical.
-    const templateCache = new Map<string, Awaited<ReturnType<typeof getTemplate>>>();
-
-    for (const specimen of specimens) {
-      const microInstance = (caseData.microscopicReports ?? []).find(m => m.specimenId === specimen.id);
-      const microscopicStatus: MicroscopicNarrativeStatus = microInstance?.status ?? 'not-started';
-      const microscopicText = microInstance?.text ?? '';
-
-      // Rules 1/2 in evaluateMicroscopicFinalizeGate never need
-      // synoptic data at all (draft always blocks; real, saved text
-      // always allows) — skip the real, async template fetch below
-      // entirely for those two cases, not just for tidiness: avoids
-      // a real network/service call finalize doesn't actually need to
-      // wait on.
-      if (microscopicStatus === 'draft' || (microscopicStatus === 'saved' && microscopicText.trim().length > 0)) {
-        const result = evaluateMicroscopicFinalizeGate({
-          microscopicStatus, microscopicText,
-          hasSynopticTemplate: false, allRequiredSynopticFieldsComplete: false,
-          requiresMicroscopicNarrative: false,
-        });
-        if (result.blocked) blocking.push({ specimenId: specimen.id, specimenLabel: specimen.label, reasonKey: result.reasonKey! });
-        continue;
-      }
-
-      const synopticInstances = (caseData.synopticReports ?? [])
-        .filter(r => r.specimenId === specimen.id);
-      const hasSynopticTemplate = synopticInstances.length > 0;
-
-      let allRequiredSynopticFieldsComplete = true;
-      if (hasSynopticTemplate) {
-        for (const inst of synopticInstances) {
-          let detail = templateCache.get(inst.templateId);
-          if (!detail) {
-            try {
-              detail = await getTemplate(inst.templateId);
-              templateCache.set(inst.templateId, detail);
-            } catch (e) {
-              console.error(`[Finalize] Could not load template ${inst.templateId} for microscopic gate check:`, e);
-              // Real, honest fallback — an unloadable template's own
-              // completeness genuinely can't be verified; treated as
-              // incomplete rather than silently assumed complete, the
-              // same fail-safe direction every other real blocking
-              // check in this app already takes.
-              allRequiredSynopticFieldsComplete = false;
-              continue;
-            }
-          }
-          const answers = inst.answers ?? {};
-          const hasIncomplete = (detail.template?.sections ?? []).some(sec => {
-            if (!isVisible((sec as any).visibleWhen, answers)) return false;
-            return (sec.fields ?? []).some((f: any) => {
-              if (!f.required || !isVisible(f.visibleWhen, answers)) return false;
-              // Batch 461: a results grid counts when any cell is answered.
-              return !synopticFieldAnswered(f, answers);
-            });
-          });
-          if (hasIncomplete) allRequiredSynopticFieldsComplete = false;
-        }
-      }
-
-      const result = evaluateMicroscopicFinalizeGate({
-        microscopicStatus, microscopicText,
-        hasSynopticTemplate, allRequiredSynopticFieldsComplete,
-        requiresMicroscopicNarrative: false,
-      });
-      if (result.blocked) blocking.push({ specimenId: specimen.id, specimenLabel: specimen.label, reasonKey: result.reasonKey! });
-    }
-
-    return blocking;
-  }, [caseData]);
+  // Batch 649: Finalize (and every gate resume) ends here: finalize, release what waits, write the Assist version,
+  // then record the signature linked to that version (services/surgicalSignOut/completeAssistFinalize.ts).
+  const finalizeAndRelease = useCallback((excludedInstanceIds: string[] = []): Promise<boolean> => completeAssistFinalize({
+    finalize: () => finalizeCase(excludedInstanceIds),
+    release: onVersion => releasePendingAmendmentOrAddendum(onVersion),
+    commitSignature: link => signatureGate.commit(caseData?.id ?? '', 'finalized', link),
+  }), [finalizeCase, releasePendingAmendmentOrAddendum, caseData?.id]);
 
   // Real, per direct guidance ("alert the Pathologist with a warning
   // message, but not block") and per Trigger A's own real trigger
@@ -1949,133 +1478,15 @@ export function useSignOutWorkflow({
 
   const handleRequestFinalize = useCallback(async (andNext: boolean) => {
     setFinalizeAndNextPending(andNext);
-    // Real feature, per direct follow-up: "putting a case on Hold at
-    // the case level makes sense if there is something truly wrong."
-    // Checked first, before every other gate below — an active hold
-    // means something genuinely needs resolving; there's no reason to
-    // walk a pathologist through the microscopic/fixative/required-
-    // field gates for a case that can't proceed regardless of what
-    // those checks find.
-    const activeCaseHold = (caseData?.caseHolds ?? []).find(h => h.active);
-    if (activeCaseHold) {
-      showToast(t('useSignOutWorkflow.toast.caseOnHold', { note: activeCaseHold.note }), 'warning');
-      return;
-    }
-    // Batch 461: said up front too (finalizeCase checks again): a report map image out of date with the answers.
-    if ((await findStaleOrganMapFigures(caseData)).length > 0) {
-      showToast(t('organMap.panel.signOutStale'), 'warning');
-      return;
-    }
-    if ((await findMohsBlockGaps(caseData)).length > 0) {
-      showToast(t('organMap.mohs.signOutBlocks'), 'warning');
-      return;
-    }
-    // Batch 466b: the template's generic margin questions agree with the map.
-    if ((await findDerivedMarginConflicts(caseData)).length > 0) {
-      showToast(t('organMap.derived.signOutMismatch'), 'warning');
-      return;
-    }
-    // Batch 465b (Pete): a grid count above its limit stops sign-out; a hand-entered total that differs from its
-    // grid asks first.
-    {
-      const checks = await findSynopticEntryChecks(caseData);
-      if (checks.blocking.length) { showToast(t('synopticChecks.signOutBlocked', { problem: countBlockMessage(t, checks.blocking[0]) }), 'warning'); return; }
-      if (checks.warnings.length && confirmWarnings && !(await confirmWarnings(totalWarningsMessage(t, checks.warnings)))) return;
-    }
-    // Batch 466d (Pete): invasive carcinoma on the map with its margins not all reported asks first (a warning).
-    {
-      const gaps = await findInvasiveMarginGaps(caseData);
-      if (gaps.length && confirmWarnings && !(await confirmWarnings(invasiveMarginGapsMessage(t, i18n.language, gaps)))) return;
-    }
-    // Batch 467b (Pete's engine delta): an answer that still differs from its molecular result asks first (a warning).
-    {
-      const differences = await findMolecularResultDifferencesLive(caseData);
-      if (differences.length && confirmWarnings && !(await confirmWarnings(molecularDifferencesMessage(t, differences)))) return;
-    }
-    // Real fix, found via direct live verification before shipping this:
-    // this check MUST run before the synopticPanelRef.current check
-    // below, not after it. It's genuinely independent of which panel
-    // happens to be mounted (it reads caseData directly, never
-    // synopticPanelRef) — but the pathologist is very often looking at
-    // the Microscopic panel itself right when they click Finalize
-    // (the exact moment this whole feature exists for), and
-    // RightSynopticPanel — and therefore synopticPanelRef.current —
-    // isn't mounted at all while that panel is showing. Running this
-    // after the old `if (!synopticPanelRef.current)` early return
-    // would have silently bypassed this entire gate in exactly the
-    // scenario it's built to catch, confirmed live: it opened
-    // PreFinalisationModal straight through, with zero warning, on a
-    // case with nothing documenting it at all.
-    const microscopicBlocking = await getMicroscopicBlockingSpecimens();
-    if (microscopicBlocking.length > 0) {
-      const first = microscopicBlocking[0];
-      const firstReasonText = t(first.reasonKey);
-      showToast(
-        microscopicBlocking.length === 1
-          ? t('useSignOutWorkflow.toast.specimenBlocking', { label: first.specimenLabel, reason: firstReasonText })
-          : t('useSignOutWorkflow.toast.specimensNeedAttention', { count: microscopicBlocking.length, label: first.specimenLabel, reason: firstReasonText })
-      , 'warning');
-      setActiveSpecimenId(first.specimenId);
-      setActiveReportType('microscopic');
-      return;
-    }
-    // Real, per direct guidance's own revised PS-105 scope ("Sign-Out
-    // Guardrails" - soft block): a real, detected 'critical' severity
-    // finding must be acknowledged or recorded before finalize can
-    // proceed. Checked here, the one shared point before both real
-    // setShowPreFinalise(true) exit paths below - never re-blocks
-    // once the pathologist has already acted on this session's
-    // findings once.
-    if (!acknowledgedCritical) {
-      const findings = await fetchCriticalFindings();
-      // Real, per direct guidance's own severity unification with
-      // PS-129: gates on Critical AND Malignant (both more severe than
-      // the original single 'critical' level this replaced) — Abnormal
-      // alone still doesn't prompt this modal, same original intent.
-      const criticalOnly = findings.filter(f => f.severity === 'Critical' || f.severity === 'Malignant');
-      // PS-323: kept with the case so the highlight survives a reopen.
-      if (caseData) saveCriticalFindings(caseData.id, criticalOnly);
-      if (criticalOnly.length > 0) {
-        setCriticalFindings(criticalOnly);
-        setShowCriticalFindingsModal(true);
-        return;
-      }
-    }
-    if (!synopticPanelRef.current) {
-      previewBillingWarnings().catch(e => console.error('[PathScribe] Billing warning preview failed (non-blocking):', e));
-      setPreFinalSynoptics(await buildSynopticsForReview());
-      setShowPreFinalise(true);
-      return;
-    }
-    const missing = synopticPanelRef.current.validateRequired();
-    if (missing.length > 0) { setMissingFields(missing); setShowMissingWarning(true); return; }
-    // Real fix, per direct product decision: any required field with
-    // an AI suggestion still sitting unverified — regardless of
-    // confidence or source-match — blocks finalize outright and sends
-    // the pathologist straight to it, rather than opening a separate
-    // review modal. An unconfirmed AI value getting silently accepted
-    // at finalize is exactly the "AI accepted blindly" pattern that
-    // doesn't hold up under regulatory scrutiny; this closes it for
-    // good rather than softening it with a confidence threshold.
-    const blocking = synopticPanelRef.current.getBlockingUnverifiedFields();
-    if (blocking.length > 0) {
-      showToast(
-        blocking.length === 1
-          ? t('useSignOutWorkflow.toast.aiSuggestionNeedsReview', { label: blocking[0].fieldLabel })
-          : t('useSignOutWorkflow.toast.aiSuggestionsNeedReview', { count: blocking.length, label: blocking[0].fieldLabel })
-      , 'warning');
-      if (isOrchestrationMode) safeSetLeftTab('draft');
-      setAlertFieldId(blocking[0].fieldId);
-      return;
-    }
-    // Real, per direct guidance: fire-and-forget, deliberately never
-    // awaited - the actual "pathologist attempts electronic signature"
-    // moment (Trigger A's own real trigger event), but this must never
-    // delay or block PreFinalisationModal from opening.
+    // Batch 649: the review checks shared with Sign Out Case (runReviewGates above): an active
+    // hold first, the report content, microscopic documentation, critical findings, required
+    // fields and unverified AI answers. Without the synoptic panel open, the stored report is checked.
+    if (!(await runReviewGates('finalize'))) return;
+    // Trigger A's "pathologist attempts electronic signature" moment: a heads-up, never awaited or blocking.
     previewBillingWarnings().catch(e => console.error('[PathScribe] Billing warning preview failed (non-blocking):', e));
     setPreFinalSynoptics(await buildSynopticsForReview());
     setShowPreFinalise(true);
-  }, [buildSynopticsForReview, caseData, synopticPanelRef, showToast, setAlertFieldId, isOrchestrationMode, safeSetLeftTab, getMicroscopicBlockingSpecimens, setActiveSpecimenId, setActiveReportType, previewBillingWarnings, acknowledgedCritical, fetchCriticalFindings, t, i18n.language, confirmWarnings]);
+  }, [buildSynopticsForReview, runReviewGates, previewBillingWarnings]);
 
   const handlePreFinalConfirm = useCallback((_ordered: string[], _excluded: string[], confirmation?: SignatureConfirmation) => {
     setShowPreFinalise(false);
@@ -2084,24 +1495,16 @@ export function useSignOutWorkflow({
     // from the drag-to-reorder interaction — display order only, not
     // persisted here since it doesn't affect report content or status.
     //
-    // ROOT FIX — this is the PRIMARY finalize path (PreFinalisationModal
-    // shows the full report; this is what runs when there's nothing
-    // requiring the AI-review fallback). It previously called only
-    // finalizeCase(), fire-and-forget, with zero amendment/addendum
-    // awareness — meaning an in-progress amendment finalized through the
-    // normal expected flow would NEVER get released at all, regardless
-    // of any race condition. Now shares the same fixed logic as the
-    // fallback path (handleFinalizeConfirm), properly sequenced.
+    // The PRIMARY finalize path: finalize, then release a waiting amendment/addendum, in sequence (finalizeAndRelease).
     (async () => {
       // Batch 345: check the signature before anything is finalised.
       if (caseData?.id) {
         const accepted = await signatureGate.accept(confirmation, { caseId: caseData.id, caseRef: signingCaseRef, actions: ['report-finalize'] });
         if (accepted.ok === false) { showToast(t(`signatureEvidence.refused.${accepted.reason}`), 'warning'); return; }
       }
-      const succeeded = await finalizeCase(_excluded);
-      if (succeeded) await releasePendingAmendmentOrAddendum();
+      await finalizeAndRelease(_excluded);
     })();
-  }, [finalizeCase, releasePendingAmendmentOrAddendum, caseData?.id, signingCaseRef, showToast, t]);
+  }, [finalizeAndRelease, caseData?.id, signingCaseRef, showToast, t]);
 
   const handleFinalizeConfirm = useCallback((confirmation?: SignatureConfirmation) => {
     if (synopticPanelRef.current) {
@@ -2172,25 +1575,16 @@ export function useSignOutWorkflow({
       ).catch(console.error);
     }
 
-    // Genuine first-time finalize OR amendment/addendum completion —
-    // properly sequenced: finalizeCase() first (awaited, not
-    // fire-and-forget), THEN the amendment/addendum release, so there's
-    // no race between the two independently updating caseData from
-    // stale closures. Previously finalizeCase() ran fire-and-forget
-    // while this same logic ran inline right after it — whichever one's
-    // setCaseData call resolved last would silently clobber the other,
-    // which is exactly why the "AMENDMENT IN PROGRESS" banner stayed
-    // stuck inconsistently rather than every time.
+    // First-time finalize OR amendment/addendum completion, in sequence (finalizeAndRelease), so the two never clobber each other's setCaseData.
     (async () => {
       // Batch 345: check the signature before anything is finalised.
       if (caseData?.id) {
         const accepted = await signatureGate.accept(confirmation, { caseId: caseData.id, caseRef: signingCaseRef, actions: ['synoptic-finalize'] });
         if (accepted.ok === false) { showToast(t(`signatureEvidence.refused.${accepted.reason}`), 'warning'); return; }
       }
-      const succeeded = await finalizeCase();
-      if (succeeded) await releasePendingAmendmentOrAddendum();
+      await finalizeAndRelease();
     })();
-  }, [signingCaseRef, showToast, t, setShowFinalizeModal, caseData, isOrchestrationMode, orchSections, finalizeCase, releasePendingAmendmentOrAddendum, signingUser, synopticPanelRef]);
+  }, [signingCaseRef, showToast, t, setShowFinalizeModal, caseData, isOrchestrationMode, orchSections, finalizeAndRelease, signingUser, synopticPanelRef]);
 
   // Real, per direct guidance's own confirmed, foundational gap (PS-274):
   // suggestSynopticFields() and AiReviewModal were both already real
@@ -2353,6 +1747,7 @@ export function useSignOutWorkflow({
     handleReturnToTrainee,
     buildSynopticsForReview,
     finalizeCase,
+    finalizeAndRelease,
     missingFields, setMissingFields,
     showMissingWarning, setShowMissingWarning,
     reviewFields, setReviewFields,
@@ -2384,4 +1779,22 @@ function trackSignOutBufferLazy(caseId: string, expiresAt: string, signer: { id?
       caseId, expiresAt, releasedBy: { userId: signer?.id ?? '', userName: signer?.name ?? signer?.id ?? '' }, ...(performingFacilityId ? { performingFacilityId } : {}),
     }, releaseReportDeps))
     .catch(e => console.error('[useSignOutWorkflow] Buffered sign-out not handed to the background release:', e));
+}
+
+/** Each report's answers by instance (the countersign snapshot and its comparison). */
+function answersByInstance(caseData: Case): Record<string, Record<string, string | string[]>> {
+  return Object.fromEntries((caseData.synopticReports ?? []).map((r: SynopticReportInstance) => [r.instanceId, r.answers ?? {}]));
+}
+
+/** PS-114: a countersigned case with a provisional hire on it counts toward their FPPE review period; a failure is logged, not hidden. */
+async function recordFppeCaseReviewed(caseData: Case): Promise<void> {
+  const provisional = caseData.participants?.find((p: CaseParticipant) => p.status === 'active' && p.participationTypeIds?.includes('provisional_hire'));
+  if (!provisional) return;
+  const assignmentRes = await qaSupervisionAssignmentService.getActiveAssignmentForUser(FPPE_ACTIVITY_TYPE_ID, provisional.staffId, caseData.subspecialtyId).catch(() => null);
+  if (!assignmentRes?.ok || !assignmentRes.data) return;
+  try {
+    await qaSupervisionAssignmentService.recordCaseReviewed(assignmentRes.data.id);
+  } catch (e) {
+    console.error('[PS-114] Failed to record case review on the new QaSupervisionAssignment system — the sign-out gate reads from this system, so a silent failure here could leave a graduated pathologist incorrectly gated.', e);
+  }
 }

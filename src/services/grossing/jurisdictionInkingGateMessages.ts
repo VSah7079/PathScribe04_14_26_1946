@@ -46,6 +46,7 @@ const PROFILE_BY_JURISDICTION: Record<Jurisdiction, InkingGateJurisdictionProfil
   NL: 'EU_IVDR',
   DE: 'EU_IVDR',
   FR: 'EU_IVDR',
+  ES: 'EU_IVDR',
 };
 
 /** The regulatory profile a given (real) jurisdiction's Gate B messaging uses. */

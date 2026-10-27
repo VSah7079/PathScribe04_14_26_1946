@@ -1,0 +1,39 @@
+/* Batch 669 (ws-6): the quick Undo toast after Remove or Reprint on the Microtomy workstation. */
+.ps-microtomy-undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #e2e8f0;
+  background: #1e293b;
+  border: 1px solid color-mix(in srgb, var(--ps-teal-light, #38bdf8) 45%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.ps-microtomy-undo-toast__text { flex: 1; }
+.ps-microtomy-undo-toast__btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #0b1120;
+  background: var(--ps-teal-light, #38bdf8);
+  border: 0;
+}
+.ps-microtomy-undo-toast__close {
+  padding: 2px 6px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}

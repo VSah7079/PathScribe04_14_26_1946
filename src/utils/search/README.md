@@ -62,3 +62,5 @@ The Search page's decisions, kept out of `pages/SearchPage.tsx` (standing rule 2
 ## Batch 583
 
 - `caseReturnTarget.ts` (new): where a case report's Back and breadcrumb go, and what they say, from where the case was opened (`'search'` → Search; otherwise Worklist). Used by `HeaderBar.tsx` (PS-101).
+
+- Batch 662: the sex filter, results and CSV use the Sex at birth wording and include Indeterminate.

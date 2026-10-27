@@ -48,7 +48,8 @@ import { useTranslation } from 'react-i18next';
 import { useCurrentOrTerminal } from '@/hooks/useCurrentOrTerminal';
 import { resolveStaffByQuickAuthPin } from '@/services/intraopDashboard/resolveStaffByQuickAuthPin';
 import { resolveActiveIntraopRequestsForLocations, type ActiveIntraopRequest } from '@/services/intraopDashboard/resolveActiveIntraopRequestsForLocations';
-import { dismissFromBoardWithAudit } from '@/services/intraopDashboard/dismissFromBoardWithAudit';
+import { dismissFromBoardWithAudit, dismissalNoticeKey } from '@/services/intraopDashboard/dismissFromBoardWithAudit';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { resolveBoardLocationIds, resolveFlashState } from '@/services/intraopDashboard/resolveOrBoardLiveView';
 import { intraoperativeService, locationService, orEventLogService, orSuiteTerminalService, tatTargetService } from '@/services';
 import { resolveFrozenSectionClock } from '@/services/tatConfig/resolveFrozenSectionClock';
@@ -144,7 +145,7 @@ const VerbalReportModal: React.FC<{ request: ActiveIntraopRequest; onClose: () =
  *  happened by the time this opens; this modal covers the real Step 2
  *  — PIN-based staff identification, then the safety re-display +
  *  mandatory read-back checkbox + Cancel/Confirm. */
-const DismissConfirmationModal: React.FC<{ request: ActiveIntraopRequest; onClose: () => void; onDismissed: () => void }> = ({ request, onClose, onDismissed }) => {
+const DismissConfirmationModal: React.FC<{ request: ActiveIntraopRequest; onClose: () => void; onDismissed: (noticeKey: string | null) => void }> = ({ request, onClose, onDismissed }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<'pin' | 'confirm'>('pin');
   const [pin, setPin] = useState('');
@@ -180,7 +181,8 @@ const DismissConfirmationModal: React.FC<{ request: ActiveIntraopRequest; onClos
     }
     if (outcome === 'dismissedLogFailed') console.error('[OrSuiteDashboard] case dismissed but the event log write failed:', detail);
     setBusy(false);
-    onDismissed();
+    // Batch 669 (ops-15): a dismissal whose log write failed is also told to the person, not only the console.
+    onDismissed(dismissalNoticeKey(outcome));
   };
 
   return (
@@ -287,6 +289,7 @@ const OrSuiteDashboardPage: React.FC = () => {
   const [reportTarget, setReportTarget] = useState<ActiveIntraopRequest | null>(null);
   const [dismissTarget, setDismissTarget] = useState<ActiveIntraopRequest | null>(null);
   const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
+  const [noticeKey, setNoticeKey] = useState<string | null>(null);
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
   const prevRenderedRef = useRef<Set<string>>(new Set());
   // Real, per direct request: sales needs a realistic, populated board
@@ -346,17 +349,22 @@ const OrSuiteDashboardPage: React.FC = () => {
   const liveScope = useMemo(() => (effectiveLocationIds.length ? { locationIds: effectiveLocationIds, all: false } : null), [effectiveLocationIds]);
   const liveState = useLiveIntraopUpdates(liveScope, refresh);
 
-  const stopDemo = () => {
+  const stopDemo = async () => {
     if (demoIntervalRef.current) window.clearInterval(demoIntervalRef.current);
     demoIntervalRef.current = null;
     demoSimulationRef.current = null;
     setDemoActive(false);
+    // Batch 669 (ops-14): Stop demo takes the demo cases it created out of the real data, not just the timer.
+    const removed = await intraoperativeService.removeOrBoardDemoData();
+    if (!removed.ok) setNoticeKey('orSuiteDashboard.demoRemoveFailed');
+    await refreshRef.current();
   };
 
   const startDemo = async () => {
     if (!terminal) return;
     const res = await intraoperativeService.seedOrBoardDemoData(terminal.locationId, terminal.facilityId, 'DEMO');
-    if (!res.ok) return;
+    if (!res.ok) { setNoticeKey('orSuiteDashboard.demoStartFailed'); return; }
+    setNoticeKey(null);
     await refreshRef.current();
     setDemoActive(true);
     // Real, per direct request's own "simulate the changes" ask — the
@@ -387,8 +395,9 @@ const OrSuiteDashboardPage: React.FC = () => {
     setFlashedIds(prev => new Set(prev).add(specimenId));
   }, []);
 
-  const handleDismissed = (specimenId: string) => {
+  const handleDismissed = (specimenId: string, notice: string | null) => {
     setDismissTarget(null);
+    setNoticeKey(notice);
     // Real, per the spec's own State 4 — a 400ms slide-left/fade-out
     // before the row genuinely leaves the board, giving OR staff a
     // real, visible confirmation their action registered rather than
@@ -429,9 +438,9 @@ const OrSuiteDashboardPage: React.FC = () => {
         <div className="ps-orboard-header-actions">
           <LiveStatusBadge state={liveState} className="ps-orboard-live-badge" />
           {demoActive && <span className="ps-orboard-demo-badge">{t('orSuiteDashboard.demoModeActive')}</span>}
-          <button className="ps-btn-secondary" onClick={demoActive ? stopDemo : startDemo}>
+          <CapabilityButton capability="config:or-board-demo:run" className="ps-btn-secondary" onClick={demoActive ? stopDemo : startDemo}>
             {demoActive ? t('orSuiteDashboard.stopDemo') : t('orSuiteDashboard.startDemo')}
-          </button>
+          </CapabilityButton>
           {terminal.canViewMultiSuite && (
             <div className="ps-orboard-multisuite-row">
               <label className="ps-orboard-multisuite-toggle">
@@ -445,6 +454,13 @@ const OrSuiteDashboardPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {noticeKey && (
+        <div className="ps-orboard-error" role="alert">
+          {t(noticeKey)}
+          <button className="ps-btn-secondary" onClick={() => setNoticeKey(null)}>{t('orSuiteDashboard.noticeClose')}</button>
+        </div>
+      )}
 
       {requests.length === 0 ? (
         <div className="ps-orboard-empty">{t('orSuiteDashboard.noActiveRequests')}</div>
@@ -469,7 +485,7 @@ const OrSuiteDashboardPage: React.FC = () => {
       )}
       {dismissTarget && (
         <div className={dismissTarget ? 'ps-orboard-dismiss-pending-overlay' : ''}>
-          <DismissConfirmationModal request={dismissTarget} onClose={() => setDismissTarget(null)} onDismissed={() => handleDismissed(dismissTarget.specimenId)} />
+          <DismissConfirmationModal request={dismissTarget} onClose={() => setDismissTarget(null)} onDismissed={notice => handleDismissed(dismissTarget.specimenId, notice)} />
         </div>
       )}
     </div>

@@ -12,5 +12,9 @@ Settings that belong to a person rather than the browser they sign in on.
 - **Billing Log saved searches** (`BillingLogsSection.tsx`, key `pathscribe:savedBillingLogQueries`).
 Report screen layout stays with the workstation (Pete's decision; `utils/uiPreferences.ts`).
 
+## Batch 651: screen-language changes are audited
+
+`savePersonalLanguage()` writes "Screen language changed" (from and to language codes, the person as actor, no PHI) to the audit service when a person replaces a language they had already chosen with a different one. The first save (the workstation's language carrying over) and re-saving the same language at sign-in are not changes and write nothing. Test: `personalLanguage.test.ts`.
+
 ---
 *Parent: [services/](../README.md).*

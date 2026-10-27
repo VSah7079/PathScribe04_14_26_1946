@@ -58,8 +58,8 @@ export function CytologyQcCaseBar({ caseId, onRecorded }: CytologyQcCaseBarProps
       {discrepancyOpen && (
         <CytologyQcDiscrepancyModal
           onClose={() => setDiscrepancyOpen(false)}
-          onSubmit={async (primary, secondary, severity, commentary) => {
-            const ok = await recordDiscrepancy(a.id, { primaryDiagnosticCode: primary, secondaryDiagnosticCode: secondary, severity, reviewerCommentary: commentary });
+          onSubmit={async (primary, secondary, severity, commentary, divergenceConfirmed) => {
+            const ok = await recordDiscrepancy(a.id, { primaryDiagnosticCode: primary, secondaryDiagnosticCode: secondary, severity, reviewerCommentary: commentary, divergenceConfirmed });
             setDiscrepancyOpen(false);
             if (ok) onRecorded?.();
           }}

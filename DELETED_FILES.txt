@@ -1,3 +1,33 @@
+Batch 678 (Pete, Oct 25, 2026): the 73-row requirements tracker is replaced by the three-layer Readiness Matrix.
+
+docs/compliance-guide/Compliance_Requirements_Tracker.xlsx
+
+Batch 669c (Pete, Oct 24, 2026): the old embedded User Guide and Admin Guide PDFs are gone, with the two About-menu links that opened them; the guides open only from the top-bar Help buttons (the new User Guide and Administrator Guide).
+
+src/utils/guideAssets.ts
+src/hooks/useGuideAssets.ts
+scripts/Update-GuideAssets.ps1
+public/help/PathScribe_Combined_Admin_Guide.pdf
+public/help/PathScribe_User_Guide_v0_9_0.pdf
+
+Batch 668 (Pete): the Help buttons moved from floating buttons over the screen into the top bar beside the microphone (components/Help/TopBarHelpButtons.tsx); the two floating components and their tests are gone.
+
+src/components/Help/UserGuideHelpButton.tsx
+src/components/Help/UserGuideHelpButton.test.tsx
+src/components/Config/help/RouteHelpButton.tsx
+src/components/Config/help/RouteHelpButton.test.tsx
+
+Batch 663 (Pete): billing charges are guarded by the capability billing:charge:approve (chargeApproval.ts), not a role name; the role-name check had no callers.
+
+src/services/billing/canDraftOrApproveBillingCharge.ts
+src/services/billing/canDraftOrApproveBillingCharge.test.ts
+
+Batch 634 (listed late, in Batch 636): the cytology dispatch lookup test moved with its code to the shared module
+(src/services/interfaceDispatch/resolveDispatchOrganisation.test.ts). The old copy fails once the code has moved, so delete it
+(npm run cleanup:deleted).
+
+src/services/cytology/resolveCytologyDispatchOrganisation.test.ts
+
 Batch 611: the unused mock AI integration service (nothing imported it; the AI spell check it once stood beside was replaced by dictionary spell check).
 
 src/services/aiIntegration/MockAIIntegrationService.ts

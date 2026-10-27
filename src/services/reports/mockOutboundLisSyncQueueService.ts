@@ -3,7 +3,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { IOutboundLisSyncQueueService } from './IOutboundLisSyncQueueService';
 import type { OutboundLisSyncQueueEntry } from '@/types/case/OutboundLisSyncQueueEntry';
-import { auditService } from '@/services';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 const KEY = 'outbound_lis_sync_queue_v1';
 

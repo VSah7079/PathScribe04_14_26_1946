@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 637 — Role Dictionary names 8 more actions (hrHPV manual entry, CSMS eligibility, AI history reading, registry batch file); review workbooks for fr/nl/de/es",
+    "description": "Vitest, 2026-10-20: full suite 1691 files (1686 passed, 4 skipped, 1 failed); 14,226 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean. No new test file: the existing actions guard covers the new entries."
+  },
+  "tests": [
+    {
+      "testKey": "PS-849",
+      "start": "2026-10-20T21:40:00Z",
+      "finish": "2026-10-20T22:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts (every roles-list entry is classified, no new key or phrase clash)\nPASSED: src/services/roles (default grants, seeded actions)\nPASSED: src/constants\nPASSED: src/services/authorization/capabilities.guard.test.ts\nPASSED: src/i18n/localeParity.test.ts\nNot tested: the Role Dictionary in a browser; the translation workbooks opened in Excel (checked in LibreOffice, no formula errors)."
+    }
+  ]
+}

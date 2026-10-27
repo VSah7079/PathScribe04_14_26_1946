@@ -32,7 +32,7 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { AutopsyToxicologyOrder } from '@/types/autopsy/AutopsyCaseDetails';
 
 export interface OrderAutopsyToxicologyInput {
@@ -89,7 +89,7 @@ export async function orderAutopsyToxicology(
   }, caseRouter);
 
   if (write.ok === true) {
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_TOXICOLOGY_ORDERED',
       detail: `${input.analytesRequested} ordered from ${input.labName}`,

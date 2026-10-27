@@ -100,9 +100,9 @@ describe('locale resolution', () => {
 });
 
 describe('reviewablePrompts', () => {
-  it('lists the four English conventions then fr, de, nl, ko, each matching what is sent', () => {
+  it('lists the four English conventions then fr, de, nl, es, ko, each matching what is sent', () => {
     const list = reviewablePrompts();
-    expect(list.map(p => p.id)).toEqual(['en-US', 'en-GB', 'en-AU', 'en-CA', 'fr', 'de', 'nl', 'ko']);
+    expect(list.map(p => p.id)).toEqual(['en-US', 'en-GB', 'en-AU', 'en-CA', 'fr', 'de', 'nl', 'es', 'ko']);
     expect(list.find(p => p.id === 'en-AU')!.prompt).toBe(buildDictationRefinementSystem({ language: 'en', spellLocale: 'en-AU' }));
     expect(list.find(p => p.id === 'de')!.prompt).toBe(buildDictationRefinementSystem({ language: 'de' }));
   });

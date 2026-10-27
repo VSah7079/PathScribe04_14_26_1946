@@ -10,7 +10,8 @@ vi.mock('react-i18next', () => ({
   Trans: ({ i18nKey }: { i18nKey: string }) => <span>{i18nKey}</span>,
   initReactI18next: { type: '3rdParty', init: () => {} },
 }));
-const { listeners, config, sendSecureEmail, gateways } = vi.hoisted(() => ({
+const { listeners, config, sendSecureEmail, gateways, auditLog } = vi.hoisted(() => ({
+  auditLog: vi.fn(),
   listeners: [] as Array<(id: string) => void>,
   config: { subjectRequired: true, allowed: true },
   sendSecureEmail: vi.fn(),
@@ -23,6 +24,7 @@ const DVMC = {
     { gatewayId: 'VIRTRU', enabled: true, senderAddress: 'admin@dvmc.example.org' },
   ],
 };
+vi.mock('@/components/Audit/useAuditLog', () => ({ useAuditLog: () => ({ log: auditLog }) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1', name: 'Dr. A', organisationId: 'ORG-DVMC' } }) }));
 vi.mock('@/hooks/useCapabilities', () => ({
   useCapabilities: () => ({ loading: false, has: () => config.allowed, decide: () => ({ allowed: config.allowed }) }),
@@ -45,7 +47,7 @@ vi.mock('@/services', async () => {
 import { ComposePanel } from './AppShell';
 import { SecureEmailModal } from '@/components/SecureEmail/SecureEmailModal';
 
-afterEach(() => { cleanup(); listeners.length = 0; config.subjectRequired = true; config.allowed = true; sendSecureEmail.mockReset(); });
+afterEach(() => { cleanup(); listeners.length = 0; config.subjectRequired = true; config.allowed = true; sendSecureEmail.mockReset(); auditLog.mockReset(); });
 beforeEach(() => { sendSecureEmail.mockResolvedValue({ ok: true, data: undefined }); gateways.current = DVMC; });
 
 const recipient = { id: 'u2', name: 'Lab Manager', role: 'Laboratory' };
@@ -130,6 +132,20 @@ describe('SecureEmailModal and Field Requirements (Batch 384)', () => {
     expect(screen.getByText('appShell.messaging.notPermittedSecureEmail')).toBeTruthy();
     act(() => listeners[0]('SECURE_EMAIL_SUBMIT'));
     expect(sendSecureEmail).not.toHaveBeenCalled();
+  });
+  it('a sent email writes its own audit entry and then says so; a refused one does neither', async () => {
+    await open({ prefillTo: 'dr@example.org', prefillSubject: 'S', prefillBody: 'Text' });
+    expect(screen.queryByTestId('secure-email-audit')).toBeNull();
+    fireEvent.click(send());
+    await waitFor(() => expect(screen.getByTestId('secure-email-audit').textContent).toBe('appShell.secureEmailModal.auditRecorded'));
+    expect(auditLog).toHaveBeenCalledWith('secure_email_sent', { recipientEmail: 'dr@example.org', subject: 'S' });
+  });
+  it('a refused send writes no audit entry', async () => {
+    sendSecureEmail.mockResolvedValue({ ok: false, error: 'MESSAGE_NOT_PERMITTED' });
+    await open({ prefillTo: 'dr@example.org', prefillSubject: 'S', prefillBody: 'Text' });
+    fireEvent.click(send());
+    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+    expect(auditLog).not.toHaveBeenCalled();
   });
   it('a refused send keeps the email and shows the reason (Batch 385)', async () => {
     sendSecureEmail.mockResolvedValue({ ok: false, error: 'MESSAGE_NOT_PERMITTED' });

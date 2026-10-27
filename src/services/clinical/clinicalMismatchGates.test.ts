@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Batch 530 (PS-554): Gate A (the background check), Gate B (sign-out) and the QA queues.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 
 vi.mock('@/services/aiIntegration/aiProviderService', () => ({ callAi: vi.fn() }));
 vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
@@ -29,6 +29,10 @@ const correlation = async () => {
   const r = await mockQaActivityRecordService.getAll();
   return (r.ok ? r.data : []).filter(x => x.activityTypeId === CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID);
 };
+
+// Batch 679: these tests cover the score-driven thresholds and Block rules, which belong to the clinical_support profile.
+beforeAll(() => { vi.stubEnv('VITE_REGULATORY_PROFILE', 'clinical_support'); });
+afterAll(() => { vi.unstubAllEnvs(); });
 
 describe('Gate B: what sign-out does (pure)', () => {
   const at = (confidence: number, kind: 'unexpected-malignancy' | 'other' = 'unexpected-malignancy') => {

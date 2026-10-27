@@ -41,3 +41,9 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 567 (WCAG 2.1 AA, 4.1.2)
 
 - `DelegateModal.tsx`: a delegation type's zone can hold a button (clear the recipient), so it is no longer a button. Clicking it still picks the type; the type's name is the button (`aria-pressed`). The clear button has a name.
+
+## Batch 652 (defect fixes)
+
+The dialog holds a list of recipients; a type with `multiAssign` (Teaching Case) accepts several, others one. It calls `delegateToRecipients` (services/delegations), which makes one delegation per person (capability check and audit each).
+
+**Batch 655:** a partly refused Multi-recipient delegation keeps the dialog open and lists who was delegated and who was refused (styles in `delegateResult.css`).

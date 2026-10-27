@@ -1,0 +1,395 @@
+<h1 id="top">Batch</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> A batch is one plate that goes on one analyser in one run. This screen, headed "New Molecular Batch" while you build and by the batch barcode and test name afterwards, is where you choose the test and the instrument, enter the reagent lots, lay out the wells (controls and patient specimens), and create the batch. Once it is created you can print its labels, send its worklist to the instrument, read the run's results, trace any result back to its source, and, if the plate was built wrongly, retire it and start a corrected copy.</p>
+<p><strong>Intended users.</strong> Molecular technologists. Laboratory managers read batches to review runs.</p>
+<p><strong>Where it fits.</strong> You reach it from the <a href="/help/molecular">Molecular</a> screen: <strong>+ New Batch</strong> opens a blank plate, and a click on any row in the batch lists, or on a plate link in the Order Queue, opens an existing one. Before you build, the specimens should be racked (<a href="/help/molecular/rack">Rack</a>). Afterwards the run's results flow into the Order Queue and the report.</p>
+<div class="admonition note">
+<p class="admonition-title">An existing batch is read-only</p>
+<p>A batch is built once. After you select <strong>Create Batch</strong>, the layout, lots and instrument cannot be changed. You can look at the wells, send the worklist, read the results, and print labels. If the plate is wrong, use <strong>Clone &amp; Supersede</strong>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Sending a worklist and receiving results are stand-ins in the demonstration</p>
+<p>PathScribe never talks to an analyser directly. The worklist is passed to your laboratory's interface engine, which drives the instrument, and the engine sends the results back. That connection is <strong>not built</strong>. In the demonstration the worklist is accepted only when the development "Mock Interface Engine" tool has been switched on; otherwise sending fails with a message that PathScribe could not reach the service. Results then arrive only through the Demo buttons on the Order Queue (see <a href="/help/molecular">Molecular</a>) or the same development tool. Nothing on this screen sends a real run to a real instrument yet.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/molecular-batch-overview.png" alt="The plate builder with batch information, reagent lots, the plate grid and the well panel"><figcaption>The plate builder with batch information, reagent lots, the plate grid and the well panel</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Batch Info (new batch only)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assay *</td>
+<td>The molecular test, chosen from the molecular tests in your diagnostic catalog. Required. The test's name is filled in for you.</td>
+</tr>
+<tr>
+<td>Target Instrument *</td>
+<td>The analyser the plate is for. The list holds only active analysers from the equipment register, with the ones at this workstation's laboratory first. Before you choose, the list reads "— Select an instrument —". An instrument with an open malfunction or overdue maintenance or calibration is shown in red, for example "⚠ Panther 3 (PANTHER_03): Malfunction". You may still pick it. A red box under the list says "… has an open malfunction. You can still choose it, but check it before running this batch." (or "… is past its maintenance or calibration due date. …"). When no analyser is active the list shows "No active analysers. An administrator can add them under Configuration → System → Equipment."</td>
+</tr>
+<tr>
+<td>Deck Slot</td>
+<td>Where the plate sits on the instrument. If the instrument has a deck layout this is a list of its extraction-plate slots, each shown with its deck. The list starts with "Select a slot". Otherwise it is a text box with the example "e.g. SLOT_A1". Your laboratory decides whether it is required; a star shows when it is.</td>
+</tr>
+<tr>
+<td>Plate Layout</td>
+<td>The size of the plate: 6-well, 12-well, 24-well, 48-well, 96-well (the default), 384-well, 1536-well, an 8-well strip or a 12-well strip. Changing it clears the grid.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reagent Lots (new batch only)</strong></p>
+<p>Each lot has: <strong>Component</strong> (Master mix, Primer / probe, Extraction buffer, Detection reagent, Positive control, Negative control or Control), <strong>Lot Number</strong>, <strong>Expiration</strong> (a date) and <strong>QC Status</strong> (Signed Off, Pending or Failed). A star on the heading shows when your laboratory requires at least one lot.</p>
+<p><strong>Well panel (new batch, after you select a well)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sample Type</td>
+<td>Unassigned, Specimen, NTC (no-template control), PTC (High), PTC (Low) or Calibrator.</td>
+</tr>
+<tr>
+<td>Control Lot Number, Control Expiration, Expected Result</td>
+<td>For a control or calibrator. The lot number and expiry are required for every control well: the batch is refused without both. The control's identity follows the lot number as you type it, so the Trace shows the whole lot. The expiry box shows the date you entered when you select the well again; clearing it clears the date. <strong>Expected Result</strong> is Negative or Positive and starts at the usual answer for the type (Negative for NTC; Positive for PTC (High), PTC (Low) and Calibrator). Change it if your control is different; it travels to the instrument with the worklist.</td>
+</tr>
+<tr>
+<td>Container Barcode</td>
+<td>For a patient specimen: the tube's barcode.</td>
+</tr>
+<tr>
+<td>Accession Number</td>
+<td>For a patient specimen: the accession. A patient well must have a container barcode or an accession.</td>
+</tr>
+<tr>
+<td>Aliquot Volume (µL)</td>
+<td>For a patient specimen. Your laboratory decides whether it is required.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Existing batch</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Heading</td>
+<td>The batch barcode and the test name.</td>
+</tr>
+<tr>
+<td>Plate Layout (rows×columns)</td>
+<td>The grid. A filled well can be clicked to see its sample type, accession (and the molecular order or control it holds).</td>
+</tr>
+<tr>
+<td>Molecular order</td>
+<td>For a well that holds an in-house order: "Placed from the Order Queue; take it off the plate there."</td>
+</tr>
+<tr>
+<td>Run Results</td>
+<td>A table of Well, Accession, Ct Value, Internal Control Ct, Interpretation, Flag and Trace. It appears once the instrument's results have arrived. Until then there is no table. When it is shown but empty it reads "No per-well results received yet."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>← Back to Batches</td>
+<td>Returns to the Molecular screen, on the tab that shows this batch (Worklist &amp; Plate Builder for a draft, Active Runs for a running batch, History &amp; Archive for a finished one).</td>
+</tr>
+<tr>
+<td>Plate Label</td>
+<td>Prints the plate's label.</td>
+</tr>
+<tr>
+<td>Deck Location Label</td>
+<td>Prints the label for the plate's place on the instrument. It reads LOC-INST- followed by the instrument and the slot.</td>
+</tr>
+<tr>
+<td>Specimen Labels</td>
+<td>Prints a label for each specimen on the plate.</td>
+</tr>
+<tr>
+<td>Dispatch Worklist</td>
+<td>Opens the scan check. Shown only for a batch whose worklist has not been sent and that is not superseded.</td>
+</tr>
+<tr>
+<td>Clone &amp; Supersede</td>
+<td>Opens the retire-and-copy panel. Shown on every batch that is not already superseded.</td>
+</tr>
+<tr>
+<td>Auto-fill (Row-Major) / Auto-fill (Column-Major)</td>
+<td>New batch. Marks every empty well as a patient specimen well, working along the rows or down the columns. It does not invent any specimen: you scan each one in afterwards.</td>
+</tr>
+<tr>
+<td>Scan to Fill</td>
+<td>New batch, specimen well. Waits for a barcode scan into the selected well. The button changes to "Waiting for scan…" while it waits.</td>
+</tr>
+<tr>
+<td>Scan not working? Enter specimen ID manually</td>
+<td>New batch. Opens a box (its prompt reads "Specimen / container barcode") where you type the specimen or container barcode and select <strong>Fill</strong> (or press Enter). <strong>Cancel</strong> closes it.</td>
+</tr>
+<tr>
+<td>+ Add Reagent Lot / Remove</td>
+<td>Adds or removes a lot row.</td>
+</tr>
+<tr>
+<td>Create Batch</td>
+<td>Creates the batch. Greyed out until everything passes.</td>
+</tr>
+<tr>
+<td>Confirm Dispatch</td>
+<td>Sends the worklist after both scans.</td>
+</tr>
+<tr>
+<td>Confirm Clone &amp; Supersede</td>
+<td>Retires this batch and creates the copy. Greyed out without a reason or without permission. While it works the button reads "Cloning…". If the copy cannot be made, a red line under the button gives the reason in your language (for example a reagent or control lot that is expired, failed or without QC sign-off, or that the run was already superseded), or a general "The change could not be made" line when the cause is not recognised.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Well colours</td>
+<td>Blue for a patient specimen, red for NTC, green for PTC (High), light green for PTC (Low), purple for a calibrator. The legend sits under the grid.</td>
+</tr>
+<tr>
+<td>Corner mark on a well</td>
+<td>The well holds an in-house molecular order. The tooltip names it.</td>
+</tr>
+<tr>
+<td>Selected well</td>
+<td>The well being edited (new batch) or viewed (saved batch).</td>
+</tr>
+<tr>
+<td>Red "Still required: …" line</td>
+<td>Names the fields still missing.</td>
+</tr>
+<tr>
+<td>Red lines above Create Batch</td>
+<td>Reagent lot or control problems, such as "Master mix (LOT-1): expired", "… failed QC", "… no QC sign-off" or "… control lot or expiry missing"; or "NTC is required for this assay but not present on this plate" and "PTC (High) must be at A02 but was found at B05".</td>
+</tr>
+<tr>
+<td>Red line "These patient wells don't name a specimen yet: …"</td>
+<td>Patient wells with neither barcode nor accession.</td>
+</tr>
+<tr>
+<td>Banner "✓ Worklist dispatched at …"</td>
+<td>The worklist has been sent.</td>
+</tr>
+<tr>
+<td>Banner "⚠ Blocked from auto-verification — one or more controls on this run failed. Results require manual review before sign-out."</td>
+<td>The run's controls failed.</td>
+</tr>
+<tr>
+<td>Banner "This batch is a clone of a superseded, earlier batch — every patient specimen well was reset and requires a fresh scan."</td>
+<td>This batch is a replacement. The words "a superseded, earlier batch" are a link to the earlier one.</td>
+</tr>
+<tr>
+<td>Banner "⚠ This batch was superseded on … by … — "reason"." with <strong>View replacement batch →</strong></td>
+<td>This batch has been retired.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+Alt+Shift+N</td>
+<td>Create the plate. Works only on a new batch, while the plate builder is open. It acts exactly as <strong>Create Batch</strong>, including the checks.</td>
+</tr>
+</tbody>
+</table>
+<p>You can also say "create plate" or "create batch". Clone &amp; Supersede has no key and no voice command, on purpose.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p>Building and running a plate:</p>
+<ol>
+<li>On the <a href="/help/molecular">Molecular</a> screen select <strong>+ New Batch</strong>. You see "New Molecular Batch" with the Batch Info panel and an empty plate grid.</li>
+<li>Choose the <strong>Assay</strong>. Choose the <strong>Target Instrument</strong>; if it appears in red, read the warning under the list and decide whether to continue.</li>
+<li>Choose the <strong>Deck Slot</strong>. If the instrument has a deck layout, only slots that hold an extraction plate are offered.</li>
+<li>Choose the <strong>Plate Layout</strong> if it is not 96-well. Do this before you lay out wells: changing it later clears the grid.</li>
+<li>Under <strong>Reagent Lots</strong> select <strong>+ Add Reagent Lot</strong> for each lot. Choose the component, type the lot number, set the expiration date and the QC status. A lot that is expired, has failed QC or has no QC sign-off blocks the batch.</li>
+<li>Place the controls. Click a well in the grid, then in the panel set <strong>Sample Type</strong> to the control (NTC, PTC (High), PTC (Low) or Calibrator) and fill in <strong>Control Lot Number</strong> and <strong>Control Expiration</strong>, and check <strong>Expected Result</strong>. Put each control where the <a href="/help/molecular/control-rules">Control Rules</a> say: a rule may fix NTC at A01, for instance.</li>
+<li>Place the patient specimens. Either click each well and set it to Specimen, or choose an <strong>Auto-fill</strong> button to mark all the remaining empty wells at once.</li>
+<li>For each patient well, scan the tube. Select <strong>Scan to Fill</strong> and scan the tube; the specimen is recorded in the well and the next unfilled patient well is selected and waits for the next scan automatically. Work through the whole rack this way. The well panel shows the accession when a scan finds one.</li>
+<li>If the scanner does not read, select <strong>Scan not working? Enter specimen ID manually</strong>, type the barcode, and press Enter or <strong>Fill</strong>.</li>
+<li>Enter the <strong>Aliquot Volume (µL)</strong> for each patient well when your laboratory requires it.</li>
+<li>Read the lines above <strong>Create Batch</strong>. Fix everything listed in red, and the "Still required:" line. The button turns on when all is well.</li>
+<li>Select <strong>Create Batch</strong>. You see the batch open with its barcode in the heading, and its status is Draft.</li>
+<li>Print the labels: <strong>Plate Label</strong>, <strong>Deck Location Label</strong> and <strong>Specimen Labels</strong>. Put them on the plate, the deck position and the tubes.</li>
+<li>Place the rack on the instrument (<a href="/help/molecular/rack">Rack</a>).</li>
+<li>Select <strong>Dispatch Worklist</strong>. A panel titled "Dispatch Worklist — Scan Verification" opens. It says that the target plate and the instrument deck location must both be scanned and confirmed to match before the worklist is sent.</li>
+<li>Next to <strong>Plate Barcode</strong> select <strong>Scan</strong> and scan the plate. Next to <strong>Deck Location Barcode</strong> select <strong>Scan</strong> and scan the deck position's label. Each shows what was scanned instead of "— not scanned —".</li>
+<li>Select <strong>Confirm Dispatch</strong>. When it is accepted you see "Worklist dispatched successfully.", the panel closes, and the green banner "✓ Worklist dispatched at …" appears. The batch's status changes from Draft to Active, so it now sits on the <strong>Active Runs &amp; Batches</strong> tab, and the orders on the plate change to Running. In the demonstration the worklist goes to the simulated interface engine (see <a href="/help/demonstration-tools">Demonstration tools</a>), the same one other outbound messages use, so it works without a real engine.</li>
+<li>When the run's results arrive, the <strong>Run Results</strong> table appears. Read each well's Ct value, internal control Ct, interpretation and flag. Compare the result for each control with its expected value. If a control failed, you see the red blocked banner.</li>
+<li>Use <strong>Trace</strong> on any row to see where that result came from (see below).</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>A plate for waiting orders.</strong> To put in-house orders on a plate with the Order Queue, build the plate with <strong>controls only</strong> and leave the patient wells empty. The queue puts each order in the next free well, in row order, and never in a control position. Do <strong>not</strong> use Auto-fill for that plate: every well it marks as a patient specimen then needs a barcode before the batch can be created.</li>
+<li><strong>Trace a result.</strong> In Run Results select <strong>Trace</strong> on a row. A panel lists: the control (one line reading "…, lot …, expires …": the control id, its lot number and its expiry date), the plate UUID and barcode, the deck location (instrument and slot, or "(no deck slot recorded)"), who created the batch (the line "Batch created by:" followed by the name), the reagent lots, and the specimen's Movement history, each line reading for example "Primary vial → Secondary rack — Name at Station — date". "No tracked movement recorded for this specimen." appears when the tube was never scanned into a rack. Select <strong>Hide</strong> to close it.</li>
+<li><strong>Retire and replace a plate (Clone &amp; Supersede).</strong> Use it when the plate was built wrongly, a specimen was mis-scanned, or a lot has to change:<ol>
+<li>Open the batch and select <strong>Clone &amp; Supersede</strong>. The panel explains: this batch is never edited in place; confirming creates a new draft batch with the same test, instrument and plate settings and the same control assignments, but every patient specimen well resets and must be scanned again; this batch becomes a closed, superseded record. A well that holds an in-house order from the Order Queue is the exception: while the plate is still a draft that has not been dispatched, that well keeps its order (and its accession) on the copy, and the order moves to the new plate in the same well. You do not have to put it back.</li>
+<li>Type the <strong>Reason</strong> (for example "Well A03 specimen was mis-scanned; re-running with corrected accession"). It is required.</li>
+<li>Select <strong>Confirm Clone &amp; Supersede</strong>. The new batch opens with the clone banner; the old one is Superseded and points to its replacement.</li>
+</ol>
+</li>
+<li><strong>Look at a finished or retired batch.</strong> Open it from History &amp; Archive. Wells can be viewed; nothing can be changed.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>A control is missing or in the wrong well.</strong> The red lines say which. Move the control to the position the rule fixes, or add the missing one. A rule that allows "random position" only needs the control to be somewhere on the plate.</li>
+<li><strong>A reagent lot is expired, failed or unsigned.</strong> The batch is blocked. Replace the lot with a good one or get the QC sign-off done first. Setting the QC Status to Signed Off here is a record of what the laboratory already did; it is not itself a sign-off.</li>
+<li><strong>"That instrument is no longer an active analyser in the equipment register. Choose another."</strong> The analyser was retired while you built. Choose another.</li>
+<li><strong>"… on … doesn't take an extraction plate. Choose one of its plate slots."</strong> The deck slot is not a plate slot. Choose from the list.</li>
+<li><strong>Scan verification failed.</strong> The message reads "Scan verification failed: …" followed by what did not match: "the plate barcode didn't match", "the deck location didn't match", "this workstation isn't the instrument's scan station". Scan the right plate and deck label, and use the workstation that belongs to the instrument.</li>
+<li><strong>A plate with no deck slot cannot be dispatched.</strong> The deck check compares your scan with the label made from the instrument and the slot. With no slot recorded it can never match. A batch cannot be edited after creation, so use Clone &amp; Supersede and choose a slot on the copy.</li>
+<li><strong>The worklist could not be sent.</strong> You see, in your language, that the interface engine did not answer, did not answer in time, or refused the worklist (with its code when it gave one). The plate stays unsent and its status does not change. In the demonstration the simulated engine answers according to the mode set on the Mock Interface Engine page (succeed, reject or time out), so a refusal there is a test you set up.</li>
+<li><strong>You do not have permission to supersede a run.</strong> The message reads "You don't have permission to supersede a run. Ask your administrator." The button is also greyed out.</li>
+<li><strong>The copy was refused.</strong> Clone &amp; Supersede builds the copy by the same rules as a new plate. If a reagent lot or control lot has expired since, the copy is refused with the reason, and the original is left exactly as it was.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Orders on a plate you supersede</p>
+<p>Clone &amp; Supersede keeps the controls and the wells that hold in-house orders from the Order Queue, and clears every other patient well. The orders move to the new plate, in the same wells, and the Order Queue shows the new plate. Only orders still waiting on the plate move: if the worklist was already sent, the orders are running on that plate and stay with it. An order that somehow still points at a superseded plate can be taken off with <strong>Take off plate</strong> (it used to be refused, leaving only Cancel).</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Check the specimens before you create the batch</p>
+<p>The patient wells tie each result to a specimen. A swapped tube produces a result that names the wrong case. Confirm every scan against the tube in your hand. When a result names a different specimen from the well's order, PathScribe will refuse to apply it, but a swap between two wells that both belong to the same kind of order is yours to prevent.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>A well was set to the wrong type.</strong> Select the well and change <strong>Sample Type</strong>, or set it back to "— unassigned —".</li>
+<li><strong>A scan went into the wrong well.</strong> Select that well and type or scan the correct value over it; the new value replaces the old.</li>
+<li><strong>A wrong lot was added.</strong> Select <strong>Remove</strong> on its row.</li>
+<li><strong>The batch was created with an error.</strong> Clone &amp; Supersede it. There is no edit.</li>
+<li><strong>The worklist went to the wrong instrument.</strong> Tell your laboratory manager. A sent worklist cannot be recalled from this screen.</li>
+<li><strong>A run came back blocked.</strong> Do not report from it. A blocked run is held out of automatic filling of the report; the banner says its results require manual review before sign-out. Find the cause of the control failure with your laboratory manager and re-run on a new plate.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li><strong>Changing the plate layout late.</strong> It clears the grid.</li>
+<li><strong>Using Auto-fill on a plate for queued orders.</strong> Leave patient wells empty for the queue to use.</li>
+<li><strong>Skipping the control lot and expiry.</strong> Every control well needs both, whatever your laboratory's other requirements.</li>
+<li><strong>Choosing a red instrument without checking it.</strong> It is a warning, not a block.</li>
+<li><strong>Expecting to edit after Create Batch.</strong> Use Clone &amp; Supersede.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Select the first patient well, then press <strong>Scan to Fill</strong> once; each scan moves on to the next well by itself.</li>
+<li>Use column-major Auto-fill when your analyser reads the plate down the columns, and row-major when it reads along the rows.</li>
+<li>Create the plate with Ctrl+Alt+Shift+N when your hands are on the keyboard.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Print the deck location label and the plate label at the time you create the batch, so the scan check at dispatch has real labels to scan.</li>
+<li>Dispatch only after the rack is on the instrument and the deck slot has been checked at <a href="/help/molecular/rack">Rack</a>.</li>
+<li>Review run results the same day. A blocked run and a result with a flag are items for the laboratory manager.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/molecular/control-rules">Control Rules</a>: which controls the test needs and where they must sit.</li>
+<li><a href="/help/molecular/rack">Rack</a> and <a href="/help/molecular/rack-board">Rack Board</a>: racking the tubes and placing the rack on the instrument.</li>
+<li><a href="/help/molecular">Molecular</a>: the Order Queue that supplies the orders for the plate.</li>
+<li><a href="/help/add-on-orders">Add-on Orders</a>: where the molecular order starts.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: a reportable result fills the matching synoptic question, marked as coming from the molecular result.</li>
+<li><a href="/help/batch-management">Batch Management</a>: the separate histology batch screens, which do not apply to molecular plates.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create Batch is greyed out.</td>
+<td>A "Still required" field, a reagent lot problem, a control problem or a patient well with no specimen. Read the red lines above it.</td>
+</tr>
+<tr>
+<td>The Assay list is empty.</td>
+<td>No molecular tests are active in the diagnostic catalog. An administrator adds them.</td>
+</tr>
+<tr>
+<td>The Deck Slot list is empty or short.</td>
+<td>The instrument has no deck layout, or none of its slots take an extraction plate.</td>
+</tr>
+<tr>
+<td>Dispatch Worklist is not on the page.</td>
+<td>The worklist was already sent, or the batch is superseded.</td>
+</tr>
+<tr>
+<td>Confirm Dispatch is greyed out.</td>
+<td>Both Scan buttons must have been used first.</td>
+</tr>
+<tr>
+<td>The scan check fails even with the right plate.</td>
+<td>No deck slot on the batch; or you are at a workstation that is not the instrument's scan station.</td>
+</tr>
+<tr>
+<td>The batch still shows as Draft after dispatch.</td>
+<td>The dispatch did not go (look for a red line under the buttons). A dispatched batch moves to Active.</td>
+</tr>
+<tr>
+<td>There is no Run Results table.</td>
+<td>No results have arrived yet.</td>
+</tr>
+<tr>
+<td>Confirm Clone &amp; Supersede is greyed out.</td>
+<td>No reason typed, or you lack permission to supersede a run.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Status after dispatch</p>
+<p>After a worklist is sent, the batch moves from Draft to Active and shows on the Active Runs &amp; Batches tab until the results come back; then it moves to History &amp; Archive as Completed. A batch that already has another status keeps it.</p>
+</div>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the red lines above <strong>Create Batch</strong> from the top. Fix the first one and look again.</li>
+<li>For scan problems, scan again, and make sure the scan went into the field you armed (the button says "Waiting…").</li>
+<li>For a scan refusal, check the three causes in order: plate barcode, deck label, workstation. For a worklist that was refused or not answered, check the interface engine (or, in the demonstration, the Mock Interface Engine mode).</li>
+<li>For a refused copy, replace the expired lot on a brand-new plate instead.</li>
+<li>If you still cannot proceed, note the batch barcode and message and ask the laboratory manager.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a dispatch is refused with a message you cannot explain, a result names the wrong specimen and the plate is correct, or a plate you superseded still shows orders against the old plate. Have the batch barcode, the instrument and the time of the problem ready.</p>

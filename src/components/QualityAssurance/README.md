@@ -419,3 +419,7 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 Batch 613: `AccessRequestResponseTab.tsx` handles requests of type `patient_cases` (Approve / Decline through `services/patientCaseAccess`) and lists the active grants the signed-in person may revoke.
 
 Batch 614: the cytology-histology correlation printout no longer carries the patient MRN (accession numbers only), the same rule as the download; the on-screen table keeps it, tagged `data-phi`.
+
+## Batch 625 (PS-118)
+
+`QaDiscordantSection.tsx` (new): the delta, severity (with hint), root cause, "other" explanation and comment fields shared by `QaReviewCaptureForm.tsx` and the sign-out `DiscordanceReconciliationModal.tsx`; it decides nothing (required marks and messages come from the caller). `QaReviewCaptureForm` now shows validation messages in the user's language (the validator returns codes). Tests: `QaDiscordantSection.test.tsx`, `QaReviewCaptureForm.test.tsx` (the form had none).

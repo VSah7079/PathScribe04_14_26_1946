@@ -32,7 +32,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { molecularOrderOutboundQueueService, queueEntriesNewestFirst, isMolecularOrderPayload as isMolecularPayload } from '@/services';
+import { molecularOrderOutboundQueueService, queueEntriesNewestFirst, isMolecularOrderPayload as isMolecularPayload, simulatedResultMessage } from '@/services';
 import { formatDateTime } from '@/utils/formatDate';
 import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
 import type { MolecularOrderOutboundQueueEntry } from '@/types/case/MolecularOrderOutboundQueueEntry';
@@ -94,13 +94,9 @@ const MolecularOrderQueuePage: React.FC = () => {
       referenceRange: 'Not Detected',
     });
     setBusy(false);
-    setLastOutcome(
-      result.outcome === 'applied'
-        ? (resultChoice === 'Positive' && assayChoice === DEMO_ASSAY_STANDALONE
-            ? t('molecularOrderQueue.resultAppliedWithReflex')
-            : t('molecularOrderQueue.resultApplied'))
-        : t('molecularOrderQueue.resultOutcome', { outcome: result.outcome })
-    );
+    // Batch 669 (mol-3): the outcome line is translated, never the processor's raw code; what it says is decided in the service.
+    const message = simulatedResultMessage(result);
+    setLastOutcome(message.outcomeKey ? t(message.key, { outcome: t(message.outcomeKey) }) : t(message.key));
     await refresh();
   };
 

@@ -28,10 +28,15 @@ import type { PathScribeEditorHandle } from '@/components/Editor/PathScribeEdito
 import type { FontUnits, LabelConfig } from '@/types/template';
 import { labelStyleVars } from '@/utils/labelStyleVars';
 import type { Case } from '@/types/case/Case';
+import type { NarrativeProvenance } from '@/orchestrator/narrativeProvenance';
+import { NarrativeProvenanceNote } from './NarrativeProvenanceNote';
 import { facilityService, macroService, voiceMacroService } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { SpellingLanguageControl } from '@/components/SpellCheck/SpellingLanguageControl';
+import { dictationWriterFor, dictationSessionFor } from '@/services/voice/tiptapDictationPort';
+import type { DictationSegmentMeta } from '@/services/voice/dictationSegmentFlow';
+import { pickDictationSection, type DictationSectionRequest } from '@/services/voice/dictationSectionPicker';
 import { regenerateSectionsSequentially } from '@/services/reportEditing/orchestratorSections';
 import { findingsForField, narrativeFieldForSection } from '@/services/clinical/findingHighlight';
 import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
@@ -48,6 +53,8 @@ export interface OrchestratorSection {
   userEdited:          boolean;
   isStreaming:         boolean;
   pendingDraft?:       string;
+  /** Batch 651: the AI's confidence (0 to 100) and source quote for this section's text, checked against the source text. */
+  provenance?:         NarrativeProvenance;
   required?:           boolean;
   hint?:               string;
   committed?:          boolean;
@@ -284,7 +291,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   }, [viewMode, setActiveId]);
 
   // ── Voice dictation ───────────────────────────────────────────────────────────
-  const { startDictation, phase, dictationTarget } = useVoice();
+  const { startDictation } = useVoice();
 
   // ── Insert Specimen (IS) ───────────────────────────────────────────────────────
   // Inserts one line per specimen on the case, in the exact format:
@@ -349,6 +356,8 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
     const editorHandle = editorRefs.current[section.id];
     const editor = editorHandle?.getEditor?.();
     if (!editor) return;
+    // Batch 664 (Cancel): this session's dictated passages can be counted and removed.
+    const session = dictationSessionFor(editor);
     startDictation({
       fieldId: section.id,
       label:   section.label,
@@ -358,33 +367,21 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
       // VoiceProvider.tsx uses this to filter which real voice macros
       // (Enterprise/Facility/Personal) apply to this dictation session.
       performingLabFacilityId: casePerformingLabFacilityId,
-      onText: (text: string, isInterim?: boolean) => {
-        editor.chain().focus().insertContent(text + (isInterim ? '' : ' ')).run();
+      // Batch 650: the writer replaces the provisional text with the final text once (no repeat) and learns the
+      // person's corrections to it (services/voice/dictationEditorWriter.ts).
+      onText: (text: string, isInterim?: boolean, meta?: DictationSegmentMeta) => {
+        dictationWriterFor(editor).onText(text, isInterim, meta);
         onSectionChange(section.id, editor.getHTML());
       },
       onDone: () => { /* VoiceProvider handles phase reset */ },
+      uncommitted: session.uncommitted,
+      discard: () => { const r = session.discard(); onSectionChange(section.id, editor.getHTML()); return r; },
     });
   }, [startDictation, onSectionChange, casePerformingLabFacilityId]);
 
-  // ── Bind NavBar mic to the focused section ────────────────────────────────────
-  // The mic button lives outside this component (NavBar/VoiceToggleButton) and
-  // we deliberately don't import or modify it — everything here reacts to
-  // VoiceProvider's shared state instead, via useVoice().
-  //
-  // When the pathologist presses the mic with no specific target already set
-  // (dictationTarget === null) and a section in THIS editor currently has
-  // focus, we register that section as the dictation target — wiring the
-  // editor's onText handler into the stream that's already running.
-  //
-  // CRITICAL: this only runs when phase has ALREADY transitioned to 'dictate'
-  // — i.e. in response to the mic being pressed — never as a side effect of
-  // focusing a field. Focusing a field on its own does nothing here.
-  useEffect(() => {
-    if (phase !== 'dictate' || dictationTarget) return;
-    const section = sections.find(s => s.id === focusedSectionId);
-    if (!section || section.committed) return;
-    registerDictationTarget(section);
-  }, [phase, dictationTarget, focusedSectionId, sections, registerDictationTarget]);
+  // Batch 650: the effect that stood here claimed a dictation target "when the mic was pressed and phase was already
+  // 'dictate'". The phase only becomes 'dictate' inside startDictation, which also sets the target, so it could never
+  // run. Dictation now starts from the spoken commands below ("dictate gross", Enter Gross / Micro / Diagnosis).
 
   // ── Personal Quick Text — real, per direct guidance ─────────────────────────
   // "It would be easiest for them to select text they may have entered
@@ -485,19 +482,9 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
       void regenerateAllSequentially();
     };
     const onDictateSection = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        sectionId?: string;
-        sectionIndex?: number;
-        label?: string;
-      };
-      let section: OrchestratorSection | undefined;
-      if (detail.sectionId)    section = sections.find(s => s.id === detail.sectionId);
-      if (!section && detail.sectionIndex !== undefined) section = sections[detail.sectionIndex];
-      if (!section && detail.label) {
-        const q = detail.label.toLowerCase();
-        section = sections.find(s => s.label.toLowerCase().includes(q));
-      }
-      if (!section) return;
+      const detail = (e as CustomEvent).detail as DictationSectionRequest;
+      const section = pickDictationSection(sections, detail, activeId);
+      if (!section || section.committed) return;
       jumpToSection(section.id);
       registerDictationTarget(section);
     };
@@ -667,6 +654,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
             onTabWidthChange={onTabWidthChange}
           />
         </div>
+        {section.provenance && !section.userEdited && !section.isStreaming && <NarrativeProvenanceNote provenance={section.provenance} />}
         {section.pendingDraft && (
           <div className="ps-ose-pending-banner">
             <span>{t('orchestratorSectionEditor.pendingDraftAvailable')}</span>

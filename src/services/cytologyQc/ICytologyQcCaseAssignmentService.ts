@@ -48,8 +48,10 @@ export interface ICytologyQcCaseAssignmentService {
    *  assignment to genuinely be QC_IN_REVIEW. */
   recordDiscrepancy(
     id: ID,
-    discrepancy: { primaryDiagnosticCode: string; secondaryDiagnosticCode: string; severity: 'major' | 'minor'; reviewerCommentary?: string },
+    discrepancy: { primaryDiagnosticCode: string; secondaryDiagnosticCode: string; severity: 'major' | 'minor'; reviewerCommentary?: string; divergenceConfirmed?: boolean },
   ): Promise<ServiceResult<CytologyQcCaseAssignment>>;
+  // Batch 669f (cyt-6): the secondary code is optional; when given and it diverges significantly from the primary
+  // (resolveQcCodeDivergence.ts) the call needs divergenceConfirmed, else it returns QC_DIVERGENCE_NOT_CONFIRMED.
   /** Real, per spec §2.3's own "reassign the case to an available
    *  reviewer" — see resolveNewQcCaseAssignment.ts's own header for
    *  the real, honest scope this reflects (no real "available

@@ -1,0 +1,20 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 653 — Permission checks that name only a case are judged by the case's own facility",
+    "description": "Vitest, 2026-10-23: 2 test files, 45 tests, all passed. Type-check clean. Tests are created by this import (testInfo): no Jira Test keys assigned yet. Full suite: 14,823 passed, 5 failed (since fixed, affected files re-run), one environment error (Firestore emulator not running)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "Case-only checks resolve the case's facility, so a staff member limited to one facility can act at that facility and is refused elsewhere",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/authorization/caseFacility.test.ts (6)\nPASSED: src/services/authorization/authorization.test.ts (39)\nNot tested or not built: A service that cannot find a case's facility still fails closed (refuses)."
+    }
+  ]
+}

@@ -28,3 +28,17 @@ Batch 617. The server version of each service the browser holds as a mock today.
 | `getHealth` | none: answered in the browser | none |
 | `recordHealth` | none: answered in the browser | `outcome` |
 
+
+## IReferralOutboundQueueService (Batch 672)
+
+`/api/referral/referral-outbound-queue`. Service: `services/referral/httpReferralOutboundQueueService.ts`; chosen in `referralOutboundQueueServiceInstance.ts`.
+
+| Method | Call | Arguments |
+|---|---|---|
+| `getAll` | `GET /api/referral/referral-outbound-queue/get-all` | none |
+| `getByBatchId` | `GET /api/referral/referral-outbound-queue/get-by-batch-id` | `batchId` (query) |
+| `enqueue` | `POST /api/referral/referral-outbound-queue/enqueue` | `entry` (the body) |
+| `getFailed` | `GET /api/referral/referral-outbound-queue/get-failed` | none |
+| `markFailed` | `POST /api/referral/referral-outbound-queue/mark-failed` | `id`, `failure` |
+| `retryDispatch` | `POST /api/referral/referral-outbound-queue/retry-dispatch` | `id` |
+| `markSent` | `POST /api/referral/referral-outbound-queue/mark-sent` | `id` |

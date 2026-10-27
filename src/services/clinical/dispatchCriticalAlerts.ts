@@ -21,7 +21,7 @@
 import type { AbnormalSeverity } from '@/services/abnormalDetection/IAbnormalTriggerRuleService';
 import type { CriticalAlertDispatchRecord, CriticalAlertRecipient } from '@/types/clinical/CriticalAlertDispatch';
 import type { ServiceResult } from '../types';
-import { mockPhysicianService } from '@/services/physicians/mockPhysicianService';
+import { physicianService } from '@/services/physicians/physicianServiceInstance';
 import { resolveCriticalAlertChannels } from './resolveCriticalAlertChannels';
 import { criticalAlertDispatchService } from './criticalAlertDispatchServiceInstance';
 import { criticalAlertReferenceTokenService } from './criticalAlertReferenceTokenServiceInstance';
@@ -98,7 +98,7 @@ export async function dispatchCriticalAlerts(
     return { ok: true, data: null };
   }
 
-  const physicianResult = await mockPhysicianService.getById(input.orderingPhysicianId);
+  const physicianResult = await physicianService.getById(input.orderingPhysicianId);
   if (!physicianResult.ok || !physicianResult.data) {
     return { ok: true, data: null };
   }

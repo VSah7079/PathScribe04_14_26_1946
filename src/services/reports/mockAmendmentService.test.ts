@@ -1,5 +1,10 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 649: the release capability allows unless a test refuses it (decide.allowed).
+const decide = vi.hoisted(() => ({ allowed: true, calls: [] as string[] }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async (capability: string) => { decide.calls.push(capability); return { allowed: decide.allowed }; } },
+}));
 import { mockAmendmentService } from './mockAmendmentService';
 
 const authoringPathologist = { userId: 'user-1', userName: 'Dr. Test' };
@@ -212,5 +217,29 @@ describe('Batch 540: no correction or addendum while the report is in its releas
     expect(refused).toEqual({ ok: false, error: REVISION_IN_RELEASE_DELAY });
     await mockHeldReleaseService.settle('held-540', 'released', 'T2');
     expect((await mockAmendmentService.startDraft({ caseId: 'CASE-540', type: 'addendum', authoringPathologist: by })).ok).toBe(true);
+  });
+});
+
+describe('Batch 649: releasing a revision needs the capability for its kind', () => {
+  beforeEach(() => { localStorage.clear(); decide.allowed = true; decide.calls = []; });
+
+  it('checks surgical:amendment|correction|addendum:release by the record type', async () => {
+    for (const [type, capability] of [['amendment', 'surgical:amendment:release'], ['correction', 'surgical:correction:release'], ['addendum', 'surgical:addendum:release']] as const) {
+      const draft = await mockAmendmentService.startDraft({ caseId: `CASE-CAP-${type}`, type, authoringPathologist });
+      if (!draft.ok) throw new Error('draft failed');
+      decide.calls = [];
+      await mockAmendmentService.release(draft.data.id, { body: 'x' });
+      expect(decide.calls).toEqual([capability]);
+    }
+  });
+
+  it('refused: nothing is released, and the record stays a draft', async () => {
+    const draft = await mockAmendmentService.startDraft({ caseId: 'CASE-CAP-NO', type: 'addendum', authoringPathologist });
+    if (!draft.ok) throw new Error('draft failed');
+    decide.allowed = false;
+    const res = await mockAmendmentService.release(draft.data.id, { body: 'Stains received.', addendumTitle: 'IHC', reasonId: 'r1' });
+    expect(res.ok).toBe(false);
+    const all = await mockAmendmentService.getByCaseId('CASE-CAP-NO');
+    expect(all.ok && all.data[0].status).toBe('draft');
   });
 });

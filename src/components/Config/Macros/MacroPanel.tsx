@@ -28,7 +28,8 @@ import '../../../pathscribe.css';
 import { macroService, userService } from '../../../services';
 import { useConfigDirtyGuard } from '../configDirtyGuardContext';
 import { isMacroVisibleTo } from '../../../services/macros/IMacroService';
-import { canEditMacro, canManageAllMacros, groupAllMacros, macroTiersFor } from '../../../services/macros/macroAccess';
+import { canEditMacro, groupAllMacros, macroTiersFor, MACRO_MANAGE_CAPABILITY } from '../../../services/macros/macroAccess';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { getActivePerformingLabs } from '@/utils/performingLabs';
 import type { Facility } from '@/services/facilities/IFacilityService';
@@ -67,9 +68,8 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
   const { t } = useTranslation();
   const sessionUser = getSessionUser();
   const currentUserId = sessionUser?.id ?? 'unknown';
-  const role = sessionUser?.role;
-  const isMacroAdmin = canManageAllMacros(role);
-  const allowedTiers = macroTiersFor(role) as Tier[];
+  const isMacroAdmin = useCapabilities().has(MACRO_MANAGE_CAPABILITY); // Batch 663: a capability, not a role name
+  const allowedTiers = macroTiersFor(isMacroAdmin) as Tier[];
   // Batch 349: other users' names, for the administrator's "All" list.
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -200,7 +200,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
     ? groupAllMacros(rawMacros, id => labs.find(l => l.id === id)?.name, id => userNames[id])
     : [];
   // Batch 349: an Enterprise macro (or someone else's) is read only unless the user may change it.
-  const canEditSelected = !rawSelected || canEditMacro(rawSelected, currentUserId, role);
+  const canEditSelected = !rawSelected || canEditMacro(rawSelected, currentUserId, isMacroAdmin);
   const tierOptions: Tier[] = allowedTiers.includes(draftTier) ? allowedTiers : [draftTier, ...allowedTiers];
 
   const handleSelectMacro = (id: string) => {

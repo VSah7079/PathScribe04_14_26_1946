@@ -30,6 +30,15 @@
 import { caseRouter } from '../cases/CaseRouter';
 import { resolveIsFinalStatus } from '../reportTemplates/TemplateRoutingService';
 import { updateCaseWithRetry } from '../cases/caseWrite';
+import i18n from '@/i18n/config';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import type { CapabilityDecision } from '../authorization/evaluateCapability';
+
+/** Batch 649: the capability check (surgical:preliminary:release), passed in for tests. */
+export interface ReleasePreliminaryDeps {
+  enforce: (capability: string, context?: { caseId?: string | null; facilityId?: string | null }) => Promise<Pick<CapabilityDecision, 'allowed'>>;
+}
+const defaultPreliminaryDeps: ReleasePreliminaryDeps = { enforce: (c, ctx) => authorizationService.enforce(c, ctx) };
 
 export interface ReleasePreliminaryReportResult {
   ok: boolean;
@@ -39,6 +48,8 @@ export interface ReleasePreliminaryReportResult {
    *  specimen instances at all yet), never conflated with a failure. */
   dispatchedCount: number;
   error?: string;
+  /** Batch 649: refused for want of surgical:preliminary:release (error carries the reason, in the user's language). */
+  notPermitted?: boolean;
   /** Batch 534: held for the laboratory's release delay; when it goes (the person who released it can recall it until then). */
   heldUntil?: string;
 }
@@ -52,9 +63,13 @@ export async function releasePreliminaryReport(
    *  See publishReportReleasedEvent.ts's own doc comment on this
    *  same field for the full, honest structural reason. */
   generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
+  deps: ReleasePreliminaryDeps = defaultPreliminaryDeps,
 ): Promise<ReleasePreliminaryReportResult> {
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return { ok: false, dispatchedCount: 0, error: 'Case not found.' };
+  // Batch 649: the capability (checked and audited, with the case's facility), before anything is sent.
+  const decision = await deps.enforce('surgical:preliminary:release', { caseId, facilityId: caseData.order?.facilityId ?? null });
+  if (!decision.allowed) return { ok: false, dispatchedCount: 0, notPermitted: true, error: i18n.t('caseActionPermissions.preliminaryRelease') };
   if (caseData.reportingMode !== 'orchestrator') {
     return { ok: false, dispatchedCount: 0, error: 'Preliminary release is only available for Orchestration-mode cases.' };
   }

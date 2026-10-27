@@ -21,7 +21,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StainType } from '@/services/stains/IStainService';
 import { IHC_PANEL_PRESETS, type AddOnOrderKind, type ControlMode } from '@/types/case/AddOnOrder';
-import { buildAddOnLines, filterStainsForKind, type AddOnOrderLineInput } from '@/utils/addOnOrderOperations';
+import { buildAddOnLines, filterStainsForKind, missingPanelStainNames, type AddOnOrderLineInput } from '@/utils/addOnOrderOperations';
 import { actionRegistryService, addOnLineMissing, addOnOrderFieldRequired } from '@/services';
 import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
 import { formatList } from '@/utils/formatList';
@@ -54,6 +54,8 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
   };
 
   const lines = buildAddOnLines({ orderKind, stain: selectedStain, panel: orderKind === 'ihc' ? selectedPanel : undefined, stainTypes, levelDepth: levelDepthMicrons, controlMode });
+  // Batch 669 (ws-20): a panel stain that is not in the stain dictionary is left out; the builder says so instead of dropping it without a word.
+  const panelMissingNames = orderKind === 'ihc' && selectedPanel ? missingPanelStainNames(selectedPanel, stainTypes) : [];
   const missing = lines.length === 0 ? [] : [...new Set(lines.flatMap(l => addOnLineMissing(l, requirements)))];
   const canAdd = lines.length > 0 && missing.length === 0;
 
@@ -136,6 +138,11 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
         </>
       )}
 
+      {panelMissingNames.length > 0 && (
+        <p className="ps-addon-warning-banner" role="alert">
+          {t(lines.length === 0 ? 'addOnOrder.builder.panelStainsMissingAll' : 'addOnOrder.builder.panelStainsMissing', { stains: formatList(panelMissingNames, i18n.language), count: panelMissingNames.length })}
+        </p>
+      )}
       {missing.length > 0 && (
         <p className="ps-field-still-required" role="status">
           {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.addOnOrder.${id}`)), i18n.language) })}

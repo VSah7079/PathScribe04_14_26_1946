@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Batch 529 (PS-554): Configuration → System → Clinical Mismatch Rules.
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 const granted = new Set<string>();
 vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
   authorizationService: {
@@ -18,6 +18,9 @@ const VIEW = 'config:clinical-mismatch-rules:view';
 const MANAGE = 'config:clinical-mismatch-rules:manage';
 
 describe('ClinicalMismatchRulesSection', () => {
+  // Batch 682: the thresholds and actions exist only in the clinical_support profile.
+  beforeAll(() => { vi.stubEnv('VITE_REGULATORY_PROFILE', 'clinical_support'); });
+  afterAll(() => { vi.unstubAllEnvs(); });
   beforeEach(() => { localStorage.clear(); granted.clear(); });
   afterEach(cleanup);
 
@@ -74,5 +77,15 @@ describe('ClinicalMismatchRulesSection', () => {
     fireEvent.click(box);
     await waitFor(async () => expect(await clinicalMismatchRuleService.revisionHoldsRelease()).toBe(true));
     expect(box.checked).toBe(true);
+  });
+});
+
+describe('ClinicalMismatchRulesSection in the documentation profile (Batch 682)', () => {
+  beforeEach(() => { localStorage.clear(); granted.clear(); granted.add(VIEW); });
+  afterEach(cleanup);
+  it('shows a note instead of thresholds and actions', async () => {
+    render(<ClinicalMismatchRulesSection />);
+    expect(await screen.findByText(/not used in this deployment’s regulatory profile/)).toBeTruthy();
+    expect(screen.queryByRole('table')).toBeNull();
   });
 });

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 626 — Lab setting for who signs out a negative GYN case with reactive changes, cytotechnologist or pathologist (PS-163)",
+    "description": "Vitest, 2026-10-19: full suite 1670 files (1664 passed, 4 skipped, 2 failed); 14,108 tests passed, 1 failed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). The other failure was the file-size guard (new CSS had been added to pathscribe.css); fixed by moving it to its own CSS file and the guard plus affected tests were re-run green. Type-check clean. Not run: native-speaker review of the AI-made text in fr/de/nl/ko/es."
+  },
+  "tests": [
+    {
+      "testKey": "PS-825",
+      "start": "2026-10-19T20:40:00Z",
+      "finish": "2026-10-19T21:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cytology/reactiveChangesPolicy.test.ts\nPASSED: src/components/Config/System/ReactiveChangesPolicyCard.test.tsx\nPASSED: src/components/Config/System/CytologyCategoriesSection.test.tsx\nPASSED: src/services/cytology/resolveCytologySignOutGate.test.ts\nPASSED: src/i18n/localeParity.test.ts\nNot tested: reviews already recorded are not re-evaluated; native-speaker review."
+    }
+  ]
+}

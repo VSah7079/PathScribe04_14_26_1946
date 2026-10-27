@@ -1,3 +1,5 @@
+**Batch 651 and 652:** `Codes/AddCodeModal.tsx` and `Codes/CaseCodingDisplay.tsx` (AI code suggestions moved to `services/coding/aiCodeSuggestions.ts`, OPCS-4 demonstration notice, confidence shown as 0 to 100) and `Delegate/DelegateModal.tsx` (Teaching Case to several people). See the sub-folder READMEs.
+
 # pages/Synoptic/
 
 Shared types and extracted hooks/modals originally split out of `SynopticReportPage.tsx` to keep that file to layout/wiring. Not to be confused with `SynopticReportPage/` itself — this folder holds smaller, more general-purpose pieces; the big, page-specific hooks/modals/components live in `SynopticReportPage/`.
@@ -85,3 +87,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 567 (WCAG 2.1 AA)
 
 - `Codes/AddCodeModal.tsx`, `Delegate/DelegateModal.tsx`: no control inside another.
+
+## Batch 669 (everyday-22)
+
+`useSynopticFlags.ts` gains `applyStatFlag()`: applies the STAT flag to the open case (`services/flags/applyStatFlag.ts`), audited, and returns the outcome and the case's flags for the report page's toast and header.

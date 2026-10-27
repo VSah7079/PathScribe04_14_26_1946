@@ -10,6 +10,9 @@ vi.mock('react-i18next', () => ({
 const { svc, toast } = vi.hoisted(() => ({ svc: { list: vi.fn(), recall: vi.fn() }, toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('react-toastify', () => ({ toast }));
 vi.mock('@/services/reportRelease/releaseThroughDelay', () => ({ listHeldReports: svc.list, recallHeldReport: svc.recall }));
+// Batch 649: Recall also needs report:release:recall; `cap.allowed` is what the person holds here.
+const cap = vi.hoisted(() => ({ allowed: true }));
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => cap.allowed, decide: () => ({ allowed: cap.allowed }) }) }));
 
 import { HeldReportsBanner } from './HeldReportsBanner';
 
@@ -40,6 +43,16 @@ describe('HeldReportsBanner', () => {
     await waitFor(() => expect(onRecalled).toHaveBeenCalled());
     expect(toast.success).toHaveBeenCalledWith('heldReports.recalled');
   });
+  it('Batch 649: the person who released it, without report:release:recall, sees the line without Recall', async () => {
+    svc.list.mockResolvedValue([held()]);
+    cap.allowed = false;
+    try {
+      render(<HeldReportsBanner caseId="C1" user={{ id: 'P1', name: 'Dr P' }} />);
+      await waitFor(() => expect(svc.list).toHaveBeenCalled());
+      expect(screen.queryByText('heldReports.recall')).toBeNull();
+    } finally { cap.allowed = true; }
+  });
+
   it('someone else, or a sign-out (it has its own banner), sees the line without Recall', async () => {
     svc.list.mockResolvedValue([held(), held({ id: 'h2', kind: 'surgical-sign-out', releasedBy: { userId: 'P2', userName: 'Dr Q' } })]);
     render(<HeldReportsBanner caseId="C1" user={{ id: 'P2', name: 'Dr Q' }} />);

@@ -70,3 +70,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 612 (part C)
 
 `ReportPreviewRenderer` takes `fontUnits`. In points it draws the page at the lab's paper width and side margins (`--rp-page-w`, `--rp-pad-l/-r`) with sizes in CSS points (1 pt = 1.333 px). A style saved in pixels is drawn in pixels, as before. Vertical margins and page breaks are not drawn in this preview.
+
+- Batch 662: the report data now carries `patient.sexAtBirth` (English word) and `patient.nhsNumber`; `patient.sex` stays the stored code.

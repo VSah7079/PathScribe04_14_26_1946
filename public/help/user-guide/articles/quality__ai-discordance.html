@@ -1,0 +1,204 @@
+<h1 id="top">AI Discordance</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> AI discordance is a report inside Quality Assurance. It shows how often pathologists disagreed with each AI screening product the laboratory uses, and which AI screenings were ordered but have not been answered for too long. The screen is titled <strong>AI vs pathologist discordance</strong>.</p>
+<p><strong>Intended users.</strong> Quality staff and laboratory managers who watch the AI products; pathologists who want to see how the products perform.</p>
+<p><strong>Where it fits.</strong> Open <strong>Quality Assurance</strong> from the Quality &amp; Compliance hub, stay on the <strong>Operations</strong> pillar and choose the <strong>AI discordance</strong> tile. It is read-only apart from one setting, the stalled-result time limit. See <a href="/help/quality">Quality &amp; Compliance</a> for the rest of the Quality Assurance screen.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/quality-ai-discordance-overview.png" alt="The AI vs pathologist discordance report with the product table and the stalled results table"><figcaption>The AI vs pathologist discordance report with the product table and the stalled results table</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p>The first section is <strong>Discordance by AI product</strong>, one row per AI product.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vendor</td>
+<td>The company that supplies the AI product.</td>
+</tr>
+<tr>
+<td>Product</td>
+<td>The AI product.</td>
+</tr>
+<tr>
+<td>Ordered</td>
+<td>How many AI results were ordered from it.</td>
+</tr>
+<tr>
+<td>Reviewed</td>
+<td>How many of those a pathologist has judged.</td>
+</tr>
+<tr>
+<td>Agreed</td>
+<td>Reviewed results where the pathologist agreed with the AI.</td>
+</tr>
+<tr>
+<td>Disagreed</td>
+<td>Reviewed results where the pathologist disagreed with the AI.</td>
+</tr>
+<tr>
+<td>Discordance rate</td>
+<td>Disagreed as a percentage of Reviewed. Shows "Not yet reviewed" when nothing has been judged.</td>
+</tr>
+</tbody>
+</table>
+<p>Only results a pathologist has marked as agreeing or disagreeing are counted. A result nobody has judged is never counted as agreeing. When the laboratory has no AI products or results the table says "No AI products or results yet."</p>
+<p>The second section is <strong>Stalled AI results</strong>, with the number of stalled results in brackets.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stalled after (hours)</td>
+<td>The time limit. An AI result that was ordered and has had no answer for longer than this is called stalled. The first value is 24 hours. Enter a whole number of hours from 1 to 720.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The case the AI result belongs to. Select the row to open the case.</td>
+</tr>
+<tr>
+<td>Vendor</td>
+<td>The AI product supplier.</td>
+</tr>
+<tr>
+<td>Ordered</td>
+<td>When the AI result was ordered.</td>
+</tr>
+<tr>
+<td>Waiting</td>
+<td>How long it has been waiting, in hours.</td>
+</tr>
+</tbody>
+</table>
+<p>When nothing is stalled the table says that no AI result has been waiting longer than the limit.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Export discordance rates</td>
+<td>Saves the Discordance by AI product table as a spreadsheet file. Your role must allow it.</td>
+</tr>
+<tr>
+<td>Export stalled results</td>
+<td>Saves the Stalled AI results table, with the time limit that was in force, as a spreadsheet file. Your role must allow it.</td>
+</tr>
+<tr>
+<td>Save</td>
+<td>Next to Stalled after (hours). Saves a new time limit. It is greyed out until you change the number.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Not yet reviewed</td>
+<td>No pathologist has judged any result for this product, so no rate can be given.</td>
+</tr>
+<tr>
+<td>Highlighted row in Stalled AI results</td>
+<td>Rows can be selected; the pointer changes when you hover.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None are specific to this report. F1 (View Help) opens the Quality &amp; Compliance article.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Quality Assurance</strong>, choose the <strong>Operations</strong> pillar, then the <strong>AI discordance</strong> tile. The report opens.</li>
+<li>Read <strong>Discordance by AI product</strong>. Compare <strong>Reviewed</strong> with <strong>Ordered</strong>: a low Reviewed figure means the rate rests on few judgements.</li>
+<li>Look at the <strong>Discordance rate</strong> for each product.</li>
+<li>Read <strong>Stalled AI results</strong>. Select a row to open the case and find out why the AI result has not arrived.</li>
+<li>To change what counts as stalled, type a new number in <strong>Stalled after (hours)</strong> and select <strong>Save</strong>.</li>
+<li>To keep a copy for a meeting, select <strong>Export discordance rates</strong> or <strong>Export stalled results</strong>.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To see disagreement for your own cases, use the AI Contribution tab on <a href="/help/my-contribution">My Contribution</a>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If a product shows <strong>Not yet reviewed</strong>, ask the pathologists to record whether they agree with the AI on those cases. Nothing is assumed.</li>
+<li>If the stalled table is empty, no AI result has waited longer than your limit. Lower the limit to look for earlier delays.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If you see "Enter a whole number of hours from 1 to 720.", correct the number and select <strong>Save</strong> again.</li>
+<li>If you see "You don't have permission to change this setting.", your role may not change the limit. Ask your manager.</li>
+<li>If you see "Could not save — please try again.", the new limit was not saved. Select <strong>Save</strong> again; tell your administrator if it keeps happening.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Reading a rate when only one or two results were reviewed. Check the Reviewed column first.</li>
+<li>Setting the stalled limit so short that normal processing time is flagged.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Select a stalled row to jump straight to the case.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review the report at each quality meeting and export it with the minutes.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/quality">Quality &amp; Compliance</a>: the Quality Assurance screen that holds this tile.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/quality/access-requests">Access Requests</a>: the next report in the Operations pillar.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Save is greyed out</td>
+<td>The number has not been changed.</td>
+</tr>
+<tr>
+<td>The export button is greyed out</td>
+<td>Your role does not allow the export.</td>
+</tr>
+<tr>
+<td>A product is missing</td>
+<td>The laboratory has not set the product up, or no result has been ordered from it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Refresh the page.</li>
+<li>Check your role with your manager.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when the counts do not match the cases, or the limit will not save. Have the product name and the time of the problem ready.</p>

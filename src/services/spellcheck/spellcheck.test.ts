@@ -142,6 +142,14 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     expect(readFileSync(resolve(PUBLIC, 'NOTICE.txt'), 'utf8')).toMatch(/distributed UNMODIFIED[\s\S]*(Written offer|corresponding source is provided)/);
   });
 
+  it('Spanish (RLA-ES, MPL-1.1) loads, accepts pathology terms and flags a misspelling', async () => {
+    const es = await engine('es-ES');
+    expect(checkText('El adenocarcinoma infiltrante afecta al ganglio centinela; pT2 N1 G2, Ki-67 30 %.', es.tiers)).toEqual([]);
+    expect(checkText('adenocarcinma infiltrante', es.tiers).map(i => i.word)).toEqual(['adenocarcinma']);
+    expect(readFileSync(resolve(PUBLIC, 'NOTICE.txt'), 'utf8')).toContain('dictionary-es');
+    expect(readFileSync(resolve(PUBLIC, 'licenses', 'MPL-1.1.txt'), 'utf8').length).toBeGreaterThan(1000);
+  });
+
   it('German (GPL, shipped unmodified) loads and checks, with codes still passed through', async () => {
     const de = await engine('de-DE');
     expect(checkText('Das Präparat zeigt Lymphknoten; pT2 N1 G2, Ki-67 30 %. Präparatt', de.tiers).map(i => i.word)).toEqual(['Präparatt']);

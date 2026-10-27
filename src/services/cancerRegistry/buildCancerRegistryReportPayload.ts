@@ -59,6 +59,8 @@ export interface CancerRegistryReportPayload {
    *  matches on demographics. Cancer reporting is statutory, so an unusable identifier doesn't hold
    *  the report; the interface engine and the registry see `verification`. */
   patientIdentifier?: { formatId: string; value?: string; verification: RegistryPatientIdentifierResolution['status']; fromNationalIdentifier: boolean };
+  /** Batch 620 (part E): for the US ePath registry, the state profile the report was checked against and where it goes (the engine builds the HL7 from this; usEpath/). */
+  epath?: { profileId: string; stateCode: string; transport: string; basisFacilityId: string; messageControlId: string };
 }
 
 export function buildCancerRegistryReportPayload(

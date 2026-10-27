@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 635 \u2014 CLIA workload reassignment to named colleagues with room under their own cap (PS-189 open item)",
+    "description": "Vitest, 2026-10-20: full suite 1688 files (1682 passed, 4 skipped, 2 failed); 14,214 tests passed, 1 failed, 33 skipped. Failing: firestore.rules.test.ts (needs the Firestore emulator, not run) and one GrossingScreenPage smoke test that timed out under full-suite load and passes when run alone (32 of 32 in its folder). Type-check clean."
+  },
+  "tests": [
+    {
+      "testKey": "PS-837",
+      "start": "2026-10-20T13:30:00Z",
+      "finish": "2026-10-20T14:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cytology/resolveWorkloadReassignmentPlan.test.ts\nPASSED: src/services/cytology/workloadReassignmentNotice.test.ts\nPASSED: src/services/cytology/saveCytologyReview.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts\nPASSED: src/services/typeSafety/explicitAny.guard.test.ts\nPASSED: src/i18n/localeParity.test.ts\nNot tested: browser check; production assignment through the API server."
+    }
+  ]
+}

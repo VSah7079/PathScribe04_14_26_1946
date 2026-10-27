@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 625 — One shared discordant review section for the sign-out Discordance window and the generic QA review form; translated validation messages (PS-118)",
+    "description": "Vitest, 2026-10-19: full suite 1668 files (1662 passed, 4 skipped, 2 failed); 14,100 tests passed, 1 failed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). GrossingScreenPage.test.tsx failed once under full-suite load and passed 17/17 when run alone (unrelated to this batch). Type-check clean. Not run: native-speaker review of the AI-made text in fr/de/nl/ko/es."
+  },
+  "tests": [
+    {
+      "testKey": "PS-823",
+      "start": "2026-10-19T20:00:00Z",
+      "finish": "2026-10-19T20:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/QualityAssurance/QaDiscordantSection.test.tsx\nPASSED: src/components/QualityAssurance/QaReviewCaptureForm.test.tsx\nPASSED: src/pages/SynopticReportPage/modals/DiscordanceReconciliationModal.test.tsx\nPASSED: src/services/quality/validateQaReviewSubmission.test.ts\nPASSED: src/i18n/localeParity.test.ts\nNot tested: the sign-out window is not itself the generic form; native-speaker review."
+    }
+  ]
+}

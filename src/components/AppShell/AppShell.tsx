@@ -16,7 +16,7 @@
  * Drop-in path: src/components/AppShell/AppShell.tsx
  * ─────────────────────────────────────────────────────────────────────────────
  */
-
+import { OPEN_USER_GUIDE_EVENT } from '@/services/help/helpTargets';
 import { useOpenCase } from '@/hooks/useOpenCase';
 import { useDeliveryBackgroundWork } from '@/hooks/useDeliveryBackgroundWork';
 import { useSimulatedAssistSchedule } from '@/hooks/useSimulatedAssistSchedule';
@@ -52,9 +52,8 @@ import LogoutWarningModal from '../Common/LogoutWarningModal';
 import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
 import { useDirtyState } from '../../contexts/DirtyStateContext';
 import '../../pathscribe.css';
-import { useGuideAssets } from '@/hooks/useGuideAssets';
+import './ThreadMenu.css';
 import { formatDate } from '../../utils/formatDate';
-import { useCompanionWindow } from '../../hooks/useCompanionWindow';
 import ConfirmModal from '../Common/ConfirmModal';
 import { safeInternalPath } from '@/utils/safeInternalPath';
 import { markReturnToSearch } from '@/utils/search/searchSession';
@@ -68,6 +67,7 @@ import { RouteErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary';
 import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 import { useFocusAfterRemoval } from '@/hooks/useFocusAfterRemoval';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { canMarkUnread, compareMessageListOrder, isUnreadFor } from '@/services/messages/messageUnread';
 
 /** Batch 396: a stable empty list, so the link memo doesn't rerun on every render. */
 const NO_ACCESSIONS: string[] = [];
@@ -394,6 +394,7 @@ interface MessageListPanelProps {
   onEmptyDeleted: () => void;
   onCompose: () => void;
   onSecureEmail: () => void;
+  userId?: string;
 }
 
 /** Exported for its tests (Batch 567). */
@@ -401,11 +402,10 @@ export const MessageListPanel: React.FC<MessageListPanelProps> = ({
   messages, selectedMsgId, hoveredMsgId, isEditing, selectedIds,
   filterType, loading, isComposing, searchText,
   onHover, onSelect, onToggleCheck, onSoftDelete, onRestore, onPermanentDelete,
-  onSearchChange, onBulkMarkRead, onBulkDelete, onEmptyDeleted, onCompose, onSecureEmail,
+  onSearchChange, onBulkMarkRead, onBulkDelete, onEmptyDeleted, onCompose, onSecureEmail, userId = '',
 }) => {
   const { t } = useTranslation();
-  // Batch 567: the row that has keyboard focus inside it (its actions show, as on hover).
-  const [focusedMsgId, setFocusedMsgId] = useState<string | null>(null);
+  const [focusedMsgId, setFocusedMsgId] = useState<string | null>(null); // Batch 567: row with keyboard focus inside (shows its actions)
   // Batch 569: after a row's own Delete / Restore removes it with focus on it, focus goes to the next message
   // (or the one before; the list itself when none is left), not to the page.
   const listRef = useRef<HTMLDivElement>(null);
@@ -430,7 +430,7 @@ export const MessageListPanel: React.FC<MessageListPanelProps> = ({
         const rowClass = [
           'ps-msg-row',
           isSelected && 'selected',
-          !m.isRead && 'unread',
+          isUnreadFor(m, userId) && 'unread',
           !isSelected && m.isUrgent && 'urgent-row',
         ].filter(Boolean).join(' ');
         return (
@@ -488,7 +488,7 @@ export const MessageListPanel: React.FC<MessageListPanelProps> = ({
               <div className="ps-msg-row-subject" id={`ps-msg-subject-${m.id}`}>{m.subject || t('appShell.messageList.noSubject')}</div>
               <div className="ps-msg-row-preview">{m.body}</div>
             </div>
-            {!m.isRead && !isEditing && <div className="ps-msg-unread-dot" />}
+            {isUnreadFor(m, userId) && !isEditing && <div className="ps-msg-unread-dot" />}
           </div>
         );
       })}
@@ -619,10 +619,10 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ sendError, message, userId, i
               <div onClick={() => setMenuOpen(false)} className="ps-thread-menu-backdrop" />
               <div className="ps-thread-menu-panel">
                 {[
-                  { label: t('appShell.thread.markUnread'), action: () => { onMarkUnread(); setMenuOpen(false); }, danger: false },
-                  { label: t('appShell.thread.deleteMessage'),  action: () => { onSoftDelete(); setMenuOpen(false); }, danger: true  },
+                  { label: t('appShell.thread.markUnread'), action: () => { onMarkUnread(); setMenuOpen(false); }, danger: false, disabled: !canMarkUnread(message, userId) },
+                  { label: t('appShell.thread.deleteMessage'),  action: () => { onSoftDelete(); setMenuOpen(false); }, danger: true, disabled: false },
                 ].map(item => (
-                  <button key={item.label} onClick={item.action}
+                  <button key={item.label} onClick={item.action} disabled={item.disabled} title={item.disabled ? t('appShell.thread.markUnreadOwnLatest') : undefined}
                     className={`ps-thread-menu-item${item.danger ? ' ps-thread-menu-item--danger' : ''}`}
                   >{item.label}</button>
                 ))}
@@ -777,18 +777,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
   const knownAccessions = linkable?.userId === linkableUserId ? linkable.accessions : NO_ACCESSIONS;
 
 // ─── Drawers & Modals ──────────────────────────────────────────────────────
-  // Real fix (PS-298) — same real, reusable companion-window hook DP/EMR
-  // launches already use (hooks/useCompanionWindow.ts), so Guides open in
-  // a genuine positioned window instead of an ordinary browser tab, and
-  // remember where the user left that window across launches. closeOnUnmount:
-  // false — same real reasoning as the hook's own PubMed-window example:
-  // reference material with no patient context shouldn't vanish just
-  // because the user navigated elsewhere in the main app.
-  const userGuideWindow  = useCompanionWindow({ windowName: 'ps-user-guide',  preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
-  const adminGuideWindow = useCompanionWindow({ windowName: 'ps-admin-guide', preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
   const [aboutOpen, setAboutOpen]             = useState(false);
-  // Batch 505 (PS-475): the guides load when the About menu opens, not at start-up.
-  const guides = useGuideAssets(aboutOpen);
   const [myDictionaryOpen, setMyDictionaryOpen] = useState(false);
   const [myVoiceCommandsOpen, setMyVoiceCommandsOpen] = useState(false);
   // Batch 433: biometric signing (profile menu, and the invitation after sign-in).
@@ -864,10 +853,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
       m.senderName.toLowerCase().includes(searchText.toLowerCase()) ||
       m.body.toLowerCase().includes(searchText.toLowerCase())
     )
-    .sort((a, b) => {
-      if (a.isUrgent !== b.isUrgent) return a.isUrgent ? -1 : 1;
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    });
+    .sort(compareMessageListOrder); // urgent first, then latest thread activity (a reply moves it up)
 
   const currentMsg = messages.find(m => m.id === selectedMsgId);
 
@@ -887,7 +873,6 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
     await messageService.markRead(id);
     setMessages(prev => prev.map(m => m.id === id ? { ...m, isRead: true } : m));
   };
-
 
   const handleSoftDelete = async (id: string) => {
     await messageService.softDelete(id);
@@ -1066,7 +1051,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
     // ── Home page actions ────────────────────────────────────────────────────
     const openEnhancementRequest = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_HOME_OPEN_ENHANCEMENT_REQUEST'));
     const openTestingFeedback    = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_HOME_OPEN_TESTING_FEEDBACK'));
-    const viewHelp               = () => window.open('/help/documentation.pdf', '_blank');
+    const viewHelp               = () => window.dispatchEvent(new CustomEvent(OPEN_USER_GUIDE_EVENT));
     const openResources          = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_PAGE_OPEN_RESOURCES'));
     const systemLogout           = () => handleLogoutClick();
 
@@ -1101,7 +1086,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
     const msgMarkRead    = () => { if (selectedMsgId) handleMarkRead(selectedMsgId); };
     const msgMarkReadAll  = () => handleBulkMarkRead();
     const msgMarkUnread   = () => {
-      if (selectedMsgId) setMessages(prev => prev.map(m => m.id === selectedMsgId ? { ...m, isRead: false } : m));
+      if (selectedMsgId) setMessages(prev => prev.map(m => m.id === selectedMsgId && canMarkUnread(m, userId) ? { ...m, isRead: false } : m));
     };
     const msgSecureEmail  = () => handleSecureEmail();
     const msgRecipientAdd = () => {
@@ -1500,7 +1485,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
 
               {/* LEFT SIDEBAR */}
               <MessageListPanel
-                messages={displayMessages}
+                messages={displayMessages} userId={userId}
                 selectedMsgId={selectedMsgId}
                 hoveredMsgId={hoveredMsgId}
                 isEditing={isEditing}
@@ -1582,7 +1567,6 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
       )}
       {/* Secure Email Modal */}
       <SecureEmailModal
-        onSent={(to, subject) => log('secure_email_sent', { recipientEmail: to, subject })}
         isOpen={secureEmailOpen}
         fromName={user?.name ?? 'Dr. Paul Carter'}
         fromEmail={user?.id === 'PATH-UK-001' ? 'paul.carter@mft.nhs.uk' : 'pathscribe@hospital.org'}
@@ -1620,29 +1604,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
             <div className="ps-about-role">{user?.role ?? t('appShell.aboutModal.roleFallback')}</div>
 
             <div className="ps-about-menu">
-              {/* User Guide */}
-              <button
-                disabled={!guides} aria-busy={!guides}
-                onClick={() => { if (!guides) return; setAboutOpen(false); userGuideWindow.openCompanion(guides.getUserGuideBlobUrl()); }}
-                className="ps-about-menu-item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                </svg>
-                {t('appShell.aboutModal.userGuide')}
-              </button>
-              <div className="ps-about-menu-divider" />
-              {/* Admin Guide — all users in demo */}
-              <button
-                disabled={!guides} aria-busy={!guides}
-                onClick={() => { if (!guides) return; setAboutOpen(false); adminGuideWindow.openCompanion(guides.getAdminGuideBlobUrl()); }}
-                className="ps-about-menu-item ps-about-menu-item--admin">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                  <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-                </svg>
-                {t('appShell.aboutModal.adminGuide')}
-              </button>
-              <div className="ps-about-menu-divider" />
+              {/* Batch 669c (Pete, Oct 24, 2026): the guides open from the top-bar Help buttons only; the old embedded PDFs are gone. */}
               {/* Batch 432: the person's own spelling dictionary and learned voice commands. */}
               <button onClick={() => { setAboutOpen(false); setMyDictionaryOpen(true); }} className="ps-about-menu-item">
                 {t('profileMenu.myDictionary.title')}

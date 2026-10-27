@@ -1,3 +1,9 @@
+**Batch 650:** `useBottomBarActionEvents.ts` (+ test): listens for the bar's commands and calls the button's own handler, once, only when `resolveBottomBarCommand` allows it.
+
+**Batch 649 (Amendment window):** new `useRevisionReleaseAvailability.ts`, the release capabilities for this case and facility as `{ availability, loading }`; the decision is `services/reports/revisionReleaseCapability.ts`.
+
+**Batch 649:** `useSignOutWorkflow.ts` calls `runSignOutReviewGates` for both sign-out paths and `completeSurgicalSignOut` / `completeAssistFinalize` / `releaseRevisionsAtSignOut` for the writes (logic moved to `services/surgicalSignOut/` and `services/signoutGates/`; the hook went from 2,377 to 1,813 lines). A countersign error is shown (`useSignOutWorkflow.toast.countersignFailed`); a sign-out that cannot complete says so (`signOutNotCompleted`, `signOutNotCompletedStatusKept`). `useAmendmentWorkflow.ts` checks the release result (a refused release is not marked released or sent) and sends the addendum released from the amendment window. Tests: `useSignOutWorkflow.orchestrationGates.test.ts` (new), `useSignOutWorkflow.test.ts`, `useAmendmentWorkflow.test.ts`.
+
 # SynopticReportPage hooks
 
 Fifteen hooks (ten extracted originally, five added since) from `SynopticReportPage.tsx`, which was originally one
@@ -351,3 +357,30 @@ Files here that imported a mock service directly now import it from `@/services`
 ## Batch 615 (PS-138): `useTriggerCodeQueries`
 
 Loads the Code Manager's trigger searches (`services/abnormalDetection/triggerCodeQueries.ts`) while the Code Manager is open, honouring the enterprise and facility abnormal-detection switches and the performing-lab scope of each rule. Returns an empty list when off or on any error.
+
+## Batch 639
+
+New `useDiscardChangesConfirm.tsx` (+ test): the confirmation shown before Discard Unsaved Changes runs.
+
+## Batch 650 (650a)
+
+`useReportDraftVoiceActions.ts` (new): registers the Report Draft's spoken commands while it is open and carries Enter Gross / Micro / Diagnosis to the section editor (showing the Report Draft first when another tab is open). Replaces the inline list and the `registerAction` call that never registered anything. Test: `useReportDraftVoiceActions.test.tsx`.
+
+
+
+## Batch 651
+`useReportGeneration.ts`: `onSectionComplete` keeps `result.provenance` on the section.
+
+## Batch 652 — Specimen pipeline gaps
+
+- `useSpecimenBlockManagement.ts` asks `checkTriageReleaseGate` (service) instead of a worklist tile's predicate; the comment no longer calls the check server-side. 1722 to 1716 lines.
+- `useGrossingCompletion.ts` calls `routeCaseAfterGrossing`.
+- `useSignOutWorkflow.ts`: the reconciliation step loads a queue (`createReconciliationQueue`) from `planFrozenReconciliation`; `finalizeSignOut` hands out the next frozen specimen before signing. 1813 to 1800 lines.
+
+- `useReportOpenCommands.ts` (Batch 661): listens for the four report voice actions and the specimen selection event; the decisions are in `services/reports/reportOpenCommands.ts`.
+
+- Batch 663: `useReportOpenCommands.ts` also handles Maximise, Minimise, Preview, Internal Note and Skip Field; `useAddendumCommand.ts` listens for Add Addendum and calls `handleRequestAddendum` from `useAmendmentWorkflow.ts` (kept separate so the workflow hook needs no sign-in context).
+
+- Batch 664: `useCollaboratorCommand.ts` (Add Collaborator), `useSignOutAndNext.ts` (Orchestration Sign Out and Next; the page passes its `arm` function to the bottom bar button), and `useReportDraftVoiceActions.ts` also carries Edit Field to the section editor.
+
+- Batch 665: `useSignOutAndNext.ts` returns `{ arm, disarm }` and serves Assist Finalise & Next as well; every plain sign-out / finalise button disarms. `useSynopticEditField.ts`: Edit Field for synoptic panel questions (called from `RightSynopticPanel` on an existing line). `useCollaboratorCommand.ts` sends the collaborator notice.

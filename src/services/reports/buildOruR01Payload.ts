@@ -315,11 +315,11 @@ export async function buildOruR01Payload(
 /** Batch 426: an Orchestration workup's v1.0.0 result and its own PDF. The version is the number of signed
  *  versions saved for this workup (1 for the first). */
 async function orchestrationWorkup(caseData: any, instance: SynopticReportInstance, resultState: OruResultState) {
-  const [detail, versions, { mockUserService }, labels] = await Promise.all([
+  const [detail, versions, { userService }, labels] = await Promise.all([
     getTemplate(instance.templateId).catch(() => null),
     // Batch 558: with the API server, the server's versions are counted too.
     import('./reportVersionInstance').then(m => m.reportVersionService.getByCaseId(caseData.id)).catch(() => null),
-    import('../users/mockUserService').catch(() => ({ mockUserService: null })),
+    import('../users/userServiceInstance').catch(() => ({ userService: null })),
     import('./resolveReportLocale').then(m => m.resolveReportLocaleForFacility(caseData.order?.facilityId)).catch(() => null),
   ]);
   // Batch 559: with the API server, a list that couldn't be read (or was read only in part) would
@@ -327,7 +327,7 @@ async function orchestrationWorkup(caseData: any, instance: SynopticReportInstan
   if (!versions || versions.ok === false || versions.meta?.partial) throw new WorkupVersionUnknownError('the report versions could not all be read');
   const count = versions.data.filter((v: any) => v.instanceId === instance.instanceId).length;
   const signerId: string = caseData.finalizedBy ?? '';
-  const user = signerId && mockUserService ? await mockUserService.getById(signerId).catch(() => null) : null;
+  const user = signerId && userService ? await userService.getById(signerId).catch(() => null) : null;
   const signedAt: string = caseData.finalizedAt ?? caseData.releasedAt ?? new Date().toISOString();
   const { DEPLOYMENT_CODE_SYSTEM_VERSIONS, labConsolidatesPdfs } = await import('./dispatchAssistSynopticResultDeps');
   // Batch 427: a performing lab whose LIS takes one PDF per accession gets only the full report PDF.

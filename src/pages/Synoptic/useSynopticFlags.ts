@@ -2,8 +2,10 @@
 
 import { useState, useCallback } from 'react';
 import type { FlagDefinition } from '../../types/FlagDefinition';
-import type { CaseWithFlags } from '../../types/flagsRuntime';
-import { flagService, caseService } from '@/services';
+import type { CaseWithFlags, FlagInstance } from '../../types/flagsRuntime';
+import { flagService, caseService, authorizationService } from '@/services';
+import { applyStatFlagToCase, type StatFlagOutcome } from '@/services/flags/applyStatFlag';
+import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { toCaseWithFlags } from '@/services/flags/caseFlagView';
 import { applyFlags, deleteFlags, ApplyFlagPayload, DeleteFlagPayload } from '../../api/caseFlagsApi';
 import { adaptFlag } from '../../utils/flagAdapter';
@@ -15,6 +17,7 @@ export function useSynopticFlags(caseId: string) {
   // CytologyScreeningPage) — it reads the signed-in user itself rather than
   // taking it as a new parameter.
   const { user } = useAuth();
+  const { log } = useAuditLog();
   const [flagCaseData,    setFlagCaseData]    = useState<CaseWithFlags | null>(null);
   const [flagDefinitions, setFlagDefinitions] = useState<FlagDefinition[]>([]);
   const [showFlagManager, setShowFlagManager] = useState(false);
@@ -49,7 +52,23 @@ export function useSynopticFlags(caseId: string) {
     setFlagCaseData(updated);
   }, [user]);
 
+  // Batch 669 (everyday-22): "Apply STAT Flag" (Alt+S / voice) applies STAT to the open case without opening the manager.
+  // The decisions (capability, the STAT flag, already-STAT, audit) are in services/flags/applyStatFlag.ts.
+  const applyStatFlag = useCallback(async (): Promise<{ outcome: StatFlagOutcome; caseFlags?: FlagInstance[] }> => {
+    let caseFlags: FlagInstance[] | undefined;
+    const defs = await flagService.getAll();
+    const definitions = defs.ok ? defs.data : [];
+    const outcome = await applyStatFlagToCase({ caseId, definitions }, {
+      enforce: (cap, ctx) => authorizationService.enforce(cap, ctx),
+      getCase: (id) => caseService.getCase(id),
+      applyFlag: async (p) => { caseFlags = (await applyFlags({ ...p, byUserName: user?.name })).flags; },
+      audit: (e) => log('flag_applied', { caseId: e.caseId, flagName: e.flagName }),
+    });
+    return { outcome, caseFlags };
+  }, [caseId, user, log]);
+
   return {
+    applyStatFlag,
     flagCaseData,    setFlagCaseData,
     flagDefinitions,
     showFlagManager, setShowFlagManager,

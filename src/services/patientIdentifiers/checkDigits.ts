@@ -217,6 +217,8 @@ export const NATIONAL_IDENTIFIER_SYSTEMS_BY_JURISDICTION: Readonly<Record<Jurisd
   IE: ['id_ie_ihi', 'id_ie_ppsn'],
   AU: ['mrn_ihi'], NZ: ['mrn_nhi'], KR: ['mrn_krn'],
   BE: ['mrn_be'], NL: ['mrn_bsn'], DE: ['mrn_kvnr'], FR: ['mrn_ins'],
+  // Spain's DNI/NIE has a mod-23 letter, but no rule is wired for it yet.
+  ES: [],
 };
 
 /** Run the system's rule on a raw value. An unknown system is 'unchecked'. */

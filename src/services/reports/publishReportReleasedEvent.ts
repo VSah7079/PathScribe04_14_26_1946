@@ -47,7 +47,7 @@ import type { GenerateReportPdf } from './resolveOruReportPdf';
 import type { DeliveryDecisionResult } from '../delivery/resolveDeliveryAction';
 import { fallbackChannels, immediateChannels, planFromAction, type ChannelOutcome, type ChannelRole } from '../delivery/deliveryPlan';
 import type { DeliveryChannel } from '@/types/delivery/DeliveryRule';
-import { mockReportReleasedEventLogService } from './mockReportReleasedEventLogService';
+import { reportReleasedEventLogService } from './reportReleasedEventLogServiceInstance';
 import { getEffectiveScanStationId } from '@/utils/effectiveScanStation';
 
 /** Real, per the source spec's own "Core Event" field list (Case/
@@ -160,7 +160,7 @@ export interface ReportReleasedEventResult {
 /**
  * The one, real, named publish point for "a report was released."
  * Logs the event (real, new, persisted audit trail — see
- * mockReportReleasedEventLogService.ts) then delegates to the real,
+ * reportReleasedEventLogService.ts) then delegates to the real,
  * existing dispatch mechanism for this event's own reportType — the
  * one, real place a future print-queue subscriber would also hook in,
  * rather than every real caller needing to learn about it separately.
@@ -168,14 +168,14 @@ export interface ReportReleasedEventResult {
 /** Batch 426: an Assist case's finalized workups, to the LIS. The signer is whoever released it,
  *  or (the release buffer running out, no one on the page) whoever finalized the case. */
 async function releaseAssistWorkups(event: ReportReleasedEvent): Promise<void> {
-  const [{ dispatchAssistCaseRelease }, { assistSynopticDeps }, { caseRouter }, { mockUserService }] = await Promise.all([
-    import('./dispatchAssistSynopticResult'), import('./dispatchAssistSynopticResultDeps'), import('../cases/CaseRouter'), import('../users/mockUserService'),
+  const [{ dispatchAssistCaseRelease }, { assistSynopticDeps }, { caseRouter }, { userService }] = await Promise.all([
+    import('./dispatchAssistSynopticResult'), import('./dispatchAssistSynopticResultDeps'), import('../cases/CaseRouter'), import('../users/userServiceInstance'),
   ]);
   const c: any = await caseRouter.getCase(event.caseId);
   if (!c || c.reportingMode !== 'assist') return;
   let signer = event.releasedBy;
   if (!signer && c.finalizedBy) {
-    const u = await mockUserService.getById(c.finalizedBy).catch(() => null);
+    const u = await userService.getById(c.finalizedBy).catch(() => null);
     signer = { id: c.finalizedBy, name: u && u.ok ? [u.data.firstName, u.data.lastName].filter(Boolean).join(' ') : c.finalizedBy };
   }
   await dispatchAssistCaseRelease(event.caseId, signer ?? { id: '', name: '' }, assistSynopticDeps);
@@ -213,7 +213,7 @@ export async function publishReportReleasedEvent(incoming: ReportReleasedEvent):
   // Made now, before any channel, so every queue entry can record the document it sends.
   const made = generatePdf ? await generatePdf() : undefined;
   const event: ReportReleasedEvent = made?.documentId ? { ...incoming, documentId: made.documentId } : incoming;
-  await mockReportReleasedEventLogService.record(event);
+  await reportReleasedEventLogService.record(event);
 
   // Real, per direct follow-up ("Component C" — the Delivery
   // Configuration Rules Engine, Section 3 of the same spec): resolves

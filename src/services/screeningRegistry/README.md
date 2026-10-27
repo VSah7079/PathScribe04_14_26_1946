@@ -105,3 +105,11 @@ The eligibility flag is written to the newest case, and not at all if it is alre
 ## Batch 616 (part C): server versions (PS-498 to PS-504)
 
 Each service here (the screening registry service) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/REGISTRY_API.md`. The mocks are unchanged.
+
+## Batch 620 (part S)
+
+`submitScreeningRegistryResult` takes an optional `batchProgram(registryId)` dependency. When it says the registry takes a batch file (an enabled profile in `services/batchRegistryFeed/`), the result is audited and left queued: outcome `queuedForBatch`, nothing dispatched. `signOutCytologyCase` and the revision path pass it through. Resending one record from the exceptions screen still dispatches directly for such a programme (not changed).
+
+## Batch 638
+
+`submitScreeningRegistryResult.ts` now holds a CSMS message until the eligibility check is answered: the entry is queued as AWAITING_ELIGIBILITY, nothing is dispatched, and the case's f36 flag is raised then. New outcome `awaitingEligibility`. A later correction or addendum follows the first submission (still waiting, or closed). The clinical report is never held.

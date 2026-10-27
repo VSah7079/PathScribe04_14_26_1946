@@ -1,3 +1,11 @@
+**Batch 662:** `patientBannerCommands.ts` (new): `SHOW_NHS_STATUS` (SYNOPTIC, Ctrl+Alt+Shift+9, five-language phrases; Spanish in `spanishVoiceTriggers.ts`); its Role Dictionary entry is `banner.showNhsStatus` (`constants/patientBannerActionGroup.ts`), granted with the view commands. The NHS number badge listens and takes focus. No letter hotkey is left free. Not added, on purpose: voice commands that set or filter sex at birth.
+
+**Batch 650 (screen handlers):** `actionListeners.guard.test.ts` fails when a registered action has no listener on a screen and is not in `unwiredActions.ts` (29 commands, each with a reason; the list can only shrink). `screenActionWiring.test.ts` pins the small listeners. The registry itself was not changed (the voice engine is Batch 650a's). The list is in `docs/product/KNOWN_GAPS.md`.
+
+## Batch 645 — Lockbox Drop-Off commands
+
+`lockboxVoiceCommands.ts` (new): five commands appended to `SEED_ACTIONS`: `OPEN_LOCKBOX_DROP_OFF` (NAVIGATION, so always on: Alt+Shift+Z, or Alt+J then Shift+Z) and four screen commands in the new `LOCKBOX` context, `LOCKBOX_FOCUS_SCAN` Alt+S, `LOCKBOX_MARK_URGENT` Alt+G, `LOCKBOX_SHOW_DROP_OFF` Alt+D, `LOCKBOX_SHOW_FOLDER` Alt+M. Phrases in English, French, German, Dutch and Korean there; Castilian Spanish (formal) in `spanishVoiceTriggers.ts`; all machine translated. The five ids are in `CUSTOM_EVENT_ACTIONS` (they dispatch `PATHSCRIBE_<id>`). `shortcutMigrations.ts` (new) holds `SHORTCUT_MIGRATIONS` and `migrateShortcuts`, moved unchanged out of `mockActionRegistryService.ts` (re-exported there) to make room, so that file is 15 lines shorter and its size baseline is lowered to 4198. `permissionOnlyActions.ts` classifies `lockbox.markAccessioned` (deliberate click) and `lockbox.resolvePlaceholder` (needs a choice). `LOCKBOX` is a known context in `mockActionRegistryService.test.ts`. Counts: `docs/product/ACTIONS_COVERAGE.md`.
+
 ## Batch 614 (part A)
 
 - **16 editor commands** (`EDITOR_*`, category SYNOPTIC): Bold, Italic, Underline, Bullets, Numbered List, Increase/Decrease Indent, Find in Text, Replace in Text, Select All Text, Insert Table, Insert Signature Line, Next/Previous Section, Show / Hide Ruler, Show / Hide Formatting Marks. Keys Ctrl+Alt+1-9, 0 and Ctrl+Alt with . , / [ ] ;. Handlers: `components/Editor/editorCommands.ts`, run by `PathScribeEditor` on the editor that last had the cursor.
@@ -170,4 +178,32 @@ Four buttons in category `CYTOLOGY` (voice phrases in all five languages): `CYTO
 
 `voiceTriggerPool.ts` (pure): which phrases a command is matched against. `findActionByTrigger(transcript, language, { englishFuzzyFallback })`: with the switch off (Configuration, System, Voice), a non-English profile fuzzy-matches only its own language's phrases and learned phrases; exact English phrases still match. Default on (unchanged). Tests: `voiceTriggerPool.test.ts`.
 
+- **Batch 637:** `permissionOnlyActions.ts` also classifies the 8 entries added by Batches 620 to 636 (needs-choice or deliberate click); no voice phrase or hotkey added.
 - **Batch 617:** `permissionOnlyActions.ts` classifies the 16 roles-list entries added by Batches 613 to 616 (needs-choice or deliberate click); no voice phrase or hotkey added.
+
+## Batch 627
+
+`spanishVoiceTriggers.ts` (+ test): Castilian Spanish phrases for every command, added at load by `withSpanishVoiceTriggers` (an action with its own Spanish phrases keeps them). `mockActionRegistryService.ts` only calls it, so it does not grow.
+
+## Batch 628
+
+`findExactTriggerMatch.ts` (+ test): step 1 of voice matching picks the best exact match (whole phrase, then longest phrase inside what was said, then the earlier command) instead of the first.
+
+## Batch 639
+
+Print Current Cassette moved from Alt+P to Alt+Shift+O (Batch 639); `SHORTCUT_MIGRATIONS` moves a site that never changed it and keeps a customised key. The known key-clash list is one shorter.
+
+## Batch 650 (650a) — voice and keyboard share one rule
+
+- **`commandEligibility.ts`**: `isCommandEligible` / `eligibleCommands`, the one rule (always-on category, the screen in focus, the station's functional area, the station's action group). `getEligibleActions` (hotkeys) and `findActionByTrigger` (voice) both use it; voice used to leave out the two station branches. Test: `voiceStationEligibility.test.ts`.
+- **`transientActions.ts`** and `registerTransientActions` / `getCurrentContext` on the service: commands a screen registers while open (the Report Draft phrases), not stored and not in the Actions tab. They dispatch the event they name.
+- **`repeatConfirmationCommands.ts`**: the six commands that must be said twice (`confirmByRepeat` on `SystemAction`, set at load, never stored).
+- `findActionByTrigger` options `ignoreEligibility` + `exactOnly` let the voice layer tell a command for another screen from no command. `mockActionRegistryService.ts` is 9 lines shorter (baseline 4,189).
+
+
+
+## Batch 658 — View Help moved from Alt+V to F1 (Alt+V stays Full View); `isFunctionKeyPress` lets a function key run while typing in a field.
+
+**Batch 663:** `worklistRowCommands.ts` (new): `TABLE_GO_TO_ROW` (Alt+7) and `TABLE_OPEN_ACCESSION` (Alt+8), with `TRANSCRIPT_EVENT_ACTIONS` (commands that carry what was said; replaces the one-off Filter by Physician branch in `executeAction`). `TABLE_SELECT`, `TABLE_SELECT_ALL`, `TABLE_DESELECT_ALL` and `TABLE_DELETE` are switched off (`isActive: false`). Collaborating Cases has collaboration phrases; "my cases" is NOT a phrase (Batch 664: Pete ruled that My Cases and Active Cases are different dimensions; see KNOWN_GAPS). Six more report-screen commands are no longer in `unwiredActions.ts`.
+
+**Batch 664:** `caseTeamCommands.ts` (new): `ADD_COLLABORATOR` (Ctrl+Alt+Shift+0), carried with `transcript`; `EDIT_FIELD` also carries it. `EDIT_FIELD` and `VOICE_CANCEL` are no longer in `unwiredActions.ts`. The "my cases" phrases are off `TABLE_CLEAR_FILTER` (Pete: My Cases is not Active Cases).

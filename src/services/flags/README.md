@@ -35,3 +35,13 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 616 (part E) — server version
 
 API-server version of `Flag` (`httpFlagService.ts`, contract `FLAGS_AND_MESSAGES_API.md`), picked by `flagServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.
+
+## Batch 624
+
+`shippedFlagNames.ts`: the display name of a shipped flag in the user's language (`flagDisplayName`), looked up by the stored English name. The stored name is never changed; admin-made or renamed flags, and names carrying a result or gene, show as stored. Used by the worklist flag chip.
+
+## Batch 669 (everyday-17, everyday-22)
+
+- `flagChangeAudit.ts`: the Flag Manager's Save. `diffFlagChanges` (what differs between the case as opened and the draft), `saveFlagChanges` (stores each change, then writes its `flag_applied` / `flag_removed` audit entry; stops at the first failure and audits only what was stored). Cancelling now leaves no audit entries, because the modal no longer audits clicks in the draft.
+- `applyStatFlag.ts`: "Apply STAT Flag" (Alt+S / voice) applies the active case-level flag with LIS code STAT to the open case. Needs `case:flag:apply` (what the Flag Manager needs); a case already STAT gets a short message and is left alone; audited as `flag_applied`; the page answers with a toast (`STAT_FLAG_MESSAGE_KEY`).
+- Tests: `flagChangeAudit.test.ts`, `applyStatFlag.test.ts`.

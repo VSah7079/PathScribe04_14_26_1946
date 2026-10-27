@@ -22,7 +22,7 @@ import type { EditorTemplate, EditorField, EditorSection } from '../components/C
 import { resolveReportTemplateAsync, deriveSubspecialtyFromProtocols, type TemplateRoutingResult } from '../services/reportTemplates/TemplateRoutingService';
 import type { ReportTemplate } from '../types/reportPart';
 import type { SectionNode, TemplateNode } from '../types/template';
-import { mockReportTemplateService } from '../services/reportTemplates/mockReportTemplateService';
+import { reportTemplateService } from '../services/reportTemplates/reportTemplateServiceInstance';
 import { getOrgDocumentStyleDefault, getOrgHeaderStyleDefault, getOrgFooterStyleDefault } from '../components/Config/System/documentStyleConfig';
 import { reportPartService as mockReportPartService } from '../services/reportParts/reportPartServiceInstance';
 import { getTemplate } from '../services/templates/templateService';
@@ -391,7 +391,7 @@ interface ResolvedTemplateSections {
 }
 
 async function resolveTemplateSections(templateId: string): Promise<ResolvedTemplateSections> {
-  const templateRes = await mockReportTemplateService.getById(templateId);
+  const templateRes = await reportTemplateService.getById(templateId);
   if (templateRes.ok === false) {
     const errMsg: string = templateRes.error;
     throw new Error(`Report template '${templateId}' not found: ${errMsg}`);

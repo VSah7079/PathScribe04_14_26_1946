@@ -1,3 +1,5 @@
+**Batch 649:** `useSignOutWorkflow.orchestrationGates.test.ts` (new): Orchestration Sign Out Case is stopped by each review gate; `useSignOutWorkflow.test.ts` and `useAmendmentWorkflow.test.ts` updated.
+
 # Testing the SynopticReportPage hooks
 
 272 tests across 8 of the 15 hooks in this directory. `useMicroscopicEntry.ts`,

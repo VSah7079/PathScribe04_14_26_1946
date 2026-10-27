@@ -19,6 +19,7 @@ beforeEach(() => {
 
 const MAP = (s: string, t: string, id: string) => ({ sourceSystemName: 'LegacyLIS', sourceFieldName: s, targetField: t, category: 'demographics' as const, active: true, id });
 
+// Batch 654: 120 s, not 30 s. The first import of mockCaseService (a very large module graph) alone took over 30 s on a loaded Windows machine in the full run.
 describe('importLegacyFile (mock services)', () => {
   it('creates a job, results and draft cases; a second run of the same file creates no second case', async () => {
     const { importLegacyFile } = await import('./importLegacyFile');
@@ -45,12 +46,12 @@ describe('importLegacyFile (mock services)', () => {
     const second = await importLegacyFile(input);
     expect(second.ok && second.summary.draftCasesCreated).toBe(0);
     expect(second.ok && second.summary.alreadyImported).toBe(1);
-  }, 30_000);
+  }, 120_000);
 
   it('is refused without the capability', async () => {
     allowed = false;
     const { importLegacyFile } = await import('./importLegacyFile');
     const out = await importLegacyFile({ text: 'a\n1', format: 'csv', sourceSystemName: 'X', organisationId: 'o', createdByUserId: 'u', createdByUserName: 'U' });
     expect(out).toEqual({ ok: false, error: 'notPermitted' });
-  }, 30_000);
+  }, 120_000);
 });

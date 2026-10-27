@@ -17,6 +17,7 @@ const CALLS: { name: string; kind: string; verb: string; path: string; body?: un
   { name: 'resolve', kind: 'result', verb: 'POST', path: '/api/consult-access/consult-token/resolve', body: {"token":"token-1"}, missing: null, args: ['token-1'] },
   { name: 'revoke', kind: 'result', verb: 'POST', path: '/api/consult-access/consult-token/revoke', body: {"id": "id-1"}, missing: null, args: ['id-1'] },
   { name: 'openConsult', kind: 'result', verb: 'POST', path: '/api/consult-access/consult-token/open-consult', body: {"token":"token-1"}, missing: null, args: ['token-1'] },
+  { name: 'previewIdentity', kind: 'result', verb: 'POST', path: '/api/consult-access/consult-token/preview-identity', body: {"linkId":"linkId-1"}, missing: null, args: ['linkId-1'] },
   { name: 'submitOpinion', kind: 'result', verb: 'POST', path: '/api/consult-access/consult-token/submit-opinion', body: {"token":"token-1","draft":{"sample":1}}, missing: null, args: ['token-1', { sample: 1 } as never] },
   { name: 'getOpinionsByCaseId', kind: 'result', verb: 'GET', path: '/api/consult-access/consult-token/get-opinions-by-case-id?caseId=caseId-1', missing: null, args: ['caseId-1'] },
   { name: 'assessOpinion', kind: 'result', verb: 'POST', path: '/api/consult-access/consult-token/assess-opinion', body: {"id":"id-1","input":{"sample":1}}, missing: null, args: ['id-1', { sample: 1 } as never] },

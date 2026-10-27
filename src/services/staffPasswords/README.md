@@ -2,9 +2,11 @@
 
 # services/staffPasswords
 
+> **Batch 674: demo only.** Staff passwords exist in the **demo build**. A server deployment signs in through the customer's identity provider (single sign-on) and has **no password store and no password service**: `runtimeSettings.ts` refuses a server build that is not `VITE_AUTH_MODE=sso`, and the Staff screen then shows that passwords are managed by the identity provider. The statements below about "a site without single sign-on" and about the API server storing hashes in SQL Server were plans that are no longer the design; read them as describing the demo. See `docs/architecture/AUTHENTICATION_MODEL.md`.
+
 ## Batch 448: passwords set from the Staff screen
 
-Pete: "In most cases I've simply defined the password in the Staff configurations." Now PathScribe does too, wherever it signs people in with a password: the demo, and a site without single sign-on. A site on single sign-on signs in at the hospital's identity provider, and the Staff screen says so.
+Pete: "In most cases I've simply defined the password in the Staff configurations." Now PathScribe does too, in the demo build, where it signs people in with a password. A site on single sign-on signs in at the hospital's identity provider, and the Staff screen says so.
 
 - **`staffPasswordRules.ts`** (pure, tested):
   - `passwordPolicyProblem`: 12 to 128 characters, not blank, not the person's email. Length over composition rules, per NIST SP 800-63B.
@@ -16,7 +18,7 @@ Pete: "In most cases I've simply defined the password in the Staff configuration
   - Changes are audited (`STAFF_PASSWORD_SET`, `STAFF_PASSWORD_CLEARED`). The audit says who set it and whether a change is required, never the password.
   - `verify(email, password)` gives `match` / `wrong` / `none`. Only `none` (no password set here) lets sign-in fall back to the built-in demo accounts; once one is set here, the built-in one stops working for that account.
   - `changeAtSignIn`: the person's own change when they must choose a new password; they prove the current one first.
-- **Storage:** this build keeps the hashes in browser storage, so a password set here works in that browser, and Full Reset returns to the built-in demo passwords. In production, the API server stores the hash in SQL Server and checks it at sign-in; the browser never holds a hash.
+- **Storage:** this build keeps the hashes in browser storage, so a password set here works in that browser, and Full Reset returns to the built-in demo passwords. In production there is no password store: sign-in is the identity provider's (Batch 674).
 
 ## Batch 456 — Sign-in lockout, password screening, demo seeds
 

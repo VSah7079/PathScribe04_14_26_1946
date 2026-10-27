@@ -11,7 +11,7 @@ import type { HL7MessageContext } from '../hl7/types';
 import { buildOrmO01ForBlock } from '../hl7/ormBuilder';
 import { dispatchInterfaceMessage, type InterfaceTransactionType } from './dispatchInterfaceMessage';
 import { isEngineSimulated } from '../mockInterfaceEngine/simulatedEngineReceiver';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 export const DEFAULT_HARDWARE_CONTEXT: HL7MessageContext = {
   sendingApplication: 'PATHSCRIBE', sendingFacility: 'PS', receivingApplication: 'ENGINE', receivingFacility: 'LAB', processingId: 'D',
@@ -31,7 +31,7 @@ export interface HardwareDispatchResult {
 async function send(type: InterfaceTransactionType, messageId: string, payload: object, messageText: string, caseId: string, actor: string, what: string): Promise<HardwareDispatchResult> {
   const simulated = isEngineSimulated();
   const r = await dispatchInterfaceMessage(messageId, type, payload);
-  await mockAuditService.logEvent({
+  await auditService.logEvent({
     type: 'system', event: simulated ? 'Simulated Hardware Order Sent' : 'Hardware Order Sent',
     detail: `${simulated ? 'SIMULATED (no engine): ' : ''}${what} ${r.ok ? 'sent' : `not sent (${r.errorCode ?? 'failed'})`}.`,
     user: actor, caseId, confidence: null,

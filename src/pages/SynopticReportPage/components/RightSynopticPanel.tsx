@@ -1,11 +1,11 @@
 // src/pages/SynopticReportPage/components/RightSynopticPanel.tsx
 // Schema-driven synoptic field renderer — dark navy theme.
 
-import { resolveFieldToConfirm } from '@/utils/synopticConfirmField';
+import { resolveFieldToConfirm } from '@/utils/synopticConfirmField'; import { useSynopticEditField } from '../hooks/useSynopticEditField';
 import React, { useImperativeHandle, forwardRef, useState, useEffect, useCallback, useRef } from 'react';
 import { nodeCountBelowSum, textNodeCountExceeds, textNodeCountProblem } from '@/services/templates/nodeCountText';
 import { useTranslation } from 'react-i18next';
-import '../../../pathscribe.css';
+import '../../../pathscribe.css'; import '../aiGovernance.css';
 import type { Case, PendingReevaluation, SynopticReportInstance } from '@/types/case/Case';
 import { resolveReevaluation } from '@/services/assistPolling/assistMilestoneRules';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +25,8 @@ import { calculateAutopsyBodyMassIndex } from '@/services/autopsy/calculateAutop
 
 import { resolveEmbeddedCodesForAnswer, appendEmbeddedCodesToSpecimen } from '../resolveEmbeddedCoding';
 import { resolveConfidenceThresholdForClient } from '@/components/Config/AI/resolveClientAiModel';
-import { aiBehaviorService, generateAiSuggestionsForReport, saveReportSuggestions, recordAiFeedback } from '@/services';
+import { aiBehaviorService, generateAiSuggestionsForReport, saveReportSuggestions, recordAiFeedback, auditService } from '@/services';
+import { applyAiAutoFill, recordAiAutoFill } from '@/services/aiGovernance/aiAutoFill';
 import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { matchSourceText } from '@/utils/sourceTextMatching';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
@@ -45,6 +46,7 @@ import {
 import { shownSynopticFields } from '@/services/templates/synopticEntryChecks';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 
 
@@ -223,7 +225,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
 
   const rowClassNames = [
     'ps-syn-field-row',
-    (ai || aiAttempted || isPulsing) ? 'ps-syn-field-row--ai-padding' : '',
+    (ai || aiAttempted || isPulsing) ? 'ps-syn-field-row--ai-padding' : '', ai && hasValue && vStatus === 'unverified' ? 'ps-syn-field-row--ai-unreviewed' : '', // Batch 681: a quiet cue, no click needed
     isPulsing
       ? 'ps-syn-field-row--pulsing'
       : [
@@ -256,11 +258,11 @@ const FieldRow: React.FC<FieldRowProps> = ({
         {/* Below-threshold warning badge */}
         {belowThreshold && (
           <span
-            title={t('rightSynopticPanel.fieldRow.belowThresholdTitle', { conf: belowThresholdConf, source: belowThresholdSource ?? '—' })}
+            title={showsConfidence() ? t('rightSynopticPanel.fieldRow.belowThresholdTitle', { conf: belowThresholdConf, source: belowThresholdSource ?? '—' }) : t('rightSynopticPanel.fieldRow.checkSourceTitle')}
             className="ps-syn-badge-outlined ps-syn-badge--warn"
           >
             <span className="ps-syn-badge-icon">⚠</span>
-            {t('rightSynopticPanel.fieldRow.lowConfidenceBadge', { conf: belowThresholdConf })}
+            {showsConfidence() ? t('rightSynopticPanel.fieldRow.lowConfidenceBadge', { conf: belowThresholdConf }) : t('rightSynopticPanel.fieldRow.checkSourceBadge')}
           </span>
         )}
 
@@ -287,13 +289,10 @@ const FieldRow: React.FC<FieldRowProps> = ({
         {/* AI confidence badge + Confirm/Override */}
         {ai && (
           <>
-            {/* The low-confidence warning badge above already states the
-                percentage — skip the plain duplicate badge for unverified
-                below-threshold fields so the same number doesn't appear
-                twice in the row. */}
+            {/* The warning badge above already names this field; skip the duplicate badge for unverified below-threshold fields. */}
             {!(belowThreshold && vStatus === 'unverified') && (
-              <span className={`ps-syn-badge ${confBadgeClass}`}>
-                {vStatus === 'verified' ? t('rightSynopticPanel.fieldRow.confirmedBadge') : vStatus === 'disputed' ? t('rightSynopticPanel.fieldRow.overriddenBadge') : `${conf}%`}
+              <span className={`ps-syn-badge ${showsConfidence() ? confBadgeClass : ''}`}>
+                {vStatus === 'verified' ? t('rightSynopticPanel.fieldRow.confirmedBadge') : vStatus === 'disputed' ? t('rightSynopticPanel.fieldRow.overriddenBadge') : showsConfidence() ? `${conf}%` : t('rightSynopticPanel.fieldRow.aiSuggestionBadge')}
               </span>
             )}
             {vStatus === 'unverified' && (
@@ -608,6 +607,8 @@ export interface RightSynopticPanelHandle {
    *  as validateRequired() so callers can navigate to the first one
    *  the same way. */
   getBlockingUnverifiedFields(): MissingRequiredField[];
+  /** Batch 691: clears these answers (unconfirmed AI values left out of the signed report); the suggestions stay. */
+  omitFields(fieldIds: string[]): void;
   setFieldVerification(fieldId: string, v: 'verified' | 'disputed'): void;
   sweepAndGetFinalState(): {
     answers: Record<string, string | string[]>;
@@ -917,7 +918,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       window.removeEventListener('PATHSCRIBE_NEXT_UNANSWERED', handleNextUnanswered);
       window.removeEventListener('PATHSCRIBE_NEXT_REQUIRED',   handleNextRequired);
     };
-  }, [templateDetail, answers, jumpToField]);
+  }, [templateDetail, answers, jumpToField]); useSynopticEditField({ answersCommand: caseData?.reportingMode === 'assist', sections: templateDetail?.template.sections, answers, jumpToField });
 
   // ── Imperative handle ─────────────────────────────────────────────────────
   useImperativeHandle(ref, () => ({
@@ -967,6 +968,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       return results;
     },
 
+    omitFields(fieldIds: string[]) { setAnswers(prev => { const next = { ...prev }; fieldIds.forEach(id => { delete next[id]; }); return next; }); },
+
     setFieldVerification(fieldId: string, v: 'verified' | 'disputed') {
       setAiSuggestions(prev => {
         const sug = prev[fieldId];
@@ -999,19 +1002,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     },
 
     sweepAndGetFinalState() {
-      // Real, stronger fix per direct product decision: no longer
-      // auto-confirms anything, for any field, regardless of
-      // required status or source-match. Required fields with an
-      // unverified AI suggestion are now hard-blocked upstream by
-      // getBlockingUnverifiedFields() before finalize ever reaches
-      // this point — so a required field genuinely can't still be
-      // 'unverified' here in practice. Non-required fields are simply
-      // left honestly unverified if nobody explicitly reviewed them;
-      // a source happening to match the report text was never a
-      // substitute for a human actually looking at the value, and
-      // treating it as one is exactly the "AI accepted blindly"
-      // pattern this whole fix exists to close. Verification status
-      // now only ever changes through an explicit Confirm/Override.
+      // Nothing is auto-confirmed. Required fields with an unverified AI value are blocked upstream
+      // (getBlockingUnverifiedFields); optional ones are left unverified, and Batch 691 leaves them out of the signed report.
       const finalSuggestions = { ...aiSuggestions };
       let explicitConfirmed = 0, overridden = 0, missed = 0, notFound = 0, leftUnverified = 0;
       Object.values(finalSuggestions).forEach(sug => {
@@ -1172,18 +1164,11 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           // Gate pre-fill on autoInsertSuggestions setting:
           // false (default) = fields stay blank, pathologist clicks Confirm per field
           // true            = values above threshold auto-fill into answer fields
+          // Batch 689: the shared helper fills empty fields only; the fill is audited once, outside the updater.
+          const auto = autoInsertSuggestions ? applyAiAutoFill(answersToLoad, suggestions, confidenceThreshold || 75) : { answers: { ...answersToLoad }, filled: [] as string[] };
+          recordAiAutoFill(auditService, auto.filled.length, 'page-load', { caseId: initialCaseData?.id ?? null, userName: user?.name ?? '' });
           setAnswers(() => {
-            const prefilled = { ...answersToLoad };
-            if (autoInsertSuggestions) {
-              Object.entries(suggestions).forEach(([fieldId, sug]) => {
-                const aboveThreshold = (sug.confidence ?? 0) >= (confidenceThreshold || 75);
-                const fieldEmpty = !prefilled[fieldId] || prefilled[fieldId] === '' ||
-                  (Array.isArray(prefilled[fieldId]) && (prefilled[fieldId] as string[]).length === 0);
-                if (aboveThreshold && fieldEmpty) {
-                  prefilled[fieldId] = Array.isArray(sug.value) ? sug.value : sug.value;
-                }
-              });
-            }
+            const prefilled = auto.answers;
             // Always update the ref on report switch so the propagation effect
             // doesn't fire spuriously with stale data from the previous report.
             loadedAnswersRef.current = JSON.stringify(prefilled);
@@ -1236,26 +1221,16 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       updateAiSuggestions(suggestions as any);
 
       let nextAnswers: Record<string, string | string[]> = {};
+      // An explicit click, so not gated behind Auto-insert; still respects the threshold and never touches
+      // a field that has a value. Batch 689: the fill is audited; the values stay unverified until confirmed.
+      let filledCount = 0;
       setAnswers(prev => {
-        const next = { ...prev };
-        // Unlike the passive page-load prefill, this is an explicit,
-        // deliberate click — the pathologist just asked for this
-        // specific regeneration, so it isn't gated behind the global
-        // Auto-Insert Suggestions toggle (that setting exists to guard
-        // against *silent* AI involvement, which doesn't apply to an
-        // action someone just triggered on purpose). Still respects
-        // the confidence threshold, and still never touches a field
-        // that already has a value — same non-destructive guarantee
-        // as before, just without the extra passive-only gate.
-        Object.entries(suggestions).forEach(([fieldId, sug]: [string, any]) => {
-          const aboveThreshold = (sug.confidence ?? 0) >= (confidenceThreshold || 75);
-          const fieldEmpty = !next[fieldId] || next[fieldId] === '' ||
-            (Array.isArray(next[fieldId]) && (next[fieldId] as string[]).length === 0);
-          if (aboveThreshold && fieldEmpty) next[fieldId] = sug.value;
-        });
+        const { answers: next, filled } = applyAiAutoFill(prev, suggestions as never, confidenceThreshold || 75);
+        filledCount = filled.length;
         nextAnswers = next;
         return next;
       });
+      recordAiAutoFill(auditService, filledCount, 'regenerate-from-gross', { caseId: caseData.id, userName: user?.name ?? '' });
 
       // Persist so the regenerated suggestions AND newly-filled answers
       // survive navigation/reload.
@@ -1270,7 +1245,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     } finally {
       setIsRegenerating(false);
     }
-  }, [caseData, activeReportInstanceId, templateDetail, isRegenerating, computationalResults, confidenceThreshold, onCaseUpdate, updateAiSuggestions, activeReportsKey, getActiveReports]);
+  }, [caseData, activeReportInstanceId, templateDetail, isRegenerating, computationalResults, confidenceThreshold, onCaseUpdate, user?.name, updateAiSuggestions, activeReportsKey, getActiveReports]);
 
   const setAnswer = useCallback((fieldId: string, value: string | string[]) => {
     setAnswers(prev => {

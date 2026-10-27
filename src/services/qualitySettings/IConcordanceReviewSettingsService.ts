@@ -4,8 +4,8 @@
 // customer can control this concordance review behavior") — the real,
 // persisted settings behind the session's own "do both" decision:
 // automatic frozen-vs-final discordance flagging, and the optional,
-// mandatory review screen at sign-out showing Intraop vs. Final vs.
-// AI outcome. Two independent booleans, per that same decision — a
+// mandatory review screen at sign-out showing Intraop vs. Final
+// (a category match, no AI). Two independent booleans, per that same decision — a
 // site can run the automatic comparison without forcing the extra
 // screen, or the reverse, or neither.
 //
@@ -28,16 +28,18 @@
 import type { ServiceResult } from '../types';
 
 export interface ConcordanceReviewOrgConfig {
-  /** Whether the system automatically compares a preliminary finding
-   *  (e.g. a frozen section diagnosis) against the corresponding final
-   *  diagnosis and flags a real discordance for pathologist review —
-   *  never auto-graded, always a human determination; this only
-   *  controls whether the comparison itself runs and surfaces a flag
-   *  at all. */
+  /** Whether sign-out runs the automatic CATEGORY comparison of each frozen-section
+   *  specimen against the final category the signer records (benign / malignant /
+   *  atypical-suspicious; services/quality/frozenReconciliationPlan.ts and
+   *  discordanceStage). It is a rule-based category match confirmed by the
+   *  pathologist. There is NO AI model in this path (Batch 652 correction). The
+   *  stored key keeps its historical name `aiComparisonEnabled` so saved settings
+   *  and facility/staff overrides keep working; screens label it "automatic
+   *  category comparison". */
   aiComparisonEnabled: boolean;
   /** Whether an extra, dedicated screen appears at sign-out showing
-   *  the preliminary-vs-final comparison (and the AI outcome, when
-   *  aiComparisonEnabled) before the pathologist can complete sign-out
+   *  the preliminary-vs-final comparison (the category comparison, when
+   *  aiComparisonEnabled; no AI) before the pathologist can complete sign-out
    *  — real, deliberate friction so the pathologist actively looks at
    *  the comparison rather than relying solely on whether a flag
    *  happened to fire. */

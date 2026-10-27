@@ -114,14 +114,14 @@ const SlideDistributionStationPage: React.FC = () => {
     if (!w.activeQueueId) return;
     setAssignFeedback(null);
     const result = await w.handleAssignPhysical(w.activeQueueId, assignment);
-    if (!result.ok) setAssignFeedback(describeFailure(result, 'slideDistribution.destination.assignFailed'));
+    if (!result.ok && !result.notSaved) setAssignFeedback(describeFailure(result, 'slideDistribution.destination.assignFailed'));
   }, [w, describeFailure]);
 
   const handleAssignScanner = useCallback(async (assignment: Parameters<typeof w.handleAssignScanner>[1]) => {
     if (!w.activeQueueId) return;
     setAssignFeedback(null);
     const result = await w.handleAssignScanner(w.activeQueueId, assignment);
-    if (!result.ok) setAssignFeedback(describeFailure(result, 'slideDistribution.destination.assignFailed'));
+    if (!result.ok && !result.notSaved) setAssignFeedback(describeFailure(result, 'slideDistribution.destination.assignFailed'));
   }, [w, describeFailure]);
 
   const handleFlagException = useCallback((reason: SlideExceptionReason, note: string) => {
@@ -139,7 +139,7 @@ const SlideDistributionStationPage: React.FC = () => {
     if (!w.activeQueueId) return;
     setReprintFeedback(null);
     const result = await w.handleRequestReprint(w.activeQueueId, reason);
-    if (!result.ok) setReprintFeedback(describeFailure(result, 'slideDistribution.activeSlide.reprintFailed'));
+    if (!result.ok && !result.notSaved) setReprintFeedback(describeFailure(result, 'slideDistribution.activeSlide.reprintFailed'));
   }, [w, describeFailure]);
 
   return (
@@ -168,6 +168,8 @@ const SlideDistributionStationPage: React.FC = () => {
         </form>
         {w.scanError && <div className="ps-slidedist-scan-error">{t(w.scanError.key, w.scanError.values)}</div>}
       </div>
+
+      {w.saveError && <div className="ps-workstation-save-error" role="alert">{w.saveError}</div>}
 
       <div className="ps-slidedist-layout">
         <QueuePanel queue={w.queue} activeQueueId={w.activeQueueId} onSelect={w.setActiveQueueId} onRemove={w.removeFromQueue} />

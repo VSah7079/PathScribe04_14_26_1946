@@ -60,12 +60,14 @@ import { resolveCytologyHighRiskStatus } from './resolveCytologyHighRiskStatus';
 import { resolveEffectiveCytologyQcSettings } from './resolveEffectiveCytologyQcSettings';
 import { resolveCytologyRandomQcSelection } from './resolveCytologyRandomQcSelection';
 import { resolveCytologyCategorySetConcordance } from './resolveCytologyCategorySetConcordance';
-import { GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID } from '../quality/mockQaActivityTypeService';
+import { GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID } from '../quality/qaActivityTypeIds';
 import { patchCytologyScreening } from './cytologyCaseActions';
 import { initialScreenFor, resolveCytologyReviewAgreement } from './resolveCytologyReviewAgreement';
 import { reviewNotesAfterSave } from './cytologyReviewNotes';
 import { resolveCytologyComplianceFeatures } from './cytologyComplianceFeatures';
 import type { Jurisdiction } from '@/types/systemConfig';
+export { workloadReassignmentNotice } from './workloadReassignmentNotice';
+import { reassignPendingCytologyCases, type ReassignmentSummary } from './reassignPendingCytologyCases';
 
 
 export interface SaveCytologyReviewInput {
@@ -96,6 +98,8 @@ export interface SaveCytologyReviewOutcome {
   capacity?: CytologyWorkloadCapacityStatus | null;
   /** Over capacity: blocked (a new review) or let through as an escalation. */
   workloadNotice?: 'blocked' | 'escalation' | null;
+  /** Batch 635: where the reviewer's pending cases went when the limit was reached. */
+  reassignment?: ReassignmentSummary;
   reviewId?: string;
   created?: boolean;
   /** QC applied to the specimen by this save. */
@@ -153,10 +157,11 @@ export async function saveCytologyReview(input: SaveCytologyReviewInput, deps: C
   const addedScu = resolveCytologyScuWeightAdded(existing ? resolveCytologyReviewMode(existing) : undefined, targetReviewMode);
   const capacity = await checkWorkloadCapacity(input, addedScu, deps);
   let workloadNotice: SaveCytologyReviewOutcome['workloadNotice'] = null;
+  let reassignment: ReassignmentSummary | undefined;
   if (capacity?.status === 'exceeded') {
     const escalation = !!existing && resolveIsRetroactiveScuEscalation(resolveCytologyReviewMode(existing), targetReviewMode);
-    await reassignPendingCases(input, !escalation, deps);
-    if (!escalation) return { outcome: 'workloadBlocked', capacity, workloadNotice: 'blocked', validation };
+    reassignment = await reassignPendingCases(input, !escalation, deps);
+    if (!escalation) return { outcome: 'workloadBlocked', capacity, workloadNotice: 'blocked', validation, reassignment };
     workloadNotice = 'escalation';
   }
 
@@ -177,7 +182,7 @@ export async function saveCytologyReview(input: SaveCytologyReviewInput, deps: C
     if (!updated.ok) return { outcome: 'failed', capacity, workloadNotice, validation };
     await patchSpecimen(input, updated.data.id, {}, deps);
     await recordLedger(input, targetReviewMode, updated.data.id, deps, addedScu);
-    return { outcome: 'saved', capacity, workloadNotice, validation, reviewId: updated.data.id, created: false, agreement };
+    return { outcome: 'saved', capacity, workloadNotice, reassignment, validation, reviewId: updated.data.id, created: false, agreement };
   }
   const created = await deps.createReview({
     specimenId, caseId: caseData.id, role: input.resolvedRole, ...fields,
@@ -195,7 +200,7 @@ export async function saveCytologyReview(input: SaveCytologyReviewInput, deps: C
   const qcFlagApplied = qc?.reason;
   await patchSpecimen(input, created.data.id, qc ? { qcFlag: qc.flag } : {}, deps);
   await recordLedger(input, targetReviewMode, created.data.id, deps, addedScu);
-  return { outcome: 'saved', capacity, workloadNotice, validation, reviewId: created.data.id, created: true, qcFlagApplied, agreement };
+  return { outcome: 'saved', capacity, workloadNotice, reassignment, validation, reviewId: created.data.id, created: true, qcFlagApplied, agreement };
 }
 
 async function checkWorkloadCapacity(input: SaveCytologyReviewInput, addedScu: number, deps: CytologyWorkspaceDeps): Promise<CytologyWorkloadCapacityStatus | null> {
@@ -219,14 +224,12 @@ async function checkWorkloadCapacity(input: SaveCytologyReviewInput, addedScu: n
   return resolveCytologyWorkloadCapacity(priorScu + addedScu, activeHours, cap.dailySlideCap);
 }
 
-/** The reviewer's other pending cytology cases back to the pool (case assignment only; accession status untouched). */
-async function reassignPendingCases(input: SaveCytologyReviewInput, includeCurrentCase: boolean, deps: CytologyWorkspaceDeps) {
+/** Batch 635: the reviewer's other pending cytology cases to colleagues with room, the rest to the pool (case assignment only; accession status untouched). */
+async function reassignPendingCases(input: SaveCytologyReviewInput, includeCurrentCase: boolean, deps: CytologyWorkspaceDeps): Promise<ReassignmentSummary> {
   const mine = await deps.listCasesForUser(input.user.id);
   const candidates = resolveCytologyWorkloadReassignmentCandidates(mine, input.user.id)
     .filter(c => includeCurrentCase || c.id !== input.caseData.id);
-  // Non-blocking: a routing race on the overflow queue must never fail the save.
-  await Promise.all(candidates.map(c => Promise.resolve(deps.returnToCytologyPool(c))
-    .catch(e => console.error('Workload reassignment routing failed (non-blocking):', e))));
+  return reassignPendingCytologyCases(candidates, { id: input.user.id, name: input.user.name }, (input.caseData as { order?: { facilityId?: string } }).order?.facilityId, deps);
 }
 
 async function recordLedger(input: SaveCytologyReviewInput, mode: CytologyReviewMode, reviewRecordId: string, deps: CytologyWorkspaceDeps, scuWeight: number) {

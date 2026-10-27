@@ -41,7 +41,7 @@ export function englishSpellingFor(localeTag: string | undefined | null): Englis
 /** The dictation language a locale tag implies (nl-BE → Dutch, anything unrecognised → English). */
 export function dictationLanguageForLocale(localeTag: string | undefined | null): VoiceProfileLanguage {
   const lang = (localeTag ?? '').toLowerCase().split(/[-_]/)[0];
-  return lang === 'fr' || lang === 'de' || lang === 'nl' || lang === 'ko' ? lang : 'en';
+  return lang === 'fr' || lang === 'de' || lang === 'nl' || lang === 'ko' || lang === 'es' ? lang : 'en';
 }
 
 /**
@@ -93,6 +93,16 @@ const NON_ENGLISH: Record<Exclude<VoiceProfileLanguage, 'en'>, LanguagePrompt> =
       'The transcript is in Dutch. Keep it in Dutch: never translate and never replace a Dutch term with an English one.',
       'Correct phonetic errors using standard Dutch pathology terminology (e.g. "adenocarcinoom", "resectiemarge", "lymfeklier").',
       'Write Dutch compound words as one word (e.g. "plaveiselcelcarcinoom"), and keep the trema where it belongs ("carcinoïd").',
+      'Write measurements with the decimal comma and an \'x\' between dimensions (e.g. "3,5 x 2 x 1 cm").',
+      'Keep staging and grading codes exactly as spoken in international form (pT2b, pN0, pM0, G2).',
+    ],
+  },
+  es: {
+    name: 'Spanish',
+    rules: [
+      'The transcript is in Spanish (Spain). Keep it in Spanish: never translate and never replace a Spanish term with an English one.',
+      'Correct phonetic errors using standard Spanish pathology terminology (e.g. "adenocarcinoma", "exéresis", "bordes de resección", "ganglio centinela").',
+      'Keep accents and the inverted marks (á, é, í, ó, ú, ñ, ¿, ¡), and put the opening mark at the start of a question or exclamation.',
       'Write measurements with the decimal comma and an \'x\' between dimensions (e.g. "3,5 x 2 x 1 cm").',
       'Keep staging and grading codes exactly as spoken in international form (pT2b, pN0, pM0, G2).',
     ],
@@ -163,7 +173,7 @@ export function reviewablePrompts(): ReviewablePrompt[] {
       id: `en-${spelling}`, language: 'en' as const, spelling,
       prompt: buildDictationRefinementSystem({ language: 'en', spellLocale: SPELLING_LOCALE[spelling] }),
     })),
-    ...(['fr', 'de', 'nl', 'ko'] as const).map(language => ({
+    ...(['fr', 'de', 'nl', 'es', 'ko'] as const).map(language => ({
       id: language, language, prompt: buildDictationRefinementSystem({ language }),
     })),
   ];

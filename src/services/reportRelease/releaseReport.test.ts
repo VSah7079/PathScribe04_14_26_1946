@@ -35,6 +35,7 @@ function makeDeps(over: Partial<ReleaseReportDeps> = {}, clock = { t: new Date('
     releaseSignOut: vi.fn(async () => ({ released: true })),
     now: () => clock.t,
     newId: () => 'n1',
+    enforce: vi.fn(async () => ({ allowed: true })),
     ...over,
   };
   return { deps, held, clock };
@@ -104,6 +105,16 @@ describe('releaseDueReports', () => {
 });
 
 describe('recallHeldRelease', () => {
+  it('Batch 649: without report:release:recall nothing is recalled, even by the person who released it', async () => {
+    const enforce = vi.fn(async () => ({ allowed: false }));
+    const { deps, held } = makeDeps({ enforce });
+    await releaseReport(event, hold, deps);
+    expect(await recallHeldRelease('held-n1', { userId: 'P1', userName: 'Dr P' }, deps)).toEqual({ ok: false, refusal: 'notPermitted' });
+    expect(enforce).toHaveBeenCalledWith('report:release:recall', { caseId: 'C1' });
+    expect(held.rows[0].status).toBe('held');
+    expect(deps.reopen).not.toHaveBeenCalled();
+  });
+
   it('the person who released it, within the delay: nothing is sent and what was released reopens', async () => {
     const { deps, clock } = makeDeps();
     await releaseReport(event, hold, deps);

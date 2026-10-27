@@ -26,7 +26,7 @@
 import type { Jurisdiction } from '@/types/systemConfig';
 
 export type CancerRegistryDefinitionId =
-  | 'naaccr_us' | 'cpac_canada'
+  | 'naaccr_us' | 'epath_npcr_us' | 'cpac_canada'
   | 'cosd_uk' | 'phs_scotland' | 'nicr_northern_ireland' | 'ncri_ireland'
   | 'nkr_netherlands' | 'inca_france' | 'adt_gekid_germany' | 'bcr_belgium'
   | 'aihw_australia' | 'nz_cancer_registry' | 'kccr_korea';
@@ -59,6 +59,8 @@ const KEYED: CancerRegistryMandatoryField[] = ['patientIdentifier', ...BASE];
 export const CANCER_REGISTRY_DEFINITIONS: readonly CancerRegistryDefinition[] = [
   // North America
   { id: 'naaccr_us', labelId: 'naaccrUs', jurisdictions: ['US'], wireFormat: 'naaccr_xml', specStatus: 'configurable', mandatoryFields: BASE },
+  // Batch 620 (part E, PS-800): real-time electronic pathology to the state registry (NPCR ePath, HL7 v2.5.1) with a state profile (services/usEpath/).
+  { id: 'epath_npcr_us', labelId: 'epathNpcrUs', jurisdictions: ['US'], wireFormat: 'hl7v2_oru', specStatus: 'configurable', mandatoryFields: BASE },
   { id: 'cpac_canada', labelId: 'cpacCanada', jurisdictions: ['CA'], patientIdentifierFormatId: 'id_ca_phn', wireFormat: 'naaccr_xml', specStatus: 'configurable', mandatoryFields: KEYED },
   // United Kingdom and Ireland
   { id: 'cosd_uk', labelId: 'cosdUk', jurisdictions: ['GB_EW'], patientIdentifierFormatId: 'mrn_nhs', wireFormat: 'cosd_xml', specStatus: 'configurable', mandatoryFields: KEYED },

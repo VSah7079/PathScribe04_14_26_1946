@@ -13,7 +13,11 @@ import { useNavigate } from 'react-router';
 import '@/pathscribe.css';
 
 import { sendAccessRequestToAdmins, pendingAccessRequestsFor } from '@/utils/accessRequests';
-import { claimPoolCase, acceptPoolCase, passPoolCase, actionRegistryService } from '@/services';
+import { claimPoolCase, acceptPoolCase, passPoolCase, releasePoolClaim, isPoolActionNotPermitted, actionRegistryService } from '@/services';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { POOL_WINDOW_VOICE_CONTEXT, resolvePoolWindowAction } from '@/services/cases/poolClaimWindow';
 
 interface PoolClaimModalProps {
   isOpen:            boolean;
@@ -31,6 +35,8 @@ interface PoolClaimModalProps {
   currentUserOrganisationId?: string;
   continueToReport?: boolean;
   fromFilter?:       string;
+  /** Batch 650: the voice context of the screen this window opens over, handed back when it closes (default WORKLIST). */
+  restoreVoiceContext?: string;
   onAccepted:        () => void;
   onPassed:          () => void;
   onClose:           () => void;
@@ -65,6 +71,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
   currentUserId, currentUserName, currentUserOrganisationId,
   continueToReport = false,
   fromFilter,
+  restoreVoiceContext = VOICE_CONTEXT.WORKLIST,
   onAccepted, onPassed, onClose,
 }) => {
   const { t } = useTranslation();
@@ -72,6 +79,8 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
   const openCasePage = useOpenCase();
   const [step,      setStep]      = useState<Step>('claiming');
   const [blockedBy, setBlockedBy] = useState<string | null>(null);
+  // Batch 649: a refusal for want of case:pool:claim / case:pool:pass (the buttons are greyed without them).
+  const [refusal, setRefusal] = useState<string | null>(null);
   // Real feature, per direct product decision: pool-restricted cases
   // stay visible with a real request-access path, mirroring the
   // Pediatric Access modal's own tracked-per-restriction pattern
@@ -107,6 +116,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
     if (!isOpen || !caseId) return;
     setStep('claiming');
     setBlockedBy(null);
+    setRefusal(null);
 
     // claimPoolCase takes (caseId, userId) — name is resolved by the service
     claimPoolCase(caseId, currentUserId).then(result => {
@@ -130,7 +140,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
     });
 
     // Release claim if modal closes without action
-    return () => { if (caseId) passPoolCase(caseId).catch(() => {}); };
+    return () => { if (caseId) releasePoolClaim(caseId).catch(() => {}); };
   }, [isOpen, caseId, currentUserId, currentUserName]);
 
   const handleAccept = async () => {
@@ -138,7 +148,10 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
     setStep('accepting');
     // PS-71 (Batch 458): two people accepting at once: only the first wins.
     try { await acceptPoolCase(caseId, currentUserId, currentUserName); }
-    catch { setBlockedBy(null); setStep('blocked'); return; }
+    catch (e) {
+      if (isPoolActionNotPermitted(e)) { setRefusal(e.message); setStep('ready'); return; }
+      setBlockedBy(null); setStep('blocked'); return;
+    }
     if (continueToReport) {
       void openCasePage(caseId, 'synoptic');
     }
@@ -148,29 +161,35 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
   const handlePass = async () => {
     if (!caseId) return;
     setStep('passing');
-    await passPoolCase(caseId);
+    try { await passPoolCase(caseId); }
+    catch (e) { if (isPoolActionNotPermitted(e)) { setRefusal(e.message); setStep('ready'); return; } throw e; }
     onPassed();
     navigate('/worklist', { state: { restoreFilter: fromFilter ?? 'pool' } });
   };
 
-  // Voice: POOL_ACCEPT_CASE / POOL_PASS_CASE. These were tagged category
-  // SYNOPTIC in the action registry but genuinely belong here — accepting
-  // or passing a pool case only ever happens with this modal open, never
-  // inside an already-open Synoptic Report. Self-contained, matching
-  // DelegateModal.tsx's own pattern, rather than the parent Worklist page
-  // trying to reach into this modal's internal accept/pass logic from
-  // outside. Gated on isOpen/busy so a stray recognition doesn't fire
-  // twice or act on a modal that isn't actually showing.
+  // Voice and keys: POOL_ACCEPT_CASE (Alt+A) / POOL_PASS_CASE (Ctrl+Alt+P) press the Accept and Pass buttons below
+  // (services/cases/poolClaimWindow.ts). The registry files them under the report screen's context, so while this window
+  // is open it takes that context, and gives the host's back on close. They act only once the window is ready and the
+  // button's capability is held; the handlers are the buttons' own, so acceptPoolCase / passPoolCase check it again.
+  const { has } = useCapabilities();
+  const canClaim = has('case:pool:claim', { caseId });
+  const canPass = has('case:pool:pass', { caseId });
   useEffect(() => {
-    if (!isOpen) return;
-    const unsubscribe = actionRegistryService.onAction((actionId: string) => {
-      if (step === 'accepting' || step === 'passing') return;
-      if (actionId === 'POOL_ACCEPT_CASE') handleAccept();
-      else if (actionId === 'POOL_PASS_CASE') handlePass();
+    if (!isOpen) return undefined;
+    actionRegistryService.setCurrentContext(POOL_WINDOW_VOICE_CONTEXT);
+    return () => actionRegistryService.setCurrentContext(restoreVoiceContext);
+  }, [isOpen, restoreVoiceContext]);
+  const latest = React.useRef({ step, canClaim, canPass, handleAccept, handlePass });
+  latest.current = { step, canClaim, canPass, handleAccept, handlePass };
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    return actionRegistryService.onAction((actionId: string) => {
+      const { handleAccept: accept, handlePass: pass, ...facts } = latest.current;
+      const button = resolvePoolWindowAction(actionId, facts);
+      if (button === 'accept') void accept();
+      else if (button === 'pass') void pass();
     });
-    return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, caseId, step]);
+  }, [isOpen, caseId]);
 
   if (!isOpen || !caseId) return null;
 
@@ -295,7 +314,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
             </div>
 
             <div className="ps-pool-actions">
-              <button className="ps-btn-secondary" onClick={handlePass} disabled={busy}>{t('poolClaimModal.passLabel')}</button>
+              <CapabilityButton capability="case:pool:pass" context={{ caseId }} className="ps-btn-secondary" onClick={handlePass} disabled={busy}>{t('poolClaimModal.passLabel')}</CapabilityButton>
 
               {!continueToReport && (
                 <button className="ps-btn-view-report" onClick={handleViewReport} disabled={busy}>
@@ -307,10 +326,11 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
                 </button>
               )}
 
-              <button className="ps-btn-primary" onClick={handleAccept} disabled={busy}>
+              <CapabilityButton capability="case:pool:claim" context={{ caseId }} className="ps-btn-primary" onClick={handleAccept} disabled={busy}>
                 {step === 'accepting' ? t('poolClaimModal.claiming') : continueToReport ? t('poolClaimModal.claimContinueLabel') : t('poolClaimModal.claimCaseLabel')}
-              </button>
+              </CapabilityButton>
             </div>
+            {refusal && <div className="ps-conf-error-text" role="alert">{refusal}</div>}
           </>}
 
         </div>

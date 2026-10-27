@@ -28,13 +28,10 @@ import { LoadingState } from '@/components/Common/LoadingState';
 // sweep's existing `.ps-mt-20` utility class.
 
 const TOGGLE_LABEL_KEY: Record<
-  'autoInsertSuggestions' | 'showConfidenceScores' | 'macroSuggestions' | 'subspecialtyRouting',
+  'autoInsertSuggestions',
   string
 > = {
   autoInsertSuggestions: 'aiTab.advanced.autoInsertSuggestions',
-  showConfidenceScores:  'aiTab.advanced.showConfidenceScores',
-  macroSuggestions:      'aiTab.advanced.macroSuggestions',
-  subspecialtyRouting:   'aiTab.advanced.subspecialtyRouting',
 };
 
 const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel }) => {
@@ -176,12 +173,7 @@ const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel })
         <div className="ps-aitab-advanced-desc">
           {t('aiTab.advanced.description')}
         </div>
-        {([
-          'autoInsertSuggestions',
-          'showConfidenceScores',
-          'macroSuggestions',
-          'subspecialtyRouting',
-        ] as const).map(key => (
+        {(['autoInsertSuggestions'] as const).map(key => (
           <label key={key} className="ps-conf-row ps-conf-row--clickable">
             <span className="ps-conf-option-text">{t(TOGGLE_LABEL_KEY[key])}</span>
             <input type="checkbox" checked={config[key] as boolean}

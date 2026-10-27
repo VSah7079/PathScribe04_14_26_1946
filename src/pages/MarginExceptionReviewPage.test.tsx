@@ -23,9 +23,13 @@ vi.mock('@/hooks/useOpenCase', () => ({
 }));
 
 const mockRows: any[] = [];
+const mockDecided: any[] = [];
+const mockNotices: any[] = [];
 vi.mock('@/hooks/useMarginExceptionReview', () => ({
   useMarginExceptionReview: () => ({
     rows: mockRows,
+    decidedRows: mockDecided,
+    notices: mockNotices,
     loading: false,
     error: null,
     resolve: vi.fn(),
@@ -34,7 +38,7 @@ vi.mock('@/hooks/useMarginExceptionReview', () => ({
   }),
 }));
 
-afterEach(() => { cleanup(); mockRows.length = 0; });
+afterEach(() => { cleanup(); mockRows.length = 0; mockDecided.length = 0; mockNotices.length = 0; });
 
 async function renderPage() {
   const { default: MarginExceptionReviewPage } = await import('./MarginExceptionReviewPage');
@@ -59,5 +63,22 @@ describe('MarginExceptionReviewPage — Batch 491 smoke test', () => {
     expect(screen.getByText('marginExceptionReview.resolveBtn')).toBeTruthy();
     expect(screen.getByText('marginExceptionReview.dismissBtn')).toBeTruthy();
     expect(screen.getByText('marginExceptionReview.openCaseBtn')).toBeTruthy();
+  });
+
+  it('Batch 669: lists resolved and dismissed items read-only, and shows the rule-check notice', async () => {
+    mockDecided.push(
+      { exception: { id: 'mex-2', caseId: 'C2', fieldLabel: 'Distance to CRM', rawText: 'about two', status: 'Resolved', resolvedValueMm: 2, resolvedByUserName: 'Dr A', resolvedAt: '2026-10-02T10:00:00Z' }, caseAccession: 'S26-0002', patientName: null },
+      { exception: { id: 'mex-3', caseId: 'C3', fieldLabel: 'Distance to CRM', rawText: 'n/a', status: 'Dismissed', dismissReason: 'not assessable', resolvedByUserName: 'Dr B', resolvedAt: '2026-10-03T10:00:00Z' }, caseAccession: 'S26-0003', patientName: null },
+    );
+    mockNotices.push({ kind: 'info', key: 'marginExceptionReview.notice.notFlagged' });
+    await renderPage();
+    expect(screen.getByText('marginExceptionReview.history.title')).toBeTruthy();
+    expect(screen.getByText('S26-0002')).toBeTruthy();
+    expect(screen.getByText('S26-0003')).toBeTruthy();
+    expect(screen.getByText('marginExceptionReview.history.resolved')).toBeTruthy();
+    expect(screen.getByText('marginExceptionReview.history.dismissed')).toBeTruthy();
+    expect(screen.getByText('marginExceptionReview.notice.notFlagged')).toBeTruthy();
+    // history rows carry no Resolve / Dismiss controls
+    expect(screen.queryByText('marginExceptionReview.resolveBtn')).toBeNull();
   });
 });

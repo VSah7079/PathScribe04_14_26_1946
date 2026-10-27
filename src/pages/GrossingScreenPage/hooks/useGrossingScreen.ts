@@ -17,6 +17,7 @@ import {
 import {
   recordMarginInkApplication, type RecordMarginInkApplicationInput, type RecordMarginInkApplicationResult,
 } from '@/services/grossing/recordMarginInkApplication';
+import { routeCaseAfterGrossing } from '@/services/grossing/routeCaseAfterGrossing';
 import { resolveInkingValidationSeverity, type InkingValidationResult } from '@/services/grossing/resolveInkingValidationSeverity';
 import { getInkingValidationMode } from '@/services/grossing/inkingSiteSettings';
 import { evaluateInkingGate, gateSpecimensOf, type InkingGateResult } from '@/services/grossing/evaluateInkingGate';
@@ -27,7 +28,7 @@ import type { Specimen } from '@/types/case/Specimen';
 import type { ProtocolPathway } from '@/services/protocols/IProtocolService';
 import type { StainType } from '@/services/stains/IStainService';
 import {
-  addGrossingBlock, removeGrossingBlock, addGrossingStain, removeGrossingStain, updateGrossingPieceCount,
+  addGrossingBlock, removeGrossingBlock, addGrossingStain, removeGrossingStain, updateGrossingPieceCount, updateGrossingPieceDescription, updateMatrixBlockPieces,
 } from '@/utils/grossingScreenOperations';
 import type { SigningUser, SetConcurrencyConflict } from '@/pages/SynopticReportPage/hooks/sharedHookTypes';
 import { handleConcurrencyConflict } from '@/pages/SynopticReportPage/hooks/sharedHookTypes';
@@ -192,6 +193,28 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     if (result.ok) await persistSpecimen(result.specimen);
   }, [caseData, signingUser, persistSpecimen]);
 
+  // Batch 659 (finding 8): the piece description of a block, and the pieces of a matrix block.
+  const handleUpdatePieceDescription = useCallback(async (specimenId: string, blockId: string, text: string) => {
+    const specimen = (caseData?.specimens ?? []).find((sp: Specimen) => sp.id === specimenId);
+    if (!specimen) return;
+    const result = updateGrossingPieceDescription(specimen, blockId, text, signingUser?.id ?? 'unknown');
+    if (result.ok) await persistSpecimen(result.specimen);
+  }, [caseData, signingUser, persistSpecimen]);
+
+  const handleUpdateMatrixBlock = useCallback(async (matrixBlockId: string, patch: { pieceCount?: number; pieceDescription?: string }) => {
+    if (!caseData?.id) return;
+    const next = updateMatrixBlockPieces(caseData.matrixBlocks ?? [], matrixBlockId, patch);
+    if (!next) return;
+    setCaseData(prev => prev ? ({ ...prev, matrixBlocks: next } as typeof prev) : prev);
+    try {
+      await caseRouter.updateCase(caseData.id, { matrixBlocks: next }, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
+    } catch (e) {
+      if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
+      console.error('[GrossingScreen] Failed to persist matrix block change:', e);
+    }
+  }, [caseData, setCaseData, knownVersionRef, setConcurrencyConflict]);
+
   // Real, per direct request (ISO 15189 traceability — "duration of
   // fixation... from specimen collection to grossing") — grossing is
   // the real, natural moment tissue actually leaves the fixative, so
@@ -265,7 +288,7 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
   const secondaryReviewSpecimens = caseData ? specimensForSecondaryReview(caseData, grossingRequirements) : [];
   const [completeRefusal, setCompleteRefusal] = useState<CompleteGrossingRefusal | null>(null);
   const [pendingProtocolConfirmation, setPendingProtocolConfirmation] = useState<string[] | null>(null);
-  const [completionReview, setCompletionReview] = useState<{ routedForReview: string[]; reviewNotRaised: string[] } | null>(null);
+  const [completionReview, setCompletionReview] = useState<{ routedForReview: string[]; reviewNotRaised: string[]; routedToPool?: string } | null>(null);
 
   // One completion at a time: a double click, or a command heard twice,
   // must not start a second attempt against the same case version.
@@ -289,8 +312,10 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
       }
       knownVersionRef.current = knownVersionRef.current + 1;
       setCompleteRefusal(null);
-      setCompletionReview(result.routedForReview.length || result.reviewNotRaised.length
-        ? { routedForReview: result.routedForReview, reviewNotRaised: result.reviewNotRaised } : null);
+      // Batch 652: pool routing after grossing, the same call the report page's Gross Complete makes.
+      const routing = await routeCaseAfterGrossing(result.case);
+      setCompletionReview(result.routedForReview.length || result.reviewNotRaised.length || routing.routed
+        ? { routedForReview: result.routedForReview, reviewNotRaised: result.reviewNotRaised, routedToPool: routing.poolName } : null);
       setCaseData(prev => (prev ? ({ ...prev, status: 'gross-complete' } as typeof prev) : prev));
     } catch (e) {
       if (!handleConcurrencyConflict(e, setConcurrencyConflict)) setCompleteRefusal('failed');
@@ -353,7 +378,7 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
   return {
     handleAddBlock, handleRemoveBlock, handleAddStain, handleRemoveStain,
     pendingStainRemoval, confirmPendingStainRemoval, cancelPendingStainRemoval,
-    handleUpdatePieceCount, handleRecordFixationEnded, handleConfirmFixativeRatio,
+    handleUpdatePieceCount, handleUpdatePieceDescription, handleUpdateMatrixBlock, handleRecordFixationEnded, handleConfirmFixativeRatio,
     handleRaiseFixationDeficiency, specimensWithOpenFixationDeficiency,
     missingItems, handleCompleteGrossing, completeRefusal,
     secondaryReviewSpecimens, pendingProtocolConfirmation, confirmCompleteWithoutProtocol, cancelCompleteWithoutProtocol,

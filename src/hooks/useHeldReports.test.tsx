@@ -7,6 +7,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 
 const list = vi.hoisted(() => vi.fn());
 vi.mock('@/services/reportRelease/releaseThroughDelay', () => ({ listHeldReports: list, recallHeldReport: vi.fn() }));
+// Batch 649: Recall's capability (report:release:recall) comes from useCapabilities, which needs the signed-in session.
+vi.mock('./useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => true, decide: () => null }) }));
 
 import { useHeldReports } from './useHeldReports';
 

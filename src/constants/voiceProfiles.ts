@@ -46,7 +46,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-export type VoiceProfileLanguage = 'en' | 'fr' | 'de' | 'nl' | 'ko';
+export type VoiceProfileLanguage = 'en' | 'fr' | 'de' | 'nl' | 'ko' | 'es';
 
 export interface VoiceProfile {
   readonly id: string;
@@ -80,12 +80,13 @@ export const VOICE_PROFILES: readonly VoiceProfile[] = [
   // Real, genuine language profiles — see this file's own header.
   { id: 'FR-FR',     label: 'Français (France)',             recognitionLang: 'fr-FR', language: 'fr' },
   { id: 'DE-DE',     label: 'Deutsch (Deutschland)',          recognitionLang: 'de-DE', language: 'de' },
-  // Belgian Dutch users dictate with NL-NL for now. Batch 365 (PS-347) could
-  // not confirm that Chrome's speech recognition accepts nl-BE: Chrome
-  // publishes no language list, and its availability check answers
-  // "available" even for a made-up tag. Add { id: 'NL-BE', recognitionLang:
-  // 'nl-BE', language: 'nl' } once a Belgian speaker has tried it in Chrome.
+  // Batch 638 (PS-347, Pete's decision of Oct 2): Belgian Dutch (Flemish) dictation is an option beside Nederlands (Nederland), and a
+  // user can switch back. Chrome publishes no list of speech languages and its availability check answers "available" even for a
+  // made-up tag (Batch 365), so nl-BE is NOT confirmed: VoiceSettings says so when it is chosen, until a Belgian speaker has tried it
+  // in Chrome. The Dutch voice commands and punctuation apply (language 'nl').
+  { id: 'NL-BE',     label: 'Nederlands (België)',            recognitionLang: 'nl-BE', language: 'nl' },
   { id: 'NL-NL',     label: 'Nederlands (Nederland)',         recognitionLang: 'nl-NL', language: 'nl' },
+  { id: 'ES-ES',     label: 'Español (España)',               recognitionLang: 'es-ES', language: 'es' },
   { id: 'KO-KR',     label: '한국어 (대한민국)',                recognitionLang: 'ko-KR', language: 'ko' },
 ] as const;
 

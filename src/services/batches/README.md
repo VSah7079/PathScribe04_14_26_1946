@@ -75,3 +75,6 @@ Test files here no longer set their own time limit below the suite's 60 s (`vite
 ## Batch 617 (part A): server versions (PS-514)
 
 `batchService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_WORKFLOWS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 669 (finding batch-1)
+`batchListView.ts` gained `reconciliationScanOutcome(before, after)`: a reconciliation scan is Matched (an item newly became Matched), Already matched (nothing changed) or Unexpected (the Unexpected list grew). A rescan of a Matched item no longer flashes the red Unexpected warning (`BatchDetailView.tsx`; message `batchDetail.alreadyMatchedFlash`). Tests in `batchListView.test.ts`.

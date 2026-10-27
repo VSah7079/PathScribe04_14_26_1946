@@ -142,6 +142,7 @@ function sexCode(value: string | undefined): CaseSearchSex {
   const v = lower(value);
   if (v === 'm' || v === 'male') return 'M';
   if (v === 'f' || v === 'female') return 'F';
+  if (v === 'i' || v === 'indeterminate') return 'I'; // Batch 662: NHS code 9
   return 'U';
 }
 

@@ -29,7 +29,7 @@
 
 import type { DirtySectionId } from '@/services';
 import { useState, useEffect, useMemo, useCallback, useRef, type MutableRefObject } from 'react';
-import { isTriagePending } from '@/pages/WorklistPage/PendingGrossingTriageTile';
+import { checkTriageReleaseGate } from '@/services/grossing/triageReleaseGate';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
@@ -1139,15 +1139,10 @@ export function useSpecimenBlockManagement({
     const specimens = caseData.specimens ?? [];
     const sp = specimens.find((s: Specimen) => s.id === specimenId);
     if (!sp) return;
-    // Real, per the Protocol-Driven Workflow Infrastructure story's
-    // Part 2c explicit guardrail (per direct instruction): a specimen
-    // with a real, still-open SpecimenTriage record — not every
-    // checklist item confirmed, and no override reason recorded —
-    // never releases. Real, hard stop server-side, not just a
-    // disabled button (GrossingReleasePanel.tsx's own disabled state
-    // is the primary UX; this is the real, enforced backstop that
-    // can't be bypassed by calling this function directly).
-    if (isTriagePending(sp.triage)) {
+    // Triage gate (Part 2c): the rule is services/grossing/triageReleaseGate.
+    // It runs in the browser (GrossingReleasePanel greys the button as the
+    // primary UX); the API server must repeat it (KNOWN_GAPS.md).
+    if (!checkTriageReleaseGate(specimens, specimenId).allowed) {
       showToast(t('useSpecimenBlockManagement.toast.cannotReleaseTriageIncomplete'), 'warning');
       return;
     }

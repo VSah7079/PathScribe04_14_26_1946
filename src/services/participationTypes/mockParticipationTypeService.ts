@@ -72,7 +72,7 @@ import { guardConfigWrites } from '../authorization/guardConfigWrites';
 // behavior so a future change to the platform default can never
 // silently change who may sign out in a country whose rule didn't change.
 
-const EU_MEMBER_STATES: Jurisdiction[] = ['BE', 'NL', 'DE', 'FR'];
+const EU_MEMBER_STATES: Jurisdiction[] = ['BE', 'NL', 'DE', 'FR', 'ES'];
 const UK_JURISDICTIONS: Jurisdiction[] = ['GB_EW', 'GB_SCT', 'GB_NIR'];
 
 /** Pete's own "Key Regulatory Nuance" text, per jurisdiction. */

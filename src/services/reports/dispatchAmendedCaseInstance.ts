@@ -4,7 +4,7 @@
 // sendSynopticReportToLis entirely for orchestration-mode amendments):
 // the real, electronic dispatch for a genuine CORRECTED or ADDENDUM
 // result. Reuses buildOruR01Payload.ts's own, already-tested builder
-// and mockOutboundResultQueueService.ts's own, already-tested queue —
+// and outboundResultQueueService.ts's own, already-tested queue —
 // same real infrastructure dispatchCaseInstances.ts and
 // dispatchPreliminaryCaseInstances.ts already use, never a third,
 // separate implementation of the same enqueue → dispatch →
@@ -27,8 +27,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockOutboundResultQueueService } from './mockOutboundResultQueueService';
+import { resolveDispatchOrganisation } from '../interfaceDispatch/resolveDispatchOrganisation';
+import { outboundResultQueueService } from './reportServicesInstance';
 import { prepareOruR01Dispatch } from './prepareOruR01Dispatch';
 import type { GenerateReportPdf } from './resolveOruReportPdf';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
@@ -49,27 +49,24 @@ export async function dispatchAmendedCaseInstance(
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return;
 
-  const patientId = (caseData as any)?.patient?.id;
-  const patient = patientId ? await mockPatientIndexService.getById(patientId) : null;
-  // Honest, non-blocking skip — same real posture as
-  // dispatchCaseInstances.ts's own identical check: no real
-  // organisationId to enqueue against.
-  if (!patient) return;
+  // Honest, non-blocking skip (recorded in the audit log), as in dispatchCaseInstances.ts: no real organisationId to enqueue against.
+  const organisationId = await resolveDispatchOrganisation(caseData as any, 'Surgical', 'amended');
+  if (!organisationId) return;
 
   // Batch 392: with its PDF, or held for retry when there is none.
   const prepared = await prepareOruR01Dispatch(caseId, instanceId, resultState, { generatePdf, previouslyReportedAs });
   if (prepared.ok === false && prepared.reason === 'not_found') return;
 
-  const enqueueRes = await mockOutboundResultQueueService.enqueue({
+  const enqueueRes = await outboundResultQueueService.enqueue({
     caseId, instanceId, resultState,
-    organisationId: patient.organisationId,
+    organisationId,
     ...(prepared.ok && prepared.document ? { reportDocumentId: prepared.document.id, ...(prepared.document.sha256 ? { pdfSha256: prepared.document.sha256 } : {}) } : {}),
     // Batch 559: a signed version's PDF has no document id; its hash is still recorded.
     ...(prepared.ok && !prepared.document && prepared.pdfSha256 ? { pdfSha256: prepared.pdfSha256 } : {}),
   });
   if (!enqueueRes.ok) return;
   if (prepared.ok === false) {
-    await mockOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+    await outboundResultQueueService.markFailed(enqueueRes.data.id, {
       errorCode: 'DISPATCH_REJECTED', errorMessage: prepared.error, maxRetriesExceeded: false,
     });
     return;
@@ -77,9 +74,9 @@ export async function dispatchAmendedCaseInstance(
 
   const result = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', prepared.payload);
   if (result.ok) {
-    await mockOutboundResultQueueService.markSent(enqueueRes.data.id);
+    await outboundResultQueueService.markSent(enqueueRes.data.id);
   } else {
-    await mockOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+    await outboundResultQueueService.markFailed(enqueueRes.data.id, {
       errorCode: result.errorCode ?? 'DISPATCH_REJECTED',
       errorMessage: result.error ?? 'Unknown dispatch failure.',
       maxRetriesExceeded: false,

@@ -11,14 +11,20 @@
 //     accession and patient, and only the specimens and slides the link
 //     covers (minimum necessary). A slide-scoped link shows only the
 //     specimens those slides come from.
+//   - Batch 669 (access-11): the patient is MASKED by default (initials, birth
+//     year only); the full name and date of birth only when the link was issued
+//     with the audited identity opt-in (consultIdentityMask.ts).
 //   - One signed opinion per link. A signed opinion is final; drafts may be
-//     sent until then.
+//     sent until then. Batch 669: a Signed opinion no longer closes the link at
+//     once; it opens 3 more views / 48 hours (consultLinkLifetime.ts).
 //   - An expired link is recorded once, as its own audit event.
 // ─────────────────────────────────────────────────────────────────────────────
 import type { Case } from '@/types/case/Case';
 import type { ConsultToken, ConsultOpinion, ConsultOpinionSignedStatus } from './IConsultTokenService';
 import { resolveConsultTokenStatus } from './IConsultTokenService';
 import { CONSULT_TOKEN_PATTERN } from './consultTokenCrypto';
+import { consultPatientView, type ConsultPatientView } from './consultIdentityMask';
+import { consultLinkLifetime } from './consultLinkLifetime';
 
 /** The address sent to the consultant. */
 export function consultLinkUrl(origin: string, token: string): string {
@@ -42,7 +48,8 @@ export interface ConsultSpecimenView { id: string; label: string; description: s
 export interface ConsultCaseView {
   linkId: string;
   accessionNumber: string;
-  patient: { lastName: string; firstName: string; dateOfBirth?: string };
+  /** Batch 669 (access-11): masked unless the link was issued with the identity opt-in (consultIdentityMask.ts). */
+  patient: ConsultPatientView;
   specimens: ConsultSpecimenView[];
   slides: ConsultSlideView[];
   /** The number of slides the link names; 0 for the whole case. */
@@ -50,9 +57,12 @@ export interface ConsultCaseView {
   expiresAt: string;
   /** A signed opinion has been sent on this link, so it takes no more. */
   opinionSigned: boolean;
+  /** Batch 669: after a signature, what is left of the link (views, hours) for the banner; null before one. The server works these out. */
+  lifetime: { remainingViews: number; hoursRemaining: number } | null;
 }
 
-export function buildConsultCaseView(caseRecord: Case, link: ConsultToken, opinions: readonly ConsultOpinion[]): ConsultCaseView {
+export function buildConsultCaseView(caseRecord: Case, link: ConsultToken, opinions: readonly ConsultOpinion[], now: Date = new Date()): ConsultCaseView {
+  const life = consultLinkLifetime(link, now);
   const named = link.scope.slideIds?.length ? new Set(link.scope.slideIds) : null;
   const specimens: ConsultSpecimenView[] = [];
   const slides: ConsultSlideView[] = [];
@@ -70,16 +80,13 @@ export function buildConsultCaseView(caseRecord: Case, link: ConsultToken, opini
   return {
     linkId: link.id,
     accessionNumber: caseRecord.accession?.accessionNumber ?? link.scope.caseAccessionNumber,
-    patient: {
-      lastName: caseRecord.patient?.lastName ?? '',
-      firstName: caseRecord.patient?.firstName ?? '',
-      ...(caseRecord.patient?.dateOfBirth ? { dateOfBirth: caseRecord.patient.dateOfBirth } : {}),
-    },
+    patient: consultPatientView(caseRecord.patient, link.revealIdentity),
     specimens,
     slides,
     scopedSlideCount: link.scope.slideIds?.length ?? 0,
     expiresAt: link.expiresAt,
     opinionSigned: opinions.some(o => o.tokenId === link.id && o.signedStatus === 'Signed'),
+    lifetime: life.signed ? { remainingViews: life.remainingViews ?? 0, hoursRemaining: life.hoursRemaining } : null,
   };
 }
 
@@ -96,16 +103,24 @@ export function consultOpinionProblem(
 }
 
 /** Links past their expiry whose expiry hasn't been recorded yet (revoked links ended earlier, so they're not counted). */
-export function unrecordedExpiries<T extends Pick<ConsultToken, 'isActive' | 'expiresAt' | 'expiryRecordedAt'>>(links: readonly T[], now: Date): T[] {
-  return links.filter(l => l.isActive && !l.expiryRecordedAt && new Date(l.expiresAt).getTime() <= now.getTime());
+export function unrecordedExpiries<T extends Pick<ConsultToken, 'isActive' | 'expiresAt' | 'expiryRecordedAt' | 'signedAt' | 'viewsAfterSignature'>>(links: readonly T[], now: Date): T[] {
+  return links.filter(l => l.isActive && !l.expiryRecordedAt && consultLinkLifetime(l, now).state !== 'open');
 }
 
 /** Audit Log → Consult links: the active links only, or every link. */
-export function consultLinksShown<T extends Pick<ConsultToken, 'isActive' | 'expiresAt'>>(links: readonly T[], activeOnly: boolean): T[] {
+export function consultLinksShown<T extends Pick<ConsultToken, 'isActive' | 'expiresAt' | 'signedAt' | 'viewsAfterSignature'>>(links: readonly T[], activeOnly: boolean): T[] {
   return activeOnly ? links.filter(l => resolveConsultTokenStatus(l) === 'Active') : [...links];
 }
 
 /** Newest first, by issue time. */
 export function newestConsultLinksFirst<T extends Pick<ConsultToken, 'issuedAt'>>(links: readonly T[]): T[] {
   return [...links].sort((a, b) => b.issuedAt.localeCompare(a.issuedAt));
+}
+
+/** Batch 669 (access-11): the confirmation a consultant sees after sending. A signed opinion is
+ *  recorded and returned; a draft is only saved and has NOT been returned to the requester. */
+export function consultSubmitConfirmationKey(signedStatus: ConsultOpinionSignedStatus): string {
+  return signedStatus === 'Signed'
+    ? 'externalConsultViewPage.opinionSubmittedConfirmation'
+    : 'externalConsultViewPage.draftSavedConfirmation';
 }

@@ -53,10 +53,10 @@ const defaultDeps: ReportPrintGateDeps = {
     return authorizationService.enforce('report:restricted-case:print', context);
   },
   isRestrictedCase: async (caseId) => {
-    const [{ mockCaseService }, { mockFlagService }] = await Promise.all([
-      import('../cases/mockCaseService'), import('../flags/mockFlagService'),
+    const [{ caseService }, { flagService }] = await Promise.all([
+      import('../cases/caseServiceInstance'), import('../flags/flagServiceInstance'),
     ]);
-    const [c, flags] = await Promise.all([mockCaseService.getCase(caseId), mockFlagService.getAll()]);
+    const [c, flags] = await Promise.all([caseService.getCase(caseId), flagService.getAll()]);
     return hasPrintRestrictingFlag(c?.caseFlags, flags.ok ? flags.data : []);
   },
 };

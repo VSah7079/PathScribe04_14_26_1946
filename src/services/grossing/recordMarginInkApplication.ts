@@ -21,7 +21,7 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock } from '@/types/case/Specimen';
 import type { Margin, MarginInkApplication } from '@/types/case/Margin';
@@ -140,7 +140,7 @@ export async function recordMarginInkApplication(
   }, caseRouter);
 
   if (write.ok === true) {
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'MARGIN_INK_APPLICATION_RECORDED',
       detail: `Specimen ${input.specimenId}${input.blockId ? ` block ${input.blockId}` : ''}: ${input.colorName} applied to margin ${recordedMarginId}`,

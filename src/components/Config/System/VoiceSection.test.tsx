@@ -30,10 +30,10 @@ describe('VoiceSection', () => {
   it('lists the instructions sent to the AI for every English convention and language, flagging the non-English ones for review', () => {
     render(<VoiceSection />);
     const review = screen.getByTestId('voice-prompt-review');
-    expect(review.querySelectorAll('details')).toHaveLength(8);
+    expect(review.querySelectorAll('details')).toHaveLength(9);
     expect(review.textContent).toContain('English (Canadian spelling)');
     expect(review.textContent).toContain('English (Australia and New Zealand spelling)');
-    expect(review.querySelectorAll('.ps-voice-prompt__flag')).toHaveLength(4);
+    expect(review.querySelectorAll('.ps-voice-prompt__flag')).toHaveLength(5);
     expect(review.textContent).toContain('The transcript is in German.');
   });
 });

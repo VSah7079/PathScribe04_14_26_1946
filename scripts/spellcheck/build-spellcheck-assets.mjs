@@ -51,6 +51,7 @@ export const BASE_PACKAGES = {
   'nl-NL': 'dictionary-nl',
   'ko-KR': 'dictionary-ko',
   'de-DE': 'dictionary-de',
+  'es-ES': 'dictionary-es',
 };
 
 /** Full licence texts shipped with copyleft dictionaries (spellcheck-data/licenses/). */
@@ -58,6 +59,7 @@ export const LICENCE_TEXTS = {
   'de-DE': ['GPL-2.0.txt', 'GPL-3.0.txt'],
   'fr-FR': ['MPL-2.0.txt'],
   'ko-KR': ['MPL-1.1.txt'],
+  'es-ES': ['MPL-1.1.txt'],
 };
 
 /** Dictionaries distributed under the GPL: shipped byte-for-byte unmodified, with
@@ -243,7 +245,7 @@ export async function main(opts = {}) {
   // .aff as the base dictionary (the German base files stay unmodified; this
   // is a separate data file). Native-speaker review pending, see its header.
   const starterWords = {};
-  for (const [locale, dir] of [['de-DE', 'de'], ['fr-FR', 'fr'], ['nl-NL', 'nl']]) {
+  for (const [locale, dir] of [['de-DE', 'de'], ['fr-FR', 'fr'], ['nl-NL', 'nl'], ['es-ES', 'es']]) {
     const words = lines(path.join(DATA, dir, 'pathology.dic.txt'));
     starterWords[locale] = new Set(words);
     fs.writeFileSync(path.join(OUT, 'medical', `${locale}.dic`), `${words.length}\n${words.join('\n')}\n`);

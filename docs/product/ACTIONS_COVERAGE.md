@@ -1,4 +1,4 @@
-# Actions list coverage (Batches 599-601)
+# Actions list coverage (Batches 599-601, 614, 617, 619, 637, 645)
 
 Two lists describe what people can do, and they serve different jobs:
 
@@ -9,13 +9,33 @@ Two lists describe what people can do, and they serve different jobs:
 
 They are joined by `internalKey`. Real access control is a third thing: capabilities (`capabilityCatalog.ts`), checked in the services. A command only triggers something; a role's grant of it never widens what the person may do.
 
+## Batch 650: listeners
+
+Being in the registry is not the same as doing something. `src/services/actionRegistry/actionListeners.guard.test.ts` now fails when a registered command has no listener on a screen (a `onAction` or `addEventListener` for its id, in the screen or a file it imports) and is not in `unwiredActions.ts` with a reason; 29 are listed (also in `KNOWN_GAPS.md`). Wired in this batch: Sign Out Case, Sign Out and Next, Finalise, Cancel Finalise, Add Amendment, Open/Close History, Go to Codes, Add Code, Accept/Pass Pool Case, Filter Pool/Countersign, Execute/Clear Search, eight TAT tiles.
+
 ## Where things stand (Batch 614)
 
-- **All 257 voice and shortcut commands are in the Role Dictionary** (255 active). Batch 600 added the 60 that change records; Batch 601 added the 89 that only open, filter, move, select or cancel; Batch 614 added the 16 text-editor commands. Batch 617 added 16 more (see below), so the roles list has 371 entries.
-- **All 257 have a hotkey and voice phrases in five languages** (English, French, German, Dutch, Korean). A test checks this.
+- **All 262 voice and shortcut commands are in the Role Dictionary** (260 active). Batch 600 added the 60 that change records; Batch 601 added the 89 that only open, filter, move, select or cancel; Batch 614 added the 16 text-editor commands. Batch 617 added 16 more (see below), so the roles list had 371 entries. Batch 619 added 6 (Outbound Queue) and Batch 637 added 8 and Batch 645 added 7 for Lockbox Drop-Off (below): **392 entries**.
+- **All 262 have a hotkey and voice phrases in five languages** (English, French, German, Dutch, Korean; Spanish is added from `spanishVoiceTriggers.ts`). A test checks this.
 - **82 Role Dictionary entries have no voice phrase or hotkey of their own, and every one is classified with a reason** (covered by another command, a screen you open, needs something picked, or a deliberate click; see below). None is left planned.
 - **52 clashes remain** (27 hotkey, 25 voice) where a screen command shares a key or phrase with an always-on command. All are settled by the screen-wins rule and locked in a known list in the guard test, so a new one fails the build. Seven Intraop commands that were filed as Navigation moved to the Intraop category (Batch 614), which removed 15 key clashes. The few that need your decision are in HOTKEY_DECISIONS.md.
 - `actionsCoverage.guard.test.ts` enforces all of this: a new voice command must have a roles-list entry, new permission-only entries and a hotkey or phrase shared by two commands that cannot be told apart fails the test, and every permission-only entry must be classified (the list can only shrink).
+
+## Batch 637: the 8 actions that Batches 620 to 636 added
+
+A sweep of Batches 620 to 636 found 8 things a person does that the roles list did not name. They are in a new group, **HPV Results, CSMS Eligibility, AI History Reading & Registry Files** (`F35`, `src/constants/resultRegistryActionGroup.ts`). None has a voice phrase or hotkey: each needs a case or result picked on screen first, or is a deliberate click, so each is classified in `permissionOnlyActions.ts`. No key or phrase was added, so there is no new clash.
+
+| Role Dictionary id | Action | Kind | Capability | Default grant |
+|---|---|---|---|---|
+| `hpvResult.recordManual` | Record an hrHPV Result by Hand | needs a choice (result source) | `cytology:hpv-result:record-manual` | Pathologist, Lab Director |
+| `hpvResult.approveManual`, `.rejectManual` | Approve or reject a manual entry that replaces an interface result | deliberate click | same | Pathologist, Lab Director |
+| `csms.verifyEligibility` | Mark CSMS Eligibility Verified | deliberate click | `cytology:csms-eligibility:verify` | Pathologist, Lab Director |
+| `csms.recordNotEligible` | Record Not Eligible for CSMS | needs a choice (reason) | same | Pathologist, Lab Director |
+| `historyExtraction.run` | Run the AI Reading of a Historical Report | needs a choice (which report) | `ai:history-extraction:run` | Pathologist, Fellow, Resident |
+| `historyExtraction.flag` | Flag an AI Reading as Wrong | needs a choice (which field) | `ai:history-extraction:flag` | Pathologist, Fellow, Resident |
+| `registryBatch.makeFile` | Make a Registry Batch File | deliberate click | `registry:batch-file:generate` | Admin |
+
+The grants follow the matching capabilities in `capabilitySeeds.ts`; a command grant never widens access. **Left out on purpose:** the Configuration screens added in these batches (US ePath, UK cancer registry, Registry Batch Files, Delivery Schedules, Billing Release, Code Systems, AI history extraction, Screening Strategy recall windows, Cytology Categories). They are reached through their `screen:<name>:open` capability and their `config:*:manage` capability, as in Batch 617. Also not actions: the workload reassignment (Batch 635) and the Australian/NZ recall routing (Batch 631), which happen automatically.
 
 ## Batch 601: the 89 open, filter, move, select and cancel commands
 
@@ -53,6 +73,26 @@ A new group, **Outbound Queue** (`F34`), names what a person does on the Outboun
 | `outboundQueue.release`, `.retry`, `.retract`, `.overrideRelease`, `.markNotReportable` | Release, retry or resubmit, retract a charge, release a charge now, mark not reportable | deliberate click | Admin |
 
 The grants follow the matching `interface:outbound:*` capabilities; a command grant never widens access.
+
+## Batch 645: the 7 Lockbox Drop-Off actions
+
+A new group, **Lockbox Drop-Off** (`F36`). Five are real voice and hotkey commands (they are in the voice list as well); two have no phrase because each needs a row picked first and adds a permanent entry. The five are in `src/services/actionRegistry/lockboxVoiceCommands.ts`; Spanish phrases are in `spanishVoiceTriggers.ts`. All non-English phrases are machine translated and are on the phrase review list.
+
+| Role Dictionary id | Voice list id | Action | Hotkey | Default grant |
+|---|---|---|---|---|
+| `lockbox.open` | `OPEN_LOCKBOX_DROP_OFF` | Go to Lockbox Drop-Off (always on, so also Alt+J then Shift+Z) | Alt+Shift+Z | Accessioner, Admin |
+| `lockbox.focusScan` | `LOCKBOX_FOCUS_SCAN` | Focus the scan field (screen action) | Alt+S | Accessioner |
+| `lockbox.markUrgent` | `LOCKBOX_MARK_URGENT` | Mark the next drop urgent (toggles; screen action) | Alt+G | Accessioner |
+| `lockbox.showDropOff` | `LOCKBOX_SHOW_DROP_OFF` | Show the Drop-Off tab (screen action) | Alt+D | Accessioner |
+| `table.goToRow` | `TABLE_GO_TO_ROW` | Worklist: move the highlight to a numbered row (view command; the number travels with the command) | Alt+7 | All roles with the view commands |
+| `table.openByAccession` | `TABLE_OPEN_ACCESSION` | Worklist: open the case whose accession was said (only when exactly one matches) | Alt+8 | All roles with the view commands |
+| `banner.showNhsStatus` | `SHOW_NHS_STATUS` | Show NHS Number Status on the case banner (moves focus to the badge, which opens its explanation; letter hotkeys are all taken) | Ctrl+Alt+Shift+9 | All roles with the view commands |
+| `caseTeam.addCollaborator` | `ADD_COLLABORATOR` | Report screen: add the named staff member to the case team as a Consultant (needs `case:team:manage`; the name travels with the command) | Ctrl+Alt+Shift+0 | All roles with the view commands (the save is checked by the service) |
+| `lockbox.showFolder` | `LOCKBOX_SHOW_FOLDER` | Show the Overnight folder tab (screen action; needs `lockbox:folder:review`) | Alt+M | Accessioner, Admin |
+| `lockbox.markAccessioned` | none | Mark a folder row accessioned | deliberate click | Accessioner, Admin |
+| `lockbox.resolvePlaceholder` | none | Link a placeholder to its real order or accession number | needs a choice (the number is typed) | Accessioner |
+
+The four screen actions work only while Lockbox Drop-Off is open (context `LOCKBOX`). The grants follow the `lockbox:*` capabilities; a command grant never widens access. The Go to command opens the route through the unsaved-changes guard (`components/Lockbox/LockboxNavigation.tsx`); a person without `screen:lockbox-drop-off:open` still gets the screen's access message.
 
 ## The 98 permission-only entries, settled (Batch 614)
 

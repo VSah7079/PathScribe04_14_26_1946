@@ -24,9 +24,11 @@ vi.mock('react-router', () => ({
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en-US' } }),
   Trans: ({ i18nKey }: { i18nKey: string }) => i18nKey,
 }));
+
+vi.mock('@/contexts/SystemConfigContext', () => ({ useSystemConfig: () => ({ config: { facilityTimezone: 'America/Phoenix' } }) }));
 
 const { resolve, recordAccess, recordAcknowledged } = vi.hoisted(() => ({
   resolve: vi.fn(), recordAccess: vi.fn(), recordAcknowledged: vi.fn(),
@@ -48,7 +50,7 @@ function makeRecord(overrides: Partial<CriticalAlertReferenceToken> = {}): Criti
 }
 
 beforeEach(() => {
-  recordAccess.mockResolvedValue({ ok: true, data: makeRecord() });
+  recordAccess.mockResolvedValue({ ok: true, data: makeRecord({ accessCount: 1 }) });
 });
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
@@ -104,9 +106,27 @@ describe('CriticalAlertReferencePage — real render/behavior coverage', () => {
 
   it('a token already acknowledged shows the confirmation immediately, without a redundant recordAcknowledged call', async () => {
     resolve.mockResolvedValue({ ok: true, data: makeRecord({ acknowledgedAt: '2026-09-19T01:00:00.000Z' }) });
+    recordAccess.mockResolvedValue({ ok: true, data: makeRecord({ acknowledgedAt: '2026-09-19T01:00:00.000Z', accessCount: 1 }) });
     await renderPage();
 
     expect(await screen.findByText('criticalAlertReferencePage.acknowledgedConfirmation')).not.toBeNull();
     expect(recordAcknowledged).not.toHaveBeenCalled();
+  });
+
+  it('access-12: the viewed count includes this view (1 on the first view, not 0)', async () => {
+    resolve.mockResolvedValue({ ok: true, data: makeRecord({ accessCount: 0 }) });
+    await renderPage();
+    await screen.findByText('S26-1234');
+    expect(document.body.textContent).toContain('criticalAlertReferencePage.viewedLabel:{"count":1}');
+    expect(document.body.textContent).not.toContain('"count":0');
+  });
+
+  it('access-12: the expiry time is shown in the facility time zone, with the zone named', async () => {
+    resolve.mockResolvedValue({ ok: true, data: makeRecord({ expiresAt: '2099-01-01T00:30:00.000Z' }) });
+    recordAccess.mockResolvedValue({ ok: true, data: makeRecord({ expiresAt: '2099-01-01T00:30:00.000Z', accessCount: 1 }) });
+    await renderPage();
+    await screen.findByText('S26-1234');
+    // 00:30 UTC on Jan 1 is 5:30 PM on Dec 31 in Phoenix (UTC-7), whatever zone this device is in.
+    expect(document.body.textContent).toMatch(/Dec 31, 2098, 5:30\s?PM MST/);
   });
 });

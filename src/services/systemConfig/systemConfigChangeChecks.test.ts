@@ -31,4 +31,11 @@ describe('system settings changes (Batch 428)', () => {
     expect(await permitEnterpriseConfigPatch({ features: { abnormalDetectionEnabled: false } }, deps([]))).toBe(false);
     expect(await permitEnterpriseConfigPatch({ features: { abnormalDetectionEnabled: false } }, deps(['config:abnormal-triggers:manage']))).toBe(true);
   });
+  it('recording a terminology licence needs config:code-systems:manage (Batch 623, PS-130)', async () => {
+    const patch = { terminologyLicences: { SNOMED_CT: { enabled: true, holder: 'H', edition: 'E', reference: 'R', expiresOn: '' } } };
+    expect(await permitEnterpriseConfigPatch(patch, deps([]))).toBe(false);
+    const allowed = deps(['config:code-systems:manage']);
+    expect(await permitEnterpriseConfigPatch(patch, allowed)).toBe(true);
+    expect(allowed.enforce.mock.calls.map(c => c[0])).toEqual(['config:code-systems:manage']);
+  });
 });

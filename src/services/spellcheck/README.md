@@ -63,7 +63,7 @@ A language without dictionaries is skipped, never used. There are none today; th
 - **Personal and facility dictionaries (AC5):**
   - `customDictionaryRules.ts` holds the rules: single words only, and only the admin-tier roles may change the facility dictionary;
   - `ICustomDictionaryService.ts` / `mockCustomDictionaryService.ts` handle storage. They are exported as `customDictionaryService` from `@/services`;
-  - a facility addition takes effect immediately and is audited ("Facility spelling dictionary word added/removed"). Personal words aren't audited.
+  - a facility addition takes effect immediately and is audited ("Facility spelling dictionary word added/removed"). Personal words are audited too (Batch 651: "Personal spelling dictionary word added/removed", with the length of the word but never the word itself, since it can be a surname).
 - **Tests:**
   - `spellcheck.test.ts` runs the real Hunspell against the real built dictionaries, and checks that the German files are unmodified;
   - `customDictionary.test.ts`;
@@ -175,3 +175,7 @@ German, French and Dutch got a starter medical tier (see Known limits). The buil
 ## Batch 617 (part C): server versions (PS-514)
 
 The custom dictionary service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.
+
+## Batch 622: Spanish (es-ES)
+
+Spanish uses `dictionary-es` (RLA-ES, tri-licensed GPL / LGPL / MPL; used under MPL-1.1, licence text in `licenses/MPL-1.1.txt`, attribution in `NOTICE.txt`) as the base, and `spellcheck-data/es/pathology.dic.txt` (about 400 plain entries, authored for PathScribe, needs native-speaker clinical review) as the medical tier. The MedLexSp lexicon is non-commercial and is not used. `JURISDICTION_SPELLING_LOCALE.ES` is `es-ES`. A test loads the dictionary and checks a pathology sentence and a misspelling.

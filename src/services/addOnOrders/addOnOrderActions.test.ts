@@ -147,15 +147,79 @@ describe('exceptions (Batch 403)', () => {
     expect(d.saveSpecimens).not.toHaveBeenCalled();
   });
 
-  it('flagging needs no permission, follows the note rule, and emails the ordering pathologist', async () => {
+  it('flagging checks add-on:exception:flag (ws-19), follows the note rule, and emails the ordering pathologist', async () => {
     const d = deps();
     const base = { caseData: theCase([block('b1', '1', { stains: [{ id: 'o1', stainName: 'Ki-67', status: 'Pending Cut', orderedByPathologistId: 'path-1' } as StainOrder] })]), stainOrderId: 'o1', reason: 'Block exhausted' as const, actor };
     expect((await flagAddOnException({ ...base, requirements: reqs({ exceptionNote: true }) }, d)).missing).toEqual(['exceptionNote']);
     const r = await flagAddOnException({ ...base, note: 'Nothing left', requirements: reqs() }, d);
     expect(r.ok).toBe(true);
-    expect(d.enforce).not.toHaveBeenCalled();
+    expect(d.enforce).toHaveBeenCalledWith('add-on:exception:flag', { caseId: 'S26-9' });
     expect(d.sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: ['chen@example.org'] }));
     expect(r.specimens![0].blocks![0].status).toBe('Exhausted');
+  });
+
+  it('ws-19: a refused flag changes and sends nothing', async () => {
+    const d = deps(false);
+    const r = await flagAddOnException({ caseData: theCase([block('b1', '1', { stains: [{ id: 'o1', stainName: 'Ki-67', status: 'Pending Cut', orderedByPathologistId: 'path-1' } as StainOrder] })]), stainOrderId: 'o1', reason: 'Block exhausted', note: 'x', actor, requirements: reqs() }, d);
+    expect(r).toEqual({ ok: false, notPermitted: true });
+    expect(d.saveSpecimens).not.toHaveBeenCalled();
+    expect(d.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('ws-19: marking a block retrieved checks add-on:block:mark-retrieved and stops on a refusal', async () => {
+    const d = deps(false);
+    const r = await markAddOnBlockRetrieved({ caseData: theCase([block('b1', '1', { stains: [{ id: 'o1', stainName: 'Ki-67', status: 'Pending Cut', orderedByPathologistId: 'path-1' } as StainOrder] })]), stainOrderId: 'o1', actor }, d);
+    expect(d.enforce).toHaveBeenCalledWith('add-on:block:mark-retrieved', { caseId: 'S26-9' });
+    expect(r).toEqual({ ok: false, notPermitted: true });
+    expect(d.saveSpecimens).not.toHaveBeenCalled();
+  });
+
+  describe('ws-3: a slide with no ordering pathologist', () => {
+    const original = () => theCase([block('b1', '1')]); // an original H&E: no orderedByPathologistId
+    const base = () => ({ caseData: original(), stainOrderId: 'b1-he', reason: 'Block exhausted' as const, note: 'Nothing left', actor, requirements: reqs() });
+
+    it('goes to the Supervisor / Accessioning Desk, not to nobody', async () => {
+      const d = { ...deps(), getDeskRecipients: vi.fn(async () => ({ emails: ['desk@lab.org', 'lead@lab.org'], primaryPathologistName: 'Dr. Chen' })) };
+      const r = await flagAddOnException(base(), d);
+      expect(r).toMatchObject({ ok: true, noticeToDesk: true });
+      expect(d.getUserEmail).not.toHaveBeenCalled();
+      const mail = (d.sendEmail.mock.calls[0] as unknown as [{ to: string[]; bodyText: string; metadata: Record<string, string> }])[0];
+      expect(mail.to).toEqual(['desk@lab.org', 'lead@lab.org']);
+      expect(mail.bodyText).toContain('No ordering pathologist is recorded');
+      expect(mail.bodyText).toContain('Dr. Chen');
+      expect(mail.metadata.routedTo).toBe('supervisor-desk');
+    });
+
+    it('also goes to the desk when the ordering pathologist has no e-mail address', async () => {
+      const d = { ...deps(), getUserEmail: vi.fn(async () => undefined), getDeskRecipients: vi.fn(async () => ({ emails: ['desk@lab.org'] })) };
+      const c = theCase([block('b1', '1', { stains: [{ id: 'o1', stainName: 'Ki-67', status: 'Pending Cut', orderedByPathologistId: 'gone' } as StainOrder] })]);
+      const r = await flagAddOnException({ ...base(), caseData: c, stainOrderId: 'o1' }, d);
+      expect(r.noticeToDesk).toBe(true);
+      expect((d.sendEmail.mock.calls[0] as unknown as [{ to: string[] }])[0].to).toEqual(['desk@lab.org']);
+    });
+
+    it('says nobody could be told when there is no desk address either, but the flag is still saved', async () => {
+      const d = { ...deps(), getDeskRecipients: vi.fn(async () => ({ emails: [] })) };
+      const r = await flagAddOnException(base(), d);
+      expect(r).toMatchObject({ ok: true, noticeNotSent: true });
+      expect(d.saveSpecimens).toHaveBeenCalledTimes(1);
+      expect(d.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('a desk lookup that fails does not undo the flag', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const d = { ...deps(), getDeskRecipients: vi.fn(async () => { throw new Error('down'); }) };
+      const r = await flagAddOnException(base(), d);
+      expect(r).toMatchObject({ ok: true, noticeNotSent: true });
+    });
+
+    it('an ordering pathologist with an address is still the only one e-mailed', async () => {
+      const d = { ...deps(), getDeskRecipients: vi.fn(async () => ({ emails: ['desk@lab.org'] })) };
+      const c = theCase([block('b1', '1', { stains: [{ id: 'o1', stainName: 'Ki-67', status: 'Pending Cut', orderedByPathologistId: 'path-1' } as StainOrder] })]);
+      const r = await flagAddOnException({ ...base(), caseData: c, stainOrderId: 'o1' }, d);
+      expect(r.noticeToDesk).toBeUndefined();
+      expect(d.getDeskRecipients).not.toHaveBeenCalled();
+    });
   });
 
   it('marking the block retrieved saves the change', async () => {

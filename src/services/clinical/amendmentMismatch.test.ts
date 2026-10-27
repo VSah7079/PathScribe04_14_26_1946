@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Batch 609 (#31): the mismatch check for amendments, corrections and addenda.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 
 vi.mock('@/services/aiIntegration/aiProviderService', () => ({ callAi: vi.fn() }));
 vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
@@ -26,6 +26,10 @@ const surgicalCase = (extra: Partial<Case> = {}) => ({
   diagnostic: { primaryDiagnosis: 'Tubular adenoma', microscopicDescription: 'Adenomatous mucosa' },
   synopticReports: [], ...extra,
 }) as unknown as Case;
+
+// Batch 679: these tests cover the score-driven thresholds and Block rules, which belong to the clinical_support profile.
+beforeAll(() => { vi.stubEnv('VITE_REGULATORY_PROFILE', 'clinical_support'); });
+afterAll(() => { vi.unstubAllEnvs(); });
 
 describe('pure rules', () => {
   it('a case is being amended when some report is unlocked for it', () => {

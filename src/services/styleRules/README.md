@@ -1,3 +1,9 @@
+**Batch 650 to 652:** `fileSizeBaseline.ts` lowered: `mockActionRegistryService.ts` 4,189, `WorklistTable.tsx` 2,290, `AddCodeModal.tsx` 1,191, `SynopticReportPage.tsx` 7,082, `mockCaseService.ts` 6,048. Nothing was added and no file got longer.
+
+**Batch 649:** `fileSizeBaseline.ts` lowered (Batch 646 baseline to now): `useSignOutWorkflow.ts` 2377 to 1813 (sign-out logic moved to `services/signoutGates/` and `services/surgicalSignOut/`), `QualityAssurancePage.tsx` 1505 to 1477, `SynopticReportPage.tsx` 7177 to 7172, `AccessionPage.tsx` 4207 to 4205, `AddCodeModal.tsx` 1376 to 1374. Nothing was added and no file got longer.
+
+**Batch 645:** `fileSizeBaseline.ts`: `mockActionRegistryService.ts` lowered from 4213 to 4198 lines (the shortcut migrations moved to `shortcutMigrations.ts`). No other baseline changed; none of the touched files over 1,000 lines grew.
+
 ## Batch 598 — Held-back CSS classes checked (PS-520)
 
 - **What was checked:** the 517 classes whose names code builds from a prefix or suffix (`ps-foo--${status}`). For each, the variant word (`overdue`, `heavy`, `role-ineligible`, ...) was searched for in all non-test code. Every one is there as a value, a type member or a literal.

@@ -4,7 +4,8 @@
 // they reach a site's stored role catalog.
 //
 // Day-one grants (Pete, Sep 28, 2026: least privilege):
-//   Superadmin   every capability in the catalog (no bypass: it is a role)
+//   Superadmin   every capability in the catalog except SUPERADMIN_WITHHELD
+//                (config:ai-prompt:approve; no bypass: it is a role)
 //   Admin        report change-history export, every QA export, and (Batch
 //                370) managing roles and staff and the full demo reset
 //   QA Reviewer  the exports only
@@ -37,8 +38,10 @@
 //   Admin all; Lab Director all but drafting synoptic protocols; Template
 //   Author and Template Approver only the protocol and template ones.
 //   Batch 406: managing molecular assay control rules is an administration
-//   capability, so Admin starts with it and nobody else does (Pete: "default
-//   to admin but it remains an assignable permission", e.g. to Lab Director).
+//   capability, so Admin starts with it (Pete: "default to admin but it
+//   remains an assignable permission", e.g. to Lab Director). Batch 669: Lab
+//   Director is seeded with it too (MOLECULAR_CONTROL_RULES_MANAGE); the bench
+//   roles see the rules read-only.
 //
 // Seeds are offered once. Each built-in role remembers which seed
 // capabilities it has been offered (Role.seededCapabilities), so:
@@ -83,6 +86,8 @@ const CONFIG_GROUPS: readonly string[] = [
 // Batch 536 (PS-554): and the AI instructions: editing starts with nobody,
 // approving with Lab Director only (AI_PROMPT_APPROVE), reading with Lab
 // Director and QA Reviewer (AI_PROMPT_VIEW).
+/** Batch 654: printing a report that is still in its release delay under the Supervisor Override policy (Lab Director, Admin). */
+export const HELD_PRINT_OVERRIDE = ['print:release-hold:override'];
 export const CONFIG_NO_DEFAULT_GRANT: readonly string[] = [
   'config:clinical-mismatch-rules:manage', 'config:clinical-mismatch-rules:view',
   'config:ai-prompt:view', 'config:ai-prompt:edit', 'config:ai-prompt:approve',
@@ -97,6 +102,13 @@ export const MISMATCH_RULES_VIEW = ['config:clinical-mismatch-rules:view'];
 // Batch 536 (PS-554, Pete Oct 11): approving the AI instructions starts with
 // Lab Director; reading them with Lab Director and QA Reviewer.
 export const AI_PROMPT_VIEW = ['config:ai-prompt:view'];
+// Batch 669 (Pete, mol-1): Control Rules are view-only for a Molecular Technologist; changing them is a management/admin action.
+// Admin has it through the administration group; the Lab Director (management) is seeded here.
+export const MOLECULAR_CONTROL_RULES_MANAGE = ['config:molecular-control-rules:manage'];
+// Batch 669 (ctl, Pete): reading Control Rules no longer rides on the Molecular screen. Admin holds it through the administration
+// group; Lab Director, QA Reviewer and every role that holds the Molecular screen (the Molecular Technologist) are seeded here.
+// Manage needs view, so the Lab Director gets both.
+export const MOLECULAR_CONTROL_RULES_VIEW = ['config:molecular-control-rules:view'];
 export const AI_PROMPT_APPROVE = ['config:ai-prompt:view', 'config:ai-prompt:approve'];
 /**
  * Batch 536 (Pete, Oct 11, 2026): capabilities the Superadmin role does not
@@ -152,14 +164,15 @@ export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
   // (real accessioning rate / batch throughput & queue aging / stage-
   // to-stage TAT / molecular QC, scoped to what each role's own work
   // actually produces; see src/pages/README.md).
-  [SYSTEM_ROLE_IDS.ACCESSIONER]:            screens('accession', 'worklist', 'search', 'bench-contributions'),
+  // Batch 645: and the Lockbox Drop-Off screen (the kiosk and the Overnight folder), for the morning accessioning team.
+  [SYSTEM_ROLE_IDS.ACCESSIONER]:            screens('accession', 'worklist', 'search', 'bench-contributions', 'lockbox-drop-off'),
   [SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST]:      screens('batch-management', 'embedding', 'microtomy', 'slide-distribution', 'search', 'bench-contributions'),
   [SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST]:       screens('cytology-workspace', 'batch-management', 'search', 'bench-contributions'),
   [SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST]: screens('molecular', 'batch-management', 'search', 'bench-contributions'),
   // Batch 434 (Pete): Admin also opens Batch Management (it couldn't see Slide
   // scanning). The screen only: the batch actions stay with the bench roles,
   // and an administrator can add them to any role in the Role Dictionary.
-  [SYSTEM_ROLE_IDS.ADMIN]:             [...screens('configuration', 'batch-management', 'outbound-queue'), ...QUALITY_COMPLIANCE],
+  [SYSTEM_ROLE_IDS.ADMIN]:             [...screens('configuration', 'batch-management', 'outbound-queue', 'lockbox-drop-off'), ...QUALITY_COMPLIANCE],
   [SYSTEM_ROLE_IDS.TEMPLATE_AUTHOR]:   screens('configuration'),
   [SYSTEM_ROLE_IDS.TEMPLATE_APPROVER]: screens('configuration'),
   [SYSTEM_ROLE_IDS.LAB_DIRECTOR]:      [...screens('configuration', 'search', 'my-contributions'), ...QUALITY_COMPLIANCE],
@@ -167,6 +180,14 @@ export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
 };
 
 const SCREEN_KEYS = CAPABILITY_CATALOG.filter(c => c.group === 'screens').map(c => c.key);
+
+// Batch 645: Lockbox Drop-Off. Accessioner starts with all of it (receiving after-hours drops, the Overnight folder, resolving a
+// placeholder); Admin with the folder only (oversight and the time-to-receipt summary). Pathologist and every other role start with
+// nothing, and a hospital's own roles are not offered the screen automatically (customRoleScreenSeed): an administrator assigns it.
+export const LOCKBOX_RECEIVE = ['lockbox:specimen:receive'];
+export const LOCKBOX_FOLDER = ['lockbox:folder:review'];
+export const LOCKBOX_RESOLVE = ['lockbox:placeholder:resolve'];
+const LOCKBOX_SCREEN = 'screen:lockbox-drop-off:open';
 
 // Batch 382: correcting an applied billing code. Its own list, not part of
 // CASE_REPORT_ACTIONS, so it can be taken off the clinical roles later.
@@ -183,6 +204,9 @@ const REPORT_IMAGES = ['report:case-images:attach'];
 // Batch 613: related cases at sign-out are the signer's decision (Pathologist, Fellow); the Patient summary print is for the case-access roles that can read patient history.
 const RELATED_CASES = ['report:related-cases:attach'];
 const PATIENT_SUMMARY = ['patient:summary:print'];
+// Batch 621: the AI extraction of a historical report's synoptic fields (advisory) and flagging it as wrong, for the roles that read history
+// to report: Pathologist, Fellow, Resident. Not a hospital's own roles; an administrator grants it in Staff → Roles.
+export const HISTORY_EXTRACTION = ['ai:history-extraction:run', 'ai:history-extraction:flag'];
 // Batch 611 (#189): Smart Capture review, approval and export, for the Pathologist only (the approver is always a pathologist).
 const SMART_CAPTURE = ['billing:smart-capture:review', 'billing:smart-capture:approve', 'billing:smart-capture:send'];
 // Batch 516 (PS-283): printing a VIP/confidential case, for the Pathologist who
@@ -257,6 +281,10 @@ const CYTOLOGY_SIGN_OUT_ROLES = ['pathologist', 'fellow', 'resident', SYSTEM_ROL
 // workload limit. Its own seed (not CYTOLOGY_SIGN_OUT): a hospital's own roles with case access don't get it,
 // because a sign-off is a workload record a lab grants deliberately.
 export const CYTOLOGY_SCREENING_HOURS = ['cytology:screening-hours:sign-off'];
+// Batch 630 (Pete, Oct 19, 2026): entering an hrHPV result by hand, and approving such an entry that replaces an interface result.
+// Pathologist and Lab Director start with it (least privilege); a lab grants it to others (a Lab Supervisor role, say) in the Role Dictionary.
+export const CYTOLOGY_HPV_MANUAL_RESULT = ['cytology:hpv-result:record-manual'];
+export const CYTOLOGY_CSMS_ELIGIBILITY = ['cytology:csms-eligibility:verify'];
 // Batch 415: a cytotechnologist's own sign-out (negative GYN, advanced-CT
 // exception), for the Cytotechnologist role and a hospital's own roles with
 // case access (keep today's users). Remove it from the role where the
@@ -293,6 +321,10 @@ export const CYTOLOGY_REVIEW_TAKE = ['cytology:pathologist-review:take'];
 // roles that had the Add-On Orders screen (Pete: all three).
 export const ADD_ON_ORDER_ACTIONS = ['add-on:order:place', 'add-on:exception:approve-destructive-cut'];
 const ADD_ON_ORDER_ROLES = ['pathologist', 'fellow', 'resident'];
+// Batch 669 (ws-19): flagging a block exception and marking a block retrieved, for everyone who could do it before
+// (keep today's users): the roles with the Add-On Orders screen and the bench roles with the Microtomy workstation
+// (which flags Block exhausted), and a hospital's own roles with case access.
+export const ADD_ON_BENCH_ACTIONS = ['add-on:exception:flag', 'add-on:block:mark-retrieved'];
 // Batch 404: Batch Management's overrides, for every role that has its screen
 // (Pete: keep today's users).
 // Batch 610 (#17/#123, #12): and trying the Simulated temperature reading, and exporting the Retention Holds queue.
@@ -330,6 +362,9 @@ export const LABEL_BATCH_REPRINT = ['label:batch:reprint'];
 // role with case access (keep today's users) until Pete decides who should
 // (proposed: Pathologist and Admin).
 export const CONSULT_LINK_ACTIONS = ['case:consult-link:issue', 'case:consult-link:revoke'];
+// Batch 669 (access-11): showing the consultant the patient's full name and date of birth
+// (masked by default). Pathologist and Lab Director only; least privilege.
+export const CONSULT_LINK_REVEAL_IDENTITY = ['case:consult-link:reveal-identity'];
 // Batch 522 (PS-290): the list of outside consult links across all cases
 // (Audit Log → Consult links), for the roles that oversee access: Admin,
 // Lab Director and QA Reviewer.
@@ -360,6 +395,34 @@ const ORGAN_MAP_INSERT_ROLES = ['pathologist', 'fellow', 'resident'];
 // clinical authority on sign-off and amendments, and an administrator-only
 // overwrite would hold up urgent addenda and off-hours work.
 export const CASE_EDIT_CONFLICT_OVERRIDE = ['case:edit-conflict:override'];
+// Batch 649 (workflowCapabilities.ts): the everyday case actions that had no capability of their own. Least privilege,
+// keeping today's users where the action was open to every case-access role (a hospital's own case-access roles get the
+// same, customRoleScreenSeed):
+//   sign-out / finalize and recall: the roles that sign or release reports (Pathologist, Fellow, Resident; Cytotechnologist
+//     recalls its own held cytology sign-outs). Who may sign a given case is still its participants (canFinalizeCase).
+//   preliminary release and amendment / correction / addendum release: Pathologist and Fellow (a resident's report is
+//     countersigned; a laboratory grants these to residents in the Role Dictionary if it allows it).
+//   pool claim and pass: the roles that take pool cases (Pathologist, Fellow, Resident, Cytotechnologist).
+//   flags: every case-access role (bench staff flag specimens too).
+//   diagnosis codes and informal review requests: the reporting roles (Pathologist, Fellow, Resident; Cytotechnologist codes
+//     cytology cases on the Screening page).
+//   creating a case: every role with the Accession screen.
+//   QA deficiency actions: every role with the Quality Assurance screen (screenExports below).
+export const SURGICAL_SIGN_OUT = ['surgical:report:sign-out'];
+export const REPORT_RECALL = ['report:release:recall'];
+export const SURGICAL_PRELIMINARY_RELEASE = ['surgical:preliminary:release'];
+// Pete (Oct 2026): residents do not issue preliminary releases independently, so a hospital's own roles do not get it by default.
+export const SURGICAL_REVISION_RELEASES = ['surgical:amendment:release', 'surgical:correction:release', 'surgical:addendum:release'];
+export const SURGICAL_RELEASES = [...SURGICAL_PRELIMINARY_RELEASE, ...SURGICAL_REVISION_RELEASES];
+export const POOL_ACTIONS = ['case:pool:claim', 'case:pool:pass'];
+export const FLAG_ACTIONS = ['case:flag:apply', 'case:flag:remove'];
+export const DIAGNOSIS_CODE_APPLY = ['case:diagnosis-code:apply'];
+export const INFORMAL_REVIEW_REQUEST = ['case:informal-review:request'];
+export const ACCESSION_CREATE = ['case:accession:create'];
+export const QA_DEFICIENCY_ACTIONS = ['qa:deficiency:raise', 'qa:deficiency:escalate', 'qa:deficiency:contain', 'qa:deficiency:verify', 'qa:management-review:submit'];
+const SIGNING_ROLES = ['pathologist', 'fellow', 'resident'];
+const ATTENDING_ROLES = ['pathologist', 'fellow'];
+const POOL_ROLES = [...SIGNING_ROLES, SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST as string];
 
 // Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic Engine;
 // PS-519 follow-up). The Administrative Override action at Gate B
@@ -393,6 +456,8 @@ function screenExports(caps: readonly string[]): string[] {
     ...(caps.includes('screen:my-contributions:open') ? CONTRIBUTION_EXPORTS : []),
     ...(caps.includes('screen:quality-assurance:open') ? CAPA_DECIDE : []),
     ...(caps.includes('screen:quality-assurance:open') ? FOLLOW_UP_ACTIONS : []),
+    ...(caps.includes('screen:quality-assurance:open') ? QA_DEFICIENCY_ACTIONS : []),
+    ...(caps.includes('screen:accession:open') ? ACCESSION_CREATE : []),
   ];
 }
 
@@ -406,7 +471,8 @@ function screenExports(caps: readonly string[]): string[] {
 export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?: boolean }): string[] {
   const admin = [...screens('configuration'), ...QUALITY_COMPLIANCE];
   return [
-    ...(role.caseAccess ? SCREEN_KEYS.filter(k => !admin.includes(k)) : []),
+    // Batch 645: the Lockbox Drop-Off screen is a low-privilege shared kiosk assigned on purpose, not offered to every case-access role.
+    ...(role.caseAccess ? SCREEN_KEYS.filter(k => !admin.includes(k) && k !== LOCKBOX_SCREEN) : []),
     // Batch 381: and the case report's holds and delegation (Pete: keep today's users).
     ...(role.caseAccess ? [...CASE_REPORT_ACTIONS_FOR_CUSTOM] : []),
     // Batch 382: and correcting an applied billing code (also for the roles that resolve billing deficiencies).
@@ -434,12 +500,15 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     ...(role.caseAccess ? [...OTHER_CASES_REQUEST] : []),
     // Batch 403: and add-on orders (a role with case access had that screen too).
     ...(role.caseAccess ? [...ADD_ON_ORDER_ACTIONS] : []),
+    ...(role.caseAccess ? [...ADD_ON_BENCH_ACTIONS] : []),
     // Batch 404: and Batch Management's overrides (a role with case access had that screen too).
     ...(role.caseAccess ? [...BATCH_OVERRIDE_ACTIONS] : []),
     // Batch 405: and superseding a molecular run.
     ...(role.caseAccess ? [...MOLECULAR_SUPERSEDE] : []),
     // Batch 467: and the molecular Order Queue's actions.
     ...(role.caseAccess ? [...MOLECULAR_ORDER_ACTIONS] : []),
+    // Batch 669 (ctl): and reading Control Rules (they could open the page through the Molecular screen).
+    ...(role.caseAccess ? [...MOLECULAR_CONTROL_RULES_VIEW] : []),
     // Batch 409: and signing out a cytology specimen (Batch 410: and the workspace's other actions).
     ...(role.caseAccess ? [...CYTOLOGY_SIGN_OUT] : []),
     ...(role.caseAccess ? [...CYTOLOGY_CT_SIGN_OUT] : []),
@@ -453,9 +522,11 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     ...(role.configAccess ? [...AUDIT_ERROR_RESOLVE] : []),
     ...(role.configAccess ? [...PRINT_QUEUE_ACTIONS] : []),
     ...(role.caseAccess ? [...CONSULT_LINK_ACTIONS] : []),
+    // Batch 649: and the case actions that had no capability before (keep today's users).
+    ...(role.caseAccess ? [...SURGICAL_SIGN_OUT, ...REPORT_RECALL, ...SURGICAL_REVISION_RELEASES, ...POOL_ACTIONS, ...FLAG_ACTIONS, ...DIAGNOSIS_CODE_APPLY, ...INFORMAL_REVIEW_REQUEST] : []),
     // Batch 437: and the exports on the screens it gets.
     ...screenExports([
-      ...(role.caseAccess ? SCREEN_KEYS.filter(k => !admin.includes(k)) : []),
+      ...(role.caseAccess ? SCREEN_KEYS.filter(k => !admin.includes(k) && k !== LOCKBOX_SCREEN) : []),
       ...(role.configAccess ? admin : []),
     ]),
     // Batch 385: and sending messages, for every custom role.
@@ -525,6 +596,7 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(CASE_ACCESS_ROLES.includes(r) ? NATIONAL_IDENTIFIER_RECORD : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? REGISTRY_CONSENT_RECORD : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? OTHER_CASES_REQUEST : []),
+    ...(['pathologist', 'fellow', 'resident'].includes(r) ? HISTORY_EXTRACTION : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? REGISTRY_RESEND : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? QA_TREND : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? REGISTRY_GO_LIVE_APPROVE : []),
@@ -538,11 +610,14 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(r === SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST ? CYTOLOGY_CT_SIGN_OUT : []),
     ...(r === 'pathologist' ? CYTOLOGY_REVISION : []),
     ...(r === 'pathologist' ? CYTOLOGY_EARLY_FINALIZE : []),
+    ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CYTOLOGY_HPV_MANUAL_RESULT : []),
+    ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CYTOLOGY_CSMS_ELIGIBILITY : []),
     ...(PEER_REVIEW_ROLES.includes(r) ? PEER_REVIEW_VERDICTS : []),
     ...(PEER_REVIEW_ROLES.includes(r) ? PEER_REVIEW_CASE_ACTIONS : []),
     ...(r === 'pathologist' ? PEER_REVIEW_PATHOLOGIST_ACTIONS : []),
     ...(PEER_REVIEW_ROLES.includes(r) ? CYTOLOGY_REVIEW_TAKE : []),
     ...(ADD_ON_ORDER_ROLES.includes(r) ? ADD_ON_ORDER_ACTIONS : []),
+    ...(caps.includes('screen:add-on-orders:open') || caps.includes('screen:microtomy:open') ? ADD_ON_BENCH_ACTIONS : []),
     ...(caps.includes('screen:batch-management:open') ? BATCH_OVERRIDE_ACTIONS : []),
     ...(caps.includes('screen:batch-management:open') ? MATERIAL_DISPOSAL : []),
     ...(caps.includes('screen:batch-management:open') ? REFERRAL_TRANSIT : []),
@@ -550,19 +625,31 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(caps.includes('screen:audit-log:open') ? AUDIT_ERROR_RESOLVE : []),
     ...(caps.includes('screen:audit-log:open') ? PRINT_QUEUE_ACTIONS : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? CONSULT_LINK_ACTIONS : []),
+    ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CONSULT_LINK_REVEAL_IDENTITY : []),
+    ...(r === SYSTEM_ROLE_IDS.ACCESSIONER ? [...LOCKBOX_RECEIVE, ...LOCKBOX_FOLDER, ...LOCKBOX_RESOLVE] : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CONSULT_LINK_OVERSIGHT : []),
     ...(caps.includes('screen:audit-log:open') ? AUDIT_LOG_EXPORTS : []),
     ...(caps.includes('screen:search:open') ? CASE_SEARCH_EXPORT : []),
     ...(caps.includes('screen:my-contributions:open') ? CONTRIBUTION_EXPORTS : []),
     ...(caps.includes('screen:quality-assurance:open') ? CAPA_DECIDE : []),
     ...(caps.includes('screen:quality-assurance:open') ? FOLLOW_UP_ACTIONS : []),
+    ...(caps.includes('screen:quality-assurance:open') ? QA_DEFICIENCY_ACTIONS : []),
+    ...(caps.includes('screen:accession:open') ? ACCESSION_CREATE : []),
+    ...(SIGNING_ROLES.includes(r) ? [...SURGICAL_SIGN_OUT, ...DIAGNOSIS_CODE_APPLY, ...INFORMAL_REVIEW_REQUEST] : []),
+    ...(ATTENDING_ROLES.includes(r) ? SURGICAL_RELEASES : []),
+    ...(POOL_ROLES.includes(r) ? [...POOL_ACTIONS, ...REPORT_RECALL] : []),
+    ...(r === SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST ? DIAGNOSIS_CODE_APPLY : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? FLAG_ACTIONS : []),
     ...(FOLLOW_UP_EXPECT_ROLES.includes(r) ? FOLLOW_UP_EXPECT : []),
     ...(ORGAN_MAP_INSERT_ROLES.includes(r) ? ORGAN_MAP_INSERT : []),
     ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CASE_EDIT_CONFLICT_OVERRIDE : []),
     ...(r === 'pathologist' ? RESTRICTED_CASE_PRINT : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? INKING_GATE_OVERRIDE : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? HELD_PRINT_OVERRIDE : []),
     ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? MISMATCH_RULES_VIEW : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? AI_PROMPT_APPROVE : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? [...MOLECULAR_CONTROL_RULES_VIEW, ...MOLECULAR_CONTROL_RULES_MANAGE] : []),
+    ...(caps.includes('screen:molecular:open') ? MOLECULAR_CONTROL_RULES_VIEW : []),
     ...(CLINICAL_HISTORY_RECORD_ROLES.includes(r) ? CLINICAL_HISTORY_RECORD : []),
     ...(r === SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST ? LABEL_BATCH_REPRINT : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? BLOCK_DELETE_SIGNED_OUT : []),
@@ -574,8 +661,8 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...MESSAGING,
   ]])),
   [SYSTEM_ROLE_IDS.SUPERADMIN]: SUPERADMIN_CAPABILITY_KEYS,
-  [SYSTEM_ROLE_IDS.ADMIN]: [...BREAK_GLASS_REBIND, ...EXPORTS, ...CASE_EDIT_CONFLICT_OVERRIDE, ...INKING_GATE_OVERRIDE, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...INTERFACE_RESEND, ...INTERFACE_HOLD_RELEASE, ...INTERFACE_MONITORING, ...SERVER_JOBS, ...LABEL_BATCH_REPRINT, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN]), ...BLOCK_DELETE_SIGNED_OUT, ...OTHER_CASES_DECIDE],
-  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...MISMATCH_RULES_VIEW, ...AI_PROMPT_VIEW, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER]), ...BLOCK_DELETE_SIGNED_OUT, ...BLOCK_FLAG_AMENDED],
+  [SYSTEM_ROLE_IDS.ADMIN]: [...BREAK_GLASS_REBIND, ...EXPORTS, ...CASE_EDIT_CONFLICT_OVERRIDE, ...INKING_GATE_OVERRIDE, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...INTERFACE_RESEND, ...INTERFACE_HOLD_RELEASE, ...LOCKBOX_FOLDER, ...INTERFACE_MONITORING, ...SERVER_JOBS, ...LABEL_BATCH_REPRINT, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN]), ...BLOCK_DELETE_SIGNED_OUT, ...OTHER_CASES_DECIDE, ...HELD_PRINT_OVERRIDE],
+  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...MISMATCH_RULES_VIEW, ...AI_PROMPT_VIEW, ...MOLECULAR_CONTROL_RULES_VIEW, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...PRINT_QUEUE_ACTIONS, ...CONSULT_LINK_OVERSIGHT, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER]), ...BLOCK_DELETE_SIGNED_OUT, ...BLOCK_FLAG_AMENDED],
 };
 
 /**

@@ -18,6 +18,10 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatDateTime } from '@/utils/formatDate';
 import { consultLinksShown } from '@/services/consultAccess/consultLinkRules';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { ConsultLifetimeLine } from '@/components/ExternalConsult/ConsultLifetimeLine';
+import { CONSULT_REVEAL_NOT_PERMITTED } from '@/services/consultAccess/IConsultTokenService';
+import type { ConsultPatientView } from '@/services/consultAccess/consultIdentityMask';
+import './consultLinksAudit.css';
 
 const K = 'consultLinksAudit';
 
@@ -34,6 +38,13 @@ const ConsultLinksAuditSection: React.FC = () => {
     });
   }, []);
   useEffect(load, [load]);
+
+  // Batch 669 (access-11): identity preview for someone who may reveal identity but not issue links.
+  const [preview, setPreview] = useState<{ id: string; patient: ConsultPatientView | null; refused: boolean } | null>(null);
+  const previewIdentity = async (id: string) => {
+    const r = await consultTokenService.previewIdentity(id);
+    setPreview({ id, patient: r.ok ? r.data : null, refused: !r.ok && r.error === CONSULT_REVEAL_NOT_PERMITTED });
+  };
 
   const revoke = async (id: string) => {
     await consultTokenService.revoke(id);
@@ -90,6 +101,7 @@ const ConsultLinksAuditSection: React.FC = () => {
                     <td className="ps-conf-td">{formatDateTime(l.expiresAt, i18n.language)}</td>
                     <td className="ps-conf-td">
                       <span className={`eca-status-badge eca-status-badge--${status.toLowerCase()}`}>{t(`externalConsultAccessModal.status.${status.toLowerCase()}`)}</span>
+                      <ConsultLifetimeLine link={l} />
                       {status === 'Revoked' && l.revokedAt && (
                         <div className="ps-conf-hint">{t(`${K}.revokedBy`, { name: l.revokedByName ?? l.revokedByUserId ?? '', date: formatDateTime(l.revokedAt, i18n.language) })}</div>
                       )}
@@ -98,6 +110,20 @@ const ConsultLinksAuditSection: React.FC = () => {
                       {l.accessCount > 0 ? t('externalConsultAccessModal.viewedCount', { count: l.accessCount, last: formatDateTime(l.lastAccessedAt, i18n.language) }) : t(`${K}.notViewed`)}
                     </td>
                     <td className="ps-conf-td">
+                      <CapabilityButton capability="case:consult-link:reveal-identity" context={{ caseId: l.scope.caseId }} onClick={() => void previewIdentity(l.id)} className="eca-revoke-btn">
+                        {t(`${K}.previewIdentity`)}
+                      </CapabilityButton>
+                      {preview?.id === l.id && (
+                        <div className="ps-consult-identity-preview" data-phi="true" role="status">
+                          {preview.patient?.identity === 'full' ? (
+                            <>
+                              {t('externalConsultViewPage.patientName', { lastName: preview.patient.lastName, firstName: preview.patient.firstName })}
+                              {preview.patient.dateOfBirth && <>{t('externalConsultViewPage.separator')}{t('externalConsultViewPage.dobPrefix', { date: preview.patient.dateOfBirth })}</>}
+                              <div className="ps-consult-identity-preview-note">{t(`${K}.previewAudited`)}</div>
+                            </>
+                          ) : t(preview.refused ? 'externalConsultAccessModal.revealNotPermitted' : `${K}.previewFailed`)}
+                        </div>
+                      )}
                       {status === 'Active' && (
                         <CapabilityButton capability="case:consult-link:revoke" context={{ caseId: l.scope.caseId }} onClick={() => void revoke(l.id)} className="eca-revoke-btn">
                           {t('externalConsultAccessModal.revoke')}

@@ -39,6 +39,12 @@ const { record } = vi.hoisted(() => ({ record: vi.fn() }));
 const { resolveStaffByQuickAuthPin } = vi.hoisted(() => ({ resolveStaffByQuickAuthPin: vi.fn() }));
 vi.mock('@/services/intraopDashboard/resolveStaffByQuickAuthPin', () => ({ resolveStaffByQuickAuthPin }));
 
+const { removeOrBoardDemoData } = vi.hoisted(() => ({ removeOrBoardDemoData: vi.fn() }));
+// The demo button is a CapabilityButton; this stand-in is always allowed (the capability itself is tested with the service).
+vi.mock('@/components/Common/CapabilityButton', () => ({
+  CapabilityButton: ({ children, onClick, className }: { children: React.ReactNode; onClick: () => void; className: string }) => <button className={className} onClick={onClick}>{children}</button>,
+}));
+
 const { intraopGetAll, dismissFromBoard, seedOrBoardDemoData, advanceDemoSpecimen, locationGetById, locationListForFacility } = vi.hoisted(() => ({
   intraopGetAll: vi.fn(), dismissFromBoard: vi.fn(), seedOrBoardDemoData: vi.fn(), advanceDemoSpecimen: vi.fn(),
   locationGetById: vi.fn(), locationListForFacility: vi.fn(),
@@ -48,7 +54,7 @@ const { intraopGetAll, dismissFromBoard, seedOrBoardDemoData, advanceDemoSpecime
 // live service records subscriptions so the tests can push an event.
 const { liveSubscribers } = vi.hoisted(() => ({ liveSubscribers: [] as { scope: unknown; onEvent: (e: unknown) => void }[] }));
 vi.mock('@/services', () => ({
-  intraoperativeService: { getAll: intraopGetAll, dismissFromBoard, seedOrBoardDemoData, advanceDemoSpecimen },
+  intraoperativeService: { getAll: intraopGetAll, dismissFromBoard, seedOrBoardDemoData, advanceDemoSpecimen, removeOrBoardDemoData },
   locationService: { getById: locationGetById, listForFacility: locationListForFacility },
   orSuiteTerminalService: { getById: terminalGetById, getActive: terminalGetActive },
   orEventLogService: { record },
@@ -104,6 +110,7 @@ beforeEach(() => {
   // means every test gets a real, defined response regardless of
   // whether it specifically cares about this call.
   advanceDemoSpecimen.mockResolvedValue({ ok: true, data: { entry: {}, advanced: false } });
+  removeOrBoardDemoData.mockResolvedValue({ ok: true, data: 4 });
 });
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
@@ -202,7 +209,31 @@ describe('OrSuiteDashboardPage — real render smoke test', () => {
     expect(screen.getByText('orSuiteDashboard.stopDemo')).not.toBeNull();
 
     fireEvent.click(screen.getByText('orSuiteDashboard.stopDemo'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
     expect(screen.queryByText('orSuiteDashboard.demoModeActive')).toBeNull();
+    // ops-14: Stop demo removes the demo cases it created from the real data, not only the timer.
+    expect(removeOrBoardDemoData).toHaveBeenCalledTimes(1);
+  });
+
+  it('ops-14: a refused Start demo says so instead of doing nothing, and shows no demo badge', async () => {
+    seedOrBoardDemoData.mockResolvedValue({ ok: false, error: 'Not permitted' });
+    await renderBoard(inProgressEntry());
+    fireEvent.click(screen.getByText('orSuiteDashboard.startDemo'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    expect(screen.getByText('orSuiteDashboard.demoStartFailed')).not.toBeNull();
+    expect(screen.queryByText('orSuiteDashboard.demoModeActive')).toBeNull();
+  });
+
+  it('ops-14: if the demo cases cannot be removed, the person is told', async () => {
+    const demoSession = { id: 'demo-orboard-0', specimens: [{ id: 'demo-orboard-0-sp' }] };
+    seedOrBoardDemoData.mockResolvedValue({ ok: true, data: [demoSession, demoSession, demoSession, demoSession] });
+    removeOrBoardDemoData.mockResolvedValue({ ok: false, error: 'nope' });
+    await renderBoard(inProgressEntry());
+    fireEvent.click(screen.getByText('orSuiteDashboard.startDemo'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    fireEvent.click(screen.getByText('orSuiteDashboard.stopDemo'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    expect(screen.getByText('orSuiteDashboard.demoRemoveFailed')).not.toBeNull();
   });
 });
 
@@ -236,5 +267,22 @@ describe('OrSuiteDashboardPage — live updates (PS-262)', () => {
     expect(screen.getByText('orSuiteDashboard.dismissFailedGeneric')).not.toBeNull();
     expect(screen.queryByText(/no rendered diagnosis/)).toBeNull();
     expect(record).not.toHaveBeenCalled();
+  });
+
+  it('ops-15: a dismissal whose event-log write fails tells the person on screen, not only the console', async () => {
+    resolveStaffByQuickAuthPin.mockResolvedValue({ outcome: 'authenticated', staff: { id: 'staff-1', firstName: 'Sarah', lastName: 'Jenkins' } });
+    dismissFromBoard.mockResolvedValue({ ok: true, data: {} });
+    record.mockResolvedValue({ ok: false, error: 'log down' });
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await renderBoard(completedEntry());
+    fireEvent.click(screen.getByText('orSuiteDashboard.dismissCase'));
+    fireEvent.change(document.querySelector('.ps-orboard-pin-input') as HTMLInputElement, { target: { value: '1234' } });
+    fireEvent.click(screen.getByText('orSuiteDashboard.continue'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    fireEvent.click(document.querySelector('.ps-orboard-readback-checkbox input') as HTMLInputElement);
+    fireEvent.click(screen.getByText('orSuiteDashboard.confirmAndDismiss').closest('button')!);
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    expect(screen.getByText('orSuiteDashboard.dismissLogFailed')).not.toBeNull();
+    spy.mockRestore();
   });
 });

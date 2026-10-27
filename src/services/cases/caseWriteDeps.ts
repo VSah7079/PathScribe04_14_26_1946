@@ -2,7 +2,7 @@
 // Batch 458 (PS-71): the real services behind caseWrite.ts, for screens.
 import { caseRouter } from './CaseRouter';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { CaseWriteDeps, OverwriteDeps } from './caseWrite';
 
 export const caseWriteDeps: CaseWriteDeps = {
@@ -13,5 +13,5 @@ export const caseWriteDeps: CaseWriteDeps = {
 export const caseOverwriteDeps: OverwriteDeps = {
   ...caseWriteDeps,
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
 };

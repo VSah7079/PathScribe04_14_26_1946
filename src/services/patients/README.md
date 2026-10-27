@@ -263,3 +263,13 @@ Registry details are saved per case, versioned; conflicts are counted and audite
 **New, real consumer (Sep 2026)**: `services/migration/processLegacyRecordImport.ts` (RFP-APLIS-2026-GLOBAL Historical Data Migration Engine) calls `resolveOrCreatePatient()` directly for real MPI dedup during legacy import — a genuine ambiguous match found during migration lands in the exact same `listPendingReview()`/`PatientMatchReviewSection.tsx` queue a live accession's own ambiguous match would, confirmed directly before building on top of it. No changes made to this folder itself; noted here since it's a genuinely new real caller.
 
 Batch 616 (part A, PS-503): `httpPatientIndexService.ts`, `httpOutboundPatientAdtQueueService.ts`, `patientServicesInstance.ts`. Nothing that identifies a person is in a URL; matching, merging and moving a case are the server's, and a refusal throws a fixed code. The HL7 processing and dispatchers still import the mock directly (server work in production). Contract `docs/architecture/PATIENTS_API.md`.
+
+## Batch 634
+
+`demoCytologyPatients.ts` (+ test): the 23 demo cytology patients (PAT-CYT-001 to 023, matching the seed cases). `mockPatientIndexService.getById` adds one to the index the first time it is asked for, so a seeded cytology case can queue its result message. Birth dates are fixed (age in 2026), so they can drift from the seed cases' relative dates in later years.
+
+## Batch 638
+
+New `demoSurgicalPatients.ts` (+ test): the demo's surgical (and three extra cytology) seed patients are registered in the index on first lookup, so releasing a seeded surgical result queues its message instead of recording SURGICAL_DISPATCH_SKIPPED.
+
+- `patientSexAtBirth.ts` (Batch 662): sex at birth as words (locale keys, and English for printed reports) and the NHS phenotypic sex code (M 1, F 2, I 9, U X). `patientNhsNumberStatus.ts`: what the banner shows for the NHS number (verified only with status indicator 01; check-digit valid; invalid; not checked).

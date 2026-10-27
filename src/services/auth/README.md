@@ -1,3 +1,7 @@
+**Batch 675 (access-14):** `mfa/IMfaPolicyService.ts`, `httpMfaPolicyService.ts`, `mockMfaPolicyService.ts`, `mfaPolicyServiceInstance.ts`: the organisation's second-factor policy on the API server. `mfaService` takes an optional `policySource` (set only when an API server is configured); `loadPolicy` copies the server policy into the in-memory store the synchronous checks use, and `authSession` refuses a single sign-on (`server_unavailable`) or ends a restored session if it cannot be read. Contract: `docs/architecture/ACCESS_SESSION_API.md` §5.
+
+**Batch 649:** `authorizeSurgicalSignOut.ts` decides who may sign out (Orchestration) or finalize (Assist) a surgical report in two parts, both required: the capability `surgical:report:sign-out` (with the case and its facility), then the case relationship (`canFinalizeCase`). `canFinalizeCase` in `caseAccessControl.ts` no longer has the `admin-override` path that let Superadmin, Admin and similar roles sign any case: signing needs an active participant whose participation type can finalize at the performing laboratory. Locale text `caseAccessControl.finalize.notAParticipant` reworded; `…adminOverride` removed. Tests: `authorizeSurgicalSignOut.test.ts`, `caseAccessControl.test.ts`, `signingScreens.guard.test.ts`.
+
 # services/auth/
 
 Two jobs:
@@ -170,6 +174,8 @@ Unlinking a sign-in account (`linkedAccounts.ts`) needs `config:staff-access:ass
 | Hannah Price | Template Author | TA-001 |
 | Dr. Samuel Osei | Template Approver | TAP-001 |
 | Grace Liu | QA Reviewer | QA-001 |
+| Helen Schollars | Admin and Pathologist (technical writer, Batch 697) | DOC-001 |
+| Shelly Krill | Admin and Pathologist (technical writer, Batch 697) | DOC-002 |
 
 Each has its own salt and the demo@pathscribe.ai password. The hashes were made with `scripts/auth/hash-demo-password.mjs` logic on the command line; the password itself is in no file.
 
@@ -211,3 +217,11 @@ The sign-in mode and providers come from the deployment's `config.json` at start
 - **`mfa/mfaService.ts`**: policy save (needs `config:session-security:manage`), status at sign-in, Simulated enrolment with recovery codes (hashes only), challenge and step-up with lockout (5 failures, 15 minutes), single sign-on evaluation, session validity, reset (`auth:mfa-enrolment:reset`), audit with no codes or secrets. Test: `mfaService.test.ts`.
 - **`mfa/mfaStores.ts`, `mfa/mfaInstance.ts`**: the browser stores (`ps_mfa_policy_v1`, `ps_mfa_enrolments_v1`, `ps_mfa_locks_v1`, cleared by Full Reset) and the app's instance.
 - **Wired in:** `authSession.ts` (a single sign-on the provider did not back with a second factor is refused with `mfa_required`; a restored session whose second factor expired is dropped), `signerConfirmation.ts` (a signature asks for a fresh code, or for the provider's fresh proof; tests in `signerConfirmation.mfa.test.ts`), `sessionProfile.ts` (`mfa` stamp), `demo/demoAccounts.ts` (`demoMfaSecretFor`). Full account: `docs/architecture/MFA.md`.
+
+## Batch 642 — sign-out authentication policy (`signOutPolicy/`)
+
+- **`signOutPolicy/signOutPolicy.ts`** (pure): the policy (strict or session mode, session length 15/30/60/240 minutes, optional second factor), the enterprise default with per-facility overrides and a lock, `resolveSignOutPolicy` (the case's performing facility), the sign-out session (`evaluateSignOutSession`: timeout, role change, other person or facility), the button state, the audit CSV rows and the one-line audit detail. Test: `signOutPolicy.test.ts`.
+- **`signOutPolicy/signOutPolicyService.ts`**: saves the policy (needs `config:session-security:manage`, audited with old and new values), holds the sign-out session, and audits authentications, in-session sign-outs and expiries. Test: `signOutPolicyService.test.ts`.
+- **`signOutPolicy/signOutPolicyInstance.ts`**: the browser stores (policy: `dataStorage`; session: per tab) and the logout hook. Exported from `@/services` as `signOutPolicyService`.
+- **`signerConfirmation.ts`**: `signOutState`, `confirmWithinSession` (a confirmation carrying `sessionReuse`), a second factor forced by the sign-out policy (`mfa_not_enrolled` when the person has none). `signatureEvidence.ts` accepts a session-backed SSO confirmation and records the session id; the server checks the session and the policy (`docs/architecture/SIGN_OUT_AUTHENTICATION.md`).
+- Not built (phase 2e, needs the server): remote sign-out restriction by trusted network, ending a session on workstation lock, network classification.

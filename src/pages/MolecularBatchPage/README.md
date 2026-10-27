@@ -155,3 +155,11 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
 
 - Batch 608: Trace works for control and calibrator wells (looked up by well position).
+
+## Batch 669 — molecular findings (mol-1, mol-6, mol-7, mol-9, mol-10, mol-14)
+
+- **Control Rules (`MolecularControlRulesPage.tsx`).** View-only without `config:molecular-control-rules:manage`: a note says so, the buttons stay greyed, and the service checks again (mol-1, Pete's ruling). Saving and deleting need a reason (a box on the form and on the delete question), written to the audit log; a rule with no controls, or moved onto another rule's assay, is stopped before the call and again by the service (mol-14).
+- **Plate builder (`MolecularPlateBuilderPage.tsx`).** The control-well panel has an Expected Result choice, a control id that follows the lot number, and an expiry box that shows the stored date (`services/molecular/controlWellInfo.ts`, mol-10). A dispatch that did not go and a refused Clone & Supersede show translated messages (`dispatchFailure.*`, `batchErrors.*`), not service sentences; Clone & Supersede goes through `supersedeMolecularBatchNow`, which moves the plate's in-house orders to the copy (mol-7, mol-9). After a dispatch the batch is Active (mol-6).
+
+## Batch 669 (ctl) — Control Rules is reachable without the Molecular screen
+`/molecular-control-rules` opens through `<ScreenGate screen="molecularControlRules">` (view or manage capability). The page reads with `listForReview` and shows `molecularControlRulesPage.listNotPermitted` if refused. Tests: `MolecularControlRulesPage.test.tsx`.

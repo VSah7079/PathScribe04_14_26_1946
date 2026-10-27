@@ -4,13 +4,13 @@ Built 17 October 2026 from a complete read of every README (367), the product do
 
 **Status key.** **Built**: works in the app and needs no server. **Built (Demo)**: works, but only against browser or mock storage or a development proxy; production needs the PathScribe server (not in this repo). **Partial**: some real parts work and the entry names what is missing. **Stub**: code exists but is a stub or is never called. **Planned**: scoped, not built. **Unverified**: documented, but not confirmed in code.
 
-## Totals: 707 distinct capabilities (from the full README read, plus the additions at the end of this file)
+## Totals: 720 distinct capabilities (from the full README read, plus the additions at the end of this file)
 
 | Status | Count |
 |---|---|
 | Built | 56 |
-| Built (Demo) | 651 |
-| Partial | 0 |
+| Built (Demo) | 661 |
+| Partial | 3 |
 | Stub | 0 |
 | Planned | 0 |
 | Unverified | 0 |
@@ -19,12 +19,12 @@ Built 17 October 2026 from a complete read of every README (367), the product do
 |---|---|---|---|---|---|---|---|
 | Case intake, grossing, histology and bench | 88 | 5 | 83 | 0 | 0 | 0 | 0 |
 | Synoptic reporting, report output and release | 57 | 3 | 54 | 0 | 0 | 0 | 0 |
-| Cytology, autopsy, molecular, intraoperative, Mohs, tumor board | 111 | 2 | 109 | 0 | 0 | 0 | 0 |
+| Cytology, autopsy, molecular, intraoperative, Mohs, tumor board | 115 | 2 | 111 | 2 | 0 | 0 | 0 |
 | Quality, compliance, dashboards and productivity | 111 | 0 | 111 | 0 | 0 | 0 | 0 |
-| Integration, server and platform | 101 | 12 | 89 | 0 | 0 | 0 | 0 |
+| Integration, server and platform | 104 | 12 | 92 | 0 | 0 | 0 | 0 |
 | Administration, configuration, roles and security | 81 | 16 | 65 | 0 | 0 | 0 | 0 |
 | AI, voice, language, billing and user experience | 94 | 12 | 82 | 0 | 0 | 0 | 0 |
-| Added by the final code-versus-inventory scan | 64 | 6 | 58 | 0 | 0 | 0 | 0 |
+| Added by the final code-versus-inventory scan | 70 | 6 | 63 | 1 | 0 | 0 | 0 |
 
 Counts are produced by reading each entry's Status line; sub-section headings are not counted. "Built (Demo)" works in the browser against mock storage or a development proxy; production needs the PathScribe server, which is not in this repository.
 
@@ -555,7 +555,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 ### Block exhaustion exception and pathologist response
 - What it does: A tech flags "Block exhausted" (block set Exhausted, append-only exceptionEvents) and the ordering pathologist is emailed (transport-only English message). Pathologist cancels, Modifies & Resubmits, or Approves Destructive Cutting (decision recorded only; does not reverse block status or gate the microtome page).
 - Workflow: Tech flags on the add-on page; pathologist responds on the dashboard.
-- Roles/permissions: tech flag needs none; `add-on:exception:approve-destructive-cut`; cancel/modify `add-on:order:place`.
+- Roles/permissions: tech flag needs `add-on:exception:flag` (Batch 669); `add-on:exception:approve-destructive-cut`; cancel/modify `add-on:order:place`. Mark Block Retrieved needs `add-on:block:mark-retrieved`. When the slide has no ordering pathologist (or none who can be e-mailed) the notice goes to the Supervisor / Accessioning Desk (Lab Director and Accessioner roles) instead.
 - Settings: Field Requirements (exception and response notes).
 - Status: Built (Demo) (Batch 610). A Block exhausted button on the Microtomy workstation flags the block and e-mails the pathologist (Simulated outbox without a mail server); cutting is blocked until the decision is recorded, and Cancel/Modify restore the block. Waiting on the server side: mail transport.
 - Sources: pages/AddOnOrderPage/README.md; services/addOnOrders/README.md; addOnOrderActions.ts
@@ -904,7 +904,7 @@ Paths: README paths are relative to /home/claude/work/src unless they start with
 - Sources: SR/modals/CriticalFindingsModal.tsx; services/clinical/mockCriticalResultNotificationService.ts, criticalFindingEmail.ts.
 
 ### Automated critical alerts (SMS, secure email, EHR push) and reference page
-- What it does: Resolves physician contact and channel by severity, dispatches, and keeps a per-case record. SMS/email carry no PHI (generic text plus opaque link); EHR push carries detail. Public page `/critical-alert/:token` shows only accession, physician, link status and time, records access and "Acknowledge Reviewed". Internal Audit Log > Critical Alerts tab joins dispatch to token history.
+- What it does: Resolves physician contact and channel by severity, dispatches, and keeps a per-case record. SMS/email carry no PHI (generic text plus opaque link); EHR push carries detail. Public page `/critical-alert/:token` shows only accession, physician, link status and time, records access and "Acknowledge Reviewed". Internal Audit Log > Critical Alerts tab joins dispatch to token history. The link's token is an opaque random string made in the browser and is not cryptographically signed; anyone who has the link can open it until it expires (Planned: server-issued, validated tokens, with the physician reaching the finding through their own EHR sign-in). The SMS, e-mail and EHR sends are stubs that only log (demonstration).
 - Workflow: Fires at sign-out when the human notification is recorded; physician taps link.
 - Roles/permissions: reference page unauthenticated by design; audit tab needs audit access.
 - Settings: physician contact and SMS carrier (Config > System > Physicians).
@@ -1299,6 +1299,38 @@ Paths: README paths are relative to /home/claude/work/src unless they start with
 Notation: "Batch N" = changelog batch in the READMEs. "Built (Demo)" = works in the app against browser/mock storage; a production server (API/SignalR/interface engine) is still required for the real thing. Keys like `cytology:report:sign-out` are capability keys in `src/services/authorization/capabilityCatalog.ts`. Entries are grouped: Cytology workflow, Cytology configuration, Cytology QC and QA, Screening/cancer registries, Autopsy, Molecular, Intraoperative/frozen/OR suite, Mohs and organ maps, Margins and inking, Tumor board/MDT.
 
 # A. CYTOLOGY WORKFLOW
+
+### hrHPV result inbound from a molecular platform
+- What it does: An hrHPV result (Positive, Negative or Invalid) from the molecular platform is applied to the cytology specimen, drives HPV-first triage, and is audited. An Invalid result keeps the case in HPV Triage with a "repeat test" label.
+- Workflow: Cytology Worklist > HPV Triage; interface engine inbound.
+- Roles/permissions: system event (no user); manual entry is a separate permission (see the next entry).
+- Settings: Cytology screening strategy (co-testing or primary HPV with reflex).
+- Status: Partial (Batch 629). Handling and contract built; the server route and engine channel are not.
+- Sources: docs/architecture/HPV_RESULT_INBOUND.md.
+
+
+### Manual hrHPV result entry with Result Source and second sign-off
+- What it does: Record Positive / Negative on the HPV Triage tile, for results that do not arrive by the interface. The person picks a required Result Source (paper report, interface downtime, telephoned result, back-entry); the entry is audited with who, when, the source and the earlier result. An entry that would replace an interface result waits for a different authorised person to approve or reject it.
+- Workflow: Cytology Worklist > HPV Triage.
+- Roles/permissions: `cytology:hpv-result:record-manual` (Pathologist, Lab Director; a lab grants it to others).
+- Settings: none.
+- Status: Built (Demo) (Batch 630). The browser side is complete and works against browser-side services. Waiting on the server side: the API server repeats the permission check, writes the audit entry and holds the pending state.
+- Sources: docs/architecture/HPV_RESULT_INBOUND.md section 7.
+
+### Self-collected HPV recall (Australia and New Zealand)
+- What it does: A self-collected hrHPV Positive or Invalid result goes to Recall needed with a priority (Urgent for HPV 16/18 or unreported type, Routine for other oncogenic types), a target window, the programme's recall wording and a recommendation code; an Invalid result asks for a repeat collection. The recall closes when the same patient has a later clinician-collected cervical sample. The data for a register message (collection method, 16/18/other genotype, recall recommendation) is assembled for the interface engine.
+- Workflow: Cytology Worklist > Recall needed.
+- Roles/permissions: view of the cytology worklist.
+- Settings: the performing lab's jurisdiction (AU or NZ), then the institution-wide Jurisdiction setting; cytology screening strategy (HPV-first).
+- Status: Partial (Batch 631). The recall rules, display and register content are built; the codes, windows and wording await programme sign-off; sending to NCSR / the NZ register is interface-engine work and is not built.
+- Sources: docs/architecture/HPV_RESULT_INBOUND.md section 8.
+### Reactive changes sign-out setting
+- What it does: One switch in Cytology Categories sets whether a cytotechnologist may sign out a negative GYN case with only reactive cellular changes, or a pathologist must review it.
+- Workflow: Configuration > System > Cytology Categories; cytology sign-out gate.
+- Roles/permissions: config:cytology-categories:manage.
+- Settings: the switch (stored on the three reactive-change categories).
+- Status: Built (Demo) (Batch 626). Applies to reviews recorded afterwards.
+- Sources: src/services/cytology/README.md.
 
 ### Cytology Workspace entry points and access
 - What it does: Cytology worklist at `/cytology-worklist` and per-case screening page at `/cytology-worklist/:caseId`. Both sit behind the `cytologyWorkspace` screen gate. The structured cytology workflow (review, sign-out, dispatch) opens only for cases in Orchestrator reporting mode; an Assist-mode case shows a blocking message. The workspace loads every Cytology/FNA specimen on the case (Draft or Signed out), opens the requested specimen or the first unsigned one, and falls back to jurisdiction US / modality WSI if none is set.
@@ -2734,7 +2766,7 @@ Status key used below: Built = works in the app; Built (Demo) = works against br
 - Sources: services/intraop/verbalReport.ts; services/clinical/mockCriticalResultNotificationService.ts; pages/SynopticReportPage CriticalFindingsModal.tsx.
 
 ### Critical alert dispatch and reference page
-- What it does: Resolves physician channel by severity and persists a dispatch record; SMS/secure e-mail carry no PHI (generic text plus opaque link). Public /critical-alert/:token page shows only accession, physician, status; Acknowledge Reviewed is audited. Channel adapters only log to console.
+- What it does: Resolves physician channel by severity and persists a dispatch record; SMS/secure e-mail carry no PHI (generic text plus opaque link). Public /critical-alert/:token page shows only accession, physician, status; Acknowledge Reviewed is audited. Channel adapters only log to console (stubs). The link's token is an opaque random string made in the browser and is not cryptographically signed; anyone who has the link can open it until it expires (Planned: server-issued, validated tokens, with the physician reaching the finding through their own EHR sign-in).
 - Workflow: fires when the human notification is recorded; Audit Log > Critical Alerts joins dispatch to access history.
 - Roles/permissions: reference page unauthenticated; audit tab needs audit screen access.
 - Settings: Physicians config.
@@ -3442,7 +3474,7 @@ Reading guide. "Server" means the planned PathScribe API server (ASP.NET Core ov
 - Sources: src/services/digitalPathology/README.md; src/services/imageAssociation/README.md; src/pages/BatchManagement/README.md; src/components/Config/System/VendorIntegrationsSection.tsx.
 
 ### Critical alert delivery channels (SMS, secure email, EHR push)
-- What it does: At sign-out the dispatcher resolves the physician's channel by severity and persists a dispatch record. SMS and secure email carry no PHI (fixed text plus an opaque reference link); EHR push carries finding and severity. Each channel's network call only logs to the console (method 'stub'). A generic-transport version (CRITICAL_ALERT through the engine, email-to-SMS gateway via physician carrier fields) is written but not wired (activation = three import swaps). Production EHR SSO hand-off from the reference link is not built.
+- What it does: At sign-out the dispatcher resolves the physician's channel by severity and persists a dispatch record. SMS and secure email carry no PHI (fixed text plus an opaque reference link); EHR push carries finding and severity. Each channel's network call only logs to the console (method 'stub'). A generic-transport version (CRITICAL_ALERT through the engine, email-to-SMS gateway via physician carrier fields) is written but not wired (activation = three import swaps). Production EHR SSO hand-off from the reference link is not built. The reference link's token is an opaque random string made in the browser, not cryptographically signed (Planned: server-issued, validated tokens).
 - Workflow: Admin sets physician carrier in Configuration > System > Physicians.
 - Roles/permissions: config:physicians:manage.
 - Settings: Physician.smsCarrier and smsCarrierOtherDomain.
@@ -3664,6 +3696,30 @@ Reading guide. "Server" means the planned PathScribe API server (ASP.NET Core ov
 - Settings: per jurisdiction and system.
 - Status: Built (Demo) (Batches 607, 614). Applied on Add Code, case coding display, sign-out, outbound messages, case search, specimen edit and the accession order message (a system that is off is hidden with a note). The browser side is complete and works against browser-side services; simulated outcomes are labelled Simulated.
 - Sources: src/services/coding/README.md; docs/architecture/DIAGNOSIS_CODING.md, KNOWN_GAPS.md; src/components/Config/System/CodeSystemsSection.tsx.
+
+### Licensed terminologies and real codes on abnormal rules
+- What it does: The customer records the SNOMED CT and ICD-O-3 licences it holds (on/off, holder, edition, reference, last valid day). An abnormal-result rule can hold a SNOMED CT and an ICD-O-3 code and term (shape checked: 6-18 digits; 4 digits, slash, 1 digit). At confirmation the rule's real code is attached only while that licence is on and unexpired; otherwise the TEST- code is attached. A real and a test code are never mixed for one code system. PathScribe ships no code sets.
+- Workflow: Admin: Configuration > System > Code Systems (card), Abnormal Trigger Rules (rule form); the pathologist confirms a finding at sign-out.
+- Roles/permissions: config:code-systems:manage (Admin, Lab Director) for the licence; config:abnormal-triggers:manage for the rule codes.
+- Settings: enterprise terminologyLicences; per-rule licensedCoding.
+- Status: Built (Demo) (Batch 623). The browser side is complete and works against browser-side services. Real codes for AI-narrative findings and per-facility licences are Planned.
+- Sources: src/services/terminologyLicence/README.md; src/services/abnormalDetection/README.md; src/components/Config/System/TerminologyLicencesCard.tsx.
+
+### Worklist digital-pathology wording and flag names in six languages
+- What it does: The digital readiness line, PathScribe's own AI lines (finding count, Review Recommended, No Further Review) and the 34 shipped flag names show in the user's language. Scanner failure reasons, AI vendor headlines and biomarker values are shown as received and never translated (Pete, Oct 19, 2026). Admin-made flags show as typed.
+- Workflow: Worklist (table and card views) and the slide detail drawer.
+- Roles/permissions: none beyond opening the Worklist.
+- Settings: none.
+- Status: Built (Demo) (Batch 624). Spoken summaries and flag description tooltips remain English; native review of the new text is pending.
+- Sources: src/services/digitalPathology/README.md; src/services/flags/README.md; src/components/Worklist/README.md.
+
+### Shared discordant review section
+- What it does: The sign-out Discordance window and the generic QA review form use one component for delta, severity (with hint), root cause, "other" note and narrative comment. The generic form shows its validation messages in the user's language.
+- Workflow: Sign-out Discordance window; Surgical Post-Sign-Out QA review.
+- Roles/permissions: unchanged.
+- Settings: Field Requirements (sign-out window).
+- Status: Built (Demo) (Batch 625). The sign-out window is not yet the generic form itself.
+- Sources: src/components/QualityAssurance/README.md.
 
 ### Uniform coded entry model (ICD-10/11 side by side)
 - What it does: One shape for a code in any system: system, release, code, display, source (typed, mapped, AI, rule, legacy), AI detail, mapped-from; ICD-11 clusters kept as one value; an adapter reads and writes the older CaseCoding fields. Terminology server, ICD-10 to ICD-11 maps, SNOMED/WHO licences and nightly terminology monitoring are not built.
@@ -3914,7 +3970,7 @@ Reading guide. "Server" means the planned PathScribe API server (ASP.NET Core ov
 - Sources: src/services/demoReset/README.md; src/components/Config/System/DemoResetTab.tsx; src/services/cases/README.md.
 
 ### Mock EMR window and mock WSI viewer
-- What it does: Simulated NHS-style EMR (/mock-emr?case=, MRN lookup, "No Patient Found" state) and a mock WSI viewer (/wsi-viewer) for demos; an EMR sidecar drawer on the report page shows EMR context from the mock service.
+- What it does: Simulated NHS-style EMR (/mock-emr?case=, MRN lookup, "No Patient Found" state) and a mock WSI viewer (/wsi-viewer) for demos; an EMR sidecar drawer on the report page shows EMR context from the mock service. There is no live EMR connection: every "Open EMR" / EMR launch button (for example on Cytology Screening) opens this mock page, SMART on FHIR is not built, and the EMR-inbox critical alert is a stub (Planned).
 - Workflow: Opened for demos.
 - Roles/permissions: none.
 - Settings: none.
@@ -4648,7 +4704,7 @@ Verification note: statuses below were checked against /home/claude/work/src (sy
 - Sources: Config/System/README.md; related services READMEs
 
 ### In-app Admin Guide and User Guide
-- What it does: About menu has User Guide and Admin Guide items that open embedded PDFs via blob URL (items disabled until loaded); rebuilt with scripts/Update-GuideAssets.ps1 into guideAssets.ts. The PDFs are edited outside the repo; docs/product holds ADMIN_GUIDE_JURISDICTIONS, KNOWN_GAPS, ACTIONS_COVERAGE and related admin documents.
+- What it does: The About menu's User Guide and Admin Guide items and the embedded PDFs were removed in Batch 669c; the guides open from the top-bar Help buttons. docs/product holds ADMIN_GUIDE_JURISDICTIONS, KNOWN_GAPS, ACTIONS_COVERAGE and related admin documents.
 - Workflow: any user opens About menu.
 - Roles/permissions: all.
 - Settings: none.
@@ -5511,7 +5567,7 @@ These entries were found by scanning every route, screen, folder, capability key
 ### Dialogs without an entry
 - **Station switch guard** (`StationSwitchGuardModal`): a scan that switches station with unsaved data pauses and offers Save & Switch, Discard & Switch or Cancel. Built (Demo).
 - **Batch print progress** (`BatchProgressModal`, Microtomy): real-time progress of "Print Batch" slide labels, one job at a time (PS-284). Built (Demo).
-- **Patient History** (`PatientHistoryModal`): a patient's prior cases by master patient identity, AI-matched similar cases, message-the-physician, with a two-identifier (name and date of birth) gate. Partial (Demo): matching by name is imperfect.
+- **Patient History** (`PatientHistoryModal`): a patient's prior cases by master patient identity, "AI Matched Cases" (a Demonstration: `findSimilarCases` scores the seeded demonstration cases with fixed rules, cut-off 40, top 5, and does not call a language model; Planned: a real model-backed search over the laboratory's own cases), message-the-physician, with a two-identifier (name and date of birth) gate. Partial (Demo): matching by name is imperfect.
 - **Biopsy array** (`CreateBiopsyArrayModal`): two or more cores into one shared cassette with ordered positions; editable. Built (Demo).
 - **AI review** (`AiReviewModal`): step through AI-extracted fields with Confirm, Override, Skip, Esc. Built (Demo) against the dev proxy.
 - **Cytology QC discrepancy** (`CytologyQcDiscrepancyModal`): primary and secondary diagnostic code, major or minor, reviewer commentary; shared by the QC queue and the screening page. Built (Demo).
@@ -5859,4 +5915,53 @@ These entries were found by scanning every route, screen, folder, capability key
 - Settings: schedules (Delivery Schedules) and billing release rules supply the times, deadlines and review reasons.
 - Status: Built (Demo) (Batch 619).
 - Sources: services/outboundQueue/; pages/OutboundQueuePage/; hooks/useOutboundQueue.ts.
+
+
+### UK cancer registry (COSD): destination, checks and correction window (PS-800)
+- What it does: Configuration > System > UK Cancer Registry (COSD). The enterprise default and each performing facility's own settings for the UK registry: how it is sent (a label: secure API, SFTP or portal upload) and how many working days (default 5, Monday to Friday, skipping the lab's own bank-holiday list) a rejected submission has to be corrected. The Outbound Queue shows the rejection with its correction due date. A sample check holds back what PathScribe can see is wrong (NHS number length and check digit, dates, ICD-O-3 shape, missing items) and shows a labelled preview, which is PathScribe's simplified model and not the official COSD file.
+- Workflow: Configuration > System > UK Cancer Registry (COSD); the Outbound Queue's registry feed reads the settings; resubmitting a correction is the queue's own retry with a reason.
+- Roles/permissions: `config:cosd-destination:manage` (Admin, Lab Director).
+- Settings: the destination settings; the registry's reporting deadline stays in Delivery Schedules.
+- Status: Built (Demo) (Batch 620 part C). Not the official COSD schema; the rules in `COSD_RULES_NEEDING_SPEC` still need the published NHS England / NCRAS specification; the real file, transport and acknowledgements are the interface engine's; nothing was tried against a real server or registry.
+- Sources: services/cosd/; components/Config/System/CosdDestinationSection.tsx; services/outboundQueue/registryFeedAdapter.ts.
+
+### AI extraction of historical reports (Batch 621)
+- What it does: when a historical case is opened in the patient history, the AI reads its Final Diagnosis and Microscopic text through the existing synoptic capability (`callAi`, feature `history-extraction`, so the PS-558 vendor policy applies) and shows the matched template (a guess) and its fields beside the text, labelled "AI-extracted, not verified". Cached by a hash of the text; runs in the background on open or refresh; a failure is recorded with a fixed code and never breaks the history. Advisory only: never read by reports, printing, registries, billing, rules or exports (`advisoryOnly.guard.test.ts`).
+- Workflow: Patient history > a historical case > the panel beside its text; "Check again" retries; "Flag as wrong" records a miss for accuracy measurement.
+- Roles/permissions: `ai:history-extraction:run` and `ai:history-extraction:flag` (Pathologist, Fellow, Resident).
+- Settings: Configuration > System > AI history extraction (off by default).
+- Status: Built (Demo) (Batch 621). Works against browser-side services; the server side is not built (contract `HISTORY_AI_EXTRACTION_API.md`). Not built: extraction when an Assist-mode LIS summary arrives (no user to authorise it).
+- Sources: services/historyExtraction/; services/aiIntegration/synopticFieldsPrompt.ts; components/PatientHistory/HistoryExtractionPanel.tsx.
+
+### AI history extraction setting (Batch 621)
+- What it does: Configuration > System > AI history extraction. Turns the AI reading of historical reports on or off for the enterprise, with a performing-facility override; off unless turned on. Shows accuracy counts (reports read, fields extracted, flagged as wrong).
+- Workflow: Configuration > System > AI history extraction.
+- Roles/permissions: `config:history-extraction:manage` (Admin, Lab Director).
+- Settings: the setting itself.
+- Status: Built (Demo) (Batch 621).
+- Sources: services/historyExtraction/; components/Config/System/HistoryExtractionSection.tsx.
+
+### US ePath state registry reporting (PS-800)
+- What it does: Configuration > US ePath. HL7 v2.5.1 ePath base message with a profile per state (required and optional fields, transport, checks, field extensions); routing by the performing facility's state; reports failing a check held for review with fixed codes; queue entries on the registry feed.
+- Workflow: Configuration > System > US ePath; the Outbound Queue's registry feed lists submissions.
+- Roles/permissions: `config:us-epath:manage` (Admin, Lab Director).
+- Settings: the profiles and each facility's choice.
+- Status: Built (Demo) (Batch 620 part E). Only an example profile ships; real state profiles and OBX identifiers to be confirmed against the NPCR guide.
+- Sources: services/usEpath/; services/hl7/epathBuilder.ts; components/Config/System/UsEpathSection.tsx.
+
+### Registry batch files (PS-800)
+- What it does: Configuration > System > Registry Batch Files. Profiles for screening programmes and registries that take a CSV or XML file: columns, delimiter, header row, file name pattern, formula-safe cells; make the file now; records missing a required field held back; run manifests with checksums; the registry's file-level answer applied to each record. NAACCR XML is a slot that cannot be turned on.
+- Workflow: Configuration > System > Registry Batch Files; the Outbound Queue's registry feed lists the programmes' submissions; the registry's delivery schedule says when a file is made.
+- Roles/permissions: `config:batch-registry-feed:manage` (Admin, Lab Director); `registry:batch-file:generate` (Admin).
+- Settings: the profiles; schedules stay in Delivery Schedules.
+- Status: Built (Demo) (Batch 620 part S). No real programme layout is shipped; NAACCR XML output Planned.
+- Sources: services/batchRegistryFeed/; components/Config/System/BatchRegistryFeedSection.tsx; services/screeningRegistry/submitScreeningRegistryResult.ts.
+
+### Spain and Spanish, the sixth language (Batch 622)
+- What it does: Spain as a jurisdiction (CIE-10-ES label, es-ES dates, 24-hour clock, DNI/NIE pattern) and Castilian Spanish as the sixth interface and report language, with the Español (España) voice profile, Spanish spoken punctuation, Spanish dictation refinement, the Spanish spell-check dictionary (RLA-ES, MPL-1.1) and a starter pathology word list.
+- Workflow: Configuration > Facilities > Jurisdiction (Spain); language switcher (ES); Configuration > Voice (profile); report language per facility.
+- Roles/permissions: the existing facility, voice and language settings; no new capability.
+- Settings: facility jurisdiction, report language, voice profile.
+- Status: Partial (Batch 622). The translation is AI-produced and needs native-speaker clinical review. Not built: Spanish cervical screening intervals and programmes, regional cancer registry profiles, e-invoicing, SNOMED CT Spanish edition, CIE-10-ES tables, Catalan, Basque and Galician.
+- Sources: i18n/locales/es.json; types/systemConfig.ts; constants/voiceProfiles.ts; contexts/punctuationMaps.ts; services/spellcheck/; spellcheck-data/es/.
 

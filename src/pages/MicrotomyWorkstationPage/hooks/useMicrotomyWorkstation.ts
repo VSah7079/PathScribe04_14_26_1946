@@ -25,7 +25,7 @@
 // and batch prints follow the grid's order.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
@@ -35,7 +35,8 @@ import { sendEmail } from '@/services/communications/notificationService';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { flagBlockExhaustion } from '@/utils/addOnOrderOperations';
 import { cuttingBlockedByExhaustion } from '@/utils/blockExceptionStates';
-import { userService, printerProfileService, printSettingsService, scanStationService, stainTypeService, slideLevelOf, updateCaseWithRetry, caseWriteDeps } from '@/services';
+import { deskRecipientsFor } from '@/services/addOnOrders/blockExceptionRouting';
+import { userService, authorizationService, printerProfileService, printSettingsService, scanStationService, stainTypeService, slideLevelOf, updateCaseWithRetry, caseWriteDeps } from '@/services';
 import { printSlideLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { wasSlideLabelOutput, markSlideLabelOutput } from '@/utils/labels/dispatchSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
@@ -56,6 +57,7 @@ import {
   reprintMicrotomyStain, reorderBlockStains, updateStainComment, updateBlockComment,
   setBlockAlertFlags, updateDecantCytologyFields, applyCytologyPrepSuggestions,
   addDecantStain, removeDecantStain, computeNextUnprintedStain, stainsInGridOrder,
+  updateDecantStainComment, reprintDecantStain, restoreStainOrder, MICROTOMY_UNDO_WINDOW_MS,
   markDecantStainPrinting, markDecantStainPrintResult,
   microtomyViewOf, microtomyCaseUpdates,
   type MicrotomyCancelReason, type MicrotomyOperationResult, type MicrotomyTarget, MICROTOMY_REPRINT_REASONS,
@@ -67,6 +69,15 @@ export type MicrotomyWorkItem =
   | { kind: 'decant'; caseData: Case; specimen: Specimen; decant: Decant };
 
 export type PrintMode = 'on_demand' | 'batch';
+
+/** Batch 669 (ws-6): the quick Undo shown after Remove or Reprint, and the line shown once it has been used. */
+export interface UndoNotice {
+  kind: 'removed' | 'reprinted' | 'removedUndone' | 'reprintedUndone';
+  stainName: string;
+  /** The cancel or reprint reason as stored (English), shown through `microtomyWorkstation.reasons.*`. */
+  reason?: string;
+}
+interface UndoEntry { parent: { kind: 'block' | 'decant'; id: string }; snapshot: StainOrder; index: number; kind: 'removed' | 'reprinted'; reason?: string }
 
 export interface BatchProgressEntry {
   stainId: string;
@@ -111,6 +122,11 @@ export function useMicrotomyWorkstation() {
   const [workItem, setWorkItem] = useState<MicrotomyWorkItem | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  /** Batch 669 (ws-4): why a Print/Etch Next did not print (or that the printer failed), shown on the page. */
+  const [printNotice, setPrintNotice] = useState<string | null>(null);
+  const [undoNotice, setUndoNotice] = useState<UndoNotice | null>(null);
+  const undoEntry = useRef<UndoEntry | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [printMode, setPrintMode] = useState<PrintMode>('on_demand');
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
   const [batchProgress, setBatchProgress] = useState<BatchProgressEntry[] | null>(null);
@@ -133,12 +149,23 @@ export function useMicrotomyWorkstation() {
     if (res.ok) setPrintMode(res.data.defaultPrintBehavior);
   }, []);
 
+  /** Closes the Undo toast (and forgets what it would restore). */
+  const dismissUndo = useCallback(() => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    undoEntry.current = null;
+    setUndoNotice(null);
+  }, []);
+  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
+
   const startWork = useCallback((item: MicrotomyWorkItem) => {
     versionRef.current = item.caseData.version ?? 0;
     setWorkItem(item);
     setSaveError(null);
+    setPrintNotice(null);
+    dismissUndo();
     setBatchSelection(new Set());
-  }, []);
+  }, [dismissUndo]);
 
   /** A scanned block, decant or matrix block (or one of their slides) becomes the work item. */
   const resolveScan = useCallback(async (rawScanValue: string): Promise<{ ok: true } | { ok: false; message: string }> => {
@@ -191,9 +218,11 @@ export function useMicrotomyWorkstation() {
     setWorkItem(null);
     setScanError(null);
     setSaveError(null);
+    setPrintNotice(null);
+    dismissUndo();
     setBatchSelection(new Set());
     setBatchProgress(null);
-  }, []);
+  }, [dismissUndo]);
 
   /** Applies `op` to the work item and saves it. Returns the work item as
    *  saved, or (saved: false) as it is now after a failed save; null when the
@@ -303,13 +332,19 @@ export function useMicrotomyWorkstation() {
     if (!workItem) return;
     const stains = workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains;
     const next = computeNextUnprintedStain(stains);
-    if (next) await dispatchAndRecordPrint(workItem, next.id);
-  }, [workItem, dispatchAndRecordPrint]);
+    if (!next) return;
+    // Batch 669 (ws-4): a refusal (block flagged exhausted, "could not start") or a printer failure is said on screen,
+    // not only in the grid; the batch and per-row Print use the progress window, which already showed it.
+    setPrintNotice(null);
+    const result = await dispatchAndRecordPrint(workItem, next.id);
+    if (!result.ok) setPrintNotice(result.message ?? t('microtomyWorkstation.hardware.couldNotStart'));
+  }, [workItem, dispatchAndRecordPrint, t]);
 
   /** "Print Selected" and Batch "Print Batch": one slide after another (one
    *  physical printer), in the grid's order (Batch 460: not the order ticked). */
   const handlePrintSelected = useCallback(async (stainIds: string[]) => {
     if (!workItem || stainIds.length === 0) return;
+    setPrintNotice(null);
     const stains = workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains;
     const ordered = stainsInGridOrder(stains, stainIds);
     setBatchProgress(ordered.map(s => ({ stainId: s.id, stainName: s.stainName, status: 'pending' })));
@@ -356,16 +391,25 @@ export function useMicrotomyWorkstation() {
     }
   }, [workItem, persistOp, stainTypes]);
 
+  /** Batch 669 (ws-6): offers a quick Undo for the change just saved (Remove or Reprint), for MICROTOMY_UNDO_WINDOW_MS. */
+  const offerUndo = useCallback((entry: UndoEntry) => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoEntry.current = entry;
+    setUndoNotice({ kind: entry.kind, stainName: entry.snapshot.stainName, reason: entry.reason });
+    undoTimer.current = setTimeout(dismissUndo, MICROTOMY_UNDO_WINDOW_MS);
+  }, [dismissUndo]);
+
   const performRemoveStain = useCallback(async (stainId: string, reason?: MicrotomyCancelReason) => {
     if (!workItem) return;
-    if (workItem.kind === 'block') {
-      const blockId = workItem.block.id;
-      await persistOp(workItem, sp => removeMicrotomyStain(sp, blockId, stainId, reason));
-    } else {
-      const decantId = workItem.decant.id;
-      await persistOp(workItem, sp => removeDecantStain(sp, decantId, stainId, reason));
-    }
-  }, [workItem, persistOp]);
+    const parent = { kind: workItem.kind, id: workItem.kind === 'block' ? workItem.block.id : workItem.decant.id };
+    const before = (workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains);
+    const index = before.findIndex(s => s.id === stainId);
+    const snapshot = before[index];
+    const saved = workItem.kind === 'block'
+      ? await persistOp(workItem, sp => removeMicrotomyStain(sp, parent.id, stainId, reason))
+      : await persistOp(workItem, sp => removeDecantStain(sp, parent.id, stainId, reason));
+    if (saved?.saved && snapshot) offerUndo({ parent, snapshot, index, kind: 'removed', reason });
+  }, [workItem, persistOp, offerUndo]);
 
   const requestRemoveStain = useCallback((stainId: string) => {
     if (!workItem) return;
@@ -390,12 +434,35 @@ export function useMicrotomyWorkstation() {
   const cancelPendingRemoval = useCallback(() => setPendingRemoval(null), []);
 
   const handleReprint = useCallback(async (stainId: string, reason: typeof MICROTOMY_REPRINT_REASONS[number]) => {
-    if (!workItem || workItem.kind !== 'block') return; // A decant slide uses removeDecantStain's reason gate instead.
-    const blockId = workItem.block.id;
-    const saved = await persistOp(workItem, sp => reprintMicrotomyStain(sp, blockId, stainId, reason, actor.id));
+    if (!workItem) return;
+    // Batch 669 (ws-2): a decant slide is reprinted too (before, nothing happened for a decant).
+    const parent = { kind: workItem.kind, id: workItem.kind === 'block' ? workItem.block.id : workItem.decant.id };
+    const before = workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains;
+    const index = before.findIndex(s => s.id === stainId);
+    const snapshot = before[index];
+    setPrintNotice(null);
+    const saved = workItem.kind === 'block'
+      ? await persistOp(workItem, sp => reprintMicrotomyStain(sp, parent.id, stainId, reason, actor.id))
+      : await persistOp(workItem, sp => reprintDecantStain(sp, parent.id, stainId, reason, actor.id));
+    if (!saved?.saved) return;
     // The reprint reason and count are saved before a duplicate label is printed.
-    if (saved?.saved) await dispatchAndRecordPrint(saved.item, stainId, true);
-  }, [workItem, persistOp, dispatchAndRecordPrint, actor.id]);
+    const result = await dispatchAndRecordPrint(saved.item, stainId, true);
+    if (!result.ok) setPrintNotice(result.message ?? t('microtomyWorkstation.hardware.couldNotStart'));
+    // Batch 669 (ws-6): a quick Undo instead of a confirmation click. It puts the slide's record back; a label that
+    // already came out of the printer has to be discarded by hand (the toast says so).
+    if (snapshot) offerUndo({ parent, snapshot, index, kind: 'reprinted', reason });
+  }, [workItem, persistOp, dispatchAndRecordPrint, actor.id, offerUndo, t]);
+
+  /** Batch 669 (ws-6): Undo for the last Remove or Reprint (within the window). */
+  const undoLast = useCallback(async () => {
+    const entry = undoEntry.current;
+    if (!entry || !workItem) { dismissUndo(); return; }
+    dismissUndo();
+    const restored = await persistOp(workItem, sp => restoreStainOrder(sp, entry.parent, entry.snapshot, entry.index));
+    if (!restored?.saved) return;
+    setUndoNotice({ kind: entry.kind === 'removed' ? 'removedUndone' : 'reprintedUndone', stainName: entry.snapshot.stainName });
+    undoTimer.current = setTimeout(dismissUndo, MICROTOMY_UNDO_WINDOW_MS);
+  }, [workItem, persistOp, dismissUndo]);
 
   const handleReorder = useCallback(async (orderedStainIds: string[]) => {
     if (!workItem || workItem.kind !== 'block') return;
@@ -405,9 +472,15 @@ export function useMicrotomyWorkstation() {
 
   // ── Comments ─────────────────────────────────────────────────────────────
   const handleAddStainComment = useCallback(async (stainId: string, text: string, printsOnLabel: boolean) => {
-    if (!workItem || workItem.kind !== 'block') return;
-    const blockId = workItem.block.id;
-    await persistOp(workItem, sp => updateStainComment(sp, blockId, stainId, text, printsOnLabel, actor));
+    if (!workItem) return;
+    // Batch 669 (ws-2): a decant slide takes a comment too (block comments, alert badges and Block exhausted stay block-only).
+    if (workItem.kind === 'block') {
+      const blockId = workItem.block.id;
+      await persistOp(workItem, sp => updateStainComment(sp, blockId, stainId, text, printsOnLabel, actor));
+    } else {
+      const decantId = workItem.decant.id;
+      await persistOp(workItem, sp => updateDecantStainComment(sp, decantId, stainId, text, printsOnLabel, actor));
+    }
   }, [workItem, persistOp, actor]);
 
   const handleAddBlockComment = useCallback(async (text: string) => {
@@ -429,7 +502,10 @@ export function useMicrotomyWorkstation() {
           const saved = await persistOp(workItem, sp => flagBlockExhaustion(sp, blockId, order.id, 'Block exhausted', note.trim() || undefined, actor));
           if (!saved?.saved) throw new Error('not-saved');
         },
+        enforce: (capability, context) => authorizationService.enforce(capability, context),
         getUserEmail: async id => { const r = await userService.getById(id); return r.ok ? r.data.email : undefined; },
+        // Batch 669 (ws-3): no ordering pathologist to e-mail: the Supervisor / Accessioning Desk is told instead.
+        getDeskRecipients: async c => { const r = await userService.getAll(); return deskRecipientsFor(c, r.ok ? r.data : []); },
         sendEmail,
       });
     } catch {
@@ -465,7 +541,7 @@ export function useMicrotomyWorkstation() {
   }, [workItem]);
 
   return {
-    workItem, scanError, saveError, resolveScan, selectBlockDirectly, clearWorkItem,
+    workItem, scanError, saveError, printNotice, undoNotice, undoLast, dismissUndo, resolveScan, selectBlockDirectly, clearWorkItem,
     printMode, setPrintMode, loadDefaultPrintMode,
     batchSelection, setBatchSelection, batchProgress, clearBatchProgress,
     stainTypes, loadStainTypes,

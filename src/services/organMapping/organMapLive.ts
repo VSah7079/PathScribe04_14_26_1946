@@ -8,9 +8,9 @@
 
 import { derivedMarginAnswers } from './organMapDerivedAnswers';
 import { getTemplateCached } from '../templates/templateService';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { caseWriteDeps } from '../cases/caseWriteDeps';
 import { resolveOrganMapBinding, type OrganMapBinding } from './organMapBindings';
 import { browserOrganMapConfigStore, organMapSchemeFor, type OrganMapConfigDeps } from './organMapConfig';
@@ -37,7 +37,7 @@ export async function loadOrganMapContext(input: { templateId: string; facilityI
   const template = (detail?.template ?? null) as OrganMapContext['template'];
   let jurisdiction: string | null = null;
   if (input.facilityId) {
-    const f = await mockFacilityService.getById(input.facilityId).catch(() => null);
+    const f = await facilityService.getById(input.facilityId).catch(() => null);
     jurisdiction = f && f.ok ? ((f.data as { jurisdiction?: string }).jurisdiction ?? null) : null;
   }
   const store = browserOrganMapConfigStore;
@@ -51,7 +51,7 @@ export async function loadOrganMapContext(input: { templateId: string; facilityI
 export function organMapConfigDeps(userName: string): OrganMapConfigDeps {
   return {
     enforce: (capability, context) => authorizationService.enforce(capability as never, (context ?? {}) as never),
-    logAudit: entry => mockAuditService.logEvent(entry as never),
+    logAudit: entry => auditService.logEvent(entry as never),
     userName,
     store: browserOrganMapConfigStore,
   };
@@ -60,7 +60,7 @@ export function organMapConfigDeps(userName: string): OrganMapConfigDeps {
 export const organMapFigureDeps: OrganMapFigureDeps = {
   ...caseWriteDeps,
   enforce: (capability, context) => authorizationService.enforce(capability as never, context as never),
-  logAudit: entry => mockAuditService.logEvent(entry as never),
+  logAudit: entry => auditService.logEvent(entry as never),
   now: () => new Date(),
   newId: () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
 };
@@ -90,7 +90,7 @@ export async function findStaleOrganMapFigures(caseData: Pick<Case, 'organMapFig
 export async function loadOrganMapScheme(facilityId: string | null | undefined): Promise<ResolvedOrganMapScheme> {
   let jurisdiction: string | null = null;
   if (facilityId) {
-    const f = await mockFacilityService.getById(facilityId).catch(() => null);
+    const f = await facilityService.getById(facilityId).catch(() => null);
     jurisdiction = f && f.ok ? ((f.data as { jurisdiction?: string }).jurisdiction ?? null) : null;
   }
   return organMapSchemeFor(browserOrganMapConfigStore, { facilityId: facilityId ?? null, jurisdiction });

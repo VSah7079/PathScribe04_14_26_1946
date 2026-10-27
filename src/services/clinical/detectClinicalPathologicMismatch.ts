@@ -68,12 +68,18 @@ export interface ClinicalMismatchInput {
   gynScreening?: boolean;
 }
 
+/** Batch 683: a quote the model gave, and whether those exact words are in the case text (a quote that is not is never trusted). */
+export interface EvidenceQuote { text: string; found: boolean }
+export interface ClinicalMismatchEvidence { clinical?: EvidenceQuote; pathology?: EvidenceQuote }
+
 export interface ClinicalMismatchSuggestion {
   kind: ClinicalMismatchKind;
   /** The model's own explanation (data from the model, shown as written). Absent for the rule-based check. */
   explanation?: string;
   /** 0-100. */
   confidence: number;
+  /** Batch 683: the words on each side that conflict, copied by the model and checked against the case text. Absent for the rule-based check. */
+  evidence?: ClinicalMismatchEvidence;
   source: 'ai' | 'rule';
   /** Batch 536: the version of the approved AI instructions the AI answered (0: PathScribe's own). */
   instructionVersion?: number;
@@ -143,18 +149,32 @@ ${data}
 
 ${rules}
 
-Return JSON: { "mismatch": true | false, "kind": ${kinds}, "explanation": "one or two sentences quoting what conflicts", "confidence": 0-100 }`;
+Return JSON: { "mismatch": true | false, "kind": ${kinds}, "explanation": "one or two sentences quoting what conflicts", "clinicalQuote": "exact words copied from the clinical side", "pathologyQuote": "exact words copied from the pathology side", "confidence": 0-100 }
+The two quotes must be exact, verbatim pieces of the text above (at most 20 words each), never paraphrased; use "" when there is none.`;
 }
 
 /** Reads the model's answer defensively: an unknown kind, or a confidence outside 0–100, never passes through. */
-export function parseMismatchResponse(raw: string): ClinicalMismatchSuggestion | null {
+export function parseMismatchResponse(raw: string, sources?: { clinical: string; pathology: string }): ClinicalMismatchSuggestion | null {
   const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
   if (!parsed?.mismatch) return null;
   const kind: ClinicalMismatchKind = KINDS.includes(parsed.kind) ? parsed.kind : 'other';
   const confidence = Math.max(0, Math.min(100, Number(parsed.confidence) || 0));
   if (confidence < MIN_AI_CONFIDENCE) return null;
   const explanation = typeof parsed.explanation === 'string' ? parsed.explanation.slice(0, 400) : undefined;
-  return { kind, confidence, source: 'ai', ...(explanation ? { explanation } : {}) };
+  const evidence = sources ? mismatchEvidence(parsed, sources) : undefined;
+  return { kind, confidence, source: 'ai', ...(explanation ? { explanation } : {}), ...(evidence ? { evidence } : {}) };
+}
+
+const normaliseForQuote = (v: string) => v.toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, ' ').trim();
+
+/** Batch 683: the model's two quotes, each checked against the text it should come from (pure). */
+export function mismatchEvidence(parsed: { clinicalQuote?: unknown; pathologyQuote?: unknown }, sources: { clinical: string; pathology: string }): ClinicalMismatchEvidence | undefined {
+  const one = (q: unknown, source: string): EvidenceQuote | undefined => {
+    const text = typeof q === 'string' ? q.trim().slice(0, 200) : '';
+    return text ? { text, found: normaliseForQuote(source).includes(normaliseForQuote(text)) } : undefined; // the whole quote must be there, not just its first words
+  };
+  const clinical = one(parsed.clinicalQuote, sources.clinical), pathology = one(parsed.pathologyQuote, sources.pathology);
+  return clinical || pathology ? { ...(clinical ? { clinical } : {}), ...(pathology ? { pathology } : {}) } : undefined;
 }
 
 /**
@@ -171,7 +191,7 @@ export async function askAiForMismatch(
     maxTokens: 400,
     context,
   });
-  const parsed = parseMismatchResponse(text);
+  const parsed = parseMismatchResponse(text, { clinical: `${input.clinicalIndication} ${input.clinicalHistory} ${input.frozenImpression ?? ''}`, pathology: `${input.microscopic} ${input.diagnosis}` });
   return parsed ? { ...parsed, instructionVersion: instructions.version } : null;
 }
 

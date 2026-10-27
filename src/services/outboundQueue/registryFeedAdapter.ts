@@ -31,7 +31,8 @@ const DAY_MS = 86_400_000;
 type Row = CancerRegistryOutboundQueueEntry;
 
 /** The registry entry in the common shape. Pure. */
-export function registryEntryToFeedEntry(e: Row, transport: OutboundTransport = 'restMtls', amendsId?: string): OutboundFeedEntry {
+export function registryEntryToFeedEntry(e: Row, defaultTransport: OutboundTransport = 'restMtls', amendsId?: string): OutboundFeedEntry {
+  const transport: OutboundTransport = e.transport ?? defaultTransport;
   const acks = e.acknowledgements ?? [];
   const last = acks[acks.length - 1];
   const rejected = e.registryStatus === 'rejectedRecoverable' || e.registryStatus === 'rejectedFatal';
@@ -44,8 +45,10 @@ export function registryEntryToFeedEntry(e: Row, transport: OutboundTransport = 
     // The demo's queue holds no sign-out time; the submission is queued at sign-out, so that stands in.
     signedOutAt: e.queuedAt, transport,
     ...(amendsId ? { amendsId } : {}),
+    // Batch 620 (part E): the US ePath state profile parked it for a person (fixed codes only).
+    ...(e.errorCode === 'HOLD_EPATH_PROFILE' ? { registryReview: { codes: e.reviewCodes ?? [] } } : {}),
     ...(accepted && last ? { acknowledgedAt: last.receivedAt } : {}),
-    ...(rejected ? { rejection: { errorCodes: codes, fatal: e.registryStatus === 'rejectedFatal', correctionDueAt: new Date(Date.parse(last?.receivedAt ?? e.queuedAt) + CORRECTION_DAYS * DAY_MS).toISOString() } } : {}),
+    ...(rejected ? { rejection: { errorCodes: codes, fatal: e.registryStatus === 'rejectedFatal', rejectedAt: last?.receivedAt ?? e.queuedAt, correctionDueAt: new Date(Date.parse(last?.receivedAt ?? e.queuedAt) + CORRECTION_DAYS * DAY_MS).toISOString() } } : {}),
   };
 }
 

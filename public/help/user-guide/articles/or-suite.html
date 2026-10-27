@@ -1,0 +1,278 @@
+<h1 id="top">OR Suite Display</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The OR Suite display is a wall screen for an operating room or a group of rooms. It lists every frozen section request in progress for that room: how long the tissue has been in the laboratory, which step it has reached, and, once the pathologist has given the frozen section diagnosis, the preliminary result for the surgical team. The OR staff can log that a verbal report was given and, after reading the result back to the surgeon, dismiss the case from the board.</p>
+<p><strong>Intended users.</strong> Operating room nursing and support staff who watch the board and act on it, pathologists and bench staff whose work feeds it, and the administrator who sets up each terminal. The board is a shared screen, so it does not use a personal sign-in. Each action on it (logging a verbal report, dismissing a case) is attributed to a person by a four-digit PIN.</p>
+<p><strong>Where it fits.</strong> The rows come from the frozen sections recorded in the <a href="/help/intraop-queue">Intraop Queue</a>: the specimen's arrival, gross, touch prep, frozen section cut and diagnosis. Record the work there; the board follows. Once the case is formally accessioned, the frozen results travel with it into the <a href="/help/report">report</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration controls on the board</p>
+<p>The board has a <strong>Start demo</strong> button. It adds four demonstration frozen sections (named "DEMO" cases, labelled "Demo mode — not real patient data" while running) to the board's location, so a salesperson or trainer can show every state, and then advances one of them every 25 seconds. <strong>Stop demo</strong> stops the advancing and removes the demonstration cases it added, so nothing invented stays in the intraoperative data. Both buttons need the permission "Run the OR Suite demo" (given to administrators by default); without it the button is greyed out, and its tooltip names the permission. Do not use it on a board that staff are relying on: while the demonstration runs, its four DEMO rows sit among the real cases.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/or-suite-overview.png" alt="The OR Suite display with a header, three in-progress rows and one completed row awaiting dismissal"><figcaption>The OR Suite display with a header, three in-progress rows and one completed row awaiting dismissal</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>First start (setup).</strong> The first time a screen opens it shows <strong>Bind this display</strong>: "Select which OR Suite Terminal this monitor represents. This binding is sticky — it survives reloads and restarts." Choose a terminal from "— select terminal —", then type the Display Token an administrator issued for that terminal (<strong>Enter Display Token</strong>, <strong>Confirm</strong>, <strong>Back</strong>). If no terminal exists the screen says "No terminals configured yet — add one under System Configuration." If the token is wrong, expired or revoked the screen says so and a revoked or expired display goes blank with <strong>Display unavailable</strong> and <strong>Enter a new token</strong>. The board re-checks its token about once a minute.</p>
+<p><strong>Header</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OR suite terminal / terminal name</td>
+<td>The terminal this screen is bound to.</td>
+</tr>
+<tr>
+<td>Location line</td>
+<td>The terminal's location, for example "OR Suite · Room 3".</td>
+</tr>
+<tr>
+<td>Connection badge</td>
+<td><strong>Live</strong> (changes from every display appear at once), <strong>Connecting…</strong>, <strong>Reconnecting…</strong>, <strong>Offline</strong> (refreshing every 15 seconds meanwhile) or <strong>Local updates</strong> (no live-update server: this computer's windows update at once, other screens every 15 seconds). Hold the pointer over it for the explanation.</td>
+</tr>
+<tr>
+<td>Demo mode badge</td>
+<td>"Demo mode — not real patient data". Shown only while the demonstration is running.</td>
+</tr>
+<tr>
+<td>Start demo / Stop demo</td>
+<td>Described above.</td>
+</tr>
+<tr>
+<td>Multi-suite overview</td>
+<td>A tick box, shown only if the terminal was given the multi-suite privilege.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Multi-suite overview.</strong> When ticked, a list appears of the locations of the terminal's facility ("Point of care — Room"). Select one or more (hold Ctrl or Command to choose several). The board then shows the rows from all the chosen locations instead of its own. With none chosen, it shows its own location.</p>
+<p><strong>Each row (one per specimen).</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Large label</td>
+<td>The OR number, and the location after a dot when it differs. The patient's name and MRN are deliberately not shown on the wall.</td>
+</tr>
+<tr>
+<td>Small line</td>
+<td>"Specimen A · Surgeon: Dr. … · Pathologist: Dr. …".</td>
+</tr>
+<tr>
+<td>Timer</td>
+<td>Minutes and seconds (m:ss) counted up from the time the tissue arrived. It runs while the diagnosis is outstanding and stops at the moment the diagnosis was rendered.</td>
+</tr>
+<tr>
+<td>Step</td>
+<td><strong>Grossing</strong>, <strong>Touch Prep</strong>, <strong>Sectioning</strong> or <strong>Pathologist Review</strong>, from the latest step logged for the specimen: nothing yet is Grossing; gross logged is Touch Prep; touch prep performed or skipped is Sectioning; frozen section cut is Pathologist Review.</td>
+</tr>
+<tr>
+<td>Result line</td>
+<td>Once a diagnosis is rendered, "PRELIMINARY: <diagnosis>" replaces the step.</td>
+</tr>
+<tr>
+<td><strong>In progress</strong> (inactive button) and <strong>Log verbal report</strong></td>
+<td>Shown on a row that has no diagnosis yet.</td>
+</tr>
+<tr>
+<td><strong>Dismiss case</strong></td>
+<td>Shown on a row that has a diagnosis.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The clock.</strong> The target time and the warning come from your laboratory's turnaround settings for the frozen section, which can differ by facility and between STAT and routine specimens. If none is set, the board uses 20 minutes with a warning for the last 5. The clock counts from the specimen's arrival.</p>
+<ul>
+<li>More than the warning time left: the row is plain.</li>
+<li>Within the warning time: the row shows the warning colour.</li>
+<li>Time is up: the row shows the overdue colour.</li>
+<li>Diagnosis rendered: the row takes its completed look and flashes three times, once only, the moment the diagnosis first appears, whichever device it was entered on.</li>
+</ul>
+<p>The board makes no sound. All signals are visual.</p>
+<h3 id="toolbar">Toolbar</h3>
+<p>The only buttons on the board are in the header (Start demo, Stop demo, the Multi-suite tick box) and on rows (Log verbal report, Dismiss case). Windows opened from rows are described under Procedures.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain row</td>
+<td>In progress, inside the target.</td>
+</tr>
+<tr>
+<td>Warning-coloured row</td>
+<td>In progress, in the last minutes before the target (5 by default).</td>
+</tr>
+<tr>
+<td>Overdue-coloured row</td>
+<td>In progress, past the target.</td>
+</tr>
+<tr>
+<td>Completed row ("PRELIMINARY: …")</td>
+<td>The diagnosis was given; the timer is frozen; <strong>Dismiss case</strong> is available.</td>
+</tr>
+<tr>
+<td>Row sliding out</td>
+<td>The case was dismissed; it leaves the board after about 0.4 second.</td>
+</tr>
+<tr>
+<td>Connection badge</td>
+<td>Live / Connecting… / Reconnecting… / Offline / Local updates.</td>
+</tr>
+<tr>
+<td>"No active frozen section requests right now."</td>
+<td>Nothing is on the board for this location.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Loading terminal…</strong> appears for a moment when the dashboard opens on a computer that is already set up as an OR terminal, while PathScribe checks that the terminal is still allowed. A computer that has not been set up shows the terminal set-up screen instead.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None. The board is operated by touch or mouse and the PIN pad is the keyboard.</p>
+<h3 id="which-specimens-appear">Which specimens appear</h3>
+<p>A specimen is on the board when its frozen section entry was recorded in the Intraop Queue with the location of this terminal (or one of the locations chosen in the Multi-suite overview), has not been dismissed, and has not been merged into a formal case. Dismissed and merged specimens leave the board. If an entry was recorded without a location, it never appears on any board.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Setting up the board (administrator or lead)</strong></p>
+<ol>
+<li>Ask your administrator to create the OR Suite Terminal and issue its Display Token (Configuration, System).</li>
+<li>Open the board page on the wall unit. Choose the terminal and type the token. The board starts and stays bound after restarts.</li>
+</ol>
+<p><strong>Watching the board</strong></p>
+<ol>
+<li>Look at the timer and the row colour. A warning or overdue row is a frozen section close to or past its target.</li>
+<li>Read the step. Pathologist Review means the frozen block is cut and waiting for the pathologist.</li>
+<li>When a row flashes and shows "PRELIMINARY: …", the diagnosis is ready.</li>
+</ol>
+<p><strong>Logging a verbal report</strong></p>
+<ol>
+<li>On a row that has no diagnosis yet, select <strong>Log verbal report</strong>. The window <strong>Verify identity</strong> opens: "Enter your 4-digit PIN to log this verbal report."</li>
+<li>Type your PIN (shown as dots) and select <strong>Continue</strong>. It is accepted for staff holding the OR staff role. If not, you see "PIN not recognized." or "This PIN does not belong to OR staff."</li>
+<li>The window now reads "Verbal report — <your name>". Check the <strong>Surgeon name</strong> (pre-filled with the surgeon on the case) and add a <strong>Note (optional)</strong>.</li>
+<li>Select <strong>Log verbal report</strong>. The window closes and the entry is recorded against your name.</li>
+</ol>
+<p><strong>Dismissing a case</strong></p>
+<ol>
+<li>When the row shows the preliminary diagnosis and the result has been read back to the surgical team, select <strong>Dismiss case</strong>.</li>
+<li>In <strong>Verify identity</strong>, type your 4-digit PIN ("Enter your 4-digit PIN to dismiss this case.") and select <strong>Continue</strong>.</li>
+<li>The window <strong>Confirm dismissal</strong> shows the Case ID (the OR number), the OR room and the Preliminary diagnosis for you to check.</li>
+<li>Tick <strong>Verbal result read-back confirmed with the surgical team</strong>. <strong>Confirm &amp; dismiss</strong> stays inactive until you do.</li>
+<li>Select <strong>Confirm &amp; dismiss</strong>. The row slides off the board. The dismissal is recorded with your name, the time the board was held, and the total turnaround.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Select <strong>Multi-suite overview</strong> (if the terminal has it) at a central desk to watch several rooms on one screen, then choose the rooms from the list.</li>
+<li>Cancel at any step: <strong>Cancel</strong> (or <strong>Cancel</strong> on the dismissal windows) closes the window and nothing is recorded. Selecting outside the window also closes it.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The PIN is refused.</strong> Check you typed four digits. "PIN not recognized." means no one has that PIN. "This PIN does not belong to OR staff." means the PIN belongs to someone without the OR staff role. Ask your administrator to check your PIN and role in the Staff settings.</li>
+<li><strong>A specimen is missing from the board.</strong> It was recorded without this terminal's location, was merged into a case, or was already dismissed. Check the entry in the <a href="/help/intraop-queue">Intraop Queue</a>.</li>
+<li><strong>Dismiss case does not appear.</strong> The diagnosis has not been recorded. The case can be dismissed only after it has one.</li>
+<li><strong>A row never changes colour.</strong> The timer is frozen once the diagnosis is rendered; before that it changes colour only when the target time approaches.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"Could not dismiss this case. Try again." The dismissal was refused (for example the diagnosis is missing or the entry changed). Close the window and reopen the dismissal.</li>
+<li>"The case was dismissed, but the dismissal could not be written to the event log." The row is gone, but the record of who dismissed it, the read-back and the turnaround was not saved. A red message stays at the top of the board until you close it. Tell your supervisor so the dismissal can be recorded by hand.</li>
+<li>"The demo could not be started" or "The demo cases could not be removed from the board." The demo needs its own permission. If Stop demo cannot remove the cases, ask an administrator to remove them.</li>
+<li>If the board seems frozen, check the connection badge. When it reads <strong>Offline</strong>, rows refresh every 15 seconds; reload the page if it stays that way.</li>
+<li>If you dismissed the wrong case, tell the pathologist and the Intraop Queue user. There is no undo on the board.</li>
+<li>If you logged a verbal report in error, tell your supervisor; the log entry cannot be edited on the board.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Dismiss only after the read-back</p>
+<p>Dismissing removes the case from the board for everyone. Confirm that the surgeon has heard the result and has read it back before you tick the read-back box. The tick is recorded with your name.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Do not share your PIN</p>
+<p>The PIN is what attributes a verbal report or a dismissal to you. Anyone who knows it can act as you on the board.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Starting the demonstration on a live board. The four DEMO rows sit among the real cases until you select Stop demo.</li>
+<li>Recording the frozen section without a location. The board never shows it.</li>
+<li>Dismissing before the read-back, because the row looks finished.</li>
+<li>Expecting a patient name. Only the OR number and location are shown, on purpose.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Keep the PIN pad within reach: each action needs only the PIN, a tick and one confirmation.</li>
+<li>Use the multi-suite overview at the central desk and single-room boards in each room.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Log a verbal report as soon as it is given, not at the end of the case.</li>
+<li>Agree in the department what a warning row means, so the bench knows when to prioritise a frozen section.</li>
+<li>Review the overdue rows after each list to learn where time is lost.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/intraop-queue">Intraop Queue</a>: where the specimen, the steps and the frozen diagnosis are recorded. The board shows what is recorded there.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: the formal case that the frozen section merges into.</li>
+<li><a href="/help/facility-operations">Facility Operations Display</a>: the other wall display, for bench departments.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No terminals configured yet"</td>
+<td>No OR Suite Terminal has been created.</td>
+</tr>
+<tr>
+<td>Display blank, "Display unavailable"</td>
+<td>The Display Token was revoked or expired.</td>
+</tr>
+<tr>
+<td>A request is not on the board</td>
+<td>Entry has no location, wrong location, merged or dismissed.</td>
+</tr>
+<tr>
+<td>Timer does not start from the time of the biopsy</td>
+<td>It counts from the specimen's recorded arrival time.</td>
+</tr>
+<tr>
+<td>Row is plain although it feels late</td>
+<td>Your laboratory's target is longer than you expect, or the specimen is routine rather than STAT.</td>
+</tr>
+<tr>
+<td>Rows from the demonstration are on a live board</td>
+<td>The demonstration was started. Select Stop demo to remove them. If the demonstration was left running when the page was closed, an administrator can open the board and select Start demo then Stop demo to clear them.</td>
+</tr>
+<tr>
+<td>Badge says Local updates</td>
+<td>No live-update server is connected; other screens refresh every 15 seconds.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check the connection badge.</li>
+<li>Reload the page. The binding is kept.</li>
+<li>Check the specimen in the Intraop Queue (location, arrival time, diagnosis).</li>
+<li>Ask the administrator to check the terminal, the token, and your PIN.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a frozen section is missing from the board although it has the right location, when times on the board are wrong, or when a dismissal is refused repeatedly. Have the OR number, the specimen label and the time ready.</p>

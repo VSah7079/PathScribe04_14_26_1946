@@ -5,19 +5,14 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { HeldRelease } from '@/types/reportRelease/HeldRelease';
+import type { IHeldReleaseService } from './IHeldReleaseService';
 
 const STORAGE_KEY = 'held_report_releases';
 const load = (): HeldRelease[] => storageGet<HeldRelease[]>(STORAGE_KEY, []);
 const persist = (data: HeldRelease[]) => storageSet(STORAGE_KEY, data);
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-export interface IHeldReleaseService {
-  add(h: HeldRelease): Promise<ServiceResult<HeldRelease>>;
-  getAll(): Promise<ServiceResult<HeldRelease[]>>;
-  getByCaseId(caseId: string): Promise<ServiceResult<HeldRelease[]>>;
-  /** Moves a held release on (to 'released' or 'recalled'); false if it was no longer held (someone else got there first). */
-  settle(id: string, status: 'released' | 'recalled', at: string): Promise<boolean>;
-}
+export type { IHeldReleaseService };
 
 export const mockHeldReleaseService: IHeldReleaseService = {
   async add(h) { persist([...load(), h]); return ok(h); },

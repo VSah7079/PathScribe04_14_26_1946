@@ -11,8 +11,8 @@ export async function releaseThroughDelay(event: ReportReleasedEvent, hold: Rele
 
 /** Batch 534: the reports still waiting out the delay for a case, soonest first (not the surgical sign-out: it has its own banner). */
 export async function listHeldReports(caseId: string) {
-  const [{ mockHeldReleaseService }, { pendingHeldReleases }] = await Promise.all([import('./mockHeldReleaseService'), import('./heldReleaseRules')]);
-  const res = await mockHeldReleaseService.getByCaseId(caseId);
+  const [{ heldReleaseService }, { pendingHeldReleases }] = await Promise.all([import('./heldReleaseServiceInstance'), import('./heldReleaseRules')]);
+  const res = await heldReleaseService.getByCaseId(caseId);
   return res.ok ? pendingHeldReleases(res.data, caseId) : [];
 }
 

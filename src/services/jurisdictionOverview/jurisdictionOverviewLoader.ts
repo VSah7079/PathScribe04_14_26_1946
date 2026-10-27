@@ -5,11 +5,11 @@
 // list/get methods, so no capability is needed beyond seeing the screen.
 // ─────────────────────────────────────────────────────────────────────────────
 import type { Jurisdiction } from '@/types/systemConfig';
-import { mockFacilityService } from '../facilities/mockFacilityService';
-import { mockParticipationTypeService } from '../participationTypes/mockParticipationTypeService';
+import { facilityService } from '../facilities/facilityServiceInstance';
+import { participationTypeService } from '../participationTypes/participationTypeServiceInstance';
 import { COUNTRY_RULE_JURISDICTIONS } from '../participationTypes/countryProfileEditor';
 import { codeSystemPolicyService } from '../coding/codeSystemPolicyServiceInstance';
-import { mockAiVendorPolicyService } from '../aiIntegration/mockAiVendorPolicyService';
+import { aiVendorPolicyService } from '../aiIntegration/aiVendorPolicyServiceInstance';
 import { governingBodyService } from '../governingBodies/governingBodyServiceInstance';
 import { CANCER_REGISTRY_DEFINITIONS } from '../cancerRegistry/cancerRegistryDefinitions';
 import { getCurrentJurisdiction } from '../retentionPolicy/RetentionPolicy';
@@ -31,11 +31,11 @@ export interface JurisdictionOverviewDeps {
 
 const browserDeps: JurisdictionOverviewDeps = {
   async facilities() {
-    const r = await mockFacilityService.getAll();
+    const r = await facilityService.getAll();
     return r.ok ? r.data.map(f => ({ id: f.id, name: f.name, jurisdiction: f.jurisdiction, status: f.status })) : [];
   },
   async participationTypes() {
-    const r = await mockParticipationTypeService.getAll();
+    const r = await participationTypeService.getAll();
     return r.ok ? r.data : [];
   },
   async savedCodePolicyJurisdictions() {
@@ -44,7 +44,7 @@ const browserDeps: JurisdictionOverviewDeps = {
   },
   codePolicyFor: j => codeSystemPolicyService.policyFor(j),
   async aiRules() {
-    const r = await mockAiVendorPolicyService.list();
+    const r = await aiVendorPolicyService.list();
     return r.ok ? r.data : [];
   },
   governingBodies: () => governingBodyService.getAll(),

@@ -45,6 +45,7 @@ import '../../pathscribe.css';
 import { resolveMolecularReagentLotGating } from '../../services/molecular/resolveMolecularReagentLotGating';
 import { resolveMolecularControlRequirementValidation } from '../../services/molecular/resolveMolecularControlRequirementValidation';
 import { emptyPlateWells, autoPopulatePlateWells, plateGridWells, plateWellTitle } from '../../services/molecular/plateBuilderWells';
+import { controlPanelValues, withSampleType, withControlLotNumber, withControlExpiry, withExpectedValue, type ExpectedValue } from '../../services/molecular/controlWellInfo';
 import {
   MOLECULAR_PLATE_LAYOUTS, MOLECULAR_REAGENT_COMPONENT_TYPES, MOLECULAR_SAMPLE_TYPES,
 } from '../../services/molecular/IMolecularBatchService';
@@ -58,7 +59,7 @@ import { printMolecularSpecimenLabels, printMolecularPlateLabel, printMolecularD
 import { useCurrentScanStation } from '../../hooks/useCurrentScanStation';
 import {
   equipmentService, equipmentLogService, type Equipment, type EquipmentLogEntry,
-  molecularBatchService, molecularAssayControlRuleService, scanStationService, molecularExtractionRackService, stainTypeService,
+  molecularBatchService, supersedeMolecularBatchNow, molecularBatchErrorKey, molecularAssayControlRuleService, scanStationService, molecularExtractionRackService, stainTypeService,
   actionRegistryService, slotsForRack, molecularActor, molecularCreateMissing, molecularWellsMissingSpecimen, molecularSupersedeMissing, molecularFieldRequired,
 } from '../../services';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
@@ -68,14 +69,14 @@ import { equipmentForPicker } from '../../services/equipment/equipmentRules';
 import { isServiceAlert, serviceStatesById } from '../../services/equipment/equipmentLogRules';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { getFacilityIsoDate } from '../../utils/facilityTime';
-import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE, MOLECULAR_BATCH_WELL_SPECIMEN_MISSING, MOLECULAR_BATCH_NOT_PERMITTED, MOLECULAR_BATCH_DECK_SLOT_INVALID } from '../../services/molecular/IMolecularBatchService';
+import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE, MOLECULAR_BATCH_WELL_SPECIMEN_MISSING, MOLECULAR_BATCH_DECK_SLOT_INVALID } from '../../services/molecular/IMolecularBatchService';
 import { formatList } from '../../utils/formatList';
 import { formatDateTime } from '../../utils/formatDate';
 import { workcenterTabForStatus } from '../MolecularWorkcenterPage/MolecularWorkcenterPage';
 import { resolvePlateWellScan, applyPlateWellScan, nextUnscannedSpecimenWell } from '../../services/molecular/plateWellScan';
 import { resolveMolecularHistoricalTrace } from '../../services/molecular/resolveMolecularHistoricalTrace';
 import { dispatchMolecularWorklist } from '../../services/molecular/dispatchMolecularWorklist';
-import { canStartMolecularDispatch, canConfirmMolecularDispatch, molecularDispatchFeedback } from '../../services/molecular/molecularDispatchPanel';
+import { canStartMolecularDispatch, canConfirmMolecularDispatch, molecularDispatchFeedback, dispatchFailureKey } from '../../services/molecular/molecularDispatchPanel';
 import type { StainType } from '../../services/stains/IStainService';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
@@ -320,7 +321,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
         setDispatchResult({
           message: 'verificationFailures' in feedback
             ? t('molecularPlateBuilderPage.scanVerificationFailed', { list: formatList(feedback.verificationFailures.map(f => t(`molecularPlateBuilderPage.scanFailure.${f}`)), i18n.language) })
-            : feedback.reason,
+            : feedback.failure ? t(`molecularPlateBuilderPage.dispatchFailure.${dispatchFailureKey(feedback.failure)}`, { status: feedback.failure.status ?? '' }) : feedback.reason,
           success: false,
         });
       }
@@ -337,16 +338,15 @@ const MolecularPlateBuilderPage: React.FC = () => {
       const session = getSessionUser();
       const byUserId = session?.id ?? 'unknown';
       const byUserName = session ? `${session.firstName ?? ''} ${session.lastName ?? ''}`.trim() || session.id : 'Unknown User';
-      const result = await molecularBatchService.cloneAndSupersede(existingBatch.id, cloneReason, byUserId, byUserName);
+      // Batch 669 (mol-9): the plate's in-house orders move to the new plate with it; a refusal is shown translated.
+      const result = await supersedeMolecularBatchNow(existingBatch.id, cloneReason, byUserId, byUserName);
       if (result.ok) {
         // Real, per this action's own real purpose — this batch is
         // now a real, terminal, superseded record; the real, live
         // work continues on its own real, new clone.
-        navigate(`/molecular-batch/${result.data.id}`);
+        navigate(`/molecular-batch/${result.data.clone.id}`);
       } else {
-        setCloneResultMessage('error' in result && result.error === MOLECULAR_BATCH_NOT_PERMITTED
-          ? t('molecularPlateBuilderPage.supersedeNotPermitted')
-          : 'error' in result ? result.error : t('molecularPlateBuilderPage.genericCloneError'));
+        setCloneResultMessage(t(`molecularPlateBuilderPage.batchErrors.${molecularBatchErrorKey('error' in result ? result.error : undefined)}`));
       }
     } finally {
       setCloning(false);
@@ -369,6 +369,10 @@ const MolecularPlateBuilderPage: React.FC = () => {
 
   const updateWell = (position: string, changes: Partial<MolecularWell>) => {
     setWells(prev => prev.map(w => (w.wellPosition === position ? { ...w, ...changes } : w)));
+  };
+  /** Batch 669: a change decided by the well's current value (services/molecular/controlWellInfo.ts). */
+  const changeWell = (position: string, change: (w: MolecularWell) => MolecularWell) => {
+    setWells(prev => prev.map(w => (w.wellPosition === position ? change(w) : w)));
   };
 
   // PS-229 (Batch 451): decided in services/molecular/plateBuilderWells.ts.
@@ -403,7 +407,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
         setSaveError(res.error === MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE ? t('molecularPlateBuilderPage.instrumentUnavailableError')
           : res.error === MOLECULAR_BATCH_WELL_SPECIMEN_MISSING ? t('molecularPlateBuilderPage.wellsMissingSpecimen', { wells: formatList(wellsWithoutSpecimen, i18n.language) })
           : res.error === MOLECULAR_BATCH_DECK_SLOT_INVALID ? t('molecularPlateBuilderPage.deckSlotInvalid', { slot: deckSlot.trim(), instrument: targetInstrumentId })
-          : res.error);
+          : t(`molecularPlateBuilderPage.batchErrors.${molecularBatchErrorKey(res.error)}`));
         return;
       }
       navigate(`/molecular-batch/${res.data.id}`);
@@ -707,21 +711,31 @@ const MolecularPlateBuilderPage: React.FC = () => {
           <div className="mb-well-panel">
             <h4 className="ps-panel-title">{t('molecularPlateBuilderPage.wellHeading', { position: selectedWell.wellPosition })}</h4>
             <label className="ps-label">{t('molecularPlateBuilderPage.sampleTypeLabel')}</label>
-            <select aria-label={t('molecularPlateBuilderPage.sampleTypeLabel')} className="ps-input-dark ps-w-full ps-mb-10" value={selectedWell.sampleType ?? ''} onChange={e => updateWell(selectedWell.wellPosition, { sampleType: (e.target.value || undefined) as MolecularSampleType | undefined })}>
+            <select aria-label={t('molecularPlateBuilderPage.sampleTypeLabel')} className="ps-input-dark ps-w-full ps-mb-10" value={selectedWell.sampleType ?? ''} onChange={e => changeWell(selectedWell.wellPosition, w => withSampleType(w, (e.target.value || undefined) as MolecularSampleType | undefined))}>
               <option value="">{t('molecularPlateBuilderPage.unassignedOption')}</option>
               {MOLECULAR_SAMPLE_TYPES.map(st => <option key={st} value={st}>{t(SAMPLE_TYPE_LABEL_KEY[st])}</option>)}
             </select>
 
-            {selectedWell.sampleType && selectedWell.sampleType !== 'PATIENT_SPECIMEN' && (
-              <>
-                <label className="ps-label">{t('molecularPlateBuilderPage.controlLotNumberLabel')}{star('controlLotInfo')}</label>
-                <input aria-label={t('molecularPlateBuilderPage.controlLotNumberLabel')} className="ps-input-dark ps-w-full ps-mb-10" value={selectedWell.controlInfo?.controlLotNumber ?? ''}
-                  onChange={e => updateWell(selectedWell.wellPosition, { controlInfo: { controlId: selectedWell.controlInfo?.controlId ?? e.target.value, controlLotNumber: e.target.value, controlExpirationDate: selectedWell.controlInfo?.controlExpirationDate ?? '', expectedValue: selectedWell.controlInfo?.expectedValue ?? 'NEGATIVE' } })} />
-                <label className="ps-label">{t('molecularPlateBuilderPage.controlExpirationLabel')}{star('controlLotInfo')}</label>
-                <input aria-label={t('molecularPlateBuilderPage.controlExpirationLabel')} className="ps-input-dark ps-w-full ps-mb-10" type="date"
-                  onChange={e => updateWell(selectedWell.wellPosition, { controlInfo: { controlId: selectedWell.controlInfo?.controlId ?? '', controlLotNumber: selectedWell.controlInfo?.controlLotNumber ?? '', controlExpirationDate: new Date(e.target.value).toISOString(), expectedValue: selectedWell.controlInfo?.expectedValue ?? 'NEGATIVE' } })} />
-              </>
-            )}
+            {selectedWell.sampleType && selectedWell.sampleType !== 'PATIENT_SPECIMEN' && (() => {
+              // Batch 669 (mol-10): what the panel shows and how each box changes the well is decided in services/molecular/controlWellInfo.ts.
+              const control = controlPanelValues(selectedWell);
+              return (
+                <>
+                  <label className="ps-label">{t('molecularPlateBuilderPage.controlLotNumberLabel')}{star('controlLotInfo')}</label>
+                  <input aria-label={t('molecularPlateBuilderPage.controlLotNumberLabel')} className="ps-input-dark ps-w-full ps-mb-10" value={control.lotNumber}
+                    onChange={e => changeWell(selectedWell.wellPosition, w => withControlLotNumber(w, e.target.value))} />
+                  <label className="ps-label">{t('molecularPlateBuilderPage.controlExpirationLabel')}{star('controlLotInfo')}</label>
+                  <input aria-label={t('molecularPlateBuilderPage.controlExpirationLabel')} className="ps-input-dark ps-w-full ps-mb-10" type="date" value={control.expiry}
+                    onChange={e => changeWell(selectedWell.wellPosition, w => withControlExpiry(w, e.target.value))} />
+                  <label className="ps-label">{t('molecularPlateBuilderPage.controlExpectedLabel')}</label>
+                  <select aria-label={t('molecularPlateBuilderPage.controlExpectedLabel')} className="ps-input-dark ps-w-full ps-mb-10" value={control.expected}
+                    onChange={e => changeWell(selectedWell.wellPosition, w => withExpectedValue(w, e.target.value as ExpectedValue))}>
+                    <option value="NEGATIVE">{t('molecularPlateBuilderPage.expectedValue.NEGATIVE')}</option>
+                    <option value="POSITIVE">{t('molecularPlateBuilderPage.expectedValue.POSITIVE')}</option>
+                  </select>
+                </>
+              );
+            })()}
 
             {selectedWell.sampleType === 'PATIENT_SPECIMEN' && (
               <>

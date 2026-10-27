@@ -23,6 +23,7 @@ import type {
 } from '../../../services/cytology/ICytologyCategoryService';
 import { recordExport } from '@/services';
 import { LoadingState } from '@/components/Common/LoadingState';
+import ReactiveChangesPolicyCard from './ReactiveChangesPolicyCard';
 
 // ─── Small chip helpers ─────────────────────────────────────────────────────
 
@@ -205,6 +206,8 @@ const CytologyCategoriesSection: React.FC = () => {
   const { t } = useTranslation();
   const [entries, setEntries] = useState<CytologyCategoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const alive = useRef(true); // the load below finishes after a delay; leaving the screen first must not set state
+  useEffect(() => () => { alive.current = false; }, []);
   const [activeTab, setActiveTab] = useState<CytologyCategorySection>('adequacy');
   const [nomenclatureSystem, setNomenclatureSystem] = useState<CytologyNomenclatureSystem>('bethesda');
   const [showInactive, setShowInactive] = useState(false);
@@ -218,6 +221,7 @@ const CytologyCategoriesSection: React.FC = () => {
     // substituted (cytologyCategoryService's own real, derived
     // view) — never a second, independently-stored set.
     cytologyCategoryService.getByNomenclatureSystem(nomenclatureSystem).then(res => {
+      if (!alive.current) return;
       if (res.ok) setEntries(res.data);
       setLoading(false);
     });
@@ -344,6 +348,8 @@ const CytologyCategoriesSection: React.FC = () => {
           {NOMENCLATURE_SYSTEMS.map(s => (<option key={s.id} value={s.id}>{t(s.labelKey)}</option>))}
         </select>
       </div>
+
+      {nomenclatureSystem === 'bethesda' && !loading && <ReactiveChangesPolicyCard entries={entries} onChanged={refresh} />}
 
       {/* Section tabs */}
       <div className="ps-cytcat-tabs-row">

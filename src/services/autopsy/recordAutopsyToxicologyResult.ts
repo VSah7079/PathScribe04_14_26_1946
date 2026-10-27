@@ -18,7 +18,7 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 export interface RecordAutopsyToxicologyResultInput {
   orderId: string;
@@ -67,7 +67,7 @@ export async function recordAutopsyToxicologyResult(
   }, caseRouter);
 
   if (write.ok === true) {
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_TOXICOLOGY_RESULTED',
       detail: input.resultSummary,

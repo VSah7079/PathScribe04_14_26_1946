@@ -66,7 +66,7 @@ describe('mockCytologyQcCaseAssignmentService', () => {
     if (!created.ok) return;
     await mockCytologyQcCaseAssignmentService.assignReviewer(created.data.id, 'prov-2');
     const result = await mockCytologyQcCaseAssignmentService.recordDiscrepancy(created.data.id, {
-      primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'HSIL', severity: 'major', reviewerCommentary: 'Missed high-grade cells.',
+      primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'HSIL', severity: 'major', reviewerCommentary: 'Missed high-grade cells.', divergenceConfirmed: true,
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -74,6 +74,27 @@ describe('mockCytologyQcCaseAssignmentService', () => {
       expect(result.data.discrepancy?.severity).toBe('major');
       expect(result.data.discrepancy?.loggedAt).toBeDefined();
     }
+  });
+
+  it('Batch 669f (cyt-6): a significantly divergent secondary code is refused until confirmed; an empty or close one is not', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) return;
+    await svc.assignReviewer(created.data.id, 'prov-2');
+    const refused = await svc.recordDiscrepancy(created.data.id, { primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'HSIL', severity: 'major' });
+    expect(refused.ok === false && refused.error).toBe('CYTOLOGY_QC_DIVERGENCE_NOT_CONFIRMED');
+    const noSecondary = await svc.recordDiscrepancy(created.data.id, { primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: '', severity: 'minor' });
+    expect(noSecondary.ok).toBe(true);
+    if (noSecondary.ok) expect(noSecondary.data.discrepancy).not.toHaveProperty('divergenceConfirmed');
+  });
+
+  it('reviewer refinement: an unrecognised secondary code is refused, not stored', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) return;
+    await svc.assignReviewer(created.data.id, 'prov-2');
+    const refused = await svc.recordDiscrepancy(created.data.id, { primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'not-a-code', severity: 'minor', divergenceConfirmed: true });
+    expect(refused.ok === false && refused.error).toBe('CYTOLOGY_QC_SECONDARY_CODE_UNRECOGNISED');
   });
 
   it('the real unified queue only ever contains active (QC_PENDING/QC_IN_REVIEW) assignments, never a resolved one', async () => {

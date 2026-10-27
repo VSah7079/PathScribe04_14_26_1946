@@ -13,10 +13,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { parseAdtMessage, type ParsedAdtMessage } from './adtParser';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockEncounterService } from '../encounters/mockEncounterService';
-import { mockLocationService } from '../locations/mockLocationService';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { patientIndexService } from '../patients/patientServicesInstance';
+import { encounterService } from '../encounters/encounterInstance';
+import { locationService } from '../locations/locationServiceInstance';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { classifyHl7PatientIdentifier } from '../patientIdentifiers/classifyHl7PatientIdentifier';
 import { normalizeNationalIdentifier, verifyNationalIdentifier } from '../patientIdentifiers/checkDigits';
 import type { Jurisdiction } from '@/types/systemConfig';
@@ -24,7 +24,7 @@ import type { Jurisdiction } from '@/types/systemConfig';
 /** Batch 417: the lab's jurisdiction, for telling which national identifier an unnamed 'NH' is. Unknown facility: none. */
 async function resolveFacilityJurisdiction(facilityId: string): Promise<Jurisdiction | undefined> {
   try {
-    const r = await mockFacilityService.getById(facilityId);
+    const r = await facilityService.getById(facilityId);
     return r.ok ? (r.data as { jurisdiction?: Jurisdiction }).jurisdiction : undefined;
   } catch { return undefined; }
 }
@@ -129,14 +129,14 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
   // grouped with A08 here for the same reason.
   let mpiResult: { outcome: 'matched' | 'created' | 'ambiguous'; patientId: string };
   if ((parsed.eventType === 'A08' || parsed.eventType === 'A03' || parsed.eventType === 'A31') && primaryIdentifier?.assigningAuthority) {
-    const known = await mockPatientIndexService.resolveByIdentifier(primaryIdentifier.assigningAuthority, parsed.patient.primaryMrn);
+    const known = await patientIndexService.resolveByIdentifier(primaryIdentifier.assigningAuthority, parsed.patient.primaryMrn);
     if (known) {
       mpiResult = { outcome: 'matched', patientId: known };
     } else {
       // Real, genuine edge case: an A08/A03 arriving before anything
       // else has ever established this identity. Falls back to the
       // full flow rather than silently dropping the message.
-      mpiResult = await mockPatientIndexService.resolveOrCreatePatient({
+      mpiResult = await patientIndexService.resolveOrCreatePatient({
         organisationId,
         mrn: parsed.patient.primaryMrn,
         assigningAuthority: primaryIdentifier?.assigningAuthority,
@@ -146,7 +146,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
       });
     }
   } else {
-    mpiResult = await mockPatientIndexService.resolveOrCreatePatient({
+    mpiResult = await patientIndexService.resolveOrCreatePatient({
       organisationId,
       mrn: parsed.patient.primaryMrn,
       assigningAuthority: primaryIdentifier?.assigningAuthority,
@@ -164,7 +164,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
   // data, and the real sequence-control check inside
   // updateDemographics() is what actually protects against a stale
   // event, not which event type happened to carry it.
-  const demographicsResult = await mockPatientIndexService.updateDemographics(
+  const demographicsResult = await patientIndexService.updateDemographics(
     mpiResult.patientId,
     {
       firstName: parsed.patient.firstName, lastName: parsed.patient.lastName, dateOfBirth: parsed.patient.dateOfBirth,
@@ -188,7 +188,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
   // itself.
   for (const identifier of parsed.patient.identifiers.slice(1)) {
     if (identifier.assigningAuthority) {
-      await mockPatientIndexService.addIdentifier(
+      await patientIndexService.addIdentifier(
         mpiResult.patientId,
         identifier.assigningAuthority,
         identifier.identifierValue,
@@ -206,7 +206,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     const system = classifyHl7PatientIdentifier(identifier, jurisdiction);
     if (!system) continue;
     const check = verifyNationalIdentifier(system, identifier.identifierValue);
-    await mockPatientIndexService.recordNationalIdentifier(mpiResult.patientId, {
+    await patientIndexService.recordNationalIdentifier(mpiResult.patientId, {
       system, value: normalizeNationalIdentifier(identifier.identifierValue), verificationStatus: check.status, verifiedAt: new Date().toISOString(), source: 'hl7',
       ...(system === 'mrn_nhs' && parsed.patient.nhsStatusCode ? { statusCode: parsed.patient.nhsStatusCode } : {}),
     });
@@ -230,7 +230,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
   // location data has none to resolve, not an error.
   async function resolveLocation(): Promise<string | undefined> {
     if (!parsed.encounter.ward) return undefined;
-    const locationResult = await mockLocationService.findOrCreateByPV1({
+    const locationResult = await locationService.findOrCreateByPV1({
       facilityId,
       pointOfCare: parsed.encounter.ward,
       room: parsed.encounter.room,
@@ -261,7 +261,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // status this whole time. A05 (Pre-Admit) is genuinely the one
     // real event that should produce 'Planned' — explicit now, not a
     // shared, accidental default the way it was before.
-    const encounterResult = await mockEncounterService.resolveOrCreateEncounter({
+    const encounterResult = await encounterService.resolveOrCreateEncounter({
       organisationId,
       patientId: mpiResult.patientId,
       encounterNumber: parsed.encounter.encounterNumber,
@@ -293,10 +293,10 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // number; a real A03 with no matching prior encounter (genuinely
     // never accompanied by a real A01/A04) is honestly left
     // unresolved rather than fabricating one.
-    const existing = await mockEncounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
+    const existing = await encounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
     if (existing.ok && existing.data) {
       encounterId = existing.data.id;
-      const statusResult = await mockEncounterService.updateStatus(
+      const statusResult = await encounterService.updateStatus(
         existing.data.id,
         'Discharged',
         parsed.recordedAt,
@@ -310,12 +310,12 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // (Patient Tracking) — real location movement on an EXISTING
     // encounter, never creates a new one. Same real "find, don't
     // fabricate" posture as A03 above.
-    const existing = await mockEncounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
+    const existing = await encounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
     if (existing.ok && existing.data) {
       encounterId = existing.data.id;
       const resolvedLocationId = await resolveLocation();
       if (resolvedLocationId) {
-        const locResult = await mockEncounterService.updateLocation(existing.data.id, resolvedLocationId, parsed.recordedAt);
+        const locResult = await encounterService.updateLocation(existing.data.id, resolvedLocationId, parsed.recordedAt);
         if (locResult.ok) encounterLocationApplied = locResult.data.applied;
       }
     }
@@ -323,10 +323,10 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // Real feature, per direct confirmation: A06 (Outpatient →
     // Inpatient), A07 (Inpatient → Outpatient) — real patient class
     // change on an EXISTING encounter.
-    const existing = await mockEncounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
+    const existing = await encounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
     if (existing.ok && existing.data) {
       encounterId = existing.data.id;
-      const classResult = await mockEncounterService.updateClass(existing.data.id, parsed.encounter.encounterClass, parsed.recordedAt);
+      const classResult = await encounterService.updateClass(existing.data.id, parsed.encounter.encounterClass, parsed.recordedAt);
       if (classResult.ok) encounterClassApplied = classResult.data.applied;
     }
   } else if (parsed.eventType === 'A11' && parsed.encounter.encounterNumber) {
@@ -335,10 +335,10 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // concept to restore (unlike A12's real previousLocationId) —
     // real, standard meaning is simply "this never should have
     // happened," so it cancels outright.
-    const existing = await mockEncounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
+    const existing = await encounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
     if (existing.ok && existing.data) {
       encounterId = existing.data.id;
-      const statusResult = await mockEncounterService.updateStatus(existing.data.id, 'Cancelled', parsed.recordedAt);
+      const statusResult = await encounterService.updateStatus(existing.data.id, 'Cancelled', parsed.recordedAt);
       if (statusResult.ok) encounterStatusApplied = statusResult.data.applied;
     }
   } else if (parsed.eventType === 'A12' && parsed.encounter.encounterNumber) {
@@ -346,10 +346,10 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // restores the real, captured previousLocationId rather than
     // trusting this message's own PV1-3/PV1-6 (see
     // Encounter.previousLocationId's own doc comment for why).
-    const existing = await mockEncounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
+    const existing = await encounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
     if (existing.ok && existing.data) {
       encounterId = existing.data.id;
-      const cancelResult = await mockEncounterService.cancelTransfer(existing.data.id, parsed.recordedAt);
+      const cancelResult = await encounterService.cancelTransfer(existing.data.id, parsed.recordedAt);
       if (cancelResult.ok) {
         transferCancelled = cancelResult.data.applied;
         locationId = cancelResult.data.encounter.locationId;
@@ -363,10 +363,10 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // real way to know which pre-discharge status (Arrived vs
     // In-Progress) genuinely applied before without a fuller status
     // history than this app currently keeps.
-    const existing = await mockEncounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
+    const existing = await encounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
     if (existing.ok && existing.data) {
       encounterId = existing.data.id;
-      const statusResult = await mockEncounterService.updateStatus(existing.data.id, 'In-Progress', parsed.recordedAt);
+      const statusResult = await encounterService.updateStatus(existing.data.id, 'In-Progress', parsed.recordedAt);
       if (statusResult.ok) encounterStatusApplied = statusResult.data.applied;
     }
   } else if (parsed.eventType === 'A08' && parsed.encounter.encounterNumber) {
@@ -376,11 +376,11 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
     // Encounter at all until now. Also resolves a real, updated PV1-3
     // if the message happens to carry one (A08 may legitimately update
     // location metadata without a formal A02 transfer).
-    const existing = await mockEncounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
+    const existing = await encounterService.getByEncounterNumber(organisationId, parsed.encounter.encounterNumber);
     if (existing.ok && existing.data) {
       encounterId = existing.data.id;
       await resolveLocation();
-      const metaResult = await mockEncounterService.updateMetadata(
+      const metaResult = await encounterService.updateMetadata(
         existing.data.id,
         {
           attendingProvider: parsed.encounter.attendingProvider,
@@ -400,7 +400,7 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
       // recorded (updateDiagnoses replaces the full list — see that
       // method's own doc comment).
       if (parsed.diagnoses.length > 0) {
-        const diagnosesResult = await mockEncounterService.updateDiagnoses(
+        const diagnosesResult = await encounterService.updateDiagnoses(
           existing.data.id,
           parsed.diagnoses,
           parsed.recordedAt

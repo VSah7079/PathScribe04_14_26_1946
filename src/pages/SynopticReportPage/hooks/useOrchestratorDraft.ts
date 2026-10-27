@@ -47,6 +47,8 @@ import type { SetConcurrencyConflict } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
 import { saveDraftParts, caseWriteDeps, caseConflictRows, type MergeReview } from '@/services';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
+import { auditService } from '@/services';
+import { aiNarrativeReviewAudit, type AiReviewAction } from '@/services/aiGovernance/aiReviewAudit';
 
 // orchSections genuinely isn't declared on the shared Case type — it's
 // real, persisted data (see writeCaseDraft below), just never added to
@@ -139,12 +141,14 @@ interface UseOrchestratorDraftParams {
   onMergeReview?: (review: MergeReview) => void;
   /** Batch 465b: asks the person to go past a warning (a hand-entered total that differs from its grid); false = don't save. */
   confirmWarnings?: (message: string) => Promise<boolean>;
+  /** Batch 680: who accepts or rejects AI drafts (for the audit record). */
+  userName?: string;
 }
 
 export function useOrchestratorDraft({
   caseData, setCaseData, caseId, orchSections, setOrchSections,
   activeSectionId, setActiveSectionId, isOrchestrationMode, leftTab,
-  knownVersionRef, setConcurrencyConflict, clearDirty, discardDraft, showToast, draftBaseRef, pendingPartsRef, onMergeReview, confirmWarnings,
+  knownVersionRef, setConcurrencyConflict, clearDirty, discardDraft, showToast, draftBaseRef, pendingPartsRef, onMergeReview, confirmWarnings, userName,
 }: UseOrchestratorDraftParams) {
   const { t, i18n } = useTranslation();
 
@@ -340,35 +344,49 @@ export function useOrchestratorDraft({
   // ── Section editing business logic ───────────────────────────────────
   // Previously five anonymous inline closures on OrchestratorSectionEditor's
   // JSX props — see this file's header for why they're named functions here.
+  // Batch 680: every accept, edit-and-accept and keep-the-earlier-text on an AI draft is audited (AI Output Governance).
+  const auditReview = useCallback((action: AiReviewAction, sectionLabel: string) => {
+    void auditService.logEvent(aiNarrativeReviewAudit({ action, caseId: caseData?.id ?? null, userName: userName ?? '', sectionLabel })).catch(() => {});
+  }, [caseData?.id, userName]);
+
   const handleSectionTextChange = useCallback((id: string, html: string) => {
+    const sec = orchSections.find(s => s.id === id);
+    if (sec?.aiGenerated && !sec.userEdited && html !== sec.aiGenerated) auditReview('accepted-edited', sec.label); // first edit of an AI draft
     setOrchSections(prev => prev.map(s =>
       s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s
     ));
-  }, [setOrchSections]);
+  }, [setOrchSections, orchSections, auditReview]);
 
   const handleAcceptSection = useCallback((id: string, finalText: string) => {
+    const sec = orchSections.find(s => s.id === id);
+    if (sec?.aiGenerated) auditReview(finalText !== sec.aiGenerated ? 'accepted-edited' : 'accepted', sec.label);
     setOrchSections(prev =>
       prev.map(s => s.id === id
         ? { ...s, text: finalText, userEdited: true } // explicit Accept — always commits, no text-equality guessing
         : s)
     );
-  }, [setOrchSections]);
+  }, [setOrchSections, orchSections, auditReview]);
 
   const handleAcceptDraft = useCallback((id: string) => {
+    const sec = orchSections.find(s => s.id === id);
+    if (sec?.pendingDraft != null) auditReview('accepted', sec.label);
     setOrchSections(prev =>
       prev.map(s => s.id === id && s.pendingDraft != null
         ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
         : s)
     );
-  }, [setOrchSections]);
+  }, [setOrchSections, orchSections, auditReview]);
 
   const handleKeepVersion = useCallback((id: string) => {
+    const sec = orchSections.find(s => s.id === id);
+    if (sec?.pendingDraft != null) auditReview('rejected', sec.label);
     setOrchSections(prev =>
       prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
     );
-  }, [setOrchSections]);
+  }, [setOrchSections, orchSections, auditReview]);
 
   const handleAcceptAllSections = useCallback(() => {
+    orchSections.filter(s => s.aiGenerated && !s.userEdited && !s.committed).forEach(s => auditReview('accepted', s.label));
     setOrchSections(prev =>
       prev.map(s =>
         s.aiGenerated && !s.userEdited && !s.committed
@@ -376,7 +394,7 @@ export function useOrchestratorDraft({
           : s
       )
     );
-  }, [setOrchSections]);
+  }, [setOrchSections, orchSections, auditReview]);
 
   return {
     saveDraftInternal,

@@ -12,7 +12,7 @@
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import { BILLING_TYPE_DEFAULT_TRIGGER } from './codeMapTable';
 import type { BillingDictionaryEntry } from './RvuTableVersion';
-import { getEffectiveChargeStatus } from './mockServiceChargeService';
+import { getEffectiveChargeStatus } from './chargeStatus';
 
 export interface OutboxSweepResult {
   serviceChargeRecordId: string;

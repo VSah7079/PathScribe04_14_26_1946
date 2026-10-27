@@ -28,6 +28,8 @@ import { buildValidationReportHtml } from '@/services/validationStudies/buildVal
 import i18n from 'i18next'; // the app's i18next instance (initialised in i18n/config.ts)
 import { formatPercent } from '@/utils/formatPercent';
 import { formatDate } from '@/utils/formatDate';
+import { SUBTAB_LABEL_KEY } from './validationSubTabs';
+import { useRegisterConfigHelpSection } from '@/components/Config/help/ConfigHelpContext';
 
 type SubTab = (typeof VALIDATION_SECTIONS)[number]['id'];
 const SUBTAB_IDS = VALIDATION_SECTIONS.map(s => s.id);
@@ -952,17 +954,12 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
 
 // ── Main Section ──────────────────────────────────────────────────────────────
 
-const SUBTAB_LABEL_KEY: Record<SubTab, string> = {
-  studies:   'validationStudies.tabs.studies',
-  dashboard: 'validationStudies.tabs.dashboard',
-  reports:   'validationStudies.tabs.reports',
-};
-
 const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperAdmin = false }) => {
   const { t } = useTranslation();
   // Batch 449: Configuration search can open an inner tab directly (?section=).
   const location = useLocation();
   const [subTab,     setSubTab]     = useState<SubTab>(() => pickConfigSection(location.search, SUBTAB_IDS));
+  useRegisterConfigHelpSection(subTab); // Batch 646: the Help button opens this sub-tab's section of the Administrator Guide
   useEffect(() => { setSubTab(pickConfigSection(location.search, SUBTAB_IDS)); }, [location.search]);
   const [studies,    setStudies]    = useState<ValidationStudy[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);

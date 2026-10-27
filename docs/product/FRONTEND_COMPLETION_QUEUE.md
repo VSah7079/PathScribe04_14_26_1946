@@ -994,3 +994,26 @@ Spain cytology and HPV screening: add ES to the screening interval table (src/se
 
 ## Jira sweep, requested Oct 19 2026
 After the Spain work, sweep all existing PS tickets, including each "Not in this ticket" section, and confirm every item is built, scheduled in a batch, or owned by someone. Report gaps to Pete. No tickets are created unless Pete directs.
+
+## Decision, Oct 19 2026: compete with mTuitive xPert, no integration
+Per Pete: PathScribe replaces xPert as the synoptic layer instead of integrating with it. No xPert template, launch or write-back work is planned. Revisit only if a named customer requires it or mTuitive offers a documented partner interface. Customers switching from xPert will need their historical xPert reports brought in: that is a data migration question, tracked with the legacy migration work (PS-265), not an integration.
+
+## Direction, Oct 19 2026: history from a legacy LIS (including xPert reports)
+Per Pete: the legacy LIS keeps embedded synoptics inside its formal report, so in Assist mode they are available with the history. Where PathScribe owns the report, preferred approach for the first release: the old LIS stays read-only and PathScribe calls it. Converting through the interface engine (parsing embedded synoptic text into structured fields, PS-265) is a later option for labs that need structured history. Limits to state to customers: embedded synoptic text can be shown but not searched or reported on element by element; each legacy LIS needs a query interface, a long-term read-only home, and retention compliance. Related: PS-263, PS-266.
+Future release (Pete, Oct 19 2026): AI extraction of structured synoptic data from historical reports, using the same capability Assist mode uses on gross and microscopic text. Needs: values labelled AI-extracted and shown beside the source text, pathologist confirmation before clinical use, mapping to the protocol version current at the time, the signed report staying the legal record, and accuracy validation on each lab's own reports. Builds on PS-265 and Assist mode. Planned, not built.
+
+## Batch 621 (approved by Pete, Oct 19 2026): AI-read synoptic metadata for historical cases
+When a historical case is pulled or refreshed, the existing AI synoptic capability reads its microscopic and final diagnosis text and saves the result as metadata beside the cached case: advisory, labelled "AI-extracted, not verified", shown beside the source text, never in a report, registry submission, billing or rule. Off by default (enterprise setting, facility overrides); every call checked against the AI vendor policy (PS-558); runs on open or refresh only, cached by source text, in the background; own capability and audit entries; a way to flag a wrong extraction. Starts after Batch 620 is delivered. Build on services/patientHistory and aiIntegration.
+
+## Decision, Oct 19 2026: when history extraction runs (Batch 621)
+Extraction stays bound to a signed-in user opening or refreshing a case, so the permission check and audit entry always have a real user. The Assist-mode LIS summary event does not run it. Alternatives considered and not built: a restricted system identity with its own audited permission to run extraction in the background; a queued request that waits and runs under the pathologist's session when the case is opened (this adds little over the current behaviour). Revisit the system identity only if labs need results ready before anyone opens the case.
+
+Spain scope additions from Pete's dev note (Oct 19 2026). To be checked against the Spain research (/tmp/claude-0/spain_research.md) before building:
+- Voice: add an es-ES (Castilian) voice profile; the browser's speech recognition decides what is supported. Catalan, Basque and Galician (co-official languages) are later, on demand; support in the browser engine varies and must be tested.
+- Add Spain as a jurisdiction (ES): date and address formats, retention, code systems, signing authority.
+- Wording: Iberian medical Spanish ("Anatomía Patológica", volante de petición, biopsia, pieza quirúrgica, médico solicitante); native review needed.
+- Billing and coding: no CPT or RVU; diagnosis coding with ICD-10-ES (CIE-10-ES) and the procedure and payer frameworks of regional health services and private insurers, to be confirmed.
+- Registries: autonomous community cancer registries (REDECAN network) and regional cervical and colorectal screening programmes; UI labels must map to those structures.
+- Spain research with sources: docs/product/SPAIN_RESEARCH.md
+
+- Jira sweep of 19 Oct 2026 (every "Not in this ticket" item checked): docs/product/JIRA_SWEEP_2026-10-19.md

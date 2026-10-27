@@ -13,6 +13,7 @@ import { DEMO_BASELINE_CASES } from './demoBaselineCases';
 import { ConcurrencyConflictError } from "./ConcurrencyConflictError";
 import { updateCaseWithRetry, updateCaseWithRetryOrThrow, type CaseWriteDeps } from "./caseWrite";
 import { callAi } from '../aiIntegration/aiProviderService';
+import { cleanSuggestedAnswers } from '../aiIntegration/aiSuggestionRules';
 import { resolveAiConfigOverrideForClient } from '../../components/Config/AI/resolveClientAiModel';
 import { Case, CaseParticipant, ProtocolChange } from "../../types/case/Case";
 import { CaseStatus } from "../../types/case/CaseStatus";
@@ -4170,13 +4171,11 @@ Rules:
       context: { feature: 'synoptic-suggestions', facilityId: caseData.order?.facilityId },
     });
     const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-
-    // Stamp every field with verification: 'unverified'
+    // Batch 651: minimum confidence 30 and the listed-options rule are enforced in code (aiSuggestionRules.ts), then every field is stamped 'unverified'.
+    const { accepted, rejected } = cleanSuggestedAnswers(JSON.parse(clean), templateFields);
+    if (rejected.length) console.warn('[PathScribe] AI suggestions rejected:', rejected);
     const result: Record<string, any> = {};
-    for (const [fieldId, sug] of Object.entries(parsed) as any) {
-      result[fieldId] = { ...sug, verification: 'unverified' };
-    }
+    for (const [fieldId, sug] of Object.entries(accepted)) result[fieldId] = { ...sug, verification: 'unverified' };
     return result;
   } catch (e) {
     console.error('[PathScribe] AI suggestion generation failed:', e);

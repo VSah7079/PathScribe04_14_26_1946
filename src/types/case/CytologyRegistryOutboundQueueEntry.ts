@@ -21,7 +21,7 @@ export interface CytologyRegistryOutboundQueueEntry {
   status: 'QUEUED' | 'SENT' | 'FAILED';
   queuedAt: string;
   /** REGISTRY_NOT_READY (Batch 414): held, not sent. EXCLUDED_BY_CONSENT (Batch 418): the patient opted out; never resent. */
-  errorCode?: 'DISPATCH_TIMEOUT' | 'DISPATCH_UNREACHABLE' | 'DISPATCH_REJECTED' | 'REGISTRY_NOT_READY' | 'EXCLUDED_BY_CONSENT'
+  errorCode?: 'DISPATCH_TIMEOUT' | 'DISPATCH_UNREACHABLE' | 'DISPATCH_REJECTED' | 'REGISTRY_NOT_READY' | 'EXCLUDED_BY_CONSENT' | 'AWAITING_ELIGIBILITY' | 'NOT_ELIGIBLE'
     /** Batch 423: set to the live register without a current go-live approval. */
     | 'REGISTRY_LIVE_NOT_APPROVED';
   errorMessage?: string;

@@ -1,0 +1,27 @@
+# Chapter 4 open questions
+
+- No Order Entry or Accessioning workflow template screen exists (the outline asks for one). Documented as Not built, with a table of where each accessioning behaviour is set. AUTHORING.md's example id `screen-order-entry-templates` is fictional; no such screen was created.
+- Inking Validation Mode: the screen says Strict Enforce blocks Complete grossing on a Severity 2 issue. `evaluateInkingGate.ts` never blocks Severity 2 in either mode. Strict Enforce only changes the notice on the Grossing screen. Severity 3 always blocks. Fix the text or the gate?
+- Case Routing: `assignmentTimeoutSec` (default 300) is saved and read by no routing code. Routing runs when grossing is completed, not at accession. Case Routing and Routing Rules are browser-only (no server contract).
+- Two editors write the same rule list: Routing Rules (keyword only, unique priority check, can delete custom rules) and Case Routing (richer, no delete, no priority check). Keep both?
+- `components/Config/Macros/index.tsx` hard-codes the font list of the macro editor.
+- `pages/BatchManagement/README.md` says the Retention Holds queue is not built; `RetentionHoldsQueuePage.tsx` exists with a tile and a route.
+- The Embedding, Microtomy and Slide Distribution stations are not in OWNERSHIP.md. They are documented as `screen-embedding-station`, `screen-microtomy-workstation` and `screen-slide-distribution-station` (reference pages). Add them to OWNERSHIP.md, or move them?
+- The Engraver Monitor still reads a Firestore collection (`engraver_devices`) and shows simulated devices without it. Firebase is not production.
+- Forward dependency: Workstation Groups (Chapter 2, Tier 1) consumes Action Groups (Tier 3). The Chapter 2 author must not make Tier 1 require Tier 3.
+- No configuration screen for priority levels was found.
+- Peer Review Gate, Concordance Review Settings and other organisation defaults can be overridden per lab on the Facility Configuration edit window (Chapter 2). Confirm that window lists every one of these overrides.
+- Release Buffer: the release timer runs only in an open PathScribe screen. A server scheduler is planned with the API server (PS-539). Until then a report can stay at Pending Release past its time when no screen is open.
+- Voice tab: the Mic Sensitivity slider has no effect. The deployment switches are kept in browser storage.
+- Action Registry has no server contract.
+- Revision Reasons: the service can add, edit and deactivate reasons, but the screen only toggles Clinically significant. Add the controls, or document that reasons are fixed?
+- Biopsy-Resection Correlation: the service is a browser-store mock exported from `services/index.ts` (no server version). Its Starts from list shows the label "Cytology sign-out", copied from the cytology screen.
+- Follow-Up Tracking settings are written by a browser-store service; the server follow-up service returns settings but has no write for them.
+- Contribution Settings is kept in the system-config browser store (PS-345 plans the server store). Only nine time zones can be chosen.
+- Intraoperative Critical Results: `config:intraop-critical-results:manage` is held by Admin and super-administrator but not Lab Director (the other quality settings include Lab Director). The section has no row in `configSectionAccess.ts`.
+- Cytology QC Rules: Performing Facility IDs and Eligible Reviewer Roles are typed as comma lists, not picklists.
+- `cytology:qc-review:bypass` is held by no role by default (super-administrator only). Intended?
+- Performance Targets has "Routine TAT" and "STAT TAT" rows (48 and 4 hours) separate from the TAT Configuration rules (4 hours routine and 2 STAT sign-out, 24 and 4 total case). Nothing links them.
+- Country Signing Rules is shown read-only to customer administrators although the outline calls it internal only. Hide it from customers?
+- Vendor Integrations: nothing reads the Digital Pathology / AI, Image Management and Gross Imaging dictionaries; only the WSI Viewers list is used (viewer launch). `MockWsiViewerPage` exists only with demonstration tools on.
+- QA Configuration Center and QA Trend Policy: confirm the QA Reviewer role should lack `qa:pathologist-trend:view` (Lab Director only).

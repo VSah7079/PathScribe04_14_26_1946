@@ -104,3 +104,21 @@ Opinions came back but were never shown to the pathologist. Now:
 ## Batch 617 (part A): server versions (PS-514)
 
 `consultTokenService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_WORKFLOWS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 669
+
+`consultLinkRules.consultSubmitConfirmationKey(signedStatus)` picks the confirmation text after an opinion is sent: Signed is recorded and returned, Draft is saved but not returned.
+
+## Batch 669 (access-11): masked identity by default
+
+- **`consultIdentityMask.ts`** (+ `.test.ts`): `consultPatientView(patient, revealIdentity)` returns the masked projection (`maskedName` such as `J*** S****`, `birthYearMasked` such as `**-***-1980`) unless `revealIdentity === true`, then the full one. `buildConsultCaseView` uses it, so the data that reaches `/consult` is already masked; the masked object never contains the surname, the full first name or the full date.
+- **Opt-in:** `NewConsultToken.revealIdentity` / `ConsultToken.revealIdentity`, chosen at issue time only. `issue()` checks `case:consult-link:reveal-identity` when it is true and otherwise refuses with `CONSULT_REVEAL_NOT_PERMITTED` (no link). `consult.link.created` records "Identity opt-in used..." or "Patient identity masked (default)."; `consult.link.accessed` records which was served. No PHI in either. (The reviewer called the event CONSULT_LINK_ISSUED; it is `consult.link.created` here.)
+- **Expiry verified:** every open and every opinion re-checks the link's status, so an expired link opens nothing (tests added). Single-use is not built (decision, see `docs/architecture/CONSULT_ACCESS_API.md` after CA-27). Passcode by e-mail: Planned (CA-26), not built.
+
+## Batch 669 (access-11, reviewer's rulings Oct 24, 2026)
+
+- **`consultLinkLifetime.ts`** (+ `.test.ts`): the ONE place for how long a link works. `consultLinkLifetime(link, now)` gives `state` (`open`, `expired`, `exhausted`), `remainingViews`, `hoursRemaining`, `endsAt`; constants `CONSULT_POST_SIGNATURE_MAX_VIEWS = 3` and `CONSULT_POST_SIGNATURE_HOURS = 48`. Before a signature the link's own expiry applies; a Draft starts no clock. A Signed opinion sets `ConsultToken.signedAt`; every `openConsult` after it adds to `viewsAfterSignature` (the signed submit does not) and is audited as `consult.link.accessed`. The link stops at the first of 3 views, 48 hours, or its own expiry (signing never lengthens a link). `resolveConsultTokenStatus` reads exhausted/ended as Expired. `consultLifetimeLine` feeds the issuer lists. Replaces "a Signed opinion closes the link". The server owns the count and the clock (CONSULT_ACCESS_API.md CA-28).
+- **View:** `ConsultCaseView.lifetime` is `{ remainingViews, hoursRemaining }` after a signature, else `null`; the page shows the banner.
+- **Refusals:** `consult.link.access_attempt_expired` or the new `consult.link.access_attempt_exhausted`; the consultant still gets the one uniform `CONSULT_LINK_INVALID`.
+- **Identity preview:** `IConsultTokenService.previewIdentity(linkId)` needs `case:consult-link:reveal-identity` (not issue), returns the full projection, audits `consult.link.identity_previewed` (English, no PHI). Used from Audit Log → Consult links, so a Lab Director who holds reveal but not issue is not at a dead end; the External Consult window's Issue button is disabled with "Requires permission to issue consult links." for that person.
+- **Fixed date-of-birth format:** `formatConsultDateOfBirth` writes `DD-MMM-YYYY` with an English capital month (`24-OCT-1980`) in every language and locale; masked is `**-***-1980`. This is the one deliberate exception to "format dates with the user's locale": laboratory dates must not be ambiguous (03/04/1980 is March in one country, April in another). Read from the stored calendar date, no time-zone conversion; a date not stored year-first is shown as stored.

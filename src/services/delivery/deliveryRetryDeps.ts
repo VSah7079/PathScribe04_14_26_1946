@@ -14,7 +14,7 @@ import type { DeliveryRetryDeps } from './deliveryRetries';
 import { applyReportDeliveryStatus, deliveryExceptionRecipients, runDeliveryRetrySweep } from './deliveryRetries';
 import { deliveryRetryService } from './deliveryRetryServiceInstance';
 import { deliveryRetrySettingsService } from './deliveryRetrySettingsServiceInstance';
-import { mockReportDeliveryQueueService } from './mockReportDeliveryQueueService';
+import { reportDeliveryQueueService } from './reportDeliveryQueueServiceInstance';
 import { DEFAULT_RETRY_DELAYS_MINUTES } from './deliveryRetryPolicy';
 import type { ReportDeliveryStatusEvent } from '../liveUpdates/liveUpdateContract';
 
@@ -36,11 +36,11 @@ export const deliveryRetryDeps: DeliveryRetryDeps = {
       return { ok: false, error: job.ok ? job.data.errorMessage : undefined };
     }
     const [{ sendReportDelivery }, { reportDeliveryDeps }] = await Promise.all([import('./deliverReport'), import('./reportDeliveryDeps')]);
-    const requeued = await mockReportDeliveryQueueService.retryDispatch(entryId);
+    const requeued = await reportDeliveryQueueService.retryDispatch(entryId);
     if (!requeued.ok) return { ok: false, error: requeued.error };
     const outcome = await sendReportDelivery(requeued.data, reportDeliveryDeps);
     if (outcome === 'sent') return { ok: true };
-    const all = await mockReportDeliveryQueueService.getAll();
+    const all = await reportDeliveryQueueService.getAll();
     return { ok: false, error: all.ok ? all.data.find(e => e.id === entryId)?.errorMessage : undefined };
   },
   async alreadyDelivered(kind, entryId) {
@@ -48,7 +48,7 @@ export const deliveryRetryDeps: DeliveryRetryDeps = {
       const job = await (await printQueue()).getById(entryId);
       return job.ok && job.data.status === 'PRINTED';
     }
-    const all = await mockReportDeliveryQueueService.getAll();
+    const all = await reportDeliveryQueueService.getAll();
     const entry = all.ok ? all.data.find(e => e.id === entryId) : undefined;
     return entry?.status === 'SENT' && entry.transmission?.status !== 'TRANSMISSION_FAILED';
   },
@@ -59,11 +59,11 @@ export const deliveryRetryDeps: DeliveryRetryDeps = {
       await q.markFailed(entryId, { errorCode: job.ok ? job.data.errorCode ?? 'PRINT_REJECTED' : 'PRINT_REJECTED', errorMessage: `${error} (automatic retries exhausted)`, maxRetriesExceeded: true });
       return;
     }
-    await mockReportDeliveryQueueService.markFailed(entryId, { errorCode: 'DISPATCH_REJECTED', errorMessage: `${error} (automatic retries exhausted)`, maxRetriesExceeded: true });
+    await reportDeliveryQueueService.markFailed(entryId, { errorCode: 'DISPATCH_REJECTED', errorMessage: `${error} (automatic retries exhausted)`, maxRetriesExceeded: true });
   },
   async notify(record) {
-    const [{ mockUserService }, { mockMessageService }] = await Promise.all([import('../users/mockUserService'), import('../messages/mockMessageService')]);
-    const users = await mockUserService.getAll();
+    const [{ userService }, { messageService }] = await Promise.all([import('../users/userServiceInstance'), import('../messages/messageServiceInstance')]);
+    const users = await userService.getAll();
     const recipients = deliveryExceptionRecipients(users.ok ? users.data as { id: string; roles?: string[]; status?: string; firstName?: string; lastName?: string }[] : []);
     const vars = {
       channel: i18n.t(`deliveryRulesSection.channelNames.${record.channel}`),
@@ -71,7 +71,7 @@ export const deliveryRetryDeps: DeliveryRetryDeps = {
       count: record.failures,
       error: record.lastError ?? '',
     };
-    await Promise.all(recipients.map(u => mockMessageService.send({
+    await Promise.all(recipients.map(u => messageService.send({
       senderId: 'system',
       senderName: i18n.t('deliveryExceptions.alert.sender'),
       recipientId: u.id,
@@ -94,7 +94,7 @@ export function applyReportDeliveryStatusLive(event: ReportDeliveryStatusEvent) 
   return applyReportDeliveryStatus(event, {
     ...deliveryRetryDeps,
     async releaseOf(entryId) {
-      const all = await mockReportDeliveryQueueService.getAll();
+      const all = await reportDeliveryQueueService.getAll();
       const e = all.ok ? all.data.find(x => x.id === entryId) : undefined;
       if (!e) return null;
       return {
@@ -103,11 +103,11 @@ export function applyReportDeliveryStatusLive(event: ReportDeliveryStatusEvent) 
       };
     },
     async markTransmissionFailed(entryId, detail) {
-      await mockReportDeliveryQueueService.setTransmission(entryId, { status: 'TRANSMISSION_FAILED', detail, at: new Date().toISOString() });
-      await mockReportDeliveryQueueService.markFailed(entryId, { errorCode: 'DISPATCH_REJECTED', errorMessage: detail, maxRetriesExceeded: false });
+      await reportDeliveryQueueService.setTransmission(entryId, { status: 'TRANSMISSION_FAILED', detail, at: new Date().toISOString() });
+      await reportDeliveryQueueService.markFailed(entryId, { errorCode: 'DISPATCH_REJECTED', errorMessage: detail, maxRetriesExceeded: false });
     },
   }).then(async outcome => {
-    if (outcome === 'confirmed') await mockReportDeliveryQueueService.setTransmission(event.queueEntryId, { status: 'TRANSMITTED', ...(event.detail ? { detail: event.detail } : {}), at: event.occurredAt });
+    if (outcome === 'confirmed') await reportDeliveryQueueService.setTransmission(event.queueEntryId, { status: 'TRANSMITTED', ...(event.detail ? { detail: event.detail } : {}), at: event.occurredAt });
     return outcome;
   });
 }

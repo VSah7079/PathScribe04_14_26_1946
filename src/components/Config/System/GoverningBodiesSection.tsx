@@ -31,6 +31,7 @@ import { governingBodyService, authorizationService } from '@/services';
 import { saveGoverningBodies } from '@/services/governingBodies/governingBodyAdministration';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import type { GoverningBody, RetentionPolicyVersion } from '@/services/governingBodies/IGoverningBodyService';
+import { isUnverifiedRetentionPlaceholder } from '@/services/governingBodies/retentionPlaceholder';
 import type { RetainableMaterialType } from '@/services/retentionPolicy/RetentionPolicy';
 import { MATERIAL_TYPE_LABEL, formatRetentionPeriod } from '@/services/retentionPolicy/RetentionPolicy';
 import type { Jurisdiction } from '@/types/systemConfig';
@@ -240,6 +241,7 @@ const VersionRow: React.FC<{ v: RetentionPolicyVersion }> = ({ v }) => {
         <span className={`ps-gov-version-badge ${v.applyToExistingInventory ? 'ps-gov-version-badge--retroactive' : 'ps-gov-version-badge--prospective'}`}>
           {v.applyToExistingInventory ? t('governingBodiesSection.versionRow.retroactiveBadge') : t('governingBodiesSection.versionRow.prospectiveBadge')}
         </span>
+        {isUnverifiedRetentionPlaceholder(v) && <span className="ps-gov-version-badge ps-gov-version-badge--unverified">{t('governingBodiesSection.versionRow.unverifiedBadge')}</span>}
       </div>
       <div className="ps-gov-version-figures">
         {t('governingBodiesSection.figuresLine', { block: formatRetentionPeriod(v.block), slide: formatRetentionPeriod(v.slide), wet: formatRetentionPeriod(v.wet_tissue) })}

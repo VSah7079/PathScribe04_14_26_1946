@@ -7,8 +7,8 @@ import { buildCancerRegistryReportPayload } from './buildCancerRegistryReportPay
 import en from '@/i18n/locales/en.json';
 
 describe('cancer registry definitions (Batch 422)', () => {
-  it('thirteen registries, the five the SRS found missing among them, each with its jurisdiction', () => {
-    expect(CANCER_REGISTRY_DEFINITIONS).toHaveLength(13);
+  it('fourteen registries, the five the SRS found missing among them, each with its jurisdiction', () => {
+    expect(CANCER_REGISTRY_DEFINITIONS).toHaveLength(14); // Batch 620 (part E): + epath_npcr_us
     for (const id of ['ncri_ireland', 'phs_scotland', 'nicr_northern_ireland', 'nkr_netherlands', 'bcr_belgium']) expect(cancerRegistryDefinition(id), id).toBeDefined();
     expect(cancerRegistriesFor('GB_SCT')[0].id).toBe('phs_scotland');
     expect(cancerRegistriesFor('IE')[0].id).toBe('ncri_ireland');

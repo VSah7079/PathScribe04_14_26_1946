@@ -63,4 +63,11 @@ describe('createHttpIntraoperativeService' + ' (server version)', () => {
     expect(r).toEqual({ ok: false, error: 'NOT_SUPPORTED' });
     expect(f).not.toHaveBeenCalled();
   });
+
+  it('removeOrBoardDemoData is demo-only: no server call, a fixed code', async () => {
+    const f = vi.fn();
+    const r = await (make(f) as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>)["removeOrBoardDemoData"]();
+    expect(r).toEqual({ ok: false, error: 'NOT_SUPPORTED' });
+    expect(f).not.toHaveBeenCalled();
+  });
 });

@@ -24,7 +24,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { biometricFlow } from '@/services';
+import { actionRegistryService, biometricFlow } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignerConfirmationFields } from '@/components/Signing/SignerConfirmationFields';
 import { useSignerConfirmation } from '@/hooks/useSignerConfirmation';
@@ -303,6 +303,13 @@ export const PreFinalisationModal: React.FC<Props> = ({
   const [dragOver, setDragOver] = React.useState<{ si: number; syi: number } | null>(null);
 
   React.useEffect(() => { if (show) setStaged(buildStaged(synoptics)); }, [show, synoptics]);
+
+  // Batch 650: "cancel finalise" (Ctrl+Alt+Escape) is the Cancel button while this window is open. There is no voice or
+  // key command to confirm: the signature check needs the signer's own credentials (FINALISE_CONFIRM, KNOWN_GAPS.md).
+  React.useEffect(() => {
+    if (!show) return undefined;
+    return actionRegistryService.onAction((actionId: string) => { if (actionId === 'FINALISE_CANCEL') onCancel(); });
+  }, [show, onCancel]);
 
   if (!show) return null;
 

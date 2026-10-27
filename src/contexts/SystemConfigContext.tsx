@@ -126,7 +126,7 @@ export const SystemConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const updateEnterpriseConfig = useCallback(async (patch: Partial<EnterpriseConfig>) => {
-    if (!(await permitEnterpriseConfigPatch(patch as unknown as { features?: Record<string, unknown> }))) return false;
+    if (!(await permitEnterpriseConfigPatch(patch as unknown as { features?: Record<string, unknown>; terminologyLicences?: unknown }))) return false;
     setEnterpriseConfig(prev => ({ ...prev, ...patch }));
     return true;
   }, []);

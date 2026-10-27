@@ -1,4 +1,5 @@
 // src/services/reportRelease/mockReportReleaseService.ts
+import { releaseHoldPrintPolicyOf } from './heldPrintPolicy';
 import type { IReportReleaseService, ReleaseBufferResolution, ReportReleaseOrgConfig } from './IReportReleaseService';
 import type { ServiceResult } from '../types';
 import { caseRouter } from '../cases/CaseRouter';
@@ -7,7 +8,10 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { facilityService } from '../index';
 import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
+import { releaseSurgicalFinal, surgicalFinalReleaseDeps } from '../surgicalSignOut/releaseSurgicalFinal';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import i18n from '@/i18n/config';
 import { dataStorage } from '../browserData/dataStorage';
 
 /** Real, sensible fallback if no org config has been saved yet — matches
@@ -22,7 +26,7 @@ const FALLBACK_ORG_CONFIG: ReportReleaseOrgConfig = {
   durationMinutes: 10,
   bypassForStat: true,
   watermarkText: 'PENDING FINAL RELEASE — DO NOT DISTRIBUTE',
-  restrictHardcopyPrinting: true,
+  releaseHoldPrintPolicy: 'warn',
 };
 const ORG_CONFIG_STORAGE_KEY = 'pathscribe_release_buffer_org_config';
 
@@ -41,7 +45,9 @@ function readOrgConfig(): ReportReleaseOrgConfig {
         // real defaults for whatever's missing, rather than either
         // rejecting the whole real, saved config or leaving new fields
         // silently undefined.
-        return { ...FALLBACK_ORG_CONFIG, ...parsed };
+        // Batch 654: a config saved with the old on/off switch reads as warn (on) or allow (off).
+        const { restrictHardcopyPrinting: _legacy, ...rest } = parsed;
+        return { ...FALLBACK_ORG_CONFIG, ...rest, releaseHoldPrintPolicy: releaseHoldPrintPolicyOf(parsed) };
       }
     }
   } catch {
@@ -143,6 +149,9 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
   async recall(caseId, performedBy) {
     const current = await caseRouter.getCase(caseId);
     if (!current) return { ok: false, reason: `Case ${caseId} not found` };
+    // Batch 649: the capability (report:release:recall, audited), then the signer-only rule below.
+    const permitted = await authorizationService.enforce('report:release:recall', { caseId, facilityId: current.order?.facilityId ?? null });
+    if (!permitted.allowed) return { ok: false, reason: i18n.t('caseActionPermissions.recall') };
     if (current.status !== 'pending-release') {
       return { ok: false, reason: `Case ${caseId} is not in the release buffer (current status: ${current.status}).` };
     }
@@ -237,7 +246,8 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
       // Batch 534: the background release no longer waits for it; and the
       // performing facility goes with it, so print and fax route as at sign-out.
       await settleSignOutTracker(caseId, 'released');
-      publishReportReleasedEvent({
+      // Batch 649: the cancer registry submission goes with the release, not the signature (releaseSurgicalFinal).
+      void releaseSurgicalFinal(current, {
         caseId,
         reportType: 'FINAL',
         releasedAt: new Date().toISOString(),
@@ -246,9 +256,7 @@ const reportReleaseServiceUnchecked: IReportReleaseService = {
         // buffer's own automatic expiry, with no human actor at this
         // specific moment (the signing pathologist's own real action
         // already happened earlier, when the buffer itself started).
-      }).catch(e =>
-        console.error('[reportRelease] Real, non-blocking failure dispatching case instances after release:', e)
-      );
+      }, { ...surgicalFinalReleaseDeps, publish: publishReportReleasedEvent });
 
       return { released: true };
     } catch (e) {

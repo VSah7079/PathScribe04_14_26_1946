@@ -37,7 +37,7 @@ const F = HL7_FIELD_SEP; // short alias for readability at call sites, real fix:
  *  facility UTC offset is now appended, per HL7 v2.x spec - the
  *  previous version produced a bare, offset-less YYYYMMDDHHmmss using
  *  whichever timezone the browser/device happened to be in. */
-function toHL7Timestamp(timezone: string, iso?: string): string {
+export function toHL7Timestamp(timezone: string, iso?: string): string {
   const d = iso ? new Date(iso) : new Date();
   const { year, month, day, hour, minute, second } = getFacilityDateTimeParts(d, timezone);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -57,7 +57,7 @@ function toHL7Timestamp(timezone: string, iso?: string): string {
  *  data type is date-only, unlike TS. Still uses the real, required
  *  facility timezone for the real calendar date itself, not the
  *  viewing device's own local date. */
-function toHL7Date(timezone: string, iso?: string): string {
+export function toHL7Date(timezone: string, iso?: string): string {
   if (!iso) return '';
   const { year, month, day } = getFacilityDateParts(iso, timezone);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -87,7 +87,7 @@ export function buildMSH(ctx: HL7MessageContext, messageControlId: string, timez
  * TF-2x Appendix C.3 and multiple independent ORM^O01 examples.
  */
 export function buildPID(patient: {
-  mrn?: string; firstName: string; lastName: string; dateOfBirth?: string; sex?: 'M' | 'F' | 'U';
+  mrn?: string; firstName: string; lastName: string; dateOfBirth?: string; sex?: 'M' | 'F' | 'U' | 'I';
 }, timezone: string, setId = 1): string {
   return [
     'PID', String(setId),
@@ -97,7 +97,7 @@ export function buildPID(patient: {
     `${patient.lastName}^${patient.firstName}`, // PID-5
     '',
     toHL7Date(timezone, patient.dateOfBirth), // PID-7
-    patient.sex ?? 'U', // PID-8
+    patient.sex === 'I' ? 'A' : (patient.sex ?? 'U'), // PID-8 (HL7 table 0001: A = Ambiguous; our indeterminate)
   ].join(F);
 }
 

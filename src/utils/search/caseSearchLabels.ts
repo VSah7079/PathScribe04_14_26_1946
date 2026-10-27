@@ -48,6 +48,7 @@ export const CASE_PRIORITY_HUE: Record<CasePriority, string> = { Routine: '#0891
 export const CASE_SEX_LABEL_KEY: Record<CaseSearchSex, string> = {
   M: 'searchPage.genderLabelKey.Male',
   F: 'searchPage.genderLabelKey.Female',
+  I: 'searchPage.genderLabelKey.Indeterminate',
   U: 'searchPage.genderLabelKey.Unknown',
 };
 

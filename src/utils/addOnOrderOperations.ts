@@ -462,6 +462,13 @@ export function filterStainsForKind(stainTypes: readonly StainType[], orderKind:
   return stainTypes.filter(s => (!q || s.name.toLowerCase().includes(q)) && (!filter || filter.includes(s.category)));
 }
 
+/** Batch 669 (ws-20): the stains of an IHC panel preset that are not in the (active) stain dictionary, by a readable
+ *  name taken from their id ('st-pms2' -> 'PMS2'; the dictionary has no entry to take a name from). They are left out of
+ *  the order, so the builder says so instead of dropping them silently. */
+export function missingPanelStainNames(panel: { stainTypeIds: readonly string[] }, stainTypes: readonly StainType[]): string[] {
+  return panel.stainTypeIds.filter(id => !stainTypes.some(s => s.id === id)).map(id => id.replace(/^st-/, '').toUpperCase());
+}
+
 /** The lines one "Add to order" makes: a whole IHC panel, or one stain. */
 export function buildAddOnLines(input: {
   orderKind: AddOnOrderKind;

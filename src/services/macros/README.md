@@ -28,3 +28,5 @@ A person's own macro is theirs to change; a shared (enterprise or facility) macr
 ## Batch 616 (part E) — server version
 
 API-server version of `Macro` (`httpMacroService.ts`, contract `MACROS_API.md`), picked by `macroServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.
+
+- Batch 663: `macroAccess.ts` no longer reads a role name. The screen passes whether the person holds `config:macros:manage` (`MACRO_MANAGE_CAPABILITY`).

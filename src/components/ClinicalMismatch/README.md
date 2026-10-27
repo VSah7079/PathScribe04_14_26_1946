@@ -35,3 +35,6 @@ Decisions carry the fingerprint of the text they were made on; `ClinicalMismatch
 `ClinicalMismatchSummary.tsx`: a rule-based suggestion made because the jurisdiction's AI vendor policy didn't allow the AI says so (`clinicalMismatch.source.ruleJurisdiction`), inline.
 
 Batch 609 (#31): `ClinicalMismatchAlert.tsx` says "this will not hold the release" for a high-risk mismatch on an amendment, correction or addendum when the lab setting does not hold the release (`clinicalMismatch.alert.releaseNotHeld`). The window (`ClinicalMismatchModal`) is also shown before a held addendum is released.
+
+## Batch 651
+The decision form takes `instructionVersion` (from the suggestion) and records it with the decision.

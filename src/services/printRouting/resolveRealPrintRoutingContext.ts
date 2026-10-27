@@ -73,7 +73,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockLocationService } from '../locations/mockLocationService';
+import { locationService } from '../locations/locationServiceInstance';
 import { wasCaseFrozenSectioned } from './wasCaseFrozenSectioned';
 import { mapReportTypeToEventTriggerType, type SpecimenCaseType } from '@/types/printRouting/PrintRoutingRule';
 import type { PrintDestinationResolutionInput } from './resolvePrintDestination';
@@ -118,7 +118,7 @@ export async function resolveRealPrintRoutingContext(
 
   let pointOfCare: string | undefined;
   if (order?.locationId) {
-    const locationRes = await mockLocationService.getById(order.locationId).catch(() => null);
+    const locationRes = await locationService.getById(order.locationId).catch(() => null);
     pointOfCare = locationRes?.ok ? locationRes.data.pointOfCare : undefined;
   }
 

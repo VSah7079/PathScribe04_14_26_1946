@@ -1,0 +1,15 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 659 — late frozen diagnosis, grossing pieces, Lockbox to Accession, Search/Worklist handlers, not-saved messages",
+    "description": "Vitest, 2026-10-23. Tests are created by this import (testInfo)."
+  },
+  "tests": [
+    {"testInfo":{"summary":"Late frozen diagnosis form saves and shows a failure","type":"Generic","projectKey":"PS"},"start":"2026-10-23T15:00:00Z","finish":"2026-10-23T17:00:00Z","status":"PASSED","comment":"PASSED: src/components/Intraop/LateFrozenDiagnosisForm.test.tsx"},
+    {"testInfo":{"summary":"Intraop merge checks a manual case ID and carries a late diagnosis","type":"Generic","projectKey":"PS"},"start":"2026-10-23T15:00:00Z","finish":"2026-10-23T17:00:00Z","status":"PASSED","comment":"PASSED: src/services/intraop/mockIntraoperativeService.test.ts"},
+    {"testInfo":{"summary":"Grossing piece description and matrix block updates","type":"Generic","projectKey":"PS"},"start":"2026-10-23T15:00:00Z","finish":"2026-10-23T17:00:00Z","status":"PASSED","comment":"PASSED: src/utils/grossingScreenOperations.pieces.test.ts"},
+    {"testInfo":{"summary":"Lockbox receipt links to Accession with its order","type":"Generic","projectKey":"PS"},"start":"2026-10-23T15:00:00Z","finish":"2026-10-23T17:00:00Z","status":"PASSED","comment":"PASSED: src/services/lockbox/lockboxRules.test.ts"},
+    {"testInfo":{"summary":"Tumor Board refusals map to a message","type":"Generic","projectKey":"PS"},"start":"2026-10-23T15:00:00Z","finish":"2026-10-23T17:00:00Z","status":"PASSED","comment":"PASSED: src/services/tumorBoard/tumorBoardRefusal.test.ts"},
+    {"testInfo":{"summary":"Management Review submit is permission-checked and refusals are returned","type":"Generic","projectKey":"PS"},"start":"2026-10-23T15:00:00Z","finish":"2026-10-23T17:00:00Z","status":"PASSED","comment":"PASSED: src/services/deficiencies/qaDeficiencyActions.test.ts\nPASSED: src/services/authorization/authorization.test.ts"}
+  ]
+}

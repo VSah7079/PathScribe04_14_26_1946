@@ -4,13 +4,10 @@
 // sorted by Type (Enterprise, then the various users). Users with the
 // permission to create an Enterprise Macro will see that option…").
 //
-//   canManageAllMacros(role)   administrators (admin, pathologist-admin,
-//                              superadmin): see every macro, including other
-//                              users' personal ones, and create or change
-//                              Enterprise macros. Same set of roles as the
-//                              facility spelling dictionary.
-//   macroTiersFor(role)        the visibility choices offered when creating or
-//                              editing: Enterprise only for administrators.
+//   Batch 663 (Pete): access follows the capability config:macros:manage, not a role name. The screen asks
+//   useCapabilities().has('config:macros:manage') and passes the answer (`canManageAll`) to these functions.
+//   canManageAll   see every macro, including other users' personal ones, and create or change Enterprise macros.
+//   macroTiersFor(canManageAll)   the visibility choices offered when creating or editing: Enterprise only with it.
 //   groupAllMacros(...)        the administrator's "All" list: Enterprise
 //                              first, then each facility by name, then each
 //                              user's personal macros by the user's name;
@@ -22,14 +19,11 @@ import type { Macro } from './IMacroService';
 
 export type MacroTier = 'enterprise' | 'facility' | 'personal';
 
-const ADMIN_ROLES = new Set(['admin', 'pathologist-admin', 'superadmin']);
+/** The capability that lets a person see and change every macro, Enterprise included. */
+export const MACRO_MANAGE_CAPABILITY = 'config:macros:manage';
 
-export function canManageAllMacros(role: string | undefined | null): boolean {
-  return !!role && ADMIN_ROLES.has(role);
-}
-
-export function macroTiersFor(role: string | undefined | null): MacroTier[] {
-  return canManageAllMacros(role) ? ['enterprise', 'facility', 'personal'] : ['facility', 'personal'];
+export function macroTiersFor(canManageAll: boolean): MacroTier[] {
+  return canManageAll ? ['enterprise', 'facility', 'personal'] : ['facility', 'personal'];
 }
 
 export function macroTierOf(m: Pick<Macro, 'ownerUserId' | 'performingLabFacilityId'>): MacroTier {
@@ -37,8 +31,8 @@ export function macroTierOf(m: Pick<Macro, 'ownerUserId' | 'performingLabFacilit
 }
 
 /** Whether this user may change (or delete) this macro. */
-export function canEditMacro(m: Pick<Macro, 'ownerUserId' | 'performingLabFacilityId'>, userId: string, role: string | undefined | null): boolean {
-  if (canManageAllMacros(role)) return true;
+export function canEditMacro(m: Pick<Macro, 'ownerUserId' | 'performingLabFacilityId'>, userId: string, canManageAll: boolean): boolean {
+  if (canManageAll) return true;
   const tier = macroTierOf(m);
   if (tier === 'enterprise') return false;
   if (tier === 'personal') return m.ownerUserId === userId;

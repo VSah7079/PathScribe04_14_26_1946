@@ -2,13 +2,10 @@
 //
 // src/pages/CytologyWorklistPage/CytologyWorklistPage.hpvResult.test.tsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Batch 451 (PS-175): the Cytology Worklist's Record Positive / Record
-// Negative buttons (HPV Triage tile) don't edit the specimen: they build the
-// HPV result event an interface engine would deliver
-// (services/cytology/cytologyWorklist.ts simulatedHpvResultEvent, run for
-// real here) and send it through processInboundHpvResultEvent, the same
-// processor a real delivery uses, then reload the worklist. Loading and the
-// processor are mocked.
+// Batch 451 (PS-175), changed in Batch 630: the Cytology Worklist's Record Positive / Record Negative buttons (HPV Triage
+// tile) open a dialog that asks for the Result Source, then call recordManualHpvResult (permission, audit and the second
+// sign-off live there, tested in recordManualHpvResult.test.ts). A manual entry that would replace an interface result
+// waits for a different person's approval, shown on the row. Loading and the service are mocked.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -27,8 +24,8 @@ vi.mock('@/services', async () => ({
   ...(await vi.importActual<typeof import('@/services/cytology/cytologyWorklist')>('@/services/cytology/cytologyWorklist')),
   loadCytologyWorklist, claimPoolCase, acceptPoolCase, passPoolCase,
 }));
-const { processInboundHpvResultEvent } = vi.hoisted(() => ({ processInboundHpvResultEvent: vi.fn() }));
-vi.mock('@/services/hl7/processInboundHpvResultEvent', () => ({ processInboundHpvResultEvent }));
+const { recordManualHpvResult, decideManualHpvOverride } = vi.hoisted(() => ({ recordManualHpvResult: vi.fn(), decideManualHpvOverride: vi.fn() }));
+vi.mock('@/services/cytology/recordManualHpvResult', () => ({ recordManualHpvResult, decideManualHpvOverride }));
 
 const USER = { id: 'u-cyto', name: 'Cy Tech' };
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: USER }) }));
@@ -45,7 +42,7 @@ vi.mock('@/components/Flags/FlagManagerModal', () => ({ default: () => null }));
 vi.mock('@/utils/openComposeTo', () => ({ openComposeTo: vi.fn() }));
 // Batch 572: the screening-hours panel has its own tests (ScreeningHoursPanel.test.tsx).
 vi.mock('@/contexts/SystemConfigContext', () => ({ useSystemConfig: () => ({ config: { facilityTimezone: 'America/Phoenix', jurisdiction: 'US' } }) }));
-vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => false }) }));
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => true, decide: () => ({ allowed: true }) }) }));
 vi.mock('./hooks/useCytologyWorkloadSummary', () => ({ useCytologyWorkloadSummary: () => null }));
 vi.mock('./hooks/useScreeningHoursSignOff', () => ({ useScreeningHoursSignOff: () => ({ today: null, yesterday: null, saving: false, signOff: vi.fn(), reload: vi.fn() }) }));
 
@@ -64,7 +61,8 @@ function worklistWith(triageRows: Case[]) {
 
 beforeEach(() => {
   loadCytologyWorklist.mockResolvedValue(worklistWith([TRIAGE_CASE]));
-  processInboundHpvResultEvent.mockResolvedValue({ outcome: 'applied' });
+  recordManualHpvResult.mockResolvedValue({ outcome: 'recorded' });
+  decideManualHpvOverride.mockResolvedValue({ outcome: 'approved' });
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
@@ -74,41 +72,56 @@ async function openTriageTile() {
   fireEvent.click(screen.getByText('cytologyWorklist.tiles.hpvTriage'));
 }
 
-describe('CytologyWorklistPage (PS-175) — Record HPV Positive / Negative', () => {
-  it('Record Positive sends the interface-engine HPV result event through processInboundHpvResultEvent, leaves the case untouched, and reloads', async () => {
+describe('CytologyWorklistPage (PS-175, Batch 630) — Record HPV Positive / Negative by hand', () => {
+  it('Record Positive asks for the Result Source, will not confirm without one, then records it with the chosen source and reloads', async () => {
     const before = JSON.parse(JSON.stringify(TRIAGE_CASE));
     await openTriageTile();
     expect(loadCytologyWorklist).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('cytologyWorklist.actions.recordHpvPositive'));
-    await waitFor(() => expect(processInboundHpvResultEvent).toHaveBeenCalledTimes(1));
-    const event = processInboundHpvResultEvent.mock.calls[0][0];
-    expect(event).toEqual({
-      messageId: expect.any(String), timestamp: expect.any(String),
-      organisationId: 'ent-1', internalCaseId: 'C-500', accessionNumber: 'S26-5003-CYT-001',
-      specimenLetter: 'A', hrHpvResult: 'Positive', abnormalFlag: 'A',
+    const confirm = screen.getByText('cytologyWorklist.manualHpv.confirmDirect') as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'MANUAL_PAPER_REPORT' } });
+    expect(confirm.disabled).toBe(false);
+    fireEvent.click(confirm);
+    await waitFor(() => expect(recordManualHpvResult).toHaveBeenCalledTimes(1));
+    expect(recordManualHpvResult).toHaveBeenCalledWith({
+      caseId: 'C-500', specimenLetter: 'A', result: 'Positive', source: 'MANUAL_PAPER_REPORT', actor: { id: 'u-cyto', name: 'Cy Tech' },
     });
-    expect(Number.isNaN(Date.parse(event.timestamp))).toBe(false);
     expect(TRIAGE_CASE).toEqual(before);
     await waitFor(() => expect(loadCytologyWorklist).toHaveBeenCalledTimes(2));
     expect(loadCytologyWorklist).toHaveBeenLastCalledWith('u-cyto');
   });
 
-  it('Record Negative sends a Negative, normal-flag event; each delivery gets its own message id', async () => {
+  it('Record Negative records a Negative; cancelling records nothing', async () => {
     await openTriageTile();
     fireEvent.click(screen.getByText('cytologyWorklist.actions.recordHpvNegative'));
-    await waitFor(() => expect(processInboundHpvResultEvent).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByText('common.cancel'));
+    await act(async () => {});
+    expect(recordManualHpvResult).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('cytologyWorklist.actions.recordHpvNegative'));
-    await waitFor(() => expect(processInboundHpvResultEvent).toHaveBeenCalledTimes(2));
-    const [[first], [second]] = processInboundHpvResultEvent.mock.calls;
-    expect(first).toMatchObject({ internalCaseId: 'C-500', hrHpvResult: 'Negative', abnormalFlag: 'N' });
-    expect(first.messageId).not.toBe(second.messageId);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'MANUAL_DOWNTIME_OVERRIDE' } });
+    fireEvent.click(screen.getByText('cytologyWorklist.manualHpv.confirmDirect'));
+    await waitFor(() => expect(recordManualHpvResult).toHaveBeenCalledTimes(1));
+    expect(recordManualHpvResult.mock.calls[0][0]).toMatchObject({ result: 'Negative', source: 'MANUAL_DOWNTIME_OVERRIDE' });
   });
 
-  it('a case with no dictionary specimen sends nothing', async () => {
-    loadCytologyWorklist.mockResolvedValue(worklistWith([{ ...TRIAGE_CASE, specimens: [{ id: 'sp-1', label: 'A' }] } as unknown as Case]));
+  it('a row holding an interface result (Invalid) says an entry needs a second sign-off', async () => {
+    const withInterface = { ...TRIAGE_CASE, specimens: [{ id: 'sp-1', label: 'A', specimenDictionaryEntryId: 'dict-thinprep', cytologyScreening: { hpvResult: 'Invalid' } }] } as unknown as Case;
+    loadCytologyWorklist.mockResolvedValue(worklistWith([withInterface]));
     await openTriageTile();
     fireEvent.click(screen.getByText('cytologyWorklist.actions.recordHpvPositive'));
-    await act(async () => {});
-    expect(processInboundHpvResultEvent).not.toHaveBeenCalled();
+    expect(screen.getByRole('note').textContent).toContain('cytologyWorklist.manualHpv.overwriteNotice');
+    expect(screen.getByText('cytologyWorklist.manualHpv.confirmPending')).toBeTruthy();
+  });
+
+  it('a waiting entry shows Approve / Reject instead of Record buttons, and Approve calls the second-sign-off service', async () => {
+    const waiting = { ...TRIAGE_CASE, specimens: [{ id: 'sp-1', label: 'A', specimenDictionaryEntryId: 'dict-thinprep', cytologyScreening: {
+      hpvResult: 'Invalid', hpvPendingOverride: { result: 'Positive', source: 'MANUAL_PAPER_REPORT', enteredById: 'u-1', enteredByName: 'Ann', enteredAt: 't', previousResult: 'Invalid', previousSource: 'INTERFACE' } } }] } as unknown as Case;
+    loadCytologyWorklist.mockResolvedValue(worklistWith([waiting]));
+    await openTriageTile();
+    expect(screen.queryByText('cytologyWorklist.actions.recordHpvPositive')).toBeNull();
+    expect(screen.getByText('cytologyWorklist.badges.hpvOverridePending')).toBeTruthy();
+    fireEvent.click(screen.getByText('cytologyWorklist.actions.approveOverride'));
+    await waitFor(() => expect(decideManualHpvOverride).toHaveBeenCalledWith({ caseId: 'C-500', specimenLetter: 'A', decision: 'approved', actor: { id: 'u-cyto', name: 'Cy Tech' } }));
   });
 });

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 640 — Recall windows and wording set per country (Australia, New Zealand) by the laboratory",
+    "description": "Vitest, 2026-10-20: full suite 1697 files (1692 passed, 4 skipped, 1 failed); 14,256 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts (needs the Firestore emulator). Type-check clean."
+  },
+  "tests": [
+    {
+      "testKey": "PS-852",
+      "start": "2026-10-21T01:00:00Z",
+      "finish": "2026-10-21T01:50:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cytology/recallWording.test.ts (override lookup by country/kind/language, placeholders, validation, per-country windows)\nPASSED: src/services/cytology/saveRecallSettings.test.ts (one country saved, other kept, trimmed, audited; invalid and failed not audited)\nPASSED: src/components/Config/Cytology/RecallWindowsCard.test.tsx (country dropdown, save, Save blocked on bad placeholder)\nPASSED: src/pages/CytologyWorklistPage/components/SelfCollectedRecallDetail.test.tsx (lab wording replaces built-in text, other country ignored)\nPASSED: localeParity\nNot tested: use by a programme reviewer; fr/de/nl/ko/es wording; the API server storing the new settings."
+    }
+  ]
+}

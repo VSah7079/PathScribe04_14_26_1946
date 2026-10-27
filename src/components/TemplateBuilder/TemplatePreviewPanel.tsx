@@ -30,7 +30,7 @@ const MARGIN_SIDE_LABEL_KEY: Record<keyof Margins, string> = {
 const MOCK_CTX: any = {
   builtAt: new Date().toISOString(), caseId: 'PREVIEW-001', reportingMode: 'pathscribe',
   patient: { id: 'PT-001', name: 'Eleanor Whitmore', firstName: 'Eleanor', lastName: 'Whitmore',
-    dob: '1962-04-15', age: 63, sex: 'Female', mrn: 'MRN-8842917' },
+    dob: '1962-04-15', age: 63, sex: 'Female', sexAtBirth: 'Female', mrn: 'MRN-8842917' },
   specimens: [
     { id: 'SP-001', index: 0, label: 'A', type: 'Excision biopsy',
       site: 'Left breast, upper outer quadrant', laterality: 'Left', fixative: 'Formalin',

@@ -14,6 +14,7 @@
 // Log to QA") applies its action from the display threshold up.
 //
 // The engine (evaluateClinicalMismatch), for one suggestion:
+//   a rule-based fallback (no AI)     → always low risk and always shown (Batch 651), whatever the threshold;
 //   below the display threshold       → suppressed: no alert, nothing logged;
 //   display threshold up to the action → low risk: alert, logged to QA;
 //   at or above the action threshold  → the rule's action (block is high risk).
@@ -102,6 +103,8 @@ export function newSpecimenRule(category: ClinicalMismatchKind, specimenTypeId: 
   return { ...base, id: `${specimenTypeId}:${category}`, specimenTypeId };
 }
 
+import { capabilitiesFor, regulatoryProfile, type RegulatoryProfile } from '@/services/regulatoryProfile/regulatoryProfile';
+
 // ── The engine ───────────────────────────────────────────────────────────────
 
 export type ClinicalMismatchRisk = 'suppressed' | 'low' | 'high';
@@ -153,10 +156,25 @@ const SEVERITY = (o: ClinicalMismatchOutcome) =>
  * With several specimen types, the most severe outcome wins.
  */
 export function evaluateClinicalMismatch(
-  suggestion: { kind: ClinicalMismatchKind; confidence: number },
+  suggestion: { kind: ClinicalMismatchKind; confidence: number; source?: 'ai' | 'rule' | 'pathologist' },
   specimenTypeIds: readonly (string | null | undefined)[],
   rules: readonly ClinicalMismatchRule[],
+  profile: RegulatoryProfile = regulatoryProfile(),
 ): ClinicalMismatchOutcome {
+  // Batch 679: in the documentation profile the model's score decides nothing. Any suggestion the check returns is
+  // shown as a plain flag with its reason, always low risk: logged to QA, never holds sign-out. The thresholds and
+  // Block rules below stay in the code and apply again under the clinical_support profile.
+  if (!capabilitiesFor(profile).scoreDrivenActions) {
+    const rule = applicableRules(suggestion.kind, specimenTypeIds, rules)[0];
+    return { risk: 'low', display: true, holdsSignOut: false, logToQa: true, action: null, rule };
+  }
+  // Batch 651: the rule-based fallback (confidence 50, "a prompt to look, not a finding") is below the default AI display
+  // threshold (60), so it never showed. The AI threshold is about how sure a model is; a rule-based result has no model, so
+  // it is shown regardless of that threshold, labelled rule-based, always LOW risk: it logs to QA and never holds sign-out.
+  if (suggestion.source === 'rule') {
+    const rule = applicableRules(suggestion.kind, specimenTypeIds, rules)[0];
+    return { risk: 'low', display: true, holdsSignOut: false, logToQa: true, action: null, rule };
+  }
   const outcomes = applicableRules(suggestion.kind, specimenTypeIds, rules).map(r => outcomeFor(suggestion.confidence, r));
   return outcomes.reduce((worst, o) => (SEVERITY(o) > SEVERITY(worst) ? o : worst));
 }

@@ -41,6 +41,7 @@ import NonGynCytologyCategoriesSection from './NonGynCytologyCategoriesSection';
 import ConfigSectionGate from '../ConfigSectionGate';
 import { SECTIONS, type CytologyConfigSection } from './cytologySections';
 import { useConfigNavigationGuard } from '../configDirtyGuardContext';
+import { useRegisterConfigHelpSection } from '../help/ConfigHelpContext';
 
 // Batch 431: the section list lives in ./cytologySections.ts (shared with the
 // Configuration search).
@@ -55,6 +56,8 @@ const CytologyTab: React.FC = () => {
     const section = new URLSearchParams(location.search).get('section') as CytologyConfigSection | null;
     return section && SECTIONS.some(s => s.id === section) ? section : SECTIONS[0].id;
   });
+
+  useRegisterConfigHelpSection(active); // Batch 646: the Help button opens this section of the Administrator Guide
 
   useEffect(() => {
     const section = new URLSearchParams(location.search).get('section') as CytologyConfigSection | null;

@@ -85,6 +85,7 @@ async function waitForElementToSettle(el: Element, maxWaitMs = 800, maxAncestorD
 
 async function applyRedactionOverlays(): Promise<RedactionOverlay[]> {
   const overlays: RedactionOverlay[] = [];
+  const covered = new Set<Element>(); // an element matching several selectors gets one overlay
 
   for (const selector of PHI_SELECTORS) {
     let matches: Element[];
@@ -94,6 +95,8 @@ async function applyRedactionOverlays(): Promise<RedactionOverlay[]> {
       continue; // invalid selector — skip
     }
     for (const el of matches) {
+      if (covered.has(el)) continue;
+      covered.add(el);
       const htmlEl = el as HTMLElement;
       await waitForElementToSettle(htmlEl);
       const rect   = htmlEl.getBoundingClientRect();

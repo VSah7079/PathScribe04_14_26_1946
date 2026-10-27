@@ -3,7 +3,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { IPrintQueueService, BulkPrintJobResult } from './IPrintQueueService';
 import type { PrintJob } from '@/types/printing/PrintJob';
-import { auditService } from '@/services';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { printDestinationAuditText, printDestinationProblem, redirectSiteAllowed } from '../printRouting/printDestinationRules';
 
 /** Real, per PS-279 §2.2.3 — the one, real place this app decides
@@ -347,7 +347,8 @@ async function runBulk(ids: string[], action: (id: string) => Promise<ServiceRes
 // selection. Queueing, marking printed/failed and the dispatch bookkeeping are
 // the system's own steps and are not checked. Retry is checked in
 // redispatchPrintJob.ts.
-export const PRINT_JOB_NOT_PERMITTED = 'PRINT_JOB_NOT_PERMITTED';
+import { PRINT_JOB_NOT_PERMITTED } from './printJobCodes';
+export { PRINT_JOB_NOT_PERMITTED };
 /** Batch 553: Redirect to a destination with a problem (printDestinationRules.ts). */
 export const PRINT_JOB_BAD_DESTINATION = 'PRINT_JOB_BAD_DESTINATION';
 /** Batch 553: Redirect to an agent printer on another site than the job's performing lab. */

@@ -1,3 +1,5 @@
+**Batch 645:** `IncomingOrderSpecimen` has an optional `containerBarcode`. Lockbox Drop-Off matches a scanned barcode against an order's `externalOrderNumber` and this field (`services/lockbox/lockboxRules.ts`); nothing else reads it yet and no importer fills it, so today a scan matches the order number.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/orderIntake/

@@ -27,9 +27,9 @@ export const mockFacilityBiopsyResectionCorrelationOverrideService = guardConfig
 
 /** The rule for a facility (enterprise → its jurisdiction → its override). */
 export async function getEffectiveBiopsyResectionRule(facilityId: string | undefined): Promise<EffectiveCorrelationRule> {
-  const { mockFacilityService } = await import('../facilities/mockFacilityService');
+  const { facilityService } = await import('../facilities/facilityServiceInstance');
   const settings = await mockBiopsyResectionCorrelationSettingsService.get();
-  const facility = facilityId ? await mockFacilityService.getById(facilityId) : null;
+  const facility = facilityId ? await facilityService.getById(facilityId) : null;
   const override = facilityId ? await mockFacilityBiopsyResectionCorrelationOverrideService.getForFacility(facilityId) : null;
   return resolveEffectiveCorrelationRule(
     settings.ok ? settings.data : null,

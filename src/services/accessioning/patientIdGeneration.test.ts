@@ -16,6 +16,6 @@ describe('Accession Patient ID generation (Batch 377)', () => {
   });
   it('a required Patient ID left blank is not listed as missing: it will be generated', () => {
     const req = resolveFieldRequirements('accession', { mrn: true });
-    expect(missingRequiredFields(req, { givenNames: 'A', familyNames: 'B', dateOfBirth: 'x', client: 'c', requestingProvider: 'p', mrn: '', specimenDescription: ['s'] })).toEqual([]);
+    expect(missingRequiredFields(req, { givenNames: 'A', familyNames: 'B', dateOfBirth: 'x', sex: 'F', client: 'c', requestingProvider: 'p', mrn: '', specimenDescription: ['s'] })).toEqual([]);
   });
 });

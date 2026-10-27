@@ -79,6 +79,8 @@ export interface SpecimenCodeCrosswalkEntry {
 
 export interface IncomingOrderSpecimen {
   description: string;
+  /** Batch 645: the container's barcode, when the order carries one. Lockbox Drop-Off matches a scan against this and the order number. */
+  containerBarcode?: string;
   /** The client's local code for this specimen type, if the source
    *  message carried one (not all sources will — manual/API orders may
    *  arrive as description-only). */

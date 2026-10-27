@@ -58,16 +58,21 @@ export interface ResendOutcome {
 }
 
 export async function resendRegistrySubmission(
-  input: { queue: RegistryQueueName; entryId: string },
+  input: { queue: RegistryQueueName; entryId: string; /** Batch 638: set only by the CSMS eligibility answer. */ eligibilityVerified?: boolean },
   user: { id: string; name: string },
   deps: ResendDeps,
 ): Promise<ResendOutcome> {
-  const decision = await deps.enforce('registry:submission:resend', { queueEntryId: input.entryId });
-  if (!decision.allowed) return { outcome: 'notPermitted' };
+  // eligibilityVerified: the caller (verifyCsmsEligibility) has already enforced cytology:csms-eligibility:verify for this case.
+  if (!input.eligibilityVerified) {
+    const decision = await deps.enforce('registry:submission:resend', { queueEntryId: input.entryId });
+    if (!decision.allowed) return { outcome: 'notPermitted' };
+  }
   const q = deps.queues[input.queue];
   const entry = await q.get(input.entryId);
   if (!entry) return { outcome: 'notFound' };
   if (!entry.submission) return { outcome: 'noHeader' };
+  // Batch 638: a message waiting for the CSMS eligibility answer is released by that answer alone, never by a resend.
+  if (entry.errorCode === 'AWAITING_ELIGIBILITY' && !input.eligibilityVerified) return { outcome: 'stillHeld', message: 'Waiting for the CSMS eligibility check. Record the answer on the case first.' };
   const actor = user.name || user.id;
   const audit = (event: string, detail: string) => deps.logAudit({ type: 'user', event, detail: `${entry.registryId} queue entry ${entry.id} (v${entry.submission!.submissionVersion}): ${detail}`, user: actor, caseId: entry.caseId, confidence: null });
 

@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../cases/CaseRouter', () => ({
   caseRouter: { getCase: vi.fn() },
 }));
-vi.mock('../patients/mockPatientIndexService', () => ({
-  mockPatientIndexService: { getById: vi.fn() },
+vi.mock('../patients/patientServicesInstance', () => ({
+  patientIndexService: { getById: vi.fn() },
 }));
 vi.mock('./resolveOruReportPdf', async (orig) => ({
   ...(await orig<typeof import('./resolveOruReportPdf')>()),
@@ -22,7 +22,7 @@ vi.mock('../interfaceDispatch/dispatchInterfaceMessage', () => ({
 }));
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
+import { patientIndexService } from '../patients/patientServicesInstance';
 import { buildOruR01Payload } from './buildOruR01Payload';
 import { mockOutboundResultQueueService } from './mockOutboundResultQueueService';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
@@ -32,8 +32,8 @@ import { dispatchAmendedCaseInstance } from './dispatchAmendedCaseInstance';
 beforeEach(() => {
   vi.mocked(caseRouter.getCase).mockReset();
   vi.mocked(caseRouter.getCase).mockResolvedValue({ id: 'CASE-1', patient: { id: 'PT-1' } } as any);
-  vi.mocked(mockPatientIndexService.getById).mockReset();
-  vi.mocked(mockPatientIndexService.getById).mockResolvedValue({ organisationId: 'ORG-1' } as any);
+  vi.mocked(patientIndexService.getById).mockReset();
+  vi.mocked(patientIndexService.getById).mockResolvedValue({ organisationId: 'ORG-1' } as any);
   vi.mocked(buildOruR01Payload).mockReset();
   vi.mocked(buildOruR01Payload).mockResolvedValue({ messageId: 'msg-1' } as any);
   vi.mocked(mockOutboundResultQueueService.enqueue).mockReset();
@@ -52,7 +52,7 @@ describe('dispatchAmendedCaseInstance', () => {
   });
 
   it('no real patient record is a real, honest, non-blocking skip', async () => {
-    vi.mocked(mockPatientIndexService.getById).mockResolvedValue(null);
+    vi.mocked(patientIndexService.getById).mockResolvedValue(null);
     await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED');
     expect(mockOutboundResultQueueService.enqueue).not.toHaveBeenCalled();
   });

@@ -18,6 +18,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { ProtocolChange, ProtocolChangeAction } from '@/types/case/Case';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 // ProtocolChange / ProtocolChangeAction moved to Case.ts (see comment
 // there) — this file no longer defines them, only imports and uses them.
@@ -89,12 +90,14 @@ const ChangeRow: React.FC<{
         <span className="ps-proto-change-reason" id={`ps-proto-${change.id}-reason`}>{t('protocolChangeModal.reasonQuoted', { reason: change.reason })}</span>
 
         {/* Confidence */}
-        <span
-          className="ps-proto-change-confidence"
-          style={{ '--ps-hue': confColor(change.confidence) } as React.CSSProperties}
-        >
-          ✦ {t('protocolChangeModal.confidencePercent', { percent: change.confidence })}
-        </span>
+        {showsConfidence() && (
+          <span
+            className="ps-proto-change-confidence"
+            style={{ '--ps-hue': confColor(change.confidence) } as React.CSSProperties}
+          >
+            ✦ {t('protocolChangeModal.confidencePercent', { percent: change.confidence })}
+          </span>
+        )}
       </span>
     </label>
   );

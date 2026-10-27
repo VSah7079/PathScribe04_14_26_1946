@@ -8,6 +8,8 @@
 
 # components/Config/
 
+**Batch 646:** `help/` is the Help button (`AdminGuideHelpButton`) and the hook the System, Cytology, Staff, Report Templates and Validation Studies tabs use to say which section is open. It opens that screen's section of the Administrator Guide in a new tab.
+
 The biggest, most central components folder — every admin/configuration
 screen in PathScribe (analogous to `services/cases/` in scale). 170 files
 (not counting READMEs) across 14 subfolders plus `__tests__/`.
@@ -650,3 +652,9 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 `System/CodeSystemsSection.tsx`: the Code Systems setting (code systems per jurisdiction, with start dates). See `System/README.md`.
 
 - Batch 612 (part A): System gains Interface Dictionary (ForMedrixAI support only).
+
+## Batch 652 (defect fixes)
+
+`System/ExternalResourcesSection` now accepts https links only.
+
+- Batch 682: AI settings follow the regulatory profile (mismatch rules note; unused confidence checkbox removed).

@@ -7,7 +7,7 @@
 // server this is not used.
 // ─────────────────────────────────────────────────
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { RECURRING_JOBS, SERVER_JOB_KINDS, type DeadLetteredJob, type ServerJobsHealth, type RecurringJobName } from './serverJobsContract';
 import type { IServerJobsApi } from './serverJobsService';
 
@@ -46,7 +46,7 @@ export const simulatedServerJobsApi: IServerJobsApi = {
     const job = all.find(j => j.jobId === jobId);
     if (!job) return { ok: false, error: 'NOT_FOUND' };
     storageSet(SIMULATED_JOBS_KEY, all.filter(j => j.jobId !== jobId));
-    await mockAuditService.logEvent({
+    await auditService.logEvent({
       type: 'system', event: 'Simulated Job Requeued',
       detail: `SIMULATED (no job server): dead-lettered ${job.kind} job ${job.jobId} requeued by a person. Nothing ran.`,
       user: 'system', caseId: job.caseId ?? null, confidence: null,

@@ -230,7 +230,7 @@ const demoPart = part(DEMO_ID, 'Patient & Order Demographics', 'body', [
       e('Patient name',     '{{patient.name}}',                           '—',         12),
       e('Date of birth',    '{{patient.dob}}',                            '—',         12),
       e('Age',              '{{patient.age}} years',                      '—',         12),
-      e('Sex',              '{{patient.sex}}',                            '—',         12),
+      e('Sex at birth',    '{{patient.sexAtBirth}}',                          '—',         12),
       e('MRN',              '{{patient.mrn}}',                            '—',         12),
       // Right column: order info
       e('Requesting provider', '{{order.requestingProvider}}',            '—',         12),

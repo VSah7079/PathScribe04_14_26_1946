@@ -26,8 +26,9 @@ vi.mock('react-i18next', () => ({
 const { route, navigate } = vi.hoisted(() => ({ route: { batchId: 'new' }, navigate: vi.fn() }));
 vi.mock('react-router', () => ({ useNavigate: () => navigate, useParams: () => route }));
 
-const { batchSvc, rackSvc, ruleSvc } = vi.hoisted(() => ({
+const { batchSvc, rackSvc, ruleSvc, supersede } = vi.hoisted(() => ({
   batchSvc: { getById: vi.fn(), create: vi.fn(), cloneAndSupersede: vi.fn() },
+  supersede: vi.fn(),
   rackSvc: { findPositionByContainerBarcode: vi.fn() },
   ruleSvc: { getAll: vi.fn() },
 }));
@@ -35,6 +36,8 @@ vi.mock('@/services', async () => ({
   ...(await vi.importActual<typeof import('@/services/fieldRequirements/molecularBatchChecks')>('@/services/fieldRequirements/molecularBatchChecks')),
   ...(await vi.importActual<typeof import('@/services/molecular/deckSlots')>('@/services/molecular/deckSlots')),
   ...(await vi.importActual<typeof import('@/services/molecular/resolveMolecularMovementRecord')>('@/services/molecular/resolveMolecularMovementRecord')),
+  ...(await vi.importActual<typeof import('@/services/molecular/molecularBatchErrors')>('@/services/molecular/molecularBatchErrors')),
+  supersedeMolecularBatchNow: supersede,
   molecularBatchService: batchSvc,
   molecularExtractionRackService: rackSvc,
   molecularAssayControlRuleService: ruleSvc,
@@ -397,5 +400,68 @@ describe('MolecularPlateBuilderPage (PS-235) — the results table\'s Trace acti
 
     fireEvent.click(screen.getByText(`${K}hide`));
     expect(screen.queryByText(`${K}tracePlateUuid`)).toBeNull();
+  });
+});
+
+describe('Batch 669 (mol-10): the control well panel', () => {
+  it('the expected result follows the control type (negative for a no-template control, positive for a positive control) and can be changed', async () => {
+    await renderPage();
+    fireEvent.click(well('A01'));
+    fireEvent.change(sampleTypeSelect(), { target: { value: 'CONTROL_NTC' } });
+    const expected = () => screen.getByLabelText(`${K}controlExpectedLabel`) as HTMLSelectElement;
+    expect(expected().value).toBe('NEGATIVE');
+    fireEvent.change(sampleTypeSelect(), { target: { value: 'CONTROL_PTC_HIGH' } });
+    expect(expected().value).toBe('POSITIVE');
+    fireEvent.change(expected(), { target: { value: 'NEGATIVE' } });
+    expect(expected().value).toBe('NEGATIVE');
+  });
+
+  it('the expiry box shows the date again when the well is selected again, and clearing it does not throw', async () => {
+    await renderPage();
+    fireEvent.click(well('A01'));
+    fireEvent.change(sampleTypeSelect(), { target: { value: 'CONTROL_NTC' } });
+    const expiry = () => screen.getByLabelText(`${K}controlExpirationLabel`) as HTMLInputElement;
+    expect(expiry().value).toBe('');
+    fireEvent.change(expiry(), { target: { value: '2027-03-02' } });
+    fireEvent.click(well('A02'));
+    fireEvent.click(well('A01'));
+    expect(expiry().value).toBe('2027-03-02');
+    fireEvent.change(expiry(), { target: { value: '' } });
+    expect(expiry().value).toBe('');
+  });
+});
+
+describe('Batch 669 (mol-7, mol-9): refusals are shown translated', () => {
+  const openDispatch = async () => {
+    route.batchId = 'b1';
+    await renderPage();
+    fireEvent.click(screen.getByText(`${K}dispatchWorklist`));
+    const [scanPlate, scanDeck] = screen.getAllByText(`${K}scan`);
+    fireEvent.click(scanPlate); await scan('PLT-HPV-20260906-012');
+    fireEvent.click(scanDeck); await scan('LOC-INST-PANTHER_02-SLOT_A1');
+    fireEvent.click(screen.getByText(`${K}confirmDispatch`));
+  };
+
+  it('a dispatch that did not go says why through a locale key, not the service\'s English text', async () => {
+    dispatchMolecularWorklist.mockResolvedValue({ dispatched: false, reason: 'Could not reach PathScribe\'s own backend: Failed to fetch', failure: { code: 'unreachable', detail: 'Failed to fetch' } });
+    await openDispatch();
+    expect(await screen.findByText(`${K}dispatchFailure.unreachable:{"status":""}`)).not.toBeNull();
+    expect(screen.queryByText(/Could not reach/)).toBeNull();
+  });
+
+  it('a refused Clone & Supersede shows its translated reason; a good one opens the replacement', async () => {
+    route.batchId = 'b1';
+    await renderPage();
+    fireEvent.click(screen.getByText(`${K}cloneAndSupersede`));
+    fireEvent.change(document.getElementById('mb-clone-reason') as HTMLTextAreaElement, { target: { value: 'Mis-scanned' } });
+    supersede.mockResolvedValueOnce({ ok: false, error: 'lotGatingFailed' });
+    fireEvent.click(screen.getByText(`${K}confirmCloneAndSupersede`));
+    expect(await screen.findByText(`${K}batchErrors.lotGatingFailed`)).not.toBeNull();
+    supersede.mockResolvedValueOnce({ ok: false, error: 'Batch rejected — one or more reagent/control lots failed gating: MASTER_MIX (X)' });
+    fireEvent.click(screen.getByText(`${K}confirmCloneAndSupersede`));
+    expect(await screen.findByText(`${K}batchErrors.generic`)).not.toBeNull();
+    supersede.mockResolvedValueOnce({ ok: true, data: { clone: { id: 'b2' }, ordersMoved: 1 } });
+    fireEvent.click(screen.getByText(`${K}confirmCloneAndSupersede`));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/molecular-batch/b2'));
   });
 });

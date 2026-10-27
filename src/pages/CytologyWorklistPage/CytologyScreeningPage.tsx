@@ -113,7 +113,7 @@ import { EMPTY_DRAFT, draftFromClonedReview, draftFromReview, isDraftDirty, note
 import { loadCytologyWorkspace, type CytologySpecimenTab } from '@/services/cytology/loadCytologyWorkspace';
 import { finalizeCytologyCaseEarly } from '@/services/cytology/cytologyCaseFinalization';
 import { CytologySpecimenTabs } from './components/CytologySpecimenTabs';
-import { saveCytologyReview, type SaveCytologyReviewOutcome } from '@/services/cytology/saveCytologyReview';
+import { saveCytologyReview, workloadReassignmentNotice, type SaveCytologyReviewOutcome } from '@/services/cytology/saveCytologyReview';
 import { reviseCytologyReviewForSignOut } from '@/services/cytology/reviseCytologyReviewForSignOut';
 import { acknowledgeCytologyReviewNote, addCytologyReviewNote, hasPendingAuthorRevision, notesForReview } from '@/services/cytology/cytologyReviewNotes';
 import { CytologyReviewNotes } from './components/CytologyReviewNotes';
@@ -448,7 +448,7 @@ export default function CytologyScreeningPage() {
     if (result.outcome === 'failed') { toast.error(t('cytologyScreening.errors.saveFailed')); return false; }
     if (result.outcome === 'workloadBlocked') {
       setWorkloadBlockedReason(t('cytologyScreening.workload.blockedReason'));
-      toast.info(t('cytologyScreening.workload.reassigned'));
+      toast.info(((n) => t(n.key, n.values))(workloadReassignmentNotice(result.reassignment)));
       navigate('/cytology-worklist');
       return false;
     }
@@ -1045,7 +1045,7 @@ export default function CytologyScreeningPage() {
               )}
               <SignatureConfirmModal
                 show={revision.confirming}
-                action="cytology-sign-out"
+                action="cytology-sign-out" orderingFacilityId={caseData?.order?.facilityId ?? null}
                 caseRef={caseData?.accession?.fullAccession ?? caseData?.id ?? null}
                 title={revision.mode === 'addendum' ? t('cytologyRevision.addendum.confirmTitle') : t('cytologyRevision.correction.confirmTitle')}
                 confirmLabel={revision.mode === 'addendum' ? t('cytologyRevision.addendum.releaseBtn') : t('cytologyRevision.correction.releaseBtn')}
@@ -1111,7 +1111,7 @@ export default function CytologyScreeningPage() {
 
           <SignatureConfirmModal
             show={confirmingSignOut}
-            action="cytology-sign-out"
+            action="cytology-sign-out" orderingFacilityId={caseData?.order?.facilityId ?? null}
             caseRef={caseData?.accession?.fullAccession ?? caseData?.id ?? null}
             title={t('cytologySignOut.confirmTitle')}
             confirmLabel={t('cytologySignOut.signOut')}

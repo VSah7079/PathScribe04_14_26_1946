@@ -72,6 +72,7 @@ import { exportQaReportRows, qaScopeContext } from '@/components/QualityAssuranc
 import { QaScopeSwitcher } from '@/components/QualityAssurance/QaScopeSwitcher';
 import { useQaCaseScope } from '@/hooks/useQaCaseScope';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { raiseQaDeficiency, escalateQaDeficiency, containQaDeficiency, verifyQaDeficiency, submitManagementReview, type QaDeficiencyOutcome } from '@/services/deficiencies/qaDeficiencyActions';
 import { qaTrendService, billingDeficiencyService, outboundChargeQueueService, codeReviewPoolService, caseService, loadFollowUpItems, filterFollowUpItems } from '@/services';
 import { BillingCorrectionDialog } from '@/components/Billing/BillingCorrectionDialog';
 import { ChargeApprovalQueue } from '@/components/Billing/ChargeApprovalQueue';
@@ -126,17 +127,9 @@ const PILLAR_TABS: Record<Pillar, Tab[]> = {
   // Batch 442 (PS-147): discordance patterns, shown only to holders of qa:pathologist-trend:view.
   capa: ['capa-recommended', 'trend-reviews', 'escalated', 'closed', 'reviews'],
   financials: ['financials-open', 'financials-resolved', 'financials-code-review', 'financials-charge-approval'],
-  // Real, per direct guidance: Cytology QA promoted from a tile inside
-  // Operations to its own, real top-level pillar — it's a genuinely
-  // separate clinical-quality domain (aggregate QA agreement reporting
-  // for cytology specifically), not one more nonconformance type
-  // alongside Discordance/Countersign/etc. Only ever one real tab —
-  // no tile grid needed to switch between sub-views that don't exist.
+  // Cytology QA is its own pillar (aggregate QA agreement reporting for cytology), with a single tab.
   cytology: ['cytology-qa'],
-  // Real, per the RFP-APLIS-2026-GLOBAL Enterprise Business
-  // Intelligence Rollup Dashboard gap — a genuinely new, cross-
-  // cutting pillar (operational + financial + diagnostic + TAT),
-  // not naturally owned by any single existing pillar above.
+  // The enterprise roll-up (operational, financial, diagnostic, TAT) is a cross-cutting pillar of its own (RFP-APLIS-2026-GLOBAL).
   enterprise: ['enterprise-rollup'],
   // Real, per PS-108 — see Pillar's own comment above for the full
   // reasoning. Only ever one real tab each, same as 'cytology'/'enterprise'.
@@ -164,7 +157,8 @@ const ResolveModal: React.FC<{
   resolutionTypes: ResolutionType[];
   onResolve: (resolutionTypeId: string, correctiveAction: string, rootCause: string, preventiveAction: string, verificationDueDate: string) => void;
   onClose: () => void;
-}> = ({ deficiency, resolutionTypes, onResolve, onClose }) => {
+  refusal?: string | null;
+}> = ({ deficiency, resolutionTypes, onResolve, onClose , refusal}) => {
   const { t } = useTranslation();
   const [resolutionTypeId, setResolutionTypeId] = useState(resolutionTypes[0]?.id ?? '');
   const [correctiveAction, setCorrectiveAction] = useState('');
@@ -211,6 +205,7 @@ const ResolveModal: React.FC<{
             <label className="ps-conf-label" htmlFor="resolve-verification-due">{t('qualityAssurance.modals.resolve.effectivenessCheckDue')}</label>
             <input id="resolve-verification-due" className="ps-conf-input" type="date" value={verificationDueDate} onChange={e => setVerificationDueDate(e.target.value)} />
           </div>
+          {refusal && <p className="ps-field-still-required" role="alert">{refusal}</p>}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
@@ -233,7 +228,8 @@ const ContainModal: React.FC<{
   resolutionTypes: ResolutionType[];
   onContain: (resolutionTypeId: string, resolutionComment: string) => void;
   onClose: () => void;
-}> = ({ deficiency, resolutionTypes, onContain, onClose }) => {
+  refusal?: string | null;
+}> = ({ deficiency, resolutionTypes, onContain, onClose , refusal}) => {
   const { t } = useTranslation();
   const [resolutionTypeId, setResolutionTypeId] = useState(resolutionTypes[0]?.id ?? '');
   const [resolutionComment, setResolutionComment] = useState('');
@@ -262,6 +258,7 @@ const ContainModal: React.FC<{
             <textarea id="contain-comment" className="ps-conf-input ps-conf-textarea" value={resolutionComment} onChange={e => setResolutionComment(e.target.value)}
               placeholder={t('qualityAssurance.modals.resolve.correctiveActionPlaceholder')} />
           </div>
+          {refusal && <p className="ps-field-still-required" role="alert">{refusal}</p>}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
@@ -287,7 +284,8 @@ const RaiseDeficiencyModal: React.FC<{
   deficiencyTypes: DeficiencyType[];
   onRaise: (input: { caseId: string; specimenId?: string; specimenLabel?: string; deficiencyTypeId: string; comment: string }) => void;
   onClose: () => void;
-}> = ({ deficiencyTypes, onRaise, onClose }) => {
+  refusal?: string | null;
+}> = ({ deficiencyTypes, onRaise, onClose , refusal}) => {
   const { t } = useTranslation();
   const [caseId, setCaseId] = useState('');
   const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'found' | 'not-found'>('idle');
@@ -355,6 +353,7 @@ const RaiseDeficiencyModal: React.FC<{
             <textarea id="raise-def-comment" className="ps-conf-input ps-conf-textarea" value={comment} onChange={e => setComment(e.target.value)}
               placeholder={t('qualityAssurance.modals.raise.whatObservedPlaceholder')} />
           </div>
+          {refusal && <p className="ps-field-still-required" role="alert">{refusal}</p>}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
@@ -378,7 +377,8 @@ const VerifyModal: React.FC<{
   deficiency: SpecimenDeficiency;
   onVerify: (outcome: 'effective' | 'recurred', comment: string) => void;
   onClose: () => void;
-}> = ({ deficiency, onVerify, onClose }) => {
+  refusal?: string | null;
+}> = ({ deficiency, onVerify, onClose , refusal}) => {
   const { t } = useTranslation();
   const [comment, setComment] = useState('');
 
@@ -403,6 +403,7 @@ const VerifyModal: React.FC<{
             <textarea id="verify-comment" className="ps-conf-input ps-conf-textarea" value={comment} onChange={e => setComment(e.target.value)}
               placeholder={t('qualityAssurance.modals.verify.didItWorkPlaceholder')} />
           </div>
+          {refusal && <p className="ps-field-still-required" role="alert">{refusal}</p>}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
@@ -658,6 +659,7 @@ const QualityAssurancePage: React.FC = () => {
   const [containingId, setContainingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [showRaiseDeficiencyModal, setShowRaiseDeficiencyModal] = useState(false);
+  const [deficiencyRefusal, setDeficiencyRefusal] = useState<string | null>(null);
   const [managementReviews, setManagementReviews] = useState<ManagementReview[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [billingDeficiencies, setBillingDeficiencies] = useState<BillingDeficiencyRecord[]>([]);
@@ -938,79 +940,41 @@ const QualityAssurancePage: React.FC = () => {
   const containingItem = deficiencies.find(d => d.id === containingId) ?? null;
   const verifyingItem = deficiencies.find(d => d.id === verifyingId) ?? null;
 
-  // Real, per direct guidance's own Step 3: real /api/qa/deficiencies/*
-  // endpoints now exist for a Firestore-sourced (Engine-raised)
-  // deficiency — these three handlers branch on
-  // firestoreDeficiencyIds (set in loadAll() above), calling the real
-  // endpoint for those and leaving the existing, working mock-service
-  // path untouched for everything else. This is what makes the
-  // disabled-button state from Step 2 no longer needed for a
-  // Firestore-sourced record — the real action now actually works.
+  // Each action checks its capability in services/deficiencies/qaDeficiencyActions.ts (which also sends an Engine-raised
+  // record to its endpoint). Batch 659: a refused or unsaved change keeps its window open with what was typed and says
+  // why inside it; only a saved change closes it.
+  const afterDeficiencyAction = (outcome: QaDeficiencyOutcome, close: () => void) => {
+    if (!outcome.ok) { setDeficiencyRefusal(outcome.reason); return; }
+    setDeficiencyRefusal(null);
+    close();
+    loadAll();
+  };
+  const dismiss = (close: () => void) => () => { setDeficiencyRefusal(null); close(); };
   const handleResolve = (resolutionTypeId: string, correctiveAction: string, rootCause: string, preventiveAction: string, verificationDueDate: string) => {
     if (!resolvingId) return;
-    const resolvedBy = user?.id ?? 'unknown';
-    const done = () => { setResolvingId(null); loadAll(); };
-    if (firestoreDeficiencyIds.has(resolvingId)) {
-      fetch('/api/qa/deficiencies/resolve', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deficiencyId: resolvingId, resolutionTypeId, correctiveAction, rootCause, preventiveAction: preventiveAction || undefined, resolvedBy, verificationDueDate }),
-      }).then(done);
-      return;
-    }
-    specimenDeficiencyService.resolve(resolvingId, {
-      resolutionTypeId, correctiveAction, rootCause, preventiveAction: preventiveAction || undefined,
-      resolvedBy, verificationDueDate,
-    }).then(done);
+    void escalateQaDeficiency(resolvingId, { resolutionTypeId, correctiveAction, rootCause, preventiveAction, resolvedBy: user?.id ?? 'unknown', verificationDueDate },
+      firestoreDeficiencyIds.has(resolvingId)).then(o => afterDeficiencyAction(o, () => setResolvingId(null)));
   };
 
   const handleContain = (resolutionTypeId: string, resolutionComment: string) => {
     if (!containingId) return;
-    const resolvedBy = user?.id ?? 'unknown';
-    const done = () => { setContainingId(null); loadAll(); };
-    if (firestoreDeficiencyIds.has(containingId)) {
-      fetch('/api/qa/deficiencies/contain', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deficiencyId: containingId, resolutionTypeId, resolutionComment, resolvedBy }),
-      }).then(done);
-      return;
-    }
-    specimenDeficiencyService.containImmediately(containingId, {
-      resolutionTypeId, resolutionComment, resolvedBy,
-    }).then(done);
+    void containQaDeficiency(containingId, { resolutionTypeId, resolutionComment, resolvedBy: user?.id ?? 'unknown' },
+      firestoreDeficiencyIds.has(containingId)).then(o => afterDeficiencyAction(o, () => setContainingId(null)));
   };
 
-  // Real, per direct decision — a human raises this manually; never
-  // an automatic capaTriggerRule-style detection. Reuses the real,
-  // existing raise() a manually-raised deficiency always goes
-  // through, same call site AccessionPage.tsx's own manual flow
-  // already uses — no new backend/storage mechanism.
+  // Real, per direct decision — a human raises this manually; never an automatic capaTriggerRule-style detection.
   const handleRaiseDeficiency = (input: { caseId: string; specimenId?: string; specimenLabel?: string; deficiencyTypeId: string; comment: string }) => {
-    specimenDeficiencyService.raise({
-      caseId: input.caseId, specimenId: input.specimenId, specimenLabel: input.specimenLabel,
-      deficiencyTypeId: input.deficiencyTypeId, comment: input.comment, raisedBy: user?.id ?? 'unknown',
-    }).then(() => { setShowRaiseDeficiencyModal(false); loadAll(); });
+    void raiseQaDeficiency({ ...input, raisedBy: user?.id ?? 'unknown' }).then(o => afterDeficiencyAction(o, () => setShowRaiseDeficiencyModal(false)));
   };
 
   const handleVerify = (outcome: 'effective' | 'recurred', comment: string) => {
     if (!verifyingId) return;
-    const verifiedBy = user?.id ?? 'unknown';
-    const done = () => { setVerifyingId(null); loadAll(); };
-    if (firestoreDeficiencyIds.has(verifyingId)) {
-      fetch('/api/qa/deficiencies/verify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deficiencyId: verifyingId, outcome, comment, verifiedBy }),
-      }).then(done);
-      return;
-    }
-    specimenDeficiencyService.verifyEffectiveness(verifyingId, {
-      outcome, comment, verifiedBy,
-    }).then(done);
+    void verifyQaDeficiency(verifyingId, { outcome, comment, verifiedBy: user?.id ?? 'unknown' },
+      firestoreDeficiencyIds.has(verifyingId)).then(o => afterDeficiencyAction(o, () => setVerifyingId(null)));
   };
 
   const handleSubmitReview = (deficiencyIds: string[], findings: string) => {
-    managementReviewService.create({
-      reviewedBy: user?.id ?? 'unknown', deficiencyIds, findings,
-    }).then(() => { setShowReviewModal(false); loadAll(); });
+    void submitManagementReview({ reviewedBy: user?.id ?? 'unknown', deficiencyIds, findings }).then(o => afterDeficiencyAction(o, () => setShowReviewModal(false)));
   };
 
   // Real — renamed param from 't' to 'tb' (tab) so it doesn't shadow
@@ -1331,7 +1295,7 @@ const QualityAssurancePage: React.FC = () => {
           <QaScopeSwitcher scope={qa.scope} onChange={qa.setScope} visibleClientIds={qa.facilityIds(deficiencies, d => ({ caseId: d.caseId }))} />
           <CapabilityButton capability="qa:deficiencies:export" context={qa.context} className="ps-conf-btn-secondary" onClick={(tab === 'case-specimen' || tab === 'escalated') ? exportActiveQueue : exportClosed}>{t('qualityAssurance.common.export')}</CapabilityButton>
           {tab === 'case-specimen' && (
-            <button className="ps-conf-btn-primary" onClick={() => setShowRaiseDeficiencyModal(true)}>{t('qualityAssurance.operations.raiseDeficiency')}</button>
+            <CapabilityButton capability="qa:deficiency:raise" className="ps-conf-btn-primary" onClick={() => setShowRaiseDeficiencyModal(true)}>{t('qualityAssurance.operations.raiseDeficiency')}</CapabilityButton>
           )}
         </div>
       )}
@@ -1380,10 +1344,10 @@ const QualityAssurancePage: React.FC = () => {
                       <td className="ps-conf-td">
                         {d.status === 'open'
                           ? <div className="ps-qa-inline-actions">
-                              <button className="ps-conf-btn-secondary" onClick={() => setContainingId(d.id)}>{t('qualityAssurance.operations.immediateContainment')}</button>
-                              <button className="ps-conf-btn-primary" onClick={() => setResolvingId(d.id)}>{t('qualityAssurance.operations.escalateToCapa')}</button>
+                              <CapabilityButton capability="qa:deficiency:contain" className="ps-conf-btn-secondary" onClick={() => setContainingId(d.id)}>{t('qualityAssurance.operations.immediateContainment')}</CapabilityButton>
+                              <CapabilityButton capability="qa:deficiency:escalate" className="ps-conf-btn-primary" onClick={() => setResolvingId(d.id)}>{t('qualityAssurance.operations.escalateToCapa')}</CapabilityButton>
                             </div>
-                          : <button className="ps-conf-btn-primary" onClick={() => setVerifyingId(d.id)}>{t('qualityAssurance.operations.verifyEffectiveness')}</button>}
+                          : <CapabilityButton capability="qa:deficiency:verify" className="ps-conf-btn-primary" onClick={() => setVerifyingId(d.id)}>{t('qualityAssurance.operations.verifyEffectiveness')}</CapabilityButton>}
                       </td>
                     </tr>
                   );
@@ -1457,16 +1421,16 @@ const QualityAssurancePage: React.FC = () => {
       )}
 
       {resolvingItem && (
-        <ResolveModal deficiency={resolvingItem} resolutionTypes={resolutionTypes} onResolve={handleResolve} onClose={() => setResolvingId(null)} />
+        <ResolveModal deficiency={resolvingItem} resolutionTypes={resolutionTypes} onResolve={handleResolve} refusal={deficiencyRefusal} onClose={dismiss(() => setResolvingId(null))} />
       )}
       {containingItem && (
-        <ContainModal deficiency={containingItem} resolutionTypes={resolutionTypes} onContain={handleContain} onClose={() => setContainingId(null)} />
+        <ContainModal deficiency={containingItem} resolutionTypes={resolutionTypes} onContain={handleContain} refusal={deficiencyRefusal} onClose={dismiss(() => setContainingId(null))} />
       )}
       {verifyingItem && (
-        <VerifyModal deficiency={verifyingItem} onVerify={handleVerify} onClose={() => setVerifyingId(null)} />
+        <VerifyModal deficiency={verifyingItem} onVerify={handleVerify} refusal={deficiencyRefusal} onClose={dismiss(() => setVerifyingId(null))} />
       )}
       {showRaiseDeficiencyModal && (
-        <RaiseDeficiencyModal deficiencyTypes={deficiencyTypes} onRaise={handleRaiseDeficiency} onClose={() => setShowRaiseDeficiencyModal(false)} />
+        <RaiseDeficiencyModal deficiencyTypes={deficiencyTypes} onRaise={handleRaiseDeficiency} refusal={deficiencyRefusal} onClose={dismiss(() => setShowRaiseDeficiencyModal(false))} />
       )}
       {resolvingBillingDeficiency && (
         <ResolveBillingDeficiencyModal
@@ -1492,7 +1456,8 @@ const QualityAssurancePage: React.FC = () => {
           unreviewedClosed={unreviewedClosed}
           deficiencyTypes={deficiencyTypes}
           onSubmit={handleSubmitReview}
-          onClose={() => setShowReviewModal(false)}
+          refusal={deficiencyRefusal}
+          onClose={dismiss(() => setShowReviewModal(false))}
         />
       )}
       </div>

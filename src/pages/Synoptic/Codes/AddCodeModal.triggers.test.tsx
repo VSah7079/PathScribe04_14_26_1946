@@ -11,6 +11,8 @@ vi.mock('../../../services/terminologySearch/codeSearchService', async importOri
   ...(await importOriginal<object>()),
   searchCodes: (...a: unknown[]) => searchCodes(...a),
 }));
+// Batch 649: Save is a CapabilityButton (case:diagnosis-code:apply); useCapabilities needs the signed-in session.
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => true, decide: () => ({ allowed: true }) }) }));
 
 const trigger: TriggerCodeQuery = {
   ruleId: 'r1', specimenId: 'sp-2', fieldLabel: 'Margin Status', matchedValue: 'Positive',

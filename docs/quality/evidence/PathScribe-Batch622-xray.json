@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 622 \u2014 Spain jurisdiction and Castilian Spanish (sixth language): voice, spell-check dictionary, DNI/NIE; screening, registries, invoicing, SNOMED held",
+    "description": "Vitest, 2026-10-19: full suite 1662 files (1657 passed, 4 skipped, 1 failed); 14,056 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Not run: native-speaker review of the AI-made Spanish."
+  },
+  "tests": [
+    {
+      "testKey": "PS-817",
+      "start": "2026-10-19T17:50:00Z",
+      "finish": "2026-10-19T18:10:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/i18n/spainSupport.test.ts\nPASSED: src/i18n/localeParity.test.ts\nPASSED: src/services/spellcheck/spellcheck.test.ts\nPASSED: src/services/voice/dictationRefinementPrompt.test.ts\nPASSED: src/components/Config/System/VoiceSection.test.tsx\nPASSED: src/services/participationTypes/countryProfileEditor.test.ts\nNot tested: native-speaker review; screening, registries, invoicing, SNOMED for Spain (not built)."
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+/* Batch 642: sign-out authentication policy card (Configuration → Session Security) */
+.ps-signout-policy__fields { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.ps-signout-policy__check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: #cbd5e1; }
+.ps-signout-policy__table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; color: #e2e8f0; }
+.ps-signout-policy__table th, .ps-signout-policy__table td { text-align: start; padding: 8px 6px; border-bottom: 1px solid #1e293b; vertical-align: top; }
+.ps-signout-policy__source { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+.ps-signout-policy__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }

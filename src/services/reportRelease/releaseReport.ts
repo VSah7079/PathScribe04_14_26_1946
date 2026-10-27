@@ -42,6 +42,8 @@ export interface ReleaseReportDeps {
   releaseSignOut: (caseId: string) => Promise<unknown>;
   now: () => Date;
   newId: () => string;
+  /** Batch 649: the capability check at Recall (report:release:recall), audited (authorizationService.enforce). */
+  enforce: (capability: string, context?: { caseId?: string | null }) => Promise<{ allowed: boolean }>;
 }
 
 export interface ReleaseHold {
@@ -133,10 +135,12 @@ export async function releaseDueReports(deps: ReleaseReportDeps): Promise<number
 /** Recall within the delay (Pete: by the person who released it; it reopens what was released). */
 export async function recallHeldRelease(
   heldId: string, by: { userId: string; userName: string }, deps: ReleaseReportDeps,
-): Promise<{ ok: true } | { ok: false; refusal: HeldRecallRefusal | 'notFound' }> {
+): Promise<{ ok: true } | { ok: false; refusal: HeldRecallRefusal | 'notFound' | 'notPermitted' }> {
   const all = await deps.held.getAll();
   const h = all.ok ? all.data.find(x => x.id === heldId) : undefined;
   if (!h) return { ok: false, refusal: 'notFound' };
+  // Batch 649: the capability, then (as before) only the person who released it, before the delay ends.
+  if (!(await deps.enforce('report:release:recall', { caseId: h.caseId })).allowed) return { ok: false, refusal: 'notPermitted' };
   const refusal = heldRecallRefusal(h, by.userId, deps.now());
   if (refusal) return { ok: false, refusal };
   const blocked = deps.recallBlocked ? await deps.recallBlocked(h) : null;

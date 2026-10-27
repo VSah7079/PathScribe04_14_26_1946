@@ -21,7 +21,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { ResolvedAnswer } from '@/orchestrator/contextBuilder';
-import { recordDocumentOutput, planReportPrint, checkReportPrint, reportReleaseService, DOCUMENT_DESTINATION, type PrintPlan } from '@/services';
+import { recordDocumentOutput, planReportPrint, releaseHoldPolicyFor, checkReportPrint, reportReleaseService, DOCUMENT_DESTINATION, type PrintPlan } from '@/services';
 import { resolveReportWatermarkText } from '@/services/reports/resolveReportWatermark';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { useReportRevisionStatus } from '@/hooks/useReportRevisionStatus';
@@ -117,8 +117,10 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
       alert(t(`reportPrint.${check}`));
       return;
     }
-    const plan = await planReportPrint({ document: 'report', caseId: caseRecord.id, caseRecord, pendingReleaseRestricted: false });
-    if (plan.askReason) { setPrintPlan(plan); return; }
+    const plan = await planReportPrint({ document: 'report', caseId: caseRecord.id, caseRecord, releaseHoldPolicy: await releaseHoldPolicyFor(caseRecord) });
+    // Batch 654: the Release Hold Print Policy may forbid printing while the report is held.
+    if (plan.blocked) { alert(t('reportPrint.heldBlocked')); return; }
+    if (plan.askReason || plan.warnPendingRelease || plan.askOverrideReason) { setPrintPlan(plan); return; }
     void printNow(plan, '');
   };
 

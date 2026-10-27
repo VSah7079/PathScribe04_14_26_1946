@@ -1,0 +1,12 @@
+{
+  "note": "Source folders under src/ whose on-screen labels are explained in the Administrator Guide, not the User Guide. The coverage check (scripts/user-guide/coverage.py and userGuide.coverage.guard.test.ts) skips them.",
+  "adminGuideAreas": [
+    "components/Config",
+    "components/TemplateBuilder",
+    "components/FacilityDictionary",
+    "components/InterfaceDictionary",
+    "components/ValidationStudies",
+    "components/TemplateRequest",
+    "components/EnhancementRequest"
+  ]
+}

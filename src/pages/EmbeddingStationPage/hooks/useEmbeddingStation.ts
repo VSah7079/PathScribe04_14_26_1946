@@ -33,17 +33,26 @@
 // voice command and the foot pedal are all held to the same rule. Messages
 // the page shows are returned as locale keys (embeddingStation.*), and the
 // scan station comes from @/services rather than the mock directly.
+//
+// Batch 669 (ws-8, ws-10, ws-11): every change goes through `commit`, which saves with
+// services/workstationSave/runCaseAction.ts (via hooks/useWorkstationSave.ts): retried on a conflict, and a save that
+// still fails shows "Not saved" (`saveError`) and reloads the stored block instead of leaving the change on screen as
+// saved. A flagged discrepancy stops Confirm until it is cleared (handleClearDiscrepancy: no extra click, audited), the
+// flagger is shown by name, and a Tissue Discrepancy raised (or failing to be raised) says so on screen
+// (`discrepancyNotice`).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
-import { caseRouter } from '@/services/cases/CaseRouter';
 import {
   printerProfileService, printSettingsService, scanStationService, specimenDeficiencyService, specimenDictionaryService,
+  userService, auditService,
   embeddingCommentMissing, embeddingConfirmMissing, embeddingReprintMissing, parseObservedPieceCount,
 } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { useWorkstationSave } from '@/hooks/useWorkstationSave';
+import { replaceSpecimenById, type SpecimenOpResult } from '@/services/workstationSave/runCaseAction';
 import { printCassetteLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 // Real, deliberate reuse: setBlockAlertFlags is a genuinely generic
@@ -60,6 +69,7 @@ import type { Specimen, HistologyBlock, EmbeddingMoldSize, EmbeddingDiscrepancyR
 import {
   confirmPieceCount, flagEmbeddingDiscrepancy, setMoldAndOrientation, groupSplitBlocks,
   resolveSplitBlockGroupStatus, recordCassetteReprint, addEmbeddingBlockComment, resolveEmbeddingAlertBadges,
+  clearEmbeddingDiscrepancy, hasOpenEmbeddingDiscrepancy, buildEmbeddingDiscrepancyClearedAudit,
 } from '@/utils/embeddingOperations';
 
 /** A message for the page to show: a locale key and its values. */
@@ -90,7 +100,11 @@ export function useEmbeddingStation() {
   const [scanError, setScanError] = useState<EmbeddingMessage | null>(null);
   const requirements = useFieldRequirements('embedding');
   const [dictionaryType, setDictionaryType] = useState<{ type?: string; procedure?: string }>({});
-  const versionRef = useRef(0);
+  // Batch 669 (ws-11): what happened to the Tissue Discrepancy item a mismatch or flag raises; shown on the page.
+  const [discrepancyNotice, setDiscrepancyNotice] = useState<(EmbeddingMessage & { kind: 'raised' | 'failed' }) | null>(null);
+  // Batch 669 (ws-10): the flagger's name (the block stores the user id).
+  const [flaggerName, setFlaggerName] = useState<string | null>(null);
+  const { saveError, clearSaveError, saveChange } = useWorkstationSave();
 
   const actor = useMemo(() => ({ id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' }), [user?.id, user?.name]);
 
@@ -124,39 +138,80 @@ export function useEmbeddingStation() {
     if (!specimen) return fail({ key: 'embeddingStation.scanErrors.specimenNotFound' });
     const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
     if (!block) return fail({ key: 'embeddingStation.scanErrors.blockNotFound', values: { block: `${specimen.label}${target.blockNumber}` } });
-    versionRef.current = (caseData as unknown as { version?: number }).version ?? 0;
+    clearSaveError();
+    setDiscrepancyNotice(null);
     setWorkItem({ caseData, specimen, block });
     void loadDictionaryType(specimen.specimenDictionaryEntryId);
     return { ok: true };
-  }, [loadDictionaryType]);
+  }, [loadDictionaryType, clearSaveError]);
 
   const clearWorkItem = useCallback(() => {
     setWorkItem(null);
     setScanError(null);
     setDictionaryType({});
-  }, []);
+    setDiscrepancyNotice(null);
+    clearSaveError();
+  }, [clearSaveError]);
 
-  const persist = useCallback(async (caseData: Case, updatedSpecimen: Specimen): Promise<Specimen> => {
-    const updatedSpecimens = (caseData.specimens ?? []).map(sp => sp.id === updatedSpecimen.id ? updatedSpecimen : sp);
-    const updatedCaseData = { ...caseData, specimens: updatedSpecimens };
-    setWorkItem(prev => {
-      if (!prev) return prev;
-      const block = updatedSpecimen.blocks?.find(b => b.id === prev.block.id);
-      return block ? { caseData: updatedCaseData, specimen: updatedSpecimen, block } : prev;
+  const flaggedBy = workItem?.block.lastDiscrepancyReportedBy;
+  useEffect(() => {
+    if (!flaggedBy) { setFlaggerName(null); return; }
+    let live = true;
+    userService.getById(flaggedBy).then(res => {
+      if (live) setFlaggerName(res.ok && res.data ? `${res.data.firstName} ${res.data.lastName}`.trim() || null : null);
+    }).catch(() => { if (live) setFlaggerName(null); });
+    return () => { live = false; };
+  }, [flaggedBy]);
+
+  /** Batch 669 (ws-8): applies `op` to the block's specimen, shows the result at once, and saves it (retried on a
+   *  conflict, the operation re-applied to the newest copy). Returns null when the operation refuses; `saved: false`
+   *  when the save failed, in which case "Not saved" is showing and the stored block has been reloaded. A caller
+   *  never goes on to print or raise a QA item for an unsaved change. */
+  const commit = useCallback(async (item: EmbeddingWorkItem, op: (specimen: Specimen) => SpecimenOpResult): Promise<{ saved: boolean; item: EmbeddingWorkItem } | null> => {
+    const local = op(item.specimen);
+    if (!local.ok) return null;
+    const itemFor = (caseData: Case, specimen: Specimen | undefined): EmbeddingWorkItem | null => {
+      const block = specimen?.blocks?.find(b => b.id === item.block.id);
+      return specimen && block ? { caseData, specimen, block } : null;
+    };
+    const shown = itemFor({ ...item.caseData, specimens: replaceSpecimenById(item.caseData.specimens, local.specimen) }, local.specimen);
+    if (shown) setWorkItem(shown);
+    const outcome = await saveChange(item.caseData.id, current => {
+      const sp = (current.specimens ?? []).find(x => x.id === item.specimen.id);
+      const res = sp ? op(sp) : null;
+      return res && res.ok ? replaceSpecimenById(current.specimens, res.specimen) : null;
     });
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens }, versionRef.current);
-      versionRef.current += 1;
-    } catch (e) {
-      // Real, honest simplification, same posture as
-      // useMicrotomyWorkstation.ts's own persist — this bench page is
-      // scoped to one physical block at a time; a genuine write
-      // collision is logged, not silently hidden, but doesn't block
-      // the tech's own next action.
-      console.error('[EmbeddingStation] Failed to persist:', e);
+    if (outcome.status === 'saved') {
+      const saved = itemFor(outcome.caseData, (outcome.caseData.specimens ?? []).find(x => x.id === item.specimen.id));
+      if (saved) { setWorkItem(saved); return { saved: true, item: saved }; }
+      return { saved: true, item: shown ?? item };
     }
-    return updatedSpecimen;
-  }, []);
+    // Not saved: show the block as stored now, so the tech can redo the change.
+    const reloaded = outcome.latest ? itemFor(outcome.latest, (outcome.latest.specimens ?? []).find(x => x.id === item.specimen.id)) : null;
+    const back = reloaded ?? item;
+    setWorkItem(back);
+    return { saved: false, item: back };
+  }, [saveChange]);
+
+  /** Batch 669 (ws-11): raises the Tissue Discrepancy item and says on screen whether it was raised. */
+  const raiseTissueDiscrepancy = useCallback(async (item: EmbeddingWorkItem, comment: string) => {
+    const failed = () => setDiscrepancyNotice({ kind: 'failed', key: 'embeddingStation.discrepancy.raiseFailed' });
+    try {
+      const res = await specimenDeficiencyService.raise({
+        caseId: item.caseData.id,
+        specimenId: item.specimen.id,
+        specimenLabel: item.specimen.label,
+        deficiencyTypeId: 'def-tissue-discrepancy',
+        comment,
+        raisedBy: actor.id,
+      });
+      if (res && res.ok === false) { console.error('[EmbeddingStation] Failed to raise Tissue Discrepancy deficiency:', res); failed(); return; }
+      setDiscrepancyNotice({ kind: 'raised', key: 'embeddingStation.discrepancy.raised' });
+    } catch (err) {
+      console.error('[EmbeddingStation] Failed to raise Tissue Discrepancy deficiency:', err);
+      failed();
+    }
+  }, [actor.id]);
 
   /** Real, per the spec's own "Piece Count Verification: requires
    *  single-touch confirmation... before sealing the block." On a
@@ -178,6 +233,8 @@ export function useEmbeddingStation() {
     if (!workItem) return { ok: false };
     if (workItem.block.status === 'Embedded') return { ok: false };
     const block = workItem.block;
+    // Batch 669 (ws-10): a flagged discrepancy stops Confirm until it is cleared.
+    if (hasOpenEmbeddingDiscrepancy(block)) return { ok: false, message: { key: 'embeddingStation.discrepancy.confirmBlocked' } };
     const orientation = orientationInstructions ?? block.orientationInstructions ?? '';
     const missing = embeddingConfirmMissing({ observedCount: observedCountText, moldSize: block.moldSize, orientationInstructions: orientation }, requirements);
     if (missing.length > 0) return { ok: false, missing };
@@ -186,26 +243,24 @@ export function useEmbeddingStation() {
     // already refuses an unreadable count; this keeps that explicit.
     if (observedCount === null) return { ok: false, missing: ['observedPieceCount'] };
     const expected = block.pieceCount;
-    let specimen = workItem.specimen;
-    if (orientationInstructions !== undefined && orientationInstructions !== (block.orientationInstructions ?? '')) {
-      const withOrientation = setMoldAndOrientation(specimen, block.id, { orientationInstructions });
-      if (withOrientation.ok) specimen = withOrientation.specimen;
-    }
-    const result = confirmPieceCount(specimen, block.id, observedCount);
-    if (!result.ok) return { ok: false };
-    await persist(workItem.caseData, result.specimen);
+    setDiscrepancyNotice(null);
+    // The orientation box's text is saved in the same update (and re-applied the same way on a retry).
+    const saved = await commit(workItem, sp => {
+      let specimen = sp;
+      const current = (sp.blocks ?? []).find(b => b.id === block.id);
+      if (orientationInstructions !== undefined && orientationInstructions !== (current?.orientationInstructions ?? '')) {
+        const withOrientation = setMoldAndOrientation(specimen, block.id, { orientationInstructions });
+        if (withOrientation.ok) specimen = withOrientation.specimen;
+      }
+      if (current && hasOpenEmbeddingDiscrepancy(current)) return { ok: false, error: 'A discrepancy is flagged.' };
+      return confirmPieceCount(specimen, block.id, observedCount);
+    });
+    if (!saved || !saved.saved) return { ok: false };
     if (typeof expected === 'number' && expected !== observedCount) {
-      specimenDeficiencyService.raise({
-        caseId: workItem.caseData.id,
-        specimenId: workItem.specimen.id,
-        specimenLabel: workItem.specimen.label,
-        deficiencyTypeId: 'def-tissue-discrepancy',
-        comment: `Block ${workItem.specimen.label}${workItem.block.label}: ${expected} piece${expected === 1 ? '' : 's'} recorded at grossing, ${observedCount} observed at embedding.`,
-        raisedBy: actor.id,
-      }).catch(err => console.error('[EmbeddingStation] Failed to raise Tissue Discrepancy deficiency:', err));
+      void raiseTissueDiscrepancy(workItem, `Block ${workItem.specimen.label}${workItem.block.label}: ${expected} piece${expected === 1 ? '' : 's'} recorded at grossing, ${observedCount} observed at embedding.`);
     }
     return { ok: true };
-  }, [workItem, persist, actor.id, requirements]);
+  }, [workItem, commit, raiseTissueDiscrepancy, requirements]);
 
   /** Real, per the spec's own "Discrepancy Reporting: one-touch buttons
    *  ... Audit Triggers: a flagged discrepancy halts the block
@@ -217,24 +272,33 @@ export function useEmbeddingStation() {
    *  count at all. */
   const handleFlagDiscrepancy = useCallback(async (reason: EmbeddingDiscrepancyReason) => {
     if (!workItem) return;
-    const result = flagEmbeddingDiscrepancy(workItem.specimen, workItem.block.id, reason, actor.id);
-    if (!result.ok) return;
-    await persist(workItem.caseData, result.specimen);
-    specimenDeficiencyService.raise({
+    setDiscrepancyNotice(null);
+    const saved = await commit(workItem, sp => flagEmbeddingDiscrepancy(sp, workItem.block.id, reason, actor.id));
+    // Nothing is raised for a flag that was not saved.
+    if (!saved || !saved.saved) return;
+    await raiseTissueDiscrepancy(workItem, `Block ${workItem.specimen.label}${workItem.block.label}: flagged at embedding — ${reason}.`);
+  }, [workItem, commit, raiseTissueDiscrepancy, actor.id]);
+
+  /** Batch 669 (ws-10): clears the flag in one click (no confirmation: it can be flagged again), then audits it. */
+  const handleClearDiscrepancy = useCallback(async () => {
+    if (!workItem || !hasOpenEmbeddingDiscrepancy(workItem.block)) return;
+    const flagged = workItem.block;
+    setDiscrepancyNotice(null);
+    const saved = await commit(workItem, sp => clearEmbeddingDiscrepancy(sp, flagged.id));
+    if (!saved || !saved.saved) return;
+    void auditService.logEvent(buildEmbeddingDiscrepancyClearedAudit({
       caseId: workItem.caseData.id,
-      specimenId: workItem.specimen.id,
+      accession: workItem.caseData.accession?.fullAccession ?? workItem.caseData.id,
       specimenLabel: workItem.specimen.label,
-      deficiencyTypeId: 'def-tissue-discrepancy',
-      comment: `Block ${workItem.specimen.label}${workItem.block.label}: flagged at embedding — ${reason}.`,
-      raisedBy: actor.id,
-    }).catch(err => console.error('[EmbeddingStation] Failed to raise Tissue Discrepancy deficiency:', err));
-  }, [workItem, persist, actor.id]);
+      block: flagged,
+      actor,
+    })).catch(err => console.error('[EmbeddingStation] Failed to audit the cleared discrepancy:', err));
+  }, [workItem, commit, actor]);
 
   const handleSetMoldAndOrientation = useCallback(async (changes: { moldSize?: EmbeddingMoldSize; orientationInstructions?: string }) => {
     if (!workItem) return;
-    const result = setMoldAndOrientation(workItem.specimen, workItem.block.id, changes);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+    await commit(workItem, sp => setMoldAndOrientation(sp, workItem.block.id, changes));
+  }, [workItem, commit]);
 
   /** Real, per the spec's own "High-Contrast Visual Alerts: Tiny/
    *  Fragile, Decal Required" toggle badges — reuses the identical
@@ -242,9 +306,8 @@ export function useEmbeddingStation() {
    *  own import comment) rather than a second, parallel toggle. */
   const handleSetAlertFlags = useCallback(async (flags: { tinyTissue?: boolean; fragile?: boolean; requiresDecal?: boolean }) => {
     if (!workItem) return;
-    const result = setBlockAlertFlags(workItem.specimen, workItem.block.id, flags);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+    await commit(workItem, sp => setBlockAlertFlags(sp, workItem.block.id, flags));
+  }, [workItem, commit]);
 
   /** Real, per the spec's own "Multi-Cassette / Split-Block Tracking...
    *  to ensure all related cassettes are embedded together." Groups
@@ -254,9 +317,8 @@ export function useEmbeddingStation() {
    *  see groupSplitBlocks's own doc comment. */
   const handleGroupSplitBlocks = useCallback(async (siblingBlockIds: string[]) => {
     if (!workItem) return;
-    const result = groupSplitBlocks(workItem.specimen, [workItem.block.id, ...siblingBlockIds]);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+    await commit(workItem, sp => groupSplitBlocks(sp, [workItem.block.id, ...siblingBlockIds]));
+  }, [workItem, commit]);
 
   const splitBlockGroupStatus = workItem ? resolveSplitBlockGroupStatus(workItem.specimen, workItem.block.id) : null;
 
@@ -264,11 +326,9 @@ export function useEmbeddingStation() {
     if (!workItem) return { ok: false };
     const missing = embeddingCommentMissing(text, requirements);
     if (missing.length > 0) return { ok: false, missing };
-    const result = addEmbeddingBlockComment(workItem.specimen, workItem.block.id, text, actor.id, actor.name);
-    if (!result.ok) return { ok: false };
-    await persist(workItem.caseData, result.specimen);
-    return { ok: true };
-  }, [workItem, persist, actor, requirements]);
+    const saved = await commit(workItem, sp => addEmbeddingBlockComment(sp, workItem.block.id, text, actor.id, actor.name));
+    return { ok: !!saved && saved.saved };
+  }, [workItem, commit, actor, requirements]);
 
   /** Real, per the spec's own Right Panel: resolves the actual,
    *  configured printer/gtin/layout for the CURRENT station — the
@@ -307,11 +367,12 @@ export function useEmbeddingStation() {
     // markStainPrintResult): strictNullChecks: false means a
     // discriminated union doesn't reliably narrow on `if (!x.ok)`
     // either — handled explicitly with `if (recorded.ok) {...}` instead.
-    const recorded = recordCassetteReprint(workItem.specimen, workItem.block.id, reason as CassetteReprintReason, actor.id);
-    if (!recorded.ok) return { ok: false, message: { key: 'embeddingStation.hardware.noBlock' } };
-    const specimen = await persist(workItem.caseData, recorded.specimen);
-    const block = specimen.blocks?.find(b => b.id === workItem.block.id);
-    if (!block) return { ok: false, message: { key: 'embeddingStation.hardware.noBlock' } };
+    const recorded = await commit(workItem, sp => recordCassetteReprint(sp, workItem.block.id, reason as CassetteReprintReason, actor.id));
+    if (!recorded) return { ok: false, message: { key: 'embeddingStation.hardware.noBlock' } };
+    // The reason and count are saved before a duplicate label is printed; nothing is printed for an unsaved change.
+    if (!recorded.saved) return { ok: false, message: { key: 'embeddingStation.hardware.reprintFailed' } };
+    const specimen = recorded.item.specimen;
+    const block = recorded.item.block;
 
     const ctx = await getPrinterContext();
     if ('error' in ctx) return { ok: false, message: { key: ctx.error } };
@@ -322,14 +383,14 @@ export function useEmbeddingStation() {
       ctx.printer, ctx.gtin, ctx.layout,
     );
     return result.ok ? { ok: true } : { ok: false, printerMessage: (result as { ok: false; message: string }).message };
-  }, [workItem, persist, getPrinterContext, actor.id, requirements]);
+  }, [workItem, commit, getPrinterContext, actor.id, requirements]);
 
   const alertBadges = workItem ? resolveEmbeddingAlertBadges(workItem.block, dictionaryType.type, dictionaryType.procedure) : [];
 
   return {
-    workItem, scanError, resolveScan, clearWorkItem, requirements,
+    workItem, scanError, saveError, discrepancyNotice, flaggerName, resolveScan, clearWorkItem, requirements,
     alertBadges, splitBlockGroupStatus,
-    handleConfirmPieceCount, handleFlagDiscrepancy, handleSetMoldAndOrientation, handleSetAlertFlags, handleGroupSplitBlocks,
+    handleConfirmPieceCount, handleFlagDiscrepancy, handleClearDiscrepancy, handleSetMoldAndOrientation, handleSetAlertFlags, handleGroupSplitBlocks,
     handleAddComment, handleReprintCassette,
     effectiveStationId, actor,
   };

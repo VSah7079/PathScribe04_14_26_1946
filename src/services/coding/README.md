@@ -21,3 +21,11 @@ Batch 594. One shape for a diagnosis or procedure code in any coding system, so 
 ## Batch 617 (part A): server versions (PS-514)
 
 `codeSystemPolicyService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 651: AI code suggestions
+**`aiCodeSuggestions.ts`** (moved out of `AddCodeModal.tsx`): builds the prompt, calls the AI, parses and checks the answer (`parseAiCodeSuggestions`: confidence on one 0 to 100 scale, 30 minimum), and stamps each suggestion with the provider and model id the call really used (`aiDetailFor` stores them in `CodedEntry.ai`; it used to store the text "AI coding assistant"). `CodedEntryAiDetail.confidence` is 0 to 100 (the type said 0 to 1). `opcs4Sample.ts` is DEMONSTRATION data read by the OPCS-4 lookup (`searchOpcs4Sample`); codes found only there are marked `simulated` and refused by `canApplyCode`. Real OPCS-4 reference loading stays Planned (NHS TRUD). Tests: `aiCodeSuggestions.test.ts`, `opcs4Lookup.test.ts`.
+
+**Batch 656:** `suggestAiCodesWithDrops` returns the verified suggestions and how many were left out as unverified; `suggestAiCodes` is unchanged for callers that need only the list.
+
+## Batch 696: provenance of AI-suggested codes
+`suggestionOrigin.ts` checks the origin the AI gives for a code (a known part of the case that holds text; a specimen the case text names) before it is shown; an unchecked origin is left out and the screen says "Source not stated". `aiCodeSuggestions.ts` asks the AI for `source` and `specimen`, shows the code dictionary's own description in place of the AI's wording (`verifyAndDescribeCodes`), and stores `verifiedBy`, `sourceSection` and `specimen` with the code (`CodedEntryAiDetail`). Intended Use Statement: AI Output Governance, "Provenance Over Confidence".

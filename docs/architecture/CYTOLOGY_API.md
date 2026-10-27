@@ -197,6 +197,14 @@ Batch 616. The server version of each cytology service that the browser holds as
 | `update` | `PUT /api/cytology/cytology-screening-strategy/update` | `patch` (the body) |
 | `reset` | `POST /api/cytology/cytology-screening-strategy/reset` | none |
 
+**Self-collected HPV recall settings in the body (Batches 632 and 640).** The settings carry three optional fields the server stores as given:
+
+- `selfCollectedRecallWindows`: `{ urgent, routine, repeatAU, repeatNZ }`, each `{ min, max }` weeks or `null` ("as soon as practicable"). The shared set saved before Batch 640; read as the fallback.
+- `selfCollectedRecallWindowsByJurisdiction`: `{ AU?: <same shape>, NZ?: <same shape> }`. A country's own window wins over the shared one, which wins over the default (`recallWindows.ts`, `resolveRecallWindowsFor`).
+- `selfCollectedRecallWording`: `{ AU?|NZ?: { clinician_lbc?|repeat_collection?: { <language>: <text> } } }`. An absent or empty text means the built-in wording.
+
+The server repeats the browser's checks: weeks are whole numbers from 1 to 52 with the first not after the second; wording is at most 1,000 characters, and only `{{type}}` and `{{next}}` may appear in braces, and only in `clinician_lbc`. A write needs `config:cytology-screening-strategy:manage` and is audited as `RECALL_SETTINGS_CHANGED` (user, time, country, the windows, and which language and kind have custom wording; no patient data). The recommendation codes are not part of these settings: the interface engine maps them.
+
 ## ICytologySignOutRecordService
 
 `/api/cytology/cytology-sign-out-record`. Service: `services/cytology/httpCytologySignOutRecordService.ts`; chosen in `cytologySignOutRecordServiceInstance.ts`.

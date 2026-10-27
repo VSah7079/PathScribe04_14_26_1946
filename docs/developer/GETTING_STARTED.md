@@ -7,6 +7,8 @@ This doc is what the root README doesn't cover: conventions, testing
 discipline, and the gotchas that aren't obvious from reading the code
 cold.
 
+> **Handover (Oct 26, 2026):** for what is finished and what remains for the first release, read [`HANDOVER_FIRST_RELEASE.md`](HANDOVER_FIRST_RELEASE.md) first.
+
 ## Read this first
 
 Every folder in `src/` has its own `README.md`. Before touching a

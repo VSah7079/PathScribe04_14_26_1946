@@ -22,7 +22,7 @@ The hospital, as data controller, decides whether ForMedrixAI support may reach 
 
 Capabilities (seeded to Admin; hospitals grant them to whichever roles they choose):
 - `config:support-access:policy`: set the policy and window.
-- `config:support-access:approve`: approve, reject, revoke. The approver must be a member of that organisation and not the requester (a Superadmin holds every capability, so the capability alone isn't enough).
+- `config:support-access:approve`: approve, reject, revoke. The approver must be a member of that organisation and not the requester (a Superadmin holds every capability but the AI-prompt approval, so the capability alone isn't enough).
 - `config:support-audit:view`: see and export the support audit.
 
 ## The support audit stream
@@ -66,3 +66,7 @@ See `docs/architecture/AUTHORIZATION_API.md` § Support access for the server co
 ## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
 
 - Batch 555: once the server runs `supportAccess.expire`, the browser doesn't record expiries (`runServerJobs`). `effectiveSupportStatus` shows an approval past its time as expired, and Revoke and End accept only an approval still in force.
+
+## Batch 652 — Specimen pipeline gaps
+
+- `supportAuditPdf.ts` is repeatable: pdf-lib's clock stamps are replaced by the export time given (fixed epoch if it is not a date), so the same input gives the same bytes. Test: `supportAuditPdf.test.ts`.

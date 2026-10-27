@@ -23,6 +23,7 @@ import '../../../pathscribe.css';
 
 import type { ReportReleaseOrgConfig } from '../../../services/reportRelease/IReportReleaseService';
 import { reportReleaseService } from '@/services';
+import { RELEASE_HOLD_PRINT_POLICIES, type ReleaseHoldPrintPolicy } from '../../../services/reportRelease/heldPrintPolicy';
 
 // ─── Small reusable toggle ────────────────────────────────────────────────────
 
@@ -175,17 +176,23 @@ const ReleaseBufferSection: React.FC = () => {
       </SettingRow>
 
       <SettingRow
-        label={t('releaseBufferSection.settings.restrictHardcopy.label')}
-        description={t('releaseBufferSection.settings.restrictHardcopy.description')}
+        label={t('releaseBufferSection.settings.releaseHoldPrintPolicy.label')}
+        description={t('releaseBufferSection.settings.releaseHoldPrintPolicy.description')}
         indented
         dimmed={durationDimmed}
       >
-        <Toggle
-          enabled={config.restrictHardcopyPrinting}
-          onChange={val => persist({ ...config, restrictHardcopyPrinting: val })}
+        <select
+          aria-label={t('releaseBufferSection.settings.releaseHoldPrintPolicy.label')}
+          className="ps-conf-select"
+          value={config.releaseHoldPrintPolicy}
           disabled={!config.enabled}
-          ariaLabel={t('releaseBufferSection.settings.restrictHardcopy.label')}
-        />
+          onChange={e => persist({ ...config, releaseHoldPrintPolicy: e.target.value as ReleaseHoldPrintPolicy })}
+        >
+          {RELEASE_HOLD_PRINT_POLICIES.map(p => (
+            <option key={p} value={p}>{t(`releaseBufferSection.settings.releaseHoldPrintPolicy.options.${p}.label`)}</option>
+          ))}
+        </select>
+        <span className="ps-conf-field-hint">{t(`releaseBufferSection.settings.releaseHoldPrintPolicy.options.${config.releaseHoldPrintPolicy}.description`)}</span>
       </SettingRow>
 
       {saved && (

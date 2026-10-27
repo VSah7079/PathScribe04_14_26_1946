@@ -70,10 +70,14 @@ import type { VersionHistoryEntry, FieldOverride } from '../modals/AmendmentModa
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
 import type { Case, SynopticReportInstance, ProtocolChange, AiFieldSuggestion, GrossingReportInstance } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
+import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 import type { MutableRefObject } from 'react';
 import type { SigningUser, SetConcurrencyConflict, SendSynopticReportToLisFn, GenerateReportPdfSnapshotFn } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
 import { checkAddendumMismatch } from './checkPeerReviewAndMismatch';
+import { isRevisionReleaseRefusal } from '@/services/reports/revisionReleaseCapability';
+import { publishDirectAddendum } from '@/services/reports/publishDirectAddendum';
+import { publishReleasedRevision, releasedRevisionDeps } from '@/services/reports/publishReleasedRevision';
 import type { ClinicalMismatchAssessment } from '@/services';
 
 interface UseAmendmentWorkflowParams {
@@ -106,7 +110,7 @@ export function useAmendmentWorkflow({
 }: UseAmendmentWorkflowParams) {
   const { t } = useTranslation();
 
-  const releasePendingAmendmentOrAddendum = useCallback(async (): Promise<string | undefined> => {
+  const releasePendingAmendmentOrAddendum = useCallback(async (onVersion?: (version: ReportVersionRecord) => void): Promise<string | undefined> => {
     if (!caseData?.id || !activeReportInstanceId) return undefined;
     const activeInstance = (caseData.synopticReports ?? []).find((r: SynopticReportInstance) => r.instanceId === activeReportInstanceId);
     let releasedAmendmentId: string | undefined;
@@ -119,6 +123,9 @@ export function useAmendmentWorkflow({
         addendumTitle: activeInstance.templateName,
         body: `Addendum synoptic instance ${activeInstance.instanceId} finalized.`,
       });
+      // Batch 649: refused for want of surgical:addendum:release: nothing is sent.
+      // Batch 649 (sign-out audit): any refused release stops here; nothing is marked released or sent.
+      if (addendumReleaseRes.ok === false) { showToast(isRevisionReleaseRefusal(addendumReleaseRes.error) ? addendumReleaseRes.error! : t('useAmendmentWorkflow.toast.revisionNotReleased'), 'warning'); return undefined; }
       const releasedAddendumType = addendumReleaseRes.ok ? addendumReleaseRes.data.type : 'addendum';
       // Real, per direct guidance's own follow-up on provenance &
       // auditability: found via direct check to have zero real audit
@@ -193,6 +200,8 @@ export function useAmendmentWorkflow({
       const amendmentReleaseRes = await amendmentService.release(activeInstance.pendingAmendmentId, {
         body: `Synoptic instance ${activeInstance.instanceId} corrected and re-signed out.`,
       });
+      // Batch 649: refused for want of surgical:amendment:release / surgical:correction:release: nothing is sent.
+      if (amendmentReleaseRes.ok === false) { showToast(isRevisionReleaseRefusal(amendmentReleaseRes.error) ? amendmentReleaseRes.error! : t('useAmendmentWorkflow.toast.revisionNotReleased'), 'warning'); return undefined; }
       // Whichever revision kind was actually released — 'amendment' today,
       // 'correction' once that entry point exists — drives the Final
       // (Amended)/(Corrected) display label. Falls back to 'amendment'
@@ -292,7 +301,7 @@ export function useAmendmentWorkflow({
     if (caseData?.reportingMode === 'assist' && activeInstance) {
       const { pdfBase64, generationError } = await generateReportPdfSnapshot();
       if (generationError) showToast(t('useSignOutWorkflow.toast.versionSavedPdfSnapshotFailed', { error: generationError }), 'warning');
-      await reportVersionService.create({
+      const created = await reportVersionService.create({
         caseId: caseData.id,
         mode: 'assist',
         trigger: releasedAmendmentId ? 'amendment' : 'initial_signout',
@@ -302,6 +311,8 @@ export function useAmendmentWorkflow({
         instanceId: activeInstance.instanceId,
         amendmentRecordId: releasedAmendmentId,
       });
+      // Batch 649: the Finalize signature is recorded after this, linked to the version.
+      if (created.ok) onVersion?.(created.data);
     }
 
     return releasedAmendmentId;
@@ -772,6 +783,16 @@ export function useAmendmentWorkflow({
     openAmendmentDraft('amendment');
   }, [caseData, activeReportInstanceId, openAmendmentDraft, setAmendmentMode, setAmendmentText, setShowAmendmentModal]);
 
+  // Batch 663: "Add Addendum" opens the same window set to Addendum; an existing draft is resumed as it is.
+  const handleRequestAddendum = useCallback(async () => {
+    const activeInstance = (caseData?.synopticReports ?? []).find((r: SynopticReportInstance) => r.instanceId === activeReportInstanceId);
+    if (activeInstance?.pendingAmendmentId) { await handleRequestAmendment(); return; }
+    setAmendmentMode('addendum');
+    setResumingAmendment(undefined);
+    setShowAmendmentModal(true);
+    openAmendmentDraft('addendum');
+  }, [caseData, activeReportInstanceId, handleRequestAmendment, openAmendmentDraft, setAmendmentMode, setShowAmendmentModal]);
+
   // Batch 380: a new draft opens as an amendment; when the pathologist
   // switches the modal to Minor Amendment or Addendum, the draft's type
   // follows. Before this, the draft stayed an amendment, so saving a minor
@@ -894,13 +915,20 @@ export function useAmendmentWorkflow({
       reportInstanceId: res.data.reportInstanceId,
       specimenId: res.data.specimenId,
     });
+    // Batch 649: sent through the same path as an addendum released with its workup (publishDirectAddendum).
+    if (caseData) {
+      const sent = await publishDirectAddendum({ caseData, record: res.data, generatePdf: generateReportPdfSnapshot,
+        releasedBy: { id: signingUser?.id ?? '', name: signingUser?.name ?? signingUser?.id ?? '' } },
+      { publishRevision: r => publishReleasedRevision(r, releasedRevisionDeps), sendToLis: sendSynopticReportToLis }).catch(() => ({ sent: false as const }));
+      if (!sent.sent) showToast(t('useAmendmentWorkflow.toast.addendumNotSent'), 'warning');
+    }
 
     setAmendmentSubmitError(null);
     setShowAmendmentModal(false);
     setAmendmentDraftId(null);
     showToast(t(amendmentMode === 'addendum' ? 'useAmendmentWorkflow.toast.addendumReleased' : 'useAmendmentWorkflow.toast.amendmentReleased'));
     setAmendmentText('');
-  }, [amendmentDraftId, amendmentMode, amendmentText, caseData, activeReportInstanceId, setAmendmentText, setShowAmendmentModal, showToast, setCaseData, preOverrideSnapshot, knownVersionRef, setConcurrencyConflict, log, t]);
+  }, [amendmentDraftId, amendmentMode, amendmentText, caseData, activeReportInstanceId, setAmendmentText, setShowAmendmentModal, showToast, setCaseData, preOverrideSnapshot, knownVersionRef, setConcurrencyConflict, log, t, generateReportPdfSnapshot, signingUser, sendSynopticReportToLis]);
 
   /** Batch 609: the decision was recorded; release the held addendum. */
   const resumeAddendumAfterMismatch = useCallback(() => {
@@ -930,7 +958,7 @@ export function useAmendmentWorkflow({
     resumingAmendment, setResumingAmendment,
     openAmendmentDraft,
     handleFieldOverridesConfirmed,
-    handleRequestAmendment,
+    handleRequestAmendment, handleRequestAddendum,
     handleAmendmentSubmit,
   };
 }

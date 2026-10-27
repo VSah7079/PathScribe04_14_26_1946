@@ -64,7 +64,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
 
   describe('getOrgDefault / setOrgDefault', () => {
     it('a real, saved org config is honestly read back, not silently reverted to the fallback', async () => {
-      const saved: import('./IReportReleaseService').ReportReleaseOrgConfig = { enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true };
+      const saved: import('./IReportReleaseService').ReportReleaseOrgConfig = { enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' };
       await mockReportReleaseService.setOrgDefault(saved);
       const result = await mockReportReleaseService.getOrgDefault();
       expect(result.ok).toBe(true);
@@ -73,7 +73,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
     });
 
     it('a real, saved org config actually changes resolveBufferForCase — including a real, non-default STAT bypass setting', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const result = await mockReportReleaseService.resolveBufferForCase({ order: { priority: 'STAT' } } as any);
       // bypassForStat is now false at the org level — a real STAT case
       // no longer bypasses, and gets the real, newly-configured duration.
@@ -82,7 +82,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
     });
 
     it('a real, disabled org config makes the buffer never apply, for any case', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: false, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: false, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const result = await mockReportReleaseService.resolveBufferForCase({ order: { priority: 'Routine' } } as any);
       expect(result.applies).toBe(false);
       expect(result.bypassReason).toBe('Release buffer disabled');
@@ -91,7 +91,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
 
   describe('resolveBufferForCase — real facility override', () => {
     it('a real, performing facility that has genuinely opted out of inheriting uses its own, real override values', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const facilityMod = await import('../facilities/mockFacilityService');
       const created = await facilityMod.mockFacilityService.add({
         name: 'QA Test Performing Lab', assigningAuthority: 'QATEST', address: '1 Test Way', phone: '555-0100', fax: '555-0101',
@@ -110,7 +110,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
     });
 
     it('a real facility explicitly inheriting the system default correctly falls through to the real org config, not its own dormant override values', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 17, bypassForStat: true, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 17, bypassForStat: true, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const facilityMod = await import('../facilities/mockFacilityService');
       const created = await facilityMod.mockFacilityService.add({
         name: 'QA Test Inheriting Lab', assigningAuthority: 'QATEST2', address: '1 Test Way', phone: '555-0100', fax: '555-0101',
@@ -206,6 +206,19 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
 
       const result = await mockReportReleaseService.recall(caseId, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       expect(result.ok).toBe(true);
+    });
+
+    it('Batch 649: the signer without report:release:recall (a session with no role) cannot recall; the case stays held', async () => {
+      const caseId = await seedCase({ status: 'in-progress' });
+      await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
+      store.set('pathscribe-user', JSON.stringify({ id: 'NO-ROLE-USER', role: 'pathologist' }));
+      try {
+        const result = await mockReportReleaseService.recall(caseId, { userId: 'NO-ROLE-USER', userName: 'No Role' });
+        expect(result.ok).toBe(false);
+      } finally {
+        store.set('pathscribe-user', JSON.stringify({ id: 'TEST-USER', role: 'superadmin' }));
+      }
+      expect((await caseRouter.getCase(caseId))?.status).toBe('pending-release');
     });
 
     it('refuses to recall a case that is not genuinely in pending-release', async () => {

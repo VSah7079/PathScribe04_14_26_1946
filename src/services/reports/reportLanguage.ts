@@ -18,7 +18,7 @@
 
 import type { Jurisdiction } from '@/types/systemConfig';
 
-export const REPORT_LANGUAGES = ['en', 'fr', 'fr-BE', 'de', 'nl', 'nl-BE', 'ko'] as const;
+export const REPORT_LANGUAGES = ['en', 'fr', 'fr-BE', 'de', 'nl', 'nl-BE', 'ko', 'es'] as const;
 export type ReportLanguage = typeof REPORT_LANGUAGES[number];
 
 /**
@@ -28,7 +28,7 @@ export type ReportLanguage = typeof REPORT_LANGUAGES[number];
  */
 export const DEFAULT_REPORT_LANGUAGE_BY_JURISDICTION: Readonly<Record<Jurisdiction, ReportLanguage>> = {
   US: 'en', CA: 'en', GB_EW: 'en', GB_SCT: 'en', GB_NIR: 'en', IE: 'en', AU: 'en', NZ: 'en',
-  KR: 'ko', BE: 'nl-BE', NL: 'nl', DE: 'de', FR: 'fr',
+  KR: 'ko', BE: 'nl-BE', NL: 'nl', DE: 'de', FR: 'fr', ES: 'es',
 };
 
 export function isReportLanguage(value: unknown): value is ReportLanguage {
@@ -52,7 +52,7 @@ export function resolvePdfLanguage(language: string | undefined): ReportLanguage
 
 /** Date format when a report carries no locale of its own. */
 const DATE_LOCALE_BY_LANGUAGE: Readonly<Record<ReportLanguage, string>> = {
-  en: 'en-US', fr: 'fr-FR', 'fr-BE': 'fr-BE', de: 'de-DE', nl: 'nl-NL', 'nl-BE': 'nl-BE', ko: 'ko-KR',
+  en: 'en-US', fr: 'fr-FR', 'fr-BE': 'fr-BE', de: 'de-DE', nl: 'nl-NL', 'nl-BE': 'nl-BE', ko: 'ko-KR', es: 'es-ES',
 };
 
 /**

@@ -8,7 +8,7 @@
 // do not change.
 // ─────────────────────────────────────────────────
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { caseRouter } from '../cases/CaseRouter';
@@ -20,7 +20,7 @@ const newId = (): string =>
 const deps: InterfaceDictionaryDeps = {
   load: storageGet,
   save: storageSet,
-  audit: e => mockAuditService.logEvent(e),
+  audit: e => auditService.logEvent(e),
   actor: () => ({ name: readSessionProfile()?.name ?? 'unknown' }),
   now: () => new Date().toISOString(),
   newId,

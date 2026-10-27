@@ -30,6 +30,7 @@ import type { MigrationRecordResult } from '@/services/migration/IMigrationRecor
 import { pressable } from '@/utils/a11y/pressable';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { LegacyImportModal } from '@/components/Migration/LegacyImportModal';
+import AdminGuideHelpButton from '@/components/Config/help/AdminGuideHelpButton';
 
 const STATUS_COLOR: Record<string, string> = {
   pending: '#94A3B8', running: '#3B82F6', completed: '#22C55E',
@@ -146,6 +147,7 @@ const MigrationJobsPage: React.FC = () => {
       <p className="ps-conf-section-subtitle ps-conf-section-subtitle--spaced">
         {t('migrationJobs.subtitle')}
       </p>
+      <AdminGuideHelpButton screen="migration-jobs" inline />
 
       <div className="ps-migration-toolbar">
         <CapabilityButton capability="config:migration-mappings:manage" className="ps-conf-btn-primary" onClick={() => setImporting(true)}>

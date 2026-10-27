@@ -82,7 +82,7 @@ const load = () => {
   const { roles: seeded, changed: actionsChanged } = applyActionSeeds(seededCaps);
   const changed = capsChanged || actionsChanged;
   // Batch 371: Superadmin always holds the whole catalog (ForMedrixAI's, not
-  // the hospital's, to change).
+  // the hospital's, to change), except SUPERADMIN_WITHHELD (Batch 536).
   const { roles: locked, changed: relocked } = lockPlatformRoles(seeded);
   // PS-356 (Batch 370): drop the role-level switches that were never enforced.
   const { roles: unstripped, stripped } = withoutRetiredRoleFields(locked);

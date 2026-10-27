@@ -26,15 +26,17 @@ import type { AssistPollRun } from './types';
 import { runAssistPollCycle, ingestPushedMessage, retryFailedEvents, type AssistPollDeps } from './runAssistPollCycle';
 import { assistPollingService } from './assistPollingServiceInstance';
 import { mockPollAdapter } from '../lisIngestion/adapters/mockPollAdapter';
-import { mockLisStagingQueueService } from '../lisIngestion/mockLisStagingQueueService';
+import { lisStagingQueueService } from '../lisIngestion/lisStagingQueueServiceInstance';
 import { hl7v2StatusAdapter } from '../lisIngestion/adapters/hl7v2StatusAdapter';
 import { webhookJsonAdapter } from '../lisIngestion/adapters/webhookJsonAdapter';
 import type { LisPushAdapter } from '../lisIngestion/types';
 import { CONFIG_NOT_PERMITTED, permitConfigChange } from '../authorization/guardConfigWrites';
 
 async function buildDeps(): Promise<AssistPollDeps> {
-  const [{ mockCaseService, evaluateSynopticAssignment, generateAiSuggestionsForReport }, templateModule, { aiBehaviorService, auditService }] =
+  const [{ caseService }, { evaluateSynopticAssignment, generateAiSuggestionsForReport }, templateModule, { aiBehaviorService, auditService }] =
     await Promise.all([
+      import('@/services/cases/caseServiceInstance'),
+      // The two AI helpers live in the case mock's file for now (listed in directMockImportBaseline.ts).
       import('@/services/cases/mockCaseService'),
       import('@/services/templates/templateService'),
       import('@/services'),
@@ -42,11 +44,11 @@ async function buildDeps(): Promise<AssistPollDeps> {
 
   const deps: AssistPollDeps = {
     pollAdapter: mockPollAdapter,
-    loadQueue: () => mockLisStagingQueueService.load(),
-    saveQueue: q => mockLisStagingQueueService.save(q),
-    getCase: id => mockCaseService.getCase(id),
+    loadQueue: () => lisStagingQueueService.load(),
+    saveQueue: q => lisStagingQueueService.save(q),
+    getCase: id => caseService.getCase(id),
     // PS-71 (Batch 458): forwards the version the worker built the save from.
-    updateCase: (id, updates, expectedVersion) => mockCaseService.updateCase(id, updates, expectedVersion),
+    updateCase: (id, updates, expectedVersion) => caseService.updateCase(id, updates, expectedVersion),
     listDiagnosticTemplates: async () =>
       (await templateModule.listTemplates('published'))
         .filter(t => t.isDiagnostic !== false)

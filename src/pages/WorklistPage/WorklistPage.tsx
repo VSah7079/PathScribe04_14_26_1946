@@ -4,7 +4,7 @@ import { useReviewQueueCounts } from '@/hooks/useReviewQueueCounts';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { externalResourceService, facilityService, actionRegistryService, wsiScanBatchService, aiScreeningResultService, specimenDictionaryService } from '@/services';
+import { externalResourceService, facilityService, actionRegistryService, wsiScanBatchService, aiScreeningResultService, specimenDictionaryService, flagService, caseViewTrackingService } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import type { Case } from '@/types/case/Case';
@@ -12,15 +12,14 @@ import { useNavigate, useLocation } from 'react-router';
 import { useLogout } from '@hooks/useLogout';
 import WorklistTable      from '../../components/Worklist/WorklistTable';
 import ResourcesModal     from './ResourcesModal';
+import { toQuickLinks, type ResourceQuickLink } from '@/services/externalResources/externalResourceUrl';
 import LogoutWarningModal from '@/components/Common/LogoutWarningModal';
 import { VOICE_CONTEXT } from '../../constants/systemActions';
-import { useAuditLog } from '../../components/Audit/useAuditLog';
 import { PoolClaimModal } from '../../components/Worklist/PoolClaimModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { AmendedAddendaTriageTile } from './AmendedAddendaTriageTile';
 import { PendingGrossingTriageTile } from './PendingGrossingTriageTile';
-import { flagService }    from '@/services';
 import { amendmentService, lisAmendmentNoticeService, informalReviewService, delegationService, peerReviewService, loadCytologyReviewTray, takeCytologyReview, loadFollowUpCaseIdsForUser, loadOpenSlaBreaches, type SlaBreachKind } from '@/services';
 import ConfirmModal from '@/components/Common/ConfirmModal';
 import { pendingDelegationsTo } from '@/services/delegations/delegationRules';
@@ -32,26 +31,14 @@ import { useCapabilities } from '@/hooks/useCapabilities';
 import CytologyQcQueuePage from '../CytologyQcQueuePage';
 import SurgicalQaWorklistPage from '../SurgicalQaWorklistPage';
 import { computeWorklistTileCounts, filterWorklistCases, type WorklistCountDeps } from '@/services/worklist/worklistTileCounts';
-import { caseViewTrackingService } from '@/services';
+import { usePoolAssignmentTimeout } from './hooks/usePoolAssignmentTimeout';
 import { SlideDetailDrawer } from '@/components/Worklist/SlideDetailDrawer';
 import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
 import { Flag }           from '@/services/flags/IFlagService';
-import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
+import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences'; import { ROW_COMMAND_EVENTS, resolveRowCommand } from '@/services/worklist/rowCommands';
 
-// Single source of truth for both the page title above the table and
-// every filter tile's own label — previously two separate hardcoded
-// copies (this map, plus each tile's own inline label string below)
-// that had already drifted apart in several real, confirmed places:
-// 'urgent' read "Urgent Cases" here vs. "Urgent" on the tile, 'draft'
-// read "Draft Cases" vs. "Draft", 'amended' read "Amended Cases" vs.
-// the tile's "Amendment & Addenda", 'grosscomplete' had an extra
-// "— Awaiting Microscopic" suffix, and 'countersign' wasn't in this
-// map at all — selecting that tile silently fell back to the generic
-// "Active Cases" title. One shared map makes this kind of drift
-// structurally impossible going forward, not just fixed for today.
-// Real filter-state keys ('all', 'urgent', etc.) stay untouched here —
-// they drive filtering/routing — only the displayed label is
-// resolved via i18n, at render time, through this locale-key map.
+// One map for the page title above the table and every filter tile's label, so the two cannot drift apart.
+// Filter-state keys ('all', 'urgent', ...) drive filtering and routing; only the displayed label is resolved through i18n.
 const FILTER_LABEL_KEY: Record<string, string> = {
   all:           'worklistPage.filterLabel.all',
   urgent:        'worklistPage.filterLabel.urgent',
@@ -67,6 +54,7 @@ const FILTER_LABEL_KEY: Record<string, string> = {
   // shortened the one long word, not dropped either type.
   delegated:     'worklistPage.filterLabel.delegated',
   countersign:   'worklistPage.filterLabel.countersign',
+  collaborating: 'worklistPage.filterLabel.collaborating',
   // Real feature, per direct specification: Post-Sign-Out Release
   // Buffer. Same real "queue that's specifically mine" pattern as
   // countersign above — where a pathologist finds a case they might
@@ -114,13 +102,7 @@ const WorklistPage: React.FC = () => {
   const handleLogout = useLogout();
   const { user } = useAuth();
   const { config } = useSystemConfig();
-  const { log: _log }  = useAuditLog();
-  // _log unused — useAuditLog() is wired up but nothing in this file
-  // actually calls it. Flagged rather than removed, since audit logging
-  // is a deliberate, consistent pattern everywhere else in this app —
-  // this looks like a real gap (no worklist action, filter change, or
-  // case-open event gets logged here), not something intentionally
-  // left out.
+  // Batch 659: no audit hook here; a claim is audited by poolCaseActions and a case open by the report page.
   const navigate = useNavigate();
   const openCasePage = useOpenCase();
   const location  = useLocation();
@@ -170,8 +152,9 @@ const WorklistPage: React.FC = () => {
   }, [branchFilter]);
 
   // activeFilter:  which sub-filter within that context
-  const [activeFilter, setActiveFilter]       = useState<'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease' | 'needsrevision' | 'informalreview' | 'peerreview' | 'cytologyreview' | 'onhold' | 'dp' | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases' | 'followup'>('all');
+  const [activeFilter, setActiveFilter]       = useState<'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease' | 'needsrevision' | 'informalreview' | 'peerreview' | 'cytologyreview' | 'onhold' | 'dp' | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases' | 'followup' | 'collaborating'>('all');
   const [realCases, setRealCases]             = useState<Case[]>([]);
+  usePoolAssignmentTimeout(realCases, setRealCases);
 
   const [delegatedToMeCount, setDelegatedToMeCount] = useState(0);
   const [delegatedCaseIds, setDelegatedCaseIds]     = useState<string[]>([]);
@@ -464,7 +447,7 @@ const WorklistPage: React.FC = () => {
   // applied across every visible case instead of one. A viewer whose
   // worklist spans several performing labs' pools sees each of those
   // labs' own resources, not just the first one or none at all.
-  const [quickLinks, setQuickLinks] = useState<{ protocols: { title: string; url: string }[]; references: { title: string; url: string }[]; systems: { title: string; url: string }[] }>({ protocols: [], references: [], systems: [] });
+  const [quickLinks, setQuickLinks] = useState<Record<'protocols' | 'references' | 'systems', ResourceQuickLink[]>>({ protocols: [], references: [], systems: [] });
 
   useEffect(() => {
     const session = getSessionUser();
@@ -486,11 +469,7 @@ const WorklistPage: React.FC = () => {
         organisationId: session.organisationId!,
         performingLabFacilityIds: Array.from(labIds),
       }).then(resolved => {
-        setQuickLinks({
-          protocols: resolved.protocols.map(r => ({ title: r.title, url: r.url })),
-          references: resolved.references.map(r => ({ title: r.title, url: r.url })),
-          systems: resolved.systems.map(r => ({ title: r.title, url: r.url })),
-        });
+        setQuickLinks(toQuickLinks(resolved));
       });
     }).catch(() => {});
   }, [realCases]);
@@ -560,17 +539,9 @@ const WorklistPage: React.FC = () => {
     { cases: realCases, contextFilter, branchFilter, cytologyReviewCount: cytologyReviewCases.length },
     worklistCountDeps,
   );
-  const { stats, urgentPoolCount, hasUrgentNewCase, countersignPendingCount, pendingReleaseCount, needsRevisionCount } = tileCounts;
+  const { stats, urgentPoolCount, hasUrgentNewCase, countersignPendingCount, collaboratingCount, pendingReleaseCount, needsRevisionCount } = tileCounts;
   const { urgentCount: lisUrgentCount, poolCount: lisPoolCount, totalCount: lisTotalCount, hasUrgentPool: hasUrgentLisPool } = tileCounts.lis;
   const { urgentCount: orchUrgentCount, poolCount: orchPoolCount, totalCount: orchTotalCount, hasUrgentPool } = tileCounts.outreach;
-
-
-
-  // Computational voice action registration removed — COMP_VOICE/
-  // COMP_EVENT no longer export anything to register (both removed
-  // along with the Sidecar/ordering apparatus). This was the source
-  // of the dangling "open sidecar" etc. voice commands — registered
-  // as sayable, but with no handler left to respond when invoked.
 
   useEffect(() => {
     actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
@@ -596,7 +567,7 @@ const WorklistPage: React.FC = () => {
     const pageUp      = () => setSelectedIndex(i => { const n = clamp(ensureSelection(i) - 10); syncId(n); return n; });
     const first       = () => syncId(0);
     const last        = () => syncId(clamp(filteredCases.length - 1));
-    const refresh     = () => window.location.reload();
+    const refresh     = () => { caseRouter.listCasesForUser(user?.id ?? 'current').then(setRealCases).catch(() => {}); };
 
     // TTS helper — reads text aloud via Web Speech Synthesis
     const speak = (text: string) => {
@@ -711,6 +682,10 @@ const WorklistPage: React.FC = () => {
     const filterAutopsy    = () => { setActiveFilter('autopsy');    setSelectedIndex(-1); setSelectedCaseId(null); };
     const filterNewCases   = () => { setActiveFilter('newcases');   setSelectedIndex(-1); setSelectedCaseId(null); };
     const clearFilter     = () => { setActiveFilter('all');       setSelectedIndex(-1); setSelectedCaseId(null); };
+    // Batch 650: "pool cases" (Alt+Shift+P) and "awaiting countersign" (Alt+A) choose those tiles, as clicking them does.
+    const filterPool        = () => { setActiveFilter('pool');        setSelectedIndex(-1); setSelectedCaseId(null); };
+    const filterCountersign = () => { setActiveFilter('countersign'); setSelectedIndex(-1); setSelectedCaseId(null); };
+    const filterCollaborating = () => { setActiveFilter('collaborating'); setSelectedIndex(-1); setSelectedCaseId(null); };
 
     // Sort commands — forward to WorklistTable's internal sort system via custom events
     const sortDate     = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_TABLE_SORT_APPLY', { detail: { key: 'accessionDate', dir: 'desc' } }));
@@ -738,11 +713,7 @@ const WorklistPage: React.FC = () => {
     // in WorklistTable.tsx applies for mouse clicks - voice-driven
     // navigation needs to stay consistent, not silently bypass it.
     const openCaseId = (id: string) => {
-      // Real, per direct follow-up recalling the messaging system's
-      // own unread pattern — voice-driven navigation records a real
-      // view exactly the same way the real, mouse-click onBeforeNavigate
-      // hook does, never a second path that could leave voice-opened
-      // cases permanently "new."
+      // Voice-driven opens record a view like a click does, so they are never left "new".
       if (user?.id) caseViewTrackingService.recordView(user.id, id);
       if (activeFilter === 'cytologyreview' && openCytologyReviewCase(id)) return;
       if (activeFilter === 'informalreview') {
@@ -770,6 +741,9 @@ const WorklistPage: React.FC = () => {
       openCaseId(filteredCases[idx].id);
     };
 
+    // Batch 663: "go to row 7", "open accession A26-4660" (services/worklist/rowCommands.ts)
+    const rowCmd = (e: Event) => { const r = resolveRowCommand(e.type, (e as CustomEvent<{ transcript?: string }>).detail?.transcript ?? '', filteredCases); if (r) { syncId(r.index); if (r.open) openCaseId(r.open); } };
+    ROW_COMMAND_EVENTS.forEach(n => window.addEventListener(n, rowCmd));
     window.addEventListener('PATHSCRIBE_TABLE_NEXT',             next);
     window.addEventListener('PATHSCRIBE_TABLE_PREVIOUS',         previous);
     window.addEventListener('PATHSCRIBE_TABLE_PAGE_DOWN',        pageDown);
@@ -786,6 +760,9 @@ const WorklistPage: React.FC = () => {
     window.addEventListener('PATHSCRIBE_TABLE_FILTER_AUTOPSY',    filterAutopsy);
     window.addEventListener('PATHSCRIBE_TABLE_FILTER_NEWCASES',   filterNewCases);
     window.addEventListener('PATHSCRIBE_TABLE_CLEAR_FILTER',     clearFilter);
+    window.addEventListener('PATHSCRIBE_TABLE_FILTER_POOL',        filterPool);
+    window.addEventListener('PATHSCRIBE_TABLE_FILTER_COUNTERSIGN', filterCountersign);
+    window.addEventListener('PATHSCRIBE_TABLE_FILTER_PARTICIPATING', filterCollaborating);
     window.addEventListener('PATHSCRIBE_TABLE_FILTER_PHYSICIAN', filterPhysician);
     window.addEventListener('PATHSCRIBE_READ_FLAGS',             readFlags);
     window.addEventListener('PATHSCRIBE_READ_SPECIMEN',          readSpecimen);
@@ -806,6 +783,7 @@ const WorklistPage: React.FC = () => {
     // for anymore.
 
     return () => {
+      ROW_COMMAND_EVENTS.forEach(n => window.removeEventListener(n, rowCmd));
       window.removeEventListener('PATHSCRIBE_TABLE_NEXT',             next);
       window.removeEventListener('PATHSCRIBE_TABLE_PREVIOUS',         previous);
       window.removeEventListener('PATHSCRIBE_TABLE_PAGE_DOWN',        pageDown);
@@ -822,6 +800,9 @@ const WorklistPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_TABLE_FILTER_AUTOPSY',    filterAutopsy);
       window.removeEventListener('PATHSCRIBE_TABLE_FILTER_NEWCASES',   filterNewCases);
       window.removeEventListener('PATHSCRIBE_TABLE_CLEAR_FILTER',     clearFilter);
+      window.removeEventListener('PATHSCRIBE_TABLE_FILTER_POOL',        filterPool);
+      window.removeEventListener('PATHSCRIBE_TABLE_FILTER_COUNTERSIGN', filterCountersign);
+      window.removeEventListener('PATHSCRIBE_TABLE_FILTER_PARTICIPATING', filterCollaborating);
       window.removeEventListener('PATHSCRIBE_TABLE_FILTER_PHYSICIAN', filterPhysician);
       window.removeEventListener('PATHSCRIBE_READ_FLAGS',             readFlags);
       window.removeEventListener('PATHSCRIBE_READ_SPECIMEN',          readSpecimen);
@@ -1024,6 +1005,7 @@ const WorklistPage: React.FC = () => {
                   { key: 'pool',       label: activeFilter === 'pool'       ? backToLabel : t(FILTER_LABEL_KEY.pool),      count: stats.pool,           color: '#F97316', bg: 'rgba(249,115,22,0.05)',  border: 'rgba(38,217,74,0.18)',  activeBg: 'rgba(249,115,22,0.18)',  activeBorder: '#26D94A',  glow: '0 0 12px rgba(38,217,74,0.4)',  sublabel: undefined },
                   { key: 'delegated',  label: activeFilter === 'delegated'  ? backToLabel : t(FILTER_LABEL_KEY.delegated), count: delegatedToMeCount,   color: '#E4F042', bg: 'rgba(228,240,66,0.05)',  border: 'rgba(228,240,66,0.18)',  activeBg: 'rgba(228,240,66,0.18)',  activeBorder: '#E4F042',  glow: '0 0 12px rgba(228,240,66,0.4)',  sublabel: undefined },
                   { key: 'countersign', label: activeFilter === 'countersign' ? backToLabel : t(FILTER_LABEL_KEY.countersign), count: countersignPendingCount, color: '#AB1CE3', bg: 'rgba(171,28,227,0.05)', border: 'rgba(171,28,227,0.18)', activeBg: 'rgba(171,28,227,0.18)', activeBorder: '#AB1CE3', glow: '0 0 12px rgba(171,28,227,0.4)', sublabel: undefined },
+                  { key: 'collaborating', label: activeFilter === 'collaborating' ? backToLabel : t(FILTER_LABEL_KEY.collaborating), count: collaboratingCount, color: '#F472B6', bg: 'rgba(244,114,182,0.05)', border: 'rgba(244,114,182,0.18)', activeBg: 'rgba(244,114,182,0.18)', activeBorder: '#F472B6', glow: '0 0 12px rgba(244,114,182,0.4)', sublabel: undefined },
                   // Real feature, per direct specification: Post-Sign-Out
                   // Release Buffer. Same real "queue that's specifically
                   // mine" pattern as countersign immediately above — where
@@ -1209,20 +1191,13 @@ const WorklistPage: React.FC = () => {
                 interceptOpen={activeFilter === 'cytologyreview' ? openCytologyReviewCase : undefined}
                 onPoolCaseClick={(caseId, summary) => {
                   const c = realCases.find(c => c.id === caseId);
-                  // Real, separate bug found and fixed here: this used
-                  // c?.originHospitalId (the hospital/facility id, e.g.
-                  // 'HOSP-MFT') as the pool name — confirmed directly
-                  // against a real case's own data that the actual pool
-                  // name ('Gastrointestinal') lives on c.poolName
-                  // instead. Explains why the claim modal's own header
-                  // showed a hospital id where a real pool name
-                  // belonged, and would have broken this feature's own
-                  // per-pool access-request tracking and membership
-                  // matching too, both of which depend on the real name.
+                  // The pool name is the case's own poolName (membership and access requests match on it); no made-up fallback.
+                  const poolName = (c as { poolName?: string } | undefined)?.poolName;
+                  if (!poolName) { console.error('[Worklist] Pool case has no pool name:', caseId); return; }
                   setClaimModal({
                     caseId,
                     summary,
-                    poolName: (c as any)?.poolName ?? 'MFT Pool',
+                    poolName,
                   });
                 }}
                 selectedIndex={selectedIndex}

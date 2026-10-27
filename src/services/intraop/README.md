@@ -66,3 +66,10 @@ Batch 616 (part D, PS-510): server version of IntraoperativeService (`http<Name>
 ## Batch 617 (part B): server version (PS-514)
 
 The intraoperative critical result service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/EQUIPMENT_MIGRATION_API.md`.
+
+## Batch 652 — Specimen pipeline gaps
+
+- **`carryIntraopFindingsToCase.ts`**: at merge, the frozen-section diagnosis (text, category, time) and photo links of each specimen are copied onto `Case.intraoperativeFindings` (`types/intraop/CaseIntraoperativeFinding.ts`), labelled `intraoperative`, never into `Case.diagnostic`. Repeating a merge replaces that session's findings. Audit: "Intraop findings carried to case". The verbal report still goes to the critical-result record. No screen shows the carried findings yet. Test: `carryIntraopFindingsToCase.test.ts`.
+
+## Batch 669 (finding ops-14)
+`orBoardDemo.ts` names the OR Suite demo (capability `config:or-board-demo:run`, written out at each check; id prefix `demo-orboard-`). `seedOrBoardDemoData`, `advanceDemoSpecimen` and the new `removeOrBoardDemoData` check the capability in `mockIntraoperativeService.ts`; Stop demo on the OR Suite board now calls `removeOrBoardDemoData`, which deletes exactly the `demo-orboard-` sessions (and tells the boards). `httpIntraoperativeService.ts`: all three are demo-only (`NOT_SUPPORTED` against the API server).

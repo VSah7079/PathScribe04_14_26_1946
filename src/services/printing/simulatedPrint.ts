@@ -12,7 +12,7 @@
 import i18n from 'i18next';
 import { toast } from 'react-toastify';
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService as auditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { dataMayPersistInBrowser } from '../browserData/browserDataPolicy';
 
 export const SIMULATED_PRINT_STORAGE_KEY = 'simulatedPrintLog';

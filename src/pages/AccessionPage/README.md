@@ -1,3 +1,5 @@
+**Batch 649:** creating a case needs `case:accession:create` (`createAccessionedCase` checks it; a refusal shows the reason and saves nothing). Tests updated: `AccessionPage.e2e.test.tsx`, `AccessionPage.contactBleeding.e2e.test.tsx`.
+
 # pages/AccessionPage/
 
 Orchestration Stage 0 entry point — Stage 0 Requirements §6.1. Captures
@@ -1090,3 +1092,9 @@ Missing clinical history (cytology and FNA, Field Requirements page Clinical his
 ## Batch 618 (PS-336)
 
 `AccessionTechnicalFacilityField.tsx` (+ test): the optional "Technical component performed by" list; renders nothing unless the intake is outside material or a consultation, so an ordinary accession has no extra click. `AccessionPage.tsx` only holds the choice and puts it on the order (net lines unchanged, per CLAUDE.md rule 10).
+
+## Batch 652 — Specimen pipeline gaps
+
+- After saving a case from a pending order, the page calls `linkLockboxReceiptAtAccession` (`services/accessioning/linkLockboxReceipt.ts`) so a lockbox receipt for that order is linked to the case and marked accessioned. File length unchanged (4204 lines).
+
+- Batch 661/662: Sex at birth starts blank and is required (Female, Male, Indeterminate, Not known); `accessionSexNoDefault.test.ts` guards the blank start.

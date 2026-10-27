@@ -12,12 +12,14 @@ import { resolveMolecularReagentLotGating } from './resolveMolecularReagentLotGa
 import { resolveMolecularControlRequirementValidation } from './resolveMolecularControlRequirementValidation';
 import { mockMolecularAssayControlRuleService } from './mockMolecularAssayControlRuleService';
 import { generateMolecularBatchBarcode, generateMolecularPlateBarcode } from './resolveMolecularBarcodes';
-import type { IMolecularBatchService, MolecularBatch, NewMolecularBatch, MolecularWell } from './IMolecularBatchService';
-import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE, MOLECULAR_BATCH_WELL_SPECIMEN_MISSING, MOLECULAR_BATCH_NOT_PERMITTED, MOLECULAR_BATCH_DECK_SLOT_INVALID } from './IMolecularBatchService';
+import type { IMolecularBatchService, MolecularBatch, NewMolecularBatch } from './IMolecularBatchService';
+import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE, MOLECULAR_BATCH_WELL_SPECIMEN_MISSING, MOLECULAR_BATCH_NOT_PERMITTED, MOLECULAR_BATCH_DECK_SLOT_INVALID,
+  MOLECULAR_BATCH_REASON_REQUIRED, MOLECULAR_BATCH_NOT_FOUND, MOLECULAR_BATCH_ALREADY_SUPERSEDED, MOLECULAR_BATCH_LOT_GATING_FAILED, MOLECULAR_BATCH_CONTROLS_NOT_SATISFIED } from './IMolecularBatchService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockEquipmentService } from '../equipment/mockEquipmentService';
 import { checkBatchInstrument, normaliseDeckSlotId } from '../equipment/equipmentRules';
 import { checkDeckSlot } from './deckSlots';
+import { cloneWellsForSupersede } from './cloneWellsForSupersede';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import { MOLECULAR_DEMO_BATCHES } from './molecularDemoSeed';
 
@@ -111,10 +113,7 @@ export const mockMolecularBatchService: IMolecularBatchService = {
       return err(MOLECULAR_BATCH_WELL_SPECIMEN_MISSING);
     }
     const gating = resolveMolecularReagentLotGating(batch.reagentLots, batch.wells);
-    if (!gating.allowed) {
-      const summary = gating.failures.map(f => `${f.componentType} (${f.lotNumber}): ${f.reason.replace(/_/g, ' ')}`).join('; ');
-      return err(`Batch rejected — one or more reagent/control lots failed gating: ${summary}`);
-    }
+    if (!gating.allowed) return err(MOLECULAR_BATCH_LOT_GATING_FAILED);
 
     // Real, per the given specification's own §3.2 "Dynamic Control
     // Rules"/"Position Enforcements" — a real, separate check from lot
@@ -124,13 +123,7 @@ export const mockMolecularBatchService: IMolecularBatchService = {
     const rulesRes = await mockMolecularAssayControlRuleService.getAll();
     const rules = rulesRes.ok ? rulesRes.data : [];
     const controlCheck = resolveMolecularControlRequirementValidation(batch.assayCode, batch.wells, rules);
-    if (!controlCheck.satisfied) {
-      const summary = controlCheck.violations.map(v => {
-        if (v.reason === 'missing') return `${v.sampleType} is required but not present on this plate`;
-        return `${v.sampleType} must be at ${v.expectedPosition} but was found at ${v.actualPosition}`;
-      }).join('; ');
-      return err(`Batch rejected — this assay's own required controls are not satisfied: ${summary}`);
-    }
+    if (!controlCheck.satisfied) return err(MOLECULAR_BATCH_CONTROLS_NOT_SATISFIED);
 
     const all = load();
     const now = new Date();
@@ -163,27 +156,20 @@ export const mockMolecularBatchService: IMolecularBatchService = {
 
   async cloneAndSupersede(originalBatchId, reason, byUserId, byUserName) {
     await delay();
-    if (!reason.trim()) return err('A real reason is required to supersede a batch — never an unexplained status flip.');
+    if (!reason.trim()) return err(MOLECULAR_BATCH_REASON_REQUIRED);
     // Batch 405 (Pete: "Permission, keep users").
     if (!(await authorizationService.enforce('molecular:batch:supersede')).allowed) return err(MOLECULAR_BATCH_NOT_PERMITTED);
     const all = load();
     const original = all.find(b => b.id === originalBatchId);
-    if (!original) return err(`No molecular batch found with id "${originalBatchId}".`);
-    if (original.status === 'superseded') return err(`This batch was already superseded on ${original.supersededAt}. Clone that real replacement instead of re-superseding this one.`);
+    if (!original) return err(MOLECULAR_BATCH_NOT_FOUND);
+    if (original.status === 'superseded') return err(MOLECULAR_BATCH_ALREADY_SUPERSEDED);
 
     // Real, per this service's own IMolecularBatchService.ts header —
     // control/calibrator well assignments (real reagent-lot metadata)
     // carry over; every patient-specimen assignment and every well's
     // own movementHistory resets to genuinely empty, since a past
     // scan event is a real fact about the original batch's own run.
-    const clonedWells: MolecularWell[] = original.wells.map(w => {
-      const isControl = w.sampleType && w.sampleType !== 'PATIENT_SPECIMEN';
-      return {
-        wellPosition: w.wellPosition,
-        sampleType: isControl ? w.sampleType : undefined,
-        controlInfo: isControl ? w.controlInfo : undefined,
-      };
-    });
+    const clonedWells = cloneWellsForSupersede(original);
 
     // Batch 406: a slot the instrument's deck no longer takes a plate in (its
     // layout was set after this run) is left for the tech to choose again.

@@ -1,0 +1,605 @@
+<h1 id="top">Audit Log</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Audit Log screen (the title on the screen is <strong>System Logs</strong>) is the laboratory's record of what happened: what people, the system and the AI did, which errors occurred, what the interfaces sent and received, the permanent quality assurance record, billing and charge failures, critical result notifications, outside consult links, and the background jobs of the PathScribe server. You read it, search it, and download parts of it as spreadsheets for an inspection or a review. This article is written for the person who reads the record. Setting up who may see it is in the Administrator Guide.</p>
+<p><strong>Intended users.</strong> Laboratory managers, quality staff and the laboratory director. By default the roles Admin, Lab Director and QA Reviewer can open the screen. A Pathologist cannot open it unless the laboratory has granted it. If the <strong>System Logs</strong> tile is missing from Home, or you see "You don't have access to this screen", ask your laboratory manager.</p>
+<p><strong>Where it fits.</strong> The screen shows only what has already happened. Nothing is set up here. Work that creates the entries happens on the other screens: sign-in, accessioning, grossing, reporting, quality work. You come here afterwards to answer "who did this and when", to clear errors and failed messages, and to prepare evidence for CAP or another inspector.</p>
+<div class="admonition note">
+<p class="admonition-title">Read-only, with a few actions</p>
+<p>Almost everything on this screen is for reading. The actions are: <strong>Resolve</strong> on an error, <strong>Review</strong> on an interface exception, resending a failed interface message or print job, <strong>Revoke</strong> on a consult link, <strong>Requeue</strong> on a failed server job, and the <strong>Export CSV</strong> buttons.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/audit-log-overview.png" alt="The System Logs screen with its tabs, type filters and the log table"><figcaption>The System Logs screen with its tabs, type filters and the log table</figcaption></figure>
+
+<p>At the top are the title, the line "Complete record of AI actions, user changes, system events, errors, and quality assurance activity", and the row of tabs. Below the tabs is a box for finding a support reference. The rest of the screen is the tab you chose, and a footer.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Tabs</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>What it records</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audit Log</td>
+<td>Every audit entry you are allowed to see: AI actions, user actions and system actions.</td>
+</tr>
+<tr>
+<td>Error Log</td>
+<td>Errors, warnings and information messages raised by the system, each marked Open or Resolved. A number on the tab counts the open ones.</td>
+</tr>
+<tr>
+<td>Interface Log</td>
+<td>Messages between PathScribe and other systems. Five sub-tabs (see below). A number on the tab counts interface exceptions waiting for review.</td>
+</tr>
+<tr>
+<td>Quality Assurance</td>
+<td>The permanent, searchable record of quality work, in eight groups. A number on the tab counts open deficiencies.</td>
+</tr>
+<tr>
+<td>Financial</td>
+<td>Billing logs and failed charge messages.</td>
+</tr>
+<tr>
+<td>Critical Alerts</td>
+<td>Every automated critical result notification and what became of it.</td>
+</tr>
+<tr>
+<td>Consult links</td>
+<td>Every link given to an outside consultant, with its status.</td>
+</tr>
+<tr>
+<td>Server jobs</td>
+<td>The background jobs of the PathScribe server. This tab appears only for people who hold the permission to see it.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Audit Log tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All, AI, User, System</td>
+<td>Filter buttons by type of entry, each with a count. AI is what the AI did, User is what a person did, System is what the system did by itself.</td>
+</tr>
+<tr>
+<td>Patient Management Only</td>
+<td>A tick box. Shows only patient merge, move, link, rebind and demographic update events. It combines with the other filters.</td>
+</tr>
+<tr>
+<td>All Users</td>
+<td>A list of users. It appears only in a Superadmin session (ForMedrixAI support). Everyone else finds a person by typing their name in the search box.</td>
+</tr>
+<tr>
+<td>Date range</td>
+<td>Today, Last 7 Days, Last 30 Days, Last 90 Days or Custom Range. Custom Range shows a from date and a to date; the to date includes the whole day. The screen opens on <strong>Last 7 Days</strong>.</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>"Search event, detail, case ID". Matches the event name, the detail text, the user and the accession number, ignoring capital letters.</td>
+</tr>
+<tr>
+<td>Timestamp</td>
+<td>When the entry was written.</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>AI, User or System.</td>
+</tr>
+<tr>
+<td>Event</td>
+<td>The name of the event, with a small "Support ref" chip you can click to copy the support reference.</td>
+</tr>
+<tr>
+<td>Detail</td>
+<td>A sentence describing what happened. It is written in English in every language, and contains no patient name, date of birth, MRN or clinical value.</td>
+</tr>
+<tr>
+<td>User</td>
+<td>The person or system actor. Automatic actions show a system actor.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The accession number when the entry concerns a case. Click it to open the case report.</td>
+</tr>
+<tr>
+<td>Footer count</td>
+<td>"Showing N of M events": the entries your filters leave, out of all the entries you may see.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Error Log tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All, Error, Warning, Info</td>
+<td>Filter by severity, each with a count.</td>
+</tr>
+<tr>
+<td>All Status, Open Only, Resolved Only</td>
+<td>Filter by whether the error has been dealt with.</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>"Search message, code, source".</td>
+</tr>
+<tr>
+<td>Columns</td>
+<td>Timestamp, Severity, Code, Message, Source, Case, Status.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Open, or Resolved. Hover over Resolved to see "Resolved by (name), (time)".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interface Log tab, sub-tabs</strong></p>
+<table>
+<thead>
+<tr>
+<th>Sub-tab</th>
+<th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interface Exceptions</td>
+<td>Inbound messages PathScribe could not safely match to a patient or case. Filter by All, Pending, Resolved or Dismissed; search by event type or reason. Columns: Timestamp, Event Type, Reason, Source Patient, Target Patient, Status.</td>
+</tr>
+<tr>
+<td>Outbound Interface DLQ</td>
+<td>Outbound messages that failed or are waiting, in eight queues (patient updates, results, accession events and others). Choose the queue; each failed row shows its error and retries, with <strong>Retry Dispatch</strong> and <strong>Capture as CAPA</strong>.</td>
+</tr>
+<tr>
+<td>Outbound Dispatches</td>
+<td>A history of the order-creation messages PathScribe sent, with the outcome: Delivered, Failed or Outcome unknown. Click a row to see the exact message that was sent and <strong>Copy Payload</strong>.</td>
+</tr>
+<tr>
+<td>Print Queue</td>
+<td>Queued, held, failed and completed print jobs, with Hold, Release, Cancel, Retry and Redirect, singly or in bulk, and <strong>Run Batch Now</strong> for grouping jobs. A line above the list reads "Site agents — online: n, need attention: n, offline: n." with an <strong>Open site agents</strong> link to the place where an administrator manages them. It appears only when a site agent has been set up for a site you may see.</td>
+</tr>
+<tr>
+<td>Engines</td>
+<td>The health of each hospital's interface engine: status, last check-in, free disk, certificate expiry, and each channel with what is waiting. Shown only to people who hold the permission to see engine status.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Quality Assurance tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Group</td>
+<td>Which record to read: Deficiencies, Intraoperative Linkage, Discordance &amp; Reconciliation, Countersign Turnaround, Credentialing Review, Post-Finalization Drift, Patient Match Review, or Management Reviews.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Each group has its own statuses. For example Deficiencies: Open, Pending Verification, Closed. Discordance &amp; Reconciliation: Concordant, Discordant. Countersign Turnaround: Pending, Countersigned. Credentialing Review: Active, Completed. Post-Finalization Drift: Detected, Auto-Corrected, Deferred, Failed. Patient Match Review has only Needs Review, and Management Reviews only Completed.</td>
+</tr>
+<tr>
+<td>Date range</td>
+<td>Includes <strong>All Time</strong>, which is the starting choice here (unlike the Audit Log tab).</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>"Search case, detail, user".</td>
+</tr>
+<tr>
+<td>Columns</td>
+<td>Date, Case, Specimen, Detail, Status, User.</td>
+</tr>
+<tr>
+<td>Footer count</td>
+<td>"Showing N of M (group) records".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Financial tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Sub-tab</th>
+<th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Billing Logs</td>
+<td>A search of billing events, with filters for case number, patient, dates, billing type, facility, pathologist and staff, and <strong>Save Query</strong>.</td>
+</tr>
+<tr>
+<td>Outbound DLQ</td>
+<td>Charges that could not be sent, for example a missing ICD-10 code or provider NPI. You can enter the missing value on the row, retry, and capture the failure as a CAPA.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Critical Alerts tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case, Finding, Severity</td>
+<td>The case and the critical finding that triggered the notification.</td>
+</tr>
+<tr>
+<td>Physician</td>
+<td>Who was notified.</td>
+</tr>
+<tr>
+<td>Channels</td>
+<td>Secure Email, SMS and EHR Inbox Push, each with what happened. A <strong>Simulated</strong> tag means nothing was really delivered.</td>
+</tr>
+<tr>
+<td>Dispatched</td>
+<td>When it was sent.</td>
+</tr>
+<tr>
+<td>Reference Link</td>
+<td>Active or Expired, and how many times the link was viewed. "No reference link (EHR push only)" if none was issued.</td>
+</tr>
+<tr>
+<td>Acknowledged</td>
+<td>When the recipient acknowledged it, or "Not yet acknowledged".</td>
+</tr>
+<tr>
+<td>Filter by case</td>
+<td>A box above the table.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Consult links tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Issued, Case, Consultant, Scope</td>
+<td>When, which case, who it was given to (with their organization) and whether it covers the Full case or some slides.</td>
+</tr>
+<tr>
+<td>Issued by, Expires</td>
+<td>Who issued it and when it stops working.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Active, Expired or Revoked (with who revoked it and when).</td>
+</tr>
+<tr>
+<td>Views</td>
+<td>How often it was opened and when last, or "Not viewed". After a Signed opinion a line under Status shows how many views and hours are left (the link allows 3 views or 48 hours after the signature), or why it closed.</td>
+</tr>
+<tr>
+<td>Preview identity</td>
+<td>For a person who may show full identity but may not issue links. Shows the patient's name and date of birth (as 24-OCT-1980) on screen for review. It is recorded in the audit log; nothing is sent to the consultant.</td>
+</tr>
+<tr>
+<td>Active only</td>
+<td>A tick box, on at first. Untick it to see expired and revoked links too.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>More about the Interface Log and Financial sub-tabs</strong></p>
+<p><em>Print Queue.</em> The sub-tab is headed <strong>Print Queue Dashboard</strong>. Its columns include Case, Report type, <strong>Delivery mode</strong>, Status, <strong>Paper / Duplex</strong> (the paper tray and one- or two-sided printing the job asked for), Destination, Queued at, Batch and Actions. "No print jobs match this filter." means the status filter leaves none. Tick jobs to act on several together: the bar reads "n job(s) selected" and offers the same Hold, Release, Cancel, Retry and Redirect actions; <strong>Redirect &amp; Retry</strong> sends the chosen jobs to another printer and tries again (jobs you may not redirect, or whose printer is not at their laboratory, are reported as not redirected). For <strong>Run Batch Now</strong>, set a <strong>Window start</strong> and <strong>Window end</strong> (times are read as UTC); queued jobs signed out inside that window that were not sent through an interface are grouped into shared batches by client account or delivery route.</p>
+<p><em>Outbound Dispatches.</em> Opening a row shows <strong>Outbound Payload</strong>, with <strong>Copy Payload</strong>; "Copied to clipboard." confirms. The category column reads "Category E: Order Creation" in the detail.</p>
+<p><em>Billing Logs.</em> Boxes carry the hints "Accession or case ID" (Case Number), "MRN or MPI" (Patient ID) and "Search within event detail" (Detail). To keep a search, type a name in "Name this query…" and select <strong>Save</strong>; saved queries appear as buttons. A line summarises the search; with no filter it reads "All billing events".</p>
+<p><em>Outbound DLQ (Financial).</em> The sub-tab is headed <strong>Outbound Charge DLQ</strong>. "No failed charge dispatches." means nothing is waiting for you. A second list, "Queued (for testing — Simulate Failure)", holds charges waiting to be sent, with <strong>Simulate Rejected</strong> and <strong>Simulate Timeout</strong> buttons that create an artificial failure so you can practise the repair steps; "No queued charges." appears when it is empty.</p>
+<h3 id="map-patient-and-review-interface-exception-windows">Map Patient and Review Interface Exception windows</h3>
+<p><strong>Map Patient — Restricted.</strong> Opened by the Map Patient button. It attaches a case created under a temporary downtime placeholder identity to the confirmed patient. It is rare, restricted and fully audited, and the placeholder record is retired, not kept.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Downtime / placeholder identity to resolve</td>
+<td>The placeholder to retire. While the list loads it says "Loading downtime records…". The list starts with "Select a downtime record…", or says "No downtime records awaiting a rebind" when there are none.</td>
+</tr>
+<tr>
+<td>Confirmed target patient (search by name or MRN)</td>
+<td>Appears once a placeholder is chosen. Type a name or MRN (the box suggests e.g. Smith or MRN-987654), then select one result. "No matching patients found." means nobody matched.</td>
+</tr>
+<tr>
+<td>Reason code</td>
+<td>Why the mapping is needed. It is filled in from the placeholder when known.</td>
+</tr>
+<tr>
+<td>Justification</td>
+<td>A written reason of at least the stated number of characters. The window counts the characters still needed.</td>
+</tr>
+</tbody>
+</table>
+<p>Select <strong>Review &amp; Confirm</strong> (greyed out until every field is complete). The window then warns that the placeholder will be retired and its cases repointed, and that this cannot be undone from the window. Select <strong>Confirm Map Patient</strong> to go ahead, or <strong>Back</strong> to change something. A green message lists the cases moved; a failure message explains why nothing moved.</p>
+<p><strong>Review Interface Exception.</strong> Opened by Review on a pending row. While it opens it says "Loading patient and case details…". Depending on the message type it offers: choose a patient record from a list that begins with <strong>Choose a patient</strong> (after typing a name or number and selecting Search), pick which of the source patient's cases move to the target, or, for an order code PathScribe did not recognise, search the specimen dictionary (the box reads "Select a specimen type…" and says "No specimen types match" when the search finds nothing) and select <strong>Map &amp; Link</strong>. <strong>Dismiss — No Action Needed</strong> closes the exception without changes. Other identity message types cannot yet be resolved by hand in this window; dismiss them once the identity is corrected at the source.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>↓ Export CSV</td>
+<td>Downloads the rows the current filters leave as a spreadsheet file. There is one on the Audit Log, Error Log, Interface Exceptions and Quality Assurance tabs. It is greyed out, with a tooltip, unless you have the export permission for that log.</td>
+</tr>
+<tr>
+<td>Find (support reference box)</td>
+<td>Type a reference like SR-7K2Q-9MXD and select <strong>Find</strong>. The screen says what it names (an audit entry, an error entry, a case or an interface exception) and offers <strong>Open case</strong>.</td>
+</tr>
+<tr>
+<td>Resolve</td>
+<td>On an open error row. Marks it resolved and records who and when. Needs its own permission.</td>
+</tr>
+<tr>
+<td>Review</td>
+<td>On a pending interface exception. Opens a window to match it by hand or dismiss it.</td>
+</tr>
+<tr>
+<td>🔗 Map Patient</td>
+<td>On the Interface Exceptions sub-tab. A restricted tool for rebinding a patient. Shown only with the special permission and a known organisation.</td>
+</tr>
+<tr>
+<td>Retry Dispatch, Dispatch Now, Capture as CAPA</td>
+<td>On the outbound sub-tabs. Resend a failed message; raise a deficiency from a failure. Resending needs a permission.</td>
+</tr>
+<tr>
+<td>Revoke</td>
+<td>On an active consult link. Closes it at once.</td>
+</tr>
+<tr>
+<td>Quick Links</td>
+<td>Opens the Quick Links window (Protocols, References, Systems). There is no button for it on this screen; press Alt+Q.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red number on a tab</td>
+<td>Open errors, interface exceptions waiting, or open deficiencies.</td>
+</tr>
+<tr>
+<td>Green badge (Resolved, Closed, Merged, Concordant, Countersigned, Completed, Auto-Corrected, Active)</td>
+<td>The item is finished or healthy.</td>
+</tr>
+<tr>
+<td>Red badge (Open, Discordant, Failed)</td>
+<td>The item needs action.</td>
+</tr>
+<tr>
+<td>Amber badge (Pending, Pending Verification, Detected, Deferred, Needs Review)</td>
+<td>The item is waiting.</td>
+</tr>
+<tr>
+<td>Simulated</td>
+<td>The channel or engine is a stand-in; nothing real was sent.</td>
+</tr>
+<tr>
+<td>Role notice (yellow line under the title)</td>
+<td>"Showing your case activity only". Shown to pathologists, who see only entries about cases plus their own.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>No status footer.</strong> The Audit Log shows no "systems operational" line and no compliance claim: neither was a real check, so both were removed (Batch 669). Use Engines and Server jobs for health.</p>
+<p><strong>Counts and empty lists.</strong> Below each log a line reads "Showing … of … events" (Audit tab), "Showing … of … errors" (Errors tab) or "Showing … of … (group) records" (Quality tab): the entries your filters leave out of all those you may see. When the filters leave nothing the list says "No logs match your filters" (Audit tab), "No errors match your filters" (Errors tab) or "No … records match your filters" naming the group (Quality tab). Widen the date range or clear a filter.</p>
+<p><strong>Interfaces tab status line.</strong> If you hold the permission, a line "Interface engines: …" summarises how many engines are online, degraded, offline or need attention. <strong>View engines</strong> opens the Engines sub-tab; the line is hidden while you are already there.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+U</td>
+<td>Open System Logs (from other screens).</td>
+</tr>
+<tr>
+<td>Alt+Q</td>
+<td>Open Quick Links.</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>Open the User Guide page for this screen in a new tab.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Quick Links</p>
+<p>The Quick Links window lists the Protocols, References and Systems links your laboratory has set up. A link that does not start with https is shown as text with an "Insecure link" tag and is not opened; ask your administrator to correct it. Select <strong>Close</strong> to leave the window.</p>
+</div>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Find what happened to a case</strong></p>
+<ol>
+<li>Open System Logs from Home, or press Alt+U. The Audit Log tab opens on the last 7 days.</li>
+<li>Choose <strong>Custom Range</strong> or a longer range if the event may be older. Entries outside the range are hidden, not missing.</li>
+<li>Type the accession number in the search box. The table narrows to that case.</li>
+<li>Read Timestamp, Event, Detail and User. The footer shows how many entries match.</li>
+<li>Select the accession number in the Case column to open the case report.</li>
+</ol>
+<p><strong>Find a change to a setting or a permission</strong></p>
+<ol>
+<li>On the Audit Log tab, set the date range.</li>
+<li>Search the English name of the event, for example <code>Role capabilities changed</code>, <code>Staff access changed</code>, <code>Sign-in locked</code> or <code>Capability refused</code>. The search matches the event and the detail text.</li>
+<li>Read the User column for who and the Timestamp column for when. Use the <strong>User</strong> filter button to leave out system actions.</li>
+</ol>
+<p><strong>Export a record for an inspection</strong></p>
+<ol>
+<li>Open the tab you need and set the filters first. The file holds only the rows the filters leave.</li>
+<li>Select <strong>↓ Export CSV</strong>. The file downloads at once, named like <code>pathscribe-audit-log-</code> followed by the date.</li>
+<li>Open the file. The first lines say what the report is, who requested it, which filters were used and how many rows it holds. The columns follow.</li>
+<li>Keep the file with your review notes. The export itself is recorded in the Audit Log.</li>
+</ol>
+<p><strong>Read the permanent quality record</strong></p>
+<ol>
+<li>Open the <strong>Quality Assurance</strong> tab.</li>
+<li>Choose a <strong>Group</strong>, then a <strong>Status</strong>.</li>
+<li>Leave the date range at <strong>All Time</strong>, or narrow it.</li>
+<li>Search by case, detail or user. Select the accession number to open the case.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>A link to this screen can carry a search text (for example a case's accession number). The screen then opens already filtered, with the date range set to all dates so older events are not hidden.</li>
+<li>A message about pending interface exceptions can open the Interface Log tab directly. Addresses ending in <code>?tab=</code> followed by <code>errors</code>, <code>interfaces</code>, <code>quality</code>, <code>financial</code>, <code>criticalAlerts</code>, <code>consultLinks</code> or <code>serverJobs</code> open that tab.</li>
+<li>Support may quote a reference (SR-XXXX-XXXX) instead of a case number. Type it in <strong>Find a support reference</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>An error is open and cannot be fixed by you.</strong> Leave it Open and note its Code and Source for support. Use Resolve only when the cause has been dealt with.</li>
+<li><strong>An inbound message could not be matched to a patient.</strong> Open the Interface Log tab, <strong>Interface Exceptions</strong>, select <strong>Review</strong> on the pending row, and match it by hand or dismiss it. Nothing is guessed.</li>
+<li><strong>An outbound message failed.</strong> On <strong>Outbound Interface DLQ</strong>, check the <strong>Engines</strong> sub-tab first. When the engine is healthy, select <strong>Retry Dispatch</strong>. A message held on the Outbound Queue screen must be released there first.</li>
+<li><strong>A charge failed for a missing code.</strong> On Financial, <strong>Outbound DLQ</strong>, type the missing ICD-10 code or provider NPI on the row and resend.</li>
+<li><strong>A consult link should stop working now.</strong> On Consult links, select <strong>Revoke</strong> on the row.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Known limits</p>
+<p>Charges are not sent to an outside billing system yet. The Outbound Charge DLQ therefore only shows real problems found in the case itself (a missing ICD-10 code or provider NPI); a rejected or timed-out send appears only when someone uses <strong>Simulate Rejected</strong> or <strong>Simulate Timeout</strong>. Network printing needs the PathScribe site agent: a job that cannot be sent from a browser fails with that explanation. A job that shows Printed with the note "Simulated: sent to printer" was not sent to a real printer.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the support reference box says "That is not a support reference. They look like SR-7K2Q-9MXD.", retype it.</li>
+<li>If it says "No record has that support reference.", check the characters with the person who gave it to you.</li>
+<li>If it says "That entry is not in the range loaded here. Widen the date range to see it.", change the date range on the Audit Log tab and try again.</li>
+<li>If an export button is greyed out, you lack the permission for that log. Ask your laboratory manager.</li>
+<li>If Resolve was pressed by mistake, it cannot be undone from this screen. Tell your laboratory manager, who can follow up with the error's Code and time.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Exports leave the application's protection</p>
+<p>A downloaded file is no longer protected by sign-in or roles. The files contain case numbers and staff names. Store them where your laboratory keeps inspection records, and do not send them outside the laboratory without approval.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Reading only the last 7 days and concluding that nothing happened. The Audit Log tab opens on 7 days; widen the range.</li>
+<li>Searching with the wording of a screen instead of the event name. Detail text and event names are in English in every language; search in English.</li>
+<li>Exporting before setting filters. The file holds the filtered rows, so an unfiltered export can be very large.</li>
+<li>Expecting the Quality Assurance tab to be a work queue. It is the permanent record. The Quality Assurance screen is where deficiencies are worked.</li>
+<li>Pressing <strong>Resolve</strong> to make the red number go away. Resolving records that the cause was dealt with.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use the filter buttons (User, System, AI) before searching to remove noise.</li>
+<li>Click the Support ref chip beside an entry to copy its reference and send it to support instead of a case number.</li>
+<li>Use the Quality Assurance Group list to move between records without leaving the tab.</li>
+<li>Check the number badges on the tabs first; they tell you where the work is.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review open errors and pending interface exceptions at the start of each day.</li>
+<li>For a periodic review, set the Audit Log range to the period, note the footer count, search <code>Role capabilities changed</code>, <code>Staff access changed</code>, <code>Capability refused</code>, <code>Sign-in locked</code> and <code>DOCUMENT_EXPORTED</code>, then read the Error Log (Open Only) and export the record.</li>
+<li>Keep exports with your review notes rather than re-running them later; the log may have grown.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">What the log cannot prove today</p>
+<p>The main audit log is append-only: the application never edits or deletes an entry. It is not yet protected by a chain of checks or signatures, and nothing on this screen verifies that an entry is unaltered. Only the Support Access record kept for ForMedrixAI support visits has that protection. If your inspector requires it for the main log, say so to ForMedrixAI. The keeping period set under Data Retention is a recorded policy; nothing is deleted by it yet.</p>
+</div>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/quality">Quality</a>: where deficiencies and other quality work are done; their permanent record appears on the Quality Assurance tab.</li>
+<li><a href="/help/external-consult">External Consult</a>: the links listed on the Consult links tab.</li>
+<li><a href="/help/critical-alert">Critical Alert</a>: the reference page the recipient of an alert opens; its views and acknowledgement appear on the Critical Alerts tab.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/my-exports">My exports</a>: where an export prepared by the server is collected, when your installation uses one.</li>
+<li><a href="/help/help">Help</a>: how to use this guide.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No System Logs tile on Home</td>
+<td>Your role does not include the screen.</td>
+</tr>
+<tr>
+<td>"You don't have access to this screen"</td>
+<td>You typed the address, but your role lacks access.</td>
+</tr>
+<tr>
+<td>The table is empty</td>
+<td>The date range or a filter hides the entries, or the search text matches nothing.</td>
+</tr>
+<tr>
+<td>I cannot see a colleague's activity that has no case</td>
+<td>If you are a pathologist you see all case events and your own other entries only.</td>
+</tr>
+<tr>
+<td>The Server jobs or Engines tab is missing</td>
+<td>You do not hold the permission to see it.</td>
+</tr>
+<tr>
+<td>Consult links says "You don't have permission to see consult links"</td>
+<td>The permission to see them has not been granted to your role.</td>
+</tr>
+<tr>
+<td>Export CSV is greyed out</td>
+<td>You lack the export permission for that log.</td>
+</tr>
+<tr>
+<td>Timestamps look hours off</td>
+<td>Entries are stored in UTC; the Date range cut-offs use the facility's time zone.</td>
+</tr>
+<tr>
+<td>Critical Alerts channels say Simulated</td>
+<td>No real SMS, secure email or EHR connection is in place; the text shows what would have been sent.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Clear the filters and widen the date range.</li>
+<li>Check the tab and, on Interface Log, the sub-tab.</li>
+<li>Search in English, using the event name or the accession number.</li>
+<li>Refresh the page if a number on a tab looks out of date.</li>
+<li>Ask your laboratory manager to check your role.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when an entry you expect is missing from the log, an export fails, or a failed message will not resend after the engine is healthy. Have the case number, the support reference and the time of the problem ready.</p>

@@ -22,6 +22,9 @@ import TATConfigSection from '../components/Config/System/TATConfigSection';
 import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
+import { adminGuideAnchorFor, configHelpSection } from '../services/help/adminGuideLinks';
+import { usePublishHelpAnchor } from '../hooks/usePublishHelpAnchor';
+import { ConfigHelpContext } from '../components/Config/help/ConfigHelpContext';
 // Batch 527 (PS-486): the demo reset is built in only in the demo build (__DEMO_TOOLS__).
 const DemoResetTab = __DEMO_TOOLS__ ? React.lazy(() => import('../components/Config/System/DemoResetTab')) : null;
 import ReportTemplatesSection    from '../components/TemplateBuilder/ReportTemplatesSection';
@@ -96,6 +99,11 @@ const ConfigurationPage: React.FC = () => {
   const { log }    = useAuditLog();
 
   const [activeTab,   setActiveTab]   = useState<TabId>(() => getTabFromSearch(location.search));
+  // Batch 646: the open section of the tab, for the Help button (tabs register it; Synoptic Library keeps it in the address).
+  const [helpSection, setHelpSection] = useState<string | undefined>(undefined);
+  const helpContext = useMemo(() => ({ setSection: setHelpSection }), []);
+  const helpSectionResolved = configHelpSection(activeTab, helpSection, location.search);
+  usePublishHelpAnchor(adminGuideAnchorFor({ tab: activeTab, section: helpSectionResolved })); // Batch 669d: the top-bar book opens this section
   const [isLoaded,    setIsLoaded]    = useState(false);
   const isAdmin      = useIsAdmin();
   const isSuperAdmin = useIsSuperAdmin();
@@ -319,9 +327,11 @@ const ConfigurationPage: React.FC = () => {
       <div className="ps-cfgpage-scroll">
         {/* Inner content: full width, padding on sides */}
         <div className="ps-cfgpage-inner">
-          <ConfigDirtyGuardContext.Provider value={dirtyGuardContextValue}>
-            {renderActiveTab()}
-          </ConfigDirtyGuardContext.Provider>
+          <ConfigHelpContext.Provider value={helpContext}>
+            <ConfigDirtyGuardContext.Provider value={dirtyGuardContextValue}>
+              {renderActiveTab()}
+            </ConfigDirtyGuardContext.Provider>
+          </ConfigHelpContext.Provider>
         </div>
       </div>
 

@@ -130,4 +130,11 @@ describe('message list row (Batch 567)', () => {
     expect(document.activeElement).toBe(outside);
     outside.remove();
   });
+  it("Batch 669f: a message the viewer wrote last shows no unread dot; one written by someone else does", () => {
+    const mine = { ...MSG, id: 'm2', senderId: 'u1', thread: [{ senderId: 'u1' }] };
+    const theirs = { ...MSG, senderId: 'u2', thread: [{ senderId: 'u2' }] };
+    panel({ messages: [mine, theirs], userId: 'u1' });
+    expect(document.querySelectorAll('.ps-msg-unread-dot').length).toBe(1);
+    expect(document.querySelectorAll('.ps-msg-row.unread').length).toBe(1);
+  });
 });

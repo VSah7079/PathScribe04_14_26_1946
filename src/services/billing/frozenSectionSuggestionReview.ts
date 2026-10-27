@@ -7,7 +7,7 @@
 // does not post a charge.
 // ─────────────────────────────────────────────────
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { suggestFrozenSectionCptCodesFromSpecimens } from './frozenSectionBilling';
 import type { IntraopSpecimen } from '@/types/intraop/IntraoperativeEntry';
 
@@ -34,7 +34,7 @@ export function buildFrozenSuggestionRows(caseId: string, specimens: Pick<Intrao
 export async function decideFrozenSuggestion(caseId: string, row: Pick<FrozenSuggestionRow, 'key' | 'billingCode' | 'cpt' | 'specimenLabel'>, decision: FrozenDecision, actor: string): Promise<void> {
   const all = load();
   storageSet(KEY, { ...all, [caseId]: { ...(all[caseId] ?? {}), [row.key]: decision } });
-  await mockAuditService.logEvent({
+  await auditService.logEvent({
     type: 'user', event: decision === 'accepted' ? 'Frozen Section CPT Suggestion Accepted' : 'Frozen Section CPT Suggestion Dismissed',
     detail: `${row.cpt} (${row.billingCode}) for specimen ${row.specimenLabel} ${decision} by the reviewer. The suggestion was unconfirmed; no charge was posted by this action.`,
     user: actor, caseId, confidence: null,

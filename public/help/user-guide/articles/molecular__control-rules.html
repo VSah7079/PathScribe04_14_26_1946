@@ -1,0 +1,277 @@
+<h1 id="top">Control Rules</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> This screen, headed "Assay Control Rules", defines which controls a molecular test must carry on every plate before the plate can be created, and whether each control is fixed to one well or may go anywhere on the plate. A rule can also name the instrument deck slots where that test's sample rack is allowed to go. The plate builder and the rack screen enforce what you set here.</p>
+<p><strong>Intended users.</strong> Laboratory managers, quality staff and administrators who set or review the rules. Molecular technologists open the screen to see what a plate will be checked against.</p>
+<p><strong>Who can open it, and who can change it.</strong> The page has its own permission and no longer depends on the Molecular screen. Opening it and reading the rules needs "View molecular assay control rules"; holding "Manage molecular assay control rules" also opens it. By default the Administrator, the Laboratory Director and the Quality Reviewer hold the view permission, and so does the Molecular Technologist (and any role that holds the Molecular screen). An administrator can give it to other roles in the Role Dictionary. Changing rules needs the manage permission, which needs the view permission with it; by default the Administrator and the Laboratory Director hold it. Without it the screen is view-only: a line under the title reads "You can read these rules but not change them…", and <strong>+ New Rule</strong>, <strong>Edit</strong> and <strong>Delete</strong> stay on the screen but greyed out. Hold the pointer over one and the tip reads "Your roles don't include" followed by the name of the permission. The same permission is checked again when you save, so a change is never made without it. A person who holds neither permission is shown the "no access" page if they type the address, and the <strong>Control Rules</strong> button on the Molecular screen is not offered to them. The rules themselves are still applied to every plate and rack for everyone who works one, whatever they hold here.</p>
+<div class="admonition note">
+<p class="admonition-title">This page is not behind the Configuration screen or the Molecular screen</p>
+<p>Only the Molecular Order Queue demonstration page (<a href="/help/molecular/order-queue">Order Queue</a>) needs the Configuration screen. Control Rules opens for anyone with the view or the manage permission, with or without the Molecular screen. What a person can do on it depends on the manage permission.</p>
+</div>
+<p><strong>Where it fits.</strong> Rules are set up before plates are built. When a plate is created (<a href="/help/molecular/batch">Batch</a>), PathScribe checks its wells against the rule for its test. The Order Queue also keeps the fixed control wells free when it puts orders on a plate. Rack placement (<a href="/help/molecular/rack">Rack</a>) offers only the deck slots a rule allows. A test with <strong>no rule</strong> has no control requirement at all: the plate builder does not insist on any control for it.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/molecular-control-rules-overview.png" alt="The Assay Control Rules list with a rule being edited"><figcaption>The Assay Control Rules list with a rule being edited</figcaption></figure>
+
+<p>The page opens with a <strong>← Back to Batches</strong> button, the heading "Assay Control Rules", the line "Define which controls a given assay requires before a batch can be created, and whether each one is fixed to a specific well or allowed anywhere on the plate.", and a <strong>+ New Rule</strong> button.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>The list of rules</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assay Code</td>
+<td>The test, shown by its name.</td>
+</tr>
+<tr>
+<td>Required Controls</td>
+<td>One line per control: the control type, then "fixed at A01" or "random position". For example "NTC: fixed at A01" and "PTC (High): fixed at A02".</td>
+</tr>
+<tr>
+<td>Sample rack slots</td>
+<td>The deck slots the test's rack may use, or "Any sample-rack slot" when none are named.</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td><strong>Edit</strong> and <strong>Delete</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p>When there is no rule yet the table reads "No control rules defined yet."</p>
+<p><strong>The rule form ("New Control Rule" or "Edit Control Rule")</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assay *</td>
+<td>The molecular test, chosen from the active molecular tests in the diagnostic catalog ("— select assay —" until you choose). Required. Each test can have one rule.</td>
+</tr>
+<tr>
+<td>Required Controls: control type</td>
+<td>NTC (no-template control), PTC (High), PTC (Low) or Calibrator. Patient specimens are not on this list.</td>
+</tr>
+<tr>
+<td>Required Controls: Position</td>
+<td><strong>Fixed position</strong> (the control must sit in one exact well) or <strong>Random position</strong> (it must be on the plate but may sit in any well).</td>
+</tr>
+<tr>
+<td>Required Controls: Well</td>
+<td>For a fixed control: the well, for example A01 (the box shows "A01" as an example). Disappears for a random control.</td>
+</tr>
+<tr>
+<td>Reason for this change *</td>
+<td>Required, for a new rule, a change and a delete. Type why (for example "new kit lot" or "rule corrected"). It is written to the audit log with your name, the test and the controls.</td>
+</tr>
+<tr>
+<td>Deck slots for this assay's sample rack</td>
+<td>Tick boxes, one for each deck slot that takes a sample rack on any active analyser. The hint reads "Rack Loading offers only these slots for this assay. Leave all unticked to allow any slot that takes a sample rack." When no analyser has a deck layout the section reads "No analyser has a deck layout yet (Configuration → Equipment)."</td>
+</tr>
+</tbody>
+</table>
+<p>Choosing "random" is meant to prevent the same control always falling in the same place on every plate, which protects against a pattern of cross-contamination.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>← Back to Batches</td>
+<td>Returns to the <a href="/help/molecular">Molecular</a> screen.</td>
+</tr>
+<tr>
+<td>+ New Rule</td>
+<td>Opens a blank rule form. Needs the manage permission. Hidden while a form is open.</td>
+</tr>
+<tr>
+<td>Edit</td>
+<td>Opens the rule in the form. Needs the manage permission.</td>
+</tr>
+<tr>
+<td>Delete</td>
+<td>Asks "Delete this control rule?" and for a reason; the confirming <strong>Delete</strong> waits for the reason. Needs the manage permission.</td>
+</tr>
+<tr>
+<td>+ Add Required Control</td>
+<td>Adds a control line to the form.</td>
+</tr>
+<tr>
+<td>Remove</td>
+<td>Removes that control line.</td>
+</tr>
+<tr>
+<td>Save Rule</td>
+<td>Saves the form ("Saving…" while it works). Needs the manage permission and a reason.</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>Closes the form or the delete question without changing anything.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Greyed-out button</td>
+<td>You do not hold the manage permission (the screen is view-only).</td>
+</tr>
+<tr>
+<td>Red message above or inside the form</td>
+<td>A rule was refused, with the reason in words.</td>
+</tr>
+<tr>
+<td>Delete question</td>
+<td>A box titled "Delete this control rule?" with the text "New <em>test name</em> plates will no longer be checked for these controls, and its sample racks can go in any sample-rack slot."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p>Adding a rule for a test:</p>
+<ol>
+<li>Open <strong>Control Rules</strong> from the <a href="/help/molecular">Molecular</a> screen. The list of existing rules opens.</li>
+<li>Select <strong>+ New Rule</strong>. The form "New Control Rule" opens with one control line already added (NTC, fixed, well A01).</li>
+<li>Choose the <strong>Assay</strong>.</li>
+<li>For the first control line, check the type. Choose NTC, PTC (High), PTC (Low) or Calibrator.</li>
+<li>Choose <strong>Fixed position</strong> or <strong>Random position</strong>. For a fixed position type the well, such as A01, in the Well box. Use the well name as it is on the plate grid.</li>
+<li>Select <strong>+ Add Required Control</strong> for each further control and fill it in the same way. Use <strong>Remove</strong> on a line you do not want.</li>
+<li>If the test's sample rack is limited to certain slots, tick them. Leave all unticked to allow any sample-rack slot.</li>
+<li>Select <strong>Save Rule</strong>. The form closes and the rule appears in the list.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Changing a rule.</strong> Select <strong>Edit</strong> on the row, change what you need, and <strong>Save Rule</strong>. The change applies to plates created from then on.</li>
+<li><strong>Removing a rule.</strong> Select <strong>Delete</strong>, read the question, then confirm with <strong>Delete</strong>. Or select <strong>Cancel</strong> to keep it. After a delete the test has no control requirement. Plates already created are unaffected.</li>
+<li><strong>Looking only.</strong> If you hold only the Molecular screen, read the list to know where each control must go before you build a plate.</li>
+<li><strong>Starting a plate from the rule.</strong> After saving, select <strong>← Back to Batches</strong> and then <strong>+ New Batch</strong>. The controls you listed are now enforced.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>"Choose the assay this rule is for."</strong> You did not choose a test. Choose one in the <strong>Assay</strong> list.</li>
+<li><strong>"NTC is set to a fixed position but no well was given."</strong> A fixed control has an empty Well box. Type the well or switch it to <strong>Random position</strong>. The control type named in the message is the line to fix.</li>
+<li><strong>"This assay already has a rule. Edit that one instead."</strong> A test can have one rule only. Find its row and use <strong>Edit</strong>. The check applies when you change a rule's test on Edit as well as when you create one.</li>
+<li><strong>"You don't have permission to manage molecular control rules."</strong> Your role lacks the manage permission. Ask an administrator.
+   <strong>"You don't have permission to view the molecular control rules."</strong> appears instead of the list when the view permission was taken away while the page was open (the page itself needs the view or the manage permission to open).</li>
+<li><strong>"This rule no longer exists."</strong> Someone deleted it while you worked. Return to the list.</li>
+<li><strong>"Unknown error saving this rule."</strong> The rule was not saved for a reason PathScribe did not recognise. Try again once, then report it.</li>
+<li><strong>"Add at least one required control."</strong> A rule with no control lines is refused, because it would check nothing and look as if the test were covered. To stop checking a test, delete its rule instead.</li>
+<li><strong>"Enter a reason for this change."</strong> The reason box is empty. Type a reason and save again.</li>
+<li><strong>A refusal for lack of permission.</strong> If the permission was taken away while the form was open, the message "You don't have permission to manage molecular control rules." appears in red; nothing is saved.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">A rule change affects every new plate</p>
+<p>Changing or deleting a rule changes what every plate for that test is checked against from that moment. A rule set too loosely lets a plate go ahead without a control that your laboratory's procedure requires. Agree changes with the laboratory director. The screen asks for a reason and writes it to the audit log with your name, so the change can be explained later.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Fixed wells and the Order Queue</p>
+<p>When the Order Queue puts orders on a plate, it keeps the wells of fixed controls free even if the control is not loaded yet. If you move a control to a different well in the rule, plates built under the old rule may carry the control in the old well. Check a plate against the current rule before you send its worklist.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>You saved the wrong well for a control.</strong> Select <strong>Edit</strong> and correct it. Plates already created keep their layout.</li>
+<li><strong>You deleted a rule by mistake.</strong> Add it again with <strong>+ New Rule</strong> and the same assay, controls and slots. PathScribe cannot restore it.</li>
+<li><strong>You chose the wrong assay on a new rule.</strong> Select <strong>Cancel</strong> and start again, or change the assay before saving.</li>
+<li><strong>A plate was refused after you changed a rule.</strong> Read the red lines on the plate builder. If the rule is right, fix the plate. If the rule is wrong, correct it here and then create the plate.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li><strong>Typing a well that does not exist on the plate.</strong> The page does not check the well against any plate layout. A rule asking for "A01" on a 6-well plate is fine, but "H12" on a 24-well plate can never be met. Use wells that exist on your usual plate.</li>
+<li><strong>Listing a control twice.</strong> The page does not stop you. Each line is checked on its own.</li>
+<li><strong>Wanting a rule only for the rack slots.</strong> A rule needs at least one control. A test that needs only a slot limit must name a control too.</li>
+<li><strong>Forgetting the deck slots.</strong> Leaving them all unticked allows any sample-rack slot.</li>
+<li><strong>Leaving a test with no rule.</strong> A test with no rule asks for no control at all.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Set the rule once per test, with fixed positions for the standard controls. A fixed layout makes plates quick to build and easy to check by eye.</li>
+<li>Tick the deck slots in the same session so rack placement is already correct for the first run.</li>
+<li>Use <strong>Random position</strong> only where your procedure calls for varying the control's place.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review the rules whenever a new reagent kit, instrument or plate layout is introduced.</li>
+<li>Tell technologists when a rule changes, because the checks on new plates change with it.</li>
+<li>The reason you type is kept in the audit log; use words someone else will understand later.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li>Molecular tests are defined in the diagnostic catalog by an administrator. A test must be active and in the molecular category to appear in the Assay list.</li>
+<li>The instrument deck layouts are set by an administrator under Configuration → System → Workstation &amp; Hardware → Equipment; the slot tick boxes come from there.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/molecular/batch">Batch</a>: the plate is refused if a required control is missing or in the wrong fixed well.</li>
+<li><a href="/help/molecular/rack">Rack</a>: the deck slots offered when you place a rack come from the rule's tick boxes.</li>
+<li><a href="/help/molecular">Molecular</a>: the Order Queue keeps the rule's fixed wells free when it assigns orders.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I cannot open Control Rules, or the button is missing on the Molecular screen.</td>
+<td>Your role holds neither "View molecular assay control rules" nor "Manage molecular assay control rules". Ask an administrator; holding the Molecular screen alone is not enough.</td>
+</tr>
+<tr>
+<td>New Rule, Edit and Delete are greyed out.</td>
+<td>You do not hold the manage permission; the screen is view-only for you.</td>
+</tr>
+<tr>
+<td>The Assay list is empty or lacks my test.</td>
+<td>The test is not active, or not in the molecular category, in the diagnostic catalog.</td>
+</tr>
+<tr>
+<td>My test has a rule but the plate builder does not ask for controls.</td>
+<td>The rule was saved before rules without controls were refused (an old rule). Edit it and add the controls.</td>
+</tr>
+<tr>
+<td>No slots are offered to tick.</td>
+<td>No active analyser has a deck layout with a slot for a sample rack.</td>
+</tr>
+<tr>
+<td>Save Rule says the assay already has a rule.</td>
+<td>One rule per test. Edit the existing one.</td>
+</tr>
+<tr>
+<td>I changed a rule but an old plate did not change.</td>
+<td>Plates keep the layout they were created with.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the red message; it names the cause.</li>
+<li>Check which permissions your role holds with your administrator.</li>
+<li>Check the diagnostic catalog and equipment register for the test and the deck layout.</li>
+<li>Reload the page and look at the list again.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a rule saves but the plate builder behaves as if it were not there, or when the list shows a rule you cannot edit even though you hold the permission. Have the test name and the time of the problem ready.</p>

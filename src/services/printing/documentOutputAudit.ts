@@ -24,6 +24,7 @@
 // label prints keep their own detailed entries (printing/attemptPrintDelivery).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { HeldPrintOutcome } from '../reportRelease/heldPrintPolicy';
 import type { AuditLog, NewAuditLog } from '../auditlog/IAuditService';
 
 export type DocumentOutputAction = 'render' | 'print' | 'reprint' | 'preview-print' | 'export' | 'fax';
@@ -127,21 +128,27 @@ export interface PrintPlan {
   action: 'print' | 'reprint';
   /** The lab requires a reason for a reprint. */
   askReason: boolean;
-  /** The report is Pending Release and hard copies are restricted: say the copy carries the watermark. */
+  /** The report is Pending Release and the policy asks for a warning: say the copy carries the watermark. */
   warnPendingRelease: boolean;
+  /** Batch 654: the Release Hold Print Policy forbids printing now. */
+  blocked: boolean;
+  /** Batch 654: a supervisor overriding the hold must give a reason. */
+  askOverrideReason: boolean;
 }
 
 /** What happens when someone presses Print (pure). */
-export function planDocumentPrint(input: { printedBefore: boolean; requireReprintReason: boolean; pendingReleaseRestricted: boolean }): PrintPlan {
+export function planDocumentPrint(input: { printedBefore: boolean; requireReprintReason: boolean; held: HeldPrintOutcome }): PrintPlan {
   const action = input.printedBefore ? 'reprint' : 'print';
   return {
     action,
     askReason: action === 'reprint' && input.requireReprintReason,
-    warnPendingRelease: input.pendingReleaseRestricted,
+    warnPendingRelease: input.held.warn,
+    blocked: input.held.blocked,
+    askOverrideReason: input.held.askOverrideReason,
   };
 }
 
 /** Whether the person may go ahead from the print prompt (pure). */
 export function printPromptComplete(plan: PrintPlan, reason: string): boolean {
-  return !plan.askReason || reason.trim().length > 0;
+  return !(plan.askReason || plan.askOverrideReason) || reason.trim().length > 0;
 }

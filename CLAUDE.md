@@ -27,10 +27,10 @@ Pete Nimmo (product owner) is a domain expert, not a coder. When he raises a fea
 - Hooks (`pages/**/hooks/`) orchestrate service calls and state, but decisions still live in services.
 - Pass service dependencies in (see `saveParticipationTypeWithAudit(input, { typeService, auditService })`) so they're testable without module mocks.
 
-### 3. International support — every change, all five languages
+### 3. International support — every change, all six languages
 Full reference: [`src/i18n/README.md`](src/i18n/README.md). The essentials:
 - **Every user-facing string goes through `t()`** (or `<Trans>` for inline markup). No hard-coded UI text, labels, placeholders, tooltips, toasts, or error messages, and no hard-coded punctuation between translated pieces either: use a template key (`"{{flag}}: {{value}}"` in English, `"{{flag}} : {{value}}"` in French).
-- **Add every new key to all five locale files in the same change**: `src/i18n/locales/{en,fr,de,nl,ko}.json`. Never add a key to `en.json` alone.
+- **Add every new key to all six locale files in the same change**: `src/i18n/locales/{en,fr,de,nl,ko,es}.json`. Never add a key to `en.json` alone.
 - **Belgian Dutch (`nl-BE.json`) and Belgian French (`fr-BE.json`) are regional variants**, not full files: each holds only what Belgian users word differently (aanmelden/afmelden, familienaam, gsm, GSM, Belgian address order) and falls back to `nl` or `fr` for everything else. A new key doesn't go there unless its text uses a word Belgium doesn't; `localeParity.test.ts` flags any that do (inloggen/uitloggen, achternaam; soixante-dix, quatre-vingt-dix).
 - **Keys stay sorted** at every level of each file.
 - **Same `{{placeholders}}` and same `<tags>`** in every language as in English.
@@ -43,6 +43,7 @@ Full reference: [`src/i18n/README.md`](src/i18n/README.md). The essentials:
 - **Copy names are data.** A duplicated record's name is stored, so it comes from `t('common.copyOfName', { name })`, never an English `" (Copy)"`.
 - **Converting on touch**: editing a page's own UI text means converting that page's visible strings in the same change.
 - **Audit-log `detail` text stays literal English.** Audit records are compliance artifacts, not UI (see `services/auditlog/README.md`).
+- Spanish (`es`) is Castilian (Spain), formal *usted*, Iberian wording; it is AI-translated and needs native-speaker review like the others. Plural keys also need a `_many` form equal to `_other`.
 - Machine translations for fr/de/nl/ko follow standard professional lab terminology. Korean clinical wording in particular should get native-speaker review before clinical use; say so when adding a lot of it.
 
 **Enforced by tests:**
@@ -93,7 +94,7 @@ Pathologists and bench staff repeat the same steps hundreds of times a day. Coun
 
 ### 9. Every capability is documented for the people who sell, configure, teach and use it (Pete, Oct 11, 2026)
 Admin and user guides, training, marketing and RFP answers are written from the docs, so a batch isn't finished until what it changed is written down for them:
-- **`docs/product/GUIDE_UPDATES.md`:** one entry per batch that changes what someone sees or can do. It covers what changed, the User Guide and Admin Guide sections affected (the PDFs in `public/help/` are edited outside this repo), the steps for training, a one-line description for marketing and RFPs, and any standards it supports (WCAG, CAP, ISO 15189, HIPAA, GDPR).
+- **`docs/product/GUIDE_UPDATES.md`:** one entry per batch that changes what someone sees or can do (Pete, Oct 20, 2026: written in four voices: the practitioner in plain language; the system administrator with the steps and settings; marketing, positive and optimistic; and FormedrixAI and partners, the plain reality including what is not built; see Batch 642). `FEATURE_OVERVIEW.md` sections open with the same four voices (Batch 644), above the technical detail. It covers what changed, the User Guide and Admin Guide sections affected (the PDFs in `public/help/` are edited outside this repo), the steps for training, a one-line description for marketing and RFPs, and any standards it supports (WCAG, CAP, ISO 15189, HIPAA, GDPR).
 - **`docs/product/FEATURE_OVERVIEW.md`:** the area's entry, with its status kept honest (Live / Partial / Planned).
 - **Permissions:** `docs/architecture/AUTHORIZATION_API.md` (enforced by its guard).
 - **A feature that needs explaining** (a workflow, a rule set, a governance model) gets its own guide in `docs/product/`, as `CLINICAL_MISMATCH_CHECK.md` does.
@@ -101,6 +102,14 @@ Admin and user guides, training, marketing and RFP answers are written from the 
 
 ### 10. Split large files as you touch them (Pete, Oct 18, 2026, PS-497)
 No big-bang refactor and no pilot deadline to plan around: when a story changes a file over 1,000 lines (the report screen `SynopticReportPage.tsx`, `AccessionPage.tsx`, `useSignOutWorkflow.ts`, `WorklistTable.tsx`, `SearchPage.tsx` and the like), move the part you are changing into its own service, hook or component in the same change, with no behaviour change, and note the new line counts in the summary. A change never makes a file over 1,000 lines longer than it was. Mocks and data tables (`mockCaseService.ts`, `mockActionRegistryService.ts`) are split the same way when touched.
+
+### 11. Serverless, event-driven target (Pete, Oct 21, 2026)
+PathScribe is designed to run serverless and event-driven on ForMedrixAI's cloud or local-cloud containerized platform. Every front-end and setup-screen design follows from that:
+- **The front end holds no session or background-process state.** Heavy actions (uploads, exports, scheduled work, AI pipelines) go to decoupled APIs, storage buckets or event queues; never assume a long-lived backend process or remember one's state in the browser.
+- **Admin screens manage stateless configuration:** webhooks, event triggers, queues, API endpoints and mappings. They never expose legacy on-prem server controls: no start or stop a service, no port toggle, no "restart", no process status presented as something the screen controls.
+- **BridgeLink is an always-on pod** in the cluster, the MLLP-to-HTTP/event bridge, because legacy MLLP/TCP sockets need a persistent worker. Integration screens manage channel mappings, event-bus queues, webhook routing and error queues, through BridgeLink API calls made by the API server.
+- **FHIR R4 and OAuth2** (phased in): the front end manages API client registrations, secret rotations and webhook subscriptions on stateless REST controllers.
+- **Decisions still open against this (Pete to settle; do not extend meanwhile):** the SignalR live-updates hub needs persistent connections (a managed SignalR service, or event subscriptions instead); "server-held sessions" in the plan conflict with a stateless front end (signed tokens from the identity provider fit); and timers or daemons in the background-jobs plan (PS-809) become scheduled or event-triggered functions.
 
 ---
 
@@ -119,7 +128,7 @@ No big-bang refactor and no pilot deadline to plan around: when a story changes 
 - [ ] No `style={{ … }}` with a real CSS property in any file touched
 - [ ] No new mock-service import, browser-storage use or Firebase import in UI code (deployment-readiness guard passes)
 - [ ] No decision logic left in the code paths changed. In a large legacy file, move the logic in the path you changed and list what's left in the summary; don't claim the whole file is clean
-- [ ] Every new or changed UI string in all five locales; `localeParity.test.ts` passes
+- [ ] Every new or changed UI string in all six locales; `localeParity.test.ts` passes
 - [ ] Any patient identifier shown on screen is tagged `data-phi` (PHI guard passes)
 - [ ] Any new or touched protected action checks its capability in the service (capabilities guard passes)
 - [ ] Type-check clean, full suite green, counts reported

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Batch 609 (#31): the sign-out helper uses the revision rules for a report unlocked for an amendment, and an addendum is checked.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 
 vi.mock('@/services/aiIntegration/aiProviderService', () => ({ callAi: vi.fn() }));
 vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
@@ -19,6 +19,10 @@ const make = (pending: boolean, id: string) => ({
   diagnostic: { primaryDiagnosis: 'Invasive adenocarcinoma', microscopicDescription: 'Invasive adenocarcinoma' },
   specimens: [], synopticReports: [{ instanceId: 'i1', ...(pending ? { pendingAmendmentId: 'a1' } : {}) }],
 }) as unknown as Case;
+
+// Batch 679: these tests cover the score-driven thresholds and Block rules, which belong to the clinical_support profile.
+beforeAll(() => { vi.stubEnv('VITE_REGULATORY_PROFILE', 'clinical_support'); });
+afterAll(() => { vi.unstubAllEnvs(); });
 
 describe('checks after first sign-out', () => {
   beforeEach(() => { localStorage.clear(); vi.mocked(callAi).mockReset(); clinicalMismatchService.forgetAnswers(); });

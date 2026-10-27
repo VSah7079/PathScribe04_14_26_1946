@@ -32,7 +32,7 @@ export type WorklistActiveFilter =
   | 'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended'
   | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease'
   | 'needsrevision' | 'informalreview' | 'peerreview' | 'cytologyreview' | 'onhold' | 'dp'
-  | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases' | 'followup';
+  | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases' | 'followup' | 'collaborating';
 
 export type SpecimenDictionaryLite = Pick<SpecimenEntry, 'id' | 'specimenCategory'>[];
 
@@ -95,6 +95,11 @@ function awaitsMyCountersign(c: LooseCase, userId: string | undefined): boolean 
   return c.status === 'pending-countersign'
     && !!c.participants?.some(p => p.status === 'active' && p.staffId === userId && p.participationTypeIds?.includes('attending'));
 }
+/** Batch 660 (Pete): "Collaborating Cases" = an active member of the case's team roster, finalized and closed cases left out. */
+export function isCollaboratingCase(c: LooseCase, userId: string | undefined): boolean {
+  return !!userId && c.status !== 'finalized' && c.status !== 'closed'
+    && !!c.participants?.some(p => p.status === 'active' && p.staffId === userId);
+}
 function awaitsMyRelease(c: Case, userId: string | undefined): boolean {
   return c.status === 'pending-release' && c.finalizedBy === userId;
 }
@@ -138,6 +143,7 @@ export function matchesWorklistFilter(
   if (activeFilter === 'completed')  return isFinalizedToday(c, deps.facilityTimezone, deps.now);
   if (activeFilter === 'delegated')  return deps.delegatedCaseIds.includes(c.id);
   if (activeFilter === 'countersign')    return awaitsMyCountersign(lc, deps.userId);
+  if (activeFilter === 'collaborating')  return isCollaboratingCase(lc, deps.userId);
   if (activeFilter === 'pendingrelease') return awaitsMyRelease(c, deps.userId);
   if (activeFilter === 'needsrevision')  return needsRevisionForMe(lc, deps.userId);
   return true;
@@ -212,6 +218,7 @@ export interface WorklistTileCounts {
   urgentPoolCount: number;
   hasUrgentNewCase: boolean;
   countersignPendingCount: number;
+  collaboratingCount: number;
   pendingReleaseCount: number;
   needsRevisionCount: number;
 }
@@ -293,6 +300,7 @@ export function computeWorklistTileCounts(input: WorklistCountInput, deps: Workl
     urgentPoolCount: statsCases.filter(c => c.status === 'pool' && isUrgentCase(c)).length,
     hasUrgentNewCase: statsCases.some(c => !viewedCaseIds.has(c.id) && isUrgentCase(c)),
     countersignPendingCount: statsCases.filter(c => awaitsMyCountersign(c as LooseCase, userId)).length,
+    collaboratingCount: statsCases.filter(c => isCollaboratingCase(c as LooseCase, userId)).length,
     pendingReleaseCount: statsCases.filter(c => awaitsMyRelease(c, userId)).length,
     needsRevisionCount: statsCases.filter(c => needsRevisionForMe(c as LooseCase, userId)).length,
   };

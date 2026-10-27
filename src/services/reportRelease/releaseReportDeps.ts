@@ -4,9 +4,10 @@
 import type { ReleaseReportDeps } from './releaseReport';
 import type { HeldReleaseActionDeps } from './heldReleaseActions';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { reportReleaseService } from './reportReleaseInstance';
-import { mockHeldReleaseService } from './mockHeldReleaseService';
+import { heldReleaseService } from './heldReleaseServiceInstance';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
 import { cytologySignOutRecordService } from '../cytology/cytologySignOutRecordServiceInstance';
 import { cytologyReviewRecordService } from '../cytology/cytologyReviewRecordServiceInstance';
@@ -43,15 +44,16 @@ export const releaseReportDeps: ReleaseReportDeps = {
     const c = await caseRouter.getCase(caseId);
     return c ? reportReleaseService.resolveBufferForCase(c) : { applies: false, durationMinutes: 0 };
   },
-  held: mockHeldReleaseService,
+  held: heldReleaseService,
   publish: event => publishReportReleasedEvent(event),
   runFollowUp: (f, caseId) => runHeldReleaseFollowUp(f, caseId, heldReleaseActionDeps),
   reopen: (h, by) => reopenHeldRelease(h, by, heldReleaseActionDeps),
   recallBlocked: h => heldRecallBlocked(h, heldReleaseActionDeps),
-  audit: entry => mockAuditService.logEvent(entry),
+  audit: entry => auditService.logEvent(entry),
   releaseSignOut: caseId => reportReleaseService.checkAndReleaseIfExpired(caseId),
   now: () => new Date(),
   newId: () => crypto.randomUUID(),
+  enforce: (capability, context) => authorizationService.enforce(capability, context),
 };
 
 export const RELEASE_SWEEP_MS = 15_000;

@@ -57,6 +57,8 @@ import { getTemplate } from '@/services/templates/templateService';
 vi.mock('@/services/cases/CaseRouter', () => ({
   caseRouter: { updateCase: vi.fn().mockResolvedValue(undefined) },
 }));
+// Batch 649: the sign-out capability check is tested on its own (services/auth/authorizeSurgicalSignOut.test.ts).
+vi.mock('@/services/auth/authorizeSurgicalSignOut', () => ({ authorizeSurgicalSignOut: vi.fn(async (_caseId: unknown, participation: unknown) => participation) }));
 vi.mock('@/services/auth/caseAccessControl', () => ({
   getSessionUser: vi.fn().mockReturnValue({ id: 'PATH-001', role: 'pathologist' }),
   canFinalizeCase: vi.fn().mockReturnValue({ granted: true, dimension: 'primary', reason: '' }),
@@ -229,8 +231,23 @@ beforeEach(() => {
 });
 
 describe('useSignOutWorkflow — finalizeSignOut (CoPilot ordering guarantee)', () => {
-  it('does NOT release a pending amendment when the LIS send fails — the instance stays visible in triage, not silently finalized', async () => {
+  it('Batch 649: a revision the release check refuses is NOT sent to the LIS', async () => {
     const { amendmentService } = await import('@/services');
+    vi.mocked(amendmentService.release).mockResolvedValueOnce({ ok: false, error: 'refused' } as any);
+    const sendSynopticReportToLis = vi.fn().mockResolvedValue({ ok: true });
+    const caseData = makeTestCase({
+      reportingMode: 'assist' as any,
+      synopticReports: [{ instanceId: 'SR-1', pendingAmendmentId: 'amend-1', answers: {} }] as any,
+    });
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData, sendSynopticReportToLis })));
+
+    await act(async () => { await result.current.finalizeSignOut(); });
+
+    expect(amendmentService.release).toHaveBeenCalledTimes(1);
+    expect(sendSynopticReportToLis).not.toHaveBeenCalled();
+  });
+
+  it('a revision released but not transmitted to the LIS is reported to the signer', async () => {
     const sendSynopticReportToLis = vi.fn().mockResolvedValue({ ok: false });
     const showToast = vi.fn();
     const caseData = makeTestCase({
@@ -241,11 +258,10 @@ describe('useSignOutWorkflow — finalizeSignOut (CoPilot ordering guarantee)', 
 
     await act(async () => { await result.current.finalizeSignOut(); });
 
-    expect(amendmentService.release).not.toHaveBeenCalled();
     expect(showToast).toHaveBeenCalledWith(expect.stringContaining('could not be transmitted'), 'warning');
   });
 
-  it('DOES release only after a confirmed successful LIS send, and creates a real version record', async () => {
+  it('releases, then sends to the LIS, and creates a real version record', async () => {
     const { amendmentService, reportVersionService } = await import('@/services');
     const setCaseData = vi.fn();
     const caseData = makeTestCase({
@@ -258,7 +274,7 @@ describe('useSignOutWorkflow — finalizeSignOut (CoPilot ordering guarantee)', 
 
     expect(amendmentService.release).toHaveBeenCalledTimes(1);
     expect(reportVersionService.create).toHaveBeenCalledWith(expect.objectContaining({ mode: 'assist', trigger: 'amendment' }));
-    const patch = setCaseData.mock.calls[0][0];
+    const patch = setCaseData.mock.calls.map(c => c[0]).find((p: any) => p.synopticReports?.[0]?.status === 'finalized'); // Batch 649: status first
     expect(patch.synopticReports.find((r: any) => r.instanceId === 'SR-1').status).toBe('finalized');
   });
 
@@ -293,7 +309,7 @@ describe('useSignOutWorkflow — finalizeSignOut (CoPilot ordering guarantee)', 
       caseId: caseData.id, instance: expect.objectContaining({ instanceId: 'SR-1', templateId: 'T1' }),
       record: expect.objectContaining({ id: 'amend-1', type: 'correction' }), previousStatus: 'in-progress',
     }), {});
-    const patch = setCaseData.mock.calls[0][0];
+    const patch = setCaseData.mock.calls.map(c => c[0]).find((p: any) => p.lastRevisionType);
     expect(patch.lastRevisionType).toBe('correction');
     expect(patch.synopticReports[0]).toMatchObject({ status: 'finalized', lastRevisionType: 'correction' });
     expect(patch.synopticReports[0].pendingAmendmentId).toBeUndefined();
@@ -454,7 +470,7 @@ describe('useSignOutWorkflow — handleSignOutConfirm (resident/countersign gate
   it('jurisdiction-bound authority: the performing lab\'s own jurisdiction reaches BOTH the countersign gate and canFinalizeCase()', async () => {
     const { facilityService } = await import('@/services');
     const { canFinalizeCase, resolveCountersignRequiredTypeIds } = await import('@/services/auth/caseAccessControl');
-    vi.mocked(facilityService.getById).mockResolvedValueOnce({ ok: true, data: { id: 'lab-au', roles: ['performing_lab'], jurisdiction: 'AU' } } as any);
+    const lab = { ok: true, data: { id: 'lab-au', roles: ['performing_lab'], jurisdiction: 'AU' } } as any; vi.mocked(facilityService.getById).mockResolvedValueOnce(lab).mockResolvedValueOnce(lab); // Batch 649: read twice now
     const caseData = makeTestCase({
       order: { facilityId: 'lab-au' },
       participants: [{ status: 'active', staffId: 'PATH-001', participationTypeIds: ['attending'] }],
@@ -729,6 +745,28 @@ describe('useSignOutWorkflow — handleReturnToTrainee ("Return to Trainee"/"Rej
   });
 });
 
+describe('useSignOutWorkflow — finalizeAndRelease (Batch 649: the Assist signature follows the version)', () => {
+  it('records the Finalize signature after the version, linked to its id, number and PDF hash', async () => {
+    const { signatureGate } = await import('@/services');
+    const releasePendingAmendmentOrAddendum = vi.fn(async (onVersion?: (v: any) => void) => { onVersion?.({ id: 'V9', versionNumber: 2, pdfSha256: 'hash' }); return undefined; });
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ releasePendingAmendmentOrAddendum })));
+
+    const succeeded = await act(async () => result.current.finalizeAndRelease());
+
+    expect(succeeded).toBe(true);
+    expect(signatureGate.commit).toHaveBeenCalledTimes(1);
+    expect(signatureGate.commit).toHaveBeenCalledWith(expect.any(String), 'finalized', { kind: 'report-version', id: 'V9', versionNumber: 2, pdfSha256: 'hash' });
+    expect(vi.mocked(releasePendingAmendmentOrAddendum).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(signatureGate.commit).mock.invocationCallOrder[0]);
+  });
+
+  it('finalizeCase alone no longer records the signature', async () => {
+    const { signatureGate } = await import('@/services');
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams()));
+    await act(async () => result.current.finalizeCase());
+    expect(signatureGate.commit).not.toHaveBeenCalled();
+  });
+});
+
 describe('useSignOutWorkflow — finalizeCase', () => {
   it('returns false immediately with no caseData', async () => {
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: null })));
@@ -899,7 +937,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
 
   it('shows the missing-fields warning and does NOT proceed to pre-finalisation when required fields are incomplete', async () => {
     const missing = [{ fieldId: 'f1', fieldLabel: 'Field 1' }];
-    const synopticPanelRef = { current: { validateRequired: vi.fn().mockReturnValue(missing), getUncertainRequiredFields: vi.fn().mockReturnValue([]) } } as any;
+    const synopticPanelRef = { current: { validateRequired: vi.fn().mockReturnValue(missing), getUncertainRequiredFields: vi.fn().mockReturnValue([]), getBlockingUnverifiedFields: vi.fn().mockReturnValue([]) } } as any;
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ synopticPanelRef })));
 
     await act(async () => { await result.current.handleRequestFinalize(false); });

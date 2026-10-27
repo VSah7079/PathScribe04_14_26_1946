@@ -1,0 +1,31 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 668 \u2014 Help buttons move to the top bar and open in a remembered window",
+    "description": "Vitest, 2026-10-24. Tests are created by this import (testInfo)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "Top bar Help buttons: both guides, remembered window, tab fallback, F1",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T19:40:00Z",
+      "finish": "2026-10-24T19:41:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Help/TopBarHelpButtons.test.tsx"
+    },
+    {
+      "testInfo": {
+        "summary": "Help targets: which guide pages open for each screen",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T19:40:00Z",
+      "finish": "2026-10-24T19:41:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/help/helpTargets.test.ts"
+    }
+  ]
+}

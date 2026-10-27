@@ -1,3 +1,5 @@
+**Batch 649:** `diagnosisCodeApply.ts`: saving diagnosis and procedure codes from the Codes window needs `case:diagnosis-code:apply` (`assertDiagnosisCodeApply`; a refusal keeps the window open with the reason). The cytology Screening page's code save uses the same check (`services/cytology/cytologyCaseActions.ts`).
+
 # services/codes/
 
 Multi-jurisdiction clinical terminology CONFIGURATION — which coding systems (SNOMED/ICD-10 variants/ICD-11) are enabled, per jurisdiction (US/CA/GB/IE).

@@ -20,6 +20,8 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { demoCytologyQcAssignments } from './demoCytologyQcAssignments';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { getSessionUser } from '../auth/caseAccessControl';
+import { mockCytologyCategoryService } from '../cytology/mockCytologyCategoryService';
+import { QC_DIVERGENCE_NOT_CONFIRMED, QC_SECONDARY_CODE_UNRECOGNISED, isUnrecognisedSecondaryCode, resolveQcCodeDivergence } from './resolveQcCodeDivergence';
 
 /** Batch 432: the signed-in person's name for the audit trail. */
 function actorName(fallback = 'Unknown'): string {
@@ -157,11 +159,19 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
       return err(`Cannot record a discrepancy for assignment ${id} — it is genuinely in state "${current.state}", not QC_IN_REVIEW.`);
     }
     if (current.assignedReviewerId && !(await reviewerInPool(current, current.assignedReviewerId))) return err(QC_REVIEWER_NOT_IN_POOL);
+    // Batch 669f (cyt-6): a secondary code that diverges significantly from the primary needs an explicit confirmation.
+    const categories = await mockCytologyCategoryService.getActive();
+    const known = categories.ok ? categories.data : [];
+    if (isUnrecognisedSecondaryCode(discrepancy.secondaryDiagnosticCode, known)) return err(QC_SECONDARY_CODE_UNRECOGNISED);
+    if (!discrepancy.divergenceConfirmed && resolveQcCodeDivergence(discrepancy.primaryDiagnosticCode, discrepancy.secondaryDiagnosticCode, known).diverges) {
+      return err(QC_DIVERGENCE_NOT_CONFIRMED);
+    }
+    const { divergenceConfirmed: _confirmed, ...recorded } = discrepancy;
     const updated: CytologyQcCaseAssignment = {
       ...current,
       state: 'QC_DISCREPANCY_REVISE',
       resolvedAt: new Date().toISOString(),
-      discrepancy: { ...discrepancy, loggedAt: new Date().toISOString() },
+      discrepancy: { ...recorded, loggedAt: new Date().toISOString() },
     };
     _cache = [..._cache.slice(0, idx), updated, ..._cache.slice(idx + 1)];
     persist(_cache);

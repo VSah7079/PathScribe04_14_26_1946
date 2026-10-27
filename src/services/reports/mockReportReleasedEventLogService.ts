@@ -12,18 +12,16 @@
 
 import { storageGet, storageSet } from '../mockStorage';
 import type { ReportReleasedEvent } from './publishReportReleasedEvent';
+import type { IReportReleasedEventLogService, ReportReleasedEventLogEntry } from './IReportReleasedEventLogService';
 
-export interface ReportReleasedEventLogEntry extends ReportReleasedEvent {
-  id: string;
-  recordedAt: string;
-}
+export type { ReportReleasedEventLogEntry };
 
 const STORAGE_KEY = 'reportReleasedEventLog';
 
 const load    = (): ReportReleasedEventLogEntry[] => storageGet<ReportReleasedEventLogEntry[]>(STORAGE_KEY, []);
 const persist = (data: ReportReleasedEventLogEntry[]) => storageSet(STORAGE_KEY, data);
 
-export const mockReportReleasedEventLogService = {
+export const mockReportReleasedEventLogService: IReportReleasedEventLogService = {
   async record(event: ReportReleasedEvent): Promise<ReportReleasedEventLogEntry> {
     const entry: ReportReleasedEventLogEntry = {
       ...event,

@@ -27,6 +27,7 @@ const OPEN_ROUTES: Record<string, string> = {
   '/report/:caseId': 'case page: per-case access check (synopticLoader / resolveCaseAccessGate)',
   '/mock-emr': 'stand-in for the hospital EMR, opened from a case (demo)',
   '/wsi-viewer': 'stand-in for the slide viewer, opened from a case (demo)',
+  '/help/*': 'Batch 657: the User Guide is read-only help text (static files, nothing about a person or a case) for every signed-in user',
   '/my-exports': 'Batch 550: the signed-in user\'s own exports only (the API server answers for the requester); each download checks the export\'s capability again',
   '*': 'not-found; in App.tsx, everything else goes to SignedInApp.tsx',
 };

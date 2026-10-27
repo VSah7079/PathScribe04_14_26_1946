@@ -53,6 +53,13 @@ vi.mock('@/contexts/AuthContext', () => ({
   // Batch 430: the voice provider reads who is signed in for their accent.
   useAuthOptional: () => ({ user: { id: 'path-1', name: 'Test Pathologist' } }),
 }));
+// Batch 649: Submit is greyed without case:accession:create, and the save checks it (createAccessionedCase.test.ts);
+// this walkthrough holds it, and the save goes straight to caseRouter.createCase as before.
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => true, decide: () => ({ allowed: true }) }) }));
+vi.mock('@/services/accessioning/createAccessionedCase', async () => {
+  const { caseRouter } = await import('@/services/cases/CaseRouter');
+  return { createAccessionedCase: (c: never) => caseRouter.createCase(c) };
+});
 
 
 // The form up to the Specimens tab: patient, facility and provider (same seeded data as AccessionPage.e2e.test.tsx).
@@ -81,6 +88,7 @@ async function renderAndFillCase() {
   fireEvent.change(screen.getByPlaceholderText('accessionPage.demographics.givenNamesPlaceholder'), { target: { value: 'Jane' } });
   fireEvent.change(screen.getByPlaceholderText('accessionPage.demographics.familyNamesPlaceholder'), { target: { value: 'Doe' } });
   fireEvent.change(document.querySelector('input[type="date"]') as HTMLInputElement, { target: { value: '1980-01-01' } });
+  fireEvent.change(document.getElementById('accession-sex') as HTMLSelectElement, { target: { value: 'F' } }); // Batch 661: sex is required, never defaulted
   await waitFor(() => screen.getByText('Metro General Hospital'));
   fireEvent.change(screen.getByLabelText('accessionPage.facility.submittingFacility'), { target: { value: 'c1' } });
   const providerInput = screen.getByPlaceholderText('accessionPage.provider.searchPlaceholder');

@@ -210,3 +210,21 @@ describe('computeMolecularQcSummary — Batch 488', () => {
     expect(result.rerunRate).toBeNull();
   });
 });
+
+describe('dailyAccessioningBars (Batch 660)', () => {
+  it('scales to the busiest day and keeps a quiet day at zero', async () => {
+    const { dailyAccessioningBars } = await import('./benchContributionCalculations');
+    const bars = dailyAccessioningBars([
+      { date: '2026-10-21', count: 0 },
+      { date: '2026-10-22', count: 10 },
+      { date: '2026-10-23', count: 5 },
+    ]);
+    expect(bars.map(b => b.heightPercent)).toEqual([0, 100, 50]);
+  });
+  it('keeps a day with one case visible beside a very busy day, and handles an empty window', async () => {
+    const { dailyAccessioningBars } = await import('./benchContributionCalculations');
+    expect(dailyAccessioningBars([{ date: 'a', count: 1 }, { date: 'b', count: 200 }])[0].heightPercent).toBe(4);
+    expect(dailyAccessioningBars([])).toEqual([]);
+    expect(dailyAccessioningBars([{ date: 'a', count: 0 }])[0].heightPercent).toBe(0);
+  });
+});

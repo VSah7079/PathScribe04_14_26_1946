@@ -3,6 +3,8 @@
 
 import { useOpenCase } from '@/hooks/useOpenCase';
 import { RegistryOptOutBadge } from '@/components/Common/RegistryOptOutBadge';
+import { NhsNumberBadge } from '@/components/Common/NhsNumberBadge';
+import { sexAtBirthLabelKey } from '@/services/patients/patientSexAtBirth';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/utils/formatDate';
@@ -61,6 +63,7 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
 import type { AiSynthesisStatus } from '@/services/templates/aiSynthesisStatus';
 import { pressable } from '@/utils/a11y/pressable';
 import { caseReturnTarget, type CaseReturnTarget } from '@/utils/search/caseReturnTarget';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 export type { AiSynthesisStatus };
 
 const DEFAULT_RETURN = caseReturnTarget('worklist');
@@ -279,7 +282,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   // date no longer shows as the day before west of UTC.
   const dob       = formatDate(caseData?.patient?.dateOfBirth, i18n.language);
   const mrn       = caseData?.patient?.mrn ?? '—';
-  const sex       = caseData?.patient?.sex ?? '—';
+  // Batch 662: sex at birth in words (UK target), a dash when none is recorded.
+  const sexKey    = sexAtBirthLabelKey(caseData?.patient?.sex);
+  const sex       = sexKey ? t(sexKey) : '—';
   const status    = caseData?.status ?? 'draft';
   const hospital    = getOrganisationByHospitalId(caseData?.originHospitalId ?? '');
   const clientName  = caseData?.order?.facilityName ?? null;
@@ -375,6 +380,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
               <span className="ps-hb-compact-meta" data-phi="mrn">{t('headerBar.field.mrnInline', { mrn })}</span>
             </>
           )}
+          {caseData?.patient?.nationalIdentifiers?.some(i => i.system === 'mrn_nhs') && (
+            <>
+              <span className="ps-hb-compact-sep">·</span>
+              <span className="ps-hb-compact-meta"><NhsNumberBadge identifiers={caseData.patient.nationalIdentifiers} /></span>
+            </>
+          )}
           {(caseData?.order as any)?.priority && (
             onChangePriority && priorityLevels?.length ? (
               <select
@@ -421,7 +432,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                 className="ps-hb-compact-conf ps-hb-compact-conf--warn ps-hb-reset-button"
                 onClick={onAiStatusClick}
                 title={
-                  aiSynthesisStatus.flaggedFieldConfidence !== undefined
+                  showsConfidence() && aiSynthesisStatus.flaggedFieldConfidence !== undefined
                     ? t('headerBar.aiStatus.reviewTooltipWithPct', { pct: aiSynthesisStatus.flaggedFieldConfidence })
                     : t('headerBar.aiStatus.reviewTooltip')
                 }
@@ -606,6 +617,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
               <div className="ps-hb-field-label">{t('headerBar.field.sex')}</div>
               <div className="ps-hb-field-value">{sex}</div>
             </div>
+            {caseData?.patient?.nationalIdentifiers?.some(i => i.system === 'mrn_nhs') && (
+              <div className="ps-hb-field">
+                <div className="ps-hb-field-label">{t('headerBar.field.nhsNumber')}</div>
+                <div className="ps-hb-field-value"><NhsNumberBadge identifiers={caseData.patient.nationalIdentifiers} /></div>
+              </div>
+            )}
             <div className="ps-hb-field">
               <div className="ps-hb-field-label">{t('headerBar.field.dateOfBirth')}</div>
               <div className="ps-hb-field-value" data-phi="dob">{dob}</div>
@@ -657,7 +674,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                   title={t('headerBar.aiStatus.reviewScoreTooltip')}
                 >
                   <span className="ps-hb-confidence-pct">⚠ {t('headerBar.aiStatus.reviewPending')}</span>
-                  {aiSynthesisStatus.flaggedFieldConfidence !== undefined && (
+                  {showsConfidence() && aiSynthesisStatus.flaggedFieldConfidence !== undefined && (
                     <span className="ps-hb-confidence-label">
                       {t('headerBar.aiStatus.fieldAtConfidence', { pct: aiSynthesisStatus.flaggedFieldConfidence })}
                     </span>
@@ -668,7 +685,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                   <span className="ps-hb-confidence-pct">{t('headerBar.aiStatus.aiDrafted')}</span>
                   <span className="ps-hb-confidence-label">
                     {t('headerBar.aiStatus.noFieldsBelowThreshold')}
-                    {aiSynthesisStatus.overallConfidence !== undefined
+                    {showsConfidence() && aiSynthesisStatus.overallConfidence !== undefined
                       ? ` · ${t('headerBar.aiStatus.avgConfidence', { pct: aiSynthesisStatus.overallConfidence })}`
                       : ''}
                   </span>

@@ -40,7 +40,7 @@ import { dirname, resolve } from 'node:path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LOCALE_DIR = resolve(HERE, 'locales');
-const OTHERS = ['fr', 'de', 'nl', 'ko'] as const;
+const OTHERS = ['fr', 'de', 'nl', 'ko', 'es'] as const;
 
 type Json = { [k: string]: string | Json };
 const load = (l: string): Json => JSON.parse(readFileSync(resolve(LOCALE_DIR, `${l}.json`), 'utf8'));

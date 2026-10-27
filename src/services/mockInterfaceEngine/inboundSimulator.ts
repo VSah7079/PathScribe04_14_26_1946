@@ -15,10 +15,10 @@ import { processVisitMessage, VISIT_EVENT_TYPES } from '../hl7/processVisitMessa
 import { processBlockExceptionEvent } from '../hl7/processBlockExceptionEvent';
 import { processMaterialLocationEvent } from '../hl7/processMaterialLocationEvent';
 import { processInboundHpvResultEvent } from '../hl7/processInboundHpvResultEvent';
-import { mockInterfaceExceptionService } from '../interfaceExceptions/mockInterfaceExceptionService';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockEncounterService } from '../encounters/mockEncounterService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { interfaceExceptionService } from '../interfaceExceptions/interfaceExceptionServiceInstance';
+import { patientIndexService } from '../patients/patientServicesInstance';
+import { encounterService } from '../encounters/encounterInstance';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { caseRouter } from '../cases/CaseRouter';
 
 export type InboundSampleId =
@@ -59,7 +59,7 @@ const msh = (event: string) => `MSH|^~\\&|SIMENGINE|SIMADT|PATHSCRIBE|PS|${stamp
 type DemoCaseLike = { accession?: { fullAccession?: string }; specimens?: { label?: string; blocks?: { label?: string }[] }[] };
 
 async function demoPatient(ctx: InboundContext, last: string, first: string, mrn: string): Promise<string> {
-  const r = await mockPatientIndexService.resolveOrCreatePatient({
+  const r = await patientIndexService.resolveOrCreatePatient({
     organisationId: ctx.organisationId, mrn, assigningAuthority: AUTH, firstName: first, lastName: last, dateOfBirth: '1980-03-14',
   });
   return r.patientId;
@@ -96,7 +96,7 @@ export async function prepareInboundSample(id: InboundSampleId, ctx: InboundCont
       const from = `SIMFROM${t}`, to = `SIMTO${t}`, visit = `SIMVISIT${t}`;
       const fromId = await demoPatient(ctx, name('FROM'), 'TEST', from);
       await demoPatient(ctx, name('TO'), 'TEST', to);
-      await mockEncounterService.resolveOrCreateEncounter({
+      await encounterService.resolveOrCreateEncounter({
         organisationId: ctx.organisationId, patientId: fromId, encounterNumber: visit,
         encounterClass: 'Inpatient', eventTimestamp: new Date().toISOString(), status: 'Arrived',
       });
@@ -105,7 +105,7 @@ export async function prepareInboundSample(id: InboundSampleId, ctx: InboundCont
     case 'A50': {
       const mrn = `SIMMRN${t}`, visit = `SIMVISIT${t}`;
       const pid = await demoPatient(ctx, name('RENUM'), 'TEST', mrn);
-      await mockEncounterService.resolveOrCreateEncounter({
+      await encounterService.resolveOrCreateEncounter({
         organisationId: ctx.organisationId, patientId: pid, encounterNumber: visit,
         encounterClass: 'Inpatient', eventTimestamp: new Date().toISOString(), status: 'Arrived',
       });
@@ -131,7 +131,7 @@ export async function prepareInboundSample(id: InboundSampleId, ctx: InboundCont
 const line = (label: string, value: unknown) => ({ label, value: value === undefined || value === null || value === '' ? '-' : String(value) });
 
 async function audit(event: string, ok: boolean, exception: boolean, actor: string): Promise<void> {
-  await mockAuditService.logEvent({
+  await auditService.logEvent({
     type: 'system', event: 'Simulated Inbound Message Processed',
     detail: `SIMULATED inbound ${event}: ${ok ? 'processed' : 'not applied'}${exception ? ', queued as an Interface Exception' : ''}. Nothing came from a real interface engine.`,
     user: actor, caseId: null, confidence: null,
@@ -150,7 +150,7 @@ export async function runInboundMessage(text: string, ctx: InboundContext): Prom
       const parsed = JSON.parse(trimmed) as { event?: string; payload?: Record<string, unknown> };
       const payload = parsed.payload;
       if (!parsed.event || !payload) return fail('event', '?', 'A JSON message needs "event" and "payload".');
-      const before = await mockInterfaceExceptionService.getPending();
+      const before = await interfaceExceptionService.getPending();
       let r: { outcome: string; caseId?: string; reason?: string };
       if (parsed.event === 'block-exception') r = await processBlockExceptionEvent(payload as never);
       else if (parsed.event === 'material-location') r = await processMaterialLocationEvent(payload as never);
@@ -170,7 +170,7 @@ export async function runInboundMessage(text: string, ctx: InboundContext): Prom
     const head = msg.getSegment('MSH');
     if (!head) return fail('adt', '?', 'Not an HL7 message: there is no MSH segment.');
     const event = getComponent(getField(head, 9), 1);
-    const pendingNow = await mockInterfaceExceptionService.getPending();
+    const pendingNow = await interfaceExceptionService.getPending();
     const pendingBefore = pendingNow.ok ? (pendingNow.data as unknown[]).length : 0;
     if (VISIT_EVENT_TYPES.includes(event)) {
       const r = await processVisitMessage(trimmed, ctx.organisationId);

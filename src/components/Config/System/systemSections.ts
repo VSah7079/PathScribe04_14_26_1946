@@ -53,6 +53,10 @@ export type SystemSection =
   | 'delivery_rules'
   | 'delivery_schedules'
   | 'billing_release'
+  | 'us_epath'
+  | 'batch_registry_feed'
+  | 'cosd_destination'
+  | 'history_extraction'
   | 'print_routing_rules'
   | 'contribution_settings'
   | 'qa_config_center'
@@ -197,6 +201,7 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   // Real, per the RFP-APLIS-2026-GLOBAL Broader Cancer Registry
   // Exports gap — genuinely separate from Cytology's own Registry
   // Reporting subtab, per the RFP's own "Non-Cytology-Scoped" title.
+  { id: 'batch_registry_feed', emoji: '🗂️', labelKey: 'systemTab.sections.batchRegistryFeed', group: 'Lab Materials & Workflows' },
   { id: 'cancer_registry_settings', emoji: '🏛️', labelKey: 'systemTab.sections.cancerRegistrySettings', group: 'Lab Materials & Workflows' },
   { id: 'flags',               emoji: '🚩', labelKey: 'systemTab.sections.flags'                 , group: 'Lab Materials & Workflows' },
   { id: 'grossing_route_overrides', emoji: '🔀', labelKey: 'systemTab.sections.grossingRouteOverrides', group: 'Lab Materials & Workflows' },
@@ -245,6 +250,11 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'delivery_rules', emoji: '📬', labelKey: 'systemTab.sections.deliveryRules', group: 'Administration & Compliance' },
   // Batch 619 (PS-800): when reports, billing and feeds go out.
   { id: 'billing_release', emoji: '💲', labelKey: 'systemTab.sections.billingRelease', group: 'Administration & Compliance' },
+  // Batch 620 (part E, PS-800): US electronic pathology (NPCR ePath) state profiles.
+  { id: 'us_epath', emoji: '🇺🇸', labelKey: 'systemTab.sections.usEpath', group: 'Administration & Compliance' },
+  // Batch 620 (part C, PS-800): where the UK cancer registry submission goes and how long a rejected one may take to correct.
+  { id: 'cosd_destination', emoji: '🇬🇧', labelKey: 'systemTab.sections.cosdDestination', group: 'Administration & Compliance' },
+  { id: 'history_extraction', emoji: '🧬', labelKey: 'systemTab.sections.historyExtraction', group: 'Administration & Compliance' },
   { id: 'delivery_schedules', emoji: '🗓', labelKey: 'systemTab.sections.deliverySchedules', group: 'Administration & Compliance' },
   { id: 'print_routing_rules', emoji: '🖨', labelKey: 'systemTab.sections.printRoutingRules', group: 'Administration & Compliance' },
   { id: 'qa_config_center',    emoji: '✅', labelKey: 'systemTab.sections.qaConfigCenter' , group: 'Administration & Compliance' },

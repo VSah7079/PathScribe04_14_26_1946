@@ -4,7 +4,7 @@ import type { Case } from '@/types/case/Case';
 import type { ConsultToken } from './IConsultTokenService';
 import {
   buildConsultCaseView, consultLinkUrl, consultOpinionProblem, consultTokenFromLocation, consultLinksShown,
-  looksLikeConsultToken, newestConsultLinksFirst, unrecordedExpiries,
+  looksLikeConsultToken, newestConsultLinksFirst, consultSubmitConfirmationKey, unrecordedExpiries,
 } from './consultLinkRules';
 import { generateConsultToken, hashConsultToken, CONSULT_TOKEN_PATTERN } from './consultTokenCrypto';
 
@@ -50,13 +50,21 @@ describe('what the consultant sees', () => {
     const v = buildConsultCaseView(CASE, link(), []);
     expect(v).toEqual({
       linkId: 'l1', accessionNumber: 'S26-0001',
-      patient: { lastName: 'Ruiz', firstName: 'Ana', dateOfBirth: '1970-01-02' },
+      patient: { identity: 'masked', maskedName: 'A** R***', birthYearMasked: '**-***-1970' },
       specimens: [{ id: 'sp-a', label: 'A', description: 'Skin, left arm' }, { id: 'sp-b', label: 'B', description: 'Skin, back' }],
       slides: [{ id: 'st-a1', label: 'A-1 · H&E' }, { id: 'st-a2', label: 'A-1 · SOX10' }, { id: 'st-b1', label: 'B-1 · H&E' }],
-      scopedSlideCount: 0, expiresAt: '2099-01-01T00:00:00Z', opinionSigned: false,
+      scopedSlideCount: 0, expiresAt: '2099-01-01T00:00:00Z', opinionSigned: false, lifetime: null,
     });
     expect(JSON.stringify(v)).not.toContain('MRN-SECRET');
+    // Batch 669 (access-11): masked by default, so the surname and the full date never reach the page.
+    expect(JSON.stringify(v)).not.toContain('Ruiz');
+    expect(JSON.stringify(v)).not.toContain('Ana');
+    expect(JSON.stringify(v)).not.toContain('1970-01-02');
     expect(JSON.stringify(v)).not.toContain('not for the consultant');
+  });
+  it('a link issued with the identity opt-in shows the full name and date of birth (Batch 669)', () => {
+    const v = buildConsultCaseView(CASE, link({ revealIdentity: true }), []);
+    expect(v.patient).toEqual({ identity: 'full', lastName: 'Ruiz', firstName: 'Ana', dateOfBirth: '02-JAN-1970' });
   });
   it('a slide-scoped link: only those slides, and only the specimens they come from', () => {
     const v = buildConsultCaseView(CASE, link({ scope: { caseId: 'S26-1', caseAccessionNumber: 'S26-0001', slideIds: ['st-a2'] } }), []);
@@ -90,5 +98,12 @@ describe('expiry and the cross-case list', () => {
     expect(consultLinksShown(links, true).map(l => l.id)).toEqual(['old', 'new']);
     expect(consultLinksShown(links, false)).toHaveLength(3);
     expect(newestConsultLinksFirst(links).map(l => l.id)[0]).toBe('gone');
+  });
+});
+
+describe('consultSubmitConfirmationKey (Batch 669, access-11)', () => {
+  it('a signed opinion is recorded and returned; a draft is only saved', () => {
+    expect(consultSubmitConfirmationKey('Signed')).toBe('externalConsultViewPage.opinionSubmittedConfirmation');
+    expect(consultSubmitConfirmationKey('Draft')).toBe('externalConsultViewPage.draftSavedConfirmation');
   });
 });

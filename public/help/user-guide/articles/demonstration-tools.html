@@ -1,0 +1,298 @@
+<h1 id="top">Demonstration Tools</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Two pages exist so PathScribe can be shown and taught without the hospital systems it normally talks to. <strong>Mock EMR</strong> stands in for the hospital's patient record, and <strong>Mock Interface Engine</strong> stands in for the interface engine that carries messages between PathScribe and other systems.</p>
+<div class="admonition warning">
+<p class="admonition-title">These are not production screens</p>
+<p>Nothing on these pages is real clinical information or a real connection. The Mock EMR shows made-up clinical details. The Mock Interface Engine answers messages that no real system received. They appear only in demonstration and training installations. In a production installation connected to a PathScribe server, neither page is there. Never use either to look up or decide anything about a real patient.</p>
+</div>
+<p><strong>Intended users.</strong> Trainers, laboratory managers and administrators running a demonstration or a training session. Pathologists see the Mock EMR only when they press the <strong>EMR</strong> button on a report in a demonstration installation.</p>
+<p><strong>Where it fits.</strong> The Mock EMR opens from the report screen. The Mock Interface Engine is not linked from any menu or tile; it is opened by typing its address, <code>/dev/mock-interface-engine</code>, and it needs Configuration access.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/demonstration-tools-mock-emr.png" alt="The Mock EMR page showing a demonstration patient with the DEMO: SYNTHETIC DATA badge"><figcaption>The Mock EMR page showing a demonstration patient with the DEMO: SYNTHETIC DATA badge</figcaption></figure>
+
+<figure class="ps-ug-figure"><img src="img/demonstration-tools-mock-interface-engine.png" alt="The Mock Interface Engine page with its response mode choices and simulator panels"><figcaption>The Mock Interface Engine page with its response mode choices and simulator panels</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Mock EMR (<code>/mock-emr</code>)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NHS badge</td>
+<td>A fixed label in the banner. It does not depend on your laboratory's country.</td>
+</tr>
+<tr>
+<td>Patient name, date of birth, sex, MRN</td>
+<td>Looked up from the case you opened it from, using that case's MRN. "DOB: not recorded" if there is none.</td>
+</tr>
+<tr>
+<td>DEMO: SYNTHETIC DATA</td>
+<td>A badge on the banner that says the page is a demonstration.</td>
+</tr>
+<tr>
+<td>Encounter</td>
+<td>Status "Admitted" and Ward "4B (Urology)". Fixed text.</td>
+</tr>
+<tr>
+<td>Integration Note</td>
+<td>A line saying production uses a different, standards-based connection to the laboratory system. A reminder that this page is not the real connection.</td>
+</tr>
+<tr>
+<td>Clinical Summary</td>
+<td>Active Problems (Elevated PSA, Prostate PI-RADS 4 Lesion) and Medications (Metformin 500mg, Lisinopril 10mg). The same fixed text appears for every patient.</td>
+</tr>
+<tr>
+<td>No Patient Found</td>
+<td>Shown when the case has no MRN or no record matches ("No patient identifier was provided" or "No record matches MRN ...").</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mock Interface Engine (<code>/dev/mock-interface-engine</code>)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red-bordered banner</td>
+<td>"Developer tool: not real functionality." It says the page answers in place of systems that do not exist here yet, and never touches real case data.</td>
+</tr>
+<tr>
+<td>Enabled / Disabled and the intercepting line</td>
+<td>Whether the simulator is answering. "intercepting real dispatch calls", "starting..." or "not intercepting".</td>
+</tr>
+<tr>
+<td>Response Mode</td>
+<td><strong>Always Succeed</strong> (every message is accepted at once), <strong>Always Fail</strong> (every message is refused with the failure status you choose) or <strong>Timeout</strong> (every message hangs, like an unreachable engine).</td>
+</tr>
+<tr>
+<td>Failure HTTP Status</td>
+<td>Shown for Always Fail. A number; 500 if you clear it.</td>
+</tr>
+<tr>
+<td>Answer for the slide scanner</td>
+<td>A tick box, on at first. After a scan batch is accepted, each slide is reported as scanning and then scanned, so slide scanning can be shown from start to finish.</td>
+</tr>
+<tr>
+<td>Molecular instrument results</td>
+<td>Positive, Negative or No results. After a molecular worklist is accepted, the simulated instrument reports this call for every patient sample.</td>
+</tr>
+<tr>
+<td>Inbound message simulator</td>
+<td>Choose a sample message (patient admit, update, link, merge, move, identifier change, or an event such as a damaged block, an HPV result or a material move) or paste one, then <strong>Process message</strong>. It is run through the same processing as a real incoming message. Labelled Simulated.</td>
+</tr>
+<tr>
+<td>Received by the simulated interface engine</td>
+<td>A list of outbound messages with type, outcome (Accepted, Rejected, Timed out) and time, with <strong>Clear list</strong>.</td>
+</tr>
+<tr>
+<td>Receive a registry acknowledgement</td>
+<td>Pick what a registry would answer for a sent submission (Accepted, Accepted with warnings, Rejected can be corrected, Rejected fatal, No answer) and select <strong>Receive</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Messages on the demonstration panels</strong></p>
+<table>
+<thead>
+<tr>
+<th>Text</th>
+<th>Where and what it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Send block order to instrument, Send slide orders, Send specimen label</td>
+<td>Three buttons in the Block and stain editor of the report screen, shown when the simulated engine is on. Each sends the matching order to the simulated engine. They produce a stand-in message only; no instrument receives it.</td>
+</tr>
+<tr>
+<td>Accepted. The message that was sent:</td>
+<td>Shown with the text of the message after a send is accepted. A <strong>Simulated</strong> badge sits beside it.</td>
+</tr>
+<tr>
+<td>The block order was not sent.</td>
+<td>Shown when the simulated engine refused the order (for example in Always Fail mode), followed by the reason.</td>
+</tr>
+<tr>
+<td>The sample could not be prepared.</td>
+<td>The Inbound message simulator could not load the chosen sample. Choose it again or paste a message.</td>
+</tr>
+<tr>
+<td>Simulated registry answer processed.</td>
+<td>A brief notice after <strong>Receive</strong> in the registry acknowledgement panel.</td>
+</tr>
+<tr>
+<td>Nothing received yet.</td>
+<td>Shown in the list of messages received by the simulated engine until something has been sent.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Enable / Disable (Mock Interface Engine)</td>
+<td>Starts or stops the simulated answers.</td>
+</tr>
+<tr>
+<td>Load sample</td>
+<td>Fills the message box with the chosen sample.</td>
+</tr>
+<tr>
+<td>Process message</td>
+<td>Runs the message. A toast says "Simulated message processed." or "Simulated message not applied."</td>
+</tr>
+<tr>
+<td>Receive</td>
+<td>Plays the chosen registry answer for a sent submission.</td>
+</tr>
+<tr>
+<td>Clear list</td>
+<td>Empties the list of messages received by the simulated engine.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simulated badge</td>
+<td>The panel is a stand-in. Nothing came from, or went to, a real system.</td>
+</tr>
+<tr>
+<td>Processed / Not applied</td>
+<td>The result of an inbound simulated message.</td>
+</tr>
+<tr>
+<td>Accepted / Rejected / Timed out</td>
+<td>What the simulated engine answered to an outbound message.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None on these pages. F1 opens this User Guide page in a new tab.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Show the Mock EMR from a report</strong></p>
+<ol>
+<li>Open a case report in a demonstration installation.</li>
+<li>Select the <strong>EMR</strong> button on the bottom bar ("Open Patient Record in EMR Sidecar"). A second window opens with the Mock EMR for that patient. "Looking up patient..." shows briefly.</li>
+<li>Read the patient banner, then close the window when done.</li>
+<li>If your browser blocks the second window, the record opens in a drawer on the report instead.</li>
+</ol>
+<p><strong>Run a demonstration of a failing interface</strong></p>
+<ol>
+<li>Open the Mock Interface Engine and select the enable button. The line changes to "intercepting real dispatch calls".</li>
+<li>Under <strong>Response Mode</strong> choose <strong>Always Fail</strong> and, if you wish, change the status number.</li>
+<li>On another screen, send a message, for example a worklist or a scan batch.</li>
+<li>Return here. The message appears under "Received by the simulated interface engine" with the outcome Rejected.</li>
+<li>Open the Audit Log, Interface Log, <strong>Outbound Interface DLQ</strong> to show the failed message and <strong>Retry Dispatch</strong>.</li>
+<li>Choose <strong>Always Succeed</strong> and retry to show the recovery.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To show a message arriving from another system, use the Inbound message simulator: choose a sample such as "A01 admit (new patient)", select <strong>Load sample</strong>, then <strong>Process message</strong>.</li>
+<li>To show a message that cannot be matched, choose "A40 with unknown patients (goes to the exception queue)". It is queued as an Interface Exception; open the Audit Log, Interface Log to bind it by hand.</li>
+<li>To show a registry answer, send a submission first, then choose the registry's reply under <strong>Receive a registry acknowledgement</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Timeout mode leaves a screen waiting.</strong> That is the point: it shows a stuck dispatch. Switch to Always Succeed or disable the simulator to end it.</li>
+<li><strong>No sent submission to answer.</strong> The registry panel says "No sent registry submission yet." Send one first.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the Mock EMR says "No Patient Found", open it from a case that has an MRN.</li>
+<li>If a message is "Not applied", read the explanation shown with the result and try a different sample.</li>
+<li>If the simulator still answers when you do not want it, select <strong>Disable</strong> and refresh the page.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Switch the simulator off after the session</p>
+<p>While enabled, the Mock Interface Engine answers the messages the application sends. Disable it when the demonstration ends so that later test or training work is not answered by a stand-in.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Treating the Mock EMR's problems and medications as the patient's. They are the same fixed demonstration text for everyone.</li>
+<li>Leaving the simulator on in Always Fail or Timeout mode.</li>
+<li>Using a real patient's case for a demonstration. Use demonstration cases only.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Keep the simulator page in its own window while you drive the demonstration from another.</li>
+<li>Use the sample messages instead of typing a message.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Open the Audit Log beside the simulator to show each message's result.</li>
+<li>Say plainly to an audience that these pages are stand-ins, and that in production the hospital's own systems answer.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: the <strong>EMR</strong> button launches the Mock EMR in a demonstration installation.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/audit-log">Audit Log</a>: the Interface Log shows the exceptions and failed messages the simulator creates.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The Mock Interface Engine address shows "You don't have access to this screen"</td>
+<td>You lack Configuration access.</td>
+</tr>
+<tr>
+<td>The pages do not exist</td>
+<td>This is a production installation, which does not include demonstration tools.</td>
+</tr>
+<tr>
+<td>The EMR window does not open</td>
+<td>The browser blocked the popup; a drawer opens instead.</td>
+</tr>
+<tr>
+<td>Nothing arrives in the received list</td>
+<td>The simulator is disabled, or no message was sent while it was on.</td>
+</tr>
+<tr>
+<td>The Mock EMR shows "NHS" for a US laboratory</td>
+<td>The label is fixed text.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check that the simulator reads "intercepting".</li>
+<li>Check the Response Mode.</li>
+<li>Refresh the page and enable again.</li>
+<li>For the EMR window, allow popups for PathScribe.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when the demonstration pages are missing from a training installation, or the simulator stays on after you disable it. Have the address and the time of the problem ready.</p>

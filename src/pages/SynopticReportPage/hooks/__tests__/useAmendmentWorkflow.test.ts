@@ -646,3 +646,37 @@ describe('useAmendmentWorkflow — handleAmendmentSubmit', () => {
     });
   });
 });
+
+describe('Batch 649 (sign-out audit): release results checked; a dialog addendum is actually sent', () => {
+  it('a release the amendment service refuses is not marked released and not sent', async () => {
+    const { amendmentService } = await import('@/services');
+    vi.mocked(amendmentService.release).mockResolvedValueOnce({ ok: false, error: 'Record is not a draft.' } as any);
+    const setCaseData = vi.fn();
+    const showToast = vi.fn();
+    const caseData = makeTestCase({ synopticReports: [{ instanceId: 'SR-1', templateId: 'tmpl-1', pendingAmendmentId: 'amend-1', answers: {} }] as any });
+    const { result } = renderHook(() => useAmendmentWorkflow(baseParams({ caseData, setCaseData, showToast })));
+    await act(async () => { await result.current.releasePendingAmendmentOrAddendum(); });
+    expect(setCaseData).not.toHaveBeenCalled();
+    expect(publishReportReleasedEvent).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining('could not be released'), 'warning');
+  });
+
+  it('Orchestration: an addendum released from the dialog goes out as ADDENDUM for its report', async () => {
+    const { amendmentService } = await import('@/services');
+    vi.mocked(amendmentService.release).mockResolvedValueOnce({ ok: true, data: { id: 'amend-1', type: 'addendum', reportInstanceId: 'SR-1', body: 'ER positive.' } } as any);
+    const { result } = renderHook(() => useAmendmentWorkflow(baseParams({ amendmentMode: 'addendum', amendmentText: 'ER positive.' })));
+    await act(async () => { await result.current.openAmendmentDraft('addendum'); });
+    await act(async () => { await result.current.handleAmendmentSubmit({ addendumTitle: 'ER/PR', reasonId: 'ADD_IHC' }); });
+    await vi.waitFor(() => expect(publishReportReleasedEvent).toHaveBeenCalledWith(expect.objectContaining({ caseId: 'TEST-CASE-AMEND', instanceId: 'SR-1', reportType: 'ADDENDUM' })));
+  });
+
+  it('Assist: an addendum released from the dialog is sent to the LIS for its report', async () => {
+    const { amendmentService } = await import('@/services');
+    vi.mocked(amendmentService.release).mockResolvedValueOnce({ ok: true, data: { id: 'amend-1', type: 'addendum', reportInstanceId: 'SR-1', addendumTitle: 'ER/PR', body: 'ER positive.' } } as any);
+    const sendSynopticReportToLis = vi.fn().mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => useAmendmentWorkflow(baseParams({ caseData: makeTestCase({ reportingMode: 'assist' } as any), sendSynopticReportToLis, amendmentMode: 'addendum' })));
+    await act(async () => { await result.current.openAmendmentDraft('addendum'); });
+    await act(async () => { await result.current.handleAmendmentSubmit({ addendumTitle: 'ER/PR', reasonId: 'ADD_IHC' }); });
+    expect(sendSynopticReportToLis).toHaveBeenCalledWith(expect.objectContaining({ kind: 'corrected_with_addition', instanceId: 'SR-1', payloadBody: 'ER positive.' }));
+  });
+});

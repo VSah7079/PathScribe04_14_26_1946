@@ -50,8 +50,8 @@ export const ClinicalMismatchModal: React.FC<Props> = ({ caseId, accession, case
         <ClinicalMismatchDecisionForm
           idPrefix="clin-mismatch-modal"
           caseId={caseId} caseType={caseType} subspecialtyId={subspecialtyId} clinicalIndication={clinicalIndication}
-          kind={suggestion.kind} source={suggestion.source} confidence={suggestion.confidence}
-          risk="high" ruleId={outcome.rule.id} discipline={discipline} specimenId={specimenId} inputFingerprint={assessment.fingerprint}
+          kind={suggestion.kind} source={suggestion.source} confidence={suggestion.confidence} instructionVersion={suggestion.instructionVersion}
+          risk="high" ruleId={outcome.rule.id} discipline={discipline} specimenId={specimenId} inputFingerprint={assessment.fingerprint} evidence={suggestion.evidence}
           choices={['RESOLVED', 'UNRESOLVED']}
           onRecorded={onContinue}
         />

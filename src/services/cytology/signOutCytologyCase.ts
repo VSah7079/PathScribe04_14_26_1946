@@ -76,7 +76,7 @@ import { resolveCytologyReportContent } from './resolveCytologyReportContent';
 import type { ScreeningRegistryConfig } from '../screeningRegistry/IScreeningRegistryConfigService';
 import { submitScreeningRegistryResult } from '../screeningRegistry/submitScreeningRegistryResult';
 import type { RegistrySubmissionHeader, PriorRegistrySubmission } from '../registrySubmission/registrySubmissionHeader';
-import { FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from '../quality/mockQaSupervisionAssignmentService';
+import { FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from '../quality/qaActivityTypeIds';
 import { latestRecordPerSpecimen } from './resolveCytologyCaseReport';
 import { resolveCytologyCaseFinalization } from './cytologyCaseFinalization';
 import { resolveCytologyComplianceFeatures } from './cytologyComplianceFeatures';
@@ -120,6 +120,8 @@ export interface CytologySignOutDeps {
   logAudit: (event: any) => unknown;
   /** Batch 424: the screening registry submission's send gate (registryGoLive/registrySendGate.ts). */
   sendGate: (registryId: string) => Promise<import('../registryGoLive/registrySendGate').RegistrySendGate>;
+  /** Batch 620 (PS-800): whether the facility's screening programme takes a batch file (its submissions then wait for the file). */
+  batchProgram?: (registryId: string) => Promise<boolean>;
   getAllReviews: () => Promise<Result<CytologyReviewRecord[]>>;
   createQcAssignment: (assignment: any) => Promise<Result<{ id: string }>>;
   /** Batch 501: the specimen's existing QC assignments, so a trigger upgrades an open one instead of duplicating it. Absent: treated as none. */

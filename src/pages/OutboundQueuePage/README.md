@@ -1,3 +1,6 @@
 # pages/OutboundQueuePage
 
 Batch 619 (PS-800). The Outbound Queue screen (`/outbound-queue`, `ScreenGate` `outboundQueue`, capability `screen:outbound-queue:open`), in the Quality & Compliance hub. Counts tiles (deadlines, needs review, one per state), feed chips, accession search, facility and sort pickers, a table with bulk select, and the actions Hold, Release, Retry (a reason is asked for a registry-rejected message), Release now, Retract and Mark not reportable. Rendering only: the rules are in `services/outboundQueue/`, the state in `hooks/useOutboundQueue.ts`. Accession numbers carry `data-phi`; the screen shows fixed codes only. Every control is a native button, input or checkbox; Escape closes the reason panel. Styles: `OutboundQueuePage.css`.
+
+## Batch 669
+The Dead-lettered tile is removed (finding ops-2): the tiles are generated from `OUTBOUND_STATES`, which no longer has it. Style `.ps-obq-state--deadLettered` removed.

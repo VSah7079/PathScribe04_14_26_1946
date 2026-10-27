@@ -49,6 +49,8 @@ import { initials, avatarColorClass, contactRowsFor } from '@/utils/physicianDis
 import { formatOrdinal } from '@/utils/formatOrdinal';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
 import { pressable } from '@/utils/a11y/pressable';
+import { useRevisionReleaseAvailability } from '../hooks/useRevisionReleaseAvailability';
+import { resolveRevisionKind, revisionKindDisabledTitle, revisionEntryDisabledTitle } from '@/services/reports/revisionReleaseCapability';
 // NOTE: verify this import path resolves in your build — your last tsc
 // output showed src/index.ts failing on a physician service import one
 // directory level different from this. If physicianService isn't found,
@@ -102,6 +104,8 @@ interface AmendmentModalProps {
    *  clinical notification. Defaults the field on a FRESH amendment
    *  only (never overrides a resumed draft's actual saved value). */
   orderingPhysicianName?: string;
+  /** Batch 649: the case (its id and facility), for the release capabilities (modes and the primary button grey out). */
+  revisionScope?: { id?: string | null; order?: { facilityId?: string | null } | null } | null;
 }
 
 // i18n note: NotificationMethod is a real, persisted enum (stored on
@@ -143,12 +147,20 @@ const versionLabel = (versionNumber: number, total: number, t: TFunction, lang: 
 const AmendmentModal: React.FC<AmendmentModalProps> = ({
   show, amendmentMode, amendmentText, activeSynopticTitle, sequenceNumber, amendedByName,
   versionHistory = [], onModeChange, onTextChange, onClose, onSubmit,
-  onFieldOverridesConfirmed = () => {}, submitError, resuming,
+  onFieldOverridesConfirmed = () => {}, submitError, resuming, revisionScope,
   orderingPhysicianName,
 }) => {
   const { t, i18n } = useTranslation();
   const { config } = useSystemConfig();
   const requirements = useFieldRequirements('report');
+  // Batch 649: the kinds this person may release on this case; the rest grey out (the decision is in services/reports).
+  const { availability, loading: capabilitiesLoading } = useRevisionReleaseAvailability(revisionScope);
+  const releaseTitle = revisionKindDisabledTitle(amendmentMode, availability);
+  const entryTitle = revisionEntryDisabledTitle(availability);
+  const resolvedMode = resolveRevisionKind(amendmentMode, availability);
+  useEffect(() => {
+    if (show && !capabilitiesLoading && resolvedMode !== amendmentMode) onModeChange(resolvedMode);
+  }, [show, capabilitiesLoading, resolvedMode, amendmentMode, onModeChange]);
   const [addendumTitle, setAddendumTitle] = useState('');
   const [reasonId, setReasonId] = useState('');
   const [reasonOptions, setReasonOptions] = useState<ReasonDictionaryEntry[]>([]);
@@ -278,7 +290,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
   }, [versionHistory, hasDeltaHistory, mostRecent]);
 
   const missing = revisionMissingFields(amendmentMode, { reasonId, text: amendmentText, addendumTitle, clinicianName, method }, requirements);
-  const canSubmit = missing.length === 0;
+  const canSubmit = missing.length === 0 && availability.allowed[amendmentMode];
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -401,7 +413,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
 
             <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
               <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={onClose}>{t('common.cancel')}</button>
-              <button onClick={handleConfirmDelta} className={`ps-amendment-submit ${isAmendment ? 'ps-amendment-submit--amendment' : 'ps-amendment-submit--correction'}`}>
+              <button onClick={handleConfirmDelta} disabled={!availability.any} title={entryTitle} className={`ps-amendment-submit ${isAmendment ? 'ps-amendment-submit--amendment' : 'ps-amendment-submit--correction'}`}>
                 {t('amendmentModal.delta.confirmContinue')}
               </button>
             </div>
@@ -415,6 +427,8 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
                 <button
                   key={mode}
                   onClick={() => onModeChange(mode)}
+                  disabled={!availability.allowed[mode]}
+                  title={revisionKindDisabledTitle(mode, availability)}
                   className={`ps-amendment-mode-btn${amendmentMode === mode ? ' active' : ''} ps-amendment-mode-btn--${mode}`}
                 >
                   {mode === 'correction' ? `🩹 ${t('amendmentModal.mode.correction')}` : mode === 'amendment' ? `✏️ ${t('amendmentModal.mode.amendment')}` : `📎 ${t('amendmentModal.mode.addendum')}`}
@@ -605,6 +619,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
                 {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) })}
               </p>
             )}
+            {!capabilitiesLoading && entryTitle && <p className="ps-intraop-gate-note ps-amendment-error-text" role="status">{entryTitle}</p>}
             {submitError && <p className="ps-intraop-gate-note ps-amendment-error-text">{submitError}</p>}
 
             <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
@@ -612,6 +627,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
+                title={releaseTitle}
                 className={"ps-amendment-submit" + (canSubmit ? (isAmendment ? " ps-amendment-submit--amendment" : isCorrection ? " ps-amendment-submit--correction" : " ps-amendment-submit--addendum") : " disabled")}
               >
                 {isUnlockFlow ? `💾 ${t('amendmentModal.footer.saveDraft')}` : `📎 ${t('amendmentModal.footer.releaseAddendum')}`}

@@ -15,6 +15,9 @@
 // services/consultAccess/IConsultTokenService.ts's header. Keep the banner
 // until the API server serves links (docs/architecture/CONSULT_ACCESS_API.md).
 //
+// Batch 669 (access-11): the issue form has an opt-in, off by default, to show the consultant the patient's
+// full name and date of birth; the page is masked otherwise. Greyed out without case:consult-link:reveal-identity.
+//
 // Batch 522: the link carries its token after `#` (consultLinkUrl); revoking
 // takes the signed-in user in the service; refusals are translated codes.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,6 +35,8 @@ import { resolveConsultTokenStatus } from '@/services/consultAccess/IConsultToke
 import { consultLinkUrl } from '@/services/consultAccess/consultLinkRules';
 import { computeDefaultConsultTokenExpiry } from '@/services/consultAccess/computeDefaultConsultTokenExpiry';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { ConsultLifetimeLine } from './ConsultLifetimeLine';
+import { useCapabilities } from '@/hooks/useCapabilities';
 
 interface ExternalConsultAccessModalProps {
   isOpen: boolean;
@@ -64,6 +69,7 @@ const ISSUE_ERROR_KEY: Record<string, string> = {
   CONSULT_LINK_NOT_PERMITTED: 'externalConsultAccessModal.notPermitted',
   CONSULTANT_REQUIRED:        'externalConsultAccessModal.consultantRequired',
   CONSULT_CASE_REQUIRED:      'externalConsultAccessModal.issueFailed',
+  CONSULT_REVEAL_NOT_PERMITTED: 'externalConsultAccessModal.revealNotPermitted',
 };
 
 const STATUS_LABEL_KEY: Record<string, string> = {
@@ -159,6 +165,9 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
   const [note, setNote] = useState('');
   const [scopeMode, setScopeMode] = useState<'full' | 'slides'>('full');
   const [selectedSlideIds, setSelectedSlideIds] = useState<string[]>([]);
+  // Batch 669 (access-11): off by default; the consultant sees a masked patient unless ticked.
+  const [revealIdentity, setRevealIdentity] = useState(false);
+  const { has } = useCapabilities();
   const [issuing, setIssuing] = useState(false);
   const [issueError, setIssueError] = useState<string | null>(null);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
@@ -180,7 +189,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
     if (isOpen) {
       setView('list');
       setConsultantIdentifier(''); setConsultantOrganization(''); setNote('');
-      setScopeMode('full'); setSelectedSlideIds([]); setIssueError(null); setCreatedLink(null); setCopied(false);
+      setScopeMode('full'); setSelectedSlideIds([]); setRevealIdentity(false); setIssueError(null); setCreatedLink(null); setCopied(false);
       loadTokens();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,6 +197,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
 
   if (!isOpen) return null;
 
+  const canRevealOnly = has('case:consult-link:reveal-identity', { caseId: caseData?.id ?? null }) && !has('case:consult-link:issue', { caseId: caseData?.id ?? null });
   const slideOptions = caseData ? flattenSlides(caseData) : [];
   const previewExpiry = computeDefaultConsultTokenExpiry(new Date());
   const caseLabel = caseData ? `${caseData.patient?.lastName}, ${caseData.patient?.firstName}` : undefined;
@@ -210,6 +220,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
       consultantIdentifier: consultantIdentifier.trim(),
       consultantOrganization: consultantOrganization.trim() || undefined,
       note: note.trim() || undefined,
+      ...(revealIdentity ? { revealIdentity: true } : {}),
     });
     setIssuing(false);
 
@@ -265,11 +276,14 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
 
           {view === 'list' && (
             <>
+              {/* Batch 669: someone who may reveal identity but not issue links gets a plain reason, not a dead end
+                  (their identity preview is in Audit Log → Consult links). */}
               <CapabilityButton
                 capability="case:consult-link:issue"
                 context={{ caseId: caseData?.id ?? null }}
                 onClick={() => setView('issue')}
                 className="eca-issue-btn"
+                {...(canRevealOnly ? { disabled: true, disabledTitle: t('externalConsultAccessModal.requiresIssuePermission') } : {})}
               >
                 {t('externalConsultAccessModal.issueNewLink')}
               </CapabilityButton>
@@ -297,6 +311,8 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
                               {' · '}{t('externalConsultAccessModal.issuedAt', { date: formatDateTime(tok.issuedAt, i18n.language) })}
                               {' · '}{t('externalConsultAccessModal.expiresAt', { date: formatDateTime(tok.expiresAt, i18n.language) })}
                             </div>
+                            <ConsultLifetimeLine link={tok} />
+                            {tok.revealIdentity && <div className="eca-token-viewed">{t('externalConsultAccessModal.identityShownBadge')}</div>}
                             {tok.accessCount > 0 && (
                               <div className="eca-token-viewed">
                                 {t('externalConsultAccessModal.viewedCount', {
@@ -373,6 +389,14 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
               <div>
                 <div className="fm-eyebrow">{t('externalConsultAccessModal.noteLabel')} <span className="rrm-optional-label">{t('externalConsultAccessModal.noteHint')}</span></div>
                 <textarea aria-label={t('externalConsultAccessModal.noteLabel')} placeholder={t('externalConsultAccessModal.notePlaceholder')} value={note} onChange={e => setNote(e.target.value)} rows={2} className="ps-modal-dark-input rrm-textarea" />
+              </div>
+
+              <div>
+                <label className="eca-slide-option">
+                  <input type="checkbox" checked={revealIdentity} disabled={!has('case:consult-link:reveal-identity', { caseId: caseData?.id ?? null })} onChange={e => setRevealIdentity(e.target.checked)} />
+                  {t('externalConsultAccessModal.revealIdentityLabel')}
+                </label>
+                <div className="eca-field-hint">{t('externalConsultAccessModal.revealIdentityHint')}</div>
               </div>
 
               <div className="eca-expiry-note">

@@ -1,3 +1,5 @@
+**Batch 649:** `ScannerProvider.tsx` ignores keystrokes a script sent (browser extension, autofill, the app's own shortcut code): only trusted key events feed the barcode buffer (`services/scanner/scanKeyFilter.ts`). The prop `acceptUntrustedKeyEvents` (default false, never set in the app) exists only so tests, whose events are untrusted, can drive the listener; `simulateScan()` is unaffected.
+
 ## Batch 602
 
 `VoiceProvider`: hotkeys resolved with `pickShortcutMatch` (screen command first) and renders `<GoToPrefix />`.
@@ -253,3 +255,13 @@ Every visible string here now goes through `t()`, in all five languages, and `sr
 ## Batch 609 (#177, #179)
 
 `VoiceProvider` builds the AI dictation refinement instructions per language and English spelling (`services/voice/dictationRefinementPrompt.ts`; the lab's jurisdiction decides the spelling) and passes the "English fuzzy fallback" setting (`SystemConfig.voiceEnglishFuzzyFallback`) to `findActionByTrigger`.
+
+## Batch 650 (650a)
+
+`VoiceProvider.tsx` (657 to 646 lines): the dictation correction table, the refinement flow and the command handling moved to `services/voice/` (`dictationCorrections`, `dictationSegmentFlow`, `voiceCommandRunner`). It now sends one final insert per segment, hands the target `meta.raw`, asks for a repeat on the commands that need one, refuses commands for other screens, and audits spoken commands. `DictationTarget.onText` has a third argument `meta`. See `services/voice/README.md`.
+
+- Batch 664: `VoiceProvider.tsx` runs Cancel (`PATHSCRIBE_VOICE_CANCEL`, and "cancel dictation" while dictating) through `services/voice/voiceCancel.ts`; `DictationTarget` has optional `uncommitted` / `discard`.
+
+## Batch 669f
+
+`MessagingContext`: the unread count and the urgent flag use `isUnreadFor(message, userId)`, so a person's own sent messages and replies are not counted.

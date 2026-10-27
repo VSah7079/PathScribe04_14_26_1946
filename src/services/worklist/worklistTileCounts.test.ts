@@ -112,6 +112,7 @@ function population(): Case[] {
 const STATUS_TILES: { filter: WorklistActiveFilter; count: (t: WorklistTileCounts) => number }[] = [
   { filter: 'pool',           count: t => t.stats.pool },
   { filter: 'countersign',    count: t => t.countersignPendingCount },
+  { filter: 'collaborating',  count: t => t.collaboratingCount },
   { filter: 'pendingrelease', count: t => t.pendingReleaseCount },
   { filter: 'needsrevision',  count: t => t.needsRevisionCount },
   // Urgent's tile shows assigned urgent cases plus an "N in pool" sublabel; the list shows both.

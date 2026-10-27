@@ -22,6 +22,7 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { useOutboundQueue } from '@/hooks/useOutboundQueue';
 import { OUTBOUND_FEEDS, OUTBOUND_STATES, HOLD_REASONS } from '@/services';
 import { NOT_REPORTABLE_REASONS, RESUBMIT_REASONS, RETRACT_REASONS, type OutboundSortKey } from '@/services/outboundQueue/outboundQueueTypes';
+import { epathReviewWords } from '@/services/usEpath/epathReviewCodes';
 import { formatDateTime } from '@/utils/formatDate';
 
 const K = 'outboundQueue';
@@ -172,6 +173,7 @@ const OutboundQueuePage: React.FC = () => {
                   {i.billing?.retraction && !i.closedReason && <div className="ps-obq-muted">{t(`${K}.closedFor`, { reason: t(`${K}.retractReason.${i.billing.retraction.reasonCode}`) })}</div>}
                   {i.billing?.billingType && <div className="ps-obq-muted">{t(`${K}.billingType`, { type: i.billing.billingType })}</div>}
                   {i.billing?.needsReview && <div className="ps-obq-flag ps-obq-flag--dueSoon">{t(`${K}.needsReview.${i.billing.needsReview}`)}</div>}
+                  {i.registryReview && <div className="ps-obq-flag ps-obq-flag--dueSoon">{t(`${K}.registryReview.title`)}{i.registryReview.codes.map(code => { const w = epathReviewWords(code); return <div key={code} className="ps-obq-muted">{t(`${K}.registryReview.${w.key}`, w.params)}</div>; })}</div>}
                   {i.billing?.scheduledReleaseAt && i.state === 'waiting' && <div className="ps-obq-muted">{t(`${K}.releaseAt`, { date: when(i.billing.scheduledReleaseAt) })}</div>}
                   {i.billing?.overriddenBy && <div className="ps-obq-muted">{t(`${K}.overridden`, { id: i.billing.overriddenBy })}</div>}
                 </td>

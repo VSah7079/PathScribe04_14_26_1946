@@ -10,7 +10,7 @@ import type {
 } from './IConsultTokenService';
 import {
   resolveConsultTokenStatus, CONSULT_LINK_NOT_PERMITTED, CONSULT_LINK_INVALID, CONSULT_LINK_NOT_ACTIVE,
-  CONSULT_CASE_REQUIRED, CONSULTANT_REQUIRED,
+  CONSULT_CASE_REQUIRED, CONSULTANT_REQUIRED, CONSULT_REVEAL_NOT_PERMITTED,
 } from './IConsultTokenService';
 import { computeDefaultConsultTokenExpiry } from './computeDefaultConsultTokenExpiry';
 import { mockAuditService } from '../auditlog/mockAuditService';
@@ -19,6 +19,8 @@ import { assessmentProblem, outsideConsultQaRecord, reportReleased } from './out
 import { demoConsultTokens } from './consultDemoSeed';
 import { generateConsultToken, hashConsultToken } from './consultTokenCrypto';
 import { mockCaseService } from '../cases/mockCaseService';
+import { consultLinkLifetime, CONSULT_POST_SIGNATURE_MAX_VIEWS } from './consultLinkLifetime';
+import { consultPatientView } from './consultIdentityMask';
 import { buildConsultCaseView, consultOpinionProblem, newestConsultLinksFirst, unrecordedExpiries } from './consultLinkRules';
 
 const TOKENS_KEY = 'consult_tokens';
@@ -96,7 +98,12 @@ async function activeLinkFor(token: string): Promise<ConsultToken | null> {
     return null;
   }
   if (status === 'Expired') {
-    logConsultAuditEvent('consult.link.access_attempt_expired', `Access attempt on an expired consult link (expired ${found.expiresAt}).`, found.consultantIdentifier, found.scope.caseAccessionNumber);
+    // Batch 669: a link can also end because its post-signature views are used up (consultLinkLifetime.ts).
+    if (consultLinkLifetime(found).state === 'exhausted') {
+      logConsultAuditEvent('consult.link.access_attempt_exhausted', `Access attempt on a consult link with no views left after the signed opinion (${CONSULT_POST_SIGNATURE_MAX_VIEWS} allowed).`, found.consultantIdentifier, found.scope.caseAccessionNumber);
+    } else {
+      logConsultAuditEvent('consult.link.access_attempt_expired', `Access attempt on an expired consult link (ended ${consultLinkLifetime(found).endsAt}).`, found.consultantIdentifier, found.scope.caseAccessionNumber);
+    }
     return null;
   }
   return found;
@@ -112,6 +119,10 @@ export const mockConsultTokenService: IConsultTokenService = {
     const { authorizationService } = await import('../authorization/defaultAuthorizationService');
     if (!(await authorizationService.enforce('case:consult-link:issue', { caseId: draft.scope.caseId })).allowed) return { ok: false, error: CONSULT_LINK_NOT_PERMITTED };
 
+    // Batch 669 (access-11): showing the patient's full name and date of birth is its own permission; without the opt-in the page shows a masked identity.
+    const revealIdentity = draft.revealIdentity === true;
+    if (revealIdentity && !(await authorizationService.enforce('case:consult-link:reveal-identity', { caseId: draft.scope.caseId })).allowed) return { ok: false, error: CONSULT_REVEAL_NOT_PERMITTED };
+
     const now = new Date();
     const token = generateConsultToken();
     const newToken: ConsultToken = {
@@ -126,6 +137,7 @@ export const mockConsultTokenService: IConsultTokenService = {
       consultantIdentifier: draft.consultantIdentifier.trim(),
       consultantOrganization: draft.consultantOrganization?.trim() || undefined,
       note: draft.note?.trim() || undefined,
+      ...(revealIdentity ? { revealIdentity: true } : {}),
       accessCount: 0,
     };
 
@@ -135,7 +147,7 @@ export const mockConsultTokenService: IConsultTokenService = {
 
     logConsultAuditEvent(
       'consult.link.created',
-      `Consult link created for ${draft.scope.slideIds?.length ? `${draft.scope.slideIds.length} slide(s)` : 'full case'}, consultant="${newToken.consultantIdentifier}"${newToken.consultantOrganization ? ` (${newToken.consultantOrganization})` : ''}, expires ${newToken.expiresAt}.`,
+      `Consult link created for ${draft.scope.slideIds?.length ? `${draft.scope.slideIds.length} slide(s)` : 'full case'}, consultant="${newToken.consultantIdentifier}"${newToken.consultantOrganization ? ` (${newToken.consultantOrganization})` : ''}, expires ${newToken.expiresAt}. ${revealIdentity ? 'Identity opt-in used: the consultant sees the full patient name and date of birth.' : 'Patient identity masked (default).'}`,
       draft.issuedByName,
       draft.scope.caseAccessionNumber
     );
@@ -191,9 +203,15 @@ export const mockConsultTokenService: IConsultTokenService = {
 
     const data = await loadTokens();
     const idx = data.findIndex(t => t.id === link.id);
-    const viewed: ConsultToken = { ...link, accessCount: link.accessCount + 1, lastAccessedAt: new Date().toISOString() };
+    // Batch 669: once a Signed opinion is in, every open counts toward the link's view limit (the signed submit itself did not).
+    const viewed: ConsultToken = {
+      ...link,
+      accessCount: link.accessCount + 1,
+      lastAccessedAt: new Date().toISOString(),
+      ...(link.signedAt ? { viewsAfterSignature: (link.viewsAfterSignature ?? 0) + 1 } : {}),
+    };
     if (idx !== -1) { data[idx] = viewed; persistTokens(data); }
-    logConsultAuditEvent('consult.link.accessed', `Consult link viewed by consultant="${viewed.consultantIdentifier}" (view #${viewed.accessCount}).`, viewed.consultantIdentifier, viewed.scope.caseAccessionNumber);
+    logConsultAuditEvent('consult.link.accessed', `Consult link viewed by consultant="${viewed.consultantIdentifier}" (view #${viewed.accessCount}, ${viewed.revealIdentity ? 'full patient identity shown' : 'patient identity masked'}${viewed.signedAt ? `, view ${viewed.viewsAfterSignature} of ${CONSULT_POST_SIGNATURE_MAX_VIEWS} after the signed opinion` : ''}).`, viewed.consultantIdentifier, viewed.scope.caseAccessionNumber);
 
     return { ok: true, data: buildConsultCaseView(caseRecord, viewed, loadOpinions()) };
   },
@@ -217,6 +235,11 @@ export const mockConsultTokenService: IConsultTokenService = {
     const data = loadOpinions();
     data.push(newOpinion);
     persistOpinions(data);
+    // Batch 669: a Signed opinion starts the post-signature clock; a Draft does not. The submit is not a view.
+    if (newOpinion.signedStatus === 'Signed') {
+      const all = await loadTokens();
+      persistTokens(all.map(t => (t.id === link.id ? { ...t, signedAt: newOpinion.submittedAt, viewsAfterSignature: 0 } : t)));
+    }
 
     logConsultAuditEvent(
       'consult.opinion.submitted',
@@ -225,6 +248,19 @@ export const mockConsultTokenService: IConsultTokenService = {
       link.scope.caseAccessionNumber
     );
     return { ok: true, data: newOpinion };
+  },
+
+  // Batch 669 (access-11): see IConsultTokenService.previewIdentity.
+  async previewIdentity(linkId: ID) {
+    const link = (await loadTokens()).find(t => t.id === linkId);
+    if (!link) return { ok: false, error: 'NOT_FOUND' };
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('case:consult-link:reveal-identity', { caseId: link.scope.caseId })).allowed) return { ok: false, error: CONSULT_REVEAL_NOT_PERMITTED };
+    const caseRecord = await mockCaseService.getCase(link.scope.caseId).catch(() => null);
+    if (!caseRecord) return { ok: false, error: 'NOT_FOUND' };
+    const profile = readSessionProfile();
+    logConsultAuditEvent('consult.link.identity_previewed', 'Patient identity revealed on screen for review (identity preview of a consult link); nothing was sent to the consultant.', profile?.name || profile?.id || 'unknown', link.scope.caseAccessionNumber);
+    return { ok: true, data: consultPatientView(caseRecord.patient, true) };
   },
 
   async getOpinionsByCaseId(caseId: string): Promise<ServiceResult<ConsultOpinion[]>> {

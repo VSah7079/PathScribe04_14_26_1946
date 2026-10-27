@@ -26,6 +26,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { DirtyStateContext } from '@/contexts/DirtyStateContext';
+import { tabDataStorage } from '@/services/browserData/dataStorage';
 import { clientErrorReporter } from '@/services/errorReporting/clientErrorReporterInstance';
 import { CrashTestError, crashTestRequested } from '@/services/errorReporting/crashTest';
 import { deploymentInstance } from '@/services/deployment/deploymentInstance';
@@ -92,6 +93,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, State> {
 
 export const ErrorBoundaryFallback: React.FC<{ scope: ErrorBoundaryScope; reference: string | null; hadUnsavedChanges: boolean; onTryAgain: () => void }> = ({ scope, reference, hadUnsavedChanges, onTryAgain }) => {
   const { t } = useTranslation();
+  const back = scope === 'panel' ? null : previousPagePath();
   if (scope === 'panel') {
     return (
       <div className="ps-error-boundary ps-error-boundary--panel" role="alert">
@@ -116,14 +118,33 @@ export const ErrorBoundaryFallback: React.FC<{ scope: ErrorBoundaryScope; refere
         <div className="ps-error-boundary-actions">
           <button type="button" className="ps-conf-btn-primary" onClick={onTryAgain}>{t('errorBoundary.tryAgain')}</button>
           {/* A full page load: whatever broke this screen's state is left behind. */}
-          <button type="button" className="ps-conf-btn-secondary" onClick={() => window.location.assign('/worklist')}>{t('errorBoundary.backToWorklist')}</button>
+          <button type="button" className="ps-conf-btn-secondary" onClick={() => window.location.assign(back ?? '/worklist')}>{t(back ? 'errorBoundary.backToPrevious' : 'errorBoundary.backToWorklist')}</button>
         </div>
       </div>
     </div>
   );
 };
 
+const PATH_KEY = 'ps.pagePath';
+/** Batch 686: the page before this one, kept for the length of the browser tab (tabDataStorage), so the error screen can go back to it. */
+export function rememberPagePath(pathname: string): void {
+  try {
+    const cur = JSON.parse(tabDataStorage.getItem(PATH_KEY) ?? 'null') as { current?: string; previous?: string } | null;
+    if (cur?.current === pathname) return;
+    tabDataStorage.setItem(PATH_KEY, JSON.stringify({ current: pathname, previous: cur?.current }));
+  } catch { /* storage unavailable: the error screen falls back to the worklist */ }
+}
+export function previousPagePath(): string | null {
+  try {
+    const cur = JSON.parse(tabDataStorage.getItem(PATH_KEY) ?? 'null') as { current?: string; previous?: string } | null;
+    return cur?.previous && cur.previous !== cur.current && cur.previous.startsWith('/') ? cur.previous : null;
+  } catch { return null; }
+}
+
 /** The page inside AppShell: one boundary, cleared when the address changes. */
-export const RouteErrorBoundary: React.FC<{ pathname: string; onErrorChange?: (crashed: boolean) => void; children: React.ReactNode }> = ({ pathname, onErrorChange, children }) => (
+export const RouteErrorBoundary: React.FC<{ pathname: string; onErrorChange?: (crashed: boolean) => void; children: React.ReactNode }> = ({ pathname, onErrorChange, children }) => {
+  React.useEffect(() => { rememberPagePath(pathname); }, [pathname]);
+  return (
   <ErrorBoundary scope="route" name="route" resetKey={pathname} onErrorChange={onErrorChange}>{children}</ErrorBoundary>
-);
+  );
+};

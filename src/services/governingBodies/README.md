@@ -35,3 +35,7 @@ the mock. *(Since superseded: production storage is SQL Server behind the ASP.NE
 ## Batch 617 (part B): server version (PS-514)
 
 The governing bodies service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/CONFIG_DICTIONARIES_API.md`.
+
+## Batch 652
+
+`retentionPlaceholder.ts` (+ test): a retention version whose source note says "unverified" (seeded CAP and CAP-ACP wet tissue, RCPA, Korea MSA) gets an UNVERIFIED PLACEHOLDER badge in the Governing Bodies retention window. Confirming the figures is a compliance task (`docs/product/KNOWN_GAPS.md`).

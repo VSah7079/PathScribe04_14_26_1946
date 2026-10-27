@@ -4,7 +4,8 @@
   destination behind Home's "Pathology Workspace" tile: a small,
   second-level hub grouping the sub-workspaces that don't need their own
   flat top-level Home tile (Cytology, Microtomy, Embedding, Slide
-  Distribution, Molecular, Batch Management). See the file's own header
+  Distribution, Molecular, Batch Management, Margin Exception Review: seven
+  tiles in all, each shown only if the user may open its screen). See the file's own header
   for the full "Homepage Changes part 1" direct-request account and why
   Molecular Workspace was folded in here too (grouped by domain, not by
   shared audience).
@@ -17,7 +18,7 @@ inventing a second card style.
 
 ## Batch 491 — Margin Exception Review tile (deferred from Batch 490's own margin-distance extraction layer)
 
-A sixth tile, **Margin Exception Review** (`screen: 'marginExceptionReview'`,
+The seventh and last tile (Batch 491), **Margin Exception Review** (`screen: 'marginExceptionReview'`,
 route `/margin-exception-review`), reaches the new review queue for a
 `Pending` `MarginExtractionException` — a margin-distance free-text answer
 the extraction layer couldn't confidently parse. Placed in this hub

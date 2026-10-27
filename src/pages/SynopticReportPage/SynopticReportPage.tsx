@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { writeBackSpecimenToLis } from '@/services/specimens/simulateSpecimenLisAck';
-import { facilityService, delegationTypeForVoiceAction, completeDelegatedWork, delegationService } from '@/services';
+import { facilityService, delegationTypeForVoiceAction, completeDelegatedWork, delegationService, postCaseComment } from '@/services';
 import { resolveSplitReportBranding, technicalBrandingForRender } from '@/services/facilities/resolveSplitReportBranding';
 import { renderPageSetup } from '@/services/reportAppearance/pageSetup';
 import { useOpenCase } from '@/hooks/useOpenCase';
@@ -64,6 +64,7 @@ import { ReturnToTraineeBar } from '@/components/Common/ReturnToTraineeBar';
 import AutopsyAuthorizationCompletionForm from '../../components/Autopsy/AutopsyAuthorizationCompletionForm';
 import AutopsyBodyReleaseForm from '../../components/Autopsy/AutopsyBodyReleaseForm';
 import { resolveCodeManagerSave, buildCodeManagerExistingCodes, type CodeManagerCode } from '@/services/codes/codeManagerCoding';
+import { assertDiagnosisCodeApply } from '@/services/codes/diagnosisCodeApply';
 import { resolveAutopsyGrossExaminationGate } from '@/services/autopsy/resolveAutopsyGrossExaminationGate';
 import { resolveAutopsyAccessionStatus } from '@/services/autopsy/resolveAutopsyAccessionStatus';
 import { resolveAutopsyTatSlaMatrix } from '@/services/autopsy/resolveAutopsyTatSlaMatrix';
@@ -137,7 +138,7 @@ import BillingReviewPanel from './components/BillingReviewPanel';
 import { DiscordanceReconciliationModal } from './modals/DiscordanceReconciliationModal';
 import { CopilotReportViewModal } from './modals/CopilotReportViewModal';
 import ReportPrintPromptModal from './modals/ReportPrintPromptModal';
-import { recordDocumentOutput, planReportPrint, DOCUMENT_DESTINATION, type PrintPlan } from '@/services';
+import { recordDocumentOutput, planReportPrint, releaseHoldPolicyFor, DOCUMENT_DESTINATION, type PrintPlan } from '@/services';
 import { useLisIntegration } from './hooks/useLisIntegration';
 import { MATERIAL_SCAN_UPDATED_EVENT } from '@/hooks/useGlobalMaterialScanTracking';
 import { getEffectiveScanStationId } from '@/utils/effectiveScanStation';
@@ -148,7 +149,10 @@ import { useAmendmentWorkflow } from './hooks/useAmendmentWorkflow';
 import { useGrossingCompletion } from './hooks/useGrossingCompletion';
 import { useOrchestratorDraft, writeCaseDraft, caseDraftUpdates } from './hooks/useOrchestratorDraft';
 import { useWarningConfirm } from './hooks/useWarningConfirm';
-import { useSignOutWorkflow } from './hooks/useSignOutWorkflow';
+import { useDiscardChangesConfirm } from './hooks/useDiscardChangesConfirm';
+import { useSignOutWorkflow } from './hooks/useSignOutWorkflow'; import { useOmitUnverifiedAi } from './hooks/useOmitUnverifiedAi';
+import { useReportDraftVoiceActions } from './hooks/useReportDraftVoiceActions';
+import { useReportOpenCommands } from './hooks/useReportOpenCommands'; import { useAddendumCommand } from './hooks/useAddendumCommand'; import { useCollaboratorCommand } from './hooks/useCollaboratorCommand'; import { useSignOutAndNext } from './hooks/useSignOutAndNext'; import { signOutDone } from '@/services/reports/signOutAndNext';
 import { resolveBuildReportAvailability } from './hooks/resolveBuildReportDirection';
 import FinalizeSynopticModal from './modals/FinalizeSynopticModal';
 import LogoutWarningModal    from '@/components/Common/LogoutWarningModal';
@@ -161,6 +165,7 @@ import { useSynopticFinalize } from '../Synoptic/useSynopticFinalize';
 import { useSynopticModals }   from '../Synoptic/useSynopticModals';
 import { useSynopticToast }    from '../Synoptic/useSynopticToast';
 import { useSynopticFlags }    from '../Synoptic/useSynopticFlags';
+import { STAT_FLAG_MESSAGE_KEY } from '@/services/flags/applyStatFlag';
 import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
@@ -175,7 +180,7 @@ import { CorrectAppliedCodeModal } from '@/components/Billing/CorrectAppliedCode
 import { enforceAppliedCodeCorrection } from '@/services/billing/correctServiceCharge';
 // Batch 381: services through @/services, not their mock file paths.
 import { actionRegistryService, reportTemplateService, reportReleaseService, evaluateGrossingTemplateAssignment } from '@/services';
-import { auditService, authorizationService, signatureGate } from '@/services';
+import { auditService, authorizationService, signatureGate, recordAiCodeBinds } from '@/services';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
 import { adoptSavedVersion, caseConflictRows, overwriteAfterConflict, caseOverwriteDeps, savePageChange, commitMergeReview, takeUpSavedCase, takeUpNewerCase, takeTheirVersion, selectionAfterTakeUp, orchestrationDiagnosticAfterTakeUp, MergeReviewPendingError, caseWriteDeps, type ConflictRow, type MergeReview } from '@/services';
 import { EditConflictDialog } from './components/EditConflictDialog';
@@ -402,6 +407,7 @@ const SynopticReportPage: React.FC = () => {
   useAutoBlockOrderDispatch(caseData, signingUser?.id ?? 'system');
   // Batch 465b: the warning a save or sign-out can ask the person to go past (totals that differ from their grid).
   const warningConfirm = useWarningConfirm();
+  const discardConfirm = useDiscardChangesConfirm();
   // Real optimistic-concurrency baseline — the version this session last
   // knew about, either from initial load or this session's own last
   // successful save. Passed as expectedVersion on every write; the server
@@ -1691,7 +1697,7 @@ const SynopticReportPage: React.FC = () => {
     caseData, setCaseData, caseId, orchSections, setOrchSections,
     activeSectionId, setActiveSectionId, isOrchestrationMode, leftTab,
     knownVersionRef, setConcurrencyConflict, clearDirty, discardDraft, showToast, draftBaseRef, pendingPartsRef,
-    onMergeReview: setMergeReview,
+    onMergeReview: setMergeReview, userName: signingUser?.name,
   });
 
   // Real fix, per direct follow-up: "1. Save & Switch: Flushes
@@ -2291,26 +2297,11 @@ const SynopticReportPage: React.FC = () => {
     await saveSpecimensNow(sp => specimensWithMatrixCode(sp, specimenId, matrixBlockId, code, stainOrderId, 'rejected'), { allOrNothing: true });
   };
 
-  // Real gate, per direct request: sign-out checks, using the exact
-  // same real computeCaseCodingSummary the billing tab itself renders
-  // from, whether anything is genuinely pending. Fetches stain types
-  // on demand here rather than keeping them in page-level state for
-  // the whole page's lifecycle, since they're only needed at the
-  // moment sign-out is actually clicked. A rough, stain-count-only
-  // heuristic was considered and rejected - it would have flagged any
-  // block with unrelated stains (e.g. a plain H&E) as pending, since
-  // it couldn't tell which stains genuinely trigger a real suggestion.
-  //
-  // Real restriction, per direct requirement: "we should only bill on
-  // orchestration cases. LIS will handle the billing in assist mode."
-  // Uses the app's own established isOrchestrationMode (reportingMode
-  // === 'orchestrator'), not a bare !== 'assist' check - that inverse
-  // would have also caught a genuinely undefined/missing reportingMode
-  // (older records), which isOrchestrationMode's own comment
-  // deliberately does NOT treat as orchestration. A non-orchestration
-  // case skips this whole check and proceeds straight to sign-out,
-  // exactly as it did before this feature existed.
+  // Sign-out checks whether billing suggestions are genuinely pending (the same computeCaseCodingSummary the
+  // billing tab renders from; stain types are fetched on demand). Orchestration cases only: "we should only bill on
+  // orchestration cases. LIS will handle the billing in assist mode." A non-orchestration case goes straight to sign-out.
   const handleSignOutClick = async () => {
+    setOmittedAiCount(await omitUnverifiedAi()); // Batch 691: unconfirmed optional AI values stay out of the signed report
     if (!isOrchestrationMode) { setShowSignOutModal(true); return; }
     const stainTypesRes = await stainTypeService.getAll();
     const activeStainTypes = stainTypesRes.ok ? stainTypesRes.data.filter(s => s.active) : [];
@@ -2348,13 +2339,6 @@ const SynopticReportPage: React.FC = () => {
   // genuinely relevant (case is pending-release), never a silent
   // block — a real confirmation naming the watermark, not a
   // disabled button with no explanation.
-  const [orchPrintRestricted, setOrchPrintRestricted] = useState(false);
-  useEffect(() => {
-    if (caseData?.status !== 'pending-release') return;
-    reportReleaseService.getOrgDefault().then(res => {
-      if (res.ok) setOrchPrintRestricted(res.data.restrictHardcopyPrinting);
-    });
-  }, [caseData?.status]);
   // Batch 610 (#83): signing the case out finishes the work delegated to this
   // user, so it leaves "Delegated to me". Only a change seen on this page counts
   // (not a case that was already signed out when opened).
@@ -2374,9 +2358,9 @@ const SynopticReportPage: React.FC = () => {
   useEffect(() => {
     if (!caseData?.id) return;
     let live = true;
-    void loadIntraopDiagnosisForCase(caseData.id).then(text => { if (live) setIntraopDiagnosisText(text); });
+    void loadIntraopDiagnosisForCase(caseData.id, caseData.intraoperativeFindings).then(text => { if (live) setIntraopDiagnosisText(text); });
     return () => { live = false; };
-  }, [caseData?.id, caseData?.status]);
+  }, [caseData?.id, caseData?.status, caseData?.intraoperativeFindings]);
   useEffect(() => {
     const sync = () => setAttachedRelated(attachedRelatedCases(caseData?.id));
     sync();
@@ -2518,38 +2502,17 @@ const SynopticReportPage: React.FC = () => {
   // Previously an anonymous inline closure on CaseCommentModal's
   // onAddComment JSX prop — append-only case-level comment.
   const handleAddCaseComment = useCallback(async (text: string) => {
-    // Append-only — a new CaseComment record, never overwriting
-    // anything already posted. Fixed June 2026: this used to be
-    // a single string, silently overwritten by whoever saved
-    // last, with no record of who wrote what or when.
+    // Batch 651: built, saved and audited by services/cases/postCaseComment.ts (append-only; the text never reaches the audit log).
     if (!caseData?.id) return;
-    const newComment: CaseComment = {
-      id: `cmt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      authorId: signingUser?.id ?? 'unknown',
-      authorName: signingUser?.name ?? unknownUserName,
-      text,
-      createdAt: new Date().toISOString(),
-      origin: 'pathscribe',
-      syncStatus: 'pending',
-      // Real feature, per direct follow-up: "Stamp every saved
-      // draft... with... station_id captured at the exact moment of
-      // saving."
-      stationId: getEffectiveScanStationId(),
-    };
-    const updatedComments = [...caseComments, newComment];
-    const patch = { order: { ...caseData.order, caseComments: updatedComments } };
     try {
-      await savePagePatch(caseData.id, patch as any);
-      setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
+      const r = await postCaseComment({ kind: 'case', caseData, caseComments, text, author: { id: signingUser?.id ?? 'unknown', name: signingUser?.name ?? unknownUserName }, stationId: getEffectiveScanStationId() }, { savePatch: savePagePatch });
+      if (r.ok === false) return;
+      setCaseData(prev => prev ? ({ ...prev, ...r.patch } as typeof prev) : prev);
       markDirty('caseComment');
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
-        // Comments are naturally append-only, so an actual field-
-        // level merge (union both comment lists rather than
-        // whole-array reload-or-override) would avoid needing
-        // user intervention at all here — worth building later,
-        // not attempted in this pass. Standard treatment for now,
-        // consistent with everything else.
+        // Comments are append-only, so a field-level merge (union both lists) would avoid asking the person at all;
+        // worth building later. Standard treatment for now, as for everything else.
         setConcurrencyConflict({ actualVersion: e.actualVersion });
         return;
       }
@@ -2557,34 +2520,13 @@ const SynopticReportPage: React.FC = () => {
     }
   }, [caseData, signingUser, unknownUserName, caseComments, setCaseData, markDirty, setConcurrencyConflict, savePagePatch]);
 
-  // Previously an anonymous inline closure on ReportCommentModal's
-  // onAddComment JSX prop — append-only specimen-level comment.
+  // Append-only specimen-level comment (same service).
   const handleAddSpecimenComment = useCallback(async (text: string) => {
-    // Append-only — fixed June 2026, same reasoning as the case
-    // comment thread: this used to be a single string, silently
-    // overwritten by whoever saved last, with no author or
-    // timestamp recorded at all.
     if (!caseData?.id) return;
-    const newComment: CaseComment = {
-      id: `cmt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      authorId: signingUser?.id ?? 'unknown',
-      authorName: signingUser?.name ?? unknownUserName,
-      text,
-      createdAt: new Date().toISOString(),
-      origin: 'pathscribe',
-      syncStatus: 'pending',
-      // Real feature, per direct follow-up: "Stamp every saved
-      // draft... with... station_id captured at the exact moment of
-      // saving... specimen-log."
-      stationId: getEffectiveScanStationId(),
-    };
-    const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) =>
-      sp.id === activeSpecimenCommentId ? { ...sp, comments: [...(sp.comments ?? []), newComment] } : sp
-    );
-    const patch = { specimens: patchedSpecimens };
     try {
-      await savePagePatch(caseData.id, patch as any);
-      setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
+      const r = await postCaseComment({ kind: 'specimen', caseData, specimenId: activeSpecimenCommentId, text, author: { id: signingUser?.id ?? 'unknown', name: signingUser?.name ?? unknownUserName }, stationId: getEffectiveScanStationId() }, { savePatch: savePagePatch });
+      if (r.ok === false) return;
+      setCaseData(prev => prev ? ({ ...prev, ...r.patch } as typeof prev) : prev);
       markDirty('specimenComment');
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
@@ -2673,15 +2615,8 @@ const SynopticReportPage: React.FC = () => {
     // delay ends (resolveReportWatermark.ts). Only fetched when relevant.
     const watermarkText = await reportWatermarkFor(purpose);
 
-    // Real, per direct guidance's own cross-jurisdiction pre-analytic
-    // compliance research: a mandatory report disclaimer is required
-    // whenever any specimen on this case was signed out on an
-    // administrative-override date (see PreAnalyticDateGateModal /
-    // resolvePreAnalyticDateGateConfig.ts). Same honest posture as
-    // watermarkText above - this app sends the real, resolved,
-    // jurisdiction-specific text to the separate PDF rendering
-    // service, but can't itself verify that service actually draws
-    // it onto the page.
+    // A mandatory disclaimer is required when any specimen was signed out on an administrative-override date
+    // (PreAnalyticDateGateModal, resolvePreAnalyticDateGateConfig.ts); the resolved text is sent to the PDF renderer.
     const usedPreAnalyticOverride = (caseData.specimens ?? []).some(
       (sp: any) => sp.collectedAtAdministrativeOverride || sp.receivedAtAdministrativeOverride
     );
@@ -2717,12 +2652,9 @@ const SynopticReportPage: React.FC = () => {
       // Genuinely absent unless a real administrative override was
       // used on this case — see this block's own comment above.
       preAnalyticDisclaimerText,
-      // Real, per direct guidance: the render_report function defaults
-      // to 'pdf' when this is absent — sent explicitly here regardless,
-      // so this payload's own shape states its real intent rather than
-      // relying on the backend's own default matching whatever the
-      // caller happened to mean.
-      outputFormat,
+      outputFormat, // sent explicitly even though render_report defaults to 'pdf', so the request states its intent
+      // Batch 661: the signing time, so a re-render of a signed report is the same file and carries its signing date (functions/README.md).
+      ...(caseData.finalizedAt ? { signedAt: caseData.finalizedAt } : {}),
       // Batch 606 (PS-36): the lab's page size and margins (Document Style).
       pageSetup: renderPageSetup(),
       ...(technicalBrandingForRender(splitBranding, caseData.status) ? { technicalBranding: technicalBrandingForRender(splitBranding, caseData.status) } : {}), // Batch 618: signed-out reports only
@@ -2738,13 +2670,14 @@ const SynopticReportPage: React.FC = () => {
       reportFigures: await reportFiguresWithAuto(caseData, i18nForDates.getFixedT(reportLocale.language) as never),
       // Batch 613: the intraoperative diagnosis is part of the case report, and the related cases
       // the signer attached are printed exactly as they were when seen at sign-out.
-      intraoperativeDiagnosis: await loadIntraopDiagnosisForCase(caseData.id),
+      intraoperativeDiagnosis: await loadIntraopDiagnosisForCase(caseData.id, caseData.intraoperativeFindings),
       relatedCases: attachedRelatedCases(caseData.id),
     };
   }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode, i18nForDates, reportWatermarkFor]);
 
   const printReport = useCallback(async (plan: PrintPlan, reason: string) => {
     if (!caseData) { window.print(); return; }
+    if (plan.blocked) return;   // Batch 654: never print past a blocking Release Hold Print Policy
     // Batch 495 (PS-283 §4.2.4): printing a case report needs
     // report:case-report:print for the case's facility. Refused: no PDF, no print.
     // Batch 516: and a VIP/confidential case also needs report:restricted-case:print.
@@ -2845,7 +2778,7 @@ const SynopticReportPage: React.FC = () => {
   .rp-revision-dates { font-size: 9pt; }
   .rp-doc-reference { display: flex; align-items: center; gap: 10pt; margin-top: 6pt; font-family: Arial, sans-serif; }
   .rp-doc-reference-barcode { display: inline-block; height: 24pt; width: 130pt; }
-  .rp-doc-reference-barcode svg { height: 100%; width: 100%; }
+  .rp-doc-reference-barcode svg { height: 100%; width: 100%; opacity: 1; filter: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; } .rp-doc-reference-barcode svg path { stroke: #000 !important; }
   .rp-doc-reference-text { font-size: 7.5pt; color: #444; }
   .rp-print-watermark { position: fixed; top: 45%; left: 0; right: 0; text-align: center; transform: rotate(-30deg);
     font-family: Arial, sans-serif; font-size: 34pt; font-weight: 700; color: rgba(180, 83, 9, 0.18); pointer-events: none; z-index: 10; }
@@ -2861,11 +2794,13 @@ const SynopticReportPage: React.FC = () => {
     if (!caseData) { window.print(); return; }
     const plan = await planReportPrint({
       document: REPORT_DOCUMENT, caseId: caseData.id, caseRecord: caseData,
-      pendingReleaseRestricted: caseData.status === 'pending-release' && orchPrintRestricted,
+      releaseHoldPolicy: await releaseHoldPolicyFor(caseData),
     });
-    if (plan.askReason || plan.warnPendingRelease) { setPrintPlan(plan); return; }
+    // Batch 654: the Release Hold Print Policy may forbid printing while the report is held.
+    if (plan.blocked) { showToast(tGrossingNav('reportPrint.heldBlocked'), 'warning'); return; }
+    if (plan.askReason || plan.warnPendingRelease || plan.askOverrideReason) { setPrintPlan(plan); return; }
     await printReport(plan, '');
-  }, [caseData, orchPrintRestricted, printReport]);
+  }, [caseData, printReport, showToast, tGrossingNav]);
 
   // caseComputationalFlags removed along with the Computational tab —
   // this derivation only ever fed that tab's flag list.
@@ -2933,58 +2868,15 @@ const SynopticReportPage: React.FC = () => {
   }, [isOrchestrationMode, leftTab, safeSetLeftTab]);
 
   // ── Voice actions for Report Draft ──────────────────────────────────────────
-  useEffect(() => {
-    if (!isOrchestrationMode) return;
-    const actions = [
-      { id: 'orch_open_draft',     phrases: ['open report draft', 'show report draft', 'go to draft'],              handler: () => safeSetLeftTab('draft')        },
-      { id: 'orch_open_report',    phrases: ['open full report', 'show full report', 'view report'],                  handler: () => safeSetLeftTab('report')   },
-      { id: 'orch_open_sequencer', phrases: ['open sequencer', 'show sequencer', 'synoptic fields'],                  handler: () => safeSetLeftTab('sequencer')    },
-      { id: 'orch_save_draft',     phrases: ['save draft', 'save report', 'save my work'],                           handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_SAVE_DRAFT'))        },
-      { id: 'orch_generate',       phrases: ['generate report', 'generate narrative', 'create report', 'generate'],  handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_GENERATE_REPORT'))    },
-      { id: 'orch_regen',          phrases: ['regenerate report', 'regenerate all', 'redo report'],                   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_REGEN_ALL'))                       },
-      { id: 'orch_next_section',   phrases: ['next section', 'go to next section'],                                   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_NEXT_SECTION'))                   },
-      { id: 'orch_prev_section',   phrases: ['previous section', 'go back', 'prior section'],                         handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_PREV_SECTION'))                   },
-      { id: 'orch_section_1',      phrases: ['go to section one', 'section one', 'first section'],                   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 0 } })) },
-      { id: 'orch_section_2',      phrases: ['go to section two', 'section two', 'second section'],                  handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 1 } })) },
-      { id: 'orch_section_3',      phrases: ['go to section three', 'section three', 'third section'],               handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 2 } })) },
-      { id: 'orch_section_4',      phrases: ['go to section four', 'section four', 'fourth section'],                handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 3 } })) },
-
-      // ── Dictation actions ────────────────────────────────────────────────
-      // "Dictate [section name]" → jump cursor + register dictation target.
-      // Pathologist then activates the NavBar mic to start speaking.
-      // Section names are matched by partial label — "dictate gross" matches
-      // "Specimen & Gross Description", "dictate admin" matches "Administrative
-      // & Clinical Header", etc.
-      { id: 'orch_dictate_admin',    phrases: ['dictate administrative', 'dictate admin', 'dictate clinical header', 'dictate header'],
-        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 0 } })) },
-      { id: 'orch_dictate_gross',    phrases: ['dictate gross', 'dictate gross description', 'dictate specimen', 'dictate macroscopic'],
-        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 1 } })) },
-      { id: 'orch_dictate_synoptic', phrases: ['dictate synoptic', 'dictate synoptic summary', 'dictate summary'],
-        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 2 } })) },
-      { id: 'orch_dictate_diagnosis', phrases: ['dictate diagnosis', 'dictate ancillary', 'dictate final diagnosis', 'dictate conclusion'],
-        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 3 } })) },
-      // Generic — "dictate section two" etc mirrors existing jump pattern
-      { id: 'orch_dictate_section_1', phrases: ['dictate section one', 'dictate first section'],   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 0 } })) },
-      { id: 'orch_dictate_section_2', phrases: ['dictate section two', 'dictate second section'],  handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 1 } })) },
-      { id: 'orch_dictate_section_3', phrases: ['dictate section three', 'dictate third section'], handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 2 } })) },
-      { id: 'orch_dictate_section_4', phrases: ['dictate section four', 'dictate fourth section'], handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 3 } })) },
-      { id: 'orch_dark_mode',      phrases: ['dark mode', 'toggle dark mode', 'night mode'],                          handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_TOGGLE_DARK'))                     },
-    ];
-
-    const eventListeners: [string, EventListener][] = [];
-    actions.forEach(a => {
-      (actionRegistryService as any).registerAction?.({
-        id: a.id, label: a.phrases[0], phrases: a.phrases,
-        event: `PATHSCRIBE_${a.id.toUpperCase()}`, context: 'ORCHESTRATOR', category: 'Report Draft',
-      });
-      const listener = a.handler as EventListener;
-      window.addEventListener(`PATHSCRIBE_${a.id.toUpperCase()}`, listener);
-      eventListeners.push([`PATHSCRIBE_${a.id.toUpperCase()}`, listener]);
-    });
-
-    return () => eventListeners.forEach(([event, fn]) => window.removeEventListener(event, fn));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOrchestrationMode, leftTab]);
+  // Batch 650: the phrase list and its registration moved to hooks/useReportDraftVoiceActions.ts
+  // (services/voice/reportDraftVoiceActions.ts); the old inline list called a registry method that did not exist.
+  useReportDraftVoiceActions({ enabled: isOrchestrationMode, leftTab, setLeftTab: safeSetLeftTab });
+  // Batches 661, 663: the open-a-window, view and Skip Field commands by voice or key (the buttons' own handlers).
+  useReportOpenCommands({
+    caseLoaded: !!caseData, specimenIds: (caseData?.specimens ?? []).map(sp => sp.id), activeSpecimenId,
+    openCaseComment: () => setShowCaseCommentModal(true), openAddSynoptic: () => setShowAddSynopticModal(true), selectSpecimen: setActiveSpecimenId, leftTab, showReportTab: () => safeSetLeftTab('report'), setSidebarCollapsed,
+    openSpecimenComment: id => { setActiveSpecimenCommentId(id); setShowSpecimenCommentModal(true); },
+  });
 
   // useSidecar's selectedFlag/isOpen effect removed — it switched
   // leftTab to 'results', a tab that no longer exists (removed along
@@ -2996,6 +2888,7 @@ const SynopticReportPage: React.FC = () => {
     flagDefinitions,
     showFlagManager, setShowFlagManager,
     openFlagManager,
+    applyStatFlag,
     onApplyFlags,
     onRemoveFlag,
   } = useSynopticFlags(caseId ?? '');
@@ -3126,22 +3019,19 @@ const SynopticReportPage: React.FC = () => {
         // remaining listeners, tied to the Sidecar/order apparatus
         // removed elsewhere.
 
-        // ── Flags — FLAG_APPLY_STAT opens the manager rather than ──────────
-        // ── attempting a direct apply; ApplyFlagPayload's exact shape ──────
-        // ── (case vs. specimen scoping) wasn't verified this pass, and a ───
-        // ── wrong guess here risks a silent, wrong flag application — ──────
-        // ── opening the manager for a real, deliberate click is safer. ─────
         case 'FLAG_OPEN_MANAGER':
-        case 'FLAG_APPLY_STAT':
           openFlagManager(caseData);
+          break;
+        case 'FLAG_APPLY_STAT': // Batch 669: applies STAT to the open case, answers with a toast
+          void applyStatFlag().then(({ outcome, caseFlags }) => {
+            if (caseFlags) setCaseData(prev => prev ? { ...prev, caseFlags } : prev);
+            showToast(tGrossingNav(STAT_FLAG_MESSAGE_KEY[outcome]), outcome === 'applied' || outcome === 'alreadyStat' ? 'info' : 'warning');
+          });
           break;
 
         // ── Add Orders — four separate ids so "add block" lands directly
         // on that tab rather than opening generically and requiring a
-        // manual tab click, same reasoning as the FLAG_APPLY_STAT
-        // comment above but the opposite conclusion: here there's no
-        // ambiguous-shape risk, just which tab opens first, so going
-        // straight there is safe.
+        // manual tab click: going straight there is safe.
         case 'ADD_ORDERS':
           setAddOrdersInitialTab(undefined);
           setShowAddOrdersModal(true);
@@ -3159,20 +3049,12 @@ const SynopticReportPage: React.FC = () => {
           setShowAddOrdersModal(true);
           break;
 
-        // ── Save/Discard — reuses the real, existing save mechanism ────────
-        // ── (the same one Ctrl+S and the Save Draft button use), not a ─────
-        // ── new one. Scoped to Orchestration-mode cases specifically: the ──
-        // ── PATHSCRIBE_ORCH_SAVE_DRAFT listener is only ever registered ────
-        // ── when isOrchestrationMode is true, matching "Report Draft" ──────
-        // ── being an orchestration-mode concept. Discard reloads from the ──
-        // ── last saved state rather than trying to manually unwind local ───
-        // ── React state, which is safer given how many places touch it. ────
+        // Save Draft reuses the Ctrl+S mechanism (orchestration-mode cases only); Discard asks first (Batch 639), then reloads from the last save.
         case 'SAVE_DRAFT':
           window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_SAVE_DRAFT'));
           break;
         case 'DISCARD_CHANGES':
-          clearDirty();
-          window.location.reload();
+          void discardConfirm.ask().then(ok => { if (ok) { clearDirty(); window.location.reload(); } });
           break;
 
         case 'TEMPLATE_SELECT':
@@ -3184,7 +3066,7 @@ const SynopticReportPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- handleReturnToTrainee comes from useSignOutWorkflow further down (listing it here would read it before it exists); caseData, listed, re-subscribes when the case changes
   }, [
     allBlocks.length, handleAdvanceFocusedBlockStatus, handleConfirmTriage, setFocusedBlockIndex,
-    openFlagManager, clearDirty, caseData,
+    openFlagManager, applyStatFlag, clearDirty, caseData,
   ]);
 
 
@@ -3470,6 +3352,8 @@ const SynopticReportPage: React.FC = () => {
 
 
   const synopticPanelRef = React.useRef<RightSynopticPanelHandle>(null);
+  const [omittedAiCount, setOmittedAiCount] = useState(0); // Batch 691
+  const omitUnverifiedAi = useOmitUnverifiedAi({ caseDataRef, setCaseData, panelRef: synopticPanelRef, activeReportInstanceId, markDirty, userName: signingUser?.name });
   const {
     releasePendingAmendmentOrAddendum,
     alertAdminsOfUnresolvedDrift,
@@ -3488,7 +3372,7 @@ const SynopticReportPage: React.FC = () => {
     resumingAmendment, setResumingAmendment,
     openAmendmentDraft,
     handleFieldOverridesConfirmed,
-    handleRequestAmendment,
+    handleRequestAmendment, handleRequestAddendum,
     handleAmendmentSubmit,
     amendmentMismatch, resumeAddendumAfterMismatch, cancelAddendumMismatch,
   } = useAmendmentWorkflow({
@@ -3497,14 +3381,11 @@ const SynopticReportPage: React.FC = () => {
     generateReportPdfSnapshot, pendingLisNotice, setPendingLisNotice,
     amendmentMode, amendmentText, setAmendmentText, setAmendmentMode,
     setShowAmendmentModal, log,
-  });
+  }); useAddendumCommand(caseData, handleRequestAddendum); useCollaboratorCommand({ caseData, userId: signingUser?.id, userName: signingUser?.name, notify: (key, params, kind) => showToast(tGrossingNav(key, params), kind), onSaved: (updated, version) => { knownVersionRef.current = adoptSavedVersion(knownVersionRef.current, version); setCaseData(updated); } });
   // Stage 1: tracks whether a Stage 1 evaluation call is currently in
   // flight. Combined with showProtoReview (above) to gate Finalize/
   // Finalize & Next/Sign Out in BottomActionBar — see handleGrossComplete.
-  // Per-instance snapshot of answers at the moment each GrossingReportInstance
-  // was last finalized — set in handleGrossComplete, read by the drift-
-  // detection useEffect right after it. Ref, not state: pure bookkeeping,
-  // shouldn't trigger renders on its own.
+  // Answers snapshot per finalized Grossing instance (set in handleGrossComplete, read by the drift check below); a ref, not state.
   const grossingSnapshotRef = React.useRef<Map<string, string>>(new Map());
   const {
     isEvaluatingSynopticFit, handleGrossComplete,
@@ -3516,6 +3397,9 @@ const SynopticReportPage: React.FC = () => {
     handleGrossingProtocolChangesDetected,
     orchSections,
   });
+  // Batch 692: unconfirmed optional AI values stay out of the finalized gross; the ref runs the latest handler after the re-render.
+  const grossCompleteRef = React.useRef(handleGrossComplete); grossCompleteRef.current = handleGrossComplete;
+  const grossCompleteAfterOmit = React.useCallback(async (...a: Parameters<typeof handleGrossComplete>) => { await omitUnverifiedAi('gross'); return grossCompleteRef.current(...a); }, [omitUnverifiedAi]);
 
   const microscopicEntry = useMicroscopicEntry({
     caseData, setCaseData, knownVersionRef, setConcurrencyConflict, showToast,
@@ -3922,7 +3806,7 @@ const SynopticReportPage: React.FC = () => {
     finalizeSignOut,
     handleSignOutConfirm,
     handleReturnToTrainee,
-    finalizeCase,
+    finalizeAndRelease,
     missingFields,
     showMissingWarning, setShowMissingWarning,
     reviewFields,
@@ -3957,7 +3841,7 @@ const SynopticReportPage: React.FC = () => {
     setActiveSpecimenId, setActiveReportType,
     setShowAmendmentModal, setShowFinalizeModal, openAmendmentDraft,
     releasePendingAmendmentOrAddendum, log,
-  });
+  }); const signOutNext = useSignOutAndNext({ caseId: caseData?.id, signed: signOutDone(caseData?.status), queue: worklistCases, queueIndex: worklistIndex, openNext: () => navigateToCase('next'), notifyNoNext: () => showToast(tGrossingNav(caseData?.reportingMode === 'assist' ? 'synopticReportPage.toast.finalisedNoNextCase' : 'synopticReportPage.toast.signedOutNoNextCase')) });
   // Batch 453 (PS-323): the microscopic findings, for the per-specimen
   // Microscopic entry panel's highlight (one stable list per findings set).
   const microscopicFindings = useMemo(() => findingsForField(criticalFindings, 'microscopic'), [criticalFindings]);
@@ -4064,10 +3948,9 @@ const SynopticReportPage: React.FC = () => {
         await handleSignOutConfirm();
         return;
       }
-      const succeeded = await finalizeCase(args);
-      if (succeeded) await releasePendingAmendmentOrAddendum();
+      await finalizeAndRelease(args);
     })();
-  }, [caseData, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setFixativeGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum, savePagePatch]);
+  }, [caseData, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setFixativeGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeAndRelease, handleSignOutConfirm, savePagePatch]);
 
   // Real, per PS-289/PS-292's own Gating Strategy — simpler than
   // handleFixativeGateContinue above, since the real confirmation
@@ -4085,10 +3968,9 @@ const SynopticReportPage: React.FC = () => {
         await handleSignOutConfirm();
         return;
       }
-      const succeeded = await finalizeCase(args);
-      if (succeeded) await releasePendingAmendmentOrAddendum();
+      await finalizeAndRelease(args);
     })();
-  }, [setStainQcGateBlocking, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
+  }, [setStainQcGateBlocking, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeAndRelease, handleSignOutConfirm]);
 
   // Batch 439 (PS-145, PS-144): resume sign-out after the mismatch decision or
   // the urgent-care override, exactly as handleStainQcGateContinue does.
@@ -4099,10 +3981,9 @@ const SynopticReportPage: React.FC = () => {
     setPendingActionIsSignOut(false);
     (async () => {
       if (isSignOut) { await handleSignOutConfirm(); return; }
-      const succeeded = await finalizeCase(args);
-      if (succeeded) await releasePendingAmendmentOrAddendum();
+      await finalizeAndRelease(args);
     })();
-  }, [pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
+  }, [pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeAndRelease, handleSignOutConfirm]);
   const cancelGate = useCallback(() => {
     setClinicalMismatch(null); setPeerReviewGate(null); setInkingGateBlocking(null); setPendingFinalizeArgs([]); setPendingActionIsSignOut(false);
   }, [setPendingFinalizeArgs, setPendingActionIsSignOut]);
@@ -4327,24 +4208,20 @@ const SynopticReportPage: React.FC = () => {
         await handleSignOutConfirm();
         return;
       }
-      const succeeded = await finalizeCase(args);
-      if (succeeded) await releasePendingAmendmentOrAddendum();
+      await finalizeAndRelease(args);
     })();
-  }, [caseData, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setPreAnalyticDateGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum, savePagePatch]);
+  }, [caseData, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setPreAnalyticDateGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeAndRelease, handleSignOutConfirm, savePagePatch]);
 
   // Previously an anonymous inline closure on AddCodeModal's
   // onAddToSpecimens JSX prop — merges new ICD/SNOMED/CPT codes into the
   // case, routing each CPT code to its own specimen's coding.cpt.
   const handleAddCodesToSpecimens = useCallback(async (codes: any[], _specimenIndices: unknown, codedEntries?: CodedEntry[]) => {
     if (!caseData) return;
-    // Real fix, per direct correction: "you can delete cpt codes in
-    // the code manager - it uses the trash can icon." The modal's own
-    // Save button resolves its FULL, final set of active codes
-    // (AddCodeModal.tsx's own allActiveCodes, built from applied minus
-    // whatever's pendingDelete) and hands that whole set back here -
-    // not just newly-added ones. Treating it as "new additions to
-    // append" (the previous behavior) would silently duplicate every
-    // already-active, untouched code on every single save.
+    await assertDiagnosisCodeApply(caseData.id); // Batch 649: case:diagnosis-code:apply; a refusal keeps the Codes window open with the reason
+    // Per direct correction: CPT codes can be deleted in the code manager (trash can icon). The modal's own Save button resolves its FULL, final set of active codes (AddCodeModal.tsx's own allActiveCodes,
+    // built from applied minus whatever's pendingDelete) and hands that whole set back here - not just newly-added ones.
+    // Treating it as "new additions to append" (the previous behavior) would silently duplicate every already-active,
+    // untouched code on every single save.
     // Real, per direct guidance's own follow-up on structured
     // linkage: the modal's own allActiveCodes already carries a real
     // specimenId on every code, ICD included (AddCodeModal.tsx's own
@@ -4362,6 +4239,7 @@ const SynopticReportPage: React.FC = () => {
       resolveCodeManagerSave(codes as CodeManagerCode[], (caseData.specimens ?? []) as any[]);
     // Batch 607 (#138): the full-fidelity entries (release, source, AI detail) travel with the saved lists.
     const newCoding = codedEntries ? { ...savedCoding, entries: reconcileEntries([...(caseData.coding?.entries ?? [])], codedEntries) } : savedCoding;
+    if (codedEntries) recordAiCodeBinds(auditService, caseData.coding?.entries ?? [], codedEntries, { caseId: caseData.id, userName: signingUser?.name ?? '' }); // Batch 680
 
     // Real, per direct guidance's own follow-up: billing is one of the
     // few things that can genuinely change after a case signs out, but
@@ -4553,7 +4431,7 @@ const SynopticReportPage: React.FC = () => {
           caseData={caseData}
           onNavigate={guard}
           returnTarget={returnTarget}
-          onSignOut={handleSignOutClick}
+          onSignOut={() => { signOutNext.disarm(); handleSignOutClick(); }}
           aiSynthesisStatus={aiSynthesisStatus}
           onAiStatusClick={handleAiStatusReviewClick}
           compact={(isOrchestrationMode && leftTab === 'draft') || isHeaderCompactManual}
@@ -6178,9 +6056,9 @@ const SynopticReportPage: React.FC = () => {
             if (!saved) return; // held by a real conflict — don't proceed to the next case
             navigateToCase('next');
           }}
-          onFinalize={() => handleRequestFinalize(false)}
-          onFinalizeAndNext={() => handleRequestFinalize(true)}
-          onSignOut={() => { if (caseData?.reportingMode !== 'assist') handleSignOutClick(); }}
+          onFinalize={() => { signOutNext.disarm(); handleRequestFinalize(false); }}
+          onFinalizeAndNext={() => { signOutNext.arm(); handleRequestFinalize(true); }}
+          onSignOut={() => { signOutNext.disarm(); if (caseData?.reportingMode !== 'assist') handleSignOutClick(); }} onSignOutAndNext={() => { if (caseData?.reportingMode !== 'assist') { signOutNext.arm(); handleSignOutClick(); } }}
           onReleasePreliminary={caseData?.id ? async () => {
             const result = await releasePreliminaryReport(caseData.id!, {
               id: signingUser?.id ?? 'unknown', name: signingUser?.name ?? signingUser?.id ?? 'unknown', role: 'Pathologist',
@@ -6220,7 +6098,7 @@ const SynopticReportPage: React.FC = () => {
           onNextCase={() => { if (shouldWarnDirty()) { setPendingNavigation('next'); } else { navigateToCase('next'); } }}
           onPreviousCase={() => { if (shouldWarnDirty()) { setPendingNavigation('prev'); } else { navigateToCase('prev'); } }}
           onGenerateReport={isOrchestrationMode ? handleGenerateReport : undefined}
-          onGrossComplete={isOrchestrationMode ? handleGrossComplete : undefined}
+          onGrossComplete={isOrchestrationMode ? grossCompleteAfterOmit : undefined}
           synopticFitPending={isEvaluatingSynopticFit || showProtoReview || showGrossingProtoReview}
           isGenerating={isOrchestrating}
           onAbortGenerate={handleAbortGenerate}
@@ -6274,10 +6152,10 @@ const SynopticReportPage: React.FC = () => {
       />
 
       <CaseSignOutModal
-        show={showSignOutModal}
+        show={showSignOutModal} orderingFacilityId={caseData?.order?.facilityId ?? null}
         accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
         onClose={() => setShowSignOutModal(false)}
-        onConfirm={handleSignOutConfirm}
+        onConfirm={handleSignOutConfirm} unreviewedAiFields={omittedAiCount}
         onReject={handleReturnToTrainee}
         isCountersign={(caseData as any)?.status === 'pending-countersign'}
         residentName={(caseData as any)?.participants?.find((p: any) => p.status === 'active' && p.participationTypeIds?.includes('resident'))?.staffName}
@@ -6327,7 +6205,7 @@ const SynopticReportPage: React.FC = () => {
 
       {pendingReconciliation && caseData && (
         <DiscordanceReconciliationModal
-          caseId={caseData.id}
+          key={pendingReconciliation.specimenId} caseId={caseData.id}
           specimenId={pendingReconciliation.specimenId}
           caseType={pendingReconciliation.caseType}
           frozenCategory={pendingReconciliation.frozenCategory}
@@ -6387,7 +6265,7 @@ const SynopticReportPage: React.FC = () => {
           onComplete={(summary) => {
             console.info('[PathScribe] AI review summary:', summary);
             setShowAiReview(false);
-            setShowFinalizeModal(true);
+            void omitUnverifiedAi().then(n => { setOmittedAiCount(n); setShowFinalizeModal(true); }); // Batch 691
           }}
           onCancel={() => setShowAiReview(false)}
         />
@@ -6403,6 +6281,7 @@ const SynopticReportPage: React.FC = () => {
       )}
 
       {warningConfirm.modal}
+      {discardConfirm.modal}
 
       {showMissingWarning && (
         <div className="ps-cannot-fin-overlay" onClick={() => setShowMissingWarning(false)}>
@@ -6551,7 +6430,7 @@ const SynopticReportPage: React.FC = () => {
         amendedByName={signingUser?.name ?? unknownUserName}
         versionHistory={versionHistory}
         resuming={resumingAmendment}
-        orderingPhysicianName={caseData?.order?.requestingProvider}
+        orderingPhysicianName={caseData?.order?.requestingProvider} revisionScope={caseData}
         onModeChange={setAmendmentMode}
         onTextChange={setAmendmentText}
         onClose={() => { setShowAmendmentModal(false); setAmendmentDraftId(null); setAmendmentSubmitError(null); setResumingAmendment(undefined); }}

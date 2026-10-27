@@ -43,6 +43,14 @@ export const MfaPolicyCard: React.FC = () => {
 
   useEffect(() => { void loadRows(); }, [loadRows]);
 
+  // Batch 675 (access-14): with an API server the policy is the server's; read it when the card opens.
+  useEffect(() => {
+    if (!user) return;
+    let live = true;
+    void mfaService.loadPolicy(user).then(ok => { if (live && ok) setPolicy(mfaService.policyOf(user)); });
+    return () => { live = false; };
+  }, [user]);
+
   if (!user || !policy) return null;
 
   const save = async (next: Partial<MfaPolicy>) => {

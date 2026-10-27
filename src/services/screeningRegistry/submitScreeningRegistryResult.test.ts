@@ -33,6 +33,21 @@ const review = { primaryInterpretationId: 'nilm', adequacySelections: [], additi
 const record = (id: string, signedAt: string) => ({ id, caseId: 'C1', specimenId: 'SP1', reviewRecordId: 'rv1', signedAt, reportContent: { patientName: 'A B', accessionNumber: 'S1', specimenAdequacy: [], primaryInterpretation: 'NILM', additionalInterpretations: [], recommendations: [], requiresPathologistReview: false } } as any);
 
 describe('submitScreeningRegistryResult (Batch 419)', () => {
+  it('Batch 620 (PS-800): a registry that takes a batch file is queued and never dispatched as a message', async () => {
+    const { deps, queue } = makeDeps({ batchProgram: async id => id === 'ncsr_australia' });
+    const o = await submitScreeningRegistryResult({ caseData, record: record('so1', '2026-09-30T10:00:00Z'), review, categories: [], isGynCytology: true, kind: 'signOut' }, deps);
+    expect(o.outcome).toBe('queuedForBatch');
+    expect(queue).toHaveLength(1);
+    expect(queue[0].status).toBe('QUEUED');
+    expect(deps.dispatchInterfaceMessage).not.toHaveBeenCalled();
+    expect(deps.registryQueue.markSent).not.toHaveBeenCalled();
+  });
+  it('Batch 620 (PS-800): a registry with no batch profile still goes as a message', async () => {
+    const { deps } = makeDeps({ batchProgram: async () => false });
+    const o = await submitScreeningRegistryResult({ caseData, record: record('so1', '2026-09-30T10:00:00Z'), review, categories: [], isGynCytology: true, kind: 'signOut' }, deps);
+    expect(o.outcome).toBe('sent');
+  });
+
   it('sign-out, then correction, then addendum: NEW → CORRECTION → AMENDMENT, one master id, versions 1-3', async () => {
     const { deps, queue } = makeDeps({}, 'production');
     const a = await submitScreeningRegistryResult({ caseData, record: record('so1', '2026-09-30T10:00:00Z'), review, categories: [], isGynCytology: true, kind: 'signOut' }, deps);
@@ -117,7 +132,7 @@ describe('submitScreeningRegistryResult — versioned eligibility flag (PS-71)',
       return snapshot;
     });
     const { deps } = makeDeps({ ...csms, getCase, updateCase });
-    expect((await run(deps)).outcome).toBe('sent');
+    expect((await run(deps)).outcome).toBe('awaitingEligibility');
     expect(updateCase).toHaveBeenCalledTimes(2);
     expect(updateCase.mock.calls[0][2]).toBe(3);
     expect(updateCase.mock.calls[1][2]).toBe(4);
@@ -128,7 +143,39 @@ describe('submitScreeningRegistryResult — versioned eligibility flag (PS-71)',
     const updateCase = vi.fn(async () => undefined);
     const getCase = async () => ({ ...caseData, version: 1, caseFlags: [{ id: 'x', flagDefinitionId: 'f36', deletedAt: null }] });
     const { deps } = makeDeps({ ...csms, getCase, updateCase });
-    expect((await run(deps)).outcome).toBe('sent');
+    expect((await run(deps)).outcome).toBe('awaitingEligibility');
     expect(updateCase).not.toHaveBeenCalled();
+  });
+});
+
+// Batch 638 (PS-193, Pete): the CSMS message waits for the eligibility answer.
+describe('submitScreeningRegistryResult — CSMS eligibility gate (Batch 638)', () => {
+  const csms = { getRegistrySettings: async () => ({ enterprise: { registryId: 'csms_uk' }, facility: null }) };
+  const go = (deps: ScreeningRegistrySubmitDeps, kind: 'signOut' | 'correction' = 'signOut', data: any = caseData) =>
+    submitScreeningRegistryResult({ caseData: data, record: record('so1', '2026-09-30T10:00:00Z'), review, categories: [], isGynCytology: true, kind }, deps);
+
+  it('nothing is dispatched; the entry is queued and held as awaiting eligibility, and the flag is raised', async () => {
+    const updateCase = vi.fn(async () => undefined);
+    const { deps, queue } = makeDeps({ ...csms, getCase: async () => ({ ...caseData, version: 1, caseFlags: [] }), updateCase });
+    const o = await go(deps);
+    expect(o.outcome).toBe('awaitingEligibility');
+    expect(deps.dispatchInterfaceMessage).not.toHaveBeenCalled();
+    expect(queue[0]).toMatchObject({ status: 'FAILED', errorCode: 'AWAITING_ELIGIBILITY' });
+    expect(updateCase).toHaveBeenCalledTimes(1);
+  });
+
+  it('a later correction follows the first submission: still waiting, or closed when she was not eligible', async () => {
+    const { deps, queue } = makeDeps({ ...csms, getCase: async () => ({ ...caseData, version: 1, caseFlags: [] }) });
+    await go(deps);
+    expect((await go(deps, 'correction')).outcome).toBe('awaitingEligibility');
+    queue.forEach(q => { q.errorCode = 'NOT_ELIGIBLE'; q.registryId = 'csms_uk'; });
+    await go(deps, 'correction');
+    expect(queue[queue.length - 1].errorCode).toBe('NOT_ELIGIBLE');
+    expect(deps.dispatchInterfaceMessage).not.toHaveBeenCalled();
+  });
+
+  it('a registry with no eligibility flag still sends at once', async () => {
+    const { deps } = makeDeps();
+    expect((await go(deps)).outcome).toBe('sent');
   });
 });

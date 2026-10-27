@@ -1,0 +1,1432 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Appendices: Troubleshooting and Audit Log Verification · PathScribe Administrator Guide (ForMedrixAI internal edition)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="en" data-root="">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administrator Guide</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option></select>
+<button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html">3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html" aria-current=page>9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html">10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html">11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch9-matrix">Troubleshooting matrix</a></li><li class="l3"><a href="#ch9-matrix-empty">Empty lists and &quot;not set up&quot; messages</a></li><li class="l3"><a href="#ch9-matrix-permissions">Saves refused, greyed-out buttons and screens you cannot open</a></li><li class="l3"><a href="#ch9-matrix-print">Labels and reports that do not print</a></li><li class="l3"><a href="#ch9-matrix-interfaces">Interface messages that are stuck</a></li><li class="l3"><a href="#ch9-matrix-signin">Sign-in fails</a></li><li class="l3"><a href="#ch9-matrix-stuck">An interface message or screen looks stuck</a></li><li class="l2"><a href="#ch9-error-codes">System error code index</a></li><li class="l3"><a href="#ch9-codes-http">Codes any server-backed screen can show</a></li><li class="l3"><a href="#ch9-codes-permission">Permission and approval refusals</a></li><li class="l3"><a href="#ch9-codes-exports">Exports</a></li><li class="l3"><a href="#ch9-codes-config">Start-up configuration</a></li><li class="l3"><a href="#ch9-codes-print">Printing, labels and the site agent</a></li><li class="l3"><a href="#ch9-codes-outbound">Outbound messages, charges, registries and server jobs</a></li><li class="l3"><a href="#ch9-codes-config-screens">Configuration screens: refusals worth knowing</a></li><li class="l2"><a href="#ch9-system-logs">System Logs reference</a></li><li class="l3"><a href="#screen-audit-log">System Logs</a></li><li class="l2"><a href="#ch9-audit-verification">Audit log verification guide</a></li><li class="l3"><a href="#ch9-audit-recorded">What is recorded</a></li><li class="l3"><a href="#ch9-audit-find-setting">How to find a change to a setting</a></li><li class="l3"><a href="#ch9-audit-find-permission">How to check who changed a permission</a></li><li class="l3"><a href="#ch9-audit-integrity">How record integrity and retention work</a></li><li class="l3"><a href="#ch9-audit-export">How to export</a></li><li class="l3"><a href="#ch9-audit-support">How the Support Access audit fits</a></li><li class="l3"><a href="#ch9-audit-routine">A short verification routine</a></li></ul></aside><article><h1 id="ch9"><a class="anchor" href="#ch9" aria-label="Link to this section">#</a> Appendices: Troubleshooting and Audit Log Verification</h1>
+<p>This chapter has three parts. The first is a troubleshooting matrix: the problems an administrator meets most often, each with its cause and the screen that fixes it. The second is an index of the error codes PathScribe shows or records. The third documents the System Logs screen and gives a step-by-step guide for verifying what the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> holds. The glossary of terms is the last chapter of the guide (<a href="99-glossary.html#ch99">Glossary</a>).</p>
+<p><strong>The User Guide (Batch 657).</strong> The online User Guide for the people who do the work is built from Markdown in <code>docs/user-guide/</code> by <code>python3 scripts/user-guide/build.py</code> and published with the application under <code>/help</code>; each screen's Help button and F1 open the article for the screen being shown. Configuration and administrator screens keep their Administrator Guide buttons. No setting is needed. Add or change a page by editing its file and rebuilding; the build checks the required sections, links and routes.</p>
+<p>Every message quoted here is the English text from the product. Every code is one that exists in the source; a code that is only a <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> in a contract, with no use in the product, is not listed.</p>
+<h2 id="ch9-matrix"><a class="anchor" href="#ch9-matrix" aria-label="Link to this section">#</a> Troubleshooting matrix</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Administrator Guide &gt; Appendices &gt; Troubleshooting matrix"><span>Home</span> <span aria-hidden="true">›</span> <span>Administrator Guide</span> <span aria-hidden="true">›</span> <span>Appendices</span> <span aria-hidden="true">›</span> <span>Troubleshooting matrix</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>How to use the matrix.</strong> Find the symptom the user reports, read the likely cause, and follow the fix. Most "it is broken" reports are one of two things: a dictionary that was never set up (an empty list), or a <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> that does not hold a <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> (a greyed-out button or a refused save). When the symptom shows an upper-case code, look it up in the <a href="#ch9-error-codes">error code index</a>.</p>
+<p><strong>Before anything else.</strong> Two checks answer most questions.</p>
+<ol>
+<li>Open <a href="#screen-audit-log">System Logs</a> and search for the person's name or the capability key. A refused permission check writes a <strong>Capability refused</strong> entry that names the capability and the person's session role.</li>
+<li>Look at the <strong>Error Log</strong> tab for an open error with a code, source and time near the report.</li>
+</ol>
+<h3 id="ch9-matrix-empty"><a class="anchor" href="#ch9-matrix-empty" aria-label="Link to this section">#</a> Empty lists and "not set up" messages</h3>
+<p>An empty drop-down or a "none configured" message almost always means a dictionary earlier in the setup order was skipped. The <a href="setup-sequence.html">Setup order</a> page lists the order.</p>
+<table>
+<thead>
+<tr>
+<th>Symptom (what the user sees)</th>
+<th>Likely cause</th>
+<th>Fix</th>
+<th>Screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>'s team window: <strong>No participation types configured</strong>, with the hint "Set up types in System → Participation Types."</td>
+<td>No <a class="term" href="99-glossary.html#g-participation-type" title="A role a person plays on a case, such as primary pathologist or screener, with its own signing authority.">participation type</a> exists.</td>
+<td>Add the types the lab uses, then reopen the window.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-participation_types">Participation Types</a></td>
+</tr>
+<tr>
+<td>A test print or a label window says <strong>No printer profiles configured</strong>.</td>
+<td>No <a class="term" href="99-glossary.html#g-printer-profile" title="The saved settings for one model of printer, including its connection method (bridge).">printer profile</a> has been added.</td>
+<td>Add a printer profile for each label printer model.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printer Profiles</a></td>
+</tr>
+<tr>
+<td>An <a class="term" href="99-glossary.html#g-embedding" title="The step where processed tissue is set in wax in a cassette to make a block.">embedding</a> or <a class="term" href="99-glossary.html#g-microtomy" title="Cutting thin sections from a block with a microtome to make slides.">microtomy</a> station says <strong>No printer configured</strong> or <strong>The configured printer profile no longer exists</strong>. A slide-distribution station says <strong>This station isn't set up for slide-label printing.</strong></td>
+<td>The station has no printer profile, or its profile was deleted.</td>
+<td>Open the station and choose a printer profile that still exists.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-scan_stations">Scan Stations</a>, <a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printer Profiles</a></td>
+</tr>
+<tr>
+<td>A slide-distribution or scan-batch window says <strong>No slide scanners are set up</strong> (the text names Configuration, Equipment, kind "Slide scanner").</td>
+<td>No equipment record of kind Slide scanner.</td>
+<td>Add the scanners.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-equipment">Equipment</a></td>
+</tr>
+<tr>
+<td>A label does not print and the message reads <strong>No <a class="term" href="99-glossary.html#g-gs1" title="The standards organisation behind the barcode formats and the GTIN numbering used on cassette and slide labels.">GS1</a> <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, the number a GS1 barcode carries. Print Settings holds the facility&#x27;s GTIN.">GTIN</a> configured. Set one in Print Settings before printing a GS1 <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> label</strong> (or slide label).</td>
+<td>The <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> has no GS1 GTIN entered.</td>
+<td>Enter the GTIN in Print Settings.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-print_settings">Print Settings</a></td>
+</tr>
+<tr>
+<td>Facility Ops dashboard says <strong>No display profiles are configured yet</strong>.</td>
+<td>No <a class="term" href="99-glossary.html#g-display-profile" title="A saved layout of dashboard tiles that a wall display shows.">display profile</a> exists.</td>
+<td>Add one under Display Profiles.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-display_profiles">Display Profiles</a></td>
+</tr>
+<tr>
+<td>The OR dashboard says <strong>No terminals configured yet</strong>.</td>
+<td>No OR suite terminal exists.</td>
+<td>Add the terminals.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-or_suite_terminals">OR Suite Terminals</a></td>
+</tr>
+<tr>
+<td>In the routing rule window: <strong>No active pools. Enable "Pool / Workgroup" on a Subspecialty first.</strong></td>
+<td>No <a class="term" href="99-glossary.html#g-subspecialty" title="An area of pathology, such as breast or gastrointestinal, used to route cases. A subspecialty can be switched to pool mode.">subspecialty</a> is in Pool / Workgroup mode.</td>
+<td>Switch Pool / Workgroup on for at least one subspecialty, then add the rule.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-subspecialties">Subspecialties</a>, <a href="04-tier3-workflow-engines.html#screen-routing_rules">Routing Rules</a></td>
+</tr>
+<tr>
+<td>In the new container window: <strong>No facility is currently configured with the Reference Lab <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>.</strong></td>
+<td>No facility has the Reference Lab role.</td>
+<td>Give a facility that role in its facility settings.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></td>
+</tr>
+<tr>
+<td>A user trying secure email sees <strong>Your lab has no secure messaging gateway set up.</strong></td>
+<td>The facility has no gateway under its Secure messaging tab.</td>
+<td>Add a gateway in the facility's settings.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></td>
+</tr>
+<tr>
+<td>The Client service levels <strong>Add</strong> list is empty, with the note that every client already has a level or no clients are set up.</td>
+<td>Every facility already has a service level, or no client facilities exist.</td>
+<td>Add the facilities first, or edit the existing level.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-clients">Facility Configuration</a>, <a href="03-tier2-master-dictionaries.html#screen-client_sla">Client service levels</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-permissions"><a class="anchor" href="#ch9-matrix-permissions" aria-label="Link to this section">#</a> Saves refused, greyed-out buttons and screens you cannot open</h3>
+<p>PathScribe checks capabilities twice. The screen greys out an action the person cannot do. The service behind the action checks again and refuses it. In production the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server repeats the check and has the final word. There is no bypass for any <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>, Superadmin included.</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+<th>Screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A button is greyed out. Its tooltip reads <strong>Your roles don't include "<capability>".</strong></td>
+<td>None of the person's roles holds that <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>.</td>
+<td>Add the capability to a role the person holds. Capabilities are grouped by area in the Role Dictionary.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>The tooltip reads <strong>"<capability>" also needs "<other>", which your roles don't include.</strong></td>
+<td>The capability requires another capability (its <code>requires</code> list in the catalog).</td>
+<td>Grant both. A role save is refused with "a capability is missing one it needs" until the required one is also granted.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></td>
+</tr>
+<tr>
+<td>The tooltip reads <strong>"<capability>" isn't available here: your <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> assignment doesn't cover it.</strong></td>
+<td>The person holds the capability, but the action touches a facility outside their assigned facilities (or spans all facilities).</td>
+<td>Change the person's facility assignment.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>A Configuration save fails with <strong>Not saved: this needs the "<permission>" permission. An administrator can grant it in Configuration → Staff → Role Dictionary.</strong></td>
+<td>The person lacks the <code>config:...:manage</code> capability for that screen (code <code>CONFIG_NOT_PERMITTED</code>).</td>
+<td>Grant the named permission to the person's role.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></td>
+</tr>
+<tr>
+<td>A role save fails: <strong>Not saved: no role could manage roles afterwards.</strong></td>
+<td>The change would leave no assignable role holding <code>config:roles:manage</code>.</td>
+<td>Give <strong>Manage roles</strong> to another assignable role first, then save.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></td>
+</tr>
+<tr>
+<td>A role or staff save fails with <strong>changing the clinical mismatch rules and approving the AI instructions are separate duties</strong>.</td>
+<td>One person (or one role) may not hold both <code>config:clinical-mismatch-rules:manage</code> and <code>config:ai-prompt:approve</code> (code <code>SEPARATION_OF_DUTIES</code>).</td>
+<td>Split the two capabilities across two roles held by different people.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>A role save fails with <strong>this role is managed by ForMedrixAI</strong>.</td>
+<td>The Superadmin role cannot be changed at a hospital.</td>
+<td>None. Use a different role.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></td>
+</tr>
+<tr>
+<td>A user opens a screen and sees <strong>You don't have access to this screen</strong>; after sign-in the Home page says <strong>None of your roles gives you access to a screen yet.</strong></td>
+<td>The role lacks the <code>screen:&lt;name&gt;:open</code> capability, so Home shows no tile and the route refuses the address.</td>
+<td>Add the screen capability to the role.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></td>
+</tr>
+<tr>
+<td>A person cannot approve their own edit: <strong>You edited this text, so you can't approve it.</strong></td>
+<td>Self-approval is refused for AI instructions (code <code>SELF_APPROVAL</code>).</td>
+<td>Have a different holder of <code>config:ai-prompt:approve</code> approve it.</td>
+<td><a href="05-tier4-ai-framework.html#screen-ai_instructions">AI Instructions</a></td>
+</tr>
+<tr>
+<td>An export button does nothing, or the export screen shows <strong>You don't have permission to export this report.</strong></td>
+<td>Each export has its own capability (for example <code>audit:audit-log:export</code>), and the server checks it again at download.</td>
+<td>Grant the export capability named on the button's tooltip.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-print"><a class="anchor" href="#ch9-matrix-print" aria-label="Link to this section">#</a> Labels and reports that do not print</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+<th>Screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A label goes to the browser print window and the message reads <strong>The label printer is not connected, so this label went to the browser print window. Check that <a class="term" href="99-glossary.html#g-qz-tray" title="A small program on a computer that lets a web page print to a local printer, such as a label printer, without a print dialog.">QZ Tray</a> is running on this computer.</strong></td>
+<td>The QZ Tray service is not running or not reachable on that computer.</td>
+<td>Start QZ Tray on the computer and print again.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printer Profiles</a>, <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Print Settings</a></td>
+</tr>
+<tr>
+<td><strong>Label <id> did not print: <printer> is out of labels / is out of ribbon / the print head is open / could not be reached.</strong></td>
+<td>The printer reported that state (codes <code>PAPER_OUT</code>, <code>RIBBON_OUT</code>, <code>HEAD_OPEN</code>, <code>PRINTER_UNREACHABLE</code>).</td>
+<td>Fix the printer, then retry the label. A label is never retried by itself, so it cannot print twice.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Print Queue</a></td>
+</tr>
+<tr>
+<td><strong>...did not print: <printer> rejected the label layout</strong> or <strong>its barcode failed <a class="term" href="99-glossary.html#g-gs1" title="The standards organisation behind the barcode formats and the GTIN numbering used on cassette and slide labels.">GS1</a> validation. This is a PathScribe problem; please report it.</strong></td>
+<td>The label's content was refused (<code>MALFORMED_ZPL</code>, <code>INVALID_GS1</code>). Retrying cannot help.</td>
+<td>Report it to ForMedrixAI support with the time and the label's layout.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-label_designer">Label Designer</a></td>
+</tr>
+<tr>
+<td>A report print job is <strong>Failed</strong> with "Network printing needs the PathScribe <a class="term" href="99-glossary.html#g-site-agent" title="A small Windows service installed at a laboratory that prints reports and labels and writes files to shares on the hospital network, on instructions from the API server.">site agent</a>."</td>
+<td>A report was sent to a network printer from a browser, which cannot reach it (<code>NEEDS_SITE_AGENT</code>).</td>
+<td>Route the lab's printing through a site agent printer.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site agents</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-print_routing_rules">Print Destination Routing Rules</a></td>
+</tr>
+<tr>
+<td>Printing "works" but nothing comes out in the demonstration.</td>
+<td>The demonstration records prints instead of sending them.</td>
+<td>Read the simulated print log.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-simulated_print">Simulated print log</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-interfaces"><a class="anchor" href="#ch9-matrix-interfaces" aria-label="Link to this section">#</a> Interface messages that are stuck</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+<th>Screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A message shows in <strong>Outbound Interface <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a></strong> with Error <strong>Dispatch rejected</strong>, <strong>Dispatch timeout</strong> or <strong>Engine unreachable</strong>.</td>
+<td>The interface engine did not return a 2xx (<code>DISPATCH_REJECTED</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_UNREACHABLE</code>). The message is kept for retry.</td>
+<td>Check the engine in the <strong>Engines</strong> sub-tab. When it is healthy, choose <strong>Retry Dispatch</strong> (needs <code>interface:outbound:resend</code>).</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a></td>
+</tr>
+<tr>
+<td>Retry answers <strong>Held on the Outbound Queue screen: release it there first.</strong></td>
+<td>The message is on hold in the Outbound Queue.</td>
+<td>Release it on that screen, then resend.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a></td>
+</tr>
+<tr>
+<td>Retry answers <strong>Held: the report <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> isn't available yet.</strong></td>
+<td>The report document is not rendered yet.</td>
+<td>Wait. It is sent with the PDF on a later retry.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a></td>
+</tr>
+<tr>
+<td>A charge is in the <strong>Outbound DLQ</strong> (financial) with <strong>Missing <a class="term" href="99-glossary.html#g-icd-10" title="The International Classification of Diseases, tenth revision, a diagnosis code set.">ICD-10</a> code</strong> or <strong>Missing provider <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, the ten-digit identifier of a US healthcare provider, needed on a charge.">NPI</a></strong>.</td>
+<td>The charge cannot be built without the code or the NPI (<code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>).</td>
+<td>Enter the value on the row; the row has an input for each.</td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">System Logs: financial</a></td>
+</tr>
+<tr>
+<td>A job in <strong>Server jobs</strong> cannot be requeued: <strong>Resend this job from Interfaces.</strong></td>
+<td>Interface and print jobs are resent from their own screens (<code>WRONG_SCREEN</code>).</td>
+<td>Use the interface or <a class="term" href="99-glossary.html#g-print-queue" title="The list of report and label print jobs with their status, from queued to printed or failed.">print queue</a>, with <code>interface:outbound:resend</code> or <code>print:job:retry</code>.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a></td>
+</tr>
+<tr>
+<td>A requeue answers <strong>This job is no longer failed; it may already have been requeued.</strong></td>
+<td>Someone already requeued it (<code>NOT_DEAD_LETTERED</code>).</td>
+<td>Refresh. No action.</td>
+<td><a href="#screen-audit-log">System Logs</a></td>
+</tr>
+<tr>
+<td>Pending interface exceptions (a count badge on the <strong>Interface Log</strong> tab).</td>
+<td>Inbound messages that could not be bound to a patient or <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> wait for a person.</td>
+<td>Open the <strong>Interface Exceptions</strong> sub-tab and review each.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-signin"><a class="anchor" href="#ch9-matrix-signin" aria-label="Link to this section">#</a> Sign-in fails</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+<th>Screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Incorrect email or password</strong>, then <strong>One more failed attempt will lock sign-in for this email for 15 minutes.</strong></td>
+<td>Password sign-in locks an email after 5 failed attempts in a row, for 15 minutes. The count is per email typed, whether or not the email belongs to an account.</td>
+<td>Wait 15 minutes, or set a new password for the person: setting a password clears the lock. The <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> holds <strong>Sign-in failed</strong>, <strong>Sign-in locked</strong> and <strong>Sign-in refused</strong>.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td><strong>Ask your administrator to reset your password from the Staff screen.</strong></td>
+<td>The person forgot the password. There is no self-service reset in the sign-in form.</td>
+<td>Set a temporary password on the person's record. The person must choose their own at next sign-in.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>You signed in, but there is no active PathScribe account for you.</strong></td>
+<td>No staff record matches (<code>not_provisioned</code>).</td>
+<td>Add the person as a member. The first <a class="term" href="99-glossary.html#g-single-sign-on" title="Signing in once with an organisation&#x27;s identity provider instead of a PathScribe password. Also written SSO.">single sign-on</a> links by email.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Your PathScribe account is inactive.</strong></td>
+<td>The staff record is inactive.</td>
+<td>Reactivate it.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>More than one PathScribe account matches this sign-in.</strong></td>
+<td>Two staff records share the email (<code>ambiguous</code>).</td>
+<td>Remove the duplicate.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>This PathScribe account is already linked to a different sign-in account.</strong></td>
+<td>A reassigned mailbox: the record is linked to another identity at the same provider (<code>already_linked</code>).</td>
+<td>Unlink the old account on the person's record, then sign in again.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Your PathScribe account doesn't include access to this application.</strong></td>
+<td>The person's roles carry neither <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> access nor configuration access (<code>no_app_access</code>).</td>
+<td>Give the person a <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> with access.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></td>
+</tr>
+<tr>
+<td>Single sign-on: <strong>Your organisation requires a second factor, and the sign-in service did not report one.</strong></td>
+<td>The <a class="term" href="99-glossary.html#g-identity-provider" title="The service that signs people in for single sign-on, such as a hospital&#x27;s Microsoft Entra directory.">identity provider</a> did not report a second factor (<code>mfa_required</code>).</td>
+<td>Complete the second factor at the identity provider.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Session Security</a></td>
+</tr>
+<tr>
+<td><strong>Sign-in isn't set up for this installation. Contact your system administrator.</strong></td>
+<td>The build has no sign-in configured.</td>
+<td>Correct <code>config.json</code> (see the start-up codes below).</td>
+<td><a href="#ch9-codes-config">Start-up configuration codes</a></td>
+</tr>
+<tr>
+<td>A full-page <strong>PathScribe can't start: its configuration needs fixing</strong> with a list of codes.</td>
+<td><code>config.json</code> has a setting the product refuses. PathScribe will not start with the wrong settings.</td>
+<td>Correct <code>config.json</code> on the web server and reload. Each code is in the index.</td>
+<td><a href="#ch9-codes-config">Start-up configuration codes</a></td>
+</tr>
+<tr>
+<td>Second-factor codes: <strong>That code was already used. Wait for the next one.</strong> or <strong>Too many attempts. Second-factor codes are locked until <time>.</strong></td>
+<td>The code was replayed, or too many wrong codes were entered.</td>
+<td>Wait for the next code, or until the lock time.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Session Security</a></td>
+</tr>
+<tr>
+<td><strong>This account is already signed in on another tab or window on this browser.</strong></td>
+<td>PathScribe allows one live session per account per browser.</td>
+<td>Continue to sign the other session out (its unsaved work is kept and offered for review).</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Session Security</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-stuck"><a class="anchor" href="#ch9-matrix-stuck" aria-label="Link to this section">#</a> An interface message or screen looks stuck</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+<th>Screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A screen says <strong>The PathScribe server can't be reached. Try again in a moment.</strong></td>
+<td>The browser could not reach the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server, or it answered with a server error (<code>UNAVAILABLE</code>), or did not answer within 30 seconds (<code>TIMED_OUT</code>).</td>
+<td>Check the network path and the API server's health. The screen retries where it says so (for example the engines panel every minute).</td>
+<td><a href="#screen-audit-log">System Logs</a></td>
+</tr>
+<tr>
+<td><strong>Your session has ended. Sign in again.</strong></td>
+<td>The server returned 401 (<code>SIGNED_OUT</code>).</td>
+<td>Sign in again.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Session Security</a></td>
+</tr>
+<tr>
+<td><strong>This was already done. Refresh and look again.</strong> or a save that reports a conflict.</td>
+<td>Someone else changed the same record (<code>CONFLICT</code>).</td>
+<td>Refresh the screen and apply the change again.</td>
+<td><a href="#screen-audit-log">System Logs</a></td>
+</tr>
+<tr>
+<td>An export stays <strong>Preparing</strong>, or ends <strong>The export took too long and was stopped.</strong></td>
+<td>A build is stopped after 30 minutes (<code>TIMED_OUT</code>).</td>
+<td>Narrow the filters and export again.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a></td>
+</tr>
+<tr>
+<td><strong>You already have 3 exports being prepared.</strong></td>
+<td>One user may have 3 open exports (<code>TOO_MANY_OPEN</code>).</td>
+<td>Wait for one to finish, or cancel one.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-error-codes"><a class="anchor" href="#ch9-error-codes" aria-label="Link to this section">#</a> System error code index</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Administrator Guide &gt; Appendices &gt; System error code index"><span>Home</span> <span aria-hidden="true">›</span> <span>Administrator Guide</span> <span aria-hidden="true">›</span> <span>Appendices</span> <span aria-hidden="true">›</span> <span>System <a class="term" href="99-glossary.html#g-error-code" title="A short upper-case code, such as `NOT_PERMITTED`, that tells a screen or an administrator why a call failed. The server&#x27;s message text is never used, because it could name a patient.">error code</a> index</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>What this index covers.</strong> The upper-case codes in the source that an administrator can see on a screen, read in the Error Log or find in a contract. Each row gives the screen it appears on, what it means and what to do. The contract named in the second column is in <code>docs/architecture/</code>; where no contract lists a code, the row names the service file instead.</p>
+<p><strong>How codes reach a screen.</strong> The <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> client gives every failed call a short fixed code and never uses the server's message text, because that text could name a patient. A server code is used when it is upper-case letters, digits and underscores, from 2 to 40 characters, starting with a letter. Otherwise the code comes from the HTTP status.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401</td>
+<td><code>SIGNED_OUT</code></td>
+</tr>
+<tr>
+<td>403</td>
+<td><code>NOT_PERMITTED</code></td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>NOT_FOUND</code></td>
+</tr>
+<tr>
+<td>409</td>
+<td><code>CONFLICT</code></td>
+</tr>
+<tr>
+<td>400, 422</td>
+<td><code>INVALID</code></td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>TOO_MANY_REQUESTS</code></td>
+</tr>
+<tr>
+<td>anything else</td>
+<td><code>UNAVAILABLE</code></td>
+</tr>
+</tbody>
+</table>
+<p>Lower-case reasons also exist (for example the sign-in reasons <code>not_provisioned</code> and <code>inactive</code>, and the server's <code>capability_refused</code>, <code>support_access_disabled</code> and <code>support_access_not_approved</code>). They are not upper-case codes, so they are in the matrix above and in the <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support Access</a> screen, not in this index.</p>
+<h3 id="ch9-codes-http"><a class="anchor" href="#ch9-codes-http" aria-label="Link to this section">#</a> Codes any server-backed screen can show</h3>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Where it appears</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-signed-out"><td><code>SIGNED_OUT</code></td>
+<td>Any screen that calls the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server. Contract: <code>HTTP_SERVICES_PATTERN.md</code> section 4; <code>src/services/apiServer/apiHttpClient.ts</code>.</td>
+<td>The server answered 401: the sign-in has ended or the token was not accepted.</td>
+<td>Sign in again. If it returns straight after signing in, tell ForMedrixAI support.</td>
+</tr>
+<tr id="e-not-permitted"><td><code>NOT_PERMITTED</code></td>
+<td>Any server-backed screen. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>AUTHORIZATION_API.md</code>.</td>
+<td>The server answered 403: the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> is missing, or is outside the person's facilities.</td>
+<td>See the matrix rows on greyed-out buttons. Search <a href="#screen-audit-log">System Logs</a> for <strong>Capability refused</strong>.</td>
+</tr>
+<tr id="e-not-found"><td><code>NOT_FOUND</code></td>
+<td>Any server-backed screen. Contract: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>The record no longer exists, for example deleted or retired by someone else.</td>
+<td>Refresh and open it again.</td>
+</tr>
+<tr id="e-conflict"><td><code>CONFLICT</code></td>
+<td>Any screen with a versioned save. Contract: <code>HTTP_SERVICES_PATTERN.md</code> (versioned saves).</td>
+<td>The server answered 409: the record changed since it was read. For a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, the server also returns the version it holds.</td>
+<td>Refresh and apply the change again.</td>
+</tr>
+<tr id="e-invalid"><td><code>INVALID</code></td>
+<td>Any server-backed save. Contract: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>The server answered 400 or 422: it refused the values.</td>
+<td>Check the entries on the form and save again.</td>
+</tr>
+<tr id="e-too-many-requests"><td><code>TOO_MANY_REQUESTS</code></td>
+<td>Any server-backed screen. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>STAFF_ADMIN_API.md</code>.</td>
+<td>The server answered 429: a rate limit was reached.</td>
+<td>Wait a moment and try again. Repeated cases go to ForMedrixAI support.</td>
+</tr>
+<tr id="e-timed-out"><td><code>TIMED_OUT</code></td>
+<td>Any server-backed screen; the exports list. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>ASYNC_EXPORT_API.md</code> section 4.</td>
+<td>The call had no answer within 30 seconds (the client's default). For an export build, the build was stopped after 30 minutes.</td>
+<td>Retry. For an export, narrow the filters.</td>
+</tr>
+<tr id="e-unavailable"><td><code>UNAVAILABLE</code></td>
+<td>Any server-backed screen, for example the <a class="term" href="99-glossary.html#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a> list, the site agents list, the engines panel and Server jobs. Contract: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>The server could not be reached, answered with any other status, or sent a reply that was not a <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> object.</td>
+<td>Check the network and the API server. Retry.</td>
+</tr>
+<tr id="e-not-supported"><td><code>NOT_SUPPORTED</code></td>
+<td>A demonstration-only action on a server deployment. Contract: <code>HTTP_SERVICES_PATTERN.md</code>; <code>src/services/apiServer/httpServiceExtras.ts</code>.</td>
+<td>The method exists only for the demonstration (seeding demo data). The server version makes no call.</td>
+<td>Nothing. Expected on a server deployment.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-permission"><a class="anchor" href="#ch9-codes-permission" aria-label="Link to this section">#</a> Permission and approval refusals</h3>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Where it appears</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-config-not-permitted"><td><code>CONFIG_NOT_PERMITTED</code></td>
+<td>Every Configuration save. Contract: <code>AUTHORIZATION_API.md</code>; <code>src/services/authorization/guardConfigWrites.ts</code>.</td>
+<td>The person's roles lack the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> for that screen, so nothing was saved. The Configuration page shows the capability name.</td>
+<td>Grant the capability on <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a>.</td>
+</tr>
+<tr id="e-export-not-permitted"><td><code>EXPORT_NOT_PERMITTED</code></td>
+<td>Case search export and <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> report export. Contract: <code>CASE_SEARCH_API.md</code>; <code>AUTHORIZATION_API.md</code> (exports).</td>
+<td>The export capability (<code>search:case-results:export</code> or <code>search:case-report:export</code>) is missing. No rows are returned.</td>
+<td>Grant the capability.</td>
+</tr>
+<tr id="e-separation-of-duties"><td><code>SEPARATION_OF_DUTIES</code></td>
+<td>Role save and staff save. Contract: <code>AUTHORIZATION_API.md</code> (<a class="term" href="99-glossary.html#g-separation-of-duties" title="A rule that two powers must not rest with one person, such as changing the clinical mismatch rules and approving the AI instructions.">separation of duties</a>).</td>
+<td>One <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> or one person would hold both <code>config:clinical-mismatch-rules:manage</code> and <code>config:ai-prompt:approve</code>.</td>
+<td>Hold the two capabilities in separate roles with different people.</td>
+</tr>
+<tr id="e-self-approval"><td><code>SELF_APPROVAL</code></td>
+<td>AI instructions. Contract: <code>AUTHORIZATION_API.md</code>; <a href="05-tier4-ai-framework.html#screen-ai_instructions">AI Instructions</a>.</td>
+<td>The person edited the pending text, so cannot approve it.</td>
+<td>Have another holder of <code>config:ai-prompt:approve</code> approve it.</td>
+</tr>
+<tr id="e-ai-vendor-not-allowed"><td><code>AI_VENDOR_NOT_ALLOWED</code></td>
+<td>Any AI feature. Contract: <code>AI_PROXY.md</code>; <code>src/services/aiIntegration/aiCallPolicy.ts</code>.</td>
+<td>The <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="A per-jurisdiction rule that says which AI services and hosting regions may be used. A call the rule refuses is not sent, and the feature carries on without AI.">AI vendor policy</a> refuses the service or region for the <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a>. The call is not made and is audited as <code>AI_CALL_REFUSED</code>. The feature carries on without AI and says "AI is not available for this jurisdiction."</td>
+<td>Change the rule or the <a class="term" href="99-glossary.html#g-hosting-region" title="The geographic region where a cloud AI service processes data. The AI vendor policy can allow or refuse regions.">hosting region</a> on the <a href="05-tier4-ai-framework.html#screen-tab-ai">AI Behavior</a> tab, if the lab's policy allows it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-exports"><a class="anchor" href="#ch9-codes-exports" aria-label="Link to this section">#</a> Exports</h3>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Where it appears</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-invalid-parameters"><td><code>INVALID_PARAMETERS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a>. Contract: <code>ASYNC_EXPORT_API.md</code> section 3.</td>
+<td>The server could not use the filters.</td>
+<td>Change the filters and export again.</td>
+</tr>
+<tr id="e-too-many-rows"><td><code>TOO_MANY_ROWS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a>. Contract: <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>More than 1,000,000 rows matched.</td>
+<td>Narrow the filters.</td>
+</tr>
+<tr id="e-too-many-open"><td><code>TOO_MANY_OPEN</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a>. Contract: <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>The person already has 3 exports queued or running.</td>
+<td>Wait, or cancel one.</td>
+</tr>
+<tr id="e-build-failed"><td><code>BUILD_FAILED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a>. Source: <code>src/services/exports/asyncExportContract.ts</code>.</td>
+<td>The server could not make the file. A build gets 2 attempts.</td>
+<td>Try again. If it fails again, tell ForMedrixAI support.</td>
+</tr>
+<tr id="e-cancelled"><td><code>CANCELLED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a>. Source: <code>src/i18n/locales/en.json</code> (<code>exports.problem</code>).</td>
+<td>The export was cancelled.</td>
+<td>Export again if it is still needed.</td>
+</tr>
+<tr id="e-expired"><td><code>EXPIRED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a>; the <a class="term" href="99-glossary.html#g-site-agent" title="A small Windows service installed at a laboratory that prints reports and labels and writes files to shares on the hospital network, on instructions from the API server.">site agent</a>. Contract: <code>ASYNC_EXPORT_API.md</code>; <code>SITE_AGENT_API.md</code> section 6.</td>
+<td>For an export: the file was deleted after its keeping period (7 days by default, 1 to 30 set by the lab). For a site agent job: it was not started in time and was returned.</td>
+<td>Export again. For a job, see the print rows below.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config"><a class="anchor" href="#ch9-codes-config" aria-label="Link to this section">#</a> Start-up configuration</h3>
+<p>These appear on the full-page <strong>PathScribe can't start: its configuration needs fixing</strong> screen. PathScribe will not start until they are corrected. The settings and the rules are in <code>RUNTIME_CONFIG.md</code> section 3. The code is <code>src/services/runtimeConfig/runtimeSettings.ts</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Where it appears</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-unreadable"><td><code>UNREADABLE</code></td>
+<td>Start-up screen.</td>
+<td><code>config.json</code> is not valid <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>.</td>
+<td>Correct the file.</td>
+</tr>
+<tr id="e-not-an-object"><td><code>NOT_AN_OBJECT</code></td>
+<td>Start-up screen.</td>
+<td><code>config.json</code> must be a list of settings and values (a JSON object).</td>
+<td>Correct the file.</td>
+</tr>
+<tr id="e-unknown-setting"><td><code>UNKNOWN_SETTING</code></td>
+<td>Start-up screen.</td>
+<td>The name is not one of the settings PathScribe knows, or is a build-only name.</td>
+<td>Check the spelling against <code>RUNTIME_CONFIG.md</code>.</td>
+</tr>
+<tr id="e-not-text"><td><code>NOT_TEXT</code></td>
+<td>Start-up screen.</td>
+<td>A value must be text, a number, or true or false.</td>
+<td>Correct the value.</td>
+</tr>
+<tr id="e-too-long"><td><code>TOO_LONG</code></td>
+<td>Start-up screen.</td>
+<td>A value is longer than 2,000 characters.</td>
+<td>Shorten it.</td>
+</tr>
+<tr id="e-invalid-url"><td><code>INVALID_URL</code></td>
+<td>Start-up screen.</td>
+<td>The value must be a web address, or a path on this site starting with <code>/</code>, with no user name or password in it.</td>
+<td>Correct the address.</td>
+</tr>
+<tr id="e-not-https"><td><code>NOT_HTTPS</code></td>
+<td>Start-up screen.</td>
+<td>An address must use https. Plain http is allowed only to this computer in a development build.</td>
+<td>Use an https address.</td>
+</tr>
+<tr id="e-not-this-site"><td><code>NOT_THIS_SITE</code></td>
+<td>Start-up screen.</td>
+<td>A proxy path leads to another site (for example <code>//host</code>).</td>
+<td>Use a path on this site, or an https address.</td>
+</tr>
+<tr id="e-api-server-required"><td><code>API_SERVER_REQUIRED</code></td>
+<td>Start-up screen.</td>
+<td>A <a class="term" href="99-glossary.html#g-server-build" title="A build of PathScribe for a real deployment, with no demonstration accounts, that signs in through the identity provider and talks to the API server.">server build</a> needs the address of the PathScribe server and none is set.</td>
+<td>Set the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> address.</td>
+</tr>
+<tr id="e-sso-required"><td><code>SSO_REQUIRED</code></td>
+<td>Start-up screen.</td>
+<td>A server build signs in through the <a class="term" href="99-glossary.html#g-identity-provider" title="The service that signs people in for single sign-on, such as a hospital&#x27;s Microsoft Entra directory.">identity provider</a> only, so <code>VITE_AUTH_MODE</code> must be <code>sso</code>.</td>
+<td>Set it and the provider's settings.</td>
+</tr>
+<tr id="e-api-server-in-demo-build"><td><code>API_SERVER_IN_DEMO_BUILD</code></td>
+<td>Start-up screen.</td>
+<td>A <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a> never talks to a real server.</td>
+<td>Install a server build.</td>
+</tr>
+<tr id="e-not-in-demo-build"><td><code>NOT_IN_DEMO_BUILD</code></td>
+<td>Start-up screen.</td>
+<td>A demonstration build cannot use a <a class="term" href="99-glossary.html#g-hub" title="The SignalR service that pushes live updates from the API server to open screens.">hub</a>, renderer, interface receiver or server-job setting, and is never production.</td>
+<td>Install a server build.</td>
+</tr>
+<tr id="e-address-not-from-server"><td><code>ADDRESS_NOT_FROM_SERVER</code></td>
+<td>Start-up screen, marked "from the PathScribe server's /api/config".</td>
+<td>The server may not set an address, because the site's security policy is made from <code>config.json</code>.</td>
+<td>Put the address in <code>config.json</code>.</td>
+</tr>
+<tr id="e-not-from-server"><td><code>NOT_FROM_SERVER</code></td>
+<td>Start-up screen, marked "from the PathScribe server's /api/config".</td>
+<td>Only <code>config.json</code> or the build may set this setting (sign-in, the instance <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>, which jobs the server runs).</td>
+<td>Move the setting to <code>config.json</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-print"><a class="anchor" href="#ch9-codes-print" aria-label="Link to this section">#</a> Printing, labels and the site agent</h3>
+<p>The first six codes have their own message text. The contract for the agent's codes is <code>SITE_AGENT_API.md</code> section 6; the list is <code>AGENT_ERROR_CODES</code> in <code>src/services/siteAgent/siteAgentContract.ts</code>. Report prints are retried on the lab's delivery schedule (1, 5 and 15 minutes by default, up to 10 retries). Labels are never retried by themselves.</p>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Where it appears</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-printer-unreachable"><td><code>PRINTER_UNREACHABLE</code></td>
+<td>Label toast; Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>No connection to the printer. Retried for reports.</td>
+<td>Check the printer's power and network, then retry.</td>
+</tr>
+<tr id="e-paper-out"><td><code>PAPER_OUT</code></td>
+<td>Label toast; Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The label printer is out of labels.</td>
+<td>Load labels and retry.</td>
+</tr>
+<tr id="e-ribbon-out"><td><code>RIBBON_OUT</code></td>
+<td>Label toast; Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The label printer is out of ribbon.</td>
+<td>Load a ribbon and retry.</td>
+</tr>
+<tr id="e-head-open"><td><code>HEAD_OPEN</code></td>
+<td>Label toast; Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The print head is open.</td>
+<td>Close it and retry.</td>
+</tr>
+<tr id="e-malformed-zpl"><td><code>MALFORMED_ZPL</code></td>
+<td>Label toast. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The printer rejected the label layout. Not retried.</td>
+<td>Report to ForMedrixAI support.</td>
+</tr>
+<tr id="e-invalid-gs1"><td><code>INVALID_GS1</code></td>
+<td>Label toast. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The label's barcode failed <a class="term" href="99-glossary.html#g-gs1" title="The standards organisation behind the barcode formats and the GTIN numbering used on cassette and slide labels.">GS1</a> validation. Not retried.</td>
+<td>Report to ForMedrixAI support. Check the <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, the number a GS1 barcode carries. Print Settings holds the facility&#x27;s GTIN.">GTIN</a> in <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Print Settings</a>.</td>
+</tr>
+<tr id="e-needs-site-agent"><td><code>NEEDS_SITE_AGENT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Print Queue</a>. Contract: <code>SITE_AGENT_API.md</code>; <code>src/services/printing/printJobFailureReason.ts</code>.</td>
+<td>A browser cannot send to a network printer. The job fails at once and goes to the exception queue.</td>
+<td>Use a <a class="term" href="99-glossary.html#g-site-agent" title="A small Windows service installed at a laboratory that prints reports and labels and writes files to shares on the hospital network, on instructions from the API server.">site agent</a> printer. See <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site agents</a>.</td>
+</tr>
+<tr id="e-printer-offline"><td><code>PRINTER_OFFLINE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Print Queue</a>. Source: <code>src/services/printing/attemptPrintDelivery.ts</code>.</td>
+<td><a class="term" href="99-glossary.html#g-qz-tray" title="A small program on a computer that lets a web page print to a local printer, such as a label printer, without a print dialog.">QZ Tray</a> is not connected on the print computer. Retried.</td>
+<td>Start QZ Tray.</td>
+</tr>
+<tr id="e-print-rejected"><td><code>PRINT_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Print Queue</a>. Source: <code>attemptPrintDelivery.ts</code>, <code>redispatchPrintJob.ts</code>.</td>
+<td>A job cannot be printed, for example no printer is configured for QZ Tray delivery, or the report document could not be made.</td>
+<td>Fix the printer settings, then retry.</td>
+</tr>
+<tr id="e-printer-rejected"><td><code>PRINTER_REJECTED</code></td>
+<td>Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The printer refused the job. Not retried.</td>
+<td>Check the printer's own error display.</td>
+</tr>
+<tr id="e-document-unavailable"><td><code>DOCUMENT_UNAVAILABLE</code></td>
+<td>Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The agent's download link failed or expired. Retried.</td>
+<td>None at first. If it persists, tell ForMedrixAI support.</td>
+</tr>
+<tr id="e-document-integrity"><td><code>DOCUMENT_INTEGRITY</code></td>
+<td>Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The file's <a class="term" href="99-glossary.html#g-sha-256" title="A cryptographic hash that turns a file or record into a fixed fingerprint, used to detect a change.">SHA-256</a> did not match, so it was never printed. Not retried.</td>
+<td>Tell ForMedrixAI support.</td>
+</tr>
+<tr id="e-unknown-destination"><td><code>UNKNOWN_DESTINATION</code></td>
+<td>Print Queue; file drop. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The agent has no printer or share with that id (its configuration is out of date).</td>
+<td>Update the agent's printer list on <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site agents</a>.</td>
+</tr>
+<tr id="e-share-unreachable"><td><code>SHARE_UNREACHABLE</code></td>
+<td>File drop delivery. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The share could not be reached. Retried.</td>
+<td>Check the share.</td>
+</tr>
+<tr id="e-share-access-denied"><td><code>SHARE_ACCESS_DENIED</code></td>
+<td>File drop delivery. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The agent may not write to the share. Not retried.</td>
+<td>Fix the share's permissions.</td>
+</tr>
+<tr id="e-share-full"><td><code>SHARE_FULL</code></td>
+<td>File drop delivery. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The share is full. Retried.</td>
+<td>Free space.</td>
+</tr>
+<tr id="e-in-doubt"><td><code>IN_DOUBT</code></td>
+<td>Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>The agent stopped after it began sending and before it knew the result. It is never resent by itself.</td>
+<td>Check the printer. Reprint if the page is not there.</td>
+</tr>
+<tr id="e-agent-error"><td><code>AGENT_ERROR</code></td>
+<td>Print Queue. Contract: <code>SITE_AGENT_API.md</code>.</td>
+<td>Any other agent failure. Retried.</td>
+<td>Check the agent on <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site agents</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-outbound"><a class="anchor" href="#ch9-codes-outbound" aria-label="Link to this section">#</a> Outbound messages, charges, registries and server jobs</h3>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Where it appears</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-dispatch-rejected"><td><code>DISPATCH_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a> (shown as "Dispatch rejected"). Contract: <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>The engine did not return a 2xx. The message is kept for retry.</td>
+<td>Check the engine, then <strong>Retry Dispatch</strong>.</td>
+</tr>
+<tr id="e-dispatch-timeout"><td><code>DISPATCH_TIMEOUT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a> (shown as "Dispatch timeout"). Contract: <code>OUTBOUND_QUEUE_API.md</code>; <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>The engine did not answer in time.</td>
+<td>As above.</td>
+</tr>
+<tr id="e-dispatch-unreachable"><td><code>DISPATCH_UNREACHABLE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a> (shown as "Engine unreachable"). Contract: <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>The engine could not be reached.</td>
+<td>As above.</td>
+</tr>
+<tr id="e-missing-icd10"><td><code>MISSING_ICD10</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">System Logs: financial</a>. Contract: <code>DIAGNOSIS_CODING.md</code>; <code>src/services/billing/validateChargeMetadata.ts</code>.</td>
+<td>A charge has no <a class="term" href="99-glossary.html#g-icd-10" title="The International Classification of Diseases, tenth revision, a diagnosis code set.">ICD-10</a> code.</td>
+<td>Enter the code on the row.</td>
+</tr>
+<tr id="e-missing-provider-npi"><td><code>MISSING_PROVIDER_NPI</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">System Logs: financial</a>. Source: <code>validateChargeMetadata.ts</code>.</td>
+<td>A charge has no provider <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, the ten-digit identifier of a US healthcare provider, needed on a charge.">NPI</a>.</td>
+<td>Enter the NPI on the row.</td>
+</tr>
+<tr id="e-registry-not-ready"><td><code>REGISTRY_NOT_READY</code></td>
+<td>Outbound Queue; Registry Exceptions. Contract: <code>BATCH_REGISTRY_FEED_API.md</code>; <code>REGISTRY_ACKNOWLEDGEMENT_API.md</code>.</td>
+<td>A <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> submission is held: a required field or setting is missing.</td>
+<td>Complete the missing item named on the entry.</td>
+</tr>
+<tr id="e-registry-live-not-approved"><td><code>REGISTRY_LIVE_NOT_APPROVED</code></td>
+<td>Outbound Queue; Registry Exceptions. Contract: <code>REGISTRY_GO_LIVE_API.md</code>.</td>
+<td>A real <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> was signed out but the registry connection is not approved live. The entry shows "Held: attestation required".</td>
+<td>Complete go-live approval on the registry settings screen.</td>
+</tr>
+<tr id="e-not-dead-lettered"><td><code>NOT_DEAD_LETTERED</code></td>
+<td>Server jobs. Contract: <code>MESSAGE_BUS_API.md</code>.</td>
+<td>The job is no longer failed (409).</td>
+<td>Refresh.</td>
+</tr>
+<tr id="e-wrong-screen"><td><code>WRONG_SCREEN</code></td>
+<td>Server jobs. Source: <code>src/services/serverJobs/serverJobsContract.ts</code>.</td>
+<td>Interface and print jobs are not requeued here.</td>
+<td>Resend from the interface or <a class="term" href="99-glossary.html#g-print-queue" title="The list of report and label print jobs with their status, from queued to printed or failed.">print queue</a>.</td>
+</tr>
+<tr id="e-consult-link-not-active"><td><code>CONSULT_LINK_NOT_ACTIVE</code></td>
+<td>Consult links tab. Contract: <code>CONSULT_ACCESS_API.md</code>.</td>
+<td>The link is already revoked or expired.</td>
+<td>Refresh.</td>
+</tr>
+<tr id="e-no-recipients"><td><code>NO_RECIPIENTS</code></td>
+<td>Report schedules. Contract: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>No active recipient is left.</td>
+<td>Choose at least one recipient.</td>
+</tr>
+<tr id="e-too-many-schedules"><td><code>TOO_MANY_SCHEDULES</code></td>
+<td>Report schedules. Contract: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>The person has the most schedules allowed.</td>
+<td>Delete or merge a schedule.</td>
+</tr>
+<tr id="e-recipient-access-unknown"><td><code>RECIPIENT_ACCESS_UNKNOWN</code></td>
+<td>Report schedules. Contract: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>What a recipient may see could not be worked out, so nothing was built.</td>
+<td>Check the recipient's roles and facilities.</td>
+</tr>
+<tr id="e-run-failed"><td><code>RUN_FAILED</code></td>
+<td>Report schedules. Source: <code>src/services/scheduledReports/createScheduledReportService.ts</code>.</td>
+<td>A scheduled run failed.</td>
+<td>Look in the Error Log.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config-screens"><a class="anchor" href="#ch9-codes-config-screens" aria-label="Link to this section">#</a> Configuration screens: refusals worth knowing</h3>
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>Where it appears</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-reason-required"><td><code>REASON_REQUIRED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>, <a class="term" href="99-glossary.html#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a> and feed revocations, and several <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> actions. Source: the service for each screen.</td>
+<td>A reason is required for the change.</td>
+<td>Enter a reason.</td>
+</tr>
+<tr id="e-bad-date"><td><code>BAD_DATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Code Systems</a>. Source: <code>src/services/coding/codeSystemPolicyRules.ts</code>.</td>
+<td>A date is not a real calendar date.</td>
+<td>Correct it.</td>
+</tr>
+<tr id="e-bad-role"><td><code>BAD_ROLE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Code Systems</a>. Source: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>A <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> in a rule is not valid.</td>
+<td>Choose a valid role.</td>
+</tr>
+<tr id="e-bad-system"><td><code>BAD_SYSTEM</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Code Systems</a>. Source: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>A code system is blank or not valid.</td>
+<td>Choose a code system.</td>
+</tr>
+<tr id="e-duplicate"><td><code>DUPLICATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Code Systems</a>. Source: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>The same code system has two rows with the same start date.</td>
+<td>Remove or re-date one row.</td>
+</tr>
+<tr id="e-no-rules"><td><code>NO_RULES</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Code Systems</a>. Source: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>There are no rules.</td>
+<td>Add a rule, or reset to the default.</td>
+</tr>
+<tr id="e-too-many"><td><code>TOO_MANY</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Code Systems</a>. Source: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>There are too many rules.</td>
+<td>Remove some.</td>
+</tr>
+<tr id="e-same-person"><td><code>SAME_PERSON</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>src/services/billing/codeEngine/planImportJob.ts</code>.</td>
+<td>The person who uploaded the import cannot approve or reject it (<a class="term" href="99-glossary.html#g-four-eyes-principle" title="A rule that one person prepares a change and a different person approves it. The billing code import uses it.">four-eyes principle</a>).</td>
+<td>A different person must decide.</td>
+</tr>
+<tr id="e-job-not-approved"><td><code>JOB_NOT_APPROVED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>planImportJob.ts</code>.</td>
+<td>Only an approved import can be rolled back.</td>
+<td>None.</td>
+</tr>
+<tr id="e-job-not-pending"><td><code>JOB_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>planImportJob.ts</code>.</td>
+<td>The import is no longer pending approval.</td>
+<td>Refresh.</td>
+</tr>
+<tr id="e-mapping-incomplete"><td><code>MAPPING_INCOMPLETE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>src/services/billing/mockCodeImportService.ts</code>.</td>
+<td>The billing code, <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> code and effective date columns are not all matched.</td>
+<td>Match them, or give one effective date for the whole file.</td>
+</tr>
+<tr id="e-no-rows"><td><code>NO_ROWS</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>mockCodeImportService.ts</code>.</td>
+<td>The file has no rows that can be imported.</td>
+<td>Check the file.</td>
+</tr>
+<tr id="e-rows-refused"><td><code>ROWS_REFUSED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>mockCodeImportService.ts</code>.</td>
+<td>Some rows cannot be imported.</td>
+<td>Fix them, or choose to skip them.</td>
+</tr>
+<tr id="e-row-missing"><td><code>ROW_MISSING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>mockCodeImportService.ts</code>.</td>
+<td>A code version from the import no longer exists, so it cannot be approved.</td>
+<td>Upload the import again.</td>
+</tr>
+<tr id="e-row-not-pending"><td><code>ROW_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code Import</a>. Source: <code>mockCodeImportService.ts</code>.</td>
+<td>A code version from the import is no longer pending.</td>
+<td>Upload the import again.</td>
+</tr>
+<tr id="e-name-taken"><td><code>NAME_TAKEN</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Workstations</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a>. Source: <code>src/services/workstationRegistry/workstationRegistryRules.ts</code>; <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>Another active workstation at the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> has that name.</td>
+<td>Choose another name.</td>
+</tr>
+<tr id="e-already-revoked"><td><code>ALREADY_REVOKED</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Workstations</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a>. Source: the same two services.</td>
+<td>The workstation is already revoked.</td>
+<td>None.</td>
+</tr>
+<tr id="e-revoke-reason-invalid"><td><code>REVOKE_REASON_INVALID</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Workstations</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a>. Source: the same two services.</td>
+<td>A reason must be chosen, with a note for Other.</td>
+<td>Choose a reason.</td>
+</tr>
+<tr id="e-feed-off"><td><code>FEED_OFF</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a>. Source: <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>The feed is switched off.</td>
+<td>Switch it on in the feed settings.</td>
+</tr>
+<tr id="e-dataset-not-in-feed"><td><code>DATASET_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a>. Source: <code>biFeedRules.ts</code>.</td>
+<td>A dataset is not offered by the feed.</td>
+<td>Add it to the feed settings first.</td>
+</tr>
+<tr id="e-facility-not-in-feed"><td><code>FACILITY_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a>. Source: <code>biFeedRules.ts</code>.</td>
+<td>A facility is not offered by the feed.</td>
+<td>Add it to the feed settings first.</td>
+</tr>
+<tr id="e-identified-not-approved"><td><code>IDENTIFIED_NOT_APPROVED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Reporting feed</a>. Source: <code>biFeedRules.ts</code>.</td>
+<td>Identified tokens need an approval on record.</td>
+<td>Record the approval.</td>
+</tr>
+<tr id="e-not-hl7"><td><code>NOT_HL7</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Assist LIS Ingestion</a>. Source: <code>src/services/lisIngestion/adapters/hl7v2StatusAdapter.ts</code>.</td>
+<td>The message is not an <a class="term" href="99-glossary.html#g-hl7-v2" title="The widely used HL7 message format made of lines of pipe-separated fields, each message starting with an MSH segment.">HL7 v2</a> message (it must start with an <a class="term" href="99-glossary.html#g-msh" title="The first segment of an HL7 v2 message. It names the sender, receiver, message type and version.">MSH</a> segment).</td>
+<td>Check the sending system.</td>
+</tr>
+<tr id="e-unsupported-message-type"><td><code>UNSUPPORTED_MESSAGE_TYPE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Assist LIS Ingestion</a>. Source: <code>hl7v2StatusAdapter.ts</code>.</td>
+<td>Only <a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a>^R01, <a class="term" href="99-glossary.html#g-orm" title="The HL7 general order message type (ORM^O01).">ORM</a>^O01 and <a class="term" href="99-glossary.html#g-oml" title="The HL7 laboratory order message type (OML^O21).">OML</a>^O21 messages are accepted.</td>
+<td>Send a supported type.</td>
+</tr>
+<tr id="e-missing-accession"><td><code>MISSING_ACCESSION</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Assist LIS Ingestion</a>. Source: <code>hl7v2StatusAdapter.ts</code>, <code>webhookJsonAdapter.ts</code>.</td>
+<td>The message has no <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a>.</td>
+<td>Correct the sender.</td>
+</tr>
+<tr id="e-missing-status"><td><code>MISSING_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Assist LIS Ingestion</a>. Source: <code>src/services/lisIngestion/types.ts</code>.</td>
+<td>The message has no <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> status.</td>
+<td>Correct the sender.</td>
+</tr>
+<tr id="e-invalid-json"><td><code>INVALID_JSON</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Assist LIS Ingestion</a>. Source: <code>types.ts</code>.</td>
+<td>The message is not valid <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>.</td>
+<td>Correct the sender.</td>
+</tr>
+<tr id="e-crosswalk-duplicate-status"><td><code>CROSSWALK_DUPLICATE_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Assist LIS Ingestion</a>. Source: <code>src/services/assistPolling/mockAssistPollingService.ts</code>.</td>
+<td>An LIS status is mapped twice.</td>
+<td>Map each status once.</td>
+</tr>
+<tr id="e-interval-out-of-range"><td><code>INTERVAL_OUT_OF_RANGE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Assist LIS Ingestion</a>. Source: <code>mockAssistPollingService.ts</code>.</td>
+<td>The polling interval is outside the allowed whole minutes.</td>
+<td>Enter a value in the range shown.</td>
+</tr>
+<tr id="e-nhs-number-check-digit"><td><code>NHS_NUMBER_CHECK_DIGIT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">UK Cancer Registry (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>The <a class="term" href="99-glossary.html#g-nhs-number" title="The ten-digit patient identifier used in the NHS in England and Wales. The last digit is a check digit.">NHS number</a> fails its check digit.</td>
+<td>Correct the number on the case.</td>
+</tr>
+<tr id="e-nhs-number-format"><td><code>NHS_NUMBER_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">UK Cancer Registry (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>The NHS number is not ten digits.</td>
+<td>Correct it.</td>
+</tr>
+<tr id="e-patient-identifier-missing"><td><code>PATIENT_IDENTIFIER_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">UK Cancer Registry (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>The NHS number is missing.</td>
+<td>Enter it.</td>
+</tr>
+<tr id="e-icdo-missing"><td><code>ICDO_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">UK Cancer Registry (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>There is no ICD-O-3 code.</td>
+<td>Add it to the case.</td>
+</tr>
+<tr id="e-icdo-format"><td><code>ICDO_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">UK Cancer Registry (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>An ICD-O-3 code is not in the form <code>8500/3</code>.</td>
+<td>Correct it.</td>
+</tr>
+<tr id="e-diagnosis-date-missing"><td><code>DIAGNOSIS_DATE_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">UK Cancer Registry (COSD)</a>. Contract: <code>UK_COSD_API.md</code>.</td>
+<td>The diagnosis date is missing.</td>
+<td>Enter it.</td>
+</tr>
+<tr id="e-xml-not-well-formed"><td><code>XML_NOT_WELL_FORMED</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">UK Cancer Registry (COSD)</a>; <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> upload. Contract: <code>UK_COSD_API.md</code>; source: <code>protocolUploadValidation.ts</code>.</td>
+<td>The preview, or the uploaded file, is not well-formed <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a>.</td>
+<td>Correct the data or the file.</td>
+</tr>
+<tr id="e-unsupported-format"><td><code>UNSUPPORTED_FORMAT</code></td>
+<td>Synoptic Library protocol upload (<a href="06-tier5-reporting-synoptic-scheduler.html#screen-tab-protocols">Synoptic Library</a>). Source: <code>src/services/templates/protocolUploadValidation.ts</code>.</td>
+<td>The file type is not supported. Use JSON, XML or XLSX.</td>
+<td>Convert the file.</td>
+</tr>
+<tr id="e-file-too-large"><td><code>FILE_TOO_LARGE</code></td>
+<td>Protocol upload. Source: <code>protocolUploadValidation.ts</code>.</td>
+<td>The file is larger than 10 MB.</td>
+<td>Reduce it.</td>
+</tr>
+<tr id="e-json-invalid"><td><code>JSON_INVALID</code></td>
+<td>Protocol upload. Source: <code>protocolUploadValidation.ts</code>.</td>
+<td>The file is not valid JSON.</td>
+<td>Correct it.</td>
+</tr>
+<tr id="e-json-newer-format"><td><code>JSON_NEWER_FORMAT</code></td>
+<td>Protocol upload. Source: <code>protocolUploadValidation.ts</code>.</td>
+<td>The file was exported by a newer version of PathScribe.</td>
+<td>Update PathScribe, or export from the same version.</td>
+</tr>
+<tr id="e-xml-not-sdc"><td><code>XML_NOT_SDC</code></td>
+<td>Protocol upload. Source: <code>protocolUploadValidation.ts</code>.</td>
+<td>The XML is not a <a class="term" href="99-glossary.html#g-cap-ecc" title="CAP electronic Cancer Checklists, the structured form of the CAP cancer protocols, distributed as SDC XML.">CAP eCC</a> (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, the XML form standard used to distribute CAP electronic cancer checklists.">SDC</a>) form.</td>
+<td>Use the right file.</td>
+</tr>
+<tr id="e-not-importable"><td><code>NOT_IMPORTABLE</code></td>
+<td>Protocol upload. Source: <code>protocolUploadValidation.ts</code>.</td>
+<td>The format can be checked but not imported yet. Import works for PathScribe protocol files (JSON).</td>
+<td>Use a PathScribe JSON file.</td>
+</tr>
+<tr id="e-xlsx-not-mapped"><td><code>XLSX_NOT_MAPPED</code></td>
+<td>Protocol upload. Source: <code>protocolUploadValidation.ts</code>.</td>
+<td>The workbook's sheets were not read, so columns were not matched to questions.</td>
+<td>Use a supported format.</td>
+</tr>
+<tr id="e-production-gated"><td><code>PRODUCTION_GATED</code></td>
+<td><a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>. Source: <code>src/services/smartCapture/smartCaptureStates.ts</code>.</td>
+<td>A real interface engine is configured and the <a class="term" href="99-glossary.html#g-production-gate" title="A switch that stays closed until a lab approves sending real data to a real interface engine.">production gate</a> is closed, so nothing was sent.</td>
+<td>Open the production gate when the lab is ready.</td>
+</tr>
+<tr id="e-already-accessioned"><td><code>ALREADY_ACCESSIONED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox Drop-Off</a>. Contract: <code>LOCKBOX_API.md</code>.</td>
+<td>The receipt is already accessioned (409).</td>
+<td>None.</td>
+</tr>
+<tr id="e-placeholder-unresolved"><td><code>PLACEHOLDER_UNRESOLVED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox Drop-Off</a>. Contract: <code>LOCKBOX_API.md</code>.</td>
+<td>Accession was asked for a <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> with no linked order number (409).</td>
+<td>Link the placeholder to its order first.</td>
+</tr>
+<tr id="e-not-a-placeholder"><td><code>NOT_A_PLACEHOLDER</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox Drop-Off</a>. Contract: <code>LOCKBOX_API.md</code>.</td>
+<td>Only a placeholder can be linked to an order.</td>
+<td>None.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-system-logs"><a class="anchor" href="#ch9-system-logs" aria-label="Link to this section">#</a> System Logs reference</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Administrator Guide &gt; Appendices &gt; System Logs reference"><span>Home</span> <span aria-hidden="true">›</span> <span>Administrator Guide</span> <span aria-hidden="true">›</span> <span>Appendices</span> <span aria-hidden="true">›</span> <span>System Logs reference</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p>System Logs is where the record of what people, the system and the AI did is read. This part documents the screen. The next part (<a href="#ch9-audit-verification">Audit log verification guide</a>) says how to use it to answer an auditor's questions.</p>
+<h3 id="screen-audit-log"><a class="anchor" href="#screen-audit-log" aria-label="Link to this section">#</a> System Logs</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; System Logs"><span>Home</span> <span aria-hidden="true">›</span> <span>System Logs</span></nav>
+
+<p><strong>Status:</strong> Built. The <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> is held in the browser in the demonstration; with an <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server it is held by the server (see Known limits).</p>
+<p><strong>1. Navigation:</strong> Home tile <strong>System Logs</strong> (address <code>/audit</code>).
+<strong>2. Maintenance item:</strong> System Logs (a reference screen; nothing is set up here).</p>
+<p><strong>3. Business purpose and scope.</strong> One screen for the compliance record of the lab: AI actions, user changes, system events, errors, quality-assurance activity, interface and print activity, financial dispatch failures, critical alerts, outside consult links and the background jobs of the API server. It is read-only apart from three actions: marking an error <strong>Resolve</strong>d, resending a failed interface message or print job, and revoking a <a class="term" href="99-glossary.html#g-consult-link" title="A view-only link issued to an outside consultant for one case. It can be revoked at once and expires on its own.">consult link</a>. Each tab is a different record kept by a different service. The Audit Log and Error Log tabs are documented here. The <strong>Interface Log</strong> tab is documented in <a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a> and the <strong>Financial</strong> tab in <a href="08-tier7-billing-registry.html#screen-audit-financial">System Logs: financial</a>.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The screen shows only what has happened, so there is nothing to configure first except who may open it. A person who lacks <code>screen:audit-log:open</code> sees no Home tile and, if they type the address, the message "You don't have access to this screen".</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-audit-log.webp" alt="System Logs, Audit Log tab with type pills, filters and Export CSV" loading="lazy"><figcaption>System Logs, Audit Log tab with type pills, filters and Export <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></figcaption></figure>
+
+<p>The page header reads <strong>System Logs</strong> with the subtitle "Complete record of AI actions, user changes, system events, errors, and quality assurance activity". A tab strip follows, then a <strong>Find a <a class="term" href="99-glossary.html#g-support-reference" title="A random, non-identifying code of the form `SR-XXXX-XXXX` that staff quote to support in place of a case number.">support reference</a></strong> box, then the active tab. A count badge on <strong>Error Log</strong> shows open errors, on <strong>Interface Log</strong> the pending interface exceptions and on <strong>Quality Assurance</strong> the open quality items. A person whose <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> is Pathologist sees the notice "Showing your <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> activity only — validation study events are not visible to pathologists".</p>
+<figure class="shot"><img src="img/screen-audit-log-errors.webp" alt="System Logs, Error Log tab" loading="lazy"><figcaption>System Logs, Error Log tab</figcaption></figure>
+
+<p><strong>6. Field reference.</strong> The screen has filters, columns and buttons rather than form fields. Row names start with the tab.</p>
+<h4>Tabs</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-tab-audit-log"><td>Tab: Audit Log</td>
+<td>Tab</td>
+<td>Not applicable</td>
+<td>Every audit entry the person may see. Documented below.</td>
+<td>Selected on opening</td>
+</tr>
+<tr id="f-audit-log-tab-error-log"><td>Tab: Error Log</td>
+<td>Tab</td>
+<td>Not applicable</td>
+<td>Errors the system recorded, with a code. Documented below.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-tab-interface-log"><td>Tab: Interface Log</td>
+<td>Tab with sub-tabs Interface Exceptions, Outbound Interface <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a>, Outbound Dispatches, Print Queue, Engines</td>
+<td>Not applicable</td>
+<td>See <a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a>. The address <code>?tab=interfaces</code> opens it.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-tab-quality-assurance"><td>Tab: Quality Assurance</td>
+<td>Tab with a Group choice</td>
+<td>Not applicable</td>
+<td>Eight groups of quality records: Deficiencies, Intraoperative Linkage, Discordance &amp; Reconciliation, Countersign Turnaround, Credentialing Review, Post-Finalization Drift, Patient Match Review and Management Reviews. Each group has its own Status choices.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-tab-financial"><td>Tab: Financial</td>
+<td>Tab with sub-tabs Billing Logs and Outbound DLQ</td>
+<td>Not applicable</td>
+<td>See <a href="08-tier7-billing-registry.html#screen-audit-financial">System Logs: financial</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-tab-critical-alerts"><td>Tab: Critical Alerts</td>
+<td>Tab</td>
+<td>Not applicable</td>
+<td>The record of critical-result alerts.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-tab-consult-links"><td>Tab: Consult links</td>
+<td>Tab</td>
+<td>Not applicable</td>
+<td>Every outside <a class="term" href="99-glossary.html#g-consult-link" title="A view-only link issued to an outside consultant for one case. It can be revoked at once and expires on its own.">consult link</a> on every <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, with <strong>Active only</strong> and <strong>Revoke</strong>. Shown to people with <code>audit:consult-links:view</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-tab-server-jobs"><td>Tab: Server jobs</td>
+<td>Tab</td>
+<td>Not applicable</td>
+<td>The <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server's background jobs: health and dead letters, with requeue. Only shown to people with <code>jobs:server-job:view</code>. A link opened without that <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> lands on Audit Log.</td>
+<td>Hidden without the capability</td>
+</tr>
+<tr id="f-audit-log-find-a-support-reference"><td>Find a <a class="term" href="99-glossary.html#g-support-reference" title="A random, non-identifying code of the form `SR-XXXX-XXXX` that staff quote to support in place of a case number.">support reference</a></td>
+<td>Text, form <code>SR-XXXX-XXXX</code></td>
+<td>Optional</td>
+<td>Names the case, audit entry, error entry or interface exception a support reference points to. A lookup is itself audited (<code>support_reference.resolved</code>). If the entry is outside the loaded range it says to widen the date range.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<h4>Audit Log tab</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-audit-log-type-pills"><td>Audit Log: Type pills</td>
+<td>Choice: All, AI, User, System, with counts</td>
+<td>Optional</td>
+<td>Filters by the entry's type.</td>
+<td>All</td>
+</tr>
+<tr id="f-audit-log-audit-log-patient-management-only"><td>Audit Log: Patient Management Only</td>
+<td>Yes/No checkbox with count</td>
+<td>Optional</td>
+<td>Shows only events whose name begins <code>mpi.</code> (merge, move, link, rebind, demographic update). Combines with the other filters. A future <code>mpi.</code> event is included automatically.</td>
+<td>No</td>
+</tr>
+<tr id="f-audit-log-audit-log-user-filter"><td>Audit Log: User filter</td>
+<td>Choice of every user in the loaded entries</td>
+<td>Optional</td>
+<td>Shown only in a Superadmin session. Everyone else finds a person by typing the name in the search box.</td>
+<td>All Users</td>
+</tr>
+<tr id="f-audit-log-audit-log-date-range"><td>Audit Log: Date range</td>
+<td>Choice: Today, Last 7 Days, Last 30 Days, Last 90 Days, Custom Range</td>
+<td>Optional</td>
+<td>Cut-off in the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s time zone. Custom Range adds a <strong>from</strong> and <strong>to</strong> date; the end date includes the whole day.</td>
+<td>Last 7 Days</td>
+</tr>
+<tr id="f-audit-log-audit-log-search"><td>Audit Log: Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Matches the event name, the detail text, the user and the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> id (<a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a>), ignoring case.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-log-audit-log-export-csv"><td>Audit Log: Export <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Needs <code>audit:audit-log:export</code>. See the verification guide. Greyed out without it.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-audit-log-timestamp"><td>Audit Log: Timestamp</td>
+<td>Column, <code>YYYY-MM-DD HH:MM:SS.mmm UTC</code></td>
+<td>Not applicable</td>
+<td>When the entry was written, always shown in <a class="term" href="99-glossary.html#g-utc" title="Coordinated Universal Time, the time standard in which audit entries are stored and shown.">UTC</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-audit-log-type"><td>Audit Log: Type</td>
+<td>Column</td>
+<td>Not applicable</td>
+<td>AI, User or System.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-audit-log-event"><td>Audit Log: Event</td>
+<td>Column</td>
+<td>Not applicable</td>
+<td>The event name, followed by a support-reference chip.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-audit-log-detail"><td>Audit Log: Detail</td>
+<td>Column</td>
+<td>Not applicable</td>
+<td>English text, free of patient names, dates of birth, MRNs and clinical values.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-audit-log-user"><td>Audit Log: User</td>
+<td>Column</td>
+<td>Not applicable</td>
+<td>The display name of the person or system actor. Automatic actions show a system actor such as <code>SYSTEM</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-audit-log-case"><td>Audit Log: Case</td>
+<td>Column</td>
+<td>Not applicable</td>
+<td>The accession number when the entry concerns a case. Click it to open the case.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The entry also holds a confidence value (for AI entries), a facility id and a <a class="term" href="99-glossary.html#g-scan-station" title="A named bench computer setup, with its printers and display, that a person selects so labels and scans go to the right place.">scan station</a> id. They are stored and are in the server contract, but the screen shows no column for them and the CSV does not include the facility or station. The facility id is absent on entries recorded before it existed or by code that does not supply it.</p>
+<h4>Error Log tab</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-error-log-severity-pills"><td>Error Log: Severity pills</td>
+<td>Choice: All, Error, Warning, Info, with counts</td>
+<td>Optional</td>
+<td>Filters by severity.</td>
+<td>All</td>
+</tr>
+<tr id="f-audit-log-error-log-status"><td>Error Log: Status</td>
+<td>Choice: All Status, Open Only, Resolved Only</td>
+<td>Optional</td>
+<td>Filters by resolution.</td>
+<td>All Status</td>
+</tr>
+<tr id="f-audit-log-error-log-search"><td>Error Log: Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Matches message, code and source.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-log-error-log-resolve"><td>Error Log: Resolve</td>
+<td>Button on each open row</td>
+<td>Not applicable</td>
+<td>Needs <code>audit:error:resolve</code>. Records who resolved it and when; the row then shows "Resolved by <name>, <time>".</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-error-log-export-csv"><td>Error Log: Export <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Needs <code>audit:error-log:export</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-log-error-log-columns"><td>Error Log: columns</td>
+<td>Timestamp, Severity, Code, Message, Source, Case, Status</td>
+<td>Not applicable</td>
+<td>The Code column holds the codes in the <a href="#ch9-error-codes">index</a>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong>
+- Open the screen: <code>screen:audit-log:open</code>. Admin, Lab Director and <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> Reviewer hold it by default. The Pathologist <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> does not, by default.
+- Export: one <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> per log, each high risk, each requiring <code>screen:audit-log:open</code>: <code>audit:audit-log:export</code>, <code>audit:error-log:export</code>, <code>audit:interface-log:export</code>, <code>audit:qa-log:export</code> and <code>audit:billing-log:export</code>. Roles that open the screen are seeded with all five. Every export is itself audited.
+- Resolve an error: <code>audit:error:resolve</code> (high risk).
+- Consult links tab: <code>audit:consult-links:view</code>. Server jobs: <code>jobs:server-job:view</code>, and requeue with <code>jobs:server-job:requeue</code>.
+- Scoping on screen: Pathologists see every entry that names a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, plus their own entries with no case. Validation-study events (<code>validation_study_created</code>, <code>validation_study_activated</code>, <code>validation_study_closed</code>, <code>validation_study_deleted</code>, <code>validation_report_generated</code> and the three <code>validation_routing_rule_*</code> events) are hidden from everyone except Admin, Pathologist-Admin and Superadmin.
+- Viewing the log is not itself audited. Exports, resolving an error and a support-reference lookup are.</p>
+<p><strong>Known limits.</strong>
+- <strong>No tamper-evidence on the main <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>.</strong> The main audit log is <a class="term" href="99-glossary.html#g-append-only" title="A record that can be added to but never edited or deleted by the application. The audit log is append-only by design.">append-only</a> by design (no update or delete call exists in the service, and the server contract gives the application's database login no such permission), but its entries are not hash-chained and nothing on screen verifies them. The only hash-chained record is the <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support Access</a> audit. See the verification guide.
+- <strong>Retention is a setting, not enforced.</strong> The log's keeping period is set on <a href="02-tier1-primary-prerequisites.html#screen-retention">Data Retention</a>. No purge job reads it yet (PS-345), so nothing is deleted by it today.
+- <strong>Audit <code>detail</code> is English by design.</strong> It is a compliance artifact, not interface text. The column headings, filters and buttons are translated; the detail text and the exported file are not.
+- <strong>Demonstration.</strong> Without an <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server the audit log is stored in the browser and starts with seeded sample entries. The time and the acting user come from the browser. With an API server the server sets the time and the actor from the sign-in token.
+- <strong>No <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> or station column</strong> on screen or in the CSV, though both are recorded (see above).</p>
+<h2 id="ch9-audit-verification"><a class="anchor" href="#ch9-audit-verification" aria-label="Link to this section">#</a> Audit log verification guide</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Administrator Guide &gt; Appendices &gt; Audit log verification guide"><span>Home</span> <span aria-hidden="true">›</span> <span>Administrator Guide</span> <span aria-hidden="true">›</span> <span>Appendices</span> <span aria-hidden="true">›</span> <span>Audit log verification guide</span></nav>
+
+<p><strong>Status:</strong> Partial. The recording, searching and export are built. Tamper-evidence for the main <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> and automatic purging by <a class="term" href="99-glossary.html#g-retention" title="How long a kind of data or material is kept. Retention periods are set by jurisdiction, with an optional override.">retention</a> are not built.</p>
+<p><strong>Who this is for.</strong> An administrator or a ForMedrixAI services engineer who has to show an auditor or inspector what changed, who changed it and when. It uses only what exists today.</p>
+<h3 id="ch9-audit-recorded"><a class="anchor" href="#ch9-audit-recorded" aria-label="Link to this section">#</a> What is recorded</h3>
+<p>Each audit entry holds: an id; a time (stored in <a class="term" href="99-glossary.html#g-utc" title="Coordinated Universal Time, the time standard in which audit entries are stored and shown.">UTC</a>); a type (<strong>AI</strong>, <strong>User</strong> or <strong>System</strong>); an event name; a detail sentence in English; the acting user's display name; a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a> when there is one; an AI confidence where it applies; a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> id where the code supplies it; and the <a class="term" href="99-glossary.html#g-scan-station" title="A named bench computer setup, with its printers and display, that a person selects so labels and scans go to the right place.">scan station</a> where the action was done. The station id is added automatically to every entry the audit service writes.</p>
+<p>What lands in the log:</p>
+<ul>
+<li><strong>Every check of a high-risk <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a></strong>, allowed or refused. The event is <strong>Capability allowed</strong> or <strong>Capability refused</strong>. The detail names the capability key, the roles that granted it or the reason it was refused, the person's session <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> and the facility. The <a class="term" href="99-glossary.html#g-capability-catalog" title="The complete list of capabilities, with each one&#x27;s risk level and any capability it requires.">capability catalog</a> marks which capabilities are high risk. A configuration screen's save is one of these checks.</li>
+<li><strong>Role and staff changes.</strong> <strong>Role capabilities changed</strong> lists what was granted and removed for a role. <strong>Staff access changed</strong> records a change to a person's roles, facilities, pediatric access, orchestration access or cross-tenant <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> access, each from and to. <strong>Staff credentials changed</strong> records credential edits.</li>
+<li><strong>Sign-in events.</strong> <strong>Signed in</strong>, <strong>Sign-in failed</strong> (attempt n of 5), <strong>Sign-in locked</strong>, <strong>Sign-in refused</strong>, <strong><a class="term" href="99-glossary.html#g-sso" title="Single sign-on. See single sign-on.">SSO</a> account linked</strong>, <strong>SSO account unlinked</strong> and <strong>SSO sign-in refused</strong>. The log never records what was typed.</li>
+<li><strong>Named change events for some settings.</strong> For example <code>AI_VENDOR_POLICY_CHANGED</code>, <code>CLINICAL_MISMATCH_RULE_CHANGED</code>, <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code>, <code>FEEDBACK_SETTINGS_CHANGED</code>, <code>RECALL_SETTINGS_CHANGED</code>, <code>QA_TREND_POLICY_CHANGED</code>, <code>CODE_SYSTEM_POLICY_CHANGED</code>, <code>PEER_REVIEW_GATE_CHANGED</code>, <strong>Template review settings changed</strong>, <strong>Organ map colours changed</strong>, <strong>Signing-authority country profile changed</strong> and the four <strong>Signing-authority facility override</strong> events (added, changed, removed, justification updated). The facility override events carry each changed <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> from and to, and the administrator's justification or "Justification: none given".</li>
+<li><strong>Spoken commands.</strong> <strong>Voice command executed</strong> and <strong>Voice command refused</strong>. The detail names the action id and the screen, for example <code>Voice command executed: action TABLE_DELETE on screen WORKLIST; confirmed by repeating the phrase</code>; a refusal gives the reason (not available on this screen, the phrase was not repeated to confirm, or not repeated in time). The person is the acting user. The log never records what was said, and no entry names a case.</li>
+<li><strong>Prints and exports.</strong> <code>DOCUMENT_PRINTED</code>, <code>DOCUMENT_REPRINTED</code>, <code>DOCUMENT_RENDERED</code>, <code>DOCUMENT_EXPORTED</code>, <code>DOCUMENT_FAXED</code>: who, the <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>, the destination, the status and, for an export, the row count.</li>
+<li><strong>Case events</strong>, such as <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> generation, field updates, finalization, <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> selection, drift detection and correction, billing corrections and patient management (<code>mpi.*</code>).</li>
+<li><strong>Automatic actions</strong> under a system actor.</li>
+</ul>
+<p>Two limits matter when you read the record.</p>
+<ol>
+<li>A capability entry shows that a person used a capability and whether it was allowed. For most settings it does <strong>not</strong> show the old and new values. Only the events named above, and a few others, carry the change itself.</li>
+<li>A change made while a Superadmin session is acting in another organisation is also written to that organisation's <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support Access</a> record.</li>
+</ol>
+<p><strong>The detail text is English by design.</strong> Audit records are compliance artifacts, not interface text, so the detail stays literal English in every language of the product and in the export. Search with the English event name or the capability key.</p>
+<h3 id="ch9-audit-find-setting"><a class="anchor" href="#ch9-audit-find-setting" aria-label="Link to this section">#</a> How to find a change to a setting</h3>
+<ol>
+<li>Open <a href="#screen-audit-log">System Logs</a>, tab <strong>Audit Log</strong>.</li>
+<li>Set <strong>Date range</strong>. The default is <strong>Last 7 Days</strong>; choose <strong>Custom Range</strong> for an older change. Entries outside the range are hidden, not missing.</li>
+<li>In <strong>Search</strong>, type the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> key for the screen you are checking. Every Configuration screen's change capability is named in its <strong>Permissions</strong> part in this guide (for example <code>config:retention-policy:manage</code> for <a href="02-tier1-primary-prerequisites.html#screen-retention">Data Retention</a>). The search matches the detail text, so it finds the <strong>Capability allowed</strong> entries.</li>
+<li>Read the <strong>User</strong> and <strong>Timestamp</strong> columns for who and when. The detail names the <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> that granted the capability.</li>
+<li>If the screen has a named change event (see the list above), search for that event name too. It holds the change itself, not only the permission check.</li>
+<li>To exclude noise, use the <strong>Type</strong> pills (<strong>User</strong> shows the human actions).</li>
+<li>To see only refusals, search <code>Capability refused</code>.</li>
+</ol>
+<p>An entry that says <strong>Capability allowed</strong> shows that the person was permitted to make the change, and that the change was attempted. It does not by itself prove which value was saved. For a setting without its own change event, compare against the screen's current value and, if the lab keeps one, a configuration export (see <strong>Export</strong> below).</p>
+<h3 id="ch9-audit-find-permission"><a class="anchor" href="#ch9-audit-find-permission" aria-label="Link to this section">#</a> How to check who changed a permission</h3>
+<ol>
+<li>On the <strong>Audit Log</strong> tab, search <code>Role capabilities changed</code>. Each entry reads <code>Role "&lt;name&gt;": granted &lt;keys&gt;; removed &lt;keys&gt;.</code> The <strong>User</strong> column is the person who saved the <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>.</li>
+<li>To see who was given or lost a role, search <code>Staff access changed</code>. The detail lists each change from and to (roles, facilities, pediatric access, orchestration access, cross-tenant <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> access).</li>
+<li>To see credential edits, search <code>Staff credentials changed</code>.</li>
+<li>To see whether a person actually used a permission, search the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> key and read the <strong>Capability allowed</strong> and <strong>Capability refused</strong> entries.</li>
+<li>To list who can do something today, use <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a> and <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Members</a>; the log shows history, those screens show the present state.</li>
+<li>For a role the hospital cannot change: a change to the Superadmin role is refused at a hospital, so no entry will show one. Superadmin is held by ForMedrixAI support staff and is granted outside the hospital's staff directory.</li>
+</ol>
+<p>A role save is also refused, before anything is written, if it would leave no role able to manage roles, would break a separation-of-duties pair, or would grant a capability without its required one. A refused save writes no <strong>Role capabilities changed</strong> entry.</p>
+<h3 id="ch9-audit-integrity"><a class="anchor" href="#ch9-audit-integrity" aria-label="Link to this section">#</a> How record integrity and retention work</h3>
+<p><strong>Append-only.</strong> The audit service has no call to update or delete an entry; it can only write new ones and read them. The server contract (<code>STAFF_ADMIN_API.md</code> section 1; <code>AUTHORIZATION_API.md</code>) requires the audit table to be <a class="term" href="99-glossary.html#g-append-only" title="A record that can be added to but never edited or deleted by the application. The audit log is append-only by design.">append-only</a>: no update or delete call exists and the application's database login has no such permission. A resolved error is the one change allowed to a record, and it is recorded as who and when on the error entry, not as an overwrite of the message.</p>
+<p><strong>Who sets the time and the actor.</strong> With the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server, the server sets the time and the acting user from the bearer token. The browser sends only the event, so a user cannot choose the name that appears. In the demonstration, the browser does.</p>
+<p><strong>Unique ids.</strong> Every entry gets a unique id. The server's table is expected to enforce uniqueness as well.</p>
+<p><strong>Tamper-evidence: the main <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> has none.</strong> The main audit log is <strong>not</strong> hash-chained or signed. Nothing on the System Logs screen proves that an entry has not been altered by someone with direct database access, and there is no "verify" button for it. Integrity rests on the append-only rule above and on database permissions. The only record that is hash-chained is the <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support Access</a> audit (see below). If your auditor requires cryptographic tamper-evidence for the main log, say so to ForMedrixAI: it is not built.</p>
+<p><strong>Retention.</strong> The keeping period for the audit log is a setting on <a href="02-tier1-primary-prerequisites.html#screen-retention">Data Retention</a>: the field <strong>Audit Logs</strong>, in days, from 90 to 3650, 365 by default. The screen says a change "takes effect at next purge cycle". <strong>No purge job reads this setting yet (PS-345)</strong>, so today nothing is deleted by it. Treat the number as a recorded policy, not an enforced one. A record of each export (who, what, when, row count and file hash) is kept with the audit log's <a class="term" href="99-glossary.html#g-retention" title="How long a kind of data or material is kept. Retention periods are set by jurisdiction, with an optional override.">retention</a>.</p>
+<p><strong>Exports are working copies.</strong> The exported <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a> is a copy of what was on screen. The record of the export is the audit entry.</p>
+<h3 id="ch9-audit-export"><a class="anchor" href="#ch9-audit-export" aria-label="Link to this section">#</a> How to export</h3>
+<ol>
+<li>On the tab you need, set the filters first. The export covers the rows the filters leave, not the whole log.</li>
+<li>Choose <strong>Export <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></strong>. The button is greyed out, with a tooltip naming the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>, unless the person holds the export capability for that tab (see Permissions above).</li>
+<li>The service checks the capability before building the file. A refusal builds nothing.</li>
+<li>With an <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server the export is built by the server (see <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">My exports</a>): the file is a working copy kept for 7 days by default (1 to 30), a person may have 3 open exports, and more than 1,000,000 rows is refused. In the demonstration the browser builds and downloads the file at once.</li>
+<li>A file name has the form <code>pathscribe-audit-log-&lt;date&gt;.csv</code>. The first lines are a header naming the report, who requested it, the filters used and the row count. Then the columns: <strong>ID, Timestamp, Type, Event, Detail, Actioned By, Accession No., AI Confidence</strong>. Cells that begin with <code>=</code>, <code>+</code>, <code>-</code> or <code>@</code> are neutralised so a spreadsheet will not run them as a formula.</li>
+<li>Every export writes a <code>DOCUMENT_EXPORTED</code> entry with the person, the file name, the format and the row count. Search <code>DOCUMENT_EXPORTED</code> to see who has exported the log.</li>
+<li>The CSV does not carry the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> or station ids. If an inspector needs them, say so to ForMedrixAI services: the server holds them.</li>
+<li>The other tabs export the same way, each with its own capability and its own columns: Error Log (ID, Timestamp, Severity, Code, Message, Source, Accession No., Resolved), Quality Assurance (ID, Group, Date, Case, Specimen, Detail, Status, User), Interface Log and the Financial billing log.</li>
+</ol>
+<h3 id="ch9-audit-support"><a class="anchor" href="#ch9-audit-support" aria-label="Link to this section">#</a> How the Support Access audit fits</h3>
+<p>ForMedrixAI support reaching your data is recorded in its own stream, separate from the main <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>, and it belongs to your organisation. It is documented on <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support Access</a>.</p>
+<ul>
+<li><strong>What it records.</strong> Policy changes; requests, approvals, rejections, expiries, early ends and revocations; refused opens; <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> opens and edits; every list, search or report that disclosed your cases (with the case ids); the names, never the values, of search criteria; and exports of this audit. A support agent's own exports and configuration changes are recorded here too (as <code>supportExport</code> and <code>supportConfigChange</code>), as well as in the main audit log.</li>
+<li><strong>Entries are never removed.</strong> Each entry holds a sequence number, the time, the actor, the ticket, the action, the case ids and an English, patient-free detail.</li>
+<li><strong>It is hash-chained.</strong> Each entry carries a <a class="term" href="99-glossary.html#g-sha-256" title="A cryptographic hash that turns a file or record into a fixed fingerprint, used to detect a change.">SHA-256</a> over its fields and the previous entry's hash, starting from 64 zeros. A changed, removed or re-ordered entry breaks the chain. The screen says <strong>Record intact (N entries)</strong> or <strong>Record altered at entry N</strong>, and the <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> export carries the chain check.</li>
+<li><strong>To verify it.</strong> Open Support Access, read the audit panel's chain line, and export JSON for an independent check. You need <code>config:support-audit:view</code>.</li>
+<li><strong>Export formats.</strong> <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a>, JSON and <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a>, with the columns Timestamp, Support agent name, Originating IP, Originating country, Ticket ID, Action taken, Case IDs, Detail.</li>
+<li><strong>Limits.</strong> Originating IP and country can only be recorded truthfully by the server from the request, so the demonstration leaves them empty. Tenant-isolated storage in its own <a class="term" href="99-glossary.html#g-append-only" title="A record that can be added to but never edited or deleted by the application. The audit log is append-only by design.">append-only</a> table is server work (PS-358).</li>
+</ul>
+<p>This is the one record in the product with built-in tamper-evidence. It covers support access only, not the main audit log.</p>
+<h3 id="ch9-audit-routine"><a class="anchor" href="#ch9-audit-routine" aria-label="Link to this section">#</a> A short verification routine</h3>
+<p>For a routine review of a sampled period, work through these steps.</p>
+<ol>
+<li>Set the <strong>Audit Log</strong> date range to the period. Record the count in the footer ("Showing N of M events").</li>
+<li>Search <code>Role capabilities changed</code>, <code>Staff access changed</code> and <code>Capability refused</code> and read each entry.</li>
+<li>Search <code>Sign-in locked</code> and <code>Sign-in refused</code> for sign-in problems.</li>
+<li>Search <code>DOCUMENT_EXPORTED</code> to see who took data out.</li>
+<li>Open the <strong>Error Log</strong> tab, filter <strong>Open Only</strong>, and check that nothing important is unresolved.</li>
+<li>Open <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support Access</a> and confirm the chain line reads intact; read the entries for the period.</li>
+<li>Export the Audit Log <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a> for the period and keep the file with your review notes. The export is itself recorded.</li>
+</ol></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

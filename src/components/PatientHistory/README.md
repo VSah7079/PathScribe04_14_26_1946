@@ -1,13 +1,14 @@
 # components/PatientHistory/
 
+**Batch 650:** `PatientHistoryModal` closes on the Close history command (Alt+Shift+H), as its Close button does.
+
 **Renamed this pass** (was `components/CasePanel/` — a name that gave no
 signal this folder contains the patient history modal specifically;
 there's no other "case panel" concept it was distinguishing itself from).
 
 ## Files
 
-- **`PatientHistoryModal.tsx`** — Prior pathology history + AI-matched
-  similar cases. Sole consumer: `pages/SynopticReportPage/SynopticReportPage.tsx`.
+- **`PatientHistoryModal.tsx`** — Prior pathology history + "Similar Cases (Demonstration)" (renamed from "AI Matched Cases" in Batch 655) (a demonstration: `findSimilarCases` in `mockCaseService.ts` scores seeded cases with fixed rules, cut-off 40, top 5; no language model is called; Batch 652). Sole consumer: `pages/SynopticReportPage/SynopticReportPage.tsx`.
   Uses its own `position: 'fixed'` overlay styling — worth checking next
   time this file is touched whether it's the same duplicated pattern
   logged in `Common/README.md`'s modal-consolidation note (not confirmed
@@ -82,3 +83,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 - `RestrictedCasesNotice.tsx` (props `{ patientId, caseId }`): inline notice showing how many of the patient's other cases the user cannot open, the request form (reason list, note for "Other"), the user's pending or declined status, and, for people who may decide, Approve / Decline / Revoke with inline reasons. Shown in the Prior Pathology panel and in the case workup.
 - `usePatientCaseAccess.ts`: loads the state through `services/patientCaseAccess` and runs the actions.
 - `PatientHistoryModal.tsx` lists only the cases the user may open (plus those a grant opens, with a banner) and writes one audit entry when a grant was used.
+- `HistoryExtractionPanel.tsx` (props `{ item: { id, diagnosis, microscopic, facilityId? }, userName }`) and `useHistoryExtraction.ts` (Batch 621): beside a historical report, what the AI read from its Final Diagnosis and Microscopic text as synoptic fields. Labelled "AI-extracted, not verified", advisory only, with "flag as wrong" per field and for the whole panel. Shown only when Configuration > System > AI history extraction is on for the case's facility and the user holds `ai:history-extraction:run`. Starts after the history is shown and never delays it. Fields are tagged `data-phi`.
+

@@ -25,7 +25,8 @@ describe('http audit service', () => {
     expect(JSON.parse(call(f).body as string)).toEqual({ dateFrom: '2026-10-01', search: 'role' });
     const entry = { type: 'user' as const, event: 'Role changed', detail: 'no patient data', user: 'Dr A', caseId: null, confidence: null };
     expect(await s.logEvent(entry)).toEqual({ ok: true, data: { id: 'b' } });
-    expect(call(f, 1)).toMatchObject({ url: 'https://api.test/api/auditlog/audit/log-event', method: 'POST', body: JSON.stringify(entry) });
+    expect(call(f, 1)).toMatchObject({ url: 'https://api.test/api/auditlog/audit/log-event', method: 'POST' });
+    expect(JSON.parse(call(f, 1).body as string)).toEqual({ ...entry, stationId: null });
   });
   it('lists errors, logs one and resolves one; there is no delete', async () => {
     const f = always(200, { items: [] });

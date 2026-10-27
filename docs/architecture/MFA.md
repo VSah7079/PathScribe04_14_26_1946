@@ -1,5 +1,7 @@
 # Multi-factor sign-in (#157, Batch 611)
 
+> Batch 674: server deployments are single sign-on only and the identity provider owns the second factor; see `AUTHENTICATION_MODEL.md` (its one open gap, the server-held MFA policy, has a contract and browser side since Batch 675: `ACCESS_SESSION_API.md` §5; the server routes are not built).
+
 **Status: Built (Demo).** The browser side is built and tested end to end. The second factor for real people is the hospital identity provider's (Microsoft Entra ID, Okta, Keycloak and so on): PathScribe reads from the provider's ID token that it was used, and refuses the sign-in when the organisation requires it and the token does not say so. The demo accounts get a **Simulated** authenticator so the whole flow can be shown. The API server must repeat the checks on the token it trusts (below).
 
 ## What the people see

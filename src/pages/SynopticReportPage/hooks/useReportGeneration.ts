@@ -182,8 +182,8 @@ export function useReportGeneration({
         // in `pendingDraft`, surfacing the "New AI draft available — Use
         // new draft / Keep my version" banner. Nothing is overwritten
         // until the pathologist explicitly chooses.
-        if (s.userEdited) return { ...s, isStreaming: false, pendingDraft: html };
-        return { ...s, isStreaming: false, text: html, aiGenerated: html };
+        if (s.userEdited) return { ...s, isStreaming: false, pendingDraft: html, provenance: result.provenance };
+        return { ...s, isStreaming: false, text: html, aiGenerated: html, provenance: result.provenance };
       }));
     },
     onComplete: () => {

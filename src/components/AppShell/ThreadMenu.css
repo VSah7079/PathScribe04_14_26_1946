@@ -1,0 +1,5 @@
+/* A disabled item in the conversation menu (for example Mark as unread on a thread you wrote last). */
+.ps-thread-menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -21,22 +21,21 @@ export type OutboundFeed = (typeof OUTBOUND_FEEDS)[number];
  * held           a person stopped it; nothing sends it until it is released
  * sent           the engine has it
  * acknowledged   the receiver confirmed it (the engine's acknowledgement)
- * failed         a send failed; it can be retried
- * deadLettered   it failed past its automatic retries; a person must retry it
+ * failed         a send failed; it can be retried (Batch 669, ops-2: there is no separate dead-lettered state; nothing sets one)
  * rejected       the receiving registry returned it with validation errors; a coder or
  *                pathologist fixes it and resubmits it, or marks it not reportable
  * notReportable  a person closed it as not reportable (nothing more is sent)
  * retracted      a queued charge cancelled before release because its case was amended or retracted
  *                (terminal; a reason code and an audit entry)
  */
-export const OUTBOUND_STATES = ['waiting', 'held', 'sent', 'acknowledged', 'failed', 'deadLettered', 'rejected', 'notReportable', 'retracted'] as const;
+export const OUTBOUND_STATES = ['waiting', 'held', 'sent', 'acknowledged', 'failed', 'rejected', 'notReportable', 'retracted'] as const;
 export type OutboundState = (typeof OUTBOUND_STATES)[number];
 
 /** Where a feed goes, as a fixed id (the screen translates it). */
 export type OutboundDestination = 'interfaceEngine' | 'billingSystem' | 'lisPartner' | 'deliveryService' | 'registry';
 
 /** How a feed reaches its receiver, shown as part of the destination label only (the engine owns the transport). */
-export const OUTBOUND_TRANSPORTS = ['restMtls', 'sftp', 'portalUpload'] as const;
+export const OUTBOUND_TRANSPORTS = ['restMtls', 'sftp', 'portalUpload', 'phinMs', 'directTcp', 'httpsApi'] as const;
 export type OutboundTransport = (typeof OUTBOUND_TRANSPORTS)[number];
 
 /** Why a rejected message is resubmitted (the retry's reason), and why one is marked not reportable. */
@@ -70,6 +69,9 @@ export interface OutboundBillingDetail {
   retraction?: { reasonCode: RetractReason };
 }
 
+/** Why a registry report waits for a person: the profile's fixed finding codes (never message text, which carries patient data). */
+export interface OutboundRegistryReview { codes: string[] }
+
 /** How close a message is to its reporting deadline. Only messages still to be sent or fixed are flagged. */
 export type DeadlineFlag = 'ok' | 'dueSoon' | 'overdue';
 
@@ -78,6 +80,8 @@ export interface OutboundRejection {
   errorCodes: string[];
   /** Fatal: the registry will not take a resubmission of this message as it is. */
   fatal?: boolean;
+  /** When the registry returned it (its acknowledgement). A registry destination can count its own correction window from here (UK COSD, Batch 620). */
+  rejectedAt?: string;
   /** When the correction is due back to the registry. */
   correctionDueAt?: string;
 }
@@ -111,6 +115,8 @@ export interface OutboundFeedEntry {
   amendsId?: string;
   transport?: OutboundTransport;
   billing?: OutboundBillingDetail;
+  /** Batch 620 (part E): a registry report the US ePath state profile parked for a person: fixed codes only (field:PID-11, rule:finalReportOnly, routing:noProfile). */
+  registryReview?: OutboundRegistryReview;
   /** A hold the feed itself keeps (the billing feed holds its own charges). */
   hold?: { reason: HoldReason; note?: string; heldBy: string; heldAt: string };
   /** A short kind label id (e.g. 'finalReport', 'TC'); fixed text, no patient text. */
@@ -158,6 +164,8 @@ export interface OutboundQueueItem {
   transport?: OutboundTransport;
   /** Billing items only. */
   billing?: OutboundBillingDetail;
+  /** Registry items only (Batch 620, part E). */
+  registryReview?: OutboundRegistryReview;
 }
 
 export interface OutboundQueueFilter {

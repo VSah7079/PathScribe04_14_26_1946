@@ -17,10 +17,10 @@
 import { Case }         from '../../types/case/Case';
 import { CaseStatus }   from '../../types/case/CaseStatus';
 import { subspecialtyService } from '../index';
-import { mockCaseService }     from '../cases/mockCaseService';
+import { caseService } from './caseServiceInstance';
 import { storageGet, storageSet }               from '../mockStorage';
 import { Subspecialty }                         from '../subspecialties/ISubspecialtyService';
-import { mockFacilityService }                  from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { resolvePerformingLabFacilityId }       from '../facilities/IFacilityService';
 import { ensureHistoryFetchStarted }             from '../patientHistory/ensureHistoryFetchStarted';
 import { permitConfigChange } from '../authorization/guardConfigWrites';
@@ -266,7 +266,7 @@ export function testSpecimenRouting(description: string, performingLabFacilityId
 // three cases, only Global rules/fallback can ever apply.
 export async function resolveCasePerformingLab(caseData: Case): Promise<string | undefined> {
   if (!caseData.order?.facilityId) return undefined;
-  const res = await mockFacilityService.getById(caseData.order.facilityId);
+  const res = await facilityService.getById(caseData.order.facilityId);
   if (!res.ok) return undefined;
   return resolvePerformingLabFacilityId(res.data);
 }
@@ -398,7 +398,7 @@ export async function routeCase(caseData: Case): Promise<RoutingResult> {
 // workload capacity check (CytologyScreeningPage.tsx) can reuse the
 // exact same real, established "return this case to its pool,
 // explicitly unassigned" logic, rather than duplicating the same
-// mockCaseService.updateCase shape a second, potentially-divergent
+// caseService.updateCase shape a second, potentially-divergent
 // way.
 export async function applyPoolRouting(
   caseData: Case,
@@ -411,7 +411,7 @@ export async function applyPoolRouting(
   // race with a pathologist's own in-progress clinical edit, so this write
   // should honor the same optimistic-concurrency check every other real
   // case write does, not silently overwrite whatever version is current.
-  await mockCaseService.updateCase(caseData.id, {
+  await caseService.updateCase(caseData.id, {
     status:   'pool' as CaseStatus,
     poolId,
     poolName,

@@ -49,6 +49,8 @@ import { useVoice } from '@/contexts/VoiceProvider';
 import type { MicroscopicReportInstance } from '@/types/case/Case';
 import PathScribeEditor from '@/components/Editor/PathScribeEditor';
 import { SpellingLanguageControl } from '@/components/SpellCheck/SpellingLanguageControl';
+import { dictationWriterFor, dictationSessionFor } from '@/services/voice/tiptapDictationPort';
+import type { DictationSegmentMeta } from '@/services/voice/dictationSegmentFlow';
 import type { PathScribeEditorHandle } from '@/components/Editor/PathScribeEditorRef';
 import type { FindingHighlightTarget } from '@/services/clinical/findingHighlight';
 import '../../../pathscribe.css';
@@ -81,7 +83,6 @@ const MicroscopicEntryPanel: React.FC<MicroscopicEntryPanelProps> = ({
   const { t } = useTranslation();
   const [text, setText] = useState(instance?.text ?? '');
   const [entryMethod, setEntryMethod] = useState<MicroscopicReportInstance['entryMethod']>(instance?.entryMethod);
-  const [isFocused, setIsFocused] = useState(false);
   const [saving, setSaving] = useState(false);
   const editorRef = useRef<PathScribeEditorHandle>(null);
 
@@ -97,24 +98,23 @@ const MicroscopicEntryPanel: React.FC<MicroscopicEntryPanelProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps -- resets the editor only when a different entry is opened or the stored entry changes; not on every keystroke of the text it holds
   }, [specimenId, instance?.instanceId, instance?.updatedAt]);
 
-  const { startDictation, phase, dictationTarget } = useVoice();
+  const { startDictation, dictationTarget } = useVoice();
 
   const registerDictationTarget = useCallback(() => {
+    // Batch 664 (Cancel): this session's dictated passages can be counted and removed.
+    const sessionEditor = editorRef.current?.getEditor();
+    const session = sessionEditor ? dictationSessionFor(sessionEditor) : null;
     startDictation({
       fieldId: `micro-${specimenId}`,
       label: t('microscopicEntryPanel.dictationLabel', { specimenLabel }),
       context: 'micro',
-      onText: (dictated: string, isInterim?: boolean) => {
-        // Real fix (PS-313): insert through the editor's own Tiptap
-        // instance, same real pattern
-        // OrchestratorSectionEditor.tsx's registerDictationTarget
-        // already uses — naive `prev + dictated` string concatenation
-        // (this field's old, plain-textarea approach) would land raw
-        // text outside/after the rich content's closing tags instead
-        // of inside the current paragraph.
+      onText: (dictated: string, isInterim?: boolean, meta?: DictationSegmentMeta) => {
+        // Real fix (PS-313): insert through the editor's own Tiptap instance, not string concatenation, so the text
+        // lands inside the current paragraph. Batch 650: the writer replaces the provisional text with the final text
+        // once (the old code inserted both) and learns the person's corrections (services/voice/dictationEditorWriter.ts).
         const editor = editorRef.current?.getEditor();
         if (!editor) return;
-        editor.chain().focus().insertContent(dictated + (isInterim ? '' : ' ')).run();
+        dictationWriterFor(editor).onText(dictated, isInterim, meta);
         const next = editor.getHTML();
         setText(next);
         if (!isInterim) {
@@ -122,18 +122,18 @@ const MicroscopicEntryPanel: React.FC<MicroscopicEntryPanelProps> = ({
           setEntryMethod(prev => prev === 'typed' ? 'mixed' : 'dictated');
         }
       },
+      uncommitted: () => session?.uncommitted() ?? 0,
+      discard: () => { const r = session?.discard() ?? { removed: 0, kept: 0 }; if (sessionEditor) setText(sessionEditor.getHTML()); return r; },
     });
   }, [startDictation, specimenId, specimenLabel, onSaveDraft, entryMethod, t]);
 
-  // Same real "only when the mic was just pressed and nothing else
-  // already claimed it" guard as OrchestratorSectionEditor.tsx's own
-  // identical effect — never auto-registers just from this field
-  // receiving focus on its own.
+  // Batch 650: "Enter microscopic" (and "dictate micro") moves dictation into this entry. The effect that stood here
+  // waited for phase 'dictate' with no target, a state only startDictation produces (and it sets the target), so it never ran.
   useEffect(() => {
-    if (phase !== 'dictate' || dictationTarget) return;
-    if (!isFocused) return;
-    registerDictationTarget();
-  }, [phase, dictationTarget, isFocused, registerDictationTarget]);
+    const onEnterMicro = () => { editorRef.current?.getEditor()?.commands.focus('end'); registerDictationTarget(); };
+    window.addEventListener('PATHSCRIBE_ENTER_MICRO', onEnterMicro);
+    return () => window.removeEventListener('PATHSCRIBE_ENTER_MICRO', onEnterMicro);
+  }, [registerDictationTarget]);
 
   const isDictatingHere = dictationTarget?.fieldId === `micro-${specimenId}`;
 
@@ -205,14 +205,8 @@ const MicroscopicEntryPanel: React.FC<MicroscopicEntryPanelProps> = ({
           Case/Specimen Comment editor exactly, per the ticket's own
           ask ("the same darker background as the Case Comment
           field"). */}
-      {/* onFocus/onBlur on this wrapper (not a PathScribeEditor prop —
-          it doesn't expose one) rely on React's focus/blur bubbling
-          from the editor's real contentEditable region inside it,
-          same as any other focus-tracked container in this app. */}
       <SpellingLanguageControl className="ps-micro-entry-spelllang" />
       <div
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
         className={`ps-micro-entry-editor-wrap${isDictatingHere ? ' ps-micro-entry-editor-wrap--dictating' : ''}`}
       >
         <PathScribeEditor

@@ -5,5 +5,7 @@ import { chooseService } from '../apiServer/serviceSelection';
 import { createHttpExternalResourceService } from './httpExternalResourceService';
 import { mockExternalResourceService } from './mockExternalResourceService';
 import type { IExternalResourceService } from './IExternalResourceService';
+import { withSecureUrls } from './externalResourceUrl';
 
-export const externalResourceService: IExternalResourceService = chooseService<IExternalResourceService>('externalResources', mockExternalResourceService, createHttpExternalResourceService);
+// Batch 652: new and edited links must be https, whichever backend is behind the service.
+export const externalResourceService: IExternalResourceService = withSecureUrls(chooseService<IExternalResourceService>('externalResources', mockExternalResourceService, createHttpExternalResourceService));

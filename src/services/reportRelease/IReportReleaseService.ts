@@ -19,6 +19,7 @@
 // client-side rather than guaranteed by a real, server-side scheduler.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { ReleaseHoldPrintPolicy } from './heldPrintPolicy';
 import type { Case } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { ServiceResult } from '../types';
@@ -59,13 +60,12 @@ export interface ReportReleaseOrgConfig {
    *  same established caveat as generateReportPdfSnapshot's own
    *  documentStyle field. */
   watermarkText: string;
-  /** Real feature, per direct specification, Phase 3. When true
-   *  (spec's own stated default), hardcopy printing is blocked outright
-   *  while a case is 'pending-release'; an admin can override per
-   *  print action (see BottomActionBar.tsx) to allow it, in which case
-   *  the generated PDF still carries watermarkText — printing is never
-   *  silently un-watermarked. */
-  restrictHardcopyPrinting: boolean;
+  /** Batch 654: the Release Hold Print Policy: what happens when a report still in its release delay
+   *  is printed: allow, warn (the default: warn and ask to confirm), supervisor (only a person with
+   *  `print:release-hold:override`, with a reason) or block. Any copy that is printed still carries
+   *  watermarkText. Replaces the earlier on/off `restrictHardcopyPrinting` (on = warn, off = allow);
+   *  a config saved with only the old field is read through `releaseHoldPrintPolicyOf`. */
+  releaseHoldPrintPolicy: ReleaseHoldPrintPolicy;
 }
 
 export interface IReportReleaseService {

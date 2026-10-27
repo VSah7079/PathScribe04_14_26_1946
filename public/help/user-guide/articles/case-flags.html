@@ -1,0 +1,311 @@
+<h1 id="top">Case Flags</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> A flag is a short marker on a case or on one specimen, such as <strong>STAT — Rush Processing</strong>, <strong>Hold — Pending Info</strong> or <strong>Second Opinion Requested</strong>. Flags tell the next person something needs attention. This page shows how to set and clear them, how they look on the Worklist and in search, and what they do.</p>
+<p><strong>Intended users.</strong> Anyone who handles cases. Applying flags needs the "apply flag" permission and clearing them needs the "remove flag" permission. Both are given by default to pathologists, accessioners, histotechnologists and the other case-handling roles, but not to the Admin role.</p>
+<p><strong>Where it fits.</strong> You set flags in the Flag Manager window, which opens from the Report screen, the Cytology Screening screen and the Cytology Worklist. Everyone then sees the flags in the Worklist, the case search bar and Search.</p>
+<div class="admonition note">
+<p class="admonition-title">Flag for MDT</p>
+<p>Sending a case to a multidisciplinary meeting is a separate action. See <a href="/help/report/case-team">Case Team</a> and <a href="/help/tumor-board">Tumor Board</a>.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/case-flags-manager-overview.png" alt="The Flag Manager with the case and specimens on the left and the flag catalogue on the right"><figcaption>The Flag Manager with the case and specimens on the left and the flag catalogue on the right</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Left side: targets</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Case</strong></td>
+<td>A flag on the whole case.</td>
+</tr>
+<tr>
+<td><strong>All Specimens</strong></td>
+<td>The same flag on every specimen.</td>
+</tr>
+<tr>
+<td>Each specimen</td>
+<td>A flag on that specimen only. Its applied flags show as chips with a count.</td>
+</tr>
+</tbody>
+</table>
+<p>You can pick the case, or one or more specimens, but not both. Trying shows "Case and specimens can't be selected together" ("Invalid selection").</p>
+<p><strong>Right side: the catalogue</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search box</td>
+<td>Finds a flag by name, code or description.</td>
+</tr>
+<tr>
+<td>Flag card</td>
+<td>Shows a code chip, a severity dot, the name and <strong>+ Apply</strong> (or <strong>Applied</strong>). Only flags your administrator has made active for that level are listed.</td>
+</tr>
+<tr>
+<td>Severity dot</td>
+<td>Red for severity 5 or more, amber for 4, blue for 3, grey below. The tooltip reads "Severity N".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Footer</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No changes" / "You have unsaved flag changes"</td>
+<td>Whether anything is waiting to be saved.</td>
+</tr>
+<tr>
+<td><strong>Cancel</strong></td>
+<td>Closes the window. With changes, asks <strong>Discard changes?</strong></td>
+</tr>
+<tr>
+<td><strong>Save</strong></td>
+<td>Saves ("Saving…").</td>
+</tr>
+</tbody>
+</table>
+<p>Flags shipped with PathScribe include STAT — Rush Processing, Malignant, Second Opinion Requested, Clinical Correlation, Tumor Board Scheduled, Amended, QC Review, Hold — Pending Info, Discordant, Confidential — Restricted Printing, Intraoperative Consult, Margins Involved, Insufficient Specimen, IHC Panel and Molecular Panel. Your administrator can add or switch off flags in Configuration under System, Flags ("Case &amp; Specimen Flags").</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Where</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Flags</strong></td>
+<td>Report, bottom bar</td>
+<td>Opens the Flag Manager (Alt+F).</td>
+</tr>
+<tr>
+<td><strong>🚩 Flags</strong></td>
+<td>Cytology Screening</td>
+<td>Opens it for that case.</td>
+</tr>
+<tr>
+<td><strong>Manage Flags</strong></td>
+<td>Cytology Worklist</td>
+<td>Opens it for a row awaiting verification.</td>
+</tr>
+<tr>
+<td>Undo removal icon</td>
+<td>On a struck-through chip</td>
+<td>Puts the flag back before saving.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Solid flag icon on a Worklist chip</td>
+<td>A flag on the whole case.</td>
+</tr>
+<tr>
+<td>Dashed flag icon</td>
+<td>A flag on a specimen.</td>
+</tr>
+<tr>
+<td>Struck-through chip</td>
+<td>Marked for removal, not yet saved.</td>
+</tr>
+<tr>
+<td>Grey chips</td>
+<td>Every flag chip on the Worklist is the same grey; colour does not tell flags apart.</td>
+</tr>
+<tr>
+<td>Padlock-style restriction</td>
+<td>A flag with "Restricts printing" (Confidential) stops printing by anyone without the "Print a restricted case" permission.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Messages in the Flag Manager window</strong></p>
+<ul>
+<li>"Select a target on the left" appears on the right until you pick the case or a specimen. Underneath it says to choose the case or one or more specimens, then click a flag to apply it.</li>
+<li>"No case flags applied" or "No flags applied" (for a specimen) is shown under a target that has no flag yet.</li>
+<li>"No …-level flags defined" means your administrator has made no flag available at that level (case or specimen). "No flags match …" shows what you typed in the search box when nothing fits.</li>
+<li>A flag that came from the laboratory system shows a padlock instead of the remove cross. Its tooltip reads "Applied by LIS — cannot be removed". Only the laboratory system can take it off.</li>
+<li><strong>Remove from multiple specimens?</strong> If you remove a flag that is also applied to other specimens, a question says the flag "is also applied to" the others. Choose <strong>Remove from this specimen only</strong>, <strong>Remove from all … specimens</strong> (the count includes this one), or <strong>Cancel</strong>. Nothing is removed until you select <strong>Save</strong>, and every removal is recorded in the audit trail.</li>
+</ul>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+F</td>
+<td>Open the Flag Manager (on the Report)</td>
+</tr>
+<tr>
+<td>Alt+S</td>
+<td>Apply STAT Flag (on the Report): puts the STAT flag on the open case straight away, with no window; a message at the screen says it was applied</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+K</td>
+<td>Select the case</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+L</td>
+<td>Select all specimens</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+M</td>
+<td>Deselect all</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+O</td>
+<td>Save</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+X</td>
+<td>Cancel</td>
+</tr>
+<tr>
+<td>Alt+Shift+R</td>
+<td>On the Worklist, read the flags aloud</td>
+</tr>
+</tbody>
+</table>
+<p>Alt+F opens Search on other screens; on the Report it opens the Flag Manager. Use Alt+J then F if the key does not respond.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the case in the Report.</li>
+<li>Select <strong>Flags</strong> in the bottom bar. The Flag Manager opens.</li>
+<li>On the left, select <strong>Case</strong> (or one or more specimens).</li>
+<li>On the right, type part of the flag name in the search box, then select <strong>+ Apply</strong> on the card. The card shows <strong>Applied</strong> and a chip appears on the left.</li>
+<li>Select <strong>Save</strong>. The footer shows "Saving…" and then the window closes. Others now see the flag.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Remove a flag.</strong> Select the target, then the remove control on the chip. The chip is struck through. Select <strong>Save</strong>.</li>
+<li><strong>Undo before saving.</strong> Select <strong>Undo removal</strong> on the struck-through chip.</li>
+<li><strong>Flag every specimen.</strong> Select <strong>All Specimens</strong>, then apply.</li>
+<li><strong>Remove from many specimens.</strong> Removing a flag that is on other specimens asks <strong>Remove from multiple specimens?</strong> Choose <strong>Remove from this specimen only</strong>, <strong>Remove from all N specimens</strong> or <strong>Cancel</strong>.</li>
+<li><strong>Apply STAT without opening the window.</strong> On the Report, press Alt+S or say "flag stat". The STAT flag is put on the case and a short message confirms it. If the case is already STAT the message says so and nothing changes; the shortcut never removes STAT (use the Flag Manager for that). It needs the same "apply flag" permission, and is recorded in the audit log like a save from the Flag Manager.</li>
+<li><strong>Flags from the laboratory system.</strong> Flags sent by the LIS appear after <strong>Check now</strong> in the report header.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Apply does nothing.</strong> You may lack the "apply flag" permission. The card gives no message. Ask your administrator.</li>
+<li><strong>Remove is greyed out.</strong> The tooltip says "You don't have permission to remove flags."</li>
+<li><strong>Save failed.</strong> The message reads "Save failed (detail) — nothing was saved. Try again." If only part was saved, the message says so; open the window again and check.</li>
+<li><strong>Alt+S says there is no STAT flag.</strong> Your administrator has switched off, or not created, a case-level flag with the LIS code STAT. Ask them to add one under Configuration, System, Flags.</li>
+<li><strong>You cannot pick both case and specimens.</strong> Save one level, then reopen.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If you applied the wrong flag and have not saved, select <strong>Cancel</strong> then <strong>Discard changes</strong>.</li>
+<li>If you saved the wrong flag, open the manager and remove it, then save.</li>
+<li>If a <strong>Hold</strong> or <strong>Confidential</strong> flag was applied in error, remove it promptly. It can delay work or stop printing.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Flags can hold up or restrict a report</p>
+<p>A <strong>Confidential — Restricted Printing</strong> flag stops people without permission from printing the case. <strong>Hold — Pending Info</strong> tells colleagues not to proceed. Check the case before saving.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Cancel leaves no audit entries</p>
+<p>Applying or removing a chip in the window changes only what you see. The audit log records each change when you select <strong>Save</strong>, and only the changes that were really saved. Cancelling, or discarding, writes nothing.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Flagging the case when only one specimen is affected.</li>
+<li>Assuming a red chip is more important. All Worklist chips are grey.</li>
+<li>Pressing Alt+F on the Worklist expecting the Flag Manager; it opens Search.</li>
+<li>Leaving a STAT flag after the rush has passed.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use the search box and Ctrl+Alt+K / Ctrl+Alt+O to flag without the mouse.</li>
+<li>Select <strong>All Specimens</strong> instead of applying one by one.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Agree in your laboratory what each flag means and who clears it.</li>
+<li>Clear flags when the reason has gone.</li>
+<li>Use flags to prompt, then record the reason in an internal note or message.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: flags may be applied when a case is received.</li>
+<li><a href="/help/report">Report</a>: where the Flag Manager is opened.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/worklist">Worklist</a>: the <strong>Flag(s)</strong> column shows chips. The column header sorts by number of flags, most first. Voice "sort by priority", "stat" or "urgency" does the same. There is no tile or filter for flags.</li>
+<li><a href="/help/search">Search</a>: has a Flags filter.</li>
+<li><a href="/help/case-search-bar">Case Search Bar</a>: shows up to four case flags on each hit.</li>
+<li><a href="/help/report/case-team">Case Team</a>: Flag for MDT.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I cannot see a flag I expected in the list</td>
+<td>It is switched off, or is not offered at that level.</td>
+</tr>
+<tr>
+<td>No flags show on a restricted case</td>
+<td>Flags are hidden on restricted cases in the Worklist.</td>
+</tr>
+<tr>
+<td>A flag name stays in English</td>
+<td>Names your administrator created are not translated.</td>
+</tr>
+<tr>
+<td>The chip tooltip reads "Case: name — description"</td>
+<td>Normal.</td>
+</tr>
+<tr>
+<td>Cannot select both case and specimens</td>
+<td>By design.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Reopen the Flag Manager and check the footer for unsaved changes.</li>
+<li>Check you have the apply and remove permissions.</li>
+<li>Reload the Worklist to see the saved flags.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a flag you saved does not appear for colleagues, a flag you need is missing from the list, or Save keeps failing. Give the case number and the flag name.</p>

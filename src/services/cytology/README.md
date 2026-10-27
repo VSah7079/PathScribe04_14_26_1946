@@ -1,3 +1,5 @@
+**Batch 649:** `cytologyCaseActions.ts` checks `case:diagnosis-code:apply` before saving codes on a cytology case. Cytology sign-out follows the same `canFinalizeCase` rule as surgical (no `admin-override`); `resolveCytologySignOutAuthority` and `signOutCytologyCase` tests were updated to match.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # src/services/cytology/
@@ -2115,3 +2117,52 @@ Each service here (the cytology services) now has an API-server version, `http<N
 ## Batch 617 (part A): server versions (PS-514)
 
 `cytologyProficiencyPanelService`, `pathologyLexiconService`, `cytologyComplianceFeaturesService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CYTOLOGY_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 626 (PS-163)
+
+`reactiveChangesPolicy.ts` (+ test): the one-switch view of the reactive-change categories' `requiresPathologistReview` flags (`reactiveChangesSetting`, `reactiveChangesUpdates`). The sign-out gate itself is unchanged; it already follows the flag.
+
+## Batch 629 (PS-174)
+
+`hpvTriageRowStatus.ts` (+ test): an HPV Triage row says "invalid, repeat test" when the platform reported an Invalid result. The case stays not eligible for cytology (unchanged).
+
+## Batch 630 (PS-174)
+
+`manualHpvResult.ts` (+ test): the rules for entering an hrHPV result by hand: the four Result Sources, which entries need a second person (replacing an interface result), the record kept, and the audit text. `recordManualHpvResult.ts` (+ test): the service behind Record Positive / Negative and the Approve / Reject of a waiting entry; it checks `cytology:hpv-result:record-manual`, saves through the shared case write, and audits.
+
+## Batch 633
+
+`resolveCytologyDispatchOrganisation.ts` (+ test): the organisation a cytology result message is queued against, found through `patientIndexService` (the demo's or the API server's), or null with a `CYTOLOGY_DISPATCH_SKIPPED` audit entry. `dispatchCytologyCaseInstances.ts`, `dispatchCytologyAmendedCaseInstance.ts` and `dispatchCytologyPreliminary.ts` use it instead of reading `mockPatientIndexService` directly. No organisation id is invented. The surgical dispatchers (`reports/dispatchCaseInstances.ts`, `dispatchAmendedCaseInstance.ts`) still read the mock directly.
+
+## Batch 632
+
+`recommendationCodes.ts`: the six internal recommendation codes (definitions, display text, target registry) and the payload envelope. `recallWindows.ts` (+ test): the configurable target windows (Urgent, Routine, Australia repeat, New Zealand repeat; null = as soon as practicable), defaults, validation and parsing of the settings boxes. `CytologyScreeningStrategyConfig.selfCollectedRecallWindows` stores them. `selfCollectedRecall.ts` now returns `codes[]` and takes the windows; `buildHpvRegistryResultPayload.ts` emits `recommendations[]` envelopes; `cytologyWorklistLive.ts` returns `recallWindows`.
+
+## Batch 631
+
+`selfCollectedRecall.ts` (+ test): the Australia/NZ recall for a self-collected hrHPV result (priority, target weeks, recommendation code, colposcopy step) and the genotype rule (HPV 16 or an explicit 18 is urgent; 45 or other types routine; the 18/45 group alone or no genotype is "not reported", treated as urgent). `selfCollectedRecallFulfilment.ts` (+ test): a recall closes when the same patient has a later clinician-collected cervical case. `buildHpvRegistryResultPayload.ts` (+ test): the content handed to the interface engine for a register message. `hpvGenotype.ts`: keeps the 18/45 group consistent with separate 18 and 45. `resolveCytologyTriageState.ts` gains `repeat_collection_required` (Invalid, self-collected); the Recall needed membership includes it; `cytologyWorklistLive.ts` drops fulfilled recalls and returns each recall case's performing-lab jurisdiction (`recallJurisdiction.ts` (+ test): the performing lab's, not the ordering facility's; the institution setting is the fallback).
+
+
+## Batch 636
+
+`csmsEligibility.ts` (+ test): the rules (open f36 flags, the four not-eligible reasons, audit text). `verifyCsmsEligibility.ts` (+ test): needs `cytology:csms-eligibility:verify`, clears the open flag with the versioned case write, audits `CSMS_ELIGIBILITY_VERIFIED` / `CSMS_ELIGIBILITY_NOT_ELIGIBLE`.
+
+## Batch 635
+
+`resolveWorkloadReassignmentPlan.ts` (+ test): the pure plan (each case to the colleague with the most room, no more than their room, the rest to the pool). `reassignPendingCytologyCases.ts`: finds the colleagues' room (full daily cap less the last 24 hours), assigns, audits `CYTOLOGY_WORKLOAD_REASSIGNED`, falls back to the pool when an assignment fails. `saveCytologyReview.ts` returns `reassignment`; the workspace ports gain `listCytotechnologists` and `assignCaseToUser`.
+
+## Batch 634
+
+`resolveCytologyDispatchOrganisation.ts` is now a thin wrapper over `interfaceDispatch/resolveDispatchOrganisation.ts`; its test moved there.
+
+## Batch 638
+
+New `releaseCsmsHeldSubmissions.ts` (+ test): Verified rebuilds and sends each waiting CSMS message (a message still not ready for another reason stays held with that reason); Not eligible closes it as NOT_ELIGIBLE with the reason. `verifyCsmsEligibility` calls it after recording the answer. Reassignment room is prorated by a colleague's logged hours (`colleagueRemainingScu`).
+
+## Batch 640
+
+New `recallWording.ts` (+ test) and `saveRecallSettings.ts` (+ test); `recallWindows.ts` gains per-country windows (`resolveRecallWindowsFor`). The screening strategy settings hold `selfCollectedRecallWindowsByJurisdiction` and `selfCollectedRecallWording`. The worklist data carries windows per country and the wording.
+
+## Batch 641
+
+Comments in `recallWindows.ts` and `selfCollectedRecall.ts` corrected: the windows and wording are starting points the lab sets; the codes are mapped by the interface engine.

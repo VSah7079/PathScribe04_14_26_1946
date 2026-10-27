@@ -34,8 +34,8 @@ export interface GynSpecimenRef { caseData: Case; specimenId: string }
  */
 async function gynSpecimens(): Promise<GynSpecimenRef[]> {
   const { caseRouter } = await import('../cases/CaseRouter');
-  const { mockSpecimenDictionaryService } = await import('../specimenDictionary/mockSpecimenDictionaryService');
-  const [casesRes, dictRes] = await Promise.all([caseRouter.getAll(undefined, { includeOrchestration: true }), mockSpecimenDictionaryService.getAll()]);
+  const { specimenDictionaryService } = await import('../specimenDictionary/specimenDictionaryServiceInstance');
+  const [casesRes, dictRes] = await Promise.all([caseRouter.getAll(undefined, { includeOrchestration: true }), specimenDictionaryService.getAll()]);
   if (!casesRes.ok) return [];
   const dictById = new Map((dictRes.ok ? dictRes.data : []).map(e => [e.id, e]));
   const out: GynSpecimenRef[] = [];
@@ -50,10 +50,10 @@ async function gynSpecimens(): Promise<GynSpecimenRef[]> {
 
 /** Batch 441: who on a case is a cytotech-only staff member, from the staff directory and role catalog. */
 async function cytotechLookup(): Promise<(staffId: string) => boolean> {
-  const { mockUserService } = await import('../users/mockUserService');
-  const { mockRoleService } = await import('../roles/mockRoleService');
+  const { userService } = await import('../users/userServiceInstance');
+  const { roleService } = await import('../roles/roleServiceInstance');
   const { isCytotechOnly } = await import('../participationTypes/cytotechParticipationRules');
-  const [staffRes, rolesRes] = await Promise.all([mockUserService.getAll(), mockRoleService.getAll()]);
+  const [staffRes, rolesRes] = await Promise.all([userService.getAll(), roleService.getAll()]);
   const roles = rolesRes.ok ? rolesRes.data : [];
   const cytotechs = new Set((staffRes.ok ? staffRes.data : []).filter(u => isCytotechOnly(u.roles, roles)).map(u => u.id));
   return id => cytotechs.has(id);
@@ -62,8 +62,8 @@ async function cytotechLookup(): Promise<(staffId: string) => boolean> {
 const staffContext = (c: Case, isCytotech: (id: string) => boolean): CaseStaffContext => ({ isCytotech, assignedTo: c.order?.assignedTo ?? null });
 
 async function reviewsFor(specimenId: string) {
-  const { mockCytologyReviewRecordService } = await import('./mockCytologyReviewRecordService');
-  const res = await mockCytologyReviewRecordService.getBySpecimenId(specimenId);
+  const { cytologyReviewRecordService } = await import('./cytologyReviewRecordServiceInstance');
+  const res = await cytologyReviewRecordService.getBySpecimenId(specimenId);
   return res.ok ? res.data : [];
 }
 
@@ -116,7 +116,7 @@ export async function takeCytologyReview(caseId: string): Promise<ServiceResult<
   const { caseRouter } = await import('../cases/CaseRouter');
   const { readSessionProfile } = await import('../auth/sessionProfile');
   const { syncPrimaryAssignee } = await import('../cases/caseAssignmentSync');
-  const { mockAuditService } = await import('../auditlog/mockAuditService');
+  const { auditService } = await import('../auditlog/auditServiceInstance');
   const caseData = await caseRouter.getCase(caseId).catch(() => undefined);
   if (!caseData) return { ok: false, error: 'NOT_FOUND' };
   const me = readSessionProfile();
@@ -134,7 +134,7 @@ export async function takeCytologyReview(caseId: string): Promise<ServiceResult<
   if (problem) return { ok: false, error: problem };
   if (cytologyReviewTrayState(caseData.participants, viewerId, ctx) === 'open') {
     await caseRouter.updateCase(caseId, syncPrimaryAssignee(caseData, viewerId, viewerId, me?.name, ctx.isCytotech), caseVersionOf(caseData));
-    mockAuditService.logEvent({ type: 'user', event: 'CYTOLOGY_REVIEW_TAKEN', detail: 'Pathologist took a positive GYN cytology case for review from the Cytology Review tray.', user: viewerId, caseId, confidence: null }).catch(() => {});
+    auditService.logEvent({ type: 'user', event: 'CYTOLOGY_REVIEW_TAKEN', detail: 'Pathologist took a positive GYN cytology case for review from the Cytology Review tray.', user: viewerId, caseId, confidence: null }).catch(() => {});
   }
   return { ok: true, data: undefined };
 }

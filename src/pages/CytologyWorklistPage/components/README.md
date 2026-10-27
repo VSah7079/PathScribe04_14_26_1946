@@ -60,3 +60,11 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 574
 
 `CytologyWorkloadCounter.tsx` (new): slides of the cap, reviews, left now and in a full day, a bar marked at the limit so far, the status in words. `ScreeningHoursPanel.tsx`: `which` (today or yesterday), the lab date in the heading, the note limit and hint, focus to today's heading after yesterday is signed.
+
+## Batch 632
+
+`SelfCollectedRecallDetail.tsx`: lists each recommendation (translated description; the codes are in `data-recommendation-codes`), and shows "as soon as practicable" when the recall has no fixed period.
+
+## Batch 636
+
+`CsmsEligibilityActions.tsx` (+ `.css`, test): the CSMS QA row's eligibility answer (see the page README).

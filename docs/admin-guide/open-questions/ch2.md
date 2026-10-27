@@ -1,0 +1,27 @@
+# Chapter 2 open questions (Tier 1: Primary System Prerequisites)
+
+Each item needs Pete's decision or a fix in the product. The chapter documents what the source does today.
+
+- **Facility Dictionary and `screen-clients` are one screen.** `FacilityDictionaryPage.tsx` is the page Chapter 3 lists as Facility Configuration (System > Integrations). OWNERSHIP.md gives it to both chapters under two ids. Chapter 2 documents it in full under `screen-facility-dictionary` and Chapter 3 should link to it, not repeat the field table.
+- **No Enterprise screen and no facility type.** An enterprise is a facility with the Enterprise box ticked, an affiliate carries a Parent Enterprise, and what a site does is set by its roles. The outline asks for "Enterprise and Facilities Management" with hospital and clinic types. The chapter says so in Part A.
+- **No global date, time, timezone or language screen.** Time zone is one organisation-wide value (`facilityTimezone`, default `America/Phoenix`) set on the Contribution Dashboard settings, which is an odd home for it and is owned by another chapter. Display language is a per-browser top-bar choice. Decide whether a real Global Preferences screen is wanted.
+- **Facility Timezone is organisation-wide, not per facility.** Several facilities in different time zones all use the one value for accession-number years, equipment due dates and monthly counts.
+- **Case Mask preview uses the browser's time zone.** The screen text says the annual reset is facility-timezone anchored, which is true for real numbers (`allocateNextCaseNumber` gets `config.facilityTimezone`), but **Preview Next Number** calls `Intl.DateTimeFormat().resolvedOptions().timeZone`. Near New Year the preview can show a different year.
+- **Case Mask Delete has no confirmation.** It deletes at once. A mask carries a live counter.
+- **Delegation Types subtitle promises a Duplicate that does not exist.** The subtitle says system types can be "duplicated into a new custom type". There is no Duplicate button, and `duplicatePolicy` says `duplicate: false`.
+- **Cytotechnologist competency dates use the browser's own date format** (`toLocaleDateString()`), not the display language, unlike the FPPE table.
+- **Secure messaging sending is simulated.** `messageService.sendSecureEmail` records the message, and real gateway transports are PS-332. The Secure messaging tab lets an administrator record agreements and enable gateways that cannot send yet.
+- **Facility AI & Performance tab points at the wrong screen.** Its text sends the release buffer default to "Configuration > System > LIS Integration". The default lives on Post-Sign-Out Release Buffer (Chapter 4).
+- **Retention is saved but not applied.** No purge job reads the policy (PS-345), and the saved message says it "takes effect at next purge cycle". Chapter 1 asks the same question: confirm the wording is acceptable to customers.
+- **Field Requirements and Retention are browser-only.** Neither has an `http*Service.ts`. Field Requirements has a server contract only for the permission check. Both are labelled Demonstration.
+- **Support Access is a browser version.** The server work (policy gate, ticket-bound sessions, append-only audit table with IP and country, approver notification, PDF export) is specified in `AUTHORIZATION_API.md` and not built. The Request panel is internal-only, and the whole screen is customer-facing. Confirm that splitting it this way (customer policy and audit, internal request panel) is right.
+- **Session Security is Partial.** The authenticator is simulated, and the remote sign-out restriction needs the API server.
+- **Site agents are Partial.** In the demonstration no agent can enrol and the agents list is empty. Printers and shares can still be configured. The server contract is `SITE_AGENT_API.md`.
+- **Only the QZ Tray bridge dispatches labels.** Printer Profiles lists six bridge types, and every other type falls back to the browser print dialog. The field table lists them all and the Known limits say so.
+- **Scan station engraving is a placeholder.** Sending to an engraver (Leica CEREBRO) is not built.
+- **Autopsy workstation groups cannot be saved.** Autopsy has no functional areas yet (PS-261), so the Functional Area is required but empty.
+- **Scope reference covers nine settings only.** The page says other areas have not been checked. Decide whether to extend it before release.
+- **Setup order choice.** Participation Types come before Roles, because the role editor's Case Participation tab reads them. Equipment comes before Printer Profiles so a profile can link to its device. Field Requirements and External Resources are last because nothing depends on them. Confirm this order for the master checklist.
+- **Case Mask and Workstation Groups touch later tiers.** A department-scope mask needs Departments (Chapter 3), and a workstation group's Default Action Group reads Action Groups (Chapter 4). Both are optional or later-scope, so neither is a `Requires`, and both are named in the prose.
+- **Tab shells.** `screen-tab-staff` and `screen-tab-system` are documented as reference pages. The System tab opens on Print Settings (the first entry in the sorted list), which is not the first screen in the Tier 1 setup order.
+- **Capture ids.** `screen-facility-dictionary` is not in `img/manifest.json`, so it shows a placeholder box. The editor windows and tabs have no capture either.

@@ -56,14 +56,14 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { countersignService, qaSupervisionAssignmentService, userService } from '@/services';
-import { FPPE_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaSupervisionAssignmentService';
+import { FPPE_ACTIVITY_TYPE_ID } from '@/services/quality/qaActivityTypeIds';
 import { resolveResidentCountersignRequired } from '@/services/cases/resolveResidentCountersignRequired';
 import { canFinalizeCase, getSessionUser, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl';
 import { resolveFinalizeAuthorityContext } from '@/services/auth/resolveFinalizeAuthorityContext';
 import { resolveForensicSignOutAuthority } from './resolveForensicSignOutAuthority';
 import { resolveAutopsyGrossExaminationGate } from './resolveAutopsyGrossExaminationGate';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { AutopsyReportTier, AutopsyReportSnapshot, AutopsyGateOverrideEvent } from '@/types/autopsy/AutopsyCaseDetails';
 
 interface OrchestratorSectionLike { id: string; label: string; text?: string }
@@ -336,7 +336,7 @@ export async function signAutopsyReport(
   // always gets an entry, same real choke point recordAutopsyCustodyTransfer.ts
   // already uses, in addition to the append-only record on the case itself.
   if (gateOverrideEvent) {
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_GATE_OVERRIDDEN',
       detail: `${tier} signed over a blocked authorization gate: ${gateOverrideEvent.blockedReasons.join(' ')} Reason: ${gateOverrideEvent.reason}`,

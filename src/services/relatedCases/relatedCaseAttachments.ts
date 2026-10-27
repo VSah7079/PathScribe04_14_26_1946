@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService as auditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { RelatedCaseAttachment, RelatedCaseSnapshot } from './relatedCaseTypes';
 import { MAX_RELATED_CASES } from './relatedCaseRules';
 

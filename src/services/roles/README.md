@@ -56,7 +56,7 @@ Per Pete, the template roles are system roles every site has out of the box.
 
 ## Batch 371: Superadmin is ForMedrixAI's
 
-- **Locked.** `mockRoleService.load()` runs `lockPlatformRoles`, so Superadmin always holds the whole catalog. `update()` refuses any change to a role staff can't be given.
+- **Locked.** `mockRoleService.load()` runs `lockPlatformRoles`, so Superadmin always holds the whole catalog except `config:ai-prompt:approve` (separation of duties, Batch 536). `update()` refuses any change to a role staff can't be given.
 - **`saveRole`** refuses edits to Superadmin (`platformRole`) and refuses platform-only capabilities on a hospital role.
 
 ## Batch 374: bench roles

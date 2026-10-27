@@ -62,6 +62,7 @@ export const RUNTIME_SETTINGS = {
   VITE_ERROR_MONITORING_ENV:         { kind: 'text',     about: 'The deployment name shown with each crash report, e.g. "hospital-a-prod". Monitoring stays off without it (PS-469)' },
   VITE_ENHANCEMENT_EMAIL:            { kind: 'text',     about: 'Where enhancement requests are sent' },
   VITE_BIOMETRIC_SIGN_IN:            { kind: 'text',     about: 'Biometric sign-in for this deployment ("false" turns it off whatever the lab policy says)', fromServer: true },
+  VITE_REGULATORY_PROFILE:           { kind: 'text',     about: 'Regulatory profile: "documentation" (default; no confidence figures, no score-driven sign-out holds) or "clinical_support" (reserved until regulatory review)', fromServer: true },
   VITE_VOICE_ENABLED:                { kind: 'text',     about: 'Voice commands ("true" or "false")', fromServer: true },
 } as const satisfies Record<string, { kind: RuntimeSettingKind; about: string; notInDemo?: true; fromServer?: true }>;
 

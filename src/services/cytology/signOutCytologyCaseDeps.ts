@@ -15,13 +15,13 @@ import { resolveFinalizeAuthorityContext } from '../auth/resolveFinalizeAuthorit
 import { qaSupervisionAssignmentService as mockQaSupervisionAssignmentService } from '../quality/qaSupervisionAssignmentServiceInstance';
 import { countersignService } from '../cases/countersignServiceInstance';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockUserService } from '../users/mockUserService';
+import { userService } from '../users/userServiceInstance';
 import { sendEmail } from '../communications/notificationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { cytologyReviewRecordService } from './cytologyReviewRecordServiceInstance';
 import { cytologyQcCaseAssignmentService } from '../cytologyQc/cytologyQcCaseAssignmentServiceInstance';
 import { cytologyQcRuleService } from '../cytologyQc/cytologyQcRuleServiceInstance';
-import { mockCytologyQcSamplingStateService } from '../cytologyQc/mockCytologyQcSamplingStateService';
+import { cytologyQcSamplingStateService } from '../cytologyQc/cytologyQcSamplingStateServiceInstance';
 import { cytologyQcSettingsService } from './cytologyQcSettingsServiceInstance';
 import { facilityCytologyQcOverrideService } from './facilityCytologyQcOverrideServiceInstance';
 import { staffCytologyQcOverrideService } from './staffCytologyQcOverrideServiceInstance';
@@ -30,8 +30,8 @@ import { resolveCytologyReportLocale } from './resolveCytologyReportLanguage';
 import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
 import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
-import { mockRegistrySettingsService } from '../facilities/mockRegistrySettingsService';
-import { mockFacilityRegistryOverrideService } from '../facilities/mockFacilityRegistryOverrideService';
+import { registrySettingsService } from '../facilities/registrySettingsServiceInstance';
+import { facilityRegistryOverrideService } from '../facilities/facilityRegistryOverrideServiceInstance';
 import { cytologyRegistryOutboundQueueService } from './cytologyRegistryOutboundQueueServiceInstance';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { screeningRegistryConfigService } from '../screeningRegistry/screeningRegistryConfigServiceInstance';
@@ -59,19 +59,25 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
   updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
   getAllCases: () => caseRouter.getAll() as any,
   getUserEmail: async userId => {
-    const res = await mockUserService.getById(userId).catch(() => null);
+    const res = await userService.getById(userId).catch(() => null);
     return res?.ok ? res.data?.email : undefined;
   },
   sendEmail: message => sendEmail(message as any),
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
   sendGate: registryId => registrySendGateCheck('screening', registryId),
+  // Batch 620 (PS-800): a programme with an enabled batch profile queues its submissions for the file.
+  batchProgram: async registryId => {
+    const { batchRegistryFeedService } = await import('../batchRegistryFeed/batchRegistryFeedServiceInstance');
+    const r = await batchRegistryFeedService.isBatchProgram(registryId);
+    return r.ok === true && r.data;
+  },
   getAllReviews: () => cytologyReviewRecordService.getAll() as any,
   createQcAssignment: assignment => cytologyQcCaseAssignmentService.create(assignment) as any,
   // Batch 501: one open QC assignment per specimen; the QC Rules engine and its sampling counters.
   getQcAssignmentsForCase: caseId => cytologyQcCaseAssignmentService.getByCaseId(caseId) as any,
   applyQcTrigger: (id, changes) => cytologyQcCaseAssignmentService.applyAdditionalTrigger(id, changes) as any,
   getActiveQcRules: () => cytologyQcRuleService.getActive() as any,
-  qcSamplingStates: mockCytologyQcSamplingStateService,
+  qcSamplingStates: cytologyQcSamplingStateService,
   getQcSettings: async (facilityId, userId) => {
     const [enterprise, facility, staff] = await Promise.all([
       cytologyQcSettingsService.get(),
@@ -98,8 +104,8 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
   },
   getRegistrySettings: async facilityId => {
     const [enterprise, facility] = await Promise.all([
-      mockRegistrySettingsService.get(),
-      mockFacilityRegistryOverrideService.getForFacility(facilityId),
+      registrySettingsService.get(),
+      facilityRegistryOverrideService.getForFacility(facilityId),
     ]);
     return { enterprise: enterprise.ok ? enterprise.data : { registryId: 'none' }, facility: facility.ok ? facility.data : null };
   },

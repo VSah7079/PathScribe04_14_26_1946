@@ -170,8 +170,8 @@ export interface CaseAccessSubspecialty {
 }
 
 export type CaseAccessDecision =
-  | { granted: true; dimension: 'superadmin' | 'tenant' | 'pool-open' | 'pool-member' | 'assigned-participant' | 'admin-override'; reason: string }
-  | { granted: false; dimension: 'no-session' | 'no-case' | 'no-org' | 'tenant-mismatch' | 'pool-restricted' | 'not-a-participant'; reason: string };
+  | { granted: true; dimension: 'superadmin' | 'tenant' | 'pool-open' | 'pool-member' | 'assigned-participant'; reason: string }
+  | { granted: false; dimension: 'no-session' | 'no-case' | 'no-org' | 'tenant-mismatch' | 'pool-restricted' | 'not-a-participant' | 'not-permitted'; reason: string };
 
 /**
  * The real, unified read-access decision — evaluates dimensions 1 and 3
@@ -335,9 +335,9 @@ export function canFinalizeCase(
   jurisdiction?: Jurisdiction | null,
 ): CaseAccessDecision {
   if (!session) return { granted: false, dimension: 'no-session', reason: i18n.t('caseAccessControl.finalize.noActiveSession') };
-  if (session.role === 'superadmin' || session.role === 'admin' || session.role === 'pathologist-admin') {
-    return { granted: true, dimension: 'admin-override', reason: i18n.t('caseAccessControl.finalize.adminOverride') };
-  }
+  // Batch 649 (CLAUDE.md rule 7, no bypass for any role): the 'admin-override' that let superadmin, admin and
+  // pathologist-admin sign out any case is gone. Signing authority comes only from the case's participants (below)
+  // and the capability (surgical:report:sign-out, checked by services/auth/authorizeSurgicalSignOut.ts).
 
   const eligibleTypeIds = resolveFinalizeEligibleTypeIds(participationTypes, performingLabFacilityId, jurisdiction);
   const activeParticipants = participants ?? [];

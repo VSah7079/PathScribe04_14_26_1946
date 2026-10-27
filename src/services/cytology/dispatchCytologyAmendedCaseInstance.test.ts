@@ -5,8 +5,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../cases/CaseRouter', () => ({
   caseRouter: { getCase: vi.fn() },
 }));
-vi.mock('../patients/mockPatientIndexService', () => ({
-  mockPatientIndexService: { getById: vi.fn() },
+vi.mock('../patients/patientServicesInstance', () => ({
+  patientIndexService: { getById: vi.fn() },
 }));
 vi.mock('./mockCytologySignOutRecordService', () => ({
   mockCytologySignOutRecordService: { getByCaseId: vi.fn() },
@@ -23,7 +23,7 @@ vi.mock('../interfaceDispatch/dispatchInterfaceMessage', () => ({
 }));
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
+import { patientIndexService } from '../patients/patientServicesInstance';
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { mockCytologyOutboundResultQueueService } from './mockCytologyOutboundResultQueueService';
 import { buildCytologyCaseReportMessage } from './cytologyCaseReportMessage';
@@ -35,8 +35,8 @@ const released = { id: 'CASE-1', status: 'finalized', patient: { id: 'PT-1' } };
 beforeEach(() => {
   vi.mocked(caseRouter.getCase).mockReset();
   vi.mocked(caseRouter.getCase).mockResolvedValue(released as any);
-  vi.mocked(mockPatientIndexService.getById).mockReset();
-  vi.mocked(mockPatientIndexService.getById).mockResolvedValue({ organisationId: 'ORG-1' } as any);
+  vi.mocked(patientIndexService.getById).mockReset();
+  vi.mocked(patientIndexService.getById).mockResolvedValue({ organisationId: 'ORG-1' } as any);
   vi.mocked(mockCytologySignOutRecordService.getByCaseId).mockReset();
   vi.mocked(mockCytologySignOutRecordService.getByCaseId).mockResolvedValue({ ok: true, data: [{ id: 'REC-1' }, { id: 'REC-2' }] } as any);
   vi.mocked(mockCytologyOutboundResultQueueService.enqueue).mockReset();
@@ -57,7 +57,7 @@ describe('dispatchCytologyAmendedCaseInstance', () => {
   });
 
   it('no patient record is a non-blocking skip', async () => {
-    vi.mocked(mockPatientIndexService.getById).mockResolvedValue(null);
+    vi.mocked(patientIndexService.getById).mockResolvedValue(null);
     await dispatchCytologyAmendedCaseInstance('CASE-1', 'REC-1', 'CORRECTED');
     expect(mockCytologyOutboundResultQueueService.enqueue).not.toHaveBeenCalled();
   });

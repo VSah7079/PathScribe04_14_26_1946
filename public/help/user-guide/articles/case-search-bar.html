@@ -1,0 +1,214 @@
+<h1 id="top">Case Search Bar</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The search box in the middle of the top bar takes you straight to a case. Type or scan an identifier, press Enter, and the case opens.</p>
+<p><strong>Intended users.</strong> Anyone whose role may open Search. If you cannot open Search, the bar is not shown.</p>
+<p><strong>Where it fits.</strong> It is on every screen. For filtering by date, status, flags and more, use the full <a href="/help/search">Search</a> screen instead.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/case-search-bar-results.png" alt="The case search bar with a results window listing several matches"><figcaption>The case search bar with a results window listing several matches</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Box, with the hint "Scan or enter ID…"</td>
+<td>Type at least 2 characters.</td>
+</tr>
+<tr>
+<td>Identifiers accepted</td>
+<td>Accession number, medical record number, national ID, requisition number and block ID, depending on the formats your laboratory has turned on.</td>
+</tr>
+<tr>
+<td>Support reference</td>
+<td>The reference from a support ticket; it opens the case, or its audit record.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Results window (several matches)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accession</td>
+<td>The case number.</td>
+</tr>
+<tr>
+<td>Patient</td>
+<td>Name.</td>
+</tr>
+<tr>
+<td>DOB · Sex</td>
+<td>Date of birth and sex.</td>
+</tr>
+<tr>
+<td>Priority</td>
+<td>Case priority.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Case status.</td>
+</tr>
+<tr>
+<td>Facility</td>
+<td>Where it belongs.</td>
+</tr>
+</tbody>
+</table>
+<p>Rows also show the number of specimens, up to four case flags in grey, and a "matched:" hint saying which identifier matched.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Box</td>
+<td>Type or scan.</td>
+</tr>
+<tr>
+<td>Escape</td>
+<td>Clears the box.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Fetching Accession … from LIS…"</td>
+<td>Nothing was found here, so PathScribe is asking the laboratory system.</td>
+</tr>
+<tr>
+<td>"No case found for '…'"</td>
+<td>Neither place has it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+Shift+B</td>
+<td>Focus the case search bar</td>
+</tr>
+<tr>
+<td>Enter</td>
+<td>Open the single match, or search</td>
+</tr>
+<tr>
+<td>Escape</td>
+<td>Clear</td>
+</tr>
+</tbody>
+</table>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Press Alt+Shift+B, or select the box.</li>
+<li>Type or scan the identifier (at least 2 characters).</li>
+<li>Press Enter. If there is one match the case opens in the Report. A barcode or QR scan opens a single match without Enter.</li>
+<li>If several match, a results window opens. Select a row to open it.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Paste a support reference to open the case or audit it points to.</li>
+<li>Type part of an MRN to list a patient's cases, then pick one.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Fetching … from LIS.</strong> Wait. If a case is found it opens.</li>
+<li><strong>No case found.</strong> Check the digits, or try another identifier.</li>
+<li><strong>Several patients with the same number.</strong> Check the DOB and facility columns before opening.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the wrong case opened, go back with the browser or select Home. Nothing was changed.</li>
+<li>If you opened a case with unsaved work in another, the screen asks before leaving.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Check the patient before you act</p>
+<p>Always confirm name, date of birth and accession on the Report before editing or signing out. Opening a case is recorded in the audit log.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Typing one character; at least 2 are needed.</li>
+<li>Searching for a block ID shared by several cases without reading the list.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Scan the label rather than typing.</li>
+<li>Use Alt+Shift+B to jump to the box.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Use the Search screen for lists and reports; use this bar for one known case.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: the identifiers are created here.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: where the case opens.</li>
+<li><a href="/help/search">Search</a>: the full search screen.</li>
+<li><a href="/help/case-flags">Case Flags</a>: the grey chips in the results.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No search bar</td>
+<td>Your role may not open Search.</td>
+</tr>
+<tr>
+<td>Nothing happens on Enter</td>
+<td>Fewer than 2 characters.</td>
+</tr>
+<tr>
+<td>Identifier not recognised</td>
+<td>Your laboratory has not enabled that format.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Retry with the accession number.</li>
+<li>Try the Search screen.</li>
+<li>Ask for the format to be enabled.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a case that exists never appears, or the LIS fetch always fails.</p>

@@ -52,3 +52,12 @@ Batch 616 (part A, PS-483, PS-503, PS-505): `required()` in the kit (a record th
 `productionBuild.guard.test.ts` fails if a demonstration screen, demo account or the Simulated authenticator is reachable without `__DEMO_TOOLS__`, if AI or terminology-search code names an outside host, or if the UMLS and AI routes leave `/api`. The public NLM look-up is the one outside host the browser calls itself (allowed by the security headers). The mock services are still bundled in a server build.
 
 **Batch 617:** `productionBuild.guard.test.ts` now also checks that the NLM look-ups use `/api/terminology/nlm` routes and that a server deployment's security policy leaves the NLM host out.
+
+## Batch 670 — no direct mock imports
+`directMockImports.guard.test.ts` fails when code outside mocks and `…Instance` files imports a `mock…Service` module. Audit is a hard rule (none allowed); everything else is a ratchet, `directMockImportBaseline.ts`, which only shrinks as the remaining files are moved to their instance.
+
+## Batch 671
+The baseline fell from 95 to 32 files. `scripts/dev/regen-direct-mock-baseline.py` rewrites it. What remains is mostly constants kept in mock files, the "unchecked" variants, and services with no server version yet (see GUIDE_UPDATES, Batch 671).
+
+## Batch 672
+Five more server versions (delivery queue, referral queue, held release, report-released event log, QC sampling state) with instances and tests. The baseline is down to 13 files: the services with no server version yet or a decision pending (see GUIDE_UPDATES, Batch 672).

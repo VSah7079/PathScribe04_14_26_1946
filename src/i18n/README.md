@@ -1,3 +1,257 @@
+## Batch 698 — handover note for the development team
+Documentation only: `docs/developer/HANDOVER_FIRST_RELEASE.md` (status, remaining work by workstream, decisions, outside parties, release steps). No code and no UI text changed. The Jira counts in it were read on Oct 26, 2026.
+
+## Batch 696 — where an AI-suggested code came from
+Ten new keys in all six languages under `addCodeModal.origin.*` (from, fromSpecimen, notStated, and five section names) and `addCodeModal.verified.*` (dictionary, code-map). Machine-translated; in the review register (`docs/quality/TRANSLATION_REVIEW.md`).
+
+## Batch 691 — sign-out note reworded
+`caseSignOutModal.unreviewedAiFields_one/_many/_other` reworded in all six languages: the unconfirmed AI fields are now left out of the signed report (machine-translated; in the review register).
+
+## Batch 690 — code match labels
+Two new keys in all six languages: `addCodeModal.match.strong` and `addCodeModal.match.possible` (machine-translated; in the review register).
+
+## Batches 688 and 689
+No locale changes.
+
+## Batch 687 — two unused AI settings removed
+Keys `aiTab.advanced.macroSuggestions` and `aiTab.advanced.subspecialtyRouting` removed from all six languages.
+
+## Batch 686 — error screen back button
+One new key in all six languages: `errorBoundary.backToPrevious` (machine-translated; in the review register).
+
+## Batch 685 — mismatch quotes in the QA record
+One new key in all six languages: `surgicalQaWorklist.mismatch.noEvidence` (machine-translated; in the review register).
+
+## Batch 684 — handover procedure for native-language review (documentation)
+No locale or code changes. Procedure added to `docs/quality/HANDOVER_REVIEW_TESTS.md`; Batches 679 to 683 strings added to `docs/quality/TRANSLATION_REVIEW.md`.
+
+## Batch 683 — mismatch evidence quotes
+New keys in all six locales: `clinicalMismatch.evidence.{clinical,pathology,notFound}`. Machine translations need native review.
+
+## Batch 682 — AI settings follow the regulatory profile
+New key in all six locales: `clinicalMismatchRulesSection.inactiveNote`. Removed from all six: `aiTab.advanced.showConfidenceScores` (the setting was read by nothing). Machine translations need native review.
+
+## Batch 681 — unreviewed AI values: sign-out line
+New plural key in all six locales: `caseSignOutModal.unreviewedAiFields` (`_one`, `_many`, `_other`). Machine translations need native review.
+
+## Batch 680 — AI drafts must be accepted before sign-out
+New key in all six locales: `useSignOutWorkflow.toast.aiNarrativeNeedsAcceptance`. Machine translations need native review.
+
+## Batch 679 — regulatory profile: confidence figures hidden by default
+New keys in all six locales: `clinicalMismatch.alert.titlePlain`, `clinicalMismatch.source.{aiPlain,rulePlain,ruleJurisdictionPlain}`, `rightSynopticPanel.fieldRow.{aiSuggestionBadge,checkSourceBadge,checkSourceTitle}`, `caseCoding.aiDetailPlain`, `addSynopticModal.protocolList.suggestedPlain`. The percentage versions remain for the `clinical_support` profile. Machine translations (fr, de, nl, ko, es) need native review.
+
+## Batch 678 — Regulatory Readiness Matrix (documentation and a generator script)
+No locale or code changes.
+
+## Batch 677 — compliance requirements tracker (documentation)
+No locale or code changes.
+
+## Batch 676 — Regulatory Compliance Guide (documentation)
+No locale or code changes. New `docs/compliance-guide/` (English); translation held.
+
+## Batch 675 — MFA policy on the server (access-14)
+No locale changes (the refused-sign-in message reuses the existing `server_unavailable` text). New `IMfaPolicyService`, HTTP and mock versions; `mfaService.loadPolicy`; sign-in fails closed if the policy cannot be read.
+
+## Batch 674 — authentication model (documentation)
+No locale or code changes. User Guide sign-in article gains one sentence (English only); Admin Guide update pending in six languages.
+
+## Batch 673 — documentation only
+No locale or code changes. Added `docs/architecture/SERVER_DECIDES.md`.
+
+## Batch 672 — wiring step 3
+No locale changes. Five new server versions (delivery queue, referral queue, held release, release event log, QC sampling state); the QA activity-type ids, print refusal code and charge-status helper moved out of mock files; the guard baseline fell to 13 files.
+
+## Batch 671 — core data wiring
+No locale changes. About 60 service files moved from direct mock imports to the switched instances; the guard baseline fell from 95 files to 32.
+
+## Batch 670 — audit wiring
+No locale changes. 80 service and UI files now write audit entries through the switched `auditService`; guard added (`services/apiServer/directMockImports.guard.test.ts`).
+
+## Batch 669j — secure-email audit line
+Added `appShell.secureEmailModal.auditRecorded` in six languages (Korean needs native review) and removed the " · Audit logged" tail from `securityNotice`: the claim now shows only after the window has written the audit entry.
+
+## Batch 669i — External Consult
+New keys for the link banner, identity preview and tooltips (six languages, Spanish `_many`). **Deliberate exception to "format dates with the user's locale":** on the External Consult page the date of birth is always `DD-MMM-YYYY` with an English capitals month (24-OCT-1980), and masked as `**-***-1980`, in every language, so a laboratory date can never be read as US or international order (Pete's reviewer, Oct 24, 2026).
+
+## Batch 669h — Control Rules, External Consult, footer
+Merged staged keys for the three areas in all six languages; removed `home.systemsOperational` and `appShell.secureEmailModal.encryptedNotice`; reworded `home.footerCopyright` and two CAP search descriptions. Korean needs native review.
+
+## Batch 669g — messaging and cytology refinements
+Added two keys in all six languages (unrecognised secondary code message; the Mark as unread tooltip). Korean needs native review.
+
+## Batch 669f — new keys for the second findings group
+Merged the staged keys for Microtomy and Add-On Orders, Molecular, Operations and Messaging/Cytology QC in all six languages (three keys removed for Molecular). Korean needs native review.
+
+## Batch 669e — new keys for the first findings group
+Added 20 keys in all six languages (Margin Exception Review history and notices, workstation save and discrepancy messages, STAT flag toasts, the External Consult draft note); removed `auditLog.page.footer` and `auditLog.page.systemsOperational`. Korean needs native review.
+
+## Batch 669d — Help on Configuration
+No locale keys changed.
+
+## Batch 669c — About-menu guide items removed
+Removed `appShell.aboutModal.userGuide` and `appShell.aboutModal.adminGuide` from all six locale files (the menu items are gone).
+
+## Batch 669b — Guide window layout
+No locale keys changed. The User Guide route moved into the shell without the top bar (`SignedInApp.tsx`), with a guard in `userGuide.guard.test.ts`.
+
+## Batch 668 — Help button wording
+
+One text reworded in all six languages: `adminGuide.helpButton.title` no longer says "(opens in a new tab)", because the guide now opens in its own window (a tab only if the browser refuses). The User Guide title is unchanged. The machine-made wording for fr, de, nl, ko and es needs native review like the rest (`docs/quality/TRANSLATION_REVIEW.md`).
+
+## Batch 666 — language review files
+
+No locale keys added. The review workbooks are rebuilt from the live locale files (20,166 keys; 15,898 distinct English texts) for French, German, Dutch, Spanish and, for the first time, Korean (`scripts/translation-review-workbook.py fr,nl,de,es,ko`). `docs/quality/TRANSLATION_REVIEW.md` lists the 112 new and 17 reworded strings since Batch 649; `docs/product/PHRASE_REVIEW_LIST.md` is regenerated from the registry. Nothing has been reviewed by a native speaker; Korean first.
+
+## Batch 665 — new strings
+
+Locale keys added in all six languages: `synopticReportPage.toast.finalisedNoNextCase` and `collaboratorAddedNoMessage`. Machine translated; native review pending. The collaborator message itself is stored data in English (like the review-request message).
+
+## Batch 664 — new strings
+
+Locale keys added in all six languages: `synopticReportPage.toast.collaborator{Added,Already,Ambiguous,Cytotech,NoName,NotFound,NotPermitted,NotSaved}` and `signedOutNoNextCase`; `voiceProvider.status.cancel{Command,Confirm,Discarded,DiscardedKept,Stopped}`; `bottomActionBar.signOut.nextLabel` and `nextTitle`. Voice phrases (registry data) added in the six languages: `ADD_COLLABORATOR`; the "my cases" phrases were removed from `TABLE_CLEAR_FILTER`. All except English are machine translated; Korean needs native-speaker review first (`docs/product/PHRASE_REVIEW_LIST.md`, `docs/quality/TRANSLATION_REVIEW.md`).
+
+## Batch 663 — voice phrases
+
+No locale keys. Voice phrases (registry data, not locale files) added or changed in English, French, German, Dutch, Korean and Spanish: `TABLE_GO_TO_ROW`, `TABLE_OPEN_ACCESSION`, `SHOW_NHS_STATUS` (Batch 662), Collaborating Cases (now collaboration phrases) (Batch 664: the "my cases" phrases were taken off Clear Filter again). All except English are machine translated; Korean needs native-speaker review (`docs/product/PHRASE_REVIEW_LIST.md`).
+
+## Batch 662 — sex at birth and NHS number status
+
+New keys in all six languages: `patientSex.{female,indeterminate,male,notKnown}`, `headerBar.field.nhsNumber`, `nationalIdentifiers.banner.{checkOnly,invalid,statusCode,unchecked,verified}`, `searchPage.genderLabelKey.Indeterminate`, `accessionPage.demographics.sexIndeterminate`. Reworded: `headerBar.field.sex`, `accessionPage.demographics.{sex,sexOther}`, `searchPage.sections.gender`, `searchPage.summaryParts.gender`, `searchPage.csv.sex`, `caseReport.column.sex`, `fieldRequirements.fields.accession.sex` (now "Sex at birth"). Korean needs native-speaker review.
+
+## Batch 661 — sex never defaults
+
+New keys in all six languages: `fieldRequirements.fields.accession.sex`, `accessionPage.demographics.sexUnselected`. Korean needs native-speaker review.
+
+## Batch 660 — Collaborating Cases and the daily accessioning chart
+
+New keys in all six languages: `worklistPage.filterLabel.collaborating`, `benchContributions.accessioning.dailyChartLabel`, `benchContributions.accessioning.dailyBarTitle`. `benchContributions.subtitle` reworded to say which figures are yours and which are laboratory-wide.
+
+## Batch 659 — Fixes from the User Guide findings (6 to 12)
+
+New keys in all six languages: `intraopQueue.specimenCard.{addFrozenLabel,addFrozenSave,addFrozenFailed}`, `intraopQueue.mergeModal.mergeFailed` (intro reworded), `grossingScreen.col.pieceDescription`, `grossingScreen.matrix.title`, `grossingScreen.auditField.pieceDescription`, `a11y.fields.pieceDescription`, `searchPage.summary.reassignPickHint`, `tumorBoard.errors.{batchLocked,presenterNotEligible,notPermitted,saveFailed}`, `capabilities.items.qaManagementReviewSubmit`, `caseActionPermissions.managementReviewSubmit`. Removed: `searchPage.resourcesModal`, `searchPage.resourceSection`, `searchPage.resourceLinks` (replaced by the shared Resources window).
+
+## Batch 658 — Fixes from the User Guide findings
+
+New key in all six languages: `accessionPage.toast.downtimeReasonRequired`. `searchPage.pathologistRole` values corrected (countersigner, delegatedTo, resident, signedOut). `contributionDashboard.subtitleRole` is now only the fallback when the role is unknown.
+
+## Batch 657 — User Guide (context-aware help)
+
+New keys in all six languages under `userGuide.*`: the contents, search, "You are here", Workflow and role labels, previous and next step, related actions, loading and not-found messages, the draft notice and the Help button (`userGuide.helpButton.*`). The guide articles themselves are English only for now; the page says so in the other languages. The Korean, French, German, Dutch and Spanish labels are machine translations and need native-speaker review.
+
+## Batch 656 — Codes window: verified suggestions no longer dropped, unverified count shown
+
+New keys in all six languages: `addCodeModal.aiUnverifiedNote_one` / `_other` (and `_many` in Spanish). Korean wording (and the other machine translations) still need native-speaker review.
+
+## Batch 655 — Decision-list rulings (QA save failure, Delegate result list, intraoperative block, Similar Cases (Demonstration), cookie-only hub, dictionary fingerprint, critical-finding floor)
+
+Locale changes: `delegateModal.partial.*`, `delegateModal.refusals.*`, the Similar Cases (Demonstration) labels, the Intraoperative block labels and the QA "not saved" message, all in the six languages, keys sorted.
+
+## Batch 654 — Release Hold Print Policy (allow, warn, supervisor override, block)
+
+A site setting on System > Release Buffer replaces the on/off "Restrict In-House Hardcopy Printing". Default stays warn and confirm (Pete, Oct 23, 2026). New capability `print:release-hold:override` (high risk; Lab Director, Admin; 339 capabilities, 288 high risk). Both print paths (report view, Orchestration preview) follow the policy; the Assist Print button no longer asks its own confirmation. Keys added in all six locales: `capabilities.items.printReleaseHoldOverride`, `releaseBufferSection.settings.releaseHoldPrintPolicy.*`, `reportPrint.heldBlocked`, `reportPrintPrompt.{supervisorOverrideWarning,overrideReasonLabel,overrideReasonHint}`; removed `releaseBufferSection.settings.restrictHardcopy` and `bottomActionBar.print.confirmRestricted`. Machine translated; native review needed. `importLegacyFile.test.ts` timeouts raised to 120 s (a very slow first import on a loaded machine).
+
+## Batch 653 — A permission check that names a case is judged by the case's own facility
+
+A check that passed only a case id was refused for anyone limited to some facilities ("facility unknown"), even on a case at their own facility. The authorization service now looks up the case's ordering facility (`Case.order.facilityId`) when a check names a case and no facility, and only for a person with a facility assignment. A case that cannot be found, or a failed lookup, still refuses. The change is in `services/authorization/authorizationService.ts` (new `caseFacility` dependency) and `defaultAuthorizationService.ts`; tests in `caseFacility.test.ts`. No screen, string or capability changed. The server is specified to repeat the lookup from its own case record (not built). Appendix A of the patent disclosure and `docs/product/GAP_REGISTER.md` (A.4) are updated.
+
+## Batch 652 — Documentation and consistency audit (labels)
+
+**3 new keys in each of en, fr, de, nl, ko and es** (machine translated; Korean needs native-speaker review): `worklistTable.abnormalDot.codingSuffix`, `worklistTable.abnormalDot.codingSuffixDemo` (TEST- codes on a confirmed finding are labelled "demonstration code"), `governingBodiesSection.versionRow.unverifiedBadge` (retention version whose source note says unverified).
+
+| What | Where |
+|---|---|
+| Demonstration-code label | `services/abnormalDetection/codingTermText.ts` (+ test), `resolveSyntheticCoding.ts` `isDemonstrationCode`, `WorklistTable.tsx` (2292 to 2290 lines) |
+| Unverified retention badge | `services/governingBodies/retentionPlaceholder.ts` (+ test), `GoverningBodiesSection.tsx`, `pathscribe.css` |
+| Docs | Superadmin wording, hub token, READMEs, `docs/product/GAP_REGISTER.md` |
+
+**Defect fixes (same batch, Batch 652):** 7 new keys in each of en, fr, de, nl, ko and es (machine translated; Korean needs native-speaker review; rows in `docs/quality/TRANSLATION_REVIEW.md`): `contributionDashboard.peerNotEnoughData`, `delegateModal.refusals.multipleRecipientsNotAllowed`, `delegateModal.refusals.noRecipient`, `externalResourcesSection.errors.insecureUrl`, `externalResourcesSection.insecureLink`, `resourcesModal.insecureLink`, `resourcesModal.insecureLinkTitle`. Code: `pages/contributionDashboardCalculations.ts` (real peer averages), `utils/labels/dispatchScanSlideLabel.ts` and `hooks/useGlobalMaterialScanTracking.ts` (microtomy scan prints), `services/delegations/delegateToRecipients.ts` and `pages/Synoptic/Delegate/DelegateModal.tsx` (several recipients), `services/externalResources/externalResourceUrl.ts` (https only), `functions/main.py` (footer barcode solid black). New stylesheets `ExternalResourcesSection.css`, `ResourcesModal.css` (pathscribe.css is over its size baseline, so no lines were added to it). Baselines lowered for `SynopticReportPage.tsx` (7082) and `WorklistPage.tsx` (1312).
+
+**Specimen pipeline (same batch):** no new keys. Two strings reworded in en, fr, de, nl, ko and es (machine translated; Korean needs native-speaker review): `concordanceReviewSettingsSection.autoComparison.label` and `.description` now say "automatic category comparison" and that it is a category match, not an AI result (rows in `docs/quality/TRANSLATION_REVIEW.md`). The pool note on the Grossing screen reuses `useGrossingCompletion.toast.routedToPool`. Code: `services/grossing/triageReleaseGate.ts`, `services/grossing/routeCaseAfterGrossing.ts`, `services/intraop/carryIntraopFindingsToCase.ts`, `services/quality/frozenReconciliationPlan.ts`, `services/cases/poolAssignmentTimeout.ts`, `services/accessioning/linkLockboxReceipt.ts`, `functions/main.py` (repeatable PDF). Details: `docs/product/GUIDE_UPDATES.md`.
+
+**File sizes at the end of Batch 652:** `SynopticReportPage.tsx` 7,081 lines (baseline 7,082), `WorklistTable.tsx` 2,289 (2,290), `mockActionRegistryService.ts` 4,188 (4,189), `mockCaseService.ts` 6,047 (6,048), `AddCodeModal.tsx` 1,190 (1,191). The 7,123 given under Batch 650 was the figure at that batch; later work in the same series lowered it.
+
+## Batch 651 — AI answers checked in code (AI correctness audit)
+
+**4 new keys in each of en, fr, de, nl, ko and es** (machine translated; Korean wording needs native-speaker review): `addCodeModal.opcs4DemoNotApplicable`, `orchestratorSectionEditor.provenance.confidence`, `orchestratorSectionEditor.provenance.unavailable`, `orchestratorSectionEditor.provenance.unverified`. The narrative source line reuses `rightSynopticPanel.fieldRow.aiSourceLabel`. Rows are in `docs/quality/TRANSLATION_REVIEW.md`.
+
+| What | Where |
+|---|---|
+| One confidence scale (0 to 100), minimum 30, listed options only | `services/aiIntegration/aiSuggestionRules.ts`; used by `PathScribeAIService.suggestSynopticFields`, `generateAiSuggestionsForReport` and the historical extraction |
+| AI code suggestions moved out of the modal; real model and provider stored; `CodedEntryAiDetail.confidence` is 0 to 100 | `services/coding/aiCodeSuggestions.ts`, `codedEntry.ts`, `CaseCodingDisplay.tsx` |
+| OPCS-4 lookup reads the labelled demonstration list; such codes cannot be applied | `terminologySearch/codeSearchService.ts`, `coding/opcs4Sample.ts` |
+| Rule-based mismatch fallback shown (low risk); instruction version on the QA record and audit | `clinical/clinicalMismatchRules.ts`, `clinicalMismatchDecision.ts`, `ClinicalMismatchDecisionForm.tsx` |
+| Confidence and verified source quote per narrative section | `orchestrator/narrativeProvenance.ts`, `orchestratorEngine.ts`, `NarrativeProvenanceNote.tsx` |
+| Save Draft background template re-check: not built; types and comments corrected (Planned) | `types/case/Case.ts`, `docs/product/KNOWN_GAPS.md` |
+
+File sizes: \`AddCodeModal.tsx\` 1,373 to about 1,190 lines; \`mockCaseService.ts\` 6,049 to 6,047.
+
+## Batch 650 — Voice engine (650a): replace-once dictation, say-it-twice, audit of spoken commands
+
+**4 new keys in each of en, fr, de, nl, ko and es** (all `voiceProvider.status.*`, sorted): `confirmDeclined`, `confirmRepeat`, `confirmTimedOut`, `notAvailableHere`. They are the voice bar's messages when a command that is hard to undo asks to be said twice (`{{text}}` is what was heard, `{{label}}` the command), when it is cancelled or not repeated in time, and when a phrase belongs to another screen. None is in `fr-BE` / `nl-BE`. **Machine translated; fr, de, nl, ko and es need native-speaker review.**
+
+| What | Where |
+|---|---|
+| Report Draft phrases register (they never did; the registry had no `registerAction`) | `services/voice/reportDraftVoiceActions.ts`, `actionRegistry/transientActions.ts` (`registerTransientActions`), `pages/SynopticReportPage/hooks/useReportDraftVoiceActions.ts`. 20 commands with English, French, German, Dutch, Korean and Castilian Spanish phrases (`docs/product/PHRASE_REVIEW_LIST.md`, Batch 650a) |
+| Enter Gross / Micro / Diagnosis reach their section | the hook above + `services/voice/dictationSectionPicker.ts`; `OrchestratorSectionEditor` and `MicroscopicEntryPanel` listen |
+| AI refinement replaces, never repeats | `services/voice/dictationSegmentFlow.ts` (one final insert per segment, 2,000 ms budget), `dictationEditorWriter.ts`, `tiptapDictationPort.ts` |
+| Correction learning in the report editors | the same writer records on blur through `services/voice/dictationCorrections.ts` (moved out of `VoiceProvider`) |
+| Say it twice | `actionRegistry/repeatConfirmationCommands.ts` (6 commands), `services/voice/voiceCommandRunner.ts` |
+| One eligibility rule | `actionRegistry/commandEligibility.ts`, used by `getEligibleActions` (keys) and `findActionByTrigger` (voice) |
+| Audit | `services/voice/voiceCommandAudit.ts`: events **Voice command executed** / **Voice command refused** (Admin Guide, Audit Log appendix, six languages) |
+
+**Files:** `mockActionRegistryService.ts` 4,197 to 4,188 lines (baseline 4,189 recorded by the guard) and `SynopticReportPage.tsx` 7,171 to 7,123 (baseline 7,124). **Tests:** 59 new in 8 files (`services/voice` 6, `actionRegistry/voiceStationEligibility`, `pages/SynopticReportPage/hooks/useReportDraftVoiceActions`). Type-check clean; the full suite passed at the end of Batches 650 to 652 (see the Batch 652 delivery figures in `docs/quality/evidence/PathScribe-Batch652-xray.json`). Not done: see the Batch 650a rows in `docs/product/KNOWN_GAPS.md`.
+
+## Batch 649 — Safety and access bugs
+
+**60 new keys in each of en, fr, de, nl and ko; 61 in es** (the extra one is the Spanish plural form `useSignOutWorkflow.toast.revisionsNotReleased_many`, equal to `_other`). One key removed in all six (`caseAccessControl.finalize.adminOverride`: the administrative override on signing no longer exists) and one reworded in all six (`caseAccessControl.finalize.notAParticipant`: now "Only an active participant on this case whose participation type can finalize may sign it out."). Keys sorted, same `{{placeholders}}` in every language.
+
+| Group | Keys | What |
+|---|---|---|
+| `capabilities.items.<id>.label` / `.description` | 34 | The 17 new capabilities (17 labels, 17 descriptions): `surgicalReportSignOut`, `surgicalPreliminaryRelease`, `surgicalAmendmentRelease`, `surgicalCorrectionRelease`, `surgicalAddendumRelease`, `reportReleaseRecall`, `casePoolClaim`, `casePoolPass`, `caseFlagApply`, `caseFlagRemove`, `caseDiagnosisCodeApply`, `caseAccessionCreate`, `caseInformalReviewRequest`, `qaDeficiencyRaise`, `qaDeficiencyEscalate`, `qaDeficiencyContain`, `qaDeficiencyVerify` |
+| `caseActionPermissions.*` | 18 | The refusal sentence for each (plus `revisionNone`, added with the Amendment window greying out: shown when the person may release none of an amendment, a correction or an addendum): `signOut`, `preliminaryRelease`, `amendmentRelease`, `correctionRelease`, `addendumRelease`, `recall`, `poolClaim`, `poolPass`, `flagApply`, `flagRemove`, `codeApply`, `accessionCreate`, `reviewRequest`, `deficiencyRaise`, `deficiencyEscalate`, `deficiencyContain`, `deficiencyVerify` |
+| `heldReports.refused.notPermitted` | 1 | Recall refused for want of the capability |
+| `useSignOutWorkflow.toast.*` | 5 (6 in es) | `countersignFailed`, `signOutNotCompleted`, `signOutNotCompletedStatusKept`, `revisionsNotReleased_one` / `_other` (and `_many` in es) |
+| `useAmendmentWorkflow.toast.*` | 2 | `addendumNotSent`, `revisionNotReleased` |
+
+**Belgian French and Belgian Dutch (`fr-BE.json`, `nl-BE.json`) have no entries for any of these and fall back to `fr` and `nl`.** None of the new text uses a word Belgium says differently (no inloggen/uitloggen, achternaam, soixante-dix, quatre-vingt-dix); `localeParity.test.ts` passes.
+
+**fr, de, nl, ko and es are machine translated and need native-speaker review, Belgian French and Belgian Dutch readers included, before a customer sees them.** The sentences a pathologist reads when a sign-out or release is stopped are the priority (`useSignOutWorkflow.toast.*`, `useAmendmentWorkflow.toast.*`, `caseActionPermissions.*`); Korean in particular. The rows are on `docs/quality/TRANSLATION_REVIEW.md` ("Waiting for review: Batch 649"). No voice commands were added (`docs/product/PHRASE_REVIEW_LIST.md` says so).
+
+**What the batch did**
+- **Privacy.** Support-ticket screenshots now cover every `[data-phi]` and `[data-pii]` element whatever its value (`services/phiSelectors.ts`, `phi/phiSelectors.guard.test.ts`); the old list of ten per-kind selectors left `diagnosis`, `finding` and `case` visible. The barcode listener ignores keystrokes sent by script (`services/scanner/scanKeyFilter.ts`; `ScannerProvider` prop `acceptUntrustedKeyEvents` is a test seam only).
+- **Sign-out.** One gate sequence, `runSignOutReviewGates` (`services/signoutGates/signOutReviewGates.ts`), for Assist Finalize **and** Orchestration Sign Out Case (hold, microscopic documentation, critical findings, required fields, unverified AI; Sign Out Case ran none of the five). Writes in `services/surgicalSignOut/completeSurgicalSignOut.ts`: status first, rolled back if a later step fails. Countersign errors are shown. The signature is linked to the version id, number and PDF SHA-256 for Orchestration, a resident's release and Assist (`completeAssistFinalize.ts`). The amendment release result is checked; the addendum released from the amendment window is now sent (`reports/publishDirectAddendum.ts`); Assist revisions are released before the LIS send (`releaseRevisionsAtSignOut.ts`; a send that fails after an accepted release counts as not transmitted); the cancer registry submission goes with the FINAL after the release delay (`releaseSurgicalFinal.ts`).
+- **Permissions.** 17 new capabilities (`services/authorization/workflowCapabilities.ts`, seeds in `capabilitySeeds.ts`), each enforced in its service. The catalog is **338 capabilities, 287 high risk** (321 and 274 before). `admin-override` is removed from `canFinalizeCase`: signing needs the capability **and** being an active participant whose participation type can finalize. **Pete's ruling, Oct 22, 2026: residents do not issue preliminary releases independently; preliminary release is Pathologist and Fellow only, and a hospital's own roles do not get it by default** (`AUTHORIZATION_API.md`).
+- **Files split.** `useSignOutWorkflow.ts` 2,377 to 1,813 lines (logic to `signoutGates/` and `surgicalSignOut/`); `QualityAssurancePage.tsx`, `SynopticReportPage.tsx`, `AccessionPage.tsx`, `AddCodeModal.tsx` each a few lines shorter.
+- **Docs corrected.** `components/EnhancementRequest/README.md` said the button passes the modal a pre-captured screenshot; the button captures nothing and capture is opt-in inside the modal. `services/phi/README.md` said the redaction was "mostly" `data-phi` attributes. New READMEs: `services/surgicalSignOut/`, `services/scanner/`.
+
+**Disclosed, not fixed** (also in `docs/product/KNOWN_GAPS.md`): other role-name bypasses remain in `macroAccess`, `templatePublishingRules` and `canDraftOrApproveBillingCharge`; most permission checks pass only the case id, so a facility-limited staff member is refused where the case's facility would allow them; corrections released before a later failure are not undone until the server does sign-out in one transaction (planned). The file `AccessionPage.tsx` and the others above remain over 1,000 lines. The header comment in `EnhancementRequestModal.tsx` still repeats the old "pre-captured screenshot" claim (code comment, left alone in this documentation pass).
+
+**Tests.** 14,518 passed, 11 skipped (full suite, 1,723 files plus 4 skipped); type-check clean.
+
+## Batch 648 — Lockbox Drop-Off demonstration seed and product-guide updates
+
+No new UI keys. `services/lockbox/lockboxDemoSeed.ts` and the Lockbox mock store (demo seed, restored by Demo Reset); `docs/product/DEMO_GUIDE.md`, `GUIDE_UPDATES.md` (Batch 645 and 648 entries) and `FEATURE_OVERVIEW.md` (Lockbox Drop-Off section); one sentence added to the Admin Guide's Lockbox Drop-Off section in all six languages (the fr, de, nl, ko and es sentences are machine translated and need native-speaker review).
+
+## Batch 647 — Administrator Guide in six languages, screenshots completed, Help on more screens
+
+No new UI keys. The Administrator Guide is now written in English, French, German, Dutch, Korean and Spanish (`docs/admin-guide/src/<lang>/`, nine chapters and a glossary each). **All five translations are machine made and need native-speaker review before a customer receives them.** On-screen names use the app's own wording from `src/i18n/locales/<lang>.json`; where the app wording was inconsistent, or had no translation, the translator's choice is logged in `docs/admin-guide/open-questions/translation-notes.md`. `scripts/admin-guide/parity.py` refuses a translation that changes a heading id, link, table shape, status word, capability key or placeholder. The screenshots are still of the English interface.
+
+The **Help** button now opens the guide in the user's interface language (`fr-BE` opens French, `nl-BE` opens Dutch, any other language opens English) and also appears, as a floating button, on the screens outside Configuration that have a guide section. All 27 click-opened screenshots are captured by script; none are missing. Rules for translators: `docs/admin-guide/TRANSLATION.md`.
+
+## Batch 646 — Administrator Guide and the Help button
+
+2 new keys in all six languages (en, fr, de, nl, ko, es; sorted; the Belgian files add nothing): `adminGuide.helpButton.label` (Help, Aide, Hilfe, Help, 도움말, Ayuda) and `adminGuide.helpButton.title` ("Open this screen's section of the Administrator Guide (opens in a new tab)"). **All non-English text is machine translated and needs native-speaker review.**
+
+**The guide was English only in this batch.** Batch 647 added fr, de, nl, ko and es, and the Help button now follows the interface language.
+
+## Batch 645 — Lockbox Drop-Off
+
+89 new keys in all six languages (en, fr, de, nl, ko, es; sorted, same `{{placeholders}}`; the Belgian files add nothing because no word differs): `lockboxDropOff.*` (page, tabs, scan, urgent, received, duplicate, placeholder form, `error.<CODE>` for each fixed refusal code, `folder.*` with columns, status, waiting-time formats and the QA `summary.*`), `home.lockboxDropOffTile.{title,description}`, and `capabilities.items.{screenLockboxDropOffOpen,lockboxSpecimenReceive,lockboxFolderReview,lockboxPlaceholderResolve}.{label,description}` (so the four capabilities show in the Role editor under Screens and Case work). Waiting times are messages (`folder.dwell.minutes|hoursMinutes|daysHours`), so each language sets its own unit words; no punctuation is written into the page. Labels sit in `<dt>`/`<dd>` pairs without a colon.
+
+**All non-English text is machine translated and needs native-speaker review** (Korean in particular: 락박스 접수, 접수 번호, 야간 폴더, and the clinical wording). The voice phrases for the five new commands are on `docs/product/PHRASE_REVIEW_LIST.md`; Castilian Spanish phrases are formal (usted).
+
+**Terminology decided for this screen (Pete to confirm):** the product word **Lockbox** stays in every language, with a translated second word for "Drop-Off": Dépôt (fr), Einwurf (de), afgifte (nl), 접수 (ko), Entrega (es). **Overnight folder**: Dossier de nuit, Nachtordner, Nachtmap, 야간 폴더, Carpeta nocturna. **Accession number** follows the existing keys (fr Numéro d'accession, de Eingangsnummer, nl Accessienummer, ko 접수 번호, es Número de acceso); **Ordering facility / client / physician** follow the existing Billing, Clients and Case Report keys. "Placeholder" for the temporary record is Enregistrement provisoire, Platzhalter, tijdelijk record, 임시 기록, Registro provisional (not the text-field "placeholder" wording of the template inspector).
+
 ## Batch 615 (part D) — vial and rack labels, CI workflow, right-to-left groundwork (PS-360, PS-471, PS-293)
 
 - **PS-360 vial and rack/batch labels.** `networkPrint.label.vialRack.*` (error reasons, volume, item count, rack kinds) in all five languages. Text printed on a label comes from these keys, in the user's language.
@@ -1480,6 +1734,14 @@ The partial nephrectomy drawing (PS-492) and the file-size guard (PS-497) add no
 
 New keys, all five languages (en/fr/de/nl/ko): `accessionPage.technicalFacility.{label,none,help}` (the optional Accession field) and `surgicalReportPdf.technicalComponentAt` (the report line, with `{{facility}}` filled by the renderer; added to the report label list in `surgicalReportLabels.ts` and to `DEFAULT_LABELS` in `functions/main.py`). The Case team window's existing `technicalComponentFacility.*` keys are unchanged. Native-speaker review of fr/de/nl/ko still wanted.
 
+## Batch 620 (part E) — US ePath (PS-800)
+
+New keys, all five languages (en/fr/de/nl/ko): `usEpathSection.*` (the screen, profile cards, the editor, transports, checks, facility basis, routing hints, problems), `outboundQueue.registryReview.*` for the ePath review codes, `systemTab.sections.usEpath`, and `capabilities.items.configUsEpathManage.{label,description}`. Native-speaker review of fr/de/nl/ko is still needed.
+
+## Batch 620 (part S) — registry batch files (PS-800)
+
+New keys, all five languages (en/fr/de/nl/ko): `batchRegistryFeedSection.*` (the screen, the editor, counts, run statuses, problems, fields, formats, delimiters), `systemTab.sections.batchRegistryFeed`, and `capabilities.items.{configBatchRegistryFeedManage,registryBatchFileGenerate}.{label,description}`. The editor reuses `common.cancel`. Registry names come from the delivery schedules' registry choices. Machine translation of 106 keys: native-speaker review before clinical use, Korean in particular.
+
 ## Batch 619 (part S) — delivery schedules (PS-800)
 
 New keys, all five languages (en/fr/de/nl/ko): `deliverySchedulesSection.*` (the screen, the editor, problems, reasons, registry and deadline text), `systemTab.sections.deliverySchedules`, and `capabilities.items.configDeliverySchedulesManage.{label,description}`. Registry names reuse the existing `screeningRegistry.registries.*` and `cancerRegistrySection.registries.*`. Native-speaker review of fr/de/nl/ko still wanted.
@@ -1491,3 +1753,139 @@ New keys, all five languages (en/fr/de/nl/ko): `billingReleaseSection.*` (the sc
 ## Batch 619 (part Q) — Outbound Queue (PS-800)
 
 New keys, all five languages (en/fr/de/nl/ko): `outboundQueue.*` (the screen: states, feeds, destinations, transports, columns, reason pick-lists for hold, resubmit, not reportable and retract, billing review reasons, summary and refusal lines), `qualityComplianceHub.outboundQueueTile.*`, `outboundInterfaceDlq.outcomes.onHold`, and `capabilities.items.*` for `screen:outbound-queue:open`, `interface:outbound:hold`, `interface:outbound:release`, `interface:outbound:mark-not-reportable`, `interface:outbound:retract` and `interface:outbound:override-release`. Counts use neutral wording ("Changed: {{count}}") so no plural forms are needed. The registry's own message text is never shown, only its fixed error codes. Korean wording needs native review. New files: `services/outboundQueue/`, `pages/OutboundQueuePage/`, `hooks/useOutboundQueue.ts`, `constants/outboundQueueActionGroup.ts` (6 Role Dictionary actions, group F34, Admin), `docs/architecture/OUTBOUND_QUEUE_API.md`.
+
+## Batch 620 (part C) — UK cancer registry (COSD) destination and checks (PS-800)
+
+New keys, all five languages (en/fr/de/nl/ko): `cosdDestinationSection.*` (the screen, the editor and its problems, the transports, the sample check with its findings and the list of rules still to be confirmed against the published specification, and the correction due date), `systemTab.sections.cosdDestination`, and `capabilities.items.configCosdDestinationManage.{label,description}`. Plurals use `_one` / `_other` (working days, non-working dates). The preview is labelled everywhere as PathScribe's simplified model, not the official COSD file, and Korean wording needs native review. New files: `services/cosd/`, `components/Config/System/CosdDestinationSection.tsx`, `docs/architecture/UK_COSD_API.md`.
+
+## Batch 621 — AI extraction of historical reports (advisory only)
+
+New keys, all five languages (en/fr/de/nl/ko): `historyExtraction.*` (the panel beside a historical report: the "AI-extracted, not verified" label, the advisory note, template and service lines, confidence, the flag buttons, and the fixed messages for no text, no template and each failure code), `historyExtractionSection.*` (Configuration > System: the setting, its sources, and the accuracy counts), `systemTab.sections.historyExtraction`, and `capabilities.items.{configHistoryExtractionManage,aiHistoryExtractionRun,aiHistoryExtractionFlag}.{label,description}`. The AI's own instructions (prompts) are not screen text and are not translated. Korean wording needs native review. New files: `services/historyExtraction/`, `components/PatientHistory/HistoryExtractionPanel.tsx`, `components/Config/System/HistoryExtractionSection.tsx`, `docs/architecture/HISTORY_AI_EXTRACTION_API.md`.
+
+
+## Batch 622 — Spain (es-ES): sixth language, ES jurisdiction, Spanish spell-check (PS-811)
+
+New keys: the whole of `es.json` (20,004 entries, every English key plus the `_many` plural form Spanish needs, set equal to `_other`) and, in all six languages (en/fr/de/nl/ko/es), `language.es`, `jurisdictionNames.ES`, `systemConfig.patientIdStandard.ES.{label,format}`, `spellCheck.locales.es-ES`, `voiceSection.promptReview.lang.es`.
+
+**The standing rule is now six languages: en, fr, de, nl, ko, es.** `localeParity.test.ts` checks `es` like the others.
+
+**Spanish is Castilian (Spain), formal "usted"**, with Iberian wording: *ordenador*, *móvil*, *Anatomía Patológica*, *informe*, *muestra*, *bloque*, *portaobjetos*, *tinción*, *citología*, *validar / firmar informe*, *lista de trabajo*, dates dd/mm/aaaa, *NHC* (número de historia clínica) for MRN, *TRT* (tiempo de respuesta) for TAT. The translation was made by AI in 14 parts and **needs native-speaker clinical review before clinical use** (the translators' doubts: Grossing = *tallado*, accession = *registro*, touch prep = *improntas*, STAT = *URGENTE*, tumour board = *Comité de tumores*, "physician assistant" has no Spanish role, GMC/licence labels read as UK/US concepts). US-only terms (BAA, CPT, RVU, CLIA, CAP) were kept or lightly glossed.
+
+Also in this batch: ES in `Jurisdiction` (CIE-10-ES, `es-ES` dates, 24-hour clock, DNI/NIE pattern), voice profile `ES-ES`, Spanish spoken punctuation, ordinals (3.º), the dictation-refinement prompt for Spanish, report language `es`, the Spanish Hunspell dictionary and a starter pathology list (`spellcheck-data/es/`).
+
+**Not built (held until verified, see `docs/product/SPAIN_RESEARCH.md`):** cervical screening intervals and strategy, regional registry profiles, Veri*Factu / e-invoicing, SNOMED CT Spanish edition, CIE-10-ES code tables, Catalan / Basque / Galician.
+
+## Batch 623 — Licensed terminologies and real codes on abnormal rules (PS-130)
+
+- New keys: `terminologyLicences.*` (the Licensed terminologies card on Configuration > System > Code Systems: title, description, notShipped, system.SNOMED_CT / ICD_O_3, status.none / off / active / expired, the field labels, `problems.*`, save, saved) and `abnormalTriggerRulesSection.modal.licensedCodesLabel`, `licensedCodesHint`, `snomedCodeLabel`, `snomedTermLabel`, `icdo3CodeLabel`, `icdo3TermLabel`, plus `abnormalTriggerRulesSection.errors.snomedCodeInvalid`, `icdo3CodeInvalid`, `snomedDisplayRequired`, `icdo3DisplayRequired`. All 32 in en, fr, de, nl, ko and es.
+- Wording: the code system is "ICD-O-3" in en/fr/de/nl/ko and "CIE-O-3" in Spanish (as `addCodeModal.systemLabel.ICDO` already does). The licensing bodies are named only as examples (SNOMED International, a national release centre).
+- The screen name in the rule form's hint follows each language's own Code Systems title (fr Systèmes de codage, de Codiersysteme, nl Codesystemen, ko 코드 체계, es Sistemas de codificación).
+
+## Batch 624 — Worklist digital-pathology wording and shipped flag names
+
+- New keys: `worklistDp.readiness.*` (ready, partial, partialScanning, error, errorReason), `worklistDp.triage.*` (reviewRecommended, noFurtherReview, resultAvailable, preScreenedUnremarkable, `flaggedFinding_one/_other/_many`) and `flagNames.*` (34 shipped flag names), in all six languages.
+- **Decision (Pete, Oct 19, 2026): scanner and AI wording is never translated.** A scanner failure reason ("Out-of-focus"), an AI vendor's headline ("Malignancy Detected") and biomarker lines did not originate in PathScribe, and a mistranslated clinical finding is a risk. They are shown exactly as received and only ever inserted into a translated sentence as a value (`{{reason}}`). Only wording PathScribe writes itself is translated.
+- Flag names are data: the stored name is unchanged and only its display is looked up (`services/flags/shippedFlagNames.ts`). A flag an admin made or renamed shows as typed; names that carry a result or gene (BRAF V600E, PD-L1 CPS 15, VHL Mutation, ER / PR / HER2, HER2 FISH) are left as stored.
+- Spanish fix: `requiresDecal` and `requiresDecalLabel` said "Requiere calcomanía" (a sticker). "Decal" here is decalcification; both now read "Requiere descalcificación".
+- Not changed: spoken readiness/AI summaries (voice) still use the English text; flag descriptions in the chip tooltip are still English.
+
+## Batch 625 — One shared discordant section; QA review form messages translated (PS-118)
+
+- New keys: `qaReviewCaptureForm.errors.*` (fieldRequired with `{{label}}`, outcomeRequired, deltaRequired, severityRequired, rootCauseRequired, commentsRequired, rootCauseNoteRequired) in all six languages. The generic QA review form's validation messages were English text returned by `validateQaReviewSubmission`; the validator now returns message codes and the form translates them.
+- The Discordance window and the generic form render the same `QaDiscordantSection`; the window keeps the frozen-section wording (`discordanceReconciliationModal.*`), the generic form its shorter wording (`qaReviewCaptureForm.*`). Spanish "Otro" is used for the root-cause "Other" option and the matching message.
+
+## Batch 626 — Reactive Changes lab setting (PS-163)
+
+- New keys: `cytologyCategoriesSection.reactive.*` (title, hint, status.cytotechnologist/pathologist/mixed, allowCytotechnologist, requirePathologist, appliesToNew, failed) in all six languages. Wording is the Pete-decided "cytotechnologist" term per language; AI-translated, needs native review.
+
+## Batch 627 — Spanish voice commands
+
+- All 257 voice commands now have Castilian Spanish phrases (formal register, 2-8 variants each, mirroring the French/German/Dutch/Korean sets), in `services/actionRegistry/spanishVoiceTriggers.ts`. They are added to each action when the registry loads, including actions already stored in a browser; phrases an administrator edited are kept. They live in their own file because `mockActionRegistryService.ts` is over the 1000-line limit and may not grow.
+- Vocabulary follows the Spanish UI text: caso, lista de trabajo, muestra, casete, portaobjetos, firmar, adenda, marcadores.
+- The coverage guard now requires Spanish phrases on every command and checks Spanish for same-screen and always-on clashes; one known screen shadow added (`buscar`: Search vs. message search, as in English "search" and French "rechercher").
+- No locale keys added (voice phrases are data). AI-made; needs review by a native Spanish-speaking user before clinical use.
+
+## Batch 628 — Voice matching: best match, not first
+
+No locale keys. Exact-phrase voice matching (`services/actionRegistry/findExactTriggerMatch.ts`) now picks the best match: a phrase equal to everything said, then the longest phrase found inside it, then the earlier (screen) command on a tie. Fixes "open messages / configuration / search" being heard as "open" (Open Selected) on the worklist, in every language.
+
+## Batch 629 — hrHPV result inbound contract (PS-174)
+
+- New key `cytologyWorklist.badges.hpvInvalid` in all six languages: the HPV Triage row for a case whose platform result came back Invalid says to repeat the test, instead of "Awaiting hrHPV Result". (Spanish uses "VPH de alto riesgo", as in `awaitingHpv`.)
+- No other UI text. The inbound contract is in `docs/architecture/HPV_RESULT_INBOUND.md`.
+
+## Batch 630 — Manual hrHPV result entry with a Result Source and a second sign-off (PS-174)
+
+- New keys in all six languages: `cytologyWorklist.manualHpv.*` (dialog title, body, Result Source label and the four sources, the second-sign-off notice and button, pending detail, outcome messages, result names), `cytologyWorklist.badges.hpvOverridePending`, `cytologyWorklist.actions.approveOverride` / `rejectOverride`, and the capability text `capabilities.items.cytologyHpvResultRecordManual`.
+- Source codes (`MANUAL_PAPER_REPORT` and the rest) are stored; only their display goes through `manualHpv.sources.*`. Audit text stays literal English.
+- The fr/de/nl/ko/es wording is AI-translated and needs native review like the rest.
+
+## Batch 644 — Feature Overview in four voices (Pete, Oct 20, 2026)
+
+- `docs/product/FEATURE_OVERVIEW.md`: 108 sections gain practitioner, system administrator, marketing and FormedrixAI-and-partners text above the existing technical detail. No code or strings changed.
+
+## Batch 643 — Guide updates rewritten in four voices (Pete, Oct 20, 2026)
+
+- `docs/product/GUIDE_UPDATES.md`: all 134 earlier entries rewritten as practitioner, system administrator, marketing and FormedrixAI-and-partners text, from their existing wording. No code or strings changed.
+
+## Batch 642 — Sign-out authentication policy (Pete, Oct 20, 2026)
+
+- New keys under `signOutPolicy.*` (button label and tooltips, the session note, the Security card: modes, lengths, summaries, lock, table, deferred-features note) and `signerConfirmation.error.mfa_not_enrolled`, in all six languages. New `signOutPolicy.card.sessionWarning` mentions 21 CFR Part 11 (11.200). All six need native review.
+- The Audit Log text (policy changes, authentications, session expiry) and the CSV export headers are literal English.
+
+## Batch 641 — Recall documentation corrected; recall card loading fix (Pete, Oct 20, 2026)
+
+- No new strings. Recall windows and wording need no programme sign-off (Batch 640); the register codes are the interface engine's. The recall card keeps what a person types if the saved settings load late.
+
+## Batch 640 — Recall windows and wording set per country by the lab (Pete, Oct 20, 2026)
+
+- Configuration > Cytology > Screening Strategy > Self-collected HPV recall windows: a Country dropdown (Australia, New Zealand); that country's windows; recall wording per language and kind, with an empty box meaning the built-in text. Audited (`RECALL_SETTINGS_CHANGED`, literal English).
+- **New strings (all six languages), under `cytologyScreeningStrategySection.recallWindows`:** jurisdiction, switchHint, wordingTitle, wordingHelp, language, kind.clinician_lbc, kind.repeat_collection, placeholders, wordingProblem.too-long, wordingProblem.unknown-placeholder, discard, savedNote, failedNote; `help` reworded (it no longer says the values are placeholders). The `{{type}}` and `{{next}}` tokens in the help text are shown literally (passed as values). fr/de/nl/ko/es need native review.
+
+## Batch 639 — Hotkey decisions answered: cassette key, Discard confirmation (Pete, Oct 20, 2026)
+
+- Print Current Cassette: Alt+P to Alt+Shift+O (Alt+P stays Previous Case). Migration keeps customised keys.
+- Discard Unsaved Changes (Alt+U / voice) asks before it runs. New string `synopticEditor.discardCommandMessage` in all six languages (reuses the Unsaved Changes title and the Discard Changes / Keep Editing buttons). fr/de/nl/ko/es need native review.
+
+## Batch 638 — CSMS gate, Belgian Dutch dictation, prorated reassignment room, surgical demo patients (Pete, Oct 20, 2026)
+
+- **CSMS gate (PS-193):** a CSMS message no longer goes out at sign-out. It is queued and held as "awaiting eligibility", and the f36 flag is raised then. Verified rebuilds it from today's data and sends it; Not eligible closes it with the reason (audited, never sent). Resend on the Registry Exceptions screen cannot release it. The clinical report is never held.
+- **Belgian Dutch dictation (PS-347):** `NL-BE` voice profile (nl-BE, Dutch commands) plus a note in Voice Settings that it is untested by a Belgian speaker.
+- **Reassignment (PS-189):** a colleague's room is prorated by their logged hours, as the person's own limit is.
+- **Demo:** the surgical seed patients are registered in the patient index.
+- **New strings (all six languages):** `voiceSettings.nlBeUntested`, `cytologyWorklist.csms.recordedVerified`, `cytologyWorklist.csms.recordedNotEligible` (replaces `cytologyWorklist.csms.recorded`). fr/de/nl/ko/es need native review.
+
+## Batch 637 — Review workbooks for French, Dutch, German and Spanish; roles list names the newer actions (Pete, Oct 20, 2026)
+
+- **What changed:** no app change. New `scripts/translation-review-workbook.py` and `scripts/translation-review-glossary.json` build one Excel review workbook per language from the live locale files, in the layout of the earlier Korean review file (Instructions, 1 Glossary, 2 Clinical, 3 Other). The old Korean file was stale (8,158 texts); the app now has 15,644 distinct English texts in 19,857 places (6,163 clinical, 9,481 other), and the glossary has 166 terms.
+- **Counts of texts that look untranslated** (same as the English, mostly names, codes and cognates): fr 499, nl 623, de 528, es 412. Several translations of one English text are listed in each row (fr 470, nl 438, de 407, es 430 texts).
+- **Roles list:** 8 more person-facing actions from Batches 620 to 636 are named in the Role Dictionary (group F35), with default grants and classification; the roles list has 385 entries. No voice phrase, hotkey, locale key or capability changed. See `docs/product/ACTIONS_COVERAGE.md`.
+- **Not changed:** locale text, keys, capabilities. Korean can be added with the same script.
+- Details: `docs/quality/TRANSLATION_REVIEW.md`.
+
+## Batch 636 — CSMS eligibility check (PS-193)
+
+- New keys in all six languages: `cytologyWorklist.csms.*` (Eligibility verified, Record not eligible, reason quick-picks, result messages) and the capability text `capabilities.items.cytologyCsmsEligibilityVerify`. The audit events `CSMS_ELIGIBILITY_VERIFIED` and `CSMS_ELIGIBILITY_NOT_ELIGIBLE` are literal English.
+
+## Batch 635 — Workload reassignment to named colleagues (PS-189)
+
+- New key in all six languages: `cytologyScreening.workload.reassignedSummary` (how many cases went to which colleagues and how many back to the pool). The existing `reassigned` text still shows when nobody had room. Colleague names are data. The audit event `CYTOLOGY_WORKLOAD_REASSIGNED` is literal English.
+
+## Batch 634 — Surgical dispatch lookup and demo cytology patients
+
+- No new strings. The audit events `SURGICAL_DISPATCH_SKIPPED` and `CYTOLOGY_DISPATCH_SKIPPED` are literal English.
+
+## Batch 633 — Cytology result dispatch no longer skips silently (PS-171)
+
+- No new strings. The audit entry `CYTOLOGY_DISPATCH_SKIPPED` is literal English, as audit text always is.
+
+## Batch 632 — Recommendation codes, configurable recall windows, repeat-collection wording (PS-178)
+
+- New keys in all six languages: `cytologyWorklist.recall.codes.*` (the six recommendation descriptions; Australia repeat reads "Repeat Sample Collection Required (Unsatisfactory Result)", New Zealand "… (Invalid / Unsuitable Sample)"), `cytologyWorklist.recall.targetAsap`, and `cytologyScreeningStrategySection.recallWindows.*` (the settings card and its validation messages). `cytologyWorklist.recall.wording.NZ.repeat_collection` now has its own New Zealand text (repeat the HPV test as soon as practicable).
+- The codes themselves (`AU_REFER_COLPOSCOPY` and the rest) are stored data, never translated. fr/de/nl/ko/es are AI-translated and need native review.
+
+## Batch 631 — Australia/NZ self-collection recall (after PS-178)
+
+- New keys in all six languages: `cytologyWorklist.recall.*` (priority Urgent/Routine, target window, genotype type and next-step phrases, and the Australian and New Zealand recall wording for a clinician-collected sample and for a repeat collection) and `cytologyWorklist.badges.repeatCollection`.
+- The Australian and New Zealand wording is Pete's programme text; it was awaiting sign-off by someone in each programme (Batch 640 superseded that: the laboratory's administrator sets the wording per country), and the fr/de/nl/ko/es versions are AI-translated and need native review.
+- Recommendation codes (`AU_RECALL_CLINICIAN_LBC` and the rest) are stored data, never translated.

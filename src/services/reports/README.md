@@ -1,3 +1,9 @@
+**Batch 650:** the report bar's button decision lives here as `bottomBarActions.ts` (`bottomBarVisibility` draws the report bar's Sign Out Case, Finalise, Finalise & Next, Request Amendment, History and Codes buttons; `resolveBottomBarCommand` answers their voice and key commands, ignoring a hidden or greyed button or an open window). Test: `bottomBarActions.test.ts`.
+
+**Batch 649 (Amendment window):** `revisionReleaseCapability.ts` also holds the pure presentation decisions: `revisionReleaseAvailability`, `resolveRevisionKind`, `revisionKindDisabledTitle`, `revisionEntryDisabledTitle` (new string `caseActionPermissions.revisionNone`). Test: `revisionReleaseCapability.ui.test.ts`.
+
+**Batch 649:** `releasePreliminaryReport.ts` is refused without `surgical:preliminary:release` (Pathologist and Fellow by default, not Resident). `revisionReleaseCapability.ts` names the capability for each kind of revision (`surgical:amendment:release`, `surgical:correction:release`, `surgical:addendum:release`); `mockAmendmentService.release` checks it, audited, before anything is written. `publishDirectAddendum.ts`: an addendum released straight from the amendment window was marked released and never sent; it now goes out (Orchestration: ADDENDUM through the release delay; Assist: to the LIS). An addendum with no report instance cannot be sent on its own and the caller is told. `sendReviewRequest.ts` needs `case:informal-review:request`. Tests beside each file.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 ## Batch 613 (part B)
@@ -353,3 +359,17 @@ Batch 616 (part A, PS-483): `httpReportServices.ts` (amendments, informal review
 ## Batch 618 (PS-336)
 
 `surgicalReportLabels.ts` gains the `technicalComponentAt` label (the line the renderer prints for a split case's technical lab).
+
+## Batch 634
+
+`dispatchCaseInstances.ts` and `dispatchAmendedCaseInstance.ts` find the organisation through `interfaceDispatch/resolveDispatchOrganisation.ts` (the live patient index, with an audit entry on a skip) instead of reading the demo's index directly; `dispatchAssistSynopticResultDeps.ts` uses `patientIndexService`. They still queue through the mock outbound result queue (separate work).
+
+## Batch 658 — `bottomBarActions.ts`: Sign Out Case no longer waits for every report to be finalized (nothing finalized Orchestration reports, so it never showed); it shows when grossing is done, the case is not a pool case, Assist mode is off and the case is not in its recall window.
+
+- `reportOpenCommands.ts` (Batch 661): decides what the voice commands Add Case Comment, Add Specimen Comment, Add Synoptic Report and Select Specimen do on the report screen.
+
+- Batch 663: `reportOpenCommands.ts` also answers Maximise, Minimise, Preview, Internal Note and Skip Field (`OPEN_INTERNAL_NOTES_FLAG`); `addendumCommand.ts` decides when "Add Addendum" may open the amendment window (finalized case, nothing in front, revision permission).
+
+- Batch 664: `signOutAndNext.ts` (pure): Orchestration "Sign Out and Next" arms on the button, then moves to the next case in the queue only once the case's status shows it signed out (`signOutDone`); a refused check or cancelled signature window disarms it. `bottomBarActions.ts`: new command `signOutAndNext` (shown with Sign Out Case); `SIGNOUT_NEXT` means Finalise & Next in Assist and Sign Out and Next in Orchestration.
+
+- Batch 665: `signOutAndNext.ts` arming no longer depends on the sign-out window (a parked check closes it and resumes later): it ends on completion, a plain button press, a different case, or after ten minutes. It now also serves Assist Finalise & Next.

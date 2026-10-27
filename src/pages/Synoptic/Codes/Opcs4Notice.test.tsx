@@ -20,7 +20,7 @@ describe('Opcs4Notice', () => {
 describe('CaseCodingDisplay', () => {
   it('shows system, release, source, AI detail and the labelled simulated map', () => {
     render(<CaseCodingDisplay entries={[
-      { system: 'ICD10', release: 'ICD-10-CM', code: 'C50.9', source: 'ai', ai: { model: 'm', confidence: 0.8 } },
+      { system: 'ICD10', release: 'ICD-10-CM', code: 'C50.9', source: 'ai', ai: { model: 'm', confidence: 80 } },
     ]} />);
     expect(screen.getAllByText('C50.9').length).toBe(2);
     expect(screen.getByText('caseCoding.source.ai')).toBeTruthy();

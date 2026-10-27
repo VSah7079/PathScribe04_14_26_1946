@@ -6,6 +6,7 @@ import type { CodedEntry } from '@/services/coding/codedEntry';
 import { sideBySide } from '@/services/coding/simulatedIcdMap';
 import { systemAllowed } from '@/services/coding/codePolicyEnforcement';
 import { useCodePolicy } from './useCodePolicy';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 export const CaseCodingDisplay: React.FC<{ entries: readonly CodedEntry[] }> = ({ entries }) => {
   const { t } = useTranslation();
@@ -23,7 +24,7 @@ export const CaseCodingDisplay: React.FC<{ entries: readonly CodedEntry[] }> = (
             <span className="fm-eyebrow">{e.system}{e.release ? ` · ${e.release}` : ''}</span>
             <span className="fm-eyebrow">{t(`caseCoding.source.${e.source}`)}</span>
             {!systemAllowed(e.system, policy, today) && <span className="ps-code-outside-policy" data-testid="outside-policy">{t('codeSystemsPolicy.outsidePolicy')}</span>}
-            {e.ai && <span className="ps-conf-badge">{t('caseCoding.aiDetail', { model: e.ai.model, confidence: Math.round(e.ai.confidence * 100) })}</span>}
+            {e.ai && <span className="ps-conf-badge">{t(showsConfidence() ? 'caseCoding.aiDetail' : 'caseCoding.aiDetailPlain', { model: e.ai.model, confidence: Math.round(e.ai.confidence) })}</span>}
           </li>
         ))}
       </ul>

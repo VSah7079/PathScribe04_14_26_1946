@@ -76,7 +76,7 @@ describe('the keys after the prefix', () => {
 });
 
 // ── Batch 614: Mac Option and AltGr ──────────────────────────────────────────────────────────────────────────
-import { effectiveKey, goToRouteOf, keyFromCode, leaderDisplayOf, matchesShortcut, shortcutFromPress } from './shortcutResolution';
+import { effectiveKey, goToRouteOf, isFunctionKeyPress, keyFromCode, leaderDisplayOf, matchesShortcut, shortcutFromPress } from './shortcutResolution';
 
 describe('Mac Option and AltGr', () => {
   const altGr = (over: Partial<KeyPress>): KeyPress => key({ altKey: true, ctrlKey: true, getModifierState: n => n === 'AltGraph', ...over });
@@ -148,5 +148,15 @@ describe('the Go to route shown beside a command (cheat sheet and Actions tab)',
     expect(goToRouteOf({ category: 'SYNOPTIC', shortcut: 'Alt+C' })).toBeNull();
     expect(goToRouteOf({ category: 'SYSTEM', shortcut: '' })).toBeNull();
     expect(leaderDisplayOf('Ctrl+Alt+Shift+Q')).toBe('Shift+Q');
+  });
+});
+
+describe('F1 and function keys (Batch 658)', () => {
+  it('View Help is F1 and a function key is never typing', () => {
+    const f1 = { key: 'F1', code: 'F1', altKey: false, ctrlKey: false, shiftKey: false, metaKey: false };
+    expect(matchesShortcut(f1, 'F1')).toBe(true);
+    expect(isFunctionKeyPress(f1)).toBe(true);
+    expect(isFunctionKeyPress({ key: 'f' })).toBe(false);
+    expect(isFunctionKeyPress({ key: 'F25' })).toBe(false);
   });
 });

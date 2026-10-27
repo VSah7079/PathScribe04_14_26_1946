@@ -1,0 +1,18 @@
+/* Batch 669f (cyt-6): the inline confirmation in the Record Discrepancy window. */
+.ps-qc-disc-confirm {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--ps-warning, #b45309);
+  background: color-mix(in srgb, var(--ps-warning, #b45309) 10%, transparent);
+  font-size: 0.9em;
+}
+.ps-qc-disc-optional {
+  font-weight: 400;
+  opacity: 0.75;
+}
+/* Reviewer refinement: the inline message under a secondary code that matches no known category. */
+.ps-qc-disc-field-error {
+  margin-top: 4px;
+  font-size: 0.85em;
+  color: var(--ps-danger, #b91c1c);
+}

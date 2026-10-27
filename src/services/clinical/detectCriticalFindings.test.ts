@@ -5,7 +5,7 @@ vi.mock('@/services/aiIntegration/aiProviderService', () => ({
 }));
 
 import { callAi } from '@/services/aiIntegration/aiProviderService';
-import { detectCriticalFindings } from './detectCriticalFindings';
+import { detectCriticalFindings, applyConfidenceFloor, ABNORMAL_CONFIDENCE_FLOOR } from './detectCriticalFindings';
 
 describe('detectCriticalFindings — real, direct verification', () => {
   beforeEach(() => {
@@ -108,13 +108,13 @@ describe('detectCriticalFindings — real, direct verification', () => {
     }
   });
 
-  it('clamps an out-of-range confidence to 0-100, and defaults a missing one to 0, rather than trusting the model', async () => {
+  it('clamps an out-of-range confidence to 0-100, and defaults a missing one to 0, rather than trusting the model (Critical, which the floor never drops)', async () => {
     vi.mocked(callAi).mockResolvedValueOnce({
       text: JSON.stringify({
         flags: [
-          { term: 'a', sourceField: 'gross', sourceQuote: 'a', severity: 'Abnormal', confidence: 150 },
-          { term: 'b', sourceField: 'gross', sourceQuote: 'b', severity: 'Abnormal', confidence: -10 },
-          { term: 'c', sourceField: 'gross', sourceQuote: 'c', severity: 'Abnormal' },
+          { term: 'a', sourceField: 'gross', sourceQuote: 'a', severity: 'Critical', confidence: 150 },
+          { term: 'b', sourceField: 'gross', sourceQuote: 'b', severity: 'Critical', confidence: -10 },
+          { term: 'c', sourceField: 'gross', sourceQuote: 'c', severity: 'Critical' },
         ],
       }),
       provider: 'structured_messages' as any,
@@ -147,7 +147,7 @@ describe('detectCriticalFindings — real, direct verification', () => {
   it('negated narrative ("no evidence of carcinoma") produces no flag when the model follows the instruction, so Finalize is not blocked', async () => {
     vi.mocked(callAi).mockResolvedValueOnce({ text: '{"flags":[]}', provider: 'structured_messages' as any, model: 'test-model' });
     const res = await detectCriticalFindings({ gross: '', microscopic: 'Sections show benign breast tissue. No evidence of carcinoma.', ancillary: 'Negative for acid-fast bacilli.' });
-    expect(res).toEqual({ ok: true, data: { flags: [], negated: [] } });
+    expect(res).toEqual({ ok: true, data: { flags: [], negated: [], belowFloor: [] } });
   });
 
   // Batch 452 (PS-131, PS-105): the model's reply is re-checked in code.
@@ -203,5 +203,31 @@ describe('detectCriticalFindings — real, direct verification', () => {
     // even use to pass a patient name/MRN/DOB through.
     const callText: { gross: string; microscopic: string; ancillary: string } = { gross: '', microscopic: '', ancillary: '' };
     expect(Object.keys(callText).sort()).toEqual(['ancillary', 'gross', 'microscopic']);
+  });
+});
+
+describe('confidence floor (Batch 655): noise control that never silences a critical result', () => {
+  const f = (severity: 'Abnormal' | 'Critical' | 'Malignant', confidence: number) => ({ severity, confidence });
+  it('sets aside only Abnormal flags under the floor; Critical and Malignant are kept at any confidence', () => {
+    const flags = [f('Abnormal', 49), f('Abnormal', 50), f('Critical', 5), f('Malignant', 0), f('Abnormal', 90)];
+    const { kept, belowFloor } = applyConfidenceFloor(flags);
+    expect(belowFloor).toEqual([f('Abnormal', 49)]);
+    expect(kept).toEqual([f('Abnormal', 50), f('Critical', 5), f('Malignant', 0), f('Abnormal', 90)]);
+    expect(ABNORMAL_CONFIDENCE_FLOOR).toBe(50);
+  });
+  it('the detection result keeps a low-confidence malignancy and sets aside a low-confidence abnormal one', async () => {
+    vi.mocked(callAi).mockResolvedValueOnce({
+      text: JSON.stringify({ flags: [
+        { term: 'carcinoma', sourceField: 'microscopic', sourceQuote: 'suspicious for carcinoma', severity: 'Malignant', confidence: 30 },
+        { term: 'mild atypia', sourceField: 'microscopic', sourceQuote: 'mild atypia', severity: 'Abnormal', confidence: 30 },
+      ] }),
+      provider: 'structured_messages' as any, model: 'test-model',
+    });
+    const res = await detectCriticalFindings({ gross: '', microscopic: 'Suspicious for carcinoma. Mild atypia.', ancillary: '' });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.flags.map(x => x.term)).toEqual(['carcinoma']);
+      expect(res.data.belowFloor?.map(x => x.term)).toEqual(['mild atypia']);
+    }
   });
 });

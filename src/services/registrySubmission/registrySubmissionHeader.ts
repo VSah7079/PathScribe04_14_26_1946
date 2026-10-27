@@ -68,6 +68,8 @@ export interface PriorRegistrySubmission {
   status: string;
   /** Batch 421: what the registry said; a rejected version is one it doesn't hold. */
   registryStatus?: string;
+  /** Batch 638: AWAITING_ELIGIBILITY / NOT_ELIGIBLE entries make a later version follow the first one's fate. */
+  errorCode?: string;
   submission?: Pick<RegistrySubmissionHeader, 'submissionGuid' | 'submissionVersion' | 'specimenId'>;
 }
 

@@ -48,7 +48,7 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { assetLocationDictionaryService } from '../assetLocation/assetLocationDictionaryServiceInstance';
 import { applyMaterialLocation } from './materialLocationMutation';
 import type { MaterialLocationEventPayload } from '@/types/events/MaterialLocationEventPayload';
@@ -134,8 +134,8 @@ export async function processMaterialLocationEvent(payload: MaterialLocationEven
   // case-wide audit trail write stays too, per the earlier direct
   // decision to also surface these as part of the existing, shared
   // Audit Log. Same real, single choke point every other audit trail
-  // in this app already funnels through (mockAuditService.logEvent()).
-  mockAuditService.logEvent({
+  // in this app already funnels through (auditService.logEvent()).
+  auditService.logEvent({
     type: 'system',
     event: 'Material Location Update',
     detail: `${result.targetDescription} now at "${payload.location}"${payload.action ? ` — ${payload.action}` : ''}${payload.workflowStage ? ` (${payload.workflowStage})` : ''}`,

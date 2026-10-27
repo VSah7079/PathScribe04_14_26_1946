@@ -1,0 +1,511 @@
+<h1 id="top">Intraop Queue</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Intraop Queue is where an intraoperative consultation (a frozen section) is recorded before the formal case exists. You identify the patient, record the operating room and surgeon once, then record each specimen: its quick gross description, the touch prep and frozen block work, the frozen section diagnosis and the verbal report given to the surgical team. Entries that have no formal case yet wait in a list until someone merges them into the accession.</p>
+<p><strong>Intended users.</strong> Pathologists and other staff at the bench or in the operating room corridor (the screen works on a phone browser as well as on a desktop). Accessioners and pathologists use the same screen to match a waiting entry to its case. What you can open depends on your role; if the Intraop Queue tile is missing from Home, ask your laboratory manager.</p>
+<p><strong>Where it fits.</strong> The frozen section usually happens before the specimen reaches the laboratory for formal accessioning. Record it here first. When the formal case is logged in <a href="/help/accession">Accession</a>, PathScribe looks for a waiting entry that belongs to it and offers the merge there. You can also merge from this screen. The frozen results then travel with the case that you report in the <a href="/help/report">report</a> screen.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/intraop-queue-overview.png" alt="The Intraop Queue with the new entry form above and the list of waiting entries below"><figcaption>The Intraop Queue with the new entry form above and the list of waiting entries below</figcaption></figure>
+
+<p>The screen has two halves. The top is the form for a new entry. Below it is the log of entries that are still unlinked ("Pending Match").</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>The patient lookup (ADT) uses a small set of demonstration records, and the "Simulate scan (no camera)" link invents a number. Try the lookup with MRN 12345 to see a matched patient; any other number gives "No ADT match" and you type the name and date of birth yourself.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>New entry form, step 1: identify the patient</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan Patient Barcode</td>
+<td>Opens the camera to read the patient wristband. The whole text read is used as the MRN.</td>
+</tr>
+<tr>
+<td>Simulate scan (no camera)</td>
+<td>A demonstration link that makes up an MRN so you can try the screen without a camera.</td>
+</tr>
+<tr>
+<td>No barcode? Enter MRN manually</td>
+<td>Shows an MRN box and the <strong>Look Up Patient</strong> button.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>New entry form, step 2: patient and session</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Matched via ADT, confirm before proceeding</td>
+<td>Shown when the number matched a patient record. It lists Name, DOB and MRN.</td>
+</tr>
+<tr>
+<td>No ADT match</td>
+<td>Shown when no record matched. Enter <strong>Patient name (Last, First)</strong> and <strong>Date of birth</strong> yourself.</td>
+</tr>
+<tr>
+<td>I have verified this is the correct patient</td>
+<td>You must tick this. Changing the name or date of birth clears the tick.</td>
+</tr>
+<tr>
+<td>OR number</td>
+<td>The operating room, for example OR-3. Required.</td>
+</tr>
+<tr>
+<td>Surgeon</td>
+<td>The operating surgeon. Required.</td>
+</tr>
+<tr>
+<td>Submitting facility (optional)</td>
+<td>Choose the facility. Your laboratory may have made it required.</td>
+</tr>
+<tr>
+<td>Location, ward / room / bed (optional)</td>
+<td>Lists the locations of the chosen facility. It stays greyed out until you choose a facility.</td>
+</tr>
+</tbody>
+</table>
+<p>Your laboratory can change which of these fields are required. A line beginning "Still required" under the form names what is missing, and the <strong>Continue to Specimen</strong> button stays greyed out until nothing is missing.</p>
+<p><strong>New entry form, step 3: one specimen</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimen label</td>
+<td>Name of the specimen, for example "Specimen A: Left breast, margins". Required.</td>
+</tr>
+<tr>
+<td>Quick Gross, dimensions, blocks frozen, orientation</td>
+<td>A short gross description. Required.</td>
+</tr>
+<tr>
+<td>Frozen section diagnosis</td>
+<td>Optional here. If it is not read yet, add it later from the specimen card (see Alternative workflow).</td>
+</tr>
+<tr>
+<td>Preliminary category</td>
+<td>Benign, Malignant, Atypical / Suspicious or Deferred. This category, not the diagnosis text, is what is compared with the final category at sign-out. Your laboratory may require it whenever you enter a diagnosis.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Entry card in the log</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending Match</td>
+<td>The card does not show the patient name or MRN. It shows the OR, surgeon, facility, location, who recorded it and how the patient was identified.</td>
+</tr>
+<tr>
+<td>STAT / Routine button on a specimen</td>
+<td>Switches which frozen section time target the clock counts against. It disappears once the frozen diagnosis is recorded.</td>
+</tr>
+<tr>
+<td>Timeline</td>
+<td>The time of each step logged for the specimen: Gross Logged, Touch Prep Performed or Touch Prep Skipped (with its reason), Frozen Section Cut.</td>
+</tr>
+<tr>
+<td>Preparation Type and Block Count</td>
+<td>Records what was actually made: Frozen Block(s), Touch Prep / Smear, Squash Prep, Cytology / Fluid Evaluation, or Gross Only / Intraoperative Consultation. Each is numbered automatically.</td>
+</tr>
+<tr>
+<td>Quick Gross, Frozen section diagnosis, Preliminary cytology</td>
+<td>The text recorded for the specimen.</td>
+</tr>
+<tr>
+<td>Verbal report line</td>
+<td>Shows the time, who received the report and their role, a "Read back" tag and a "Critical result" tag.</td>
+</tr>
+</tbody>
+</table>
+<p>More wording:</p>
+<ul>
+<li>While the page reads the queue it says "Loading intraoperative entries…".</li>
+<li>On a new entry, once a facility is chosen the <strong>Location</strong> list offers that facility's locations; before that it says "Select a facility first", and "None specified" lets you leave it blank.</li>
+<li>A queue card ends with "matched via barcode scan (simulated)" or "matched via manual / ADT entry", showing how the patient was matched. The scan route is a demonstration today.</li>
+<li>In the merge window, besides the suggested cases, the last choice is "Enter case ID manually" for a case that is not on the list.</li>
+</ul>
+<h3 id="verbal-report-form-labels">Verbal report form labels</h3>
+<p>The form that <strong>Log Verbal Report</strong> opens is headed "Verbal report to the surgical team".</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dictate the report</td>
+<td>A box for speaking or typing who you told, their role and whether they read it back. <strong>Fill in from dictation</strong> then fills the fields below.</td>
+</tr>
+<tr>
+<td>Mentioned</td>
+<td>A small tag on a surgeon-unavailable reason that the dictation appeared to name. It is only a suggestion; choose the reason yourself.</td>
+</tr>
+<tr>
+<td>Suggested critical result</td>
+<td>A notice shown when the frozen diagnosis matches your laboratory's list of critical terms, with the specimens that matched. The <strong>Critical result</strong> tick box stays yours to set.</td>
+</tr>
+<tr>
+<td>Type to search, or enter a name</td>
+<td>Hint in <strong>Received by</strong>. Pick a suggested name or type one.</td>
+</tr>
+<tr>
+<td>Why the surgeon couldn't be reached</td>
+<td>Hint for the short reason you type when you choose Other as the reason the surgeon was unavailable.</td>
+</tr>
+<tr>
+<td>Say briefly why, in a few words.</td>
+<td>Appears while that reason is too short to log.</td>
+</tr>
+<tr>
+<td>Note on the verbal report to the surgeon</td>
+<td>The optional note line at the bottom of the form.</td>
+</tr>
+</tbody>
+</table>
+<p>When something is missing, the "Still required" line names it with the same wording as the field. Two names used there are <strong>Surgeon unavailable: reason</strong> (which reason applied) and <strong>Surgeon unavailable: note ("Other")</strong> (the short explanation for Other).</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>View Log / Hide Log (with a count)</td>
+<td>Shows or hides the list of waiting entries. On a phone the log starts hidden so that the form is in view.</td>
+</tr>
+<tr>
+<td>Live status badge</td>
+<td>Shows whether the list is updating by itself. New entries, diagnoses and merges from other devices appear without reloading.</td>
+</tr>
+<tr>
+<td>Switch to Full Desktop View</td>
+<td>Only on a phone. Leaves the phone layout and returns to Home.</td>
+</tr>
+<tr>
+<td>Save &amp; Next Specimen</td>
+<td>Saves this specimen and returns to the specimen step for the next one in the same session.</td>
+</tr>
+<tr>
+<td>Save &amp; Close</td>
+<td>Saves this specimen, ends the session and puts it in the log.</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>Asks "Discard current entry?" if you have gone past the scan step. Choose <strong>Discard and Start New</strong> or <strong>Cancel, keep working</strong>.</td>
+</tr>
+<tr>
+<td>Log Quick Gross</td>
+<td>Records the quick gross on a specimen card (when it was not entered earlier).</td>
+</tr>
+<tr>
+<td>Capture Gross Photo</td>
+<td>Takes a photo of the specimen with the camera. It appears as a thumbnail on the card.</td>
+</tr>
+<tr>
+<td>Log Touch Prep Performed / Skip Touch Prep</td>
+<td>Records the touch prep step. A skip asks for a reason: Fibrotic / Scant, Direct to Frozen, or Other with a typed reason.</td>
+</tr>
+<tr>
+<td>Log Frozen Block(s) and the other Log buttons</td>
+<td>Records preparations of the type chosen in Preparation Type.</td>
+</tr>
+<tr>
+<td>Log Verbal Report</td>
+<td>Opens the verbal report form.</td>
+</tr>
+<tr>
+<td>Merge Mobile Intake Data</td>
+<td>Opens the merge window for that entry.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lock icon and "Pending Match"</td>
+<td>The entry is not yet linked to a case, so the patient is hidden until you merge it.</td>
+</tr>
+<tr>
+<td>Red dot on a timeline row</td>
+<td>The step was skipped (touch prep).</td>
+</tr>
+<tr>
+<td>Read back / Critical result tags</td>
+<td>On the verbal report line: the read-back was confirmed; the result was marked critical.</td>
+</tr>
+<tr>
+<td>MRN match / Fuzzy (high or medium)</td>
+<td>In the merge window: how strongly a case matches the entry.</td>
+</tr>
+<tr>
+<td>Asterisk (*) after a label</td>
+<td>The field is required.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"Still required" names.</strong> When fields are missing, the line under a form lists them by name. In the intraoperative forms the names include <strong>Case to merge into</strong> (the case ID in the merge window) and <strong>Reason for skipping touch prep ("Other")</strong> (the note you must write when you choose Other as the reason for skipping the touch prep).</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>The keys work while the Intraop Queue is open.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+O</td>
+<td>Open Intraop Queue (from other screens).</td>
+</tr>
+<tr>
+<td>Alt+S</td>
+<td>Start New Intraop Entry. If you have an unsaved entry, you are asked before it is discarded.</td>
+</tr>
+<tr>
+<td>Alt+Shift+Y</td>
+<td>Log Touch Prep Performed.</td>
+</tr>
+<tr>
+<td>Alt+T</td>
+<td>Skip Touch Prep (records the reason Direct to Frozen).</td>
+</tr>
+<tr>
+<td>Alt+Shift+L</td>
+<td>Log Frozen Section Cut (one frozen block).</td>
+</tr>
+<tr>
+<td>Alt+Shift+S</td>
+<td>Log Squash Prep.</td>
+</tr>
+<tr>
+<td>Alt+Shift+C</td>
+<td>Log Cytology / Fluid Evaluation.</td>
+</tr>
+<tr>
+<td>Alt+Shift+G</td>
+<td>Log Gross Only.</td>
+</tr>
+<tr>
+<td>Alt+L</td>
+<td>Log the verbal report, while the verbal report form is open.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+1</td>
+<td>Continue to Specimen.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+2</td>
+<td>Save &amp; Next Specimen.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+3</td>
+<td>Save &amp; Close.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+4</td>
+<td>Merge, while the merge window is open.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">One specimen only</p>
+<p>The touch prep and preparation keys (and their spoken phrases) work only when the session has exactly one specimen. With two or more specimens, use the buttons on the specimen you mean. Each key applies the same checks as its button.</p>
+</div>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the Intraop Queue from Home, or press Alt+O. The new entry form shows <strong>Scan Patient Barcode</strong>.</li>
+<li>Select <strong>Scan Patient Barcode</strong> and read the wristband, or select <strong>No barcode? Enter MRN manually</strong>, type the MRN and select <strong>Look Up Patient</strong>. The patient step opens.</li>
+<li>If the patient matched, read the name, DOB and MRN against the patient. If there was no match, type the name and date of birth.</li>
+<li>Tick <strong>I have verified this is the correct patient</strong>.</li>
+<li>Enter the OR number and the surgeon. Choose the facility and location if you know them.</li>
+<li>Select <strong>Continue to Specimen</strong>. The specimen step opens with a banner showing the patient, OR and surgeon.</li>
+<li>Enter the specimen label and the quick gross description.</li>
+<li>If the frozen section is already read, enter the diagnosis and choose the preliminary category.</li>
+<li>Select <strong>Save &amp; Next Specimen</strong> for another specimen from the same patient, or <strong>Save &amp; Close</strong> for the last one. The banner counts the specimens saved. After Save &amp; Close the entry appears in the log as Pending Match.</li>
+<li>Later, on the entry card, add the touch prep, the frozen blocks and the other preparations (see the alternative workflow), then record the verbal report.</li>
+<li>To record the verbal report, select <strong>Log Verbal Report</strong> and complete the form (see below), then select <strong>Log Now</strong>. The line shows who received it. The time is the time you press the button and cannot be edited.</li>
+<li>When the formal case exists, select <strong>Merge Mobile Intake Data</strong> on the entry card. The merge window opens.</li>
+<li>Choose the matched case (an MRN match is listed first) and select <strong>Merge into</strong> that case number. The entry leaves the log. The frozen section diagnosis and the photos are added to the case as intraoperative findings; the final diagnosis is not changed. A case number you type by hand must be a real case: if it is not found, the window stays open and says so.</li>
+</ol>
+<p><strong>The verbal report form</strong></p>
+<ol>
+<li>Optional: tap the dictation box, speak or type who you told, their role and whether they read it back, and select <strong>Fill in from dictation</strong>. Fields that were filled are tagged "From dictation". Check each one.</li>
+<li>Check <strong>Critical result</strong> if it is one. PathScribe suggests this when the frozen diagnosis matches your laboratory's list of critical terms; you decide.</li>
+<li>In <strong>Received by</strong>, type a name or pick from the suggestions (the session's surgeon is listed first).</li>
+<li>Choose the recipient's role: Operating surgeon, Surgical fellow, Surgical resident, Physician assistant or Designated OR staff.</li>
+<li>Tick the read-back box: the recipient repeated the patient identifiers and the diagnosis. You cannot log without it.</li>
+<li>If the result is critical and went to anyone but the operating surgeon, select <strong>Surgeon unavailable</strong> and choose a reason. For Other, give a short reason of a few words.</li>
+<li>Optionally add a note, then select <strong>Log Now</strong>.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To add the frozen section diagnosis after the session is saved, type it in the <strong>Add the frozen section diagnosis</strong> box on the specimen card, choose the category, and select <strong>Save diagnosis</strong>. The clock stops and the diagnosis shows on the card. If the entry has already been merged, the diagnosis is added to the case as well.</li>
+<li>Log the quick gross after the session is saved: on a specimen card, type the description and select <strong>Log Quick Gross</strong>. Touch prep and frozen block logging stay unavailable until you do.</li>
+<li>Choose Preparation Type, set Block Count for frozen blocks, and select the Log button. For example, three frozen blocks are numbered one after another.</li>
+<li>For an accessioner: when you log a new case in <a href="/help/accession">Accession</a>, a window titled "Intraoperative Entry Found" offers <strong>Merge Now</strong>, <strong>Not this case</strong> or <strong>Review in Intraop Queue</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If the touch prep cannot be done, select <strong>Skip Touch Prep</strong> and pick the reason. The skip shows in the timeline.</li>
+<li>If no case matches, the merge window says "No automatic match found, enter the case ID". Type the case number. Check it carefully.</li>
+<li>If you change your mind mid-entry, select <strong>Cancel</strong> and then <strong>Discard and Start New</strong>. The unsaved patient and specimen details are lost.</li>
+<li>If the specimen is routine rather than STAT, select the STAT button on it to switch to Routine before the frozen diagnosis is recorded.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If a button is greyed out, read the "Still required" line and complete the named fields.</li>
+<li>If you try to log the touch prep or frozen block before the quick gross, the quick gross box is shown instead. There is no override.</li>
+<li>If "The verbal report couldn't be logged. Check the details and try again." appears, check the red lines and select <strong>Log Now</strong> again.</li>
+<li>If you merged into the wrong case, tell your laboratory manager or quality staff with the case number. The screen has no undo.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Check the patient</p>
+<p>The Pending Match card hides the patient, but the merge window shows the name and MRN. Confirm they match the case before you merge. A wrong merge puts one patient's frozen results on another patient's case.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Starting a second session for a second specimen from the same patient. Use <strong>Save &amp; Next Specimen</strong> instead.</li>
+<li>Leaving the verbal report until later. Its time is the time you log it, so log it when you give it.</li>
+<li>Choosing a preliminary category that disagrees with the diagnosis text. The category is what is compared at sign-out.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use the keyboard or spoken phrases for the touch prep and preparation steps when the session has one specimen.</li>
+<li>Tap the Quick Gross box, then the microphone, to dictate it.</li>
+<li>Pick the recipient from the suggestions instead of typing.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Open the Intraop Queue at the start of the shift and keep it open; entries from other devices appear without a refresh.</li>
+<li>Merge entries as soon as the formal case exists, so that the log holds only entries still waiting.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">What is not yet built</p>
+<p>The frozen section diagnosis entry box appears only in the new entry form. A specimen saved without one has no box on its card to add one later, even though the form says it can be added later. The frozen findings are copied onto the case when you merge, but no screen shows them yet. The merge window's note about appending to the Gross Description and Clinical History does not describe what happens today.</p>
+</div>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/home">Home</a>: the Intraop Queue tile.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: log the formal case and merge a waiting entry.</li>
+<li><a href="/help/report">Report</a>: the case report, where a critical result record carries the verbal report.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Intraop Queue tile on Home</td>
+<td>Your role does not include it.</td>
+</tr>
+<tr>
+<td>Continue to Specimen is greyed out</td>
+<td>The patient is not ticked as verified, or a required field is empty. See "Still required".</td>
+</tr>
+<tr>
+<td>Camera scan does not start</td>
+<td>Camera permission was refused on the device. Use manual MRN entry.</td>
+</tr>
+<tr>
+<td>"Requesting camera access…" stays on the barcode scanner</td>
+<td>The browser is waiting for you to allow the camera. Allow it when asked. Once the camera is running it reads "Point the camera at the patient barcode."</td>
+</tr>
+<tr>
+<td>"No camera was found on this device."</td>
+<td>Barcode scanner or photo window: the device has no camera the browser can use. Use manual MRN entry, or attach the photo from another device.</td>
+</tr>
+<tr>
+<td>"Could not start the camera: …"</td>
+<td>The barcode scanner could not open the camera; the reason follows (for example the camera is in use by another program). Close the other program and try again.</td>
+</tr>
+<tr>
+<td>"Unexpected barcode scan error"</td>
+<td>The scanner failed in a way it could not describe. Cancel, then try again or enter the MRN by hand.</td>
+</tr>
+<tr>
+<td>"Could not access the camera (…)."</td>
+<td>The photo window could not open the camera; the name of the browser's reason is in the brackets. Check the camera and the browser's permission for this site.</td>
+</tr>
+<tr>
+<td>"Could not process the captured frame."</td>
+<td>The photo was taken but could not be read from the camera picture. Select the capture button again.</td>
+</tr>
+<tr>
+<td>"Uploading…" then "Upload failed."</td>
+<td>The photo window is saving the picture (the button reads "Uploading…" and <strong>Cancel</strong> is greyed out). If it fails, the message appears in the window and the photo is not attached; select the capture button again.</td>
+</tr>
+<tr>
+<td>"No ADT match" for a real wristband</td>
+<td>The patient record was not found. Type the name and date of birth.</td>
+</tr>
+<tr>
+<td>Touch prep buttons are missing</td>
+<td>The quick gross has not been logged for that specimen.</td>
+</tr>
+<tr>
+<td>Spoken or keyed preparation commands do nothing</td>
+<td>The session has more than one specimen. Use the buttons.</td>
+</tr>
+<tr>
+<td>The merge window lists no case</td>
+<td>The case is not yet accessioned or no case matches. Enter the case number manually.</td>
+</tr>
+<tr>
+<td>The log looks empty</td>
+<td>Everything has been merged, or the log is hidden. Select <strong>View Log</strong>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the "Still required" line and complete each field.</li>
+<li>Refresh the page and open the log again.</li>
+<li>Use manual entry if the camera does not work.</li>
+<li>Check with the accessioner that the formal case exists before merging.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when an entry is missing from the log, a merge fails, or a verbal report will not log after you have completed the form. Have the OR number, the case number and the time of the problem ready.</p>

@@ -5,6 +5,8 @@ import { signOutCytologyCase, releaseFinalizedCytologyCase, type CytologySignOut
 import { CYTOLOGY_SYNOPTIC_TEMPLATES, resetCytologySynopticTemplateLibrary } from './cytologySynopticTemplateRegistry';
 import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 
+// Batch 649: no role bypass; the signing user (P1) must be an active participant with a finalize-eligible type.
+const SIGNER = { staffId: 'P1', status: 'active' as const, participationTypeIds: ['primary'] };
 const NOW = new Date('2026-09-30T18:00:00.000Z');
 const categories = [
   { id: 'nilm', diagnosticRank: 0 }, { id: 'ascus', diagnosticRank: 1 }, { id: 'hsil', diagnosticRank: 4 }, { id: 'unsat', isUnsatisfactory: true },
@@ -105,7 +107,7 @@ function makeDeps(over: Partial<CytologySignOutDeps> = {}) {
 function makeInput(over: Partial<CytologySignOutInput> = {}): CytologySignOutInput {
   const finalReview = { id: 'rv-1', caseId: 'C1', specimenId: 'SP1', role: 'final', primaryInterpretationId: 'nilm', requiresPathologistReview: false, adequacySelections: [], recordedBy: { userId: 'P1', userName: 'Dr P' } } as never;
   return {
-    caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [], specimens: [{ id: 'SP1', cytologyScreening: {} }] } as never,
+    caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [SIGNER], specimens: [{ id: 'SP1', cytologyScreening: {} }] } as never,
     specimenId: 'SP1', specimen: { id: 'SP1', description: 'Pap', cytologyScreening: {} },
     user: { id: 'P1', name: 'Dr P', role: 'pathologist' }, isPathologist: true,
     finalReview, reviews: [finalReview], categories, confirmation: {} as never,
@@ -195,8 +197,10 @@ describe('signOutCytologyCase', () => {
     // Batch 419: the payload header, NEW and test by default, and the payload carries it.
     const submission = (deps.registryQueue.enqueue as any).mock.calls[0][0].submission;
     expect(submission).toMatchObject({ submissionVersion: 1, messageType: 'NEW', environment: 'test', isDuplicateRetry: false });
-    expect((deps.dispatchInterfaceMessage as any).mock.calls[0][2].submission).toEqual(submission);
-    expect(deps.registryQueue.markSent).toHaveBeenCalledWith('rq-1');
+    // Batch 638: a CSMS message waits for the eligibility check, so nothing is dispatched and the entry is held.
+    expect(deps.dispatchInterfaceMessage).not.toHaveBeenCalled();
+    expect(deps.registryQueue.markFailed).toHaveBeenCalledWith('rq-1', expect.objectContaining({ errorCode: 'AWAITING_ELIGIBILITY' }));
+    expect(deps.registryQueue.markSent).not.toHaveBeenCalled();
     const flags = updates.find(u => 'caseFlags' in u.patch)?.patch.caseFlags as { flagDefinitionId: string }[];
     expect(flags?.[0].flagDefinitionId).toBe('f36');
   });
@@ -435,7 +439,7 @@ describe('signOutCytologyCase — sign-out steps keep each other\'s results (Bat
     const specimen = { id: 'SP1', description: 'FNA', cytologyScreening: {}, roseEvaluations: rose };
     const { deps, updates } = makeDeps(laterBiopsy);
     const input = makeInput({ finalReview: hsil, reviews: [hsil], specimen,
-      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [], specimens: [specimen] } as never });
+      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [SIGNER], specimens: [specimen] } as never });
     expect((await signOut(input, deps)).outcome).toBe('signedOut');
     const saved = lastSaved(updates);
     expect(deps.createQcAssignment).toHaveBeenCalled();
@@ -488,7 +492,7 @@ describe('signOutCytologyCase — Batch 485: completing a specimen\'s own counte
     await deps.releaseForCountersign({ caseId: 'C1', specimenId: 'SP1', residentId: 'R1', residentName: 'Dr R', releasedAnswersSnapshot: { SP1: { dx: 'nilm' } } });
 
     const input = makeInput({
-      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [], specimens: [{ id: 'SP1', cytologyScreening: {} }], status: 'pending-countersign' } as never,
+      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [SIGNER], specimens: [{ id: 'SP1', cytologyScreening: {} }], status: 'pending-countersign' } as never,
     });
     const result = await signOut(input, deps);
     expect(result.outcome).toBe('signedOut');
@@ -508,7 +512,7 @@ describe('signOutCytologyCase — Batch 485: completing a specimen\'s own counte
 
     const input = makeInput({
       cytologySpecimenIds: ['SP1', 'SP2'],
-      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [], specimens: [{ id: 'SP1', cytologyScreening: {} }, { id: 'SP2', cytologyScreening: {} }], status: 'pending-countersign' } as never,
+      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [SIGNER], specimens: [{ id: 'SP1', cytologyScreening: {} }, { id: 'SP2', cytologyScreening: {} }], status: 'pending-countersign' } as never,
     });
     const result = await signOut(input, deps);
     expect(result.outcome).toBe('signedOut');
@@ -529,7 +533,7 @@ describe('signOutCytologyCase — Batch 485: completing a specimen\'s own counte
 
     const input = makeInput({
       cytologySpecimenIds: ['SP1', 'SP2'],
-      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [], specimens: [{ id: 'SP1', cytologyScreening: {} }, { id: 'SP2', cytologyScreening: {} }], status: 'pending-countersign' } as never,
+      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [SIGNER], specimens: [{ id: 'SP1', cytologyScreening: {} }, { id: 'SP2', cytologyScreening: {} }], status: 'pending-countersign' } as never,
     });
     await signOut(input, deps);
     expect(calls).toContain('countersign-complete');
@@ -611,7 +615,7 @@ describe('signOutCytologyCase — QC Rules engine and one assignment per specime
     const { extra, assignments } = qcDeps([ruleOf()]);
     const { deps } = makeDeps(extra);
     await signOut(makeInput({ finalReview: unsat, reviews: [unsat], specimen, gateInputs: { isGynCytology: false, isFlaggedForQc: false, labJurisdiction: 'US' as never, signingProviderCredentials: [] },
-      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1' }, order: { facilityId: 'F1' }, participants: [], specimens: [specimen] } as never }), deps);
+      caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1' }, order: { facilityId: 'F1' }, participants: [SIGNER], specimens: [specimen] } as never }), deps);
     expect(assignments).toHaveLength(1);
     expect(assignments[0]).toMatchObject({
       triggerSource: 'rose_discrepancy', priorityTier: 'high_escalation', slaDeadline: new Date(NOW.getTime() + 4 * 3_600_000).toISOString(),
@@ -635,7 +639,7 @@ describe('signOutCytologyCase — QC Rules engine and one assignment per specime
     const { extra, assignments } = qcDeps([ruleOf()]);
     const { deps } = makeDeps(extra);
     await signOut(makeInput({ caseData: { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1' }, order: { facilityId: 'F1' },
-      participants: [], caseHolds: [{ reason: 'pending_consultation', active: true }], specimens: [{ id: 'SP1', cytologyScreening: {} }] } as never }), deps);
+      participants: [SIGNER], caseHolds: [{ reason: 'pending_consultation', active: true }], specimens: [{ id: 'SP1', cytologyScreening: {} }] } as never }), deps);
     expect(assignments).toHaveLength(0);
   });
 
@@ -674,7 +678,7 @@ describe('signOutCytologyCase — QC Rules engine and one assignment per specime
 // the registry together.
 describe('signOutCytologyCase — Batch 532: the case report is released when the case closes', () => {
   const csms = { getRegistrySettings: async () => ({ enterprise: { registryId: 'csms_uk' }, facility: null }) } as Partial<CytologySignOutDeps>;
-  const twoSpecimens = { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [],
+  const twoSpecimens = { id: 'C1', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [SIGNER],
     specimens: [{ id: 'SP1', cytologyScreening: {} }, { id: 'SP2', cytologyScreening: {} }] } as never;
   const reviewFor = (id: string, specimenId: string) => ({ id, caseId: 'C1', specimenId, role: 'final', primaryInterpretationId: 'nilm', requiresPathologistReview: false, adequacySelections: [], recordedBy: { userId: 'P1', userName: 'Dr P' } }) as never;
   const sp1Record = { id: 'so-0', caseId: 'C1', specimenId: 'SP1', reviewRecordId: 'rv-0', signedAt: '2026-09-30T17:00:00.000Z', signedBy: { userId: 'P1', userName: 'Dr P', isPathologist: true },
@@ -771,7 +775,7 @@ describe('releaseFinalizedCytologyCase (Batch 532)', () => {
 // wired, the case report and its registry submissions go through it (now, or when the delay ends).
 describe('signOutCytologyCase — Batch 534: through the release delay', () => {
   const csms = { getRegistrySettings: async () => ({ enterprise: { registryId: 'csms_uk' }, facility: null }) } as Partial<CytologySignOutDeps>;
-  const twoSpecimens = { id: 'C1', status: 'in-progress', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [],
+  const twoSpecimens = { id: 'C1', status: 'in-progress', accession: { fullAccession: 'S26-C1' }, patient: { id: 'PT1', firstName: 'A', lastName: 'B' }, order: { facilityId: 'F1' }, participants: [SIGNER],
     specimens: [{ id: 'SP1', cytologyScreening: {} }, { id: 'SP2', cytologyScreening: {} }] } as never;
   const review = (id: string, specimenId: string) => ({ id, caseId: 'C1', specimenId, role: 'final', primaryInterpretationId: 'nilm', requiresPathologistReview: false, adequacySelections: [], recordedBy: { userId: 'P1', userName: 'Dr P' } }) as never;
   const sp1Record = { id: 'so-0', caseId: 'C1', specimenId: 'SP1', reviewRecordId: 'rv-0', signedAt: '2026-09-30T17:00:00.000Z', signedBy: { userId: 'P1', userName: 'Dr P', isPathologist: true }, reportContent: { primaryInterpretation: 'NILM' } } as never;

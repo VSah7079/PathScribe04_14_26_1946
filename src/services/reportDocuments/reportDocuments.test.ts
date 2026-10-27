@@ -207,7 +207,7 @@ describe('every channel and every retry sends the release\'s document', () => {
       // The real publisher's first step: the release document from the event.
       publish: vi.fn(async event => { published.push(await releaseDocument(event, svc)!()); return {}; }),
       runFollowUp: vi.fn(), reopen: vi.fn(), audit: vi.fn(async () => undefined), releaseSignOut: vi.fn(),
-      now: () => now, newId: () => 'h1',
+      now: () => now, newId: () => 'h1', enforce: async () => ({ allowed: true }),
     };
     await releaseReport({ caseId: 'C1', reportType: 'ADDENDUM', releasedAt: '2026-10-12T20:00:00.000Z', instanceId: 'INST-1', generatePdf: async () => ({ pdfBase64: PDF_A }) },
       { kind: 'surgical-amendment', releasedBy: { userId: 'P1', userName: 'Dr P' } }, deps);

@@ -6,7 +6,7 @@
 // calls; the screen and the rules do not change.
 // ─────────────────────────────────────────────────────────────────────────────
 import { storageGet, storageSet } from '../mockStorage';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { createBiFeedService, type BiFeedService } from './biFeedService';
@@ -15,7 +15,7 @@ import { hashBiToken } from './biFeedRules';
 const unchecked = createBiFeedService({
   load: storageGet,
   save: storageSet,
-  audit: e => mockAuditService.logEvent(e),
+  audit: e => auditService.logEvent(e),
   actor: () => ({ name: readSessionProfile()?.name ?? 'unknown' }),
   now: () => new Date().toISOString(),
   random: n => globalThis.crypto.getRandomValues(new Uint8Array(n)),

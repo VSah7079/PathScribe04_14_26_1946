@@ -99,9 +99,9 @@ const CytologyQcQueuePage: React.FC = () => {
   const [escalateTargetId, setEscalateTargetId] = useState<string | null>(null);
   const [bypassTargetId, setBypassTargetId] = useState<string | null>(null);
 
-  const handleDiscrepancySubmit = async (primary: string, secondary: string, severity: 'major' | 'minor', commentary: string) => {
+  const handleDiscrepancySubmit = async (primary: string, secondary: string, severity: 'major' | 'minor', commentary: string, divergenceConfirmed: boolean) => {
     if (!discrepancyTargetId) return;
-    await recordDiscrepancy(discrepancyTargetId, { primaryDiagnosticCode: primary, secondaryDiagnosticCode: secondary, severity, reviewerCommentary: commentary });
+    await recordDiscrepancy(discrepancyTargetId, { primaryDiagnosticCode: primary, secondaryDiagnosticCode: secondary, severity, reviewerCommentary: commentary, divergenceConfirmed });
     setDiscrepancyTargetId(null);
   };
 

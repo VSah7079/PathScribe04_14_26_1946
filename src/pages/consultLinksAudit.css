@@ -1,0 +1,11 @@
+/* Batch 669 (access-11): Audit Log -> Consult links, the identity preview panel.
+   Kept out of pathscribe.css, which may not grow. */
+.ps-consult-identity-preview {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+.ps-consult-identity-preview-note { font-size: 10px; color: var(--ps-text-dim); margin-top: 2px; }

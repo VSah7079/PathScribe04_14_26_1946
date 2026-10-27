@@ -101,6 +101,7 @@ Service: `services/consultAccess/httpConsultTokenService.ts`; chosen in `consult
 | `resolve` | `POST /api/consult-access/consult-token/resolve` | `token` (body fields) | result |
 | `revoke` | `DELETE /api/consult-access/consult-token/revoke` | `id` (query) | result |
 | `openConsult` | `POST /api/consult-access/consult-token/open-consult` | `token` (body fields) | result |
+| `previewIdentity` | `POST /api/consult-access/consult-token/preview-identity` | `linkId` (body fields) | result |
 | `submitOpinion` | `POST /api/consult-access/consult-token/submit-opinion` | `token`, `draft` (body fields) | result |
 | `getOpinionsByCaseId` | `GET /api/consult-access/consult-token/get-opinions-by-case-id` | `caseId` (query) | result |
 | `assessOpinion` | `POST /api/consult-access/consult-token/assess-opinion` | `id`, `input` (body fields) | result |

@@ -89,3 +89,23 @@ Writing to the library is a configuration change: the server requires the config
 - **Report documents:** `REPORT_DOCUMENT_STORE_API.md`; **report delivery:** `REPORT_DELIVERY_API.md`; **rendering:** `REPORT_RENDERING_SERVICE.md`.
 - **Follow-up tracking:** `FOLLOW_UP_API.md`. The browser keeps follow-ups in a store (`IFollowUpStore`) that saves whole records, while the contract is command-based (the server computes the window and status). The two are not the same shape, so the follow-up server version waits for a decision on which one wins; it is not built.
 - **Sign-out and synoptic answers:** these travel with the case save (`CASE_API.md`), not a service of their own. Synoptic models and protocols are PS-511.
+
+## IHeldReleaseService (Batch 672)
+
+`/api/report-release/held-release`. Service: `services/reportRelease/httpHeldReleaseService.ts`; chosen in `heldReleaseServiceInstance.ts`. The server also releases held reports itself when they fall due (RELEASE_SWEEP_SERVER_JOB.md).
+
+| Method | Call | Arguments |
+|---|---|---|
+| `add` | `POST /api/report-release/held-release/add` | `held` (the body) |
+| `getAll` | `GET /api/report-release/held-release/get-all` | none |
+| `getByCaseId` | `GET /api/report-release/held-release/get-by-case-id` | `caseId` (query) |
+| `settle` | `POST /api/report-release/held-release/settle` | `id`, `status` (`released` or `recalled`), `at` (body fields). Answers `{ "settled": true }` only when this call moved a **held** release on; `{ "settled": false }` when it was already settled or unknown. Must be atomic: two settles at once, one wins. |
+
+## IReportReleasedEventLogService (Batch 672)
+
+`/api/reports/report-released-event-log`. Service: `services/reports/httpReportReleasedEventLogService.ts`; chosen in `reportReleasedEventLogServiceInstance.ts`. Append-only: there is no update or delete call.
+
+| Method | Call | Arguments |
+|---|---|---|
+| `record` | `POST /api/reports/report-released-event-log/record` | `event` (the body). The server stamps `id` and `recordedAt` and returns the entry. |
+| `getByCaseId` | `GET /api/reports/report-released-event-log/get-by-case-id` | `caseId` (query). Returns `{ "items": [...] }`, oldest first. |

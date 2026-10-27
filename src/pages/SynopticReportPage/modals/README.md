@@ -1,3 +1,7 @@
+**Batch 650:** `PreFinalisationModal.tsx` answers Cancel finalise (Ctrl+Alt+Escape) while shown; there is deliberately no command to confirm (the signature check needs typed credentials).
+
+**Batch 649 (Amendment window):** `AmendmentModal.tsx` takes `caseId` and `facilityId`; the mode choices for kinds the person cannot release are disabled with the refusal text as the title, the mode moves to a permitted kind on opening, the primary button (Save draft / Release addendum) and Continue are disabled with the missing permission as the title, and with none of the three a note says so. Test: `AmendmentModal.capability.test.tsx`.
+
 # pages/SynopticReportPage/modals/
 
 Every modal reachable from the case report page — 35 files (33 modals plus `CassetteColorControl.tsx` and `ForeignIdFields.tsx`), roughly grouped below by what they're for. All but `FinalizeSynopticModal.tsx` (and the `ForeignIdFields.tsx` helper) import `../../../pathscribe.css` directly rather than relying on a shared shell, per this codebase's established modal convention.
@@ -267,3 +271,11 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 618 (PS-336)
 
 `TechnicalComponentFacilityField.tsx` now lists active performing labs only (same list as the Accession field) and writes an audit entry (facility ids only) when the lab is set, changed or cleared.
+
+## Batch 625 (PS-118)
+
+`DiscordanceReconciliationModal` renders the shared `components/QualityAssurance/QaDiscordantSection` for its discordant fields; behaviour, ids and Field Requirements marks are unchanged.
+
+## Batch 652 — Specimen pipeline gaps
+
+- `DiscordanceReconciliationModal` opens once per non-deferred frozen specimen (the page keys it by specimen). Its comparison is a category match, not an AI result.

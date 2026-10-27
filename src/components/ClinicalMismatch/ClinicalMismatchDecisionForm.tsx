@@ -16,7 +16,7 @@ import {
   clinicalMismatchService, CLINICAL_MISMATCH_QUICK_REASONS,
   type ClinicalMismatchResolution, type ClinicalMismatchQuickReason, type ClinicalMismatchRiskLevel,
 } from '@/services';
-import type { ClinicalMismatchDiscipline, ClinicalMismatchKind } from '@/services/clinical/detectClinicalPathologicMismatch';
+import type { ClinicalMismatchDiscipline, ClinicalMismatchEvidence, ClinicalMismatchKind } from '@/services/clinical/detectClinicalPathologicMismatch';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import '@/pathscribe.css';
 
@@ -32,11 +32,15 @@ export interface ClinicalMismatchDecisionFormProps {
   confidence?: number;
   risk?: ClinicalMismatchRiskLevel;
   ruleId?: string;
+  /** Batch 651: the AI instructions version the suggestion used. */
+  instructionVersion?: number;
   discipline?: ClinicalMismatchDiscipline;
   specimenId?: string;
   reviewOf?: string;
   /** Batch 531: the text the decision is made on (a later change is checked again). */
   inputFingerprint?: string;
+  /** Batch 685: the quotes the flag showed, kept with the QA record. */
+  evidence?: ClinicalMismatchEvidence;
   choices: readonly Exclude<ClinicalMismatchResolution, 'LOGGED'>[];
   onRecorded: (resolution: ClinicalMismatchResolution) => void;
   /** An id prefix, so two forms on one page don't share field ids. */
@@ -55,10 +59,12 @@ export const ClinicalMismatchDecisionForm: React.FC<ClinicalMismatchDecisionForm
     const res = await clinicalMismatchService.record({
       caseId: props.caseId, caseType: props.caseType, subspecialtyId: props.subspecialtyId, clinicalIndication: props.clinicalIndication,
       kind: props.kind, source: props.source, confidence: props.confidence, risk: props.risk, ruleId: props.ruleId,
+      ...(props.instructionVersion !== undefined ? { instructionVersion: props.instructionVersion } : {}),
       resolution, ...(reason ? { quickReason: reason } : {}), note,
       ...(props.discipline ? { discipline: props.discipline } : {}), ...(props.specimenId ? { specimenId: props.specimenId } : {}),
       ...(props.reviewOf ? { reviewOf: props.reviewOf } : {}),
       ...(props.inputFingerprint ? { inputFingerprint: props.inputFingerprint } : {}),
+      ...(props.evidence ? { evidence: props.evidence } : {}),
     }).catch(() => ({ ok: false as const, error: 'failed' }));
     setBusy(false);
     if (res.ok === false) { setError(t(`${K}.errors.${res.error}`, { defaultValue: t(`${K}.errors.failed`) })); return; }

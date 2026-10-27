@@ -1,3 +1,5 @@
+**Batch 645:** screen id `lockboxDropOff` (route `/lockbox-drop-off`, capability `screen:lockbox-drop-off:open`) and the Home tile id of the same name, so Home shows the tile only to someone who can open it. Seeded to Accessioner and Admin (`services/authorization/capabilitySeeds.ts`).
+
 # services/screens — which screens a user may open (Batch 374)
 
 Pete: "Home Page should only show tiles that the User has access to."
@@ -160,3 +162,6 @@ The route tests read both `App.tsx` and `SignedInApp.tsx`, where every route aft
 New `ScreenId` `autopsyDashboards` (`screen:autopsy-dashboards:open`), in the Quality & Compliance hub.
 
 - Batch 612 (part A): `configSectionAccess.ts` gains `PLATFORM_ONLY_SECTIONS` and `configSectionVisible`; the Interface Dictionary section is hidden from anyone without its manage capability.
+
+## Batch 669 (ctl) — sub-screens
+`SubScreenId` / `SUB_SCREEN_CAPABILITIES` / `subScreenGranted`: a page reached from another screen's button that has capabilities of its own and is no Home tile or hub screen (so no `screen:<name>:open`, CLAUDE.md rule 7 applies to Home/hub screens only). First one: `molecularControlRules`, open for `config:molecular-control-rules:view` or `:manage`. `ScreenGate`, `canOpenTile` and `screenAccessService.canOpen` accept it.

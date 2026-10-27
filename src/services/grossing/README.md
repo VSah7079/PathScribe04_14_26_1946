@@ -88,3 +88,8 @@ Before this, no code moved a case to Gross Complete; only demo data had that sta
   - A deficiency that can't be raised doesn't undo the completion. The result lists it in `reviewNotRaised`, the page tells the user to raise one by hand, and a "Secondary review not raised" audit entry records it.
 - **`blocksExpected(specimen)`**: the block rule applies only to a specimen with a protocol and no decants.
 - **`specimensWithoutProtocol`**, **`protocolRequired`** and **`specimensForSecondaryReview`**: pure helpers the page uses to say, before completing, which specimens will be routed.
+
+## Batch 652 — Specimen pipeline gaps
+
+- **`triageReleaseGate.ts`**: `isTriagePending` and `checkTriageReleaseGate(specimens, specimenId)`, the grossing triage release rule (a specimen with an open `SpecimenTriage` never releases its pending cassettes). Moved out of a worklist tile and the report-page hook. It runs in the browser; the API server must repeat it (the old comment calling it server-side was wrong). Test: `triageReleaseGate.test.ts`.
+- **`routeCaseAfterGrossing.ts`**: pool routing after the first genuine completion of grossing (`routeStatCase` for STAT, else `routeCase`), called from both the report page's Gross Complete and the Grossing screen's Complete grossing. Never throws. Test: `routeCaseAfterGrossing.test.ts`.

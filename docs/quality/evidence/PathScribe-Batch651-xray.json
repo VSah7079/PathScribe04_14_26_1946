@@ -1,0 +1,65 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 651 — AI correctness audit and audit-trail gaps: one confidence scale, listed options only, real model recorded, rule-based mismatch, OPCS-4 sample, narrative provenance, pool/delegation/team/comment/dictionary/language/deficiency audit entries",
+    "description": "Vitest, 2026-10-23: full suite 1767 files, 14,789 tests (14,777 passed; the one explicit-any guard failure found in that run has since been fixed). Type-check clean. Targeted run of the 17 test files listed here (changed in Batches 650 to 652): all passed."
+  },
+  "tests": [
+    {
+      "testKey": "PS-891",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Confidence is a whole percent 0 to 100 (0 to 1 vendor answers converted), answers under 30 are dropped, an answer must be one of the listed options; shared by synoptic suggestions and the historical extraction.\nPASSED: src/services/aiIntegration/aiSuggestionRules.test.ts (8)\nPASSED: src/services/aiIntegration/suggestSynopticFields.rules.test.ts (1)\nNot tested or not built: A live model; a vendor that really answers 1% on a 0 to 100 scale is read as 100%; calibration of confidence against outcomes."
+    },
+    {
+      "testKey": "PS-892",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Code confidence saved and displayed on 0 to 100 (no x100), the real provider and model id stored, policy enforcement on applied codes.\nPASSED: src/services/coding/aiCodeSuggestions.test.ts (6)\nPASSED: src/services/coding/codedEntry.test.ts (13)\nPASSED: src/services/coding/codePolicyEnforcement.test.ts (16)\nNot tested or not built: Cases saved before Batch 651 keep the old model text; a live model."
+    },
+    {
+      "testKey": "PS-893",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: The fallback (confidence 50) is shown regardless of the 60 display threshold, labelled rule-based, low risk; the approved instruction version is on the QA record and the audit event.\nPASSED: src/services/clinical/mismatchFallbackAndVersion.test.ts (3)\nNot tested or not built: The screen rendering of the label; whether inline versus QA-only display is wanted (decision for Pete)."
+    },
+    {
+      "testKey": "PS-894",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: OPCS-4 lookup reads a labelled five-code demonstration list; such codes show Simulated and cannot be applied.\nPASSED: src/services/coding/opcs4Lookup.test.ts (2)\nPASSED: src/pages/Synoptic/Codes/Opcs4Notice.test.tsx (2)\nNot tested or not built: Real OPCS-4 data (NHS TRUD licence and server feed are Planned)."
+    },
+    {
+      "testKey": "PS-895",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Each Orchestration section gets a confidence and a quote; the quote is checked against the report text; a failed call shows 'unverified'.\nPASSED: src/orchestrator/narrativeProvenance.test.ts (5)\nNot tested or not built: The extra AI call's cost and its separate AI audit-log line; a live model; the screen layout of the note."
+    },
+    {
+      "testKey": "PS-896",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Pool case claimed / passed / hold taken / hold released write audit events with ids only; a refusal writes no success entry.\nPASSED: src/services/cases/poolCaseActions.test.ts (8)\nNot tested or not built: A hold that lapses with no window open (no clock without the API server); tamper-evidence."
+    },
+    {
+      "testKey": "PS-897",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Case delegated and Case team changed events with ids, type and outcome; the delegation note is never written.\nPASSED: src/services/delegations/delegationAudit.test.ts (3)\nPASSED: src/services/delegations/mockDelegationService.test.ts (7)\nPASSED: src/services/cases/saveCaseTeam.test.ts (12)\nNot tested or not built: Server-written audit."
+    },
+    {
+      "testKey": "PS-898",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Case/specimen comment (no text), personal dictionary word added/removed (length only), screen language changed, and the four deficiency actions are audited; a failed store change writes no entry.\nPASSED: src/services/cases/postCaseComment.test.ts (4)\nPASSED: src/services/spellcheck/customDictionary.test.ts (5)\nPASSED: src/services/userSettings/personalLanguage.test.ts (7)\nPASSED: src/services/deficiencies/qaDeficiencyActions.test.ts (5)\nNot tested or not built: Accessioning-time comments; the Quality screen still says 'done' when the store fails the change (known gap)."
+    }
+  ]
+}

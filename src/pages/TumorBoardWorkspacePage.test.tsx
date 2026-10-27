@@ -18,7 +18,7 @@
 // real authorizationService's resolution of the mocked 'PATH-1' user.
 // ─────────────────────────────────────────────────────────────────────────────
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import type { TumorBoardListing } from '@/services/tumorBoard/ITumorBoardService';
 
 const { held } = vi.hoisted(() => ({ held: { current: true } }));
@@ -167,5 +167,17 @@ describe('TumorBoardWorkspacePage — Batch 494 self-service dashboard', () => {
     rows = [{ listing: listing({ id: 'a', presenterUserId: 'PATH-1', presenterAssignedByUserName: 'Dr A' }), patientName: { givenNames: 'Jane', familyNames: 'Doe' } }];
     await renderPage();
     expect(screen.getByText(/tumorBoard\.row\.claimedBy/)).toBeTruthy();
+  });
+
+  it('says why when a Claim is refused, and says nothing when it is saved (Batch 659)', async () => {
+    rows = [{ listing: listing({ id: 'a' }), patientName: { givenNames: 'Jane', familyNames: 'Doe' } }];
+    held.current = true;
+    await renderPage();
+    claimListing.mockResolvedValueOnce({ ok: false, error: 'batchLocked' });
+    fireEvent.click(screen.getByText('tumorBoard.row.claimBtn'));
+    expect((await screen.findByRole('alert')).textContent).toBe('tumorBoard.errors.batchLocked');
+    claimListing.mockResolvedValueOnce({ ok: true, data: {} });
+    fireEvent.click(screen.getByText('tumorBoard.row.claimBtn'));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 });

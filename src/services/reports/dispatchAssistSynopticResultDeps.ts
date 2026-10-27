@@ -3,9 +3,9 @@
 import type { AssistSynopticDeps } from './dispatchAssistSynopticResult';
 import { caseRouter } from '../cases/CaseRouter';
 import { getTemplate } from '../templates/templateService';
-import { mockUserService } from '../users/mockUserService';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockOutboundLisSyncQueueService } from './mockOutboundLisSyncQueueService';
+import { userService } from '../users/userServiceInstance';
+import { patientIndexService } from '../patients/patientServicesInstance';
+import { outboundLisSyncQueueService } from './reportServicesInstance';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { renderWorkupPdf } from './workupPdf';
 import { resolveReportLocaleForFacility } from './resolveReportLocale';
@@ -26,9 +26,9 @@ export async function labConsolidatesPdfs(orderingFacilityId: string | undefined
 export const assistSynopticDeps: AssistSynopticDeps = {
   getCase: caseId => caseRouter.getCase(caseId) as any,
   getTemplate: async templateId => { const d = await getTemplate(templateId).catch(() => null); return (d?.template as any) ?? null; },
-  getNpi: async userId => { const r = await mockUserService.getById(userId).catch(() => null); return r && r.ok ? r.data.npi || undefined : undefined; },
-  organisationIdForPatient: async patientId => (await mockPatientIndexService.getById(patientId))?.organisationId,
-  queue: mockOutboundLisSyncQueueService as any,
+  getNpi: async userId => { const r = await userService.getById(userId).catch(() => null); return r && r.ok ? r.data.npi || undefined : undefined; },
+  organisationIdForPatient: async patientId => (await patientIndexService.getById(patientId))?.organisationId,
+  queue: outboundLisSyncQueueService as any,
   dispatch: (id, payload) => dispatchInterfaceMessage(id, 'LIS_SYNC', payload),
   renderPdf: payload => renderWorkupPdf(payload),
   // Batch 538: each PDF sent to the LIS is stored once with its SHA-256; a retry sends the stored one.

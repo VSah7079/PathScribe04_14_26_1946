@@ -49,6 +49,8 @@ import { isEngineSimulated, simulateEngineReceive } from '../mockInterfaceEngine
 // docs/architecture/INTERFACE_TRANSACTIONS.md lists them.
 export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'CANCER_REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT' | 'WSI_SCAN_MANIFEST'
   | 'ACCESSION_EVENT' | 'REFERRAL_MANIFEST' | 'MOLECULAR_ORDER'
+  // Batch 669 (mol-7): a verified molecular plate's worklist for the instrument (services/molecular/dispatchMolecularWorklist.ts).
+  | 'MOLECULAR_WORKLIST'
   // Batch 520 (PS-280): a signed report PDF to fax or drop as a file. The interface server
   // delivers it and answers only once it is delivered (services/delivery/deliverReport.ts).
   | 'REPORT_DELIVERY'

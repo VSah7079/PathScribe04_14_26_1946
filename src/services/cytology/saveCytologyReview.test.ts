@@ -100,6 +100,34 @@ describe('saveCytologyReview', () => {
     expect(deps.returnToCytologyPool).toHaveBeenCalledTimes(2);
   });
 
+  it('Batch 635: over the cap, pending cases go to colleagues with room (named, audited) and the rest to the pool', async () => {
+    const pending = [1, 2, 3].map(n => ({ id: `C${n}`, status: 'in-progress', order: { assignedTo: 'CT1' } })) as never[];
+    const used: Record<string, number> = { 'CT-B': 99 };
+    const { deps, audit } = makeWorkspaceDeps({
+      ...overCap, listCasesForUser: async () => pending,
+      listCytotechnologists: async () => [{ id: 'CT1', name: 'CT One' }, { id: 'CT-A', name: 'Ann Able' }, { id: 'CT-B', name: 'Bo Busy' }],
+      getLedgerInWindow: async (userId: string) => ({ ok: true, data: used[userId] ? [{ scuWeight: used[userId], activeDurationSeconds: 100 }] : [] }),
+    });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 36 }), deps);
+    expect(result.reassignment).toEqual({ assigned: 3, colleagueNames: ['Ann Able'], returnedToPool: 0 });
+    expect(deps.assignCaseToUser).toHaveBeenCalledTimes(3);
+    expect(deps.assignCaseToUser).toHaveBeenCalledWith(expect.objectContaining({ id: 'C1' }), 'CT-A');
+    expect(deps.returnToCytologyPool).not.toHaveBeenCalled();
+    expect(audit.filter(a => a.event === 'CYTOLOGY_WORKLOAD_REASSIGNED')).toHaveLength(3);
+  });
+
+  it('Batch 635: a failed assignment to a colleague falls back to the pool, never failing the save', async () => {
+    const pending = [{ id: 'C1', status: 'in-progress', order: { assignedTo: 'CT1' } }] as never[];
+    const { deps } = makeWorkspaceDeps({
+      ...overCap, listCasesForUser: async () => pending,
+      listCytotechnologists: async () => [{ id: 'CT-A', name: 'Ann Able' }],
+      assignCaseToUser: vi.fn(async () => { throw new Error('version conflict'); }),
+    });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 36 }), deps);
+    expect(result).toMatchObject({ outcome: 'workloadBlocked', reassignment: { assigned: 0, returnedToPool: 1 } });
+    expect(deps.returnToCytologyPool).toHaveBeenCalledTimes(1);
+  });
+
   it('over the cap, escalating a saved review (FOV-assisted to full manual rescreen) is let through; the other cases still go back', async () => {
     const pending = [{ id: 'C1', status: 'in-progress', order: { assignedTo: 'CT1' } }, { id: 'C2', status: 'in-progress', order: { assignedTo: 'CT1' } }] as never[];
     const { deps } = makeWorkspaceDeps({ ...overCap, listCasesForUser: async () => pending });

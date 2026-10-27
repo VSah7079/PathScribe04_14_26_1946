@@ -22,6 +22,10 @@ function makeBatch(overrides: Partial<MolecularBatch> = {}): MolecularBatch {
 
 const NO_SESSION: SessionUser | null = null;
 
+import { setMockInterfaceEngineSettings, getMockInterfaceEngineSettings } from '../mockInterfaceEngine/mockInterfaceEngineSettings';
+import { setDataMayPersistInBrowserForTests } from '../browserData/browserDataPolicy';
+import { listSimulatedEngineMessages, resetSimulatedEngineForTests } from '../mockInterfaceEngine/simulatedEngineReceiver';
+
 beforeEach(() => {
   const store: Record<string, string> = {};
   (globalThis as any).localStorage = {
@@ -29,6 +33,10 @@ beforeEach(() => {
     setItem: (k: string, v: string) => { store[k] = v; },
     removeItem: (k: string) => { delete store[k]; },
   };
+  // Batch 669 (mol-7): the tests below that check the HTTP call run with the simulated engine switched off (an engine or API server configured).
+  setDataMayPersistInBrowserForTests(true);
+  resetSimulatedEngineForTests();
+  setMockInterfaceEngineSettings({ ...getMockInterfaceEngineSettings(), enabled: false, simulatedEngine: false, mode: 'always_succeed' });
 });
 
 afterEach(() => {
@@ -121,5 +129,67 @@ describe('dispatchMolecularWorklist — real, per §3.4 scan-gated dispatch, now
     expect(fetchMock).not.toHaveBeenCalled();
     const right = await dispatchMolecularWorklist(batch, 'PLT-HPV-20260906-012', 'LOC-INST-PANTHER_02-SLOT_A1', NO_SESSION, 'station-molecular-1');
     expect(right.dispatched).toBe(true);
+  });
+});
+
+describe('Batch 669 (mol-6, mol-7): Active is not seed-only, and the demo dispatch uses the simulated engine', () => {
+  const dispatch = (batch = makeBatch()) => dispatchMolecularWorklist(batch, 'PLT-HPV-20260906-012', 'LOC-INST-PANTHER_02-SLOT_A1', NO_SESSION);
+  const useSimulatedEngine = (mode: 'always_succeed' | 'always_fail' | 'timeout' = 'always_succeed') =>
+    setMockInterfaceEngineSettings({ ...getMockInterfaceEngineSettings(), enabled: false, simulatedEngine: true, mode, failureStatus: 503 });
+
+  it('(mol-6) a dispatched Draft batch becomes Active (the Workcenter\'s Active tab), not only the seeded ones', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
+    // The demo baseline's draft EGFR plate, with a deck slot so the scan check can pass.
+    const draft = makeBatch({ status: 'draft', batchUuid: '4f6b2c1e-8a3d-4e57-9b02-467000000001', id: 'mb-demo-467-egfr' });
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const before = await mockMolecularBatchService.getById('mb-demo-467-egfr');
+    expect(before.ok && before.data.status).toBe('draft');
+    const r = await dispatch(draft);
+    expect(r.dispatched).toBe(true);
+    const after = await mockMolecularBatchService.getById('mb-demo-467-egfr');
+    expect(after.ok && after.data.status).toBe('active');
+    expect(after.ok && after.data.worklistDispatchedAt).toBeTruthy();
+  });
+
+  it('(mol-6) the seeded Active batch keeps its status when dispatched', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
+    await dispatch();
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const after = await mockMolecularBatchService.getById('mb-001');
+    expect(after.ok && after.data.status).toBe('active');
+  });
+
+  it('(mol-7) in the demo the worklist goes to the simulated engine receiver, not to the network', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    useSimulatedEngine();
+    const r = await dispatch();
+    expect(r.dispatched).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(listSimulatedEngineMessages()[0]).toMatchObject({ transactionType: 'MOLECULAR_WORKLIST', outcome: 'accepted' });
+    expect(JSON.parse(listSimulatedEngineMessages()[0].envelopeJson).payload.event_type).toBe('MOLECULAR_WORKLIST_CREATE');
+  });
+
+  it('(mol-7) a refusal by the simulated engine is a coded failure (rejected, with its HTTP status), and nothing is marked dispatched', async () => {
+    useSimulatedEngine('always_fail');
+    const r = await dispatch();
+    expect(r.dispatched).toBe(false);
+    expect('failure' in r && r.failure).toMatchObject({ code: 'rejected', status: 503 });
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const after = await mockMolecularBatchService.getById('mb-001');
+    expect(after.ok && after.data.worklistDispatchedAt).toBeUndefined();
+  });
+
+  it('(mol-7) a simulated time-out is a coded timeout; the HTTP path keeps its codes too', async () => {
+    useSimulatedEngine('timeout');
+    const timeout = await dispatch();
+    expect('failure' in timeout && timeout.failure).toMatchObject({ code: 'timeout' });
+    useSimulatedEngine('always_succeed');
+    setMockInterfaceEngineSettings({ ...getMockInterfaceEngineSettings(), simulatedEngine: false });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Failed to fetch')));
+    expect('failure' in (await dispatch()) && ((await dispatch()) as { failure?: unknown }).failure).toMatchObject({ code: 'unreachable' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const rejected = await dispatch();
+    expect('failure' in rejected && rejected.failure).toMatchObject({ code: 'rejected', status: 500 });
   });
 });

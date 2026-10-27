@@ -104,6 +104,14 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     password: { iterations: 600000, salt: '15e9hKDlTmhfhKko8yvliw==', hash: 'pFFJi+yoDSXKZL5r8I6bPWDaIlfQ3Rd+Hx61aOWqpIk=' } },
   { email: 'grace.liu@demo.pathscribe.ai', id: 'QA-001', name: 'Grace Liu', role: 'pathologist', initials: 'GL', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'Smv3/DzDZgoCo/KYrzt6dA==', hash: 'MjtxMX+UpCc1jJtBJfdujhesbd7v3sm1w4dkA0j+a68=' } },
+  // Batch 697 (Pete): the two technical writers who update the Admin and User
+  // Guides. They hold Admin and Pathologist together so they can open every
+  // screen to capture it. This is not a read-only role; the starting passwords
+  // were given to Pete and are reset from Staff → edit → Sign-in password.
+  { email: 'helen.schollars@demo.pathscribe.ai', id: 'DOC-001', name: 'Helen Schollars', role: 'pathologist-admin', initials: 'HS', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'gfSyqxFf2WjCZuMC7k6gQg==', hash: 'ZDOUSQBcUFqBZShVvmxYVC8HisabfB9sc4B7u81gXJE=' } },
+  { email: 'shelly.krill@demo.pathscribe.ai', id: 'DOC-002', name: 'Shelly Krill', role: 'pathologist-admin', initials: 'SK', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: '4ZKC0w+iUVUIiTkeVJWnag==', hash: 'KxlCfPVoFFYa8DySL0BvCjCACWGaEMF2JrKWULTlO/8=' } },
 ];
 
 /** Checked when the email matches no account, so an unknown email takes as long as a wrong password. */

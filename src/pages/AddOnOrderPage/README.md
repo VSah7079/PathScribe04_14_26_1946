@@ -39,7 +39,7 @@ The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashb
 
 ## i18n
 
-Built with `useTranslation()`/`t()` from the start. New `addOnOrder.*` namespace (73 leaf keys) plus `home.addOnOrderTile.*` (2 keys), across all five locale files (en/fr/de/nl/ko) — verified programmatically: all five parse as valid JSON, all five have identical key sets, 810 total leaf keys per file. *(Those counts were taken at PS-287; the files have grown since, and `home.addOnOrderTile.*` went with the Home tile in Batch 375 — checked in the Batch 496 README audit.)*
+Built with `useTranslation()`/`t()` from the start. The `addOnOrder.*` namespace (108 leaf keys in `en.json`, checked Batch 652; Spanish has one more for a plural form) is in all six locale files (en, fr, de, nl, ko, es), kept in step by `localeParity.test.ts`. The `home.addOnOrderTile.*` keys this README once listed no longer exist: the Home tile was removed in Batch 375 (see Route above). The 73-key and 810-key counts quoted at PS-287 are long out of date.
 
 ## Deliberate scope cuts
 
@@ -91,3 +91,16 @@ The patient name in the header shows in the screen's language (Korean: full name
 ## Batch 524 (PS-491): accessibility
 
 Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 669 — saving (ws-8)
+
+Placing an order, marking a block retrieved, flagging an exception and answering one now run through `act` in `hooks/useAddOnOrderStation.ts`, which uses the shared `services/workstationSave/runCaseAction.ts` (via `hooks/useWorkstationSave.ts`): the action is run on the newest copy of the case and run again if someone else saved first (3 tries). A save that still fails comes back as `AddOnActionResult.notSaved` (`'conflict'` or `'notApplied'`), the page shows "Not saved" in the existing banner, and the case is reloaded from the store, instead of staying on screen as if saved (it used to log to the console only). Work after the save (the e-mail, the molecular order hand-off) runs once. Tests: `hooks/useAddOnOrderStation.test.tsx` (new).
+
+## Batch 669 (ws-3, ws-19, ws-20)
+
+- **Permissions (ws-19, Pete: strict).** **Mark Block Retrieved** needs `add-on:block:mark-retrieved` and **Flag Exception** needs `add-on:exception:flag` (greyed without them: `CapabilityButton`; the service checks again). Seeded to Pathologist, Fellow, Resident and Histotechnologist (the roles with the Add-On Orders or Microtomy screen) and to a hospital's own roles with case access, so nobody who could do it loses it.
+- **Notice routing (ws-3, Pete, Oct 24, 2026).** Flagging an exception on a slide with no ordering pathologist (an original H&E) used to e-mail nobody. The notice now goes to the Supervisor / Accessioning Desk (`services/addOnOrders/blockExceptionRouting.ts`) and the page says so, or says nobody could be told. A slide with an open exception is listed in Order Tracking even if it was not ordered here, so the notice can be answered.
+- **Primary pathologist (ws-20).** The context bar shows the name (`primaryPathologistName` in the hook), not the stored user id.
+- **IHC panels (ws-20).** A panel stain missing from the (active) stain dictionary is named in a warning under the builder (`missingPanelStainNames`); the other stains of the panel can still be added. If none exist, nothing can be added and the warning says so. The panel presets themselves are still a fixed list.
+- **Still open (ws-19/20 rows):** a refused block still aborts the whole submit; priority is recorded and shown in tracking only; the presets are not editable.
+- **Tests:** `hooks/useAddOnOrderStation.test.tsx`, `components/addOnOrderRequirements.test.tsx`.

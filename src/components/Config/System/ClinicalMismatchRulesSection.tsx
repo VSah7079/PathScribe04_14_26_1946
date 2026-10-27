@@ -22,6 +22,7 @@ import {
   type ClinicalMismatchRule, type ClinicalMismatchActionType,
 } from '@/services';
 import type { ClinicalMismatchKind } from '@/services/clinical/detectClinicalPathologicMismatch';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 import '@/pathscribe.css';
 
 const K = 'clinicalMismatchRulesSection';
@@ -88,6 +89,15 @@ const ClinicalMismatchRulesSection: React.FC = () => {
     );
   }
   if (!rules) return null;
+  // Batch 682: in the documentation profile no score decides anything, so there are no thresholds or actions to set.
+  if (!showsConfidence()) {
+    return (
+      <div>
+        <div className="ps-rbuf-header"><h2 className="ps-rbuf-title">{t(`${K}.title`)}</h2></div>
+        <p className="ps-conf-field-hint" role="status">{t(`${K}.inactiveNote`)}</p>
+      </div>
+    );
+  }
 
   const specimenName = (id: string | null) => (id === null ? t(`${K}.allSpecimenTypes`) : specimens.find(s => s.id === id)?.name ?? id);
   const draft = (r: ClinicalMismatchRule) => drafts[r.id] ?? { min: String(r.minimumDisplayThreshold), action: r.actionThreshold === null ? '' : String(r.actionThreshold) };

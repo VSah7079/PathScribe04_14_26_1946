@@ -57,3 +57,12 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 669 (access-11): identity opt-in
+
+The Issue Consult Link form has a tick box, off by default, "Show the patient's full name and date of birth to the consultant" (`revealIdentity`). It is greyed out without `case:consult-link:reveal-identity` (`useCapabilities`; the service checks again and refuses with `CONSULT_REVEAL_NOT_PERMITTED`). The opt-in is audited, and a link issued with it shows a note in the list. Without it the consultant's page shows a masked identity (`services/consultAccess/consultIdentityMask.ts`).
+
+## Batch 669 (access-11, reviewer's rulings Oct 24, 2026)
+
+- `ConsultLifetimeLine.tsx` (+ `consultLifetimeLine.css`): under a link that has a signed opinion, how many views and hours are left, or why it closed. Numbers come from `services/consultAccess/consultLinkLifetime.ts`; also used by Audit Log → Consult links.
+- Someone who holds `case:consult-link:reveal-identity` but not `case:consult-link:issue` sees the Issue button disabled with the tooltip "Requires permission to issue consult links." (`externalConsultAccessModal.requiresIssuePermission`); their identity preview is in Audit Log → Consult links (`pages/ConsultLinksAuditSection.tsx`, "Preview identity").

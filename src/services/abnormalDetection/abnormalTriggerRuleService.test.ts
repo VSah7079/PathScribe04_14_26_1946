@@ -109,7 +109,7 @@ describe('PS-129 Configuration save rules (saveAbnormalTriggerRule / toggleAbnor
     const out = await saveAbnormalTriggerRule(draft({ fieldLabel: ' Tumor Budding ', triggerValues: ' High , ,Intermediate ', description: '  ', active: false }), { mode: 'add' }, rules, svc);
     expect(svc.add).toHaveBeenCalledWith({
       fieldLabel: 'Tumor Budding', triggerValues: ['High', 'Intermediate'], severity: 'Abnormal',
-      description: undefined, status: 'Inactive', performingLabFacilityId: undefined, syntheticCoding: undefined,
+      description: undefined, status: 'Inactive', performingLabFacilityId: undefined, licensedCoding: [], syntheticCoding: undefined,
     });
     expect(out).toMatchObject({ kind: 'saved', mode: 'add', rule: { id: 'new' } });
   });
@@ -177,5 +177,27 @@ describe('PS-129 a rule configured through the service drives the sign-out findi
 
     await toggleAbnormalTriggerRule({ ...rule, status: 'Inactive' }, service);
     expect(evaluateAbnormalTriggerRules('SP-1', answers, await activeFrom())).toHaveLength(1);
+  });
+});
+
+describe('PS-130 (Batch 623): a rule\'s real codes', () => {
+  const coding = { snomedCode: '254837009', snomedDisplay: 'Neoplasia maligna', icdo3Code: '8500/3', icdo3Display: 'Carcinoma ductal' };
+
+  it('saves the SNOMED CT and ICD-O-3 codes with the rule, and an edit can clear them', async () => {
+    const added = await saveAbnormalTriggerRule(draft({ fieldLabel: 'Grade 3', triggerValues: 'Yes', coding }), { mode: 'add' }, [], service);
+    if (added.kind !== 'saved' || !added.rule) throw new Error('not saved');
+    expect(added.rule.licensedCoding).toEqual([
+      { system: 'SNOMED-CT', code: '254837009', display: 'Neoplasia maligna' },
+      { system: 'ICD-O-3', code: '8500/3', display: 'Carcinoma ductal' },
+    ]);
+    const cleared = await saveAbnormalTriggerRule(draft({ fieldLabel: 'Grade 3', triggerValues: 'Yes' }), { mode: 'edit', item: added.rule }, [added.rule], service);
+    expect(cleared.kind === 'saved' && cleared.rule?.licensedCoding).toEqual([]);
+  });
+
+  it('refuses a malformed code and writes nothing', async () => {
+    const before = stored().length;
+    const bad = await saveAbnormalTriggerRule(draft({ fieldLabel: 'Grade 4', coding: { ...coding, snomedCode: 'TEST-SNOMED-000001' } }), { mode: 'add' }, [], service);
+    expect(bad).toEqual({ kind: 'invalid', error: 'snomedCodeInvalid' });
+    expect(stored().length).toBe(before);
   });
 });

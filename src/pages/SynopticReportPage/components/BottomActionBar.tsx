@@ -10,8 +10,15 @@ import { PoolClaimModal } from '@/components/Worklist/PoolClaimModal';
 import EMRSidecarDrawer from './EMRSidecarDrawer';
 import { useCompanionWindow } from '@/hooks/useCompanionWindow';
 import { resolveIsFinalStatus } from '@/services/reportTemplates/TemplateRoutingService';
-import { reportReleaseService, type FollowUpMarkOffer } from '@/services';
+import { type FollowUpMarkOffer } from '@/services';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { bottomBarVisibility } from '@/services/reports/bottomBarActions';
+import { useBottomBarActionEvents } from '../hooks/useBottomBarActionEvents';
+import { useRevisionReleaseAvailability } from '../hooks/useRevisionReleaseAvailability';
+import { revisionEntryDisabledTitle } from '@/services/reports/revisionReleaseCapability';
+import './BottomActionBar.css';
 import { formatDate } from '@/utils/formatDate';
 
 
@@ -23,6 +30,8 @@ interface BottomActionBarProps {
   onFinalize: () => void;
   onFinalizeAndNext: () => void;
   onSignOut: () => void;
+  /** Batch 664: Orchestration's Sign Out and Next (arms the move to the next case, then signs out as Sign Out Case does). */
+  onSignOutAndNext?: () => void;
   /** Real, per direct research and design recommendation ("Provide a
    *  Manual Trigger... 'Release as Preliminary' button... at any point
    *  before final verification") — the manual pathologist action
@@ -136,6 +145,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onSaveAndNext,
   onFinalize,
   onFinalizeAndNext,
+  onSignOutAndNext,
   onSignOut,
   onReleasePreliminary,
   onRequestAmendment,
@@ -160,6 +170,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   synopticFitPending = false,
 }) => {
   const { t, i18n } = useTranslation();
+  const { availability: revisionAvailability } = useRevisionReleaseAvailability(caseData);
   const { user } = useAuth();
   const navigate = useNavigate();
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -216,34 +227,12 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const isFinalized = status === 'finalized';
   const isPool = status === 'pool';
 
-  // Real feature, per direct specification: Post-Sign-Out Release
-  // Buffer, Phase 3 (spec §14 — hardcopy printing restricted by default
-  // during the buffer window; an operator can override, but the printed
-  // PDF still carries the watermark when they do — see
-  // LeftReportPanel.tsx's own real, on-screen watermark for the
-  // display-side half of this same requirement).
-  //
-  // Real, honest scope note: this gate covers the one print entry
-  // point in this file (CoPilot/'assist' mode's own Print button,
-  // below). Orchestration mode's separate print entry point (inside
-  // the full report preview panel — a genuinely different component,
-  // not duplicated here) is NOT yet gated — a known, real gap, not a
-  // silent omission.
+  // Batch 654: printing a report that is still in its release delay follows the Release Hold Print
+  // Policy (allow, warn, supervisor, block). The decision is made where the print happens
+  // (services/printing planReportPrint, in the report view and the Orchestration preview), so this
+  // button only opens the view; viewing is never restricted.
   const isPendingRelease = status === 'pending-release';
-  const [printRestricted, setPrintRestricted] = useState(false);
-  useEffect(() => {
-    if (!isPendingRelease) return;
-    reportReleaseService.getOrgDefault().then(res => {
-      if (res.ok) setPrintRestricted(res.data.restrictHardcopyPrinting);
-    });
-  }, [isPendingRelease]);
-  const handlePrintClick = () => {
-    if (isPendingRelease && printRestricted) {
-      const proceed = window.confirm(t('bottomActionBar.print.confirmRestricted'));
-      if (!proceed) return;
-    }
-    onPrint?.();
-  };
+  const handlePrintClick = () => { onPrint?.(); };
 
   // Safety requirement: never let a stale patient's EMR keep showing
   // after the case changes. If a real companion window is currently
@@ -294,6 +283,16 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   // for a case still sitting at the PA bench.
   const hasUnfinishedGrossing = (caseData?.grossingReports ?? []).some((g: any) => g.status === 'draft');
   const showGrossComplete = !isPool && !isFinalized && hasUnfinishedGrossing;
+  // Batch 650: one decision draws these buttons and answers their voice / keyboard commands (services/reports/bottomBarActions.ts).
+  const vis = bottomBarVisibility({ status, reportingMode: caseData?.reportingMode, allFinalized, hasUnfinishedGrossing });
+  const { decide } = useCapabilities();
+  useBottomBarActionEvents({
+    state: { status, reportingMode: caseData?.reportingMode, allFinalized, hasUnfinishedGrossing },
+    synopticFitPending,
+    signOutAllowed: !!decide('surgical:report:sign-out', { caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null })?.allowed,
+    revisionAny: revisionAvailability.any,
+    handlers: { signOutCase: onSignOut, signOutAndNext: onSignOutAndNext, finalize: onFinalize, finalizeAndNext: onFinalizeAndNext, requestAmendment: onRequestAmendment, history: onHistory, codes: onCodes },
+  });
   // Dynamic label/icon: "Update Gross" if any of the draft instances about
   // to be finalized were previously finalized before (i.e. this is a
   // correction, not a first pass) — previouslyFinalized survives the
@@ -396,9 +395,10 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
         )}
         {/* Pool case — show Claim button only */}
         {isPool && (
-          <ActionButton onClick={() => setClaimOpen(true)} variant="solid" color="#6366f1" hoverColor="#4f46e5">
+          // Batch 649: greyed without case:pool:claim (acceptPoolCase checks it again).
+          <CapabilityButton capability="case:pool:claim" context={{ caseId: caseData?.id ?? null }} className="ps-bab-action-btn ps-bab-action-btn--solid ps-bab-action-btn--claim" onClick={() => setClaimOpen(true)}>
             ✋ {t('bottomActionBar.pool.claimLabel')}
-          </ActionButton>
+          </CapabilityButton>
         )}
 
         {/* Stage 1 — grossing still in progress: Gross Complete plus a real
@@ -461,31 +461,32 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
                 Finalize has no remaining real purpose there. Stays real
                 and active for Assist Mode's own distinct handoff to the
                 external LIS, unaffected by any of this. */}
-            {caseData?.reportingMode === 'assist' && (
+            {vis.finalize && (
               <>
                 <Divider />
-                <ActionButton
+                {/* Batch 649: greyed without surgical:report:sign-out (authorizeSurgicalSignOut checks it again). */}
+                <CapabilityButton
+                  capability="surgical:report:sign-out"
+                  context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+                  className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--finalize"
                   onClick={onFinalize}
-                  variant="outline"
-                  color="#34d399"
                   disabled={synopticFitPending}
-                  title={synopticFitPending
-                    ? t('bottomActionBar.common.synopticPendingTitle')
-                    : t('bottomActionBar.report.finalizeTitle')}
+                  disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
+                  title={t('bottomActionBar.report.finalizeTitle')}
                 >
                   🔒 {t('bottomActionBar.report.finalizeLabel')}
-                </ActionButton>
-                <ActionButton
+                </CapabilityButton>
+                <CapabilityButton
+                  capability="surgical:report:sign-out"
+                  context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+                  className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--finalize"
                   onClick={onFinalizeAndNext}
-                  variant="outline"
-                  color="#34d399"
                   disabled={synopticFitPending}
-                  title={synopticFitPending
-                    ? t('bottomActionBar.common.synopticPendingTitle')
-                    : t('bottomActionBar.report.finalizeNextTitle')}
+                  disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
+                  title={t('bottomActionBar.report.finalizeNextTitle')}
                 >
                   🔒 {t('bottomActionBar.report.finalizeNextLabel')}
-                </ActionButton>
+                </CapabilityButton>
               </>
             )}
           </>
@@ -499,16 +500,18 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           // bone marrow case, the transplant kidney showing acute
           // rejection) — requiring the case to already be complete
           // first would defeat it entirely.
-          <ActionButton
+          // Batch 649: greyed without surgical:preliminary:release (releasePreliminaryReport checks it again).
+          <CapabilityButton
+            capability="surgical:preliminary:release"
+            context={{ caseId: caseData?.id ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--prelim"
             onClick={onReleasePreliminary}
-            variant="outline"
-            color="#c026d3"
             title={t('bottomActionBar.release.preliminaryTitle')}
           >
             📤 {t('bottomActionBar.release.preliminaryLabel')}
-          </ActionButton>
+          </CapabilityButton>
         )}
-        {!isPool && caseData?.reportingMode !== 'assist' && (allFinalized || isFinalized) && status !== 'finalized' &&
+        {vis.signOutCase &&
           // Real, critical fix, per direct specification: Post-Sign-Out
           // Release Buffer. A real, serious bug found during a
           // post-delivery gap review: this button calls onSignOut →
@@ -524,17 +527,32 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           // a real, externally-dispatchable report version while
           // completely bypassing the very buffer the pathologist might
           // still be relying on to recall and correct their report.
-          status !== 'pending-release' && (
-          <ActionButton
+          (
+          // Batch 649: greyed without surgical:report:sign-out (authorizeSurgicalSignOut checks it again).
+          <CapabilityButton
+            capability="surgical:report:sign-out"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--solid ps-bab-action-btn--sign-out"
             onClick={onSignOut}
-            variant="solid"
-            color="#047857"
-            hoverColor="#065f46"
             disabled={synopticFitPending}
-            title={synopticFitPending ? t('bottomActionBar.common.synopticPendingTitle') : undefined}
+            disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
           >
             ✍️ {t('bottomActionBar.signOut.label')}
-          </ActionButton>
+          </CapabilityButton>
+        )}
+        {vis.signOutAndNext && onSignOutAndNext && (
+          // Batch 664 (Pete): the same sign-out (checks, signature window), then the next case in the queue.
+          <CapabilityButton
+            capability="surgical:report:sign-out"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--sign-out"
+            onClick={onSignOutAndNext}
+            disabled={synopticFitPending}
+            disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
+            title={t('bottomActionBar.signOut.nextTitle')}
+          >
+            ✍️ {t('bottomActionBar.signOut.nextLabel')} →
+          </CapabilityButton>
         )}
         {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized) && (
           <span className="ps-bab-assist-complete" title={t('bottomActionBar.assistComplete.title')}>
@@ -554,12 +572,13 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             🖨 {t('bottomActionBar.print.label')}
           </CapabilityButton>
         )}
-        {status === 'finalized' && onRequestAmendment && (
+        {vis.requestAmendment && onRequestAmendment && (
           <ActionButton
             onClick={onRequestAmendment}
             variant="outline"
             color="#d97706"
-            title={t('bottomActionBar.amendment.title')}
+            disabled={!revisionAvailability.any}
+            title={revisionEntryDisabledTitle(revisionAvailability) ?? t('bottomActionBar.amendment.title')}
           >
             ✏️ {t('bottomActionBar.amendment.label')}
           </ActionButton>
@@ -608,6 +627,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
       currentUserId={user?.id ?? 'u1'}
       currentUserName={user?.name ?? 'Unknown'}
       continueToReport={true}
+      restoreVoiceContext={VOICE_CONTEXT.SYNOPTIC}
       onAccepted={() => setClaimOpen(false)}
       onPassed={() => {
         setClaimOpen(false);

@@ -1,3 +1,11 @@
+## Batch 645
+
+`lockboxActionGroup.ts`: the 7 Role Dictionary actions of Lockbox Drop-Off (group F36: go to it, focus the scan field, mark the next drop urgent, show Drop-Off, show the Overnight folder, mark accessioned, link a placeholder), `LockboxActionId` and `LOCKBOX_VOICE_CONTEXT` (`LOCKBOX`). Added through `addedActionGroups.ts`; `systemActions.ts` (over 1,000 lines) did not grow. Grants in `defaultActionGrants.ts`: Accessioner all 7; Admin go to, show the folder and mark accessioned. The last two have no voice phrase or hotkey and are classified in `services/actionRegistry/permissionOnlyActions.ts`.
+
+## Batch 637
+
+`resultRegistryActionGroup.ts`: the 8 Role Dictionary actions added by Batches 620 to 636 (group F35: manual hrHPV result and its approve/reject, the two CSMS eligibility answers, the AI history reading run and flag, make a registry batch file). `addedActionGroups.ts` gathers it with the Outbound Queue group and is spread into `ACTION_GROUPS`, so `systemActions.ts` stays at 1,308 lines. Grants in `defaultActionGrants.ts`; classified in `services/actionRegistry/permissionOnlyActions.ts`. See `docs/product/ACTIONS_COVERAGE.md`.
+
 ## Batch 619 (part Q)
 
 `outboundQueueActionGroup.ts`: the Outbound Queue's six Role Dictionary actions (group F34, `outboundQueue.*`), spread into `ACTION_GROUPS` so `systemActions.ts` (over 1,000 lines) does not grow. `defaultActionGrants.ts` grants them to Admin. Classified in `services/actionRegistry/permissionOnlyActions.ts`.
@@ -238,3 +246,15 @@ Pete: "I was searching for Field Requirements, but the system couldn't find any 
 - Batch 612 (part A): `configSearchIndex.ts` gains `sys-interface-dictionary`.
 
 - **Batch 617:** `systemActions.ts` gained a group, Related Cases, Case Access, Search Reports & Follow-up (16 entries, keys F33+PS001 to PS016); `defaultActionGrants.ts` has their default grants. The roles list is 371 entries. See `docs/product/ACTIONS_COVERAGE.md`.
+
+## Batch 638
+
+`voiceProfiles.ts`: new dictation option Nederlands (België), recognition language nl-BE, Dutch commands (PS-347).
+
+- Batch 663: `worklistRowActionGroup.ts` (Go to Row, Open Case by Accession) and, from Batch 662, `patientBannerActionGroup.ts` (Show NHS Number Status), both spread into the role dictionary through `addedActionGroups.ts`.
+
+- Batch 664: `caseTeamActionGroup.ts` (Add Collaborator, `caseTeam.addCollaborator`, key F37+PS002), spread into the dictionary through `addedActionGroups.ts`; granted with the view commands (the save checks `case:team:manage`).
+
+## Batch 669h (footer)
+
+Config search entries `protocols-library` and `tpl-builder` no longer say "CAP-compliant" (text in locales: "structured on CAP and RCPath protocols").

@@ -49,7 +49,7 @@ import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileS
 import type {
   NetworkPrintPayload, NetworkPrintLabelData,
 } from '@/types/printing/NetworkPrintPayload';
-import { mockAuditService } from '@/services/auditlog/mockAuditService';
+import { auditService } from '@/services/auditlog/auditServiceInstance';
 import i18n from '@/i18n/config';
 
 const TEMPLATE_VERSION = 'ZPL-CASSETTE-V3'; // Section 5.1's own example value — the real, current template's own identifier.
@@ -252,7 +252,7 @@ export async function dispatchNetworkPrintJob(payload: NetworkPrintPayload): Pro
   // simple checksum (not cryptographic — Section 10.1 doesn't specify
   // an algorithm) so a real audit reviewer can at least confirm two
   // log entries carried byte-identical payload content.
-  mockAuditService.logEvent({
+  auditService.logEvent({
     type: 'system',
     event: 'Network Print Dispatched',
     detail: `eventId=${payload.eventId} idempotencyKey=${payload.idempotencyKey} attempt=${payload.attempt ?? 1} printerId=${payload.targetPrinter.printerId} templateVersion=${payload.templateVersion} payloadHash=${simpleHash(JSON.stringify(payload))} status=DISPATCHED(stub)`,

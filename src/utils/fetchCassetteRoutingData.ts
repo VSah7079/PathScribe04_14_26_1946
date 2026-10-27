@@ -9,8 +9,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { cassetteRoutingRuleService as mockCassetteRoutingRuleService } from '@/services/cassetteRouting/cassetteRoutingRuleServiceInstance';
-import { mockCassetteColorService } from '@/services/cassetteColors/mockCassetteColorService';
-import { mockProtocolService } from '@/services/protocols/mockProtocolService';
+import { cassetteColorService } from '@/services/cassetteColors/cassetteColorServiceInstance';
+import { protocolService } from '@/services/protocols/protocolServiceInstance';
 import type { CassetteRoutingRule } from '@/services/cassetteRouting/ICassetteRoutingRuleService';
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
 import type { Protocol } from '@/services/protocols/IProtocolService';
@@ -27,8 +27,8 @@ export interface CassetteRoutingData {
 export async function fetchCassetteRoutingData(): Promise<CassetteRoutingData | undefined> {
   const [rulesRes, colorsRes, protocolsRes] = await Promise.all([
     mockCassetteRoutingRuleService.getAll(),
-    mockCassetteColorService.getAll(),
-    mockProtocolService.getAll(),
+    cassetteColorService.getAll(),
+    protocolService.getAll(),
   ]);
   if (!rulesRes.ok || !colorsRes.ok || !protocolsRes.ok) return undefined;
   return { rules: rulesRes.data, colors: colorsRes.data, protocols: protocolsRes.data };

@@ -1,5 +1,7 @@
 # components/Contribution/
 
+**Batch 650:** `QualityTab` chooses the TAT tile for the eight `TAT_SHOW_*` commands through `services/quality/tatTileActions.ts` (it listened for an event nothing sent).
+
 The "My Contribution" dashboard tabs — AI acceptance/override metrics,
 productivity (case/RVU tracking), and quality (discordance/amendment/TAT
 metrics).
@@ -374,3 +376,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 610 (part B)
 
 `PerformanceTargetsTile` (Productivity dashboard: this period against the monthly cases and RVU targets, plus how the last period ended) and `ClientSlaPanel` (per-client service-level results, on the Quality tab and the Productivity dashboard). Both only render rows built by the services.
+
+`DailyAccessioningChart` (Batch 660): one bar per day for Bench Contributions; bar heights come from `dailyAccessioningBars`.

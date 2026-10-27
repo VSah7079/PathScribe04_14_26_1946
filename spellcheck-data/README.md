@@ -29,3 +29,5 @@ Source word lists for PathScribe's medical spell checker (PS-342). They are comp
 
   This is the same rule as the cytology lexicon's "validated translations only".
 - **No third-party lists:** these lists are authored for PathScribe. Third-party sources (the SPECIALIST Lexicon, SNOMED CT, LOINC) go in `licensed/` as downloaded, and the build derives words from them with attribution. Never paste their content into these files.
+
+- **`es/pathology.dic.txt` (Batch 622):** about 400 Spanish (Spain) pathology entries, plain words, inflected forms written out, tumour / inflammation / procedure / cytology / IHC terms. Authored for PathScribe; **needs native-speaker clinical review**; extend from the Spanish SNOMED CT edition once a licence is confirmed. The base dictionary is `dictionary-es` (RLA-ES, MPL-1.1 chosen).

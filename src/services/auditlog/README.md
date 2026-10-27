@@ -31,3 +31,22 @@ Deep links into the Audit Log page. `FAILED_CHARGE_DISPATCHES_LINK` (`/audit?tab
 
 
 Batch 616: server version in `httpAuditService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `auditServiceInstance.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.
+
+## Batch 651 — audit gaps closed
+
+Event names now written (all `type: 'user'`, literal English, PHI-free: ids and counts, never names or free text; each written by the service that does the work, after the change succeeded, and never when it was refused):
+
+| Event | Written by | Detail carries |
+|---|---|---|
+| `Pool case claimed`, `Pool case passed`, `Pool claim hold taken`, `Pool claim hold released` | `cases/poolCaseActions.ts` | case, facility, pool id; the hold is the 30-second claim lock (released = window closed or lapsed with no decision) |
+| `Case delegated` | `delegations/delegationAudit.ts` via `mockDelegationService.delegate` | delegation type id, recipient kind and id, delegation id, whether a note was given (never the note) |
+| `Case team changed` | `cases/saveCaseTeam.ts` / `caseTeamAudit.ts` | staff id and participation-type id of each slot added or removed |
+| `Case comment added`, `Specimen comment added` | `cases/postCaseComment.ts` | comment id, length, specimen id; **the comment text is never written** |
+| `Personal spelling dictionary word added` / `removed` | `spellcheck/mockCustomDictionaryService.ts` | length of the word only (the facility dictionary, an admin list, still records the word) |
+| `Screen language changed` | `userSettings/personalLanguage.ts` | from and to language codes |
+| `Deficiency raised`, `Deficiency escalated to CAPA`, `Deficiency contained`, `Deficiency effectiveness verified`, `Deficiency reopened as recurred` | `deficiencies/qaDeficiencyActions.ts` | deficiency, type and resolution-type ids, outcome, due date; never the comment, root cause or actions |
+
+Voice-command and learned-voice-phrase audit are the voice engine's (Batch 650a). The general clinical audit log is still **not tamper-evident**: it is append-only by interface only (nothing in the app edits or deletes an entry), and server-side tamper-evidence (hash chain, write-once store) is Planned with the API server.
+
+## Batch 670 — one write path
+Every audit write, including `audit/auditLogger.ts` (behind `useAuditLog`), goes through `auditService` from `auditServiceInstance.ts`: the mock in the demo, the API server with an address. `httpAuditService.logEvent` sends `stationId` with the entry. A guard test fails on any direct `mockAuditService` import.

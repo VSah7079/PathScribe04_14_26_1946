@@ -9,8 +9,8 @@ import { processLegacyRecordImport } from './processLegacyRecordImport';
 import { migrationJobService } from './migrationJobServiceInstance';
 import { migrationRecordResultService } from './migrationRecordResultServiceInstance';
 import { migrationFieldMappingService } from './migrationFieldMappingServiceInstance';
-import { mockCaseService } from '../cases/mockCaseService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { caseService } from '../cases/caseServiceInstance';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { getOrganisationByHospitalId, resolveMpiScopeEnterpriseId } from '../organisation/organisationService';
 
 const defaultDeps = (): LegacyImportDeps => ({
@@ -26,14 +26,14 @@ const defaultDeps = (): LegacyImportDeps => ({
   recordResult: (r) => migrationRecordResultService.record(r),
   processRecord: processLegacyRecordImport,
   importedAccessions: async () => {
-    const all = await mockCaseService.getAll();
+    const all = await caseService.getAll();
     const set = new Set<string>();
     if (all.ok) for (const c of all.data) if (c.importSource && c.accession.externalAccession) set.add(c.accession.externalAccession);
     return set;
   },
-  createCase: (c) => mockCaseService.createCase(c),
+  createCase: (c) => caseService.createCase(c),
   audit: async (event, detail, user) => {
-    await mockAuditService.logEvent({ type: 'system', event, detail, user, caseId: null, confidence: null }).catch(() => {});
+    await auditService.logEvent({ type: 'system', event, detail, user, caseId: null, confidence: null }).catch(() => {});
   },
   now: () => new Date(),
 });

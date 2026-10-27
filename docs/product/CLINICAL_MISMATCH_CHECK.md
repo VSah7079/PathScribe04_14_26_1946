@@ -38,7 +38,7 @@ It runs at:
 **While the pathologist reviews the report (Gate A).** Surgical reports, autopsy reports between the PAD and the FAD, and (Batch 531) each cytology specimen in the Cytology Workspace once its final diagnosis is chosen (pathologist track):
 
 1. About two seconds after the diagnosis (or, for an autopsy, the report sections) is filled in or changed, PathScribe runs the check in the background. Nothing stops the pathologist working.
-2. If the AI finds no mismatch, or its confidence is below the rule's **"Alert from"** threshold (60% to start), nothing appears. If the AI can't be reached, a simple built-in rule catches the clearest case: a malignant result on a routine or benign order. There is no fallback rule for autopsy or GYN screening.
+2. If the AI finds no mismatch, or its confidence is below the rule's **"Alert from"** threshold (60% to start), nothing appears. If the AI can't be reached, a simple built-in rule catches the clearest case: a malignant result on a routine or benign order. There is no fallback rule for autopsy or GYN screening. **Batch 651:** that fallback has a fixed confidence of 50%, below the 60% display threshold, so it never appeared. It is now shown regardless of the AI threshold (which is unchanged), labelled "rule-based check", and always **low risk**: it is logged to QA and never holds sign-out. The version of the approved AI instructions the AI answered with is stored on the QA record (`instructionVersion`) and in the audit text; a rule-based result has none.
 3. Otherwise a one-line alert appears on the report, **"AI suggests possible mismatch"**, with the kind and the confidence. It says whether sign-out will ask for a decision (a high-risk mismatch) or not (low risk). **Review** opens it in place: the AI's explanation, the clinical indication, which rule applies, and the decision.
 4. The pathologist can decide there, in one click, with an optional quick reason and an optional note:
    - **low risk:** **Resolved**, or **Defer to secondary review**;
@@ -200,6 +200,13 @@ As in all of PathScribe, permissions are granted to **roles**, and an administra
 
 ---
 
+## Rule-based fallback and the instruction version (Batch 651)
+
+- **Why it was hidden:** the fallback's confidence is fixed at 50%, a prompt to look rather than a finding. The default display threshold is 60%, and a threshold is about how sure a model is, so a result with no model was always suppressed.
+- **The decision:** a rule-based result is shown whatever the threshold, labelled as rule-based ("Suggested by a rule-based check ..."), always low risk. It is logged to QA and never holds sign-out (a block needs an AI result that reached a Block rule). The AI threshold was **not** lowered, so no AI suggestion that was hidden before is now shown. Code: `evaluateClinicalMismatch` in `clinicalMismatchRules.ts`.
+- **Instruction version:** the version of the approved AI instructions used (0 is PathScribe's own text) is stored on the Clinical-Pathologic Correlation QA record as `instructionVersion`, in the decision form's saved decision, and in the audit detail ("AI instructions version n"). It was only on the suggestion before, so it was lost once the decision was recorded.
+- **Confidence scale:** 0 to 100 everywhere in this check (display threshold 60, rule-based 50, AI minimum 40 in `parseMismatchResponse`).
+
 ## Amendments, corrections and addenda (Batch 609)
 
 The check does not stop at first sign-out.
@@ -223,3 +230,6 @@ The check does not stop at first sign-out.
 **Can we tune it?** Yes (built, Batch 529). The thresholds and actions are per kind and per specimen type, and only people your lab authorises can change them. Each change is audited.
 
 **Where is it tracked?** In the QA dashboard (flagged cases), the secondary review queue (deferred cases) and the CAPA engine (unresolved high-risk mismatches).
+
+## Evidence quotes (Batch 683)
+The AI is asked for one verbatim quote from the clinical side and one from the pathology side. Each is checked against the case text (whole phrase, case and spacing ignored) and shown with the flag; a quote not found in the record is marked "not found in the record, check it yourself". The quotes and whether each was found are stored in the QA record (`evidenceClinical`, `evidenceClinicalFound`, `evidencePathology`, `evidencePathologyFound`, Batch 685); the audit-log text does not carry them. The secondary-review queue shows them (`evidenceFromFieldValues`), or notes that none were saved for a flag made before Batch 685.

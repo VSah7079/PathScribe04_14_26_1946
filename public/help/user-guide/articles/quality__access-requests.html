@@ -1,0 +1,203 @@
+<h1 id="top">Access Requests</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Access Requests shows how quickly requests for access to cases are answered, lists the requests still waiting, and lets an authorised person deny a request or take back access that was given to see a patient's other cases.</p>
+<p><strong>Intended users.</strong> Quality staff and laboratory managers who answer for response times, and administrators who decide requests.</p>
+<p><strong>Where it fits.</strong> Open <strong>Quality Assurance</strong>, stay on the <strong>Operations</strong> pillar and choose the <strong>Access Requests</strong> tile. Requests are raised elsewhere in PathScribe; this screen is where the answers are tracked. See <a href="/help/quality">Quality &amp; Compliance</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/quality-access-requests-overview.png" alt="The Access Requests screen with the turnaround chart, tiles and the three tables"><figcaption>The Access Requests screen with the turnaround chart, tiles and the three tables</figcaption></figure>
+
+<p>The screen shows "Loading access request data…" while it opens.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p>At the top is a monthly chart of the average turnaround in hours for the last six months. Hover a point to see the average and how many requests were resolved. A month with no answers says "No requests resolved this month". Four tiles follow.</p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Avg Turnaround</td>
+<td>Average hours from request to answer, for requests that have been answered.</td>
+</tr>
+<tr>
+<td>Pending</td>
+<td>Requests still waiting. Turns amber when above zero.</td>
+</tr>
+<tr>
+<td>Granted</td>
+<td>Requests that were approved.</td>
+</tr>
+<tr>
+<td>Denied</td>
+<td>Requests that were refused.</td>
+</tr>
+</tbody>
+</table>
+<p>Pending requests table:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Type</td>
+<td>Pediatric, Pool, Orchestration, or Patient's other cases.</td>
+</tr>
+<tr>
+<td>Requested By</td>
+<td>Who asked.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The case the request names, if any. Select the row to open it.</td>
+</tr>
+<tr>
+<td>Requested At</td>
+<td>When the request was made.</td>
+</tr>
+<tr>
+<td>Waiting</td>
+<td>Hours since the request.</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td><strong>Deny</strong> on every row; <strong>Approve</strong> as well on Patient's other cases requests.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Patient case access in force</strong> lists access to a patient's other cases that you may take back. Its columns are Requested By, Resolved By (who allowed it, and when) and Actions. It says "No patient case access to revoke." when there is none.</p>
+<p>The Resolved list has the columns Type, Requested By, Status (Granted or Denied), Turnaround and Resolved By. Until a request is answered in the chosen scope it says "No resolved requests in this scope yet."</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope switcher</td>
+<td>Chooses the organisation or referring facility whose requests are listed. Its groups are By Organisation and By Referring Facility. Pool and Orchestration requests belong to no referring facility, so they appear only under the whole enterprise or an organisation.</td>
+</tr>
+<tr>
+<td>Export</td>
+<td>Saves the listed requests as a spreadsheet file. Your role must allow it.</td>
+</tr>
+<tr>
+<td>Deny</td>
+<td>Opens the window <strong>Deny this access request?</strong></td>
+</tr>
+<tr>
+<td>Revoke</td>
+<td>In Patient case access in force. Opens the window <strong>Revoke access</strong>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Granted (green)</td>
+<td>The request was approved.</td>
+</tr>
+<tr>
+<td>Denied (red)</td>
+<td>The request was refused.</td>
+</tr>
+<tr>
+<td>Amber Pending tile</td>
+<td>At least one request is waiting.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the <strong>Access Requests</strong> tile. Read the tiles to see how many requests wait.</li>
+<li>In the Pending table, find the oldest by the Waiting column.</li>
+<li>To refuse, select <strong>Deny</strong>. In the window <strong>Deny this access request?</strong> type a <strong>Reason</strong> and select <strong>Deny</strong>. The person asking gets a message with your reason.</li>
+<li>For a Patient's other cases request, select <strong>Approve</strong> to allow it. The request moves to the Resolved list.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To take back access already given, find the person under <strong>Patient case access in force</strong> and select <strong>Revoke</strong>.</li>
+<li>In the window <strong>Revoke access</strong>, type the <strong>Reason for revoking</strong> and select <strong>Revoke access</strong>. The person can no longer open that patient's other cases and is told why.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If <strong>Deny</strong> or <strong>Approve</strong> is greyed out, your role may not decide that kind of request.</li>
+<li>Pediatric, Pool and Orchestration requests are granted where the access itself is managed; the request then closes by itself. Only Deny and, for Patient's other cases, Approve are offered here.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"The request couldn’t be denied." means nothing changed. Try again.</li>
+<li>"The access could not be revoked." means the access is still in force. Try again.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Denying without a useful reason. The reason is sent to the person.</li>
+<li>Reading the average turnaround while a request waits: the average counts only answered requests.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Sort your day by the Waiting column.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review Avg Turnaround each month and export the list for your records.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/quality/ai-discordance">AI Discordance</a>: the previous report.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/quality/patient-matching">Patient Match and Management</a>: the next screen in the Operations pillar.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nothing pending</td>
+<td>Every request has been answered.</td>
+</tr>
+<tr>
+<td>A request type is missing</td>
+<td>It is outside the scope you chose.</td>
+</tr>
+<tr>
+<td>Buttons are greyed out</td>
+<td>Your role may not decide that request type.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Set the scope to the whole enterprise.</li>
+<li>Refresh the page.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a request is stuck as Pending after it was answered. Have the requester's name and the time ready.</p>

@@ -40,7 +40,7 @@ import { listOrganisations } from '@/services/organisation/organisationService';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import type { MasterPatientRecord, PatientLinkRelationshipType } from '@/services/patients/IPatientIndexService';
 import type { Case } from '@/types/case/Case';
-import { patientIndexService, auditService as mockAuditService } from '@/services';
+import { patientIndexService, auditService } from '@/services';
 
 type ActiveAction = 'merge' | 'link' | 'move' | null;
 
@@ -153,7 +153,7 @@ export const PatientManagementSection: React.FC = () => {
     try {
       if (selectedPatient.organisationId !== targetPatient.organisationId) {
         // Batch 605: a target in another organisation. The audit entry holds ids only, no names.
-        void mockAuditService.logEvent({
+        void auditService.logEvent({
           type: 'system', event: 'Cross-Organisation Patient Action',
           detail: `${activeAction} from organisation ${selectedPatient.organisationId} (patient ${selectedPatient.id}) to organisation ${targetPatient.organisationId} (patient ${targetPatient.id}) confirmed by a cross-tenant administrator.`,
           user: user?.id ?? 'unknown', caseId: null, confidence: null,

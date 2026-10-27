@@ -1,1081 +1,1491 @@
-## Batch 617 (part R): one route style for every server version of a service (PS-488 dev notes)
+# Product guide updates
 
-- **Guide row:** in "Server-backed services (HTTP)", add one sentence: every service calls the API server in the same way, so the server team builds and tests one pattern. No screen changes.
-- **Training:** nothing for users or admins. For the server team: `docs/architecture/HTTP_SERVICES_PATTERN.md` section 7 is the single rule; `HTTP_ROUTE_MAPPING.md` lists the earlier path and the current path of each converted call.
-- **Marketing / RFP line:** "A consistent, uniform API: one route and verb convention across all services, enforced by an automated test."
-- **Status:** Built (Demo); waiting on the server side (India team). Supports: ISO 15189 (controlled, documented interfaces), HIPAA (no patient text in URLs).
+Every entry is written four ways (Pete, Oct 20, 2026): **for the practitioner** (plain language), **for the system administrator** (where and how to set it up), **for marketing** (positive), and **for FormedrixAI and partners** (the plain reality, including what is not built). Entries written before Batch 642 were rewritten into this form from their earlier text; the facts were carried over, and marketing and partner wording needs your review before it is used externally.
+
+## Batch 669h: Control Rules reachable, External Consult masked by default, honest footer status
+
+- Practitioner: Control Rules now opens for the people who set and review the rules (Lab Director, Administrator, Quality Reviewer) as well as the molecular technologists, without anyone needing the whole Molecular screen. Technologists still only read; changes need the manage permission.
+- System administrator: new permission "View molecular assay control rules" (`config:molecular-control-rules:view`), Role Dictionary > Administration. Seeded to Administrator, Laboratory Director, Quality Reviewer, Molecular Technologist; "Manage ..." now needs it and stays with Administrator and Laboratory Director. A role with either opens the page by address or from the Molecular screen's button; the page's list is refused without it. Plates and racks are still checked against the rules for everyone who works them.
+- Marketing: The people accountable for molecular quality can now open and audit the assay control rules directly, with read and change rights kept separate.
+- FormedrixAI/partners: Fixes a real dead end (neither Admin nor Lab Director could reach the page). The rules are still enforced on plates regardless of who may view them. Not done: no dedicated molecular supervisor role exists, so nobody beyond the four roles above has it until an administrator assigns it; the Superadmin holds it like every capability.
+
+- **Practitioner:** The page an outside consultant opens no longer shows the patient's name and birth date. It shows initials (J*** S****) and the birth year only (**/**/1980), plus the accession, specimens and slides they need. If you really need the consultant to see who the patient is, tick "Show the patient's full name and date of birth to the consultant" when you issue the link (off by default; Pathologists and Lab Directors can).
+- **System administrator:** New capability `case:consult-link:reveal-identity` (Pathologist, Lab Director; grant to other roles in Configuration). The tick box is greyed out without it. The audit entry for the new link says whether the opt-in was used; each view says which version was shown. Links cannot be changed afterwards: revoke and reissue. Existing links are masked. Locale keys added in six languages.
+- **Marketing:** Outside second opinions with privacy built in: consultants see what they need to give an opinion, and identity is shared only when a pathologist deliberately chooses it, with a permanent audit record.
+- **FormedrixAI/partners (plain reality):** Masking is done before the data leaves the service, not by hiding it on screen, but the link is still a bearer secret: anyone holding it can open it, the accession is still shown, and name length is visible in the mask. There is no passcode/e-mail identity check (Planned; needs the API server and a mail sender), no single-use link, and in this build links still open only in the issuing browser, so nothing here is production-ready until the API server (CONSULT_ACCESS_API.md CA-25 to CA-27) is built.
+
+- **Practitioner:** The bottom of Home no longer says "HIPAA Compliant" and no longer says "SYSTEMS OPERATIONAL" as fixed words. It shows a coloured dot and the real state: Checking, Operational, Degraded, Unavailable, or Status unavailable when the check could not be made. It looks again when you come back to the tab after five minutes. The secure-email sent screen no longer says "Encrypted in transit . Audit logged".
+- **System administrator:** The status comes from `GET /api/health/health-status/check`, which reports database, messaging, queues and interface engine; the server decides the overall state. Until the server has the route the footer shows "Status unavailable". Locale keys: added `home.status.*`, changed `home.footerCopyright`, removed `home.systemsOperational` and `appShell.secureEmailModal.encryptedNotice`.
+- **Marketing:** The Home screen shows live system health from the server, checked when you open it and when you return to it, and it only says what it has checked.
+- **FormedrixAI/partners (plain reality):** The server route does not exist yet (contract written, HS-1 to HS-5); in the demo the status only reflects whether the browser is online and is labelled simulated. No HIPAA or CAP compliance statement is printed anywhere on these screens. The secure-email send is still simulated. The CAP wording is "structured on", not certified.
+
+## Batch 697: Two technical-writer sign-ins for the guides
+
+- **Practitioner:** Nothing changes on a clinical screen. Two new demo sign-ins exist for the technical writers who update the guides.
+- **System administrator:** Helen Schollars (DOC-001) and Shelly Krill (DOC-002) have demo sign-ins and staff records with the Admin and Pathologist roles, so they can open every screen. This is not a read-only role. Reset their passwords from Staff, Edit, Sign-in password; the built-in password then stops working.
+- **Marketing:** The guides now have dedicated authors with their own accounts.
+- **FormedrixAI/partners (plain reality):** A read-only "documentation author" role is not built; it would need its own capability seeds and tests. Until then the writers hold full Admin and Pathologist rights in the demo environment, and the accounts exist only in the demo build.
+
+## Batch 696: AI-suggested codes show where they came from, in the dictionary's words
+
+- **Practitioner:** In the Codes window each AI-suggested code now shows the official dictionary description (not the AI's own wording), says which part of the case it was taken from and the specimen when the text names one, and has a tick when the code was found in the code dictionary. If the source cannot be confirmed it says "Source not stated". Nothing is added until you apply it.
+- **System administrator:** No setting. The audit entry `AI_CODE_BOUND` now records the model and service, the model confidence (in the log only), which check confirmed the code, where in the case it came from, and whether the pathologist changed it. The User Guide Codes window paragraph is updated; ten new interface texts in six languages.
+- **Marketing:** AI-suggested codes come with their provenance: the official terminology wording, the part of the case they came from, and an audit trail of how each one was produced, checked and approved.
+- **FormedrixAI/partners (plain reality):** The origin is a claim made by the AI and checked by the product only for plausibility (a known part with text; a specimen the text names), not proven by quoting the text. Not click-tested in a browser; the dictionary description depends on the terminology service answering with a description, otherwise the AI wording is kept. Older codes have no check recorded and say so. The "Strong match / Possible match" label and the confidence settings on admin screens are still open decisions. The new texts are machine-translated and unreviewed.
+
+## Batch 695: "How spell check decides" (User Guide) and reporting procedures (Administrator Guide)
+
+- **Practitioner:** The User Guide's spell-check section now explains in plain words the order in which words are checked, what is never underlined (codes, short capital abbreviations, addresses), which language is used, and why an underline is not a verdict.
+- **System administrator:** The Facility Dictionary section carries the matching note. Administrator Guide chapter 10 gives numbered steps for report templates, the Part Library and routing rules, synoptic templates (copy, create, edit, review, publish, new version, archive, export), the JSON file (layout, a minimal and a fuller example, every error message) and the three kinds of scheduling (delivery rules, delivery schedules, saved-report schedules). Chapter 11 covers labels, billing and registries.
+- **Marketing:** The guides now cover how the spell checker works and how to set up templates and schedules without a consultant.
+- **FormedrixAI/partners (plain reality):** Chapters 10 and 11 are English only and fail the translation parity check until translated. Chapter 10 was written from the code and en.json and not clicked through in a browser; both JSON examples pass the import check. Not verified: editing a published report template in place, archiving a part a template uses, questions without an id. Saved-report schedules deliver nothing yet. Chapter 6 wrongly said a copied report template is named "Copy of <name>" and that Edit shows only on drafts; corrected to match the code ("<name> (Copy)", Edit on every row except the standard template) in English only. The medical word lists for French, German, Dutch, Spanish and Korean are still starter lists. Not browser-tested end to end.
+
+## Batch 694: Regulatory Compliance Guide brought up to date (English)
+
+- **Practitioner:** Nothing changes on screen. Your quality manager's guide now says what happens to AI text and AI-filled values at sign-out: narrative must be accepted, edited or rejected; unconfirmed optional values are left out of the signed report.
+- **System administrator:** Chapters 3, 6 and 8 and open questions 13 to 15 updated; the readiness matrix already carries PS-R-045 to PS-R-051. The omission rule is browser-side only.
+- **Marketing:** The guide shows human oversight of AI as a built, audited control, with the default setting that does not present AI as a clinical decision. Wording stays "capabilities intended to support".
+- **FormedrixAI/partners (plain reality):** English only, not reviewed by counsel, not built into in-app Help. Server-side omission, browser end-to-end checks and the regulatory-status position are still open.
+
+## Batch 693: User Guide and Administrator Guide brought up to date (Batches 679 to 692)
+
+- **Practitioner:** The User Guide now describes what the screens do: unconfirmed AI values are tinted and left out of the signed report, values filled in for you are recorded, AI codes say Strong or Possible match, the mismatch flag shows its quotes, AI-drafted narrative must be accepted before sign-out, and the error screen goes back to the previous page. Updated: Synoptic Reporting, Sign Out and Release, Session and Connection.
+- **System administrator:** Administrator Guide chapter 5 gains "AI output governance and the regulatory profile", drops the three AI checkboxes that were removed, and explains the mismatch evidence fields and the audit entries. The built guides (customer and internal editions, and the published copies the Help buttons open) were rebuilt in English.
+- **Marketing:** The guides match the product's AI-governance behaviour.
+- **FormedrixAI/partners (plain reality):** The French, German, Dutch, Korean and Spanish Administrator Guide chapter 5 files are now out of date and fail the parity check until they are re-translated (see `docs/admin-guide/open-questions/ch5.md`). The User Guide is English only. The new passages are Draft and need clinical review, and the omission of unconfirmed values from the signed PDF is described as designed but has not been checked in a browser.
+
+## Batch 692: the same rule for grossing reports (autopsy and cytology checked)
+
+- **Practitioner:** When a PA presses Gross Complete, any optional grossing field still holding an AI value that was not confirmed is cleared before the gross is finalized; the AI suggestion stays, so the PA can Confirm it. At case sign-out the same check covers the grossing reports too, and the dialog count includes them.
+- **System administrator:** Nothing to configure. The audit log records `AI_VALUES_OMITTED_AT_SIGNOUT` at Gross Complete ("left out of the finalized gross report") and again at sign-out for anything still left out. Counts only, no values.
+- **Marketing:** The no-unvouched-AI rule now covers the gross description as well as the diagnosis.
+- **FormedrixAI/partners (plain reality):** Autopsy and cytology: no AI-suggestion fields or AI-drafted text exist in their types or services, so there is nothing to clear; a cytology or autopsy report built on a synoptic template is already covered. If AI is added to either later, add it to this rule the same day. The server contract in `docs/product/REGULATORY_PROFILE.md` now says "synoptic and grossing reports". Not browser-tested: finalize one gross with an Auto-insert value and check it is blank afterwards.
+
+## Batch 691: unconfirmed AI values are left out of the signed report
+
+- **Practitioner:** When you press Sign Out (or Finalize), any optional field still holding an AI value you have not confirmed is cleared from the report before the dialog opens, and the dialog says how many. The AI suggestion stays beside the field, so you can Cancel, press Confirm, and the value comes back. A value you edited yourself is yours and is kept. Required fields still stop the sign-out as before.
+- **System administrator:** Nothing to configure. The audit log gets `AI_VALUES_OMITTED_AT_SIGNOUT` (the count only, no values) when the sign-out checks pass. It replaces `AI_VALUES_SIGNED_UNREVIEWED` from Batch 681. The cleared answers are saved with the draft like any other edit.
+- **Marketing:** Only what a pathologist has vouched for reaches the signed report.
+- **FormedrixAI/partners (plain reality):** This is a browser-side rule. The server must apply the same rule independently at sign-out (see `docs/product/REGULATORY_PROFILE.md`, "Server contract"); until then a client that skips the dialog could still sign unconfirmed values. If you Cancel the dialog the cleared values stay cleared until Confirm. Only synoptic reports are covered; grossing reports and narrative sections are not (narrative has its own accept gate). Not browser-tested end to end: please sign out one case with an optional AI field and check the PDF. The reworded dialog note is machine-translated and in the review register.
+
+## Batch 690: "Strong match" and "Possible match" on AI-suggested codes
+
+- **Practitioner:** When the AI suggests codes, each one now says "Strong match" or "Possible match" instead of a percentage. It describes how closely the case wording matches the code's description. It is not a chance that the code is right, and you still review and add each code yourself.
+- **System administrator:** Nothing to configure. In the documentation profile the label replaces the percentage in the Add Code list; in the clinical_support profile the percentage is shown as before. "Strong" starts at the same 85 line the percentage colour already used.
+- **Marketing:** Plain-language guidance on code suggestions, with no score to over-trust.
+- **FormedrixAI/partners (plain reality):** Intended Use wording to confirm: the label means text-match strength, not accuracy or probability. The saved coding row shows no label, only that the code came from the AI. Not browser-tested. The six-language label text is machine-translated and in the review register.
+
+## Batch 689: auto-filled AI values are recorded
+
+- **Practitioner:** If values are filled in for you (Auto-insert on opening a report, or "Regenerate from Gross"), the fill is now recorded. The values stay tinted and unconfirmed until you Confirm or Override each one, as before.
+- **System administrator:** New audit entry `AI_VALUES_AUTOFILLED` with the number of fields and how they were filled (when the report opened, or by Regenerate from Gross). It carries no values and no patient data. Only empty fields are filled, as before.
+- **Marketing:** Every AI fill is traceable.
+- **FormedrixAI/partners (plain reality):** The audit entry is written by the browser; the server must write it in the same transaction (specified, not built). There is still no per-fill accept button: the tint, the sign-out count and the audit entry are the controls, and only required fields block sign-out.
+
+## Batch 688: AI output governance in the Readiness Matrix
+
+- **Practitioner:** Nothing changes on screen.
+- **System administrator:** The Regulatory Readiness Matrix gains seven rows (PS-R-045 to PS-R-051, area "AI output governance"): accept before sign-out, audit of accept/edit/reject and code binding, tint and count of unreviewed AI values, assist-polling fills start unverified, mismatch evidence quotes, the regulatory profile, and native-language review.
+- **Marketing:** The matrix now shows how AI output is governed, with the code and tests behind each point.
+- **FormedrixAI/partners (plain reality):** 51 requirements of an eventual 300 to 500. Every crosswalk entry is a Candidate and Compliance stays Not Assessed. PS-R-051 (native review) is Planned. A medical-device pathway is not assessed.
+
+## Batch 687: two AI settings that did nothing are removed
+
+- **Practitioner:** Nothing changes on screen except two switches gone from the AI settings.
+- **System administrator:** "Macro suggestions" and "Subspecialty routing" were saved but no screen read them, so turning them on or off changed nothing. They are removed from AI settings; "Auto-insert suggestions" stays (it is read). Values already saved are ignored.
+- **Marketing:** Every AI setting shown does what it says.
+- **FormedrixAI/partners (plain reality):** If macro suggestions or AI routing are built later, they come back as new, tested settings. The Admin Guide (on hold) still mentions both; fix when it is updated.
+
+## Batch 686: the error screen goes back to the page you were on
+
+- **Practitioner:** If a screen fails, "Back to the previous page" takes you to the page you were on, not always the worklist. Try again is unchanged.
+- **System administrator:** Nothing to configure. The previous page is kept for the length of the browser tab (session storage, key `ps.pagePath`, address only, no patient data). If it is unavailable the button still goes to the worklist.
+- **Marketing:** A crash lands the user back where they were.
+- **FormedrixAI/partners (plain reality):** It remembers one page back, not a full history. New string `errorBoundary.backToPrevious` in six languages is machine-translated and in the review register.
+
+## Batch 685: mismatch quotes kept in the QA record; tint visible in high-contrast mode
+
+- **Practitioner:** The words shown with a mismatch flag are now saved with the quality record, so a reviewer later sees what you saw. In Windows high-contrast mode an unconfirmed AI value now shows a dashed edge instead of a tint.
+- **System administrator:** Nothing to configure. The QA record for a clinical-pathologic correlation gains up to four fields: `evidenceClinical`, `evidenceClinicalFound`, `evidencePathology`, `evidencePathologyFound` (yes/no). The audit-log text does not carry the quotes (it stays free of clinical text); the QA record already held the clinical indication.
+- **Marketing:** The evidence behind every flag travels with the quality record.
+- **FormedrixAI/partners (plain reality):** Records made before this batch have no quotes and they cannot be recovered; the secondary-review queue now says so on those flags ("No quotes were saved with this flag") and shows the quotes on newer ones. PathScribe has no in-app high-contrast theme; only the operating system's forced-colors mode is handled.
+- **Exports (limit closed):** the four evidence fields are now declared on the Clinical-Pathologic Correlation activity type, so dashboards and exports label them like the clinical indication and treat them the same way (clinical text, not patient identifiers). An activity type already stored by a customer does not gain them automatically; add the four fields in Quality settings, or they appear only as raw values.
+
+## Batch 684: handover procedure for native-language review
+
+- **Practitioner:** Nothing changes on screen.
+- **System administrator:** Nothing to configure. The steps for having native speakers check the French, German, Dutch, Korean and Spanish text, and for developers to apply their changes, are now a Procedure in `docs/quality/HANDOVER_REVIEW_TESTS.md`. The 16 new AI-governance strings (Batches 679 to 683) are listed first in `docs/quality/TRANSLATION_REVIEW.md`.
+- **Marketing:** Nothing to say publicly; do not describe the translations as reviewed until the register is signed off.
+- **FormedrixAI/partners (plain reality):** No language has had a native review yet. A human developer makes any edits a reviewer asks for. The register is kept by hand: no test checks it.
+
+## Batch 683: the mismatch flag quotes the words that conflict
+
+- **Practitioner:** When the check flags a possible clinical-pathologic mismatch, it now shows the words from the clinical side and from the pathology side that it based the flag on. If those exact words are not in the record, it says so, so you know to check for yourself.
+- **System administrator:** Nothing to configure. The AI is asked for two verbatim quotes; PathScribe checks that each whole quote is in the case text (clinical indication, history and frozen impression; microscopic and diagnosis). The saved QA record is unchanged.
+- **Marketing:** Every flag shows its evidence: the exact words from the record, not just an opinion.
+- **FormedrixAI/partners (plain reality):** A quote must match the whole phrase (case and spacing ignored); a paraphrase or an invented tail shows as "not found". A model can still pick quotes that do not really conflict: the pathologist decides. Quotes are not yet stored in the QA record. The new sentence labels are machine-translated.
+
+## Batch 682: AI settings follow the regulatory profile; the unused confidence checkbox is removed
+
+- **Practitioner:** Nothing changes at the bench. AI values filled in by the background draft are always shown as unconfirmed until you confirm them.
+- **System administrator:** Configuration > AI no longer has "Show confidence scores in the editor UI": nothing ever read it, so it is removed (a saved value is ignored). Configuration > System > Clinical Mismatch Rules shows an explanatory note instead of thresholds and actions while the regulatory profile is "documentation"; the saved rules are kept and show again under "clinical_support". The Admin Guide text for this checkbox is on hold with the other Admin Guide updates.
+- **Marketing:** Settings match what the product does: no dead controls.
+- **FormedrixAI/partners (plain reality):** `macroSuggestions` and `subspecialtyRouting` are also saved but read by nothing (Admin Guide open question, ch5); they were not removed, pending your decision. The confidence-threshold slider stays because it still sets which suggestions auto-fill. A polled (background) draft is now forced to "unverified" in code, with a test.
+
+## Batch 681 (the sign-out audit part is replaced by Batch 691): quiet cues for unreviewed AI values, and a sign-out line instead of a block
+
+- **Practitioner:** A field filled by the AI that you have not confirmed or overridden now has a faint tint, so you can see it at a glance without clicking anything. At sign-out, one line says how many optional AI-filled fields are still unreviewed. It never blocks you and asks for no extra click.
+- **System administrator:** Nothing to configure. When sign-out is reached with unreviewed optional AI values, one audit entry `AI_VALUES_SIGNED_UNREVIEWED` is written (count and person only, no clinical values). Required fields still stop sign-out as before.
+- **Marketing:** Reviewing AI is easy to see and hard to miss, with no extra clicks for the pathologist.
+- **FormedrixAI/partners (plain reality):** Replaces the idea of blocking sign-out on optional AI fields (Pete's decision, Oct 25). Correction: the earlier "left unverified" count was only written to the browser console, not logged; this batch adds the real audit entry. The count comes from the saved reports, so a confirmation made a moment before sign-out may lag. Not done: the cue colour is not yet checked against the high-contrast theme; the new sentence is machine-translated.
+
+## Batch 680: AI drafts must be accepted before sign-out, and every accept or reject is audited
+
+- **Practitioner:** If the AI drafted a narrative section and you have not accepted or edited it, sign-out stops and tells you which section is waiting; accept it, edit it, or write your own. Accepting, editing an AI draft, and keeping your earlier text instead of a new AI draft are now recorded. Applying an AI-suggested code is recorded when you save the codes.
+- **System administrator:** Nothing to configure; this applies in every regulatory profile. New audit events: `AI_NARRATIVE_ACCEPTED`, `AI_NARRATIVE_ACCEPTED_EDITED`, `AI_NARRATIVE_REJECTED`, `AI_CODE_BOUND`. They name the section or code and the person, never the text. Permission to apply codes is unchanged.
+- **Marketing:** AI assists; the pathologist decides, and the record shows each decision. Nothing AI-written reaches a signed report unreviewed.
+- **FormedrixAI/partners (plain reality):** Closes two of the gaps listed in REGULATORY_PROFILE.md (unaccepted narrative blocks sign-out; accept/reject/code binding audited). Not done: AI values auto-filled into non-required synoptic fields still do not block sign-out (a deliberate earlier rule, now a decision for Pete); the assist-polling auto-fill has no accept step of its own; the mismatch explanation is still unverified model text; the new message is machine-translated.
+
+## Batch 679: Regulatory profile (documentation by default) and the mismatch check without a score
+
+- **Practitioner:** The clinical-pathologic mismatch check now shows a plain flag with the reason ("possible mismatch for your review"), without a percentage. A flag never stops sign-out because of a number; you decide whether it matters. Synoptic suggestions, code suggestions, template suggestions and narrative notes show where the suggestion came from (the quoted source text) and "AI suggestion" or "Check source", instead of a percentage or a colour tier.
+- **System administrator:** New deployment setting `VITE_REGULATORY_PROFILE` (build or `config.json`): `documentation` (default; anything else or a typo means this) or `clinical_support` (reserved; brings back the percentages, thresholds and Block rules that are kept in the code). The Clinical Mismatch Rules screen still stores thresholds, but under `documentation` they have no effect. Quality dashboards and the AI instruction test panel still show numbers.
+- **Marketing:** AI assistance with provenance over probability: every suggestion points to the words in the record it came from, and the pathologist stays the decision maker. (Wording: "provides capabilities intended to support laboratory documentation"; not a medical-device claim.)
+- **FormedrixAI/partners (plain reality):** Matches the Intended Use Statement's AI Output Governance rule for the screens listed in `docs/product/REGULATORY_PROFILE.md`. Not done: AI-draft narrative sections and auto-filled fields are not yet blocked from sign-out until accepted; per-accept audit for AI codes and narrative is not built; mismatch explanations are model text, not checked quotes; the Admin Guide and translations of this are on hold. Whether the product is a medical device is a decision for regulatory counsel; this setting does not decide it.
+
+## Batch 678: Regulatory Readiness Matrix (three layers) and implementation plan
+
+- **Practitioner:** Nothing changes on screen.
+- **System administrator:** Nothing to configure. Your quality manager gets one spreadsheet showing, for each PathScribe requirement, the code and test behind it, its status and the frameworks it relates to, plus a view for each country.
+- **Marketing:** A requirements-first compliance model: one master list, a crosswalk to each framework, and country views generated from it, the way large vendors answer RFPs. It is the source for future RFP answers; wording stays "provides capabilities intended to support".
+- **FormedrixAI/partners (plain reality):** 44 requirements of an eventual 300 to 500. Every crosswalk entry is "Candidate" (potentially related); none is yet "Mapped" (reviewed by the team) or Verified (independent), and the Compliance field reads Not Assessed on every row and cannot be changed by the generator. No clause numbers. Several country views show "no requirement mapped yet". One row's test evidence was found too thin and downgraded; evidence review is the next batch. `IMPLEMENTATION_PLAN.md` proposes Batches 679 to 686 and an outside-party track (counsel on IVDR, privacy counsel, assessors, national experts, penetration test). It replaces the Batch 677 tracker.
+
+## Batch 677: compliance requirements tracker
+
+- **Practitioner:** Nothing changes on screen.
+- **System administrator:** Nothing to configure. Your quality manager can use `docs/compliance-guide/PathScribe_Regulatory_Readiness_Matrix.xlsx` to see, requirement by requirement, what PathScribe does today and what is still open.
+- **Marketing:** A tracked, evidence-linked list of requirements by framework and country that we can show to evaluators as the work progresses. Public wording stays "provides capabilities intended to support laboratory compliance"; the tracker does not support a claim of meeting all requirements.
+- **FormedrixAI/partners (plain reality):** 73 rows: 6 priority frameworks plus the rest of the outline. Only a minority are Live or Built (Demo). IVDR scope, DSPT, Rili-BÄK, PHIPA, PIPA, CCKL, BELAC, COFRAC, ENAC, INAB, KOLAS are Not assessed; Canada's sign-out rule is Placeholder / Unverified. Each row names the outside reviewer who must confirm it (counsel, notified body, accreditation assessor, privacy counsel, security assessor, national expert). No third-party assessment has been commissioned.
+
+## Batch 676: Regulatory Compliance Guide (new guide, English)
+
+- **Practitioner:** Nothing changes on screen. Your quality manager now has one place (`docs/compliance-guide/`) that says which PathScribe controls help with inspections: audit trail, permissions, specimen tracking, report versions, retention.
+- **System administrator:** A new guide beside the Administrator Guide. It lists, per control, whether it is Live, Built (Demo), Partial or Planned, and a shared-responsibility table of what PathScribe, your organisation, your identity provider and your host each do. Not yet built into the in-app Help or published to `public/help/`.
+- **Marketing:** A dedicated compliance guide for evaluations, accreditation audits and procurement. Wording rule: PathScribe "provides capabilities intended to support" compliance; it never says "is compliant".
+- **FormedrixAI/partners (plain reality):** English only, not yet reviewed by counsel, not translated (held until content freeze). Corrected the same day: an earlier draft wrongly said most listed frameworks had no product support. The product does cite them in real behaviour (sign-out date gate, evidence binder, inking gate, EU cytology matrix; chapter 2), though the citations are expert-supplied and unverified in code and Canada's date gate is a placeholder. Nothing exists for DSPT, Rili-BÄK, CCKL, PHIPA, PIPA or BELAC; data-subject-request tooling is not built; the audit log is not tamper-evident until the API server exists; several retention figures are unverified placeholders. `OPEN_QUESTIONS.md` lists twelve items, including the Implementation and Validation Guides that do not exist yet.
+
+## Batch 675: the MFA policy is held by the server (access-14)
+
+- **Practitioner:** Nothing looks different. On a live installation your organisation's second-factor rules now stay in force after a reload or a restart, and if PathScribe cannot read them at sign-in you are not let in (you see the usual "sign-in service unavailable" message) rather than being let in with no rules.
+- **System administrator:** Session Security > Multi-factor sign-in still sets who is asked (nobody, signing roles, everyone), the signature step-up minutes and the session hours. On a live installation the choice is now saved on the API server, which checks `config:session-security:manage` itself and records the change in the audit log (`MFA_POLICY_ENABLED`, `MFA_POLICY_DISABLED`, `MFA_STEPUP_CHANGED`) with the old and new values. **The server routes (`/api/session-security/mfa-policy/get` and `/save`) are specified but not yet built;** until they are, a live build cannot load or save the policy. Admin Guide not updated (held until content freeze; no machine translation without Pete's go-ahead).
+- **Marketing:** Your multi-factor policy is stored, enforced and audited centrally, not in anyone's browser.
+- **FormedrixAI/partners (plain reality):** Browser side done and tested: service interface, server version, sign-in fails closed. Not done: the server endpoints, the server-side audit entries, and the server enforcing the policy on API requests (steps 2 and 3 of Pete's order are contract only). The policy has three fields (`mode`, `stepUpMinutes`, `sessionMaxHours`), not the two in the dev note, and the routes follow the repo's `/api/<area>/<service>/<method>` style rather than `GET/PUT /api/session-security`; `ACCESS_SESSION_API.md` §5 says so.
+
+## Batch 674: server deployments are single sign-on only (resolves dev note access-13)
+
+- **Practitioner:** On a live installation you sign in through your organisation's single sign-on, and your second factor is the one your organisation already uses. Email-and-password sign-in belongs to the demonstration version. The User Guide sign-in article now says so.
+- **System administrator:** No new setting; this records how it already behaves. A server build needs `VITE_AUTH_MODE=sso` or it reports `SSO_REQUIRED` and does not start. There is no password store in PathScribe; passwords, resets and lockout are the identity provider's. In MFA terms, the provider asserts the second factor in the token (`amr` / `acr`) and PathScribe and the API server check it. **Admin Guide not yet updated (six languages).** Proposed wording for the sign-in and Staff password sections: "A live installation signs in through your organisation's identity provider only. PathScribe does not store passwords there, and the Staff screen's sign-in password is available in the demonstration version only."
+- **Marketing:** Enterprise sign-in done the enterprise way: your identity provider, your multi-factor policy, no passwords held by PathScribe.
+- **FormedrixAI/partners (plain reality):** Nothing changed in code. The old README promised password sign-in for sites without single sign-on; that is withdrawn. Only Microsoft Entra ID, Okta and Keycloak have documented setup notes (`MFA.md`); Ping, Auth0 and NHS Identity have not been validated. One real gap: the organisation's MFA policy is held in browser memory on a server deployment, so it would not persist; it needs a server version and a contract (`AUTHENTICATION_MODEL.md`).
+
+## Batch 673: what the server decides (inventory)
+
+- **Practitioner:** Nothing changes on screen. This is a planning document.
+- **System administrator:** No settings. `docs/architecture/SERVER_DECIDES.md` lists which actions and background processes the API server must own in a live deployment, so each action is one call that is checked, audited and timed on the server.
+- **Marketing:** A simple front end on a server that makes every decision, which is how a hosted LIS should work.
+- **FormedrixAI/partners (plain reality):** Today the browser runs about 67 multi-step actions itself (sign-out, release, claim, role and staff saves, registry sends) and writes the audit entry afterwards. The inventory is signal-derived and read from headers, not a line-by-line audit, so each row needs confirming. Nothing is built from it yet.
+
+## Batch 672: report delivery, referral, held-release, release log and QC sampling reach the server (wiring step 3)
+
+- **Practitioner:** Nothing looks different. Reports waiting out the release delay, e-fax and file-drop deliveries, referral hand-offs, the list of every report release and the cytology QC "every Nth case" counters are now kept by the server in a live deployment. Corrected and addended results go out through the same queue as other results.
+- **System administrator:** No settings. Five services got server versions behind the same `config.json` address switch: report delivery queue, referral outbound queue, held releases, report-released event log and cytology QC sampling state. Contracts are in `REPORT_DELIVERY_API.md`, `REFERRAL_RESEARCH_API.md`, `REPORTS_API.md` and `CYTOLOGY_QC_API.md`. The amended-result dispatcher no longer writes to the demo queue directly.
+- **Marketing:** The whole release-and-delivery chain, from the release delay to the e-fax, runs on the same server-backed foundation as the rest of the system.
+- **FormedrixAI/partners (plain reality):** The browser side is built and tested against a fake server; the routes themselves do not exist yet. `settle` on a held release must be atomic on the server, and the QC counters must be advanced by the server's own evaluation. Still on mocks: AI instructions, the orchestrator case service, and staff passwords (a decision is needed on whether password sign-in ships on a server build; biometrics already have a server version, and only helper functions remain in the mock file), plus the "unchecked" variants for flags, physicians and participation types, follow-up, and the demo reset tool. 13 files remain in `directMockImportBaseline.ts`.
+
+## Batch 671: core data reaches the API server (wiring step 2)
+
+- **Practitioner:** Nothing looks different, and the demo behaves exactly as before with its seed data. In a live deployment, the lists and records behind sign-out, billing, cytology, quality and delivery (facilities, users, patients, cases, encounters, roles, physicians, messages and about 40 more) now come from the server, not from the browser's demo data.
+- **System administrator:** No settings. The same `config.json` API address decides: with it, the server; without it (the demo), the built-in seed data. About 60 files that bypassed that switch were moved onto it.
+- **Marketing:** One build serves both the full-featured demo and the live system, with no code changes between them.
+- **FormedrixAI/partners (plain reality):** 32 files still use mock modules directly (list in `directMockImportBaseline.ts`). Most use only constants kept in the mock files (activity-type IDs, seed versions), which should move to neutral files. The real gaps are services with no server version yet: held release, the report delivery queue, the referral outbound queue, the report-released event log, QC sampling state, staff passwords, biometrics, AI instructions and the orchestrator case service. Several internal "unchecked" variants (flags, physicians, participation types) still reach the mock. None of this has run against a real server.
+
+## Batch 670: audit entries now reach the API server (wiring step 1)
+
+- **Practitioner:** Nothing looks different. Behind the scenes, everything you do that is recorded in the Audit Log is now sent to the server in a live deployment, not kept in your browser.
+- **System administrator:** No settings. With an API address in `config.json`, all audit writes (screens, case saves, sign-out, billing corrections, block deletions, print and mail events, and the rest) go through the one switched `auditService`; in the demo they still go to the browser. Each entry now carries the scan station it was done at (`stationId`), because only the browser knows it. A new guard test (`directMockImports.guard.test.ts`) fails if any code writes audit entries to the mock directly, and keeps a shrinking list of other direct mock imports.
+- **Marketing:** One complete, server-side audit trail for every action, including the workstation it came from.
+- **FormedrixAI/partners (plain reality):** The audit routes (`STAFF_ADMIN_API.md` section 1) are specified but the API server does not exist yet, so none of this has run against a real server. The server must store `stationId` as sent. About 95 files still import other mock services directly (cases, facilities, patients, queues); they are listed in `directMockImportBaseline.ts` and are wiring steps 2 to 4.
+
+## Batch 669j: the secure-email window records its own audit entry and says so
+
+- **Practitioner:** After you send a secure email, the confirmation shows a small line, "This message is recorded in the audit log." It appears only once the entry has really been written. The line before sending no longer claims "Audit logged".
+- **System administrator:** No settings. The window itself writes the `secure_email_sent` audit event (recipient and subject) on every successful send, from any screen that opens it, including the critical-findings email; the Home and message screens no longer write it separately, so there is one entry per send. A refused send writes nothing. User Guide section: Messaging, secure email.
+- **Marketing:** Every secure message leaves a visible, verifiable trail in the Audit Log, and the screen tells the sender.
+- **FormedrixAI/partners (plain reality):** Wording is deliberately factual ("recorded in the audit log"); it makes no HIPAA compliance claim, which depends on the customer's agreements and policies. The audit write is the browser mock today; the API server must persist it. Sending itself is still simulated (PS-332).
+
+## Batch 669i: External Consult links use a view cap, identity preview, and a fixed date of birth format
+
+- **Practitioner:** A signed opinion no longer shuts the link at once. The consultant can reopen it up to 3 more times, for up to 48 hours after signing, and the page tells them how many views and hours are left. Dates of birth are always written like 24-OCT-1980, never 03/04/1980. A Lab Director who may see identities but not issue links can use "Preview identity" in the Audit Log to look at the demographics on screen.
+- **System administrator:** Policy lives in one place (`consultLinkLifetime.ts`: 3 views, 48 h; also bounded by the link's own expiry). New audit events `consult.link.access_attempt_exhausted` and `consult.link.identity_previewed`. Capability `case:consult-link:reveal-identity` now has a use without `issue` (Preview identity). Issue button greyed with a tooltip without issue permission. Fixed DOB format DD-MMM-YYYY in every language.
+- **Marketing:** Second opinions that stay private: a consultant gets a short, counted window to revisit their signed opinion, then the link closes by itself, and dates are unambiguous worldwide.
+- **FormedrixAI/partners (plain reality):** Built in the browser mock only. The real count and clock must be kept by the API server (CA-28 to CA-30), which does not exist yet; links still open only in the issuing browser. Still no passcode check (CA-26) and no single-use link. A view is counted on every page load, including reloads. DOB fixed format applies to the consult page only, not the rest of the app.
+
+## Batch 669g: messaging and cytology refinements (unrecognised secondary code, reply order, Mark as unread)
+
+- Practitioner: A reply, whether you send it or receive it, now lifts its conversation to the top of your message list. "Mark as unread" is greyed out, with a tip, when you wrote the latest message, instead of silently doing nothing. In Cytology QC, if you type a Secondary Diagnostic Code PathScribe does not recognise, a message appears under the field and you must pick a recognised code or clear it before you can submit.
+- System administrator: No settings. The list order is derived from the thread, nothing is stored. Recognised secondary codes are those in the cytology category dictionary (Interpretation and Result entries with a rank, plus NILM); if the dictionary cannot be read the check is skipped. Unread is still decided by one function (`isUnreadFor`) so the SQL Server per-recipient version changes only that.
+- Marketing: A conversation list that always puts the latest activity first, and a QC form that catches mistyped codes before they are recorded.
+- FormedrixAI and partners (plain reality): Unread is still one shared flag per message (decided by who wrote last); true per-person read state needs the server messages table and is not built. A pathologist who wants a free-text secondary code that is not in the dictionary cannot record it (they must add it to the dictionary or clear the field). The http (API server) QC service does not yet specify server-side enforcement of the unrecognised-code refusal or the divergence confirmation.
+
+## Batch 669f: second group of User Guide findings fixed (workstations, molecular, operations, messaging, cytology)
+
+Fixes for ws-2, ws-3, ws-4 (part), ws-5, ws-6, ws-14, ws-19 (part), ws-20, mol-1, mol-3 (part), mol-6, mol-7, mol-9, mol-10, mol-14 (part), batch-1, batch-4, ops-2, ops-14, ops-15, access-12, everyday-1, everyday-3 and cyt-6. Each area has its four voices below.
+
+**Batch 669f: Microtomy, Slide Distribution and Add-On Orders bench fixes.**
+- **Practitioner:** On the Microtomy screen a decant slide's comment and Reprint now work. If Print/Etch Next does not print you see why. Accept suggestion no longer adds the same slides twice. Remove and Reprint show an Undo for 8 seconds. If you flag Block exhausted on a slide nobody ordered, the supervisor / accessioning desk is told, and the screen says so. On Add-On Orders the primary pathologist shows as a name, and a panel stain missing from your list is named in a warning.
+- **System administrator:** Two new permissions, Flag a block exception (`add-on:exception:flag`) and Mark a block retrieved (`add-on:block:mark-retrieved`), standard risk, offered once to Pathologist, Fellow, Resident, Histotechnologist and custom roles with case access; withdraw them in the Role Dictionary. Exception notices without an ordering pathologist go by e-mail to active staff holding the Lab Director or Accessioner role (for the case facility). Keep those users' addresses current; there is no separate desk-address setting.
+- **Marketing:** Bench staff always know what happened: print problems are shown, mistakes can be undone in one click, and exhausted-block alerts always reach a person.
+- **FormedrixAI / partners (plain reality):** Done as above. Not done: no dedicated exception-desk address or Histology Supervisor role (Lab Director + Accessioner stand in); Undo of a reprint cannot recall a label already printed; the two print paths (ws-7) are unreconciled; a refused block still aborts a whole add-on submit, priority is tracking-only and IHC panel presets are a fixed list; Embedding article unchanged; screenshots not retaken; new translations (esp. Korean) need native review; Supervisors/desk users cannot answer an exception unless granted the approval permission.
+
+- **Practitioner:** When you send a plate's worklist, the plate now moves to Active Runs, and in the demonstration it works without a real instrument connection. If you retire and replace a plate with Clone & Supersede, the patients' orders that were on it come across to the new plate in the same wells; you do not have to put them back. A control well now remembers its lot as one id, lets you say whether the control should read Negative or Positive (positive controls start at Positive), and shows the expiry date again when you click the well. Control Rules are for reading unless you have been given permission to change them, and a change or delete asks for a short reason. Sending a positive HPV result again no longer orders a second genotyping test for the same specimen, and error messages appear in your own language.
+- **System administrator:** `config:molecular-control-rules:manage` now also starts with the Lab Director (Admin as before); every other role sees the rules read-only. Saving or deleting a rule needs a reason and writes an audit entry. A rule must have at least one control, and editing a rule onto an assay that already has one is refused. Dispatch uses the simulated interface engine when no engine address is set (Mock Interface Engine page shows the message and can make it fail or time out); with an engine or the API server configured it uses the real call. New transaction type `MOLECULAR_WORKLIST` (INTERFACE_TRANSACTIONS.md, `functions/main.py`). 32 new locale keys (keys_mol.json), 3 removed. The API server must keep wells bound to orders on clone-and-supersede and move the orders; and accept `reason` on control rule create/update/delete.
+- **Marketing:** From the first scan to the run on the instrument, molecular plates now move through their lifecycle on their own: dispatch moves a plate to Active, a corrected plate carries its patients' orders with it, and every change to a control rule is explained and recorded.
+- **FormedrixAI and partners (plain reality):** The dispatch still goes to a simulated engine in the demo; no real analyser or interface engine has received a PathScribe worklist yet. The expected result is sent with the worklist but PathScribe does not itself compare the run against it. Admin and Lab Director can hold the control-rule permission but neither has the Molecular screen by default, so neither reaches the Control Rules page until the screen is assigned (decision below). A rule can no longer be saved with only rack slots and no control. Still open from the Molecular findings: Order Queue page naming and Home access (2), accessioning link (4), page title (5), deck-slot-less batches cannot pass the deck scan (8), run results have no review control (11), Auto-fill (12), rack tube replacement (13), hotkey clash (15), live refresh without the hub (16), clearing the demo queue (3), and the plate-layout and duplicate-control checks (14).
+
+- **Practitioner:** Scanning an item twice while checking a batch in no longer shouts "Unexpected": it says "Already matched" and nothing changes. On the OR board, Stop demo now clears the demo cases it added; if a dismissal's record cannot be saved, the board tells you so you can tell your supervisor. A Critical Alert link now counts your own view ("Viewed 1 time" the first time) and shows the expiry time in the laboratory's time zone with the zone named.
+- **System administrator:** New permission "Run the OR Suite demo" (`config:or-board-demo:run`), given to Admin by default; assign it to a trainer role in Staff, Roles if needed. The Outbound Queue no longer has a Dead-lettered tile; failed messages stay Failed and can be retried. The disposal queue, waste report and disposal scan use one "last location" rule (latest event time). The Critical Alert page uses the facility time zone from Configuration (Contribution settings); check it is right for each site. Locale keys: added `batchDetail.alreadyMatchedFlash`, `orSuiteDashboard.{demoRemoveFailed,demoStartFailed,dismissLogFailed,noticeClose}`, `capabilities.items.configOrBoardDemoRun.*`, `criticalAlertReferencePage.viewedLabel_one/_other/_many`; removed `outboundQueue.state.deadLettered`, `criticalAlertReferencePage.viewedLabel`.
+- **Marketing:** Cleaner, more trustworthy bench and OR screens: duplicate scans are recognized, demo data can no longer linger in live intraoperative data, failures are never silent, and critical-alert links show times in the laboratory's own time zone.
+- **FormedrixAI/partners (plain reality):** The demo is still seeded sample data, now permission-gated and removable; it exists only in the mock service (not offered against the API server). A server-side dead-letter state is NOT built (removed instead, per Pete); the retry limit and any dead-letter handling belong to the API server and queue. The Critical Alert page reads the facility time zone from the system configuration; on this public, no-sign-in page, a production API server must serve that setting without a login or the default (America/Phoenix) shows. The OR demo cases are only removed when someone presses Stop demo (closing the page mid-demo leaves them until the next Start/Stop). No undo for acknowledging a critical alert (by design). Two display-only copies of the last-location sort remain in the material tree and tracking modal.
+
+- Practitioner: Your own messages and replies no longer show a blue dot or count in the number on the speech bubble; only things waiting for you do. When someone replies, the conversation lights up as unread for you, and the list line still shows the first message (open it to read replies). In Cytology QC, Record Discrepancy no longer forces a Secondary Diagnostic Code. If you do enter one that is far from the primary (for example NILM and HSIL), the window asks you to press Confirm and Submit before it records.
+- System administrator: No settings. The unread rule is per person from the thread (last writer), because a message still has one shared read flag. The QC confirmation rule uses the cytology category dictionary (Configuration > System > Cytology categories): Interpretation and Result entries need a `diagnosticRank` and an abbreviation or label to be compared; a code that matches no entry is accepted without a prompt. Change ranks there to tune what "far apart" means; the gap (2) and the high-grade line (3) are fixed in code.
+- Marketing: A cleaner inbox that counts only what is waiting for you, and a QC discrepancy form that asks for a second look only when the two diagnoses really are far apart.
+- FormedrixAI and partners (plain reality): Unread is still one flag per message, not a per-recipient state; a true per-person read state needs the SQL Server messages table and API (FLAGS_AND_MESSAGES_API.md), not built. A reply does not move the conversation up the list (sorted by the first message's time). "Mark as unread" on a conversation you wrote last has no visible effect. The QC divergence check works only for codes that match a dictionary entry; free-text typos are not compared. The http (API server) QC service passes `divergenceConfirmed` through but the server-side enforcement is not specified in CYTOLOGY_API.md yet.
+
+## Batch 669e: first group of User Guide findings fixed (margin decisions audited, saves that fail say so, flags, Audit Log footer, consult draft)
+
+Fixes for ws-8, ws-10, ws-11, ws-16, ws-17, everyday-17, everyday-22, access-1 and access-11 from the consolidated findings. Each item below has its four voices.
+
+**Margin Exception Review: decisions are recorded and acted on (Batch 669)**
+- Practitioner: When you Resolve or Dismiss a margin item, PathScribe now checks the tumor board rules again straight away and tells you if the case was flagged for a board. Your decision is kept in the audit log, and everything already decided is listed under "Resolved and dismissed" at the bottom of the screen, with who decided and when.
+- System administrator: No setting to change. Resolve and Dismiss still need `case:margin-exception:resolve`. Each writes an audit entry ("Margin exception resolved" / "dismissed") with user, time, case, item id, field, value or reason; the typed text is not logged, but the dismiss reason is, so staff should not put patient names in it. The rules are re-run with the case's own facility overrides. If the audit write or the rule check fails, the decision stays saved and the screen shows a yellow message.
+- Marketing: Every margin-distance decision is audited and acted on in real time: record a close margin and the case is on the tumor board agenda straight away, with a full history of who decided what.
+- FormedrixAI / partners (plain reality): Built and tested against the demo (mock) services. Not built: undo or edit of a decision; recording "less than" or "greater than" (exact mm only); the reason "No answer given yet" is still never produced. With the API server the extraction/exception routes are unchanged; whether the server also audits is the server team's call (the audit entry here is written by the front-end services to the audit service). The audit log itself is still not tamper-evident (see auditlog README).
+
+**Batch 669: Embedding, Slide Distribution and Add-On Orders no longer show an unsaved change as saved; Embedding discrepancy flags can be cleared and stop Confirm.**
+
+- **Practitioner:** If a change on the Embedding, Slide Distribution or Add-On Order screen could not be stored, you now see a red "Not saved" line and the screen goes back to what is really stored, so nothing looks done that is not. Just make the change again. On the Embedding Station, reporting a discrepancy now switches Confirm off until you press **Clear flag** (one click) once it has been dealt with; the flag shows the name of whoever raised it, the date of birth follows your language's format, and the screen tells you when a Tissue Discrepancy item has gone to Quality, or that it did not.
+- **System administrator:** No settings. The three stations save through one shared routine (`services/workstationSave/`): if someone else saved the case first it retries on the newest copy up to three times, then reports "Not saved" and reloads. Clearing an Embedding flag writes the audit event "Embedding discrepancy cleared" (block, flag, who raised it, who cleared it, no patient data); it needs no separate permission (see Decisions). The Tissue Discrepancy item in Quality is not closed by clearing; QA closes it. New locale keys `workstationSave.*` and `embeddingStation.discrepancy.{clear,confirmBlocked,raised,raiseFailed}` in all six languages.
+- **Marketing:** Bench work you can trust: what the screen shows is what is stored, a failed save is never hidden, and a flagged embedding problem holds the block until it is resolved, with a full audit trail.
+- **FormedrixAI / partners (plain reality):** Done: honest saves with retry on the three stations, flag hold and clear with audit, name instead of ID, locale date, translated status. Not done: Microtomy still has its own copy of the pattern (it also has the atomic decant save), so it was not moved onto the shared service; clearing a flag does not close or update the Tissue Discrepancy item in Quality; clearing is not permission-gated; the new translations (especially Korean) need native review. Retries are limited to three version conflicts; there is no offline queue.
+
+- Practitioner: Pressing Alt+S (or saying "flag stat") on a case now really puts the STAT flag on it and a small message confirms; no window opens. If the case is already STAT you are told, and nothing changes. In the Flag Manager, if you press Cancel, nothing is recorded in the audit log for changes you did not save.
+- System administrator: Alt+S needs the same "apply flag" permission (case:flag:apply) as the Flag Manager. It uses the active case-level flag whose LIS code is STAT (Configuration > System > Flags); with none, the user sees a message saying so. Each Flag Manager Save now writes flag_applied / flag_removed entries at Save time, from the real differences; Alt+S writes flag_applied. No new settings or capabilities.
+- Marketing: One keystroke or one spoken phrase flags a case STAT, hands-free and window-free, and the audit trail records exactly what was saved, nothing more.
+- FormedrixAI/partners (plain reality): done for the report screen only (the Alt+S action is handled on the report page; Worklist and Cytology screens do not act on it). It cannot remove STAT. The STAT flag is found by LIS code "STAT", so a lab that renamed or deleted that flag gets a message, not a flag. Audit entries are written by the browser after the change is stored, not by the server in the same transaction; a browser closed between the two would lose the entry (server-side audit is the end state with the API server). Translations (fr/de/nl/ko/es) are machine-made, need native review.
+
+- **Practitioner:** The Audit Log no longer prints "SYSTEMS OPERATIONAL" or "HIPAA Compliant" at the bottom; they were fixed words, not checks. Each tab still tells you how many entries are shown. An outside consultant who saves a Draft is now told it is saved but not yet sent back; they choose Signed and send to return it.
+- **System administrator:** Nothing to configure. For system health use Audit Log -> Engines and Server jobs. Locale keys `auditLog.page.footer` / `.systemsOperational` removed; `externalConsultViewPage.draftSavedConfirmation` added in six languages.
+- **Marketing:** The Audit Log now says only what it can prove, with live entry counts on every tab, and consultants get a clear "draft saved, not yet returned" message so no opinion is mistaken for a final one.
+- **FormedrixAI/partners (plain reality):** Removing the footer is not a health check; PathScribe still has no live overall status indicator on the Audit Log, and it makes no HIPAA claim on that screen. The Home footer still shows the same fixed claims (below). The consult page still shows patient name and date of birth to anyone with the link, and consult links still work only in the issuing browser until the API server takes over (Decision for Pete).
+
+## Batch 669d: Help is in the top bar on Configuration too, and the Administrator Guide opens at the right section
+
+**For the practitioner (User Guide).** The round **?** is now in the top bar on every screen. Where a screen has no article of its own it opens the User Guide contents page.
+
+**For the system administrator (Admin Guide).** On Configuration the open-book button in the top bar opens the Administrator Guide at the tab and section you have open (for example Printer Profiles or Staff Members). The separate Help button on the Configuration page is removed. Also fixed: the guide used to open near the right place but land screens away from the section, because the screenshots above it loaded after the page jumped; it now jumps again as they load, until you scroll. Migration Jobs still carries its own button on the page.
+
+**For marketing (positive).** Help is never more than one click away, even in setup, and lands exactly on the setting you are looking at.
+
+**For FormedrixAI and partners (the plain reality).** The User Guide has no Configuration articles (setup is in the Administrator Guide), so the **?** on Configuration opens the contents page. The jump-to-section fix is in the guide's own script and was checked in one browser engine only. The Administrator Guide was republished in all six languages (parity passes).
+
+## Batch 669c: one User Guide and one Administrator Guide, opened from the Help buttons only
+
+**For the practitioner (User Guide).** The name badge menu no longer has User Guide and Admin Guide items. Use the round **?** (or F1) in the top bar for the User Guide, and the open-book button where it appears for the Administrator Guide. The old guides that the badge menu opened are gone, so there is only one version of each.
+
+**For the system administrator (Admin Guide).** No setting. The old PDFs (`PathScribe_User_Guide_v0_9_0.pdf`, `PathScribe_Combined_Admin_Guide.pdf`) and the script that embedded them are removed, which also makes the application download about 5.5 MB smaller. Run `npm run cleanup:deleted` after applying. Update the guides by editing `docs/user-guide/` or `docs/admin-guide/` and rebuilding, as before.
+
+**For marketing (positive).** One current guide set, one place to find it, and a lighter application.
+
+**For FormedrixAI and partners (the plain reality).** Anything that linked to the old PDFs (training material, RFP answers) must be updated. The Administrator Guide button is only shown on screens that have a section; from other screens the User Guide contents page has no link to the Administrator Guide yet. `public/help/Errata_AdminGuide_PartI_Section9.2.md` belongs to the removed PDF and was left for you to decide.
+
+## Batch 669b: the User Guide window shows only the guide
+
+**For the practitioner (User Guide).** When you press the **?** button, the guide window now shows only the guide: its contents list, search, the "You are here" trail and the Previous and Next links. The application's top bar, with its microphone, messages, exports and sign-out buttons, no longer appears in that window.
+
+**For the system administrator (Admin Guide).** No setting. The `/help` address now sits in the same screen layout the full-screen case screens use. The Administrator Guide was already a separate page and is unchanged.
+
+**For marketing (positive).** Help opens as a clean reference window that can sit on a second screen without a second copy of the application around it.
+
+**For FormedrixAI and partners (the plain reality).** The guide window is still part of the signed-in application, so it needs a signed-in session and still loads the application's background services (the messaging drawer is mounted, as on the case screens). A standalone guide that works without signing in is not built.
+
+## Batch 669a: the User Guide and Administrator Guide screenshots are now captured by a script
+
+**For the practitioner (User Guide).** The guide's pictures were retaken from the current screens: 35 of the 36 that were missing, and every screen overview picture. Pictures show demo data only.
+
+**For the system administrator (Admin Guide).** All 175 Administrator Guide pictures were re-captured and the guide republished (all six languages still pass the parity check). To retake them: `node scripts/user-guide/capture.cjs` (User Guide, options `--only=id`, `--force`, `--overviews`) and `node scripts/admin-guide/capture.mjs`. Neither changes any setting.
+
+**For marketing (positive).** Guide pictures can be refreshed in minutes after any screen change, so they stay current.
+
+**For FormedrixAI and partners (the plain reality).** One picture is still missing: the autopsy Complete Authorization window, because the demo data has no autopsy case. The accession picture shows only the Labels card, because the sandbox has no AI key and the grossing-template step showed an error. A person should check all pictures before release; they were taken with no human review.
+
+## Batch 668: the Help buttons move to the top bar, beside the microphone, and open in a window that remembers its place
+
+**For the practitioner (User Guide).** The Help button no longer floats over the bottom corner of your data. It is now in the top bar, right of the microphone: a round **?** opens the User Guide page for the screen you are on. On screens that also have a section in the Administrator Guide, an open-book button sits beside it. The guide opens in its own window, in the same place you left it last time, so you can put it on a second monitor. If your browser will not open a window, it opens a new tab instead. F1 does the same as the **?** button.
+
+**For the system administrator (Admin Guide).** There is no setting. Both buttons use the same launcher as the Clinical Links window, and the window position is remembered per workstation. If a hospital's policy forbids pop-up windows, people get a new tab; if it forbids new tabs and windows, the guide cannot open, so ask pilot-site IT whether users are limited to one browser window. The Configuration screens and Migration Jobs keep their own Administrator Guide button on the page, now opening the same way.
+
+**For marketing (positive).** Help is always in the same place, one click away, and never covers the work. The guide can sit on a second screen beside the case.
+
+**For FormedrixAI and partners (the plain reality).** Only the floating buttons moved. Configuration and Migration Jobs still carry their own button on the page. Where a guide opens depends on the browser: a kiosk-mode browser or a published-app session (Citrix, for example) that allows only one window may not show a second window or tab, and we have not tested on a locked-down hospital image. The window position is remembered per workstation, as for the Clinical Links window. The Administrator Guide button's tooltip no longer says "new tab" in six languages (machine-translated, unreviewed).
+
+## Batch 667: User Guide now covers every control, not only every screen, with a check that keeps it that way
+
+**For the practitioner (User Guide).** The User Guide now explains what is on each screen, not just that the screen exists. About 1,150 buttons, fields, tabs, windows and messages that were not mentioned before are now described in the article for their screen, in the words the screen uses. New articles cover the AI Billing Code Review panel and Smart Capture, the autopsy authorization and body-release windows, and the Quality and Compliance tools (AI discordance, access requests, patient matching, countersign turnaround and frozen linkage, FPPE tracking, the QA dashboards and Inspection Mode, and Cytology QA). The Audit Log article now covers its sub-tabs (Print Queue, Billing Logs, Outbound Charge DLQ and Outbound Dispatches). Where a control does not work yet, the article says so in a Known limits note.
+
+**For the system administrator (Admin Guide).** Configuration screens stay in the Administrator Guide and are outside this check. The Label Designer section gained rows for the version history, the export boxes and the save messages, in all six languages. About 740 Configuration labels are still not named anywhere in the Administrator Guide; that is a separate catch-up. New file `docs/user-guide/coverage-scope.json` lists which screen folders belong to the Administrator Guide. No setting and no permission changed.
+
+**For marketing (positive).** Help now goes down to the individual button. A technologist or pathologist who wonders what a control does can find it in the guide in the screen's own words, and the product ships with a check that stops a new control from going out unexplained.
+
+**For FormedrixAI and partners (the plain reality).** "Covered" means the control's on-screen text appears in an article, found by an automatic check (`scripts/user-guide/coverage.py` and `userGuide.coverage.guard.test.ts`). It does not mean a person confirmed the article is right: the articles are written from the code, no screen was opened in a browser, every article is still Draft, and 80 screenshots are still to capture. 117 labels are listed in `coverage-ignore.json` with a reason (screen-reader names, hint text, loading text, unreachable or dead controls). The check sees only labels used through the translation function and short labels of 3 to 40 characters; hard-coded English text, long messages, icons without text and behaviour that has no label are not checked, so "every label" is not "every feature". Configuration screens (about 3,500 labels) are checked only by the Administrator Guide's own tests. The writers also logged what does not work as it reads, in `docs/user-guide/FINDINGS_667.md`.
+
+## Batch 666: language review files, Administrator Guide catch-up, User Guide completed for every screen
+
+**For the practitioner (User Guide).** The User Guide now has an article for every screen you can open, not just the first thirteen: Batch Management and each of its screens, the Cytology Worklist and screening page, the Molecular workspace and its plate, rack and rule screens, the Microtomy, Embedding and Slide Distribution stations, Add-On Orders, Margin Exception Review, the Autopsy, OR Suite and Facility Operations displays, My Exports, the Outbound Queue, Registry Exceptions, the Audit Log, signing in, the pages an outside consultant or a critical-result recipient opens, and the Help itself. The Report screen has four deeper articles (sign-out and release, the case team, synoptic reporting, and the microscopic and material panels), and there are new articles for messaging, notifications, personal settings, case flags, the header search box, sessions and the connection strip, and clinical links. A new **Voice and Keyboard** article lists all 286 commands by screen with their keys and phrases and explains the rules (the screen in focus wins, Alt+J reaches the always-on commands, hard-to-undo voice commands ask you to say them twice, Cancel). Every screen's Help button and F1 open its article; the deeper articles are reached from the links inside the screen articles.
+
+**For the system administrator (Admin Guide).** The Administrator Guide now describes what Batches 653 to 665 added: the Release Hold Print Policy (Allow, Warn and confirm, Supervisor override, Block) and the permission `print:release-hold:override`; `qa:management-review:submit`; facility-limited staff acting on cases at their facility; Sex as a locked required field and a required Downtime Reason on the Accession page; Quick Links coming from External Resources; the new commands and keys (Add Collaborator, Edit Field, Cancel, Add Addendum, Sign Out and Next, Collaborating Cases, Go to Row, Open Case by Accession, F1 for help); the sex at birth and NHS number variables for report templates and the HL7 PID-8 mapping; the AI confidence floor and the Codes window; the release-sweep server job (designed, not built); and where the User Guide is built and published. The French, German, Dutch, Korean and Spanish editions carry the same changes and also fix older passages that had drifted from the English. The Administrator Guide build lists nothing missing in any language. New language review workbooks (French, German, Dutch, Spanish and, for the first time, Korean) are built from the current 20,166 text keys; `docs/product/PHRASE_REVIEW_LIST.md` is regenerated from the live registry (286 commands, with Spanish); `docs/quality/TRANSLATION_REVIEW.md` has a Batches 650 to 665 section. Run `python3 scripts/translation-review-workbook.py fr,nl,de,es,ko` to rebuild the workbooks. `python3 scripts/user-guide/build.py` now fails when a screen route of the app has no article and is not on the reasoned list in `docs/user-guide/route-exemptions.json`, and an article may now have no screen address (a deep dive opened from a link).
+
+**For marketing (positive).** Every screen of PathScribe now has plain-language help a click or an F1 away, in the screen you are on, and the Administrator Guide in six languages stays in step with the product. All 286 voice and keyboard commands are listed in one place.
+
+**For FormedrixAI and partners (the plain reality).** The articles are written from the code and the English screen text, not from a running installation: no screen was opened in a browser, every article is `status: Draft`, no clinical reviewer has checked any of them, and 0 screenshots exist (the rest show a labelled placeholder; `MISSING_CAPTURES.md` lists them). The User Guide is English only. Writing the articles surfaced 126 oddities and defects in the screens themselves (a dead button, a message that is never shown, a hotkey shared between screens, a number that lags by one); none was fixed in this batch, and each is a row in `docs/user-guide/FINDINGS_666_<group>.md` for you to rule on. The translated Administrator Guide editions and all new review text are machine translated and still need a native reviewer, Korean first. The review workbooks have not been sent to any reviewer. Not built, and said so in the articles: the Critical Alert and consult delivery channels, the Migration Jobs import, cold-chain and engraver feeds, real molecular instrument and reference-laboratory connections, and the release-sweep server job.
+
+## Batch 665: Finalise & Next opens the next case, collaborators are told, Edit Field reaches synoptic answers, parked sign-outs still move on
+
+**For the practitioner (User Guide).** **Finalise & Next** (Assist) now does what its name says: once the report is finalised it opens the next case in your list (the same list Save & Next and Sign Out & Next use). If there is no next case it says so and you stay on the finalised one. **Sign Out & Next** also keeps going when a fixative, stain, date, inking or peer-review check stops the sign-out and you answer it: the sign-out finishes and then the next case opens. Pressing a plain Sign Out Case or Finalise button always cancels a pending "and next". When you **add a collaborator**, they now get a message in their inbox with a link to the case (if the message cannot be sent you are told; they are still on the team). **Edit Field** works on the synoptic template too: "edit field tumor size" jumps to that question and focuses it (one clear match only; if two questions fit, say more of the name). Synoptic answers are choices and short entries, so this moves focus but does not start dictation; the Report Draft sections still start dictation.
+
+**For the system administrator (Admin Guide).** No setting and no new permission. The collaborator message is an application notice sent on the person's behalf, so it does not need the permission to compose messages; it is stored in English like the review-request message.
+
+**For marketing (positive).** One word finishes a report and puts the next case in front of you; asking a colleague for a look now reaches their inbox, not just their tile.
+
+**For FormedrixAI and partners (the plain reality).** Done and tested. Not done: dictating into synoptic answers (they are not dictation targets); Finalise & Next does not wait for a countersign: a trainee's submission counts as done and moves on. An arming that is not completed within ten minutes is dropped. New messages and the collaborator message wording in other languages need native review.
+
+## Batch 664: Add Collaborator, Edit Field, Cancel, Sign Out and Next for Orchestration, template rights by capability
+
+**For the practitioner (User Guide).** On the report screen: say **"add collaborator Nguyen"** (or press Ctrl+Alt+Shift+0 and say the name) to ask a colleague in your lab to consult on the case. They are added to the case team as a Consultant, and the case then shows on their **Collaborating Cases** tile. If two people match the name, nobody is added and you are asked to say the full name. On the Report Draft, say **"edit field microscopic"** (or "clinical history", "gross", "diagnosis", "synoptic") to jump to that section and start dictating into it; Alt+E on its own starts dictation in the section you are working on. **Cancel** (Ctrl+Alt+J, or say "cancel dictation") ends dictation; if you dictated text in this session, the first Cancel only asks, and a second one within eight seconds removes what you dictated (any passage you have since edited stays). Cancel also drops a command that is waiting to be said twice. It never closes a window and never undoes anything already signed. **Sign Out & Next** (button, or say "sign out and next") signs the case out exactly as Sign Out Case does, with the same checks and the same signature window, and then opens the next case in your list. If a check stops the sign-out, or you cancel the signature window, you stay where you are. On the Worklist, "my cases" is no longer a phrase: it does not mean "Active Cases" (see the lab-wide and personal lists below).
+
+**For the system administrator (Admin Guide).** Approving, publishing and drafting templates now follow only the capabilities **config:protocol:approve**, **config:protocol:publish** and **config:protocol:draft**; no role name or administrator account type decides anything any more. The built-in roles keep the same grants (Template Author drafts; Template Approver, Lab Director and Admin approve and publish), so nothing changes unless you edited them in the Role Dictionary. Adding a collaborator needs **case:team:manage** for the case, the same as the Case Team window, and a cytotechnologist cannot be added as a Consultant. New commands in Configuration > Actions: Add Collaborator (Ctrl+Alt+Shift+0; the Edit Field key Alt+E and the Cancel key Ctrl+Alt+J were already listed and now act). No new setting.
+
+**For marketing (positive).** Ask a colleague for a second look without leaving the report: say their name and they are on the case. Dictate into any section by name, take back a stray dictation with one more word, and sign out and move straight on to the next case in your list.
+
+**For FormedrixAI and partners (the plain reality).** Done and tested: all four items from Batch 663's list. Not done, on purpose or not yet: a collaborator is added silently (no message or notification is sent to them; they see it on Collaborating Cases); Edit Field reaches the Report Draft sections only, not the answers in the synoptic panel; Cancel does not close windows (each has its own Cancel). **Found while building this: Assist-mode "Finalise & Next" does not open the next case after finalising; it only changes the button wording. That is open and listed in KNOWN_GAPS.** Sign Out and Next after a sign-out that was held by a fixative/stain/date gate does not move on (the gate parks the sign-out and the person finishes it as a plain Sign Out Case). Pete's "My Cases" ruling: the phrase is removed from Clear Filter; a real personal-queue filter (scope and status as separate, composable filters) is a design item, not built. The new phrases in French, German, Dutch, Korean and Spanish are machine translated and need native review.
+
+## Batch 663: report voice commands, Worklist rows by number, capabilities for macros and billing
+
+**For the practitioner (User Guide).** On the report screen, **Maximise** hides the specimen sidebar so the editing area has the room and **Minimise** brings it back; **Preview** shows the Report tab; **Internal Note** opens the notes drawer; **Skip Field** moves to the next required field without changing anything; **Add Addendum** opens a new addendum on a signed-out report. On the Worklist, say **"go to row 7"** to move the highlight to row 7, or **"open accession A26-4660"** (digits alone work when only one case ends in them) to open that case. "My cases" shows your own cases again, and the new phrases "collaborating cases" or "show collaborations" show the cases you help with. Select Row, Select All, Deselect All and Delete Row are switched off: the Worklist has no multi-row actions, and a case is never deleted from it.
+
+**For the system administrator (Admin Guide).** Seeing every macro and creating Enterprise macros now follows the capability **config:macros:manage** (Admin has it by default; assign it to others as needed), not a role name. Charge approval was already the capability **billing:charge:approve**; the unused role-name check behind it is gone. The two new Worklist commands use Alt+7 and Alt+8; no letter hotkeys were left free. The release-sweep job will never release a report that is under a surgical sign-out hold; it flags the case for a person (design note updated).
+
+**For marketing (positive).** Hands-free reporting that goes where you say: jump to a row, open a case by its accession, maximise the editor, add an addendum, all without touching the mouse.
+
+**For FormedrixAI and partners (the plain reality).** Done: the six report commands, the two Worklist commands, macro and billing access by capability. Not built: Edit Field by name and Cancel (they need the dictation engine), Sign Out and Next for Orchestration cases (changes the signing flow, needs its own batch), Add Collaborator, the release-sweep server job itself, and `templatePublishingRules` still partly decides by role name. Spoken phrases in French, German, Dutch, Korean and Spanish are machine translated and need native review. "Open accession" is used because "open case" alone already means Open Selected.
+
+## Batch 662: sex at birth (UK), NHS number status on the banner
+
+**For the practitioner (User Guide).** The case banner now says **Sex at birth** in words (Male, Female, Indeterminate, Not known) instead of a single letter, and shows the **NHS number** next to it with a small status badge. Hover the badge for what it means: a double tick on green means the number was traced; a diamond on a dashed blue outline means the check digit is valid but the number was not traced; a red ! means the check digit is wrong; a grey ? means it was not checked. Accession has a new **Indeterminate** choice, and Search lets you filter on it. Printed reports show the word too. The badge can be reached with the Tab key and explains itself on focus, and saying "NHS status" (or Ctrl+Alt+Shift+9) moves to it. On the Worklist, the card view shows the word and the table keeps the letter with the word as its tooltip.
+
+**For the system administrator (Admin Guide).** No setting. Sex is still stored as the same code (M, F, U) plus I for indeterminate, so templates that test `patient.sex == 'M'` keep working; report templates now print `{{patient.sexAtBirth}}` and can use `{{patient.nhsNumber}}`. Mapping: M to NHS code 1, F to 2, I to 9, U to X; HL7 PID-8 sends A for indeterminate. The badge shows "traced" only when the stored NHS Number Status Indicator is 01.
+
+**For marketing (positive).** UK-ready identification: sex at birth in plain words and an NHS number you can see is checked, at a glance.
+
+**For FormedrixAI and partners (the plain reality).** Done: banner, report header and payload, Accession, Search (filter, results, CSV). Not done: the Worklist table column stays one letter (word in the tooltip); no voice command sets or filters sex at birth, deliberately, since a misheard word would write a clinical field; the NHS code mapping is stored in code but no NHS message uses it yet; "A" for PID-8 is our assumption; gender identity (PRSB optional field, needs consent handling) is not built; the badge never calls the Personal Demographics Service, it only reads the stored status.
+
+## Batch 661: sex never defaults, report voice commands, signing time
+
+**For the practitioner (User Guide).** At Accession, **Sex** now starts blank (a dash) and must be chosen before you can accession; it no longer starts as Female. On the report screen, the voice commands Add Case Comment, Add Specimen Comment, Add Synoptic Report and Select Specimen now work.
+
+**For the system administrator (Admin Guide).** Sex is a locked required field in Field Requirements (Accession page). The browser now sends the sign-out time (`signedAt`) with the surgical report request, so a reprinted report keeps the signing date.
+
+**For marketing (positive).** No more silently wrong sex from a rushed default, and more of the report screen answers to your voice.
+
+**For FormedrixAI and partners (the plain reality).** Done: finding 5 (sex default), four voice commands, signedAt. Not built: Edit Field, Skip Field, Maximise, Minimise, Preview, Internal Note, Add Addendum and Cancel by voice (some need your definition); role-name checks in macro access and billing charges still bypass capabilities.
+
+## Batch 660: Collaborating Cases on the Worklist, daily accessioning chart
+
+**For the practitioner (User Guide).** The Worklist has a new **Collaborating Cases** tile (Ctrl+Alt+F): the open cases where you are an active member of the case team, in any role, not only the ones assigned to you. Finalized and closed cases are left out. Bench Contributions now draws your daily accessioning as a bar chart under the two figures, and its title line says plainly which figures are yours and which are laboratory-wide.
+
+**For the system administrator (Admin Guide).** No setting. The tile reads each case's team roster (the participants list shown in Case Team); a person added or removed there appears or leaves the tile. The Ctrl+Alt+F shortcut already existed as "Filter My Cases" and is now named Collaborating Cases in the action list and the voice phrases' English label.
+
+**For marketing (positive).** One tile for every case you are helping with, whatever your role on it, and a clear picture of your accessioning day by day.
+
+**For FormedrixAI and partners (the plain reality).** Done: findings 9 and 14 of `docs/user-guide/FINDINGS.md`. The English voice phrases for this action still include "my cases", which could be mistaken for the owned-cases tile; the phrase list needs your review. Translations are machine-made. The release-sweep server job is still only designed (decisions recorded Oct 23).
+
+## Batch 659: late frozen diagnosis, grossing pieces, Lockbox to Accession, Search and Worklist handlers, "not saved" messages
+
+**For the practitioner (User Guide).** Intraop Queue: a specimen with no frozen section diagnosis has a box to add it later (text, category, **Save diagnosis**); a merged entry passes the diagnosis and photos to the case as intraoperative findings, and a hand-typed case number must exist or the merge window stays open and says so. Grossing: each block has a piece description, and shared (matrix) blocks are listed and editable on the screen. Lockbox Drop-Off: **Open Accession** brings the matched order in. Worklist: Alt+R refreshes the list instead of reloading the page. Search: **Reassign Patient** is a button you select and then click a result; Alt+L focuses the saved searches; Quick Links show your laboratory's list. Tumor Board and Quality: when a change is refused or not saved, a message inside the window says why and your text is kept.
+
+**For the system administrator (Admin Guide).** New capability `qa:management-review:submit` (high risk, requires the Quality Assurance screen) for the Management Review; granted with the other Quality deficiency actions. Quick Links on Search and Audit Log now come from the managed External Resources list. No other setting.
+
+**For marketing (positive).** Nothing is lost at the bench: late frozen results reach the case, and when something cannot be saved the screen says why and keeps your work.
+
+**For FormedrixAI and partners (the plain reality).** Done: findings 6, 7, 8, 9, 10, 11, 12 of `docs/user-guide/FINDINGS.md`. Not built: the Worklist "Filter My Cases" (needs the definition of "participating"), finding 14 (daily accessioning chart), and the release-sweep server job (designed only). The Worklist hook that wrote an audit record was removed because claims and case opens are already audited elsewhere. Translations are machine-made and need native review (Korean first).
+
+## Batch 658: Orchestration sign-out reachable, Downtime Reason required, F1 for Help, one peer rule
+
+**For the practitioner (User Guide).** On an Orchestration case, **Sign Out Case** now shows as soon as grossing is done; before, it waited for every report to be "finalized", which nothing did, so it never appeared. Accessioning a downtime case now stops with a message until you choose the Downtime Reason. **F1** opens the User Guide page for your screen (Alt+V is Full View only). The Search role labels read correctly again (countersigner, delegated to, resident, signed out). My Contribution shows your own role, and a flagged deficiency opens the Quality Assurance screen. The Overview "Peer avg" and Productivity > Peer Comparison now use the same group: people with your role at a shared facility, shown only when there are at least three.
+
+**For the system administrator (Admin Guide).** No setting changes. The peer group is the same-role, shared-facility, active-staff rule already on the Overview. The View Help shortcut changed from Alt+V to F1. Sign-out still needs the surgical sign-out capability.
+
+**For marketing (positive).** Sign-out in Orchestration works from the draft report; downtime accessioning records why; help is one key away.
+
+**For FormedrixAI and partners (the plain reality).** Done in this batch: findings 1, 2, 3, 4, 5, 13 and 15 of `docs/user-guide/FINDINGS.md`. Not done: 6 to 12 and 14 (the frozen diagnosis box on the Intraop log, the Grossing matrix-block and piece-description fields, Worklist and Search handlers, Tumor Board and Quality "not saved" messages, the daily accessioning chart). Finding 16 (release countdown) already stored a due time; the server job is only designed (`docs/architecture/RELEASE_SWEEP_SERVER_JOB.md`), not built. Sex still defaults to Female.
+
+## Batch 657: the User Guide opens at the screen you are on
+
+**For the practitioner (User Guide).** A **Help** button now sits at the bottom corner of each screen that has a guide page. Select it (or press F1) and the User Guide opens in a new tab at the page for that screen: what it is for, what each field and button means, numbered steps, tips and what to do when something goes wrong. Each page shows where you are in the workflow, the previous and next step and related actions, and the search box finds a page by what you would call it ("print a label", "frozen section"). Pages are drafts until reviewed and are in English.
+
+**For the system administrator (Admin Guide).** The guide is built from Markdown in `docs/user-guide/` by `python3 scripts/user-guide/build.py` and published with the application under `/help`. Configuration and administrator screens keep their Administrator Guide buttons. No setting is needed. Add or change a page by editing its file and rebuilding; the build checks the required sections and links.
+
+**For marketing (positive).** Help that opens on the right page without searching, written for pathologists, pathology assistants, accessioners, bench staff, MDT coordinators and quality staff, with workflow position, steps and troubleshooting on every screen.
+
+**For FormedrixAI and partners (the plain reality).** Thirteen first pages are drafted from the screens (Home, Accession, Lockbox Drop-Off, Grossing, Intraop Queue, Pathology Workspace, Bench Contributions, Worklist, Search, Report, Tumor Board, Quality & Compliance, My Contribution); the other screens, and a page per workstation and per sub-screen, are not written yet. Screenshots are placeholders until they are captured, and every page needs a clinical review. English only; translation follows the Administrator Guide approach.
+
+## Batch 656: the Codes window finds codes it used to drop, and says when it leaves one out
+
+**For the practitioner (User Guide).** When you open Codes, the AI's suggested codes are now checked against the live code lists in a more reliable way, so real SNOMED CT and ICD-10 suggestions are no longer lost. The window opens on the tab that has suggestions, and a short note tells you if any suggested code could not be confirmed and was left out. You still choose every code.
+
+**For the system administrator (Admin Guide).** Each suggested code is confirmed by looking up the code itself and, side by side, by the AI's wording; either one confirms it. SNOMED CT checks go through the server route that holds `UMLS_API_KEY` (restart the dev server after editing `.env`). A code whose lookup fails stays out, as before, and is counted in the note.
+
+**For marketing (positive).** Suggested codes are machine-verified against the national terminology lists before a pathologist sees them, and the screen is open about anything it could not verify.
+
+**For FormedrixAI and partners (the plain reality).** The suggestion call still takes several seconds because it waits on the AI model; this batch does not speed it up. A showing of results as they verify is not built. Real SNOMED CT lookups need a licensed UMLS key.
+
+## Batch 655: Pete's rulings on the decision list, plus a confidence floor for critical findings
+
+**For the practitioner (User Guide).** (1) A Quality deficiency action that could not be saved now says "not saved" instead of "done". (2) The Delegate dialog lists who was delegated and who was refused, with the reason. (3) Intraoperative findings carried to the case show in a labelled "Intraoperative" block on the report view and the full patient report; they are never part of the final diagnosis. (4) "AI Matched Cases" is now "Similar Cases (Demonstration)". (5) Critical-finding alerts: a low-confidence "Abnormal" flag is set aside and counted; "Critical" and "Malignant" flags always stay, whatever the confidence.
+
+**For the system administrator (Admin Guide).** The live-update connection to the server uses the signed-in session cookie and never a token in the web address. The personal spelling dictionary audit entry carries the word's length and a one-way fingerprint, not the word. The confidence floor for "Abnormal" findings is 50 and is a code constant, not yet a setting.
+
+**For marketing (positive).** Failed saves are never reported as done, critical findings are never silenced for low confidence, and live updates no longer put credentials in web addresses.
+
+**For FormedrixAI and partners (the plain reality).** The terminal (OR) sign-in design, a device token exchanged once for a cookie, is documented and needs server work. An encrypted personal-dictionary word with restricted access is Planned. The floor is not configurable. Scale readings remain simulated demonstration data; refusing sign-out when a weight is simulated is waiting on Pete.
+
+## Batch 654: Release Hold Print Policy
+
+**For the practitioner (User Guide).** Printing a report that is still in its release delay now follows your laboratory's policy. By default nothing changes: you are warned that the copy is a watermarked draft and asked to confirm. Your lab may instead allow printing at once, allow it only for a supervisor who gives a reason, or block it until the report is released. If printing is blocked you will see a message. You can still view the report.
+
+**For the system administrator (Admin Guide).** System > Release Buffer, "Release Hold Print Policy" replaces the "Restrict In-House Hardcopy Printing" switch: Allow, Warn and confirm (default), Supervisor override, Block. An old setting of on becomes Warn and off becomes Allow. For Supervisor override, give the new permission "Print a report during its release hold (supervisor override)" to the roles that should have it (Lab Director and Admin have it by default). The setting is organisation-wide and is greyed out while the release delay is switched off.
+
+**For marketing (positive).** Laboratories choose how strictly an unreleased report may be printed, from free printing to a hard block, with every printed copy watermarked and every supervisor override recorded with a reason.
+
+**For FormedrixAI and partners (the plain reality).** The setting is one organisation-wide choice; a per-facility override is not built. The supervisor override means a person who holds the permission prints under their own sign-in and gives a reason; asking a second person to type credentials to approve needs the server and is Planned. The checks run in the browser; the server must repeat them.
+
+## Batch 653: a staff member limited to one facility can act on cases at that facility
+
+**For the practitioner (User Guide).** If you are assigned to one facility (or a few), actions on a case at your own facility, such as exports, releases and reviews, are no longer refused for no visible reason. Cases at a facility you are not assigned to are still refused.
+
+**For the system administrator (Admin Guide).** Configuration > Users, facility list: the assignment now works on case-level actions as it already did on facility-level ones. The system uses the case's ordering facility. A person with no facility limit sees no change. A case with no facility on record is still refused for a facility-limited person; fix the order's facility.
+
+**For marketing (positive).** Multi-site laboratories can give each person exactly their own sites, and the permission checks follow the case to its facility.
+
+**For FormedrixAI and partners (the plain reality).** The lookup runs in the browser against demonstration data. The API server must repeat it from its own case record; that is specified, not built. A few older checks still test role names (macros, template publishing, billing-charge approval) and are tracked as an open decision.
+
+## Batch 652 (documentation audit): honest labels for demonstration codes, unverified retention figures, Superadmin, the live-update sign-in and demonstration features
+
+**For the practitioner (User Guide).** Hover over the coloured dot on a worklist case that was flagged abnormal, critical or malignant at sign-out: if it carries a code, the tooltip now says "demonstration code, not a real SNOMED CT or ICD-O-3 code". Those codes only prove the pipeline works; do not copy them into anything. "AI Matched Cases" in Patient History is a demonstration that ranks the sample cases with fixed rules; it is not yet a language-model search.
+
+**For the system administrator (Admin Guide).** Governing Bodies, Retention window: a version whose source note says a figure is unverified now shows an amber UNVERIFIED PLACEHOLDER badge (CAP and CAP-ACP wet tissue, RCPA, Korea MSA). Confirm each figure for your laboratory and publish a new version with a cited source; the badge goes with the note. Printer Profiles: only QZ Tray sends labels; Zebra Browser Print and BarTender are Planned; EPL and DPL are export text only. Superadmin holds every capability except `config:ai-prompt:approve`: the Lab Director approves AI instructions, ForMedrixAI support never does. The live-update hub signs in with the session cookie, never a token in the address. Sections: Tier 1 (Printer Profiles, Label Designer), Tier 2 (Governing Bodies), System overview (roles).
+
+**For marketing (positive).** Every claim now matches what the product does: demonstration data is labelled as such, placeholder figures are flagged on screen so nobody mistakes them for published rules, and roles keep a clean separation of duties.
+
+**For FormedrixAI and partners (the plain reality).** Nothing new was built. Still not built: real SNOMED CT / ICD-O-3 codes on findings (licence), a model-backed "AI Matched Cases", a live EMR connection, signed alert-link tokens and real alert SMS / e-mail / EHR sends, a Spanish DNI / NIE letter check, a server-side inbound HPV duplicate record, Zebra Browser Print, EPL / DPL sending. The demonstration build still sends the SSO token to the live-update hub in the query string until the server session exists. Admin Guide translations carry the Superadmin correction only. See `GAP_REGISTER.md`.
+
+### Batch 652 (specimen pipeline): triage gate in a service, frozen findings and photos carried to the case, every frozen specimen reconciled, pool routing from the Grossing screen, Lockbox receipt linked to its case, repeatable report PDFs
+
+**For the practitioner (User Guide).** Five things behave better. (1) Release & Print stays blocked while a specimen's grossing triage checklist is open and no override reason is recorded; nothing visible changed, the rule now lives in one place. (2) When an intraoperative session is merged into its case, the frozen-section diagnosis and the frozen photos now travel with it. They are kept on the case as intraoperative findings, labelled as such, and never change or replace the final diagnosis. (3) At sign-out, every frozen specimen with a call (benign, malignant or atypical/suspicious) asks for its final category in turn; before, only the first one did. The comparison is a category match, not an AI opinion, and you always confirm it. (4) Completing grossing on the Grossing screen now sends the case to its pool like Gross Complete on the report page does, and a note on the screen names the pool. (5) When the Accession screen creates a case from an order that arrived through the lockbox, the lockbox receipt is linked to the case and marked accessioned for you; "Mark accessioned" in the Overnight folder still works for anything else.
+
+**For the system administrator (Admin Guide).** System > Concordance review: the first switch is now called "Enable Automatic Category Comparison". It controls the frozen-versus-final category match and, because the match is shown on the review screen, it has an effect only while "Require Review Screen at Sign-Out" is also on. The saved setting keeps its old internal name, so nothing needs to be re-entered. System > Case pool assignment > Assignment Timeout (default 300 s): while the Worklist is open, a case that finished grossing, is still unassigned and not in a pool after this many seconds is sent to its pool (only when automatic pool routing is on); 0 means no wait. It never takes a case away from a pathologist who holds it, and it does not delay the routing that already happens when grossing is completed. No new permission: linking a receipt to a case uses `lockbox:folder:review` (Accessioner and Admin hold it); a person without it still accessions the case and the receipt stays open for the manual button. Audit log entries: "Intraop findings carried to case", "Lockbox receipt linked to case", "Case routed to pool after assignment timeout".
+
+**For marketing (positive).** Nothing frozen is left behind: the intraoperative diagnosis and photos follow the specimen onto the case, every frozen specimen is checked against the final read, cases flow into the right pool whichever screen finishes the grossing, after-hours lockbox drops close themselves when the case is accessioned, and a report PDF can be regenerated byte for byte for the same signing time.
+
+**For FormedrixAI and partners (the plain reality).** The triage rule is now one tested function, but it still runs in the browser: the API server must repeat it, and the same goes for the pool timeout (the interim scheduler is a 30-second timer in the Worklist page, which conflicts with the serverless direction until a scheduled server function replaces it). The frozen-versus-final comparison is a category rule, not AI; only the label changed, the stored key `aiComparisonEnabled` is kept. With the review screen switched off nothing is shown or recorded for frozen specimens (unchanged, and a decision for Pete). The carried intraoperative findings are stored on the case but no screen shows them yet. The photo links are the session's uploaded references; photo upload itself is still mocked. The Lockbox link is found through the pending order, so a receipt can be linked automatically only when the order existed or was linked to the placeholder first; the Accession screen has no receipt-number box. Report PDFs are repeatable only for the same input: the browser does not yet send the signing time, so the PDF carries a fixed date until it does, and the stored SHA-256 is still the fingerprint that counts. The support audit PDF is also repeatable now. Not built: the server side of every item above, a screen for the carried findings, a receipt-number box on the Accession screen. Decisions for Pete are in `KNOWN_GAPS.md`.
+
+### Batch 652 (defect fixes): real peer averages on My Contribution, scan-at-microtomy labels that really print, Teaching Case to several people, https-only External Resources, a barcode that scans on a pending-release print
+
+**For the practitioner (User Guide).** (1) My Contribution, Overview: the "Peer avg" line under each tile is now worked out from real cases: the average of the other active staff who have your role and share a facility with you (a person with no facility list counts as every facility). With fewer than three such colleagues it says "Not enough data" instead of a number, so nobody can be identified from a tiny group. It is shown only to people allowed to see peer comparison (the same rule as the Productivity tab). (2) Microtomy: scanning a block at a Microtomy / Sectioning bench now prints its slide labels on that bench's label printer, the same labels Print Next on the Microtomy Workstation prints. If the print fails (printer offline, no GS1 company prefix set) the slide stays "Pending Cut" so you can print it from the Workstation; before, it was marked done and nothing came out. (3) Delegate dialog: "Teaching Case" lets you pick several residents or fellows; click each (or drop each on the type); other types still take one. Each person gets their own delegation and audit entry. (4) Resources panel: a link saved with http:// shows greyed with "Insecure link" and does not open; ask an administrator to change it to https. (5) A pending-release print now has a solid black footer barcode you can scan, with the faint red watermark behind the text only.
+
+**For the system administrator (Admin Guide).** (1) No setting. Peer group = same role and a facility in common among Active staff (Configuration > Users: roles, facility list); the figures are the mean of each peer's own 30-day tile values. The "Show peer averages to pathologists" switch (Configuration > System > Contribution) still decides whether the plain Pathologist role sees them. (2) Configuration > System > Scan Stations: on a Microtomy / Sectioning station, tick "Supports printing" and pick the slide printer profile (QZ Tray or the PathScribe agent; Printer Profiles) and set the GS1 company prefix in Print Settings. "Supports engraving" still uses the engraver dispatch; both can be on. A station with neither makes no label and leaves slides Pending Cut. Audit: "Slides Engraved at Microtomy" now names how many labels were printed or engraved and how many are left pending. (3) Configuration > System > Delegation Types: the "Multi-recipient" switch is now honoured. Teaching Case has it on; turn it on for another type to allow several people, never for Move to Pool. Needs the same `case:delegation:create` capability, checked once per person. (4) Configuration > System > External Resources: new and edited links must start with https://. Existing http links stay listed with an "Insecure link" warning; edit each one to https to bring it back. (5) Nothing to configure; the footer reference barcode is always black.
+
+**For marketing (positive).** "Know where you stand: peer comparison on My Contribution is calculated from real work and protects colleagues' privacy by waiting for a group of three. Scan a block at the microtomy bench and its slide labels print on the spot. Teach as a team: send a case to several residents at once. Reference links are secure by default, and every printed report carries a barcode that scans first time."
+
+**For FormedrixAI and partners (the plain reality).** All in the browser build and tested with the print service mocked; none of it was tried on real hardware, and QZ Tray, the label printer and a GS1 company prefix are still needed on site. Peer averages are computed in the browser from all cases it can read (fine for the demo, too heavy for production: the API server should supply them). The group is "same role and shared facility", a choice made here; Pete to confirm it, and whether the minimum of three is right. The Microtomy Workstation, the scan path and the engraver stand-in share one once-only record that lives in browser memory, so a reload can print a label twice. Several-recipient delegation sends separate delegations in a row: if one is refused the others still go through and the dialog closes without naming the one refused (a known gap). The API server must repeat the https-only rule and the multi-recipient rule; the Search page and the top-bar link lists still use fixed links, not these admin entries. Not changed on purpose: case and specimen comments still never print or go to the LIS, and printing during the release hold still warns and asks to confirm rather than blocking: both are product decisions for Pete (`KNOWN_GAPS.md`).
+
+## Batch 651: AI answers checked in code (one confidence scale, listed options only, the real model recorded, rule-based mismatch shown, OPCS-4 sample, narrative confidence and quote)
+**For the practitioner (User Guide).** Where the AI suggests something, PathScribe now checks the answer itself instead of only asking the AI to behave. On a case you are reporting, an AI suggestion for a question with listed choices must be one of those choices, and a suggestion the AI is less than 30% sure of is not shown at all. AI code suggestions show their confidence as a normal percentage (it could read wrongly in the case coding list before), and the case record now says which AI model really made the suggestion. If the AI is not allowed for your site and the simple rule-based mismatch check finds something, you now see it (labelled "rule-based check", never holding up sign-out); before, it was hidden. In the Orchestration report draft, each AI-written section shows "AI confidence 85%" and the words from the source it relied on; if those words cannot be found in the report text, the section says so and you should check it yourself. OPCS-4 (UK procedure codes) search shows a short list of sample codes labelled Simulated; they cannot be applied to a case.
+
+**For the system administrator (Admin Guide).** No new setting or capability. One scale is used everywhere: AI confidence is a whole percent from 0 to 100 (synoptic suggestions apply at your Configuration > AI Behavior threshold, default 75; the template-fit fallback is below 60; the mismatch display threshold is 60 per rule under Configuration > Clinical Mismatch Rules). A vendor that answers 0 to 1 is converted when its answer is read. The minimum for any AI answer is 30. The mismatch rule-based fallback has a fixed confidence of 50, below the 60 display threshold; it is now shown regardless of that threshold, labelled rule-based, always low risk (logged to QA, never holds sign-out). The version of the approved AI instructions used (Configuration > System > AI Instructions) is stored on the Clinical-Pathologic Correlation QA record (`instructionVersion`) and written to the audit event. Each Orchestration section now costs one extra short AI call (for the confidence and quote). The Save Draft background template re-check described in earlier notes was never built: types and notes are corrected, it stays Planned.
+
+**For marketing (positive).** "Every AI answer is checked before you see it: only valid choices, only answers the AI is reasonably sure of, one clear confidence percentage, the exact AI model recorded for the audit trail, and a source quote you can verify on every AI-written section."
+
+**For FormedrixAI and partners (the plain reality).** Built and tested with simulated AI replies; not run against a live model. The Orchestration confidence and quote come from a second AI call after each section streams (extra cost and a moment of delay per section; if it fails the section shows "unverified"). OPCS-4 is a five-code demonstration list: the real licensed NHS TRUD reference is not loaded (Planned), so most AI-suggested OPCS-4 codes are still dropped, and the ones that match cannot be applied. The 1% edge: a vendor answer of exactly 1 is read as 100%. The Save Draft background template re-check (Stage 2) is Planned, not built; Orchestration re-checks template fit only at Gross Complete. French, German, Dutch, Korean and Spanish text for the four new messages is machine translated and listed in `docs/quality/TRANSLATION_REVIEW.md`.
+- Training: open a UK case, Add Code > AI suggestions: an OPCS-4 suggestion shows Simulated and clicking it explains it cannot be applied. Generate the report draft and read the confidence and source line under a section. Standards: ISO 15189 and CAP (AI traceability: model and instruction version recorded), GDPR/HIPAA (no identifiers added to AI calls).
+
+## Batch 651 (audit gaps): pool, delegation, team, comment, dictionary, language and deficiency actions are now in the audit log
+**For the practitioner (User Guide).** Nothing changes on your screen. Behind the scenes, more of what you do is now recorded so the lab can answer "who did this, and when": taking a case from a pool, passing it on, the short 30-second hold while a pool window is open, handing a case to someone else, changing a case team, adding a case or specimen comment, adding or removing a word in your own spelling dictionary, changing your screen language, and the Quality actions of raising, escalating, containing or verifying a deficiency. What you typed in a comment is never copied into the audit log.
+
+**For the system administrator (Admin Guide).** No new setting or capability. Audit Log > System Logs shows these events (all of type User): **Pool case claimed**, **Pool case passed**, **Pool claim hold taken**, **Pool claim hold released**, **Case delegated**, **Case team changed**, **Case comment added**, **Specimen comment added**, **Personal spelling dictionary word added / removed**, **Screen language changed**, **Deficiency raised**, **Deficiency escalated to CAPA**, **Deficiency contained**, **Deficiency effectiveness verified** and **Deficiency reopened as recurred**. Each shows who did it, the case and facility where there is one, and identifiers only: staff, pool, delegation, comment, specimen and deficiency ids, the delegation type, the outcome. Never written: comment text, the delegation note, a deficiency's comment, root cause or actions, or a personal dictionary word (only its length). A refused action writes no success entry (a refusal of a high-risk action is still audited by the capability check). Steps: filter System Logs by Event or search the case number. Train that comments are not in the log by design; the comment itself stays on the case.
+
+**For marketing (positive).** "A complete trail of who did what on a case: pool claims, hand-offs, team changes, comments and quality actions are all time-stamped to the person and the facility, without a patient identifier or a word of free text in the audit record."
+
+**For FormedrixAI and partners (the plain reality).** Built and tested in the browser against the demonstration audit store. The general clinical audit log is still not tamper-evident: it is append-only by interface only (the app never edits or deletes an entry), but the demo store is the browser's and the server-side protection (a hash chain or write-once storage, an administrator who cannot alter it) is Planned with the API server. The "hold released" entry marks the window closing without a decision; it cannot see the 30 seconds lapse on its own, because the hold has no server clock yet. Accessioning-time comments (written before the case exists) are not audited separately, and the spoken-command and learned-voice-phrase audit belongs to the voice work (Batch 650a). Case and specimen comments are still not printed on the report and not sent to the LIS (see KNOWN_GAPS). The Quality deficiency screen reports "done" even if the store failed the change; the audit now skips a failed change, but the message to the person is not yet corrected.
+- Training: delegate a case, change its team, post a case comment, then open Audit Log > System Logs and find the three entries; open a comment entry and confirm the text is not there. Standards: ISO 15189 and CAP (traceability of actions on records), HIPAA (audit controls, no PHI in the log), GDPR (data minimisation), 21 CFR Part 11 and EU Annex 11 (audit trail; tamper-evidence still Planned).
+
+## Batch 650a: Voice engine (Report Draft phrases, Enter Gross / Micro / Diagnosis, no doubled dictation, learned corrections, "say it twice", audit)
+**For the practitioner (User Guide).** On the Report Draft you can now run the section commands by voice, in the same way you could with Alt+1 to Alt+9: "go to section two", "next section", "dictate section three", "dictate gross description", "open full report", "generate report" and the rest (English, French, German, Dutch, Korean and Spanish). "Enter gross", "enter micro" and "enter diagnosis" now take you to that section and start dictating into it, from whichever tab you were on. When the AI tidies a sentence you dictated, the section now shows your words for a moment and then the tidied sentence **in their place**; before, both could end up in the report. If you fix a dictated sentence and click away, PathScribe remembers your version of those words and uses it next time, in the Report Draft and the Microscopic entry as well as in Internal Notes. A few commands that are hard to undo now ask you to **say them twice**: Delete Row, Delete Message, Delete All Selected, Recall Report, Release Case From Hold and Release Autopsy Body. PathScribe shows, for example, "Say 'delete message' again to confirm"; say it within eight seconds, or anything else cancels it. A phrase that belongs to another screen now says "Not available on this screen" instead of asking you to teach it.
+
+**For the system administrator (Admin Guide).** No new setting, capability or screen. Voice now uses the same rule as the keyboard for which commands are available: the screen in focus, the always-on commands, the station's functional area and the station's action group (Configuration > Workstation Groups / Action Groups). A command a bench station switches on works by voice as well as by key. Every voice command that runs, and every one refused, writes a System Logs entry (Audit Log tab): **Voice command executed** or **Voice command refused**, with the action id, the screen and the person, and for a refusal the reason (not available on this screen, the phrase was not repeated, the phrase was not repeated in time). The entry never holds what was said and never names a case. The commands that must be said twice are listed in `services/actionRegistry/repeatConfirmationCommands.ts` (six, see Pete's decision below); keys are not affected. The new status messages (confirm, cancelled, timed out, not available here) are in all six languages.
+
+**For marketing (positive).** "Dictate where you are looking: say 'enter diagnosis' and the Report Draft opens the right section and listens. The AI polishes your sentence in place, never twice, and PathScribe learns how you correct it. Risky commands ask for a second 'yes' by voice, and every spoken command leaves a line in the audit trail."
+
+**For FormedrixAI and partners (the plain reality).** Built and tested in the browser (simulated key and speech events; the speech engine was not exercised with a real microphone). The 20 translated Report Draft phrase sets and the four new messages are machine translated and on `docs/product/PHRASE_REVIEW_LIST.md`; Korean needs the most care. "Say it twice" is only on the six commands listed; which commands belong on that list is Pete's call (Sign Out Case, Confirm Finalise, Discard Unsaved Changes and the delegation types open their own confirmation window, so they are not on it). The audit entry for a spoken command is written from the browser; with the API server the server should write it (no server route exists yet). A command run through the Mohs stage input (the screen's own spoken answers) is not audited. Still open: Enter Addendum, Insert Macro and Next / Previous Field have no voice handler; Enter Gross and Enter Diagnosis do nothing on the synoptic (non-Report-Draft) layout because that layout has no free-text gross or diagnosis box; the focus-and-press-the-mic route in Intraop and the Verbal Report form still waits for a dictation state nothing produces (those screens were not changed). Dictation into a plain text box still shows nothing until the final text arrives.
+- Training: open a case in Report Draft mode, say "dictate gross description" and dictate a sentence; with AI on, watch the text change in place once; correct a word, click out of the section, dictate the same words again and see your version. In Messages say "delete message" and then "delete message" again. Say "delete message" on the report screen and read "Not available on this screen". ("Delete row" is on the say-it-twice list but the Worklist has no such command to run: see KNOWN_GAPS.) Standards: ISO 15189 and CAP (traceability of actions on records), HIPAA (audit entries carry no identifiers or speech), WCAG 2.1 (a voice route to frequent actions).
+
+## Batch 650: Voice and keyboard commands that nothing answered (Sign Out Case, History, Codes, Accept / Pass and others)
+**For the practitioner (User Guide).** Some commands were listed under Configuration > Actions, and the system understood them, but nothing happened when you used them. These now do exactly what the button does: **Sign Out Case** (Alt+Shift+X, or "sign out case") opens the sign-out window where you confirm with your credentials, and it never signs by itself; **History** (Alt+H) opens the patient's history and **Close history** (Alt+Shift+H) closes it; **Go to Codes** (Ctrl+Alt+G) and **Add Code** (Ctrl+Alt+H) open the Codes window; **Accept case** (Alt+A) and **Pass case** (Ctrl+Alt+P) press Accept and Pass in the pool window, over the Worklist as well as inside a report; on the Worklist, **Pool cases** (Alt+Shift+P) and **Awaiting countersign** (Alt+A) choose those tiles; on Search, **Execute search** (Alt+E) and **Clear search** (Alt+C); on the Contribution dashboard, the eight "Show ... TAT trend" commands choose their tile; on the Finalise window, **Cancel finalise** (Ctrl+Alt+Escape). For an Assist case, **Finalise**, **Sign Out and Next** (Finalise & Next) and, for a signed case, **Add Amendment** (Ctrl+Alt+E) press their buttons. A command is ignored when its button is greyed out or hidden, or while another window is open in front; that is on purpose. In an Orchestration case **Sign Out and Next** does nothing yet, because that mode has no such button.
+
+**For the system administrator (Admin Guide).** No new setting, capability or screen. Each command presses the same button, so it is greyed by the same capability: Sign Out Case, Finalise and Sign Out and Next need `surgical:report:sign-out`; Accept needs `case:pool:claim`; Pass needs `case:pool:pass`; the service behind each checks again and audits, as before. Roles still decide which commands a person may use under **Configuration > Roles** (Role Dictionary); a command grant never widens what the person may do. A hotkey or phrase can be changed under **Configuration > Actions**. Twenty-nine registered commands still have no screen handler; each is listed with its reason in `docs/product/KNOWN_GAPS.md`, and a build test fails when a new command is registered with no listener and no listed reason.
+
+**For marketing (positive).** "Hands-free where it counts: say 'sign out case' or press one key and PathScribe opens the same signature window, with the same safety checks, as the button; the same goes for history, codes, pool cases and the quality dashboard." Do not claim hands-free signing: the signer's credentials are always typed.
+
+**For FormedrixAI and partners (the plain reality).** Built and tested in the browser against the demonstration services. A voice or key command can never sign a case: Sign Out Case and Finalise only open their confirmation windows, and there is deliberately no command to confirm them (the signature check needs typed credentials). Not built: 29 commands still do nothing on their screen (dictation targets handled by the voice engine, report-screen windows whose state lives in the 7,000-line report page, Configuration navigation, and Worklist selection and delete commands for features the Worklist does not have); five of them (Worklist Select Row, Select All, Deselect All, Delete Row and My Cases) are registry entries for features that do not exist and are candidates for removal or building. Sign Out and Next has no Orchestration button, so it is Assist only. Accept / Pass act only while the pool window is open; with it closed, nothing is accepted. Phrases in five languages are unchanged from before and still await native-speaker review. No keys were added, so no translation review rows.
+- Training: open a finalized-reports case as a Pathologist and say "sign out case" (the window opens; type credentials to sign); try it with a Resident or a role without sign-out and see that nothing happens; open a pool case from the Worklist and say "accept case". Standards: ISO 15189 and CAP (sign-out controls, nothing signed without a verified signer); HIPAA (minimum necessary: a command never bypasses a role's capability); WCAG 2.1 (a keyboard route to frequent actions).
+
+## Batch 649: Safety and access bugs (sign-out checks, release permissions, screenshots, scanner)
+**For the practitioner (User Guide).** **Sign Out Case** now stops for the same things **Finalize** always did: a case on hold, a specimen missing its microscopic documentation, a critical or malignant finding you have not acknowledged, a required field left empty, or a required answer still waiting for you to verify the AI's suggestion. If a step fails part way through signing, the case goes back to where it was and a message says so; nothing half-signed is left behind. Buttons you are not allowed to use (Sign out, Finalize, Release as preliminary, Recall, Claim and Pass in a pool, Flag, Apply codes, Ask a colleague to review, the deficiency actions on Quality Assurance) are greyed, and a refusal says which permission is missing. Residents no longer release preliminary reports on their own; a pathologist or fellow does. An addendum released from the amendment window is now actually sent. In the Amendment window, the choices (amendment, correction, addendum) you may not release are greyed with the reason, the Save draft or Release addendum button is greyed when you lack the permission for the chosen kind, and the Amend button and the draft banner's Edit button are greyed when you may release none of the three. Screenshots you attach to a support request now hide every patient identifier, including diagnosis and finding text. A barcode scanner still works as before; keystrokes sent by a program (a browser extension, autofill) are ignored.
+
+**For the system administrator (Admin Guide).** Seventeen new capabilities appear in **Configuration > Roles** (Role Dictionary), each checked by the service that does the work and written to the audit log when high risk: `surgical:report:sign-out`, `surgical:preliminary:release`, `surgical:amendment:release`, `surgical:correction:release`, `surgical:addendum:release`, `report:release:recall`, `case:pool:claim`, `case:pool:pass`, `case:flag:apply`, `case:flag:remove`, `case:diagnosis-code:apply`, `case:accession:create`, `case:informal-review:request`, `qa:deficiency:raise`, `qa:deficiency:escalate`, `qa:deficiency:contain`, `qa:deficiency:verify`. Built-in roles are seeded to keep today's users working: sign-out, codes and review requests for Pathologist, Fellow and Resident; **preliminary release and the three revision releases for Pathologist and Fellow only**; pool and recall also for the Cytotechnologist; flags for every case-access role; creating a case for every role with the Accession screen; the deficiency actions for every role with the Quality Assurance screen. A hospital's own case-access roles get the revision releases but **not** the preliminary release; grant it in the Role Dictionary if the lab allows it. **There is no administrative override on signing any more:** a person signs a case only with the sign-out capability *and* as an active participant whose participation type can finalize. If someone who used to sign through the override now cannot, add them to the case team or give their role the right participation type. The registry submission (cancer registry) is sent when the FINAL is released after the release delay, not when it is signed; check the delay setting if registry timing matters. Full list: `docs/product/CAPABILITIES.md` (now 338) and `docs/architecture/AUTHORIZATION_API.md`.
+
+**For marketing (positive).** "Sign-out you can trust: the same safety checks every time, whichever way a pathologist signs; a signature tied to the exact report version and its fingerprint; and permissions as fine-grained as the work, with no back door. Support screenshots hide every patient identifier by design."
+
+**For FormedrixAI and partners (the plain reality).** Built and tested in the browser against the demonstration services (full suite 14,518 tests green); the API server that would do a sign-out in one transaction is not built, so a report version written before a later failure stays (versions are append-only) and a correction released before a later failure is not undone. Still open: other role-name shortcuts remain in macro access, template publishing rules and the billing-charge approval check; most permission checks pass only the case id, so a staff member limited to one facility can be refused where the case's facility would allow them. The 59 new interface strings are machine translated into French, German, Dutch, Korean and Spanish and need native-speaker review (Belgian French and Dutch use the French and Dutch text). The sign-out hook is still 1,813 lines. Pete's ruling of Oct 22, 2026 (residents do not issue preliminary releases) is built as the default; it is a setting a laboratory can change in the Role Dictionary.
+- Training: a Resident should find Release as preliminary greyed; a Pathologist should be stopped at Sign Out Case by an empty required field; an Admin who is not on the case team cannot sign it. Standards: ISO 15189 and CAP (sign-out controls, report integrity and traceability, amended-report handling); HIPAA and GDPR (access control by role and minimum necessary access; no identifiers in support screenshots).
+
+## Batch 648: Lockbox Drop-Off demonstration cases, restored by Demo Reset
+**For the practitioner (User Guide).** Nothing changes in your daily work. The Lockbox Drop-Off screen now opens in the demonstration with six after-hours drops already in it, so you can see what a morning folder looks like before scanning anything of your own.
+
+**For the system administrator (Admin Guide).** In the demonstration, Lockbox Drop-Off starts with six seeded receipts: two urgent, one already accessioned, three open or linked placeholders. Their times count back from the moment the demo data was loaded, so the folder always reads "last night and this morning". **Configuration > Demo Reset > Full Reset** removes everything scanned, linked or accessioned on the screen and loads a fresh set. Two pending orders (`WSSC-ORD-71058`, `WSSC-ORD-71075`) are left without a receipt so they can be scanned live; any other barcode makes a new placeholder. The Admin Guide's Lockbox Drop-Off section says the same in all six languages. With the API server configured, none of this applies: the seeds are part of the demonstration service only.
+
+**For marketing (positive).** "Show the whole after-hours story in a minute: an urgent drop at the top of the Overnight folder, a placeholder that keeps the chain of custody, and the time-to-receipt figures, ready the moment the demo opens, and back to the same starting point with one reset."
+
+**For FormedrixAI and partners (the plain reality).** Demonstration data only; nothing here is a real specimen and no receipt holds a patient name, date of birth or MRN. The demo's "server time" is the browser's clock and the receiving user is the signed-in user, because the API server that stamps both is not built (contract: `docs/architecture/LOCKBOX_API.md`). The seeded receipts name a demo kiosk and accessioner. Demo Reset also clears everything else in the demo, as it always has. The script for presenting it is in `docs/product/DEMO_GUIDE.md`.
+- Training: sign in as the Accessioner (Maria Lopez) to scan and link; as an Admin to review the folder. Standards: ISO 15189 and CAP (chain of custody from drop to accessioning); HIPAA and GDPR (no patient identifiers on a receipt).
+
+## Batch 645: Lockbox Drop-Off (written up in Batch 648; it was missing from this file)
+**For the practitioner (User Guide).** When a specimen is dropped in the lockbox after hours, the person on duty scans the container barcode at the **Lockbox Drop-Off** screen. That is all: no form, no confirmation. If the order is already in PathScribe the receipt shows the order's number and the ordering facility. If not, a short optional form asks who sent it and when it was dropped, and a temporary placeholder keeps the record. A toggle marks a drop **Urgent**, with an optional callback number. In the morning, the **Overnight folder** lists everything not yet accessioned, urgent first, then longest waiting.
+
+**For the system administrator (Admin Guide).** Open it from Home (**Lockbox Drop-Off**) or with Alt+Shift+Z. Four capabilities control it: `screen:lockbox-drop-off:open` (Accessioner and Admin), `lockbox:specimen:receive` (scan and record, high risk, audited; Accessioner), `lockbox:folder:review` (Overnight folder, QA time figures, Mark accessioned; Accessioner, and Admin for oversight) and `lockbox:placeholder:resolve` (link a placeholder to its real order or accession number; Accessioner). The client and physician pick lists come from the Clients and Physicians dictionaries. Receipts are append-only: linking and accessioning are new entries, never edits, and a barcode can have only one receipt. A placeholder never gets a real accession number, and cannot be accessioned until it is linked. The screen is in the Admin Guide (Tier 3, reference pages).
+
+**For marketing (positive).** "After-hours specimens are never lost between the lockbox and the bench: one scan writes a permanent receipt, urgent drops come first, and the morning team sees how long each specimen waited, with drop-to-accessioned figures for Quality."
+
+**For FormedrixAI and partners (the plain reality).** Built as a demonstration against the mock services. Not built: the API server that stamps the receipt time and user (the demo uses the browser clock and the signed-in user), and a device-bound kiosk sign-in. No patient data is read, stored or shown by the kiosk. The five non-English languages are machine translated and need native-speaker review. The contract for the server is `docs/architecture/LOCKBOX_API.md`.
+- Training: the Accessioner scans; a lead reviews the folder and the time figures. Standards: ISO 15189 and CAP (chain of custody and timeliness), HIPAA and GDPR (no patient identifiers on the kiosk).
+
+## Batch 647: Administrator Guide in six languages, every picture captured, Help on more screens
+**For the practitioner (User Guide).** Nothing changes in your daily screens. If your administrator opens the guide, **Help** now opens it in the language the application is set to, and a small **Help** button floats at the bottom corner of the Audit Log, Batch Management, the Outbound Queue and the other screens outside Configuration that have a guide page.
+
+**For the system administrator (Admin Guide).** The guide is available in English, French, German, Dutch, Korean and Spanish, with a language selector at the top of the guide; the choice is remembered. Screen and button names read as the application reads in that language. Belgian French and Belgian Dutch open the French and Dutch guides. A language the guide does not have opens English. All 27 pictures that were placeholders are now real screenshots (they show the English interface). To use it: open any screen, select **Help**.
+
+**For marketing (positive).** "The Administrator Guide speaks your administrators' language: English, French, German, Dutch, Korean and Spanish, with a Help button that opens the right page in the language of the screen." Say "available in six languages"; do not say "reviewed by native speakers" yet.
+
+**For FormedrixAI and partners (the plain reality).** Built, but the five translations are machine made and have had no native-speaker review; a laboratory professional who reads each language must sign them off before a customer in that language is given the guide. Screenshots are English-interface only. Terminology choices where the app itself is inconsistent are logged in `docs/admin-guide/open-questions/translation-notes.md` (for example the Dutch words for "case" and "authorization", the Korean for "lockbox"). The Synoptic editor and reviewer pages still have no Help button. The guide's Korean pages should be looked at in a real browser on Windows and macOS for font rendering.
+- Training: a translator follows `docs/admin-guide/TRANSLATION.md`; the build refuses a translation that changes a link, a heading id, a table or a status word. Standards: ISO 15189 (controlled documentation), CAP, GDPR and HIPAA as in Batch 646; WCAG (language is declared on each page).
+
+## Batch 646: Administrator Guide and a Help button on every Configuration screen
+**For the practitioner (User Guide).** Nothing changes in your daily screens. Administrators now have a guide, and a **Help** button at the top right of each Configuration screen that opens that screen's page in the guide.
+
+**For the system administrator (Admin Guide).** This is the Admin Guide's new source, `docs/admin-guide/`, in nine chapters that follow the setup order (Tier 1 to Tier 7), with a glossary of 196 terms and an index of 113 error codes. Every screen has the same layout: navigation, purpose, **Setup sequence** (what to configure first and what this unlocks), a screenshot, a field-by-field table, the permissions, and what is not built. The **Setup order** page lists every screen in the order to configure them, with tick boxes. Select **Help** on any Configuration screen (and on Migration Jobs) to open its section in a new tab, so unsaved edits are kept. The guide has search, a print layout and light and dark themes. The PDF in `public/help/` is edited outside this repository and is not changed.
+
+**For marketing (positive).** "A complete Administrator Guide built from the product itself: every screen documented with real screenshots, the order to set it up in, and a Help button that opens the right page from the screen you are on." Say "the guide is generated from the product source and checked by an automated test, so it stays in step with the screens."
+
+**For FormedrixAI and partners (the plain reality).** Built. English only at this batch (Batch 647 added five languages). Four limits to know: (1) 25 pictures the chapters ask for were placeholders (windows that open on a click); Batch 647 captured them; (2) the screen captures are of the demo, not a live server; (3) the guide says plainly what is not built (FHIR, EHR connectors, inbound HL7 listeners, licensed CAP protocols, SAML, computer-vision and image-analysis AI) and a customer should be told the same; (4) the chapters record 179 open questions where the code and the older documents disagree, in `docs/admin-guide/open-questions/`, several of which are defects in the product. The Audit Log and the synoptic editor pages do not have a Help button yet.
+- Training: administrators start at the Setup order page and work down. Standards: ISO 15189 (controlled, documented procedures), CAP (documented configuration), HIPAA and GDPR (the security chapter describes the controls; it does not claim compliance).
+
+## Batch 617 (part R): one route style for every server version of a service (PS-488 dev notes)
+**For the practitioner (User Guide).** Nothing changes on screen. This is a behind-the-scenes tidy-up of how PathScribe's services talk to the API server, and there is nothing for you to see or do.
+
+**For the system administrator (Admin Guide).** There are no screen changes and nothing to configure. The only documentation change is one added sentence in the "Server-backed services (HTTP)" row of the guide: every service calls the API server in the same way, so the server team builds and tests one pattern.
+
+**For marketing (positive).** "A consistent, uniform API: one route and verb convention across all services, enforced by an automated test." One predictable pattern means a simpler build and test job for the server team.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo); waiting on the server side (India team). Nothing is required of users or admins. For the server team, `docs/architecture/HTTP_SERVICES_PATTERN.md` section 7 is the single rule, and `HTTP_ROUTE_MAPPING.md` lists the earlier path and the current path of each converted call. No gaps are recorded for this change.
+- Training: nothing for users or admins. For the server team: `docs/architecture/HTTP_SERVICES_PATTERN.md` section 7 is the single rule; `HTTP_ROUTE_MAPPING.md` lists the earlier path and the current path of each converted call. Standards: ISO 15189 (controlled, documented interfaces), HIPAA (no patient text in URLs).
 
 ## Batch 617 (part C): server versions of 28 more services (PS-514, PS-501)
+**For the practitioner (User Guide).** Nothing changes on screen. Your screens work as before.
 
-- **Guide row:** extend "Server-backed services (HTTP)": peer review, CAPA recommendations, QA trend policy, saved searches, scheduled reports, signature records, smart capture, tumor board and its rules, specimen categories, spelling dictionaries, stain dictionaries, subspecialties, system configuration, TAT targets and the workstation registry now have a server version. The row stays Partial: the API server's endpoints are not built.
-- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
-- **Status:** Built (Demo); waiting on the server side (India team).
+**For the system administrator (Admin Guide).** In the guide, the "Server-backed services (HTTP)" row is extended: peer review, CAPA recommendations, QA trend policy, saved searches, scheduled reports, signature records, smart capture, tumor board and its rules, specimen categories, spelling dictionaries, stain dictionaries, subspecialties, system configuration, TAT targets and the workstation registry now have a server version (28 more services). The row stays Partial because the API server's endpoints are not built. Use this wording: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+
+**For marketing (positive).** Another 28 services, from peer review and CAPA recommendations to TAT targets and the workstation registry, now have a server version, moving PathScribe further along the path to a server-backed deployment.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo); waiting on the server side (India team). The row stays Partial: the API server's endpoints are not built. Say "the browser chooses the API server when one is configured and the demonstration services otherwise" and do not claim the screens work against a live server. No other gaps are recorded for this change.
 
 ## Batch 617 (part A): server versions of 29 more services (PS-514)
+**For the practitioner (User Guide).** Nothing changes on screen. Nothing that names a patient, and no token, goes in a web address: those calls are sent in the body of the request.
 
-- **Guide row:** extend the "Server-backed services (HTTP)" row: settings and dictionaries (abnormal-finding rules, action groups, AI behaviour, asset locations, assist polling, client SLAs, clinical history terms, delegation types, mismatch rules, code system policy, cytology compliance and lexicon), case workflows (batches, case masks, case search, countersign, on-demand case fetch, consult tokens, codes), critical result notification and alerts, bulk code import and NCCI edits, and the BI feed admin calls now have a server version. The row stays Partial: the API server's endpoints are not built, and more services still have none (see `HTTP_SERVICES_REMAINING.md`).
-- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
-- **Training / support:** nothing changes on screen. Nothing that names a patient, and no token, goes in a web address: those calls are sent in the body.
-- **Status:** Built (Demo); waiting on the server side (India team).
+**For the system administrator (Admin Guide).** In the guide, the "Server-backed services (HTTP)" row is extended. These now have a server version (29 more services): settings and dictionaries (abnormal-finding rules, action groups, AI behaviour, asset locations, assist polling, client SLAs, clinical history terms, delegation types, mismatch rules, code system policy, cytology compliance and lexicon), case workflows (batches, case masks, case search, countersign, on-demand case fetch, consult tokens, codes), critical result notification and alerts, bulk code import and NCCI edits, and the BI feed admin calls. Nothing changes on screen, so there is nothing to configure or train. Nothing that names a patient, and no token, goes in a web address; those calls are sent in the body. Use this wording: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+
+**For marketing (positive).** Twenty-nine more services, covering settings and dictionaries, case workflows, critical result notification, code import and the BI feed admin calls, now have a server version. Patient names and tokens are kept out of web addresses and sent in the request body instead.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo); waiting on the server side (India team). The row stays Partial: the API server's endpoints are not built, and more services still have none (see `HTTP_SERVICES_REMAINING.md`). Say "the browser chooses the API server when one is configured and the demonstration services otherwise" and do not claim the screens work against a live server.
 
 ## Batch 617 (part B): server versions of 26 more services (PS-514)
+**For the practitioner (User Guide).** Nothing changes on screen. The screens are unchanged.
 
-- **Guide row:** extend "Server-backed services (HTTP)": delivery rules and retries, print settings and the print queue, label reprint runs, delegations, participation types, internal notes, display access, diagnosis codes, external resources, feedback settings, fonts, governing bodies, performance targets, priorities, equipment, data migration, LIS sync, margin extraction and intraoperative critical results now have a server version. The row stays Partial: the API server's endpoints are not built and the remaining services are listed in `docs/architecture/HTTP_SERVICES_REMAINING.md`.
-- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
-- **Training / User Guide / Admin Guide:** no change; screens are unchanged.
-- **Marketing / RFP line:** every configuration and workflow service has a documented server contract (one route per operation) so a hospital's IT team can see exactly what the server must provide.
-- **Standards:** supports the deployment-neutral requirement (public or private cloud); no patient identifiers or display tokens in URLs.
+**For the system administrator (Admin Guide).** No change to the User Guide or Admin Guide; screens are unchanged. In the guide, the "Server-backed services (HTTP)" row is extended: delivery rules and retries, print settings and the print queue, label reprint runs, delegations, participation types, internal notes, display access, diagnosis codes, external resources, feedback settings, fonts, governing bodies, performance targets, priorities, equipment, data migration, LIS sync, margin extraction and intraoperative critical results now have a server version (26 more services). Use this wording: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+
+**For marketing (positive).** Every configuration and workflow service has a documented server contract (one route per operation) so a hospital's IT team can see exactly what the server must provide. It also fits the deployment-neutral requirement, whether the hospital uses a public or a private cloud.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo); waiting on the server side (India team). The row stays Partial: the API server's endpoints are not built, and the remaining services are listed in `docs/architecture/HTTP_SERVICES_REMAINING.md`. Say "the browser chooses the API server when one is configured and the demonstration services otherwise" and do not claim the screens work against a live server. No other gaps are recorded for this change.
+- Standards: supports the deployment-neutral requirement (public or private cloud); no patient identifiers or display tokens in URLs.
 
 ## Batch 617 (part N): terminology look-ups through the server, and a deployment switch for biometric sign-in (PS-488, PS-512)
+**For the practitioner (User Guide).** No change to what a pathologist does. A failed code search still says the search is unavailable. If your deployment has biometric sign-in switched off, the lab's own setting cannot turn it on, and the screen says so.
 
-- **What changed:** with the PathScribe API server configured, ICD-10-CM, ICD-11 and LOINC code searches go to the server (`/api/terminology/nlm/…`), which holds any credentials and caches repeated searches. The browser calls NLM itself only in the demonstration. A server deployment's security policy no longer lists the NLM host (`"terminologyViaServer": true`). Separately, a deployment can set `VITE_BIOMETRIC_SIGN_IN` to `false` to turn biometric sign-in off for everyone while the device checks are being tested; the lab's own policy (Session Security) cannot turn it on then, and says so.
-- **User Guide:** no change to what a pathologist does; a failed search still says the search is unavailable. **Admin Guide:** Session Security shows a note and a disabled switch when the deployment has biometric sign-in off; the deployment sheet gains `terminologyViaServer` and `VITE_BIOMETRIC_SIGN_IN`.
-- **Training:** none for users. IT: set the origins file and the config key as above.
-- **Marketing / RFP:** code lookups for ICD-10-CM, ICD-11 and LOINC run through the customer's own server, so the browser contacts no outside terminology host. Status: built for the browser side (Built (Demo)); the server routes are for the server team and have not been run.
-- **Standards:** supports a strict content security policy (HIPAA technical safeguards, ISO 15189 data control).
+**For the system administrator (Admin Guide).** With the PathScribe API server configured, ICD-10-CM, ICD-11 and LOINC code searches go to the server (`/api/terminology/nlm/…`), which holds any credentials and caches repeated searches. The browser calls NLM itself only in the demonstration. A server deployment's security policy no longer lists the NLM host (`"terminologyViaServer": true`). A deployment can also set `VITE_BIOMETRIC_SIGN_IN` to `false` to turn biometric sign-in off for everyone while the device checks are being tested; the lab's own policy (Session Security) cannot turn it on then. Session Security shows a note and a disabled switch when the deployment has biometric sign-in off. The deployment sheet gains `terminologyViaServer` and `VITE_BIOMETRIC_SIGN_IN`. IT should set the origins file and the config key as above.
+
+**For marketing (positive).** Code lookups for ICD-10-CM, ICD-11 and LOINC run through the customer's own server, so the browser contacts no outside terminology host. That supports a strict content security policy.
+
+**For FormedrixAI and partners (the plain reality).** Built for the browser side (Built (Demo)). The server routes are for the server team and have not been run. No other gaps are recorded for this change.
+- Training: none for users. IT: set the origins file and the config key as above. Standards: supports a strict content security policy (HIPAA technical safeguards, ISO 15189 data control).
 
 ## Batch 616 (part F): follow-up tracking by commands, and biometric signing through one flow (PS-483, PS-512)
+**For the practitioner (User Guide).** Follow-up tracking looks and works as before. Biometric signing (the policy card in Session security, the profile menu's Biometric signing, the invitation after sign-in, and the check at sign-out) now goes through one flow. In the demo it is the labelled Simulated check. When the system is connected to a server, a browser without WebAuthn cannot use biometric signing, and you sign with your password instead.
 
-- Follow-up tracking has a server version that works by commands (Pete's decision, Oct 18). The browser sends "mark this case", "record this outcome", "reopen" or "send this email"; the server works out the window, the status and who did it. Nothing in a request names the person acting.
-- The demonstration works exactly as before: it works the status out from the browser store.
-- Biometric signing (the policy card in Session security, the profile menu's Biometric signing, the invitation after sign-in, and the check at sign-out) now goes through one flow. In the demo it is the labelled Simulated check. With a server address it is the server's challenge and verification, and a browser without WebAuthn cannot use it; the person signs with their password instead.
-- Admin Guide: nothing to configure; the server address decides which is used.
+**For the system administrator (Admin Guide).** Nothing to configure; the server address decides which is used. Follow-up tracking has a server version that works by commands (Pete's decision, Oct 18): the browser sends "mark this case", "record this outcome", "reopen" or "send this email", and the server works out the window, the status and who did it. Nothing in a request names the person acting. The demonstration works exactly as before, working the status out from the browser store. Biometric signing goes through one flow: in the demo it is the labelled Simulated check; with a server address it is the server's challenge and verification, and a browser without WebAuthn cannot use it, so the person signs with their password instead.
+
+**For marketing (positive).** Follow-up tracking now has a server version in which the server, not the browser, works out the window, the status and who acted, and no request names the person acting. Biometric signing now runs through a single flow wherever it appears.
+
+**For FormedrixAI and partners (the plain reality).** Follow-up tracking has a server version built on commands (Pete's decision, Oct 18); the demonstration is unchanged and works the status out from the browser store. In the demo, biometric signing is the labelled Simulated check; with a server address it is the server's challenge and verification, and a browser without WebAuthn cannot use it (the person signs with their password). No other gaps are recorded for this change.
 
 ## Batch 616 (part D): server versions of the quality, digital pathology, image, grossing, dictionary, reagent, cold-chain, label and intraoperative services (PS-501, PS-502, PS-506, PS-508, PS-510)
+**For the practitioner (User Guide).** Nothing changes on screen. Your screens work as before.
 
-- **Guide row:** extend the "Server-backed services (HTTP)" row: 35 more services have a server version (QA activity records and types, supervision assignments, reconciliations, risk weights, validation studies, deficiencies and management reviews; digital pathology results, vendors and scan batches; image vendors and upload; grossing hardware, routing overrides, cassette routing, specimen dictionary, hardware containers and scan stations; reagent lots, cold-chain storage and readings, label layouts, printer profiles; intraoperative entries, the OR event log, OR terminals and display profiles).
-- **Wording:** same as part A: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
-- **Privacy line for RFPs:** no patient text (names, MRNs) is ever in a web address; the intraoperative ADT lookup sends the MRN in the request body.
-- **Not built, say so:** peer review, CAPA recommendations, label reprint runs, equipment and intraoperative critical-result rules still use the browser-side services.
-- **Status:** Built (Demo); waiting on the server side (India team).
+**For the system administrator (Admin Guide).** The guide's "Server-backed services (HTTP)" row is extended: 35 more services have a server version (QA activity records and types, supervision assignments, reconciliations, risk weights, validation studies, deficiencies and management reviews; digital pathology results, vendors and scan batches; image vendors and upload; grossing hardware, routing overrides, cassette routing, specimen dictionary, hardware containers and scan stations; reagent lots, cold-chain storage and readings, label layouts, printer profiles; intraoperative entries, the OR event log, OR terminals and display profiles). Use this wording: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server. No patient text (names, MRNs) is ever in a web address; the intraoperative ADT lookup sends the MRN in the request body.
+
+**For marketing (positive).** Thirty-five more services across quality, digital pathology, imaging, grossing, reagents, cold-chain, labels and intraoperative work now have a server version. No patient text (names, MRNs) is ever in a web address.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo); waiting on the server side (India team). Say "the browser chooses the API server when one is configured and the demonstration services otherwise" and do not claim the screens work against a live server. Not built, so say so: peer review, CAPA recommendations, label reprint runs, equipment and intraoperative critical-result rules still use the browser-side services. For RFPs, the privacy line is that no patient text (names, MRNs) is ever in a web address, and the intraoperative ADT lookup sends the MRN in the request body.
 
 ## Batch 616 (part E): server versions of the interface, model, protocol, template, routing, macro, flag, message and AI-policy services (PS-509, PS-511, PS-513, PS-515)
+**For the practitioner (User Guide).** Nothing changes on screen. Your screens work as before.
 
-- **Guide row:** extend the "Server-backed services (HTTP)" row: 20 more services have a server version (interface exceptions, order-created events, LIS staging queue, AI models and the model store, protocols and the fixative and processing-format dictionaries, template and narrative signals, report templates, routing and print-routing rules, text, voice and stain-order macros, case flags, secure messaging settings, internal messages, AI vendor policy). Still partial: the endpoints are the India team's.
-- **Guide row (new, small):** a server build keeps demonstration screens, demo accounts and the Simulated authenticator out; AI and licensed terminology calls go through the product's own server routes. The public NLM look-up is the one outside host the browser calls itself.
+**For the system administrator (Admin Guide).** The guide's "Server-backed services (HTTP)" row is extended: 20 more services have a server version (interface exceptions, order-created events, LIS staging queue, AI models and the model store, protocols and the fixative and processing-format dictionaries, template and narrative signals, report templates, routing and print-routing rules, text, voice and stain-order macros, case flags, secure messaging settings, internal messages, AI vendor policy). A new, small guide row notes that a server build keeps demonstration screens, demo accounts and the Simulated authenticator out; AI and licensed terminology calls go through the product's own server routes. The public NLM look-up is the one outside host the browser calls itself.
+
+**For marketing (positive).** Twenty more services, including interface exceptions, AI models, protocols, report templates, routing rules, macros and secure messaging, now have a server version. A server build also keeps demonstration screens, demo accounts and the Simulated authenticator out.
+
+**For FormedrixAI and partners (the plain reality).** Still partial: the endpoints are the India team's. A server build keeps demonstration screens, demo accounts and the Simulated authenticator out; AI and licensed terminology calls go through the product's own server routes, and the public NLM look-up is the one outside host the browser calls itself. No other gaps are recorded for this change.
 
 ## Batch 616 (part A): server versions of the report, accessioning, patient and encounter services (PS-483, PS-503, PS-505)
+**For the practitioner (User Guide).** Nothing changes on screen. On a server deployment, your drafts, patient history and report change history are stored on the server, not in the browser, and search terms, identifiers and MRNs never appear in a web address.
 
-- **Guide row:** extend the "Server-backed services (HTTP)" row: amendments, informal reviews, LIS amendment notices, the report release buffer, the report change log, report parts, incoming-order intake, drafts, the patient index, encounters, patient history and the outbound queues now have a server version (14 services). The row stays Partial: the API server's endpoints are not built, and follow-up tracking has no server version yet.
-- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
-- **Privacy line for RFPs:** on a server deployment, drafts, patient history and report change history are stored on the server, not in the browser; search terms, identifiers and MRNs never appear in a web address.
-- **Status:** Built (Demo); waiting on the server side (India team).
+**For the system administrator (Admin Guide).** The guide's "Server-backed services (HTTP)" row is extended: amendments, informal reviews, LIS amendment notices, the report release buffer, the report change log, report parts, incoming-order intake, drafts, the patient index, encounters, patient history and the outbound queues now have a server version (14 services). On a server deployment, drafts, patient history and report change history are stored on the server, not in the browser; search terms, identifiers and MRNs never appear in a web address. Use this wording: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+
+**For marketing (positive).** Fourteen services covering reports, accessioning, patients and encounters now have a server version. On a server deployment, drafts, patient history and report change history are stored on the server, and search terms, identifiers and MRNs never appear in a web address.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo); waiting on the server side (India team). The row stays Partial: the API server's endpoints are not built, and follow-up tracking has no server version yet. Say "the browser chooses the API server when one is configured and the demonstration services otherwise" and do not claim the screens work against a live server. For RFPs, the privacy line is that on a server deployment drafts, patient history and report change history are stored on the server, not in the browser, and search terms, identifiers and MRNs never appear in a web address.
 
 ## Batch 616 (part C): server versions of billing, cytology, molecular and registry services (PS-498, PS-499, PS-500, PS-504)
+**For the practitioner (User Guide).** Nothing changes on screen. Your screens work as before.
 
-- **Guide row:** extend the "Server-backed services (HTTP)" row: billing and charge capture, cytology and cytology QC, molecular batches, racks, control rules and the order queue, and registry reporting now have a server version (52 services). The row stays Partial: the API server's endpoints are not built.
-- **Wording:** "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
-- **Status:** Built (Demo); waiting on the server side (India team).
+**For the system administrator (Admin Guide).** The guide's "Server-backed services (HTTP)" row is extended: billing and charge capture, cytology and cytology QC, molecular batches, racks, control rules and the order queue, and registry reporting now have a server version (52 services). Use this wording: "the browser chooses the API server when one is configured and the demonstration services otherwise". Do not say the screens work against a live server.
+
+**For marketing (positive).** Fifty-two services across billing and charge capture, cytology, molecular and registry reporting now have a server version, a large step toward a server-backed deployment.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo); waiting on the server side (India team). The row stays Partial: the API server's endpoints are not built. Say "the browser chooses the API server when one is configured and the demonstration services otherwise" and do not claim the screens work against a live server. No other gaps are recorded for this change.
 
 ## Batch 615 (part D): vial and rack labels through the interface engine, right-to-left groundwork (PS-360, PS-293)
+**For the practitioner (User Guide).** Vial and tube labels (aliquots, molecular extracts) and rack, plate and scan-batch labels can now print through a "Direct via Interface Engine" printer, with a Code 128 barcode of the id and a few lines of text. They show up in the same print-job messages as slide and cassette labels, with Retry. Nothing changes on screen for anyone using a QZ Tray or PathScribe Agent printer; those already printed these labels. The page direction now follows the language, but no right-to-left language is offered yet. Identifiers (case, accession, patient numbers) and physical layouts (organ map, plates, label canvas) never mirror.
 
-- **What users see:** vial and tube labels (aliquots, molecular extracts) and rack, plate and scan-batch labels can now print through a "Direct via Interface Engine" printer, with a Code 128 barcode of the id and a few lines of text. They show up in the same print-job messages as slide and cassette labels, with Retry. Nothing changes on screen for anyone using a QZ Tray or PathScribe Agent printer; those already printed these labels.
-- **Admin Guide:** Printers (label stock sizes come from the Label Designer; a layout saved there for molecular specimen, plate or rack is used). **Needs from each site:** the label stock size and printer resolution, so the layouts fit. An id too long for the label is refused with a message, not printed unreadable.
-- **Right to left (groundwork, not a new language):** the page direction now follows the language, and the layout is built to mirror. No right-to-left language is offered yet; Arabic or Hebrew needs its translations and a native-speaker review first. Identifiers (case, accession, patient numbers) and physical layouts (organ map, plates, label canvas) never mirror.
-- **Training:** none for users. Admins: print a test vial label to the engine printer and check it fits the stock.
-- **Marketing / RFP:** "Every label family (cassette, slide, vial, rack, batch) prints through the lab's interface engine"; "The interface is built for right-to-left languages."
-- **Standards:** CAP and ISO 15189 (specimen and container traceability); WCAG 3.1.2 and 1.3.2 (language and reading order) for the direction work.
-- **Status:** vial and rack labels Built (Demo); right-to-left Partial until a right-to-left language is enabled and reviewed (see the Batch 615 notes in `FRONTEND_COMPLETION_QUEUE.md`).
+**For the system administrator (Admin Guide).** See Printers. Label stock sizes come from the Label Designer; a layout saved there for molecular specimen, plate or rack is used. Each site needs to supply the label stock size and printer resolution so the layouts fit. An id too long for the label is refused with a message, not printed unreadable. Right to left is groundwork, not a new language: the page direction follows the language and the layout is built to mirror, but no right-to-left language is offered yet. Identifiers (case, accession, patient numbers) and physical layouts (organ map, plates, label canvas) never mirror. Admins should print a test vial label to the engine printer and check it fits the stock.
+
+**For marketing (positive).** "Every label family (cassette, slide, vial, rack, batch) prints through the lab's interface engine." "The interface is built for right-to-left languages."
+
+**For FormedrixAI and partners (the plain reality).** Vial and rack labels are Built (Demo). Right-to-left is Partial until a right-to-left language is enabled and reviewed (see the Batch 615 notes in `FRONTEND_COMPLETION_QUEUE.md`). This is groundwork, not a new language: no right-to-left language is offered yet, and Arabic or Hebrew needs its translations and a native-speaker review first. No other gaps are recorded for this change.
+- Training: none for users. Admins: print a test vial label to the engine printer and check it fits the stock. Standards: CAP and ISO 15189 (specimen and container traceability); WCAG 3.1.2 and 1.3.2 (language and reading order) for the direction work.
 
 ## Batch 615 (part C): the Code Manager offers a search for each flagged finding (PS-138)
+**For the practitioner (User Guide).** See Codes. When a synoptic answer matches an abnormal-detection trigger (for example Margin Status: Positive), the Code Manager shows that finding as a button above the code-system tabs. Pressing it switches to SNOMED, selects the specimen the finding belongs to and fills the search box with the field and value. The search then runs as usual, and you can edit the words first. Nothing is chosen for you: no search runs until you press the button, and no code is applied until you pick a result. The button only shows while abnormal detection is on for the facility and SNOMED is allowed by the code-system policy; if nothing matched, nothing is shown.
 
-- **What users see:** when a synoptic answer matches an abnormal-detection trigger (for example Margin Status: Positive), the Code Manager shows that finding as a button above the code-system tabs. Pressing it switches to SNOMED, selects the specimen the finding belongs to and fills the search box with the field and value. The search then runs as usual; you can edit the words first.
-- **Nothing is chosen for you:** no search runs until you press the button, and no code is applied until you pick a result.
-- **When it shows:** only while abnormal detection is on for the facility and SNOMED is allowed by the code-system policy. If nothing matched, nothing is shown.
-- **Admin Guide:** Abnormal trigger rules (the rule that matched is the one shown). **User Guide:** Codes.
-- **Training:** answer a protocol question that has a trigger rule, open Codes, press the finding, pick a result.
-- **Marketing / RFP:** "Flagged findings lead straight to a live terminology search; the pathologist picks the code, the system never does."
-- **Standards:** SNOMED CT via UMLS (live search results only); CAP (coding stays a pathologist decision).
-- **Status:** Built (Demo). The search is the existing live terminology search (needs the UMLS key to return results).
+**For the system administrator (Admin Guide).** See Abnormal trigger rules; the rule that matched is the one shown. The button appears only while abnormal detection is on for the facility and SNOMED is allowed by the code-system policy. The search is the existing live terminology search and needs the UMLS key to return results.
+
+**For marketing (positive).** "Flagged findings lead straight to a live terminology search; the pathologist picks the code, the system never does." Coding stays a pathologist decision.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). The search is the existing live terminology search (needs the UMLS key to return results). Results are live search results only. No other gaps are recorded for this change.
+- Training: answer a protocol question that has a trigger rule, open Codes, press the finding, pick a result. Standards: SNOMED CT via UMLS (live search results only); CAP (coding stays a pathologist decision).
 
 ## Batch 614 (part A): editor by voice or key, Go to routes, Mac and AltGr
+**For the practitioner (User Guide).** See Report editor and Keyboard and voice. In a report text box you can say "make bold", "bullet list", "indent more", "find in text", "replace in text", "insert table", "insert signature line", "next heading", "show ruler" and so on. The keys are Ctrl+Alt+1 Bold, 2 Italic, 3 Underline, 4 Bullets, 5 Numbered list, 6 Indent more, 7 Indent less, 8 Find, 9 Replace, 0 Select all, Ctrl+Alt+. next heading, Ctrl+Alt+, previous heading, Ctrl+Alt+/ table, Ctrl+Alt+[ signature line, Ctrl+Alt+] ruler, Ctrl+Alt+; formatting marks. They act on the text box that last had the cursor. Show / Hide Ruler now shows a ruler above the text (centimetre ticks). On Mac and European keyboards, Option (Mac) and AltGr no longer stop hotkeys working; while you are typing a character in a text box (Option+E for an accent) it is never treated as a hotkey.
 
-- **Text editor by voice or key:** in a report text box say "make bold", "bullet list", "indent more", "find in text", "replace in text", "insert table", "insert signature line", "next heading", "show ruler" and so on (full list in Configuration → Actions, category Synoptic). Keys are Ctrl+Alt+1 Bold, 2 Italic, 3 Underline, 4 Bullets, 5 Numbered list, 6 Indent more, 7 Indent less, 8 Find, 9 Replace, 0 Select all, Ctrl+Alt+. next heading, Ctrl+Alt+, previous heading, Ctrl+Alt+/ table, Ctrl+Alt+[ signature line, Ctrl+Alt+] ruler, Ctrl+Alt+; formatting marks. They act on the text box that last had the cursor.
-- **Ruler:** Show / Hide Ruler now shows a ruler above the text (centimetre ticks).
-- **Go to routes in the lists:** the Role Dictionary action reference and Configuration → Actions show, for each always-on command, "Alt+J, then X".
-- **Mac and European keyboards:** Option (Mac) and AltGr no longer stop hotkeys working. While you are typing a character in a text box (Option+E for an accent) it is never treated as a hotkey. Not yet tried on a Mac or an AltGr keyboard.
-- **Admin Guide:** Roles (the editor commands), Configuration → Actions. **User Guide:** Report editor, Keyboard and voice.
+**For the system administrator (Admin Guide).** See Roles (the editor commands) and Configuration → Actions. The full list of voice phrases is in Configuration → Actions, category Synoptic. The Role Dictionary action reference and Configuration → Actions now show, for each always-on command, "Alt+J, then X". The editor keys are Ctrl+Alt+1 Bold, 2 Italic, 3 Underline, 4 Bullets, 5 Numbered list, 6 Indent more, 7 Indent less, 8 Find, 9 Replace, 0 Select all, Ctrl+Alt+. next heading, Ctrl+Alt+, previous heading, Ctrl+Alt+/ table, Ctrl+Alt+[ signature line, Ctrl+Alt+] ruler, Ctrl+Alt+; formatting marks, and they act on the text box that last had the cursor. Option (Mac) and AltGr no longer stop hotkeys working, and a character being typed in a text box (Option+E for an accent) is never treated as a hotkey.
+
+**For marketing (positive).** Reporters can format and navigate a report by voice or with a simple set of Ctrl+Alt keys, covering bold, bullet lists, tables, signature lines, find and replace, and heading navigation. Hotkeys now also respect Mac Option and European AltGr keyboards, and the Go to routes list shows "Alt+J, then X" for each always-on command.
+
+**For FormedrixAI and partners (the plain reality).** The Mac Option and AltGr handling has not yet been tried on a Mac or an AltGr keyboard, so it needs testing there. No other gaps are recorded for this change.
 
 ## Batch 613 (part A): Case search reporting
+**For the practitioner (User Guide).** See Search. Search has a new **Synoptic answers** section: pick a protocol, one of its questions, a condition and a value (for example Breast, Tumor size, is more than, 2). Choices are the protocol's own. Every filter must match, and they appear in the search summary and are kept in saved searches. After a search, press **Report** beside the results. **Group by** pathologist, month, diagnosis, facility, case type, status, priority or subspecialty to see counts, each group's share and the median days to sign-out, with a total. Click a heading to sort; click a group to see its cases. Choose **No grouping** to list the cases with the **Columns** you pick, including answers from synoptic reports, and put them in order. **Save report** keeps the search, grouping and columns under your name; choose it from Saved reports to run it again. **Export report CSV** downloads the report (the counts per group, or the chosen columns for each case). Under **Schedules**, pick a saved report, how often, the time, who receives it, and optionally the last number of days to cover each run; you can run now, pause, resume or delete, and see the last run. In this version the scheduled runs are Simulated: the report is built and its counts kept, but nothing is sent. Anyone who opens Search can view reports; exporting and schedules need extra permission.
 
-- **Search on synoptic answers:** Search has a new **Synoptic answers** section. Pick a protocol, one of its questions, a condition and a value (for example Breast, Tumor size, is more than, 2). Choices are the protocol's own. Every filter must match. They appear in the search summary and are kept in saved searches.
-- **Report view:** after a search, press **Report** beside the results. **Group by** pathologist, month, diagnosis, facility, case type, status, priority or subspecialty to see counts, each group's share and the median days to sign-out, with a total. Click a heading to sort; click a group to see its cases. Choose **No grouping** to list the cases with the **Columns** you pick, including answers from synoptic reports, and put them in order.
-- **Save and export:** **Save report** keeps the search, grouping and columns under your name; choose it from Saved reports to run it again. **Export report CSV** downloads the report (the counts per group, or the chosen columns for each case) and is recorded in the audit log.
-- **Schedules:** under **Schedules**, pick a saved report, how often, the time, who receives it, and optionally the last number of days to cover each run. You can run now, pause, resume or delete, and see the last run. **Runs are Simulated in this version: the report is built and its counts kept, but nothing is sent** until the API server runs schedules.
-- **Who:** anyone who opens Search can view reports; exporting needs `search:case-report:export`; schedules need `search:report-schedule:manage`.
-- **Admin Guide:** Roles (the two permissions). **User Guide:** Search.
-- **Training:** search signed-out cases for last month, press Report, group by pathologist, open a group; choose No grouping, add Breast: Grade, export; save the report and schedule it weekly for a colleague, then Run now and read the last run.
-- **Marketing / RFP:** "Ask the system a question across cases, not just one case at a time: how many Grade 3 breast cancers did each pathologist sign out last quarter, and how long did they take?"
-- **Standards:** CAP and ISO 15189 (workload and turnaround monitoring), HIPAA minimum necessary (only cases the user may open are counted; exports are audited and grouped reports hold no patient names).
-- **Status:** Built (Demo). Reports are built in the browser; the server groups in SQL and sends scheduled files (`docs/architecture/CASE_SEARCH_API.md`, `docs/architecture/SCHEDULED_REPORTS_API.md`).
+**For the system administrator (Admin Guide).** See Roles (the two permissions). Anyone who opens Search can view reports; exporting needs `search:case-report:export`; schedules need `search:report-schedule:manage`. Exporting a report CSV is recorded in the audit log. Runs of schedules are Simulated in this version: the report is built and its counts kept, but nothing is sent until the API server runs schedules.
+
+**For marketing (positive).** "Ask the system a question across cases, not just one case at a time: how many Grade 3 breast cancers did each pathologist sign out last quarter, and how long did they take?" Reports can be grouped, saved, exported and scheduled. Only cases the user may open are counted.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). Reports are built in the browser. Scheduled runs are Simulated: nothing is sent until the API server runs schedules. The server groups in SQL and sends scheduled files (`docs/architecture/CASE_SEARCH_API.md`, `docs/architecture/SCHEDULED_REPORTS_API.md`). Only cases the user may open are counted; exports are audited and grouped reports hold no patient names. No other gaps are recorded for this change.
+- Training: search signed-out cases for last month, press Report, group by pathologist, open a group; choose No grouping, add Breast: Grade, export; save the report and schedule it weekly for a colleague, then Run now and read the last run. Standards: CAP and ISO 15189 (workload and turnaround monitoring), HIPAA minimum necessary (only cases the user may open are counted; exports are audited and grouped reports hold no patient names).
 
 ## Batch 613 (part B): Patient summary print and related cases at sign-out
+**For the practitioner (User Guide).** See Sign-out and Patient History. At sign-out, when the patient has other released cases you may open, a notice appears inside the sign-out view. Each case shows its accession, release date, diagnosis, the **ordering physician** and who gets a **copy**. Nothing is ticked: tick the ones that belong in this report, and each chosen report is shown in full below the list, exactly as it will print and be sent. If there is nothing to attach, the notice says so and you sign out as before. The chosen reports are part of what you sign, and after sign-out they cannot be changed. The printed report, the PDF and the result sent to the LIS carry exactly the section you saw. If a related case is amended later, the report shows a flag naming it; the section on the signed report does not change. The intraoperative diagnosis is now part of the case report: it prints after the case header on the PDF, the text copy and the result sent out (before, it showed on screen only), and appears in any related case that had one. To print a patient summary, go to **Patient History**, tick released cases (or Select all) and press **Print summary**. The sheet is headed as a summary, not a signed report, lists the accession of every case it was compiled from, and is in date order. Only cases you can already open are offered. Pathologists and fellows can attach related cases, and every case-access role may print a summary.
 
-- **Sign-out:** when the patient has other released cases you may open, a notice appears inside the sign-out view. Each case shows its accession, release date, diagnosis, the **ordering physician** and who gets a **copy**. **Nothing is ticked.** Tick the ones that belong in this report; each chosen report is shown in full below the list, exactly as it will print and be sent. If there is nothing to attach, the notice says so and you sign out as before.
-- **Fixed at sign-out:** the chosen reports are part of what you sign. After sign-out they cannot be changed. The printed report, the PDF and the result sent to the LIS carry exactly the section you saw. If a related case is amended later, the report shows a flag naming it; the section on the signed report does not change.
-- **Intraoperative diagnosis:** it is now part of the case report. It prints after the case header on the PDF, the text copy and the result sent out (before, it showed on screen only), and appears in any related case that had one.
-- **Patient summary:** from **Patient History**, tick released cases (or Select all) and press **Print summary**. The sheet is headed as a summary, not a signed report, lists the accession of every case it was compiled from, and is in date order. Only cases you can already open are offered.
-- **Who:** pathologists and fellows attach related cases (`report:related-cases:attach`); every case-access role may print a summary (`patient:summary:print`).
-- **Admin Guide:** Roles (the two permissions). **User Guide:** Sign-out; Patient History.
-- **Training:** open a patient with two released cases, start sign-out on a third, tick one, read the preview, sign out, print the PDF and find the section; open Patient History and print a summary of both; amend the older case and reopen the signed report to see the flag.
-- **Marketing / RFP:** "A pathologist decides which of a patient's earlier reports travel with a new one. What was seen at sign-out is what is printed and sent, and it cannot change afterwards."
-- **Standards:** CAP and ISO 15189 (report content and traceability), HIPAA minimum necessary (only cases the user may open; audit without patient data).
-- **Status:** Built (Demo). The choice is kept in the browser; the server stores it with the signed report version (`docs/architecture/RELATED_CASES_API.md`). The PDF function must be redeployed (`functions/`). Wording in French, German, Dutch and Korean needs native-speaker review.
+**For the system administrator (Admin Guide).** See Roles (the two permissions). Pathologists and fellows attach related cases (`report:related-cases:attach`); every case-access role may print a summary (`patient:summary:print`). The PDF function must be redeployed (`functions/`). Audit records carry no patient data.
+
+**For marketing (positive).** "A pathologist decides which of a patient's earlier reports travel with a new one. What was seen at sign-out is what is printed and sent, and it cannot change afterwards." The intraoperative diagnosis now appears on the printed report, PDF and result sent out, and a patient summary can be printed from Patient History.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). The choice is kept in the browser; the server stores it with the signed report version (`docs/architecture/RELATED_CASES_API.md`). The PDF function must be redeployed (`functions/`). Wording in French, German, Dutch and Korean needs native-speaker review. No other gaps are recorded for this change.
+- Training: open a patient with two released cases, start sign-out on a third, tick one, read the preview, sign out, print the PDF and find the section; open Patient History and print a summary of both; amend the older case and reopen the signed report to see the flag. Standards: CAP and ISO 15189 (report content and traceability), HIPAA minimum necessary (only cases the user may open; audit without patient data).
 
 ## Batch 613 (part C): Access to a patient's other cases
+**For the practitioner (User Guide).** See Patient History. In Patient History and the case workup, when the patient has other cases you cannot open, a notice says how many (never which). Press **Ask for access**, pick a reason (the last one you used is preselected; "Other" needs a note) and send. No dialog opens; the request opens inline. The assigned pathologist of any of those cases, or an administrator, is told and sees **Approve** / **Decline** (a decline needs a reason, which you see) in the same notice. Nobody decides their own request, and PathScribe support never does. An approval covers that patient, linked identities included, and stays until a pathologist who may decide, or an administrator, revokes it with a reason (Quality Assurance, Access requests, Patient's other cases in force, or the notice). You are told when it ends. Ask early, during workup, so sign-out is not held up; you do not need to cancel sign-out to ask.
 
-- **Patient History and the case workup:** when the patient has other cases you cannot open, a notice says how many (never which). Press **Ask for access**, pick a reason (the last one you used is preselected; "Other" needs a note) and send. No dialog: the request opens inline.
-- **Who decides:** the assigned pathologist of any of those cases, or an administrator. They are told and see **Approve** / **Decline** (a decline needs a reason, which you see) in the same notice. Nobody decides their own request. PathScribe support never does.
-- **Open until revoked:** an approval covers that patient, linked identities included, and stays until a pathologist who may decide, or an administrator, revokes it with a reason (Quality Assurance, Access requests, Patient's other cases in force, or the notice). You are told when it ends.
-- **Ask early:** do it during workup so sign-out is not held up; you do not need to cancel sign-out to ask.
-- **Audit:** request, approve, decline, revoke and each history opened through a grant are logged (counts and accession numbers only, no patient name, no note).
-- **Who:** every case-access role may ask (`patient:other-cases:request-access`); pathologists and administrators decide (`patient:other-cases:decide-access`).
-- **Admin Guide:** Roles, Quality Assurance access requests. **User Guide:** Patient History.
-- **Training:** as one pathologist, open a patient with a case in another pool, ask with "Tumor board preparation"; as the assigned pathologist, approve; as the first, reopen the history; then revoke.
+**For the system administrator (Admin Guide).** See Roles and the Quality Assurance access requests. Every case-access role may ask (`patient:other-cases:request-access`); pathologists and administrators decide (`patient:other-cases:decide-access`). Revoking is done in Quality Assurance, Access requests, Patient's other cases in force, or from the notice, and needs a reason. Audit: request, approve, decline, revoke and each history opened through a grant are logged (counts and accession numbers only, no patient name, no note).
+
+**For marketing (positive).** Clinicians can ask for access to a patient's other cases right in the workflow, without leaving sign-out, and the assigned pathologist or an administrator decides. Every request, decision, revocation and history opened is logged without patient names or notes.
+
+**For FormedrixAI and partners (the plain reality).** No gaps are recorded for this change.
+- Training: as one pathologist, open a patient with a case in another pool, ask with "Tumor board preparation"; as the assigned pathologist, approve; as the first, reopen the history; then revoke.
 
 ## Batch 613 (part D): Reporting feed for Power BI
+**For the practitioner (User Guide).** Nothing changes on screen. This is an administrator feature and the User Guide has no entry for it.
 
-- **Configuration → System → Reporting feed (Power BI):** choose which datasets (cases, specimens, billing, quality, workload, audit summaries) and which performing-lab facilities the feed offers; issue a token for each tool (for example "Quality dashboard"); the token is shown once and only a fingerprint is kept. Replace a token (the old one works 24 more hours) or revoke it with a reason. A field catalogue lists every column.
-- **Privacy:** every token is de-identified by default: names, record numbers, birth dates and free text are removed and dates are reduced to the month. An identified token needs a named approver and a reason on record; withdrawing the approval stops identified tokens at once.
-- **Test a pull:** paste a token and choose a dataset to see how the server would answer (accepted, revoked, expired, wrong dataset, not approved, too many requests). It is labelled Simulated and returns no rows.
-- **Who:** Administrators and Lab Directors, with three separate permissions (settings; tokens; identified approval).
-- **Admin Guide:** Configuration, System, Reporting feed. **User Guide:** none.
-- **Training:** switch the feed on for one dataset and one facility, create a token, copy it, paste it into the test, then revoke it and test again.
-- **Marketing / RFP:** "Power BI and other reporting tools read PathScribe through a token-secured reporting API; patient-identifying fields are removed unless a named approver has signed off."
-- **Standards:** none directly; supports quality reporting and data-governance expectations. Every change and pull is audited without row content.
-- **Status:** Built (Demo). The reporting API itself is server work (PS-787, `docs/architecture/BI_FEED_API.md`).
+**For the system administrator (Admin Guide).** See Configuration, System, Reporting feed. In Configuration → System → Reporting feed (Power BI), choose which datasets (cases, specimens, billing, quality, workload, audit summaries) and which performing-lab facilities the feed offers. Issue a token for each tool (for example "Quality dashboard"); the token is shown once and only a fingerprint is kept. Replace a token (the old one works 24 more hours) or revoke it with a reason. A field catalogue lists every column. Every token is de-identified by default: names, record numbers, birth dates and free text are removed and dates are reduced to the month. An identified token needs a named approver and a reason on record; withdrawing the approval stops identified tokens at once. To test a pull, paste a token and choose a dataset to see how the server would answer (accepted, revoked, expired, wrong dataset, not approved, too many requests); it is labelled Simulated and returns no rows. Administrators and Lab Directors can use it, with three separate permissions (settings; tokens; identified approval). Every change and pull is audited without row content.
+
+**For marketing (positive).** "Power BI and other reporting tools read PathScribe through a token-secured reporting API; patient-identifying fields are removed unless a named approver has signed off." Tokens are de-identified by default, and every change and pull is audited.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). The reporting API itself is server work (PS-787, `docs/architecture/BI_FEED_API.md`). The test pull is Simulated and returns no rows. No other gaps are recorded for this change.
+- Training: switch the feed on for one dataset and one facility, create a token, copy it, paste it into the test, then revoke it and test again. Standards: none directly; supports quality reporting and data-governance expectations. Every change and pull is audited without row content.
 
 ## Batch 611 (part F) — legacy file import (simulated) and biometric prompt (#132, #166, #158)
+**For the practitioner (User Guide).** If you bring records over from an older system, Migration Jobs now has an Import legacy file button. You choose the old system, pick a CSV or JSON file, check the preview and run it. Records that fit and pass the checks become draft cases marked "Simulated bulk import". Records that need review, or that fail, create nothing, and an old accession number that was already imported is refused. The job lists every record and what happened to it. Separately, the biometric enrolment window and the sign-out panel are labelled "Simulated", and they use your device's own fingerprint or face prompt where your browser offers one. See Profile menu, Biometric signing, and Finalising a report.
 
-- **What changed:** *Migration Jobs* has **Import legacy file**: choose the source system (one with saved field mappings), pick a CSV or JSON file, check the preview, and run. Records that map and validate become draft cases marked *Simulated bulk import*; records that need review or fail create nothing; a legacy accession already imported is refused. The job lists every record with its outcome. Separately, the biometric enrolment window and the sign-out panel are labelled *Simulated*, and use the device's own fingerprint or face prompt where the browser offers one.
-- **Admin Guide:** Configuration, Migration, Field mappings (the import needs the mappings' manage permission); Migration Jobs. **User Guide:** Profile menu, Biometric signing; Finalising a report.
-- **Training:** save a field mapping for a source system, import a small CSV, open the job, find a draft case; enrol biometric signing, cancel the device prompt (nothing enrolled), enrol again, sign out with the device prompt, then with the password.
-- **Marketing / RFP:** "Bring a legacy export in as reviewable draft cases, with every record's outcome traced. Biometric sign-out uses the device's own sensor, with the password always available."
-- **Standards:** HIPAA (audit without patient data or file names), 21 CFR Part 11 and EU Annex 11 (the e-signature design, once a server verifies the device signature).
-- **Status:** Built (Demo). Bulk import jobs and OCR in the interface engine, and a server-issued and verified WebAuthn challenge, remain server-side work.
+**For the system administrator (Admin Guide).** Go to Configuration, Migration, Field mappings, then Migration Jobs. The import needs the mappings' manage permission, and only a source system that has saved field mappings can be chosen. The job keeps a per-record outcome list. The biometric enrolment window and sign-out panel carry the Simulated label and call the device prompt when the browser provides one.
+
+**For marketing (positive).** Bring a legacy export in as reviewable draft cases, with every record's outcome traced. Biometric sign-out uses the device's own sensor, with the password always available.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). Bulk import jobs and OCR in the interface engine, and a server-issued and verified WebAuthn challenge, remain server-side work. The import and the biometric windows are labelled Simulated for that reason. No other gaps are recorded for this change.
+- Training: save a field mapping for a source system, import a small CSV, open the job, find a draft case; enrol biometric signing, cancel the device prompt (nothing enrolled), enrol again, sign out with the device prompt, then with the password. Standards: HIPAA (audit without patient data or file names), 21 CFR Part 11 and EU Annex 11 (the e-signature design, once a server verifies the device signature).
 
 ## Batch 611 (part H) — multi-factor sign-in (#157)
+**For the practitioner (User Guide).** Depending on your organisation's policy, you may be asked for a second factor when you sign in. With hospital single sign-on, your hospital's identity provider asks for it; if your organisation requires it and the provider did not report one, the sign-in is refused with a plain message. On demo accounts, after your password you see a Simulated authenticator. The first time you get a secret to add to any authenticator app, the first code, and eight recovery codes shown once. Afterwards you enter a code (or a recovery code). A "Show demo code (Simulated)" button shows the code so no phone is needed. Five wrong codes lock codes for 15 minutes, and a code works only once. When you sign a report and your last second factor is older than the step-up time, you are asked for a code (password sessions) or sent back to the provider (single sign-on). A wrong password never uses up a code. This applies to every user the policy covers. See Signing in with a second factor, and Signing a report (the code field). If you lose your device, an administrator can reset your enrolment.
 
-- **Second factor, per organisation:** Configuration → System → Session Security has a new *Second factor* card. Choose who is asked (no one, the roles that sign reports, or everyone), how often a signature asks for a fresh code (default 30 minutes) and how long a sign-in's second factor lasts before the session ends (default 12 hours). Saving needs the existing Session Security permission and is audited.
-- **Hospital single sign-on:** your identity provider asks for the second factor. PathScribe checks that its sign-in response says it was used; if the organisation requires it and the provider did not report one, the sign-in is refused with a plain message. At a signature the provider is asked for a fresh sign-in and must report it again.
-- **Demo accounts (Simulated):** after the password, a Simulated authenticator: first time, a secret to add to any authenticator app, the first code, then eight recovery codes shown once; afterwards a code (or a recovery code). A "Show demo code (Simulated)" button shows the code so no phone is needed. Five wrong codes lock codes for 15 minutes; a code works once.
-- **At a signature:** when the last second factor is older than the step-up time, the signature asks for a code (password sessions) or sends the person to the provider again (single sign-on). A wrong password never spends a code.
-- **Lost device:** an administrator with the new permission *Reset a second-factor enrolment* (Admin by default) resets a colleague's enrolment in their own organisation from the same card.
-- **Who:** every user the policy covers; administrators set the policy.
-- **Admin Guide:** Session Security → Second factor; configuring the identity provider to report MFA (`docs/architecture/MFA.md`). **User Guide:** Signing in with a second factor; Signing a report (the code field).
-- **Training:** turn the policy on for Pathologists, sign in as a demo pathologist, enrol, use "Show demo code", then sign a case after 30 minutes and see the fresh-code prompt; reset the enrolment as an administrator.
-- **Marketing / RFP:** "Multi-factor sign-in: we enforce the hospital identity provider's second factor and prove it at every signature; per-organisation policy, step-up before signing, recovery codes, lockout, full audit trail." Supports HIPAA technical safeguards (person or entity authentication), ISO 15189 (access control), WCAG 3.3.
-- **Status:** Built (Demo). The second factor for real staff is the identity provider's; the Simulated authenticator is for demonstration only. The API server must repeat the checks (`docs/architecture/MFA.md`).
+**For the system administrator (Admin Guide).** Configuration > System > Session Security has a new Second factor card. Choose who is asked (no one, the roles that sign reports, or everyone), how often a signature asks for a fresh code (default 30 minutes) and how long a sign-in's second factor lasts before the session ends (default 12 hours). Saving needs the existing Session Security permission and is audited. For hospital single sign-on, configure the identity provider to report MFA (`docs/architecture/MFA.md`); PathScribe checks that its sign-in response says the second factor was used, and at a signature the provider is asked for a fresh sign-in and must report it again. For a lost device, an administrator with the new permission "Reset a second-factor enrolment" (Admin by default) resets a colleague's enrolment in their own organisation from the same card. Administrators set the policy.
+
+**For marketing (positive).** Multi-factor sign-in: we enforce the hospital identity provider's second factor and prove it at every signature. It comes with per-organisation policy, step-up before signing, recovery codes, lockout and a full audit trail. It supports HIPAA technical safeguards (person or entity authentication), ISO 15189 (access control) and WCAG 3.3.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). The second factor for real staff is the identity provider's; the Simulated authenticator is for demonstration only. The API server must repeat the checks (`docs/architecture/MFA.md`). No other gaps are recorded for this change.
+- Training: turn the policy on for Pathologists, sign in as a demo pathologist, enrol, use "Show demo code", then sign a case after 30 minutes and see the fresh-code prompt; reset the enrolment as an administrator. Standards: HIPAA technical safeguards (person or entity authentication), ISO 15189 (access control), WCAG 3.3.
 
 ## Batch 611 (part E) — simulated export server, matrix block comments, organ retention custody chain (#194, #10, #59)
+**For the practitioner (User Guide).** Exports: with no PathScribe server connected, My exports and the export notices now behave like the real thing. A small export is ready at once; a larger one (over 500 rows) shows Preparing for a while, up to 30 seconds, then offers Download. You can have three open exports, Cancel one, and each expires after 7 days. Everything is marked Simulated, and exports disappear when you sign out. A checkbox on My exports makes every export take about 8 seconds so training can show the waiting experience. This is for all export users. Matrix block comments: the matrix block editor (Details tab) has a Comments list with a one-line box, the same as blocks and stains. Comments are plain text, added with the Add button or Enter. This is for technologists and pathologists. Organ retention (UK HTA / NZ cases): each time the holder or location of retained organs changes, the earlier record is kept. The autopsy retention panel lists "Earlier custody records" under the current one, and the case timeline shows every move. Records are added to, never edited. This is for autopsy staff. See My exports (the Simulated label), Matrix block editor (Comments), and Autopsy, organ retention (earlier custody records).
 
-- **Exports without a server (demo):** with no PathScribe server connected, **My exports** and the export notices now behave like the real thing: a small export is ready at once, a larger one (over 500 rows) shows Preparing for a while, up to 30 seconds, then offers Download. Three open exports per user, Cancel, and the 7-day expiry all work. Everything is marked **Simulated**, and exports disappear at sign-out. A checkbox on My exports makes every export take about 8 seconds so training can show the waiting experience.
-- **Matrix block comments:** the matrix block editor (Details tab) has a Comments list with a one-line box, the same as blocks and stains. Comments are plain text, added with the Add button or Enter, and each one writes a "Matrix Block Comment Added" audit entry (no comment text in the audit).
-- **Organ retention custody chain (UK HTA / NZ cases):** each time the holder or location of retained organs changes, the earlier record is kept. The autopsy retention panel lists "Earlier custody records" under the current one, and the case timeline shows every move. Records are added to, never edited.
-- **Who:** all export users (exports); technologists and pathologists (matrix comments); autopsy staff (custody chain, existing permission `autopsy:retention-detail:record`).
-- **Admin Guide:** none. **User Guide:** My exports (the Simulated label); Matrix block editor (Comments); Autopsy, organ retention (earlier custody records).
-- **Training:** run a large export and watch Preparing turn into Download; add a matrix block comment; record two different holders and see both on the timeline.
-- **Marketing / RFP:** "Exports of any size run in the background with a notification and a download; every move of retained organs is kept in a custody chain."
-- **Status:** exports Built (Demo) (the server itself is a separate team's work); matrix comments Built; custody chain Built.
+**For the system administrator (Admin Guide).** There is nothing to configure for this change. Each matrix block comment writes a "Matrix Block Comment Added" audit entry, and the audit holds no comment text. Recording the custody chain uses the existing permission `autopsy:retention-detail:record`. The export limits are fixed: three open exports per user, over 500 rows shows Preparing for up to 30 seconds, and a 7-day expiry.
+
+**For marketing (positive).** Exports of any size run in the background with a notification and a download. Every move of retained organs is kept in a custody chain, so the history of each organ stays complete.
+
+**For FormedrixAI and partners (the plain reality).** Exports are Built (Demo): the server itself is a separate team's work, and the simulation is marked Simulated and clears at sign-out. Matrix comments are Built. The custody chain is Built. No other gaps are recorded for this change.
+- Training: run a large export and watch Preparing turn into Download; add a matrix block comment; record two different holders and see both on the timeline.
 
 ## Batch 609 (part A): Report PDF layout and images in reports
+**For the practitioner (User Guide).** Printed reports now follow your lab's layout settings. Before, the screen preview showed them but the printed PDF always used A4 portrait with fixed fonts. If your lab never set a font size, printed text may look smaller than before; ask your administrator to raise the size. You can also attach images to a report from the report page (surgical) and the Cytology Workspace: press Attach images, paste an https link to the image in your hospital's own system, pick the type (Gross specimen, Microphotograph, Block face, Other; your choice is remembered), add an optional caption, and press Enter. You can add up to 12 images per report. Images print after the report's own pages, one per page with its caption. An image under 300 DPI at its printed size is flagged but still prints. If a link cannot be reached when the report is made, that page reads "Image Unavailable" instead of the image being left out silently. A corrupt or non-image link stops the release until you remove it. PathScribe stores no images, only the link. The image is fetched when the report is made and becomes part of the stored PDF, so a later change at the source does not alter a released report. This is for pathologists, residents, PAs and technologists.
 
-- **Printed reports follow the lab's settings:** page size and orientation, margins (never below 12.7 mm / 0.5 in, so a printer does not clip text), font family, size, weight, underline and case for the header, body and footer, and the header and footer parts from Configuration, Report Appearance. Before this, the screen preview showed these settings but the printed PDF always used A4 portrait with fixed fonts.
-- **Font sizes are in pixels** on the Document Style screen and print at 0.75 pt per pixel, with a 7 pt floor. A lab that never set a size now prints the 10 px default at 7.5 pt; raise the size if the printed text is smaller than before.
-- **Fonts:** Arial, Helvetica, Calibri and Verdana print in Helvetica; Times New Roman and Georgia in Times; Courier New in Courier. Korean reports keep Pretendard. The cytology report keeps its embedded font and does not use header or footer parts (it has no template).
-- **Header and footer parts** replace the standard institution block (first page) and the confidentiality line (every page, above the barcode band) when they have content. Footer parts carry no page numbers.
-- **Attach images (surgical report page and Cytology Workspace):** a new Attach images button opens a window where you paste an https link to the image in your hospital's own system, pick the type (Gross specimen, Microphotograph, Block face, Other; remembered) and an optional caption, and press Enter. Up to 12 images per report. Images print after the report's own pages, one per page with its caption; an image under 300 DPI at its printed size is flagged but still prints. If a link cannot be reached when the report is made, that page reads "Image Unavailable" instead of the image being left out silently. A corrupt or non-image link stops the release until it is removed.
-- **PathScribe stores no images:** only the link is kept; the image is fetched when the report is made and becomes part of the stored PDF, so a change at the source later does not alter a released report.
-- **Permission:** `report:case-images:attach`, held by every role with case access by default.
-- **Who:** Pathologists, residents, PAs and technologists (images); administrators (report appearance).
-- **Admin Guide:** Configuration, Report Appearance (page setup, Document Style: the px-to-pt rule, font mapping, margin minimum); Roles (the new permission).
-- **User Guide:** Report page and Cytology Workspace: Attach images.
-- **Training:** link an image, add a caption, make a preview PDF, find the image page after the report; remove a link; see "Image Unavailable" when a link is dead.
-- **Standards:** supports PS-276 section 1.1.3 (300 DPI flag for embedded raster images); links-only storage follows the Oct 13 images rule.
-- **Marketing / RFP:** "Printed reports match the lab's layout settings, and gross and microscopic photos from your imaging system print with the report, with a captioned page for each."
-- **Status:** Built (Demo). The browser fetches each link itself, so it works for a host that allows it (CORS) and otherwise prints the Image Unavailable page; with the API server the server fetches the link (private-address blocking and the hospital system's sign-in are server work). The renderer in `functions/` must be redeployed for the layout settings to print.
+**For the system administrator (Admin Guide).** Configuration, Report Appearance (page setup, Document Style). Printed reports use page size and orientation, margins (never below 12.7 mm / 0.5 in, so a printer does not clip text), font family, size, weight, underline and case for the header, body and footer, and the header and footer parts. Font sizes are in pixels on the Document Style screen and print at 0.75 pt per pixel, with a 7 pt floor. A lab that never set a size now prints the 10 px default at 7.5 pt; raise the size if printed text is smaller than before. Font mapping: Arial, Helvetica, Calibri and Verdana print in Helvetica; Times New Roman and Georgia in Times; Courier New in Courier. Korean reports keep Pretendard. The cytology report keeps its embedded font and does not use header or footer parts (it has no template). Header and footer parts replace the standard institution block (first page) and the confidentiality line (every page, above the barcode band) when they have content. Footer parts carry no page numbers. Roles: the new permission `report:case-images:attach` is held by every role with case access by default. Administrators manage report appearance.
+
+**For marketing (positive).** Printed reports match the lab's layout settings, and gross and microscopic photos from your imaging system print with the report, with a captioned page for each.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). The browser fetches each link itself, so it works for a host that allows it (CORS) and otherwise prints the Image Unavailable page. With the API server, the server fetches the link; private-address blocking and the hospital system's sign-in are server work. The renderer in `functions/` must be redeployed for the layout settings to print. No other gaps are recorded for this change.
+- Training: link an image, add a caption, make a preview PDF, find the image page after the report; remove a link; see "Image Unavailable" when a link is dead. Standards: supports PS-276 section 1.1.3 (300 DPI flag for embedded raster images); links-only storage follows the Oct 13 images rule.
 
 ## Batch 603 — Wall displays need a token; break-glass is a permission; QA export has no MRN
+**For the practitioner (User Guide).** The OR board now shows the surgical case ID and room instead of the patient's name and MRN, including on the dismissal confirmation. The Facility Ops display shows no patient identifiers. In the cytology-histology correlation export the MRN column is gone; use the accession numbers (the printed view still shows MRN).
 
-- **Wall displays:** Configuration → Display Profiles, and → OR Suite Terminals, each row has a **Display token** button. Issue a token (choose how long it lasts), copy it (shown once) and enter it on the display when you bind it. Revoke it to blank the display within a minute. Issuing a new token stops the old one at once.
-- **What the displays show:** the OR board shows the surgical case ID and room instead of the patient's name and MRN, including on the dismissal confirmation. The Facility Ops display shows no patient identifiers.
-- **Break-glass rebind:** rebinding a downtime patient identity from the Audit Log needs the new permission **Rebind downtime patient identity** (Admin has it by default). A reason and written justification are still required and audited.
-- **Cytology-histology correlation export:** the MRN column is gone; use the accession numbers. (The printed view still shows MRN.)
-- **Not yet:** the server-side check that refuses a revoked token is Planned; MFA is Planned with the OIDC/Entra work.
+**For the system administrator (Admin Guide).** Configuration → Display Profiles, and → OR Suite Terminals: each row has a Display token button. Issue a token (choose how long it lasts), copy it (shown once) and enter it on the display when you bind it. Revoke it to blank the display within a minute. Issuing a new token stops the old one at once. Rebinding a downtime patient identity from the Audit Log (break-glass) needs the new permission "Rebind downtime patient identity" (Admin has it by default). A reason and written justification are still required and audited.
+
+**For marketing (positive).** Wall displays are now tied to a token you control and can revoke within a minute. The OR board and Facility Ops display keep patient identifiers off the wall, and break-glass rebinding has its own permission.
+
+**For FormedrixAI and partners (the plain reality).** Not yet: the server-side check that refuses a revoked token is Planned, and MFA is Planned with the OIDC/Entra work. No other gaps are recorded for this change.
 
 ## Batch 602 — Hotkeys and voice know the screen you are on
+**For the practitioner (User Guide).** On a screen, a hotkey or phrase now runs that screen's command, even if an always-on command (Configuration, Resources, ...) uses the same key. To reach the always-on command from such a screen, press Alt+J, then its key. A "Go to" panel shows the keys; Esc or 3 seconds of waiting closes it without doing anything. Six default hotkeys changed: Enhancement Request Alt+Y, Testing Feedback Alt+X, Resources Alt+Q, Focus Case Search Alt+Shift+B, Participation Types Alt+Shift+W, Touch Prep Performed Alt+Shift+Y. Keys you customised are kept.
 
-- On a screen, a hotkey or phrase runs that screen's command, even if an always-on command (Configuration, Resources, ...) uses the same key.
-- To reach the always-on command from such a screen, press Alt+J, then its key. A "Go to" panel shows the keys; Esc or 3 seconds of waiting closes it without doing anything.
-- Six default hotkeys changed (Enhancement Request Alt+Y, Testing Feedback Alt+X, Resources Alt+Q, Focus Case Search Alt+Shift+B, Participation Types Alt+Shift+W, Touch Prep Performed Alt+Shift+Y). Keys you customised are kept.
+**For the system administrator (Admin Guide).** There is no setting for this change. The screen's own command takes priority over an always-on command that shares its key or phrase, and Alt+J opens the "Go to" panel to reach the always-on command. The six default hotkeys listed above changed; customised keys are kept.
+
+**For marketing (positive).** Hotkeys and voice commands now understand which screen you are on, so the command you expect is the one that runs. A quick Alt+J "Go to" panel still gets you to the always-on commands.
+
+**For FormedrixAI and partners (the plain reality).** No gaps are recorded for this change.
 
 ## Batch 601 — Every command can be assigned to a role
+**For the practitioner (User Guide).** Nothing changes on screen. Which voice and shortcut commands you can use depends on your role, which your administrator sets.
 
-- **What changed:** Staff → Roles → Role Dictionary now lists every voice and shortcut command, including the ones that only open a screen, filter or sort a list, move between rows or cancel a window. Six new groups: Go To & Help, Worklist Views & Filters, Search & Messages Views, My Contribution Views, Report Screen Dialogs & Views, Cytology Screen Views.
-- **Starting points:** roles with case screens have all of them on; Admin, Lab Director and QA Reviewer have the going-to and searching ones. Duplicate the nearest role and change what differs. Existing sites receive these once; anything you switch off stays off.
-- **Known:** some hotkeys are shared by two commands that can be active on the same screen; a fix is planned (`ACTIONS_COVERAGE.md`).
+**For the system administrator (Admin Guide).** Staff → Roles → Role Dictionary now lists every voice and shortcut command, including the ones that only open a screen, filter or sort a list, move between rows or cancel a window. Six new groups: Go To & Help, Worklist Views & Filters, Search & Messages Views, My Contribution Views, Report Screen Dialogs & Views, Cytology Screen Views. Starting points: roles with case screens have all of them on; Admin, Lab Director and QA Reviewer have the going-to and searching ones. Duplicate the nearest role and change what differs. Existing sites receive these once; anything you switch off stays off.
+
+**For marketing (positive).** Every voice and shortcut command can now be assigned to a role, so each site can match commands to the job. Sensible starting points are already in place for each role.
+
+**For FormedrixAI and partners (the plain reality).** Known gap: some hotkeys are shared by two commands that can be active on the same screen; a fix is planned (`ACTIONS_COVERAGE.md`). No other gaps are recorded for this change.
 
 ## Batch 600 — More commands in the Role Dictionary, with defaults
+**For the practitioner (User Guide).** Nothing changes on screen. Your role already has the voice and shortcut commands your job uses switched on.
 
-- **What changed:** Staff → Roles → Role Dictionary lists 60 more commands, in seven new groups: Report Workflow, Case Handling, Orders & Printing, Intraoperative, Cytology Screening, Workstations and Result Dispatch. These are the voice and shortcut commands that save, submit, log, order, print or create something.
-- **Starting points:** every built-in role already has the commands its job uses switched on (for example the Histotechnologist has the microtomy, embedding and slide distribution commands; the Cytotechnologist has the cytology screening commands). Start from the role closest to yours, duplicate it and change what differs.
-- **Existing sites:** built-in roles receive the new commands the next time roles load. A command you switch off stays off. Your own roles are not changed.
-- **Not changed:** what a person may do is still decided by their permissions; these switches control which voice and shortcut commands a role can use.
+**For the system administrator (Admin Guide).** Staff → Roles → Role Dictionary lists 60 more commands, in seven new groups: Report Workflow, Case Handling, Orders & Printing, Intraoperative, Cytology Screening, Workstations and Result Dispatch. These are the voice and shortcut commands that save, submit, log, order, print or create something. Every built-in role already has the commands its job uses switched on (for example the Histotechnologist has the microtomy, embedding and slide distribution commands; the Cytotechnologist has the cytology screening commands). Start from the role closest to yours, duplicate it and change what differs. Built-in roles receive the new commands the next time roles load. A command you switch off stays off. Your own roles are not changed. What a person may do is still decided by their permissions; these switches control which voice and shortcut commands a role can use.
+
+**For marketing (positive).** Sixty more voice and shortcut commands can be assigned by role, and each built-in role arrives with the commands its job uses already on. Sites can duplicate the closest role and adjust it.
+
+**For FormedrixAI and partners (the plain reality).** No gaps are recorded for this change.
 
 ## Batch 595 — Code Systems setting
+**For the practitioner (User Guide).** Nothing changes on screen yet. There is no User Guide entry for this change.
 
-- **What changed:** Configuration → System → Code Systems. For each jurisdiction, an administrator sets which code systems (ICD-10, ICD-11, ICD-O, SNOMED CT and others) are off, optional or required, and from what date. The settings are saved and audited. **The Add Code window, sign-out and outbound messages do not use them yet** (Planned), and the screen says so.
-- **User Guide:** none yet. **Admin Guide:** new section "Code Systems" in the jurisdiction chapter (`ADMIN_GUIDE_JURISDICTIONS.md`, section 3.0); Role Dictionary, the new permission "Manage the code systems" (Admin and Lab Director).
-- **Training:** to prepare a region for ICD-11, add an ICD-11 row with a start date; change nothing else.
-- **Marketing / RFP:** "Moving a region from ICD-10 to ICD-11 is a dated setting, not a software upgrade." Say "configurable ahead of the transition"; do not say the coding screens already follow it.
-- **Standards:** ISO 15189 and CAP (controlled, audited configuration); HIPAA (no patient data in the setting).
+**For the system administrator (Admin Guide).** Configuration → System → Code Systems. For each jurisdiction, set which code systems (ICD-10, ICD-11, ICD-O, SNOMED CT and others) are off, optional or required, and from what date. The settings are saved and audited. The Add Code window, sign-out and outbound messages do not use them yet (Planned), and the screen says so. Documentation: new section "Code Systems" in the jurisdiction chapter (`ADMIN_GUIDE_JURISDICTIONS.md`, section 3.0). Permissions: in the Role Dictionary, the new permission "Manage the code systems" (Admin and Lab Director).
+
+**For marketing (positive).** Moving a region from ICD-10 to ICD-11 is a dated setting, not a software upgrade. Say "configurable ahead of the transition"; do not say the coding screens already follow it.
+
+**For FormedrixAI and partners (the plain reality).** The settings screen is built, saved and audited, but the Add Code window, sign-out and outbound messages do not use the settings yet (Planned). Do not claim the coding screens follow it. No other gaps are recorded for this change.
+- Training: to prepare a region for ICD-11, add an ICD-11 row with a start date; change nothing else. Standards: ISO 15189 and CAP (controlled, audited configuration); HIPAA (no patient data in the setting).
 
 ## Batch 593 — Jurisdiction setup chapter and known-gaps tracker
+**For the practitioner (User Guide).** Nothing changes on screen. This change is documentation only, and there is no User Guide entry.
 
-- **What changed:** documentation only. New Admin Guide source `ADMIN_GUIDE_JURISDICTIONS.md` (give a facility its jurisdiction, then review Country Signing Rules, Jurisdiction Payment Mapping, Governing Bodies and the per-jurisdiction rule screens). New `KNOWN_GAPS.md`, the running release-scope list.
-- **User Guide:** none. **Admin Guide:** new chapter "Setting up and maintaining jurisdictions" (paste from the source file).
-- **Training:** a new region goes live in two steps: set the facility's Jurisdiction on the General tab, then review the four System screens.
-- **Marketing / RFP:** "Thirteen jurisdictions are supported, each with its own signing rules, payment schemes, retention figures, AI-vendor policy and report language." (Adding a country needs a software change.)
-- **Standards:** ISO 15189 and CAP (retention and signing authority by jurisdiction); GDPR and HIPAA (AI hosting-region policy per jurisdiction).
+**For the system administrator (Admin Guide).** Documentation only. There is a new Admin Guide source `ADMIN_GUIDE_JURISDICTIONS.md`, to be pasted in as the chapter "Setting up and maintaining jurisdictions". It covers giving a facility its jurisdiction, then reviewing Country Signing Rules, Jurisdiction Payment Mapping, Governing Bodies and the per-jurisdiction rule screens. A new region goes live in two steps: set the facility's Jurisdiction on the General tab, then review the four System screens. There is also a new `KNOWN_GAPS.md`, the running release-scope list.
+
+**For marketing (positive).** Thirteen jurisdictions are supported, each with its own signing rules, payment schemes, retention figures, AI-vendor policy and report language.
+
+**For FormedrixAI and partners (the plain reality).** This is documentation only: a new Admin Guide chapter source and the `KNOWN_GAPS.md` release-scope list. Adding a country needs a software change. No other gaps are recorded for this change.
+- Training: a new region goes live in two steps: set the facility's Jurisdiction on the General tab, then review the four System screens. Standards: ISO 15189 and CAP (retention and signing authority by jurisdiction); GDPR and HIPAA (AI hosting-region policy per jurisdiction).
 
 ## Batch 589 — Nine app bugs fixed
+**For the practitioner (User Guide).** Nine things now work properly. A label with no patient prints a blank name. The Confirm Field shortcut confirms the field you are in. Report Draft text and typed Microscopic Descriptions are checked for critical findings, and the highlight is kept when the case is reopened; a flagged finding stays highlighted until the flagged words are removed. The Label Designer canvas and width box are exact. The error screen on a case report keeps the navigation bar. An OR PIN set on the Staff screen works. Labels sent to a QZ Tray printer connect first and say so when the printer is not connected: if a label opens in the browser print window and a message says the label printer is not connected, check that QZ Tray is running. The demo has five peer review discordances. See Label printing (printer not connected message), Report Draft and critical findings, Label Designer, and keyboard shortcuts (Confirm Field).
 
-- **What changed:** a label with no patient prints a blank name; the Confirm Field shortcut confirms the field you are in; Report Draft text and typed Microscopic Descriptions are checked for critical findings, and the highlight is kept when the case is reopened; the Label Designer canvas and width box are exact; the error screen on a case report keeps the navigation bar; an OR PIN set on the Staff screen works; labels sent to a QZ Tray printer connect first and say so when the printer is not connected; the demo has five peer review discordances.
-- **User Guide:** Label printing (printer not connected message); Report Draft and critical findings; Label Designer; keyboard shortcuts (Confirm Field). **Admin Guide:** Staff (OR Staff role and PIN); QZ Tray setup, see `QZ_TRAY_CERTIFICATE_GUIDE.md`.
-- **Training:** if a label opens in the browser print window and a message says the label printer is not connected, check that QZ Tray is running. A flagged finding stays highlighted until the flagged words are removed.
-- **Marketing / RFP:** "Critical findings in the narrative are flagged before sign-out, including text typed by the pathologist, and stay marked when the case is reopened."
-- **Standards:** ISO 15189 and CAP (peer review and CAPA demonstration data); HIPAA (no patient identifiers in the new demo data or the new messages).
+**For the system administrator (Admin Guide).** See Staff (OR Staff role and PIN): an OR PIN set on the Staff screen now works. For QZ Tray setup, see `QZ_TRAY_CERTIFICATE_GUIDE.md`. Labels sent to a QZ Tray printer connect first and show a message when the printer is not connected; if a label opens in the browser print window, check that QZ Tray is running. The new demo data and the new messages carry no patient identifiers.
+
+**For marketing (positive).** Critical findings in the narrative are flagged before sign-out, including text typed by the pathologist, and stay marked when the case is reopened.
+
+**For FormedrixAI and partners (the plain reality).** Nine app bugs fixed, listed above. The demo now has five peer review discordances as peer review and CAPA demonstration data. No gaps are recorded for this change.
+- Training: if a label opens in the browser print window and a message says the label printer is not connected, check that QZ Tray is running. A flagged finding stays highlighted until the flagged words are removed. Standards: ISO 15189 and CAP (peer review and CAPA demonstration data); HIPAA (no patient identifiers in the new demo data or the new messages).
 
 ## Batch 588 — Deleting a block in process
+**For the practitioner (User Guide).** The block and stain editor has a Delete this block button. Pick a reason (a note is required for Other) and confirm. The block stays on the case, marked Deleted, with who, when and why; its unfinished stains are cancelled and its billing codes released. No message is sent. Delete only a block that should not exist (entered in error, duplicate, not needed, processing failure). A wrong piece in a block is still Cancel this block. Once a case is signed out the button is not offered. Billing staff see a "Block deleted" finding under Quality Assurance → Financials → Billing deficiencies and decide whether a credit is due. See the block and stain editor (Delete this block) and Quality Assurance → Financials.
 
-- **What changed:** the block and stain editor has a **Delete this block** button. Pick a reason (a note is required for Other) and confirm. The block stays on the case, marked Deleted, with who, when and why; its unfinished stains are cancelled and its billing codes released. Billing staff see a "Block deleted" finding under Quality Assurance → Financials → Billing deficiencies and decide whether a credit is due. No message is sent. A new permission, "Delete a block in process", appears in the Role Dictionary.
-- **User Guide:** the block and stain editor (Delete this block); Quality Assurance → Financials (the "Block deleted" finding). **Admin Guide:** Role Dictionary, the new permission. Technician roles hold it by default; each facility can change which roles hold it.
-- **Training:** delete only a block that should not exist (entered in error, duplicate, not needed, processing failure). A wrong piece in a block is still Cancel this block. Once a case is signed out the button is not offered.
-- **Marketing / RFP:** "Blocks are never erased: a deleted block stays on the case, marked Deleted, with who, when and why, and billing is asked to review any credit."
-- **Standards:** ISO 15189 (traceability of records), CAP ANP.11600 (specimen handling documentation), HIPAA audit controls.
+**For the system administrator (Admin Guide).** Role Dictionary: a new permission, "Delete a block in process". Technician roles hold it by default; each facility can change which roles hold it. The deletion records who, when and why, and is shown to billing staff as a "Block deleted" finding under Quality Assurance → Financials → Billing deficiencies.
+
+**For marketing (positive).** Blocks are never erased: a deleted block stays on the case, marked Deleted, with who, when and why, and billing is asked to review any credit.
+
+**For FormedrixAI and partners (the plain reality).** No gaps are recorded for this change.
+- Training: delete only a block that should not exist (entered in error, duplicate, not needed, processing failure). A wrong piece in a block is still Cancel this block. Once a case is signed out the button is not offered. Standards: ISO 15189 (traceability of records), CAP ANP.11600 (specimen handling documentation), HIPAA audit controls.
 
 ## Batches 583 and 584: template e-mails move to the server; dialogs, breadcrumb and billing reasons; more review tests
-- **What changed:**
-  - **Template e-mails (Partial: needs the server, phase 2e).** Submitting, requesting changes, approving and publishing a protocol, and the nightly protocol sync, are designed to e-mail the right people: submitted goes to Template Approvers and Lab Directors; changes requested, approved and published go to everyone who saved the template; sync events go to Admins. Each e-mail is in the recipient's language, sent from a PathScribe address, immediately, with no opt-out in the first release. Nothing is sent in the demo.
-  - **Configuration dialogs:** after a click outside (or Escape) with unsaved edits, "Discard changes" now closes the dialog; before, it forgot the edits but left the dialog open.
-  - **Case breadcrumb:** a case opened from Search shows Home › Search › Case Report and returns to Search.
-  - **Billing after sign-out:** adding, removing or applying a block's code at specimen level on a signed-out case asks for a reason (a picklist plus a required comment), exactly as at case level, and the reason is in the audit entry. Cases billed by the lab's own system (Assist) are not asked.
-- **Who:** template authors, approvers and Lab Directors (e-mails); everyone who configures; billing and coding staff.
-- **User Guide:** the case breadcrumb (Search); the post-sign-out billing reason for specimen-level codes.
-- **Admin Guide:** Protocols → Review: who is e-mailed on each event (when the server exists); Configuration dialogs and unsaved changes.
-- **Training:** change a code on a signed-out specimen and show the reason window; open a case from Search and use the breadcrumb.
-- **Marketing / RFP:** "Every billing change after sign-out is attributed and carries a reason." "Protocol approvals notify the right reviewers in their own language." (the second once the server is live).
-- **Standards:** ISO 15189 (record of changes after release); HIPAA and GDPR (recipients chosen on the server, never a staff e-mail list in the browser).
-- **Status:** dialogs, breadcrumb and billing reason Live; e-mails Partial.
-- **Also, Batches 583 and 584:** twenty more review tests; 34 In Review tickets now have one. Several found real app bugs, listed for decision in `src/i18n/README.md` (Batch 584).
-- **Also, Batch 585:** five more review tests (the "Mixed" tickets PS-60, 269, 292, 474, 475); nothing a user sees changes. 39 In Review tickets now have one.
-- **Also, Batch 586:** four more review tests (PS-63, 277, 283, 342); nothing a user sees changes. 43 In Review tickets now have one.
-- **Also, Batch 587:** six more review tests (PS-73, 89, 146, 327, 341, 470); nothing a user sees changes. 49 In Review tickets now have one.
+**For the practitioner (User Guide).** Three things change on screen. In Configuration dialogs, after a click outside (or Escape) with unsaved edits, "Discard changes" now closes the dialog; before, it forgot the edits but left the dialog open. A case opened from Search shows Home › Search › Case Report in the breadcrumb and returns to Search. After sign-out, adding, removing or applying a block's code at specimen level on a signed-out case asks for a reason (a picklist plus a required comment), exactly as at case level; cases billed by the lab's own system (Assist) are not asked. This is for billing and coding staff. Template e-mails go to template authors, approvers and Lab Directors, but nothing is sent in the demo. The extra review tests (Batches 583 to 587) change nothing on screen. See the case breadcrumb (Search) and the post-sign-out billing reason for specimen-level codes.
+
+**For the system administrator (Admin Guide).** See Protocols → Review for who is e-mailed on each event (when the server exists), and Configuration dialogs and unsaved changes. Submitting, requesting changes, approving and publishing a protocol, and the nightly protocol sync, are designed to e-mail the right people. Submitted goes to Template Approvers and Lab Directors; changes requested, approved and published go to everyone who saved the template; sync events go to Admins. Each e-mail is in the recipient's language, sent from a PathScribe address, immediately, with no opt-out in the first release. Recipients are chosen on the server, never from a staff e-mail list in the browser. The billing reason on a signed-out case is recorded in the audit entry.
+
+**For marketing (positive).** Every billing change after sign-out is attributed and carries a reason. Protocol approvals notify the right reviewers in their own language (once the server is live).
+
+**For FormedrixAI and partners (the plain reality).** Dialogs, breadcrumb and billing reason are Live. Template e-mails are Partial: they need the server (phase 2e) and nothing is sent in the demo. Also in Batches 583 and 584: twenty more review tests; 34 In Review tickets now have one. Several found real app bugs, listed for decision in `src/i18n/README.md` (Batch 584). Also Batch 585: five more review tests (the "Mixed" tickets PS-60, 269, 292, 474, 475); nothing a user sees changes; 39 In Review tickets now have one. Also Batch 586: four more review tests (PS-63, 277, 283, 342); nothing a user sees changes; 43 In Review tickets now have one. Also Batch 587: six more review tests (PS-73, 89, 146, 327, 341, 470); nothing a user sees changes; 49 In Review tickets now have one.
+- Training: change a code on a signed-out specimen and show the reason window; open a case from Search and use the breadcrumb. Standards: ISO 15189 (record of changes after release); HIPAA and GDPR (recipients chosen on the server, never a staff e-mail list in the browser).
 
 ## Batches 581 and 582: review tests in a real browser
-- **What changed:** nothing on screen. Reviewing a delivered ticket can now be done by running its Playwright test, which follows the ticket's review steps in a real browser (Chrome's engine, or Firefox); ten In Review tickets have one so far.
-- **Who:** the product owner and the QA team.
-- **User Guide / Admin Guide:** none.
-- **Training:** for QA staff: `docs/quality/PLAYWRIGHT_REVIEW_GUIDE.md`.
-- **Marketing / RFP:** "Every delivered change is verified by automated browser tests that follow its acceptance steps."
-- **Standards:** ISO 15189 and CAP expectations for validated software changes (verification evidence per change).
-- **Status:** Live (Chromium); Firefox on request.
+**For the practitioner (User Guide).** Nothing changes on screen. There is no User Guide entry.
+
+**For the system administrator (Admin Guide).** Nothing to configure and no Admin Guide entry. Reviewing a delivered ticket can now be done by running its Playwright test, which follows the ticket's review steps in a real browser (Chrome's engine, or Firefox). Ten In Review tickets have one so far. This is for the product owner and the QA team; QA staff should see `docs/quality/PLAYWRIGHT_REVIEW_GUIDE.md`.
+
+**For marketing (positive).** Every delivered change is verified by automated browser tests that follow its acceptance steps.
+
+**For FormedrixAI and partners (the plain reality).** Live (Chromium); Firefox on request. Ten In Review tickets have a test so far. No other gaps are recorded for this change.
+- Training: for QA staff: `docs/quality/PLAYWRIGHT_REVIEW_GUIDE.md`. Standards: ISO 15189 and CAP expectations for validated software changes (verification evidence per change).
 
 ## Batch 580: styled dropdown lists
-- **What changed:** in Chrome and Edge, every dropdown's open list is a styled panel in the app's colours, with the current choice marked; dropdowns keep their usual width. Firefox and Safari keep the dark list until they support the styled one.
-- **Who:** everyone.
-- **User Guide:** none (screenshots taken in Chrome or Edge will show the new list).
-- **Admin Guide:** "Supported browsers": Chrome, Edge and Firefox, current versions.
-- **Training:** none.
-- **Marketing / RFP:** "Supported browsers: Chrome, Edge and Firefox (current versions)."
-- **Standards:** WCAG 2.1 AA (the browser's own keyboard and screen-reader behaviour is kept).
-- **Status:** Live.
+**For the practitioner (User Guide).** In Chrome and Edge, every dropdown's open list is now a styled panel in the app's colours, with the current choice marked. Dropdowns keep their usual width. Firefox and Safari keep the dark list until they support the styled one. This is for everyone. There is no User Guide entry, but screenshots taken in Chrome or Edge will show the new list.
+
+**For the system administrator (Admin Guide).** See "Supported browsers": Chrome, Edge and Firefox, current versions. The browser's own keyboard and screen-reader behaviour is kept.
+
+**For marketing (positive).** Supported browsers: Chrome, Edge and Firefox (current versions). In Chrome and Edge, dropdown lists now match the app's colours, and the browser's own keyboard and screen-reader behaviour is kept (WCAG 2.1 AA).
+
+**For FormedrixAI and partners (the plain reality).** Live. The styled list shows in Chrome and Edge only; Firefox and Safari keep the dark list until they support the styled one. No other gaps are recorded for this change.
+- Training: none. Standards: WCAG 2.1 AA (the browser's own keyboard and screen-reader behaviour is kept).
 
 ## Batch 579: template reviewer guide; billing codes saved at once
-- **What changed:** Configuration → Protocols → Review Queue → a template: a short "How to review this template" guide (open while it is in review; fold it and it stays folded), comment boxes that match the dark screen and name their question, an Add button, and Reset to Draft moved to the end of the row (unavailable in Draft). Case report: adding, removing or correcting a specimen's billing code, and the Sequencer's specimen order, are now saved immediately (they were lost on reload). A billing code is either saved with its charge or not at all.
-- **Who:** template reviewers and approvers; pathologists and billing staff on the case report.
-- **User Guide:** Case report → Billing codes ("saved as you make them"); Sequencer (the specimen order saves at once; the report order with Save Draft).
-- **Admin Guide:** Protocols → Reviewing a template (the guide; comments; Reset to Draft).
-- **Training:** show a reviewer the guide and how to comment and resolve.
-- **Marketing / RFP:** "Guided, audited template review with independent sign-off."
-- **Standards:** ISO 15189 control of documents (reviewed and approved before use); WCAG 2.1 AA.
-- **Status:** Live.
+**For the practitioner (User Guide).** Template reviewers and approvers: in Configuration → Protocols → Review Queue → a template, you now get a short "How to review this template" guide (open while the template is in review; fold it and it stays folded), comment boxes that match the dark screen and name their question, an Add button, and Reset to Draft moved to the end of the row (unavailable in Draft). Pathologists and billing staff on the case report: adding, removing or correcting a specimen's billing code, and the Sequencer's specimen order, are now saved immediately (they were lost on reload). A billing code is either saved with its charge or not at all. See Case report → Billing codes ("saved as you make them") and Sequencer (the specimen order saves at once; the report order with Save Draft).
+
+**For the system administrator (Admin Guide).** See Protocols → Reviewing a template (the guide; comments; Reset to Draft). The guide appears while a template is in review and stays folded once folded. Reset to Draft is at the end of the row and unavailable in Draft.
+
+**For marketing (positive).** Guided, audited template review with independent sign-off.
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change.
+- Training: show a reviewer the guide and how to comment and resolve. Standards: ISO 15189 control of documents (reviewed and approved before use); WCAG 2.1 AA.
 
 ## Batch 578: the workload cap screen's errors and pickers
-- **What changed:** Configuration → Cytology → Workload cap: a cap that isn't saved is explained under its own field, not at the top of the screen. "+ Add Override" lists only the facilities or people who don't have an override yet, and is unavailable, with a short note, once everyone has one.
-- **Who:** lab administrators.
-- **User Guide:** none.
-- **Admin Guide:** Cytology → Workload cap: adding overrides (one per facility or person; remove one to set it again).
-- **Training:** none.
-- **Marketing / RFP:** none.
-- **Standards:** WCAG 2.1 AA 3.3.1 (Error Identification), 1.3.1.
-- **Status:** Live.
+**For the practitioner (User Guide).** Nothing changes on screen for you. There is no User Guide entry. This change is for lab administrators.
+
+**For the system administrator (Admin Guide).** Configuration → Cytology → Workload cap: a cap that isn't saved is now explained under its own field, not at the top of the screen. "+ Add Override" lists only the facilities or people who don't have an override yet, and is unavailable, with a short note, once everyone has one. Overrides are one per facility or person; remove one to set it again.
+
+**For marketing (positive).** The workload cap screen now explains a problem right beside the field that caused it. The override picker offers only the facilities or people who still need one.
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change.
+- Training: none. Standards: WCAG 2.1 AA 3.3.1 (Error Identification), 1.3.1.
 
 ## Batch 577: "Use their version" without a reload; presence in the tab bar
-- **What changed:** Case report: the "Someone else changed this case" box's **Reload their version** is now **Use their version**: their saved case appears at once, in place, and what you hadn't saved is discarded (the box says so). After **Show their changes** or **Use their version**, everything on the page is up to date with their save, including the synoptic form's answers, deficiencies, versions, signatures, the amendment banner and the report preview. "Who else has the case open" now sits at the right of the tab bar and no longer pushes the page down when someone opens the case.
-- **Who:** everyone who edits case reports.
-- **User Guide:** Case report → "When someone else saves the case" (Use their version replaces Reload; where the presence chips are).
-- **Admin Guide:** none.
-- **Training:** show both choices: Show their changes keeps your work; Use their version discards it.
-- **Marketing / RFP:** "Two people on one case never lose track of each other's saved changes, and the page never reloads under them."
-- **Standards:** WCAG 2.1 AA.
-- **Status:** Live in the demo; through the server, Partial (phase 2e).
+**For the practitioner (User Guide).** On the case report, when the "Someone else changed this case" box appears, Reload their version is now Use their version. Their saved case appears at once, in place, and what you hadn't saved is discarded (the box says so). Show their changes keeps your work. After either choice, everything on the page is up to date with their save, including the synoptic form's answers, deficiencies, versions, signatures, the amendment banner and the report preview. "Who else has the case open" now sits at the right of the tab bar and no longer pushes the page down when someone opens the case. This is for everyone who edits case reports. See Case report → "When someone else saves the case".
+
+**For the system administrator (Admin Guide).** Nothing to configure and no Admin Guide entry.
+
+**For marketing (positive).** Two people on one case never lose track of each other's saved changes, and the page never reloads under them.
+
+**For FormedrixAI and partners (the plain reality).** Live in the demo; through the server, Partial (phase 2e). No other gaps are recorded for this change.
+- Training: show both choices: Show their changes keeps your work; Use their version discards it. Standards: WCAG 2.1 AA.
 
 ## Batch 576: workload cap limits; "editing" shown at once
-- **What changed:** Configuration → Cytology → Workload cap: caps must be whole numbers from 1 to 100 slides (the screen says so instead of not saving); changing a person's own cap needs the workload-cap permission. Case report: someone who starts editing right after opening a case now shows as "editing" to others straight away.
-- **Who:** lab administrators (caps); everyone editing case reports (presence).
-- **User Guide:** none (behaviour as described earlier).
-- **Admin Guide:** Cytology → Workload cap: the 1–100 range and the permission for personal caps.
-- **Training:** none.
-- **Marketing / RFP:** "Workload caps can't be set beyond CLIA's limit."
-- **Standards:** CLIA 42 CFR 493.1274(d)(2).
-- **Status:** Live.
+**For the practitioner (User Guide).** On the case report, if you start editing right after opening a case, others now see you as "editing" straight away. Behaviour is otherwise as described earlier. This is for everyone editing case reports. Workload caps are for lab administrators.
+
+**For the system administrator (Admin Guide).** Configuration → Cytology → Workload cap: caps must be whole numbers from 1 to 100 slides, and the screen says so instead of not saving. Changing a person's own cap needs the workload-cap permission.
+
+**For marketing (positive).** Workload caps can't be set beyond CLIA's limit.
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change.
+- Training: none. Standards: CLIA 42 CFR 493.1274(d)(2).
 
 ## Batch 575: "Show their changes" without a reload
-- **What changed:** Case report: the "Someone else saved this case" notice offers **Show their changes** instead of Reload. Their changes appear in place; what you typed and haven't saved stays on top. If you both changed the same part, your version stays as typed, a note says so, and your next save asks which to keep. The Edit Conflict dialog now says that reloading may lose unsaved work.
-- **Who:** everyone who edits case reports.
-- **User Guide:** Case report → "When someone else saves the case" (replace the Reload step).
-- **Admin Guide:** none.
-- **Training:** two windows on one case; change something in one, type without saving in the other, then Show their changes.
-- **Marketing / RFP:** "Concurrent edits are merged in place, field by field, without losing unsaved work."
-- **Standards:** supports CAP and ISO 15189 expectations for controlled report editing; WCAG 2.1 AA (4.1.3 status messages).
-- **Status:** Live in the demo; between users, Partial until the server's live hub (phase 2e).
+**For the practitioner (User Guide).** When someone else saves the case you are working on, the "Someone else saved this case" notice now offers **Show their changes** instead of Reload. Their changes appear in place, and what you typed and haven't saved stays on top. If you both changed the same part, your version stays as typed, a note says so, and your next save asks which to keep. The Edit Conflict window now warns that reloading may lose unsaved work. This applies to everyone who edits case reports. The User Guide's Case report section "When someone else saves the case" replaces the Reload step.
+
+**For the system administrator (Admin Guide).** Nothing to configure and no Admin Guide change. It applies to everyone who edits case reports.
+
+**For marketing (positive).** Edits from colleagues arrive without disturbing your work. "Concurrent edits are merged in place, field by field, without losing unsaved work."
+
+**For FormedrixAI and partners (the plain reality).** Live in the demo; between users the status is Partial until the server's live hub exists (phase 2e). No other gaps are recorded for this change. It supports CAP and ISO 15189 expectations for controlled report editing, and WCAG 2.1 AA (4.1.3 status messages).
+- Training: two windows on one case; change something in one, type without saving in the other, then Show their changes. Standards: CAP and ISO 15189 expectations for controlled report editing; WCAG 2.1 AA (4.1.3 status messages).
 
 ## Batch 574: workload counter; night-shift sign-off; correction reasons; edits no longer count twice
-- **What changed:**
-  - Cytology worklist and screening page: a **workload counter** for the last 24 hours: slides counted of your cap, reviews, slides left now (the limit grows with hours screened) and left in a full 8-hour day, with a bar marked at the limit so far. It turns amber near the limit and says "At your limit" when the next review wouldn't fit. On the screening page it updates after each saved review.
-  - **Night shifts:** yesterday's screening hours can be signed off too, while they still need it (they show above today's, with the date). Each panel shows its date.
-  - Configuration → Cytology → Workload cap: **"Screening day starts at"** (midnight by default; 6:00 AM keeps a 10 PM–6 AM shift on one date). A change applies from then on; earlier days keep the start in force at the time. Audited.
-  - Workload report (CYT-QA-05): the **reason for a correction** (and the note) beside the hours; dates in the user's format.
-  - **Correction:** editing a saved review no longer counts its slide again toward the limit (only an escalation's extra weight counts).
-- **Who:** cytotechnologists (counter, sign-off); cytology supervisors (report); lab administrators (start of day).
-- **User Guide:** Cytology worklist → "Your workload" and "Signing off your screening hours" (yesterday's panel; the note is shown to your supervisor, no patient details).
-- **Admin Guide:** Cytology → Workload cap → "Screening day starts at" (capability `config:cytology-workload-cap:manage`; applies from the change on).
-- **Training:** show the counter rising after a review, the limit marker moving as hours accrue, and a night-shift worker confirming yesterday then today.
-- **Marketing / RFP:** "Cytotechnologists see their CLIA workload and what's left in real time; night shifts are recorded on the right day; supervisors see why hours were corrected."
-- **Standards:** CLIA 42 CFR 493.1274 (workload limits and records, US); CAP cytopathology checklist; WCAG 2.1 AA (status in words, not colour alone).
-- **Status:** Live in the demo; with the API server, Partial until the server's endpoints exist (phase 2e).
+**For the practitioner (User Guide).** Cytotechnologists now see a workload counter for the last 24 hours on the Cytology worklist and the screening page. It shows slides counted of your cap, reviews, slides left now (the limit grows with hours screened) and slides left in a full 8-hour day, with a bar marked at the limit so far. It turns amber near the limit and says "At your limit" when the next review wouldn't fit. On the screening page it updates after each saved review. If you work nights, yesterday's screening hours can be signed off too, while they still need it; they show above today's, with the date, and each panel shows its date. Editing a saved review no longer counts its slide again toward the limit (only an escalation's extra weight counts). Supervisors see the reason for a correction, and its note, beside the hours in the workload report (CYT-QA-05), with dates in their own format. See the Cytology worklist sections "Your workload" and "Signing off your screening hours" (yesterday's panel; the note is shown to your supervisor, no patient details).
+
+**For the system administrator (Admin Guide).** Configuration > Cytology > Workload cap has a new setting, **"Screening day starts at"** (midnight by default; 6:00 AM keeps a 10 PM to 6 AM shift on one date). It needs the capability `config:cytology-workload-cap:manage`. A change applies from then on; earlier days keep the start in force at the time. The change is audited. Lab administrators set the start of day; cytotechnologists use the counter and sign-off; cytology supervisors use the report (CYT-QA-05).
+
+**For marketing (positive).** Cytotechnologists see their workload and what's left as they work, night shifts land on the right day, and supervisors can see why hours were corrected. "Cytotechnologists see their CLIA workload and what's left in real time; night shifts are recorded on the right day; supervisors see why hours were corrected."
+
+**For FormedrixAI and partners (the plain reality).** Live in the demo; with the API server the status is Partial until the server's endpoints exist (phase 2e). No other gaps are recorded for this change. Regulatory references: CLIA 42 CFR 493.1274 (workload limits and records, US); CAP cytopathology checklist; WCAG 2.1 AA (status in words, not colour alone).
+- Training: show the counter rising after a review, the limit marker moving as hours accrue, and a night-shift worker confirming yesterday then today. Standards: CLIA 42 CFR 493.1274 (workload limits and records, US); CAP cytopathology checklist; WCAG 2.1 AA (status in words, not colour alone).
 
 ## Batch 573: who else has the case open
-- **What changed:** Case report: above the tabs, a line shows anyone else who has the same case open, whether they are **editing** (have unsaved changes) or **viewing**, and links to email or call them when the lab's staff directory has their work details. If you have the case open in a second window yourself, it shows "You, in another window". It disappears when nobody else is there. Nothing to click or dismiss.
-- **Who:** everyone who opens case reports.
-- **User Guide:** Case report → "Working on a case with others" (with Batch 572's "Someone else saved this case").
-- **Admin Guide:** none in the browser. Server installations: the live hub must be set up (phase 2e); which contact details show comes from the staff directory.
-- **Training:** open the same case in two windows (or two people); show the line, start typing in one and show "editing" in the other; close one.
-- **Marketing / RFP:** "See who else is working on a case, and whether they're editing, before your changes collide."
-- **Standards:** WCAG 2.1 AA (4.1.3 status messages); supports CAP and ISO 15189 expectations for controlled report editing.
-- **Status:** Partial: works between windows of one browser in the demo; between users once the server's live hub is in place (phase 2e).
+**For the practitioner (User Guide).** Above the tabs of a case report, a line shows anyone else who has the same case open, whether they are **editing** (have unsaved changes) or **viewing**. It links to email or call them when the lab's staff directory has their work details. If you have the case open in a second window yourself, it shows "You, in another window". It disappears when nobody else is there. Nothing to click or dismiss. This applies to everyone who opens case reports. See the User Guide's Case report section "Working on a case with others" (with Batch 572's "Someone else saved this case").
+
+**For the system administrator (Admin Guide).** Nothing to configure in the browser. On server installations the live hub must be set up (phase 2e); which contact details show comes from the staff directory.
+
+**For marketing (positive).** Know who else is in a case before changes collide. "See who else is working on a case, and whether they're editing, before your changes collide."
+
+**For FormedrixAI and partners (the plain reality).** Partial: it works between windows of one browser in the demo, and between users once the server's live hub is in place (phase 2e). No other gaps are recorded for this change. It supports WCAG 2.1 AA (4.1.3 status messages) and CAP and ISO 15189 expectations for controlled report editing.
+- Training: open the same case in two windows (or two people); show the line, start typing in one and show "editing" in the other; close one. Standards: WCAG 2.1 AA (4.1.3 status messages); supports CAP and ISO 15189 expectations for controlled report editing.
 
 ## Batch 572: "someone else saved this case"; end-of-day screening hours sign-off
-- **What changed:**
-  - Case report: when another user saves the case you have open, a notice above the tabs says so, with Reload and Later (no window to dismiss). Previously you found out only when your own save was refused.
-  - Cytology worklist: a "Today's screening hours" panel. One click confirms the recorded hours at the end of the day; Correct takes the hours, a quick-pick reason and an optional note (required for "Other"). If more screening is recorded after you confirm, the panel asks you to confirm again.
-  - QA → Cytology QA → workload report (CYT-QA-05): new "Recorded hours" column; the hours column shows signed-off or not signed off (or signed off before more was recorded), and flags corrections the supervisor should look at.
-  - The workload limit no longer rises above a person's assigned cap for a day longer than 8 hours (a correction).
-- **Who:** pathologists, fellows, residents and cytotechnologists (sign-off); cytology supervisors (report); everyone who edits cases (notice).
-- **User Guide:** Case report → "When someone else saves the case"; Cytology worklist → "Signing off your screening hours".
-- **Admin Guide:** Roles → new capability "Sign off your screening hours" (`cytology:screening-hours:sign-off`), given to the four built-in roles only; a lab's own roles need it added deliberately. QA → workload report columns.
-- **Training:** open the same case in two tabs, save in one, show the notice in the other. On the Cytology worklist, confirm the hours; then show a correction with a reason, and how the supervisor sees it.
-- **Marketing / RFP:** "Concurrent editors are told at once when a case changes. Screening hours are confirmed daily by each screener and never taken from the browser's clock alone, with corrections flagged for supervisors."
-- **Standards:** CLIA 42 CFR 493.1274 (cytology workload limits, US); CAP cytopathology checklist (workload records); ISO 15189 (records of examination personnel workload).
-- **Status:** Partial: the notice works between tabs in the demo and through the server's live hub once it exists (phase 2e); the sign-off is live, with recorded hours from the browser's timer until the server records screening events (phase 2e).
+**For the practitioner (User Guide).** When another user saves the case you have open, a notice above the tabs says so, with Reload and Later (no window to dismiss). Before, you found out only when your own save was refused. On the Cytology worklist a "Today's screening hours" panel lets pathologists, fellows, residents and cytotechnologists confirm the recorded hours in one click at the end of the day. Correct takes the hours, a quick-pick reason and an optional note (required for "Other"). If more screening is recorded after you confirm, the panel asks you to confirm again. Supervisors see this in the workload report. The workload limit no longer rises above your assigned cap for a day longer than 8 hours (a correction). See the User Guide sections Case report "When someone else saves the case" and Cytology worklist "Signing off your screening hours".
+
+**For the system administrator (Admin Guide).** Roles has a new capability "Sign off your screening hours" (`cytology:screening-hours:sign-off`), given to the four built-in roles only; a lab's own roles need it added deliberately. In QA > Cytology QA > workload report (CYT-QA-05) there is a new "Recorded hours" column; the hours column shows signed-off or not signed off (or signed off before more was recorded), and flags corrections the supervisor should look at. Cytology supervisors use the report; everyone who edits cases sees the notice.
+
+**For marketing (positive).** Colleagues are told at once when a case changes, and screening hours are confirmed daily. "Concurrent editors are told at once when a case changes. Screening hours are confirmed daily by each screener and never taken from the browser's clock alone, with corrections flagged for supervisors."
+
+**For FormedrixAI and partners (the plain reality).** Partial: the notice works between tabs in the demo and through the server's live hub once it exists (phase 2e); the sign-off is live, with recorded hours from the browser's timer until the server records screening events (phase 2e). No other gaps are recorded for this change. Regulatory references: CLIA 42 CFR 493.1274 (cytology workload limits, US); CAP cytopathology checklist (workload records); ISO 15189 (records of examination personnel workload).
+- Training: open the same case in two tabs, save in one, show the notice in the other. On the Cytology worklist, confirm the hours; then show a correction with a reason, and how the supervisor sees it. Standards: CLIA 42 CFR 493.1274 (cytology workload limits, US); CAP cytopathology checklist (workload records); ISO 15189 (records of examination personnel workload).
 
 ## Batch 570: keyboard focus after deleting a saved search
-- **What changed:** Search and Billing logs: deleting a saved search or query with the keyboard (or a screen reader) moves focus to the next one, or to "Save search / query". The inbox does the same, now also with a screen reader in Firefox.
-- **Who:** anyone using a keyboard or screen reader.
-- **User Guide:** none (same steps).
-- **Admin Guide:** none.
-- **Training:** the QC team's manual screen reader test plan (NVDA and VoiceOver) can double as a keyboard walkthrough for accessibility training.
-- **Marketing / RFP:** "Tested with automated WCAG 2.1 AA checks on every build, and a scripted manual test plan for NVDA and VoiceOver."
-- **Standards:** WCAG 2.1 AA (2.4.3 focus order).
-- **Status:** Live.
+**For the practitioner (User Guide).** If you delete a saved search or query in Search or the Billing logs using the keyboard (or a screen reader), focus now moves to the next one, or to "Save search / query". The inbox does the same, now also with a screen reader in Firefox. The steps are the same, so the User Guide has no change. This is for anyone using a keyboard or screen reader.
+
+**For the system administrator (Admin Guide).** No Admin Guide change and nothing to configure.
+
+**For marketing (positive).** Keyboard and screen-reader users keep their place. "Tested with automated WCAG 2.1 AA checks on every build, and a scripted manual test plan for NVDA and VoiceOver."
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change. It meets WCAG 2.1 AA (2.4.3 focus order).
+- Training: the QC team's manual screen reader test plan (NVDA and VoiceOver) can double as a keyboard walkthrough for accessibility training. Standards: WCAG 2.1 AA (2.4.3 focus order).
 
 ## Batch 569: keyboard focus after a delete; saved-search chips
-- **What changed:**
-  - Inbox: deleting or restoring a message with the keyboard moves focus to the next message.
-  - Search and Billing logs: a saved search's name loads it; its × deletes it (both reachable with Tab, each read with its own name).
-  - Case report (collapsed specimen list): the yellow "changes to review" dot is its own button.
-- **Who:** anyone using a keyboard or screen reader.
-- **User Guide:** none (same steps).
-- **Admin Guide:** none.
-- **Training:** none.
-- **Marketing / RFP:** "Keyboard focus is kept in place after deleting, so keyboard and screen-reader users don't lose their place."
-- **Standards:** WCAG 2.1 AA (2.4.3 focus order, 4.1.2 name, role, value).
-- **Status:** Live.
+**For the practitioner (User Guide).** With the keyboard or a screen reader, deleting or restoring an inbox message moves focus to the next message. In Search and the Billing logs, a saved search's name loads it and its × deletes it; both are reachable with Tab and each is read with its own name. In a case report's collapsed specimen list, the yellow "changes to review" dot is now its own button. The steps are the same, so the User Guide has no change. This is for anyone using a keyboard or screen reader.
+
+**For the system administrator (Admin Guide).** No Admin Guide change and nothing to configure.
+
+**For marketing (positive).** "Keyboard focus is kept in place after deleting, so keyboard and screen-reader users don't lose their place."
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change. It meets WCAG 2.1 AA (2.4.3 focus order, 4.1.2 name, role, value).
+- Training: none. Standards: WCAG 2.1 AA (2.4.3 focus order, 4.1.2 name, role, value).
 
 ## Batch 568: the rest of PathScribe's clickable rows with a keyboard or screen reader
-- **What changed:**
-  - Protocols → Terminology alerts: the title shows or hides the list (click or Enter).
-  - Enhancement request: the screenshot's full-size view closes with Escape, and keyboard focus stays in it while open.
-  - Template builder: Tab to a field shows its Remove button.
-  - Contribution: the teaching tile's title opens it.
-  - Everything else looks and works as before.
-- **Who:** anyone using a keyboard or screen reader; template builders; residents.
-- **User Guide:** Enhancement request: "Press Escape to close the full-size screenshot."
-- **Admin Guide:** Template builder: "Tab to a field to show its Remove button."
-- **Training:** none.
-- **Marketing / RFP:** "An automatic check on every build stops a control being placed inside another, across the whole application."
-- **Standards:** WCAG 2.1 AA (2.1.1 keyboard, 2.4.3 focus order, 4.1.2 name, role, value).
-- **Status:** Live.
+**For the practitioner (User Guide).** More screens now work fully with a keyboard or screen reader. In Protocols > Terminology alerts, the title shows or hides the list (click or Enter). In an Enhancement request, the screenshot's full-size view closes with Escape, and keyboard focus stays in it while open. In the Template builder, Tab to a field shows its Remove button. In Contribution, the teaching tile's title opens it. Everything else looks and works as before. This is for anyone using a keyboard or screen reader, template builders and residents. The User Guide adds to Enhancement request: "Press Escape to close the full-size screenshot."
+
+**For the system administrator (Admin Guide).** The Admin Guide adds to Template builder: "Tab to a field to show its Remove button." Nothing to configure.
+
+**For marketing (positive).** "An automatic check on every build stops a control being placed inside another, across the whole application."
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change. It meets WCAG 2.1 AA (2.1.1 keyboard, 2.4.3 focus order, 4.1.2 name, role, value).
+- Training: none. Standards: WCAG 2.1 AA (2.1.1 keyboard, 2.4.3 focus order, 4.1.2 name, role, value).
 
 ## Batch 567: the inbox and the report editor's windows with a keyboard or screen reader
-- **What changed:**
-  - Inbox: a message's sender is a button that opens it; Tab into a message shows its Delete (or Restore) button.
-  - Add code: each suggestion and search result has an "Apply code" button at its end; once applied, "✓ ×n" applies it again. Clicking the row still works.
-  - Delegate: a delegation type's name is a button. Billing review: a pending code is a button. Sequencer: a report's name is a button.
-  - Protocol changes: click anywhere on a proposed change to tick or untick it.
-- **Who:** pathologists, billing reviewers, anyone using a keyboard or screen reader.
-- **User Guide:** Add code: "Click a code, or its Apply button, to apply it; click ✓ to apply it again." Inbox: "Tab to a message and press Enter to open it."
-- **Admin Guide:** none.
-- **Training:** none beyond the lines above.
-- **Marketing / RFP:** "The report editor and inbox can be used fully from the keyboard and with a screen reader; checked automatically on every build."
-- **Standards:** WCAG 2.1 AA (2.1.1 keyboard, 2.5.3 label in name, 4.1.2 name, role, value).
-- **Status:** Live.
+**For the practitioner (User Guide).** In the Inbox, a message's sender is a button that opens it, and Tab into a message shows its Delete (or Restore) button. In Add code, each suggestion and search result has an "Apply code" button at its end; once applied, "✓ ×n" applies it again, and clicking the row still works. In Delegate a delegation type's name is a button, in Billing review a pending code is a button, and in the Sequencer a report's name is a button. In Protocol changes, click anywhere on a proposed change to tick or untick it. This is for pathologists, billing reviewers and anyone using a keyboard or screen reader. The User Guide adds, for Add code: "Click a code, or its Apply button, to apply it; click ✓ to apply it again." For Inbox: "Tab to a message and press Enter to open it."
+
+**For the system administrator (Admin Guide).** No Admin Guide change and nothing to configure.
+
+**For marketing (positive).** "The report editor and inbox can be used fully from the keyboard and with a screen reader; checked automatically on every build."
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change. It meets WCAG 2.1 AA (2.1.1 keyboard, 2.5.3 label in name, 4.1.2 name, role, value).
+- Training: none beyond the lines above. Standards: WCAG 2.1 AA (2.1.1 keyboard, 2.5.3 label in name, 4.1.2 name, role, value).
 
 ## Batch 566: cytology rows and view tiles with a keyboard or screen reader
-- **What changed:**
-  - Cytology worklist: the patient's name in each row is a button that opens the case. Keyboard users Tab to it and press Enter; screen readers read it as a button, separately from the row's own buttons (Manage flags, Ask a colleague). Clicking anywhere on the row still opens the case.
-  - The Worklist's LIS and Outreach tiles and Batch Management's stage tiles tell screen readers which one is on.
-- **Who:** cytotechnologists and cytopathologists; anyone using a keyboard or screen reader.
-- **User Guide:** Cytology worklist: "Click a row, or its patient's name, to open the case; with the keyboard, Tab to the name and press Enter."
-- **Admin Guide:** none.
-- **Training:** none beyond the line above.
-- **Marketing / RFP:** "Worklists can be used fully from the keyboard and with a screen reader; checked automatically in a real browser."
-- **Standards:** WCAG 2.1 AA (2.1.1 keyboard, 4.1.2 name, role, value).
-- **Status:** Live.
+**For the practitioner (User Guide).** On the Cytology worklist, the patient's name in each row is a button that opens the case. Keyboard users Tab to it and press Enter; screen readers read it as a button, separately from the row's own buttons (Manage flags, Ask a colleague). Clicking anywhere on the row still opens the case. The Worklist's LIS and Outreach tiles and Batch Management's stage tiles now tell screen readers which one is on. This is for cytotechnologists and cytopathologists, and anyone using a keyboard or screen reader. The User Guide adds, for Cytology worklist: "Click a row, or its patient's name, to open the case; with the keyboard, Tab to the name and press Enter."
+
+**For the system administrator (Admin Guide).** No Admin Guide change and nothing to configure.
+
+**For marketing (positive).** "Worklists can be used fully from the keyboard and with a screen reader; checked automatically in a real browser."
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change. It meets WCAG 2.1 AA (2.1.1 keyboard, 4.1.2 name, role, value).
+- Training: none beyond the line above. Standards: WCAG 2.1 AA (2.1.1 keyboard, 4.1.2 name, role, value).
 
 ## Batch 565: easier-to-read text everywhere; selected tiles announced
-- **What changed:**
-  - Secondary grey text across the rest of PathScribe is a little brighter (WCAG 2.1 AA), as are chart axis labels and a selected filter tile's label. Inactive tiles look as before.
-  - Screen readers now say which filter tile is selected (Worklist, Quality Assurance, cytology).
-  - Cytology: "Manage flags" no longer also opens the case.
-- **Who:** everyone.
-- **User Guide:** screenshots may look slightly brighter; no steps change.
-- **Admin Guide:** none.
-- **Training:** none.
-- **Marketing / RFP:** "PathScribe's screens and their selected states are checked automatically for WCAG 2.1 AA in a real browser."
-- **Standards:** WCAG 2.1 AA (1.4.3 contrast, 1.4.11 non-text contrast, 4.1.2 name, role, value).
-- **Status:** Live.
+**For the practitioner (User Guide).** Secondary grey text across the rest of PathScribe is a little brighter, as are chart axis labels and a selected filter tile's label. Inactive tiles look as before. Screen readers now say which filter tile is selected (Worklist, Quality Assurance, cytology). In Cytology, "Manage flags" no longer also opens the case. This is for everyone. Screenshots may look slightly brighter; no steps change.
+
+**For the system administrator (Admin Guide).** No Admin Guide change and nothing to configure. The brighter text meets WCAG 2.1 AA.
+
+**For marketing (positive).** "PathScribe's screens and their selected states are checked automatically for WCAG 2.1 AA in a real browser."
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change. It meets WCAG 2.1 AA (1.4.3 contrast, 1.4.11 non-text contrast, 4.1.2 name, role, value).
+- Training: none. Standards: WCAG 2.1 AA (1.4.3 contrast, 1.4.11 non-text contrast, 4.1.2 name, role, value).
 
 ## Batch 564: easier-to-read text on 13 screens
-- **What changed:**
-  - Secondary grey text, table headings, some coloured labels and the red count badges are a little brighter, so they meet WCAG 2.1 AA contrast: the Audit Log, batch management screens, Grossing, Contribution, the Cytology worklist, Quality Assurance, Registry exceptions and Slide distribution.
-  - An old grossing link (made before case links used support references) now opens grossing, not the report editor.
-  - Printing a batch window prints its title and barcode in black.
-- **Who:** everyone.
-- **User Guide:** screenshots of these screens may look slightly brighter; no steps change.
-- **Admin Guide:** none.
-- **Training:** none.
-- **Marketing / RFP:** "Every main screen is checked automatically for WCAG 2.1 AA in a real browser."
-- **Standards:** WCAG 2.1 AA (1.4.3 contrast).
-- **Status:** Live.
+**For the practitioner (User Guide).** Secondary grey text, table headings, some coloured labels and the red count badges are a little brighter, so they are easier to read, on these screens: the Audit Log, batch management screens, Grossing, Contribution, the Cytology worklist, Quality Assurance, Registry exceptions and Slide distribution. An old grossing link (made before case links used support references) now opens grossing, not the report editor. Printing a batch window prints its title and barcode in black. This is for everyone. Screenshots of these screens may look slightly brighter; no steps change.
+
+**For the system administrator (Admin Guide).** No Admin Guide change and nothing to configure. The brighter text meets WCAG 2.1 AA contrast.
+
+**For marketing (positive).** "Every main screen is checked automatically for WCAG 2.1 AA in a real browser."
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change. It meets WCAG 2.1 AA (1.4.3 contrast).
+- Training: none. Standards: WCAG 2.1 AA (1.4.3 contrast).
 
 ## Batch 563: loading messages and Audit Log tabs easier to read
-- **What changed:**
-  - When PathScribe is slow to open a page, "Still loading" now stays on screen until the page arrives, instead of disappearing and coming back.
-  - The Audit Log's tab buttons, and the Cancel button in the "unsaved changes" window, have stronger text contrast (WCAG 2.1 AA).
-  - Checked in a browser: the "Offline" and "Reconnected" banner appears without taking the cursor or covering any control, and is announced politely to screen readers.
-- **Who:** everyone; administrators (Audit Log).
-- **User Guide:** none (behaviour as already described).
-- **Admin Guide:** none.
-- **Training:** none.
-- **Marketing / RFP:** "Connection and loading states are checked automatically for WCAG 2.1 AA in a real browser."
-- **Standards:** WCAG 2.1 AA (1.4.3 contrast, 4.1.3 status messages).
-- **Status:** Live.
+**For the practitioner (User Guide).** When PathScribe is slow to open a page, "Still loading" now stays on screen until the page arrives, instead of disappearing and coming back. The Cancel button in the "unsaved changes" window has stronger text contrast. The "Offline" and "Reconnected" banner appears without taking the cursor or covering any control, and is announced politely to screen readers. This is for everyone. The behaviour is as already described, so the User Guide has no change.
+
+**For the system administrator (Admin Guide).** The Audit Log's tab buttons have stronger text contrast (WCAG 2.1 AA). No Admin Guide change and nothing to configure.
+
+**For marketing (positive).** "Connection and loading states are checked automatically for WCAG 2.1 AA in a real browser."
+
+**For FormedrixAI and partners (the plain reality).** Live. The banner behaviour was checked in a browser. No gaps are recorded for this change. It meets WCAG 2.1 AA (1.4.3 contrast, 4.1.3 status messages).
+- Training: none. Standards: WCAG 2.1 AA (1.4.3 contrast, 4.1.3 status messages).
 
 ## Batch 562: the Molecular Order Queue updates as things change
-- **What changed:**
-  - With the PathScribe server's live updates, the Molecular Workcenter's Order Queue shows results from the instrument or reference lab, and other technologists' changes, as they happen. Orders that leave the queue meanwhile drop out of what you had ticked.
-  - The Print Queue's site agent line also updates as soon as an agent's status changes.
-  - **Nothing changes in the demo.**
-- **Who:** molecular technologists; print and system administrators.
-- **User Guide:** Molecular Workcenter, Order Queue: the list updates by itself; ticked orders that someone else has plated are unticked.
-- **Admin Guide:** none.
-- **Training:** none.
-- **Marketing / RFP:** "Molecular work queues update the moment results arrive from the instrument or reference lab."
-- **Standards:** none specific.
-- **Status:** browser side done; the server's live-update events are phase 2e.
+**For the practitioner (User Guide).** In the Molecular Workcenter, the Order Queue now updates by itself, showing results from the instrument or reference lab, and other technologists' changes, as they happen. Orders that leave the queue meanwhile drop out of what you had ticked (ticked orders that someone else has plated are unticked). This is for molecular technologists. Nothing changes in the demo.
+
+**For the system administrator (Admin Guide).** No Admin Guide change. This needs the PathScribe server's live updates. The Print Queue's site agent line also updates as soon as an agent's status changes, which matters to print and system administrators.
+
+**For marketing (positive).** "Molecular work queues update the moment results arrive from the instrument or reference lab."
+
+**For FormedrixAI and partners (the plain reality).** The browser side is done; the server's live-update events are phase 2e, so nothing changes in the demo until then. No other gaps are recorded for this change. No specific standards apply.
+- Training: none. Standards: none specific.
 
 ## Batch 560: screens that update as things change
-- **What changed:**
-  - With the PathScribe server's live updates, these screens change as soon as something happens instead of on a timer: the inbox, Facility Ops wall boards, the held reports banner on a case, the Engraver Monitor, the registry exceptions badge, Site agents and Interfaces → Engines.
-  - Each still checks once a minute in case an update was missed, and refreshes as before (every 5 to 60 seconds) when live updates aren't available: the demo, a password sign-in, a wall board with nobody signed in.
-  - Facility Ops shows "out of date" after two minutes without news while live (a quiet minute is normal), 40 seconds otherwise.
-  - The Engraver Monitor's Refresh button no longer flickers on background updates.
-  - **Nothing else changes in the demo.**
-- **Who:** everyone with the inbox; lab managers (Facility Ops, engravers); administrators (site agents, interfaces, registry exceptions); pathologists (held reports).
-- **User Guide:** the inbox and held reports: new messages and recalls show at once.
-- **Admin Guide:** Facility Ops (the "out of date" timing); live updates need SSO sign-in.
-- **Training:** none.
-- **Marketing / RFP:** "Work queues, wall boards and alerts update the moment something changes, over one secure connection per window, with automatic fallback to regular refresh."
-- **Standards:** none specific.
-- **Status:** browser side done; the server's live-update events are phase 2e.
+**For the practitioner (User Guide).** With the PathScribe server's live updates, the inbox and the held reports banner on a case change as soon as something happens, not on a timer. New messages and recalls show at once. This is for everyone with the inbox and for pathologists (held reports). Lab managers see the same for Facility Ops wall boards and the Engraver Monitor, and administrators for site agents, Interfaces > Engines and the registry exceptions badge. The Engraver Monitor's Refresh button no longer flickers on background updates. Nothing else changes in the demo.
+
+**For the system administrator (Admin Guide).** Each screen still checks once a minute in case an update was missed, and refreshes as before (every 5 to 60 seconds) when live updates aren't available: the demo, a password sign-in, a wall board with nobody signed in. Facility Ops shows "out of date" after two minutes without news while live (a quiet minute is normal), 40 seconds otherwise. Live updates need SSO sign-in. Screens affected: the inbox, Facility Ops wall boards, the held reports banner on a case, the Engraver Monitor, the registry exceptions badge, Site agents and Interfaces > Engines.
+
+**For marketing (positive).** "Work queues, wall boards and alerts update the moment something changes, over one secure connection per window, with automatic fallback to regular refresh."
+
+**For FormedrixAI and partners (the plain reality).** The browser side is done; the server's live-update events are phase 2e. Until then, and in the demo, screens refresh on the timer as before. No other gaps are recorded for this change. No specific standards apply.
+- Training: none. Standards: none specific.
 
 ## Batch 559: result messages held when a version can't be counted; live-update groundwork
-- **What changed:**
-  - With the PathScribe server, a result message whose workup version can't be worked out (the server's list of report versions couldn't be read) is held with the reason "the workup version is not known" and sent when retried, instead of going out with a wrong version number.
-  - Every result message carries its report PDF's fingerprint (SHA-256) when PathScribe knows it, so the receiving system can check it.
-  - Groundwork only, nothing visible yet: the way the server will push changes to the screens that refresh on a timer (Batch 560 switches them over).
-  - **Nothing changes in the demo.**
-- **Who:** interface administrators (failed messages).
-- **User Guide:** none.
-- **Admin Guide:** failed messages: the new held reason, which clears on retry once the server can be reached.
-- **Training:** none.
-- **Marketing / RFP:** "Every result message carries the SHA-256 fingerprint of its report PDF, so the receiving system can confirm it got exactly what PathScribe sent."
-- **Standards:** supports data integrity expectations in CAP and ISO 15189 for transmitted reports (clause numbers to be confirmed against the current editions).
-- **Status:** browser side done; the server side is phase 2e.
+**For the practitioner (User Guide).** Nothing changes on screen. Behind the scenes, with the PathScribe server, a result message whose workup version can't be worked out is held instead of going out with a wrong version number. There is no User Guide change. Nothing changes in the demo.
+
+**For the system administrator (Admin Guide).** Interface administrators will see a new held reason on failed messages: "the workup version is not known". It appears when the server's list of report versions couldn't be read, and the message is sent when retried; the reason clears on retry once the server can be reached. Every result message also carries its report PDF's fingerprint (SHA-256) when PathScribe knows it, so the receiving system can check it. The rest is groundwork only, nothing visible yet: the way the server will push changes to the screens that refresh on a timer (Batch 560 switches them over).
+
+**For marketing (positive).** "Every result message carries the SHA-256 fingerprint of its report PDF, so the receiving system can confirm it got exactly what PathScribe sent."
+
+**For FormedrixAI and partners (the plain reality).** The browser side is done; the server side is phase 2e. Nothing changes in the demo. No other gaps are recorded for this change. It supports data integrity expectations in CAP and ISO 15189 for transmitted reports (clause numbers to be confirmed against the current editions).
+- Training: none. Standards: supports data integrity expectations in CAP and ISO 15189 for transmitted reports (clause numbers to be confirmed against the current editions).
 
 ## Batch 558: signed report versions fetched from the server
-- **What changed:**
-  - With the PathScribe server, Version History lists the report's signed versions held by the server as well as the ones signed on this computer, and "View PDF" fetches a version's PDF from the server.
-  - **Every version's PDF is checked** against its fingerprint (SHA-256) before it is opened, sent as a result, or used when a held report is released. One that no longer matches is refused, never shown or sent, and an older version is never sent in its place.
-  - **New messages:**
-    - "this version's PDF no longer matches its fingerprint, report this to your administrator";
-    - "couldn't be fetched from the PathScribe server, try again shortly";
-    - "you don't have permission to open this version's PDF";
-    - "this list may be incomplete" (when the server's list of versions can't be read).
-  - **Nothing changes in the demo**, apart from the fingerprint check.
-- **Who:** pathologists and anyone who opens Version History; interface administrators (a result held because its PDF failed the check).
-- **User Guide:** Version History, the messages above.
-- **Admin Guide:** failed messages: a result held because "it no longer matches its SHA-256 fingerprint" needs investigating, not just a retry.
-- **Training:** none.
-- **Marketing / RFP:** "Every signed version of a report keeps its PDF's SHA-256 fingerprint. Opening or resending a version checks it, so what is shown or sent is exactly what was signed."
-- **Standards:** supports the expectation in CAP and ISO 15189 that a report and its earlier versions can be retrieved exactly as issued (clause numbers to be confirmed against the current editions).
-- **Status:** browser side done. The server's version endpoints are phase 2e.
+**For the practitioner (User Guide).** With the PathScribe server, Version History lists the report's signed versions held by the server as well as the ones signed on this computer, and "View PDF" fetches a version's PDF from the server. Every version's PDF is checked against its fingerprint (SHA-256) before it is opened, sent as a result, or used when a held report is released. One that no longer matches is refused, never shown or sent, and an older version is never sent in its place. You may see these new messages: "this version's PDF no longer matches its fingerprint, report this to your administrator"; "couldn't be fetched from the PathScribe server, try again shortly"; "you don't have permission to open this version's PDF"; and "this list may be incomplete" (when the server's list of versions can't be read). This is for pathologists and anyone who opens Version History. Nothing changes in the demo, apart from the fingerprint check.
+
+**For the system administrator (Admin Guide).** In failed messages, a result held because "it no longer matches its SHA-256 fingerprint" needs investigating, not just a retry. This concerns interface administrators. Every version's PDF is checked against its SHA-256 fingerprint before it is opened, sent or used to release a held report.
+
+**For marketing (positive).** "Every signed version of a report keeps its PDF's SHA-256 fingerprint. Opening or resending a version checks it, so what is shown or sent is exactly what was signed."
+
+**For FormedrixAI and partners (the plain reality).** The browser side is done. The server's version endpoints are phase 2e. Nothing changes in the demo apart from the fingerprint check. No other gaps are recorded for this change. It supports the expectation in CAP and ISO 15189 that a report and its earlier versions can be retrieved exactly as issued (clause numbers to be confirmed against the current editions).
+- Training: none. Standards: supports the expectation in CAP and ISO 15189 that a report and its earlier versions can be retrieved exactly as issued (clause numbers to be confirmed against the current editions).
 
 ## Batch 557: where PathScribe keeps data, and settings from the server
-- **What changed:**
-  - **Configuration → AI provider settings** has a new box, **Where PathScribe keeps data**. It shows the regions of the database and of file storage (reports, exports) as the PathScribe server reports them, beside the AI service's region. "Not reported" means the server hasn't given them; the demo has no server.
-  - **Settings from the server:** the server can now give the app a few settings when it starts: the AI model and region, and voice. The site's own `config.json` still wins. Sign-in, the instance (production or validation), which jobs the server runs and every web address stay in `config.json`. A server that tries to set one of these stops the app with a clear message, so a misconfigured server can't change how people sign in.
-- **Who:** administrators (the regions); hospital IT and the deployment team (the settings).
-- **User Guide:** none.
-- **Admin Guide:**
-  - AI provider settings: "Where PathScribe keeps data".
-  - Deployment Guide: `/api/config`.
-- **Training:** none.
-- **Marketing / RFP:** "Administrators can see the region where PathScribe stores their database, files and AI processing, for data-residency reviews."
-- **Standards:** supports GDPR Article 30 records and data-residency questions in hospital security reviews.
-- **Status:** browser side done. The server's `/api/config` is phase 2e.
+**For the practitioner (User Guide).** Nothing changes on screen for you. There is no User Guide change.
+
+**For the system administrator (Admin Guide).** Configuration > AI provider settings has a new box, **Where PathScribe keeps data**. It shows the regions of the database and of file storage (reports, exports) as the PathScribe server reports them, beside the AI service's region. "Not reported" means the server hasn't given them; the demo has no server. Hospital IT and the deployment team also get **settings from the server**: the server can now give the app a few settings when it starts: the AI model and region, and voice. The site's own `config.json` still wins. Sign-in, the instance (production or validation), which jobs the server runs and every web address stay in `config.json`. A server that tries to set one of these stops the app with a clear message, so a misconfigured server can't change how people sign in. See the Admin Guide: AI provider settings, "Where PathScribe keeps data", and the Deployment Guide: `/api/config`.
+
+**For marketing (positive).** "Administrators can see the region where PathScribe stores their database, files and AI processing, for data-residency reviews."
+
+**For FormedrixAI and partners (the plain reality).** The browser side is done. The server's `/api/config` is phase 2e, and the demo has no server, so the regions show "Not reported" there. No other gaps are recorded for this change. It supports GDPR Article 30 records and data-residency questions in hospital security reviews.
+- Training: none. Standards: supports GDPR Article 30 records and data-residency questions in hospital security reviews.
 
 ## Batch 556: sent reports fetched from the server
-- **What changed:**
-  - With the PathScribe server, "View as sent" in Version History, print retries, delivery retries and the cytology "Print case report" fetch the released report from the server. Its fingerprint (SHA-256) is checked again, so what opens is exactly what was sent.
-  - **New messages:**
-    - "couldn't be fetched from the PathScribe server, try again shortly";
-    - "you don't have permission to open this document";
-    - "this list may be incomplete" (when the server's list of sent documents can't be read).
-  - **Cytology "Print case report":** it no longer prints a fresh render or an older document when the server's list can't be read. It says so instead.
-  - **Print retries:** a print retry that couldn't fetch its report is tried again, not failed for good.
-  - **Nothing changes in the demo.**
-- **Who:** anyone who views or prints a released report.
-- **User Guide:** Version History, the messages above.
-- **Admin Guide:** none.
-- **Training:** none.
-- **Marketing / RFP:** "Every report PathScribe sends is stored once with its SHA-256 fingerprint. Viewing, reprinting and resending it serve exactly those bytes from the server, checked each time."
-- **Standards:** supports the expectation in CAP and ISO 15189 that a released report can be retrieved exactly as issued (clause numbers to be confirmed against the current editions).
-- **Status:** browser side done. The server's document endpoints are phase 2e.
+**For the practitioner (User Guide).** When you open "View as sent" in Version History, retry a print, retry a delivery, or use the cytology "Print case report", PathScribe now fetches the released report from the PathScribe server and checks its fingerprint (SHA-256) again, so what opens is exactly what was sent. You may see three new messages: "couldn't be fetched from the PathScribe server, try again shortly"; "you don't have permission to open this document"; and "this list may be incomplete" (shown when the server's list of sent documents can't be read). The cytology "Print case report" no longer prints a fresh render or an older document when that list can't be read; it tells you so instead. A print retry that couldn't fetch its report is tried again rather than failed for good. This applies to anyone who views or prints a released report. Nothing changes in the demo.
+
+**For the system administrator (Admin Guide).** There is nothing to configure and no Admin Guide change (Admin Guide: none). Anyone who views or prints a released report is affected, with the PathScribe server. The fetch checks the report's SHA-256 fingerprint again each time, and the three messages above ("couldn't be fetched from the PathScribe server, try again shortly", "you don't have permission to open this document", "this list may be incomplete") are what users will report. Print retries that couldn't fetch their report are tried again, not failed for good. Nothing changes in the demo.
+
+**For marketing (positive).** Every report PathScribe sends is stored once with its SHA-256 fingerprint. Viewing, reprinting and resending it serve exactly those bytes from the server, checked each time.
+
+**For FormedrixAI and partners (the plain reality).** Status: browser side done. The server's document endpoints are phase 2e, so this works only with the PathScribe server; nothing changes in the demo. No other gaps are recorded for this change. The standards claim supports the expectation in CAP and ISO 15189 that a released report can be retrieved exactly as issued, but the clause numbers are still to be confirmed against the current editions.
+- Training: none. Standards: supports the expectation in CAP and ISO 15189 that a released report can be retrieved exactly as issued (clause numbers to be confirmed against the current editions).
 
 ## Batch 555: server jobs move off the browser, one at a time
-- **What changed:**
-  - **Background work:** the browser does some of the server's background work today, while someone is signed in:
-    - retrying deliveries;
-    - releasing held reports when their delay ends;
-    - sending follow-up alerts;
-    - escalating registry submissions at 72 hours;
-    - recording expired consult links and support access;
-    - the cytology–histology correlation sweep.
+**For the practitioner (User Guide).** Nothing changes on screen, and nothing changes for users today (User Guide: none). Behind the scenes, some background work that the browser does while someone is signed in will move to the hospital's PathScribe server over time. In Configuration → Support access, an approval whose time has run out now reads **Expired** straight away, and can't be revoked or ended after the fact. In Interfaces → Engines, counts use your number format (for example 1 234 in French).
 
-    A new deployment setting, `VITE_SERVER_JOBS`, says which of these the hospital's PathScribe server runs. The browser stops doing exactly those. Until the server runs a job, the browser keeps doing it as before, so nothing is done twice and nothing is missed. Nothing changes for users today.
-  - **Support access:** in Configuration → Support access, an approval whose time has run out now reads **Expired** straight away, and can't be revoked or ended after the fact.
-  - **Engines view:** counts in Interfaces → Engines use the user's number format (for example 1 234 in French).
-- **Who:** hospital IT and the PathScribe deployment team (the setting); administrators (support access).
-- **User Guide:** none.
-- **Admin Guide:**
-  - Support access: what "Expired" means.
-  - Deployment Guide (`deploy/runtime-config/README.md`): `VITE_SERVER_JOBS`, which is empty until the server runs a job, then lists each job by name.
-- **Training:** none.
-- **Marketing / RFP:** "Scheduled work (delivery retries, held-report release, alerts and escalations) runs on the PathScribe server, not in a user's browser, so it happens whether or not anyone is signed in." This is **Planned**: true once phase 2e ships each job.
-- **Status:** browser side done. The server jobs are phase 2e.
+**For the system administrator (Admin Guide).** Who: hospital IT and the PathScribe deployment team (the setting); administrators (support access). Today the browser does this background work while someone is signed in: retrying deliveries; releasing held reports when their delay ends; sending follow-up alerts; escalating registry submissions at 72 hours; recording expired consult links and support access; and the cytology–histology correlation sweep. A new deployment setting, `VITE_SERVER_JOBS`, says which of these the hospital's PathScribe server runs. The browser stops doing exactly those. Until the server runs a job, the browser keeps doing it as before, so nothing is done twice and nothing is missed. The setting is documented in the Deployment Guide (`deploy/runtime-config/README.md`): it is empty until the server runs a job, then lists each job by name. In Configuration → Support access, an approval whose time has run out now reads **Expired** straight away, and can't be revoked or ended after the fact; the Admin Guide explains what "Expired" means. In the Engines view (Interfaces → Engines), counts use the user's number format (for example 1 234 in French).
+
+**For marketing (positive).** Scheduled work (delivery retries, held-report release, alerts and escalations) runs on the PathScribe server, not in a user's browser, so it happens whether or not anyone is signed in. Expired support access is now clearly marked as Expired the moment its time runs out.
+
+**For FormedrixAI and partners (the plain reality).** Status: browser side done. The server jobs are phase 2e. The marketing claim is **Planned**: it is true only once phase 2e ships each job. Until then the browser keeps doing the work, as before. No other gaps are recorded for this change.
 
 ## Batch 554: interface monitoring
-- **What changed:**
-  - **Audit Log → Interfaces** has a new **Engines** sub-tab. It shows each hospital's interface engine (hosted or on site) and is refreshed every minute. For each engine:
-    - its status: online, needs attention, degraded (a listener stopped or in error, messages waiting more than 15 minutes, can't reach PathScribe, low disk or a certificate expiring soon) or offline;
-    - its last check-in and version;
-    - each listener and outgoing channel, with what is waiting, the oldest wait and the messages that failed for good. Problems come first.
-    - An outgoing channel with failed messages has **Open Outbound**.
-  - **A line above the Interfaces sub-tabs** sums it up, for example "Interface engines: 1 offline, 1 listener down and 2 online". It shows only problems and what's there, and opens Engines in one click.
-  - The view is read only. Channels are started and stopped on the engine, and failed messages are resent from Outbound as before.
-  - **In the demo:** the browser handles interface messages itself, so Engines explains that there is no engine.
-- **Who:** the new permission "View interface engines", Admin by default. A hospital can grant it to its interface analysts.
-- **User Guide:** none (administrators only).
-- **Admin Guide:**
-  - Audit Log → Interfaces → Engines: reading the statuses, and what to do for each (offline: check the engine's host; a listener stopped: start it on the engine; waiting too long: check the receiving system).
-  - Roles: the new permission.
-- **Training:** read the Engines view for a hosted engine and an on-site engine, follow Open Outbound to resend a failed result, and read the status line.
-- **Marketing / RFP:** "Interface administrators see every hospital interface's listeners and queues in PathScribe, refreshed every minute, with problems first, so a stopped feed is noticed before the lab is."
-- **Standards:** supports the CAP general checklist's expectations for monitoring data interfaces, and ISO 15189's requirements for laboratory information systems (exact clause numbers to be confirmed against the current editions).
-- **Status:** Partial. The screen is built. It shows engines once the interface engine's heartbeat and the server's `/api/interface/engines` exist (phase 2e).
+**For the practitioner (User Guide).** Nothing changes for practitioners; this is for administrators only (User Guide: none). It applies to people who hold the new permission "View interface engines".
+
+**For the system administrator (Admin Guide).** Who: the new permission "View interface engines", Admin by default. A hospital can grant it to its interface analysts (see Roles in the Admin Guide). Go to Audit Log → Interfaces and open the new **Engines** sub-tab. It shows each hospital's interface engine (hosted or on site) and is refreshed every minute. For each engine it shows: its status (online, needs attention, degraded, or offline), where degraded means a listener stopped or in error, messages waiting more than 15 minutes, can't reach PathScribe, low disk or a certificate expiring soon; its last check-in and version; and each listener and outgoing channel, with what is waiting, the oldest wait and the messages that failed for good. Problems come first. An outgoing channel with failed messages has **Open Outbound**. A line above the Interfaces sub-tabs sums it up, for example "Interface engines: 1 offline, 1 listener down and 2 online"; it shows only problems and what's there, and opens Engines in one click. The view is read only: channels are started and stopped on the engine, and failed messages are resent from Outbound as before. What to do for each status: offline, check the engine's host; a listener stopped, start it on the engine; waiting too long, check the receiving system. In the demo, the browser handles interface messages itself, so Engines explains that there is no engine.
+
+**For marketing (positive).** Interface administrators see every hospital interface's listeners and queues in PathScribe, refreshed every minute, with problems first, so a stopped feed is noticed before the lab is.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial. The screen is built. It shows engines once the interface engine's heartbeat and the server's `/api/interface/engines` exist (phase 2e). In the demo there is no engine, and the screen says so. The standards claim supports the CAP general checklist's expectations for monitoring data interfaces, and ISO 15189's requirements for laboratory information systems; exact clause numbers are to be confirmed against the current editions.
+- Training: read the Engines view for a hosted engine and an on-site engine, follow Open Outbound to resend a failed result, and read the status line. Standards: supports the CAP general checklist's expectations for monitoring data interfaces, and ISO 15189's requirements for laboratory information systems (exact clause numbers to be confirmed against the current editions).
 
 ## Batch 553: choosing a site agent printer
-- **What changed:**
-  - **Print routing rules** (Configuration → System → Print routing rules): where a rule prints is now **Site agent printer**, picked by name from the lab's list, or **Printer address**.
-    - A facility rule uses that facility's own printers.
-    - Other rules (workstation, location, client) choose the performing lab first.
-    - When the lab has only one report printer, it is picked already.
-    - The rule list shows the printer and its lab.
-    - If a save is refused, the window stays open and says why.
-  - **A facility's default printer** (Facility editor → Printing, Direct network print): pick one of the facility's own site agent printers, or give a printer address.
-  - **Print Queue → Redirect:** picks one of the job's own lab's agent printers.
-    - Jobs from several labs, or older jobs whose lab isn't recorded, can only be given a printer address.
-    - If any job isn't redirected, the form stays open and says how many.
-  - **A report always prints at the lab that performed it.** A routing rule that names another lab's printer is skipped for that lab's reports.
-  - **Site agents:**
-    - **Revoke** asks for a reason picked from a short list (machine replaced, retired, may be compromised, moved to another site, enrolled by mistake, other). A note is needed only for Other.
-    - **Agent updates:** an update window (for example 02:00–04:00, the lab's local time) so the agent installs new versions outside working hours.
-    - **A pickup share** hands its files to Orders or Results (picked from a list), or to an interface engine channel. The channels already used are suggested.
-  - The printer-address option says it works only from a PathScribe server inside the hospital's network.
-- **Who:**
-  - Routing rules: "Manage print routing".
-  - The facility default: "Manage print settings".
-  - Redirect: "Redirect a print job".
-  - Each also lets that person see the lab's printer list.
-- **User Guide:** Print Queue, "Redirecting a report to another printer".
-- **Admin Guide:**
-  - Print routing rules: choosing a site agent printer, and why a rule for another lab's printer is skipped.
-  - Facility Printing tab: the default printer.
-  - Site agents: revoke reasons, update window, pickup hand-over.
-- **Training:**
-  - Add a facility rule and pick the lab's agent printer.
-  - Redirect a failed job to another printer at the same lab.
-  - Revoke an agent with a reason.
-  - Set a 02:00–04:00 update window.
-- **Marketing / RFP:** "Reports are routed by rule to named printers at each lab, through the lab's own on-site agent. No IP addresses are typed, and a report never prints at another lab."
-- **Status:** Partial. The screens are built. Printing to an agent printer happens once the agent and the server's endpoints exist (phase 2e, India team). Until then a job for an agent printer goes straight to the exception queue and its fallback.
+**For the practitioner (User Guide).** In Print Queue, when you redirect a report to another printer, you pick one of the printers belonging to the lab that performed the job (User Guide: Print Queue, "Redirecting a report to another printer"). If the jobs come from several labs, or older jobs whose lab isn't recorded, you can only give a printer address. If any job isn't redirected, the form stays open and tells you how many. A report always prints at the lab that performed it. You need the "Redirect a print job" permission, which also lets you see the lab's printer list.
+
+**For the system administrator (Admin Guide).** Print routing rules (Configuration → System → Print routing rules; permission "Manage print routing"): where a rule prints is now **Site agent printer**, picked by name from the lab's list, or **Printer address**. A facility rule uses that facility's own printers. Other rules (workstation, location, client) choose the performing lab first. When the lab has only one report printer, it is picked already. The rule list shows the printer and its lab. If a save is refused, the window stays open and says why. A routing rule that names another lab's printer is skipped for that lab's reports, because a report always prints at the lab that performed it. A facility's default printer (Facility editor → Printing, Direct network print; permission "Manage print settings"): pick one of the facility's own site agent printers, or give a printer address. Print Queue → Redirect (permission "Redirect a print job"): picks one of the job's own lab's agent printers; jobs from several labs, or older jobs whose lab isn't recorded, can only be given a printer address; if any job isn't redirected, the form stays open and says how many. Each of the three permissions also lets that person see the lab's printer list. Site agents: **Revoke** asks for a reason picked from a short list (machine replaced, retired, may be compromised, moved to another site, enrolled by mistake, other), and a note is needed only for Other. **Agent updates:** set an update window (for example 02:00–04:00, the lab's local time) so the agent installs new versions outside working hours. **A pickup share** hands its files to Orders or Results (picked from a list), or to an interface engine channel; the channels already used are suggested. The printer-address option says it works only from a PathScribe server inside the hospital's network. The Admin Guide covers choosing a site agent printer and why a rule for another lab's printer is skipped; the Facility Printing tab default printer; and site agents (revoke reasons, update window, pickup hand-over).
+
+**For marketing (positive).** Reports are routed by rule to named printers at each lab, through the lab's own on-site agent. No IP addresses are typed, and a report never prints at another lab.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial. The screens are built. Printing to an agent printer happens once the agent and the server's endpoints exist (phase 2e, India team). Until then a job for an agent printer goes straight to the exception queue and its fallback. The printer-address option works only from a PathScribe server inside the hospital's network. No other gaps are recorded for this change.
+- Training: add a facility rule and pick the lab's agent printer; redirect a failed job to another printer at the same lab; revoke an agent with a reason; set a 02:00–04:00 update window.
 
 ## Batch 552: site agents
-- **What changed:**
-  - **Configuration → System → Site agents** (Workstation & Hardware) is new. Choose the performing lab in the facility picker at the top. The section then shows:
-    - **The lab's agents:** their status (online, needs attention, offline or revoked), version, last check-in, certificate expiry, and how many of their printers are reachable.
-    - **New enrolment code:** a one-time code to enter while installing the agent. It works once, expires after 24 hours, and is shown only once.
-    - **Revoke:** cuts an agent off at once. It asks for a reason, because it can't be undone.
-    - **Agent printers:** report or label printer, protocol, address, port, and LPR queue or IPP path. IPPS is preferred, because the printer confirms each report printed. Label printers use Raw 9100.
-    - **File shares:** a write share (for file delivery) or a pickup share (with its file pattern, how long a file must sit unchanged, the largest file, what happens after hand-over, and where its files go).
+**For the practitioner (User Guide).** In the Print Queue, a report sent to a printer that can't confirm printing (Raw 9100 or LPR) now shows **Sent to printer**, not **Printed**, because PathScribe cannot know it came out (User Guide: Print Queue, what "Sent to printer" means). With the PathScribe server, a line also shows how many site agents are online, need attention or are offline, with a link to Site agents. Setting up site agents is for administrators and lab directors.
 
-    Passwords for shares are never entered here. The hospital's IT sets them on the agent's machine.
-  - **Saving:** printers and shares are saved together. Leaving the section, or changing the facility, with unsaved changes asks first.
-  - **Print Queue:**
-    - A report sent to a printer that can't confirm printing (Raw 9100 or LPR) shows **Sent to printer**, not **Printed**.
-    - With the PathScribe server, a line shows how many site agents are online, need attention or are offline, with a link to Site agents.
-  - **In the demo:** no agent can enrol. You can still make a code and set up printers and shares.
-- **Who:** administrators and lab directors, through two new permissions: "Enrol and revoke site agents" and "Manage site agent printers and shares".
-- **User Guide:** Print Queue, what "Sent to printer" means.
-- **Admin Guide:**
-  - a new section, "Site agents": installing (the enrolment code), revoking, printers (protocol choice, and why IPPS), shares (write and pickup rules), and status;
-  - Roles: the two new permissions.
-- **Training:** make a code, add an IPPS report printer and a Raw 9100 label printer, and show "Sent to printer" in the Print Queue.
-- **Marketing / RFP:** "PathScribe prints and exchanges files inside the hospital network through an on-site agent, with no inbound firewall ports. Each agent is enrolled with a one-time code and its own certificate, can be revoked at once, and reports whether each report actually printed." Supports HIPAA §164.312(e) (transmission security).
-- **Status:** Partial. The screens are built. The agent itself and the server's endpoints are the India team's (phase 2e). Choosing an agent printer in routing rules and Redirect is built in Batch 553.
+**For the system administrator (Admin Guide).** Who: administrators and lab directors, through two new permissions: "Enrol and revoke site agents" and "Manage site agent printers and shares" (see Roles). Go to Configuration → System → Site agents (Workstation & Hardware), which is new, and choose the performing lab in the facility picker at the top. The section shows: **The lab's agents**, with status (online, needs attention, offline or revoked), version, last check-in, certificate expiry, and how many of their printers are reachable; **New enrolment code**, a one-time code to enter while installing the agent, which works once, expires after 24 hours, and is shown only once; **Revoke**, which cuts an agent off at once and asks for a reason because it can't be undone; **Agent printers**, with report or label printer, protocol, address, port, and LPR queue or IPP path (IPPS is preferred, because the printer confirms each report printed; label printers use Raw 9100); and **File shares**, either a write share (for file delivery) or a pickup share (with its file pattern, how long a file must sit unchanged, the largest file, what happens after hand-over, and where its files go). Passwords for shares are never entered here; the hospital's IT sets them on the agent's machine. Printers and shares are saved together, and leaving the section or changing the facility with unsaved changes asks first. In the Print Queue, a report sent to a printer that can't confirm printing (Raw 9100 or LPR) shows **Sent to printer**, not **Printed**, and with the PathScribe server a line shows how many site agents are online, need attention or are offline, with a link to Site agents. The Admin Guide has a new section, "Site agents": installing (the enrolment code), revoking, printers (protocol choice, and why IPPS), shares (write and pickup rules), and status; plus Roles for the two new permissions. In the demo, no agent can enrol, but you can still make a code and set up printers and shares.
+
+**For marketing (positive).** PathScribe prints and exchanges files inside the hospital network through an on-site agent, with no inbound firewall ports. Each agent is enrolled with a one-time code and its own certificate, can be revoked at once, and reports whether each report actually printed. Supports HIPAA §164.312(e) (transmission security).
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial. The screens are built. The agent itself and the server's endpoints are the India team's (phase 2e), so in the demo no agent can enrol. Choosing an agent printer in routing rules and Redirect is built in Batch 553. No other gaps are recorded for this change.
+- Training: make a code, add an IPPS report printer and a Raw 9100 label printer, and show "Sent to printer" in the Print Queue. Standards: HIPAA §164.312(e) (transmission security).
 
 ## Batch 551: Server jobs (System Logs)
-- **What changed** (with the PathScribe server):
-  - System Logs has a new **Server jobs** tab for administrators. It shows the server's background work by kind (deliveries, prints, interface messages, held releases, charges, exports, event handlers):
-    - how many are waiting or running;
-    - how long the oldest has been waiting past its time;
-    - how many failed for good today.
+**For the practitioner (User Guide).** Nothing changes for practitioners (User Guide: none). This is an administrator tab that works with the PathScribe server.
 
-    A kind that needs attention is highlighted.
-  - **Recurring jobs** (delivery retries, held releases coming due, consult link expiry, stale registry submissions, follow-up alerts and others) show when each last ran, and are flagged when a run is overdue or failed.
-  - **Failed for good** lists each job that ran out of attempts, with its error, the case it concerns and when it failed. **Requeue** sends it again in one click. Interface and print jobs have a button that opens Interfaces → Outbound or the Print Queue, where they are resent.
-  - In the demo, the tab explains that the browser does this work itself.
-- **Who:** Admin by default. New permissions: "View server jobs", and "Requeue server jobs", which needs the first. Someone assigned to some facilities sees and requeues only their facilities' jobs.
-- **User Guide:** none.
-- **Admin Guide:**
-  - System Logs → Server jobs: what each column means, when a row is highlighted, and requeue versus resend.
-  - Roles: the two new permissions.
-- **Training:** show a highlighted kind, a failed job's error and Requeue, and the button that opens the Print Queue for a print job.
-- **Marketing / RFP:** "Administrators see every background job the server runs, are alerted to anything overdue or failed, and can requeue a failed job in one click, with every requeue audited." Supports CAP and ISO 15189 expectations for monitoring the laboratory information system (exact checklist items to be confirmed by the RFP team).
-- **Status:** Partial. The screen is built. It is in use once the server's `/api/jobs` endpoints exist (phase 2e).
+**For the system administrator (Admin Guide).** Who: Admin by default. New permissions: "View server jobs", and "Requeue server jobs", which needs the first. Someone assigned to some facilities sees and requeues only their facilities' jobs. With the PathScribe server, System Logs has a new **Server jobs** tab. It shows the server's background work by kind (deliveries, prints, interface messages, held releases, charges, exports, event handlers): how many are waiting or running; how long the oldest has been waiting past its time; and how many failed for good today. A kind that needs attention is highlighted. **Recurring jobs** (delivery retries, held releases coming due, consult link expiry, stale registry submissions, follow-up alerts and others) show when each last ran, and are flagged when a run is overdue or failed. **Failed for good** lists each job that ran out of attempts, with its error, the case it concerns and when it failed. **Requeue** sends it again in one click. Interface and print jobs have a button that opens Interfaces → Outbound or the Print Queue, where they are resent. The Admin Guide covers System Logs → Server jobs (what each column means, when a row is highlighted, and requeue versus resend) and Roles for the two new permissions. In the demo, the tab explains that the browser does this work itself.
+
+**For marketing (positive).** Administrators see every background job the server runs, are alerted to anything overdue or failed, and can requeue a failed job in one click, with every requeue audited. Supports CAP and ISO 15189 expectations for monitoring the laboratory information system.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial. The screen is built. It is in use once the server's `/api/jobs` endpoints exist (phase 2e). In the demo the tab only explains that the browser does the work itself. The exact CAP and ISO 15189 checklist items are still to be confirmed by the RFP team. No other gaps are recorded for this change.
+- Training: show a highlighted kind, a failed job's error and Requeue, and the button that opens the Print Queue for a print job. Standards: CAP and ISO 15189 expectations for monitoring the laboratory information system (exact checklist items to be confirmed by the RFP team).
 
 ## Batch 550: exports through the PathScribe server
-- **What changed** (with the PathScribe server; the demo is unchanged):
-  - **Every export button** (QA reports, the system logs, the billing log, case search, the disposal report, My Contributions, change history) now asks the server for the file.
-  - **A quick export** still downloads straight away, with no extra click.
-  - **A larger one** shows a small notice at the bottom left: "Preparing your export. We'll tell you when it's ready." You carry on working.
-  - **When it's ready,** the notice shows a **Download** button. If it can't be made, the notice says why: no permission, too many rows, too many exports already being prepared, or the server can't be reached.
-  - **My exports** (a new button in the top bar, with a badge counting exports ready to download) lists your exports from the last 7 days. Each shows its status, rows, when you asked, and when the file is deleted, with Download, or Cancel while it's being prepared.
-  - **Only you** can see or download your exports, and your permission for that report is checked again when you download.
-  - **Signing out** clears the notices.
-- **Who:** everyone who exports, with the PathScribe server.
-- **User Guide:** a new section, "Exports": the notice, My exports, the 7-day limit, and what each problem message means.
-- **Admin Guide:**
-  - Each report's export permission is checked when an export is requested and again when it is downloaded.
-  - Files are kept for 7 days by default (1 to 30).
-  - At most 3 exports can be prepared at once per person, and at most 1,000,000 rows per export.
-- **Training:** export a small and a large report. Show that the small one downloads at once, and that the large one's notice turns into Download. Then open My exports.
-- **Marketing / RFP:** "Large exports run on the server in the background and never freeze the screen. Each file is downloadable only by the person who asked for it, with their permission checked again at download, and is deleted after 7 days." Supports HIPAA §164.312(a) and (b) (access control, audit), and GDPR Art. 5(1)(e) (storage limitation).
-- **Status:** Partial. The browser side is built. It is in use once the server's export endpoints exist (phase 2e); until then, and in the demo, exports download from the browser as before.
+**For the practitioner (User Guide).** With the PathScribe server, every export button (QA reports, the system logs, the billing log, case search, the disposal report, My Contributions, change history) now asks the server for the file. A quick export still downloads straight away, with no extra click. A larger one shows a small notice at the bottom left: "Preparing your export. We'll tell you when it's ready." You carry on working. When it's ready, the notice shows a **Download** button. If it can't be made, the notice says why: no permission, too many rows, too many exports already being prepared, or the server can't be reached. **My exports** (a new button in the top bar, with a badge counting exports ready to download) lists your exports from the last 7 days. Each shows its status, rows, when you asked, and when the file is deleted, with Download, or Cancel while it's being prepared. Only you can see or download your exports, and your permission for that report is checked again when you download. Signing out clears the notices. The User Guide has a new section, "Exports": the notice, My exports, the 7-day limit, and what each problem message means. The demo is unchanged.
+
+**For the system administrator (Admin Guide).** Who: everyone who exports, with the PathScribe server. Each report's export permission is checked when an export is requested and again when it is downloaded. Files are kept for 7 days by default (1 to 30). At most 3 exports can be prepared at once per person, and at most 1,000,000 rows per export. The export buttons covered are QA reports, the system logs, the billing log, case search, the disposal report, My Contributions and change history. The demo is unchanged.
+
+**For marketing (positive).** Large exports run on the server in the background and never freeze the screen. Each file is downloadable only by the person who asked for it, with their permission checked again at download, and is deleted after 7 days. Supports HIPAA §164.312(a) and (b) (access control, audit), and GDPR Art. 5(1)(e) (storage limitation).
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial. The browser side is built. It is in use once the server's export endpoints exist (phase 2e); until then, and in the demo, exports download from the browser as before. No other gaps are recorded for this change.
+- Training: export a small and a large report. Show that the small one downloads at once, and that the large one's notice turns into Download. Then open My exports. Standards: HIPAA §164.312(a) and (b) (access control, audit); GDPR Art. 5(1)(e) (storage limitation).
 
 ## Batch 549: carried-over items finished
-- **What changed:**
-  - **Every screen waits the same way.** All the remaining screens with their own "Loading…" text now behave like the rest: nothing for a quick load, the screen's own loading text after a moment, and "still working" after 3 seconds.
-  - **Faster reconnect.** When a computer's network comes back, PathScribe reconnects to live updates straight away, instead of waiting for its next scheduled try.
-  - **Faster start.** PathScribe downloads its program while it reads the site's settings, instead of one after the other.
-  - **Logos and imaging addresses must be secure links.** In Configuration, the facility and department letterhead logo and the gross imaging vendor's address must start with `https://` and point to a named server. An `http://` address or a pasted image is refused, with a message under the field. This is the same rule staff signatures have followed since Batch 544.
-  - **Print Queue:** a report that couldn't be printed because network printing needs the PathScribe site agent now says so in the user's language.
-  - **Assist (LIS-driven) results** now carry the time the pathologist signed the case out, not the time the message was built.
-- **Who:**
-  - everyone, for loading, reconnect and start-up;
-  - administrators, for logos and imaging addresses;
-  - print and lab staff, for the Print Queue.
-- **User Guide:** none beyond Batch 548's "waiting" note.
-- **Admin Guide:**
-  - Facilities, Departments and Gross Imaging Vendors: the logo and the address are https links into the hospital's own systems.
-  - Print Queue: the "needs the site agent" reason.
-- **Training:** when setting a logo, paste the https link to the image on the hospital's intranet or imaging system; don't upload or paste the picture.
-- **Marketing / RFP:** "PathScribe stores no copies of images or logos; it links to them over secure (https) links in the hospital's own systems." Supports HIPAA §164.312(e) (transmission security) and GDPR Art. 5(1)(c) (data minimisation).
-- **Status:** Live.
+**For the practitioner (User Guide).** Several small improvements for everyone. Every screen now waits the same way: nothing for a quick load, the screen's own loading text after a moment, and "still working" after 3 seconds (all the remaining screens with their own "Loading…" text now behave like the rest). When your computer's network comes back, PathScribe reconnects to live updates straight away, instead of waiting for its next scheduled try. PathScribe also starts faster, because it downloads its program while it reads the site's settings, instead of one after the other. In the Print Queue, a report that couldn't be printed because network printing needs the PathScribe site agent now says so in your language. Assist (LIS-driven) results now carry the time the pathologist signed the case out, not the time the message was built. No User Guide change beyond Batch 548's "waiting" note.
+
+**For the system administrator (Admin Guide).** Who: everyone, for loading, reconnect and start-up; administrators, for logos and imaging addresses; print and lab staff, for the Print Queue. In Configuration, the facility and department letterhead logo and the gross imaging vendor's address must now start with `https://` and point to a named server. An `http://` address or a pasted image is refused, with a message under the field. This is the same rule staff signatures have followed since Batch 544. The Admin Guide covers Facilities, Departments and Gross Imaging Vendors (the logo and the address are https links into the hospital's own systems) and the Print Queue "needs the site agent" reason. Tip: when setting a logo, paste the https link to the image on the hospital's intranet or imaging system; don't upload or paste the picture.
+
+**For marketing (positive).** PathScribe stores no copies of images or logos; it links to them over secure (https) links in the hospital's own systems. Screens feel steadier too, with consistent waiting messages, faster start-up and instant reconnection. Supports HIPAA §164.312(e) (transmission security) and GDPR Art. 5(1)(c) (data minimisation).
+
+**For FormedrixAI and partners (the plain reality).** Status: Live. No gaps are recorded for this change.
+- Training: when setting a logo, paste the https link to the image on the hospital's intranet or imaging system; don't upload or paste the picture. Standards: HIPAA §164.312(e) (transmission security); GDPR Art. 5(1)(c) (data minimisation).
 
 ## Batch 548: connection banner; clearer waiting
-- **What changed:**
-  - **Connection banner.** When PathScribe loses its connection for more than 2 seconds, a slim notice appears below the top bar on every screen: "Reconnecting…" or "Offline", saying that what you see may be out of date. When the connection is back it says "Connection restored" for a few seconds, then goes. Nothing to click.
-  - **Clearer waiting.** A screen that loads quickly no longer flashes a "Loading…" message. One that takes longer shows a placeholder, and after 3 seconds says it is still working, so nobody wonders whether it has hung. The same applies while a page itself loads.
-- **Who:** everyone.
-- **User Guide:** Getting started: what the connection banner means, and that PathScribe reconnects by itself.
-- **Admin Guide:** none.
-- **Training:** mention the banner. If it says Offline for long, check the network, then call IT.
-- **Marketing / RFP:** "PathScribe tells users the moment its live connection drops and when it's restored, and never leaves them guessing whether a screen has hung." Supports WCAG 2.2 4.1.3 (status messages).
-- **Status:** Live. About 50 screens still showed their own loading text; they were converted in Batch 549.
+**For the practitioner (User Guide).** When PathScribe loses its connection for more than 2 seconds, a slim notice appears below the top bar on every screen: "Reconnecting…" or "Offline", telling you that what you see may be out of date. When the connection is back it says "Connection restored" for a few seconds, then goes. There is nothing to click, and PathScribe reconnects by itself (see Getting started in the User Guide). Screens that load quickly no longer flash a "Loading…" message. One that takes longer shows a placeholder, and after 3 seconds says it is still working, so you don't wonder whether it has hung. The same applies while a page itself loads. If the banner says Offline for long, check the network, then call IT.
+
+**For the system administrator (Admin Guide).** Who: everyone. There is no Admin Guide change (Admin Guide: none) and nothing to configure. The banner appears after a connection loss of more than 2 seconds, and the placeholder and "still working" message after 3 seconds. If users report Offline for long, check the network first, then escalate to IT.
+
+**For marketing (positive).** PathScribe tells users the moment its live connection drops and when it's restored, and never leaves them guessing whether a screen has hung. Supports WCAG 2.2 4.1.3 (status messages).
+
+**For FormedrixAI and partners (the plain reality).** Status: Live. About 50 screens still showed their own loading text; they were converted in Batch 549. No other gaps are recorded for this change.
+- Training: mention the banner. If it says Offline for long, check the network, then call IT. Standards: WCAG 2.2 4.1.3 (status messages).
 
 ## Batch 547: one PathScribe build for every site
-- **What changed:**
-  - **One build for everyone.** The same PathScribe build is installed at every hospital. Each site's settings live in a small `config.json` file beside the app, read when PathScribe starts:
-    - the PathScribe server's address;
-    - the sign-in provider;
-    - the live updates, report renderer and AI addresses.
-  - **Changing a setting needs no new build:** edit the file, then reload.
-  - **A setting that's wrong or missing stops PathScribe from starting.** Instead, it shows a page listing each problem in plain words. It never runs with the wrong settings.
-  - **Server builds:** they always sign in through the hospital's identity provider (SSO) and contain no demonstration accounts.
-  - **The demonstration build:** it can never be pointed at a real server.
-- **Who:** hospital IT and ForMedrixAI deployment staff. Nothing changes for users.
-- **User Guide:** none.
-- **Admin Guide:** Installation:
-  - `config.json` and its settings (`deploy/runtime-config/README.md`);
-  - serving it uncached;
-  - generating the security headers from it;
-  - the configuration error page.
-- **Training:** deployment staff only.
-- **Marketing / RFP:** "One validated build is installed at every site; site settings are configuration, not code, so an update is validated once and rolled out unchanged." Supports GAMP 5 / computerised-system validation (one build, configuration recorded per site).
-- **Status:** Live.
+**For the practitioner (User Guide).** Nothing changes on screen. Nothing changes for users (User Guide: none). This affects hospital IT and ForMedrixAI deployment staff only.
+
+**For the system administrator (Admin Guide).** Who: hospital IT and ForMedrixAI deployment staff. The same PathScribe build is installed at every hospital. Each site's settings live in a small `config.json` file beside the app, read when PathScribe starts: the PathScribe server's address; the sign-in provider; and the live updates, report renderer and AI addresses. Changing a setting needs no new build: edit the file, then reload. A setting that's wrong or missing stops PathScribe from starting; instead, it shows a page listing each problem in plain words, and it never runs with the wrong settings. Server builds always sign in through the hospital's identity provider (SSO) and contain no demonstration accounts. The demonstration build can never be pointed at a real server. The Admin Guide's Installation section covers `config.json` and its settings (`deploy/runtime-config/README.md`), serving it uncached, generating the security headers from it, and the configuration error page.
+
+**For marketing (positive).** One validated build is installed at every site; site settings are configuration, not code, so an update is validated once and rolled out unchanged. Supports GAMP 5 / computerised-system validation (one build, configuration recorded per site).
+
+**For FormedrixAI and partners (the plain reality).** Status: Live. No gaps are recorded for this change.
+- Training: deployment staff only. Standards: GAMP 5 / computerised-system validation (one build, configuration recorded per site).
 
 ## Batch 546: workstation label printing allowed by the browser; network report printing waits for the site agent
-- **What changed:**
-  - **Workstation label printers work under the browser's security policy.** Labels printed through the PathScribe workstation agent or QZ Tray were blocked by PathScribe's own security policy; now they connect, only to the user's own computer. Chrome and Edge may ask the user once to allow PathScribe to reach "apps on this device"; IT can pre-approve it.
-  - **Network report printers:** printing a released report straight to a network printer needs the PathScribe site agent (coming with the server). Until then, such a print fails at once with "needs the site agent". The report then goes to its fallback channels, and Admin and Lab Director are told; before, the print sat in the queue, or failed after several retries with a technical message.
-- **Who:** bench staff (labels); administrators and lab directors (report printing set-up).
-- **User Guide:** Printing labels: the permission prompt for local printing.
-- **Admin Guide:**
-  - Printing: direct network report printing needs the site agent; until it's installed, use the interface engine hand-off or QZ Tray.
-  - Security headers: `workstationBridges`.
-- **Training:** none.
-- **Marketing / RFP:** "On-site printing and file shares through a small, outbound-only site agent: no inbound firewall openings, signed updates, and at-most-once printing of clinical reports." The site agent is Planned.
-- **Status:**
-  - Label printing fix: Live, still to be checked in a browser.
-  - Site agent: Planned.
+**For the practitioner (User Guide).** Bench staff: label printers connected through the PathScribe workstation agent or QZ Tray now work; before, PathScribe's own security policy blocked them. They connect only to your own computer. Chrome and Edge may ask you once to allow PathScribe to reach "apps on this device"; IT can pre-approve it (User Guide: Printing labels, the permission prompt for local printing). Printing a released report straight to a network printer needs the PathScribe site agent, which is coming with the server. Until then, such a print fails at once with "needs the site agent", the report goes to its fallback channels, and Admin and Lab Director are told. Before, the print sat in the queue, or failed after several retries with a technical message.
+
+**For the system administrator (Admin Guide).** Who: bench staff (labels); administrators and lab directors (report printing set-up). Workstation label printers through the PathScribe workstation agent or QZ Tray were blocked by PathScribe's own security policy; now they connect, only to the user's own computer. The security-headers setting is `workstationBridges`. Chrome and Edge may ask the user once to allow PathScribe to reach "apps on this device"; IT can pre-approve it. Direct network report printing needs the site agent; until it's installed, use the interface engine hand-off or QZ Tray. Without the site agent, a print to a network report printer fails at once with "needs the site agent", goes to its fallback channels, and Admin and Lab Director are told.
+
+**For marketing (positive).** On-site printing and file shares through a small, outbound-only site agent: no inbound firewall openings, signed updates, and at-most-once printing of clinical reports.
+
+**For FormedrixAI and partners (the plain reality).** Status: the label printing fix is Live, still to be checked in a browser. The site agent is Planned, so direct network report printing does not work yet and fails at once with "needs the site agent". The marketing statement about the site agent is therefore Planned, not current. No other gaps are recorded for this change.
+- Training: none.
 
 ## Batch 544: signatures are links; QA reports for one facility
-- **What changed:**
-  - **Staff signature:** Configuration → Staff now asks for a link (https://) to the person's signature image in the hospital's own system, instead of uploading the image. PathScribe keeps the link, never the image, as it already does for photos, referral PDFs and letterhead logos. A signature saved earlier as an image opens with an empty field and a note asking for the link.
-  - **QA reports for one facility:** Follow-up not received, FPPE, Inspection Mode, the QA Dashboard, Deficiencies and Billing deficiencies have the Scope picker the other QA reports already had. Pick one facility to see, count and export only its items; the file name says which facility. Someone assigned to one facility opens on it, so their export works first time. The enterprise rollup, management reviews and patient match review stay lab-wide.
-- **Who:** administrators (Staff); QA managers, lab directors, auditors (QA reports).
-- **User Guide:** Quality Assurance: the Scope picker on each report, and what "one facility" includes.
-- **Admin Guide:** Staff: signature link (where to host signature images; https only). Storage: PathScribe stores no images or attachments.
-- **Training:** show choosing a facility before exporting. Tell administrators to have signature images hosted on the hospital's document system before go-live.
-- **Marketing / RFP:** "PathScribe keeps links to images and attachments in your own systems and never stores copies; QA reports can be produced per facility or across the enterprise." Supports CAP and ISO 15189 per-site QA review, and HIPAA minimum necessary (45 CFR 164.502(b)).
-- **Status:** Live.
+**For the practitioner (User Guide).** QA managers, lab directors and auditors: the QA reports Follow-up not received, FPPE, Inspection Mode, the QA Dashboard, Deficiencies and Billing deficiencies now have the Scope picker the other QA reports already had. Pick one facility to see, count and export only its items; the file name says which facility. If you are assigned to one facility, the report opens on it, so your export works first time. The enterprise rollup, management reviews and patient match review stay lab-wide. The User Guide covers Quality Assurance: the Scope picker on each report, and what "one facility" includes.
+
+**For the system administrator (Admin Guide).** Who: administrators (Staff); QA managers, lab directors, auditors (QA reports). In Configuration → Staff, the signature field now asks for a link (https://) to the person's signature image in the hospital's own system, instead of uploading the image. PathScribe keeps the link, never the image, as it already does for photos, referral PDFs and letterhead logos. A signature saved earlier as an image opens with an empty field and a note asking for the link. The Admin Guide covers Staff: signature link (where to host signature images; https only) and Storage: PathScribe stores no images or attachments. Have signature images hosted on the hospital's document system before go-live. The QA Scope picker is added to Follow-up not received, FPPE, Inspection Mode, the QA Dashboard, Deficiencies and Billing deficiencies.
+
+**For marketing (positive).** PathScribe keeps links to images and attachments in your own systems and never stores copies; QA reports can be produced per facility or across the enterprise. Supports CAP and ISO 15189 per-site QA review, and HIPAA minimum necessary (45 CFR 164.502(b)).
+
+**For FormedrixAI and partners (the plain reality).** Status: Live. The enterprise rollup, management reviews and patient match review stay lab-wide and do not have the per-facility scope. Signatures saved earlier as images need the link re-entered. No other gaps are recorded for this change.
+- Training: show choosing a facility before exporting. Tell administrators to have signature images hosted on the hospital's document system before go-live. Standards: CAP and ISO 15189 per-site QA review; HIPAA minimum necessary (45 CFR 164.502(b)).
 
 ## Batch 543: safer CSV exports; the disposal report export is audited
-- **What changed:**
-  - Every CSV file PathScribe exports now protects against "formula injection". A text value that starts with `=`, `+`, `-` or `@` is written with a leading apostrophe, so Excel shows it as text and never runs it. Numbers, including negative numbers, are unchanged. Re-importing an exported dictionary gives back exactly what was exported.
-  - Exporting the disposal (waste-tracking) report is now recorded in the audit log, like every other export of case data.
-- **Who:** anyone who exports (QA, auditors, administrators, lab managers).
-- **User Guide:** Exports: why a value may show a leading apostrophe in Excel.
-- **Admin Guide:** Audit Log: disposal report exports now appear as document exports.
-- **Training:** none.
-- **Marketing / RFP:** "Exported files are protected against spreadsheet formula injection (OWASP), and every export of patient data is audited." Supports HIPAA audit controls (45 CFR 164.312(b)) and ISO 15189 record control.
-- **Status:** Live.
+**For the practitioner (User Guide).** Every CSV file PathScribe exports now protects against "formula injection". A text value that starts with `=`, `+`, `-` or `@` is written with a leading apostrophe, so Excel shows it as text and never runs it. That is why you may see a leading apostrophe in Excel (User Guide: Exports). Numbers, including negative numbers, are unchanged. Re-importing an exported dictionary gives back exactly what was exported. This applies to anyone who exports (QA, auditors, administrators, lab managers).
+
+**For the system administrator (Admin Guide).** Who: anyone who exports (QA, auditors, administrators, lab managers). Exporting the disposal (waste-tracking) report is now recorded in the audit log, like every other export of case data. In the Audit Log, disposal report exports now appear as document exports. All exported CSV text values starting with `=`, `+`, `-` or `@` get a leading apostrophe; numbers, including negative numbers, are unchanged, and a re-imported exported dictionary matches what was exported.
+
+**For marketing (positive).** Exported files are protected against spreadsheet formula injection (OWASP), and every export of patient data is audited. Supports HIPAA audit controls (45 CFR 164.312(b)) and ISO 15189 record control.
+
+**For FormedrixAI and partners (the plain reality).** Status: Live. No gaps are recorded for this change.
+- Training: none. Standards: HIPAA audit controls (45 CFR 164.312(b)); ISO 15189 record control; OWASP (spreadsheet formula injection).
 
 ## Batch 540: no correction or addendum while a report is in its release delay
-- **What changed:**
-  - While a report is still in the laboratory's release delay it hasn't been sent, so a correction or addendum can't be started; the screen says to recall the report and edit it instead. Once the delay ends, corrections and addenda work as before. Applies to surgical, Assist, autopsy and cytology reports.
-  - A released report's PDF never carries the "pending release" watermark, even if it was made during the delay. Printing during the delay still shows it.
-- **Who:** pathologists, cytopathologists, QA staff.
-- **User Guide:** Report page and Cytology Workspace → Corrections and addenda: not available during the release delay; use Recall.
-- **Admin Guide:** Release delay: what Recall is for, and that revisions wait for the delay.
-- **Training:** sign out a case with a delay, try to add an addendum (message), recall, edit, sign out again.
-- **Marketing / RFP:** "Reports in the release delay are changed by recall, never by an amended report, so clinicians only see a correction when something they received has changed." Supports CAP amended-report practice.
-- **Status:** Live.
+**For the practitioner (User Guide).** While a report is still in the laboratory's release delay it hasn't been sent, so you can't start a correction or addendum; the screen tells you to recall the report and edit it instead. Once the delay ends, corrections and addenda work as before. This applies to surgical, Assist, autopsy and cytology reports. A released report's PDF never carries the "pending release" watermark, even if it was made during the delay. Printing during the delay still shows it. See the Report page and Cytology Workspace → Corrections and addenda: not available during the release delay; use Recall. This affects pathologists, cytopathologists and QA staff.
+
+**For the system administrator (Admin Guide).** Who: pathologists, cytopathologists, QA staff. In the laboratory's release delay a report hasn't been sent, so a correction or addendum can't be started; users are told to recall the report and edit it. Once the delay ends, corrections and addenda work as before. This covers surgical, Assist, autopsy and cytology reports. A released report's PDF never carries the "pending release" watermark, even if it was made during the delay, while printing during the delay still shows it. The Admin Guide's Release delay section explains what Recall is for, and that revisions wait for the delay.
+
+**For marketing (positive).** Reports in the release delay are changed by recall, never by an amended report, so clinicians only see a correction when something they received has changed. Supports CAP amended-report practice.
+
+**For FormedrixAI and partners (the plain reality).** Status: Live. No gaps are recorded for this change.
+- Training: sign out a case with a delay, try to add an addendum (message), recall, edit, sign out again. Standards: CAP amended-report practice.
 
 ## Batch 539: cytology reports made by the server; the preview matches what is sent
-- **What changed:**
-  - Cytology report PDFs (sign-out, case report, correction, addendum, preliminary, and the print preview) are made by the PathScribe report renderer, as surgical reports are. The browser no longer draws them.
-  - **Print** before sign-out shows a preview watermarked PRELIMINARY — SUBJECT TO CHANGE; it otherwise matches the released report line for line.
-  - **Print case report** on a released case opens the case report exactly as it was sent (its stored, fingerprinted copy).
-  - If the report renderer is unavailable, or hasn't been updated, the screen says so and a release is held and retried; nothing blank is sent.
-- **Who:** cytotechnologists, cytopathologists, laboratory administrators, IT.
-- **User Guide:** Cytology Workspace → Print and Print case report: the preview watermark, and that a released case report is the copy sent.
-- **Admin Guide:** Installation: the report renderer must be updated (redeployed) with this release; the message staff see if it isn't.
-- **Training:** print a specimen before sign-out (watermark), sign it out, print again (no watermark, same text); release the case and open Print case report, then compare its fingerprint in Version History.
-- **Marketing / RFP:** "Every cytology report is produced by the same server-side renderer as surgical pathology, with embedded fonts and identical output for identical content; what staff preview is what is sent." Supports CAP and ISO 15189 report integrity, 21 CFR Part 11 record integrity.
-- **Status:** Live once the renderer is redeployed. Embedded images (gross photos) in cytology reports: not drawn (nothing sets them today).
+**For the practitioner (User Guide).** Cytology report PDFs (sign-out, case report, correction, addendum, preliminary, and the print preview) are now made by the PathScribe report renderer, as surgical reports are; the browser no longer draws them. **Print** before sign-out shows a preview watermarked PRELIMINARY — SUBJECT TO CHANGE; it otherwise matches the released report line for line. **Print case report** on a released case opens the case report exactly as it was sent (its stored, fingerprinted copy). If the report renderer is unavailable, or hasn't been updated, the screen says so and a release is held and retried; nothing blank is sent. See Cytology Workspace → Print and Print case report. This affects cytotechnologists, cytopathologists, laboratory administrators and IT.
+
+**For the system administrator (Admin Guide).** Who: cytotechnologists, cytopathologists, laboratory administrators, IT. The report renderer must be updated (redeployed) with this release (Installation in the Admin Guide, including the message staff see if it isn't). If the renderer is unavailable or hasn't been updated, the screen says so and a release is held and retried; nothing blank is sent. Cytology report PDFs (sign-out, case report, correction, addendum, preliminary, and the print preview) are made by the PathScribe report renderer, not the browser. Print case report on a released case opens the stored, fingerprinted copy.
+
+**For marketing (positive).** Every cytology report is produced by the same server-side renderer as surgical pathology, with embedded fonts and identical output for identical content; what staff preview is what is sent. Supports CAP and ISO 15189 report integrity, and 21 CFR Part 11 record integrity.
+
+**For FormedrixAI and partners (the plain reality).** Status: Live once the renderer is redeployed. Known gap: embedded images (gross photos) in cytology reports are not drawn (nothing sets them today).
+- Training: print a specimen before sign-out (watermark), sign it out, print again (no watermark, same text); release the case and open Print case report, then compare its fingerprint in Version History. Standards: CAP and ISO 15189 report integrity; 21 CFR Part 11 record integrity.
 
 ## Batch 538: what was sent is what you see (stored, fingerprinted report documents)
-- **What changed:**
-  - Every released report is now stored once, with a SHA-256 fingerprint. The result message, print, fax, file drop and their retries send that exact file (deliveries queued before this batch, per-specimen cytology messages, and releases whose PDF failed are the exceptions; see the contract).
-  - Fixes:
-    - a fax or file-drop **retry of a correction** sent the original sign-out report;
-    - a preliminary's fax retry never went;
-    - the cytology result message could differ from the printed or faxed copy.
-  - **Version History → Released documents** lists each released document with its fingerprint. **View as sent** opens the file exactly as sent.
-  - **Print preview** now uses the same content as the released report: before signing, only the PRELIMINARY watermark and the signature line differ.
-- **Who:** pathologists, QA staff, laboratory administrators, auditors.
-- **User Guide:** Report page → Version History: Released documents and View as sent; Print: what the preview shows. Source: `docs/architecture/REPORT_DOCUMENT_STORE_API.md`.
-- **Admin Guide:** Interfaces and delivery: each delivery records the document's fingerprint; a resend sends the original release.
-- **Training:** release a correction with fax delivery failing, retry it, and show that the retried fax is the correction; open View as sent and compare its fingerprint with the delivery record.
-- **Marketing / RFP:** "Every report PathScribe sends is stored once and fingerprinted (SHA-256). Every channel and every resend delivers that exact document, and you can view it exactly as sent." Supports CAP and ISO 15189 report integrity, 21 CFR Part 11 record integrity, and HIPAA integrity controls.
-- **Status:** Live in the browser. Server-side storage, and server rendering for cytology, are Planned (PS-539).
+**For the practitioner (User Guide).** Every released report is now stored once, with a SHA-256 fingerprint. The result message, print, fax, file drop and their retries send that exact file. Exceptions: deliveries queued before this batch, per-specimen cytology messages, and releases whose PDF failed (see the contract in `docs/architecture/REPORT_DOCUMENT_STORE_API.md`). Fixes: a fax or file-drop retry of a correction used to send the original sign-out report; a preliminary's fax retry never went; and the cytology result message could differ from the printed or faxed copy. In the Report page → Version History, **Released documents** lists each released document with its fingerprint, and **View as sent** opens the file exactly as sent. Print preview now uses the same content as the released report: before signing, only the PRELIMINARY watermark and the signature line differ. This affects pathologists, QA staff, laboratory administrators and auditors.
+
+**For the system administrator (Admin Guide).** Who: pathologists, QA staff, laboratory administrators, auditors. In Interfaces and delivery, each delivery records the document's fingerprint (SHA-256); a resend sends the original release. Every released report is stored once; result message, print, fax, file drop and their retries send that exact file, except deliveries queued before this batch, per-specimen cytology messages, and releases whose PDF failed. Source: `docs/architecture/REPORT_DOCUMENT_STORE_API.md`.
+
+**For marketing (positive).** Every report PathScribe sends is stored once and fingerprinted (SHA-256). Every channel and every resend delivers that exact document, and you can view it exactly as sent. Supports CAP and ISO 15189 report integrity, 21 CFR Part 11 record integrity, and HIPAA integrity controls.
+
+**For FormedrixAI and partners (the plain reality).** Status: Live in the browser. Server-side storage, and server rendering for cytology, are Planned (PS-539). Known exceptions are deliveries queued before this batch, per-specimen cytology messages, and releases whose PDF failed.
+- Training: release a correction with fax delivery failing, retry it, and show that the retried fax is the correction; open View as sent and compare its fingerprint with the delivery record. Standards: CAP and ISO 15189 report integrity; 21 CFR Part 11 record integrity; HIPAA integrity controls.
 
 ## Batch 537: deployment readiness review (PS-539)
-- **What changed:** nothing on screen. A review of how PathScribe is hosted:
-  - every server part rated for serverless, private cloud and on-site hosting;
-  - the 1-second refresh budget;
-  - the hosting rules in each target market;
-  - the decisions still to make.
-- **Who:** hospital IT, sales engineers, the India back-end team.
-- **User Guide:** nothing to change.
-- **Admin Guide:** nothing yet. Installation sections follow when the server is built.
-- **Training:** none.
-- **Marketing / RFP:** use the review's section 1, "Summary for a hospital IT review", and section 10, "Markets and hosting rules": "PathScribe runs in a public cloud, a sovereign or private cloud, or on premises, from one validated package. It needs no inbound firewall opening for printing, and acknowledges HL7 messages only once they are stored." Supports HIPAA, GDPR, France HDS, Germany C5 and NHS DSPT hosting questions.
-- **Status:** Planned (the review is done; building follows phases 2b to 2e).
+**For the practitioner (User Guide).** Nothing changes on screen. This is a review of how PathScribe is hosted, so there is nothing to change in the User Guide. It is for hospital IT, sales engineers and the India back-end team.
+
+**For the system administrator (Admin Guide).** Nothing yet; installation sections follow when the server is built. Who: hospital IT, sales engineers, the India back-end team. The review covers: every server part rated for serverless, private cloud and on-site hosting; the 1-second refresh budget; the hosting rules in each target market; and the decisions still to make.
+
+**For marketing (positive).** Use the review's section 1, "Summary for a hospital IT review", and section 10, "Markets and hosting rules". PathScribe runs in a public cloud, a sovereign or private cloud, or on premises, from one validated package. It needs no inbound firewall opening for printing, and acknowledges HL7 messages only once they are stored. Supports HIPAA, GDPR, France HDS, Germany C5 and NHS DSPT hosting questions.
+
+**For FormedrixAI and partners (the plain reality).** Status: Planned. The review is done; building follows phases 2b to 2e. Installation sections for the Admin Guide are not written yet. No other gaps are recorded for this change.
+- Training: none. Standards: HIPAA, GDPR, France HDS, Germany C5 and NHS DSPT hosting questions.
 
 ## Batch 536: governed AI instructions with separation of duties (PS-554); AI vendor policy per jurisdiction (PS-558)
-- **What changed:**
-  - **AI Instructions** (Configuration → System → AI Instructions): what the clinical mismatch check tells the AI counts as a mismatch, for surgical, cytology and autopsy, is now versioned configuration. An edit is saved as a new version awaiting approval; the check keeps using the approved version until then. Whoever edited it can't approve it. The Lab Director approves or rejects (with a reason). A **Test** panel runs the draft on a sample case first. Every version, approval and rejection is kept, and each suggestion records the version used.
-  - **Separation of duties:** changing the mismatch rules and approving the AI instructions can't be held together, by one role or by one person through several roles. The Role Dictionary and Staff screens say why a save is refused. ForMedrixAI's Superadmin role no longer holds the approval (Pete, Oct 11).
-  - **AI vendor policy** (Configuration → AI Behavior → AI vendor policy): for each jurisdiction the laboratory serves, and optionally a facility, which AI services and hosting regions are allowed. No rule means everything is allowed. Every AI call is checked before it is sent and logged with its service, model and region; a refused call is not sent anywhere else. The AI Provider settings gain a **Hosting region** field and warn inline before saving a service a served jurisdiction doesn't allow. The mismatch alert says when the AI wasn't available for the jurisdiction.
-- **Who:** Lab Directors (approve), the hospital's own rules/instructions administrators (edit), QA reviewers (read), laboratory administrators (vendor policy, roles and staff).
-- **User Guide:** Report page and Cytology Workspace: the mismatch alert's "AI is not available for this jurisdiction" line. Source: `CLINICAL_MISMATCH_CHECK.md`.
-- **Admin Guide:** new sections Configuration → System → AI Instructions and Configuration → AI Behavior → AI vendor policy; AI Provider: Hosting region; Roles and Staff: separation of duties. Sources: `CLINICAL_MISMATCH_CHECK.md`, `docs/architecture/AUTHORIZATION_API.md`, `docs/architecture/AI_PROXY.md`.
-- **Training:** edit the surgical instructions, test them on the sample, show that the editor can't approve, approve as the Lab Director; try to give one role both duties and show the refusal; add a rule for a jurisdiction that excludes the service in use and show the warning and the mismatch alert's notice.
-- **Marketing / RFP:** "AI instructions are controlled documents: versioned, independently approved and audited, with separation of duties. Each jurisdiction can restrict which AI vendors and hosting regions are used, enforced on every call and recorded for regulators." Supports CAP and ISO 15189 document control, the EU AI Act's record-keeping and human-oversight expectations, GDPR data-residency requirements, and HIPAA audit controls.
-- **Status:** Live in the browser. The API server's own enforcement of the vendor policy is specified (AI_PROXY.md) and comes with PS-539.
+**For the practitioner (User Guide).** On the Report page and in the Cytology Workspace, the mismatch alert can now say "AI is not available for this jurisdiction" when your laboratory's rules do not allow an AI service for the place the case belongs to. Otherwise the check works as before, using the instructions your Lab Director has approved. A changed set of instructions is not used until it has been approved, and the person who edited it cannot be the one to approve it. The people who work with this are Lab Directors (approve), the hospital's own rules and instructions administrators (edit), QA reviewers (read) and laboratory administrators. Source: `CLINICAL_MISMATCH_CHECK.md`.
+
+**For the system administrator (Admin Guide).** Two new sections. First, Configuration → System → AI Instructions: what the clinical mismatch check tells the AI counts as a mismatch, for surgical, cytology and autopsy, is now versioned configuration. An edit is saved as a new version awaiting approval, and the check keeps using the approved version until then. Whoever edited it cannot approve it; the Lab Director approves or rejects (with a reason). A **Test** panel runs the draft on a sample case first. Every version, approval and rejection is kept, and each suggestion records the version used. Second, Configuration → AI Behavior → AI vendor policy: for each jurisdiction the laboratory serves, and optionally a facility, set which AI services and hosting regions are allowed. No rule means everything is allowed. Every AI call is checked before it is sent and logged with its service, model and region; a refused call is not sent anywhere else. Separation of duties: changing the mismatch rules and approving the AI instructions cannot be held together, by one role or by one person through several roles; the Role Dictionary and Staff screens say why a save is refused. ForMedrixAI's Superadmin role no longer holds the approval (Pete, Oct 11). AI Provider settings gain a **Hosting region** field and warn inline before saving a service a served jurisdiction does not allow. Laboratory administrators handle vendor policy, roles and staff. Sources: `CLINICAL_MISMATCH_CHECK.md`, `docs/architecture/AUTHORIZATION_API.md`, `docs/architecture/AI_PROXY.md`.
+
+**For marketing (positive).** AI instructions are controlled documents: versioned, independently approved and audited, with separation of duties. Each jurisdiction can restrict which AI vendors and hosting regions are used, enforced on every call and recorded for regulators.
+
+**For FormedrixAI and partners (the plain reality).** Live in the browser. The API server's own enforcement of the vendor policy is specified (`AI_PROXY.md`) and comes with PS-539. No other gaps are recorded for this change.
+- Training: edit the surgical instructions, test them on the sample, show that the editor can't approve, approve as the Lab Director; try to give one role both duties and show the refusal; add a rule for a jurisdiction that excludes the service in use and show the warning and the mismatch alert's notice. Standards: CAP and ISO 15189 document control, the EU AI Act's record-keeping and human-oversight expectations, GDPR data-residency requirements, HIPAA audit controls.
 
 ## Batch 535: Recall for corrections, addenda and autopsy reports; a correction at re-sign-out is now sent
-- **What changed:**
-  - During the release delay, **Recall** now also works for a surgical correction or addendum (it goes back to draft and the report opens for editing again, as before release) and for an autopsy PAD or FAD (the signature is withdrawn and the report can be signed again). A PAD can't be recalled once the FAD is signed on it.
-  - Recalling a surgical sign-out also takes back a correction or addendum released on it during its delay.
-  - **Fix:** a correction released by signing the case out again (Orchestration) was recorded as released but never sent to the EMR. It is now sent as a corrected report, after the delay, and the report header shows Final (Corrected).
-- **Who:** pathologists, autopsy pathologists.
-- **User Guide:** Report page: held reports and Recall; amending a signed-out report. Source: `REPORT_RELEASE_DELAY.md`.
-- **Admin Guide:** nothing to change.
-- **Training:** release a correction, recall it, show the report open for editing again; sign a PAD, recall it.
-- **Marketing / RFP:** "Any released report, including corrections and autopsy diagnoses, can be taken back by its pathologist within the safety window."
-- **Status:** Live.
+**For the practitioner (User Guide).** During the release delay, **Recall** now also works for a surgical correction or addendum: it goes back to draft and the report opens for editing again, as before release. It also works for an autopsy PAD or FAD: the signature is withdrawn and the report can be signed again. A PAD cannot be recalled once the FAD is signed on it. Recalling a surgical sign-out also takes back a correction or addendum released on it during its delay. A fix: a correction released by signing the case out again (Orchestration) used to be recorded as released but never reached the EMR. It is now sent as a corrected report, after the delay, and the report header shows Final (Corrected). This is for pathologists and autopsy pathologists; see the Report page (held reports and Recall; amending a signed-out report). Source: `REPORT_RELEASE_DELAY.md`.
+
+**For the system administrator (Admin Guide).** Nothing to change.
+
+**For marketing (positive).** Any released report, including corrections and autopsy diagnoses, can be taken back by its pathologist within the safety window.
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change.
+- Training: release a correction, recall it, show the report open for editing again; sign a PAD, recall it. Standards: none recorded.
 
 ## Batch 534: every report output follows the release delay (Pete, Oct 12)
-- **What changed:**
-  - **Every report output now waits out the laboratory's release delay before it leaves the laboratory:**
-    - preliminaries, corrections and addenda (surgical and cytology);
-    - autopsy PAD and FAD;
-    - cytology case reports, early finalizations and urgent preliminaries;
-    - screening registry submissions.
+**For the practitioner (User Guide).** Every report output now waits out your laboratory's release delay before it leaves the laboratory: preliminaries, corrections and addenda (surgical and cytology); autopsy PAD and FAD; cytology case reports, early finalizations and urgent preliminaries; and screening registry submissions. Before, only the surgical final sign-out waited. A resend after a failed delivery is never delayed, and STAT cases skip the delay when the STAT bypass is on. The report page and the Cytology Workspace show each held report and when it goes. The person who released it can **Recall** it, which reopens it and sends nothing; for example, a cytology case report's last specimen can be corrected and signed again. A signed-out case is no longer left unreleased because nobody had its report page open; it is released on time from any open screen. A fix: a surgical correction released straight after Finalize no longer ends the case's release buffer early. This affects pathologists, cytopathologists and laboratory administrators, and clinicians and interfaces see the timing. Source: `REPORT_RELEASE_DELAY.md`.
 
-    Before, only the surgical final sign-out waited. A resend after a failed delivery is never delayed. STAT cases skip the delay when the STAT bypass is on.
-  - **Seeing and recalling it:** the report page and the Cytology Workspace show each held report and when it goes. The person who released it can **Recall** it, which reopens it and sends nothing. For example, a cytology case report's last specimen can be corrected and signed again.
-  - **Released on time from any open screen:** a signed-out case is no longer left unreleased because nobody had its report page open.
-  - **Fix:** a surgical correction released straight after Finalize no longer ends the case's release buffer early.
-- **Who:** pathologists, cytopathologists, laboratory administrators; clinicians and interfaces (timing).
-- **User Guide:** Report page and Cytology Workspace: held reports and Recall. Source: `REPORT_RELEASE_DELAY.md`.
-- **Admin Guide:** Release Buffer now applies to every output. Source: `REPORT_RELEASE_DELAY.md`.
-- **Training:** release a cytology correction, show the held line, recall it, show the specimen reopened; let one run out and show it in the interface log.
-- **Marketing / RFP:** "A consistent safety window on every report output: nothing leaves the laboratory until the delay ends, and the releasing pathologist can recall it." Supports CAP and ISO 15189 report-release control.
-- **Status:** Live. Recall for surgical corrections and addenda and for autopsy PAD/FAD: Planned (Batch 535).
+**For the system administrator (Admin Guide).** Release Buffer now applies to every output listed above, not only the surgical final sign-out. Resends after a failed delivery are never delayed, and the STAT bypass setting skips the delay for STAT cases. Source: `REPORT_RELEASE_DELAY.md`. A run that expires can be seen in the interface log.
+
+**For marketing (positive).** A consistent safety window on every report output: nothing leaves the laboratory until the delay ends, and the releasing pathologist can recall it.
+
+**For FormedrixAI and partners (the plain reality).** Live. Recall for surgical corrections and addenda and for autopsy PAD/FAD was recorded here as Planned (Batch 535). No other gaps are recorded for this change.
+- Training: release a cytology correction, show the held line, recall it, show the specimen reopened; let one run out and show it in the interface log. Standards: CAP and ISO 15189 report-release control.
 
 ## Batch 533: urgent cytology preliminary report, per specimen (Pete, Oct 12)
-- **What changed:**
-  - In the Cytology Workspace, a specimen with a chosen final diagnosis can be sent ahead of the case report as an **urgent preliminary**: **Send urgent preliminary**, one click on a reason (Critical finding, Clinician request, Urgent clinical management), an optional note, then **Send** (or **Sign and send**). It opens on the page, not in a window.
-  - The clinician, EMR, print and fax receive it at once, marked **PRELIMINARY REPORT**: "This is not the final report…", the reason and note, and "Preliminary released by". It is not sent to a screening registry. The specimen still signs out as usual, and the case report replaces it.
-  - The preliminaries sent are listed under the button.
-  - **Configurable (Pete):** who may send one is a permission no role starts with ("Send an urgent cytology preliminary report"). Whether it needs the electronic signature is a setting in Configuration → Cytology → **Country and laboratory rules** (renamed from Country-specific rules): Automatic (required everywhere), On, or Off, for the enterprise or one facility. Config Search finds it ("preliminary", "signature").
-- **Who:** cytopathologists; laboratory administrators (permission and setting); clinicians receiving reports.
-- **User Guide:** Cytology Workspace: Send urgent preliminary.
-- **Admin Guide:** Role Dictionary: grant "Send an urgent cytology preliminary report"; Configuration → Cytology → Country and laboratory rules: the signature setting. Interfaces: a preliminary arrives as one specimen, result state PRELIMINARY, Urgent (`scope: preliminary`).
-- **Training:** grant the permission, send a preliminary for a critical finding, show the PDF banner, then sign out and show the case report replacing it.
-- **Marketing / RFP:** "Critical cytology findings reach the clinician immediately as a clearly marked preliminary, under laboratory-controlled permissions and signature policy, while the final report stays one per accession." Supports CAP critical-result communication expectations.
-- **Status:** Live. Not yet held by the release delay; every output follows it from Batch 534 (Pete, Oct 12).
+**For the practitioner (User Guide).** In the Cytology Workspace, a specimen with a chosen final diagnosis can be sent ahead of the case report as an urgent preliminary. Choose **Send urgent preliminary**, click a reason (Critical finding, Clinician request, Urgent clinical management), add an optional note, then press **Send** (or **Sign and send**). It opens on the page, not in a window. The clinician, EMR, print and fax receive it at once, marked **PRELIMINARY REPORT**: "This is not the final report…", the reason and note, and "Preliminary released by". It is not sent to a screening registry. The specimen still signs out as usual, and the case report replaces the preliminary. The preliminaries sent are listed under the button. This is for cytopathologists; clinicians receive the reports.
+
+**For the system administrator (Admin Guide).** Who may send one is a permission that no role starts with: "Send an urgent cytology preliminary report"; grant it in the Role Dictionary. Whether it needs the electronic signature is a setting in Configuration → Cytology → **Country and laboratory rules** (renamed from Country-specific rules): Automatic (required everywhere), On, or Off, for the enterprise or one facility (Pete). Config Search finds it ("preliminary", "signature"). Interfaces: a preliminary arrives as one specimen, result state PRELIMINARY, Urgent (`scope: preliminary`). Laboratory administrators set the permission and the setting.
+
+**For marketing (positive).** Critical cytology findings reach the clinician immediately as a clearly marked preliminary, under laboratory-controlled permissions and signature policy, while the final report stays one per accession.
+
+**For FormedrixAI and partners (the plain reality).** Live. It was not yet held by the release delay when built; every output follows the delay from Batch 534 (Pete, Oct 12). No other gaps are recorded for this change.
+- Training: grant the permission, send a preliminary for a critical finding, show the PDF banner, then sign out and show the case report replacing it. Standards: CAP critical-result communication expectations.
 
 ## Batch 532: one cytology case report per accession (Pete, Oct 12)
-- **What changed:**
-  - A cytology case with several specimens is still screened, reviewed and signed specimen by specimen, but nothing is sent until the case closes. Signing a specimen while others are unsigned says "the case report is released when the last one is signed".
-  - When the last specimen is signed, the clinician, the EMR and print, fax and file-drop delivery receive **one** case report: a first page listing every specimen and its status, then each specimen's signed report. One HL7 result message carries every specimen.
-  - Screening registry results go per sample, sent together when the case closes.
-  - **Finalize case early:** the case report goes out at once, listing each unsigned specimen as "Not reported" with the reason given. A specimen signed afterwards is added as an addendum.
-  - **Correct diagnosis / Add addendum** after release reissues the whole case report, marking the specimen that changed. Before release, the change is simply part of the report when it goes out.
-  - The Cytology Workspace has **Print case report** once a multi-specimen case is released.
-  - Fix: the dash in the printed title ("Cytology Report — GYN Cervical Screening") and curly quotes now print; they printed as blanks.
-- **Who:** Cytopathologists and cytotechnologists; clinicians receiving reports; interface and registry staff.
-- **User Guide:** Cytology Workspace: Sign out (when the report is released), Finalize case early, Correct diagnosis / Add addendum, Print case report.
-- **Admin Guide:** Interfaces: cytology results arrive as one message per accession (`scope: case`), with every specimen; registries: per sample, at case closure.
-- **Training:** sign out the first of two specimens (nothing sent), then the second (one report); show the case PDF's first page; finalize a case early and show "Not reported".
-- **Marketing / RFP:** "One cohesive cytology report per order: specimen-level review and signatures, a single consolidated report and HL7 message to the clinician." Supports CAP reporting expectations and ISO 15189 report integrity.
-- **Status:** Live. Urgent per-specimen preliminary: Planned (Batch 533).
+**For the practitioner (User Guide).** A cytology case with several specimens is still screened, reviewed and signed specimen by specimen, but nothing is sent until the case closes. Signing a specimen while others are unsigned says "the case report is released when the last one is signed". When the last specimen is signed, the clinician, the EMR and print, fax and file-drop delivery receive one case report: a first page listing every specimen and its status, then each specimen's signed report. **Finalize case early** sends the case report at once, listing each unsigned specimen as "Not reported" with the reason given; a specimen signed afterwards is added as an addendum. **Correct diagnosis / Add addendum** after release reissues the whole case report, marking the specimen that changed; before release, the change is simply part of the report when it goes out. Once a multi-specimen case is released, the Cytology Workspace offers **Print case report**. A fix: the dash in the printed title ("Cytology Report — GYN Cervical Screening") and curly quotes now print; they printed as blanks. This is for cytopathologists and cytotechnologists; clinicians receive the reports.
+
+**For the system administrator (Admin Guide).** Interfaces: cytology results arrive as one message per accession (`scope: case`), with every specimen, and one HL7 result message carries every specimen. Screening registry results go per sample, sent together when the case closes. Interface and registry staff are affected.
+
+**For marketing (positive).** One cohesive cytology report per order: specimen-level review and signatures, a single consolidated report and HL7 message to the clinician.
+
+**For FormedrixAI and partners (the plain reality).** Live. The urgent per-specimen preliminary was recorded here as Planned (Batch 533). No other gaps are recorded for this change.
+- Training: sign out the first of two specimens (nothing sent), then the second (one report); show the case PDF's first page; finalize a case early and show "Not reported". Standards: CAP reporting expectations and ISO 15189 report integrity.
 
 ## Batch 531: the mismatch check re-runs on change, and cytology gets the inline alert (PS-554)
-- **What changed:**
-  - When the diagnosis, findings or clinical text change after a mismatch decision, the check runs again. It shows the alert (or holds sign-out) again only if the result is worse: a different kind of mismatch, or now high risk. It then shows what was decided before.
-  - The Cytology Workspace shows the same "AI suggests possible mismatch" alert as the surgical report, for each specimen once its final diagnosis is chosen (pathologist track), with the same one-click decisions.
-  - Fix: after a correction or addendum, signing out another specimen on the same case no longer re-sends the corrected record to the EMR as a final result.
-- **Who:** Pathologists (surgical, autopsy, cytology).
-- **User Guide:** Report page and Cytology Workspace: the mismatch alert, and when it comes back after an edit.
-- **Admin Guide:** nothing to change.
-- **Training:** resolve a low-risk alert, change the diagnosis to a malignancy, and show the alert returning with the earlier decision.
-- **Marketing / RFP:** "The correlation check follows the report as it changes: a revised diagnosis is re-checked automatically, without re-prompting for trivial edits."
-- **Status:** Live. Amendments after sign-out are not checked yet.
+**For the practitioner (User Guide).** When the diagnosis, findings or clinical text change after you made a mismatch decision, the check runs again. It shows the alert (or holds sign-out) again only if the result is worse: a different kind of mismatch, or now high risk. It then shows what was decided before. The Cytology Workspace now shows the same "AI suggests possible mismatch" alert as the surgical report, for each specimen once its final diagnosis is chosen (pathologist track), with the same one-click decisions. A fix: after a correction or addendum, signing out another specimen on the same case no longer re-sends the corrected record to the EMR as a final result. This is for pathologists (surgical, autopsy, cytology).
+
+**For the system administrator (Admin Guide).** Nothing to change.
+
+**For marketing (positive).** The correlation check follows the report as it changes: a revised diagnosis is re-checked automatically, without re-prompting for trivial edits.
+
+**For FormedrixAI and partners (the plain reality).** Live. Amendments after sign-out are not checked yet.
+- Training: resolve a low-risk alert, change the diagnosis to a malignancy, and show the alert returning with the earlier decision. Standards: none recorded.
 
 ## Batch 530: the mismatch alert on the report, and sign-out held only for high risk (PS-554, part 2 of 3)
-- **What changed:**
-  - **On the report (surgical, and autopsy before the FAD):** a moment after the diagnosis is written or changed, the mismatch check runs in the background. If it finds something above the laboratory's alert threshold, a one-line alert appears: "AI suggests possible mismatch", with the kind and confidence. **Review** opens the explanation and the decision in place, in one click with an optional quick reason ("Expected variation", "Clinical context reviewed", "Pre-op diagnosis non-specific") and an optional note.
-  - **At sign-out:** only a high-risk mismatch (one the laboratory's rules Block) stops sign-out, until the pathologist records **Resolved** or **Unresolved**. Either lets sign-out go on; Unresolved recommends a corrective action to QA. A low-risk mismatch never stops sign-out: it is logged for QA, or the pathologist can **defer** it to secondary review. Cytology specimen sign-out follows the same rules.
-  - **QA:** Quality Assurance → Activities → Clinical-Pathologic Correlation lists every flagged case with its status, risk and reason; its "pending" count is the deferred cases. Pathologists clear deferred cases from Worklist → Surgical QA → "Deferred clinical mismatches".
-  - The old "No: the findings fit" choice and the required note are gone (Resolved with a quick reason covers it).
-  - **No clinical history on the requisition (any specialty):** Accession is never blocked; a missing clinical history is shown as a note. The report page, Cytology Workspace and grossing screen show "Mismatch check deferred: no clinical information provided", and the check skips the case quietly (recorded in the audit log). **Add clinical history** on that line lets a pathologist, fellow, resident or PA add or reconcile the coded history later, until sign-out.
-  - **Facility editor:** Fax, City, State / province / region and Postal code on the General tab; each can be made required in Field Requirements.
-  - **Config Search** finds Field Requirements by page ("staff required fields", "postal code", "clinical history required") and the Clinical Mismatch Rules ("mismatch", "block sign-out").
-- **Who:** Pathologists and fellows (decide), QA reviewers and lab directors (oversight).
-- **User Guide:** Report page: the mismatch alert and the clinical history line; Sign out: when it asks for a decision; Worklist → Surgical QA: secondary review. Cytology Workspace and grossing screen: the clinical history line. Accession: missing clinical history is a note, not a block. Source: `CLINICAL_MISMATCH_CHECK.md`, "How it works today".
-- **Admin Guide:** Clinical Mismatch Rules (Batch 529) now decide what holds sign-out; QA Activities board. Role Dictionary: "Record clinical history after accession" (Pathologist, Fellow, Resident, PA); "View the clinical mismatch rules" can be granted to Admin or any role. Facility Dictionary: the four new fields. Field Requirements: clinical history requirements flag, never block.
-- **Training:** show the alert on a routine-polyp case with an adenocarcinoma diagnosis; decide it in place; then sign out without a window. Show a deferral reaching the Surgical QA queue.
-- **Marketing / RFP:** "AI correlation checking that informs without interrupting: inline alerts while the report is reviewed, sign-out held only for high-risk mismatches, and every flag tracked by QA." Supports CAP and ISO 15189 quality-management expectations; fewer interruptions for pathologists.
-- **Status:** Live (cytology without the inline alert). Governed AI instructions: Planned (Batch 531).
+**For the practitioner (User Guide).** On the report (surgical, and autopsy before the FAD), a moment after the diagnosis is written or changed, the mismatch check runs in the background. If it finds something above your laboratory's alert threshold, a one-line alert appears: "AI suggests possible mismatch", with the kind and confidence. **Review** opens the explanation and the decision in place, in one click with an optional quick reason ("Expected variation", "Clinical context reviewed", "Pre-op diagnosis non-specific") and an optional note. At sign-out, only a high-risk mismatch (one the laboratory's rules Block) stops you, until you record **Resolved** or **Unresolved**. Either lets sign-out go on; Unresolved recommends a corrective action to QA. A low-risk mismatch never stops sign-out: it is logged for QA, or you can **defer** it to secondary review. Cytology specimen sign-out follows the same rules. Pathologists clear deferred cases from Worklist → Surgical QA → "Deferred clinical mismatches". The old "No: the findings fit" choice and the required note are gone (Resolved with a quick reason covers it). If there is no clinical history on the requisition (any specialty), Accession is never blocked; a missing clinical history is shown as a note. The report page, Cytology Workspace and grossing screen show "Mismatch check deferred: no clinical information provided", and the check skips the case quietly. **Add clinical history** on that line lets a pathologist, fellow, resident or PA add or reconcile the coded history later, until sign-out. Pathologists and fellows decide; QA reviewers and lab directors oversee. Source: `CLINICAL_MISMATCH_CHECK.md`, "How it works today".
+
+**For the system administrator (Admin Guide).** The Clinical Mismatch Rules (Batch 529) now decide what holds sign-out. QA: Quality Assurance → Activities → Clinical-Pathologic Correlation lists every flagged case with its status, risk and reason; its "pending" count is the deferred cases (QA Activities board). A missing clinical history skip is recorded in the audit log. Role Dictionary: "Record clinical history after accession" (Pathologist, Fellow, Resident, PA); "View the clinical mismatch rules" can be granted to Admin or any role. Facility editor and Facility Dictionary: Fax, City, State / province / region and Postal code are new on the General tab; each can be made required in Field Requirements. Field Requirements: clinical history requirements flag, never block. Config Search finds Field Requirements by page ("staff required fields", "postal code", "clinical history required") and the Clinical Mismatch Rules ("mismatch", "block sign-out").
+
+**For marketing (positive).** AI correlation checking that informs without interrupting: inline alerts while the report is reviewed, sign-out held only for high-risk mismatches, and every flag tracked by QA. Pathologists get fewer interruptions.
+
+**For FormedrixAI and partners (the plain reality).** Live, but cytology is without the inline alert. Governed AI instructions were recorded as Planned (Batch 531). No other gaps are recorded for this change.
+- Training: show the alert on a routine-polyp case with an adenocarcinoma diagnosis; decide it in place; then sign out without a window. Show a deferral reaching the Surgical QA queue. Standards: CAP and ISO 15189 quality-management expectations.
 
 ## Batch 529: clinical mismatch rules (PS-554, part 1 of 3)
-- **What changed:** New Configuration → System → **Clinical Mismatch Rules**. For each kind of mismatch (unexpected malignancy, cause of death, site or organ, expected malignancy not found, other), for all specimen types or one:
-  - **Alert from:** below this confidence there is no alert (60% to start).
-  - **Action at:** from here the action applies.
-  - **Action:** Block (sign-out waits for a decision), Warn (alert only) or Log (QA queue only).
-  - Starting rules: unexpected malignancy and cause of death block at 70%; site or organ blocks at 65%; expected malignancy not found and other are logged.
-  - Every change is audited.
-- **Who:** Lab directors and QA (read), whoever the hospital authorises to change them, pathologists (read: why a case was held).
-- **Admin Guide:** Configuration → System → Clinical Mismatch Rules; and Role Dictionary: "Change the clinical mismatch rules" starts with no role, so grant it to your own role (for example a Pathologist Administrator). "View the clinical mismatch rules" starts with Pathologist, QA Reviewer and Lab Director. Source: `CLINICAL_MISMATCH_CHECK.md`.
-- **User Guide:** nothing yet; the report page uses the rules from Batch 530.
-- **Training:** show raising "Action at" for one specimen type, and the view-only screen for a Lab Director.
-- **Marketing / RFP:** "Each laboratory decides which AI-flagged mismatches hold up sign-out, by kind of mismatch and specimen type, under audited, permission-controlled configuration." Supports CAP and ISO 15189 quality-management expectations.
-- **Status:** Partial. The rules are live; sign-out uses them from Batch 530; governed AI instructions follow in Batch 531. *(Batch 530: sign-out and the report alert now use them.)*
+**For the practitioner (User Guide).** Nothing changes on screen yet; the report page uses these rules from Batch 530. Pathologists can read the rules to see why a case was held, and Lab directors and QA can read them too.
+
+**For the system administrator (Admin Guide).** New Configuration → System → **Clinical Mismatch Rules**. For each kind of mismatch (unexpected malignancy, cause of death, site or organ, expected malignancy not found, other), for all specimen types or one, set: **Alert from** (below this confidence there is no alert; 60% to start), **Action at** (from here the action applies) and **Action**: Block (sign-out waits for a decision), Warn (alert only) or Log (QA queue only). Starting rules: unexpected malignancy and cause of death block at 70%; site or organ blocks at 65%; expected malignancy not found and other are logged. Every change is audited. In the Role Dictionary, "Change the clinical mismatch rules" starts with no role, so grant it to your own role (for example a Pathologist Administrator), or to whoever the hospital authorises. "View the clinical mismatch rules" starts with Pathologist, QA Reviewer and Lab Director. Source: `CLINICAL_MISMATCH_CHECK.md`.
+
+**For marketing (positive).** Each laboratory decides which AI-flagged mismatches hold up sign-out, by kind of mismatch and specimen type, under audited, permission-controlled configuration.
+
+**For FormedrixAI and partners (the plain reality).** Partial. The rules are live; sign-out uses them from Batch 530 (sign-out and the report alert now use them); governed AI instructions follow in Batch 531. No other gaps are recorded for this change.
+- Training: show raising "Action at" for one specimen type, and the view-only screen for a Lab Director. Standards: CAP and ISO 15189 quality-management expectations.
 
 ## Batch 528: required fields for Staff, Facility editor and Clinical history (PS-359)
-- **What changed:** Field Requirements (Configuration → System) has three more pages:
-  - **Staff:** first name, last name and a role are always required. An organisation can also require middle name, facilities, subspecialties, email, phone, credentials, NPI, GMC number, licence number or signature.
-  - **Facility editor:** name and assigning authority are always required, and the assigning authority must be unique. Email is required unless the organisation switches it off. Phone, address and a contact person can be made required (Batch 530: fax, city, region and postal code too, now on the editor's General tab). The interface engine endpoint and LIS sending-facility ID are required once that interface is set up.
-  - **Clinical history (cytology):** for cytology and FNA cases, an organisation can require a case-level entry, an entry on every specimen, and coded entries only (no free text). Nothing is required by default.
-  - The Staff and Facility editors show a star on each required field and a "Still required: …" line naming what is missing. At Accession, Next stays disabled until the clinical history required is entered. *(Changed in Batch 530, Pete: missing clinical history is now a note, never a block; it can be added later.)*
-- **Who:** Administrators (set the requirements), lab managers, accessioners (cytology), anyone who maintains staff and facilities.
-- **User Guide:** Accession: clinical history for cytology cases, and when it is required.
-- **Admin Guide:** Field Requirements: add the three pages and their locked fields with the reasons. Staff and Facility Dictionary: required fields follow Field Requirements.
-- **Training:** require "phone" on facilities, then show the star and the "Still required" line in the Facility editor.
-- **Marketing / RFP:** "Each laboratory decides which fields are mandatory, page by page, without custom code; identity and routing fields stay protected." Supports CAP and ISO 15189 documentation requirements and local policy differences.
-- **Status:** Live.
+**For the practitioner (User Guide).** For cytology and FNA cases, your organisation may require clinical history at Accession: a case-level entry, an entry on every specimen, and coded entries only (no free text). Nothing is required by default. The Staff and Facility editors show a star on each required field and a "Still required: …" line naming what is missing. At Accession, Next used to stay disabled until the required clinical history was entered; this was changed in Batch 530 (Pete): missing clinical history is now a note, never a block, and it can be added later. Administrators set the requirements; lab managers, accessioners (cytology) and anyone who maintains staff and facilities are affected.
+
+**For the system administrator (Admin Guide).** Field Requirements (Configuration → System) has three more pages. **Staff:** first name, last name and a role are always required; an organisation can also require middle name, facilities, subspecialties, email, phone, credentials, NPI, GMC number, licence number or signature. **Facility editor:** name and assigning authority are always required, and the assigning authority must be unique; email is required unless the organisation switches it off; phone, address and a contact person can be made required (Batch 530 added fax, city, region and postal code, now on the editor's General tab); the interface engine endpoint and LIS sending-facility ID are required once that interface is set up. **Clinical history (cytology):** the case-level, every-specimen and coded-only options above. Document the locked fields with the reasons. Staff and Facility Dictionary: required fields follow Field Requirements.
+
+**For marketing (positive).** Each laboratory decides which fields are mandatory, page by page, without custom code; identity and routing fields stay protected.
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change.
+- Training: require "phone" on facilities, then show the star and the "Still required" line in the Facility editor. Standards: CAP and ISO 15189 documentation requirements and local policy differences.
 
 ## Batch 527: a lean, fast first load (PS-486)
-- **What changed:** The sign-in page loads about three times less code (0.68 MB, was 1.91 MB). The rest of the application loads after sign-in, and the PDF and barcode tools load only when used. Server installations leave out the demo and developer screens (Demo Reset, the mock EMR and slide viewer, the mock interface engine).
-- **Who:** Everyone (faster sign-in). IT administrators (what a server installation contains).
-- **User Guide:** nothing to change.
-- **Admin Guide:** Installation. The Demo Reset tab and the demo screens exist only in demonstration installations. In a server installation, "Open EMR" opens the in-page patient panel.
-- **Training:** none.
-- **Marketing / RFP:** "Lightweight browser application: under 1 MB to first screen, with no client installation." The build fails automatically if it grows past 1 MB.
-- **Status:** Live. Removing the demo services entirely from production waits for the API server (PS-539).
+**For the practitioner (User Guide).** Nothing to change in how you work. Sign-in is faster: the sign-in page loads about three times less code (0.68 MB, was 1.91 MB). The rest of the application loads after sign-in, and the PDF and barcode tools load only when used.
+
+**For the system administrator (Admin Guide).** See Installation. Server installations leave out the demo and developer screens (Demo Reset, the mock EMR and slide viewer, the mock interface engine). The Demo Reset tab and the demo screens exist only in demonstration installations. In a server installation, "Open EMR" opens the in-page patient panel. IT administrators should note what a server installation contains.
+
+**For marketing (positive).** A lightweight browser application: under 1 MB to first screen, with no client installation. The build fails automatically if it grows past 1 MB.
+
+**For FormedrixAI and partners (the plain reality).** Live. Removing the demo services entirely from production waits for the API server (PS-539).
+- Training: none. Standards: none recorded.
 
 ## Batch 526: the clinical-pathologic mismatch check explained (documentation)
-- **What changed:** New [`CLINICAL_MISMATCH_CHECK.md`](CLINICAL_MISMATCH_CHECK.md), the full explanation of the check for customers and staff, including the approved redesign (PS-554). Test runs on Windows are more reliable.
-- **Who:** Pathologists, QA, lab directors, sales.
-- **User Guide / Admin Guide:** use `CLINICAL_MISMATCH_CHECK.md` as the source. The redesign is Planned; describe today's behaviour as built.
-- **Marketing / RFP:** "AI compares the clinician's expectation with the pathology finding before release. The pathologist always decides, and no patient identifiers are sent to the AI." Supports CAP and ISO 15189 quality-management expectations.
-- **Status:** the check is Live; the redesign is Planned (PS-554). Per-jurisdiction AI vendor rules are Planned (PS-558).
+**For the practitioner (User Guide).** Nothing changes on screen. A new document, [`CLINICAL_MISMATCH_CHECK.md`](CLINICAL_MISMATCH_CHECK.md), is the full explanation of the check for customers and staff, including the approved redesign (PS-554). It is meant for pathologists, QA, lab directors and sales. Describe today's behaviour as built.
+
+**For the system administrator (Admin Guide).** Nothing to configure. Use `CLINICAL_MISMATCH_CHECK.md` as the source for both the User Guide and Admin Guide. Test runs on Windows are more reliable.
+
+**For marketing (positive).** AI compares the clinician's expectation with the pathology finding before release. The pathologist always decides, and no patient identifiers are sent to the AI.
+
+**For FormedrixAI and partners (the plain reality).** The check is Live; the redesign is Planned (PS-554), so describe today's behaviour as built. Per-jurisdiction AI vendor rules are Planned (PS-558).
+- Training: none recorded. Standards: CAP and ISO 15189 quality-management expectations.
 
 ## Batch 525: no patient data kept in the browser (PS-485)
-- **What changed:** In a server installation, PathScribe keeps no cases, drafts, patient history or other clinical data in the browser's storage. Old copies are removed at start-up. The browser keeps only display preferences, workstation settings, the language and a minimal sign-in record.
-- **Who:** Security officers, IT administrators.
-- **Admin Guide:** Security, under workstation data. Say what the browser keeps and what it never keeps.
-- **Training:** none.
-- **Marketing / RFP:** "No patient data at rest on workstations: a shared or lost PC exposes nothing." Supports HIPAA Security Rule safeguards and GDPR data minimisation.
-- **Status:** Live for server installations. The demonstration build still keeps its demo data in the browser by design.
+**For the practitioner (User Guide).** Nothing changes on screen. In a server installation, PathScribe keeps no cases, drafts, patient history or other clinical data in the browser's storage on your workstation.
+
+**For the system administrator (Admin Guide).** See Security, under workstation data, and say what the browser keeps and what it never keeps. In a server installation, PathScribe keeps no cases, drafts, patient history or other clinical data in the browser's storage, and old copies are removed at start-up. The browser keeps only display preferences, workstation settings, the language and a minimal sign-in record. Security officers and IT administrators are the audience.
+
+**For marketing (positive).** No patient data at rest on workstations: a shared or lost PC exposes nothing.
+
+**For FormedrixAI and partners (the plain reality).** Live for server installations. The demonstration build still keeps its demo data in the browser by design.
+- Training: none. Standards: HIPAA Security Rule safeguards and GDPR data minimisation.
 
 ## Batch 524: accessibility to WCAG 2.1 AA (PS-491)
-- **What changed:**
-  - Every main screen and every Configuration section is checked automatically against WCAG 2.1 AA, with no serious or critical issues.
-  - Clickable elements work from the keyboard (Tab, Enter, Space), focus is always visible, and on/off switches announce their state.
-  - Every form field has a name a screen reader reads.
-  - Low-contrast text was brightened.
-- **Who:** Everyone, especially keyboard and screen-reader users.
-- **User Guide:** add an Accessibility section (keyboard use, visible focus, screen readers).
-- **Admin Guide:** nothing to change.
-- **Training:** show keyboard navigation of the worklist and the case page.
-- **Marketing / RFP:** "Built to WCAG 2.1 AA, the basis of Section 508 (US), EN 301 549 (EU) and KWCAG (Korea), with automated checks." Manual keyboard and screen-reader QA is open (PS-548).
-- **Status:** Live.
+**For the practitioner (User Guide).** You can now work from the keyboard: clickable elements respond to Tab, Enter and Space, the focus marker is always visible, and on/off switches announce their state. Every form field has a name a screen reader reads, and low-contrast text was brightened. This helps everyone, especially keyboard and screen-reader users. The User Guide should gain an Accessibility section (keyboard use, visible focus, screen readers).
+
+**For the system administrator (Admin Guide).** Nothing to change. Every main screen and every Configuration section is checked automatically against WCAG 2.1 AA, with no serious or critical issues.
+
+**For marketing (positive).** Built to WCAG 2.1 AA, the basis of Section 508 (US), EN 301 549 (EU) and KWCAG (Korea), with automated checks.
+
+**For FormedrixAI and partners (the plain reality).** Live. Manual keyboard and screen-reader QA is open (PS-548).
+- Training: show keyboard navigation of the worklist and the case page. Standards: WCAG 2.1 AA, Section 508 (US), EN 301 549 (EU), KWCAG (Korea).
 
 ## Batch 523: mismatch check at cytology and autopsy sign-out (PS-145)
-- **What changed:** The clinical-pathologic mismatch check, previously at surgical sign-out only, now also runs:
-  - at cytology sign-out on the pathologist track, once per specimen. An abnormal GYN screen is never treated as "unexpected";
-  - before an autopsy's Final Anatomic Diagnosis is signed, including cause-of-death discrepancies.
-- **Who:** Pathologists, QA.
-- **User Guide:** Cytology Workspace (Sign out) and Autopsy (Sign FAD). See `CLINICAL_MISMATCH_CHECK.md`.
-- **Training:** show the decision window and the three choices.
-- **Marketing / RFP:** see Batch 526.
-- **Status:** Live.
+**For the practitioner (User Guide).** The clinical-pathologic mismatch check, previously at surgical sign-out only, now also runs at cytology sign-out on the pathologist track, once per specimen. An abnormal GYN screen is never treated as "unexpected". It also runs before an autopsy's Final Anatomic Diagnosis is signed, including cause-of-death discrepancies. See the Cytology Workspace (Sign out) and Autopsy (Sign FAD), and `CLINICAL_MISMATCH_CHECK.md`. This is for pathologists and QA.
+
+**For the system administrator (Admin Guide).** No administrator steps are recorded for this change.
+
+**For marketing (positive).** AI compares the clinician's expectation with the pathology finding before release, and the pathologist always decides. That check now also covers cytology and autopsy sign-out, as described under Batch 526.
+
+**For FormedrixAI and partners (the plain reality).** Live. No gaps are recorded for this change.
+- Training: show the decision window and the three choices. Standards: none recorded.
 
 ## Batch 522: outside consult links (PS-290)
-- **What changed:** An outside consultant can be sent a secure link to one case, or to selected slides. The link is time-limited, revocable and single-purpose. The consultant sees only what is needed and can sign an opinion. Every link is listed in Audit Log → Consult links.
-- **Who:** Pathologists (issue a link), QA and lab directors (oversight), outside consultants.
-- **User Guide:** Case page: send for an outside consult.
-- **Admin Guide:** Audit Log, Consult links.
-- **Training:** issue a link, then revoke it.
-- **Marketing / RFP:** "Secure outside consultation without a guest account: a scoped, expiring, revocable link with a full audit trail."
-- **Status:** Live. Open decisions: who may issue links, and the longest lifespan.
+**For the practitioner (User Guide).** On the Case page you can send an outside consultant a secure link to one case, or to selected slides. The link is time-limited, revocable and single-purpose. The consultant sees only what is needed and can sign an opinion. Pathologists issue links; QA and lab directors oversee; outside consultants receive them.
+
+**For the system administrator (Admin Guide).** Every link is listed in Audit Log → Consult links, where QA and lab directors can oversee them.
+
+**For marketing (positive).** Secure outside consultation without a guest account: a scoped, expiring, revocable link with a full audit trail.
+
+**For FormedrixAI and partners (the plain reality).** Live. Open decisions: who may issue links, and the longest lifespan.
+- Training: issue a link, then revoke it. Standards: none recorded.
 
 ## Batch 521: report delivery retries, exception queue, fax confirmation (PS-281)
-- **What changed:** Report delivery (electronic, print, e-fax, file drop) retries automatically: by default after 1, 5 and 15 minutes. Failures go to an exception queue, and fax delivery is confirmed.
-- **Who:** Lab operations, IT.
-- **Admin Guide:** Delivery Rules (retry waits) and the delivery exception queue.
-- **Marketing / RFP:** "Guaranteed report delivery: automatic retries, an exception queue and fax confirmation."
-- **Status:** Live (front end and dev receiver); the production delivery service is with the API server.
+**For the practitioner (User Guide).** Report delivery (electronic, print, e-fax, file drop) now retries automatically, by default after 1, 5 and 15 minutes. Failures go to an exception queue, and fax delivery is confirmed. This mainly concerns lab operations and IT.
 
----
+**For the system administrator (Admin Guide).** See Delivery Rules (retry waits; the default is 1, 5 and 15 minutes) and the delivery exception queue, where failures go. Fax delivery is confirmed.
+
+**For marketing (positive).** Guaranteed report delivery: automatic retries, an exception queue and fax confirmation.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end and dev receiver; the production delivery service is with the API server.
+- Training: none recorded. Standards: none recorded.
 
 ## Batch 604: Simulated mail, alerts and notices
-- **What changed:** With no mail service connected, every e-mail the product would send is kept in a Simulated mail outbox (Configuration, System) instead of being lost or faked: follow-up e-mails, tumor board invites, template lifecycle notices, secure e-mail, support tickets and feedback, and the e-mail leg of critical alerts. Each shows a Simulated label, a notice on screen, and an audit entry. Critical-alert channels show what would have been sent, per channel, labelled Simulated. Support tickets now also warn when the open case's patient name is typed or a screenshot is attached. Support access gains a PDF export of the audit stream, a Simulated "Ticket closed" action that ends the access, and a record of the support agent's own exports and configuration changes.
-- **Who:** Administrators, pathologists, support agents.
-- **Admin Guide:** Simulated mail outbox; Support access (PDF export, ticket closed).
-- **Marketing / RFP:** "No silent failures: anything the demo cannot send is shown, labelled and audited."
-- **Status:** Live in the front end against browser-side services; real sending is the API server's mail service (`/api/notifications/email`, `/api/notifications/template-events`).
+**For the practitioner (User Guide).** With no mail service connected, an e-mail the product would send is not lost or faked. Follow-up e-mails, tumor board invites, template lifecycle notices, secure e-mail, support tickets and feedback, and the e-mail leg of critical alerts are kept, each with a Simulated label and a notice on screen. Critical-alert channels show what would have been sent, per channel, labelled Simulated. Support tickets now also warn when the open case's patient name is typed or a screenshot is attached. Administrators, pathologists and support agents are affected.
 
----
+**For the system administrator (Admin Guide).** Every e-mail the product would send is kept in a Simulated mail outbox (Configuration, System), and each one has an audit entry. Support access gains a PDF export of the audit stream, a Simulated "Ticket closed" action that ends the access, and a record of the support agent's own exports and configuration changes.
+
+**For marketing (positive).** No silent failures: anything the demo cannot send is shown, labelled and audited.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end against browser-side services. Real sending is the API server's mail service (`/api/notifications/email`, `/api/notifications/template-events`), which is not built here. No other gaps are recorded for this change.
+- Training: none recorded. Standards: none recorded.
 
 ## Batch 606: Printing, labels and the site agent
-- **What changed:** Every print route the demo cannot reach now answers with a labelled **Simulated** result instead of failing or pretending: BarTender, Zebra Browser Print, Direct via Interface Engine, the PathScribe Agent when no agent program is running, engraving, the label sent when a scan is recorded, and report print jobs for network and site-agent printers. Each simulated print shows a notice, an audit entry, and a row in **Configuration, System, Simulated print log**, which also has a switch that makes simulated prints fail, to try the failure path. A report print job that went the simulated way shows "Simulated: sent to printer" in the print queue. Requisition, container, decant and molecular labels now go down Direct via Interface Engine too. The **slide label layout** (Print settings) now sets the barcode dot size, text position and font of the printed slide label, with a fit check, a preview and a test print. Layouts saved in the **Label Designer** are now used by the printed requisition, specimen, decant, block, slide and molecular labels (ZPL and browser print), a facility override first where the label type allows one, then the enterprise default, then the built-in layout. In the designer, a field can be shown only when another field has a value, is empty, or equals a value, with a preview; every save keeps a version (who and when) that can be restored; and one layout exports to ZPL, EPL and DPL. The specimen form has a **Capture weight** button (the scale agent, a labelled simulated reading in the demo, or typing) and **Capture gross photo**. A slide label is produced once: the scan at microtomy and the Microtomy Workstation print no longer both produce one, and a deliberate reprint always prints. The lab page size and margins are sent in surgical and cytology report render requests. A case can name a **technical component facility**; the surgical report request then carries that lab's letterhead as a second block, without its director or CLIA/ISO number.
-- **Who:** Administrators (printers, layouts, the simulated print log), histotechnicians (slide and block labels, microtomy), grossing staff (weight, photos), pathologists and lab directors (split reports).
-- **User Guide:** Specimen form: Capture weight, Capture gross photo. Case team: technical component facility.
-- **Admin Guide:** Simulated print log; Print settings, Slide label layout; Label Designer (show rules, version history, EPL/DPL export, saved layouts now print).
-- **Training:** try the failure switch, then print a label and see the failed result; change the slide layout and print a test slide label.
-- **Marketing / RFP:** "Label and report printing you can try end to end before a printer is connected: every route shows what would have printed, where, and how many, and says it is simulated."
-- **Status:** Live in the front end; real sending needs the printer vendors' services, the site agent program and the API server (see `KNOWN_GAPS.md`).
+**For the practitioner (User Guide).** When you print a label or a report in the demo and the real printer route cannot be reached, you now see a clear "Simulated" result instead of a failure or a pretend success. Each simulated print shows a notice, and a report print job that went the simulated way shows "Simulated: sent to printer" in the print queue. On the specimen form there is a Capture weight button (it uses the scale, shows a labelled simulated reading in the demo, or you can type the weight) and a Capture gross photo button. A slide label is now produced once: scanning at microtomy and printing at the Microtomy Workstation no longer both make one, and a deliberate reprint always prints. In the case team you can name a technical component facility; the surgical report then carries that lab's letterhead as a second block, without its director or CLIA/ISO number. Requisition, container, decant and molecular labels, and the slide and block labels, follow the layouts your lab has saved. This matters to histotechnicians (slide and block labels, microtomy), grossing staff (weight, photos), and pathologists and lab directors (split reports).
+
+**For the system administrator (Admin Guide).** Every print route the demo cannot reach answers with a labelled Simulated result: BarTender, Zebra Browser Print, Direct via Interface Engine, the PathScribe Agent when no agent program is running, engraving, the label sent when a scan is recorded, and report print jobs for network and site-agent printers. Each simulated print writes a notice and an audit entry and adds a row to Configuration, System, Simulated print log, which also has a switch that makes simulated prints fail so you can try the failure path. Requisition, container, decant and molecular labels now go down Direct via Interface Engine too. Print settings, Slide label layout sets the barcode dot size, text position and font of the printed slide label, with a fit check, a preview and a test print. Layouts saved in the Label Designer are now used by the printed requisition, specimen, decant, block, slide and molecular labels (ZPL and browser print): a facility override first where the label type allows one, then the enterprise default, then the built-in layout. In the designer a field can be shown only when another field has a value, is empty, or equals a value, with a preview; every save keeps a version (who and when) that can be restored; and one layout exports to ZPL, EPL and DPL. The lab page size and margins are sent in surgical and cytology report render requests. Audience for these screens: administrators (printers, layouts, the simulated print log).
+
+**For marketing (positive).** Label and report printing you can try end to end before a printer is connected: every route shows what would have printed, where, and how many, and says it is simulated. Labs can design their own labels, with show rules and restorable versions, and send one layout to ZPL, EPL or DPL. Slide labels are made once, and weight and gross photos are captured right on the specimen form.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end only. Real sending needs the printer vendors' services, the site agent program and the API server (see `KNOWN_GAPS.md`). In the demo the weight reading is a labelled simulated reading unless typed. No other gaps are recorded for this change.
+- Training: try the failure switch, then print a label and see the failed result; change the slide layout and print a test slide label.
 
 ---
 
 ## Batch 605: Simulated interface engine, inbound and outbound
-- **What changed:** With no interface engine connected, the demo now plays both ends. Inbound: the Mock Interface Engine page runs sample ADT messages (admit, update, merge, link, move, change visit number, move visit) and events, and the result is shown. An unresolved merge, link or move exception can be bound to a patient by hand. Outbound: block, slide and specimen label orders, material scan events, charges and financial-class payloads go to a simulated engine that records them (type and outcome only), shown in an Engine log and in Interfaces, Outbound. Newly created blocks are handed over automatically with a notice; charges and the financial-class payload are sent at sign-out. Also: Interface Engines, Server Jobs and the Assist LIS poll schedule show Simulated status; the Engraver Monitor and dispatch history show seeded Simulated data when no Firebase project is connected (with an organisation filter); the Add Code window accepts a typed ICD-O-3 code (behaviour digit checked) and offers a Simulated ICD-O and ICD-11 lookup; queued registry reports can be handed to a simulated registry; the specimen sync badge settles through a simulated LIS answer; frozen section codes are suggested (unconfirmed) for accept or dismiss; a typed MRN shows the active encounter before submit; the crosswalk can be set per site; cross-organisation merge, link and move need an extra warning and are audited.
-- **Who:** Accessioners, histology, administrators, billing, coders.
-- **Admin Guide:** Mock Interface Engine (Inbound, Engine log, Registry answer); Crosswalk (Site); Engraver Monitor.
-- **Marketing / RFP:** "Every interface can be shown end to end in the demo, clearly labelled Simulated, with nothing silently dropped."
-- **Status:** Live in the front end against browser-side services; real traffic needs the interface engine, the billing engine, the registries and the vendor specifications.
+**For the practitioner (User Guide).** With no interface engine connected, the demo plays both ends and labels everything Simulated, so nothing is silently dropped. Newly created blocks are handed over automatically with a notice, and charges and the financial-class payload are sent when a case is signed out. In the Add Code window you can type an ICD-O-3 code (the behaviour digit is checked) and use a Simulated ICD-O and ICD-11 lookup. Frozen section codes are suggested, unconfirmed, for you to accept or dismiss. When you type an MRN, the active encounter is shown before you submit. The specimen sync badge settles through a simulated LIS answer. Merging, linking or moving across organisations shows an extra warning. This matters to accessioners, histology, billing and coders.
+
+**For the system administrator (Admin Guide).** Mock Interface Engine (Inbound, Engine log, Registry answer) runs sample ADT messages (admit, update, merge, link, move, change visit number, move visit) and events, and shows the result; an unresolved merge, link or move exception can be bound to a patient by hand. Outbound, block, slide and specimen label orders, material scan events, charges and financial-class payloads go to a simulated engine that records them (type and outcome only), shown in an Engine log and in Interfaces, Outbound. Interface Engines, Server Jobs and the Assist LIS poll schedule show Simulated status. The Engraver Monitor and dispatch history show seeded Simulated data when no Firebase project is connected (with an organisation filter). Queued registry reports can be handed to a simulated registry. The Crosswalk can be set per site (Crosswalk, Site). Cross-organisation merge, link and move need an extra warning and are audited.
+
+**For marketing (positive).** Every interface can be shown end to end in the demo, clearly labelled Simulated, with nothing silently dropped. Prospects can watch admissions, merges, label orders, charges and registry hand-offs play out without any connected system.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end against browser-side services. Real traffic needs the interface engine, the billing engine, the registries and the vendor specifications. No other gaps are recorded for this change.
 
 ---
 
@@ -1083,194 +1493,462 @@
 Batches before 521 are summarised in `FEATURE_OVERVIEW.md`, which was last fully verified in August 2026 with sections added through September. A catch-up pass will verify it against the code and add a guide entry for each capability added since August (Batches ~400–520), in the format above.
 
 ## Batch 607: code systems and coding
+**For the practitioner (User Guide).** The Add Code window shows only the code systems your region allows today, and a system your region requires is marked "Required". A code in a system that is off cannot be added. If a required system has no code on the case, sign-out asks first; going ahead is an override. A "Case coding" button in the Add Code window lists each code with its system, release, where it came from (entered, AI suggestion, map) and the AI model and confidence, with ICD-10 and ICD-11 side by side. The ICD-11 column comes from a small sample table and is labelled Simulated. The OPCS-4 tab says OPCS-4 needs an NHS TRUD licence; it shows a short reference list, labelled Simulated, which cannot be applied to a case. On the ICD-O tab, searching by code (8500 or 8500/3) or by words (glioblastoma) now finds ICD-O-3 morphology codes with their behaviour.
 
-- **Add Code window:** it shows only the code systems your region allows today (Configuration, System, Code Systems). A system your region requires is marked "Required". A code in a system that is off cannot be added.
-- **Sign-out:** if a required system has no code on the case, sign-out asks first. Going ahead is an override and is written to the audit log (system names only).
-- **Case coding:** a "Case coding" button in the Add Code window lists each code with its system, release, where it came from (entered, AI suggestion, map) and the AI model and confidence. ICD-10 and ICD-11 appear side by side. The ICD-11 column comes from a small sample table and is labelled Simulated.
-- **OPCS-4:** the tab says OPCS-4 needs an NHS TRUD licence. A short reference list is shown, labelled Simulated, and cannot be applied to a case.
-- **ICD-O tab:** searching by code (8500 or 8500/3) or by words (glioblastoma) now finds ICD-O-3 morphology codes with their behaviour from a bundled table.
-- **Outgoing charge messages:** ICD-10 codes are left out when your region has ICD-10 switched off.
+**For the system administrator (Admin Guide).** The code systems offered follow Configuration, System, Code Systems. A sign-out override on a missing required system is written to the audit log (system names only). ICD-O-3 morphology codes with behaviour come from a bundled table. Outgoing charge messages leave out ICD-10 codes when your region has ICD-10 switched off.
+
+**For marketing (positive).** Coding that follows the region: only the code systems a region allows are offered, required ones are flagged, and sign-out checks that nothing required is missing. Reviewers can see every code with its source, release and AI confidence on one screen, and ICD-O-3 morphology is searchable by code or by words.
+
+**For FormedrixAI and partners (the plain reality).** The ICD-11 column comes from a small sample table and is labelled Simulated. The OPCS-4 list is a short Simulated reference that cannot be applied to a case; real OPCS-4 needs an NHS TRUD licence. ICD-O-3 uses a bundled table. No other gaps are recorded for this change.
 
 ## Batch 608: Cytology reviewer pools, QC compliance, Return to Trainee and the QA report columns
+**For the practitioner (User Guide).** A cytology QC review can be taken or recorded only by someone in the right reviewer pool, and never by the person who signed the case out; anyone else sees a note instead of Assign to Me. The Cytology QC queue has a Compliance view showing assignments, resolved reviews, concordant and discrepant counts, the discrepancy rate (a dash until something is resolved), major and minor counts, SLA escalations, supervisor bypasses, and each reviewer's own rate. The Bethesda review on the screening page and each row of the QC queue show a "Suggested" badge (Abnormal, Critical or Malignant) from the interpretation; it is advice only and never blocks sign-out. On a cytology specimen released for countersign, the attending types feedback (required) and returns it; the same bar appears on an autopsy report released for countersign. The trainee becomes the owner again, the case shows as returned, and the trainee sees the attending's feedback in a banner. The accession form records a prior cervical procedure (none, LEEP, cold knife conization, cryotherapy, other), which drives the high-risk factor alongside the diagnosis history. The screening page records the HPV assay name, the liquid-based platform (ThinPrep or SurePath), and for a positive HPV result the action taken (colposcopy referral with dates). The proficiency report has a panel builder: build the lab's answers to the provider's challenge slides, submit, then apply a Simulated result. This matters to cytotechnologists, pathologists, cytology QC leads, trainees and attendings.
 
-- **Reviewer pools:** in Configuration, Staff, each person can be given cytology QC reviewer pools (role codes such as SENIOR_CT or PATHOLOGIST). Leave it empty and a Pathologist counts as PATHOLOGIST. A QC review can be taken or recorded only by someone in the pool named by the rule that selected the case, and never by the person who signed the case out. Anyone else sees a note instead of Assign to Me, and the service refuses the action too.
-- **QC compliance:** the Cytology QC queue has a Compliance view: assignments, resolved reviews, concordant and discrepant counts, the discrepancy rate (a dash until something is resolved), major and minor counts, SLA escalations, supervisor bypasses, and each reviewer's own rate.
-- **Suggested severity:** the Bethesda review on the screening page and each row of the QC queue show a "Suggested" badge (Abnormal, Critical or Malignant) from the interpretation. It is advice only and never blocks sign-out.
-- **Return to Trainee:** on a cytology specimen released for countersign, the attending types feedback (required) and returns it. On an autopsy report released for countersign, the same bar appears. The trainee becomes the owner again, the case shows as returned, and the trainee sees the attending's feedback in a banner.
-- **Prior cervical procedure:** the accession form records a prior cervical procedure (none, LEEP, cold knife conization, cryotherapy, other). A recorded procedure drives the high-risk factor alongside the diagnosis history.
-- **Details for the QA reports:** the screening page records the HPV assay name, the liquid-based platform (ThinPrep or SurePath), and for a positive HPV result the action taken (colposcopy referral with dates). The facility record has a national screening registry ID.
-- **QA reports:** the HPV positivity monitor adds an Assay column. The UK failsafe report counts colposcopy referrals and referrals with no response after 28 days. The EU compliance matrix adds registry IDs, ThinPrep and SurePath counts, and interval adherence from a per-country, per-age interval table (Configuration, Cytology, Country and laboratory rules; the starting values are examples to check against your programme).
-- **Proficiency testing:** the proficiency report has a panel builder. Build the lab's answers to the provider's challenge slides, submit, then apply a Simulated result. It is labelled Simulated, audited without patient data, and not counted in the rates or the consecutive-deficiency rule.
-- **Molecular QC and control wells:** the molecular QC reports follow the selected organisation or facility (a run with no location shows at enterprise level only). Trace works for control and calibrator wells: control ID, lot, expiry, plate, deck and instrument.
-- **Who:** Cytotechnologists, pathologists, cytology QC leads, trainees and attendings, administrators, QA managers.
-- **Admin Guide:** Configuration, Staff (QC reviewer pools); Cytology, Country and laboratory rules (screening intervals); Facilities (national registry ID); Quality Assurance, Cytology QA (proficiency panel).
-- **Marketing / RFP:** "Peer review is limited to the right reviewers, trainees get written feedback when a case is sent back, and the HPV, failsafe and EU reports show the columns auditors ask for."
-- **Status:** Live in the front end against browser-side services. Real PT grades, registry feeds and national interval rules need the provider, the interface engine and programme data (see `KNOWN_GAPS.md`).
+**For the system administrator (Admin Guide).** Configuration, Staff (QC reviewer pools): each person can be given cytology QC reviewer pools as role codes such as SENIOR_CT or PATHOLOGIST. Left empty, a Pathologist counts as PATHOLOGIST. A review can be taken only by someone in the pool named by the rule that selected the case, and the service refuses the action too. Facilities: the facility record has a national screening registry ID. Cytology, Country and laboratory rules holds the per-country, per-age screening interval table (the starting values are examples to check against your programme). Quality Assurance, Cytology QA (proficiency panel): the Simulated result is labelled Simulated, audited without patient data, and not counted in the rates or the consecutive-deficiency rule. QA reports: the HPV positivity monitor adds an Assay column; the UK failsafe report counts colposcopy referrals and referrals with no response after 28 days; the EU compliance matrix adds registry IDs, ThinPrep and SurePath counts, and interval adherence. Molecular QC reports follow the selected organisation or facility (a run with no location shows at enterprise level only), and Trace works for control and calibrator wells: control ID, lot, expiry, plate, deck and instrument. Audience also includes QA managers.
 
----
+**For marketing (positive).** Peer review is limited to the right reviewers, trainees get written feedback when a case is sent back, and the HPV, failsafe and EU reports show the columns auditors ask for. Quality leads get a compliance view of discrepancy rates, SLA escalations and each reviewer's own rate.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end against browser-side services. Real PT grades, registry feeds and national interval rules need the provider, the interface engine and programme data (see `KNOWN_GAPS.md`). The interval table values are examples only and must be checked against each programme. The proficiency result is Simulated.
 
 ## Batch 609 (part C): AI model settings, dictation languages and medical spell check
+**For the practitioner (User Guide).** Dictation: AI refinement of dictated text now follows your lab's spelling: American, British (and Irish), Australian (and New Zealand) or Canadian. Australian and Canadian dictation used to come back in American spelling. In French, German, Dutch and Korean the text stays in that language, with that language's own number and punctuation style. Voice commands in other languages: exact English phrases still work, and once your lab turns off loose matching, a mis-heard French, German, Dutch or Korean phrase is never run as a near-miss of an English command. In German, French and Dutch, pathology words such as Karzinom, Adenokarzinom, carcinome épidermoïde and plaveiselcelcarcinoom are no longer flagged by spell check; the German general dictionary is unchanged. This matters to pathologists and technicians who dictate.
 
-- **Model settings (Configuration, Models):** each model your organisation has adopted has a Settings button. Two settings, both optional (leave blank to use the organisation setting): the longest answer the model may give (50 to 8,000 tokens), and a confidence threshold for this model (0 to 100). A model with settings shows a "custom settings" badge. The longest-answer setting caps every AI call made with that model; the threshold decides which suggestions from that model count as above threshold on the report page and in the header badge. Saving needs the same permission as changing models.
-- **Dictation spelling:** AI refinement of dictated text now follows the lab's spelling: American, British (and Irish), Australian (and New Zealand) or Canadian. Australian and Canadian dictation used to come back in American spelling.
-- **Dictation in French, German, Dutch and Korean:** the refinement instructions are now written for each language: the text stays in that language, with that language's own number and punctuation style. The wording is machine-assisted and needs native-speaker review.
-- **Voice settings (Configuration, System, Voice):** "Match English commands loosely in other languages" (on by default). Turn it off once a language's own commands are in place: a mis-heard French, German, Dutch or Korean phrase is then never run as a near-miss of an English command. Exact English phrases still work. The same page lists the exact instructions sent to the AI for each English spelling and each language, so a native speaker can review them.
-- **Medical spell check:** German, French and Dutch now have a starter list of pathology terms (about 190, 155 and 170), so words such as Karzinom, Adenokarzinom, carcinome épidermoïde and plaveiselcelcarcinoom are no longer flagged. The German general dictionary is unchanged. The lists are a starter set and need native-speaker clinical review; they will be extended from the national SNOMED CT editions once licensed.
-- **Who:** Administrators (model settings, Voice settings), pathologists and technicians who dictate.
-- **Admin Guide:** Configuration, Models (Settings); Configuration, System, Voice (English fuzzy-match switch, instructions by language); Spell check (German, French, Dutch medical lists).
-- **User Guide:** Dictation: spelling follows the lab; commands in other languages.
-- **Marketing / RFP:** "Dictation follows your lab's spelling and language, and each AI model can be tuned for your organisation: answer length and confidence threshold."
-- **Status:** Live in the front end. The AI model catalog and store still run on browser-side demo services; the licensed SNOMED CT, LOINC and SPECIALIST releases (PS-343) and native-speaker review are outside the code.
+**For the system administrator (Admin Guide).** Configuration, Models: each model your organisation has adopted has a Settings button with two optional settings (leave blank to use the organisation setting): the longest answer the model may give (50 to 8,000 tokens) and a confidence threshold for this model (0 to 100). A model with settings shows a "custom settings" badge. The longest-answer setting caps every AI call made with that model; the threshold decides which suggestions from that model count as above threshold on the report page and in the header badge. Saving needs the same permission as changing models. Configuration, System, Voice: "Match English commands loosely in other languages" is on by default; turn it off once a language's own commands are in place. The same page lists the exact instructions sent to the AI for each English spelling and each language, so a native speaker can review them. Spell check: German, French and Dutch have a starter list of pathology terms (about 190, 155 and 170).
+
+**For marketing (positive).** Dictation follows your lab's spelling and language, and each AI model can be tuned for your organisation: answer length and confidence threshold. Pathology terms in German, French and Dutch are recognised rather than flagged.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end. The AI model catalog and store still run on browser-side demo services. The French, German, Dutch and Korean refinement wording is machine-assisted and needs native-speaker review. The medical term lists are a starter set that need native-speaker clinical review; they will be extended from the national SNOMED CT editions once licensed. The licensed SNOMED CT, LOINC and SPECIALIST releases (PS-343) and native-speaker review are outside the code.
 
 ## Batch 609 (part B): Mismatch check after sign-out, Final Diagnosis rule, template audit and the Upload Protocol check
+**For the practitioner (User Guide).** The clinical-pathologic mismatch check now also runs after first sign-out. While a report is unlocked for an amendment or correction, the same alert as before sign-out appears on the report, and the re-sign-out asks again. An addendum's text is checked together with the report's diagnosis before it is released. A decision already recorded still counts: a typo fix, or a finding no worse than what was decided, does not ask again. When a high-risk mismatch holds the release, you record Resolved or Unresolved. If your lab has turned the hold off, the alert still shows ("this will not hold the release"). Template authors: the Template Builder warns as soon as a Final template has more than one field marked as the Final Diagnosis, and Publish is disabled until only one is left; the Part Builder warns when a saved part leaves a Final template with more than one. Preliminary templates are exempt, and saving a draft is still allowed. In the Upload Protocol window the file is read and the result shown straight away: JSON (a PathScribe protocol file, as made by Export JSON) is checked section by section and can be imported as a draft, which then goes through review like any other; XML (CAP eCC / SDC shape) and Excel files are checked for format and reported, but cannot be imported yet. Every result says the same plain thing: unverified against CAP or RCPath, because only the file format was checked.
 
-- **Amendments, corrections and addenda:** the clinical-pathologic mismatch check now runs after first sign-out. While a report is unlocked for an amendment or correction, the same alert as before sign-out appears on the report; the re-sign-out asks again. An addendum's text is checked together with the report's diagnosis before it is released. A decision already recorded still counts: a typo fix, or a finding no worse than what was decided, does not ask again.
-- **The setting:** Configuration, System, Clinical Mismatch Rules has a new card, "Amendments, corrections and addenda". On (the default), a high-risk mismatch (a Block rule) holds the release until the pathologist records Resolved or Unresolved. Off, the alert still shows ("this will not hold the release") and the mismatch is logged to the QA dashboard, but nobody has to stop. Changing it needs the same permission as the rules and is written to the audit log.
-- **Final Diagnosis field:** the Template Builder warns as soon as a Final template has more than one field marked as the Final Diagnosis, and Publish is disabled until only one is left. The Part Builder warns when a saved part leaves a Final template with more than one. Preliminary templates are exempt. Saving a draft is still allowed.
-- **Template lifecycle in the Audit Log:** every step of a synoptic protocol's life now writes an entry: draft saved, submitted, changes requested, resubmitted, approval recorded, published, an older version archived because a new one replaced it, archived, restored, reset to draft, draft deleted. The entry names the protocol, its version and the status change. A reviewer's note text is never copied into the log.
-- **Upload Protocol:** the window reads the file and shows the result straight away. JSON (a PathScribe protocol file, as made by Export JSON) is checked section by section and can be imported as a draft, which then goes through review like any other. XML (CAP eCC / SDC shape) and Excel files are checked for format and reported, but cannot be imported yet. Every result says the same plain thing: unverified against CAP or RCPath, because only the file format was checked.
-- **Who:** Pathologists, laboratory directors, template authors and approvers, QA managers, administrators.
-- **Admin Guide:** Configuration, System, Clinical Mismatch Rules (new card); Configuration, Protocols (Upload Protocol, Review Queue); Template Builder (Assembly and Part Builder); Audit Log (template events).
-- **Marketing / RFP:** "A late amendment is checked against the clinical history just like the first report, a template with two diagnosis fields cannot be published, and every change to a protocol is in the audit trail." ISO 15189 (document control), CAP (amended and corrected reports).
-- **Status:** Live in the front end against browser-side services. The licensed CAP and RCPath protocol content, and importing their XML and Excel files, need the licence and the bodies' sample files (see `KNOWN_GAPS.md`).
+**For the system administrator (Admin Guide).** Configuration, System, Clinical Mismatch Rules has a new card, "Amendments, corrections and addenda". On (the default), a high-risk mismatch (a Block rule) holds the release until the pathologist records Resolved or Unresolved. Off, the alert still shows and the mismatch is logged to the QA dashboard, but nobody has to stop. Changing it needs the same permission as the rules and is written to the audit log. Configuration, Protocols (Upload Protocol, Review Queue); Template Builder (Assembly and Part Builder). Audit Log (template events): every step of a synoptic protocol's life writes an entry: draft saved, submitted, changes requested, resubmitted, approval recorded, published, an older version archived because a new one replaced it, archived, restored, reset to draft, draft deleted. The entry names the protocol, its version and the status change; a reviewer's note text is never copied into the log. Audience includes laboratory directors, template authors and approvers, and QA managers.
+
+**For marketing (positive).** A late amendment is checked against the clinical history just like the first report, a template with two diagnosis fields cannot be published, and every change to a protocol is in the audit trail. Labs can see the full life of each protocol, from draft to archive.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end against browser-side services. The licensed CAP and RCPath protocol content, and importing their XML and Excel files, need the licence and the bodies' sample files (see `KNOWN_GAPS.md`). Upload Protocol results are explicitly unverified against CAP or RCPath.
+- Standards: ISO 15189 (document control), CAP (amended and corrected reports).
 
 ## Batch 610 (part A): Autopsy turnaround, Autopsy Dashboards and frozen section targets
+**For the practitioner (User Guide).** On the Worklist, the autopsy chip (also on the report page) shows whether the report being worked on (PAD, then FAD) is on track, due soon (last 20% of the window), overdue, met or signed late. The clock starts at body arrival, and time on ancillary hold (toxicology, neuropathology) is not counted. Working-day targets skip weekends only; public holidays are not known, so a deadline can be later than shown, never earlier. In the Intraop Queue each specimen has a STAT / Routine switch (one click) so the matching frozen section target applies; the OR board and queue show that target. Quality managers also get Autopsy Dashboards. This matters to pathologists, autopsy staff, quality managers and laboratory directors.
 
-- **Autopsy turnaround chip:** the autopsy worklist and the report page show whether the report being worked on (PAD, then FAD) is on track, due soon (last 20% of the window), overdue, met or signed late. The clock starts at body arrival. The target is the jurisdiction figure, or an Autopsy PAD / Autopsy FAD rule from Configuration, TAT. Time on ancillary hold (toxicology, neuropathology) is not counted. Working-day targets skip weekends only; public holidays are not known, so a deadline can be later than shown, never earlier.
-- **Autopsy Dashboards (Quality & Compliance):** Case, Department and Enterprise views of turnaround, consent, organ retention and cause of death, with a period choice. Department lists the reports overdue now; Enterprise compares facilities and jurisdictions. Simulated cases are included by default and labelled Simulated; one switch turns them off.
-- **Frozen section targets (Intraop):** the OR board and queue use the Frozen Section rule from TAT configuration (default 20 minutes, warning at 5). The rule has a new "warn when this many minutes remain" field. Each specimen has a STAT / Routine switch (one click) so the matching target applies.
-- **Who:** Pathologists, autopsy staff, quality managers, laboratory directors, administrators.
-- **Admin Guide:** Configuration, System, TAT (Autopsy PAD, Autopsy FAD, Frozen Section warning time); Quality & Compliance, Autopsy Dashboards (role access `screen:autopsy-dashboards:open`).
-- **User Guide:** Worklist (autopsy chip); Intraop Queue (STAT/Routine switch).
-- **Marketing / RFP:** "Every autopsy shows whether its preliminary and final reports are on time, and quality managers see turnaround, consent, organ retention and cause of death by case, department and enterprise."
-- **Standards:** ISO 15189 (turnaround monitoring), CAP autopsy turnaround expectations, GDPR (consent and retention visible).
-- **Status:** Live in the front end against browser-side services. Cause of death is a category on Simulated cases only until the signed report carries it as data; public holidays need a holiday calendar (see `KNOWN_GAPS.md`).
+**For the system administrator (Admin Guide).** Configuration, System, TAT (Autopsy PAD, Autopsy FAD, Frozen Section warning time): the autopsy target is the jurisdiction figure, or an Autopsy PAD / Autopsy FAD rule from Configuration, TAT. The OR board and queue use the Frozen Section rule from TAT configuration (default 20 minutes, warning at 5); the rule has a new "warn when this many minutes remain" field. Quality & Compliance, Autopsy Dashboards (role access `screen:autopsy-dashboards:open`): Case, Department and Enterprise views of turnaround, consent, organ retention and cause of death, with a period choice. Department lists the reports overdue now; Enterprise compares facilities and jurisdictions. Simulated cases are included by default and labelled Simulated; one switch turns them off.
+
+**For marketing (positive).** Every autopsy shows whether its preliminary and final reports are on time, and quality managers see turnaround, consent, organ retention and cause of death by case, department and enterprise. Intraoperative frozen section targets can be matched to STAT or Routine with one click.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end against browser-side services. Cause of death is a category on Simulated cases only until the signed report carries it as data. Public holidays need a holiday calendar, so working-day deadlines can be later than shown (see `KNOWN_GAPS.md`).
+- Standards: ISO 15189 (turnaround monitoring), CAP autopsy turnaround expectations, GDPR (consent and retention visible).
 
 ## Batch 610 (part D): Diagnosis and biomarker tumor board rules, AI discordance report, spoken delegation types
+**For the practitioner (User Guide).** By voice, saying "request peer review", "formal consultation" or "full transfer" opens the Delegate dialog with Informal Review, Second Opinion or Case Reassignment already chosen. If that type is turned off, the dialog says so. When the person a case was delegated to signs it out, the delegation is completed and the case leaves "Delegated to me". A signed case that matches a tumor board rule is listed for that board with the reason.
 
-- **Configuration → System → Tumor Board Auto-Flag Rules:** a new card, "Diagnosis and biomarker rules". An administrator adds a rule made of up to six criteria (diagnosis text, a biomarker result, a margin under a distance) and picks the board; a signed case that matches every criterion is listed for that board with the reason. A facility can also override the board for a rule.
-- **Quality Assurance → AI Discordance:** AI results that disagree with the pathologist, results that stalled (no answer within the lab's limit, set on the tab) and the concordance rate by algorithm, with an export (needs `qa:ai-discordance:export`).
-- **Delegate dialog by voice:** saying "request peer review", "formal consultation" or "full transfer" opens the Delegate dialog with Informal Review, Second Opinion or Case Reassignment already chosen. If that type is turned off, the dialog says so.
-- **Delegated work:** when the person a case was delegated to signs it out, the delegation is completed and the case leaves "Delegated to me".
+**For the system administrator (Admin Guide).** Configuration → System → Tumor Board Auto-Flag Rules has a new card, "Diagnosis and biomarker rules". An administrator adds a rule made of up to six criteria (diagnosis text, a biomarker result, a margin under a distance) and picks the board; a signed case that matches every criterion is listed for that board with the reason. A facility can also override the board for a rule. Quality Assurance → AI Discordance shows AI results that disagree with the pathologist, results that stalled (no answer within the lab's limit, set on the tab) and the concordance rate by algorithm, with an export (needs `qa:ai-discordance:export`).
+
+**For marketing (positive).** Tumor boards receive the right cases automatically, from diagnosis text, biomarker results and margins. Quality teams can see where AI and pathologists disagree and the concordance rate by algorithm, and delegation can be started by voice.
+
+**For FormedrixAI and partners (the plain reality).** No gaps are recorded for this change.
 
 ## Batch 610 (part B): Performance targets, client service levels and the jurisdiction overview
+**For the practitioner (User Guide).** On the Productivity dashboard a Targets tile shows this period's cases and RVUs against the monthly targets (Met, On track or Behind) and how last period ended; a person with no target set sees none, and the old fixed target percentages are gone. The Quality tab and the Productivity dashboard show a per-client table (within, late, average, still open past target). On the Worklist, an "SLA" badge appears on an open case already past its client's target (hover for which target). This matters to pathologists (dashboard and badge).
 
-- **Configuration → System → Performance Targets:** the cases-per-month and RVU targets (and the TAT and QC rows) are now saved. Change a value and it is kept straight away; add a target of your own (cases, RVUs, percent or hours; daily to yearly); built-in targets cannot be removed. Needs `config:tat-targets:manage`. Each change is in the audit log (numbers only).
-- **Productivity dashboard:** a Targets tile shows this period's cases and RVUs against the monthly targets (Met, On track or Behind) and how last period ended. The old fixed target percentages are gone; a person with no target set sees none.
-- **Configuration → System → Client Service Levels:** for each client (by assigning authority) set the hours to first touch and to the signed report, with optional STAT hours. Cases are measured from the time received. Needs `config:tat-targets:manage`.
-- **Where the service levels show:** a per-client table on the Quality tab and the Productivity dashboard (within, late, average, still open past target), and an "SLA" badge on the worklist for an open case already past its client's target (hover for which target).
-- **Configuration → System → Jurisdiction Overview:** a read-only page, one table per country, gathering the facilities, roles offered, who can sign out, code systems, AI policy, retention rule sources and cancer registries, with a Change link to the screen where each is edited.
-- **Who:** Administrators, laboratory directors, quality managers, pathologists (dashboard and badge).
-- **Admin Guide:** Configuration, System, Performance Targets; Client Service Levels; Jurisdiction Overview.
-- **User Guide:** Productivity dashboard (Targets tile); Quality tab (client service levels); Worklist (SLA badge).
-- **Training:** set a monthly cases target, open the Productivity dashboard and see the tile; give one client a 4 h / 48 h service level and see a late case get the worklist badge.
-- **Marketing / RFP:** "Per-client turnaround commitments are tracked case by case, flagged on the worklist while a case is still open, and reported by client; productivity is measured against targets your laboratory sets."
-- **Standards:** ISO 15189 (turnaround monitoring and review of contracted service levels), CAP (turnaround monitoring).
-- **Status:** Live in the front end against browser-side services (saved in the browser until the API server stores them). Targets are not yet set per pathologist or per facility.
+**For the system administrator (Admin Guide).** Configuration → System → Performance Targets: the cases-per-month and RVU targets (and the TAT and QC rows) are now saved; change a value and it is kept straight away. Add a target of your own (cases, RVUs, percent or hours; daily to yearly); built-in targets cannot be removed. Needs `config:tat-targets:manage`. Each change is in the audit log (numbers only). Configuration → System → Client Service Levels: for each client (by assigning authority) set the hours to first touch and to the signed report, with optional STAT hours; cases are measured from the time received; needs `config:tat-targets:manage`. Configuration → System → Jurisdiction Overview is a read-only page, one table per country, gathering the facilities, roles offered, who can sign out, code systems, AI policy, retention rule sources and cancer registries, with a Change link to the screen where each is edited. Audience also includes laboratory directors and quality managers.
+
+**For marketing (positive).** Per-client turnaround commitments are tracked case by case, flagged on the worklist while a case is still open, and reported by client; productivity is measured against targets your laboratory sets. Administrators also get one read-only overview per country.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end against browser-side services (saved in the browser until the API server stores them). Targets are not yet set per pathologist or per facility.
+- Training: set a monthly cases target, open the Productivity dashboard and see the tile; give one client a 4 h / 48 h service level and see a late case get the worklist badge. Standards: ISO 15189 (turnaround monitoring and review of contracted service levels), CAP (turnaround monitoring).
 
 ## Batch 611 (part G): Smart Capture charge suggestions (prototype)
+**For the practitioner (User Guide).** In a case's Billing panel there is a Smart Capture button (Billing review, Smart Capture drawer), labelled "Prototype, not compliance-reviewed". It lists suggested charge lines with the rule and evidence behind each. You accept or reject each line; a pathologist confirms; a payload preview shows what would leave; the approved lines can then be exported (to the labelled Simulated engine in the demo). If the case changes after a review, it is shown stale and must be made again. Pathologists review, approve and send.
 
-- **Billing panel on a case:** a **Smart Capture** button labelled *Prototype, not compliance-reviewed*. It lists suggested charge lines with the rule and evidence behind each; a person accepts or rejects each line; a pathologist confirms; a payload preview shows what would leave; the approved lines can then be exported (to the labelled Simulated engine in the demo). If the case changes after a review it is shown stale and must be made again.
-- **Configuration → System → Smart Capture:** a switch for offering the drawer, and a six-item production checklist (clinical validation, security, privacy, legal, claims and coding policy, real receiving system) that must be fully ticked before an export can go to a real interface engine.
-- **Who:** Pathologists (review, approve, send); administrators and laboratory directors (settings).
-- **Admin Guide:** Configuration, System, Smart Capture; Permissions (four capabilities). **User Guide:** Billing review, Smart Capture drawer. Full description and acceptance criteria: `docs/product/SMART_CAPTURE.md`.
-- **Training:** open a case's Billing panel, open Smart Capture, accept two lines and reject one, tick the confirmation as a pathologist, approve, read the payload preview, export, then change the case and see the review go stale.
-- **Marketing / RFP:** "Suggested charges are always reviewed by a person: every line is accepted or rejected, a pathologist confirms, nothing is sent without that confirmation, and the audit trail records the rule version behind each suggestion. Clearly labelled as a prototype until validated."
-- **Standards:** HIPAA (audit without patient data), CAP and ISO 15189 (reviewed, traceable decisions). The prototype is not compliance-reviewed and says so on screen.
-- **Status:** Built (Demo). The rule set is a stand-in; claims and legal review and the receiving system are on the institution.
+**For the system administrator (Admin Guide).** Configuration → System → Smart Capture has a switch for offering the drawer and a six-item production checklist (clinical validation, security, privacy, legal, claims and coding policy, real receiving system) that must be fully ticked before an export can go to a real interface engine. Permissions: four capabilities. Administrators and laboratory directors manage the settings. Full description and acceptance criteria: `docs/product/SMART_CAPTURE.md`.
+
+**For marketing (positive).** Suggested charges are always reviewed by a person: every line is accepted or rejected, a pathologist confirms, nothing is sent without that confirmation, and the audit trail records the rule version behind each suggestion. Clearly labelled as a prototype until validated.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). The rule set is a stand-in; claims and legal review and the receiving system are on the institution. The prototype is not compliance-reviewed and says so on screen.
+- Training: open a case's Billing panel, open Smart Capture, accept two lines and reject one, tick the confirmation as a pathologist, approve, read the payload preview, export, then change the case and see the review go stale. Standards: HIPAA (audit without patient data), CAP and ISO 15189 (reviewed, traceable decisions). The prototype is not compliance-reviewed and says so on screen.
 
 ## Batch 612 (part C): Report font sizes in points
+**For the practitioner (User Guide).** Nothing changes for a pathologist on screen except the report preview: what you see is the printed report. For a template in points, the preview is drawn at the paper's real width and side margins, with text at its printed size, so a 10 pt line wraps on screen where it wraps on paper. The preview does not show top and bottom margins or page breaks. There is no separate user guide entry. Template authors see the same size box in their own template, and the label size in the field inspector is also in points.
 
-- **Configuration → System → Document Style:** font sizes are now in **points**, the size that prints (a 10 prints at 10 pt, as in Word), with the printed size shown under the box. The smallest size that prints is 8 pt. The built-in defaults are body 10, header 11 bold and footer 10 pt. A style saved before this change is marked as saved in pixels and prints exactly as it did until the administrator presses **Convert to points**, which lists each size and what it becomes; the numbers stay the same and now mean points, so the text prints larger.
-- **Template Assembly → Style:** the same size box and **Convert to points** for one template. New templates start in points. The label size in the field inspector is also points.
-- **Report preview:** for a template in points the preview is drawn at the paper's real width and side margins, with text at its printed size, so a 10 pt line wraps on screen where it wraps on paper. The preview does not show top and bottom margins or page breaks.
-- **Who:** Administrators (lab styles need the Approved Fonts and Document Style permission); template authors (their own template).
-- **Admin Guide:** Configuration, System, Document Style; Template Assembly, Style panel. **User Guide:** none (what a pathologist sees is the printed report).
-- **Training:** open Document Style, read "Prints at" under the size, press Convert to points, read the list, confirm, and print a report to see the larger text; do the same for one template.
-- **Marketing / RFP:** "Report type sizes are set in points, the unit printers and word processors use, and the screen preview shows the size that will print."
-- **Standards:** none directly (legibility of printed reports). The conversion is written to the audit log.
-- **Status:** Live in the front end and in the report PDF function (redeploy `functions/`). Fonts print as Helvetica, Times or Courier whatever the family chosen (Calibri, Verdana and Georgia are not embedded).
+**For the system administrator (Admin Guide).** Configuration → System → Document Style: font sizes are now in points, the size that prints (a 10 prints at 10 pt, as in Word), with the printed size shown under the box ("Prints at"). The smallest size that prints is 8 pt. The built-in defaults are body 10, header 11 bold and footer 10 pt. A style saved before this change is marked as saved in pixels and prints exactly as it did until the administrator presses Convert to points, which lists each size and what it becomes; the numbers stay the same and now mean points, so the text prints larger. Lab styles need the Approved Fonts and Document Style permission. Template Assembly → Style has the same size box and Convert to points for one template; new templates start in points. The conversion is written to the audit log.
+
+**For marketing (positive).** Report type sizes are set in points, the unit printers and word processors use, and the screen preview shows the size that will print.
+
+**For FormedrixAI and partners (the plain reality).** Live in the front end and in the report PDF function (redeploy `functions/`). Fonts print as Helvetica, Times or Courier whatever the family chosen (Calibri, Verdana and Georgia are not embedded). Converting old pixel styles makes text print larger.
+- Training: open Document Style, read "Prints at" under the size, press Convert to points, read the list, confirm, and print a report to see the larger text; do the same for one template. Standards: none directly (legibility of printed reports). The conversion is written to the audit log.
 
 ## Batch 612 (part B): Workstation registry and scope reference
+**For the practitioner (User Guide).** Nothing changes on screen for everyday users. Where a workstation is bound to a print routing rule, that computer uses it automatically.
 
-- **Configuration → System → Workstations:** register a named computer (for example "Grossing Station A") at a facility, with room, discipline, functional area, point of care and optional report and label printers. A token is shown once when registered or rotated; only a hash is kept. Rotate (the old token works 24 more hours), revoke (with a reason; final), "Use this computer", and a Simulated token test. Last seen and the audit log show activity.
-- **Print routing:** the workstation field in a routing rule suggests the registered workstations, and a computer bound to one uses it automatically.
-- **Configuration → System → Scope reference:** for each setting area, whether it is enterprise-wide, per performing-lab facility, enterprise with a facility override, or in tiers.
-- **Who:** `config:workstations:manage` and `config:workstation-tokens:manage` (Administrators). Everything is audited.
-- **Not yet:** the real agent token check is the backend team's work (`docs/architecture/WORKSTATION_REGISTRY.md`); the browser check is labelled Simulated. Scope reference lists only confirmed areas.
+**For the system administrator (Admin Guide).** Configuration → System → Workstations: register a named computer (for example "Grossing Station A") at a facility, with room, discipline, functional area, point of care and optional report and label printers. A token is shown once when registered or rotated; only a hash is kept. Rotate (the old token works 24 more hours), revoke (with a reason; final), "Use this computer", and a Simulated token test. Last seen and the audit log show activity. Print routing: the workstation field in a routing rule suggests the registered workstations. Configuration → System → Scope reference shows, for each setting area, whether it is enterprise-wide, per performing-lab facility, enterprise with a facility override, or in tiers. Permissions: `config:workstations:manage` and `config:workstation-tokens:manage` (Administrators). Everything is audited.
+
+**For marketing (positive).** Each lab computer can be registered by name with its location and printers, secured with a token that is rotated or revoked, and used for automatic print routing. A scope reference shows at a glance how each setting area is governed.
+
+**For FormedrixAI and partners (the plain reality).** The real agent token check is the backend team's work (`docs/architecture/WORKSTATION_REGISTRY.md`); the browser check is labelled Simulated. The scope reference lists only confirmed areas.
 
 ## Batch 612 (part A): Interface Dictionary (Message Mapper) and Vendor fields
+**For the practitioner (User Guide).** On a case, the sidebar shows a read-only Vendor fields panel when a vendor sent extra fields. It shows the vendor and profile version, is tagged for redaction, and is marked Simulated in the demo. You cannot edit it.
 
-- **What changed:** Configuration → System → Interface Dictionary (ForMedrixAI support only; hidden from hospital roles). A vendor profile says where a vendor's own fields sit in its HL7 v2 (including Z-segments), JSON or FHIR messages, and which extension field (`ext.name`) each becomes on the case, with a name shown on the case, a type, a conversion (trim, case, HL7 date to ISO), a code translation, a default and a required flag. A profile goes Draft → Tested (paste a sample message; counts only are kept) → Live; a bad publish is rolled back to the version before (kept as a new version). A mapping onto the case's own structure (patient, order, specimen, diagnosis, report, signature, billing) is refused as it is typed, with the reason; the same screen lists what mapping handles and what needs a code release. On a case, the sidebar shows a read-only **Vendor fields** panel when a vendor sent extra fields, with the vendor and profile version, tagged for redaction, and Simulated in the demo.
-- **Admin Guide:** none for hospital administrators (the screen is not visible to them). Internal support guide: Interface Dictionary. **User Guide:** Case sidebar, Vendor fields (read-only).
-- **Training (ForMedrixAI):** create a profile for ORU^R01, map `ZAB-2` to `ext.lotNumber`, try `patient.mrn` and read the refusal, paste the sample, publish, apply the sample to a case, open the case and find Vendor fields, publish a second version, roll back.
-- **Marketing / RFP:** "Vendor-specific fields (Z-segments, extra JSON/FHIR elements) are onboarded by configuration, tested and versioned with rollback, and can never overwrite the clinical record."
-- **Standards:** HIPAA (audit without message content), ISO 15189 (controlled change with test before release), 21 CFR Part 11 and EU Annex 11 (change control on interfaces).
-- **Status:** Built (Demo). Nothing is received from a vendor in the demo; sample messages are pasted in. The interface engine applying published profiles to live messages is server work (`docs/architecture/INTERFACE_DICTIONARY_API.md`). Wording in French, German, Dutch and Korean needs native-speaker review.
+**For the system administrator (Admin Guide).** None for hospital administrators: Configuration → System → Interface Dictionary is for ForMedrixAI support only and is hidden from hospital roles. Internal support guide: Interface Dictionary. A vendor profile says where a vendor's own fields sit in its HL7 v2 (including Z-segments), JSON or FHIR messages, and which extension field (`ext.name`) each becomes on the case, with a name shown on the case, a type, a conversion (trim, case, HL7 date to ISO), a code translation, a default and a required flag. A profile goes Draft → Tested (paste a sample message; counts only are kept) → Live; a bad publish is rolled back to the version before (kept as a new version). A mapping onto the case's own structure (patient, order, specimen, diagnosis, report, signature, billing) is refused as it is typed, with the reason; the same screen lists what mapping handles and what needs a code release.
+
+**For marketing (positive).** Vendor-specific fields (Z-segments, extra JSON/FHIR elements) are onboarded by configuration, tested and versioned with rollback, and can never overwrite the clinical record.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo). Nothing is received from a vendor in the demo; sample messages are pasted in. The interface engine applying published profiles to live messages is server work (`docs/architecture/INTERFACE_DICTIONARY_API.md`). Wording in French, German, Dutch and Korean needs native-speaker review.
+- Training (ForMedrixAI): create a profile for ORU^R01, map `ZAB-2` to `ext.lotNumber`, try `patient.mrn` and read the refusal, paste the sample, publish, apply the sample to a case, open the case and find Vendor fields, publish a second version, roll back. Standards: HIPAA (audit without message content), ISO 15189 (controlled change with test before release), 21 CFR Part 11 and EU Annex 11 (change control on interfaces).
 
 ## Batch 613 follow-up — who receives a scheduled report
+**For the practitioner (User Guide).** When you schedule a saved case-search report, PathScribe checks each recipient. If someone cannot see every case in the report, you are asked, right there, whether to narrow the report to what they may see (the default) or skip them. PathScribe never decides this for you. After each run the schedule shows how many recipients received the full report, a narrowed one, or none.
 
-When you schedule a saved case-search report, PathScribe checks each recipient. If someone cannot see every case in the report, you are asked, right there, whether to **narrow** the report to what they may see (the default) or **skip** them. PathScribe never decides this for you. After each run the schedule shows how many recipients received the full report, a narrowed one, or none. Status: Built (Demo): runs are simulated until the API server runs them.
+**For the system administrator (Admin Guide).** No settings or permissions are recorded for this change. The recipient check happens when a saved case-search report is scheduled, and the schedule shows per-run counts of recipients who received the full report, a narrowed one, or none.
+
+**For marketing (positive).** Scheduled reports respect who may see what: the person scheduling chooses to narrow a report for a recipient or skip them, and each run shows how many received the full report, a narrowed one, or none.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo): runs are simulated until the API server runs them. No other gaps are recorded for this change.
 
 ## Batch 614 (part C): Hotkey and voice clashes
+**For the practitioner (User Guide).** Seven Intraop commands (start new entry, touch prep performed or skipped, frozen section cut, squash prep, cytology fluid, gross only) now belong to the Intraop category, so they no longer compete with navigation keys on other screens. Where a clash remains, the screen you are on wins.
 
-- Seven Intraop commands (start new entry, touch prep performed or skipped, frozen section cut, squash prep, cytology fluid, gross only) now belong to the Intraop category, so they no longer compete with navigation keys on other screens.
-- 52 clashes remain, all settled by the rule that the screen you are on wins. A locked list now makes any new clash fail the build. A short list of choices for you is in HOTKEY_DECISIONS.md, and every command phrase awaiting native-speaker review is in PHRASE_REVIEW_LIST.md.
+**For the system administrator (Admin Guide).** 52 clashes remain, all settled by the rule that the screen you are on wins. A locked list now makes any new clash fail the build. A short list of choices is in `HOTKEY_DECISIONS.md`, and every command phrase awaiting native-speaker review is in `PHRASE_REVIEW_LIST.md`.
+
+**For marketing (positive).** Keyboard and voice commands are more predictable: the Intraop commands now have their own category, and the screen you are on wins any remaining clash.
+
+**For FormedrixAI and partners (the plain reality).** 52 hotkey and voice clashes remain, all settled by the screen-wins rule; a locked list now fails the build on any new clash. Command phrases awaiting native-speaker review are listed in `PHRASE_REVIEW_LIST.md`, and the choices still needed are in `HOTKEY_DECISIONS.md`.
 
 ## Batch 614 (part B): Code Systems setting now applies everywhere
+**For the practitioner (User Guide).** When your lab switches a code system off, it now applies on case search, the specimen edit window and the order message, as well as the Add Code window. A screen with a system off shows a short note saying so. A code already on a case in a system that is now off is marked "outside policy" rather than removed. The cytology-histology correlation printout no longer shows the patient MRN, matching the download; the on-screen table still shows it.
 
-- Switching a code system off in Configuration → System → Code Systems now takes effect on case search, the specimen edit window and the order message, as well as the Add Code window. A screen with a system off shows a short note saying so. A code already on a case in a system that is now off is marked "outside policy" rather than removed.
-- The cytology-histology correlation printout no longer shows the patient MRN, matching the download. The on-screen table still shows it.
+**For the system administrator (Admin Guide).** Switching a code system off in Configuration → System → Code Systems now takes effect on case search, the specimen edit window and the order message, as well as the Add Code window. Existing codes in a system that is off are marked "outside policy", not removed. The cytology-histology correlation printout omits the patient MRN, matching the download.
+
+**For marketing (positive).** One code system setting now governs every place codes appear, and codes already on a case are flagged "outside policy" rather than lost. The correlation printout leaves out the patient MRN.
+
+**For FormedrixAI and partners (the plain reality).** No gaps are recorded for this change.
 
 ## Batch 616 (part B): more of the browser's services can talk to the server
+**For the practitioner (User Guide).** Nothing changes on screen. Without a server address the demo behaves as before. For biometric signing, the screens and the sign-in flow now go through one biometric flow (see Batch 616 part F).
 
-- With a server address configured, the audit log, access checks, staff, roles, facilities, screening-registry settings, access requests, session time-out and the lab dictionaries (departments, locations, container types, ink and cassette colours, physicians, revision reasons) now have server versions. Without one, the demo behaves as before.
-- With a server, the browser asks the server for each access decision and treats any failure to answer as a refusal. Nothing is granted because the server could not be reached.
-- A request to see a patient's other cases is granted, denied or revoked by the person signed in; the browser no longer sends who is doing it.
-- Biometric signing: the screens and the sign-in flow now go through one biometric flow (see Batch 616 part F), so a server deployment uses the server version.
+**For the system administrator (Admin Guide).** With a server address configured, the audit log, access checks, staff, roles, facilities, screening-registry settings, access requests, session time-out and the lab dictionaries (departments, locations, container types, ink and cassette colours, physicians, revision reasons) now have server versions. With a server, the browser asks the server for each access decision and treats any failure to answer as a refusal; nothing is granted because the server could not be reached. A request to see a patient's other cases is granted, denied or revoked by the person signed in; the browser no longer sends who is doing it. Biometric signing goes through one flow, so a server deployment uses the server version.
+
+**For marketing (positive).** Access decisions can be made by the server, and a failure to reach it is always treated as a refusal, never as permission. The audit log, staff, roles, facilities and lab dictionaries can all live on the server.
+
+**For FormedrixAI and partners (the plain reality).** These services now have server versions that are used only when a server address is configured; otherwise the demo behaves as before. The server must be running for any of this to apply. No other gaps are recorded for this change.
 
 ## Batch 617 (part S): the roles list names the newer actions
+**For the practitioner (User Guide).** Nothing changes on screen for you. This is a change to the list that administrators use to set up roles. The newer actions you may already use, such as attaching related cases, printing a patient summary, asking for access to a patient's other cases, saving or scheduling a case search report, or recording a follow-up, are now named in that list so your administrator can give them to the right people.
 
-- Configuration > Staff > Role Dictionary now lists 16 more actions in one group, Related Cases, Case Access, Search Reports & Follow-up: attach related cases, print a patient summary, request, approve, deny or revoke access to a patient's other cases, save, export or schedule a case search report, mark follow-up expected, record, reopen or email about a follow-up, search codes for a flagged finding, and enrol or turn off biometric sign-in.
-- Admin Guide: new built-in roles start with the grants in docs/product/ACTIONS_COVERAGE.md; a grant records whether the role may use the action, the capability decides access.
-- Training and marketing: none of the 16 is a voice command; they are clicks on their own screens.
+**For the system administrator (Admin Guide).** Configuration > Staff > Role Dictionary now lists 16 more actions in one group, Related Cases, Case Access, Search Reports & Follow-up: attach related cases, print a patient summary, request, approve, deny or revoke access to a patient's other cases, save, export or schedule a case search report, mark follow-up expected, record, reopen or email about a follow-up, search codes for a flagged finding, and enrol or turn off biometric sign-in. New built-in roles start with the grants in docs/product/ACTIONS_COVERAGE.md; a grant records whether the role may use the action, the capability decides access.
+
+**For marketing (positive).** Role setup is now clearer and more complete. Sixteen more everyday actions, from related-case access to follow-up tracking and biometric sign-in, are named in one tidy group, so administrators can see and manage exactly who may do what.
+
+**For FormedrixAI and partners (the plain reality).** The Role Dictionary listing is built. No gaps are recorded for this change. None of the 16 actions is a voice command; they are clicks on their own screens.
+- Training: none of the 16 is a voice command; they are clicks on their own screens.
 
 ## Batch 618 (part C): case material saves through the server
-- When the app is connected to a PathScribe server, adding, changing or deleting a decant is saved by one server call that returns the whole updated material tree and the billing lines it affected; without a server (the demonstration) it works as before. A stale version, a refused delete and a tree error each roll the change back on screen.
-- Admin Guide: nothing to configure; the server must honour `CASE_MATERIAL_API.md`.
-- Training and marketing: no change for people using the Material tab.
+**For the practitioner (User Guide).** Nothing changes on screen for you in the Material tab. If the app is connected to a PathScribe server, your changes to a decant (adding, changing or deleting) are saved together and the material list and the billing lines it affects are refreshed. If a change cannot be saved (someone else changed the material first, the delete is refused, or the material tree has an error), the change is undone on screen.
+
+**For the system administrator (Admin Guide).** Nothing to configure. When the app is connected to a PathScribe server, adding, changing or deleting a decant is saved by one server call that returns the whole updated material tree and the billing lines it affected. A stale version, a refused delete and a tree error each roll the change back on screen. The server must honour `CASE_MATERIAL_API.md`.
+
+**For marketing (positive).** Material changes and the billing they affect stay in step: one save returns the whole updated material tree and the affected billing lines, and any problem is rolled back cleanly on screen.
+
+**For FormedrixAI and partners (the plain reality).** With a PathScribe server, this works through one server call, and the server must honour `CASE_MATERIAL_API.md`. Without a server (the demonstration) it works as before. No gaps are recorded for this change.
+- Training: no change for people using the Material tab.
 
 ## Batch 618 (part B): the partial nephrectomy drawing shows only the anatomy the specimen holds
-- On the Anatomical map for Kidney Resection, a partial nephrectomy now always draws the perinephric fat and draws Gerota's fascia only when the extent answer is "Beyond Gerota's fascia", and the adrenal gland only when it is "Ipsilateral adrenal gland, by direct (contiguous) spread" (both pT4). The renal vein, vena cava and ureter rules from Batch 466c are unchanged. A radical nephrectomy is unchanged.
-- Admin Guide: nothing to configure; the rule is built in.
-- Training and marketing: the drawing no longer suggests the specimen contains an adrenal gland or Gerota's fascia that was not sampled (CAP, RCPath, RCPA, ICCR practice).
-- Developers: the size guard (`styleRules/fileSize.guard.test.ts`, PS-497) fails if a source file over 1,000 lines grows, or a new one crosses 1,000; large files are split when a story touches them.
+**For the practitioner (User Guide).** On the Anatomical map for Kidney Resection, a partial nephrectomy now draws only the anatomy that the specimen holds. The perinephric fat is always drawn. Gerota's fascia is drawn only when the extent answer is "Beyond Gerota's fascia", and the adrenal gland only when it is "Ipsilateral adrenal gland, by direct (contiguous) spread" (both pT4). The renal vein, vena cava and ureter rules from Batch 466c are unchanged. A radical nephrectomy is unchanged. The drawing no longer suggests the specimen contains an adrenal gland or Gerota's fascia that was not sampled.
+
+**For the system administrator (Admin Guide).** Nothing to configure; the rule is built in. It applies to the Anatomical map for Kidney Resection for a partial nephrectomy; a radical nephrectomy and the Batch 466c renal vein, vena cava and ureter rules are unchanged.
+
+**For marketing (positive).** The kidney drawing now matches what was actually sampled, in line with CAP, RCPath, RCPA and ICCR practice. A partial nephrectomy no longer implies an adrenal gland or Gerota's fascia that the specimen does not hold.
+
+**For FormedrixAI and partners (the plain reality).** The rule is built in. No gaps are recorded for this change. For developers: the size guard (`styleRules/fileSize.guard.test.ts`, PS-497) fails if a source file over 1,000 lines grows, or a new one crosses 1,000; large files are split when a story touches them.
+- Training: the drawing no longer suggests the specimen contains an adrenal gland or Gerota's fascia that was not sampled. Standards: CAP, RCPath, RCPA, ICCR practice.
 
 ## Batch 618 (part A): a second facility for the technical component (PS-336)
-- Accession screen: for a consultation or outside material, an optional "Technical component performed by" list names the lab that did the processing, cutting and staining when this lab only reads the case. It lists performing labs only. An ordinary case shows no extra field. The Case team window keeps the same list for later changes, and each change is written to the audit log (facility ids only).
-- Billing: the technical charge is released at grossing as before and goes to the technical lab; the professional (-26) line is held to final sign-out and goes to the reporting lab. A case with no second lab, or the same lab twice, is unchanged.
-- Report: once the case is signed out, a line under the case header reads "Technical component performed at: name, address". The lab's director and CLIA number are never printed on it. Drafts do not show it.
-- Admin Guide: nothing to configure; the lab must be an active facility with the performing lab role.
-- Training and marketing: split-billing consultations are recorded once, at accessioning, and the report and the claims name the right lab.
-- Developers: `order.technicalComponentFacilityId` (set at accessioning); `resolveChargeFacilities.ts`; charge payload fields `performingFacilityId` and `technicalComponentFacility` (the DFT message is unchanged); renderer field `technicalBranding` (`functions/main.py`).
+**For the practitioner (User Guide).** On the Accession screen, for a consultation or outside material, you can now pick the lab that did the processing, cutting and staining from an optional "Technical component performed by" list, when your lab only reads the case. The list shows performing labs only. An ordinary case shows no extra field. You can change the choice later in the Case team window. Once the case is signed out, the report shows a line under the case header: "Technical component performed at: name, address". The lab's director and CLIA number are never printed on it, and drafts do not show it. Behind the scenes, the technical charge goes to the technical lab and the professional (-26) charge goes to your lab.
+
+**For the system administrator (Admin Guide).** Nothing to configure; the lab must be an active facility with the performing lab role. The Accession screen has the optional "Technical component performed by" list, which lists performing labs only; the Case team window keeps the same list for later changes, and each change is written to the audit log (facility ids only). Billing: the technical charge is released at grossing as before and goes to the technical lab; the professional (-26) line is held to final sign-out and goes to the reporting lab. A case with no second lab, or the same lab twice, is unchanged.
+
+**For marketing (positive).** Split-billing consultations are recorded once, at accessioning, and the report and the claims name the right lab. The technical lab gets the technical charge, the reporting lab gets the professional charge, and the signed report states where the technical work was done.
+
+**For FormedrixAI and partners (the plain reality).** Built as described in the entry. No gaps are recorded for this change. For developers: `order.technicalComponentFacilityId` (set at accessioning); `resolveChargeFacilities.ts`; charge payload fields `performingFacilityId` and `technicalComponentFacility` (the DFT message is unchanged); renderer field `technicalBranding` (`functions/main.py`).
+- Training: split-billing consultations are recorded once, at accessioning, and the report and the claims name the right lab.
 
 ## Batch 619 (part S): delivery schedules, set for the enterprise and overridden by performing facility (PS-800)
-- Configuration > System > Delivery Schedules sets when each feed goes out: report delivery, billing, results, admissions (ADT), accession, LIS sync, and each registry on its own. A feed can send immediately, only during set hours, in a batch (daily, weekly or monthly, with a cutoff time), hold until final sign-out, or (registries) send a set time after sign-out. Choose a facility to see which feeds follow the enterprise and which have their own schedule; "Follow the enterprise" removes an override. A "Try a schedule" panel shows whether something would go out at a given time.
-- Registries: default is a short review hold (4 hours) matching the QA and amendment window; an optional reporting deadline in days from sign-out lets the queue flag cases close to it; an amendment re-queues by default.
-- Admin Guide: needs the capability "Manage delivery schedules" (Admin and Lab Director). Registry destinations, required fields and transport stay in each registry's own settings.
-- Training and marketing: PathScribe decides when; the interface engine decides how a message is sent.
+**For the practitioner (User Guide).** Nothing changes in your daily screens. Administrators now decide when each outgoing feed (reports, billing, results and the like) is sent, so a message may go at once, only in certain hours, in a batch, after final sign-out, or, for registries, a set time after sign-out. Registry reports have a short review hold by default so that corrections can be made first.
+
+**For the system administrator (Admin Guide).** Configuration > System > Delivery Schedules sets when each feed goes out: report delivery, billing, results, admissions (ADT), accession, LIS sync, and each registry on its own. A feed can send immediately, only during set hours, in a batch (daily, weekly or monthly, with a cutoff time), hold until final sign-out, or (registries) send a set time after sign-out. Choose a facility to see which feeds follow the enterprise and which have their own schedule; "Follow the enterprise" removes an override. A "Try a schedule" panel shows whether something would go out at a given time. Registries: default is a short review hold (4 hours) matching the QA and amendment window; an optional reporting deadline in days from sign-out lets the queue flag cases close to it; an amendment re-queues by default. Needs the capability "Manage delivery schedules" (Admin and Lab Director). Registry destinations, required fields and transport stay in each registry's own settings.
+
+**For marketing (positive).** Each feed can run on its own timetable, set once for the enterprise and tailored by performing facility. A "Try a schedule" panel lets teams check the result before relying on it, and registry reporting gets a sensible review hold and deadline flagging.
+
+**For FormedrixAI and partners (the plain reality).** PathScribe decides when; the interface engine decides how a message is sent. Registry destinations, required fields and transport stay in each registry's own settings. No gaps are recorded for this change.
+- Training: PathScribe decides when; the interface engine decides how a message is sent.
 
 ## Batch 619 (part B): billing release rules, set for the enterprise and overridden by performing facility (PS-800)
-- Configuration > System > Billing Release sets when a generated charge is released from the Outbound Queue to billing. A charge is still generated at its milestone (the Billing Type Trigger setting: technical at grossing, professional -26 and Global at final sign-out); the rules decide when it then goes. Per billing type (TC, -26, Global) and optionally per case type, ordering site, primary pathologist and amended or original report: release at once, a set number of minutes after the milestone (a review hold), in a daily or weekly batch, or only when a person releases it. The defaults are the previous behaviour: nothing held. Choose a facility to give it rules of its own; without any it follows the enterprise. A "Try a charge" panel shows what the rules would do.
-- Safety: a charge with an unmapped CPT code or a missing technical-component facility is parked for review when the rule says so; the delta charge of an amended report always goes to review; when a case is amended or retracted, its charges that have not gone are cancelled (retracted, with the reason) and the ones already sent are corrected through the existing credit flow. A person can release a held charge at once from the Outbound Queue; it is recorded by user id and audited.
-- Admin Guide: needs the capability "Manage billing release rules" (Admin and Lab Director). Releasing a held charge from the queue uses the queue's own release permission.
-- Training and marketing: the performing laboratory controls when its billing codes and charges are released; PathScribe decides when, the billing interface decides how.
+**For the practitioner (User Guide).** Nothing changes on your screens. Behind the scenes, your laboratory can now decide when billing charges are released. If a charge needs checking, it may be held, and when a case is amended or retracted, charges that have not gone are cancelled and charges already sent are corrected.
+
+**For the system administrator (Admin Guide).** Configuration > System > Billing Release sets when a generated charge is released from the Outbound Queue to billing. A charge is still generated at its milestone (the Billing Type Trigger setting: technical at grossing, professional -26 and Global at final sign-out); the rules decide when it then goes. Per billing type (TC, -26, Global) and optionally per case type, ordering site, primary pathologist and amended or original report: release at once, a set number of minutes after the milestone (a review hold), in a daily or weekly batch, or only when a person releases it. The defaults are the previous behaviour: nothing held. Choose a facility to give it rules of its own; without any it follows the enterprise. A "Try a charge" panel shows what the rules would do. Safety: a charge with an unmapped CPT code or a missing technical-component facility is parked for review when the rule says so; the delta charge of an amended report always goes to review; when a case is amended or retracted, its charges that have not gone are cancelled (retracted, with the reason) and the ones already sent are corrected through the existing credit flow. A person can release a held charge at once from the Outbound Queue; it is recorded by user id and audited. Needs the capability "Manage billing release rules" (Admin and Lab Director). Releasing a held charge from the queue uses the queue's own release permission.
+
+**For marketing (positive).** The performing laboratory controls when its billing codes and charges are released. Flexible rules, built-in safety checks and a "Try a charge" preview help keep billing accurate, and every manual release is recorded.
+
+**For FormedrixAI and partners (the plain reality).** The defaults are the previous behaviour, nothing held. PathScribe decides when; the billing interface decides how. No gaps are recorded for this change.
+- Training: the performing laboratory controls when its billing codes and charges are released; PathScribe decides when, the billing interface decides how.
 
 ## Batch 619 (part Q): the Outbound Queue, one place for everything PathScribe sends (PS-800)
-- Home > Quality & Compliance > Outbound Queue lists every outbound message: results, admissions (ADT), accession, LIS sync, billing charges, report delivery, cytology results, referrals, molecular orders and registry submissions. Filter by feed, state, facility or accession number; sort by state, reporting deadline, scheduled time or attempts; tiles count each state, overdue and due-soon deadlines, and billing items waiting for review.
-- Actions on the selected messages: Hold (pick a reason; a note is optional), Release, Retry. A message a registry rejected shows only the registry's error codes and a correction due date: fix the data, then Retry and say why it was fixed (resubmit), or Mark not reportable with a reason. For billing: Retract a queued charge (the case was amended or retracted) and Release now ahead of the schedule.
-- A held message is not sent from anywhere, including Audit Log > Interfaces > Outbound. An amended report that is re-queued appears as a new item marked as amending the earlier one.
-- Admin Guide: capabilities "Open Outbound Queue", "Hold outbound messages", "Release held outbound messages", "Mark rejected messages not reportable", "Retract queued charges", "Release charges ahead of schedule" (Admin); retry uses "Resend interface messages". Every action is audited without patient text; release-now records the user id.
-- Training and marketing: one queue for results, billing and registry reporting; deadlines flagged before they are missed; PathScribe decides what and when, the interface engine decides how.
-- Standards: supports the timely, auditable reporting expected for cancer registries (CAP, state and national registries) and HIPAA audit controls.
+**For the practitioner (User Guide).** Home > Quality & Compliance > Outbound Queue lists every message PathScribe sends: results, admissions (ADT), accession, LIS sync, billing charges, report delivery, cytology results, referrals, molecular orders and registry submissions. You can filter by feed, state, facility or accession number, and sort by state, reporting deadline, scheduled time or attempts. Tiles count each state, overdue and due-soon deadlines, and billing items waiting for review. For selected messages you can Hold (pick a reason; a note is optional), Release or Retry. If a registry rejected a message, you see only the registry's error codes and a correction due date: fix the data, then Retry and say why it was fixed (resubmit), or Mark not reportable with a reason. For billing you can Retract a queued charge (the case was amended or retracted) or Release now ahead of the schedule. A held message is not sent from anywhere, including Audit Log > Interfaces > Outbound. An amended report that is re-queued appears as a new item marked as amending the earlier one.
 
+**For the system administrator (Admin Guide).** Home > Quality & Compliance > Outbound Queue. Capabilities: "Open Outbound Queue", "Hold outbound messages", "Release held outbound messages", "Mark rejected messages not reportable", "Retract queued charges", "Release charges ahead of schedule" (Admin); retry uses "Resend interface messages". Every action is audited without patient text; release-now records the user id. A held message is not sent from anywhere, including Audit Log > Interfaces > Outbound.
+
+**For marketing (positive).** One queue for results, billing and registry reporting. Deadlines are flagged before they are missed, and teams can hold, release, retry or correct messages from a single screen.
+
+**For FormedrixAI and partners (the plain reality).** Built as described in the entry. PathScribe decides what and when; the interface engine decides how. No gaps are recorded for this change.
+- Training: one queue for results, billing and registry reporting; deadlines flagged before they are missed; PathScribe decides what and when, the interface engine decides how. Standards: supports the timely, auditable reporting expected for cancer registries (CAP, state and national registries) and HIPAA audit controls.
+
+## Batch 620 (part E): US electronic pathology (ePath) reporting (PS-800)
+**For the practitioner (User Guide).** Nothing changes in how you sign out. Behind the scenes, a signed-out report that passes the state's checks goes to the queue for the state cancer registry. A report that fails is held for review with the missing field or failed check named (never patient text), and sign-out is never delayed. A corrected report is sent as a correction. The state that receives a report is decided by the facility that performed the work, never by where the patient lives.
+
+**For the system administrator (Admin Guide).** Configuration > System > US ePath holds a profile per state for reporting to US state cancer registries: which fields the state requires or accepts, how it is reached (PHIN-MS, SFTP, direct TCP or HTTPS API), which checks run before a report is released, and where the state's own codes replace the standard ones. One example profile ships, clearly labelled; it is not any state's rules. Which state receives a report is decided by the facility that performed the work, never by where the patient lives. If the technical work was done at another facility, the profile says which one counts (default: the technical-component facility). Each facility can be given its own profile; otherwise it follows the profile for its state, then the enterprise default. A signed-out report that passes its profile's checks goes to the Outbound Queue's registry feed with the profile's transport. One that fails is held for review with the missing field or failed check named (never patient text); sign-out is never delayed. A corrected report is sent as a correction. Needs "Manage US ePath profiles" (Admin and Lab Director).
+
+**For marketing (positive).** One base ePath engine plus a profile per state, so adding a state is configuration. Reports are checked before release, and failures are caught without delaying sign-out.
+
+**For FormedrixAI and partners (the plain reality).** Only one example profile ships, clearly labelled, and it is not any state's rules. Real profiles must be written from each state's published specification and confirmed with that registry before use. The interface engine carries the message; PathScribe decides what and when. No other gaps are recorded for this change.
+- Training: one base ePath engine plus a profile per state, so adding a state is configuration. The interface engine carries the message; PathScribe decides what and when.
+
+## Batch 620 (part C): UK cancer registry (COSD) destination, checks and correction window (PS-800)
+**For the practitioner (User Guide).** Nothing changes in how you sign out. If the UK cancer registry rejects a submission, it appears in the Outbound Queue with the registry's error codes and the correction due date. Fix the data, then Retry and say why (or Mark not reportable). An amended report is re-queued as a new item linked to the earlier one.
+
+**For the system administrator (Admin Guide).** Configuration > System > UK Cancer Registry (COSD) sets, for the whole enterprise and for each performing facility that needs its own, how the UK cancer registry submission is sent (a label: secure API, SFTP or portal upload) and how many working days a rejected submission has to be corrected (5 unless set otherwise; weekends and the lab's own list of bank holidays are skipped). The state or national registry follows where the work was performed. "Check a sample": type an NHS number, dates and an ICD-O-3 code to see what PathScribe would hold back and a labelled preview. The preview is PathScribe's simplified model, not the official COSD file, and the screen lists what still has to be confirmed against the published NHS England / NCRAS specification. Needs the capability "Manage the UK cancer registry destination" (Admin and Lab Director). Endpoints and credentials are held by the interface engine, never in PathScribe.
+
+**For marketing (positive).** PathScribe decides what goes to the UK registry and when, and tracks the correction deadline. Incomplete submissions are held back, and patient text stays out of the audit trail.
+
+**For FormedrixAI and partners (the plain reality).** The preview is PathScribe's simplified model, not the official COSD file, and what still has to be confirmed against the published NHS England / NCRAS specification is listed on the screen. The interface engine makes and sends the file; endpoints and credentials are never in PathScribe. No other gaps are recorded for this change.
+- Training: PathScribe decides what goes to the UK registry and when, and tracks the correction deadline; the interface engine makes and sends the file. Standards: supports timely, auditable cancer registration (NCRAS, COSD) and data protection (UK GDPR) by holding back incomplete submissions and keeping patient text out of the audit trail.
+
+## Batch 620 (part S): registry batch files for screening programmes (PS-800)
+**For the practitioner (User Guide).** Nothing changes in how you sign out. For screening programmes that take a file instead of a message, your sign-out results wait in the queue and go in the next file. If a record is missing a required field, it is held back and shown on the Outbound Queue with the missing field. If the registry refuses records, they show as rejected on the Outbound Queue with the registry's codes, and can be corrected and re-queued for the next file.
+
+**For the system administrator (Admin Guide).** Configuration > System > Registry Batch Files sets up a screening programme or registry that takes a file (CSV or XML) instead of a message: which registry it is for, the format, the columns (which fields, in what order, which are required), the delimiter, the header row and the file name pattern. A layout preview shows what one made-up record would look like. A programme is off until someone turns it on. Once on, its sign-out results wait in the queue and go in the next file; WHEN the file is made is that registry's own schedule in Delivery Schedules. "Make the file now" downloads it at once (a record missing a required field is held back and shown on the Outbound Queue with the missing field). Each file is recorded with its name, record count and checksum, never its contents. The registry's answer to a file (accepted, accepted with warnings, partly rejected, rejected) is recorded against the file and passes to each record: refused records show as rejected on the Outbound Queue with the registry's codes and can be corrected and re-queued for the next file. Needs "Manage registry batch files" (Admin and Lab Director) to set up, "Make a registry batch file" (Admin) to make one.
+
+**For marketing (positive).** Screening programmes and registries that take files are supported alongside message feeds, with configurable layouts, a layout preview, a recorded response for every file and an easy path to correct and resend rejected records.
+
+**For FormedrixAI and partners (the plain reality).** Shipped with an example profile (clearly labelled, off) and a slot for NAACCR XML (abstract-level cancer reporting), which is not built yet. A real programme's layout must come from that programme's published specification. PathScribe decides what and when; the interface engine carries the file.
+- Training: PathScribe decides what and when; the interface engine carries the file.
+
+## Batch 621: AI reading of historical reports (advisory only)
+**For the practitioner (User Guide).** When you open a historical case in the patient history, the AI can read its Final Diagnosis and Microscopic text and show the synoptic fields it finds in a panel beside the text. The panel is always labelled "AI-extracted, not verified" and says which template it matched (a guess, by the template in use now) and which AI service answered. It is for you to look at only. It is never part of the report and is never used in reports, printing, registry feeds, billing, rules or exports. "Flag as wrong" on a field, or on the whole panel, records the miss so accuracy can be measured; it changes nothing else. It runs in the background after the history is shown, only when a case is opened or "Check again" is pressed, and only again if the report text changed. A failure is shown as a short message and never affects the history. Where the AI vendor is not allowed, the panel says AI is not available and nothing is sent.
+
+**For the system administrator (Admin Guide).** Off by default. Configuration > System > AI history extraction turns it on for the whole enterprise and, if needed, differently for one performing facility; the same screen shows how many reports were read, how many fields were extracted and how many were flagged. It respects the AI vendor rules: where the AI vendor is not allowed, the panel says AI is not available and nothing is sent. Needs "Manage the AI history extraction" (Admin and Lab Director) to turn it on; "Run the AI extraction on historical reports" and "Flag an AI extraction as wrong" (Pathologist, Fellow, Resident) to see and flag it. Each run and each flag is audited without patient text. A test fails the build if any other part of the product reads the extraction.
+
+**For marketing (positive).** Pathologists see structured fields from past reports without re-reading them, with the AI's work clearly labelled and kept separate from the signed record. Flagging lets accuracy be measured over time.
+
+**For FormedrixAI and partners (the plain reality).** The feature is advisory only and off by default; the output is labelled "AI-extracted, not verified". Not yet: the same reading when an Assist-mode LIS summary arrives (no user is present to authorise it), and structured synoptics embedded in a legacy LIS report. The template match is a guess based on the template in use now.
+- Training: the pathologist sees structured fields from past reports without re-reading them, with the AI's work clearly separate from the signed record.
+
+## Batch 622: Spain and Spanish (PS-811)
+**For the practitioner (User Guide).** Spanish (Español, Spain) is now available as the sixth interface and report language. A Spanish facility defaults to Spanish reports, dd/mm/aaaa dates, a 24-hour clock, CIE-10-ES as the diagnosis code set and Spanish spell-checking. In dictation, the Español (España) voice profile recognises Castilian Spanish, understands spoken punctuation (punto, coma, nuevo párrafo, punto y coma...) and refines the text in Spanish without translating it. Spoken navigation commands also have Spanish phrases (Batch 627, below). Spell-check uses a Spanish dictionary plus a starter pathology word list of about 400 words. The patient identifier is checked for DNI / NIE format (the check letter is not yet validated).
+
+**For the system administrator (Admin Guide).** Spain is a new country setting (Configuration > Facilities > Jurisdiction). Choose Spain as the jurisdiction; set the report language to Spanish if the lab reports in Spanish (Catalan, Basque and Galician are not available). Spell-check uses a Spanish dictionary (RLA-ES, used under the MPL licence) plus a starter pathology word list of about 400 words that needs a Spanish pathologist's review. The MedLexSp medical lexicon is non-commercial and is not used. Patient identifier: DNI / NIE format check (letter control not yet validated).
+
+**For marketing (positive).** PathScribe now speaks Castilian Spanish end to end for interface, reports, dictation and spelling. Spanish facilities start with sensible local defaults for dates, clock and diagnosis codes.
+
+**For FormedrixAI and partners (the plain reality).** The translation is AI-produced and awaiting native-speaker clinical review; do not describe it as clinically reviewed. The starter pathology word list of about 400 words needs a Spanish pathologist's review. DNI / NIE letter control is not yet validated. Catalan, Basque and Galician are not available. Not yet (Planned): Spanish cervical screening intervals and programmes, regional cancer registry feeds, Spanish e-invoicing, SNOMED CT Spanish edition (licence eligibility for ForMedrixAI unconfirmed), CIE-10-ES code tables.
+- Training: PathScribe now speaks Castilian Spanish end to end for interface, reports, dictation and spelling; the translation is awaiting native-speaker clinical review. Standards: supports ISO 15189 documentation in Spanish; GDPR / Spanish LOPDGDD data handling is unchanged by this batch.
+
+## Batch 623: Licensed terminologies and real codes on abnormal rules (PS-130)
+**For the practitioner (User Guide).** Nothing changes in how you confirm a finding. When your organisation has a valid licence for SNOMED CT or ICD-O-3, the finding you confirm carries the real code for that system; otherwise it carries the clearly marked test code, exactly as before. A real code and a test code are never mixed for the same code system.
+
+**For the system administrator (Admin Guide).** Configuration > System > Code Systems has a new card, Licensed terminologies. For SNOMED CT and ICD-O-3 record whether you hold a licence, who holds it, the edition or release, the licence reference and the last valid day. Turning a licence on needs the holder, edition and reference. In Configuration > System > Abnormal Trigger Rules, each rule has optional Real codes (a SNOMED CT code and term, an ICD-O-3 code and term), checked for shape only (SNOMED CT 6 to 18 digits; ICD-O-3 like 8500/3). While a code system's licence is on and has not passed its last valid day, the rule's real code for that system is attached when the pathologist confirms the finding; otherwise the test code is attached. Needs "Manage the code systems" (Admin and Lab Director). Record the licence first, then enter the codes on each rule; an expired licence puts the test codes back automatically and the card says so.
+
+**For marketing (positive).** Customers bring their own SNOMED CT / ICD-O-3 licence (for example the Spanish Edition) and PathScribe uses it without a software change. Findings carry real, traceable codes while the licence is valid.
+
+**For FormedrixAI and partners (the plain reality).** PathScribe ships no SNOMED CT or ICD-O-3 content. The customer obtains the licence and the codes from its licensing body; PathScribe does not check that a code exists in the customer's edition, only the shape. Not yet: real codes for AI-narrative findings (they have no fixed rule to attach a code to) and per-facility licences (one licence record per enterprise); sending the codes to a registry or interface is the interface engine's work.
+- Training: record the licence first, then enter the codes on each rule; an expired licence puts the test codes back automatically and the card says so. Standards: supports respecting terminology licence terms (SNOMED International affiliate licensing) and traceability of the code source.
+
+## Batch 624: Worklist digital-pathology wording and flag names in the user's language
+**For the practitioner (User Guide).** On the worklist (and the slide drawer) the digital readiness line ("6/6 Ready (QC Passed)", "3/4 Partial (1 Scanning)", "Error") and PathScribe's own AI lines ("2 AI-Flagged Findings", "Review Recommended", "No Further Review") now appear in your language. The standard flags that ship with PathScribe (STAT — Rush Processing, Second Opinion Requested, Tumor Board Scheduled and about thirty more) show their name in your language too. Anything the scanner or the AI vendor sent, such as a scan failure reason ("Out-of-focus"), an AI headline ("Malignancy Detected") and biomarker values, stays in the vendor's wording, exactly as received. Flags an admin created or renamed show as typed; case data (specimen descriptions, names) is unchanged. Also fixed: the Spanish for "Requires decal" read "calcomanía" (a sticker); it now says descalcificación.
+
+**For the system administrator (Admin Guide).** No setting changes. Tell users that scanner and AI text stays in the vendor's wording. Flags you created or renamed show as typed.
+
+**For marketing (positive).** The worklist reads naturally in six languages without altering vendor findings.
+
+**For FormedrixAI and partners (the plain reality).** Scanner and AI vendor text is deliberately not translated, so no clinical wording is altered. The Spanish "Requires decal" mistranslation is fixed. No other gaps are recorded for this change.
+- Training: tell users that scanner and AI text stays in the vendor's wording. Standards: supports clinical safety (vendor findings are not reworded).
+
+## Batch 625: One shared review section for discordance (PS-118)
+**For the practitioner (User Guide).** The Discordance window at sign-out and the generic QA review form (used for example by Surgical Post-Sign-Out QA) now show the same fields for a discordant result: delta, severity with its patient-impact hint, root cause, the explanation when the cause is Other, and the narrative comment. The generic form gained the severity hint and spell-checked comments, and its validation messages ("Delta is required...") now appear in your language instead of English. The sign-out window is otherwise unchanged: concordant is still one click, the required fields still come from the organisation's Field Requirements, "Record discordance" can still be said, and the teaching feedback box still appears for resident and fellow cases.
+
+**For the system administrator (Admin Guide).** No setting changes. A change to the wording or options of the shared section now applies to both the Discordance window and the generic QA review form. The required fields still come from the organisation's Field Requirements.
+
+**For marketing (positive).** Reviewers see one consistent review form, with the same fields wherever a discordance is recorded.
+
+**For FormedrixAI and partners (the plain reality).** Not yet: the sign-out window is not itself the generic form (its final-diagnosis and category step, Field Requirements and teaching feedback are its own).
+- Training: no setting changes; reviewers see one consistent review form.
+
+## Batch 626: Who signs out a negative GYN case with reactive changes (PS-163)
+**For the practitioner (User Guide).** Your laboratory now decides whether a cytotechnologist may sign out a negative GYN case whose only finding is reactive cellular changes (inflammation, radiation, IUD), or whether a pathologist must review it. By default a cytotechnologist may sign out. Non-GYN, unsatisfactory and QC-flagged cases always go to a pathologist.
+
+**For the system administrator (Admin Guide).** Configuration > System > Cytology Categories (Bethesda) now has a "Reactive changes: who signs out" box. It says whether a cytotechnologist may sign out a negative GYN case whose only finding is reactive cellular changes (inflammation, radiation, IUD), or whether a pathologist must review it, and switches that for all three categories in one click. Default is unchanged: a cytotechnologist may sign out. Switching applies to reviews recorded afterwards; reviews already recorded keep the answer they had. Non-GYN, unsatisfactory and QC-flagged cases always go to a pathologist. Needs the Cytology categories permission. If one category was edited on its own, the box says "mixed"; either button makes them agree.
+
+**For marketing (positive).** Reactive-change sign-out authority is a laboratory setting, so each lab can follow its own SOP, switched for all three categories in one click.
+
+**For FormedrixAI and partners (the plain reality).** Built as described in the entry. No gaps are recorded for this change.
+- Training: choose per your SOP. Standards: reactive-change sign-out authority is a laboratory setting (CLIA '88 / CAP SOP).
+
+## Batch 627: Spanish voice commands
+**For the practitioner (User Guide).** With the Español (España) voice profile, every spoken command now has Spanish phrases, such as "abrir lista de trabajo", "caso siguiente", "ir a inicio", "firmar el caso", "guardar borrador" and "cerrar sesión". Each of the 257 commands has 2-8 phrasings; say the Spanish phrase or any listed variant. English phrases still work on the Spanish profile, as for French, German, Dutch and Korean.
+
+**For the system administrator (Admin Guide).** Spanish phrases can be seen and edited per command in Configuration > Actions, like the other languages; edited phrases are kept. All 257 commands have Spanish phrases (2-8 phrasings each), and English phrases still work on the Spanish profile.
+
+**For marketing (positive).** Voice dictation and voice navigation now work in six languages. Spanish speakers can open the worklist, move to the next case, sign out and more by voice.
+
+**For FormedrixAI and partners (the plain reality).** The phrases are AI-made and need review by a native Spanish-speaking user. No other gaps are recorded for this change.
+- Training: say the Spanish phrase or any listed variant.
+
+## Batch 628: Voice commands that start with "open" now work on the worklist (bug PS-829)
+**For the practitioner (User Guide).** On the worklist, saying "open messages", "open configuration" or "open search" now does what you asked. Before, PathScribe heard only the shorter "open" and opened the selected case instead. The same works in French, German, Dutch, Korean and Spanish (for example "abrir mensajes"). The most specific matching command now wins. Saying just "open" still opens the selected case.
+
+**For the system administrator (Admin Guide).** No Admin Guide change. There is no setting, permission or audit entry for this fix (bug PS-829). Voice command matching now picks the most specific matching command, so "open messages", "open configuration" and "open search" (and their French, German, Dutch, Korean and Spanish equivalents) are no longer taken as the shorter "open".
+
+**For marketing (positive).** No marketing change. Voice navigation on the worklist is more dependable: say what you mean, such as "open messages", and PathScribe goes there, in six languages.
+
+**For FormedrixAI and partners (the plain reality).** This is a bug fix (PS-829) in how voice commands are matched. No gaps are recorded for this change.
+- Training: no change to what to say.
+
+## Batch 629: HPV results from the molecular platform (PS-174)
+**For the practitioner (User Guide).** In labs that triage by HPV first, if the molecular platform reports a result as **Invalid**, the HPV Triage row now says "hrHPV result invalid: repeat test". Before, it looked as if the result was still waiting. The case stays in HPV Triage and is not screened until a valid result arrives. See the HPV Triage tab.
+
+**For the system administrator (Admin Guide).** No Admin Guide change. Every hrHPV result received is recorded in the Audit Log ("hrHPV Result Received") with the case, specimen and message key. The interface contract for the molecular platform (what the engine sends and what PathScribe answers) is written down for the engine team in `HPV_RESULT_INBOUND.md`. The live connection to a platform needs the API server and an engine channel for the platform.
+
+**For marketing (positive).** hrHPV results arrive from the molecular platform through the interface engine and drive triage automatically (connection built per platform). An invalid result is shown clearly as "repeat test" rather than left looking like a pending one, and every result received is audited.
+
+**For FormedrixAI and partners (the plain reality).** The Invalid display and the audit entry are built. The live connection to a platform is not: it needs the API server and an engine channel for each platform. The interface contract is documented in `HPV_RESULT_INBOUND.md` for the engine team. No other gaps are recorded for this change.
+- Training: HPV Triage tab.
+
+## Batch 630: Entering an hrHPV result by hand, with controls (PS-174)
+**For the practitioner (User Guide).** On the HPV Triage tile, **Record Negative** and **Record Positive** need the permission *Record an hrHPV result by hand*. Pathologists and Lab Directors start with it, and a lab can give it to a Lab Supervisor role. Without it the buttons are greyed out and say why. Choosing a button opens a short dialog, and you must pick a **Result Source**: external paper report, interface downtime, telephoned result (verified and countersigned), or historical back-entry. If your entry would replace a result that came from the interface (an Invalid result, for example), it does not take effect yet. The row shows "Manual entry awaiting second sign-off", and a different person with the permission clicks Approve or Reject. You cannot approve your own entry. Rejecting keeps the interface result. If the platform's own result arrives while your entry is waiting, the platform's result wins and your entry is dropped. See the HPV Triage tab.
+
+**For the system administrator (Admin Guide).** Add the permission *Record an hrHPV result by hand* to the Role Dictionary section, granting it to a Lab Supervisor role where wanted. Pathologist and Lab Director start with it. Without it, the Record Negative and Record Positive buttons on the HPV Triage tile are greyed out with an explanation. The Result Source is required on every manual entry. Every manual entry is audited with who, when, the source and what the specimen held before. A manual entry that would replace an interface result (an Invalid result, for example) waits for a second sign-off from a different person with the permission; the person who entered it cannot approve it. Rejecting keeps the interface result, and a platform result arriving during the wait wins and drops the waiting entry.
+
+**For marketing (positive).** Manual result entry is permission-controlled, source-tagged and fully audited, with dual sign-off when it overwrites an interface result. Labs can still record a result from a paper report or a telephone call, with every step traceable.
+
+**For FormedrixAI and partners (the plain reality).** The controls described are recorded as the behaviour of this change. No gaps are recorded for this change.
+- Training: enter a result by paper report; have a colleague approve a replacement. Standards: ISO 15189 (records), CLIA/CAP (result amendment traceability).
+
+## Batch 642: Sign-out authentication policy (password every time, or once per session)
+**For the practitioner (User Guide).** When you sign a case out, PathScribe now follows your facility's rule for proving who you are. Most places ask for your password every time. Some let you enter it once and then sign out more cases without being asked again until the session ends (after 15 minutes to 4 hours, when you log out, or if your role changes). The Sign Out button tells you which applies: "Sign Out" means you are already verified; "Sign Out (Password Required)" means you will be asked. Hover over it to see why. Some facilities also ask for a second step (a code) after your password.
+
+**For the system administrator (Admin Guide).** Configuration > System > Session Security > Sign-out authentication (needs the Session Security configuration permission). Set the enterprise default: password at every sign-out (default) or once per session (15, 30, 60 or 240 minutes), with an optional second factor. Override it per performing facility (shown as "Facility override"), or lock all overrides so every facility follows the default (overrides are kept, not used). A case follows the policy of the facility that performed it. The table lists each facility's policy in force; Export for audit (CSV) downloads it. The second factor reuses the existing methods (authenticator app, or the hospital sign-in provider's); people not enrolled cannot sign out, so enable the organisation second-factor policy first. A session ends on timeout, logout or role change. Every policy change (who, when, old, new), authentication, in-session sign-out and expiry is in the Audit Log with user, facility, policies, session id, method, time, case, a device hint and the network note.
+
+**For marketing (positive).** Sign-out security that fits every site: each laboratory chooses the balance between speed and assurance. Strict password checks for the most regulated sites, a smooth once-per-session flow for busy ones, an optional second factor, and one enterprise default that headquarters can lock. Every decision is recorded in a complete, exportable audit trail, ready for inspectors.
+
+**For FormedrixAI and partners (the plain reality).** Built and tested in the browser demo. Not yet built: limiting sign-out to trusted networks, ending a session when the workstation locks, and real network or device identification; these need the API server (phase 2e, where they are mandatory, with the server repeating every check: `docs/architecture/SIGN_OUT_AUTHENTICATION.md`). Second factor is the existing authenticator app and the hospital provider's; SMS and hardware keys are not built. "Once per session" with no later prompt departs from 21 CFR 11.200(a)(1) (at least one credential per later signing), so Strict is the default and the screen warns; customers' quality systems decide. The device hint is a browser hash, not an identity. Translations need native review.
+- Training: what "(Password Required)" means. Standards: 21 CFR Part 11 (11.200), audit trail.
+
+## Batch 641: Recall settings guidance corrected; recall card keeps what you type
+**For the practitioner (User Guide).** Nothing changes for you in the User Guide. On the recall settings card, if the saved settings finish loading after you have started typing, your typing is now kept. Nothing waits on a programme sign-off for the recall windows or wording: your laboratory's administrator sets them per country (Batch 640).
+
+**For the system administrator (Admin Guide).** In Cytology configuration > Screening Strategy, choose the country, set the target weeks, and optionally write the recall wording per language; empty means the built-in text. `{{type}}` and `{{next}}` can be used in the positive-result text. Saving needs the Cytology Screening Strategy permission and is audited. Nothing waits on a programme sign-off for the recall windows or wording (Batch 640). The register's own recommendation codes are mapped by the interface engine team during programme onboarding, not in PathScribe. Documents corrected: the recall sign-off sheet (now an engine handoff), the HPV result inbound design, and the deployment readiness review's status section (what changed since Batch 570; the server work is unchanged).
+
+**For marketing (positive).** Recall rules are laboratory-configurable per country. The laboratory owns the final windows and wording, without waiting on a programme sign-off, and the settings card no longer loses what you type.
+
+**For FormedrixAI and partners (the plain reality).** This corrects guidance: nothing waits on a programme sign-off for the recall windows or wording, since the laboratory sets them per country (Batch 640). The register's recommendation codes are mapped by the interface engine team during programme onboarding, not in PathScribe. Three documents were corrected: the recall sign-off sheet (now an engine handoff), the HPV result inbound design, and the status section of the deployment readiness review (what changed since Batch 570; the server work is unchanged). No other gaps are recorded for this change.
+- Training: explain that the built-in values are a starting point and the lab owns the final values.
+
+## Batch 640: Recall windows and wording are set by your laboratory, per country
+**For the practitioner (User Guide).** You see your laboratory's own recall wording, in your language, on the Recall needed tile. Your administrator sets the windows and the wording per country. Nothing else changes in the User Guide.
+
+**For the system administrator (Admin Guide).** Go to **Configuration > Cytology > Screening Strategy > Self-collected HPV recall windows**. A **Country** dropdown (Australia, New Zealand) lets each country keep its own target weeks. Windows saved before this change apply to both until a country is saved. Under the windows, **Recall wording**: choose a language and, if your programme words the recall differently, write the text for a positive result and for an invalid result. `{{type}}` (the HPV type) and `{{next}}` (the next step) can be used in the positive-result text. Leave a box empty to use the built-in wording. Staff see your text in that language on the Recall needed tile. Saving needs the Cytology Screening Strategy configuration permission and is written to the Audit Log (RECALL_SETTINGS_CHANGED). Choose another country only after saving or discarding. The register's own recommendation codes are not set here; the interface engine maps them.
+
+**For marketing (positive).** Recall timing and wording are configurable per country by the laboratory. Each programme can use its own words in its own language, with every change controlled and audited.
+
+**For FormedrixAI and partners (the plain reality).** The country selector (Australia, New Zealand), windows and wording are built. The register's recommendation codes are not set in PathScribe; the interface engine maps them. No other gaps are recorded for this change.
+- Training: where a lab sets its programme's recall rules. Standards: ISO 15189 (controlled, audited changes to reporting rules).
+
+## Batch 639: Print Current Cassette key changes; Discard Unsaved Changes asks first
+**For the practitioner (User Guide).** On the report page, **Print Current Cassette** is now **Alt+Shift+O** (it was Alt+P). Alt+P stays **Previous Case**, so moving between cases needs no extra keystroke. A site that customised the key keeps its own. **Discard Unsaved Changes** (Alt+U or by voice) now asks first: "Discard all unsaved changes on this report? This cannot be undone." Choose **Discard Changes** or **Keep Editing**. Nothing is discarded until you confirm.
+
+**For the system administrator (Admin Guide).** See the Role Dictionary and the shortcut list for the cassette key (Print Current Cassette is now Alt+Shift+O, was Alt+P). A site that customised the key keeps its own. Alt+P stays Previous Case. Discard Unsaved Changes (Alt+U or by voice) now shows a confirmation with **Discard Changes** and **Keep Editing**.
+
+**For marketing (positive).** Destructive actions are confirmed, so a stray keystroke or voice command cannot wipe out unsaved report work.
+
+**For FormedrixAI and partners (the plain reality).** The key change and the confirmation prompt are described as done. No gaps are recorded for this change.
+- Training: the new cassette key and the Discard prompt. Standards: ISO 15189 (protection of report data).
+
+## Batch 638: CSMS messages wait for the eligibility check; Belgian Dutch dictation
+**For the practitioner (User Guide).** For a CSMS case, the result is no longer sent to CSMS when you sign out. It waits until a person in Cytology QA answers the eligibility check on the CSMS QA tab. **Eligibility verified** sends it. **Record not eligible** (with a reason) closes it and it is never sent. The clinical report is not held either way. In Voice Settings there is a new accent, Nederlands (België); it has not yet been tested by a Belgian speaker, and the screen says so. When a cytotechnologist is blocked, a colleague's available room is now prorated by the hours they have logged.
+
+**For the system administrator (Admin Guide).** Registry Exceptions has a new Held reason: the held CSMS message shows as Held, and Resend there does not release it. Voice Settings has a new accent, Nederlands (België). On workload, when a cytotechnologist is blocked, a colleague's available room is prorated by the hours they have logged.
+
+**For marketing (positive).** Registry submission is gated on a recorded eligibility check, with a full audit trail. Dictation now also offers a Belgian Dutch accent.
+
+**For FormedrixAI and partners (the plain reality).** Demo only: seeded surgical patients are in the patient index, so released surgical results are queued. The Nederlands (België) accent has not yet been tested by a Belgian speaker, and the screen says so; it needs native-speaker testing. No other gaps are recorded for this change.
+- Training: the CSMS QA tab now decides whether the registry message is sent. Standards: ISO 15189 (controlled release of results).
+
+## Batch 637: The Role Dictionary names the newer actions
+**For the practitioner (User Guide).** Nothing changes on screen. None of the eight actions has a voice phrase or hotkey; each needs a result or case picked on screen first, or is a deliberate click.
+
+**For the system administrator (Admin Guide).** Configuration > Staff > Role Dictionary has a new group, **HPV Results, CSMS Eligibility, AI History Reading & Registry Files**. It lists Record an hrHPV Result by Hand, Approve and Reject a Manual hrHPV Entry, Mark CSMS Eligibility Verified, Record Not Eligible for CSMS, Run the AI Reading of a Historical Report, Flag an AI Reading as Wrong, and Make a Registry Batch File. A role can be given or refused each one. Starting grants follow the matching permissions: Pathologist and Lab Director get the hrHPV and CSMS actions; Pathologist, Fellow and Resident get the AI history reading; Admin gets Make a Registry Batch File. A grant here never widens what the person is allowed to do: the permission is still checked when the action is taken. None of the eight has a voice phrase or hotkey; each needs a result or case picked on screen first, or is a deliberate click.
+
+**For marketing (positive).** Every record-changing action, including the newest, can be granted or withheld by role, so each lab sets who can do what.
+
+**For FormedrixAI and partners (the plain reality).** This is a permissions listing only; the screens are unchanged. A grant never widens what a person may do, because the permission is still checked at the moment of action. No gaps are recorded for this change.
+- Training: none (the screens are unchanged).
+
+## Batch 636: Answering the CSMS eligibility check
+**For the practitioner (User Guide).** Every case sent to CSMS (England) still gets the "CSMS Eligibility Verification Needed" flag, because PathScribe holds no eligibility or suspension data. On the **CSMS QA** tab each case now has **Eligibility verified** (one click) and **Record not eligible** (pick a reason: ceased, suspended, outside the age range, another reason; then click). Either clears the flag. **Manage flags** is still there. Not eligible does not change or withdraw the result; it records the answer for follow-up. You need the permission "Record a CSMS eligibility check" (Pathologists and Lab Directors start with it).
+
+**For the system administrator (Admin Guide).** New permission "Record a CSMS eligibility check" under Roles and permissions. Pathologist and Lab Director start with it; a lab can grant it to others, for example the Cytology QA group. It is used on the Cytology QA, CSMS tab. Either answer clears the flag and writes the outcome to the Audit Log ("CSMS_ELIGIBILITY_VERIFIED" / "CSMS_ELIGIBILITY_NOT_ELIGIBLE", with the reason).
+
+**For marketing (positive).** Registry eligibility checks are recorded and audited per case, with a one-click answer and a clear reason when a patient is not eligible.
+
+**For FormedrixAI and partners (the plain reality).** PathScribe holds no eligibility or suspension data, so every CSMS case still gets the "CSMS Eligibility Verification Needed" flag and a person answers it. Not eligible does not change or withdraw the result. No other gaps are recorded for this change.
+- Training: the CSMS QA tab steps.
+
+## Batch 635: A blocked cytotechnologist's queue goes to named colleagues
+**For the practitioner (User Guide).** When a cytotechnologist reaches the prorated CLIA daily limit, their remaining queue is no longer only returned to the shared pool. Each case now goes to an active cytotechnologist who still has room under their own daily cap (the one with the most room first, and no more cases than their room), and the case shows as assigned to them. Cases nobody has room for go back to the pool, as before. The message after the block says how many cases went to which colleagues and how many went back to the pool. Accession status is never changed.
+
+**For the system administrator (Admin Guide).** On the Cytology workload cap: when a cytotechnologist is blocked, the queue is reassigned to named colleagues, and each move is in the Audit Log ("CYTOLOGY_WORKLOAD_REASSIGNED"). A colleague's room is their full daily cap less what they screened in the last 24 hours; their own saves are still checked against the prorated limit. Only active staff with the Cytotechnologist role are considered. The CLIA cap itself still applies only where it is switched on (US by default). Accession status is never changed.
+
+**For marketing (positive).** Automatic, audited workload redistribution that respects each colleague's own limit (CLIA 42 CFR 493.1274). Work moves to colleagues who have room, instead of simply returning to a pool.
+
+**For FormedrixAI and partners (the plain reality).** Built as described. The CLIA cap applies only where it is switched on (US by default). No gaps are recorded for this change.
+- Training: what a blocked cytotechnologist sees. Standards: CLIA 42 CFR 493.1274.
+
+## Batch 634: Surgical results get the same safeguard, and the demo cytology patients can send
+**For the practitioner (User Guide).** Nothing changes on screen for you. A surgical result (final or amended) that cannot be queued because the patient is not in the patient index is now recorded, as cytology results are (Batch 633).
+
+**For the system administrator (Admin Guide).** See Audit Log, system events. A surgical result (final or amended) that cannot be queued because the patient is not in the patient index is recorded as "SURGICAL_DISPATCH_SKIPPED" with the case and reason, as cytology results are (Batch 633). The lookup uses the API server's patient index when one is connected, including for assist-mode synoptic results.
+
+**For marketing (positive).** Skipped outbound results are auditable for surgical and cytology alike.
+
+**For FormedrixAI and partners (the plain reality).** Demo only: the 23 seeded cytology patients (PAT-CYT-001 to 023) are now in the patient index, so signing out a seeded cytology case queues its result message instead of being skipped. The server-side lookup uses the API server's patient index when one is connected. No other gaps are recorded for this change.
+- Training: none.
+
+## Batch 633: A cytology result that cannot be queued is now recorded
+**For the practitioner (User Guide).** If a cytology result (final, correction/addendum or preliminary) has not reached the receiving system, check the Audit Log. When the patient is not in the patient index, the result cannot be queued, and the Audit Log now shows a "CYTOLOGY_DISPATCH_SKIPPED" entry naming the case and the reason. A later release or retry queues it once the patient is registered.
+
+**For the system administrator (Admin Guide).** See Audit Log, system events. When a cytology result (final, correction/addendum or preliminary) cannot be queued for the interface engine because the patient is not in the patient index, a "CYTOLOGY_DISPATCH_SKIPPED" entry names the case and the reason. Before, nothing was recorded. A later release or retry queues it once the patient is registered. With the API server connected, the patient is now looked up in the server's patient index (the lookup previously read only the demo's in-browser copy, so every lookup came back empty).
+
+**For marketing (positive).** Skipped outbound results are auditable, so a result that did not go out leaves a clear record of which case and why.
+
+**For FormedrixAI and partners (the plain reality).** Built. With the API server connected the lookup uses the server's patient index; previously it read only the demo's in-browser copy, so every lookup came back empty. No other gaps are recorded for this change.
+- Training: where to look when a result has not reached the receiving system.
+
+## Batch 632: Recall windows you can change, and the recommendation codes
+**For the practitioner (User Guide).** The Recall needed detail now lists the recommendation (for example "Refer for Colposcopy Assessment" and "Recall for Clinician-Collected LBC" for HPV 16/18). Repeat collections read "Unsatisfactory Result" in Australia and "Invalid / Unsuitable Sample" in New Zealand, with New Zealand's own wording.
+
+**For the system administrator (Admin Guide).** Cytology configuration, Screening Strategy has a new card, "Self-collected HPV recall windows": the target weeks for an Urgent recall, a Routine recall, an Australian repeat collection and a New Zealand repeat collection. Empty boxes mean "as soon as practicable" (the New Zealand default for a repeat HPV test). Defaults are placeholders until each programme signs them off. Saving needs the Cytology Screening Strategy configuration permission. Saving the strategy no longer discards other saved settings. The data handed to the interface engine carries six internal recommendation codes (marked as placeholder-mapped); the engine maps them to each register.
+
+**For marketing (positive).** Recall timing is configurable per laboratory group, and the recall detail shows the clear recommendation, with country-specific wording for Australia and New Zealand.
+
+**For FormedrixAI and partners (the plain reality).** The default windows are placeholders until each programme signs them off. The six internal recommendation codes are marked as placeholder-mapped; the interface engine maps them to each register. No other gaps are recorded for this change.
+- Training: where to change a recall window.
+
+## Batch 631: Self-collected HPV results in Australia and New Zealand
+**For the practitioner (User Guide).** When the case's **performing laboratory** (the lab that processes the specimen, not the ordering clinic) is in Australia or New Zealand, each case on the **Recall needed** tile now shows **Urgent** or **Routine**, a target window and the programme's recall wording. HPV 16/18 is Urgent (2-4 weeks) and adds a colposcopy referral; another oncogenic type is Routine (6-12 weeks). If the platform did not report the type, the case is treated as Urgent with a clinician-collected sample, without a colposcopy claim. A self-collected sample whose hrHPV result is **Invalid** now appears on Recall needed as "repeat collection needed" instead of waiting for a result. A recall clears by itself when the same patient has a later clinician-collected cervical sample.
+
+**For the system administrator (Admin Guide).** No Admin Guide change. The rule follows the performing lab's jurisdiction, then the institution setting. Since Batch 640 the laboratory's administrator sets the target windows and wording per country. The recommendation codes are PathScribe's own keys, mapped to each register's codes by the interface engine.
+
+**For marketing (positive).** Self-collected HPV results are routed to the programme's recall pathway by genotype, with the collection method and genotype carried in the data sent to the register (connection built per register). Staff see Urgent or Routine, a target window and the programme's wording at a glance.
+
+**For FormedrixAI and partners (the plain reality).** The target windows and wording are starting points (since Batch 640 the laboratory's administrator sets them per country). The recommendation codes are PathScribe's own keys, mapped to each register's codes by the interface engine. Nothing is sent to the national registers: that is built by the interface engine team (see `HPV_RESULT_INBOUND.md` section 8). The register connection is built per register.
+- Training: Recall needed tile.

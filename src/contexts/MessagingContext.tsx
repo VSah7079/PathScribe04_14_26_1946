@@ -20,6 +20,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, Re
 import { messageService } from '../services';
 import { useAuth } from './AuthContext';
 import type { Message } from '../services';
+import { isUnreadFor } from '../services/messages/messageUnread';
 import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 import { playAlertTone } from '@/utils/alertTone';
 import { useLiveData } from '@/hooks/useLiveData';
@@ -51,8 +52,9 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     () => getSessionFlag('ps_drawer_open') === 'true'
   );
 
-  const unreadCount = messages.filter(m => !m.isRead && !m.isDeleted).length;
-  const hasUrgent   = messages.some(m => m.isUrgent && !m.isRead && !m.isDeleted);
+  // Batch 669f (everyday-1): a person's own sent message or reply is never unread for them.
+  const unreadCount = messages.filter(m => isUnreadFor(m, userId)).length;
+  const hasUrgent   = messages.some(m => m.isUrgent && isUnreadFor(m, userId));
 
   const setPortalOpen = (open: boolean) => {
     setSessionFlag('ps_drawer_open', String(open));

@@ -21,7 +21,7 @@ import { facilityCancerRegistryOverrideService } from './facilityCancerRegistryO
 import { resolveEffectiveCancerRegistrySettings } from './resolveEffectiveCancerRegistrySettings';
 import { resolveCancerRegistryReportability } from './resolveCancerRegistryReportability';
 import { consentExclusionMessage, evaluateRegistryConsent } from '../registryConsent/evaluateRegistryConsent';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { buildRegistrySubmissionHeader, registryContentHash } from '../registrySubmission/registrySubmissionHeader';
 import { buildCancerRegistryReportPayload, type CancerRegistryReportPayload } from './buildCancerRegistryReportPayload';
 import type { CancerRegistryId, CancerRegistrySettingsConfig } from './ICancerRegistrySettingsService';
@@ -33,6 +33,8 @@ import { registrySendGateCheck } from '../registryGoLive/registryGoLiveDeps';
 import type { RegistrySendGate } from '../registryGoLive/registrySendGate';
 import { cancerRegistryDefinition, type CancerRegistryMandatoryField } from './cancerRegistryDefinitions';
 import { cancerMandatoryHoldMessage, missingCancerRegistryMandatoryData } from './cancerRegistryMandatoryData';
+import { defaultEpathDeps, prepareEpathSubmission } from '../usEpath/prepareEpathSubmission';
+import type { EpathTransportKind } from '../usEpath/epathProfile';
 
 export interface DispatchCancerRegistryReportResult {
   dispatched: boolean;
@@ -53,7 +55,7 @@ const defaultDispatchDeps: CancerRegistryDispatchDeps = {
 
 /** Batch 421: everything up to (not including) queuing, so the worklist's resend can re-validate. Pure apart from reading settings. */
 export interface PreparedCancerSubmission {
-  outcome: 'noSettings' | 'noRegistry' | 'notReportable' | 'excludedByConsent' | 'missingMandatoryData' | 'ready';
+  outcome: 'noSettings' | 'noRegistry' | 'notReportable' | 'excludedByConsent' | 'missingMandatoryData' | 'epathReview' | 'ready';
   registryId?: CancerRegistryId;
   settings?: CancerRegistrySettingsConfig;
   body?: CancerRegistryReportPayload;
@@ -63,6 +65,10 @@ export interface PreparedCancerSubmission {
   /** Batch 425: what the registry requires and the report lacks (outcome missingMandatoryData). */
   missingMandatory?: CancerRegistryMandatoryField[];
   holdMessage?: string;
+  /** Batch 620 (part E): the US ePath state profile's finding (outcome epathReview): fixed codes only (usEpath/epathCheck.ts). */
+  epathReviewCodes?: string[];
+  /** Batch 620 (part E): the state profile's transport, kept on the queue entry as its destination label. */
+  epathTransport?: EpathTransportKind;
 }
 
 export async function prepareCancerRegistrySubmission(caseData: Case, facilityId: string, facilityName: string | undefined): Promise<PreparedCancerSubmission> {
@@ -81,12 +87,26 @@ export async function prepareCancerRegistrySubmission(caseData: Case, facilityId
   const consent = evaluateRegistryConsent('cancer', caseData.patient.registryConsent, enterpriseRes.data);
   if (!consent.proceed) return { outcome: 'excludedByConsent', registryId: effective.registryId, consentMessage: consentExclusionMessage('cancer', effective.registryId) };
   const body = buildCancerRegistryReportPayload(caseData, effective.registryId, facilityId, facilityName);
+  // Batch 620 (part E, PS-800): the US ePath registry also checks the case against its state profile, chosen by the
+  // performing facility's state (never the patient's address). A failure is parked for review; the sign-out is never held.
+  let epathReviewCodes: string[] | undefined;
+  let epathTransport: EpathTransportKind | undefined;
+  if (effective.registryId === 'epath_npcr_us') {
+    const epath = await prepareEpathSubmission(caseData, facilityId, defaultEpathDeps());
+    epathTransport = epath.outcome === 'ready' ? epath.transport : epath.profile?.transport;
+    if (epath.outcome === 'review') epathReviewCodes = epath.reviewCodes;
+    else body.epath = { profileId: epath.profile.id, stateCode: epath.stateCode, transport: epath.transport, basisFacilityId: epath.basisFacilityId, messageControlId: epath.messageControlId };
+  }
+  if (epathReviewCodes) {
+    return { outcome: 'epathReview', registryId: effective.registryId, settings: enterpriseRes.data, body, contentHash: registryContentHash(body), epathReviewCodes, epathTransport,
+      holdMessage: `Held, not sent: the US ePath state profile needs a person to look (${epathReviewCodes.join(', ')}). Fix it on the case or the profile and resend.` };
+  }
   // Batch 425: the registry's mandatory data, checked before anything is emitted.
   const missing = missingCancerRegistryMandatoryData(cancerRegistryDefinition(effective.registryId), body);
   if (missing.length) {
     return { outcome: 'missingMandatoryData', registryId: effective.registryId, settings: enterpriseRes.data, body, contentHash: registryContentHash(body), missingMandatory: missing, holdMessage: cancerMandatoryHoldMessage(missing, effective.registryId), optOutOverriddenByStatute: consent.optOutOverriddenByStatute };
   }
-  return { outcome: 'ready', registryId: effective.registryId, settings: enterpriseRes.data, body, contentHash: registryContentHash(body), optOutOverriddenByStatute: consent.optOutOverriddenByStatute };
+  return { outcome: 'ready', registryId: effective.registryId, settings: enterpriseRes.data, body, contentHash: registryContentHash(body), optOutOverriddenByStatute: consent.optOutOverriddenByStatute, ...(epathTransport ? { epathTransport } : {}) };
 }
 
 export async function dispatchCancerRegistryReportIfApplicable(
@@ -100,18 +120,18 @@ export async function dispatchCancerRegistryReportIfApplicable(
   if (prepared.outcome === 'noRegistry') return { dispatched: false, reason: 'No cancer registry configured for this facility.' };
   if (prepared.outcome === 'notReportable') return { dispatched: false, reason: 'No reportable ICD-O finding on this case.' };
   if (prepared.outcome === 'excludedByConsent') {
-    mockAuditService.logEvent({ type: 'system', event: 'Registry submission excluded by consent', detail: `Case ${caseData.id}: ${prepared.consentMessage}`, user: 'system', caseId: caseData.id, confidence: null } as any);
+    auditService.logEvent({ type: 'system', event: 'Registry submission excluded by consent', detail: `Case ${caseData.id}: ${prepared.consentMessage}`, user: 'system', caseId: caseData.id, confidence: null } as any);
     return { dispatched: false, reason: prepared.consentMessage! };
   }
   const registryId = prepared.registryId!;
   if (prepared.optOutOverriddenByStatute) {
-    mockAuditService.logEvent({ type: 'system', event: 'Registry opt-out overridden by statute', detail: `Case ${caseData.id}: the patient opted out of cancer registry reporting, but ${registryId} reporting is statutory here. Sent.`, user: 'system', caseId: caseData.id, confidence: null } as any);
+    auditService.logEvent({ type: 'system', event: 'Registry opt-out overridden by statute', detail: `Case ${caseData.id}: the patient opted out of cancer registry reporting, but ${registryId} reporting is statutory here. Sent.`, user: 'system', caseId: caseData.id, confidence: null } as any);
   }
 
   // Batch 424: the send gate first. Skip: not queued, audited.
   const gate = await dispatchDeps.sendGate(registryId);
   if (gate.action === 'skip') {
-    mockAuditService.logEvent({ type: 'system', event: 'Registry submission not sent', detail: `Case ${caseData.id}: ${gate.message}`, user: 'system', caseId: caseData.id, confidence: null } as any);
+    auditService.logEvent({ type: 'system', event: 'Registry submission not sent', detail: `Case ${caseData.id}: ${gate.message}`, user: 'system', caseId: caseData.id, confidence: null } as any);
     return { dispatched: false, reason: gate.message! };
   }
   // Batch 419 (SRS v2.1 FR-008.4/5/8): the payload header. A cancer report is case-level, so the
@@ -124,13 +144,18 @@ export async function dispatchCancerRegistryReportIfApplicable(
     templateVersion: latestRegistryTemplateVersion(registryTemplateHistory('cancer', registryId), new Date())?.version,
   }, prior.ok ? prior.data : []);
   const payload = { ...prepared.body!, submission };
-  const queued = await cancerRegistryOutboundQueueService.enqueue({ caseId: caseData.id, registryId, submission, contentHash: prepared.contentHash });
+  const queued = await cancerRegistryOutboundQueueService.enqueue({ caseId: caseData.id, registryId, submission, contentHash: prepared.contentHash, ...(prepared.epathTransport ? { transport: prepared.epathTransport } : {}) });
   // Batch 425: a report missing the registry's mandatory data is held (HOLD_MISSING_MANDATORY_DATA), never
   // sent; it shows on the Registry Exceptions worklist. Checked after the gate, so a validation instance
   // never queues a real case. The case's sign-out has already happened and is never held for this.
   if (queued.ok && prepared.outcome === 'missingMandatoryData') {
     await cancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: 'HOLD_MISSING_MANDATORY_DATA', errorMessage: prepared.holdMessage!, maxRetriesExceeded: false });
-    mockAuditService.logEvent({ type: 'system', event: 'Registry submission held: mandatory data missing', detail: `Case ${caseData.id}: ${prepared.holdMessage}`, user: 'system', caseId: caseData.id, confidence: null } as any);
+    auditService.logEvent({ type: 'system', event: 'Registry submission held: mandatory data missing', detail: `Case ${caseData.id}: ${prepared.holdMessage}`, user: 'system', caseId: caseData.id, confidence: null } as any);
+    return { dispatched: false, reason: prepared.holdMessage! };
+  }
+  // Batch 620 (part E): the ePath profile's finding holds the report the same way, with its fixed codes for the Outbound Queue.
+  if (queued.ok && prepared.outcome === 'epathReview') {
+    await cancerRegistryOutboundQueueService.markFailed(queued.data.id, { errorCode: 'HOLD_EPATH_PROFILE', errorMessage: prepared.holdMessage!, maxRetriesExceeded: false, reviewCodes: prepared.epathReviewCodes });
     return { dispatched: false, reason: prepared.holdMessage! };
   }
   // Batch 420: before this, a cancer registry report was queued and never sent: nothing dispatched it.

@@ -21,8 +21,14 @@ export interface CancerRegistryOutboundQueueEntry {
     /** Batch 423: set to the live register without a current go-live approval. */
     | 'REGISTRY_LIVE_NOT_APPROVED'
     /** Batch 425: the registry's mandatory data is missing (cancerRegistryMandatoryData.ts); held, not sent. */
-    | 'HOLD_MISSING_MANDATORY_DATA';
+    | 'HOLD_MISSING_MANDATORY_DATA'
+    /** Batch 620 (part E): the US ePath state profile found something wrong or none applied (usEpath/); held for a person, not sent. */
+    | 'HOLD_EPATH_PROFILE';
   errorMessage?: string;
+  /** Batch 620 (part E): the fixed codes behind a HOLD_EPATH_PROFILE hold (field:PID-11, rule:finalReportOnly, routing:noProfile). Never message text. */
+  reviewCodes?: string[];
+  /** Batch 620 (part E): how the destination is reached (a US ePath state profile's transport); a label for the Outbound Queue, the engine owns the transport. */
+  transport?: 'phinMs' | 'sftp' | 'directTcp' | 'httpsApi';
   retryCount: number;
   maxRetriesExceeded: boolean;
   lastAttemptAt?: string;

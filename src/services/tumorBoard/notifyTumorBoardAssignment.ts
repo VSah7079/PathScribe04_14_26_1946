@@ -35,8 +35,8 @@
 import type { TumorBoardListing } from './ITumorBoardService';
 import { buildTumorBoardInviteIcs } from './buildTumorBoardInviteIcs';
 import { getFacilityDateTimeUtc } from '../../utils/facilityTime';
-import { mockUserService } from '../users/mockUserService';
-import { mockMessageService } from '../messages/mockMessageService';
+import { userService } from '../users/userServiceInstance';
+import { messageService } from '../messages/messageServiceInstance';
 import { sendEmail } from '../communications/notificationService';
 
 /** Pure: does this update need a presenter notification + calendar invite?
@@ -93,12 +93,12 @@ export async function notifyTumorBoardAssignment(
 ): Promise<void> {
   try {
     if (!updated.presenterUserId || !updated.meetingDate) return;
-    const presenterRes = await mockUserService.getById(updated.presenterUserId);
+    const presenterRes = await userService.getById(updated.presenterUserId);
     if (!presenterRes.ok) return;
     const presenter = presenterRes.data;
     const presenterName = `${presenter.firstName} ${presenter.lastName}`;
 
-    const organizerRes = await mockUserService.getById(byUserId);
+    const organizerRes = await userService.getById(byUserId);
     const organizerEmail = organizerRes.ok ? organizerRes.data.email : undefined;
 
     const whenText = formatMeetingWhenText(updated);
@@ -106,9 +106,9 @@ export async function notifyTumorBoardAssignment(
     const body = `You've been scheduled to present a case at the ${updated.board} meeting (${whenText}). Case reference: ${updated.caseAccession}. Open PathScribe for the full case detail. — Scheduled by ${byUserName}`;
 
     // (1) The in-app message — same system-sender convention the rest of
-    // this app's seeded system notifications already use (mockMessageService's
+    // this app's seeded system notifications already use (messageService's
     // own seed data: senderId 'system', senderName 'PathScribe System').
-    await mockMessageService.send({
+    await messageService.send({
       senderId: 'system',
       senderName: 'PathScribe System',
       recipientId: presenter.id,

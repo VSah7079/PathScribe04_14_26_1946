@@ -599,10 +599,12 @@ export const mockMessageService: IMessageService = {
     await delay();
     const idx = MOCK_MESSAGES.findIndex(m => m.id === messageId);
     if (idx === -1) return err(`Message ${messageId} not found`);
+    // Batch 669f (everyday-3): the reply joins the thread; the opening message's body (the list preview) is kept,
+    // and the flag goes back to unread, which isUnreadFor() shows to the other participant only.
     const newThread: MessageThread = { sender: senderName, senderId, text, timestamp: new Date() };
     MOCK_MESSAGES = MOCK_MESSAGES.map(m =>
       m.id === messageId
-        ? { ...m, body: text, thread: [...(m.thread || []), newThread] }
+        ? { ...m, isRead: false, thread: [...(m.thread || []), newThread] }
         : m
     );
     persist(MOCK_MESSAGES);

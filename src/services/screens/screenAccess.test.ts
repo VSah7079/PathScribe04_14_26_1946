@@ -56,4 +56,19 @@ describe('screen access (Batch 374)', () => {
     expect(enforced).toEqual(['screen:cytology-qc-queue:open']);
     expect(evaluated).toEqual(['cytology:qc-review:bypass']);
   });
+
+  it('Batch 669 (ctl): Control Rules opens for view or manage, without the Molecular screen', async () => {
+    const has = (...caps: string[]) => (c: string) => caps.includes(c);
+    expect(canOpenTile('molecularControlRules', has('config:molecular-control-rules:view'))).toBe(true);
+    expect(canOpenTile('molecularControlRules', has('config:molecular-control-rules:manage'))).toBe(true);
+    expect(canOpenTile('molecularControlRules', has('screen:molecular:open'))).toBe(false);
+    expect(canOpenTile('molecularControlRules', has())).toBe(false);
+    // It is a sub-screen: not a Home tile, in no hub.
+    expect(Object.values(TILE_SCREENS).flat()).not.toContain('molecularControlRules');
+    const decider = (...held: string[]) => async (c: string) => ({ capability: c, allowed: held.includes(c), grantedBy: [], missingRequirements: [], context: {} });
+    const make = (...held: string[]) => createScreenAccessService({ authorization: { enforce: decider(...held), evaluate: decider(...held) } });
+    expect(await make('config:molecular-control-rules:view').canOpen('molecularControlRules')).toBe(true);
+    expect(await make('config:molecular-control-rules:manage').canOpen('molecularControlRules')).toBe(true);
+    expect(await make('screen:molecular:open').canOpen('molecularControlRules')).toBe(false);
+  });
 });

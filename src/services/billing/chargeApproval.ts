@@ -51,15 +51,15 @@ export interface ChargeAwaitingApproval {
 }
 
 async function deps() {
-  const [{ mockServiceChargeService }, { caseRouter }, { mockFacilityService }, { authorizationService }, { getSessionUser }, { resolveCasePerformingLab }] = await Promise.all([
-    import('./mockServiceChargeService'),
+  const [{ serviceChargeService }, { caseRouter }, { facilityService: mockFacilityService }, { authorizationService }, { getSessionUser }, { resolveCasePerformingLab }] = await Promise.all([
+    import('./serviceChargeServiceInstance'),
     import('../cases/CaseRouter'),
-    import('../facilities/mockFacilityService'),
+    import('../facilities/facilityServiceInstance'),
     import('../authorization/defaultAuthorizationService'),
     import('../auth/caseAccessControl'),
     import('../facilities/resolveCasePerformingLab'),
   ]);
-  return { charges: mockServiceChargeService, caseRouter, facilityService: mockFacilityService, authorizationService, getSessionUser, resolveCasePerformingLab };
+  return { charges: serviceChargeService, caseRouter, facilityService: mockFacilityService, authorizationService, getSessionUser, resolveCasePerformingLab };
 }
 
 /** The performing lab of a charge's case (null when it can't be resolved).

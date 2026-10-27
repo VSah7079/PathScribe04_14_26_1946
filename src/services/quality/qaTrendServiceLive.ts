@@ -7,7 +7,7 @@ import type { TrendRecord } from './qaTrendRules';
 import { createQaTrendService } from './qaTrendService';
 import { storageGet, storageSet } from '../mockStorage';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { qaTrendPolicyService } from './qaTrendPolicyServiceInstance';
 import { DEFAULT_QA_TREND_POLICY_SETTINGS } from './qaTrendRules';
@@ -15,13 +15,13 @@ import { DEFAULT_QA_TREND_POLICY_SETTINGS } from './qaTrendRules';
 const KEY = 'pathscribe_qa_trend_recommendations';
 
 async function trendRecords(): Promise<TrendRecord[]> {
-  const { mockQaActivityRecordService } = await import('./mockQaActivityRecordService');
+  const { qaActivityRecordService } = await import('./qaActivityRecordServiceInstance');
   const { caseRouter } = await import('../cases/CaseRouter');
-  const { mockFacilityService } = await import('../facilities/mockFacilityService');
+  const { facilityService } = await import('../facilities/facilityServiceInstance');
   const { resolvePerformingLabFacilityId } = await import('../facilities/IFacilityService');
-  const { mockSpecimenDictionaryService } = await import('../specimenDictionary/mockSpecimenDictionaryService');
+  const { specimenDictionaryService } = await import('../specimenDictionary/specimenDictionaryServiceInstance');
   const [recordsRes, facilitiesRes, dictRes, casesRes] = await Promise.all([
-    mockQaActivityRecordService.getAll(), mockFacilityService.getAll(), mockSpecimenDictionaryService.getAll(),
+    qaActivityRecordService.getAll(), facilityService.getAll(), specimenDictionaryService.getAll(),
     caseRouter.getAll(undefined, { includeOrchestration: true }),
   ]);
   if (!recordsRes.ok) return [];
@@ -47,6 +47,6 @@ export const qaTrendService = createQaTrendService({
   trendRecords,
   policy: async () => { const r = await qaTrendPolicyService.get(); return r.ok ? r.data : DEFAULT_QA_TREND_POLICY_SETTINGS; },
   enforce: capability => authorizationService.enforce(capability),
-  audit: entry => mockAuditService.logEvent(entry),
+  audit: entry => auditService.logEvent(entry),
   actor: () => { const s = readSessionProfile(); return { userId: s?.id ?? 'unknown', userName: s?.name ?? 'unknown' }; },
 });

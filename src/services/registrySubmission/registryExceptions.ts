@@ -68,7 +68,7 @@ export interface RegistryExceptionRow {
 
 /** Which exception, if any, an entry is. */
 export function registryExceptionKind(e: RegistryQueueEntryForWorklist): RegistryExceptionKind | null {
-  if (e.errorCode === 'EXCLUDED_BY_CONSENT') return null;
+  if (e.errorCode === 'EXCLUDED_BY_CONSENT' || e.errorCode === 'NOT_ELIGIBLE') return null;
   const acks = e.acknowledgements ?? [];
   const lastAck = acks[acks.length - 1];
   if ((e.registryStatus === 'accepted' || e.registryStatus === 'acceptedWithWarnings') && lastAck && lastAck.outcome !== e.registryStatus) return 'conflict';
@@ -78,7 +78,7 @@ export function registryExceptionKind(e: RegistryQueueEntryForWorklist): Registr
   if (e.registryStatus === 'ackOverdue') return 'ackOverdue';
   if (e.status === 'FAILED' && e.errorCode === 'REGISTRY_LIVE_NOT_APPROVED') return 'attestationRequired';
   // Batch 425: a cancer report missing the registry's mandatory data is held the same way.
-  if (e.status === 'FAILED' && (e.errorCode === 'REGISTRY_NOT_READY' || e.errorCode === 'HOLD_MISSING_MANDATORY_DATA')) return 'held';
+  if (e.status === 'FAILED' && (e.errorCode === 'REGISTRY_NOT_READY' || e.errorCode === 'AWAITING_ELIGIBILITY' || e.errorCode === 'HOLD_MISSING_MANDATORY_DATA' || e.errorCode === 'HOLD_EPATH_PROFILE')) return 'held';
   if (e.status === 'FAILED' && e.maxRetriesExceeded) return 'deliveryFailed';
   return null;
 }
@@ -114,7 +114,7 @@ export function registryExceptionRows(queues: Record<RegistryQueueName, Registry
         findings,
         // HL7 separates segments with a bare carriage return, which a screen doesn't break on.
         ...(lastAck ? { rawAcknowledgement: lastAck.raw.replace(/\r\n?/g, '\n') } : {}),
-        canResend: !!e.submission && kind !== 'conflict' && kind !== 'revisedPostAcceptance',
+        canResend: !!e.submission && e.errorCode !== 'AWAITING_ELIGIBILITY' && kind !== 'conflict' && kind !== 'revisedPostAcceptance',
       });
     }
   }

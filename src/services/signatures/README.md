@@ -1,3 +1,5 @@
+**Batch 649:** a signature record can carry a link to the exact report version it signed: `ISignatureRecordService.ts` gains `SignatureRecordLink` fields for the version id, its number and the SHA-256 of its signed PDF bytes (absent when the PDF failed to render). Orchestration sign-out, a resident's release for countersign and Assist Finalize all record it, after the version exists (`services/surgicalSignOut/`).
+
 # services/signatures/
 
 Batch 345 (PS-60 follow-up). **The signature records: one per signature applied to a case.** Each record holds:

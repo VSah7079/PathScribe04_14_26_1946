@@ -17,7 +17,7 @@ import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
 import { runSessionEndHooks } from './sessionEndHooks';
 import { mockUserService } from '../users/mockUserService';
 import { mockRoleService } from '../roles/mockRoleService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService as defaultAuditService } from '../auditlog/auditServiceInstance';
 import { draftCacheService as mockDraftCacheService } from '../drafts/draftCacheInstance';
 import { biometricFlow } from '../biometric/biometricFlowInstance';
 import * as markers from '../session/sessionSupersedeService';
@@ -32,6 +32,7 @@ import { createSignerConfirmation, type SigningLockState } from './signerConfirm
 import { createSignatureGate } from './signatureEvidence';
 import { signatureRecordService } from '../signatures/signatureRecordServiceInstance';
 import { mfaService } from './mfa/mfaInstance';
+import { signOutPolicyService } from './signOutPolicy/signOutPolicyInstance';
 import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 const isProduction = !!import.meta.env.PROD;
@@ -112,7 +113,7 @@ export const authSession = createAuthSession({
   onSessionEnded: runSessionEndHooks,
   userService: mockUserService,
   roleService: mockRoleService,
-  auditService: mockAuditService,
+  auditService: defaultAuditService,
   draftCacheService: mockDraftCacheService,
   markers,
   profileStore: { read: readSessionProfile, write: writeSessionProfile },
@@ -134,7 +135,7 @@ export const signerConfirmation = createSignerConfirmation({
   readProfile: readSessionProfile,
   verifyDemoCredentials,
   ssoClient: getSsoClient,
-  auditService: mockAuditService,
+  auditService: defaultAuditService,
   lockStore: {
     read: userId => {
       try { return JSON.parse(localStorage.getItem(SIGNING_LOCK_KEY(userId)) ?? 'null') as SigningLockState | null; } catch { return null; }
@@ -155,6 +156,8 @@ export const signerConfirmation = createSignerConfirmation({
     challenge: (profile, code) => mfaService.challenge(profile, code, 'step-up'),
     stepUpWithClaims: (profile, claims) => mfaService.stepUpWithClaims(profile, claims),
   },
+  // Batch 642: the sign-out authentication policy and session.
+  signOutPolicy: signOutPolicyService,
 });
 
 // ── Batch 345: checking each signature when the signed record is saved ────
@@ -169,7 +172,7 @@ export const signatureGate = createSignatureGate({
   config: authConfig,
   readProfile: readSessionProfile,
   recordService: signatureRecordService,
-  auditService: mockAuditService,
+  auditService: defaultAuditService,
   usedStore: {
     read: () => {
       try {

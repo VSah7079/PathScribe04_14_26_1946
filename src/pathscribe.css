@@ -7433,7 +7433,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-gov-version-label            { font-size: 12px; font-weight: 700; color: #e2e8f0; }
 .ps-gov-version-badge            { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
 .ps-gov-version-badge--retroactive { background: rgba(248,113,113,0.15); color: #f87171; }
-.ps-gov-version-badge--prospective { background: rgba(148,163,184,0.15); color: #94a3b8; }
+.ps-gov-version-badge--prospective { background: rgba(148,163,184,0.15); color: #94a3b8; }  .ps-gov-version-badge--unverified { background: rgba(251,191,36,0.15); color: #fbbf24; margin-inline-start: 6px; }
 .ps-gov-version-figures          { font-size: 11px; color: #94a3b8; }
 .ps-gov-version-source           { font-size: 11px; color: var(--ps-text-dim); margin-top: 4px; }
 .ps-gov-jur-row                  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
@@ -10426,7 +10426,7 @@ h3[data-section-id]:first-child {
 /* Batch 495 (PS-283 §4.2.3): scan-and-correlate document reference in the footer. */
 .rp-doc-reference { display: flex; align-items: center; gap: 12px; padding-block: 6px 10px; padding-inline: var var(--rp-pad-r, 32px)(--rp-pad-l, 32px); background: #f8fafc; font-family: sans-serif; }
 .rp-doc-reference-barcode { display: inline-block; height: 28px; width: 160px; }
-.rp-doc-reference-barcode svg { height: 100%; width: 100%; }
+.rp-doc-reference-barcode svg { height: 100%; width: 100%; opacity: 1; filter: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; } .rp-doc-reference-barcode svg path { stroke: #000 !important; }
 .rp-doc-reference-text { font-size: 9px; color: #64748b; }
 
 @media print {
@@ -13382,7 +13382,7 @@ h3[data-section-id]:first-child {
 /* Batch 460: a matrix block's cores at the bench. */
 .ps-microtomy-matrix-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #cbd5e1; }
 .ps-microtomy-matrix-list strong { color: #e2e8f0; margin-inline-end: 6px; }
-.ps-microtomy-save-error { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #fecaca; background: color-mix(in srgb, #ef4444 14%, transparent); border: 1px solid color-mix(in srgb, #ef4444 35%, transparent); }
+.ps-microtomy-save-error, .ps-workstation-save-error { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #fecaca; background: color-mix(in srgb, #ef4444 14%, transparent); border: 1px solid color-mix(in srgb, #ef4444 35%, transparent); }
 
 .ps-microtomy-slide-table {
   width: 100%;
@@ -18651,7 +18651,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   flex-shrink: 0;
 }
 
-.ps-cfgpage-title-block { margin-bottom: 28px; }
+.ps-cfgpage-title-block { margin-bottom: 28px; position: relative; }
 .ps-cfgpage-title { font-size: 26px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
 .ps-cfgpage-subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
 
@@ -19087,9 +19087,6 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 
 .ps-auditlog-count-footer { margin-top: 6px; font-size: 12px; color: #94a3b8; text-align: end; flex-shrink: 0; }
 
-.ps-auditlog-footer { padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; color: var(--ps-text-dim); font-size: 12px; border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
-.ps-auditlog-footer-status { display: flex; align-items: center; gap: 8px; }
-.ps-auditlog-status-dot { width: 8px; height: 8px; background: #10B981; border-radius: 50%; box-shadow: 0 0 8px #10B981; display: inline-block; }
 
 /* ============================================================
    Home page (pages/Home.tsx)
@@ -19233,8 +19230,6 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   font-size: 12px;
   border-top: 1px solid var(--border-color);
 }
-.ps-home-footer-status { display: flex; align-items: center; gap: 8px; }
-.ps-home-status-dot { width: 8px; height: 8px; background: #10B981; border-radius: 50%; box-shadow: 0 0 8px #10B981; }
 
 /* ============================================================
    Contribution Dashboard page content (pages/ContributionDashboardPage.tsx)
@@ -19930,42 +19925,6 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-searchpage-notice--error { color: #fca5a5; }
 .ps-searchpage-inline-error { font-size: 11px; color: #fca5a5; }
 
-/* Profile / Resources / Logout modals (pages/SearchPage.tsx) */
-.ps-searchpage-modal-title { color: #0891B2; font-size: 24px; font-weight: 700; margin-bottom: 24px; }
-.ps-searchpage-modal-close-btn {
-  padding: 12px 24px;
-  border-radius: 10px;
-  background: rgba(8,145,178,0.15);
-  border: 1px solid rgba(8,145,178,0.3);
-  color: #0891B2;
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  width: 100%;
-}
-
-.ps-searchpage-resources-modal {
-  width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  background-color: #111;
-  border-radius: 20px;
-  padding: 40px;
-  border: 1px solid rgba(8,145,178,0.3);
-}
-.ps-searchpage-modal-title--resources { text-align: center; }
-.ps-searchpage-resource-section { margin-bottom: 24px; }
-.ps-searchpage-resource-section-label { color: #94a3b8; font-size: 12px; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; }
-.ps-searchpage-resource-link {
-  display: block;
-  color: #cbd5e1;
-  text-decoration: none;
-  padding: 12px 16px;
-  font-size: 16px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-}
-.ps-searchpage-resource-link:hover { color: #0891B2; background: rgba(8,145,178,0.1); }
 .ps-searchpage-logout-body { color: #94a3b8; margin-bottom: 30px; line-height: 1.6; font-size: 15px; }
 
 .ps-searchpage-rel-wrap { position: relative; }
@@ -23375,8 +23334,6 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 /* Batch 505: a guide button waits for the guide to load. */
 .ps-about-menu-item:disabled { opacity: 0.55; cursor: progress; }
 .ps-about-menu-item:hover { background: rgba(56,189,248,0.06); }
-.ps-about-menu-item--admin { color: #c084fc; }
-.ps-about-menu-item--admin:hover { background: rgba(139,92,246,0.06); }
 .ps-about-menu-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 0 24px; }
 .ps-btn-ghost-teal--full { margin-top: 16px; width: 100%; justify-content: center; }
 .ps-app-outlet-wrap { flex: 1; min-height: 0; overflow: hidden; width: 100%; isolation: isolate; }

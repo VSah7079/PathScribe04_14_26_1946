@@ -1,3 +1,5 @@
+**Batch 649:** `AddCodeModal.tsx`: Apply is greyed without `case:diagnosis-code:apply` (the save checks again).
+
 # pages/Synoptic/Codes/
 
 ICD/terminology code application UI for a case or specimen.
@@ -40,3 +42,10 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 615 (PS-138): searches for flagged findings
 
 `AddCodeModal` takes `triggerQueries` (matched abnormal-detection triggers). Each shows as a button above the system tabs (`acd-trigger-*` classes); pressing one switches to SNOMED, selects the finding's specimen and fills the search box. Only shown when SNOMED is allowed by the code-system policy. Test: `AddCodeModal.triggers.test.tsx`.
+
+## Batch 651
+`AddCodeModal.tsx`: the AI suggestion call moved to `services/coding/aiCodeSuggestions.ts` (the file is shorter by about 180 lines). The applied AI code records the real model and provider; confidence is 0 to 100 (`CaseCodingDisplay` no longer multiplies by 100); an OPCS-4 suggestion shows Simulated and cannot be applied (`addCodeModal.opcs4DemoNotApplicable`).
+
+**Batch 656:** after the AI suggestions arrive the window opens on the code system that has suggestions, and a note shows how many suggested codes could not be verified.
+
+Batch 696: `AiSuggestionMeta.tsx` (with its own CSS) renders the match label or percentage, where the code was taken from, and a check mark for the dictionary check; it was moved out of `AddCodeModal.tsx`, which shrank by one line.

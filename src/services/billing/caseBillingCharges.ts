@@ -25,7 +25,7 @@ import { markAwaitingApproval } from './chargeApproval';
 import { resolveRequireBillingApprovalForCase } from './shouldRequireBillingApproval';
 import { billingRuleService } from './billingRuleServiceInstance';
 import { serviceChargeService } from './serviceChargeServiceInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { correctServiceCharge } from './correctServiceCharge';
 
@@ -46,7 +46,7 @@ export const caseBillingChargeDeps: CaseBillingChargeDeps = {
   saveCharge: record => serviceChargeService.saveCharge(record),
   findActiveCharge: (caseId, specimenId, blockId, code) => serviceChargeService.findActiveChargeForSource(caseId, specimenId, blockId, code),
   requiresApproval: originHospitalId => resolveRequireBillingApprovalForCase(originHospitalId),
-  logAudit: entry => mockAuditService.logEvent(entry as any),
+  logAudit: entry => auditService.logEvent(entry as any),
   correctCharge: (caseId, chargeId, newCode, by, ctx) => correctServiceCharge(caseId, chargeId, newCode, by, ctx) as any,
 };
 

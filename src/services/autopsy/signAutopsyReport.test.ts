@@ -63,7 +63,9 @@ const signedPad = {
   signedAt: '2026-09-05T14:00:00Z',
 };
 
-function baseCase(overrides: Partial<Case> = {}, participants: any[] = []): Case {
+// Batch 649: no role bypass; by default the signing user (user-attending) is an active attending participant.
+const ATTENDING_PARTICIPANT = { staffId: 'user-attending', status: 'active', participationTypeIds: ['attending'] };
+function baseCase(overrides: Partial<Case> = {}, participants: any[] = [ATTENDING_PARTICIPANT]): Case {
   return {
     id: 'case-1',
     accession: { accessionNumber: 'A-2026-1' },
@@ -194,6 +196,7 @@ describe('signAutopsyReport', () => {
     getCase.mockResolvedValue(baseCase({}, [
       { status: 'active', staffId: 'user-resident', participationTypeIds: ['resident', 'attending'] },
     ]));
+    session.current = { id: 'user-resident', role: 'pathologist' }; // Batch 649: the signer is the session user, and must be the eligible participant
     const result = await signAutopsyReport('case-1', 'PAD', residentUser);
     expect(result.ok).toBe(true);
     expect(result.outcome).toBe('signed');
@@ -288,7 +291,7 @@ describe('signAutopsyReport — Report_Released_Event wiring, per direct follow-
 });
 
 describe('signAutopsyReport — signing authority (Batch 331, PS-327)', () => {
-  const hospitalCase = (participants: any[] = []) => baseCase({
+  const hospitalCase = (participants: any[] = [ATTENDING_PARTICIPANT]) => baseCase({
     autopsy: { jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false }, hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse', consentGivenAt: '2026-09-01T00:00:00Z', status: 'active', consentScope: [], excludedOrgans: [], retentionPermitted: true } } as any,
   }, participants);
 

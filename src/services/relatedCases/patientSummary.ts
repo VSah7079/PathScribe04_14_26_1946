@@ -13,7 +13,7 @@
 //     RelatedCaseList), so the two always read alike.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockAuditService as auditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { RelatedCaseSnapshot } from './relatedCaseTypes';
 
 export type PrintSummaryFailure = 'notPermitted' | 'nothingChosen';

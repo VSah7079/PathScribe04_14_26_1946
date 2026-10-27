@@ -11,9 +11,9 @@
 // ─────────────────────────────────────────────────
 import { parseHL7Message, getField, getComponent, getRepetitions } from './hl7Parser';
 import { processPatientManagementMessage } from './processPatientManagementMessage';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockEncounterService } from '../encounters/mockEncounterService';
-import { mockInterfaceExceptionService } from '../interfaceExceptions/mockInterfaceExceptionService';
+import { patientIndexService } from '../patients/patientServicesInstance';
+import { encounterService } from '../encounters/encounterInstance';
+import { interfaceExceptionService } from '../interfaceExceptions/interfaceExceptionServiceInstance';
 
 export type VisitEventType = 'A45' | 'A50' | 'A34';
 export const VISIT_EVENT_TYPES: readonly string[] = ['A45', 'A50', 'A34'];
@@ -66,7 +66,7 @@ export async function processVisitMessage(raw: string, organisationId: string): 
   };
 
   const queue = async (reason: string, sourcePatientId?: string, targetPatientId?: string): Promise<ProcessVisitMessageResult> => {
-    await mockInterfaceExceptionService.create({
+    await interfaceExceptionService.create({
       eventType, reason, rawMessage: raw, organisationId, sourcePatientId, targetPatientId,
       sourcePatientIdentifier: ref(getField(mrg, 1)).value || undefined, targetPatientIdentifier: ref(getField(pid, 3)).value || undefined,
     });
@@ -74,13 +74,13 @@ export async function processVisitMessage(raw: string, organisationId: string): 
   };
 
   if (!priorVisit) return queue(`No MRG-5 (prior visit number) on this ${eventType}: cannot tell which visit it refers to.`);
-  const found = await mockEncounterService.getByEncounterNumber(organisationId, priorVisit);
+  const found = await encounterService.getByEncounterNumber(organisationId, priorVisit);
   if (!found.ok || !found.data) return queue(`MRG-5 "${priorVisit}" does not match any known visit for this organisation.`);
   const enc = found.data;
 
   if (eventType === 'A50') {
     if (!newVisit) return queue('No PV1-19 (new visit number) on this A50.');
-    const r = await mockEncounterService.changeEncounterNumber(enc.id, newVisit, at);
+    const r = await encounterService.changeEncounterNumber(enc.id, newVisit, at);
     if (!r.ok) return queue(r.error);
     return r.data.changed
       ? { eventType, encounterId: enc.id, applied: true, summary: `A50 applied: visit number ${priorVisit} is now ${newVisit}.` }
@@ -90,12 +90,12 @@ export async function processVisitMessage(raw: string, organisationId: string): 
   // A45: move the visit between patients.
   const target = ref(getField(pid, 3));
   const source = ref(getField(mrg, 1));
-  const targetId = target.authority && target.value ? await mockPatientIndexService.resolveByIdentifier(target.authority, target.value) : null;
-  const sourceId = source.authority && source.value ? await mockPatientIndexService.resolveByIdentifier(source.authority, source.value) : null;
+  const targetId = target.authority && target.value ? await patientIndexService.resolveByIdentifier(target.authority, target.value) : null;
+  const sourceId = source.authority && source.value ? await patientIndexService.resolveByIdentifier(source.authority, source.value) : null;
   if (!targetId || !sourceId) {
     return queue(!targetId && !sourceId ? 'Neither patient on this A45 is known.' : !targetId ? 'The target patient (PID-3) on this A45 is not known.' : 'The source patient (MRG-1) on this A45 is not known.', sourceId ?? undefined, targetId ?? undefined);
   }
-  const moved = await mockEncounterService.reassignPatient(enc.id, sourceId, targetId, at);
+  const moved = await encounterService.reassignPatient(enc.id, sourceId, targetId, at);
   if (!moved.ok) return queue(moved.error, sourceId, targetId);
   return moved.data.reassigned
     ? { eventType, encounterId: enc.id, applied: true, summary: `A45 applied: visit ${priorVisit} moved to the target patient.` }

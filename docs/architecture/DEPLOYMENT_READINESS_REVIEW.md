@@ -8,7 +8,7 @@
 
 ---
 
-## 0. Status at Batch 570 (Oct 14, 2026)
+## 0. Status at Batch 570 (Oct 14, 2026), with what changed by Batch 641 in section 0.8
 
 **In one line:** the browser side of every change this review asked for is built and tested; the server side (phase 2e) is not started, so **PathScribe cannot yet be deployed to production anywhere.** The six blockers in section 12 are all server work.
 
@@ -84,13 +84,25 @@
 1. ~~**`DataChanged` (one hub event with topics) in place of `ReceiveExceptionCountUpdate`**, and the hub name `/hubs/live`.~~ **Decided (Pete, Oct 14): `DataChanged` with topics, on `/hubs/live`; future live screens get a topic, not an event of their own** (section 5; `LIVE_UPDATES_SIGNALR.md` §14).
 2. ~~**Organ-map events**~~ **Decided (Pete, Oct 14):** a `caseReport` topic tells an open case report at once that someone else saved the case (any write, organ-map figures included; Batch 572), and presence ("also viewing", with whether they are editing) is built browser-side in Batch 573 (`LIVE_UPDATES_SIGNALR.md` §15; the server issues each case's support reference, `CASE_API.md` §8). `organMapConfigChanged` stays proposed.
 3. ~~**F7:** whether the server trusts the browser's screening-time figure.~~ **Decided (Pete, Oct 14): no.** Server-recorded screening events plus an end-of-day sign-off of hours by each person (option C; `CYTOLOGY_QC_API.md` §5).
-4. **Translations:** native-speaker review of fr/de/nl/ko before clinical use.
+4. **Translations:** native-speaker review of fr/de/nl/ko/es before clinical use (Spanish was added after this review; review workbooks for all five exist, Batch 637).
 
-### 0.7 Test status at Batch 570
+### 0.7 Test status at Batch 570 (latest full run, Batch 640: 1,697 files, 14,256 tests pass, the same single failing file; type-check clean; the browser accessibility checks were last run at Batch 570)
 
 - vitest: 9,794 tests pass in 1,169 files; the only failing file is `firestore.rules.test.ts`, which needs the Firebase emulator and goes with change 9.
 - Browser accessibility checks: 70 pass.
 - Server build and demo build both build; the first load is 0.70 MB gzipped (target 1 MB).
+
+### 0.8 Since Batch 570 (refreshed Batch 641, Oct 20, 2026)
+
+The picture above still holds: **the browser side is built and the server side (phase 2e) is not started, so PathScribe cannot yet be deployed to production.** Changes since that add server work or a decision, and none removes a blocker:
+
+- **CI pipeline** (PS-471, Batch 615): written, runs once the repository is on GitHub (PS-468, end of October).
+- **CSMS eligibility gate** (Batches 636 and 638): the server must hold the CSMS message as `AWAITING_ELIGIBILITY`, release or close it on the eligibility answer, and refuse a Resend (`REGISTRY_ACKNOWLEDGEMENT_API.md` §10).
+- **Recall settings** (Batches 632 and 640): the screening strategy settings now carry per-country recall windows and the laboratory's wording; the server stores, validates and audits them (`CYTOLOGY_API.md`). The register's recommendation codes are the interface engine's to map.
+- **Registry batch files** (Batch 620): the batch feed and its server job are in `BATCH_REGISTRY_FEED_API.md`; CSMS-closed (`NOT_ELIGIBLE`) records are left out.
+- **Surgical results through the outbound queue** still run on the demo's mock queue; the real queue is server work (the demo's surgical patients were added to the patient index in Batch 638 so the demo queues them).
+- **Dictation:** a Belgian Dutch option exists (Batch 638); it needs a Belgian speaker to test, and no server work.
+- **Languages:** Spanish is the sixth; translations in all five non-English languages still need native-speaker review.
 
 ## 1. Summary for a hospital IT review
 

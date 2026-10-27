@@ -98,6 +98,81 @@ export function computeOverviewKpis(
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Peer averages for the Overview KPI tiles (Batch 652). The "peer avg" row used to be three fixed numbers
+// (109, 18, 76) shown to everyone. A peer is another active staff member with the same role and a facility in
+// common; the figures are the mean of each peer's own computeOverviewKpis result, so they use the same definition
+// as the person's own tile. With fewer than MIN_PEER_GROUP peers nothing is shown (never a fabricated figure, and
+// never an average of one or two people that would expose them).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MIN_PEER_GROUP = 3;
+
+export interface PeerStaffRecord {
+  id: string;
+  roles: string[];
+  status?: string;
+  /** Empty or absent: works at all facilities (same meaning as StaffUser.facilityIds). */
+  facilityIds?: string[];
+}
+
+export interface PeerKpiAverages {
+  peerCount: number;
+  /** False when the peer group is smaller than MIN_PEER_GROUP; the averages are then null. */
+  enough: boolean;
+  casesFinalized30d: number | null;
+  casesInProgress:   number | null;
+  aiAssistedCases30d: number | null;
+}
+
+const facilitiesOverlap = (a?: string[], b?: string[]): boolean =>
+  !a?.length || !b?.length || a.some(f => b.includes(f));
+
+/** Ids of the active staff who share at least one role and at least one facility with `me` (never `me`). */
+export function selectPeerGroup(me: PeerStaffRecord | undefined, staff: PeerStaffRecord[]): string[] {
+  if (!me || me.roles.length === 0) return [];
+  return staff
+    .filter(s => s.id !== me.id
+      && (s.status === undefined || s.status === 'Active')
+      && s.roles.some(r => me.roles.includes(r))
+      && facilitiesOverlap(me.facilityIds, s.facilityIds))
+    .map(s => s.id);
+}
+
+/** The one peer rule both the Overview "Peer avg" and Productivity > Peer Comparison use (Batch 658): the same-role,
+ *  shared-facility group, or nobody when it is smaller than MIN_PEER_GROUP (so no figure can single a person out). */
+export function peerGroupForComparison(me: PeerStaffRecord | undefined, staff: PeerStaffRecord[]): string[] {
+  const ids = selectPeerGroup(me, staff);
+  return ids.length >= MIN_PEER_GROUP ? ids : [];
+}
+
+const mean1 = (values: number[]): number => Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+
+export function computePeerKpiAverages(
+  cases: CaseForDashboardCalc[],
+  me: PeerStaffRecord | undefined,
+  staff: PeerStaffRecord[],
+  now: Date = new Date()
+): PeerKpiAverages {
+  const peerIds = peerGroupForComparison(me, staff);
+  if (peerIds.length === 0) {
+    return { peerCount: selectPeerGroup(me, staff).length, enough: false, casesFinalized30d: null, casesInProgress: null, aiAssistedCases30d: null };
+  }
+  const kpis = peerIds.map(id => computeOverviewKpis(cases, id, now));
+  return {
+    peerCount: peerIds.length,
+    enough: true,
+    casesFinalized30d:  mean1(kpis.map(k => k.casesFinalized30d)),
+    casesInProgress:    mean1(kpis.map(k => k.casesInProgress)),
+    aiAssistedCases30d: mean1(kpis.map(k => k.aiAssistedCases30d)),
+  };
+}
+
+/** The peer figures in the order of the three Overview KPI tiles (finalized, in progress, AI-assisted); null when not enough peers. */
+export function peerValuesByTile(p: PeerKpiAverages): (number | null)[] {
+  return [p.casesFinalized30d, p.casesInProgress, p.aiAssistedCases30d];
+}
+
 export interface RealCaseMixData {
   breast: number;
   gi:     number;

@@ -98,13 +98,13 @@ export function correctionFromForm(f: CorrectionForm): BillingCorrection | null 
 }
 
 async function deps() {
-  const [{ caseRouter }, { mockServiceChargeService }, { mockBillingRuleService }, { isCaseSignedOutForBilling }] = await Promise.all([
+  const [{ caseRouter }, { serviceChargeService }, { billingRuleService }, { isCaseSignedOutForBilling }] = await Promise.all([
     import('../cases/CaseRouter'),
-    import('./mockServiceChargeService'),
-    import('./mockBillingRuleService'),
+    import('./serviceChargeServiceInstance'),
+    import('./billingRuleServiceInstance'),
     import('./isCaseSignedOutForBilling'),
   ]);
-  return { caseRouter, charges: mockServiceChargeService, rules: mockBillingRuleService, isCaseSignedOutForBilling };
+  return { caseRouter, charges: serviceChargeService, rules: billingRuleService, isCaseSignedOutForBilling };
 }
 
 async function build(c: CaseLike, d: Awaited<ReturnType<typeof deps>>): Promise<CorrectionCase> {

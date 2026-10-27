@@ -1,10 +1,10 @@
 # System capabilities (access control)
 
-Generated Oct 17, 2026 from `src/services/authorization/capabilityCatalog.ts` and the English locale. This is the list of things a role can be granted that PathScribe actually enforces: every entry is checked by a service, and a guard test fails the build otherwise. It is **not** the voice and hotkey command list (see `ACTIONS_COVERAGE.md`), which does not widen access.
+Generated Oct 17, 2026, updated Oct 22, 2026 (Batch 649: 17 new, 321 to 338; Batch 654: 1 new, 339; Batch 669: 3 new, 343; Batch 669 Control Rules view: 1 new, 344; Batch 669 consult reveal identity: 1 new, 345) from `src/services/authorization/capabilityCatalog.ts` and the English locale. This is the list of things a role can be granted that PathScribe actually enforces: every entry is checked by a service, and a guard test fails the build otherwise. It is **not** the voice and hotkey command list (see `ACTIONS_COVERAGE.md`), which does not widen access.
 
-**308 capabilities in 23 groups.** Key format `domain:object:verb`. *High risk* = every check is written to the audit log, allowed or denied (every export is high risk). *Needs* = capabilities that must be granted with it. *Platform only* = ForMedrixAI support, held only through Superadmin; a hospital role can never hold it.
+**345 capabilities in 23 groups.** Key format `domain:object:verb`. *High risk* = every check is written to the audit log, allowed or denied (every export is high risk). *Needs* = capabilities that must be granted with it. *Platform only* = ForMedrixAI support, held only through Superadmin; a hospital role can never hold it.
 
-263 are high risk; 6 are platform only.
+291 are high risk; 6 are platform only.
 
 ## Separation of duties
 
@@ -37,10 +37,11 @@ A role may not hold both of these (the role service refuses it):
 | `screen:quality-assurance:open` | Open Quality Assurance | See the Quality Assurance screen and its tile in Quality & Compliance. | standard |  |  |
 | `screen:autopsy-dashboards:open` | Open Autopsy Dashboards | See the Autopsy Dashboards screen and its tile in Quality & Compliance. | standard |  |  |
 | `screen:outbound-queue:open` | Open Outbound Queue | See the Outbound Queue screen and its tile in Quality & Compliance. | standard |  |  |
+| `screen:lockbox-drop-off:open` | Open Lockbox Drop-Off | See the Lockbox Drop-Off screen and its tile on the Home page. | standard |  |  |
 | `screen:registry-exceptions:open` | Open Registry Exceptions | See every registry submission that needs a person: held, undelivered, rejected or unanswered. | standard |  |  |
 | `screen:configuration:open` | Open Configuration | See the Configuration screen and its tile on the Home page. | standard |  |  |
 
-## Case work (80)
+## Case work (96)
 
 | Key | Name | What it allows | Risk | Needs | Notes |
 |---|---|---|---|---|---|
@@ -66,6 +67,8 @@ A role may not hold both of these (the role service refuses it):
 | `cytology:ct-report:sign-out` | Sign out a cytology report as a cytotechnologist | A cytotechnologist signing out a negative GYN case (or under the advanced-cytotechnologist exception). Remove it from the role where cytotechnologists may not sign reports. Also needs the sign-out permission. | high | `cytology:report:sign-out` |  |
 | `cytology:review:record` | Record a cytology screening review | Save a screening or pathologist review of a cytology specimen in the Cytology Workspace, or edit your own. Workload limits and QC selection still apply. | high |  |  |
 | `cytology:screening-hours:sign-off` | Sign off your screening hours | Confirm, or correct with a reason, your own screening hours for a day. The confirmed hours are your screening hours record, counted in the supervisor's workload report; a large correction is flagged for your supervisor. | high |  |  |
+| `cytology:csms-eligibility:verify` | Record a CSMS eligibility check | Record the answer to the CSMS eligibility check on a case in the CSMS QA tab: verified, or not eligible with a reason. This clears the case's verification flag. Audited with who, when and the outcome. | high |  |  |
+| `cytology:hpv-result:record-manual` | Record an hrHPV result by hand | Enter Positive or Negative for a specimen by hand, naming the source (paper report, interface downtime, telephoned result, back-entry). If it would replace a result from the interface, a different authorised person must approve it. Audited. | high |  |  |
 | `cytology:final-diagnosis:select` | Choose a cytology final diagnosis | Set which review is the specimen's final diagnosis, the one that is signed out. A review that needs a pathologist can still only be chosen by one. | high |  |  |
 | `cytology:qc-flag:remove` | Remove a cytology QC flag | Remove a random or high-risk QC flag from a cytology specimen. While flagged, a cytotechnologist can't sign it out without the rescreen. Each removal is audited. | high |  |  |
 | `cytology:retrospective-review:record` | Record a 5-year retrospective review | Record the outcome and any corrective action of the CAP 5-year retrospective review of a prior negative cytology result. | high |  |  |
@@ -84,9 +87,12 @@ A role may not hold both of these (the role service refuses it):
 | `case:outside-consult:assess` | Assess an outside consult opinion | Record whether an outside consultant's opinion agrees with the case, differs slightly, or is a major discordance. A major discordance on a released report recommends a CAPA. | high |  |  |
 | `case:consult-link:issue` | Issue an outside consult link | Give an outside consultant a time-limited, view-only link to a case or chosen slides. Recorded in the case's audit trail. | high |  |  |
 | `case:consult-link:revoke` | Revoke an outside consult link | Switch off an outside consultant’s link before it expires. Recorded in the case’s audit trail. | high |  |  |
+| `case:consult-link:reveal-identity` | Show the patient's full identity to an outside consultant | When issuing a consult link, tick the box that shows the consultant the patient's full name and date of birth (the page is masked by default). The choice is audited. | high |  |  |
 | `cytology:pathologist-review:take` | Take a positive GYN cytology case for review | Take a positive GYN cytology case from the Worklist's Cytology Review tile. You become the case's pathologist; the cytotechnologist stays on the case. | high |  |  |
 | `add-on:order:place` | Place an add-on order | Order recuts, special stains, IHC or molecular/send-out tests on a case’s blocks, and cancel or modify an add-on order after a block exception. | high |  |  |
 | `add-on:exception:approve-destructive-cut` | Approve destructive cutting | Allow an add-on order to be cut from a block that may be used up by it. | high |  |  |
+| `add-on:exception:flag` | Flag a block exception | Report that a block is used up or otherwise cannot be cut (Block exhausted and the other reasons), on the Add-On Orders tracking list and the Microtomy workstation. The ordering pathologist, or the Supervisor / Accessioning Desk when there is none, is e-mailed. | standard |  |  |
+| `add-on:block:mark-retrieved` | Mark a block retrieved | Record that the block for an add-on order has been taken from storage. | standard |  |  |
 | `batch:reconciliation:override` | Complete a batch reconciliation anyway | Mark a batch complete when items are missing or unexpected, with a reason. | high |  |  |
 | `batch:run:abort` | Abort a batch | Abort a processing, staining or referral batch, with a reason. | high |  |  |
 | `batch:cold-chain-excursion:acknowledge` | Acknowledge a cold-chain excursion | Acknowledge a temperature excursion on a batch, with a note, so it can be completed. | high |  |  |
@@ -108,6 +114,8 @@ A role may not hold both of these (the role service refuses it):
 | `report:case-images:attach` | Attach images to a report | Attach images (gross photographs, microphotographs) to a case's report, or take them off. They print after the report's own pages. Audited. | standard |  |  |
 | `report:related-cases:attach` | Attach related cases to a report | Choose a patient's other released cases to send with the report being signed out. They are fixed when the report is signed out. Audited. | standard |  |  |
 | `patient:summary:print` | Print a patient summary | Print a summary of a patient's released cases that you can view, from the patient history. It is labelled as a summary and not a signed report. Every print is audited. | high |  |  |
+| `ai:history-extraction:run` | Run the AI extraction on historical reports | Let the AI read a historical report's Final Diagnosis and Microscopic text and keep the synoptic fields it finds beside the case, for you to look at. Advisory only, never used in reports. Audited. | high |  |  |
+| `ai:history-extraction:flag` | Flag an AI extraction as wrong | Record that an AI-extracted field of a historical report is wrong, so accuracy can be measured. Changes nothing else. Audited. | standard | `ai:history-extraction:run` |  |
 | `patient:break-glass:rebind` | Rebind a downtime patient identity (break-glass) | Rebind a flagged downtime (temporary) patient identity to the confirmed patient and re-point its cases. Needs a reason code and a written justification. Audited. | high |  |  |
 | `report:restricted-case:print` | Print a restricted case | Print, reprint or open the PDF of a case carrying a flag that restricts printing (VIP, confidential consultation). Needs "Print a case report" as well. | high | `report:case-report:print` |  |
 | `case:edit-conflict:override` | Save over someone else's newer version | On the report page's Edit Conflict dialog, "Save mine anyway": save this session's changes over a version someone else saved after the page was opened. Audited. | high |  |  |
@@ -124,6 +132,19 @@ A role may not hold both of these (the role service refuses it):
 | `grossing:margin-ink:record` | Record a margin ink application | Record ink applied to a surgical margin during grossing, and mark the margin examined. | standard |  |  |
 | `case:inking-gate:override` | Override the inking sign-out gate | Administrative Override of a Severity 3 (compliance-critical) margin-ink issue blocking sign-out, with a mandatory reason. Audited. | high |  |  |
 | `label:batch:reprint` | Batch label reprint | Reprint requisition, container and cassette labels for many cases at once. Each label is audited. | high |  |  |
+| `surgical:report:sign-out` | Sign out surgical reports | Sign out (Orchestration) or finalize (Assist) a surgical report. The case itself still decides who may sign it: only an active participant whose participation type can finalize. | high |  |  |
+| `surgical:preliminary:release` | Release a surgical preliminary report | Send a preliminary report on a surgical case before sign-out (held for the release delay like every output). | high |  |  |
+| `surgical:amendment:release` | Release a surgical amendment | Release an amendment to a signed surgical report (the diagnosis changed; the clinician notification is required). | high |  |  |
+| `surgical:correction:release` | Release a surgical correction | Release a correction to a signed surgical report (no diagnostic change). | high |  |  |
+| `surgical:addendum:release` | Release a surgical addendum | Release an addendum to a signed surgical report (added information). | high |  |  |
+| `report:release:recall` | Recall a report during the release delay | Recall a signed report, preliminary, correction or addendum before its release delay ends. Only the person who released it can recall it. | high |  |  |
+| `case:pool:claim` | Claim a pool case | Take a case from a pool and become its assigned pathologist. Pool membership rules still apply. | high |  |  |
+| `case:pool:pass` | Pass a pool case | Pass on a pool case so it stays in the pool for someone else. | standard |  |  |
+| `case:flag:apply` | Apply case and specimen flags | Apply a flag from the flag catalogue to a case or a specimen in the Flag Manager. | standard |  |  |
+| `case:flag:remove` | Remove case and specimen flags | Remove a flag from a case or a specimen in the Flag Manager (who removed it and when are kept). | standard |  |  |
+| `case:diagnosis-code:apply` | Apply diagnosis codes | Save diagnosis and procedure codes (SNOMED CT, ICD-10, ICD-O-3, CPT and others) on a case from the Codes window. | high |  |  |
+| `case:accession:create` | Create a case at accessioning | Create a new case on the Accession screen. Needs the Accession screen. | high | `screen:accession:open` |  |
+| `case:informal-review:request` | Ask a colleague for an informal review | Send a colleague an informal review, second look or other review request on a case (a message and, for an informal review, a worklist request). | standard |  |  |
 
 ## Billing (6)
 
@@ -166,7 +187,7 @@ A role may not hold both of these (the role service refuses it):
 |---|---|---|---|---|---|
 | `report:change-history:export` | Export report change history | Download a case's report change history (who changed which field, when, and at which workstation) as CSV. | high |  |  |
 
-## Quality assurance: Operations (13)
+## Quality assurance: Operations (18)
 
 | Key | Name | What it allows | Risk | Needs | Notes |
 |---|---|---|---|---|---|
@@ -183,6 +204,11 @@ A role may not hold both of these (the role service refuses it):
 | `qa:access-request-response:export` | Export access requests | Download patient access requests and their response times as CSV. | high |  |  |
 | `qa:ai-discordance:export` | Export AI discordance | Download the AI discordance rate for each AI product, or the list of AI results that have gone unanswered too long, as CSV. | high |  |  |
 | `qa:registry-transmission-audit:export` | Export the registry transmission audit | Download what was sent to screening and cancer registries: when it was sent, the registry's status and its response code. No patient names or MRNs. Audited. | high |  |  |
+| `qa:deficiency:raise` | Raise a QA deficiency | Raise a case or specimen deficiency by hand on the Quality Assurance screen. | high | `screen:quality-assurance:open` |  |
+| `qa:deficiency:escalate` | Escalate a QA deficiency to CAPA | Escalate an open deficiency to CAPA with its root cause and corrective action, for a later effectiveness check. | high | `screen:quality-assurance:open` |  |
+| `qa:deficiency:contain` | Contain a QA deficiency | Close an open deficiency at once with immediate containment (no root cause, nothing to verify later). | high | `screen:quality-assurance:open` |  |
+| `qa:deficiency:verify` | Verify a QA deficiency's corrective action | Record the effectiveness check of an escalated deficiency: effective closes it, recurred reopens it. | high | `screen:quality-assurance:open` |  |
+| `qa:management-review:submit` | Submit a Management Review | Submit a Management Review of closed QA deficiencies from the Quality Assurance screen. | high | `screen:quality-assurance:open` |  |
 
 ## Quality assurance: CAPA (4)
 
@@ -205,7 +231,7 @@ A role may not hold both of these (the role service refuses it):
 |---|---|---|---|---|---|
 | `qa:cytology-histology-correlation:export` | Export cytology–histology correlation | Download or print the cytology–histology correlation report. | high |  |  |
 
-## Quality assurance: Dashboard, inspection and enterprise (23)
+## Quality assurance: Dashboard, inspection and enterprise (24)
 
 | Key | Name | What it allows | Risk | Needs | Notes |
 |---|---|---|---|---|---|
@@ -213,6 +239,7 @@ A role may not hold both of these (the role service refuses it):
 | `qa:activity-dashboard:export` | Export QA dashboard | Download QA review totals by activity type as CSV. | high |  |  |
 | `audit:error:resolve` | Resolve an Audit Log error | Mark an error in Audit Log → Error Log as resolved. Recorded with who resolved it and when. | high |  |  |
 | `print:job:hold` | Hold or release a print job | Put a queued or failed print job on hold in Audit Log → Interfaces → Print Queue, or release it. Recorded with who did it. | high |  |  |
+| `print:release-hold:override` | Print a report during its release hold (supervisor override) | When the Release Hold Print Policy is Supervisor Override, print a report that is still in its release delay. A reason is required and it is recorded with who did it. | high |  |  |
 | `print:job:cancel` | Cancel a print job | Cancel a print job in the Print Queue so it is never printed. Recorded with who cancelled it. | high |  |  |
 | `print:job:redirect` | Redirect a print job | Send a network print job to a different printer from the Print Queue. Recorded with the new printer and who chose it. | high |  |  |
 | `print:job:retry` | Retry a print job | Resend a failed print job from the Print Queue, using the report as it was first printed. | high |  |  |
@@ -220,6 +247,9 @@ A role may not hold both of these (the role service refuses it):
 | `interface:outbound:hold` | Hold outbound messages | Hold a waiting or failed outbound message so nothing sends it until it is released. Audited. | high | `screen:outbound-queue:open` |  |
 | `interface:outbound:release` | Release held outbound messages | Let a held outbound message go again. Audited. | high | `screen:outbound-queue:open` |  |
 | `interface:outbound:mark-not-reportable` | Mark rejected messages not reportable | Close a message a registry rejected as not reportable, with a reason. Nothing more is sent for it. Audited. | high | `screen:outbound-queue:open` |  |
+| `lockbox:specimen:receive` | Receive specimens in the lockbox | Scan a container barcode and write its permanent "Received in Lockbox" receipt, with the server time and your name. A barcode with no pending order gets a placeholder record, never an accession number. | high | `screen:lockbox-drop-off:open` |  |
+| `lockbox:folder:review` | Review the Overnight folder | See specimens received in the lockbox and not yet accessioned, mark them accessioned, and read the time-to-receipt figures. | high | `screen:lockbox-drop-off:open` |  |
+| `lockbox:placeholder:resolve` | Link a lockbox placeholder to its order | Attach the real order or accession number to a placeholder from the Overnight folder. This adds an entry; the original receipt is never changed. | high | `lockbox:folder:review` |  |
 | `interface:outbound:retract` | Retract queued charges | Cancel a queued charge before release because its case was amended or retracted, with a reason. Terminal. Audited. | high | `screen:outbound-queue:open` |  |
 | `interface:outbound:override-release` | Release charges ahead of schedule | Force an immediate release of a queued or held charge, ahead of its delivery schedule. Recorded by user id. Audited. | high | `screen:outbound-queue:open` |  |
 | `interface:engine-status:view` | View interface engines | See each hospital's interface engine in Audit Log → Interfaces → Engines: its listeners and channels, what is waiting and the dead letters. No patient data. | standard | `screen:audit-log:open` |  |
@@ -233,7 +263,7 @@ A role may not hold both of these (the role service refuses it):
 | `audit:qa-log:export` | Export the Quality Assurance log | Download Audit Log → Quality Assurance as CSV, the record shown to inspectors. The export is recorded in the audit log. | high | `screen:audit-log:open` |  |
 | `audit:billing-log:export` | Export the Billing Log | Download Audit Log → Billing Log as CSV. It contains patient names and identifiers. The export is recorded in the audit log. | high | `screen:audit-log:open` |  |
 
-## Administration: staff, roles and system (18)
+## Administration: staff, roles and system (21)
 
 | Key | Name | What it allows | Risk | Needs | Notes |
 |---|---|---|---|---|---|
@@ -245,7 +275,9 @@ A role may not hold both of these (the role service refuses it):
 | `config:field-requirements:manage` | Manage field requirements | Choose which fields each page requires before saving, for your organisation. Locked fields stay required. | high |  |  |
 | `auth:mfa-enrolment:reset` | Reset a second-factor enrolment | Remove a colleague's Simulated authenticator enrolment in your organisation (a lost device) so they enrol again at next sign-in. Audited. | high |  |  |
 | `config:intraop-critical-results:manage` | Manage the intraoperative critical results dictionary | Add, change or deactivate the entries that flag a frozen result as a critical result. | high |  |  |
-| `config:molecular-control-rules:manage` | Manage molecular assay control rules | Add, change or delete the controls each molecular assay's plates need and the deck slots its sample rack may go in. | high |  |  |
+| `config:or-board-demo:run` | Run the OR Suite demo | Start and Stop demo on the OR Suite Live Board. Start adds four invented DEMO cases to the intraoperative data; Stop removes them. | high |  |  |
+| `config:molecular-control-rules:view` | View molecular assay control rules | Open the Control Rules page and read each molecular assay's required controls and allowed sample-rack slots. Does not need the Molecular screen. | standard |  | Admin, Lab Director, QA Reviewer and the Molecular Technologist hold it by default. |
+| `config:molecular-control-rules:manage` | Manage molecular assay control rules | Add, change or delete the controls each molecular assay's plates need and the deck slots its sample rack may go in. | high | `config:molecular-control-rules:view` |  |
 | `config:screening-registry:manage` | Manage screening registry reporting | Choose which cervical screening registry each facility reports to, and set each registry's code mappings and what to hold rather than send. Audited. | high |  |  |
 | `config:cancer-registry:manage` | Manage cancer registry reporting | Choose which cancer registry each facility reports to, whether results go to its test or live system, and whether the jurisdiction honours a patient's opt-out. Audited. | high |  |  |
 | `config:cytology-compliance:manage` | Manage country-specific cytology rules | Switch the CLIA daily workload cap and the CAP 5-year retrospective lookback on or off, for the enterprise or a facility. Audited. | high |  |  |
@@ -254,6 +286,7 @@ A role may not hold both of these (the role service refuses it):
 | `config:registry-go-live:manage` | Manage registry go-live approval settings | Whether the person who requests a registry go-live may also approve it, and how many approvals are required (the template review settings' shape). Audited. | high |  |  |
 | `registry:test-suite:run` | Run the registry test suite | Send the synthetic test cases (fictitious patients only) to a registry's test system, on a validation instance only. Audited. | high |  |  |
 | `registry:revision:review` | Mark a registry revision reviewed | Mark a registry's change to data it had already accepted as reviewed, so it leaves the Registry Exceptions worklist. The CAPA deficiency raised with it stays open in Quality Assurance. Audited. | high | `screen:registry-exceptions:open` |  |
+| `registry:batch-file:generate` | Make a registry batch file | Make a programme's batch file now and download it; the records in it are marked sent and the file's checksum is recorded. Audited. | high |  | `config:batch-registry-feed:manage` |
 | `config:template-governance:manage` | Manage template review settings | Change the template review settings: whether authors may approve their own templates, and how many independent reviewers a template needs. Audited. | high |  |  |
 
 ## Configuration: protocols and report templates (7)
@@ -319,7 +352,7 @@ A role may not hold both of these (the role service refuses it):
 | `config:asset-locations:manage` | Manage storage locations | Add and edit where material and bodies are kept. Audited. | high |  |  |
 | `config:case-masks:manage` | Manage case number formats | Set how case numbers are built. Audited. | high |  |  |
 
-## Configuration: results, reporting and quality (24)
+## Configuration: results, reporting and quality (26)
 
 | Key | Name | What it allows | Risk | Needs | Notes |
 |---|---|---|---|---|---|
@@ -331,6 +364,8 @@ A role may not hold both of these (the role service refuses it):
 | `config:delivery-rules:manage` | Manage report delivery rules | Choose where reports are sent. Audited. | high |  |  |
 | `config:delivery-schedules:manage` | Manage delivery schedules | Choose when reports, billing and feeds go out, for the enterprise and each performing facility. Audited. | high |  |  |
 | `config:billing-release:manage` | Manage billing release rules | Choose when generated charges are released to billing, per billing type, for the enterprise and each performing facility. Audited. | high |  |  |
+| `config:batch-registry-feed:manage` | Manage registry batch files | Set up a registry or screening programme that takes a file instead of a message: its format, columns and file name, and turn it on. Audited. | high |  |  |
+| `config:us-epath:manage` | Manage US ePath profiles | Create a state profile for US electronic pathology reporting (required fields, transport, checks, the state's own codes) and choose which profile each performing facility uses. Audited. | high |  |  |
 | `config:abnormal-triggers:manage` | Manage abnormal result rules | Choose what counts as an abnormal result, and turn detection on or off. Audited. | high |  |  |
 | `config:concordance-review:manage` | Manage concordance review | Set the lab's concordance review default. Audited. | high |  |  |
 | `config:qa-types:manage` | Manage QA activity types | Add and edit QA activity and supervision types. The standard ones can't be switched off. Audited. | high |  |  |
@@ -367,13 +402,15 @@ A role may not hold both of these (the role service refuses it):
 | `config:or-suite-terminals:manage` | Manage operating room terminals | Choose where frozen section results show. Audited. | high |  |  |
 | `config:display-profiles:manage` | Manage wall display profiles | Choose what the wall dashboards show. Audited. | high |  |  |
 
-## Configuration: integrations and intake (14)
+## Configuration: integrations and intake (16)
 
 | Key | Name | What it allows | Risk | Needs | Notes |
 |---|---|---|---|---|---|
 | `config:vendor-integrations:manage` | Manage vendor integrations | Add and edit slide, image and AI vendor connections. Audited. | high |  |  |
 | `config:site-agents:enroll` | Enrol and revoke site agents | Make a one-time enrolment code for installing a site agent, and revoke an agent (cut off at once). At the site's facility. Audited. | high |  |  |
 | `config:site-agent-config:manage` | Manage site agent printers and shares | Add, change or remove the printers and file shares a site's agent uses. The hospital's own allow-list on the agent's machine still decides what it may reach. Audited. | high |  |  |
+| `config:cosd-destination:manage` | Manage the UK cancer registry destination | Choose how a UK cancer registry submission is sent and how many working days a rejected one has to be corrected, for the enterprise and each performing facility. Audited. | high |  |  |
+| `config:history-extraction:manage` | Manage the AI history extraction | Turn the AI reading of historical reports on or off, for the enterprise and each performing facility. Off unless turned on. Audited. | high |  |  |
 | `config:workstations:manage` | Manage registered workstations | Register a named workstation and change its facility, room, area, point of care and bound printers. Audited. | high |  |  |
 | `config:workstation-tokens:manage` | Manage workstation tokens | Rotate or revoke a workstation's token and run the token test. Audited. | high |  |  |
 | `config:bi-feed:manage` | Change the reporting feed settings | Switch the reporting feed on or off and choose the datasets and facilities it offers. Audited. | high |  |  |

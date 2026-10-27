@@ -29,7 +29,7 @@
 // Never reuse or reassign an internalKey even if an action is removed.
 // ─────────────────────────────────────────────────────────────────────────────
 import { DEFAULT_ACTION_GRANTS } from './defaultActionGrants';
-import { OUTBOUND_QUEUE_ACTION_GROUP } from './outboundQueueActionGroup';
+import { ADDED_ACTION_GROUPS, type ResultRegistryActionId, type LockboxActionId, type PatientBannerActionId, type WorklistRowActionId, type CaseTeamActionId } from './addedActionGroups';
 
 export type ActionId =
   // ── System (always available) ────────────────────────────────────────────
@@ -183,7 +183,7 @@ export type ActionId =
   | 'caseAccess.deny' | 'caseAccess.revoke' | 'searchReport.save' | 'searchReport.export'
   | 'searchReport.schedule' | 'followUp.expect' | 'followUp.recordOutcome' | 'followUp.reopen'
   | 'followUp.emailClinician' | 'codes.searchFlagged' | 'biometric.enrol' | 'biometric.disable'
-  | 'outboundQueue.hold' | 'outboundQueue.release' | 'outboundQueue.retry' | 'outboundQueue.retract' | 'outboundQueue.overrideRelease' | 'outboundQueue.markNotReportable';
+  | 'outboundQueue.hold' | 'outboundQueue.release' | 'outboundQueue.retry' | 'outboundQueue.retract' | 'outboundQueue.overrideRelease' | 'outboundQueue.markNotReportable' | ResultRegistryActionId | LockboxActionId | PatientBannerActionId | WorklistRowActionId | CaseTeamActionId;
 
 export interface SystemAction {
   id: ActionId;
@@ -837,7 +837,7 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'view.tableFilterCompleted', label: 'Filter Completed', internalKey: 'F15+PS037' },
       { id: 'view.tableSortByColumn', label: 'Sort By Column', internalKey: 'F15+PS038' },
       { id: 'view.tableClearSort', label: 'Clear Sort', internalKey: 'F15+PS033' },
-      { id: 'view.tableFilterParticipating', label: 'Filter My Cases', internalKey: 'F15+PS030' },
+      { id: 'view.tableFilterParticipating', label: 'Collaborating Cases', internalKey: 'F15+PS030' },
       { id: 'view.tableFilterCountersign', label: 'Filter Awaiting Countersign', internalKey: 'F15+PS031' },
       { id: 'view.tableFilterPool', label: 'Filter Pool Cases', internalKey: 'F15+PS032' },
     ],
@@ -902,7 +902,7 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'biometric.disable', label: 'Turn Off My Biometric Sign-In', internalKey: 'F33+PS016' },
     ],
   },
-  OUTBOUND_QUEUE_ACTION_GROUP, // Batch 619 (PS-800)
+  ...ADDED_ACTION_GROUPS, // Batch 619 Outbound Queue (PS-800); Batch 637 results and registry
 ];
 
 // ─── Flat lookup maps ─────────────────────────────────────────────────────────

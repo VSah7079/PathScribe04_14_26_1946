@@ -9,3 +9,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
 
 - Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 669 (mol-3)
+
+The demo outcome line is translated: `simulatedResultMessage` (services/molecularOrders/orderQueueView.ts) picks the key, so `already-applied`, `case-not-found` and the other processor codes read through `molecularOrderQueue.outcome.*`. Pressing Positive again says the reflex genotyping order already exists instead of adding another.

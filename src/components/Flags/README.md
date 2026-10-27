@@ -1,3 +1,5 @@
+**Batch 649:** `FlagManagerModal.tsx`: Apply and Remove are greyed without `case:flag:apply` / `case:flag:remove`; `api/caseFlagsApi.ts` checks again.
+
 # components/Flags/
 
 Quality/administrative flag UI — the auto-created-flag banner and the
@@ -112,3 +114,7 @@ Filter boxes are marked `data-dirty-ignore` (PS-128).
 ## Batch 524 (PS-491): accessibility
 
 Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 669 (everyday-17)
+
+`FlagManagerModal.tsx`: adding or removing a chip no longer writes an audit entry. Save stores the changes and writes the entries through `services/flags/flagChangeAudit.ts` (`saveFlagChanges`), so Cancel and Discard leave nothing in the audit log. The dirty check uses the same diff (`hasFlagChanges`).

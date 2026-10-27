@@ -1144,7 +1144,7 @@ export interface SpecimenGrossingOverride {
   /** Real, closed set — a specific field name (not free text), so the
    *  audit panel can group/label overrides consistently rather than
    *  displaying whatever string a caller happened to pass. */
-  field: 'pieceCount' | 'stainAdded' | 'stainRemoved';
+  field: 'pieceCount' | 'pieceDescription' | 'stainAdded' | 'stainRemoved';
   /** Which real block this override happened on — e.g. "A1" — always
    *  present, since every real override this story defines happens at
    *  the block level, never the specimen level. */
@@ -1566,7 +1566,7 @@ export interface CytologyScreeningRecord {
    *  records the real, current status a screener/pathologist can see
    *  and manually enter. */
   hpvCoTestOrdered?: boolean;
-  hpvResult?: 'Positive' | 'Negative' | 'Pending' | 'Not Performed';
+  hpvResult?: 'Positive' | 'Negative' | 'Invalid' | 'Pending' | 'Not Performed';
   /** Real, per direct guidance's own international workflow roadmap
    *  (Phase 1: US/CA — "Dual-result views that show cytological slide
    *  data and molecular HPV status side-by-side"): real, standard
@@ -1576,11 +1576,7 @@ export interface CytologyScreeningRecord {
    *  HPV 18/45") exactly, so this real, newly-captured data can
    *  finally feed that real, previously-input-less factor — see
    *  resolveHpvHighRiskFactors.ts (services/cytology/). */
-  hpvGenotypeDetail?: {
-    hpv16: boolean;
-    hpv18Or45: boolean;
-    otherHighRisk: boolean;
-  };
+  hpvGenotypeDetail?: import('./HpvGenotype').HpvGenotypeDetail;
   /** Real, per direct correction: the real molecular platform's own
    *  HL7 OBX-8 abnormal flag and OBX-7 reference range, persisted
    *  exactly as received — see HpvResultEventPayload

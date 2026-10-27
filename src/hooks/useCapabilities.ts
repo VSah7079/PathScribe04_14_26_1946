@@ -34,7 +34,11 @@ export function useCapabilities(): CapabilitiesState {
     setSnap(null);
     authorizationService.snapshot()
       .then(s => { if (!cancelled) setSnap(s); })
-      .catch(() => { if (!cancelled) setSnap({ subject: null, roles: [] }); });
+      .catch((e: unknown) => {
+        // Batch 660: say why every screen is greyed out, instead of failing silently.
+        console.error('PathScribe could not read your permissions', e);
+        if (!cancelled) setSnap({ subject: null, roles: [] });
+      });
     return () => { cancelled = true; };
   }, [user?.id, user?.role]);
   const decide = (c: string, ctx: CapabilityContext = {}) => (snap ? evaluateCapability(snap.subject, c, snap.roles, ctx) : null);

@@ -19,7 +19,7 @@
 // releaseAutopsyBody.ts itself was missing — always write to the
 // shared audit trail, the same real choke point
 // processMaterialLocationEvent.ts already uses
-// (mockAuditService.logEvent()).
+// (auditService.logEvent()).
 //
 // Deliberately forensic-only: the RFP's chain-of-custody requirement
 // (§2.1.2, §2.4.3) is specific to the forensic/coroner/medicolegal
@@ -31,7 +31,7 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { AutopsyCustodianType, AutopsyCustodyTransferEvent } from '@/types/autopsy/AutopsyCaseDetails';
 
 export interface RecordAutopsyCustodyTransferInput {
@@ -130,7 +130,7 @@ export async function recordAutopsyCustodyTransfer(
   if (write.ok === true) {
     // Real, per this file's own header comment: the one real audit-log
     // write releaseAutopsyBody.ts was missing — never skipped here.
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_CUSTODY_TRANSFER',
       detail: `${input.itemDescription} transferred to ${input.toCustodianName} (${input.toCustodianType})`,

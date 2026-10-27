@@ -1,3 +1,5 @@
+**Batch 649:** `signAutopsyReport.test.ts` updated for the removal of `admin-override` from `canFinalizeCase` (`services/auth/`); no autopsy code changed.
+
 # services/autopsy/
 
 Autopsy Pathology Module (PS-261, RFP-APLIS-2026-GLOBAL §3.1.C) — case authority (forensic vs. hospital-consented), the legal hard-stop gate for gross examination, temporary accession, mortuary storage occupancy, and jurisdiction-specific consent/HTA rules. The core type, `AutopsyCaseDetails`, lives in `types/autopsy/` — see that folder's own README.

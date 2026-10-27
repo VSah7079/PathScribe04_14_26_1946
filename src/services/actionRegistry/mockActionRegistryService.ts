@@ -1,5 +1,8 @@
 import { exactTriggers, fuzzyTriggers, type TriggerPoolOptions } from './voiceTriggerPool';
-import { GLOBAL_CATEGORIES as GLOBAL_CATEGORY_SET, screenFirst } from './shortcutResolution';
+import { screenFirst } from './shortcutResolution';
+import { eligibleCommands } from './commandEligibility';
+import { createTransientActionStore } from './transientActions';
+import { withRepeatConfirmation } from './repeatConfirmationCommands';
 import { IActionRegistryService, SystemAction } from './IActionRegistryService';
 import { ACTION_MAP, VOICE_CONTEXT } from '../../constants/systemActions';
 import type { VoiceProfileLanguage } from '../../constants/voiceProfiles';
@@ -7,12 +10,15 @@ import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { getPersonalSetting, setPersonalSetting } from '../userSettings/personalSettings';
 import { getSessionUser } from '../auth/caseAccessControl';
 import { dataStorage } from '../browserData/dataStorage';
-
+import { withSpanishVoiceTriggers } from './spanishVoiceTriggers';
+import { findExactTriggerMatch } from './findExactTriggerMatch';
+import { migrateShortcuts } from './shortcutMigrations';
+import { LOCKBOX_SEED_ACTIONS } from './lockboxVoiceCommands'; import { PATIENT_BANNER_SEED_ACTIONS } from './patientBannerCommands'; import { WORKLIST_ROW_SEED_ACTIONS, TRANSCRIPT_EVENT_ACTIONS } from './worklistRowCommands'; import { CASE_TEAM_SEED_ACTIONS } from './caseTeamCommands';
 // ─────────────────────────────────────────────────────────────────────────────
-// Categories always eligible regardless of current context
+// Eligibility (which commands may run now) is commandEligibility.ts, shared by hotkeys and voice (Batch 650).
+// Screen-registered commands (the Report Draft's spoken section commands) are held in transientActions.ts.
 // ─────────────────────────────────────────────────────────────────────────────
-// Batch 602: shared with the hotkey resolution rules (shortcutResolution.ts).
-const GLOBAL_CATEGORIES = GLOBAL_CATEGORY_SET;
+const transientActions = createTransientActionStore();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Actions dispatched via custom DOM events rather than internalKey keyboard
@@ -28,7 +34,7 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   'OPEN_DELEGATE_MODAL',
   // Page navigation (React Router)
   'OPEN_MESSAGES', 'OPEN_WORKLIST', 'OPEN_CONFIGURATION',
-  'OPEN_SEARCH', 'OPEN_AUDIT', 'OPEN_CONTRIBUTION', 'OPEN_HOME',
+  'OPEN_SEARCH', 'OPEN_AUDIT', 'OPEN_CONTRIBUTION', 'OPEN_HOME', 'OPEN_LOCKBOX_DROP_OFF', 'LOCKBOX_FOCUS_SCAN', 'LOCKBOX_MARK_URGENT', 'LOCKBOX_SHOW_DROP_OFF', 'LOCKBOX_SHOW_FOLDER',
   'GO_BACK', 'GO_FORWARD',
   // Case navigation (React Router)
   'NEXT_CASE', 'PREVIOUS_CASE',
@@ -139,7 +145,7 @@ const SEED_ACTIONS: SystemAction[] = [
     id: 'PRINT_CURRENT_CASSETTE',
     label: 'Print Current Cassette',
     category: 'SYNOPTIC',
-    shortcut: 'Alt+P',
+    shortcut: 'Alt+Shift+O',
     internalKey: ACTION_MAP['print.cassette']?.internalKey ?? 'F13+PS276',
     voiceTriggers: ['print current cassette', 'print this cassette', 'print cassette'],
     voiceTriggersByLanguage: {
@@ -635,7 +641,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VIEW_HELP', label: 'View System Help', category: 'SYSTEM',
-    shortcut: 'Alt+V', internalKey: ACTION_MAP['view.viewHelp']?.internalKey ?? 'F13+PS303',
+    shortcut: 'F1', internalKey: ACTION_MAP['view.viewHelp']?.internalKey ?? 'F13+PS303',
     voiceTriggers: ['view help', 'open help', 'system help', 'show help', 'help'],
     voiceTriggersByLanguage: {
       fr: ["afficher l'aide", "ouvrir l'aide", "aide"],
@@ -938,7 +944,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["selecteren", "dit selecteren", "rij selecteren"],
       ko: ["선택", "이것 선택", "행 선택"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false, // Batch 663: off (and TABLE_SELECT_ALL, TABLE_DESELECT_ALL, TABLE_DELETE); docs/product/KNOWN_GAPS.md,
   },
   {
     id: 'TABLE_SELECT_ALL', label: 'Select All', category: VOICE_CONTEXT.WORKLIST,
@@ -950,7 +956,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["alles selecteren", "alles aanvinken"],
       ko: ["전체 선택", "모두 선택"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false,
   },
   {
     id: 'TABLE_DESELECT_ALL', label: 'Deselect All', category: VOICE_CONTEXT.WORKLIST,
@@ -962,7 +968,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["alles deselecteren", "selectie wissen"],
       ko: ["전체 선택 해제", "선택 해제"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false,
   },
   {
     id: 'TABLE_OPEN_SELECTED', label: 'Open Selected', category: VOICE_CONTEXT.WORKLIST,
@@ -1263,7 +1269,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["rij verwijderen", "deze rij verwijderen"],
       ko: ["행 삭제", "이 행 삭제"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false,
   },
 
   // ── REPORTING ACTIONS ─────────────────────────────────────────────────────
@@ -2460,16 +2466,16 @@ const SEED_ACTIONS: SystemAction[] = [
   // ── WORKLIST — participation filters ──────────────────────────────────────
   {
     id: 'TABLE_FILTER_PARTICIPATING',
-    label: 'Filter My Cases',
+    label: 'Collaborating Cases',
     category: 'WORKLIST',
     shortcut: 'Ctrl+Alt+F',
     internalKey: ACTION_MAP['view.tableFilterParticipating']?.internalKey ?? 'F15+PS030',
-    voiceTriggers: ['my cases', 'cases i am on', 'my participating cases', 'filter my cases', 'show my cases'],
+    voiceTriggers: ['collaborating cases', 'show collaborations', 'show consult cases', 'cases i collaborate on', 'filter collaborating cases'],
     voiceTriggersByLanguage: {
-      fr: ["mes dossiers", "afficher mes dossiers"],
-      de: ["meine fälle", "meine fälle anzeigen"],
-      nl: ["mijn zaken", "mijn zaken tonen"],
-      ko: ["내 증례", "내 증례 표시"],
+      fr: ["dossiers en collaboration", "afficher les collaborations", "afficher les dossiers de consultation"],
+      de: ["fälle in zusammenarbeit", "zusammenarbeit anzeigen", "konsiliarfälle anzeigen"],
+      nl: ["zaken in samenwerking", "samenwerkingen tonen", "consultzaken tonen"],
+      ko: ["협업 증례", "협업 표시", "자문 증례 표시"],
     },
     learnedTriggers: [],
     requiredRole: 'All Staff',
@@ -3713,7 +3719,7 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
 
-// ─────────────────────────────────────────────────────────────────────────────
+  ...LOCKBOX_SEED_ACTIONS, ...PATIENT_BANNER_SEED_ACTIONS, ...WORKLIST_ROW_SEED_ACTIONS, ...CASE_TEAM_SEED_ACTIONS, // Batches 645, 662, 663, 664
 ];
 
 // Action registry persistence
@@ -3754,24 +3760,7 @@ try {
 }
 
 
-// Batch 602 (Pete): default hotkeys that clashed between two always-on commands. A site that never changed the key
-// gets the new default; a site that did change it keeps its own. (Bumping ACTIONS_VERSION would wipe every
-// administrator's customised shortcuts and voice phrases, so this is done one key at a time.)
-const SHORTCUT_MIGRATIONS: readonly { id: string; from: string; to: string }[] = [
-  { id: 'OPEN_ENHANCEMENT_REQUEST', from: 'Alt+O', to: 'Alt+Y' },
-  { id: 'OPEN_TESTING_FEEDBACK', from: 'Alt+T', to: 'Alt+X' },
-  { id: 'OPEN_RESOURCES', from: 'Alt+C', to: 'Alt+Q' },
-  { id: 'FOCUS_CASE_SEARCH', from: 'Alt+F', to: 'Alt+Shift+B' },
-  { id: 'OPEN_PARTICIPATION_TYPES', from: 'Alt+P', to: 'Alt+Shift+W' },
-  { id: 'INTRAOP_TOUCH_PREP_PERFORMED', from: 'Alt+L', to: 'Alt+Shift+Y' },
-];
-
-export function migrateShortcuts(stored: SystemAction[]): SystemAction[] {
-  return stored.map(a => {
-    const m = SHORTCUT_MIGRATIONS.find(x => x.id === a.id && x.from === a.shortcut);
-    return m ? { ...a, shortcut: m.to } : a;
-  });
-}
+export { migrateShortcuts };
 
 function loadActions(): SystemAction[] {
   try {
@@ -3858,9 +3847,10 @@ let currentStationProfile: string | undefined = undefined;
 // Real, per PS-289's own comment thread — see
 // IActionRegistryService.ts's own doc comment for the full reasoning.
 let currentActionGroupActionIds: Set<string> = new Set();
+const eligibilityState = () => ({ context: currentAppContext, stationProfile: currentStationProfile, actionGroupActionIds: currentActionGroupActionIds });
 
 // ─── Live registry — loaded from storage, mutated by updateAction ─────────────
-const LIVE_ACTIONS: SystemAction[] = loadActions();
+const LIVE_ACTIONS: SystemAction[] = withRepeatConfirmation(withSpanishVoiceTriggers(loadActions()));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Learning layer — persisted so mappings survive page refresh.
@@ -3960,6 +3950,7 @@ const actionRegistryServiceUnchecked: IActionRegistryService = {
   setCurrentContext: (c: string) => {
     currentAppContext = c;
   },
+  getCurrentContext: () => currentAppContext,
   // Real, per PS-289's own comment thread.
   setCurrentStationProfile: (functionalArea: string | undefined) => {
     currentStationProfile = functionalArea;
@@ -3969,31 +3960,11 @@ const actionRegistryServiceUnchecked: IActionRegistryService = {
   setCurrentActionGroupActionIds: (actionIds: string[] | undefined) => {
     currentActionGroupActionIds = new Set(actionIds ?? []);
   },
-  // Real feature, per direct follow-up: "are we not mapping keyboard
-  // commands in the Action Registry?" — the real, missing piece was a
-  // live keydown listener that actually executes an action when its
-  // shortcut is pressed (VoiceProvider.tsx now has one). Shares the
-  // exact same isActive + GLOBAL_CATEGORIES-or-current-context
-  // eligibility rule findActionByTrigger already used for voice, so
-  // keyboard and voice matching can never silently drift apart.
-  // Real, per PS-289's own comment thread — extended with a THIRD,
-  // independent "OR" branch: an action whose own stationProfiles
-  // includes the current, real station's functionalArea is eligible
-  // too, on top of (never instead of) the existing app-context rule.
-  // Real, per PS-289's own comment thread — extended again with a
-  // FOURTH, independent "OR" branch: an action whose own id is a
-  // member of the current station's resolved action group bundle is
-  // eligible too. See setCurrentActionGroupActionIds's own doc
-  // comment for why this is genuinely separate from stationProfiles
-  // matching, not a duplicate of it.
-  getEligibleActions: (): SystemAction[] =>
-    LIVE_ACTIONS.filter(a => a.isActive && (
-      GLOBAL_CATEGORIES.has(a.category)
-      || a.category === currentAppContext
-      || (!!currentStationProfile && !!a.stationProfiles?.includes(currentStationProfile))
-      || currentActionGroupActionIds.has(a.id)
-    )),
-onAction: (callback: (actionId: string) => void) => {
+  // Batch 650: the one eligibility rule (commandEligibility.ts) is used by hotkeys (here) and by voice
+  // (findActionByTrigger below); before, voice left out the station and action-group branches.
+  getEligibleActions: (): SystemAction[] => eligibleCommands([...LIVE_ACTIONS, ...transientActions.list()], eligibilityState()),
+  registerTransientActions: defs => transientActions.register(defs),
+  onAction: (callback: (actionId: string) => void) => {
     const handler = (e: any) => {
       if (e.detail?.id) callback(e.detail.id);
     };
@@ -4004,12 +3975,10 @@ onAction: (callback: (actionId: string) => void) => {
     ensureMappingsForCurrentUser();
     // Batch 602: when a phrase belongs to both the screen's own command and an always-on one, the screen's wins,
     // exactly as for hotkeys (shortcutResolution.ts). Screen commands are listed first in every matching tier below.
-    const eligible = screenFirst(LIVE_ACTIONS.filter(
-      a => a.isActive && (
-        GLOBAL_CATEGORIES.has(a.category) ||
-        a.category === currentAppContext
-      )
-    ));
+    // Batch 650: `ignoreEligibility` (exact phrases only) lets the voice layer tell "no such command" from "a command
+    // that is not available on this screen", so the second can be refused and audited instead of becoming a miss.
+    const pool = options?.ignoreEligibility ? [...LIVE_ACTIONS, ...transientActions.list()].filter(a => a.isActive) : actionRegistryServiceUnchecked.getEligibleActions();
+    const eligible = screenFirst(pool);
 
     // Real, per src/MULTILANG_VOICE_COMMANDS_PLAN.md's own scoped
     // pieces 1-2 fix: the real, language-specific trigger set for
@@ -4024,9 +3993,9 @@ onAction: (callback: (actionId: string) => void) => {
     const realTriggersFor = (a: SystemAction): string[] => exactTriggers(a, language);
 
     // 1. Exact phrase — canonical
-    for (const a of eligible) {
-      if (realTriggersFor(a).some(t => phraseMatch(transcript, t))) return a;
-    }
+    const exact = findExactTriggerMatch(transcript, eligible, realTriggersFor, norm);   // Batch 628: best match, not first
+    if (exact) return exact;
+    if (options?.exactOnly) return undefined;
     // 2. Exact phrase — learned
     for (const a of eligible) {
       if ((a.learnedTriggers ?? []).some(t => phraseMatch(transcript, t))) return a;
@@ -4059,9 +4028,9 @@ onAction: (callback: (actionId: string) => void) => {
       return;
     }
 
-    // Special case: TABLE_FILTER_PHYSICIAN — pass transcript as detail so WorklistPage can extract the name
-    if (action.id === 'TABLE_FILTER_PHYSICIAN' && transcript) {
-      window.dispatchEvent(new CustomEvent('PATHSCRIBE_TABLE_FILTER_PHYSICIAN', { detail: { transcript } }));
+    // Special case: commands that need what was said (physician name, row number, accession) get it as detail
+    if (TRANSCRIPT_EVENT_ACTIONS.has(action.id) && transcript) {
+      window.dispatchEvent(new CustomEvent(`PATHSCRIBE_${action.id}`, { detail: { transcript } }));
       notify();
       return;
     }
@@ -4072,6 +4041,13 @@ onAction: (callback: (actionId: string) => void) => {
       const wordToNum: Record<string, number> = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
       const n = match ? (wordToNum[match[1]] ?? parseInt(match[1], 10)) : 1;
       window.dispatchEvent(new CustomEvent('PATHSCRIBE_SELECT_SPECIMEN', { detail: { index: n - 1 } }));
+      notify();
+      return;
+    }
+
+    const transient = transientActions.dispatchFor(action.id);
+    if (transient) {
+      window.dispatchEvent(new CustomEvent(transient.event, { detail: transient.detail }));
       notify();
       return;
     }

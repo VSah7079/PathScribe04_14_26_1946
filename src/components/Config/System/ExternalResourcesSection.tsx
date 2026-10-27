@@ -25,6 +25,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
+import './ExternalResourcesSection.css';
 
 import type { ExternalResource, ExternalResourceCategory, ExternalResourceScope } from '@/services/externalResources/IExternalResourceService';
 import type { Facility } from '@/services/facilities/IFacilityService';
@@ -33,6 +34,7 @@ import { getSessionUser } from '@/services/auth/caseAccessControl';
 import ConfirmModal from '../../Common/ConfirmModal';
 import { externalResourceService } from '@/services';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { checkExternalResourceUrl, isSecureResourceUrl, ExternalResourceUrlError } from '@/services/externalResources/externalResourceUrl';
 
 const CATEGORY_LABEL_KEY: Record<ExternalResourceCategory, string> = {
   protocols: 'externalResourcesSection.categoryLabels.protocols',
@@ -91,33 +93,36 @@ const ExternalResourcesSection: React.FC = () => {
 
   const handleSave = async () => {
     if (!draft.title.trim()) { setError(t('externalResourcesSection.errors.titleRequired')); return; }
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(draft.url.trim());
-      if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') throw new Error('not http(s)');
-    } catch {
-      setError(t('externalResourcesSection.errors.invalidUrl'));
+    // Batch 652: https only (the service refuses anything else too).
+    const urlCheck = checkExternalResourceUrl(draft.url);
+    if (!urlCheck.ok) {
+      setError(t(urlCheck.problem === 'insecure' ? 'externalResourcesSection.errors.insecureUrl' : 'externalResourcesSection.errors.invalidUrl'));
       return;
     }
     if (draft.scope === 'lab' && !draft.facilityId) { setError(t('externalResourcesSection.errors.labRequired')); return; }
 
-    if (draft.id) {
-      await externalResourceService.update(draft.id, {
-        title: draft.title.trim(),
-        url: parsedUrl.toString(),
-        category: draft.category,
-        scope: draft.scope,
-        facilityId: draft.scope === 'lab' ? draft.facilityId : undefined,
-      });
-    } else {
-      await externalResourceService.create({
-        title: draft.title.trim(),
-        url: parsedUrl.toString(),
-        category: draft.category,
-        scope: draft.scope,
-        organisationId,
-        facilityId: draft.scope === 'lab' ? draft.facilityId : undefined,
-      });
+    try {
+      if (draft.id) {
+        await externalResourceService.update(draft.id, {
+          title: draft.title.trim(),
+          url: urlCheck.url,
+          category: draft.category,
+          scope: draft.scope,
+          facilityId: draft.scope === 'lab' ? draft.facilityId : undefined,
+        });
+      } else {
+        await externalResourceService.create({
+          title: draft.title.trim(),
+          url: urlCheck.url,
+          category: draft.category,
+          scope: draft.scope,
+          organisationId,
+          facilityId: draft.scope === 'lab' ? draft.facilityId : undefined,
+        });
+      }
+    } catch (e) {
+      if (e instanceof ExternalResourceUrlError) { setError(t(e.problem === 'insecure' ? 'externalResourcesSection.errors.insecureUrl' : 'externalResourcesSection.errors.invalidUrl')); return; }
+      throw e;
     }
     setShowForm(false);
     loadResources();
@@ -166,6 +171,7 @@ const ExternalResourcesSection: React.FC = () => {
                     <div>
                       <div className="ps-extres-row-title">{r.title}</div>
                       <div className="ps-extres-row-url">{r.url}</div>
+                      {!isSecureResourceUrl(r.url) && <div className="ps-extres-row-insecure" role="alert">{t('externalResourcesSection.insecureLink')}</div>}
                       <div className="ps-extres-row-scope">
                         {r.scope === 'enterprise' ? t('externalResourcesSection.scopeEnterpriseWide') : t('externalResourcesSection.scopeLab', { labName: labName(r.facilityId) })}
                       </div>

@@ -10,7 +10,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
-import { mockAuditService } from '../../auditlog/mockAuditService';
+import { auditService } from '../../auditlog/auditServiceInstance';
+import { usesApiServer } from '../../apiServer/serviceSelection';
+import { mfaPolicyService } from './mfaPolicyServiceInstance';
 import { createMfaService } from './mfaService';
 import { browserMfaStores } from './mfaStores';
 
@@ -25,6 +27,7 @@ const authorization = () => (authorizationModule ??= import('../../authorization
 export const mfaService = createMfaService({
   stores: browserMfaStores,
   secretFor,
-  audit: mockAuditService,
+  policySource: usesApiServer('auth') ? mfaPolicyService : undefined,
+  audit: auditService,
   enforce: async capability => (await authorization()).authorizationService.enforce(capability).then(d => d.allowed),
 });

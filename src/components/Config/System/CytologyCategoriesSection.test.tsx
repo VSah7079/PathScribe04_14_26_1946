@@ -15,11 +15,21 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import '@/i18n/config';
-import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import i18n from 'i18next';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { render, screen, cleanup, within, waitFor } from '@testing-library/react';
 import CytologyCategoriesSection from './CytologyCategoriesSection';
 
-afterEach(cleanup);
+// The policy card shown once the list has loaded contains capability buttons, which read the signed-in user.
+// Without a user here, the card threw "useAuth must be used within AuthProvider" if the render landed after teardown.
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1', name: 'Admin One' } }) }));
+
+// The screen loads its list after a short delay. Wait for the load to finish before the test ends, so nothing is still
+// running when the test environment is torn down (the cause of the intermittent "error originated in" report under load).
+afterEach(async () => {
+  await waitFor(() => expect(screen.queryByText(i18n.t('common.loading'))).toBeNull(), { timeout: 2000 });
+  cleanup();
+});
 
 // The nomenclature-system <select> and its <label> are siblings, not
 // a wrapped/htmlFor pair, so it's found by role rather than label text

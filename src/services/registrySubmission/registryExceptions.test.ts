@@ -115,3 +115,21 @@ describe('rebuildRegistrySubmission (Batch 421)', () => {
     expect((await rebuildRegistrySubmission('cancer', e({ registryId: 'naaccr_us' }), { ...base, getCase: async () => null })).status).toBe('notApplicable');
   });
 });
+
+describe('Batch 638: CSMS messages waiting for the eligibility answer', () => {
+  const waiting = () => e({ status: 'FAILED', errorCode: 'AWAITING_ELIGIBILITY', errorMessage: 'Waiting', submission: hdr(1) });
+  it('a waiting message shows as held but cannot be resent from the worklist; a closed one does not show', () => {
+    expect(registryExceptionKind(waiting())).toBe('held');
+    expect(registryExceptionRows({ cytology: [waiting()], cancer: [] }).map(r => r.canResend)).toEqual([false]);
+    expect(registryExceptionKind(e({ status: 'FAILED', errorCode: 'NOT_ELIGIBLE', maxRetriesExceeded: true }))).toBeNull();
+  });
+  it('Resend does not release a waiting message; only the eligibility answer does (and that skips the resend permission)', async () => {
+    const s = resendSetup(waiting(), { status: 'ready', body: {}, contentHash: 'h' });
+    expect(await resendRegistrySubmission({ queue: 'cytology', entryId: 'e' }, u, s.deps)).toMatchObject({ outcome: 'stillHeld' });
+    expect(s.deps.dispatch).not.toHaveBeenCalled();
+    const denied = resendSetup({ ...waiting(), contentHash: 'h' } as any, { status: 'ready', body: {}, contentHash: 'h' }, false);
+    expect((await resendRegistrySubmission({ queue: 'cytology', entryId: 'e', eligibilityVerified: true }, u, denied.deps)).outcome).toBe('resent');
+    expect(denied.deps.enforce).not.toHaveBeenCalled();
+  });
+});
+

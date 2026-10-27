@@ -8,7 +8,8 @@
  * is captured for enhancement request submissions.
  *
  * HOW TO TAG NEW COMPONENTS:
- *   Add  data-phi="true"  to any element that renders patient data:
+ *   Add  data-phi="<kind>"  (or "true") to any element that renders patient
+ *   data; every data-phi / data-pii element is redacted whatever its value:
  *     <span data-phi="true">{patient.name}</span>
  *     <td data-phi="true">{accessionNumber}</td>
  *
@@ -19,7 +20,6 @@
  *   1. data-phi attribute  — explicit tagging (preferred)
  *   2. data-pii attribute  — user/staff personal data
  *   3. Known class names   — legacy or third-party components
- *   4. ARIA roles          — semantic fallbacks
  *
  * COMPLIANCE:
  *   HIPAA  — 18 PHI identifiers (names, dates, MRN, accession, geographic)
@@ -33,22 +33,16 @@
 // ─── Primary selectors — always redacted ─────────────────────────────────────
 
 export const PHI_SELECTORS: string[] = [
-  // Explicit PHI tagging (preferred — add to any component rendering patient data)
-  '[data-phi="true"]',
-  '[data-phi="name"]',
-  '[data-phi="dob"]',
-  '[data-phi="mrn"]',
-  '[data-phi="accession"]',
-  '[data-phi="address"]',
-  '[data-phi="phone"]',
-  '[data-phi="email"]',
-  '[data-phi="nhs"]',          // NHS number (UK)
-  '[data-phi="insurance"]',
+  // Explicit PHI tagging (preferred — add to any component rendering patient
+  // data). Matched on the attribute alone, whatever its value: the static
+  // audit (services/phi/phiRenderAudit.ts) accepts any data-phi / data-pii as
+  // redacted, so the runtime must too. A per-kind list here once missed
+  // data-phi="diagnosis", "finding" and "case", which then showed in
+  // enhancement-request screenshots. Guarded by phiSelectors.guard.test.ts.
+  '[data-phi]',
 
   // Explicit PII tagging (staff/user personal data)
-  '[data-pii="true"]',
-  '[data-pii="name"]',
-  '[data-pii="email"]',
+  '[data-pii]',
 
   // pathscribe-specific class names — add as you build components
   '.patient-name',
@@ -61,6 +55,20 @@ export const PHI_SELECTORS: string[] = [
   '.worklist-patient-cell',
   '.phi-field',
 ];
+
+/**
+ * Whether an element carrying `attribute="value"` (attribute `data-phi` or
+ * `data-pii`) is matched by an attribute selector in PHI_SELECTORS. Pure and
+ * DOM-free so the guard test can run in node. Only handles the bare
+ * `[attr]` and `[attr="value"]` forms this file uses.
+ */
+export function isRedactedByPhiSelectors(
+  attribute: 'data-phi' | 'data-pii',
+  value: string,
+  selectors: readonly string[] = PHI_SELECTORS,
+): boolean {
+  return selectors.some(sel => sel === `[${attribute}]` || sel === `[${attribute}="${value}"]`);
+}
 
 // ─── Redaction overlay style ──────────────────────────────────────────────────
 // Applied as an absolutely-positioned overlay during capture, then removed.

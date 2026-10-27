@@ -20,6 +20,9 @@
 // dual-write to has been retired and deleted (first release, no real
 // production history to preserve).
 //
+// Batch 625 (PS-118): the discordant fields (delta, severity, root cause, comment) are the shared
+// QaDiscordantSection, the same component the generic QA review form uses.
+//
 // Batch 382 (PS-359): what each step needs comes from the organisation's
 // Field Requirements (reportPageChecks.discordanceMissing; every field
 // locked), and the record is built in services/quality/discordanceRecord.ts
@@ -37,6 +40,13 @@ import { formatList } from '@/utils/formatList';
 import type { FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
 import type { QaDiscordanceDelta, QaDiscordanceSeverity, QaDiscordanceRootCause } from '@/types/quality/QaActivityRecord';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
+import { QaDiscordantSection, FROZEN_WORDING, type DiscordantField } from '@/components/QualityAssurance/QaDiscordantSection';
+
+// Which Field Requirements entry marks each field of the shared discordant section.
+const REQUIREMENT_ID: Record<DiscordantField, string> = {
+  delta: 'discordanceDelta', severity: 'discordanceSeverity', rootCause: 'discordanceRootCause',
+  rootCauseNote: 'discordanceRootCauseNote', comments: 'discordanceComments',
+};
 
 // Real, persisted enum values stay as data; only the displayed label is
 // translated (this sweep's usual LABEL_KEY pattern). CATEGORY_LABEL_KEY
@@ -47,25 +57,6 @@ const CATEGORY_LABEL_KEY: Record<FrozenCategory, string> = {
   malignant: 'intraopQueue.specimenStep.categoryMalignant',
   atypical_suspicious: 'intraopQueue.specimenStep.categoryAtypical',
   deferred: 'intraopQueue.specimenStep.categoryDeferred',
-};
-
-const DELTA_LABEL_KEY: Record<QaDiscordanceDelta, string> = {
-  upgrade: 'discordanceReconciliationModal.delta.upgrade',
-  downgrade: 'discordanceReconciliationModal.delta.downgrade',
-  minor_variance: 'discordanceReconciliationModal.delta.minorVariance',
-};
-
-const SEVERITY_LABEL_KEY: Record<QaDiscordanceSeverity, string> = {
-  low: 'discordanceReconciliationModal.severity.low',
-  medium: 'discordanceReconciliationModal.severity.medium',
-  high: 'discordanceReconciliationModal.severity.high',
-};
-
-const ROOT_CAUSE_LABEL_KEY: Record<QaDiscordanceRootCause, string> = {
-  sampling_error: 'discordanceReconciliationModal.rootCause.samplingError',
-  interpretation_error: 'discordanceReconciliationModal.rootCause.interpretationError',
-  technical_artifact: 'discordanceReconciliationModal.rootCause.technicalArtifact',
-  other: 'clientEditorModal.general.other',
 };
 
 interface Props {
@@ -131,15 +122,9 @@ export const DiscordanceReconciliationModal: React.FC<Props> = ({ caseId, specim
       <div className="ps-ms-modal">
         <div className="ps-ms-header">{t('discordanceReconciliationModal.header')}</div>
         <div className="ps-ms-body">
-          {/* Real, per direct follow-up ("shows the intraop vs final
-              with AI outcome... an extra step but probably a good
-              step") — this modal only ever opens via the real,
-              automatic detection in useSignOutWorkflow.ts (confirmed
-              directly: there is no other, manual trigger anywhere in
-              this app), so every real instance of this screen IS the
-              "AI outcome" the pathologist was asked to actively look
-              at, not rely on a flag alone. Stated plainly rather than
-              left implicit. */}
+          {/* This modal only opens from the sign-out check in useSignOutWorkflow.ts (no manual
+              trigger), once per non-deferred frozen specimen. The comparison is a category match
+              (discordanceStage), not an AI result (Batch 652). */}
           <div className="ps-intraop-note ps-intraop-note--flagged">
             <span className="ps-intraop-note-label">⚖ {t('discordanceReconciliationModal.flaggedLabel')}</span>
             {t('discordanceReconciliationModal.flaggedBody')}
@@ -176,68 +161,16 @@ export const DiscordanceReconciliationModal: React.FC<Props> = ({ caseId, specim
           )}
 
           {stage === 'discordant' && (
-            <div className="ps-intraop-action-block">
-              <div className="ps-conf-form-field">
-                <label className="ps-conf-label" htmlFor="discordance-delta">{t('discordanceReconciliationModal.deltaLabel')} {star('discordanceDelta')}</label>
-                <select id="discordance-delta" className="ps-conf-select" value={delta} onChange={e => setDelta(e.target.value as QaDiscordanceDelta | '')}>
-                  <option value="">{t('discordanceReconciliationModal.selectPlaceholder')}</option>
-                  <option value="upgrade">{t(DELTA_LABEL_KEY.upgrade)}</option>
-                  <option value="downgrade">{t(DELTA_LABEL_KEY.downgrade)}</option>
-                  <option value="minor_variance">{t(DELTA_LABEL_KEY.minor_variance)}</option>
-                </select>
-              </div>
-              <div className="ps-conf-form-field">
-                <label className="ps-conf-label" htmlFor="discordance-severity">{t('discordanceReconciliationModal.severityLabel')} {star('discordanceSeverity')}</label>
-                <select id="discordance-severity" className="ps-conf-select" value={severity} onChange={e => setSeverity(e.target.value as QaDiscordanceSeverity | '')}>
-                  <option value="">{t('discordanceReconciliationModal.selectPlaceholder')}</option>
-                  <option value="low">{t(SEVERITY_LABEL_KEY.low)}</option>
-                  <option value="medium">{t(SEVERITY_LABEL_KEY.medium)}</option>
-                  <option value="high">{t(SEVERITY_LABEL_KEY.high)}</option>
-                </select>
-                {/* Standard CAP/ISO 15189 patient-impact definitions, not
-                    just a bare tier label — the actual wording doesn't
-                    need to match any specific accreditation body's own
-                    terms, but the tiers do need a clear, consistent
-                    definition so two different pathologists apply them
-                    the same way. */}
-                {severity === 'low' && (
-                  <p className="ps-intraop-gate-note">{t('discordanceReconciliationModal.severityHint.low')}</p>
-                )}
-                {severity === 'medium' && (
-                  <p className="ps-intraop-gate-note">{t('discordanceReconciliationModal.severityHint.medium')}</p>
-                )}
-                {severity === 'high' && (
-                  <p className="ps-intraop-gate-note ps-intraop-gate-note--critical">
-                    {t('discordanceReconciliationModal.severityHint.high')}
-                  </p>
-                )}
-              </div>
-              <div className="ps-conf-form-field">
-                <label className="ps-conf-label" htmlFor="discordance-root-cause">{t('discordanceReconciliationModal.rootCauseLabel')} {star('discordanceRootCause')}</label>
-                <select id="discordance-root-cause" className="ps-conf-select" value={rootCause} onChange={e => setRootCause(e.target.value as QaDiscordanceRootCause | '')}>
-                  <option value="">{t('discordanceReconciliationModal.selectPlaceholder')}</option>
-                  <option value="sampling_error">{t(ROOT_CAUSE_LABEL_KEY.sampling_error)}</option>
-                  <option value="interpretation_error">{t(ROOT_CAUSE_LABEL_KEY.interpretation_error)}</option>
-                  <option value="technical_artifact">{t(ROOT_CAUSE_LABEL_KEY.technical_artifact)}</option>
-                  <option value="other">{t(ROOT_CAUSE_LABEL_KEY.other)}</option>
-                </select>
-              </div>
-              {rootCause === 'other' && (
-                <div className="ps-conf-form-field">
-                  <label className="ps-conf-label">{t('discordanceReconciliationModal.explainLabel')} {star('discordanceRootCauseNote')}</label>
-                  <input aria-label={t('discordanceReconciliationModal.explainLabel')} className="ps-conf-input" value={rootCauseNote} onChange={e => setRootCauseNote(e.target.value)} placeholder={t('discordanceReconciliationModal.explainPlaceholder')} />
-                </div>
-              )}
-              <div className="ps-conf-form-field">
-                <label className="ps-conf-label">{t('discordanceReconciliationModal.commentLabel')} {star('discordanceComments')}</label>
-                <SpellCheckedTextarea
-                  className="ps-conf-input ps-conf-textarea"
-                  value={comments}
-                  onChange={e => setComments(e.target.value)}
-                  placeholder={t('discordanceReconciliationModal.commentPlaceholder')}
-                />
-              </div>
-            </div>
+            <QaDiscordantSection
+              idPrefix="discordance" wording={FROZEN_WORDING}
+              values={{ delta, severity, rootCause, rootCauseNote, comments }}
+              onChange={p => {
+                if ('delta' in p) setDelta(p.delta!); if ('severity' in p) setSeverity(p.severity!);
+                if ('rootCause' in p) setRootCause(p.rootCause!); if ('rootCauseNote' in p) setRootCauseNote(p.rootCauseNote!);
+                if ('comments' in p) setComments(p.comments!);
+              }}
+              mark={field => star(REQUIREMENT_ID[field])}
+            />
           )}
 
           {isTeachingCase && (

@@ -61,7 +61,7 @@ describe('isoDayOf', () => { it('pads', () => expect(isoDayOf(new Date(2026, 0, 
 
 describe('reconcileEntries / withEntries', () => {
   it('keeps recorded source and AI detail for a code already on the case', () => {
-    const prev = [{ system: 'ICD10', code: 'C50.9', source: 'ai' as const, ai: { model: 'm', confidence: 0.9 } }];
+    const prev = [{ system: 'ICD10', code: 'C50.9', source: 'ai' as const, ai: { model: 'm', confidence: 90 } }];
     const out = reconcileEntries(prev, [{ system: 'ICD10', code: 'C50.9', source: 'typed' }, { system: 'SNOMED', code: '1', source: 'typed' }]);
     expect(out[0].source).toBe('ai');
     expect(out).toHaveLength(2);

@@ -35,7 +35,7 @@ import { actionRegistryService, embeddingConfirmMissing, embeddingFieldRequired 
 import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
 import {
   EMBEDDING_DISCREPANCY_REASONS, EMBEDDING_MOLD_SIZES, EMBEDDING_ORIENTATION_QUICK_FILLS,
-  EMBEDDING_MOLD_SIZE_KEYS, EMBEDDING_DISCREPANCY_REASON_KEYS, BLOCK_STATUS_KEYS, splitBlockCandidates,
+  EMBEDDING_MOLD_SIZE_KEYS, EMBEDDING_DISCREPANCY_REASON_KEYS, blockStatusLabelKey, hasOpenEmbeddingDiscrepancy, splitBlockCandidates,
 } from '@/utils/embeddingOperations';
 import { formatList } from '@/utils/formatList';
 
@@ -47,7 +47,11 @@ export interface EmbeddingCenterPanelProps {
   onToggleAlertFlag: (flag: 'tinyTissue' | 'fragile' | 'requiresDecal') => void;
   /** The observed-count text and the orientation box's current text. */
   onConfirmPieceCount: (observedCountText: string, orientationInstructions: string) => void;
+  /** The name of the person who flagged the discrepancy (the block stores the id); null while it is looked up or unknown. */
+  flaggerName?: string | null;
   onFlagDiscrepancy: (reason: EmbeddingDiscrepancyReason) => void;
+  /** Batch 669: clears the flag (one click, audited). */
+  onClearDiscrepancy: () => void;
   onSetMoldAndOrientation: (changes: { moldSize?: EmbeddingMoldSize; orientationInstructions?: string }) => void;
   onGroupSplitBlocks: (siblingBlockIds: string[]) => void;
   onOpenComments: () => void;
@@ -59,7 +63,7 @@ const DERIVED_BADGE_LABELS: Record<string, string> = { Biopsy: 'Biopsy', 'Needle
 
 const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
   specimen, block, alertBadges, splitBlockGroupStatus,
-  onToggleAlertFlag, onConfirmPieceCount, onFlagDiscrepancy, onSetMoldAndOrientation, onGroupSplitBlocks, onOpenComments, requirements,
+  onToggleAlertFlag, onConfirmPieceCount, flaggerName, onFlagDiscrepancy, onClearDiscrepancy, onSetMoldAndOrientation, onGroupSplitBlocks, onOpenComments, requirements,
 }) => {
   const { t, i18n } = useTranslation();
   const [observedCount, setObservedCount] = useState<string>(block.pieceCount != null ? String(block.pieceCount) : '');
@@ -69,7 +73,9 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
   const siblingCandidates = splitBlockCandidates(specimen, block.id);
   const isEmbedded = block.status === 'Embedded';
   const missing = isEmbedded ? [] : embeddingConfirmMissing({ observedCount, moldSize: block.moldSize, orientationInstructions: orientationText }, requirements);
-  const canConfirm = !isEmbedded && missing.length === 0;
+  // Batch 669: a flagged discrepancy stops Confirm until it is cleared.
+  const flagged = hasOpenEmbeddingDiscrepancy(block);
+  const canConfirm = !isEmbedded && !flagged && missing.length === 0;
   const star = (fieldId: string) => !isEmbedded && embeddingFieldRequired(requirements, fieldId) && <span className="ps-conf-required"> *</span>;
 
   const discrepancyLabel = (reason: EmbeddingDiscrepancyReason) => {
@@ -113,7 +119,7 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
           ))}
         </div>
 
-        <div className="ps-embedding-context-field">{t('embeddingStation.context.status')}<strong>{t(`embeddingStation.blockStatus.${BLOCK_STATUS_KEYS[block.status] ?? 'pending'}`)}</strong></div>
+        <div className="ps-embedding-context-field">{t('embeddingStation.context.status')}<strong>{t(blockStatusLabelKey(block.status))}</strong></div>
         {block.tissueDescription && (
           <div className="ps-embedding-context-field">{t('embeddingStation.context.tissueDescription')}<strong>{block.tissueDescription}</strong></div>
         )}
@@ -160,7 +166,10 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
         </div>
         {block.lastDiscrepancyReason && (
           <div className="ps-embedding-discrepancy-active">
-            ⚠ {t('embeddingStation.discrepancy.lastFlagged', { reason: discrepancyLabel(block.lastDiscrepancyReason), by: block.lastDiscrepancyReportedBy ?? '—' })}
+            ⚠ {t('embeddingStation.discrepancy.lastFlagged', { reason: discrepancyLabel(block.lastDiscrepancyReason), by: flaggerName ?? block.lastDiscrepancyReportedBy ?? '—' })}
+            {' '}
+            <button type="button" className="ps-embedding-row-btn" onClick={onClearDiscrepancy}>{t('embeddingStation.discrepancy.clear')}</button>
+            <p className="ps-field-still-required" role="status">{t('embeddingStation.discrepancy.confirmBlocked')}</p>
           </div>
         )}
       </div>

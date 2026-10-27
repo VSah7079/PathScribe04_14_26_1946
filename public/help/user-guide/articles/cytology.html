@@ -1,0 +1,654 @@
+<h1 id="top">Cytology Worklist</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Cytology Worklist is the cytotechnologist's list of work. It shows the cases assigned to you, the shared pool you can claim from, the shared queue of slides waiting for a QC rescreen, the cases waiting for an HPV result, and a row of quality and compliance lists (recall, CSMS eligibility, the 5-year lookback, peer review, histology correlation, follow-up due and completed scans). You open a case from here to screen it on the <a href="/help/cytology/screening-case">Screening Case</a> page.</p>
+<p>This article also describes the two peer-review queues that open inside the main <a href="/help/worklist">Worklist</a>: <strong>Cytology QC Peer Review Queue</strong> and <strong>Surgical Post-Sign-Out QA</strong>. See "Peer-review queue views" below.</p>
+<p><strong>Intended users.</strong> Cytotechnologists work from this page every day. Pathologists and fellows use it to see cytology cases and the quality lists, and the QC and QA queue views are for pathologists and quality staff. What you can open depends on your role: if the Cytology Workspace tile is missing from the Pathology Workspace, ask your laboratory manager.</p>
+<p><strong>Where it fits.</strong> A cytology specimen is accessioned, prepared and (for a digital laboratory) scanned. It then appears here: on My Worklist if it was assigned to you, or in the Pool if nobody has taken it. After you screen it, the case moves on to QC rescreen, pathologist review and sign-out, all on the Screening Case page. The quality lists on this page collect the cases that need a later quality step, such as a 5-year retrospective review or a histology correlation.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/cytology-worklist-overview.png" alt="The Cytology Worklist with the GYN and Non-GYN switch, the main tiles, the QA &amp; Compliance row and a list of cases"><figcaption>The Cytology Worklist with the GYN and Non-GYN switch, the main tiles, the QA &amp; Compliance row and a list of cases</figcaption></figure>
+
+<p>The page has, from top to bottom: the title <strong>Cytology Worklist</strong> and a one-line summary; the <strong>GYN Cytology / Non-GYN / FNA Queue</strong> switch; organ-site chips (Non-GYN only); your workload counter and screening hours panel (for those who screen); the main tiles; the <strong>QA &amp; Compliance</strong> tiles; and the list for the tile you selected.</p>
+<div class="admonition note">
+<p class="admonition-title">Two names for one place</p>
+<p>The page title says Cytology Worklist. The breadcrumb at the top and the tile in the Pathology Workspace say Cytology Workspace. They are the same place.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>The lists are built from the demonstration cases and the demonstration settings. The molecular platform, the registers and the scanner are not connected to a real site yet, so results and scans that would arrive from them are either demonstration data or entered by hand (see "Record an HPV result by hand").</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>The switch</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GYN Cytology</td>
+<td>Cervical and vaginal screening cases (Pap, liquid-based cytology). This is the default.</td>
+</tr>
+<tr>
+<td>Non-GYN / FNA Queue</td>
+<td>Fluids, washings and fine needle aspirations. A lab may instead send non-GYN cytology to the surgical pathology worklist; your laboratory manager sets that, and then those cases do not appear here.</td>
+</tr>
+</tbody>
+</table>
+<p>Changing the switch returns you to <strong>My Worklist</strong> and clears any organ-site chip.</p>
+<p><strong>Organ-site chips (Non-GYN only)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Chip</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All Sites</td>
+<td>No narrowing.</td>
+</tr>
+<tr>
+<td>Body Fluids/Washings, Breast, GI/Pancreatic, Lung/EBUS, Salivary Gland, Thyroid, Urine/Paris System, Other</td>
+<td>Narrows the list to one site. A chip appears only when at least one of your lab's Non-GYN cases is at that site right now.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Main tiles for GYN Cytology</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>What it lists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>My Worklist</td>
+<td>Cases assigned to you that are ready to screen.</td>
+</tr>
+<tr>
+<td>Pool</td>
+<td>Cases nobody has taken yet. You claim one to make it yours.</td>
+</tr>
+<tr>
+<td>QC / Rescreen</td>
+<td>Every GYN slide that was flagged for a mandatory QC rescreen and has not had that rescreen yet. It is one shared queue, not assigned to a person.</td>
+</tr>
+<tr>
+<td>HPV Triage</td>
+<td>Cases that wait for a primary high-risk HPV result before any slide is screened (only in labs that screen by HPV first, then reflex to cytology).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Main tiles for Non-GYN / FNA</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>What it lists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>My Worklist</td>
+<td>Cases assigned to you.</td>
+</tr>
+<tr>
+<td>Unassigned Pool</td>
+<td>Cases nobody has taken yet.</td>
+</tr>
+<tr>
+<td>Cell Block / Ancillary Pending</td>
+<td>Specimens with a cell block or residual fluid whose stain orders are not finished.</td>
+</tr>
+<tr>
+<td>ROSE / Bedside Evaluations</td>
+<td>Specimens with a recent rapid on-site evaluation on record.</td>
+</tr>
+</tbody>
+</table>
+<p>My Worklist and Pool do not repeat a case that already sits on a quality tile below. A case with a QC flag, for example, is on QC / Rescreen and not in My Worklist.</p>
+<p><strong>QA &amp; Compliance tiles (both switches)</strong></p>
+<p>These tiles span GYN and Non-GYN. The switch and the organ-site chips do not narrow them.</p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>What it lists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Recall Needed</td>
+<td>A self-collected HPV test came back positive (or invalid) and the programme asks for a clinician-collected sample (Australia and New Zealand rules).</td>
+</tr>
+<tr>
+<td>CSMS QA</td>
+<td>Cases sent to England's cervical screening register that still need an eligibility answer.</td>
+</tr>
+<tr>
+<td>5-Year Lookback</td>
+<td>Earlier negative results of a patient who now has a high-grade or malignant diagnosis, waiting for a retrospective review.</td>
+</tr>
+<tr>
+<td>Peer Review</td>
+<td>Signed-out cases picked for post-sign-out peer review.</td>
+</tr>
+<tr>
+<td>Histology Correlation</td>
+<td>Abnormal cytology for which a later biopsy was found and needs a cyto-histologic correlation.</td>
+</tr>
+<tr>
+<td>Follow-up Due</td>
+<td>Abnormal results whose histology follow-up is due soon or overdue.</td>
+</tr>
+<tr>
+<td>Scans Completed</td>
+<td>Cases whose whole-slide scan is complete and that are waiting to be screened.</td>
+</tr>
+</tbody>
+</table>
+<p>Each tile shows a count. The count is the number of rows in its list.</p>
+<p><strong>A row in the list</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patient name</td>
+<td>Select it to open the case on the Screening Case page. Rows on the Pool tile are not openable: claim the case first. If the name is missing, the MRN or "Unknown patient" is shown.</td>
+</tr>
+<tr>
+<td>Case line</td>
+<td>"Case S26-5002 · MRN 100002" (demonstration values): the case number and the MRN.</td>
+</tr>
+<tr>
+<td>Final Diagnosis Recorded / Awaiting Review</td>
+<td>Green when a specimen on the case already has its final diagnosis chosen; amber otherwise.</td>
+</tr>
+<tr>
+<td>High-Risk QC / Random QC</td>
+<td>On the QC / Rescreen tile: why the slide was picked.</td>
+</tr>
+<tr>
+<td>Your primary screen - needs another screener</td>
+<td>On the QC / Rescreen tile: you did the first screen, so another screener must do the rescreen.</td>
+</tr>
+<tr>
+<td>AI: Review / AI: No Further Review (with a rank such as 2/5)</td>
+<td>The result of the slide-level AI triage, when one has been completed. It is advice only.</td>
+</tr>
+<tr>
+<td>AI-Flagged FOV</td>
+<td>The number of fields of view the AI marked, when there is no triage result.</td>
+</tr>
+<tr>
+<td>Hover text on the AI badges</td>
+<td>Hold the pointer over the triage badge and it reads "AI slide-level triage"; over the field-of-view badge it reads "AI-flagged fields of view".</td>
+</tr>
+<tr>
+<td>Case … · MRN …</td>
+<td>The small line under the patient's name on a case row (for example in HPV Triage or Recall Needed): the case number, then the MRN.</td>
+</tr>
+<tr>
+<td>Awaiting hrHPV Result / hrHPV result invalid: repeat test</td>
+<td>On HPV Triage: the case waits for a result, or the result came back invalid.</td>
+</tr>
+<tr>
+<td>Manual entry awaiting second sign-off</td>
+<td>On HPV Triage: a hand-entered result is waiting for a second person.</td>
+</tr>
+<tr>
+<td>Scan Complete - Ready to Screen</td>
+<td>On Scans Completed.</td>
+</tr>
+<tr>
+<td>Positive (Self-Collected) - Recall for Clinician-Collected LBC / hrHPV invalid (self-collected) - repeat collection needed</td>
+<td>On Recall Needed.</td>
+</tr>
+<tr>
+<td>CSMS Eligibility Verification Needed</td>
+<td>On CSMS QA.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Empty lists</strong> say what the tile is for, for example "No cases currently assigned to you." or "No cases are waiting for a QC rescreen."</p>
+<p><strong>Your workload counter ("Your workload (last 24 hours)")</strong></p>
+<p>Shown if your laboratory uses the CLIA workload limit and you screen. The first figure reads "… of … slides counted" (for example 4.5 of 12: the slides counted so far, then your cap), then the number of reviews, "slides left now" and "slides left in a full 8-hour day". The limit grows with the hours you have screened. It turns amber as you approach it ("Approaching your limit") and red at the limit and over it.</p>
+<p><strong>Screening hours panel ("Today's screening hours")</strong></p>
+<p>Shown if your role records screening hours and some time was recorded. It shows "Recorded: … h" (for example 6.5 h, a demonstration value), a hint "Confirm at the end of your day. This is your screening hours record." and the buttons below.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GYN Cytology / Non-GYN / FNA Queue</td>
+<td>Switches the main tiles.</td>
+</tr>
+<tr>
+<td>A tile</td>
+<td>Shows that list. The selected tile is highlighted.</td>
+</tr>
+<tr>
+<td>Claim (Pool)</td>
+<td>Takes the case. It is yours from then on and appears in My Worklist. Shows "Claiming..." while it works. Greyed out if you do not hold the claim permission.</td>
+</tr>
+<tr>
+<td>Pass (Pool)</td>
+<td>Passes the case on without taking it. Greyed out if you do not hold the pass permission.</td>
+</tr>
+<tr>
+<td>Ask a colleague (QC / Rescreen)</td>
+<td>On your own primary screens: opens a new message addressed to nobody yet, with the subject "QC rescreen needed: case ..." so you can ask another screener.</td>
+</tr>
+<tr>
+<td>Verified (CSMS QA)</td>
+<td>Records "Eligibility verified" in one step.</td>
+</tr>
+<tr>
+<td>Reason not eligible, then Record not eligible (CSMS QA)</td>
+<td>Choose Ceased from the programme, Suspended from the programme, Outside the programme age range or Another reason, then select <strong>Record not eligible</strong>.</td>
+</tr>
+<tr>
+<td>Manage Flags (CSMS QA)</td>
+<td>Opens the case flags window for that case.</td>
+</tr>
+<tr>
+<td>Record Negative / Record Positive (HPV Triage)</td>
+<td>Opens a window to enter the hrHPV result by hand.</td>
+</tr>
+<tr>
+<td>Approve entry / Reject entry (HPV Triage)</td>
+<td>A second person approves or rejects a hand-entered result that would replace an interface result.</td>
+</tr>
+<tr>
+<td>Confirm … h / Correct (screening hours)</td>
+<td><strong>Confirm … h</strong> (for example Confirm 6.5 h) confirms the recorded hours in one click. <strong>Correct</strong> opens a small inline form to correct them; when your figure differs it asks for the "Reason for the correction".</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Coloured tile with a large number</td>
+<td>The count of rows in that list.</td>
+</tr>
+<tr>
+<td>Green badge</td>
+<td>A completed step: Final Diagnosis Recorded, Scan Complete, AI: No Further Review.</td>
+</tr>
+<tr>
+<td>Amber badge</td>
+<td>Waiting: Awaiting Review, AI: Review, your own primary screen.</td>
+</tr>
+<tr>
+<td>Red badge</td>
+<td>A quality flag: High-Risk QC, Random QC, or a recall.</td>
+</tr>
+<tr>
+<td>Violet badge</td>
+<td>HPV: awaiting a result, invalid, or a manual entry waiting for approval.</td>
+</tr>
+<tr>
+<td>Urgent / Routine, with "Target: 2-4 weeks"</td>
+<td>On a Recall Needed row: the priority and the target window set by your laboratory. Urgent is for HPV 16/18. The recall wording and the recommendation codes are shown under the row.</td>
+</tr>
+<tr>
+<td>Workload bar</td>
+<td>Fills as you use your slide limit; a mark shows the limit so far.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returned to trainee.</strong> When you return a specimen with feedback, a message says "Returned to … with your feedback." On the trainee's screen a banner reads "Returned for revision by …" followed by your feedback.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None on this page. The keys for screening, the material drawer and the synoptic drawer work on the <a href="/help/cytology/screening-case">Screening Case</a> page.</p>
+<h2 id="peer-review-queue-views-cytology-qc-and-surgical-qa">Peer-review queue views (Cytology QC and Surgical QA)</h2>
+<p>Two peer-review queues open inside the main <a href="/help/worklist">Worklist</a>, beside the <strong>LIS Cases</strong> and <strong>OutReach</strong> tiles. They are not part of the Cytology Worklist page, but they belong to cytology quality (and, for Surgical QA, to surgical pathology quality). Each shows as a tile only if your role may open it, with the number of items waiting. The old addresses /cytology-qc-queue and /surgical-qa-worklist now forward to these views.</p>
+<figure class="ps-ug-figure"><img src="img/cytology-qc-queue-overview.png" alt="The Worklist with the Cytology QC Peer Review Queue tile selected"><figcaption>The Worklist with the Cytology QC Peer Review Queue tile selected</figcaption></figure>
+
+<h3 id="cytology-qc-peer-review-queue">Cytology QC Peer Review Queue</h3>
+<p><strong>What it is.</strong> The pathologist's queue of cytology cases picked for a QC peer review, in priority order. This is a different step from the cytotechnologist's QC rescreen: the rescreen is done by a screener from the <strong>QC / Rescreen</strong> tile above; the peer review is a pathologist's verdict on the case ("concurrence" or "discrepancy").</p>
+<p><strong>Who sees it.</strong> The Pathologist and Fellow roles by default. Anyone whose role holds the QC bypass permission can also open it.</p>
+<p>The page title is <strong>Cytology QC Peer Review Queue</strong>. Two buttons switch between <strong>Queue</strong> and <strong>Compliance</strong>.</p>
+<p><strong>Queue view.</strong> Three tabs narrow the list: <strong>All Items</strong>, <strong>Escalations &amp; Discrepancies</strong> (priority 1 and 2) and <strong>Routine &amp; Random</strong> (priority 3). Each row shows:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patient name and accession number</td>
+<td>Who the case is for.</td>
+</tr>
+<tr>
+<td>Priority 1 - High Escalation / Priority 2 - Targeted High-Consequence / Priority 3 - Routine Random</td>
+<td>The tier the rules gave the case. The list is sorted with the most urgent first.</td>
+</tr>
+<tr>
+<td>Suggested: Abnormal, Malignant or Critical</td>
+<td>The highest abnormal severity of the Bethesda review. It is advice only and does not block sign-out.</td>
+</tr>
+<tr>
+<td>Small labels</td>
+<td>Extra labels the rule added.</td>
+</tr>
+<tr>
+<td>On Time / Approaching SLA / SLA Breached</td>
+<td>The deadline for the review. It becomes "Approaching" at 80% of the time allowed, and "Breached" at the deadline. The page re-checks every 30 seconds.</td>
+</tr>
+<tr>
+<td>Selected by: ...</td>
+<td>Every reason the case was picked, for example ROSE discrepancy, CT escalation, High-risk peer review, Random peer review, or "Rule: " and the rule name.</td>
+</tr>
+<tr>
+<td>Reviewer pool: ...</td>
+<td>The roles that may take the review.</td>
+</tr>
+</tbody>
+</table>
+<p>Row buttons:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open Case</td>
+<td>Opens the case on the Screening Case page. <strong>Back</strong> there returns to this queue. You can record the verdict from the case's own bar as well.</td>
+</tr>
+<tr>
+<td>Assign to Me</td>
+<td>Takes the review. Offered only if you hold the QC review permission, you did not sign the case out and you are in the reviewer pool.</td>
+</tr>
+<tr>
+<td>Record Concurrence</td>
+<td>Records that you agree. It is one click with no window. Offered only on a review assigned to you.</td>
+</tr>
+<tr>
+<td>Record Discrepancy</td>
+<td>Opens the <strong>Record Discrepancy</strong> window (below).</td>
+</tr>
+<tr>
+<td>Escalate</td>
+<td>Appears on a review in progress whose deadline has passed. Asks for a reason, then returns the review to the queue unassigned so another reviewer can take it.</td>
+</tr>
+<tr>
+<td>Supervisor bypass</td>
+<td>Appears only for people holding the bypass permission. Asks for a justification, then approves the case without a QC review "to prevent a clinical delay". Your name and the justification are kept in the audit log.</td>
+</tr>
+</tbody>
+</table>
+<p>If you cannot take a review, the row says why in place of the button: "You signed this case out, so another pathologist must review it.", "You are not in the reviewer pool for this case, so you cannot take or record its review." or "Assigned to another reviewer".</p>
+<p><strong>Record Discrepancy window.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary Diagnostic Code</td>
+<td>Required. The diagnosis you think is correct.</td>
+</tr>
+<tr>
+<td>Secondary Diagnostic Code</td>
+<td>Optional. Leave it empty when there is no second code. If you fill it, it must be a recognised code, and if it differs a lot from the primary code, you are asked to confirm (see below).</td>
+</tr>
+<tr>
+<td>Severity</td>
+<td>Major (the default) or Minor.</td>
+</tr>
+<tr>
+<td>Reviewer Commentary</td>
+<td>Free text.</td>
+</tr>
+</tbody>
+</table>
+<p>Select <strong>Submit Discrepancy</strong>. The button stays off until the primary code is filled. Select Cancel to leave without recording.</p>
+<p><strong>When the two codes differ a lot.</strong> PathScribe compares the two codes on the cytology category scale (0 negative, 1 ASC-US, 2 LSIL, 3 ASC-H, 4 HSIL, 5 malignancy). The codes "differ a lot" when they are two or more steps apart (for example NILM with LSIL, or ASC-US with HSIL), or when they sit on opposite sides of the low-grade / high-grade line even one step apart (LSIL with ASC-H). A message appears in the window and the button becomes <strong>Confirm and Submit</strong>; select it to record the discrepancy as entered, or change a code to go back. A code is matched to a category by its abbreviation or name (for example HSIL); a Secondary Diagnostic Code PathScribe cannot match is not skipped: the message "Unrecognised code: not compared with the primary" appears under that field and Submit stays unavailable until you pick a recognised code or clear the field (the code is never stored as typed). Severity (Major or Minor) is your own call and is not changed by the comparison.</p>
+<p>A message in red under the title tells you when an action failed: "You don't have permission to record cytology QC reviews." or "The review couldn't be saved. Please try again."</p>
+<p><strong>Compliance view.</strong> A report for audits, built from every QC assignment on file. The figures are: All QC assignments, Resolved, Concordant, Discrepancies, Discrepancy rate, Major, Minor, SLA escalations and Supervisor bypasses. A table headed <strong>By reviewer</strong> lists each reviewer with Cases reviewed, Discrepancies and Discrepancy rate. It shows "No resolved reviews yet." until a review is resolved. It has no date filter.</p>
+<h3 id="surgical-post-sign-out-qa">Surgical Post-Sign-Out QA</h3>
+<p><strong>What it is.</strong> The queue of surgical pathology quality items found at sign-out: cases picked for post-sign-out peer review, biopsy-to-resection correlation candidates, and low-risk clinical mismatches that a pathologist deferred. The page title is <strong>Surgical Post-Sign-Out QA</strong>.</p>
+<p><strong>Who sees it.</strong> The Pathologist and Fellow roles by default.</p>
+<p><strong>Review items.</strong> Each row shows the patient and accession number and one label:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Peer Review - Random</td>
+<td>The case was picked at random for peer review.</td>
+</tr>
+<tr>
+<td>Peer Review - Targeted</td>
+<td>The case was picked because of a high-risk rule.</td>
+</tr>
+<tr>
+<td>Biopsy-to-Resection Correlation Candidate: <em>case number</em></td>
+<td>A later resection (or biopsy) may correspond to this specimen and needs a correlation review.</td>
+</tr>
+</tbody>
+</table>
+<p>Row buttons:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open Case</td>
+<td>Opens the case's report page. <strong>Back</strong> returns to this queue.</td>
+</tr>
+<tr>
+<td>Record Review</td>
+<td>Opens the review form for that kind of item.</td>
+</tr>
+<tr>
+<td>Not Relevant</td>
+<td>On correlation candidates only: removes the candidate from the queue.</td>
+</tr>
+</tbody>
+</table>
+<p>The review form follows the QA activity your laboratory has set up for peer review or correlation. Its own fields come first (and are marked * when required). Then choose the outcome, <strong>Concordant</strong> or <strong>Discordant</strong>. A discordant outcome opens more fields: the direction of the change (Upgrade - understated severity, Downgrade - overstated severity or Minor variance), the severity, the root cause (Sampling error, Interpretation error, Technical artifact or Other, with a note for Other) and a narrative comment. All are required for a discordant outcome. The button reads <strong>Confirm Review</strong> or <strong>Record Discordance</strong>.</p>
+<p>The list shows "Nothing pending - every flagged case and correlation candidate has been reviewed." when it is empty. Recording needs the surgical QA review permission; without it you see "You don't have permission to record surgical QA reviews."</p>
+<p><strong>Deferred clinical mismatches (secondary review).</strong> Below the review items: low-risk clinical mismatches that a pathologist chose to defer while reviewing a report. Each row shows the case, the kind of mismatch, the confidence if known, and "Deferred by <em>name</em>, <em>date</em>". Select <strong>Review</strong> to open a short form: an optional quick-pick Reason (Clinical context reviewed, Expected variation or Pre-op diagnosis non-specific), an optional Note, and the answer <strong>Resolved</strong> or <strong>Unresolved</strong>. Unresolved lets sign-out go ahead and recommends a corrective action to QA. When none are waiting the list says "No deferred mismatches waiting."</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Screen the cases assigned to you.</strong></p>
+<ol>
+<li>Open <strong>Cytology Workspace</strong> from the Pathology Workspace. The Cytology Worklist opens on <strong>GYN Cytology</strong> with <strong>My Worklist</strong> selected.</li>
+<li>If you also screen Non-GYN or FNA cases, select <strong>Non-GYN / FNA Queue</strong>. Use an organ-site chip to narrow the list.</li>
+<li>If a "Yesterday's screening hours" panel is showing, confirm or correct it first (see below). It appears only while yesterday still needs signing off.</li>
+<li>Select a patient's name. The <a href="/help/cytology/screening-case">Screening Case</a> page opens for that case.</li>
+<li>Screen the case and save your review there. Use <strong>Back to Worklist</strong> to return. The case leaves My Worklist when it moves to another step.</li>
+</ol>
+<p><strong>Take work from the Pool.</strong></p>
+<ol>
+<li>Select the <strong>Pool</strong> tile (<strong>Unassigned Pool</strong> for Non-GYN). Pool rows cannot be opened.</li>
+<li>Select <strong>Claim</strong> on the case you will screen. The button shows "Claiming..." and the list refreshes. The case is now in My Worklist.</li>
+<li>If someone else took the case a moment before you, a message says it was taken and the case stays with them.</li>
+</ol>
+<p><strong>Confirm your screening hours at the end of the day.</strong></p>
+<ol>
+<li>Read "Recorded: <em>N</em> h" in the <strong>Today's screening hours</strong> panel.</li>
+<li>If the figure is right, select <strong>Confirm … h</strong>. The panel changes to "Signed off: … h at …" (the hours, then the time you confirmed).</li>
+<li>If it is not right, select <strong>Correct</strong>, type the hours (0 to 24) and, because the figure differs, choose the "Reason for the correction": "Screened at the microscope, away from the screen", "A slide was left open while I was away" or "Other". Add a note (required for Other; never put patient details in it), then select <strong>Save</strong>.</li>
+<li>A correction of more than the tolerance from the recorded figure is marked for your supervisor ("More than <em>N</em> h from the recorded time: your supervisor will see it.").</li>
+<li>Select <strong>Change</strong> later if you need to alter it. If more screening is recorded after you signed off, the panel asks you to confirm again.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<p><strong>Do a QC rescreen.</strong></p>
+<ol>
+<li>Select <strong>QC / Rescreen</strong>. The list is shared: every slide waiting for a rescreen is here, not only yours.</li>
+<li>Pick a slide that does not carry "Your primary screen - needs another screener". Select the name. The Screening Case page opens and your role is set to a QC role automatically.</li>
+<li>Screen it independently and save. The rescreen is compared with the first screen on the page.</li>
+<li>For a slide you screened yourself, select <strong>Ask a colleague</strong>. A new message opens with the subject "QC rescreen needed: case ...". Address it and send it.</li>
+</ol>
+<p><strong>Record an HPV result by hand.</strong></p>
+<ol>
+<li>Select <strong>HPV Triage</strong>. Each row says "Awaiting hrHPV Result" (or "hrHPV result invalid: repeat test").</li>
+<li>Select <strong>Record Negative</strong> or <strong>Record Positive</strong>. A window opens with the title "Record hrHPV Negative by hand" (or Positive). It says the molecular platform's interface is the normal source of this result.</li>
+<li>Choose the <strong>Result source (required)</strong>: Manual entry: interface downtime, external paper report, telephoned result (verified and countersigned), or historical back-entry.</li>
+<li>If the case already holds a result from the interface, the window says your entry will not replace it until a different authorised person approves it. Select <strong>Submit for second sign-off</strong>. Otherwise select <strong>Record result</strong>.</li>
+<li>The second person opens the same row, reads "<em>Result</em> entered by <em>name</em> (<em>source</em>); it would replace <em>previous</em>" and selects <strong>Approve entry</strong> or <strong>Reject entry</strong>. The same person cannot approve their own entry.</li>
+</ol>
+<p><strong>Record CSMS eligibility.</strong></p>
+<ol>
+<li>Select <strong>CSMS QA</strong>. Check the patient's status in the register.</li>
+<li>Select <strong>Verified</strong> if she is eligible. The row clears and the message "Eligibility verified. The CSMS message is being sent." appears.</li>
+<li>If she is not eligible, choose the reason in the box and select <strong>Record not eligible</strong>. The message "Recorded as not eligible. The CSMS message was not sent." appears.</li>
+</ol>
+<p><strong>Work the quality tiles.</strong> Select 5-Year Lookback, Peer Review, Histology Correlation or Follow-up Due and open the case. The matching banner or card is on the Screening Case page (see that article). Follow-up Due is closed out in Quality Assurance, under Operations, Follow-up; see <a href="/help/quality">Quality</a>.</p>
+<p><strong>Open a case from Scans Completed.</strong> Select the row. The case opens ready to screen.</p>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>A case you expect is not on any list.</strong> Switch between GYN and Non-GYN. Check the QA &amp; Compliance tiles: a case with a QC flag, lookback flag, peer-review flag, correlation candidate or CSMS flag sits on that tile and not in My Worklist or Pool. A Non-GYN case may have been routed to the surgical pathology worklist by your lab's setting.</li>
+<li><strong>You reach your workload limit.</strong> When you save a review that would put you over the limit, the save is refused, the case and your other waiting cases go back to the pool or to colleagues with room, and you return to the worklist with a message about where they went. Review work already saved is never discarded. See the Screening Case article.</li>
+<li><strong>A Recall Needed row.</strong> It is for information and follow-up by the clinician and the programme. There is nothing to click on the row.</li>
+<li><strong>A Pool row has no name link.</strong> Claim it first.</li>
+<li><strong>The count on a tile and the rows seem different.</strong> Reload the page. The counts and rows are read together when the page loads.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>"You do not have permission to record this result."</strong> (HPV) or <strong>"You do not have permission to record CSMS eligibility checks."</strong> You need the permission for that action. Ask your laboratory manager.</li>
+<li><strong>"The result could not be recorded. Check the source and try again."</strong> Choose a source and submit again.</li>
+<li><strong>"The eligibility check could not be recorded. Reload the worklist and try again."</strong> Reload, then repeat the step.</li>
+<li><strong>"Your hours weren't saved. Try again."</strong> or <strong>"Enter hours between 0 and 24."</strong> Correct the figure and save again. <strong>"That day can no longer be signed off here (the day has moved on). Your supervisor can correct it."</strong> means you must ask your supervisor.</li>
+<li><strong>A claim was refused for permission.</strong> The Claim and Pass buttons are greyed out without permission, and a toast explains if a refusal still comes back.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">A hand-entered HPV result can change what happens to a patient</p>
+<p>An HPV result decides whether a slide is screened and what is recommended. Enter it only from a trusted source, choose the true source, and never approve your own entry. Every entry is recorded with your name, the time, the source and the result it replaces.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Looking for a QC-flagged case in My Worklist. It is on <strong>QC / Rescreen</strong>.</li>
+<li>Trying to do the QC rescreen of a slide you screened first. The Screening Case page refuses it; use <strong>Ask a colleague</strong>.</li>
+<li>Confusing the <strong>QC / Rescreen</strong> tile (a screener's rescreen) with the <strong>Cytology QC Peer Review Queue</strong> (a pathologist's verdict). They are different steps with different people.</li>
+<li>Confirming screening hours without reading them. The figure is your record; correct it when it is wrong.</li>
+<li>Choosing "Other" as the reason for a hours correction without a note.</li>
+<li>Recording an HPV result by hand when the interface result is only late. Check with the molecular bench first.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Start the day on <strong>My Worklist</strong>, then <strong>QC / Rescreen</strong>, then the pool.</li>
+<li>Use the patient name to open a case; a click anywhere on the row also opens it (not on Pool rows).</li>
+<li>Read the AI triage badge as a hint for ordering your work, not as a result.</li>
+<li>Confirm your hours in one click at the end of the shift.</li>
+<li>Watch the workload counter during the day. It shows the slides left now and left in a full day, so you can plan before you hit the limit.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Clear the QA &amp; Compliance tiles on a regular schedule so retrospective reviews and correlations do not age.</li>
+<li>Recall Needed and Follow-up Due are about patients who may be lost to follow-up. Treat them as time-sensitive.</li>
+<li>A laboratory manager reviews the Cytology QC Peer Review Queue's Compliance view for audits.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>, where the Cytology Workspace tile is.</li>
+<li><a href="/help/accession">Accession</a>, where the cytology specimen and its order are logged.</li>
+<li><a href="/help/batch-management/wsi-scan">Batch Management, WSI scan</a>, where slides are scanned before they appear on Scans Completed.</li>
+<li><a href="/help/molecular">Molecular</a>, where the HPV result is produced.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/cytology/screening-case">Screening Case</a>, where you screen, review, QC and sign out.</li>
+<li><a href="/help/worklist">Worklist</a>, which holds the Cytology QC Peer Review Queue and Surgical Post-Sign-Out QA views and the Cytology Review tile for pathologists.</li>
+<li><a href="/help/quality">Quality</a>, for follow-up tracking and QA reports.</li>
+<li><a href="/help/report">Report</a>, for surgical cases opened from the Surgical QA queue.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The Cytology Workspace tile is missing</td>
+<td>Your role does not hold the permission to open the Cytology Workspace.</td>
+</tr>
+<tr>
+<td>The Cytology QC or Surgical QA tile is missing in the Worklist</td>
+<td>Your role may not open that queue.</td>
+</tr>
+<tr>
+<td>My Worklist is empty but you were told you have cases</td>
+<td>The cases are on a quality tile, are in the Pool, or are on the other side of the GYN / Non-GYN switch.</td>
+</tr>
+<tr>
+<td>No Workload panel</td>
+<td>Your laboratory does not use the workload limit, or your role does not screen.</td>
+</tr>
+<tr>
+<td>No Screening hours panel</td>
+<td>No time has been recorded today, or your role does not sign off hours.</td>
+</tr>
+<tr>
+<td>Claim or Pass is greyed out</td>
+<td>You do not hold the pool claim or pass permission.</td>
+</tr>
+<tr>
+<td>HPV Triage is always empty</td>
+<td>Your laboratory does not screen by HPV first.</td>
+</tr>
+<tr>
+<td>The Peer Review tile is empty after a sign-out</td>
+<td>The case was not picked by the sampling rule.</td>
+</tr>
+<tr>
+<td>Record Review in Surgical QA says you lack permission</td>
+<td>Your role cannot record surgical QA reviews. The button is not greyed out; the message appears after you try.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Reload the page and wait for "Loading..." to disappear.</li>
+<li>Check the GYN / Non-GYN switch and the organ-site chip.</li>
+<li>Check the QA &amp; Compliance tiles for the case.</li>
+<li>Ask your laboratory manager to check your role's permissions.</li>
+<li>For a case that still does not show, search for it by its case number in <a href="/help/search">Search</a> and open it from there.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a count and its list never agree after a reload, when a case is missing from every list, or when a message appears that this article does not explain. Have the case number and the time of the problem ready.</p>

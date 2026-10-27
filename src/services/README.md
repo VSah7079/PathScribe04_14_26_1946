@@ -1,3 +1,17 @@
+**Batch 675:** MFA policy service for the API server (`services/auth/mfa/`); browser side only, server routes not built. See `docs/architecture/ACCESS_SESSION_API.md` §5.
+
+**Batch 651 (audit gaps):** `cases/postCaseComment.ts`, `cases/caseTeamAudit.ts`, `delegations/delegationAudit.ts` are new; pool, team, delegation, comment, dictionary, language and deficiency successes are audited in their services (`auditlog/README.md`).
+
+**Batch 650:** `reports/bottomBarActions.ts`, `cases/poolClaimWindow.ts`, `quality/tatTileActions.ts` and the listener guard in `actionRegistry/` (registered commands must have a screen listener or a reason).
+
+**Batch 649:** new folders `surgicalSignOut/` (the writes that complete a sign-out, Assist Finalize, revision release, registry submission after the release delay) and `scanner/` (which key events the barcode listener trusts); `signoutGates/` gains the shared review-gate sequence. Capabilities: 338 (17 new, `authorization/`). See each folder's README.
+
+**Batch 648:** `lockbox/` gains `lockboxDemoSeed.ts`, six demonstration receipts that Demo Reset restores.
+
+**Batch 646:** `help/` holds where the Help button goes in the Administrator Guide (`adminGuideLinks.ts`: tab and section to guide anchor, and the address of the guide's redirect page) and a guard that every Configuration section has a guide section. Not exported from `@/services`; the button imports it directly.
+
+**Batch 645:** `lockbox/` is the Lockbox Drop-Off service (interface, shared logic, demo, server version) and `@/services` exports `lockboxService` with the lockbox types and the pure helpers the screen uses. `orderIntake/` gains an optional `containerBarcode` on an order's specimens. Contract: `docs/architecture/LOCKBOX_API.md`.
+
 ## Batch 618 (part C) — server version of case material (PS-482)
 
 `caseMaterialService` is now a service with a demo version and an API-server version (`services/material/`, `docs/architecture/CASE_MATERIAL_API.md`): one `POST /api/material/case-material/apply-decant-change` returns the whole updated material tree and the affected billing lines. Exported from `@/services`; `applyDecantChangeLive` calls the chosen version. The optimistic store and selection state stay in the browser. Nothing was tried against a real server.
@@ -392,7 +406,10 @@ other consumers of the root-level file, deleted it. Full detail in
 | [auditlog/](./auditlog/README.md) | System-wide audit log (incl. signing-authority facility-override events, Sep 2026) |
 | [auth/](./auth/README.md) | Case access control + institution/session resolution; `canFinalizeCase()` / countersign resolution are lab- **and** jurisdiction-scoped (Sep 2026). Since Batch 343 also sign-in: demo password accounts and SSO (PS-60) |
 | [signatures/](./signatures/README.md) | Signature records, one per signature applied to a case, with how the signer was confirmed. Append-only (Batch 345, PS-60) |
+| [lockbox/](./lockbox/README.md) | **NEW (Batch 645)** — Lockbox Drop-Off: after-hours specimens scanned into a lockbox, append-only receipts (matched order or placeholder, never a minted accession number), the Overnight folder and its QA time-to-receipt, `lockbox:*` capabilities |
 | [outboundQueue/](./outboundQueue/README.md) | **NEW (Batch 619, PS-800)** — the one Outbound Queue: ten feeds in one item shape, hold/release/retry/retract/resubmit, registry rejections, reporting-deadline flags, the billing feed adapter, and the server contract `OUTBOUND_QUEUE_API.md` |
+| [batchRegistryFeed/](./batchRegistryFeed/README.md) | **NEW (Batch 620 part S, PS-800)** — registry batch files: profiles for programmes that take a CSV or XML file, file building, held-back records, checksums, the registry's file answer, the programmes' submissions on the Outbound Queue |
+| [usEpath/](./usEpath/README.md) | **NEW (Batch 620 part E, PS-800)** — US electronic pathology (ePath): state profiles, routing by the performing facility's state, checks, transport adapter contract, the prepare step; base message in `hl7/epathBuilder.ts` |
 | [autopsy/](./autopsy/README.md) | **NEW (Sep 2026)** — Autopsy Pathology Module (PS-261, RFP-APLIS-2026-GLOBAL §3.1.C): case authority (forensic/hospital-consented), the real legal hard-stop gross-examination gate, temporary accession, mortuary storage occupancy (via `Specimen.locationHistory`, not a parallel mechanism), and jurisdiction-specific consent/HTA rules |
 | [batches/](./batches/README.md) | **NEW (August 2026)** — cassette/slide chain-of-custody through histology processing nodes via container barcode scanning, plus the real, computed pending-batch-load queue |
 | [billing/](./billing/README.md) | **NEW (August 2026)** — real CPT-to-work-RVU mapping table and calculation, workload/productivity tracking only (not a billing system) |
@@ -489,7 +506,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [voice/](./voice/README.md) | Voice commands offered to the screen first (Batch 463: the Mohs stage question) |
 | [voicemacro/](./voicemacro/README.md) | Voice-triggered macro dictionary |
 
-**Folders not in the table above** (added after it was last rebuilt; each has its own README except `caseViewTracking/`): [actionGroups/](./actionGroups/README.md) (workstation action groups), [addOnOrders/](./addOnOrders/README.md), [aiConfig/](./aiConfig/README.md), [browserCleanup/](./browserCleanup/README.md), [caseAddresses/](./caseAddresses/README.md) (case references in page addresses), [caseSearch/](./caseSearch/README.md), `caseViewTracking/` (no README), [configDirty/](./configDirty/README.md), [cytologyQc/](./cytologyQc/README.md), [delegations/](./delegations/README.md), [delivery/](./delivery/README.md), [billingRelease/](./billingRelease/README.md) (when generated charges are released to billing, Batch 619), [deliverySchedules/](./deliverySchedules/README.md) (when feeds and registries go out, Batch 619), [demoReset/](./demoReset/README.md), [deployment/](./deployment/README.md), [deploymentReadiness/](./deploymentReadiness/README.md), [documentRendering/](./documentRendering/README.md), [engravers/](./engravers/README.md), [equipment/](./equipment/README.md), [feedback/](./feedback/README.md), [fieldRequirements/](./fieldRequirements/README.md), [followUp/](./followUp/README.md), [imageAssociation/](./imageAssociation/README.md), [import/](./import/README.md), [interfaceDispatch/](./interfaceDispatch/README.md), [interfacePreview/](./interfacePreview/README.md), [labSettings/](./labSettings/README.md), [liveUpdates/](./liveUpdates/README.md), [marginExtraction/](./marginExtraction/README.md), [material/](./material/README.md), [networkPrint/](./networkPrint/README.md), [organMapping/](./organMapping/README.md), [patientHistory/](./patientHistory/README.md), [patientIdentifiers/](./patientIdentifiers/README.md), [phi/](./phi/README.md), [printRouting/](./printRouting/README.md), [printing/](./printing/README.md), [privacy/](./privacy/README.md), [qualitySettings/](./qualitySettings/README.md), [reagentLots/](./reagentLots/README.md), [reasons/](./reasons/README.md), [registryConsent/](./registryConsent/README.md), [registryGoLive/](./registryGoLive/README.md), [registrySubmission/](./registrySubmission/README.md), [reportAppearance/](./reportAppearance/README.md), [reportChangeLog/](./reportChangeLog/README.md), [reportEditing/](./reportEditing/README.md), [retention/](./retention/README.md), [screeningRegistry/](./screeningRegistry/README.md), [screens/](./screens/README.md), [security/](./security/README.md), [signoutGates/](./signoutGates/README.md), [siteSettings/](./siteSettings/README.md), [specimenCategories/](./specimenCategories/README.md), [spellcheck/](./spellcheck/README.md), [staff/](./staff/README.md), [staffPasswords/](./staffPasswords/README.md), [styleRules/](./styleRules/README.md), [supportAccess/](./supportAccess/README.md), [supportReferences/](./supportReferences/README.md), [tumorBoard/](./tumorBoard/README.md), [tumorBoardRules/](./tumorBoardRules/README.md), [userSettings/](./userSettings/README.md), [worklist/](./worklist/README.md), [workstationGroups/](./workstationGroups/README.md).
+**Folders not in the table above** (added after it was last rebuilt; each has its own README except `caseViewTracking/`): [actionGroups/](./actionGroups/README.md) (workstation action groups), [historyExtraction/](./historyExtraction/README.md) (Batch 621: AI extraction of historical reports, advisory only), [addOnOrders/](./addOnOrders/README.md), [aiConfig/](./aiConfig/README.md), [browserCleanup/](./browserCleanup/README.md), [caseAddresses/](./caseAddresses/README.md) (case references in page addresses), [caseSearch/](./caseSearch/README.md), `caseViewTracking/` (no README), [configDirty/](./configDirty/README.md), [cytologyQc/](./cytologyQc/README.md), [delegations/](./delegations/README.md), [delivery/](./delivery/README.md), [billingRelease/](./billingRelease/README.md) (when generated charges are released to billing, Batch 619), [cosd/](./cosd/README.md) (UK cancer registry COSD: destination settings, checks, correction window), [deliverySchedules/](./deliverySchedules/README.md) (when feeds and registries go out, Batch 619), [demoReset/](./demoReset/README.md), [deployment/](./deployment/README.md), [deploymentReadiness/](./deploymentReadiness/README.md), [documentRendering/](./documentRendering/README.md), [engravers/](./engravers/README.md), [equipment/](./equipment/README.md), [feedback/](./feedback/README.md), [fieldRequirements/](./fieldRequirements/README.md), [followUp/](./followUp/README.md), [imageAssociation/](./imageAssociation/README.md), [import/](./import/README.md), [interfaceDispatch/](./interfaceDispatch/README.md), [interfacePreview/](./interfacePreview/README.md), [labSettings/](./labSettings/README.md), [liveUpdates/](./liveUpdates/README.md), [marginExtraction/](./marginExtraction/README.md), [material/](./material/README.md), [networkPrint/](./networkPrint/README.md), [organMapping/](./organMapping/README.md), [patientHistory/](./patientHistory/README.md), [patientIdentifiers/](./patientIdentifiers/README.md), [phi/](./phi/README.md), [printRouting/](./printRouting/README.md), [printing/](./printing/README.md), [privacy/](./privacy/README.md), [qualitySettings/](./qualitySettings/README.md), [reagentLots/](./reagentLots/README.md), [reasons/](./reasons/README.md), [registryConsent/](./registryConsent/README.md), [registryGoLive/](./registryGoLive/README.md), [registrySubmission/](./registrySubmission/README.md), [reportAppearance/](./reportAppearance/README.md), [reportChangeLog/](./reportChangeLog/README.md), [reportEditing/](./reportEditing/README.md), [retention/](./retention/README.md), [screeningRegistry/](./screeningRegistry/README.md), [screens/](./screens/README.md), [security/](./security/README.md), [signoutGates/](./signoutGates/README.md), [surgicalSignOut/](./surgicalSignOut/README.md) (Batch 649: the writes that complete a sign-out), [scanner/](./scanner/README.md) (Batch 649: which key events the barcode listener trusts), [siteSettings/](./siteSettings/README.md), [specimenCategories/](./specimenCategories/README.md), [spellcheck/](./spellcheck/README.md), [staff/](./staff/README.md), [staffPasswords/](./staffPasswords/README.md), [styleRules/](./styleRules/README.md), [supportAccess/](./supportAccess/README.md), [supportReferences/](./supportReferences/README.md), [tumorBoard/](./tumorBoard/README.md), [tumorBoardRules/](./tumorBoardRules/README.md), [userSettings/](./userSettings/README.md), [worklist/](./worklist/README.md), [workstationGroups/](./workstationGroups/README.md).
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): `clients/` marked removed; the `aiIntegration/`, `cytology/`, `grossing/` and `hl7/` rows updated to what the folders hold now; the 64 folders missing from the table listed. `src/services/` has 170 folders.*
 
@@ -2030,3 +2047,87 @@ Batch 616 (part B, PS-484, PS-507, PS-512): server versions of audit, authorizat
 
 
 **Batch 618 (part A):** `accessioning/resolveTechnicalFacilityOffer.ts`, `billing/resolveChargeFacilities.ts`, `facilities/technicalFacilityAudit.ts` (a second facility for the technical component, PS-336).
+
+**Batch 623 (PS-130):** `terminologyLicence/` (the customer's SNOMED CT and ICD-O-3 licences and code-shape checks), `abnormalDetection/resolveFindingCoding.ts` (real codes only while a licence is on and unexpired).
+
+**Batch 624:** `flags/shippedFlagNames.ts` (shipped flag names in the user's language); `digitalPathology/resolveWorklistDpBadges.ts` returns translatable labels for PathScribe's own worklist wording and leaves scanner and AI wording untranslated.
+
+**Batch 630 (PS-174):** `cytology/manualHpvResult.ts` and `cytology/recordManualHpvResult.ts`: controlled manual entry of an hrHPV result (permission, required source, audit, second sign-off); `authorization/` gains `cytology:hpv-result:record-manual`.
+
+**Batch 631:** `cytology/selfCollectedRecall.ts`, `selfCollectedRecallFulfilment.ts`, `buildHpvRegistryResultPayload.ts`, `hpvGenotype.ts`: Australia/NZ self-collected HPV recall rules and the register content for the interface engine.
+
+## Batch 638
+
+Batch 638 (Oct 20, 2026): CSMS messages wait for the eligibility check; Belgian Dutch dictation option; colleague reassignment room prorated by logged hours; surgical demo patients in the patient index. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+## Batch 640
+
+Batch 640 (Oct 20, 2026): self-collected HPV recall windows and wording are set per country (Australia, New Zealand) by the laboratory's administrator, from a dropdown. See `docs/architecture/HPV_RESULT_INBOUND.md` section 8.
+
+## Batch 641
+
+Batch 641 (Oct 20, 2026): recall documentation corrected (no sign-off needed for windows or wording; codes belong to the interface engine); PS-539 readiness status refreshed; recall card loading fix.
+
+## Batch 642
+
+Batch 642 (Oct 20, 2026): sign-out authentication policy. An administrator sets, in Session Security, whether signing a case out asks for a password every time (default) or once per session, with an optional second factor, an enterprise default, per-performing-facility overrides and a lock; the Sign Out button shows "(Password Required)" when a password is needed; every policy change, authentication, in-session sign-out and expiry is audited with full context. Remote sign-out limits and workstation lock need the API server (phase 2e). See `docs/architecture/SIGN_OUT_AUTHENTICATION.md`.
+
+## Batch 650 (650a)
+
+`voice/` now holds the dictation and spoken-command logic (report-editor dictation writer, refinement flow, say-it-twice runner, audit entry, Report Draft phrases); `actionRegistry/` gained the shared eligibility rule and screen-registered commands. See both READMEs.
+
+
+
+## Batch 651: AI answers checked in code
+See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSuggestions.ts`, `orchestrator/narrativeProvenance.ts` and `docs/product/GUIDE_UPDATES.md` (Batch 651).
+
+## Batch 652 — Specimen pipeline gaps
+
+New: `grossing/triageReleaseGate.ts`, `grossing/routeCaseAfterGrossing.ts`, `intraop/carryIntraopFindingsToCase.ts`, `quality/frozenReconciliationPlan.ts`, `cases/poolAssignmentTimeout.ts`, `accessioning/linkLockboxReceipt.ts`, `lockbox` `accessionReceiptForCase`; `supportAccess/supportAuditPdf.ts` made repeatable. See each folder's README.
+
+## Batch 652 (defect fixes)
+
+New files in `delegations/` (`delegateToRecipients.ts`), `externalResources/` (`externalResourceUrl.ts`) and `printing/` (a guard test).
+
+Batch 664: new `voice/` files (`editFieldCommand`, `voiceCancel`, `spokenAfterCommand`), `cases/collaboratorCommand.ts`, `reports/signOutAndNext.ts`; `templates/templatePublishingRules.ts` is capability-only. See each folder README.
+
+Batch 669: new `marginExtraction/` files (`reviewMarginException`, `defaultReviewMarginExceptionDeps`): Resolve and Dismiss on Margin Exception Review are audited and re-run the tumor board margin rules.
+
+## Batch 669 — workstationSave/
+
+`workstationSave/runCaseAction.ts`: the shared retry / "Not saved" / reload save for the Embedding, Slide Distribution and Add-On Order stations (see `workstationSave/README.md`). `addOnOrders/addOnOrderActions.ts`: `AddOnActionResult.notSaved`.
+
+Batch 669: `flags/` gains `flagChangeAudit.ts` (Flag Manager Save with audit built from the saved diff) and `applyStatFlag.ts` (Apply STAT Flag).
+
+## Batch 669f
+
+`messages/messageUnread.ts` (unread per person; a reply keeps the preview) and `cytologyQc/resolveQcCodeDivergence.ts` (optional secondary code, confirmation on a large divergence).
+
+## Batch 669 (ops, access, batch)
+New: `retentionPolicy/mostRecentLocation.ts` (one last-location rule), `intraop/orBoardDemo.ts` and `removeOrBoardDemoData`, `clinical/openCriticalAlertReference.ts`, `batches/batchListView.ts` `reconciliationScanOutcome`, `intraopDashboard/dismissFromBoardWithAudit.ts` `dismissalNoticeKey`. Removed: the `deadLettered` Outbound Queue state. New capability `config:or-board-demo:run`.
+
+## Batch 669f — addOnOrders/ and authorization/ (ws-3, ws-19)
+
+`addOnOrders/blockExceptionRouting.ts`: a block-exception notice with no ordering pathologist goes to the Supervisor / Accessioning Desk (Lab Director and Accessioner roles). `flagAddOnException` / `markAddOnBlockRetrieved` check the new capabilities `add-on:exception:flag` and `add-on:block:mark-retrieved` (defined in `authorization/workflowCapabilities.ts`, seeded in `capabilitySeeds.ts` `ADD_ON_BENCH_ACTIONS`).
+
+## Batch 669 — molecular findings (mol-1, mol-3, mol-6, mol-7, mol-9, mol-10, mol-14)
+
+See `services/molecular/README.md`, `services/molecularOrders/README.md`, `services/hl7/README.md`, `services/interfaceDispatch/README.md` and `services/authorization/README.md`. In short: the worklist dispatch moves a Draft batch to Active and goes to the simulated engine receiver in the demo (new `MOLECULAR_WORKLIST` transaction); Clone & Supersede keeps wells bound to in-house orders and moves the orders to the new plate; control-well id, expected value and expiry are fixed; control-rule changes need a reason, refuse an empty rule and a duplicate assay on Edit; Lab Director is seeded with the control-rule manage permission; the HPV reflex order is one per specimen.
+
+## `healthStatus/` (Batch 669h)
+
+The Home footer's system status: mock and API versions, `healthStatusService` in `@/services`. See `healthStatus/README.md` and `docs/architecture/HEALTH_STATUS_API.md`.
+
+- **Batch 669 (access-11):** `consultAccess/` now masks the patient on the External Consult page by default (`consultIdentityMask.ts`); full name and date of birth only with an audited issue-time opt-in gated by `case:consult-link:reveal-identity`.
+
+## Batch 669 (ctl)
+Control Rules got its own `config:molecular-control-rules:view` capability and a sub-screen gate (`services/screens`), so it no longer depends on the Molecular screen. See `authorization/README.md`, `screens/README.md` and `molecular/README.md`.
+
+Batch 670: audit writes (and the rest of the audit path) now go through the switched `auditService`; see `src/services/apiServer/README.md`.
+- `regulatoryProfile/`: the documentation / clinical_support switch (Batch 679).
+
+- Batch 680: `services/aiGovernance/` (audit of AI accept/reject/code binding); sign-out gate for unaccepted AI narrative.
+
+- Batch 683: the clinical-pathologic mismatch flag shows two checked source quotes.
+
+- Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.

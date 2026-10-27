@@ -16,8 +16,14 @@ import { buildDictationRefinementSystem, spellLocaleForDictation } from '@/servi
 import { spellLangForJurisdiction } from '@/utils/formatDate';
 import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 import { offerVoiceCommandToScreen, screenVoiceStatusKey } from '@/services/voice/voiceCommandEvents';
-import { actionRegistryService, voiceMacroService } from '@/services';
-import { effectiveKey, matchesShortcut, pickShortcutMatch } from '@/services/actionRegistry/shortcutResolution';
+import { actionRegistryService, voiceMacroService, auditService } from '@/services';
+import {
+  applyDictationLearning, dictationCorrectionsForCurrentUser, normaliseDictation, recordDictationCorrection,
+} from '@/services/voice/dictationCorrections';
+import { insertDictationSegment, REFINEMENT_BUDGET_MS, type DictationSegmentMeta } from '@/services/voice/dictationSegmentFlow';
+import { createVoiceCommandRunner, REPEAT_CONFIRMATION_WINDOW_MS } from '@/services/voice/voiceCommandRunner';
+import { effectiveKey, isFunctionKeyPress, matchesShortcut, pickShortcutMatch } from '@/services/actionRegistry/shortcutResolution';
+import { decideCancel, CANCEL_CONFIRM_WINDOW_MS } from '@/services/voice/voiceCancel';
 import { GoToPrefix } from '@/components/Common/GoToPrefix';
 
 export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
@@ -25,8 +31,13 @@ export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
 export interface DictationTarget {
   fieldId: string;
   label: string;
-  onText: (text: string, isInterim?: boolean) => void;
+  /** `isInterim` text is provisional: the final call for the same segment REPLACES it (services/voice/dictationEditorWriter.ts),
+   *  or the target ignores it. `meta.raw` is the words as heard, for correction learning. */
+  onText: (text: string, isInterim?: boolean, meta?: DictationSegmentMeta) => void;
   onDone?: () => void;
+  /** Batch 664 (Cancel): how many dictated passages of this session are still in the field, and a way to remove them. */
+  uncommitted?: () => number;
+  discard?: () => { removed: number; kept: number };
   /** Called when user edits dictated text — enables AI learning from corrections */
   onCorrection?: (original: string, corrected: string) => void;
   /** Context hint for the AI refinement prompt (e.g. 'gross', 'micro', 'diagnosis') */
@@ -77,9 +88,11 @@ declare global {
   }
 }
 
-const STOP_PHRASES = ['stop dictation', 'done', 'finish', 'cancel dictation'];
+const STOP_PHRASES = ['stop dictation', 'done', 'finish'];
+/** Batch 664: this ends dictation through Cancel (asks first when dictated text would be removed), not like a stop phrase. */
+const CANCEL_PHRASE = 'cancel dictation';
 const MISS_CONFIRMATION_WINDOW_MS = 8000;
-const STRUCTURED_CONTENT_TIMEOUT_MS = 2000; // fall back to local if the AI call takes longer
+const getUserName = () => { const u = getSessionUser(); return u ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.id : 'unknown'; };
 
 // ── AI-refinement availability ────────────────────────────────────────────────
 // Cached as a session flag so the probe only fires once per browser session,
@@ -119,14 +132,7 @@ async function checkStructuredContentAvailable(): Promise<boolean> {
   return available;
 }
 
-function norm(s: string) {
-  // Real, per direct follow-up — same real Unicode-awareness fix as
-  // services/actionRegistry/mockActionRegistryService.ts's own norm()
-  // (see that file's own fuller comment): the previous ASCII-only
-  // regex destroyed non-Latin-script transcripts entirely (Korean
-  // normalized to an empty string) and mangled accented Latin text.
-  return s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim();
-}
+const norm = normaliseDictation;
 
 // ── Punctuation substitution map (real, per-language — see
 //    ./punctuationMaps.ts's own header for the full account of the
@@ -166,37 +172,9 @@ function applyPunctuation(text: string, language: import('../constants/voiceProf
 }
 
 // ── Dictation learning store ───────────────────────────────────────────────────
-// Batch 430: what dictation learns from a person's corrections is theirs, kept
-// per signed-in person (services/userSettings/personalSettings.ts), not shared
-// by everyone on the browser. Loaded for whoever is signed in when it's used.
-const DICTATION_LEARN_KEY = 'ps_dictation_corrections';
+// Batch 650: the per-person correction table lives in services/voice/dictationCorrections.ts (Batch 430 made it
+// per signed-in person); the report editors write to it through the same service.
 const VOICE_ACCENT_KEY = 'pathscribe_voice_accent';
-let correctionsCache: { userId: string | undefined; map: Record<string, string> } | null = null;
-
-function dictationCorrectionsForCurrentUser(): Record<string, string> {
-  const userId = getSessionUser()?.id;
-  if (!correctionsCache || correctionsCache.userId !== userId) {
-    correctionsCache = { userId, map: { ...getPersonalSetting<Record<string, string>>(DICTATION_LEARN_KEY, {}) } };
-  }
-  return correctionsCache.map;
-}
-
-function saveDictationCorrections(map: Record<string, string>) {
-  setPersonalSetting(DICTATION_LEARN_KEY, map);
-}
-
-function applyDictationLearning(rawTranscript: string, localText: string): string {
-  const key = norm(rawTranscript);
-  return dictationCorrectionsForCurrentUser()[key] ?? localText;
-}
-
-function recordDictationCorrection(rawTranscript: string, corrected: string) {
-  const key = norm(rawTranscript);
-  if (!key || !corrected.trim()) return;
-  const map = dictationCorrectionsForCurrentUser();
-  map[key] = corrected;
-  saveDictationCorrections(map);
-}
 
 // ── Voice-dictation AI refinement ─────────────────────────────────────────────
 // Real fix: previously called Gemini directly via a hardcoded model
@@ -305,6 +283,8 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const lastRawRef         = useRef<string>('');
   const lastLocalTextRef   = useRef<string>('');
   const aiAvailableRef     = useRef(false);
+  const commandRunnerRef   = useRef(createVoiceCommandRunner({ registry: actionRegistryService, audit: auditService, getUserName }));
+  const cancelAskedAtRef    = useRef<number | null>(null);
 
   useEffect(() => { dictationTargetRef.current  = dictationTarget; }, [dictationTarget]);
   useEffect(() => { justHeardLiteralRef.current = justHeardLiteral; }, [justHeardLiteral]);
@@ -354,7 +334,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const hasModifier = e.altKey || e.ctrlKey || e.metaKey;
       const target = e.target as HTMLElement | null;
       const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      if (isTyping && !hasModifier) return;
+      if (isTyping && !hasModifier && !isFunctionKeyPress(e)) return;
       // Batch 614: on a Mac, Option+letter types a character (é, ß); on a European keyboard AltGr does. In a text
       // field that is typing, so it never runs a hotkey there.
       if (isTyping && effectiveKey(e).producedText) return;
@@ -392,9 +372,48 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, []);
 
+  // A missed phrase the person confirmed with a key runs its command inside the registry; audit that too.
+  useEffect(() => {
+    const onLearned = (e: Event) => {
+      const action = (e as CustomEvent).detail?.action;
+      if (action) commandRunnerRef.current.auditMissConfirmed(action);
+    };
+    window.addEventListener('VOICE_MAPPING_LEARNED', onLearned);
+    return () => window.removeEventListener('VOICE_MAPPING_LEARNED', onLearned);
+  }, []);
+
+  // ── Cancel (Ctrl+Alt+J, or "cancel dictation" while dictating): services/voice/voiceCancel.ts decides ──
+  const runCancel = useCallback(() => {
+    const target = dictationTargetRef.current;
+    const say = (key: string, ms: number) => { setTranscript(t(key)); setTimeout(() => setTranscript(''), ms); };
+    const endDictation = () => {
+      cancelAskedAtRef.current = null;
+      target?.onDone?.();
+      setDictationTarget(null);
+      setJustHeardLiteral(false);
+      setIsRefining(false);
+      setPhase(commandPhaseRef.current);
+    };
+    const decision = decideCancel({
+      dictating: !!target, uncommitted: target?.uncommitted?.() ?? 0,
+      commandPending: !!commandRunnerRef.current.pending(), askedAt: cancelAskedAtRef.current, now: Date.now(),
+    });
+    if (decision === 'askConfirm') { cancelAskedAtRef.current = Date.now(); say('voiceProvider.status.cancelConfirm', CANCEL_CONFIRM_WINDOW_MS); }
+    else if (decision === 'discardDictation') { const r = target?.discard?.(); endDictation(); say(r && r.kept > 0 ? 'voiceProvider.status.cancelDiscardedKept' : 'voiceProvider.status.cancelDiscarded', 3000); }
+    else if (decision === 'stopDictation') { endDictation(); say('voiceProvider.status.cancelStopped', 2000); }
+    else if (decision === 'dropPendingCommand') { commandRunnerRef.current.cancelPending(); say('voiceProvider.status.cancelCommand', 2000); }
+  }, [t]);
+  useEffect(() => {
+    window.addEventListener('PATHSCRIBE_VOICE_CANCEL', runCancel);
+    return () => window.removeEventListener('PATHSCRIBE_VOICE_CANCEL', runCancel);
+  }, [runCancel]);
+
   // ── Core dictation handler ─────────────────────────────────────────────────
   const handleDictationSegment = useCallback(async (text: string) => {
     const normed = norm(text);
+
+    if (normed.includes(CANCEL_PHRASE)) { runCancel(); return; }
+    cancelAskedAtRef.current = null;   // more speech since the question: Cancel asks again
 
     // Stop phrases exit dictation mode
     if (STOP_PHRASES.some(p => normed.includes(p))) {
@@ -453,36 +472,30 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     lastRawRef.current       = text;
     lastLocalTextRef.current = localWithLearning;
 
-    if (commandPhaseRef.current === 'ai' && aiAvailableRef.current) {
-      // ── AI PATH ────────────────────────────────────────────────────────────
-      dictationTargetRef.current?.onText(localWithLearning, true); // interim
-      setIsRefining(true);
-      setTranscript(t('voiceProvider.status.refining'));
-
-      const context       = dictationTargetRef.current?.context ?? 'Pathology Report';
-      const system        = buildDictationRefinementSystem({
-        language: getVoiceProfileLanguage(accent),
-        spellLocale: spellLocaleForDictation(spellLangForJurisdiction(jurisdictionRef.current), getVoiceProfileRecognitionLang(accent)),
-      });
-      const structuredContentPromise = refineWithStructuredContent(text, context, dictationCorrectionsForCurrentUser(), system);
-      const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), STRUCTURED_CONTENT_TIMEOUT_MS));
-      const refined        = await Promise.race([structuredContentPromise, timeoutPromise]);
-
-      setIsRefining(false);
-      setTranscript('');
-
-      if (refined && refined !== localWithLearning) {
-        dictationTargetRef.current?.onText(refined, false);
-        lastLocalTextRef.current = refined;
-      } else {
-        dictationTargetRef.current?.onText(localWithLearning, false);
-      }
-    } else {
-      // ── LOCAL PATH ─────────────────────────────────────────────────────────
-      dictationTargetRef.current?.onText(localWithLearning);
-      setTranscript('');
-    }
-  }, [t, accent]);
+    // Batch 650: one final insert per segment (services/voice/dictationSegmentFlow.ts). The target is taken now, so
+    // a segment still refining when dictation ends is delivered to the field it was spoken into, not dropped.
+    const target = dictationTargetRef.current;
+    const sink = (txt: string, isInterim?: boolean, meta?: DictationSegmentMeta) => target?.onText(txt, isInterim, meta);
+    const useAi = commandPhaseRef.current === 'ai' && aiAvailableRef.current;
+    const context = target?.context ?? 'Pathology Report';
+    const system = buildDictationRefinementSystem({
+      language: getVoiceProfileLanguage(accent),
+      spellLocale: spellLocaleForDictation(spellLangForJurisdiction(jurisdictionRef.current), getVoiceProfileRecognitionLang(accent)),
+    });
+    const result = await insertDictationSegment({
+      raw: text,
+      localText: localWithLearning,
+      sink,
+      budgetMs: REFINEMENT_BUDGET_MS,
+      refine: useAi ? () => refineWithStructuredContent(text, context, dictationCorrectionsForCurrentUser(), system) : undefined,
+      onRefining: refining => {
+        setIsRefining(refining);
+        setTranscript(refining ? t('voiceProvider.status.refining') : '');
+      },
+    });
+    if (result.outcome === 'ai') lastLocalTextRef.current = result.text;
+    if (!useAi) setTranscript('');
+  }, [t, accent, runCancel]);
 
   // ── Speech recognition lifecycle ───────────────────────────────────────────
   useEffect(() => {
@@ -540,11 +553,23 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setTimeout(() => setTranscript(''), 1200);
           continue;
         }
-        const action = actionRegistryService.findActionByTrigger(text, getVoiceProfileLanguage(accent), { englishFuzzyFallback: englishFuzzyFallbackRef.current });
-        if (action) {
+        // Batch 650: eligibility, confirm-by-repeating and the audit entry are the runner's (services/voice/voiceCommandRunner.ts).
+        const outcome = commandRunnerRef.current.handle(text, getVoiceProfileLanguage(accent), { englishFuzzyFallback: englishFuzzyFallbackRef.current });
+        if (outcome.kind === 'confirmationNeeded') {
           pendingMissRef.current = null;
-          actionRegistryService.executeAction(action, text);
-          setTranscript(t('voiceProvider.status.actionExecuted', { label: action.label }));
+          setTranscript(t('voiceProvider.status.confirmRepeat', { text, label: outcome.action.label }));
+          window.setTimeout(() => {
+            const expired = commandRunnerRef.current.expirePending();
+            if (expired?.kind === 'refused') setTranscript(t('voiceProvider.status.confirmTimedOut', { label: expired.action.label }));
+            window.setTimeout(() => setTranscript(''), 1500);
+          }, REPEAT_CONFIRMATION_WINDOW_MS + 100);
+        } else if (outcome.kind === 'refused') {
+          pendingMissRef.current = null;
+          setTranscript(t(outcome.reason === 'notEligible' ? 'voiceProvider.status.notAvailableHere' : 'voiceProvider.status.confirmDeclined', { label: outcome.action.label }));
+          setTimeout(() => setTranscript(''), 1800);
+        } else if (outcome.kind === 'executed') {
+          pendingMissRef.current = null;
+          setTranscript(t('voiceProvider.status.actionExecuted', { label: outcome.action.label }));
           setTimeout(() => setTranscript(''), 1200);
         } else {
           const miss = actionRegistryService.recordMiss(text);
@@ -600,6 +625,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [voiceEnabled]);
 
   const startDictation = useCallback((target: DictationTarget) => {
+    cancelAskedAtRef.current = null;
     setDictationTarget(target);
     setTranscript('');
     setPhase('dictate');

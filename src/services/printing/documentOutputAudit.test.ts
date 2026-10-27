@@ -8,6 +8,8 @@ import { beginExport } from './exportGate';
 
 const now = new Date('2026-10-02T21:00:00.000Z');
 
+const NOT_HELD = { blocked: false, warn: false, askOverrideReason: false };
+
 describe('the audit entry', () => {
   it('carries document, id, version, destination, status, time, reason, format and rows', () => {
     const e = buildDocumentOutputAuditEntry({
@@ -39,10 +41,10 @@ describe('reprints', () => {
     expect(wasPrintedBefore(logs, 'report', 'S26-10')).toBe(false);
   });
   it('the prompt: reason only for a reprint the lab asks about; Pending Release warns', () => {
-    expect(planDocumentPrint({ printedBefore: false, requireReprintReason: true, pendingReleaseRestricted: false }))
-      .toEqual({ action: 'print', askReason: false, warnPendingRelease: false });
-    const plan = planDocumentPrint({ printedBefore: true, requireReprintReason: true, pendingReleaseRestricted: true });
-    expect(plan).toEqual({ action: 'reprint', askReason: true, warnPendingRelease: true });
+    expect(planDocumentPrint({ printedBefore: false, requireReprintReason: true, held: NOT_HELD }))
+      .toEqual({ action: 'print', askReason: false, warnPendingRelease: false, blocked: false, askOverrideReason: false });
+    const plan = planDocumentPrint({ printedBefore: true, requireReprintReason: true, held: { blocked: false, warn: true, askOverrideReason: false } });
+    expect(plan).toEqual({ action: 'reprint', askReason: true, warnPendingRelease: true, blocked: false, askOverrideReason: false });
     expect(printPromptComplete(plan, '  ')).toBe(false);
     expect(printPromptComplete(plan, 'lost')).toBe(true);
   });

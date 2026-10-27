@@ -35,7 +35,10 @@ export interface QaReviewSubmissionDraft {
 
 export interface QaReviewValidationResult {
   valid: boolean;
-  /** Real, per-field validation errors, keyed by the same id the
+  /** Batch 625: each value is a message code (`fieldRequired`, `outcomeRequired`, `deltaRequired`,
+   *  `severityRequired`, `rootCauseRequired`, `commentsRequired`, `rootCauseNoteRequired`), not English
+   *  text; the form turns it into the user's language (`qaReviewCaptureForm.errors.*`).
+   *  Real, per-field validation errors, keyed by the same id the
    *  offending field is known by — either a QaActivityType field id,
    *  or one of the fixed outcome-section keys ('outcome'/'delta'/
    *  'severity'/'rootCause'/'rootCauseNote'/'comments') — so the form
@@ -67,23 +70,23 @@ export function validateQaReviewSubmission(
 
   for (const field of activityType.fields) {
     if (field.required && isFieldValueEmpty(draft.fieldValues[field.id])) {
-      errors[field.id] = `${field.label} is required.`;
+      errors[field.id] = 'fieldRequired';
     }
   }
 
   if (!draft.outcome) {
-    errors.outcome = 'An outcome (concordant or discordant) is required.';
+    errors.outcome = 'outcomeRequired';
   }
 
   if (draft.outcome === 'discordant') {
-    if (!draft.delta) errors.delta = 'Delta is required for a discordant outcome.';
-    if (!draft.severity) errors.severity = 'Severity is required for a discordant outcome.';
-    if (!draft.rootCause) errors.rootCause = 'Root cause is required for a discordant outcome.';
+    if (!draft.delta) errors.delta = 'deltaRequired';
+    if (!draft.severity) errors.severity = 'severityRequired';
+    if (!draft.rootCause) errors.rootCause = 'rootCauseRequired';
     if (!draft.comments || !draft.comments.trim()) {
-      errors.comments = 'A narrative comment is required for a discordant outcome.';
+      errors.comments = 'commentsRequired';
     }
     if (draft.rootCause === 'other' && !(draft.rootCauseNote && draft.rootCauseNote.trim())) {
-      errors.rootCauseNote = 'A note is required when root cause is "Other".';
+      errors.rootCauseNote = 'rootCauseNoteRequired';
     }
   }
 

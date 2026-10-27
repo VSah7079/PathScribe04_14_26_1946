@@ -1,0 +1,845 @@
+<h1 id="top">Report</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Report screen is where a pathologist completes a case: reads the clinical history, gross description and intraoperative findings, answers the synoptic (structured) checklist, writes or reviews the narrative report, adds codes, and signs the case out. It also holds the actions that go with a case in progress: comments, flags, delegation, the case team, history, and corrections after sign-out. A second, read-only view of the same report opens from the Worklist, Search, messages and the quality queues.</p>
+<p><strong>Intended users.</strong> Pathologists. Pathology assistants and others open the same screen for grossing and material work (see <a href="/help/grossing">Grossing</a>); this article covers the reporting and sign-out side.</p>
+<p><strong>Where it fits.</strong> You normally arrive from the <a href="/help/worklist">Worklist</a> by opening a case. When the report is signed out, the case can be flagged for tumor board (<a href="/help/tumor-board">Tumor Board</a>) and is reviewed by quality staff (<a href="/help/quality">Quality &amp; Compliance</a>). Finished cases can be found again with <a href="/help/search">Search</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Two reporting modes</p>
+<p>Each case has a reporting mode, set when it is created. You do not choose it.</p>
+<ul>
+<li><strong>Orchestration mode.</strong> PathScribe owns the report. You get a <strong>Report Draft</strong> tab where the AI drafts the narrative from your synoptic answers, and you sign the case out in PathScribe with <strong>Sign Out Case</strong>.</li>
+<li><strong>Assist mode.</strong> Your laboratory information system (LIS) owns the official report. PathScribe helps you complete the structured (synoptic) data and sends it to the LIS. You finish with <strong>Finalize</strong>; the official sign-out happens in the LIS. There is no Report Draft tab, no Sign Out Case button and no Release as Preliminary button.</li>
+</ul>
+<p>A case with no mode recorded is treated as Assist mode. The sections below say which mode each item applies to.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data</p>
+<p>In this version many connected services (the LIS, the printing service, the release timer, similar-case matching, AI suggestions) use demonstration data or are simulated. Where this changes what you see, it is noted below.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/report-overview.png" alt="The Report screen in Orchestration mode, showing the specimen list, the report area and the bottom action bar"><figcaption>The Report screen in Orchestration mode, showing the specimen list, the report area and the bottom action bar</figcaption></figure>
+
+<p>The screen has five zones, from top to bottom and left to right:</p>
+<ol>
+<li><strong>Header</strong> across the top, with the patient and case identity, status, priority and counters.</li>
+<li><strong>Specimens &amp; Reports</strong> list on the left.</li>
+<li><strong>Main area</strong> with tabs: <strong>Report Draft</strong> (Orchestration only), <strong>Synoptic Reporting</strong> and <strong>Material</strong>.</li>
+<li><strong>Synoptic panel</strong> on the right: the checklist you answer, with AI suggestions.</li>
+<li><strong>Bottom action bar</strong> with the case-level actions and the save, finalize and sign-out buttons.</li>
+</ol>
+<p>Below the header a banner reads <strong>Some required fields are incomplete.</strong> while the active synoptic still has required fields open. Select <strong>Click to review →</strong> (or <strong>Review required fields →</strong> in the Report Draft tab) to jump to the first one. The arrow at the right of the banner shows or hides a reminder to complete every required data element (marked with an asterisk) before finalizing.</p>
+<figure class="ps-ug-figure"><img src="img/report-fullreport.png" alt="The read-only report view opened from the Worklist or Search"><figcaption>The read-only report view opened from the Worklist or Search</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Header</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accession, Patient, MRN, Date of Birth, Sex at birth, NHS number (with a status badge), Referring</td>
+<td>Identify the case. The header can be shrunk to a single line with <strong>Compact view</strong> and restored with <strong>Full view</strong> to give the report more room. In the Report Draft tab of an Orchestration case it is compact automatically.</td>
+</tr>
+<tr>
+<td>Priority (Routine, Rush, STAT)</td>
+<td>The case priority. If your role may change it, select it and choose <strong>Change case priority</strong>.</td>
+</tr>
+<tr>
+<td>Case status</td>
+<td>The overall status of the case, for example <strong>Case: In progress</strong>. Shown separately from the AI review indicator.</td>
+</tr>
+<tr>
+<td>Releasing in / remaining</td>
+<td>A live countdown, shown after sign-out while the report waits in its release hold (see "Release hold and recall" below).</td>
+</tr>
+<tr>
+<td>Stage chips</td>
+<td>Grossing, Processing, Synoptic, Finalise and Sign Out: where the case is in the workflow.</td>
+</tr>
+<tr>
+<td>AI status chip</td>
+<td><strong>No AI suggestions yet</strong>, <strong>AI Drafted</strong> (no required field below the confidence limit) or <strong>Review Pending</strong> (a required field is below it). Selecting <strong>Review Pending</strong> opens AI Review Mode (see "AI suggestions").</td>
+</tr>
+<tr>
+<td>Data as of (Assist mode)</td>
+<td>When the LIS last confirmed this case. <strong>Check now</strong> asks the LIS for the current state.</td>
+</tr>
+<tr>
+<td>Counter chips</td>
+<td>Signed versions, signatures recorded, recorded saves and specimen deficiencies. Each opens its own history window (see "History windows").</td>
+</tr>
+<tr>
+<td>Also opened by</td>
+<td>Colleagues who have this case open now, and whether they are viewing or editing. Your own other window is listed too.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Specimens &amp; Reports (left list)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimen row</td>
+<td>Letter and description of each specimen. Icons let you edit the specimen's details and add or view a specimen comment.</td>
+</tr>
+<tr>
+<td>Gross, Micro, Synoptic entries</td>
+<td>The reports under each specimen. A coloured dot shows <strong>Not started</strong>, <strong>Partially answered</strong> or <strong>All fields answered</strong>.</td>
+</tr>
+<tr>
+<td><strong>N unverified</strong></td>
+<td>The number of AI suggestions on that report you have not yet confirmed or overridden.</td>
+</tr>
+<tr>
+<td>Add Synoptic Report, Add Microscopic Description</td>
+<td>Add a checklist or a microscopic narrative to a specimen.</td>
+</tr>
+<tr>
+<td>Case Comment</td>
+<td>A comment that applies to the whole case. <strong>Add Case Comment</strong> becomes <strong>Edit Case Comment</strong> once one exists.</td>
+</tr>
+<tr>
+<td>Case Hold</td>
+<td>Marks the case as on hold. A hold blocks finalizing and sign-out until it is released.</td>
+</tr>
+<tr>
+<td>Retention Hold</td>
+<td>Blocks disposal of the material until released.</td>
+</tr>
+<tr>
+<td>Review (on a specimen)</td>
+<td>The AI re-check suggests that the specimen's checklist template may need to change. Select it to see the proposed change.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Main area</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Report Draft tab</td>
+<td>Orchestration only. Three panes: a section navigator, the formatted report (read-only) in the centre, and the section editor. The centre pane shows the template in use (<strong>Chosen by the system</strong>, or <strong>pathologist override</strong>) with a <strong>Change</strong> list. Changing the template regenerates every section.</td>
+</tr>
+<tr>
+<td>Synoptic Reporting tab</td>
+<td>The case's clinical history, gross description, microscopic findings, ancillary studies and intraoperative diagnosis on the left (<strong>Full Patient Report</strong>), with the synoptic checklist on the right. In Assist mode the left text is <strong>Received from LIS, read-only</strong>.</td>
+</tr>
+<tr>
+<td>Material tab</td>
+<td>Blocks, cassettes, slides and stains for the case. Covered in the <a href="/help/grossing">Grossing</a> article.</td>
+</tr>
+<tr>
+<td>Sequencer</td>
+<td>Opens a window to set the order in which the specimen reports appear in the final report.</td>
+</tr>
+<tr>
+<td>Report status dot</td>
+<td>In Orchestration mode a coloured dot on the Report Draft tab shows Draft, In progress, Pending review, Awaiting countersign or Finalized.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Synoptic panel (right)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Progress badge</td>
+<td>Required and total fields answered, for example <strong>3/8 req · 10/21 total</strong>.</td>
+</tr>
+<tr>
+<td>Required fields</td>
+<td>Marked with an asterisk. They must be answered before finalizing.</td>
+</tr>
+<tr>
+<td>Jump to:</td>
+<td><strong>→ Next Required</strong>, <strong>→ Next Unanswered</strong>, <strong>→ Next Unverified</strong> and <strong>← Back</strong> (return to the field you just left).</td>
+</tr>
+<tr>
+<td>☰ Page / ⊟ Tabs</td>
+<td>Show every section on one scrolling page, or one section at a time.</td>
+</tr>
+<tr>
+<td>⚡ Orchestrator</td>
+<td>Regenerates AI suggestions from the current gross description. It never overwrites a field you have already answered. Disabled until a synoptic template is assigned.</td>
+</tr>
+<tr>
+<td>Suggest Synoptic from Narrative</td>
+<td>Fills in AI suggestions from the gross, microscopic and ancillary text. Needs some narrative text first. Orchestration and Assist modes.</td>
+</tr>
+<tr>
+<td>Generate Narrative from Synoptic</td>
+<td>Writes narrative text from your synoptic answers. Needs some synoptic answers first. Orchestration only.</td>
+</tr>
+<tr>
+<td>$ Billing review</td>
+<td>Orchestration only. Switches the panel to a review of billing codes; <strong>← Back to synoptic</strong> returns.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AI badges on a field</strong></p>
+<table>
+<thead>
+<tr>
+<th>Badge</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A percentage, for example 92%</td>
+<td>The AI's confidence in its suggestion. Green for 85% and above, amber from 50% to 84%, red below 50%.</td>
+</tr>
+<tr>
+<td><strong>AI: low confidence (n%)</strong></td>
+<td>The confidence is below your organisation's limit (75% unless your administrator set another). The suggested value is shown for review; read it carefully.</td>
+</tr>
+<tr>
+<td><strong>AI: not found</strong></td>
+<td>The AI read the report text and found no evidence for this field. Fill it in yourself.</td>
+</tr>
+<tr>
+<td><strong>Manual — AI missed</strong></td>
+<td>You filled a field the AI had no suggestion for. This helps the AI learn.</td>
+</tr>
+<tr>
+<td><strong>✓ AI Confirmed</strong></td>
+<td>You confirmed the suggestion.</td>
+</tr>
+<tr>
+<td><strong>✎ Overridden</strong></td>
+<td>You changed the suggested value.</td>
+</tr>
+<tr>
+<td><strong>Source not found in report text</strong></td>
+<td>The AI quoted a source that cannot be found in the gross, microscopic or ancillary text. Verify the value yourself.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<p>The <strong>bottom action bar</strong> is the toolbar. It scrolls sideways on a narrow window; use the small arrows at either end. Buttons differ by case state and reporting mode, and a button is greyed out when your role does not allow the action (ask your manager).</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>← Prev, Next →</td>
+<td>Go to the previous or next case in your list.</td>
+</tr>
+<tr>
+<td>EMR</td>
+<td>Opens the patient record in a side window of the EMR. If the browser blocks the window, a side drawer opens instead.</td>
+</tr>
+<tr>
+<td>Delegate</td>
+<td>Opens the Delegate Case window (see "Delegate and Team").</td>
+</tr>
+<tr>
+<td>Team</td>
+<td>Opens the case team window: the people on the case and their roles. Only roles valid for the case's laboratory and country are offered.</td>
+</tr>
+<tr>
+<td>Req. Review</td>
+<td>Request an informal peer review from a colleague.</td>
+</tr>
+<tr>
+<td>Consult</td>
+<td>Gives an outside reviewer access for a second opinion. This is demonstration or pilot only and is not real security.</td>
+</tr>
+<tr>
+<td>History</td>
+<td>Opens the patient's history window (see "History windows").</td>
+</tr>
+<tr>
+<td>Flags</td>
+<td>Opens the Flag Manager to apply or remove flags on the case or specimens.</td>
+</tr>
+<tr>
+<td>Tumor Board</td>
+<td>Flags the case for tumor board or MDT. See <a href="/help/tumor-board">Tumor Board</a>.</td>
+</tr>
+<tr>
+<td># Codes</td>
+<td>Opens the Codes window. The button is amber until the case has a code and teal once it has.</td>
+</tr>
+<tr>
+<td>Manage Reprints</td>
+<td>Reprint requisition, container, cassette and slide labels.</td>
+</tr>
+<tr>
+<td>Attach images</td>
+<td>Attaches images to the report; they print after its pages.</td>
+</tr>
+<tr>
+<td>Gen. Report / Abort</td>
+<td>Orchestration only. Generates the AI report draft from your synoptic answers. While it runs the button becomes <strong>Abort</strong>.</td>
+</tr>
+<tr>
+<td>Save Draft, Save &amp; Next</td>
+<td>Save your work, or save and move to the next case. The icon is blue when there are unsaved changes.</td>
+</tr>
+<tr>
+<td>Finalize, Finalize &amp; Next</td>
+<td>Assist mode only. Opens the review window, then finalizes.</td>
+</tr>
+<tr>
+<td>Release as Preliminary</td>
+<td>Orchestration only, before the case is signed out. Sends the current preliminary findings to the outbound interface now. It does not sign out or finalize the case.</td>
+</tr>
+<tr>
+<td>Sign Out Case</td>
+<td>Orchestration only. Opens the sign-out window.</td>
+</tr>
+<tr>
+<td>Print</td>
+<td>Assist mode, after finalizing. Orchestration printing is in the Report Draft tab.</td>
+</tr>
+<tr>
+<td>Request Amendment / Addendum</td>
+<td>After sign-out: issue a correction or addition to the finalized report.</td>
+</tr>
+<tr>
+<td>Mark follow-up expected</td>
+<td>After sign-out: record that a follow-up specimen is expected. The due date comes from your facility's biopsy-to-resection window. It then reads <strong>Follow-up expected · due</strong> with the date.</td>
+</tr>
+<tr>
+<td>Gross Complete / Update Gross</td>
+<td>Shown instead of the reporting buttons while grossing is still in progress. Used by the grossing team; see <a href="/help/grossing">Grossing</a>.</td>
+</tr>
+<tr>
+<td>✋ Claim This Case</td>
+<td>Only for a case still in a pool. Hides the other case actions until you claim it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Release countdown banner</td>
+<td>After sign-out, a banner shows the status and the time left before the report is released automatically. The signing pathologist also sees <strong>Recall Report</strong>.</td>
+</tr>
+<tr>
+<td>PRELIMINARY — SUBJECT TO CHANGE</td>
+<td>Watermark on a preliminary report.</td>
+</tr>
+<tr>
+<td>PENDING FINAL RELEASE</td>
+<td>Watermark on a copy printed while the report is still in its release hold.</td>
+</tr>
+<tr>
+<td>Locked badge</td>
+<td>A report section that is committed and read-only. Changes after sign-out need an amendment or addendum.</td>
+</tr>
+<tr>
+<td>Case updated banner</td>
+<td><strong>Someone else saved this case while you have it open.</strong> Choose <strong>Show their changes</strong> or <strong>Later</strong>. What you have not saved is kept.</td>
+</tr>
+<tr>
+<td>Amendment and revision banners</td>
+<td>Show that a report has a correction, amendment or addendum, and who is working on it.</td>
+</tr>
+<tr>
+<td>Report with addendum, Amended report, Corrected report</td>
+<td>Flags that appear on a revised report.</td>
+</tr>
+<tr>
+<td>Dot beside a report</td>
+<td>Not started, partly answered, or all fields answered.</td>
+</tr>
+<tr>
+<td>Awaiting countersign</td>
+<td>A trainee has released the case for an attending's review.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>More report-screen wording</strong></p>
+<ul>
+<li><strong>Unsaved Draft Found.</strong> If you reopen a case after a session ended with unsaved changes, this window offers to restore them. It lists what restoring will change under "Restoring will apply these changes:" (or says no differences were found). <strong>Restore</strong> applies the draft; <strong>Discard Draft</strong> throws it away.</li>
+<li><strong>Margin ink.</strong> A margin entry that was inked carries a small colour chip. Its tooltip names the colour ("Inked …") and, if the ink was changed, the earlier colours: "Inked … (earlier: …)".</li>
+<li><strong>NHS number badge.</strong> Beside the NHS number in the patient header, the tooltip says whether the number was verified on the NHS Personal Demographics Service, only passed its check-digit test, failed it, or has not been checked. When the record carries a status code the tooltip ends with "NHS status indicator: …".</li>
+<li><strong>Returned for revision.</strong> After an attending returns a trainee's specimen, the trainee sees a banner "Returned for revision by …" with the attending's feedback. The attending, after <strong>Return to Trainee</strong> with feedback, sees "Returned to … with your feedback."</li>
+<li><strong>Comments in the block editor.</strong> The comments box for a block shows "No comments yet." until someone adds one.</li>
+</ul>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>Quoted keys are those registered for this screen. A key acts only while its button is showing and enabled, and is ignored while another window is open in front. Pressing a key never signs anything for you: the sign-out and finalize windows still ask you to confirm who is signing.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+Shift+X</td>
+<td>Sign Out Case (opens the sign-out window)</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+O</td>
+<td>Sign Out and Next (opens the sign-out window, and when you finish it opens the next case; Assist and Orchestration)</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+F</td>
+<td>Finalise Report (opens the review checks)</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Escape</td>
+<td>Cancel Finalise</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+E</td>
+<td>Add Amendment</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+B</td>
+<td>Add Addendum</td>
+</tr>
+<tr>
+<td>Alt+H</td>
+<td>Open History. Alt+Shift+H closes it.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+G or Ctrl+Alt+H</td>
+<td>Open the Codes window</td>
+</tr>
+<tr>
+<td>Alt+I</td>
+<td>Internal Note</td>
+</tr>
+<tr>
+<td>Alt+Z</td>
+<td>Add Synoptic</td>
+</tr>
+<tr>
+<td>Alt+E</td>
+<td>Edit (override) the active field</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+A</td>
+<td>Confirm the active field</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+R / Ctrl+Alt+U</td>
+<td>Next required field / next unanswered field</td>
+</tr>
+<tr>
+<td>Tab / Shift+Tab</td>
+<td>Next and previous field</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+C / Ctrl+Alt+S</td>
+<td>Case comment / specimen comment</td>
+</tr>
+<tr>
+<td>Ctrl+S</td>
+<td>Orchestration, Report Draft tab: save the draft</td>
+</tr>
+<tr>
+<td>Ctrl+G</td>
+<td>Orchestration, Report Draft tab: generate the report</td>
+</tr>
+<tr>
+<td>Ctrl+Shift+D, Ctrl+Shift+F, Ctrl+Shift+Q</td>
+<td>Orchestration: switch to Report Draft, Full Report, Sequencer</td>
+</tr>
+<tr>
+<td>Alt+1 to Alt+9</td>
+<td>Orchestration, Report Draft tab: jump to that section (not while typing in a field)</td>
+</tr>
+<tr>
+<td>Space or the right arrow, O, S, Esc</td>
+<td>In AI Review Mode: confirm, override, skip, cancel</td>
+</tr>
+</tbody>
+</table>
+<p>Alt+N on this screen adds a specimen (it covers Next Case, which you reach with Alt+J then N). Alt+U asks for confirmation before discarding unsaved changes. Printing the current cassette is Alt+Shift+O. Spoken commands: on this screen "back" and "forward" move between sections; they do not leave the page. F1 (View Help) opens this guide; Alt+V is Full View.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Part 1: Open the case and read it</strong></p>
+<ol>
+<li>Open the case from the <a href="/help/worklist">Worklist</a>. The Report screen opens on the <strong>Synoptic Reporting</strong> tab (or <strong>Report Draft</strong> in Orchestration mode).</li>
+<li>Check the header: patient, accession, priority and status. If another person is listed under <strong>Also opened by</strong>, agree who is editing.</li>
+<li>In the <strong>Full Patient Report</strong> pane read the clinical history, gross description, intraoperative diagnosis, microscopic findings and ancillary studies. Select <strong>Internal Notes</strong> to read notes colleagues left; internal notes are not included in the formatted patient report.</li>
+<li>If a <strong>Case On Hold</strong> or <strong>Retention Hold</strong> is shown in the left list, you cannot sign out until the hold is released (see Exception handling).</li>
+</ol>
+<p><strong>Part 2: Describe what you see</strong></p>
+<ol start="5">
+<li>Select the specimen in the left list, then <strong>Add Microscopic Description</strong> if your case needs one. Type, or press the microphone with the field focused to dictate. You may insert the standard attestation and add detail only when clinically needed. Select <strong>✓ Save</strong>.</li>
+<li>Select <strong>Add Synoptic Report</strong> if the specimen has no checklist, and pick a template from <strong>Suggested for this case</strong> or <strong>All templates</strong>. The checklist opens in the right panel.</li>
+</ol>
+<p><strong>Part 3: Complete the synoptic checklist</strong></p>
+<ol start="7">
+<li>Work through the sections. Answer each required field (marked <em>). Use </em><em>→ Next Required</em>* to move quickly.</li>
+<li>If you use the AI tools, select <strong>Suggest Synoptic from Narrative</strong> (or <strong>⚡ Orchestrator</strong>). Suggestions appear on fields with a confidence badge.</li>
+<li>For each AI suggestion, select <strong>✓ Confirm</strong> if it is right, or <strong>✎ Override</strong> and enter the correct value. A suggestion you have not confirmed or overridden counts as unverified, and <strong>a required field left unverified blocks finalizing</strong>.</li>
+<li>Use <strong>→ Next Unverified</strong> to reach the remaining ones. Fields marked <strong>AI: low confidence</strong> or <strong>Source not found in report text</strong> deserve a careful read against the narrative.</li>
+<li>Select <strong>Save Draft</strong> at any time. The save icon is blue when something is unsaved.</li>
+</ol>
+<p><strong>Part 4: Write the report (Orchestration mode)</strong></p>
+<ol start="12">
+<li>Open the <strong>Report Draft</strong> tab and select <strong>⚡ Gen. Report</strong> (or Ctrl+G). Sections appear as they are generated. If you have not completed the synoptic yet, the empty state offers <strong>Start writing manually</strong>, which opens blank sections with no AI involved.</li>
+<li>In the section editor, edit each section. Select <strong>Accept</strong> to accept it, or <strong>Accept all</strong>. A section marked <strong>Locked</strong> has been committed and cannot be edited without an amendment.</li>
+<li>If you change the narrative after answering fields, a field may show "The updated narrative suggests ... Keep your value or update it?" Select <strong>Keep mine</strong> or <strong>Accept new value</strong>. Nothing changes until you choose.</li>
+</ol>
+<p><strong>Part 5: Add codes</strong></p>
+<ol start="15">
+<li>Select <strong># Codes</strong>. In the Code Manager search the code system (for example ICD-10, SNOMED or CPT), pick a code, choose where it applies (case level or a specimen) and select <strong>Apply code</strong>. <strong>AI Suggest Codes</strong> proposes codes for your review. Select <strong>Save</strong>.</li>
+</ol>
+<p><strong>Part 6: Sign out (Orchestration mode)</strong></p>
+<ol start="16">
+<li>Select <strong>Sign Out Case</strong>. The system first runs its review checks (see "Sign-out checks" below). If a check stops you, a message or window says why; fix it and select <strong>Sign Out Case</strong> again.</li>
+<li>In the sign-out window read the <strong>Coding Summary</strong>. Tick <strong>A follow-up specimen (resection or excision) is expected</strong> if it applies.</li>
+<li>Confirm who is signing as the window asks (your password, your organisation's sign-in page, or a second-factor code, depending on your laboratory). Select <strong>Sign Out Case</strong>.</li>
+<li>A message reads <strong>Report signed — release in n min unless recalled</strong>. The case moves to Pending Release, and the banner counts down.</li>
+</ol>
+<p><strong>Part 7: Finalize (Assist mode)</strong></p>
+<ol start="20">
+<li>Select <strong>Finalize</strong> (or <strong>Finalize &amp; Next</strong>). The same review checks run.</li>
+<li>In the <strong>Review before finalising</strong> window, check the synoptic data <strong>as transmitted to LIS</strong>. You can drag specimens to set the transmission order. Select <strong>Finalise now</strong> (or <strong>Finalise &amp; Next</strong>) and confirm who is signing.</li>
+<li>The bar shows <strong>Finalized — structured data complete, LIS handles official sign-out</strong>. The official sign-out happens in the LIS.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Release a preliminary report (Orchestration).</strong> Select <strong>Release as Preliminary</strong> at any point before final sign-out, for example when a partial finding is clinically urgent. A message reads <strong>Preliminary report released (n specimens)</strong>, or says it is held for the release delay and goes out at a stated time. The case stays open and the report carries the PRELIMINARY watermark.</li>
+<li><strong>Start from the narrative.</strong> Dictate or type the gross and microscopic text first, then select <strong>Suggest Synoptic from Narrative</strong> to have the checklist filled in for your review.</li>
+<li><strong>AI Review Mode.</strong> When the header chip says <strong>Review Pending</strong>, select it. One uncertain AI finding is shown at a time ("Field 2 of 5") with its confidence and source. Press Space to confirm, O to override or S to skip. The footer can offer <strong>Confirm &amp; Finalise</strong> at the last finding.</li>
+<li><strong>Read-only view.</strong> From the Worklist, Search, a message or a quality queue, a case can open in the read-only report view. It shows the accession, <strong>Last Updated</strong>, the full report and its internal notes. <strong>← Back</strong> returns where you came from. For a pool case, <strong>✋ Claim This Case</strong> appears. Quality staff reviewing a signed-out case see the post-sign-out review bar here.</li>
+<li><strong>Comments.</strong> Use <strong>Add Case Comment</strong> for a note to everyone on the case, or the specimen comment icon for one specimen. Comments on a specimen are sent to the LIS on finalization and become read-only when finalized. <strong>Internal Notes</strong> are for the team and are not part of the patient report.</li>
+<li><strong>Delegate.</strong> Select <strong>Delegate</strong>, pick a <strong>Delegation Type</strong>, then a recipient (an individual or a pool) from the right-hand list by dragging or selecting. Enter the note (required) and select <strong>Confirm Delegation</strong>. A type marked "transfers ownership" hands the case over. You cannot delegate to a cytotechnologist.</li>
+<li><strong>Correct a signed-out report.</strong> Select <strong>Request Amendment / Addendum</strong>. Choose an addendum (new information, original untouched), a minor amendment (a clerical correction) or a major amendment (a diagnostic change that needs a clinical notification record). Give the reason and explanation, then <strong>Save Draft</strong> or <strong>Release Addendum</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Required fields incomplete.</strong> A window titled <strong>Required fields incomplete</strong> lists the fields ("n fields need attention", tagged <strong>Cannot finalize</strong>). Select a field name to go to it, or <strong>Return and fix</strong>.</li>
+<li><strong>AI suggestions unverified.</strong> A message reads "n AI suggestions still need your review before this case can be finalized — starting with ..." and takes you to the first one. Confirm or override each required one.</li>
+<li><strong>Case on hold.</strong> The message "This case is on hold: ... release the hold before finalizing" appears. Open <strong>Case Hold</strong> in the left list and release the hold with a note, or wait for the person who placed it.</li>
+<li><strong>Critical or malignant finding.</strong> A window lists the findings the system detected and asks you to record the notification before you continue.</li>
+<li><strong>Microscopic text blocking.</strong> A specimen with an unsaved or inconsistent microscopic description stops sign-out ("Specimen A: ..."). The screen opens that specimen's microscopic panel.</li>
+<li><strong>Count or total problems.</strong> A message beginning "Sign-out stopped." explains a number that cannot be right (for example a count larger than the total it belongs to). Correct it. If the system only warns that totals do not match the grid, you may <strong>Go back and reconcile</strong> or <strong>Continue as entered</strong>.</li>
+<li><strong>Sign-out gates.</strong> Windows may stop you for: collection or receipt dates missing, fixation time out of range, a stain quality-control issue, a margin-inking issue, a clinical mismatch to decide, or a required peer review. Resolve the item in its window; sign-out then continues. The inking window blocks sign-out when the issue is compliance critical.</li>
+<li><strong>Missing codes.</strong> If your country requires a code system and the case has none, the system asks you to confirm before signing out and records that you proceeded.</li>
+<li><strong>Trainee sign-out.</strong> If your role or case team requires a countersign, <strong>Sign Out Case</strong> instead releases the case for the attending ("Case ... released for attending countersign"). The attending sees <strong>Countersign Case</strong>, with optional feedback, and <strong>Return to Trainee</strong> (feedback is required to return).</li>
+<li><strong>Someone else changed the case.</strong> The window <strong>Someone else changed this case</strong> lets you <strong>Use their version</strong> (your unsaved changes are discarded), <strong>Save mine anyway</strong> (if your role allows overwriting) or <strong>Keep working, decide later</strong>. If the changes do not overlap, <strong>Save mine with theirs</strong> merges them.</li>
+<li><strong>Pending release.</strong> You cannot sign out a report that is already Pending Release. Recall it first.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>Sign-out did not complete.</strong> The message "The sign-out could not be completed, so the case was left as it was" means nothing changed. Try again. If it says the status could not be put back, reload the case and check it before trying again.</li>
+<li><strong>Wrong signer or expired confirmation.</strong> Messages such as "The signature confirmation has expired" or "Signing is locked after too many failed attempts" mean nothing was signed. Confirm again, or try after the time shown.</li>
+<li><strong>Recall a signed report.</strong> While the banner counts down, the signing pathologist selects <strong>Recall Report</strong>. You can then keep editing without making an amendment. Others see the countdown but not the button.</li>
+<li><strong>Draft lost.</strong> If a draft recovery window appears when you reopen a case, choose to restore it.</li>
+<li><strong>Unsaved warning.</strong> Leaving the case with unsaved changes asks whether to save. In the Report Draft tab, switching tabs asks <strong>Save &amp; switch</strong> or <strong>Discard &amp; switch</strong>.</li>
+<li><strong>PDF failure.</strong> If the report cannot be made as a PDF, a message says it is <strong>Printing from the screen instead</strong>.</li>
+<li><strong>Wrong narrative inserted.</strong> Generated narrative opens in a review window ("Review and edit before inserting into the report") where you can edit or <strong>Discard</strong> before it is inserted.</li>
+</ol>
+<h2 id="sign-out-checks">Sign-out checks</h2>
+<p>Sign Out Case and Finalize run the same review checks before anything is signed, in this order. The first one that fails stops the process:</p>
+<ol>
+<li>The report is not already Pending Release.</li>
+<li>The case is not on hold.</li>
+<li>Organ-map figures are current, Mohs blocks are complete, and derived margins agree with the answers.</li>
+<li>Counts and totals in the synoptic are consistent.</li>
+<li>Margins and molecular results that differ from what the AI or the order expected are confirmed by you.</li>
+<li>Microscopic descriptions are saved and complete.</li>
+<li>Critical or malignant findings have been acknowledged.</li>
+<li>Every visible required field is answered, and no required AI suggestion is unverified. Sign Out Case checks every unfinished synoptic on the case; Finalize checks the synoptic you have open.</li>
+</ol>
+<p>After these, the sign-out also checks your authority to sign, the collection and fixation gates, stain quality control, inking, clinical mismatch and peer review, as described under Exception handling.</p>
+<h2 id="release-hold-and-recall">Release hold and recall</h2>
+<p>After sign-out a report waits in a release hold before it is sent out. The length is set by your laboratory (and can differ by facility); some cases bypass it. While the hold runs:</p>
+<ul>
+<li>The header shows <strong>Releasing in</strong> a countdown, and the banner repeats it.</li>
+<li>Only the signing pathologist can <strong>Recall Report</strong>. A recall sends nothing and reopens the case.</li>
+<li>Printing is limited. A print prompt warns that a copy will carry the PENDING FINAL RELEASE watermark; a supervisor override asks for a reason that is kept in the audit log.</li>
+<li>When the countdown ends, the message <strong>Release buffer expired — report finalized and released</strong> appears.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">The release timer runs in your open window</p>
+<p>Today the countdown that releases the report is run by the open Report screen. It is correct for the window you have open, but it is not yet backed by a separate scheduler that would release a case nobody has open. Do not close the case window during the hold if you expect an on-time release.</p>
+</div>
+<h2 id="assist-and-orchestration-modes">Assist and Orchestration modes</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Orchestration</th>
+<th>Assist</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Who owns the final report</td>
+<td>PathScribe</td>
+<td>Your LIS</td>
+</tr>
+<tr>
+<td>Report Draft tab</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Generate Narrative from Synoptic, Gen. Report</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Suggest Synoptic from Narrative</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Final button</td>
+<td>Sign Out Case and Sign Out &amp; Next</td>
+<td>Finalize and Finalize &amp; Next</td>
+</tr>
+<tr>
+<td>Release as Preliminary</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Left text panes</td>
+<td>Editable</td>
+<td>Received from LIS, read-only</td>
+</tr>
+<tr>
+<td>Codes</td>
+<td>Billing codes and review</td>
+<td>CPT code is recorded for productivity (RVU) tracking only; the LIS owns real billing</td>
+</tr>
+<tr>
+<td>Sign Out and Next key</td>
+<td>Works (arms the next case; see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>)</td>
+<td>Works</td>
+</tr>
+</tbody>
+</table>
+<h2 id="buttons-banners-and-tooltips-on-the-report-screen">Buttons, banners and tooltips on the Report screen</h2>
+<p>These small items appear on the Report screen. Hover over a button to see its tooltip.</p>
+<h3 id="bottom-action-bar-tooltips">Bottom action bar tooltips</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Tooltip and what it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Save Draft</td>
+<td>Saves the report so far. <strong>Save and go to next case</strong> (the Save and Next button) saves and then opens the next case in your list.</td>
+</tr>
+<tr>
+<td>Finalize</td>
+<td><strong>Finalize this report</strong> (Assist mode). <strong>Finalize and go to next case</strong> does the same and then moves on. Both are unavailable while the synoptic is still being worked out.</td>
+</tr>
+<tr>
+<td>Abort</td>
+<td><strong>Abort generation</strong>: stops a report that is being generated.</td>
+</tr>
+<tr>
+<td>Delegate, Team, Review, Consult</td>
+<td><strong>Manage case team</strong> opens the case team window. <strong>Request informal peer review</strong> opens the review request.</td>
+</tr>
+<tr>
+<td>Print</td>
+<td><strong>Print this report</strong>. While a report waits in the release hold, the tooltip explains that printing is restricted.</td>
+</tr>
+<tr>
+<td>Follow-up</td>
+<td>When a case is marked for follow-up the bar shows the date with the tooltip <strong>Marked by {name}</strong>.</td>
+</tr>
+<tr>
+<td>Arrows at either end</td>
+<td><strong>Scroll left for more actions</strong> and <strong>Scroll right for more actions</strong> move the bar when it is wider than the window.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="header-bar">Header bar</h3>
+<ul>
+<li><strong>Show full patient header</strong> (tooltip) expands the compact header back to the full patient details.</li>
+<li><strong>Overall case status</strong> (tooltip) is the status badge at the top right of the header.</li>
+<li>The block list in the header shows, for each block, its stains (or "no stains yet"), its status, and the case priority. When a block has its own priority a small tooltip reads <strong>Priority override</strong>.</li>
+<li>In the AI summary, <strong>Field at {{pct}}% confidence</strong> names the single field with the lowest confidence. <strong>No required fields below threshold</strong> means every required field the AI filled in is above your laboratory's confidence limit.</li>
+</ul>
+<h3 id="left-report-panel-and-sidebar">Left report panel and sidebar</h3>
+<ul>
+<li>The left panel says <strong>No case loaded.</strong> when no case could be opened.</li>
+<li>The synoptic sidebar collapses with <strong>Collapse sidebar</strong> and comes back with <strong>Expand sidebar</strong>.</li>
+<li>Under Case Comment, the line <strong>Applies to entire case</strong> shows once a case comment exists.</li>
+<li>When a hold is active the button reads Case On Hold, with the line <strong>Blocks finalize until released</strong>.</li>
+<li>On each specimen, the pencil icon (tooltip <strong>Edit specimen details</strong>) opens the specimen editor. On each synoptic report the icon <strong>Parts covered</strong> shows which parts it covers, and the bin icon (<strong>Remove this synoptic report</strong>) opens <strong>Remove Synoptic Report</strong>. Choose <strong>Remove</strong> to confirm or <strong>Keep</strong> to leave it; the removal can still be undone until you save the case.</li>
+</ul>
+<h3 id="banners">Banners</h3>
+<ul>
+<li><strong>Got it</strong>: shown on the yellow banner that says someone else changed the same parts you have not saved. Their other changes are shown and yours are kept as typed. Choose <strong>Got it</strong> to dismiss the banner; you decide what to keep when you save.</li>
+<li><strong>You, in another window</strong>: in the strip that shows who else has the case open, your own second window appears under this name.</li>
+<li><strong>Amended (Most Recent)</strong>: in the amended report banner the newest version is named, for example "2nd Amended (Most Recent)". <strong>Show details</strong> expands the table, <strong>Synoptic Element</strong> is the first column, and the lines <strong>Reason for Amendment:</strong> and <strong>Amended by</strong> give the explanation and the pathologist.</li>
+<li><strong>Triage overridden: reason</strong> appears in the grossing release panel when a triage was released by override.</li>
+<li><strong>Billing</strong>: see <a href="/help/report/billing-review">Billing Review</a>.</li>
+</ul>
+<h3 id="narrative-sections-in-orchestration-mode">Narrative sections in Orchestration mode</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tab view — one section at a time / Page view — all sections scrollable</td>
+<td>The two layout buttons above the sections.</td>
+</tr>
+<tr>
+<td>Accept all AI-generated sections</td>
+<td>Accepts every section the AI wrote that you have not edited.</td>
+</tr>
+<tr>
+<td>Check spelling and accept this section</td>
+<td>The tick on a section: runs spell check and accepts it.</td>
+</tr>
+<tr>
+<td>No sections yet — run Generate Report</td>
+<td>Shown on the <strong>Next empty</strong> button before any section exists.</td>
+</tr>
+<tr>
+<td>Complete the synoptic fields, then press Generate Report to create an AI-drafted narrative.</td>
+<td>The empty-state message of the narrative panel.</td>
+</tr>
+<tr>
+<td>New AI draft available for this section.</td>
+<td>A newer AI draft arrived for a section you have edited. Choose <strong>Use new draft</strong> to replace your text or <strong>Keep my version</strong> to ignore the new draft.</td>
+</tr>
+<tr>
+<td>Save as Personal Quick Text</td>
+<td>Opens when you select text and choose to keep it. Give it a <strong>Voice Trigger</strong> (for example "normal colon comment") and save. It is saved for you at the laboratory shown; if none is found the window says "no facility resolved for this case".</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Leaving AI suggestions unverified. A required field that is unverified blocks sign-out even if the value looks right. Confirm or override it.</li>
+<li>Treating a high percentage as proof. A confident suggestion with <strong>Source not found in report text</strong> has not been matched to your narrative. Read it.</li>
+<li>Looking for Sign Out Case on an Assist case. Assist cases use <strong>Finalize</strong>; the LIS signs out.</li>
+<li>Editing after sign-out. Sections are locked; use <strong>Request Amendment / Addendum</strong>, or <strong>Recall Report</strong> while the hold is still running.</li>
+<li>Changing the template late. It regenerates every section in the Report Draft tab.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use <strong>→ Next Required</strong> and <strong>→ Next Unverified</strong> instead of scrolling.</li>
+<li>Choose <strong>Tabs</strong> view for long checklists and <strong>Page</strong> view for a quick scan. Use <strong>Compact view</strong> in the header for more room.</li>
+<li>Dictate directly into the microscopic and report sections; saved quick texts can be inserted by their voice trigger.</li>
+<li>Use <strong>Save &amp; Next</strong> and <strong>Finalize &amp; Next</strong> to stay in flow.</li>
+<li>Use the hotkeys listed above in place of the mouse for sign-out, history and codes.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Complete the narrative first when you dictate; let the AI suggest the checklist and review it. Complete the checklist first when you work from a protocol; let the AI draft the narrative.</li>
+<li>Clear holds and critical-finding notifications before you start sign-out so the checks pass at the first attempt.</li>
+<li>Use <strong>Release as Preliminary</strong> only for findings that are clinically urgent; it does not close the case.</li>
+<li>Check the <strong>Coding Summary</strong> in the sign-out window; a specimen with ancillary codes but no base code shows <strong>Assign now</strong>.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/worklist">Worklist</a>: open the case to report.</li>
+<li><a href="/help/grossing">Grossing</a>: the gross description and material you read here.</li>
+<li><a href="/help/intraop-queue">Intraop Queue</a>: the intraoperative findings shown in the report.</li>
+<li><a href="/help/report/synoptic-reporting">Synoptic Reporting</a>: answering fields, Edit Field, dictation and AI suggestions.</li>
+<li><a href="/help/report/microscopic-and-material">Microscopic and Material</a>: the microscopic panel, Material tab, history, images and comments.</li>
+<li><a href="/help/report/case-team">Case Team</a>: collaborators, delegation, Flag for MDT and review requests.</li>
+<li><a href="/help/report/billing-review">Billing Review</a>: AI billing code review, Smart Capture, charge approval and billing corrections.</li>
+<li><a href="/help/voice-and-keyboard">Voice and Keyboard</a>: every command, key and phrase.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report/sign-out-and-release">Sign Out and Release</a>: Sign Out Case, Sign Out and Next, the release delay, addenda and amendments.</li>
+<li><a href="/help/tumor-board">Tumor Board</a>: flag and manage MDT listing.</li>
+<li><a href="/help/quality">Quality &amp; Compliance</a>: post-sign-out review and deficiencies.</li>
+<li><a href="/help/search">Search</a>: find the completed case.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Sign Out Case button</td>
+<td>The case is in Assist mode, is a pool case, grossing is not complete, the report is already signed out or pending release, or the synoptic reports are not all complete.</td>
+</tr>
+<tr>
+<td>Sign Out Case or Finalize is greyed out</td>
+<td>Your role does not allow it, or the synoptic layout is still being checked. Ask your manager if it stays grey.</td>
+</tr>
+<tr>
+<td>"n AI suggestions still need your review"</td>
+<td>A required field has an AI suggestion that is not confirmed or overridden.</td>
+</tr>
+<tr>
+<td>"This case is on hold"</td>
+<td>A case hold is active.</td>
+</tr>
+<tr>
+<td>Cannot print</td>
+<td>The report is in its release hold, the case is restricted, or your role does not allow printing.</td>
+</tr>
+<tr>
+<td>"Someone else saved this case"</td>
+<td>A colleague saved a change while you had the case open.</td>
+</tr>
+<tr>
+<td>Cannot recall</td>
+<td>Only the person who signed out the case can recall it, and only before the countdown ends.</td>
+</tr>
+<tr>
+<td>Codes will not apply</td>
+<td>The code system or your role does not allow it. OPCS-4 codes come from a short demonstration list and cannot be applied to a case.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the message on screen; it names the field, specimen or hold that stopped you.</li>
+<li>Fix that item and try again.</li>
+<li>If a button is missing, check the reporting mode and the case state in the header.</li>
+<li>If the screen looks out of date, choose <strong>Show their changes</strong>, or reload the case.</li>
+<li>If a window does not open, allow pop-ups for PathScribe (the EMR and sign-in windows use them).</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when sign-out fails twice with the same message, a report does not release after its countdown, the status will not change after a recall, or the signature window says signing is unavailable. Have the case number and the time of the problem ready.</p>

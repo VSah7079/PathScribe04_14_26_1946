@@ -44,7 +44,11 @@ export type CytologyTriageState =
    *  eligible for cytology screening; it needs a real, separate,
    *  later recall workflow (a new patient visit, a new
    *  clinician-collected specimen) that this phase does not build. */
-  | 'reflex_requires_new_specimen';
+  | 'reflex_requires_new_specimen'
+  /** primary_hpv_reflex, the SELF-collected specimen's hrHPV result came back Invalid (Batch 631). Nothing can be done
+   *  with this sample: the patient needs a repeat self-collection or a clinician-collected specimen. Never eligible for
+   *  cytology, and not "awaiting" (the result has arrived); it is listed under Recall needed. */
+  | 'repeat_collection_required';
 
 export function resolveCytologyTriageState(
   screeningStrategy: CytologyScreeningStrategy,
@@ -56,6 +60,7 @@ export function resolveCytologyTriageState(
     return isSelfCollected ? 'reflex_requires_new_specimen' : 'reflex_triggered';
   }
   if (hpvResult === 'Negative') return 'hpv_negative_complete';
+  if (hpvResult === 'Invalid' && isSelfCollected) return 'repeat_collection_required';
   // Real, safe default: 'Pending', 'Not Performed', or genuinely
   // unset all mean the same real thing here — no confirmed result yet,
   // so cytology is never assumed eligible. Same "unresolved is never

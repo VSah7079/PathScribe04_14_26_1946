@@ -4,7 +4,7 @@ import type { CancerRegistrySettingsDeps } from './saveCancerRegistrySettings';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { cancerRegistrySettingsService } from './cancerRegistrySettingsServiceInstance';
 import { facilityCancerRegistryOverrideService } from './facilityCancerRegistryOverrideServiceInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 export const cancerRegistrySettingsDeps: CancerRegistrySettingsDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
@@ -13,5 +13,5 @@ export const cancerRegistrySettingsDeps: CancerRegistrySettingsDeps = {
   createFacilityOverride: (facilityId, registryId) => facilityCancerRegistryOverrideService.create(facilityId, { registryId }),
   updateFacilityOverride: (facilityId, registryId) => facilityCancerRegistryOverrideService.update(facilityId, { registryId }),
   removeFacilityOverride: facilityId => facilityCancerRegistryOverrideService.remove(facilityId),
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
 };

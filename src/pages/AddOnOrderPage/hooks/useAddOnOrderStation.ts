@@ -40,9 +40,14 @@
 // "addOnOrder"). This hook keeps the state and the one save per action. Scan
 // stations come from @/services (off the deployment baseline); messages are
 // locale keys.
+//
+// Batch 669 (ws-8): each action runs through `act` (services/workstationSave/runCaseAction.ts via
+// hooks/useWorkstationSave.ts): the action is run on the newest copy of the case and run again if someone else saved
+// first (up to 3 tries). A save that still fails comes back as `notSaved` ("Not saved" on the page) and the case is
+// reloaded from the store, instead of the change staying on screen as if it were saved.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import {
@@ -54,9 +59,12 @@ import {
   placeAddOnOrders, respondToAddOnException, flagAddOnException, markAddOnBlockRetrieved,
   type AddOnActionResult, type AddOnExceptionResponse, type AddOnOrderActionDeps,
 } from '@/services/addOnOrders/addOnOrderActions';
+import { deskRecipientsFor, staffDisplayName } from '@/services/addOnOrders/blockExceptionRouting';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { useWorkstationSave } from '@/hooks/useWorkstationSave';
+import type { SpecimenSaver } from '@/services/workstationSave/runCaseAction';
 import type { Case } from '@/types/case/Case';
-import type { Specimen, StainOrder } from '@/types/case/Specimen';
+import type { StainOrder } from '@/types/case/Specimen';
 import type { StainType } from '@/services/stains/IStainService';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import type { Facility } from '@/services/facilities/IFacilityService';
@@ -86,9 +94,21 @@ export function useAddOnOrderStation() {
   const [referenceLabs, setReferenceLabs] = useState<Facility[]>([]);
   const [performingLabFacilityId, setPerformingLabFacilityId] = useState<string | undefined>(undefined);
   const requirements = useFieldRequirements('addOnOrder');
-  const versionRef = useRef(0);
+  const { runAction } = useWorkstationSave();
 
   const actor = { id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' };
+
+  /** Batch 669 (ws-20): the case's primary pathologist as a name (order.assignedTo is stored as a user id); the stored text if it is not a known user. */
+  const [primaryPathologistName, setPrimaryPathologistName] = useState<string | undefined>(undefined);
+  const assignedTo = caseData?.order?.assignedTo;
+  useEffect(() => {
+    let live = true;
+    if (!assignedTo) { setPrimaryPathologistName(undefined); return; }
+    userService.getById(assignedTo)
+      .then(r => { if (live) setPrimaryPathologistName(staffDisplayName(assignedTo, r.ok && r.data ? [r.data] : [])); })
+      .catch(() => { if (live) setPrimaryPathologistName(assignedTo); });
+    return () => { live = false; };
+  }, [assignedTo]);
 
   const loadDirectories = useCallback(async () => {
     const [stainsRes, stationsRes, facilitiesRes] = await Promise.all([
@@ -109,7 +129,6 @@ export function useAddOnOrderStation() {
     if (!trimmed) { setSearchError({ key: 'addOnOrder.errors.enterAccession' }); return { ok: false }; }
     const found = await caseRouter.getCase(trimmed);
     if (!found) { setSearchError({ key: 'addOnOrder.errors.caseNotFound', values: { query: trimmed } }); return { ok: false }; }
-    versionRef.current = (found as unknown as { version?: number }).version ?? 0;
     setCaseData(found);
     const lab = await resolveCasePerformingLab(found);
     setPerformingLabFacilityId(lab);
@@ -122,31 +141,37 @@ export function useAddOnOrderStation() {
     setPerformingLabFacilityId(undefined);
   }, []);
 
-  /** One save per action: shows the change at once, then writes it. */
-  const saveSpecimens = useCallback<AddOnOrderActionDeps['saveSpecimens']>(async (current, specimens: Specimen[]) => {
-    setCaseData(prev => (prev && prev.id === current.id ? { ...prev, specimens } : prev));
-    try {
-      await caseRouter.updateCase(current.id, { specimens }, versionRef.current);
-      versionRef.current += 1;
-    } catch (e) {
-      console.error('[AddOnOrderStation] Failed to persist:', e);
-    }
-  }, []);
-
-  const deps: AddOnOrderActionDeps = {
+  const baseDeps: AddOnOrderActionDeps = {
     enforce: (capability, context) => authorizationService.enforce(capability, context),
-    saveSpecimens,
+    // Replaced by `act` with the save of the copy of the case the action runs on.
+    saveSpecimens: async () => {},
     // Batch 467: molecular lines become orders the molecular order engine routes and queues.
     ingestMolecularOrders: requests => molecularOrderEngine.ingest(requests),
   };
+
+  /** Batch 669 (ws-8): runs an action on the newest copy of the case (run again if someone else saved first), shows
+   *  what it saved, and turns a save that did not happen into `notSaved` after reloading the stored case. */
+  const act = useCallback(async (
+    run: (current: Case, deps: AddOnOrderActionDeps) => Promise<AddOnActionResult>,
+  ): Promise<AddOnActionResult> => {
+    if (!caseData) return { ok: false, failed: true };
+    const outcome = await runAction(caseData.id, (current: Case, save: SpecimenSaver) =>
+      run(current, { ...baseDeps, saveSpecimens: (_c, specimens) => save(specimens) }));
+    if (outcome.status === 'failed') {
+      if (outcome.latest) setCaseData(outcome.latest);
+      return { ok: false, notSaved: outcome.reason };
+    }
+    if (outcome.status === 'saved') setCaseData(outcome.caseData);
+    return outcome.value;
+  }, [caseData, runAction]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Places the order on every chosen block (services/addOnOrders). */
   const submitOrder = useCallback(async (
     blockIds: string[], lines: AddOnOrderLineInput[], submission: AddOnOrderSubmissionInput,
   ): Promise<AddOnActionResult> => {
     if (!caseData) return { ok: false, failed: true };
-    return placeAddOnOrders({ caseData, blockIds, lines, submission, actor, performingLabFacilityId, requirements }, deps);
-  }, [caseData, performingLabFacilityId, requirements, saveSpecimens]); // eslint-disable-line react-hooks/exhaustive-deps
+    return act((current, deps) => placeAddOnOrders({ caseData: current, blockIds, lines, submission, actor, performingLabFacilityId, requirements }, deps));
+  }, [caseData, performingLabFacilityId, requirements, act]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Real, per §4 — every real StainOrder anywhere on this case that
    *  this flow itself created (orderedByPathologistId set), with its
@@ -158,7 +183,9 @@ export function useAddOnOrderStation() {
     for (const specimen of caseData.specimens ?? []) {
       for (const block of specimen.blocks ?? []) {
         for (const order of block.stains) {
-          if (!order.orderedByPathologistId) continue;
+          // Batch 669 (ws-3): a slide with an open exception is listed too, even if it was not ordered here (an original
+          // H&E, say), so the notice that went to the Supervisor / Accessioning Desk has a place to be answered.
+          if (!order.orderedByPathologistId && !order.exception) continue;
           rows.push({ specimenId: specimen.id, specimenLabel: specimen.label, blockId: block.id, blockLabel: block.label, order, stage: computeAddOnTrackingStage(order) });
         }
       }
@@ -168,26 +195,29 @@ export function useAddOnOrderStation() {
 
   const handleMarkBlockRetrieved = useCallback(async (stainOrderId: string): Promise<AddOnActionResult> => {
     if (!caseData) return { ok: false, failed: true };
-    return markAddOnBlockRetrieved({ caseData, stainOrderId, actor }, deps);
-  }, [caseData, saveSpecimens]); // eslint-disable-line react-hooks/exhaustive-deps
+    return act((current, deps) => markAddOnBlockRetrieved({ caseData: current, stainOrderId, actor }, deps));
+  }, [caseData, act]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Real, per §5 — a tech flags a block exception; the ordering pathologist is emailed. */
   const handleFlagException = useCallback(async (stainOrderId: string, reason: BlockExceptionReason, note: string): Promise<AddOnActionResult> => {
     if (!caseData) return { ok: false, failed: true };
-    return flagAddOnException({ caseData, stainOrderId, reason, note, actor, requirements }, {
-      saveSpecimens,
+    return act((current, deps) => flagAddOnException({ caseData: current, stainOrderId, reason, note, actor, requirements }, {
+      saveSpecimens: deps.saveSpecimens,
+      enforce: deps.enforce,
       getUserEmail: async id => { const r = await userService.getById(id); return r.ok ? r.data.email : undefined; },
+      // Batch 669 (ws-3): no ordering pathologist to e-mail: the Supervisor / Accessioning Desk is told instead.
+      getDeskRecipients: async c => { const r = await userService.getAll(); return deskRecipientsFor(c, r.ok ? r.data : []); },
       sendEmail,
-    });
-  }, [caseData, requirements, saveSpecimens]); // eslint-disable-line react-hooks/exhaustive-deps
+    }));
+  }, [caseData, requirements, act]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleResolveException = useCallback(async (
     stainOrderId: string, action: AddOnExceptionResponse, responseNote: string,
     modifyChanges?: { levelDepthMicrons?: number; cuttingInstructions?: string },
   ): Promise<AddOnActionResult> => {
     if (!caseData) return { ok: false, failed: true };
-    return respondToAddOnException({ caseData, stainOrderId, action, responseNote, modifyChanges, actor, requirements }, deps);
-  }, [caseData, requirements, saveSpecimens]); // eslint-disable-line react-hooks/exhaustive-deps
+    return act((current, deps) => respondToAddOnException({ caseData: current, stainOrderId, action, responseNote, modifyChanges, actor, requirements }, deps));
+  }, [caseData, requirements, act]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Real, per §3 — which real stations this order's routed workflow
    *  stage would actually reach, scoped to this case's own performing
@@ -199,7 +229,7 @@ export function useAddOnOrderStation() {
   }, [stations, performingLabFacilityId]);
 
   return {
-    caseData, searchError, stainTypes, stations, referenceLabs, performingLabFacilityId, actor, requirements,
+    caseData, searchError, stainTypes, stations, referenceLabs, performingLabFacilityId, actor, requirements, primaryPathologistName,
     loadDirectories, openCase, closeCase, submitOrder, trackedOrders,
     handleMarkBlockRetrieved, handleFlagException, handleResolveException, stationsForRouting,
   };

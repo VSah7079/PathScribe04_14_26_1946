@@ -75,3 +75,8 @@ The older outbound order queue (`IMolecularOrderOutboundQueueService`, HPV) is u
 ## Batch 616 (part C): server versions (PS-498 to PS-504)
 
 Each service here (the molecular order outbound queue) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/MOLECULAR_API.md`. The mocks are unchanged.
+
+## Batch 669 — mol-3, mol-9
+
+- **mol-3.** `hasReflexOrder` / `simulatedResultMessage` in `orderQueueView.ts`. A positive standalone HPV screen adds one reflex genotyping order per specimen (a new message id no longer adds another); the inbound result reports `reflex: 'queued' | 'already-queued'`. The demo page shows processor codes through `molecularOrderQueue.outcome.*`.
+- **mol-9.** The engine has `onPlateSuperseded(originalBatchUuid, clone)`: orders still PLATE_ASSIGNED on the superseded plate whose well the clone holds are pointed at the clone (same well; audit `PLATE_ASSIGNED`). `REMOVE_FROM_PLATE` on an order whose plate is already superseded no longer fails with `plateNotDraft`: the closed plate is left alone and the order goes back to Queued.

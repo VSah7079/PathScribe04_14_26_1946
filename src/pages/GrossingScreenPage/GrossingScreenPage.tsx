@@ -32,6 +32,7 @@ import type { StainType } from '@/services/stains/IStainService';
 import type { Batch } from '@/services/batches/IBatchService';
 import type { RecordMarginInkApplicationReasonCode } from '@/services/grossing/recordMarginInkApplication';
 import { useGrossingScreen } from './hooks/useGrossingScreen';
+import { GrossingMatrixBlocks } from './GrossingMatrixBlocks';
 import { LoadingState } from '@/components/Common/LoadingState';
 
 function findPathwayForBlock(protocol: Protocol | undefined, block: HistologyBlock): ProtocolPathway | undefined {
@@ -109,7 +110,7 @@ const GrossingScreenPage: React.FC = () => {
     completionReview,
     handleAddBlock, handleRemoveBlock, handleAddStain, handleRemoveStain,
     pendingStainRemoval, confirmPendingStainRemoval, cancelPendingStainRemoval,
-    handleUpdatePieceCount, handleRecordFixationEnded, handleConfirmFixativeRatio,
+    handleUpdatePieceCount, handleUpdatePieceDescription, handleUpdateMatrixBlock, handleRecordFixationEnded, handleConfirmFixativeRatio,
     handleRaiseFixationDeficiency, specimensWithOpenFixationDeficiency,
     handleRecordMarginInk,
     inkColors, inkingValidation, inkingValidationMode,
@@ -300,6 +301,9 @@ const GrossingScreenPage: React.FC = () => {
                 {t('grossingScreen.complete.routedForReview', { count: completionReview.routedForReview.length, specimens: formatList(completionReview.routedForReview, i18n.language) })}
               </p>
             )}
+            {completionReview?.routedToPool && (
+              <p className="ps-grossing-complete-review" role="status">{t('useGrossingCompletion.toast.routedToPool', { poolName: completionReview.routedToPool })}</p>
+            )}
             {completionReview && completionReview.reviewNotRaised.length > 0 && (
               <p className="ps-grossing-complete-error" role="alert">
                 {t('grossingScreen.complete.reviewNotRaised', { count: completionReview.reviewNotRaised.length, specimens: formatList(completionReview.reviewNotRaised, i18n.language) })}
@@ -425,6 +429,7 @@ const GrossingScreenPage: React.FC = () => {
                   <tr>
                     <th>{t('grossingScreen.col.blockId')}</th>
                     <th>{t('grossingScreen.col.pieceCount')}</th>
+                    <th>{t('grossingScreen.col.pieceDescription')}</th>
                     <th>{t('grossingScreen.col.stains')}</th>
                     <th>{t('grossingScreen.col.status')}</th>
                     <th>{t('grossingScreen.col.actions')}</th>
@@ -447,6 +452,10 @@ const GrossingScreenPage: React.FC = () => {
                               if (!isNaN(n) && n !== block.pieceCount) handleUpdatePieceCount(sp.id, block.id, n);
                             }}
                           />
+                        </td>
+                        <td>
+                          <input aria-label={t('a11y.fields.pieceDescription')} className="ps-grossing-piece-description-input" defaultValue={block.pieceDescription ?? ''}
+                            onBlur={e => { if (e.target.value.trim() !== (block.pieceDescription ?? '')) void handleUpdatePieceDescription(sp.id, block.id, e.target.value); }} />
                         </td>
                         <td>
                           <ul className="ps-grossing-stain-list">
@@ -666,6 +675,8 @@ const GrossingScreenPage: React.FC = () => {
           </div>
         );
       })}
+
+      <GrossingMatrixBlocks matrixBlocks={caseData.matrixBlocks ?? []} onChange={(id, patch) => { void handleUpdateMatrixBlock(id, patch); }} />
 
       {pendingStainRemoval && (
         <div className="ps-overlay" onClick={cancelPendingStainRemoval}>

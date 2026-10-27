@@ -20,6 +20,8 @@ import { mockEncounterService } from '../encounters/mockEncounterService';
 import { mockOutboundPatientAdtQueueService } from './mockOutboundPatientAdtQueueService';
 import { BREAK_GLASS_MIN_NOTE_LENGTH } from '../../types/patients/BreakGlassReasonCode';
 import { dataStorage } from '../browserData/dataStorage';
+import { demoCytologyPatientRecord } from './demoCytologyPatients';
+import { demoSurgicalPatientRecord } from './demoSurgicalPatients';
 
 const STORAGE_KEY = 'pathscribe_mpi_records';
 const LINKS_STORAGE_KEY = 'pathscribe_mpi_links';
@@ -276,7 +278,15 @@ export const mockPatientIndexService: IPatientIndexService = {
 
   async getById(patientId: string): Promise<MasterPatientRecord | null> {
     await delay();
-    return loadRecords().find(r => r.id === patientId) ?? null;
+    const records = loadRecords();
+    const found = records.find(r => r.id === patientId);
+    if (found) return found;
+    // Batch 634 (cytology) and 638 (surgical): a demo patient is added to the index the first time it is asked for.
+    const nowIso = new Date().toISOString();
+    const demo = demoCytologyPatientRecord(patientId, nowIso) ?? demoSurgicalPatientRecord(patientId, nowIso);
+    if (!demo) return null;
+    saveRecords([...records, demo]);
+    return demo;
   },
 
   async listPendingReview(organisationId: string): Promise<MasterPatientRecord[]> {

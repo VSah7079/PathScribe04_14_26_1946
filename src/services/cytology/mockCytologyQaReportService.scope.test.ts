@@ -51,7 +51,7 @@ vi.mock('./mockCytologyReviewRecordService', () => ({ mockCytologyReviewRecordSe
 vi.mock('./mockCytologyCategoryService', () => ({ mockCytologyCategoryService: { getAll: async () => ({ ok: true, data: data.categories }) } }));
 vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getAll: async () => ({ ok: true, data: data.cases }) } }));
 vi.mock('@/services/auth/caseAccessControl', () => ({ getSessionUser: () => null, canViewCrossTenantQaData: () => false }));
-vi.mock('@/services', () => ({ qaActivityRecordService: { getAll: async () => ({ ok: true, data: data.qaRecords }) } }));
+vi.mock('../quality/qaActivityRecordServiceInstance', () => ({ qaActivityRecordService: { getAll: async () => ({ ok: true, data: data.qaRecords }) } }));
 
 import type { mockCytologyQaReportService as ServiceType } from './mockCytologyQaReportService';
 import { resolveCytologyPostSignOutPeerReviewCorrelationReport } from './resolveCytologyQaReports';

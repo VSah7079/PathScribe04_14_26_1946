@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import type { Decant } from '@/types/case/Material';
 import { formatList } from '@/utils/formatList';
 import { computeCytologyPrepSuggestions } from '@/services/cytology/computeCytologyPrepSuggestions';
+import { remainingPrepSuggestions } from '@/utils/microtomyOperations';
 
 export interface CytologyPanelProps {
   decant: Decant;
@@ -22,10 +23,12 @@ const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, o
   const { t, i18n } = useTranslation();
   const [volumeInput, setVolumeInput] = useState(decant.totalVolumeMl?.toString() ?? '');
 
-  const suggestions = useMemo(
+  const suggested = useMemo(
     () => computeCytologyPrepSuggestions({ totalVolumeMl: decant.totalVolumeMl, yieldPelletSize: decant.yieldPelletSize }),
     [decant.totalVolumeMl, decant.yieldPelletSize],
   );
+  // Batch 669 (ws-5): only the suggested slides not already on the decant are offered; Accept adds just those.
+  const suggestions = useMemo(() => remainingPrepSuggestions(decant.stains, suggested), [decant.stains, suggested]);
 
   return (
     <div className="ps-microtomy-panel ps-mb-14">
@@ -65,6 +68,9 @@ const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, o
         </div>
       </div>
 
+      {suggested.length > 0 && suggestions.length === 0 && (
+        <div className="ps-microtomy-comment-meta ps-mt-8">{t('microtomyWorkstation.cytology.suggestionAlreadyAdded')}</div>
+      )}
       {suggestions.length > 0 && (
         <div className="ps-microtomy-prep-suggestion-box">
           <div>

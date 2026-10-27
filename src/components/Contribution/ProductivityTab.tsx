@@ -10,6 +10,7 @@ import { caseRouter } from "@/services/cases/CaseRouter";
 import { userService } from "@/services";
 import { rvuCodeMapService } from "@/services";
 import { getFacilityDateParts } from "@/utils/facilityTime";
+import { peerGroupForComparison } from "@/pages/contributionDashboardCalculations";
 import { computeMonthlyCaseCounts, canSeePeerComparison, computeRvuSummary, computeMonthlyRvu, computePeerRvuStats, type RealRvuSummary, type RealPeerRvuStats } from "./productivityCalculations";
 import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 import { LoadingState } from '@/components/Common/LoadingState';
@@ -403,9 +404,7 @@ const ProductivityTab: React.FC = () => {
     let cancelled = false;
     Promise.all([userService.getAll(), caseRouter.getAll(), rvuCodeMapService.getAllVersions()]).then(([usersRes, allCasesRes, versionsRes]) => {
       if (cancelled || !usersRes.ok || !allCasesRes.ok || !versionsRes.ok) return;
-      const peerIds = usersRes.data
-        .filter(u => u.status === 'Active' && u.roles.includes('Pathologist') && u.id !== user.id)
-        .map(u => u.id);
+      const peerIds = peerGroupForComparison(usersRes.data.find(u => u.id === user.id), usersRes.data);
       setRealPeer(computePeerRvuStats(allCasesRes.data, peerIds, versionsRes.data, config.facilityTimezone));
     }).catch(() => {});
     return () => { cancelled = true; };

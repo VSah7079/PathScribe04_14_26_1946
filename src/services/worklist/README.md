@@ -15,3 +15,7 @@ Tile counts now match the rows their lists show (Pete, Oct 4). A restricted case
 ## Batch 454 — Follow-up not received: report, alerts and clinician email
 
 `worklistTileCounts.ts` adds the `followup` filter, the `followUp` stat and the `followUpCaseIds` dependency: the viewer's signed-out cases with a follow-up due soon or overdue. The parity test covers it.
+
+`isCollaboratingCase` (Batch 660): the Worklist "Collaborating Cases" rule, an active team-roster member on an open case.
+
+- `rowCommands.ts` (Batch 663): "go to row N" and "open accession X": parse the number or accession said and pick the row from the list as shown; out of range, no match or more than one match does nothing. Tests: `rowCommands.test.ts`, `rowCommandsVoice.test.ts` (through the real registry).

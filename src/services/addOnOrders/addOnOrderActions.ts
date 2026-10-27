@@ -6,7 +6,8 @@
 //   - approving destructive cutting         add-on:exception:approve-destructive-cut
 //   - cancelling, or modifying and resubmitting, an order after an exception
 //                                           add-on:order:place
-//   - a tech flagging a block exception     (no permission: it reports a fact)
+//   - a tech flagging a block exception     add-on:exception:flag          (Batch 669, ws-19)
+//   - a tech marking a block retrieved      add-on:block:mark-retrieved    (Batch 669, ws-19)
 // Pete: "Both, all 3 roles" (Pathologist, Fellow, Resident). Each also checks
 // the organisation's Field Requirements (page "addOnOrder",
 // fieldRequirements/addOnOrderChecks.ts); a molecular or send-out line always
@@ -35,6 +36,8 @@ import {
 
 export const ADD_ON_ORDER_PLACE_CAPABILITY = 'add-on:order:place';
 export const ADD_ON_DESTRUCTIVE_CUT_CAPABILITY = 'add-on:exception:approve-destructive-cut';
+export const ADD_ON_FLAG_EXCEPTION_CAPABILITY = 'add-on:exception:flag';
+export const ADD_ON_MARK_RETRIEVED_CAPABILITY = 'add-on:block:mark-retrieved';
 
 export type AddOnExceptionResponse = 'approve_destructive_cut' | 'cancel' | 'modify';
 
@@ -48,12 +51,17 @@ export interface AddOnOrderActionDeps {
 
 export interface AddOnNotifyDeps {
   getUserEmail: (userId: string) => Promise<string | undefined>;
+  /** Batch 669 (ws-3): where the notice goes when no ordering pathologist can be e-mailed: the Supervisor / Accessioning
+   *  Desk addresses for this case, and the name of the case's primary pathologist when known (see blockExceptionRouting.ts). */
+  getDeskRecipients?: (caseData: Case) => Promise<{ emails: string[]; primaryPathologistName?: string }>;
   sendEmail: (message: { to: string[]; subject: string; bodyText: string; bodyHtml: string; metadata: Record<string, string> }) => Promise<unknown>;
 }
 
 /** One flat shape: this project's tsconfig doesn't narrow unions reliably. */
 export interface AddOnActionResult {
   ok: boolean;
+  /** Batch 669: the change was not saved ('conflict': someone else changed the case; 'notApplied': the save failed). The screen says "Not saved" and reloads the case. */
+  notSaved?: 'conflict' | 'notApplied';
   notPermitted?: boolean;
   /** Field Requirements still unmet (field ids). */
   missing?: string[];
@@ -67,6 +75,10 @@ export interface AddOnActionResult {
   molecularNotQueued?: number;
   /** The case's specimens after the change, for the page to show. */
   specimens?: Specimen[];
+  /** Batch 669 (ws-3): a flagged exception was saved, and the notice went to the Supervisor / Accessioning Desk because no ordering pathologist could be e-mailed. */
+  noticeToDesk?: boolean;
+  /** Batch 669 (ws-3): a flagged exception was saved, but nobody could be e-mailed (no ordering pathologist and no desk address). */
+  noticeNotSent?: boolean;
 }
 
 type Actor = { id: string; name: string };
@@ -197,7 +209,8 @@ export async function respondToAddOnException(
   return { ok: true, specimens };
 }
 
-/** A tech flagging a block exception; the ordering pathologist is emailed. */
+/** A tech flagging a block exception (add-on:exception:flag). The ordering pathologist is emailed; when there is none, or
+ *  no address for them, the notice goes to the Supervisor / Accessioning Desk instead (Pete, Oct 24, 2026). */
 export async function flagAddOnException(
   input: {
     caseData: Case;
@@ -207,9 +220,11 @@ export async function flagAddOnException(
     actor: Actor;
     requirements: readonly ResolvedFieldRequirement[];
   },
-  deps: Pick<AddOnOrderActionDeps, 'saveSpecimens'> & AddOnNotifyDeps,
+  deps: Pick<AddOnOrderActionDeps, 'saveSpecimens' | 'enforce'> & AddOnNotifyDeps,
 ): Promise<AddOnActionResult> {
   const { caseData, actor, reason } = input;
+  const decision = await deps.enforce('add-on:exception:flag', { caseId: caseData.id });
+  if (!decision.allowed) return { ok: false, notPermitted: true };
   const missing = addOnExceptionMissing(input.note, input.requirements);
   if (missing.length > 0) return { ok: false, missing };
 
@@ -222,27 +237,41 @@ export async function flagAddOnException(
   await deps.saveSpecimens(caseData, specimens);
 
   const pathologistId = loc.order.orderedByPathologistId;
-  const email = pathologistId ? await deps.getUserEmail(pathologistId) : undefined;
-  if (email) {
-    const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? caseData.id;
-    const where = `${loc.specimen.label}${loc.block.label}`;
-    const action = 'Review and respond (cancel / modify / approve destructive cutting) from the Add-On Order Tracking dashboard.';
-    void deps.sendEmail({
-      to: [email],
-      subject: `Add-On Order Exception — ${accession} ${where}`,
-      bodyText: `${reason} on block ${where} (order: ${loc.order.stainName}). ${note ?? ''}\n\n${action}`,
-      bodyHtml: `<p><strong>${reason}</strong> on block ${where} (order: ${loc.order.stainName}).</p><p>${note ?? ''}</p><p>${action}</p>`,
-      metadata: { caseId: caseData.id, blockId: loc.block.id, stainOrderId: input.stainOrderId, reason },
-    }).catch(() => {});
+  const pathologistEmail = pathologistId ? await deps.getUserEmail(pathologistId) : undefined;
+  let to: string[] = pathologistEmail ? [pathologistEmail] : [];
+  let primaryPathologistName: string | undefined;
+  const toDesk = to.length === 0;
+  if (toDesk && deps.getDeskRecipients) {
+    try {
+      const desk = await deps.getDeskRecipients(caseData);
+      to = desk.emails;
+      primaryPathologistName = desk.primaryPathologistName;
+    } catch (e) { console.error('[addOnOrders] desk recipients not found:', e); }
   }
-  return { ok: true, specimens };
+  if (to.length === 0) return { ok: true, specimens, noticeNotSent: true };
+
+  const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? caseData.id;
+  const where = `${loc.specimen.label}${loc.block.label}`;
+  const action = toDesk
+    ? `No ordering pathologist is recorded for this slide order${primaryPathologistName ? ` (the case's primary pathologist is ${primaryPathologistName})` : ''}. Please pass this on to the pathologist so the exception can be answered (cancel / modify / approve destructive cutting) from the Add-On Order Tracking dashboard.`
+    : 'Review and respond (cancel / modify / approve destructive cutting) from the Add-On Order Tracking dashboard.';
+  void deps.sendEmail({
+    to,
+    subject: `Add-On Order Exception — ${accession} ${where}`,
+    bodyText: `${reason} on block ${where} (order: ${loc.order.stainName}). ${note ?? ''}\n\n${action}`,
+    bodyHtml: `<p><strong>${reason}</strong> on block ${where} (order: ${loc.order.stainName}).</p><p>${note ?? ''}</p><p>${action}</p>`,
+    metadata: { caseId: caseData.id, blockId: loc.block.id, stainOrderId: input.stainOrderId, reason, ...(toDesk ? { routedTo: 'supervisor-desk' } : {}) },
+  }).catch(() => {});
+  return toDesk ? { ok: true, specimens, noticeToDesk: true } : { ok: true, specimens };
 }
 
-/** A tech marking the block retrieved for an order. */
+/** A tech marking the block retrieved for an order (add-on:block:mark-retrieved). */
 export async function markAddOnBlockRetrieved(
   input: { caseData: Case; stainOrderId: string; actor: Actor },
-  deps: Pick<AddOnOrderActionDeps, 'saveSpecimens'>,
+  deps: Pick<AddOnOrderActionDeps, 'saveSpecimens' | 'enforce'>,
 ): Promise<AddOnActionResult> {
+  const decision = await deps.enforce('add-on:block:mark-retrieved', { caseId: input.caseData.id });
+  if (!decision.allowed) return { ok: false, notPermitted: true };
   const loc = findAddOnOrder(input.caseData, input.stainOrderId);
   if (!loc) return { ok: false, failed: true };
   const result = markBlockRetrieved(loc.specimen, loc.block.id, input.stainOrderId, input.actor);

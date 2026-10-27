@@ -20,14 +20,11 @@
 //   Allow Template Self-Approval  Disabled
 //   Required Reviewers            1 independent reviewer
 //
-//   3. Drafting (Batch 329): Template Author, with Admin inheriting it.
+//   3. Drafting (Batch 329): config:protocol:draft (Template Author; Admin inherits it).
 //
-// Roles are checked by built-in role id (services/roles/systemRoles.ts).
-// Pure: no storage, no session. templateService.ts supplies the protocol,
+// Capabilities only (Batch 664). Pure: no storage, no session. templateService.ts supplies the protocol,
 // the actor and the settings, and throws the returned code.
 // ─────────────────────────────────────────────────────────────────────────────
-
-import { SYSTEM_ROLE_IDS } from '../roles/systemRoles';
 
 /** The part of an editor template the coverage calculation reads. */
 export interface CoverageInput {
@@ -96,63 +93,34 @@ export function normalizeGovernanceSettings(raw: Partial<TemplateGovernanceSetti
   };
 }
 
-// ── Roles ────────────────────────────────────────────────────────────────────
-// Checked by built-in role id (services/roles/systemRoles.ts), never by
-// display name, so renaming a role in Staff → Roles doesn't break them
-// (Batch 329, per Pete).
-
-/** Role ids that may approve and publish templates (Pete's matrix:
- *  Template Approver / Lab Director / Admin). */
-export const TEMPLATE_APPROVER_ROLE_IDS: readonly string[] = [
-  SYSTEM_ROLE_IDS.TEMPLATE_APPROVER, SYSTEM_ROLE_IDS.LAB_DIRECTOR, SYSTEM_ROLE_IDS.ADMIN,
-];
-/** Role ids that may draft templates: Template Author, and Admin by
- *  inheritance. */
-export const TEMPLATE_AUTHOR_ROLE_IDS: readonly string[] = [
-  SYSTEM_ROLE_IDS.TEMPLATE_AUTHOR, SYSTEM_ROLE_IDS.ADMIN,
-];
-
-/** App-level roles with administrator rights (AuthContext User.role). They
- *  inherit Admin's template rights. */
-const ADMIN_APP_ROLES = new Set(['admin', 'pathologist-admin', 'superadmin']);
+// ── Who may do what ──────────────────────────────────────────────────────────
+// Batch 664: capabilities decide, nothing else. The role-name fallback (built-in role ids and administrator app roles)
+// is gone (CLAUDE.md rule 7). Seeds: Template Author holds config:protocol:draft; Template Approver, Lab Director and
+// Admin hold approve and publish (services/authorization/capabilitySeeds.ts). A lab can change that in the Role Dictionary.
 
 export interface TemplateActor {
   id: string;
   /** Display name, recorded on the approval. */
   name?: string;
-  /** AuthContext User.role. */
-  appRole?: string;
-  /** Ids of the staff record's roles (roleIdsForNames). */
-  roleIds?: string[];
-  /** Batch 428: the capabilities the person holds. When given, they decide
-   *  (config:protocol:draft / approve / publish); the built-in roles only
-   *  decide for an actor built without them (older callers and tests). */
-  capabilities?: readonly string[];
+  /** The capabilities the person holds (authorizationService.grantedCapabilities). */
+  capabilities: readonly string[];
 }
 
-const hasAnyRole = (actor: TemplateActor | null | undefined, ids: readonly string[]): boolean => {
-  if (!actor) return false;
-  if (actor.appRole && ADMIN_APP_ROLES.has(actor.appRole)) return true;
-  return (actor.roleIds ?? []).some(id => ids.includes(id));
-};
-
-const holds = (actor: TemplateActor | null | undefined, capability: string, roleIds: readonly string[]): boolean => {
-  if (!actor) return false;
-  return actor.capabilities ? actor.capabilities.includes(capability) : hasAnyRole(actor, roleIds);
-};
+const holds = (actor: TemplateActor | null | undefined, capability: string): boolean =>
+  !!actor && actor.capabilities.includes(capability);
 
 export function isTemplateApprover(actor: TemplateActor | null | undefined): boolean {
-  return holds(actor, 'config:protocol:approve', TEMPLATE_APPROVER_ROLE_IDS);
+  return holds(actor, 'config:protocol:approve');
 }
 
-/** Batch 428: publishing is its own capability (seeded to the same roles as approving). */
+/** Publishing is its own capability (seeded to the same roles as approving). */
 export function canPublishTemplates(actor: TemplateActor | null | undefined): boolean {
-  return holds(actor, 'config:protocol:publish', TEMPLATE_APPROVER_ROLE_IDS);
+  return holds(actor, 'config:protocol:publish');
 }
 
-/** Drafting (Pete's matrix): Template Author; Admin inherits it. */
+/** Drafting: config:protocol:draft (seeded to Template Author and Admin). */
 export function canDraftTemplates(actor: TemplateActor | null | undefined): boolean {
-  return holds(actor, 'config:protocol:draft', TEMPLATE_AUTHOR_ROLE_IDS);
+  return holds(actor, 'config:protocol:draft');
 }
 
 // ── Approvals ────────────────────────────────────────────────────────────────

@@ -4,8 +4,8 @@
 import { intraoperativeService } from '@/services';
 import { resolveIntraopDiagnosisText } from './fullPatientReportRows';
 
-export async function loadIntraopDiagnosisForCase(caseId: string): Promise<string | null> {
+export async function loadIntraopDiagnosisForCase(caseId: string, carried?: Parameters<typeof resolveIntraopDiagnosisText>[2]): Promise<string | null> {
   const res = await intraoperativeService.getAll();
-  if (!res.ok) return null;
-  return resolveIntraopDiagnosisText(res.data, caseId);
+  // Batch 655: when the session cannot be read (or was removed), the copy kept on the case is still shown.
+  return resolveIntraopDiagnosisText(res.ok ? res.data : [], caseId, carried);
 }

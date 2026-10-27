@@ -22,7 +22,7 @@ describe('stateOf', () => {
   it('maps the queue statuses', () => {
     expect(stateOf(e(), false)).toBe('waiting');
     expect(stateOf(e({ status: 'FAILED' }), false)).toBe('failed');
-    expect(stateOf(e({ status: 'FAILED', maxRetriesExceeded: true }), false)).toBe('deadLettered');
+    expect(stateOf(e({ status: 'FAILED', maxRetriesExceeded: true }), false)).toBe('failed');  // ops-2: no separate dead-lettered state; a failed message past its retries is simply Failed (retry stays available)
     expect(stateOf(e({ status: 'SENT' }), false)).toBe('sent');
     expect(stateOf(e({ status: 'SENT', acknowledgedAt: 'x' }), false)).toBe('acknowledged');
   });
@@ -104,12 +104,18 @@ describe('filter, sort, count', () => {
   });
 });
 
+describe('no dead-lettered state (ops-2)', () => {
+  it('is not one of the states, the tiles or the sort order', () => {
+    expect((OUTBOUND_STATES as readonly string[]).includes('deadLettered')).toBe(false);
+  });
+});
+
 describe('actions by state', () => {
   it('holds what has not gone, releases what is held, retries what failed, and closes only a rejection', () => {
     expect(ACTIONS_FOR_STATE.waiting).toEqual(['hold', 'retract', 'overrideRelease']);
     expect(allows('held', 'release')).toBe(true);
     expect(allows('held', 'retry')).toBe(false);
-    expect(allows('deadLettered', 'retry')).toBe(true);
+    expect(allows('failed', 'retry')).toBe(true);
     expect(allows('rejected', 'markNotReportable')).toBe(true);
     expect(allows('failed', 'markNotReportable')).toBe(false);
     expect(allows('sent', 'hold') || allows('acknowledged', 'retry') || allows('notReportable', 'release')).toBe(false);

@@ -3,8 +3,10 @@
 // flag shape, a FlagInstance on Case.caseFlags or the specimen's own
 // Specimen.specimenFlags, against the real mock case store.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// Batch 649: capabilities refused by a test are listed in `denied` (case:flag:apply / case:flag:remove).
+const denied = vi.hoisted(() => new Set<string>());
 vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
-  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+  authorizationService: { enforce: async (c: string) => ({ allowed: !denied.has(c) }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
 }));
 import { applyFlags, deleteFlags } from '../caseFlagsApi';
 import { mockCaseService } from '../../services/cases/mockCaseService';
@@ -14,6 +16,21 @@ const CASE_ID = 'S26-4402-COLON-RES';
 
 describe('caseFlagsApi (PS-57)', () => {
   beforeEach(() => localStorage.clear());
+
+  it('Batch 649: without case:flag:apply nothing is applied; without case:flag:remove nothing is removed', async () => {
+    denied.add('case:flag:apply');
+    try {
+      await expect(applyFlags({ caseId: CASE_ID, flagDefinitionId: 'flag-denied' })).rejects.toThrow();
+      expect(((await mockCaseService.getCase(CASE_ID))!.caseFlags ?? []).some(f => f.flagDefinitionId === 'flag-denied')).toBe(false);
+    } finally { denied.clear(); }
+    await applyFlags({ caseId: CASE_ID, flagDefinitionId: 'flag-keep' });
+    const inst = (await mockCaseService.getCase(CASE_ID))!.caseFlags!.find(f => f.flagDefinitionId === 'flag-keep')!;
+    denied.add('case:flag:remove');
+    try {
+      await expect(deleteFlags({ caseId: CASE_ID, flagInstanceId: inst.id })).rejects.toThrow();
+      expect((await mockCaseService.getCase(CASE_ID))!.caseFlags!.find(f => f.id === inst.id)!.deletedAt).toBeNull();
+    } finally { denied.clear(); }
+  });
 
   it('applying a case flag stores a FlagInstance (definition id, when, by whom, not removed) on caseFlags', async () => {
     const view = await applyFlags({ caseId: CASE_ID, flagDefinitionId: 'flag-test-1' });

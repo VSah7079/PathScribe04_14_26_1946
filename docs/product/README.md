@@ -1,3 +1,17 @@
+**Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; see `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 666:** `PHRASE_REVIEW_LIST.md` regenerated from the live registry (286 commands, with a Spanish column); `GUIDE_UPDATES.md` has the Batch 666 entry; `KNOWN_GAPS.md` lists the User Guide's remaining gaps.
+
+**Batch 667:** the User Guide covers every control on the user-facing screens, checked by `scripts/user-guide/coverage.py` and a test; see `docs/user-guide/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 652:** `GAP_REGISTER.md` (new) lists every audited gap (Appendix A) with its status and where; `KNOWN_GAPS.md`, `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md` (retention, Spain, HPV, labels), `CAPABILITY_INVENTORY.md` (alerts, Patient History, EMR) and `DEMO_GUIDE.md` (Superadmin) corrected to match the code.
+
+**Batch 650:** `KNOWN_GAPS.md` lists the registered commands with no screen handler and the decisions for Pete; `HOTKEY_DECISIONS.md` and `GUIDE_UPDATES.md` updated.
+
+**Batch 649:** `GUIDE_UPDATES.md` (four voices) and `FEATURE_OVERVIEW.md` (Sign-out safety and permissions) describe the sign-out, permission and privacy fixes; `CAPABILITIES.md` is now 338 capabilities (287 high risk); `KNOWN_GAPS.md` lists what is not fixed; `PHRASE_REVIEW_LIST.md` notes that no voice commands were added.
+
+**Batch 648:** `DEMO_GUIDE.md` has a Lockbox Drop-Off section (the six seeded receipts, barcodes to scan live, linking, and Demo Reset). `GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md` now describe Lockbox Drop-Off (Batch 645, which they had missed) and its demo seed.
+
 ## Capability inventory (Oct 17, 2026)
 
 `CAPABILITY_INVENTORY.md`: 655 distinct capabilities from a complete read of every README and product/architecture document, each status checked against the code. `CAPABILITIES.md`: the 272 access-control capabilities. These two are the sources for the admin guide, user guide, workflows and the product-guide entry.
@@ -185,3 +199,11 @@ New `GUIDE_UPDATES.md`, with entries for Batches 521–527. `FEATURE_OVERVIEW.md
 
 - **`ADMIN_GUIDE_JURISDICTIONS.md`** (Batch 593, PS-334): source text for the Admin Guide chapter on setting up jurisdictions.
 - **`KNOWN_GAPS.md`** (Batch 593, PS-338): the running list of what will and will not be in the release. Update it in every batch that opens or closes a gap.
+
+- `RECALL_SIGNOFF.md`: the self-collected HPV recall windows, wording and codes: what a lab's administrator sets, and the register-code handoff for the interface engine team (Oct 20, 2026; corrected Batch 641).
+
+## Batch 641
+
+`RECALL_SIGNOFF.md` is now the recall values and engine handoff (no sign-off needed for windows or wording).
+
+`FEATURE_OVERVIEW.md` (Batch 644, Oct 20, 2026): every feature section now opens with four voices (practitioner, system administrator, marketing, FormedrixAI and partners), followed by the technical detail. New sections should do the same.

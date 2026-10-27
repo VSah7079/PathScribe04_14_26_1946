@@ -18,6 +18,10 @@ import type { VoiceProfileLanguage } from '@/constants/voiceProfiles';
 export interface TriggerPoolOptions {
   /** Default true. */
   englishFuzzyFallback?: boolean;
+  /** Batch 650: match against every active command, not only those eligible on this screen. Used with `exactOnly`. */
+  ignoreEligibility?: boolean;
+  /** Batch 650: stop after the exact-phrase step (no learned or fuzzy matching). */
+  exactOnly?: boolean;
 }
 
 type TriggerSource = Pick<SystemAction, 'voiceTriggers' | 'voiceTriggersByLanguage' | 'learnedTriggers'>;

@@ -1,0 +1,593 @@
+<h1 id="top">Accession</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Accession is where a specimen becomes a case. You enter (or import) the patient and order details, describe each specimen, and submit. PathScribe then gives the case its accession number, creates a grossing worksheet for each specimen, proposes a grossing template for each one, sets up the first block and stain orders, and offers labels to print.</p>
+<p><strong>Intended users.</strong> Accessioners and laboratory managers. Saving a case needs a permission of its own: if <strong>Submit Accession</strong> is greyed out when everything is filled in, your role does not allow it; ask your manager.</p>
+<p><strong>Where it fits.</strong> Before Accession, a specimen arrives at the bench or in the lockbox (<a href="/help/lockbox-drop-off">Lockbox Drop-Off</a>), and an order may already be waiting. After Accession, the case goes to <a href="/help/grossing">Grossing</a> and appears on the Worklist.</p>
+<div class="admonition note">
+<p class="admonition-title">What is demonstration data today</p>
+<p>The waiting orders, patient index, facilities, physicians and specimen dictionary you see come from demonstration data. The grossing template suggestion is made by PathScribe's AI assistant when it is configured; if it is not, every specimen keeps the default template and the screen says so. Sending the new order to your laboratory information system depends on that connection being set up. If it is not delivered you are told with a message after the case is saved.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/accession-overview.png" alt="The Accession screen on the Case &amp; Patient tab"><figcaption>The Accession screen on the Case &amp; Patient tab</figcaption></figure>
+
+<p>The screen is titled <strong>Accession</strong> ("Log a new Orchestration case and assign Grossing Templates per specimen"). It has two tabs, <strong>Case &amp; Patient</strong> and <strong>Specimens</strong>. A third tab, <strong>Outside Patient Data</strong>, appears only for an outside or contract case.</p>
+<figure class="ps-ug-figure"><img src="img/accession-specimens.png" alt="The Specimens tab with one specimen entered"><figcaption>The Specimens tab with one specimen entered</figcaption></figure>
+
+<figure class="ps-ug-figure"><img src="img/accession-after-submit.png" alt="Ready to accession, the labels card and the assigned grossing templates"><figcaption>Ready to accession, the labels card and the assigned grossing templates</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Import from Order (top of Case &amp; Patient)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Import from Order (n pending) - Optional</td>
+<td>A search box over orders already waiting. Search by order number, MRN, patient name, date of birth or facility code. Type at least two characters. "No matching order? Skip this and enter the case details directly below."</td>
+</tr>
+<tr>
+<td>Advanced Search</td>
+<td>Opens <strong>Order Lookup &amp; Patient Verification</strong>, which searches waiting orders and this laboratory's known patients side by side.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Patient Origin / Intake Type</strong></p>
+<table>
+<thead>
+<tr>
+<th>Choice</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standard / EMR Order</td>
+<td>The usual case.</td>
+</tr>
+<tr>
+<td>Temporary / Downtime</td>
+<td>For an unidentified patient or a registration outage. Shows a warning that the identity must be reconciled later, and a <strong>Downtime Reason</strong> list.</td>
+</tr>
+<tr>
+<td>Outside / Contract Case</td>
+<td>External billing and report distribution. Adds the <strong>Outside Patient Data</strong> tab.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Patient</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Given Name(s), Family Name(s)</td>
+<td>Required.</td>
+</tr>
+<tr>
+<td>Preferred Name (optional)</td>
+<td>Shown in brackets in the summary if it differs.</td>
+</tr>
+<tr>
+<td>Prefix (optional), Suffix (optional)</td>
+<td>Title and suffix lists.</td>
+</tr>
+<tr>
+<td>Date of Birth</td>
+<td>Required.</td>
+</tr>
+<tr>
+<td>Sex at birth</td>
+<td>Female, Male, Indeterminate or Not known. Starts blank (a dash) and must be chosen before the case can be accessioned.</td>
+</tr>
+<tr>
+<td>Patient ID</td>
+<td>The medical record number. Whether it is required is set by your laboratory. The placeholder text shows the expected format for the chosen facility. If you leave it blank and it is optional, PathScribe makes one. A small coloured dot beside the label shows whether the ID format is recognised (after a facility is chosen).</td>
+</tr>
+<tr>
+<td>National identifier and registry choices</td>
+<td>Appear for facilities in some countries. They record a national number and any opt-out from screening or cancer registry.</td>
+</tr>
+<tr>
+<td>Priority</td>
+<td>The case priority list set by your laboratory. Starts as Routine.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Encounter</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Checking for active encounters...</td>
+<td>PathScribe is looking for a current visit for the patient ID you typed.</td>
+</tr>
+<tr>
+<td>Auto-filled from Encounter #n</td>
+<td>One active visit was found and applied. Select <strong>Change / Unlink Encounter</strong> to undo.</td>
+</tr>
+<tr>
+<td>Select Encounter (n active)</td>
+<td>Several were found. Choose the correct one, or "Create without encounter link (Manual Entry)".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Order details</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Submitting Facility</td>
+<td>Required. The ordering facility.</td>
+</tr>
+<tr>
+<td>Technical component performed by</td>
+<td>Shown only for outside material or consultations. Choose a lab only when another lab did the processing, cutting and staining and this lab reads the case. "None (same lab)" otherwise.</td>
+</tr>
+<tr>
+<td>Location (Ward / Room / Bed)</td>
+<td>Optional unless your laboratory requires it. Choose a facility first.</td>
+</tr>
+<tr>
+<td>Origin Hospital / Organisation, Site / Facility</td>
+<td>Show where the case belongs. The site list appears when your organisation has more than one site.</td>
+</tr>
+<tr>
+<td>Requesting Provider</td>
+<td>Required. Search staff or type a name. Unverified physicians are marked "unverified".</td>
+</tr>
+<tr>
+<td>Assign to Pathologist (optional)</td>
+<td>Leave as "Unassigned - leave for triage" to let triage decide.</td>
+</tr>
+<tr>
+<td>Clinical Indication</td>
+<td>The reason for the specimen. Your laboratory may require it. It also helps PathScribe propose grossing templates.</td>
+</tr>
+<tr>
+<td>Check for Existing Patient (optional)</td>
+<td>Search for a patient already known under another name (for example a name change). <strong>This is the same patient</strong> links the new case to that person without merging the two records.</td>
+</tr>
+<tr>
+<td>ICD-10 Diagnosis Code(s)</td>
+<td>Search by code or description and add as many as you need.</td>
+</tr>
+<tr>
+<td>Case Comment (optional)</td>
+<td>A general note about the whole case.</td>
+</tr>
+<tr>
+<td>Case-Level Deficiencies (optional)</td>
+<td>Flag a problem with the whole case, such as missing requisition paperwork.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cytology (shown when a specimen is gynaecological or non-gynaecological cytology)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patient Detail tab</td>
+<td>Last Menstrual Period, Hormonal Status, Reason for Study, Prior HPV Result, IUD / Contraception Use, "Persistent contact bleeding observed during specimen collection" and Prior cervical procedure. Each has "not specified" or "Not recorded" as a choice.</td>
+</tr>
+<tr>
+<td>Clinical History tab</td>
+<td>Structured history entries by category, for the whole case or for one specimen.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Autopsy (shown when a specimen is an autopsy specimen)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jurisdiction, Case Authority</td>
+<td>Required. Medicolegal / Forensic or Hospital-Consented.</td>
+</tr>
+<tr>
+<td>Authority Type, Verbal Order Received At, Verbal Order Received From</td>
+<td>For a medicolegal case.</td>
+</tr>
+<tr>
+<td>Consenting Relative Name, Relationship</td>
+<td>Optional, for a hospital-consented case.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Specimens tab (one block per specimen, labelled A, B, C...)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimen A - Dictionary Entry</td>
+<td>Opens the specimen picker. Choose an entry, or leave "Select from Specimen Dictionary, or leave as Custom".</td>
+</tr>
+<tr>
+<td>Description</td>
+<td>Required. Filled from the dictionary entry; edit it to match the requisition.</td>
+</tr>
+<tr>
+<td>Anatomic Site</td>
+<td>For example Breast.</td>
+</tr>
+<tr>
+<td>Laterality</td>
+<td>Left, Right, Bilateral, Midline, Not applicable. A lightbulb badge "Suggested from order" means PathScribe read it from the description; it disappears when you change the field.</td>
+</tr>
+<tr>
+<td>Container Type</td>
+<td>Grouped as Histology, Cytology and Special Media.</td>
+</tr>
+<tr>
+<td>Fixative Volume (mL)</td>
+<td>Fills in from the container, and can be changed.</td>
+</tr>
+<tr>
+<td>Organ(s) Included</td>
+<td>Autopsy specimens only. Ticks which autopsy grossing sections apply.</td>
+</tr>
+<tr>
+<td>Date/Time Collected</td>
+<td>Left blank on purpose. It starts the cold-ischemia clock.</td>
+</tr>
+<tr>
+<td>Date/Time Placed in Fixative</td>
+<td>Left blank on purpose. Tick <strong>Estimated - not directly documented</strong> if you are estimating.</td>
+</tr>
+<tr>
+<td>Date/Time Received</td>
+<td>Starts at the current time.</td>
+</tr>
+<tr>
+<td>Referral Client, Referral Client ID (optional)</td>
+<td>The outside lab and the id it gave the specimen. A warning appears if that id is already on another case or specimen.</td>
+</tr>
+<tr>
+<td>Comment (optional)</td>
+<td>Opens a comment window for the specimen.</td>
+</tr>
+<tr>
+<td>Deficiencies (optional)</td>
+<td>Flag a problem with this specimen (damaged container, too little volume). More than one can be added.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>More about the Case &amp; Patient tab</strong></p>
+<ul>
+<li><strong>Prefix</strong> also offers Sir and Dame, as well as the usual titles.</li>
+<li><strong>Preferred Name</strong> shows the hint "If different from Given Name(s)". <strong>Fixative Volume (mL)</strong> shows "Real, actual volume used": enter what was actually used, not the container's size.</li>
+<li><strong>Submitting Facility</strong> starts at "Select facility…". The <strong>Location</strong> list then shows "Select a Submitting Facility first" until you pick one; afterwards it offers the facility's locations, or "None specified" when you do not choose one (or says no locations are set up for that facility).</li>
+<li><strong>Select Encounter (… active)</strong> starts at "Choose the correct encounter…". Pick the visit this specimen belongs to.</li>
+<li><strong>Check for Existing Patient (optional)</strong> has a box "Search by name or MRN…". "No matching patients found." means nobody matched; once you choose someone the line "Will link to" names them, and <strong>This is the same patient</strong> confirms it.</li>
+<li><strong>ICD-10 Diagnosis Code(s)</strong>: "No matching codes." means nothing in the code list fits what you typed.</li>
+<li><strong>Import from Order</strong>: "Keep typing…" shows after one character, and "No pending orders match." when nothing fits.</li>
+<li><strong>Order Lookup &amp; Patient Verification</strong> (Advanced Search) shows "Type at least 2 characters to search." until you do, "Searching patient index…" while it works, "No pending orders match." for the <strong>Pending Orders</strong> list and "No existing patient record matches." for the <strong>Known Patients</strong> list.</li>
+<li><strong>Case comment.</strong> The comment window for a case that is not yet accessioned is headed "(new case — not yet accessioned)".</li>
+</ul>
+<p><strong>Cytology details</strong></p>
+<ul>
+<li><strong>Hormonal Status</strong> choices: Premenopausal, Perimenopausal, Postmenopausal, Pregnant (or not specified).</li>
+<li><strong>Reason for Study</strong> includes "Routine programme-invited screening" and "Private / opportunistic test".</li>
+<li><strong>Prior HPV Result</strong> includes Negative, <strong>Not Tested</strong> and Unknown.</li>
+<li><strong>Structured Clinical History</strong> panel: choose a <strong>Category (Alt+1–6)</strong> from "— select category —", pick the history item, then select <strong>+ Add to Clinical History</strong>. If you try to add without a code you see "Select a history code before adding." Entries can apply to the whole case ("Case-Level (applies to all specimens)") or to one specimen.</li>
+</ul>
+<p><strong>Autopsy.</strong> The block is headed "Autopsy — Case Authority &amp; Authorization". Its boxes (Authority Type, Verbal Order Received From, Consenting Relative Name (optional) and Relationship) are the ones listed above.</p>
+<p><strong>Specimens tab, further wording</strong></p>
+<ul>
+<li><strong>Container Type</strong> starts at "Select container type…".</li>
+<li>Under the specimen, "Department: …" says which department PathScribe chose for it. When the department did not exist before, the line adds "(new — pending admin review)": an administrator confirms it later; you can carry on.</li>
+<li><strong>Referral Client (optional)</strong> is the outside lab; the id box beside it is the number that lab gave the specimen.</li>
+<li>The Deficiencies button shows the type of a single problem, as "⚠ (type) — click to edit", or "⚠ n deficiencies reported — click to manage". If the type cannot be named it reads "Deficiency reported".</li>
+<li>In the comment window a specimen without a description yet shows "(no description yet)".</li>
+<li>After accessioning, <strong>Blocks &amp; Stains</strong> lists each block; a block with no stain shows "(no stains ordered yet)".</li>
+</ul>
+<p><strong>Report Deficiencies window.</strong> Its heading is "⚠ Report Deficiencies — Whole Case" when opened from the case, or names the specimen when opened from a specimen. Choose an <strong>Issue</strong>, describe it in <strong>Detail</strong> ("What's wrong, specifically?"), and select <strong>+ Add Deficiency</strong>. Once one is listed the choice is labelled <strong>Add another issue</strong>. The cross on a listed item ("Remove this deficiency") takes it off. Each deficiency is tracked on its own after accessioning.</p>
+<p><strong>Intraoperative Entry Found.</strong> If an unlinked intraoperative entry looks like the case, a window offers <strong>Merge Now</strong>, <strong>Review in Intraop Queue</strong> or <strong>Not this case</strong>. Its specimen lines show the Quick Gross dictation, or "(no Quick Gross logged)".</p>
+<p><strong>Outside Patient Data tab</strong> (only for an Outside / Contract Case)</p>
+<table>
+<thead>
+<tr>
+<th>Section and field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Facility &amp; Origin: Facility Account</td>
+<td>The Submitting Facility you chose on Case &amp; Patient. It cannot be edited here; until you choose one it says to select it on Case &amp; Patient.</td>
+</tr>
+<tr>
+<td>Facility &amp; Origin: Ordering Provider</td>
+<td>The Requesting Provider from Case &amp; Patient, shown read-only. Until entered it says "(enter on Case &amp; Patient)".</td>
+</tr>
+<tr>
+<td>Facility &amp; Origin: Account Billing Type</td>
+<td>How the sending facility's account is billed. You can always type over any value that fills in.</td>
+</tr>
+<tr>
+<td>Patient &amp; Jurisdiction Identification: Primary Jurisdiction</td>
+<td>The country whose payment schemes apply. Choose it before the payment category.</td>
+</tr>
+<tr>
+<td>Patient &amp; Jurisdiction Identification: Local ID Number</td>
+<td>The patient's number under that country's scheme. The label changes to "Local ID Number (scheme)" once you choose a payment category. Until then the box says "Select a payment scheme first".</td>
+</tr>
+<tr>
+<td>Financial Class &amp; Coverage Routing: Payment Category / Scheme</td>
+<td>The specific payment scheme for the case, listed for the chosen jurisdiction.</td>
+</tr>
+<tr>
+<td>Financial Class &amp; Coverage Routing: Primary Payer / Fund</td>
+<td>The payer or fund, typed in free text.</td>
+</tr>
+<tr>
+<td>Financial Class &amp; Coverage Routing: Coverage / Policy #</td>
+<td>The policy or coverage number.</td>
+</tr>
+<tr>
+<td>Apply Secondary / Complementary Coverage (Split-Billing)</td>
+<td>Tick to add a second payer. It opens <strong>Secondary Category / Scheme</strong> (only schemes that allow split billing are listed), <strong>Secondary Payer</strong> and <strong>Member / Card ID</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Specimen picker.</strong> The <strong>Dictionary Entry</strong> button opens a window headed "Select Specimen — Dictionary Entry". Choose an entry to fill the specimen's description and defaults. The last choice, "— Custom specimen (not in dictionary) —", keeps your own wording for a specimen the dictionary does not list.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case &amp; Patient, Specimens</td>
+<td>The tabs. The Specimens tab shows how many specimens have a description, for example "Specimens (2)".</td>
+</tr>
+<tr>
+<td>Search (magnifier)</td>
+<td>Searches waiting orders. Enter does the same.</td>
+</tr>
+<tr>
+<td>Next: Specimens</td>
+<td>Moves to the Specimens tab. Greyed out until the required case fields are filled.</td>
+</tr>
+<tr>
+<td>+ Add Specimen</td>
+<td>Adds the next specimen (B, C...).</td>
+</tr>
+<tr>
+<td>Remove specimen (x)</td>
+<td>Removes that specimen and relabels the rest. Shown only when there is more than one.</td>
+</tr>
+<tr>
+<td>Back</td>
+<td>Returns to Case &amp; Patient.</td>
+</tr>
+<tr>
+<td>Submit Accession</td>
+<td>Saves the case. It reads "Assigning Grossing Templates..." while working.</td>
+</tr>
+<tr>
+<td>Print Labels</td>
+<td>After saving: prints one requisition label and one label per container.</td>
+</tr>
+<tr>
+<td>Accession Another Case</td>
+<td>Clears the form for the next case.</td>
+</tr>
+<tr>
+<td>Go to Worklist</td>
+<td>Opens the Worklist.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red asterisk</td>
+<td>Required field.</td>
+</tr>
+<tr>
+<td>"Still required: ..." line</td>
+<td>Lists what is missing. It disappears when complete.</td>
+</tr>
+<tr>
+<td>"Clinical history not yet recorded: ..."</td>
+<td>A reminder only. The case can be accessioned now and the history added later.</td>
+</tr>
+<tr>
+<td>Warning banner "Specimen requisition deficiency"</td>
+<td>An imported specimen's text did not match the dictionary. Pick the right entry or select <strong>Confirm - no dictionary match, proceed as custom</strong>. It blocks submission until resolved.</td>
+</tr>
+<tr>
+<td>Warning "These specimens span different case types"</td>
+<td>Specimens from different departments must be accessioned as separate cases. It blocks submission.</td>
+</tr>
+<tr>
+<td>Lightbulb "Suggested from order"</td>
+<td>Laterality was guessed from the description.</td>
+</tr>
+<tr>
+<td>Warning triangle on Deficiencies</td>
+<td>One or more problems are flagged.</td>
+</tr>
+<tr>
+<td>Check mark on a comment button</td>
+<td>Shows how many comments exist.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>On this screen: <strong>Alt+N</strong> adds a specimen, <strong>Alt+I</strong> goes to Import from Order, <strong>Alt+Shift+C</strong> opens the case comment, <strong>Alt+.</strong> and <strong>Alt+,</strong> move between the two tabs, and <strong>Alt+1</strong> to <strong>Alt+6</strong> jump to the clinical history categories (cytology only). <strong>Alt+Enter</strong> ("Submit Case") only takes you to the Specimens tab; you must still select <strong>Submit Accession</strong> yourself. F1 opens this guide.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open Accession from the Home tile. The Case &amp; Patient tab opens.</li>
+<li>If an order is waiting, type its number, MRN, name or date of birth in <strong>Import from Order</strong>. Select the order in the list. The patient, facility, provider and specimens fill in. If the form already holds your typing, a window "Replace Unsaved Information" asks you to confirm.</li>
+<li>If there is no order, leave that box and keep going.</li>
+<li>Check <strong>Patient Origin / Intake Type</strong>; leave it on Standard unless one of the exceptions below applies.</li>
+<li>Enter or check the names, Date of Birth, Sex, Patient ID and Priority.</li>
+<li>Choose the <strong>Submitting Facility</strong>. The Patient ID hint now shows the facility's format.</li>
+<li>Enter the <strong>Requesting Provider</strong>, and a Clinical Indication if you have one.</li>
+<li>Select <strong>Next: Specimens</strong>. The Specimens tab opens with Specimen A.</li>
+<li>Select the Dictionary Entry button, pick the specimen type, then check the Description, site and laterality against the requisition.</li>
+<li>Choose the Container Type, then enter the times you know: collected, placed in fixative, received.</li>
+<li>For another specimen, select <strong>+ Add Specimen</strong> (or Alt+N) and repeat.</li>
+<li>Check the "Ready to accession" card: the patient, the specimen count, priority and facility.</li>
+<li>Select <strong>Submit Accession</strong>. A message says the case was accessioned with the number of specimens.</li>
+<li>The Labels card appears. Select <strong>Print Labels</strong> to print one requisition label and a container label for each specimen.</li>
+<li>The "Grossing Templates assigned" card lists each specimen with its template and confidence, and a "Blocks and Stains" list shows the first block and stains created. A message follows when templates are refined.</li>
+<li>Select <strong>Accession Another Case</strong> or <strong>Go to Worklist</strong>.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Scan.</strong> Scan the label or requisition barcode while this screen is open. PathScribe returns to Case &amp; Patient and imports the matching waiting order. A scanned label that carries patient details but no matching order fills in the name, MRN and date of birth. If nothing matches exactly, the Order Lookup window opens with your scan filled in.</li>
+<li><strong>Advanced Search.</strong> Select <strong>Advanced Search</strong> to look across waiting orders and known patients at once, useful when a name or date of birth alone does not tell two people apart.</li>
+<li><strong>Lockbox specimens.</strong> Scan the lockbox container's barcode (or type its order number). Saving the case then closes its lockbox receipt automatically.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Unidentified patient or system outage.</strong> Choose <strong>Temporary / Downtime</strong>, then pick a reason under <strong>Downtime Reason</strong>. A flag marks the identity to be reconciled later.</li>
+<li><strong>Outside or contract case.</strong> Choose <strong>Outside / Contract Case</strong>, finish the Specimens tab, then open <strong>Outside Patient Data</strong> for the primary jurisdiction, payment category, payer, coverage number and optional secondary coverage.</li>
+<li><strong>Imported specimen does not match the dictionary.</strong> Choose the right dictionary entry, or confirm no match exists. A record of the mismatch is kept either way.</li>
+<li><strong>Specimens from different departments.</strong> Accession them separately. Remove the other specimens, submit, then use <strong>Accession Another Case</strong>.</li>
+<li><strong>Several active encounters.</strong> Choose the correct one, or create without a link.</li>
+<li><strong>Specimen problem found.</strong> Use <strong>Deficiencies (optional)</strong> on the specimen, or <strong>Case-Level Deficiencies</strong> for the whole case. Choose an Issue, add Detail, and <strong>Done</strong>. Each becomes an open record tracked on its own; you need not resolve it now.</li>
+<li><strong>A matching intraoperative entry exists.</strong> After saving, a window "Intraoperative Entry Found" offers <strong>Merge Now</strong>, <strong>Not this case</strong>, or <strong>Review in Intraop Queue</strong>. Merge adds the entry's gross description and photos to the case.</li>
+<li><strong>Leaving with work typed in.</strong> The "Leave Accession?" window warns that the information will be lost. Choose <strong>Leave and Discard</strong> only if you mean it.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"Accession failed: ..." The case was not saved. Read the message, correct the form and submit again. Your entries stay.</li>
+<li>"A Patient ID couldn't be generated for this case. Enter the Patient ID, then submit again."</li>
+<li>"n specimen(s) didn't exactly match the Specimen Dictionary - resolve on the Specimens tab before submitting."</li>
+<li>"Patient match needs review: ..." The case was saved, but the patient match needs a person to look at it.</li>
+<li>"The case was saved, but the order message ... was not delivered." The case exists. Ask support to resend it.</li>
+<li>"Someone else changed this case at the same moment, so that detail wasn't saved. Open the case and enter it again."</li>
+<li>"Import failed" or "Could not resolve order": enter the details by hand.</li>
+<li>A wrong value found after saving cannot be fixed on this screen. Open the case from the Worklist or Search.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Choosing the wrong Sex at birth; the field starts blank on purpose.</li>
+<li>Filling the collected and fixation times with "now". Leave them blank when unknown; they are not the received time.</li>
+<li>Adding the same patient twice because the order was not imported. Search the waiting orders first.</li>
+<li>Expecting Alt+Enter to save the case. It does not.</li>
+<li>Choosing Temporary / Downtime but forgetting the reason. The reason is marked required, but the screen does not currently stop you submitting without one, so check it yourself.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Scan the requisition barcode instead of typing a search.</li>
+<li>Use Alt+N for extra specimens, Alt+. to move on, and Alt+1 to Alt+6 for clinical history in cytology.</li>
+<li>Pick the dictionary entry first; it fills Description, site and container for you.</li>
+<li>Clinical history can be completed later; do not hold the specimen for it.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Accession in the order specimens were received, and print labels at once so containers are never left unlabelled.</li>
+<li>Accession lockbox containers first thing, urgent ones first.</li>
+<li>Report a specimen problem at accession so quality staff can track it.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/home">Home</a>: the Accession tile opens this screen.</li>
+<li><a href="/help/lockbox-drop-off">Lockbox Drop-Off</a>: after-hours containers waiting in the Overnight folder.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/grossing">Grossing</a>: the next step for each specimen.</li>
+<li><a href="/help/intraop-queue">Intraop Queue</a>: match intraoperative entries that were not merged here.</li>
+<li><a href="/help/search">Search</a>: find the case afterwards.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Next: Specimens is greyed out</td>
+<td>A required case field is empty. Read the "Still required" line.</td>
+</tr>
+<tr>
+<td>Submit Accession is greyed out</td>
+<td>A required field is empty, a specimen needs a dictionary decision, specimens belong to different departments, autopsy details are incomplete, or your role does not allow saving cases.</td>
+</tr>
+<tr>
+<td>No orders appear in the list</td>
+<td>Fewer than two characters typed, or no waiting order matches.</td>
+</tr>
+<tr>
+<td>A scan opens the lookup window</td>
+<td>The scan was not an exact match to any waiting order.</td>
+</tr>
+<tr>
+<td>Location list is empty</td>
+<td>No facility chosen yet, or none configured for it.</td>
+</tr>
+<tr>
+<td>Technical component field missing</td>
+<td>It appears only for outside material and consultations.</td>
+</tr>
+<tr>
+<td>Template shows "default" or 0% confidence</td>
+<td>The assistant was unavailable or unsure. Grossing can still proceed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the "Still required" line and the red banners.</li>
+<li>Check the Specimens tab for banners.</li>
+<li>Remove specimens that belong to a different department and accession them separately.</li>
+<li>Reload the waiting orders by clearing the search box and typing again.</li>
+<li>If a button stays greyed out, ask your manager to check your role.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a case is reported as failed more than once, when waiting orders are missing, when labels will not print, or when the order message was not delivered. Have the case number (if one was made), the facility and the time ready.</p>

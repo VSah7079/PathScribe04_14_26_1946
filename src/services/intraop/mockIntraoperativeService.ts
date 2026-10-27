@@ -22,6 +22,7 @@ import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandida
 import type { DigitalAsset } from '@/types/case/Material';
 import type { IIntraoperativeService } from './IIntraoperativeService';
 import type { VerbalReportInput } from '@/types/intraop/IntraoperativeEntry';
+import { carryIntraopFindingsToCase } from './carryIntraopFindingsToCase';
 import { buildVerbalReportLog, verbalReportAuditDetail, verbalReportProblems } from './verbalReport';
 
 /** Batch 399: a verbal report missing who received it, their role, the read-back or a required reason. */
@@ -34,6 +35,8 @@ import { mockLocationService } from '../locations/mockLocationService';
 import { localLiveUpdateService } from '../liveUpdates/localLiveUpdateService';
 import type { IntraopChangeKind } from '../liveUpdates/liveUpdateContract';
 import { dataStorage } from '../browserData/dataStorage';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { OR_BOARD_DEMO_ID_PREFIX, OR_BOARD_DEMO_NOT_PERMITTED } from './orBoardDemo';
 
 /** PS-262: what the API server will do after each committed write — tell
  *  the live boards and queues that something changed (ids only, no PHI). */
@@ -669,6 +672,9 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     };
     entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
     persist(entries);
+    // Batch 659: a diagnosis added after the merge reaches the case too (replaces this session's earlier findings).
+    const mergedCase = entries[idx].mergedIntoCaseId;
+    if (mergedCase) await carryIntraopFindingsToCase(entries[idx], mergedCase, entries[idx].performedBy.userName).catch(() => {});
     announceIntraopChange('diagnosis.rendered', entries[idx], specimenId);
     return ok({ ...entries[idx] });
   },
@@ -713,12 +719,13 @@ export const mockIntraoperativeService: IIntraoperativeService = {
   },
 
   async seedOrBoardDemoData(locationId: string, facilityId: string | undefined, orNumberPrefix: string): Promise<ServiceResult<IntraoperativeEntry[]>> {
+    if (!(await authorizationService.enforce('config:or-board-demo:run')).allowed) return err(OR_BOARD_DEMO_NOT_PERMITTED);
     const now = Date.now();
     const minutesAgo = (m: number) => new Date(now - m * 60_000).toISOString();
     // Real, kept clearly distinguishable from any real session id —
     // an entries.filter below uses this exact prefix to remove any
     // previous demo run's own sessions before seeding fresh ones.
-    const demoId = (suffix: string) => `demo-orboard-${suffix}`;
+    const demoId = (suffix: string) => `${OR_BOARD_DEMO_ID_PREFIX}${suffix}`;
 
     const patients = [
       { name: 'Bennett, Alicia', mrn: 'DEMO-10041', surgeon: 'Dr. Alvarez' },
@@ -755,13 +762,25 @@ export const mockIntraoperativeService: IIntraoperativeService = {
       makeEntry(3, 25, [{ milestone: 'gross_logged', minutesAgo: 24 }, { milestone: 'touch_prep_performed', minutesAgo: 22 }, { milestone: 'frozen_section_cut', minutesAgo: 19 }], { text: 'Benign fibroadenoma. No malignancy identified.', minutesAgo: 1 }),
     ];
 
-    const entries = load().filter(e => !e.id.startsWith('demo-orboard-'));
+    const entries = load().filter(e => !e.id.startsWith(OR_BOARD_DEMO_ID_PREFIX));
     persist([...entries, ...demoEntries]);
     for (const demo of demoEntries) announceIntraopChange('session.created', demo);
     return ok(demoEntries);
   },
 
+  async removeOrBoardDemoData(): Promise<ServiceResult<number>> {
+    if (!(await authorizationService.enforce('config:or-board-demo:run')).allowed) return err(OR_BOARD_DEMO_NOT_PERMITTED);
+    const entries = load();
+    const demo = entries.filter(e => e.id.startsWith(OR_BOARD_DEMO_ID_PREFIX));
+    if (demo.length === 0) return ok(0);
+    persist(entries.filter(e => !e.id.startsWith(OR_BOARD_DEMO_ID_PREFIX)));
+    // The boards re-read when told a specimen left them; a removed demo session leaves them the same way.
+    for (const d of demo) announceIntraopChange('specimen.dismissed', d, d.specimens[0]?.id);
+    return ok(demo.length);
+  },
+
   async advanceDemoSpecimen(sessionId: string, specimenId: string): Promise<ServiceResult<{ entry: IntraoperativeEntry; advanced: boolean }>> {
+    if (!(await authorizationService.enforce('config:or-board-demo:run')).allowed) return err(OR_BOARD_DEMO_NOT_PERMITTED);
     const entries = load();
     const idx = entries.findIndex(e => e.id === sessionId);
     if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
@@ -796,6 +815,8 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     const entries = load();
     const idx = entries.findIndex(e => e.id === entryId);
     if (idx === -1) return err(`Intraoperative session ${entryId} not found`);
+    // Batch 659: a case id typed by hand must be a real case.
+    if (resolution.matchType === 'manual' && !(await caseRouter.getCase(caseId))) return err(`Case ${caseId} was not found`);
     entries[idx] = { ...entries[idx], status: 'merged', mergedIntoCaseId: caseId, mergedAt: new Date().toISOString() };
     persist(entries);
     announceIntraopChange('session.merged', entries[idx]);
@@ -853,6 +874,10 @@ export const mockIntraoperativeService: IIntraoperativeService = {
         surgeonUnavailable: v.surgeonUnavailable,
       }).catch(() => {});
     }
+
+    // Batch 652: frozen diagnoses and photo links go onto the case, labelled
+    // intraoperative, never into the final diagnosis. Best-effort like the above.
+    await carryIntraopFindingsToCase(entries[idx], caseId, resolution.performedBy).catch(() => {});
 
     return ok({ ...entries[idx] });
   },

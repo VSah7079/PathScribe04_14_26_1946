@@ -117,3 +117,7 @@ Tests only: the label print tests allow Configuration changes in a mocked author
 - `dispatchNetworkPrintJob.ts`: `buildVialRackNetworkPrintPayload`.
 - Tests: `vialRackZplTemplates.test.ts`, `printVialRackLabel.test.ts`.
 - **Needs from sites:** the label stock sizes and printer resolution actually in use. Until then the Label Designer defaults apply. Which screens call `printVialLabel` and `printRackLabel` is the next step (the molecular batch screens print through `printMolecularLabels.ts` today).
+
+## Batch 652 (defect fixes)
+
+`dispatchScanSlideLabel.ts` (+ test): honours a station's `supportsEngraving` / `supportsPrinting` for the scan-time slide label; printing goes through `printSlideLabel`. Never throws; reports why nothing was produced.

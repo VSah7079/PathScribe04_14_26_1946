@@ -20,11 +20,12 @@ import { saveCaseChangeFrom, type VersionedCaseUpdate } from './cytologyCaseWrit
 
 
 export async function getEffectiveHistologyCorrelationRule(facilityId: string | undefined): Promise<EffectiveCorrelationRule> {
-  const { mockCytologyHistologyCorrelationSettingsService, mockFacilityCytologyHistologyCorrelationOverrideService } = await import('./mockCytologyHistologyCorrelationSettingsService');
-  const { mockFacilityService } = await import('../facilities/mockFacilityService');
-  const settings = await mockCytologyHistologyCorrelationSettingsService.get();
-  const facility = facilityId ? await mockFacilityService.getById(facilityId) : null;
-  const override = facilityId ? await mockFacilityCytologyHistologyCorrelationOverrideService.getForFacility(facilityId) : null;
+  const { cytologyHistologyCorrelationSettingsService } = await import('./cytologyHistologyCorrelationSettingsServiceInstance');
+  const { facilityCytologyHistologyCorrelationOverrideService } = await import('./facilityCytologyHistologyCorrelationOverrideServiceInstance');
+  const { facilityService } = await import('../facilities/facilityServiceInstance');
+  const settings = await cytologyHistologyCorrelationSettingsService.get();
+  const facility = facilityId ? await facilityService.getById(facilityId) : null;
+  const override = facilityId ? await facilityCytologyHistologyCorrelationOverrideService.getForFacility(facilityId) : null;
   return resolveEffectiveCorrelationRule(
     settings.ok ? settings.data : null,
     facility && facility.ok ? (facility.data as any)?.jurisdiction ?? null : null,
@@ -144,15 +145,15 @@ export async function refreshCytologyHistologyCorrelationCandidatesLive(): Promi
   // Batch 555: once the API server runs cytology.histologyCorrelationSweep (VITE_SERVER_JOBS), it sweeps.
   if (!browserRunsServerJob('cytology.histologyCorrelationSweep')) return [];
   const { caseRouter } = await import('../cases/CaseRouter');
-  const { mockSpecimenDictionaryService } = await import('../specimenDictionary/mockSpecimenDictionaryService');
-  const { mockCytologySignOutRecordService } = await import('./mockCytologySignOutRecordService');
-  const { mockCytologyCategoryService } = await import('./mockCytologyCategoryService');
+  const { specimenDictionaryService } = await import('../specimenDictionary/specimenDictionaryServiceInstance');
+  const { cytologySignOutRecordService } = await import('./cytologySignOutRecordServiceInstance');
+  const { cytologyCategoryService } = await import('./cytologyCategoryServiceInstance');
   return refreshCytologyHistologyCorrelationCandidates({
-    getSignOutsForCase: async id => { const r = await mockCytologySignOutRecordService.getByCaseId(id); return r.ok ? r.data : []; },
-    getCategoryRanks: async () => { const r = await mockCytologyCategoryService.getAll(); return new Map((r.ok ? r.data : []).map((c: any) => [c.id, c.diagnosticRank])); },
+    getSignOutsForCase: async id => { const r = await cytologySignOutRecordService.getByCaseId(id); return r.ok ? r.data : []; },
+    getCategoryRanks: async () => { const r = await cytologyCategoryService.getAll(); return new Map((r.ok ? r.data : []).map((c: any) => [c.id, c.diagnosticRank])); },
     getRule: getEffectiveHistologyCorrelationRule,
     getAllCases: () => caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }) as any,
-    getSpecimenDictionary: () => mockSpecimenDictionaryService.getAll() as any,
+    getSpecimenDictionary: () => specimenDictionaryService.getAll() as any,
     // The sweep reads every case regardless of the session (as getAllCases
     // does), so the re-read after a conflict does too.
     getCase: async id => {

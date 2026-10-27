@@ -16,8 +16,8 @@ import { cytologyNomenclatureSettingsService } from './cytologyNomenclatureSetti
 import { facilityCytologyNomenclatureOverrideService } from './facilityCytologyNomenclatureOverrideServiceInstance';
 import { cytologyInstrumentationService } from './cytologyInstrumentationServiceInstance';
 import { facilityCytologyInstrumentationOverrideService } from './facilityCytologyInstrumentationOverrideServiceInstance';
-import { mockFacilityService } from '../facilities/mockFacilityService';
-import { mockUserService } from '../users/mockUserService';
+import { facilityService } from '../facilities/facilityServiceInstance';
+import { userService } from '../users/userServiceInstance';
 import { pathologyLexiconService } from './pathologyLexiconServiceInstance';
 import { cytologyQcSettingsService } from './cytologyQcSettingsServiceInstance';
 import { facilityCytologyQcOverrideService } from './facilityCytologyQcOverrideServiceInstance';
@@ -30,9 +30,9 @@ import { snomedCervicalHistologySeverityMappingService } from './snomedCervicalH
 import { cytologyReviewRecordService } from './cytologyReviewRecordServiceInstance';
 import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
 import { aiScreeningResultService as mockAiScreeningResultService } from '../digitalPathology/aiScreeningResultServiceInstance';
-import { mockEncounterService } from '../encounters/mockEncounterService';
+import { encounterService } from '../encounters/encounterInstance';
 import { qaActivityRecordService as mockQaActivityRecordService } from '../quality/qaActivityRecordServiceInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { resolveDecantCassetteColor } from '@/utils/resolveDecantCassetteColor';
 import { cytologyComplianceFeaturesService } from './cytologyComplianceFeaturesServiceInstance';
 import { resolveCytologyReportLocale } from './resolveCytologyReportLanguage';
@@ -57,6 +57,11 @@ export const cytologyWorkspaceDeps: CytologyWorkspaceDeps = {
   updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
   listCasesForUser: userId => caseRouter.listCasesForUser(userId),
   returnToCytologyPool: caseData => applyPoolRouting(caseData, '1', 'Cytology'),
+  listCytotechnologists: async () => {
+    const res = await userService.getAll();
+    return res.ok ? res.data.filter(u => u.status === 'Active' && u.roles.includes('Cytotechnologist')).map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}`.trim() })) : [];
+  },
+  assignCaseToUser: (caseData, userId) => caseRouter.updateCase(caseData.id, { order: { ...(caseData as { order?: object }).order, assignedTo: userId }, updatedAt: new Date().toISOString() } as never, (caseData as { version?: number }).version as number),
 
   getSpecimenDictionary: () => mockSpecimenDictionaryService.getAll() as any,
   getAllCategories: () => cytologyCategoryService.getAll() as any,
@@ -76,11 +81,11 @@ export const cytologyWorkspaceDeps: CytologyWorkspaceDeps = {
     return { enterprise: dataOr(enterprise as any), facility: dataOr(facility as any) };
   },
   getFacilityJurisdiction: async facilityId => {
-    const res = await mockFacilityService.getById(facilityId);
+    const res = await facilityService.getById(facilityId);
     return res.ok ? res.data.jurisdiction : undefined;
   },
   getProviderCredentials: async userId => {
-    const res = await mockUserService.getById(userId);
+    const res = await userService.getById(userId);
     return res.ok ? res.data.providerCredentials : undefined;
   },
   getPathologyLexicon: () => pathologyLexiconService.getAll() as any,
@@ -114,9 +119,9 @@ export const cytologyWorkspaceDeps: CytologyWorkspaceDeps = {
 
   getLedgerInWindow: (userId, start, end) => cytologyWorkloadLedgerService.getForUserInWindow(userId, start, end) as any,
   recordLedgerEntry: entry => cytologyWorkloadLedgerService.record(entry),
-  listEncounters: patientId => mockEncounterService.listForPatient(patientId) as any,
+  listEncounters: patientId => encounterService.listForPatient(patientId) as any,
   createQaActivity: record => mockQaActivityRecordService.create(record) as any,
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
 
   resolveDecantCassetteColor: (decantType, context) => resolveDecantCassetteColor(decantType, context as any),
   resolveReportLocale: facilityId => resolveCytologyReportLocale(facilityId),

@@ -30,6 +30,7 @@
 // Audit detail is literal English, PHI-free.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { IMfaPolicyService } from './IMfaPolicyService';
 import type { IAuditService } from '../../auditlog/IAuditService';
 import type { SessionProfile } from '../sessionProfile';
 import { currentSigningLock, isSigningLocked, NO_SIGNING_LOCK, recordSigningFailure, type SigningLockState } from '../signerConfirmation';
@@ -69,6 +70,12 @@ export interface MfaDeps {
   /** The demo secret (base32) for a person, or null when this build has no simulated second factor. */
   secretFor: ((userId: string) => Promise<string | null>) | null;
   audit: Pick<IAuditService, 'logEvent'>;
+  /**
+   * Batch 675 (access-14): set on a server deployment. The server holds the policy, checks the
+   * permission and writes the audit entry; `stores.policy` then serves only as the in-memory copy
+   * that loadPolicy refreshes.
+   */
+  policySource?: IMfaPolicyService;
   /** Whether the signed-in person holds the capability (checked and audited by the caller's authorization service). */
   enforce: (capability: string) => Promise<boolean>;
   now?: () => Date;
@@ -174,10 +181,39 @@ export function createMfaService(deps: MfaDeps) {
       return policyFor(mfaOrganisationOf(profile));
     },
 
+    /**
+     * Batch 675 (access-14): on a server deployment, reads the organisation's policy from the server into the
+     * copy the synchronous checks use. False when it could not be read; the caller must then refuse the sign-in
+     * (fail closed). Always true in the demo.
+     */
+    async loadPolicy(profile: Pick<SessionProfile, 'organisationId'>): Promise<boolean> {
+      if (!deps.policySource) return true;
+      try {
+        const r = await deps.policySource.get();
+        if (r.ok !== true) return false;
+        deps.stores.policy.write(mfaOrganisationOf(profile), normaliseMfaPolicy(r.data));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
     /** Saving needs config:session-security:manage; audited with the old and new mode, never a secret. */
     async savePolicy(actor: SessionProfile, next: Partial<MfaPolicy>): Promise<{ ok: true; policy: MfaPolicy } | { ok: false; reason: 'not_permitted' }> {
       if (!(await deps.enforce('config:session-security:manage'))) return { ok: false, reason: 'not_permitted' };
       const organisationId = mfaOrganisationOf(actor);
+      if (deps.policySource) {
+        // The server checks the permission again, saves, and audits in the same transaction.
+        try {
+          const saved = await deps.policySource.save(normaliseMfaPolicy({ ...policyFor(organisationId), ...next }));
+          if (saved.ok !== true) return { ok: false, reason: 'not_permitted' };
+          const policy = normaliseMfaPolicy(saved.data);
+          deps.stores.policy.write(organisationId, policy);
+          return { ok: true, policy };
+        } catch {
+          return { ok: false, reason: 'not_permitted' };
+        }
+      }
       const before = policyFor(organisationId);
       const policy = normaliseMfaPolicy({ ...before, ...next });
       deps.stores.policy.write(organisationId, policy);

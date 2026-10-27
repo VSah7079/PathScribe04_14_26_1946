@@ -28,7 +28,7 @@ import { aiVendorDecision, type AiVendorRefusal, type AiVendorRule, type AiVendo
 
 /** What the AI is being asked for (recorded with the call). */
 export type AiFeature =
-  | 'clinical-mismatch' | 'critical-findings' | 'template-suggestions' | 'synoptic-suggestions' | 'macro-suggestions'
+  | 'clinical-mismatch' | 'critical-findings' | 'template-suggestions' | 'synoptic-suggestions' | 'history-extraction' | 'macro-suggestions'
   | 'narrative' | 'dictation' | 'voice' | 'grossing' | 'intraop' | 'coding' | 'case-assist'
   | 'connection-test' | 'ai-instruction-test' | 'other';
 
@@ -126,10 +126,10 @@ export function recordAiCall(
 
 /** The browser's dependencies (lazy, so callAi stays light). */
 export const defaultAiCallPolicyDeps: AiCallPolicyDeps = {
-  rules: async () => (await import('./mockAiVendorPolicyService')).mockAiVendorPolicyService.rulesForCheck(),
+  rules: async () => (await import('./aiVendorPolicyServiceInstance')).aiVendorPolicyService.rulesForCheck(),
   facilityJurisdiction: async id => {
-    const { mockFacilityService } = await import('../facilities/mockFacilityService');
-    const res = await mockFacilityService.getById(id);
+    const { facilityService } = await import('../facilities/facilityServiceInstance');
+    const res = await facilityService.getById(id);
     return res.ok ? res.data.jurisdiction ?? null : null;
   },
   caseFacility: async caseId => {
@@ -141,5 +141,5 @@ export const defaultAiCallPolicyDeps: AiCallPolicyDeps = {
     try { return getCurrentJurisdiction(); } catch { return 'US'; }
   },
   record: entry => { void import('../ai/AIAuditLog').then(m => m.AIAuditLog.record(entry)).catch(() => {}); },
-  audit: async entry => (await import('../auditlog/mockAuditService')).mockAuditService.logEvent(entry),
+  audit: async entry => (await import('../auditlog/auditServiceInstance')).auditService.logEvent(entry),
 };

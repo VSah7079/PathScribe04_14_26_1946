@@ -138,19 +138,19 @@ export async function flagBlockOnAmendedReport(input: FlagBlockInput, deps: Dele
 
 /** The tier-2 and tier-3 actions against the app's own services. */
 async function liveDeps(save?: DeleteBlockDeps['save']): Promise<DeleteBlockDeps> {
-  const [{ caseRouter }, { authorizationService }, { mockBillingDeficiencyService }, { mockAuditService }] = await Promise.all([
+  const [{ caseRouter }, { authorizationService }, { billingDeficiencyService }, { auditService }] = await Promise.all([
     import('../cases/CaseRouter'),
     import('../authorization/defaultAuthorizationService'),
-    import('../billing/mockBillingDeficiencyService'),
-    import('../auditlog/mockAuditService'),
+    import('../billing/billingDeficiencyServiceInstance'),
+    import('../auditlog/auditServiceInstance'),
   ]);
   return {
     save,
     getCase: async id => (await caseRouter.getCase(id)) as Case | null | undefined,
     updateCase: async (id, updates, v) => { await caseRouter.updateCase(id, updates as never, v); },
     enforce: (cap, ctx) => authorizationService.enforce(cap, ctx as never),
-    deficiencies: mockBillingDeficiencyService,
-    auditService: mockAuditService,
+    deficiencies: billingDeficiencyService,
+    auditService,
     now: () => new Date(),
   };
 }

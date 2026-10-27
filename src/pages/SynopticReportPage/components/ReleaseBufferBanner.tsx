@@ -49,6 +49,7 @@ import type { Case } from '@/types/case/Case';
 
 import { useReleaseBufferCountdown, formatRemaining } from '../hooks/useReleaseBufferCountdown';
 import { reportReleaseService } from '@/services';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { onReleaseCountdownEnd, RELEASE_RECHECK_MS } from '@/services/reportRelease/releaseCountdown';
 
 interface ReleaseBufferBannerProps {
@@ -155,9 +156,10 @@ export const ReleaseBufferBanner: React.FC<ReleaseBufferBannerProps> = ({
               components={{ bold: <strong />, countdown: <strong className="ps-release-buffer-countdown" /> }}
             />
           </span>
-          <button className="ps-btn-secondary" disabled={recalling} onClick={handleRecall}>
+          {/* Batch 649: greyed without report:release:recall (the release service checks it again). */}
+          <CapabilityButton capability="report:release:recall" context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }} className="ps-btn-secondary" disabled={recalling} onClick={() => { void handleRecall(); }}>
             {recalling ? t('releaseBufferBanner.recallingLabel') : t('releaseBufferBanner.recallButtonLabel')}
-          </button>
+          </CapabilityButton>
         </>
       ) : (
         // Real feature, per direct specification, Phase 4 (spec §15b —

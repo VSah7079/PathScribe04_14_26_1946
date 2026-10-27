@@ -24,7 +24,7 @@
 .ps-obq-row--overdue { background: color-mix(in srgb, #f87171 9%, transparent); }
 .ps-obq-row--soon { background: color-mix(in srgb, #fbbf24 8%, transparent); }
 .ps-obq-state { font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: #1e293b; }
-.ps-obq-state--failed, .ps-obq-state--deadLettered, .ps-obq-state--rejected { background: color-mix(in srgb, #f87171 20%, transparent); color: #fca5a5; }
+.ps-obq-state--failed, .ps-obq-state--rejected { background: color-mix(in srgb, #f87171 20%, transparent); color: #fca5a5; }
 .ps-obq-state--held { background: color-mix(in srgb, #fbbf24 20%, transparent); color: #fcd34d; }
 .ps-obq-state--sent, .ps-obq-state--acknowledged { background: color-mix(in srgb, #34d399 18%, transparent); color: #6ee7b7; }
 .ps-obq-flag { font-size: 11.5px; font-weight: 700; }

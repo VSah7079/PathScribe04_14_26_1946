@@ -135,13 +135,13 @@ describe('PS-282 the "ask for a reprint reason" print setting', () => {
     const origin = facilities.data.find(f => resolveCasePerformingLab({ originHospitalId: f.id }, facilities.data));
     expect(origin).toBeDefined();
     const lab = resolveCasePerformingLab({ originHospitalId: origin!.id }, facilities.data)!;
-    const input = { document: 'surgical-report', caseId: 'S26-PS282-RP', caseRecord: { originHospitalId: origin!.id }, pendingReleaseRestricted: false };
+    const input = { document: 'surgical-report', caseId: 'S26-PS282-RP', caseRecord: { originHospitalId: origin!.id }, releaseHoldPolicy: null };
 
-    expect(await planReportPrint(input)).toEqual({ action: 'print', askReason: false, warnPendingRelease: false });
+    expect(await planReportPrint(input)).toEqual({ action: 'print', askReason: false, warnPendingRelease: false, blocked: false, askOverrideReason: false });
     await recordDocumentOutput({ action: 'print', document: 'surgical-report', documentId: 'S26-PS282-RP', destination: 'browser print dialog', status: 'pending' });
 
     // Printed before, setting off by default: a reprint with no reason asked.
-    expect(await planReportPrint(input)).toEqual({ action: 'reprint', askReason: false, warnPendingRelease: false });
+    expect(await planReportPrint(input)).toEqual({ action: 'reprint', askReason: false, warnPendingRelease: false, blocked: false, askOverrideReason: false });
 
     // The toggle saves (global).
     const saved = await mockPrintSettingsService.update({ requireReprintReason: true });
@@ -157,6 +157,6 @@ describe('PS-282 the "ask for a reprint reason" print setting', () => {
 
     // …and back on at the facility, with Pending Release warning.
     await mockFacilityPrintSettingsService.update(lab.id, { requireReprintReason: true });
-    expect(await planReportPrint({ ...input, pendingReleaseRestricted: true })).toEqual({ action: 'reprint', askReason: true, warnPendingRelease: true });
+    expect(await planReportPrint({ ...input, releaseHoldPolicy: 'warn' })).toEqual({ action: 'reprint', askReason: true, warnPendingRelease: true, blocked: false, askOverrideReason: false });
   });
 });

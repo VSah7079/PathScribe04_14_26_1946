@@ -30,6 +30,9 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { useParams } from 'react-router';
 
+import { openCriticalAlertReference } from '@/services/clinical/openCriticalAlertReference';
+import { formatFacilityDateTime } from '@/utils/formatFacilityDateTime';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { resolveCriticalAlertReferenceTokenStatus } from '@/services/clinical/ICriticalAlertReferenceTokenService';
 import type { CriticalAlertReferenceToken } from '@/services/clinical/ICriticalAlertReferenceTokenService';
 import { criticalAlertReferenceTokenService } from '@/services';
@@ -45,7 +48,8 @@ const DisclosureBanner: React.FC = () => (
 );
 
 const CriticalAlertReferencePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { config } = useSystemConfig();
   const { token } = useParams<{ token: string }>();
   const [status, setStatus] = useState<'loading' | 'invalid' | 'ready'>('loading');
   const [record, setRecord] = useState<CriticalAlertReferenceToken | null>(null);
@@ -56,15 +60,13 @@ const CriticalAlertReferencePage: React.FC = () => {
     let cancelled = false;
     if (!token) { setStatus('invalid'); return; }
 
-    criticalAlertReferenceTokenService.resolve(token).then(res => {
+    // Batch 669 (access-12): the view is recorded before the record is shown, so "Viewed n times" includes this view.
+    openCriticalAlertReference(token, criticalAlertReferenceTokenService).then(res => {
       if (cancelled) return;
       if (!res.ok) { setStatus('invalid'); return; }
       setRecord(res.data);
       setAcknowledged(!!res.data.acknowledgedAt);
       setStatus('ready');
-      // Recorded once per real page view, not on every resolve() — same
-      // real posture as consultAccess's own recordAccess() doc comment.
-      criticalAlertReferenceTokenService.recordAccess(res.data.id);
     });
 
     return () => { cancelled = true; };
@@ -113,7 +115,7 @@ const CriticalAlertReferencePage: React.FC = () => {
             {t(tokenStatus === 'Active' ? 'criticalAlertReferencePage.statusLabel.active' : 'criticalAlertReferencePage.statusLabel.expired')}
           </div>
           <div className="ps-critalert-meta-line">
-            {t('criticalAlertReferencePage.expiresLabel', { date: new Date(record.expiresAt).toLocaleString() })}
+            {t('criticalAlertReferencePage.expiresLabel', { date: formatFacilityDateTime(record.expiresAt, i18n.language, config.facilityTimezone) })}
             {' · '}
             {t('criticalAlertReferencePage.viewedLabel', { count: record.accessCount })}
           </div>

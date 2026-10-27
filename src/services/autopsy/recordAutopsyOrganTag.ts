@@ -26,7 +26,7 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { AutopsyOrganCode } from '@/types/autopsy/AutopsyOrganCode';
 import type { AutopsyOrganTag, AutopsyOrganTagStatus } from '@/types/autopsy/AutopsyCaseDetails';
 
@@ -88,7 +88,7 @@ export async function recordAutopsyOrganTag(
   }, caseRouter);
 
   if (write.ok === true) {
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_ORGAN_TAG_RECORDED',
       detail: `${input.organCode}: ${input.status}${input.finding ? ` — ${input.finding}` : ''}`,

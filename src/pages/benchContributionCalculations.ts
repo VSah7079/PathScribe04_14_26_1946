@@ -117,6 +117,23 @@ export interface AccessioningRateSummary {
   perActiveHour: number | null;
 }
 
+export interface DailyBar {
+  date: string;
+  count: number;
+  /** 0 to 100, scaled to the busiest day; a quiet day is 0. */
+  heightPercent: number;
+}
+
+/** Batch 660: the bars of the daily accessioning chart. A day with any cases is at least 4% tall so it is visible beside a busy day. */
+export function dailyAccessioningBars(daily: readonly AccessioningDailyCount[]): DailyBar[] {
+  const max = Math.max(0, ...daily.map(d => d.count));
+  return daily.map(d => ({
+    date: d.date,
+    count: d.count,
+    heightPercent: max === 0 || d.count === 0 ? 0 : Math.max(4, Math.round((d.count / max) * 100)),
+  }));
+}
+
 /** Real per-user accessioning throughput from Case.accession.accessionedAt/
  *  accessionedBy — the only two fields this metric is allowed to use. */
 export function computeAccessioningRate(

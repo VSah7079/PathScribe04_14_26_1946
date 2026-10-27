@@ -11,6 +11,123 @@ A running list of what will and will not be in the first release, kept honest. S
 | "Jurisdiction" search entry promised a SNOMED CT / ICD setting | Resolved in part (Batch 595) | It now opens Code Systems; the SNOMED CT release choice is still Planned (terminology server) |
 | `organMapConfigChanged` event | Open | Decision (Pete) |
 | Adding a country beyond the 13 | Planned | Priority (Pete) |
+| Case and specimen comments on the printed report or as HL7 NTE (Batch 652, re-checked) | Product decision, not built | Re-verified in Batch 652: nothing prints or sends them. Not added, because what a comment may say on a clinical report (which comments, whose, which section, internal versus external) is a clinical choice. Pete: decide; the audit entry is the only record today (see the row under Documentation audit) |
+| User Guide coverage (Batch 657) | Partial | Framework and first pages are in. Not yet written: pages for each workstation and sub-screen, billing, the Orchestration pool screens, Cytology and Molecular detail. Screenshots are placeholders (`docs/user-guide/MISSING_CAPTURES.md`), every page is Draft until clinically reviewed, and the guide is English only |
+| Codes window dropped real suggestions (Batch 656) | Fixed in Batch 656 | Verification now looks the code up by itself as well as by wording; a note shows how many were left out. Confirm on a real UMLS key (`HFHS26-1004-LU`). The AI call still takes several seconds |
+| Decision list items 6, 9, 13, 16, 19, 23 and critical-finding confidence (Batch 655) | Fixed in Batch 655 | See `GAP_REGISTER.md`. Server parts (terminal cookie exchange, encrypted dictionary word) are Planned |
+| Printing during the release hold (Batch 652) | Fixed in Batch 654 (decision: keep warn as the default) | The site setting Release Hold Print Policy (System > Release Buffer) chooses allow, warn and confirm (default), supervisor override (`print:release-hold:override`, with a reason) or block. It applies on both print paths (the report view and the Orchestration preview). It replaces the old on/off switch (on reads as warn, off as allow). It is one organisation-wide setting, not yet per facility; second-person credential approval for the supervisor override needs the server |
+| Partial multi-recipient delegation (Batch 652) | Partial | If one of several recipients is refused (for example a colleague changed role meanwhile) the others are delegated and the dialog closes without naming the refused person. Pete: show a result list, or accept |
+| Peer group for My Contribution (Batch 652) | Built (Demo), choice made here | Same role and a shared facility, at least 3 peers. Pete: confirm the definition and the minimum of 3. The API server should supply the averages |
+| Other fixed link lists (Batch 652) | Open | The Search page Resources window, the top-bar clinical links and the Audit Log Resources window use fixed links, not the admin External Resources entries, so the https-only rule does not reach them |
+
+## Documentation and consistency audit (Batch 652)
+
+Fixed in Batch 652 (documents and labels, no feature built): stale READMEs; the hub-token conflict (cookie only); the Superadmin statement; demonstration-code label on confirmed findings; unverified-placeholder badge on retention figures; overclaims about Zebra / EPL / DPL, AI Matched Cases, EMR launch, alert tokens, HPV duplicate check, Spain. Every audited gap and its status: `GAP_REGISTER.md`.
+
+| Item | Status | Needs |
+|---|---|---|
+| Real SNOMED CT / ICD-O-3 codes on confirmed findings | Planned | Licence (`terminologyLicence`); until then the tooltip says "demonstration code". No demonstration SNOMED lookup exists; the ICD-O-3 sample was not bound because a severity does not identify a morphology. Pete: agree |
+| Spain DNI / NIE control-letter check | Planned | The repo has the pattern and the mod-23 rule but not the letter table (`SPAIN_RESEARCH.md`); Pete to source it, then add a `mrn_dni_nie` row in `checkDigits.ts` |
+| Seeded retention figures flagged unverified (CAP / CAP-ACP wet tissue, RCPA, Korea MSA) | Open | A records or compliance lead confirms each and publishes a cited version |
+| Live-update hub still sends the SSO token as `access_token` in the demonstration build | Planned | Cookie-only when the API server session exists (`LIVE_UPDATES_SIGNALR.md` section 4). OR-terminal device-token transport also undecided (Pete) |
+| "AI Matched Cases" name and "AI Match Score" label | Decision | Pete: rename to "Similar cases (demonstration)" until a model-backed search exists (six locales) |
+| Alert link token unsigned; alert SMS / e-mail / EHR sends are stubs | Planned | Server-issued tokens; SMS gateway, mail relay, EHR endpoint |
+| Inbound HPV duplicate record is in memory only | Planned | Server stores the composite key |
+| Zebra Browser Print; EPL / DPL sending; EMR launch (SMART on FHIR) | Planned | Vendor SDK / EHR partner |
+| Admin Guide translations of the retention-placeholder paragraph | Open | Translation pass and native-speaker review |
+| Triage release gate runs in the browser (now `services/grossing/triageReleaseGate.ts`) | Planned | The API server repeats the rule on release |
+| Carried intraoperative findings (`Case.intraoperativeFindings`) have no screen or report line yet | Open | Pete: where should they show (report page panel, printed report as a labelled "Intraoperative" block)? Server version of the carry |
+| Frozen reconciliation shows only with "Require Review Screen at Sign-Out" on; with it off, nothing is shown or recorded | Decision | Pete: record the comparison silently when the screen is off? |
+| Assignment Timeout: Gross Complete routes at once; the timeout only sweeps cases still unassigned and unpooled. Interim browser timer in the Worklist | Decision | Pete: should Gross Complete wait the timeout for an LIS assignment? Replace the timer with a scheduled server function (CLAUDE.md rule 11) |
+| Lockbox link needs the pending order; the Accession screen has no receipt-number box. Placeholder receipts link only after "link placeholder" | Open | Pete: add a receipt scan/number box to Accession? |
+
+## AI correctness fixes (Batch 651)
+
+Fixed and removed from earlier lists: AI code confidence saved on 0 to 100 while the type said 0 to 1 (now 0 to 100 everywhere, the display no longer multiplies by 100); the stored model was the literal text "AI coding assistant" (now the real provider and model id); the 30% minimum and the listed-options rule were prompt-only for live cases (now enforced in code, shared with the historical extraction); the rule-based mismatch fallback (50) never showed (now shown, rule-based, low risk); the mismatch instruction version was only on the suggestion (now on the QA record and audit event); OPCS-4 lookup always returned nothing (now reads the labelled demonstration list); narrative sections carried no confidence or quote (now one extra AI call gives both, quote checked).
+
+| Item | Status | Needs |
+|---|---|---|
+| OPCS-4 real reference data | Planned | NHS TRUD licence and the server feed; today a five-code demonstration list, shown Simulated and not applicable to a case |
+| Save Draft background template re-check (Stage 2, Orchestration) | Planned | Decision (Pete): build it on `evaluateSynopticAssignment` and the existing Protocol Change badge, or leave Gross Complete as the only trigger. Types and comments were corrected; `pendingProtocolChanges` is written only by the Assist-mode LIS poll |
+| Narrative confidence and quote: one extra AI call per section | Partial | Pete: accept the extra cost, or fold it into the streamed reply (harder with streaming). The call is not yet written to the AI audit log separately; no per-section "Regenerate" cost warning |
+| A vendor confidence of exactly 1 is read as 100% | Partial | Nothing unless a vendor really answers on a 0 to 100 scale with 1% |
+| Saved case coding from before Batch 651 | Partial | Stored model text may still read "AI coding assistant"; confidences were already saved on 0 to 100 |
+| Translations of the 4 new messages | Built, needs review | Native-speaker review (`docs/quality/TRANSLATION_REVIEW.md`) |
+
+## Audit trail (Batch 651)
+
+Fixed in Batch 651 and not listed as gaps any more: pool claim, pass and the 30-second claim hold, delegations, case team changes, case and specimen comments, personal dictionary words, screen-language changes and the Quality and Compliance deficiency actions (raise, escalate, contain, verify) now write to the audit log (`src/services/auditlog/README.md`).
+
+| Item | Status | Needs |
+|---|---|---|
+| General clinical audit log not tamper-evident | Planned | Append-only by interface only (the app never edits or deletes an entry); the demo store is the browser's. Server-side tamper-evidence (hash chain or write-once storage, no administrator edit) comes with the API server |
+| Case and specimen comments never print and never go to the LIS | Built as designed, but not documented before | Checked Oct 22, 2026: neither the report renderer, the print paths nor the ORU payload read `order.caseComments` or a specimen's `comments`; `syncStatus` stays `pending` and nothing consumes it. Pete: decide whether any comment should appear on the printed report or travel as HL7 NTE (and whether the "origin badge shows sync state" wording should change) |
+| Accessioning-time comments are not audited on their own | Partial | They are held on the accession form and saved with the new case; the case creation is the record. Pete: audit them as "Case comment added" at creation? |
+| 30-second claim hold lapsing on its own | Partial | "Pool claim hold released" is written when the window closes without a decision; a hold that simply times out with no window open has no clock to write it (API server) |
+| Personal dictionary word is not in the audit entry | Decision | Only its length is recorded (a personal word can be a surname). The facility dictionary still records the word. Pete: keep, or record the word |
+| Quality deficiency screen shows "done" when the store fails the change | Partial | `qaDeficiencyActions.ts` returns success without looking at the store result; the audit skips a failed change, but the person is not told |
+
+## Voice engine (Batch 650a)
+
+Fixed in Batch 650a and removed from earlier lists: the Report Draft spoken phrases never registered (a method the registry lacked); Enter Gross / Enter Micro / Enter Diagnosis sent events nothing heard; AI-refined dictation could be inserted twice in a report section; correction learning ran only in Internal Notes; "confirm by repeating the phrase" was declared but not wired; station eligibility applied to the keyboard only; spoken commands were not audited.
+
+| Item | Status | Needs |
+|---|---|---|
+| Say-it-twice command list | Partial | Pete: the six commands on it (Delete Row, Delete Message, Delete All Selected, Recall Report, Release Case From Hold, Release Autopsy Body). Delete Row is on the list but the Worklist has no Delete Row (see the table below), so it protects nothing today |
+| Enter Addendum, Insert Macro, Next / Previous Field by voice | Open | Voice handlers (listed above as voice-engine) |
+| Enter Gross / Enter Diagnosis on the synoptic layout | Not in release | That layout has no free-text gross or diagnosis box; they work on the Report Draft only (Enter Micro works on both) |
+| Mic button with a field in focus on Intraop / Verbal Report | Open | Those screens still wait for a dictation state nothing produces; they were not changed |
+| Audit of spoken commands | Partial | Written from the browser; with the API server the server should write it. A Mohs stage answer by voice is not audited |
+| Report Draft phrases in fr, de, nl, ko, es | Built, needs review | Native-speaker review (`PHRASE_REVIEW_LIST.md`) |
+| Real-microphone test | Not done | Everything is tested with simulated speech |
+
+## Voice and keyboard commands with no screen handler (Batch 650)
+
+Registered in the action registry (so Configuration > Actions lists them and the system recognises the phrase or key) but no screen answers them. `src/services/actionRegistry/unwiredActions.ts` holds the same list with the same reasons, and `actionListeners.guard.test.ts` fails when a command is registered with neither a listener nor an entry there, and when a listed command has since been wired.
+
+**Fixed in Batch 650 (removed from this list):** Sign Out Case (`SIGN_OUT`), Sign Out and Next (`SIGNOUT_NEXT`, Assist cases only), Finalise (`OPEN_PRE_FINALISE`), Cancel Finalise (`FINALISE_CANCEL`), Add Amendment (`ADD_AMENDMENT`), Open and Close History, Go to Codes and Add Code, Accept Pool Case and Pass Pool Case (the claim window now receives them over the Worklist), Filter Pool Cases, Filter Awaiting Countersign, Execute Search, Clear Search, and the eight Contribution `TAT_SHOW_*` tiles. The Enter Gross / Micro / Diagnosis dictation commands were wired by the voice engine batch (650a) at the same time.
+
+**Decisions for Pete:** (1) *Sign Out and Next in Orchestration cases:* there is no such button (Orchestration has Sign Out Case only; Finalise & Next is Assist only), so the command does nothing there. Should Orchestration get a "Sign Out and Next" that opens the sign-out window and moves to the next case on release? (2) *Accept from a selected Worklist row:* Accept and Pass act only while the pool claim window is open; with it closed, nothing is accepted, because Accept assigns the case and the window is where the claim hold is taken. Should "accept case" on a highlighted pool row open that window (one step) or stay as it is? (3) *Registry entries for features that do not exist* (Worklist Select Row, Select All, Deselect All, Delete Row, My Cases filter): remove them from the registry, or build the features? They are the voice engine's to remove, with your word. (4) Open Routing Rules, Test Routing Rule, Open Participation Types and Focus Case Search need the navigation owner's route and `screen:configuration:open` check.
+
+**Decided by Pete (Oct 23, 2026, Batch 663):** (1) *Sign Out and Next in Orchestration:* wanted, as one flow: run the sign-out checks (required fields, mandatory diagnosis lines, grossing complete), apply the signature, set Finalized, send results out, show a short success message, then open the next case in the person's queue. Not built yet: it changes the signing flow (`useSignOutWorkflow.ts`) and needs its own batch. (2) *Add Collaborator [name]* (an in-lab consultation request): wanted; not built. (3) *Clinical review of the guide screenshots:* a meeting for Pete to schedule with lab leadership (synthetic data only, coding shown correctly, specimen hierarchy, critical values clear).
+
+**Fixed in Batch 664 (removed from this list):** Edit Field (Report Draft sections by name; Alt+E alone uses the section being worked on), Cancel (ends dictation, removes this session's dictated text after a second Cancel, drops a pending say-twice command), Sign Out and Next for Orchestration (button and voice), Add Collaborator [name], and the `templatePublishingRules` role-name check. **User Guide gaps after Batch 666:** every screen has an article, but all are Draft (no clinical review), screenshots are placeholders until captured (`docs/user-guide/MISSING_CAPTURES.md`), the Report screen's Billing review and Markers panels have no article, the guide is English only, and 126 screen oddities found while writing await Pete's rulings (`docs/user-guide/FINDINGS_666_*.md`). The Administrator Guide translations and review workbooks await native reviewers (Korean first).
+
+**Fixed in Batch 665 (removed from this list):** Assist "Finalise & Next" now opens the next case; Sign Out and Next moves on after a parked fixative/stain/date/inking/peer-review check; Add Collaborator sends the collaborator a message; Edit Field reaches synoptic panel questions (focus only). **Still open:** (a) synoptic answers are not dictation targets, so Edit Field does not start dictation there; (b) *My Cases (Pete, Oct 23):* the phrase is off Clear Filter; a personal-queue filter built from separate scope (mine/all) and status (active/completed/all) filters is a design item, not built.
+
+**Fixed in Batch 663 (removed from this list):** Add Addendum, Skip Field (moves to the next required field), Maximise (collapses the specimen sidebar), Minimise (restores it), Preview Report (shows the Report tab), Internal Note (opens the notes drawer). Select Row, Select All, Deselect All and Delete Row switched off.
+
+| Command (id) | Key | Why nothing happens | Kind |
+|---|---|---|---|
+| Enter Addendum (`ENTER_ADDENDUM`) | Alt+Shift+D | Dictation target (VoiceProvider / dictation services, Batch 650a). | voice-engine |
+| Insert Macro (`INSERT_MACRO`) | Alt+Shift+I | Text-editor macro insertion; belongs with the editor commands the voice engine owns (Batch 650a). | voice-engine |
+| Next Field (`NEXT_FIELD`) | Tab | Tab moves focus natively; the spoken form is a key-routing question for the voice engine (Batch 650a). | voice-engine |
+| Previous Field (`PREVIOUS_FIELD`) | Shift+Tab | Shift+Tab moves focus natively; the spoken form is a key-routing question for the voice engine (Batch 650a). | voice-engine |
+| Confirm Finalise (`FINALISE_CONFIRM`) | Ctrl+Alt+Shift+C | The Finalise window signs with the signer's own typed credentials (signature check); a spoken or single-key confirm would sign without them. | credentials |
+| Load Saved Search (`SEARCH_LOAD_SAVED`) | Alt+L | The visible control is a saved-search picker; the command cannot say which saved search. | needs-choice |
+| Select Row (`TABLE_SELECT`) | Alt+Space | Switched off in Batch 663 (Pete): the Worklist has no multi-row selection. Back only with a built batch action (Batch Assign, Batch Print Cassette Labels) and its safeguards. | no-feature |
+| Select All (`TABLE_SELECT_ALL`) | Alt+Shift+A | Switched off in Batch 663 (Pete): no multi-row selection or bulk action; see Select Row. | no-feature |
+| Deselect All (`TABLE_DESELECT_ALL`) | Alt+Shift+D | Switched off in Batch 663 (Pete): no multi-row selection or bulk action; see Select Row. | no-feature |
+| Delete Row (`TABLE_DELETE`) | Alt+D | Switched off in Batch 663 (Pete): a case is never deleted from the worklist. Stays off unless it becomes a soft-delete or cancel workflow with permission checks. | no-feature |
+| Dispatch Now (`DISPATCH_NOW`) | Alt+D | Sending a held outbound message needs a message picked; the controls are per row in the dispatch trail. | needs-choice |
+| Retry Dispatch (`RETRY_DISPATCH`) | Alt+R | Retrying needs a failed message picked; the controls are per row in the dispatch trail. | needs-choice |
+| Open Routing Rules (`OPEN_ROUTING_RULES`) | Alt+R | Opens Configuration at Routing Rules: needs the screen:configuration:open check and the section route, with the navigation owner. | needs-navigation |
+| Test Routing Rule (`TEST_ROUTING`) | Alt+Shift+T | Runs the routing-rule test inside Configuration; needs the section open first. | needs-navigation |
+| Open Participation Types (`OPEN_PARTICIPATION_TYPES`) | Alt+Shift+W | Opens Configuration at Participation Types: needs the screen:configuration:open check and the section route. | needs-navigation |
+| Focus Case Search (`FOCUS_CASE_SEARCH`) | Alt+Shift+B | Focuses the case search box in the header; the box is in CaseSearchBar.tsx (scanner-aware) and needs a focus handle from AppShell. | needs-navigation |
+
+## Safety and access fixes (Batch 649)
+
+Fixed in Batch 649: PHI redaction missed `diagnosis`, `finding` and `case` values; the barcode listener accepted script-made keystrokes; Sign Out Case skipped five review checks Finalize ran; version and signature could be saved for a case whose status never moved; countersign errors were swallowed; signatures were not linked to a version; a refused amendment release was treated as released; an addendum from the amendment window was never sent; Assist revisions went to the LIS before their release; the registry was sent at signature, not at release; 17 actions had no capability; `admin-override` could sign any case.
+
+| Item | Status | Notes |
+|---|---|---|
+| Role-name checks | Fixed in Batch 664 | `templatePublishingRules` now decides by `config:protocol:draft` / `approve` / `publish` only (macro access and billing were fixed in Batch 663). The billing API still carries an unused `actorRole` parameter, to drop at the API cutover. |
+| Most permission checks pass only the case id | Fixed in Batch 653 | The authorization service now looks up the case's ordering facility (`Case.order.facilityId`) when a check names a case and no facility, so a facility-limited person is judged against the case's own facility. A case that cannot be found, or a failed lookup, still refuses. See `caseFacility.test.ts` |
+| Corrections released before a later failure are not undone | Open until the server | Sign-out in one transaction is planned in the API server; versions are append-only, so a version already written stays |
+| Residents and preliminary release | Decided (Pete, Oct 22, 2026) | Pathologist and Fellow only by default; a hospital's own roles do not get it by default; a lab can grant it in the Role Dictionary |
+| Non-English text of the 59 new strings | Waiting for review | Machine translated (fr, de, nl, ko, es); `docs/quality/TRANSLATION_REVIEW.md` |
+| Header comment of `EnhancementRequestModal.tsx` still says the button passes a pre-captured screenshot | Open (comment only) | The README is corrected; the code comment was left alone |
 
 ## ICD-11 transition (Batch 594)
 
@@ -122,7 +239,8 @@ A running list of what will and will not be in the first release, kept honest. S
 | German, French, Dutch medical word lists | Built (starter) | About 190, 155 and 170 plain entries from `spellcheck-data/{de,fr,nl}/`. Needs native-speaker clinical review; no machine-translated terms. Extension from the national SNOMED CT editions needs the licences (PS-343) |
 | Medical terms not in a starter list are still flagged | Open | Add through the facility dictionary meanwhile |
 | Dictation refinement wording for French, German, Dutch, Korean | Built, needs review | Shown in Configuration, System, Voice for the reviewer. Machine-assisted |
-| Translated voice commands | Partial | The English fuzzy-match switch only matters for actions that have translations (`voiceTriggersByLanguage`); translations still need native-speaker review |
+| Translated voice commands | Partial | The English fuzzy-match switch only matters for actions that have translations (`voiceTriggersByLanguage`); translations (fr, de, nl, ko and, since Batch 627, es) still need native-speaker review |
+| Bare "open" on the worklist swallowed longer commands (found Batch 627, fixed Batch 628, bug PS-829) | Fixed | "open messages", "open configuration", "open search" and their French, German, Dutch, Korean and Spanish equivalents now run the right command on the worklist; the best voice match wins, not the first. Not tried by voice on a real microphone |
 
 ## Batch 609 (part B): Templates, amendments and Upload Protocol, still waiting on others
 
@@ -161,9 +279,15 @@ A running list of what will and will not be in the first release, kept honest. S
 | Recovery codes and enrolment reset | Built (Demo) | Server-side storage of the hashes and the same-organisation reset check |
 | Policy, enrolments and failed-code counts | Built (Demo) | Browser demo data (`ps_mfa_*`); the API server holds them in production |
 | Native-speaker review of the new fr/de/nl/ko wording | Open | Pete |
+| Worklist table keeps the one-letter sex in its narrow column (the word is the tooltip and accessible name; the card shows the word); gender identity (PRSB optional, needs consent) not built; HL7 PID-8 `A` for indeterminate is an assumption; NHS sex code mapping (1/2/9/X) is not yet used by any outbound NHS message | Open | UK work after Batch 662 |
 
 ### Batch 611 (part F): legacy file import and biometric prompt (#132, #166, #158)
 
 - Legacy file import runs in the browser (up to 2,000 records, CSV or JSON) and creates draft cases marked Simulated bulk import. Server-side bulk import jobs, large files and OCR of scanned legacy reports need the interface engine.
 - Biometric signing uses the device prompt with a challenge made in the browser, so no server verifies the signature or stores the public key. A server-issued challenge and verification (PS-345 API server) is what makes it a Part 11 / Annex 11 e-signature. Until then it is labelled Simulated on screen and in the audit log.
 
+
+
+## User Guide label coverage (Batch 667)
+
+The coverage check sees only labels shown through the translation function and 3 to 40 characters long. Hard-coded English text, long messages, icons without text and behaviour with no label are not checked. 117 labels are ignored with a reason. About 740 Configuration labels are not named in the Administrator Guide. Every article is Draft, unreviewed by a clinician, and 80 screenshots are missing. See `docs/user-guide/FINDINGS_667.md` for controls that do not work as they read.

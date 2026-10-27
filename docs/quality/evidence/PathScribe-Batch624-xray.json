@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 624 — Worklist digital readiness and AI wording and shipped flag names in the user's language; scanner and AI vendor wording left as received (Pete's decision)",
+    "description": "Vitest, 2026-10-19: full suite 1666 files (1661 passed, 4 skipped, 1 failed); 14,093 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Not run: native-speaker review of the AI-made text in fr/de/nl/ko/es."
+  },
+  "tests": [
+    {
+      "testKey": "PS-820",
+      "start": "2026-10-19T19:10:00Z",
+      "finish": "2026-10-19T19:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/digitalPathology/dpBadgeLabels.test.ts\nPASSED: src/services/digitalPathology/resolveWorklistDpBadges.test.ts\nPASSED: src/services/flags/shippedFlagNames.test.ts\nPASSED: src/i18n/localeParity.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts\nNot tested: spoken summaries and flag description tooltips (still English); native-speaker review."
+    }
+  ]
+}

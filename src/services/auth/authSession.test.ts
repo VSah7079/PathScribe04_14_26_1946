@@ -365,6 +365,24 @@ describe('multi-factor sign-in (Batch 611)', () => {
     expect(t.sso.signedOut).toEqual(['microsoft']);
     expect(t.stored()).toBeNull();
   });
+  it('refuses sign-in when the server-held policy cannot be read (fails closed, never "no policy") - Batch 675', async () => {
+    const mfa = createMfaService({
+      stores: memoryMfaStores(), secretFor: null, audit: { logEvent: async e => ({ ok: true, data: { ...e, id: 'a', timestamp: '' } }) },
+      enforce: async () => true, policySource: { get: async () => ({ ok: false, error: 'server_error' }), save: async () => ({ ok: false, error: 'x' }) },
+    });
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toEqual({ ok: false, reason: 'server_unavailable' });
+    expect(t.sso.signedOut).toEqual(['microsoft']);
+    expect(t.stored()).toBeNull();
+  });
+  it('uses the server-held policy when it can be read - Batch 675', async () => {
+    const mfa = createMfaService({
+      stores: memoryMfaStores(), secretFor: null, audit: { logEvent: async e => ({ ok: true, data: { ...e, id: 'a', timestamp: '' } }) },
+      enforce: async () => true, policySource: { get: async () => ({ ok: true, data: { mode: 'all', stepUpMinutes: 30, sessionMaxHours: 8 } }), save: async () => ({ ok: false, error: 'x' }) },
+    });
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toEqual({ ok: false, reason: 'mfa_required' });
+  });
   it('accepts it when the claims assert MFA, and the profile carries the stamp', async () => {
     const t = setup({ completion: claims({ amr: ['pwd', 'mfa'] }), mfa: await mfaFor('all') });
     const r = await t.session.completeSsoSignIn('microsoft', 'u');

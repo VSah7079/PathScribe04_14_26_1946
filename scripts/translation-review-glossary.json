@@ -1,0 +1,736 @@
+{
+ "terms": [
+  [
+   "Accession",
+   "Registering a case and its specimens in the lab"
+  ],
+  [
+   "Accession number",
+   "The case's lab identifier, e.g. S26-4403"
+  ],
+  [
+   "Specimen",
+   "A tissue or fluid sample received for examination"
+  ],
+  [
+   "Part",
+   "One specimen within a case (A, B, C…)"
+  ],
+  [
+   "Container",
+   "The pot, vial or tube a specimen arrives in"
+  ],
+  [
+   "Requisition",
+   "The paper or electronic order that comes with the specimen"
+  ],
+  [
+   "Cassette",
+   "Plastic holder in which tissue is processed and embedded"
+  ],
+  [
+   "Block",
+   "Paraffin-embedded tissue in a cassette"
+  ],
+  [
+   "Slide",
+   "Glass slide with a tissue section or cells"
+  ],
+  [
+   "Level",
+   "A deeper section cut from the same block"
+  ],
+  [
+   "Recut",
+   "A new section cut from a block"
+  ],
+  [
+   "Section",
+   "Thin slice of tissue cut for a slide"
+  ],
+  [
+   "Stain",
+   "Dye or reagent applied to a slide"
+  ],
+  [
+   "Special stain",
+   "A stain other than routine H&E"
+  ],
+  [
+   "H&E",
+   "Hematoxylin and eosin, the routine stain"
+  ],
+  [
+   "Immunohistochemistry",
+   "IHC: antibody-based staining"
+  ],
+  [
+   "Cell block",
+   "Cells from a fluid, processed into a paraffin block"
+  ],
+  [
+   "Decant",
+   "Fluid poured off a specimen for separate processing"
+  ],
+  [
+   "Aliquot",
+   "A measured portion taken from a specimen"
+  ],
+  [
+   "Smear",
+   "Cells spread directly on a slide"
+  ],
+  [
+   "Touch prep",
+   "Imprint of fresh tissue on a slide"
+  ],
+  [
+   "Fixative",
+   "Chemical that preserves tissue (e.g. formalin)"
+  ],
+  [
+   "Formalin",
+   "The standard tissue fixative"
+  ],
+  [
+   "Fixation time",
+   "How long the tissue was in fixative"
+  ],
+  [
+   "Cold ischemia time",
+   "Time from removal until the tissue is in fixative"
+  ],
+  [
+   "Embedding",
+   "Placing processed tissue in paraffin to make a block"
+  ],
+  [
+   "Microtomy",
+   "Cutting sections from blocks"
+  ],
+  [
+   "Microtome",
+   "The instrument used to cut sections"
+  ],
+  [
+   "Coverslip",
+   "Thin glass placed over the section"
+  ],
+  [
+   "Biopsy",
+   "A small sample of tissue"
+  ],
+  [
+   "Core needle biopsy",
+   "Biopsy taken with a hollow needle"
+  ],
+  [
+   "Resection",
+   "Surgical removal of an organ or tumour"
+  ],
+  [
+   "Excision",
+   "Surgical removal of a lesion"
+  ],
+  [
+   "Gross description",
+   "Written description of the specimen as seen by eye"
+  ],
+  [
+   "Grossing",
+   "Examining and sampling the specimen by eye"
+  ],
+  [
+   "Microscopic description",
+   "Written description of what is seen under the microscope"
+  ],
+  [
+   "Diagnosis",
+   "The pathologist's conclusion"
+  ],
+  [
+   "Final diagnosis",
+   "The diagnosis on the signed report"
+  ],
+  [
+   "Clinical history",
+   "Patient history provided by the clinician"
+  ],
+  [
+   "Clinical indication",
+   "Why the test was ordered"
+  ],
+  [
+   "Comment",
+   "A note added to the report"
+  ],
+  [
+   "Synoptic report",
+   "Structured report (checklist format), e.g. CAP protocols"
+  ],
+  [
+   "Checklist",
+   "The structured list of reporting items"
+  ],
+  [
+   "Protocol",
+   "A standard reporting protocol (e.g. CAP, RCPath)"
+  ],
+  [
+   "Template",
+   "A reusable report or form layout"
+  ],
+  [
+   "Preliminary report",
+   "A report issued before the final one"
+  ],
+  [
+   "Final report",
+   "The signed, released report"
+  ],
+  [
+   "Addendum",
+   "Extra information added to a signed report"
+  ],
+  [
+   "Amendment",
+   "A change to a signed report"
+  ],
+  [
+   "Corrected report",
+   "A signed report reissued with a correction"
+  ],
+  [
+   "Frozen section",
+   "Rapid diagnosis on frozen tissue during surgery"
+  ],
+  [
+   "Intraoperative consultation",
+   "Pathology opinion given during surgery"
+  ],
+  [
+   "Margin",
+   "The edge of the removed tissue"
+  ],
+  [
+   "Margin status",
+   "Whether tumour reaches the margin"
+  ],
+  [
+   "Lymph node",
+   null
+  ],
+  [
+   "Lymphovascular invasion",
+   null
+  ],
+  [
+   "Perineural invasion",
+   null
+  ],
+  [
+   "Tumor size",
+   null
+  ],
+  [
+   "Tumor grade",
+   null
+  ],
+  [
+   "Histologic type",
+   null
+  ],
+  [
+   "Stage",
+   "Cancer stage"
+  ],
+  [
+   "Biomarker",
+   "Marker tested on the tumour (e.g. ER, HER2)"
+  ],
+  [
+   "Malignant",
+   null
+  ],
+  [
+   "Benign",
+   null
+  ],
+  [
+   "Carcinoma",
+   null
+  ],
+  [
+   "Dysplasia",
+   null
+  ],
+  [
+   "Abnormal",
+   "Result outside normal; flagged for attention"
+  ],
+  [
+   "Critical finding",
+   "Unexpected, urgent result that must be communicated"
+  ],
+  [
+   "Critical value",
+   "A result that requires urgent notification"
+  ],
+  [
+   "Sign-out",
+   "The pathologist's final approval and release of a case report (NOT logging out)"
+  ],
+  [
+   "Sign out case",
+   "Button: approve and release the case report"
+  ],
+  [
+   "Sign in",
+   "Log in to PathScribe"
+  ],
+  [
+   "Log out",
+   "Leave PathScribe (different from case sign-out)"
+  ],
+  [
+   "Countersign",
+   "A second, supervising pathologist signs the report"
+  ],
+  [
+   "Finalize",
+   "Complete a synoptic report or case so it can be signed"
+  ],
+  [
+   "Release",
+   "Make a report available to the clinician"
+  ],
+  [
+   "Signature",
+   "The electronic signature on a report"
+  ],
+  [
+   "Pathologist",
+   null
+  ],
+  [
+   "Resident",
+   "Doctor in pathology training"
+  ],
+  [
+   "Fellow",
+   "Doctor in subspecialty training"
+  ],
+  [
+   "Attending",
+   "Responsible senior pathologist"
+  ],
+  [
+   "Consultant",
+   "Senior pathologist (UK/IE term)"
+  ],
+  [
+   "Cytotechnologist",
+   "Screens cytology slides"
+  ],
+  [
+   "Histotechnologist",
+   "Prepares tissue blocks and slides"
+  ],
+  [
+   "Pathologists' assistant",
+   "Performs grossing"
+  ],
+  [
+   "Case team",
+   "The staff assigned to a case and their roles"
+  ],
+  [
+   "Delegation",
+   "Passing a task to another person"
+  ],
+  [
+   "Peer review",
+   "Another pathologist reviews the diagnosis"
+  ],
+  [
+   "Second opinion",
+   "Review of a case by an outside pathologist"
+  ],
+  [
+   "Consultation",
+   "Asking another pathologist for an opinion"
+  ],
+  [
+   "Discordance",
+   "Disagreement between two diagnoses"
+  ],
+  [
+   "Concordance",
+   "Agreement between two diagnoses"
+  ],
+  [
+   "Cytology",
+   null
+  ],
+  [
+   "Gynecologic cytology",
+   "Cervical screening cytology"
+  ],
+  [
+   "Non-gynecologic cytology",
+   "Cytology of other sites (fluids, FNA…)"
+  ],
+  [
+   "Pap test",
+   "Cervical screening test"
+  ],
+  [
+   "Bethesda",
+   "The Bethesda system for reporting cervical cytology"
+  ],
+  [
+   "Adequacy",
+   "Whether the sample is adequate to evaluate"
+  ],
+  [
+   "Satisfactory for evaluation",
+   "Bethesda adequacy category"
+  ],
+  [
+   "Unsatisfactory",
+   "Bethesda adequacy category"
+  ],
+  [
+   "Rescreen",
+   "Screening a slide a second time for quality control"
+  ],
+  [
+   "Quality control",
+   null
+  ],
+  [
+   "Quality assurance",
+   null
+  ],
+  [
+   "Autopsy",
+   null
+  ],
+  [
+   "Preliminary anatomic diagnosis",
+   "PAD: the first autopsy diagnosis"
+  ],
+  [
+   "Final anatomic diagnosis",
+   "FAD: the final autopsy diagnosis"
+  ],
+  [
+   "Cause of death",
+   null
+  ],
+  [
+   "Manner of death",
+   null
+  ],
+  [
+   "Body release",
+   "Releasing the deceased to the funeral home"
+  ],
+  [
+   "Toxicology",
+   null
+  ],
+  [
+   "Chain of custody",
+   "Record of who held evidence and when"
+  ],
+  [
+   "Case",
+   "A patient's set of specimens with one report"
+  ],
+  [
+   "Worklist",
+   "The list of cases waiting for a user"
+  ],
+  [
+   "Order",
+   "A request for a test or procedure"
+  ],
+  [
+   "Add-on order",
+   "An extra test ordered on an existing case"
+  ],
+  [
+   "Result",
+   null
+  ],
+  [
+   "Report",
+   null
+  ],
+  [
+   "Draft",
+   "Unsigned, still being edited"
+  ],
+  [
+   "Pending",
+   "Waiting for an action"
+  ],
+  [
+   "Priority",
+   null
+  ],
+  [
+   "Stat",
+   "Most urgent priority"
+  ],
+  [
+   "Routine",
+   "Normal priority"
+  ],
+  [
+   "Turnaround time",
+   "TAT: time from receipt to signed report"
+  ],
+  [
+   "Hold",
+   "Case paused, e.g. awaiting information"
+  ],
+  [
+   "Retention",
+   "How long material or records must be kept"
+  ],
+  [
+   "Disposal",
+   "Destroying material after its retention period"
+  ],
+  [
+   "Label",
+   "Printed label for a cassette, slide or container"
+  ],
+  [
+   "Barcode",
+   null
+  ],
+  [
+   "Printer",
+   null
+  ],
+  [
+   "Reprint",
+   "Print a label again"
+  ],
+  [
+   "Scan",
+   "Read a barcode"
+  ],
+  [
+   "Scan station",
+   "A workstation with a barcode scanner"
+  ],
+  [
+   "Workstation",
+   "A computer at a lab bench"
+  ],
+  [
+   "Facility",
+   "A hospital or site"
+  ],
+  [
+   "Performing lab",
+   "The lab that does the work on a case"
+  ],
+  [
+   "Department",
+   null
+  ],
+  [
+   "Subspecialty",
+   "e.g. dermatopathology, GI pathology"
+  ],
+  [
+   "Patient",
+   null
+  ],
+  [
+   "MRN",
+   "Medical record number"
+  ],
+  [
+   "Date of birth",
+   null
+  ],
+  [
+   "Ordering physician",
+   "The doctor who ordered the test"
+  ],
+  [
+   "Billing",
+   null
+  ],
+  [
+   "CPT code",
+   "US procedure billing code"
+  ],
+  [
+   "ICD-10",
+   "Diagnosis code set"
+  ],
+  [
+   "SNOMED CT",
+   "Clinical terminology"
+  ],
+  [
+   "Audit log",
+   "Record of who did what, when"
+  ],
+  [
+   "Validation study",
+   "Study checking an AI model before clinical use"
+  ],
+  [
+   "Macro",
+   "Saved text snippet inserted into a report"
+  ],
+  [
+   "Dictation",
+   "Entering report text by voice"
+  ],
+  [
+   "Whole slide image",
+   "Scanned digital image of a slide"
+  ],
+  [
+   "Digital pathology",
+   null
+  ],
+  [
+   "Molecular",
+   "Molecular testing (DNA/RNA)"
+  ],
+  [
+   "Specimen dictionary",
+   "The admin list of specimen types"
+  ],
+  [
+   "Stain dictionary",
+   "The admin list of stains"
+  ],
+  [
+   "Save changes",
+   "Button"
+  ],
+  [
+   "Cancel",
+   "Button"
+  ],
+  [
+   "Retry",
+   "Button: try again"
+  ],
+  [
+   "HPV",
+   "Human papillomavirus: tested for in cervical screening"
+  ],
+  [
+   "Self-collection",
+   "A sample the person takes themselves (e.g. a vaginal swab) for HPV testing"
+  ],
+  [
+   "Recall",
+   "Screening: inviting a person back for a repeat test or follow-up after a result. (On a few screens \"Recall\" means withdrawing a report that was already sent.)"
+  ],
+  [
+   "Repeat sample",
+   "A new sample asked for because the first could not be used"
+  ],
+  [
+   "Screening",
+   "Cervical screening programme work (not diagnostic testing)"
+  ],
+  [
+   "Screening history",
+   "A person's earlier screening results and dates"
+  ],
+  [
+   "Cervical screening register",
+   "The national or regional register of screening results (CSMS in Australia, NCSP in New Zealand)"
+  ],
+  [
+   "Workload",
+   "The amount of screening work a cytotechnologist has taken on in a day"
+  ],
+  [
+   "Reassign",
+   "Move a case from one person to another"
+  ],
+  [
+   "Dispatch",
+   "Sending a finished result out to another system"
+  ],
+  [
+   "Interface engine",
+   "The middleware that sends and receives messages (HL7, FHIR) between PathScribe and other systems"
+  ],
+  [
+   "Outbound queue",
+   "Messages waiting to be sent to other systems"
+  ],
+  [
+   "Dead letter",
+   "A message that failed every retry and now needs a person to look at it"
+  ],
+  [
+   "Report document",
+   "The stored PDF of a released report, kept exactly as it was sent"
+  ],
+  [
+   "Site agent",
+   "Small program at the lab that prints reports and labels for PathScribe"
+  ],
+  [
+   "Server job",
+   "A background task run by the PathScribe server (retries, timers, expiry checks)"
+  ],
+  [
+   "Live update",
+   "A change shown on screen straight away, without reloading"
+  ],
+  [
+   "Consult link",
+   "A time-limited link that lets an outside doctor see a case for a second opinion"
+  ],
+  [
+   "Capability",
+   "A single permission, such as \"release a report\" or \"export a list\""
+  ],
+  [
+   "Role",
+   "A named set of permissions given to staff (e.g. Pathologist, Histotechnologist)"
+  ],
+  [
+   "Support reference",
+   "A code for a case that is safe to quote to support staff (it is not the case number)"
+  ],
+  [
+   "Break glass",
+   "Emergency access to a case a person would not normally be allowed to open"
+  ],
+  [
+   "Field requirement",
+   "A setting that makes an entry field required on a screen"
+  ],
+  [
+   "Self-collected sample",
+   "A sample collected by the person themselves rather than by a clinician"
+  ],
+  [
+   "Fax",
+   "A report sent by fax"
+  ],
+  [
+   "File drop",
+   "A report written to a shared folder for another system to pick up"
+  ]
+ ]
+}

@@ -50,6 +50,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { formatDate } from '@/utils/formatDate';
+import { blockStatusLabelKey, hasOpenEmbeddingDiscrepancy } from '@/utils/embeddingOperations';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { printSettingsService, printerProfileService, actionRegistryService } from '@/services';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
@@ -67,7 +69,7 @@ import CassetteReprintModal from './components/CassetteReprintModal';
 import '../../pathscribe.css';
 
 const EmbeddingStationPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('embeddingStation.pageTitle'), '/workstations/embedding'); }, [pushCrumb, t]);
@@ -97,7 +99,7 @@ const EmbeddingStationPage: React.FC = () => {
     actions: {
       pedal1_pushToTalk: () => {
         const block = w.workItem?.block;
-        if (!block || block.pieceCount == null || block.status === 'Embedded') return;
+        if (!block || block.pieceCount == null || block.status === 'Embedded' || hasOpenEmbeddingDiscrepancy(block)) return;
         // Batch 401: the hook checks Field Requirements, so a pedal press
         // can't confirm a block the organisation still needs a mold size or
         // orientation for; the panel shows what is still required.
@@ -199,7 +201,7 @@ const EmbeddingStationPage: React.FC = () => {
           <div className="ps-embedding-context-bar">
             <span>{t('embeddingStation.context.accession')} <strong data-phi="accession">{w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id}</strong></span>
             <span>{t('embeddingStation.context.patient')} <strong data-phi="name">{`${w.workItem.caseData.patient?.givenNames ?? ''} ${w.workItem.caseData.patient?.familyNames ?? ''}`.trim() || '—'}</strong></span>
-            <span>{t('embeddingStation.context.dob')} <strong data-phi="dob">{w.workItem.caseData.patient?.dateOfBirth ?? '—'}</strong></span>
+            <span>{t('embeddingStation.context.dob')} <strong data-phi="dob">{formatDate(w.workItem.caseData.patient?.dateOfBirth, i18n.language)}</strong></span>
             <span>
               {t('embeddingStation.context.specimenBlock')}{' '}
               <strong>{w.workItem.specimen.label}{w.workItem.block.label}</strong>
@@ -210,6 +212,11 @@ const EmbeddingStationPage: React.FC = () => {
             </button>
           </div>
 
+          {w.saveError && <div className="ps-workstation-save-error" role="alert">{w.saveError}</div>}
+          {w.discrepancyNotice && (w.discrepancyNotice.kind === 'failed'
+            ? <div className="ps-workstation-save-error" role="alert">{t(w.discrepancyNotice.key, w.discrepancyNotice.values)}</div>
+            : <div className="ps-embedding-split-banner ps-embedding-split-banner--complete" role="status">{t(w.discrepancyNotice.key, w.discrepancyNotice.values)}</div>)}
+
           <div className="ps-embedding-layout">
             {/* Left: Specimen block summary */}
             <div className="ps-embedding-panel">
@@ -217,7 +224,7 @@ const EmbeddingStationPage: React.FC = () => {
               <ul className="ps-embedding-comment-list">
                 {(w.workItem.specimen.blocks ?? []).map(b => (
                   <li key={b.id} className="ps-embedding-comment-item">
-                    <strong>{w.workItem!.specimen.label}{b.label}</strong> — {b.status}
+                    <strong>{w.workItem!.specimen.label}{b.label}</strong> — {t(blockStatusLabelKey(b.status))}
                     {b.id === w.workItem!.block.id && <span> ({t('embeddingStation.specimenSummary.current')})</span>}
                   </li>
                 ))}
@@ -234,7 +241,9 @@ const EmbeddingStationPage: React.FC = () => {
               splitBlockGroupStatus={w.splitBlockGroupStatus}
               onToggleAlertFlag={handleToggleAlertFlag}
               onConfirmPieceCount={(count, orientation) => { void w.handleConfirmPieceCount(count, orientation); }}
+              flaggerName={w.flaggerName}
               onFlagDiscrepancy={w.handleFlagDiscrepancy}
+              onClearDiscrepancy={() => { void w.handleClearDiscrepancy(); }}
               onSetMoldAndOrientation={w.handleSetMoldAndOrientation}
               onGroupSplitBlocks={w.handleGroupSplitBlocks}
               onOpenComments={() => setCommentsOpen(true)}

@@ -1,0 +1,235 @@
+<h1 id="top">Order Queue</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> This screen, titled "Molecular Order Queue", lists the outbound molecular order messages that PathScribe has produced: an HPV co-test order raised when a specimen was accessioned, a reflex genotyping order raised by a positive HPV screen, and instrument orders. Above the list is a small demonstration panel where you can place an HPV order and then simulate the laboratory's result coming back, to show the whole HPV order and reflex workflow without an analyser.</p>
+<p><strong>Intended users.</strong> This is a testing and demonstration page, not a bench screen. It is meant for laboratory managers, administrators and trainers who need to show or test the HPV order and result path.</p>
+<div class="admonition note">
+<p class="admonition-title">Do not confuse this with the Order Queue tab</p>
+<p>The <strong>Order Queue tab</strong> on the <a href="/help/molecular">Molecular</a> screen is where technologists put in-house molecular orders on plates. It is a different list with different content. This article is about the separate page at "Molecular Order Queue". Orders placed from the Add-on Orders page appear in the tab, not here.</p>
+</div>
+<p><strong>Who can open it.</strong> The page is protected by the Configuration screen permission, the same one that opens Configuration. By default that is the Administrator, Template Author, Template Approver and Laboratory Director roles. A Molecular Technologist, who has the Molecular screen, does <strong>not</strong> have it by default and sees "You don't have access to this screen" with a <strong>Back to Home</strong> button. An administrator can add the Configuration screen to another role in the Role Dictionary.</p>
+<p><strong>Where it fits.</strong> There is no tile for it on Home. Open <strong>Configuration</strong>, choose the <strong>Demo Reset</strong> tab, find the heading "Testing &amp; Demo Tools", and select <strong>Open</strong> beside "Molecular Order Queue". The card describes it as "Simulate ordering and inbound HPV results against a fixed seed case. A testing/demo surface, not a production ordering workflow." The Demo Reset tab works only in a demonstration environment. At a site connected to live servers it shows "Demo reset is unavailable" and this link is not offered.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/molecular-order-queue-overview.png" alt="The Molecular Order Queue page with the HPV demonstration panel above the table of queued orders"><figcaption>The Molecular Order Queue page with the HPV demonstration panel above the table of queued orders</figcaption></figure>
+
+<p>The page has a heading and a line under it: "Outbound molecular assay and instrument orders — fired automatically at accession, or by an HPV reflex genotyping trigger on a positive standalone screen." Then the demonstration panel, then the table.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Demonstration panel ("Demo: HPV order &amp; reflex workflow")</strong></p>
+<p>The panel says "Operates against real seed case S26-5003-CYT-001, Specimen A — already configured with an HPV co-test pending. Queue the assay order, then simulate the lab result coming back." The case and specimen are fixed. You cannot pick another case on this page, and the case is demonstration data, not a real patient.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assay used</td>
+<td>Which HPV test the simulated order and result are for. <strong>st-hpv-highrisk-screen (standalone)</strong> is the high-risk HPV screen on its own. <strong>st-hpv-reflex (bundled)</strong> is the version that already includes reflex testing.</td>
+</tr>
+<tr>
+<td>Simulated result</td>
+<td>The result the simulated laboratory returns: <strong>Positive</strong> or <strong>Negative</strong>.</td>
+</tr>
+<tr>
+<td>Message line under the buttons</td>
+<td>The outcome of your last action (see the list under Error recovery).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The table of queued orders</strong></p>
+<p>The newest entry is at the top. With nothing queued you see "No orders queued yet."</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Type</td>
+<td><strong>Molecular</strong> for an assay order, or <strong>Instrument</strong> for an order that was prepared for an instrument.</td>
+</tr>
+<tr>
+<td>Accession</td>
+<td>The accession number followed by the specimen letter, for example S26-5003-CYT-001-A. For an instrument order it shows the master barcode instead.</td>
+</tr>
+<tr>
+<td>Assay</td>
+<td>The assay code ordered (for an instrument order, the instrument vendor).</td>
+</tr>
+<tr>
+<td>Reason</td>
+<td><strong>Protocol-configured (accession)</strong> when the order was raised automatically at accessioning because the specimen's protocol says so. <strong>HPV reflex genotyping</strong> when a positive standalone screen raised it. A dash for instrument orders.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td><strong>Queued</strong> (waiting to be sent), <strong>Sent</strong>, or <strong>Failed</strong>.</td>
+</tr>
+<tr>
+<td>Queued at</td>
+<td>The date and time the order was placed, in your language's format.</td>
+</tr>
+</tbody>
+</table>
+<p>A row raised by an HPV reflex is tinted so it stands out.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Queue HPV co-test order</td>
+<td>Places an order for the chosen assay on the demonstration case, as if the accession had raised it. You see "Order queued." and a new <strong>Queued</strong> row appears at the top of the table.</td>
+</tr>
+<tr>
+<td>Simulate inbound HPV result</td>
+<td>Plays the part of the laboratory: sends a result (Positive or Negative) for the chosen assay on the demonstration case, through the same result handling that a real interface would use.</td>
+</tr>
+</tbody>
+</table>
+<p>Both buttons are greyed out for a moment while they run.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Queued</td>
+<td>The message is waiting to go out.</td>
+</tr>
+<tr>
+<td>Sent</td>
+<td>The message has gone out.</td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>The message could not be sent.</td>
+</tr>
+<tr>
+<td>Tinted row</td>
+<td>The order was raised by an HPV reflex.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p>Demonstrating the standalone HPV screen with a reflex:</p>
+<ol>
+<li>Sign in as someone with the Configuration screen and open Configuration. Choose the <strong>Demo Reset</strong> tab and, under "Testing &amp; Demo Tools", select <strong>Open</strong> by "Molecular Order Queue". The page opens.</li>
+<li>In <strong>Assay used</strong>, leave <strong>st-hpv-highrisk-screen (standalone)</strong> selected.</li>
+<li>Select <strong>Queue HPV co-test order</strong>. The line under the buttons reads "Order queued." and a <strong>Molecular</strong> row for S26-5003-CYT-001-A with the reason <strong>Protocol-configured (accession)</strong> and status <strong>Queued</strong> appears at the top.</li>
+<li>In <strong>Simulated result</strong>, choose <strong>Positive</strong>.</li>
+<li>Select <strong>Simulate inbound HPV result</strong>. The line reads "Result applied — genotyping reflex order fired below." (If you press it again, the line says the reflex order already exists and no second row is added.)</li>
+<li>Look at the table. A second, tinted row has appeared, for the genotyping test, with the reason <strong>HPV reflex genotyping</strong>. That is the reflex: a positive result on the standalone screen orders genotyping automatically.</li>
+<li>If you want to see the result on the specimen, open case S26-5003-CYT-001 in the cytology screen. See <a href="/help/cytology">Cytology</a>.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Negative result.</strong> Choose <strong>Negative</strong> in step 4. The line reads "Result applied." and no reflex row is added.</li>
+<li><strong>Bundled assay.</strong> Choose <strong>st-hpv-reflex (bundled)</strong> in step 2. A positive result reads "Result applied." and does not add a reflex row, because the bundled assay already includes reflex testing.</li>
+<li><strong>Checking real orders.</strong> After the accession of a specimen whose protocol is marked to send an outbound order, its order appears here as <strong>Protocol-configured (accession)</strong>. Use the table to confirm it was raised.</li>
+<li><strong>Following the message to the outside world.</strong> The same messages also appear in the <a href="/help/outbound-queue">Outbound Queue</a> screen with their send status and retry controls.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The result says "Outcome: …".</strong> When the result could not be applied, the line says so in your language instead of "Result applied.": the message was already processed, the demonstration case was not found, the case has no such specimen, or the result message was incomplete or contradicted itself. On the demonstration case these should not appear unless the demonstration data was changed or removed. See Resolution steps.</li>
+<li><strong>No row appears after Queue HPV co-test order.</strong> The message line should say "Order queued." If the table is still empty, reopen the page.</li>
+<li><strong>Simulating a result before queueing an order.</strong> The page lets you do it: the result is applied to the demonstration case whether or not an order row exists. The two buttons are independent.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">One reflex order per specimen</p>
+<p>Every press of <strong>Simulate inbound HPV result</strong> is a new message, but a specimen gets only one genotyping reflex order. Pressing <strong>Positive</strong> again says "Result applied. The genotyping reflex order for this specimen is already on the queue, so no second one was made." and the table gains no second reflex row. The same protection applies to a real result sent again under a new message number. The table has no way to clear entries yet, so a reflex row stays until the demonstration data is reset.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>You queued the order twice by mistake.</strong> There is no button to delete a queue entry on this page. Leave it. They are demonstration data. In a demonstration environment, an administrator can reset the demonstration data from the same Demo Reset tab.</li>
+<li><strong>The result line says the demonstration case was not found, or has no such specimen.</strong> The demonstration case may have been removed or changed. Ask an administrator to reset the demonstration data on the Demo Reset tab, then try again.</li>
+<li><strong>A row is Failed.</strong> The message could not be sent. Open the <a href="/help/outbound-queue">Outbound Queue</a>, find the entry and use its retry control.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li><strong>Using this page for real work.</strong> It is a testing surface. Real in-house molecular orders are managed in the Order Queue tab of <a href="/help/molecular">Molecular</a>.</li>
+<li><strong>Expecting to choose a case.</strong> The demonstration case is fixed.</li>
+<li><strong>Expecting a real laboratory to answer.</strong> Nothing leaves PathScribe from this page; the "laboratory" is you pressing the button.</li>
+<li><strong>Pressing the result button more than once.</strong> See the warning above.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>For a training session, go through the Positive standalone path first (it shows the reflex), then the Negative path.</li>
+<li>Keep the page open in one window and the cytology case in another to show the result landing on the specimen.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Reset the demonstration data from the Demo Reset tab before a new training session so the table starts empty.</li>
+<li>Do not leave the demonstration page open in a live production site. It needs the Configuration screen precisely so that ordinary users do not reach it.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: a specimen whose protocol is set to send an outbound order raises a <strong>Protocol-configured (accession)</strong> entry here.</li>
+<li><a href="/help/demonstration-tools">Demonstration Tools</a>: the Demo Reset tab that leads to this page.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/outbound-queue">Outbound Queue</a>: the same messages with their send status.</li>
+<li><a href="/help/cytology">Cytology</a>: where the HPV result is shown on the specimen.</li>
+<li><a href="/help/molecular">Molecular</a>: the real working screen for in-house molecular orders.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I cannot open the page.</td>
+<td>Your role does not have the Configuration screen. Molecular Technologists do not by default.</td>
+</tr>
+<tr>
+<td>I cannot find a tile for it.</td>
+<td>There is none. Use Configuration, Demo Reset, "Testing &amp; Demo Tools".</td>
+</tr>
+<tr>
+<td>The table is empty.</td>
+<td>Nothing has been queued yet: "No orders queued yet."</td>
+</tr>
+<tr>
+<td>The reflex row did not appear.</td>
+<td>The result was Negative, or the assay was the bundled one, or the result line shows an "Outcome:" message, or a reflex order for this specimen was already on the queue.</td>
+</tr>
+<tr>
+<td>The result applied but I cannot see it.</td>
+<td>Check the demonstration case S26-5003-CYT-001, Specimen A, in the cytology screen.</td>
+</tr>
+<tr>
+<td>The status never leaves Queued.</td>
+<td>Nothing sends the message on this page. Sending is done by the outbound queue and, in a demonstration, by a simulated receiver.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the message line under the buttons.</li>
+<li>If it shows an "Outcome:" message, note it and reset the demonstration data from the Demo Reset tab, then repeat.</li>
+<li>If a row is Failed, retry it from the <a href="/help/outbound-queue">Outbound Queue</a>.</li>
+<li>Reload the page to read the queue again.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when the demonstration reset does not bring back the demonstration case, or when a real accession-raised order does not appear here at all. Have the accession number and the time of the problem ready.</p>

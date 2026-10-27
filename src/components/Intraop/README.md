@@ -10,3 +10,5 @@
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
+
+`LateFrozenDiagnosisForm` (Batch 659): adds a frozen section diagnosis to a saved specimen; the save logic is in `intraoperativeService`.

@@ -13,7 +13,7 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { applyAutopsyConsentStatusChange, type AutopsyConsentStatusChangeInput } from './applyAutopsyConsentStatusChange';
 
 export type RecordAutopsyConsentStatusChangeReasonCode =
@@ -57,7 +57,7 @@ export async function recordAutopsyConsentStatusChange(
   if (write.ok === true) {
     // Real, per the standing audit rule — same choke point every other
     // autopsy write uses.
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'AUTOPSY_CONSENT_STATUS_CHANGED',
       detail: `Consent status set to ${input.status}${input.revocationNote ? ` (${input.revocationNote})` : ''}`,

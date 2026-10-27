@@ -52,6 +52,8 @@ export interface ScreeningRegistrySubmitDeps {
   logAudit: (event: any) => unknown;
   /** Batch 424: send, hold or skip on this instance (registrySendGate.ts). */
   sendGate: (registryId: string) => Promise<RegistrySendGate>;
+  /** Batch 620 (PS-800): whether this programme takes a batch file. Its submission then waits in the queue for the file instead of going out as a message. Absent: false. */
+  batchProgram?: (registryId: string) => Promise<boolean>;
   /** PS-71 (Batch 458): the eligibility flag is saved against the case as read, with its version. */
   getCase: (caseId: string) => Promise<any | null | undefined>;
   updateCase: (caseId: string, patch: Record<string, unknown>, expectedVersion: number) => Promise<unknown>;
@@ -70,7 +72,7 @@ export interface ScreeningRegistrySubmitInput {
 }
 
 export interface ScreeningRegistrySubmitOutcome {
-  outcome: 'noRegistry' | 'excludedByConsent' | 'notEligible' | 'notSent' | 'queueFailed' | 'held' | 'failed' | 'sent';
+  outcome: 'noRegistry' | 'excludedByConsent' | 'notEligible' | 'notSent' | 'queueFailed' | 'held' | 'awaitingEligibility' | 'queuedForBatch' | 'failed' | 'sent';
   queueId?: string;
   submission?: RegistrySubmissionHeader;
 }
@@ -117,6 +119,23 @@ export async function prepareScreeningRegistrySubmission(
   return { outcome: 'ready', facilityId, definition, config, decision, body, contentHash: registryContentHash(body) };
 }
 
+/** The registry's case-level flag (CSMS: eligibility to confirm), once per case. PS-71 (Batch 458): rebuilt from the case as read for the
+ *  save, with its version, so a flag someone else added in between is kept; nothing is written if the flag is already there. */
+async function raiseEligibilityFlag(caseId: string, flagDefinitionId: string, deps: ScreeningRegistrySubmitDeps): Promise<void> {
+  const newFlag = {
+    id: 'registry-elig-' + deps.newId(), flagDefinitionId, appliedAt: deps.now().toISOString(),
+    appliedBy: 'system', source: 'system', deletedAt: null, deletedBy: null,
+  };
+  await updateCaseWithRetryOrThrow(caseId, current => {
+    const existingFlags: any[] = (current as any).caseFlags ?? [];
+    if (existingFlags.some((f: any) => f.flagDefinitionId === flagDefinitionId && !f.deletedAt)) return null;
+    return { caseFlags: [...existingFlags, newFlag] } as any;
+  }, {
+    getCase: deps.getCase,
+    updateCase: async (id, updates, expectedVersion) => { await deps.updateCase(id, updates as Record<string, unknown>, expectedVersion); },
+  });
+}
+
 export async function submitScreeningRegistryResult(input: ScreeningRegistrySubmitInput, deps: ScreeningRegistrySubmitDeps): Promise<ScreeningRegistrySubmitOutcome> {
   const { caseData, record } = input;
   const prepared = await prepareScreeningRegistrySubmission(input, deps);
@@ -155,6 +174,30 @@ export async function submitScreeningRegistryResult(input: ScreeningRegistrySubm
     await deps.registryQueue.markFailed(queued.data.id, { errorCode: gate.code!, errorMessage: gate.message!, maxRetriesExceeded: false });
     return { outcome: 'held', queueId: queued.data.id, submission };
   }
+  // Batch 638 (PS-193, Pete): a registry that needs eligibility confirmed (CSMS) gets nothing until a person has answered. The
+  // flag is raised now, the message waits in the queue as AWAITING_ELIGIBILITY, and verifyCsmsEligibility releases it (Verified)
+  // or closes it (Not eligible). The clinical report is never held. A correction or addendum follows the first submission's fate.
+  const flag = definition.eligibilityFlag;
+  if (flag?.when === 'missingReasonForStudy') {
+    const earlier = priorRes.ok ? priorRes.data.filter(p => p.registryId === definition.id && (p.errorCode === 'AWAITING_ELIGIBILITY' || p.errorCode === 'NOT_ELIGIBLE')) : [];
+    const waiting = input.kind === 'signOut' ? !order?.reasonForStudy : earlier.length > 0;
+    if (waiting) {
+      const closed = earlier.some(p => p.errorCode === 'NOT_ELIGIBLE');
+      const message = closed
+        ? 'The woman was recorded as not eligible for CSMS, so this version was not sent.'
+        : 'Waiting for the CSMS eligibility check. The message is sent once a person has confirmed she is eligible.';
+      await deps.registryQueue.markFailed(queued.data.id, { errorCode: closed ? 'NOT_ELIGIBLE' : 'AWAITING_ELIGIBILITY', errorMessage: message, maxRetriesExceeded: closed });
+      deps.logAudit({ type: 'system', event: closed ? 'Registry submission closed: not eligible' : 'Registry submission waiting for eligibility', detail: `Case ${caseData.id}: ${message}`, user: 'system', caseId: caseData.id, confidence: null });
+      if (input.kind === 'signOut') await raiseEligibilityFlag(caseData.id, flag.flagDefinitionId, deps);
+      return { outcome: 'awaitingEligibility', queueId: queued.data.id, submission };
+    }
+  }
+  // Batch 620 (PS-800): a programme that takes a batch file keeps the submission queued; the file is made on the registry's schedule
+  // (services/batchRegistryFeed) and the submission goes out in it, so nothing is sent from here.
+  if (deps.batchProgram && await deps.batchProgram(definition.id)) {
+    deps.logAudit({ type: 'system', event: 'Registry submission queued for the batch file', detail: `Case ${caseData.id}: queued for ${definition.id}'s next batch file.`, user: 'system', caseId: caseData.id, confidence: null });
+    return { outcome: 'queuedForBatch', queueId: queued.data.id, submission };
+  }
   const payload = { ...body, submission };
   const sent = await deps.dispatchInterfaceMessage(queued.data.id, 'REGISTRY_REPORT', payload);
   if (!sent.ok) {
@@ -163,24 +206,5 @@ export async function submitScreeningRegistryResult(input: ScreeningRegistrySubm
   }
   await deps.registryQueue.markSent(queued.data.id);
 
-  // The registry's case-level flag (CSMS: no reason for study), once per case, on the first submission only.
-  const flag = definition.eligibilityFlag;
-  if (input.kind === 'signOut' && flag?.when === 'missingReasonForStudy' && !order?.reasonForStudy) {
-    // PS-71 (Batch 458): the flag list is rebuilt from the case as read for
-    // the save, with its version, so a flag someone else added in between is
-    // kept; nothing is written if the flag is already there.
-    const newFlag = {
-      id: 'registry-elig-' + deps.newId(), flagDefinitionId: flag.flagDefinitionId, appliedAt: deps.now().toISOString(),
-      appliedBy: 'system', source: 'system', deletedAt: null, deletedBy: null,
-    };
-    await updateCaseWithRetryOrThrow(caseData.id, current => {
-      const existingFlags: any[] = (current as any).caseFlags ?? [];
-      if (existingFlags.some((f: any) => f.flagDefinitionId === flag.flagDefinitionId && !f.deletedAt)) return null;
-      return { caseFlags: [...existingFlags, newFlag] } as any;
-    }, {
-      getCase: deps.getCase,
-      updateCase: async (id, updates, expectedVersion) => { await deps.updateCase(id, updates as Record<string, unknown>, expectedVersion); },
-    });
-  }
   return { outcome: 'sent', queueId: queued.data.id, submission };
 }

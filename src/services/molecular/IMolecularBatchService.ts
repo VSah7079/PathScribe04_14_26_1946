@@ -264,6 +264,18 @@ export const MOLECULAR_BATCH_NOT_PERMITTED = 'notPermitted';
 /** Batch 406: the plate's deck slot isn't one on the instrument's deck that takes an extraction plate. */
 export const MOLECULAR_BATCH_DECK_SLOT_INVALID = 'deckSlotInvalid';
 
+/** Batch 669 (mol-9): the other refusals, as codes the screen translates (they were English sentences). */
+/** Superseding needs a reason. */
+export const MOLECULAR_BATCH_REASON_REQUIRED = 'reasonRequired';
+/** No batch with that id. */
+export const MOLECULAR_BATCH_NOT_FOUND = 'batchNotFound';
+/** The batch was already superseded: use its replacement. */
+export const MOLECULAR_BATCH_ALREADY_SUPERSEDED = 'alreadySuperseded';
+/** A reagent or control lot is expired, failed or lacks QC sign-off. */
+export const MOLECULAR_BATCH_LOT_GATING_FAILED = 'lotGatingFailed';
+/** The assay's required controls are not all on the plate, or are in the wrong wells. */
+export const MOLECULAR_BATCH_CONTROLS_NOT_SATISFIED = 'controlsNotSatisfied';
+
 export type NewMolecularBatch = Omit<MolecularBatch, 'id' | 'batchBarcode' | 'batchUuid' | 'plateUuid' | 'plateBarcode' | 'status' | 'createdAt'>;
 
 export interface IMolecularBatchService {
@@ -297,7 +309,10 @@ export interface IMolecularBatchService {
    * configuration (assay, instrument, plate layout, reagent lots) and
    * control/calibrator well assignments (sampleType + controlInfo —
    * real reagent-lot metadata, not a scan event) carry over as a real
-   * starting point; every patient-specimen assignment and every
+   * starting point (Batch 669: and a patient well bound to an in-house
+   * order, while the plate is still an undispatched draft, keeps its order,
+   * accession and specimen; the order moves to the new plate, see
+   * supersedeMolecularBatch.ts); every other patient-specimen assignment and every
    * well's own movementHistory resets to genuinely empty on the
    * clone, since a past scan event is a real fact about the original
    * batch's own run, not something honestly true of a batch that

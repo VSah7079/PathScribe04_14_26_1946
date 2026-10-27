@@ -1,0 +1,130 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batches 669j to 676 — audit wiring, mock-import cleanup, five server versions, authentication model, MFA policy contract, Regulatory Compliance Guide (catch-up)",
+  "description": "Vitest, 2026-10-25. Type-check clean. Tests are created by this import (testInfo). Not run: browser checks; server routes for the MFA policy do not exist yet. Jira Test keys are created by the import."
+ },
+ "tests": [
+  {
+   "testInfo": {
+    "summary": "Secure email: audit line shown only after the send is recorded",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 669j): src/components/SecureEmail/messagingRequirements.test.tsx"
+  },
+  {
+   "testInfo": {
+    "summary": "Audit write path: every audit writer goes through the switched audit service",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 670): src/services/apiServer/directMockImports.guard.test.ts (audit: zero allowed)"
+  },
+  {
+   "testInfo": {
+    "summary": "HTTP audit service sends the station with each event",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 670): src/services/staffAdmin/httpStaffAdmin.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Direct mock imports: baseline only shrinks (138 to 13 files)",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 671): src/services/apiServer/directMockImports.guard.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Five new server versions send the documented calls (delivery queue, referral queue, held release, release event log, QC sampling state)",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 672): src/services/*/http*Service.test.ts (5 files)"
+  },
+  {
+   "testInfo": {
+    "summary": "Module load order: patient ADT payload reads the patient index lazily",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 671): src/services/patient/outboundPatientAdt.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "MFA policy: HTTP calls, refusal and failure",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 675): src/services/auth/mfa/httpMfaPolicyService.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "MFA policy: server-held policy loads, saves, refuses, and the capability is still checked first",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 675): src/services/auth/mfa/mfaService.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Sign-in fails closed when the server-held MFA policy cannot be read; uses it when it can",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 675): src/services/auth/authSession.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Documentation batches 673, 673b, 674, 676 (SERVER_DECIDES, AUTHENTICATION_MODEL, Regulatory Compliance Guide): no code; full suite and guards unaffected",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 673-676): full vitest run"
+  },
+  {
+   "testInfo": {
+    "summary": "Full vitest run after Batch 675: 15,298 tests passed, 33 skipped, 1,831 files passed; the only failing file is firestore.rules.test.ts (needs the Firebase emulator)",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-25T23:40:00Z",
+   "finish": "2026-10-26T00:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 675): vitest run"
+  }
+ ]
+}

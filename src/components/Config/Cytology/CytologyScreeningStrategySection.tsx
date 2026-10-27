@@ -26,6 +26,7 @@ import '../../../pathscribe.css';
 import type { CytologyScreeningStrategy } from '../../../services/cytology/ICytologyScreeningStrategyService';
 import type { FacilityCytologyScreeningStrategyOverride } from '../../../services/cytology/IFacilityCytologyScreeningStrategyOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
+import RecallWindowsCard from './RecallWindowsCard';
 import { useReportConfigDirty } from '../configDirtyGuardContext';
 import { cytologyScreeningStrategyService, facilityCytologyScreeningStrategyOverrideService, facilityService } from '@/services';
 
@@ -61,7 +62,9 @@ const CytologyScreeningStrategySection: React.FC = () => {
 
   const saveEnterprise = async () => {
     setSaving(true);
-    await cytologyScreeningStrategyService.update({ screeningStrategy: enterpriseDraft });
+    // Keep the other saved settings (age-stratified rule, recall windows); only the strategy changes here.
+    const current = await cytologyScreeningStrategyService.get();
+    await cytologyScreeningStrategyService.update({ ...(current.ok ? current.data : {}), screeningStrategy: enterpriseDraft });
     setSaving(false);
     refresh();
   };
@@ -86,6 +89,8 @@ const CytologyScreeningStrategySection: React.FC = () => {
         </div>
         {enterpriseDraft !== savedEnterprise && <div className="ps-conf-saving-indicator">{t('cytologyQcSettingsSection.enterprise.unsavedChange')}</div>}
       </div>
+
+      <RecallWindowsCard />
 
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-row">

@@ -27,7 +27,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { printQueueService } from './printQueueServiceInstance';
-import { PRINT_JOB_NOT_PERMITTED } from './mockPrintQueueService';
+import { PRINT_JOB_NOT_PERMITTED } from './printJobCodes';
 import { attemptPrintDelivery } from './attemptPrintDelivery';
 
 /** A Retry or Redirect's result. 'refused': the person lacks the permission (Batch 515, PS-283). */

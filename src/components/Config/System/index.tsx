@@ -73,6 +73,10 @@ import ConcordanceReviewSettingsSection from './ConcordanceReviewSettingsSection
 import DeliveryRulesSection from './DeliveryRulesSection';
 import DeliverySchedulesSection from './DeliverySchedulesSection';
 import BillingReleaseSection from './BillingReleaseSection';
+import UsEpathSection from './UsEpathSection';
+import BatchRegistryFeedSection from './BatchRegistryFeedSection';
+import CosdDestinationSection from './CosdDestinationSection';
+import HistoryExtractionSection from './HistoryExtractionSection';
 import PrintRoutingRuleSection from './PrintRoutingRuleSection';
 import ContributionSettingsSection from './ContributionSettingsSection';
 import ExternalResourcesSection  from './ExternalResourcesSection';
@@ -115,6 +119,7 @@ import AiInstructionsSection from './AiInstructionsSection';
 import InterfaceDictionarySection from './InterfaceDictionarySection';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { configSectionVisible } from '@/services/screens/configSectionAccess';
+import { useRegisterConfigHelpSection } from '@/components/Config/help/ConfigHelpContext';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
@@ -157,6 +162,7 @@ const SystemTab: React.FC = () => {
   // selectSection below is the one real place that ever happens, so
   // none of those four paths can drift out of sync with each other.
   const [activeGroup, setActiveGroup] = useState<string>(() => SECTIONS.find(s => s.id === active)?.group ?? GROUPS[0]);
+  useRegisterConfigHelpSection(active); // Batch 646: the Help button opens this section of the Administrator Guide
 
   // Real, per direct guidance (Workstation & Hardware redesign): one
   // real facility choice, shared across Scan Stations/Printer
@@ -256,6 +262,10 @@ const SystemTab: React.FC = () => {
       case 'delivery_rules': return <DeliveryRulesSection />;
       case 'delivery_schedules': return <DeliverySchedulesSection />;
       case 'billing_release': return <BillingReleaseSection />;
+      case 'us_epath': return <UsEpathSection />;
+      case 'batch_registry_feed': return <BatchRegistryFeedSection />;
+      case 'cosd_destination': return <CosdDestinationSection />;
+      case 'history_extraction': return <HistoryExtractionSection />;
       case 'print_routing_rules': return <PrintRoutingRuleSection />;
       case 'contribution_settings': return <ContributionSettingsSection />;
       case 'external_resources':  return <ExternalResourcesSection />;

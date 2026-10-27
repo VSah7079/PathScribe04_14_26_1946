@@ -44,10 +44,10 @@ vi.mock('@/services', () => ({
 function makeView(overrides: Partial<ConsultCaseView> = {}): ConsultCaseView {
   return {
     linkId: 'ctok-1', accessionNumber: 'S26-1234',
-    patient: { lastName: 'Roe', firstName: 'Jane', dateOfBirth: '1980-01-01' },
+    patient: { identity: 'masked', maskedName: 'J*** R**', birthYearMasked: '**-***-1980' },
     specimens: [{ id: 'sp-1', label: 'A', description: 'Left breast, lumpectomy' }],
     slides: [{ id: 'stain-1', label: 'A-1 · H&E' }, { id: 'stain-2', label: 'A-1 · ER' }],
-    scopedSlideCount: 0, expiresAt: '2099-01-01T00:00:00.000Z', opinionSigned: false,
+    scopedSlideCount: 0, expiresAt: '2099-01-01T00:00:00.000Z', opinionSigned: false, lifetime: null,
     ...overrides,
   };
 }
@@ -89,13 +89,52 @@ describe('ExternalConsultViewPage', () => {
     openConsult.mockResolvedValue({ ok: true, data: makeView() });
     await renderPage();
     expect(await screen.findByText('S26-1234')).not.toBeNull();
-    expect(screen.getByText(/externalConsultViewPage\.patientName.*Roe/)).not.toBeNull();
-    expect(screen.getByText(/externalConsultViewPage\.dobPrefix/)).not.toBeNull();
+    // Batch 669 (access-11): the masked identity, and nothing of the surname or the full date.
+    expect(screen.getByText(/J\*\*\* R\*\*/)).not.toBeNull();
+    expect(screen.getByText(/externalConsultViewPage\.dobPrefix.*\*\*-\*\*\*-1980/)).not.toBeNull();
+    expect(screen.getByText('externalConsultViewPage.identityMaskedNote')).not.toBeNull();
+    expect(document.body.innerHTML).not.toContain('Roe');
+    expect(document.body.innerHTML).not.toContain('1980-01-01');
+    expect(document.querySelector('.ps-extconsult-patient-line')?.getAttribute('data-phi')).toBe('true');
     expect(screen.getByText(/externalConsultViewPage\.fullCaseAccess/)).not.toBeNull();
     expect(screen.getByText('A-1 · H&E')).not.toBeNull();
     expect(screen.getByText('A-1 · ER')).not.toBeNull();
     expect(screen.getByText('externalConsultViewPage.disclosureBanner')).not.toBeNull();
     expect(openConsult).toHaveBeenCalledTimes(1);
+  });
+
+  it('a link issued with the identity opt-in shows the full name and date of birth (Batch 669)', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView({ patient: { identity: 'full', lastName: 'Roe', firstName: 'Jane', dateOfBirth: '1980-01-01' } }) });
+    await renderPage();
+    expect(await screen.findByText(/externalConsultViewPage\.patientName.*Roe/)).not.toBeNull();
+    expect(screen.getByText(/externalConsultViewPage\.dobPrefix.*1980-01-01/)).not.toBeNull();
+    expect(screen.queryByText('externalConsultViewPage.identityMaskedNote')).toBeNull();
+  });
+
+  it('after a signed opinion the banner shows the views and hours the service computed (Batch 669)', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView({ opinionSigned: true, lifetime: { remainingViews: 2, hoursRemaining: 46 } }) });
+    await renderPage();
+    const banner = await screen.findByRole('status');
+    const text = (banner.textContent ?? '').replace(/\\/g, '');
+    expect(text).toContain('consultLifetime.banner');
+    expect(text).toContain('consultLifetime.views:{"count":2}');
+    expect(text).toContain('consultLifetime.hours:{"count":46}');
+    expect(banner.className).toBe('ps-extconsult-lifetime-banner');
+    expect(banner.getAttribute('style')).toBeNull();
+  });
+
+  it('before a signature there is no lifetime banner', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
+    await renderPage();
+    await screen.findByText('S26-1234');
+    expect(document.querySelector('.ps-extconsult-lifetime-banner')).toBeNull();
+  });
+
+  it('an exhausted or expired link opens nothing and says so', async () => {
+    openConsult.mockResolvedValue({ ok: false, error: 'CONSULT_LINK_INVALID' });
+    await renderPage();
+    expect(await screen.findByText('externalConsultViewPage.invalidLink.title')).not.toBeNull();
+    expect(screen.queryByText('S26-1234')).toBeNull();
   });
 
   it('a slide-scoped link says so', async () => {
@@ -121,7 +160,33 @@ describe('ExternalConsultViewPage', () => {
     await act(async () => {});
 
     expect(submitOpinion).toHaveBeenCalledWith('ct_abc123', { diagnosticCategory: undefined, signedStatus: 'Draft', opinionText: 'Concur with invasive ductal carcinoma.' });
+    expect(screen.getByText('externalConsultViewPage.draftSavedConfirmation')).not.toBeNull();
+  });
+
+  it('a Draft says it was saved as a draft and not returned; the form stays so it can be signed (Batch 669)', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
+    submitOpinion.mockResolvedValue({ ok: true, data: { id: 'op-2' } });
+    await renderPage();
+    await screen.findByText('S26-1234');
+    fireEvent.change(screen.getByPlaceholderText('externalConsultViewPage.opinionPlaceholder'), { target: { value: 'Working view.' } });
+    fireEvent.click(screen.getByText('externalConsultViewPage.submitOpinionButton'));
+    await act(async () => {});
+    expect(screen.getByText('externalConsultViewPage.draftSavedConfirmation')).not.toBeNull();
+    expect(screen.queryByText('externalConsultViewPage.opinionSubmittedConfirmation')).toBeNull();
+    expect(screen.getByText('externalConsultViewPage.submitOpinionButton')).not.toBeNull();
+  });
+
+  it('a Signed opinion still gets the recorded-and-returned confirmation, not the draft one (Batch 669)', async () => {
+    openConsult.mockResolvedValue({ ok: true, data: makeView() });
+    submitOpinion.mockResolvedValue({ ok: true, data: { id: 'op-3' } });
+    await renderPage();
+    await screen.findByText('S26-1234');
+    fireEvent.click(screen.getByText('externalConsultViewPage.status.signed'));
+    fireEvent.change(screen.getByPlaceholderText('externalConsultViewPage.opinionPlaceholder'), { target: { value: 'Final.' } });
+    fireEvent.click(screen.getByText('externalConsultViewPage.submitOpinionButton'));
+    await act(async () => {});
     expect(screen.getByText('externalConsultViewPage.opinionSubmittedConfirmation')).not.toBeNull();
+    expect(screen.queryByText('externalConsultViewPage.draftSavedConfirmation')).toBeNull();
   });
 
   it('a link revoked meanwhile: the opinion is refused with a translated reason', async () => {

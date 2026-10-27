@@ -551,6 +551,38 @@ def test_watermark_on_every_page():
     check(not any("PENDING" in p for p in _pdf_pages_text(main.build_report_pdf(dict(PAYLOAD, watermarkText="   ")))), "a blank watermark draws nothing")
 
 
+def test_footer_barcode_is_solid_black_under_a_watermark():
+    """Batch 652: the watermark's faint red fill must not reach the accession barcode in the footer."""
+    print("test_footer_barcode_is_solid_black_under_a_watermark")
+    from reportlab.graphics.barcode import common
+
+    def barcode_fills(payload):
+        seen = []
+        original = common.Barcode.rect
+
+        def spy(self, x, y, w, h):
+            canv = self.canv
+            seen.append((canv._fillColorObj.red, canv._fillColorObj.green, canv._fillColorObj.blue,
+                         getattr(canv._fillColorObj, 'alpha', 1), canv._extgstate._d.get('ca', 1)))
+            return original(self, x, y, w, h)
+
+        common.Barcode.rect = spy
+        try:
+            main.build_report_pdf(payload)
+        finally:
+            common.Barcode.rect = original
+        return seen
+
+    mark = "PENDING FINAL RELEASE — DO NOT DISTRIBUTE"
+    marked = barcode_fills(dict(PAYLOAD, watermarkText=mark))
+    check(len(marked) > 0, "the footer barcode is drawn on a watermarked report")
+    check(all(f == (0, 0, 0, 1, 1) for f in marked), "every bar of the footer barcode is opaque black under a watermark")
+    plain = barcode_fills(PAYLOAD)
+    check(len(plain) > 0 and all(f == (0, 0, 0, 1, 1) for f in plain), "and without a watermark")
+    pages = _pdf_pages_text(main.build_report_pdf(dict(_LONG, watermarkText=mark)))
+    check(all("PENDING FINAL RELEASE" in p for p in pages), "the watermark itself is still drawn on every page")
+
+
 def test_footer_reference_on_every_page():
     print("test_footer_reference_on_every_page")
     pages = _pdf_pages_text(main.build_report_pdf(dict(_LONG, documentVersion=9)))
@@ -639,6 +671,25 @@ def test_cytology_same_bytes_every_time():
     b = main.cytology_report.build_cytology_pdf(CYTO)
     check(a == b, "the same request gives byte-identical PDFs (fixed creation date and document ID)")
     check(b"D:20261012150000" in a, "the creation date is the signing time, not the clock")
+
+
+def test_surgical_pdf_same_bytes_every_time():
+    print("test_surgical_pdf_same_bytes_every_time")
+    import hashlib
+    import time
+    a = main.build_report_pdf(PAYLOAD)
+    time.sleep(1.1)  # a clock-dependent renderer would differ after a second
+    b = main.build_report_pdf(PAYLOAD)
+    check(a == b and hashlib.sha256(a).hexdigest() == hashlib.sha256(b).hexdigest(), "the surgical report gives byte-identical PDFs on every run (same SHA-256)")
+    check(b"D:20000101000000" in a, "a request with no signing time gets the fixed date, never the clock")
+    signed = dict(PAYLOAD, signedAt="2026-10-21T14:05:09Z")
+    c = main.build_report_pdf(signed)
+    check(c == main.build_report_pdf(signed) and b"D:20261021140509" in c, "the creation date is the signing time, and the signed report is stable too")
+    from_workup = dict(PAYLOAD, workup={"parts": ["A"], "status": "FINAL", "version": 1, "signedBy": "Dr X", "signedAt": "2026-10-21T14:05:09Z"})
+    check(b"D:20261021140509" in main.build_report_pdf(from_workup), "the workup's signing time is used when the request has none of its own")
+    check(c != a, "a different signing time is a different document")
+    with_figure = dict(signed, watermarkText="HELD", documentVersion=3)
+    check(main.build_report_pdf(with_figure) == main.build_report_pdf(with_figure), "watermark and footer barcode do not break it")
 
 
 def test_cytology_fonts_embedded():
@@ -959,6 +1010,7 @@ if __name__ == '__main__':
     test_report_figure_notice_when_not_drawn()
     test_revision_banner_pdf_and_text()
     test_watermark_on_every_page()
+    test_footer_barcode_is_solid_black_under_a_watermark()
     test_footer_reference_on_every_page()
     test_preanalytic_disclaimer()
     test_new_wording_follows_labels()
@@ -981,6 +1033,7 @@ if __name__ == '__main__':
     test_receive_interface_message_storage_failure_returns_clean_500()
     test_cytology_template_draws_the_lines_sent()
     test_cytology_same_bytes_every_time()
+    test_surgical_pdf_same_bytes_every_time()
     test_cytology_fonts_embedded()
     test_cytology_continuation_and_documents()
     test_cytology_watermark_and_barcode()

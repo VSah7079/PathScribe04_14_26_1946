@@ -9,6 +9,7 @@ import { suggestSynopticTemplates } from '@/services/templateSuggestions/synopti
 import { templateSuggestionSignalService } from '@/services';
 import type { SynopticTemplateSuggestion } from '@/services/templateSuggestions/ISynopticTemplateSuggestionService';
 import { pressable } from '@/utils/a11y/pressable';
+import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 interface Protocol {
   id:   string;
@@ -326,7 +327,7 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
                         if (!match) return null;
                         return (
                           <span title={match.reason} className="ps-addsyn-suggestion-badge">
-                            ✨ {t('addSynopticModal.protocolList.suggested', { confidence: match.confidence })}
+                            ✨ {t(showsConfidence() ? 'addSynopticModal.protocolList.suggested' : 'addSynopticModal.protocolList.suggestedPlain', { confidence: match.confidence })}
                           </span>
                         );
                       })()}

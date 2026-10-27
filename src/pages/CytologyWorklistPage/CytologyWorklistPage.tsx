@@ -39,14 +39,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useOpenCase } from '@/hooks/useOpenCase';
-import { acceptPoolCase, availableOrganSites, claimPoolCase, cytologyWorklistView, loadCytologyWorklist, passPoolCase, showScreeningHoursPanel, simulatedHpvResultEvent, type CytologyDomain, type CytologyWorklistCase, type CytologyWorklistTab } from '@/services';
+import { acceptPoolCase, isPoolActionNotPermitted, releasePoolClaim, availableOrganSites, claimPoolCase, cytologyWorklistView, loadCytologyWorklist, passPoolCase, showScreeningHoursPanel, type CytologyDomain, type CytologyWorklistCase, type CytologyWorklistTab } from '@/services';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import '../../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
-import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import ManualHpvResultModal from './components/ManualHpvResultModal';
+import SelfCollectedRecallDetail from './components/SelfCollectedRecallDetail';
+import { isRecallJurisdiction, recallKindOfSpecimens, selfCollectedRecallOfSpecimens } from '@/services/cytology/selfCollectedRecall';
+import { DEFAULT_RECALL_WINDOWS, type RecallWindows } from '@/services/cytology/recallWindows';
+import type { RecallWordingConfig } from '@/services/cytology/recallWording';
+import { hpvSpecimenOf, useManualHpvResult } from './hooks/useManualHpvResult';
+import CsmsEligibilityActions from './components/CsmsEligibilityActions';
+import { hpvTriageRowStatus } from '@/services/cytology/hpvTriageRowStatus';
 import type { Case } from '@/types/case/Case';
 import { formatDisplayNameForLanguage } from '@/utils/personName';
 import { useSynopticFlags } from '@/pages/Synoptic/useSynopticFlags';
@@ -131,6 +139,9 @@ const CytologyWorklistPage: React.FC = () => {
   const [triageRows, setTriageRows] = useState<Case[]>([]);
   const [scansCompletedRows, setScansCompletedRows] = useState<Case[]>([]);
   const [recallRows, setRecallRows] = useState<Case[]>([]);
+  const [recallJurisdictions, setRecallJurisdictions] = useState<Record<string, string>>({});
+  const [recallWindows, setRecallWindows] = useState<Record<'AU' | 'NZ', RecallWindows>>({ AU: DEFAULT_RECALL_WINDOWS, NZ: DEFAULT_RECALL_WINDOWS });
+  const [recallWording, setRecallWording] = useState<RecallWordingConfig>({});
   const [qcRows, setQcRows]         = useState<CytologyWorklistCase[]>([]);
   const [loading, setLoading]       = useState(true);
   const [activeTab, setActiveTab]   = useState<Tab>('assigned');
@@ -162,6 +173,9 @@ const CytologyWorklistPage: React.FC = () => {
       setTriageRows(data.triageRows);
       setScansCompletedRows(data.scansCompletedRows);
       setRecallRows(data.recallRows);
+      setRecallJurisdictions(data.recallJurisdictionByCase ?? {});
+      if (data.recallWindows) setRecallWindows(data.recallWindows);
+      setRecallWording(data.recallWording ?? {});
     } finally {
       setLoading(false);
     }
@@ -187,12 +201,7 @@ const CytologyWorklistPage: React.FC = () => {
   // The button exists because no real, external molecular platform is
   // actually connected in this environment — it simulates the
   // delivery, not the result itself.
-  const handleRecordHpvResult = async (c: Case, result: 'Positive' | 'Negative') => {
-    const event = simulatedHpvResultEvent(c, result, crypto.randomUUID(), new Date().toISOString());
-    if (!event) return;
-    await processInboundHpvResultEvent(event);
-    await load();
-  };
+  const manualHpv = useManualHpvResult(user, load);
 
   const handleClaim = async (caseId: string) => {
     if (!user?.id) return;
@@ -202,7 +211,7 @@ const CytologyWorklistPage: React.FC = () => {
       if (claim.success) {
         // PS-71 (Batch 458): if someone else accepted it first, say so (the claim isn't theirs to keep).
         try { await acceptPoolCase(caseId, user.id, user.name); }
-        catch { toast.warning(t('poolClaimModal.takenMessage')); }
+        catch (e) { toast.warning(isPoolActionNotPermitted(e) ? e.message : t('poolClaimModal.takenMessage')); }
         await load();
       }
     } finally {
@@ -216,7 +225,8 @@ const CytologyWorklistPage: React.FC = () => {
     try {
       const claim = await claimPoolCase(caseId, user.id);
       if (claim.success) {
-        await passPoolCase(caseId);
+        try { await passPoolCase(caseId); }
+        catch (e) { await releasePoolClaim(caseId); if (isPoolActionNotPermitted(e)) toast.warning(e.message); else throw e; }
         await load();
       }
     } finally {
@@ -329,10 +339,28 @@ const CytologyWorklistPage: React.FC = () => {
                       <div className="ps-cytoworklist-row-title" data-phi="name">{formatDisplayNameForLanguage(c.patient as any, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
                       <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
                     </div>
-                    <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">{t('cytologyWorklist.badges.awaitingHpv')}</span>
+                    <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">{t(`cytologyWorklist.badges.${hpvTriageRowStatus(c.specimens)}`)}</span>
                     <div className="ps-cytoworklist-row-actions">
-                      <button onClick={() => handleRecordHpvResult(c, 'Negative')} className="ps-cytoworklist-action-btn">{t('cytologyWorklist.actions.recordHpvNegative')}</button>
-                      <button onClick={() => handleRecordHpvResult(c, 'Positive')} className="ps-cytoworklist-action-btn--violet">{t('cytologyWorklist.actions.recordHpvPositive')}</button>
+                      {hpvSpecimenOf(c)?.cytologyScreening?.hpvPendingOverride ? (() => {
+                        const pending = hpvSpecimenOf(c)!.cytologyScreening!.hpvPendingOverride!;
+                        return (
+                          <div className="ps-manualhpv-pending">
+                            <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">{t('cytologyWorklist.badges.hpvOverridePending')}</span>
+                            <span>{t('cytologyWorklist.manualHpv.pendingDetail', {
+                              result: t(`cytologyWorklist.manualHpv.result${pending.result}`), name: pending.enteredByName,
+                              source: t(`cytologyWorklist.manualHpv.sources.${pending.source}`),
+                              previous: t(`cytologyWorklist.manualHpv.result${pending.previousResult}`, { defaultValue: t('cytologyWorklist.manualHpv.resultNone') }),
+                            })}</span>
+                            <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => { void manualHpv.decide(c, 'approved'); }} className="ps-cytoworklist-action-btn--violet">{t('cytologyWorklist.actions.approveOverride')}</CapabilityButton>
+                            <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => { void manualHpv.decide(c, 'rejected'); }} className="ps-cytoworklist-action-btn">{t('cytologyWorklist.actions.rejectOverride')}</CapabilityButton>
+                          </div>
+                        );
+                      })() : (
+                        <>
+                          <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => manualHpv.choose(c, 'Negative')} className="ps-cytoworklist-action-btn">{t('cytologyWorklist.actions.recordHpvNegative')}</CapabilityButton>
+                          <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => manualHpv.choose(c, 'Positive')} className="ps-cytoworklist-action-btn--violet">{t('cytologyWorklist.actions.recordHpvPositive')}</CapabilityButton>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -355,9 +383,10 @@ const CytologyWorklistPage: React.FC = () => {
                     <div className="ps-cytoworklist-row-main">
                       <div className="ps-cytoworklist-row-title" data-phi="name">{formatDisplayNameForLanguage(c.patient as any, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
                       <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
+                      {(() => { const j = recallJurisdictions[c.id] ?? systemConfig.jurisdiction; const recall = selfCollectedRecallOfSpecimens(c.specimens, j, isRecallJurisdiction(j) ? recallWindows[j] : DEFAULT_RECALL_WINDOWS); return recall ? <SelfCollectedRecallDetail recall={recall} wording={recallWording} /> : null; })()}
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--red-strong">
-                      {t('cytologyWorklist.badges.recallNeeded')}
+                      {t(recallKindOfSpecimens(c.specimens) === 'repeat_collection' ? 'cytologyWorklist.badges.repeatCollection' : 'cytologyWorklist.badges.recallNeeded')}
                     </span>
                   </div>
                 ))}
@@ -440,6 +469,7 @@ const CytologyWorklistPage: React.FC = () => {
                         <span className="ps-cytoworklist-badge ps-cytoworklist-badge--sky">
                           {t('cytologyWorklist.badges.csmsVerification')}
                         </span>
+                        <CsmsEligibilityActions caseId={c.id} user={user} onDone={load} />
                         <button
                           onClick={e => { e.stopPropagation(); openFlagManager(c); }}
                           className="ps-cytoworklist-badge ps-cytoworklist-badge--gray-action"
@@ -468,11 +498,11 @@ const CytologyWorklistPage: React.FC = () => {
                     </span>
                     {activeTab === 'pool' && (
                       <div className="ps-cytoworklist-row-actions">
-                        <button onClick={(e) => { e.stopPropagation(); handlePass(c.id); }} disabled={claimingId === c.id}
+                        <button onClick={(e) => { e.stopPropagation(); handlePass(c.id); }} disabled={claimingId === c.id || !capabilities.has('case:pool:pass', { caseId: c.id })}
                           className="ps-cytoworklist-action-btn">
                           {t('cytologyWorklist.actions.pass')}
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleClaim(c.id); }} disabled={claimingId === c.id}
+                        <button onClick={(e) => { e.stopPropagation(); handleClaim(c.id); }} disabled={claimingId === c.id || !capabilities.has('case:pool:claim', { caseId: c.id })}
                           className="ps-cytoworklist-action-btn--claim">
                           {claimingId === c.id ? t('cytologyWorklist.actions.claiming') : t('cytologyWorklist.actions.claim')}
                         </button>
@@ -495,6 +525,8 @@ const CytologyWorklistPage: React.FC = () => {
           onClose={() => { setShowFlagManager(false); load(); }}
         />
       )}
+      <ManualHpvResultModal show={!!manualHpv.pick} result={manualHpv.pick?.result ?? 'Positive'} replacing={manualHpv.replacing}
+        onConfirm={source => { void manualHpv.confirm(source); }} onCancel={manualHpv.cancel} />
     </>
   );
 };

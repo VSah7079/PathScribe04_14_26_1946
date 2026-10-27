@@ -2,6 +2,7 @@
 
 ## Files
 
+- **`ThreadMenu.css`**: disabled state of the conversation menu items (Mark as unread is greyed when you wrote the latest message; `canMarkUnread` in `services/messages/messageUnread.ts` decides). The message list sorts with `compareMessageListOrder` from the same file.
 - **`AppShell.tsx`** (~1,860 lines, the largest single-file folder in
   components/) — Global layout shell wrapping all authenticated pages:
   logo/home nav, breadcrumb slot, Enhancement Request button, user
@@ -192,7 +193,7 @@ The page `<Outlet />` sits inside `RouteErrorBoundary` (components/ErrorBoundary
 
 ## Batch 505 (PS-475)
 
-The User Guide and Admin Guide items in the About menu load the guide PDFs when the menu opens (`hooks/useGuideAssets.ts`). Until they arrive the two items are disabled and `aria-busy` (`.ps-about-menu-item:disabled` in `pathscribe.css`). Checked in a browser: the guide chunk is fetched only after the menu opens.
+Batch 669c: the About menu no longer has User Guide and Admin Guide items (they opened old embedded PDFs). The guides open from the top-bar Help buttons only.
 
 ## Batch 511 (PS-478): full strict type-checking
 
@@ -237,3 +238,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 589
 
 The nav bar returns while the route's recovery screen shows, even on pages that hide it (PS-472).
+
+## Batch 669f
+
+`MessageListPanel` takes `userId` and shows the unread row style and blue dot only for messages unread for that person (`services/messages/messageUnread.ts`). `AppShell.tsx` did not grow (1,684 lines).

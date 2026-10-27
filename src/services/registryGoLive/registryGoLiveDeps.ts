@@ -10,7 +10,7 @@ import { syntheticCancerSubmissions, syntheticScreeningSubmissions } from './syn
 import { deploymentInstance } from '../deployment/deploymentInstance';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { signatureGate } from '../auth/authSessionInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { screeningRegistryConfigService } from '../screeningRegistry/screeningRegistryConfigServiceInstance';
 import { screeningRegistryDefinition } from '../screeningRegistry/screeningRegistryDefinitions';
 import { registryConfigReadiness } from '../screeningRegistry/screeningRegistryEngine';
@@ -104,7 +104,7 @@ export const registryGoLiveDeps: RegistryGoLiveDeps = {
     }
     return { resent, stillHeld: rows.length - resent };
   },
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
   now: () => new Date(),
   newId: () => globalThis.crypto.randomUUID(),
 };

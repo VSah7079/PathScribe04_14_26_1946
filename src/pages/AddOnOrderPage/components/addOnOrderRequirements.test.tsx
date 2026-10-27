@@ -62,6 +62,39 @@ describe('OrderBuilderPanel', () => {
   });
 });
 
+describe('OrderBuilderPanel — IHC panel with a stain missing from the dictionary (ws-20)', () => {
+  const stain = (id: string, name: string) => ({ id, name, category: 'IHC', active: true }) as StainType;
+  const lynchAll = ['mlh1', 'msh2', 'msh6', 'pms2'].map(n => stain(`st-${n}`, n.toUpperCase()));
+  const pickLynch = () => fireEvent.click(screen.getByText('addOnOrder.panels.panel-lynch-mmr'));
+
+  it('warns which stains are left out, and still adds the others', () => {
+    const onAddLines = vi.fn();
+    render(<OrderBuilderPanel stainTypes={lynchAll.filter(s => s.id !== 'st-pms2')} onAddLines={onAddLines} requirements={reqs()} />);
+    fireEvent.click(button('addOnOrder.builder.kind.ihc'));
+    pickLynch();
+    const warning = screen.getByRole('alert').textContent ?? '';
+    expect(warning).toContain('addOnOrder.builder.panelStainsMissing');
+    expect(warning).toContain('PMS2');
+    fireEvent.click(button('addOnOrder.builder.addToCart'));
+    expect(onAddLines.mock.calls[0][0]).toHaveLength(3);
+  });
+
+  it('says nothing can be added when none of the panel\'s stains exist', () => {
+    render(<OrderBuilderPanel stainTypes={[]} onAddLines={vi.fn()} requirements={reqs()} />);
+    fireEvent.click(button('addOnOrder.builder.kind.ihc'));
+    pickLynch();
+    expect(screen.getByRole('alert').textContent).toContain('addOnOrder.builder.panelStainsMissingAll');
+    expect(button('addOnOrder.builder.addToCart').disabled).toBe(true);
+  });
+
+  it('shows no warning when every stain is there', () => {
+    render(<OrderBuilderPanel stainTypes={lynchAll} onAddLines={vi.fn()} requirements={reqs()} />);
+    fireEvent.click(button('addOnOrder.builder.kind.ihc'));
+    pickLynch();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
 describe('OrderSummaryRoutingPanel', () => {
   const summary = (cart: CartLine[], over: Partial<React.ComponentProps<typeof OrderSummaryRoutingPanel>> = {}) => {
     const onSubmit = vi.fn();
@@ -139,6 +172,13 @@ describe('OrderTrackingDashboard', () => {
     fireEvent.change(screen.getByLabelText('addOnOrder.tracking.responseNoteLabel', { exact: false }), { target: { value: 'Use it all' } });
     fireEvent.click(button('addOnOrder.tracking.approveDestructive'));
     expect(onResolve).toHaveBeenCalledWith('o1', 'approve_destructive_cut', 'Use it all', undefined);
+  });
+
+  it('ws-19: Mark Block Retrieved and Flag Exception each need their own capability', () => {
+    const row: TrackedAddOnOrder = { specimenId: 'sp', specimenLabel: 'A', blockId: 'b1', blockLabel: '1', stage: 'Requested', order: { id: 'o2', stainName: 'Ki-67', status: 'Pending Cut' } as StainOrder };
+    render(<OrderTrackingDashboard orders={[row]} caseId="S26-1" requirements={reqs()} onMarkBlockRetrieved={noop} onFlagException={noop} onResolveException={noop} />);
+    expect(button('addOnOrder.tracking.markRetrieved').dataset.capability).toBe('add-on:block:mark-retrieved');
+    expect(button('addOnOrder.tracking.flagException').dataset.capability).toBe('add-on:exception:flag');
   });
 
   it('shows the reason and queue through locale keys', () => {

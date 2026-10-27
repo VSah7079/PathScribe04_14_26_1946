@@ -19,7 +19,7 @@ import { cancerRegistryOutboundQueueService } from '../cancerRegistry/cancerRegi
 import { cytologySignOutRecordService } from '../cytology/cytologySignOutRecordServiceInstance';
 import { cytologyReviewRecordService } from '../cytology/cytologyReviewRecordServiceInstance';
 import { cytologyCategoryService } from '../cytology/cytologyCategoryServiceInstance';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { signOutCytologyCaseDeps } from '../cytology/signOutCytologyCaseDeps';
 import { prepareScreeningRegistrySubmission, submitScreeningRegistryResult } from '../screeningRegistry/submitScreeningRegistryResult';
 import { dispatchCancerRegistryReportIfApplicable, prepareCancerRegistrySubmission } from '../cancerRegistry/dispatchCancerRegistryReportIfApplicable';
@@ -115,7 +115,7 @@ export const resendRegistrySubmissionDeps: ResendDeps = {
     return { outcome: r.dispatched ? 'sent' : 'notSent', queueId: newest?.id, submission: newest?.submission };
   },
   dispatch: (queue, entryId, payload) => dispatchInterfaceMessage(entryId, queue === 'cytology' ? 'REGISTRY_REPORT' : 'CANCER_REGISTRY_REPORT', payload),
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
 };
 
 /** Batch 423: "Capture as CAPA" on a worklist row. */
@@ -123,5 +123,5 @@ export const registryCapaDeps: RegistryCapaDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   getCaseDeficiencies: async caseId => { const r = await mockSpecimenDeficiencyService.getByCaseId(caseId); return r.ok ? r.data : []; },
   raise: deficiency => mockSpecimenDeficiencyService.raise(deficiency) as any,
-  logAudit: event => mockAuditService.logEvent(event),
+  logAudit: event => auditService.logEvent(event),
 };

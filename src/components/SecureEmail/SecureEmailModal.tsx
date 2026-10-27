@@ -24,6 +24,7 @@ import ReactDOM from 'react-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { messageService, actionRegistryService, secureEmailMissing, messagingFieldRequired, MESSAGE_NOT_PERMITTED, secureMessagingConfigService } from '@/services';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatList } from '@/utils/formatList';
@@ -33,6 +34,7 @@ import {
   type SecureMessagingConfig,
 } from '@/services/secureMessaging/secureGatewayRules';
 import '../../pathscribe.css';
+import './SecureEmailModal.css';
 
 const K = 'appShell.secureEmailModal';
 
@@ -60,6 +62,8 @@ const SecureEmailModalBody: React.FC<SecureEmailModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { log } = useAuditLog();
+  const [auditRecorded, setAuditRecorded] = React.useState(false);
   const requirements = useFieldRequirements('messaging');
   const [to,      setTo]      = React.useState(prefillTo);
   const [subject, setSubject] = React.useState(prefillSubject);
@@ -79,7 +83,7 @@ const SecureEmailModalBody: React.FC<SecureEmailModalProps> = ({
   // Reset the form, and read the lab's gateways, each time the window opens.
   React.useEffect(() => {
     if (!isOpen) return;
-    setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose'); setSendError(null);
+    setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose'); setSendError(null); setAuditRecorded(false);
     setPatientData(true); setConfigLoaded(false);
     let live = true;
     void secureMessagingConfigService.forOrganisation(organisationId).then(r => {
@@ -120,6 +124,9 @@ const SecureEmailModalBody: React.FC<SecureEmailModalProps> = ({
         : t(result.error === MESSAGE_NOT_PERMITTED ? 'appShell.messaging.notPermittedSecureEmail' : 'appShell.messaging.sendFailed'));
       return;
     }
+    // The window writes the audit entry itself (every caller, one place); the
+    // line below shows only once the write has gone through.
+    try { log('secure_email_sent', { recipientEmail: to, subject }); setAuditRecorded(true); } catch { setAuditRecorded(false); }
     setStatus('sent');
     onSent?.(to, subject, gatewayId);
   };
@@ -161,8 +168,8 @@ const SecureEmailModalBody: React.FC<SecureEmailModalProps> = ({
               <div className="ps-sem-sent-delivered">
                 <Trans i18nKey={`${K}.deliveredTo`} values={{ to, gateway: gatewayName }} components={{ strong: <strong className="ps-sem-sent-delivered-strong" /> }} />
               </div>
-              <div className="ps-sem-sent-notice">{t(`${K}.encryptedNotice`)}</div>
               <div className="ps-sem-sent-notice" role="status" data-testid="secure-email-simulated">{t(`${K}.simulatedNotice`)}</div>
+              {auditRecorded && <div className="ps-sem-sent-audit" data-testid="secure-email-audit">{t(`${K}.auditRecorded`)}</div>}
             </div>
             <button onClick={onClose} className="ps-sem-sent-close-btn">{t(`${K}.closeButton`)}</button>
           </div>

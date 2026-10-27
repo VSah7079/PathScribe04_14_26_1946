@@ -26,18 +26,18 @@ export function parseRef(ref: string): { feed: OutboundFeed; id: string } | null
 }
 
 /** The state shown for an entry. Closed as not reportable wins; then the registry's rejection; a hold wins over waiting and failed; a sent message is never shown held. */
-export function stateOf(entry: Pick<OutboundFeedEntry, 'status' | 'acknowledgedAt' | 'maxRetriesExceeded' | 'rejection' | 'billing'>, held: boolean, closed?: 'notReportable' | 'retracted'): OutboundState {
+export function stateOf(entry: Pick<OutboundFeedEntry, 'status' | 'acknowledgedAt' | 'rejection' | 'billing'>, held: boolean, closed?: 'notReportable' | 'retracted'): OutboundState {
   if (closed) return closed;
   if (entry.billing?.retraction) return 'retracted';
   if (entry.rejection) return 'rejected';
   if (entry.status === 'SENT') return entry.acknowledgedAt ? 'acknowledged' : 'sent';
   if (held) return 'held';
-  if (entry.status === 'FAILED') return entry.maxRetriesExceeded ? 'deadLettered' : 'failed';
+  if (entry.status === 'FAILED') return 'failed';
   return 'waiting';
 }
 
 /** States whose message still has to go (or be fixed), so a deadline matters. */
-const OPEN_STATES: ReadonlySet<OutboundState> = new Set<OutboundState>(['waiting', 'held', 'failed', 'deadLettered', 'rejected']);
+const OPEN_STATES: ReadonlySet<OutboundState> = new Set<OutboundState>(['waiting', 'held', 'failed', 'rejected']);
 
 /**
  * The deadline flag shown for a message. The status itself (days from sign-out, near and overdue) is the delivery
@@ -89,6 +89,7 @@ export function toItem(feed: OutboundFeed, e: OutboundFeedEntry, ctx: ItemContex
     ...(ctx.amendsRef ? { amendsRef: ctx.amendsRef } : {}),
     ...(e.transport ? { transport: e.transport } : {}),
     ...(billing ? { billing } : {}),
+    ...(e.registryReview ? { registryReview: e.registryReview } : {}),
   };
 }
 
@@ -97,13 +98,13 @@ export function filterItems(items: readonly OutboundQueueItem[], f: OutboundQueu
   return items.filter(i =>
     (!f.feeds?.length || f.feeds.includes(i.feed)) &&
     (!f.states?.length || f.states.includes(i.state)) &&
-    (!f.needsReview || !!i.billing?.needsReview) &&
+    (!f.needsReview || !!i.billing?.needsReview || !!i.registryReview) &&
     (!f.deadlines?.length || (!!i.deadline && f.deadlines.includes(i.deadline.flag))) &&
     (!f.facilityIds || (!!i.facilityId && f.facilityIds.includes(i.facilityId))) &&
     (!q || (i.accessionNumber ?? '').toLowerCase().includes(q)));
 }
 
-const STATE_ORDER: Readonly<Record<OutboundState, number>> = { rejected: 0, deadLettered: 1, failed: 2, held: 3, waiting: 4, sent: 5, acknowledged: 6, notReportable: 7, retracted: 8 };
+const STATE_ORDER: Readonly<Record<OutboundState, number>> = { rejected: 0, failed: 1, held: 2, waiting: 3, sent: 4, acknowledged: 5, notReportable: 6, retracted: 7 };
 const FLAG_ORDER: Readonly<Record<DeadlineFlag, number>> = { overdue: 0, dueSoon: 1, ok: 2 };
 
 /** Sorted copy. Ties break on the queued time then the ref, so the order is stable. */
@@ -126,7 +127,7 @@ export function countByState(items: readonly OutboundQueueItem[]): OutboundCount
 
 /** The actions a state allows: hold what has not gone, release what is held, retry what failed. */
 export const ACTIONS_FOR_STATE: Readonly<Record<OutboundState, readonly OutboundAction[]>> = {
-  waiting: ['hold', 'retract', 'overrideRelease'], held: ['release', 'retract', 'overrideRelease'], failed: ['hold', 'retry', 'retract'], deadLettered: ['retry', 'retract'], rejected: ['retry', 'markNotReportable'], sent: [], acknowledged: [], notReportable: [], retracted: [],
+  waiting: ['hold', 'retract', 'overrideRelease'], held: ['release', 'retract', 'overrideRelease'], failed: ['hold', 'retry', 'retract'], rejected: ['retry', 'markNotReportable'], sent: [], acknowledged: [], notReportable: [], retracted: [],
 };
 export const allows = (state: OutboundState, action: OutboundAction): boolean => ACTIONS_FOR_STATE[state].includes(action);
 
@@ -173,7 +174,10 @@ export const refsAllowing = (items: readonly OutboundQueueItem[], selected: Read
 export function countBilling(items: readonly OutboundQueueItem[]): OutboundBillingCounts {
   const counts = { needsReview: 0, amendmentDelta: 0 };
   for (const i of items) {
-    if (i.feed !== 'billing' || i.state === 'retracted' || i.state === 'sent' || i.state === 'acknowledged') continue;
+    if (i.state === 'retracted' || i.state === 'sent' || i.state === 'acknowledged') continue;
+    // Batch 620 (part E): a registry report the US ePath profile parked for a person counts with the billing items that need review.
+    if (i.feed === 'registry' && i.registryReview && i.state !== 'notReportable') counts.needsReview += 1;
+    if (i.feed !== 'billing') continue;
     if (i.billing?.needsReview) counts.needsReview += 1;
     if (i.billing?.amendmentDelta) counts.amendmentDelta += 1;
   }

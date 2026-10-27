@@ -13,6 +13,8 @@ import { matchSourceText } from '@/utils/sourceTextMatching';
 import MarkersPanel from './MarkersPanel';
 import { buildWatermarkBackgroundImage } from './PendingReleaseWatermark';
 import { reportReleaseService } from '@/services';
+import { getSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
+import { OPEN_INTERNAL_NOTES_FLAG } from '@/services/reports/reportOpenCommands';
 import { buildFullPatientReportRows, resolveIntraopDiagnosisText, type FullPatientReportRowId } from '@/services/reports/fullPatientReportRows';
 import { findingsForField, narrativeFieldForReportRow, splitTextByFindings } from '@/services/clinical/findingHighlight';
 import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
@@ -89,6 +91,13 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   const { user } = useAuth();
   const [notesOpen, setNotesOpen] = React.useState(!!autoOpenNotes);
   const [unreadNoteCount, setUnreadNoteCount] = React.useState(0);
+  // Batch 663: "Internal Note" by voice or key opens this drawer; when the Report tab was not showing, the page leaves a flag.
+  useEffect(() => {
+    if (getSessionFlag(OPEN_INTERNAL_NOTES_FLAG)) { clearSessionFlag(OPEN_INTERNAL_NOTES_FLAG); setNotesOpen(true); }
+    const open = () => setNotesOpen(true);
+    window.addEventListener('PATHSCRIBE_VOICE_INTERNAL_NOTE', open);
+    return () => window.removeEventListener('PATHSCRIBE_VOICE_INTERNAL_NOTE', open);
+  }, []);
   // Real feature, per direct follow-up: "if there is a review that
   // hasn't been opened, I would like to have some sort of effect in
   // synopticreportpage's Internal Notes button." A real, published-
@@ -207,12 +216,13 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   useEffect(() => {
     if (!caseData?.id) { setIntraopDiagnosisText(null); return; }
     let cancelled = false;
+    // Batch 655: the findings carried onto the case at merge are shown here too (the session may be gone).
     intraoperativeService.getAll().then(res => {
-      if (cancelled || !res.ok) return;
-      setIntraopDiagnosisText(resolveIntraopDiagnosisText(res.data, caseData.id));
-    }).catch(() => { if (!cancelled) setIntraopDiagnosisText(null); });
+      if (cancelled) return;
+      setIntraopDiagnosisText(resolveIntraopDiagnosisText(res.ok ? res.data : [], caseData.id, caseData.intraoperativeFindings));
+    }).catch(() => { if (!cancelled) setIntraopDiagnosisText(resolveIntraopDiagnosisText([], caseData.id, caseData.intraoperativeFindings)); });
     return () => { cancelled = true; };
-  }, [caseData?.id]);
+  }, [caseData?.id, caseData?.intraoperativeFindings]);
 
   const notRecorded = t('leftReportPanel.notRecorded');
   // PS-318: row order and sources decided in services/reports/fullPatientReportRows.ts.

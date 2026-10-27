@@ -1,16 +1,17 @@
 // src/services/consultAccess/mockConsultTokenService.test.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // Batch 515: the user actions check their capability; `allowed` switches the answer.
-const auth = vi.hoisted(() => ({ allowed: true, asked: [] as string[] }));
+const auth = vi.hoisted(() => ({ allowed: true, asked: [] as string[], denied: [] as string[] }));
 vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
-  authorizationService: { enforce: async (capability: string) => { auth.asked.push(capability); return { allowed: auth.allowed }; } },
+  authorizationService: { enforce: async (capability: string) => { auth.asked.push(capability); return { allowed: auth.allowed && !auth.denied.includes(capability) }; } },
 }));
 // Batch 522: openConsult reads the case from the case store.
 vi.mock('../cases/mockCaseService', () => ({
-  mockCaseService: { getCase: async (id: string) => ({ id, accession: { accessionNumber: id }, patient: { firstName: 'Ana', lastName: 'Ruiz' }, specimens: [] }) },
+  mockCaseService: { getCase: async (id: string) => ({ id, accession: { accessionNumber: id }, patient: { firstName: 'Ana', lastName: 'Ruiz', dateOfBirth: '1970-01-02' }, specimens: [] }) },
 }));
 import { mockConsultTokenService } from './mockConsultTokenService';
-import { CONSULT_LINK_NOT_PERMITTED } from './IConsultTokenService';
+import { resolveConsultTokenStatus, CONSULT_LINK_NOT_PERMITTED, CONSULT_REVEAL_NOT_PERMITTED } from './IConsultTokenService';
+import { mockAuditService } from '../auditlog/mockAuditService';
 
 // Real, minimal localStorage mock — same established pattern every
 // other storage-backed service test in this app uses (confirmed
@@ -18,7 +19,7 @@ import { CONSULT_LINK_NOT_PERMITTED } from './IConsultTokenService';
 // project's real test environment provides no real localStorage global
 // at all.
 beforeEach(() => {
-  auth.allowed = true; auth.asked = [];
+  auth.allowed = true; auth.asked = []; auth.denied = [];
   const store: Record<string, string> = {};
   (globalThis as any).localStorage = {
     getItem: (k: string) => store[k] ?? null,
@@ -248,5 +249,143 @@ describe('mockConsultTokenService — Batch 522 (PS-290): tokens, scope, opinion
     expect(auth.asked).toEqual(['audit:consult-links:view']);
     auth.allowed = false;
     expect(await mockConsultTokenService.listAll()).toEqual({ ok: false, error: CONSULT_LINK_NOT_PERMITTED });
+  });
+});
+
+describe('mockConsultTokenService — Batch 669 (access-11): masked identity by default, audited opt-in', () => {
+  const base = { scope: { caseId: 'case-669', caseAccessionNumber: 'S26-9669' }, issuedByUserId: 'u1', issuedByName: 'Dr. A', consultantIdentifier: 'Dr. Outside' };
+  const auditDetails = () => (spy.mock.calls as unknown as Array<[{ event: string; detail: string }]>).map(c => c[0]);
+  let spy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => { spy = vi.spyOn(mockAuditService, 'logEvent').mockResolvedValue(undefined as never); spy.mockClear(); });
+
+  it('by default the consultant gets a masked identity: no surname, no first name, no full date of birth', async () => {
+    const issued = await mockConsultTokenService.issue(base);
+    if (!issued.ok) throw new Error('setup failed');
+    expect(auth.asked).not.toContain('case:consult-link:reveal-identity');
+    const opened = await mockConsultTokenService.openConsult(issued.data.token);
+    if (!opened.ok) throw new Error('open failed');
+    expect(opened.data.patient).toEqual({ identity: 'masked', maskedName: 'A** R***', birthYearMasked: '**-***-1970' });
+    const wire = JSON.stringify(opened.data);
+    for (const secret of ['Ruiz', 'Ana', '1970-01-02', '01-02']) expect(wire).not.toContain(secret);
+  });
+
+  it('with the opt-in the consultant sees the full name and date of birth, and the creation is audited as an opt-in without PHI', async () => {
+    const issued = await mockConsultTokenService.issue({ ...base, revealIdentity: true });
+    if (!issued.ok) throw new Error('setup failed');
+    expect(auth.asked).toContain('case:consult-link:reveal-identity');
+    expect(issued.data.revealIdentity).toBe(true);
+    const opened = await mockConsultTokenService.openConsult(issued.data.token);
+    if (!opened.ok) throw new Error('open failed');
+    expect(opened.data.patient).toEqual({ identity: 'full', lastName: 'Ruiz', firstName: 'Ana', dateOfBirth: '02-JAN-1970' });
+    const created = auditDetails().find(e => e.event === 'consult.link.created');
+    expect(created?.detail).toContain('Identity opt-in used');
+    const viewed = auditDetails().find(e => e.event === 'consult.link.accessed');
+    expect(viewed?.detail).toContain('full patient identity shown');
+    for (const e of auditDetails()) for (const secret of ['Ruiz', 'Ana ', '1970']) expect(e.detail).not.toContain(secret);
+  });
+
+  it('without the opt-in the creation audit says the identity was masked', async () => {
+    await mockConsultTokenService.issue(base);
+    expect(auditDetails().find(e => e.event === 'consult.link.created')?.detail).toContain('Patient identity masked (default)');
+  });
+
+  it('the opt-in needs case:consult-link:reveal-identity; refused, no link is created and nothing is audited as created', async () => {
+    auth.denied = ['case:consult-link:reveal-identity'];
+    expect(await mockConsultTokenService.issue({ ...base, scope: { caseId: 'case-669-deny', caseAccessionNumber: 'S26-9670' }, revealIdentity: true })).toEqual({ ok: false, error: CONSULT_REVEAL_NOT_PERMITTED });
+    const links = await mockConsultTokenService.getByCaseId('case-669-deny');
+    expect(links.ok && links.data).toEqual([]);
+    expect(auditDetails().some(e => e.event === 'consult.link.created')).toBe(false);
+    // A plain link is still allowed without the opt-in capability.
+    expect((await mockConsultTokenService.issue({ ...base, scope: { caseId: 'case-669-deny', caseAccessionNumber: 'S26-9670' } })).ok).toBe(true);
+  });
+
+  it('links expire: an expired token opens nothing, masked or not (verified, Batch 669)', async () => {
+    const issued = await mockConsultTokenService.issue({ ...base, revealIdentity: true, expiresAt: new Date(Date.now() - 1000).toISOString() });
+    if (!issued.ok) throw new Error('setup failed');
+    expect(await mockConsultTokenService.openConsult(issued.data.token)).toEqual({ ok: false, error: 'CONSULT_LINK_INVALID' });
+  });
+});
+
+describe('mockConsultTokenService — Batch 669: views and hours after a signed opinion; identity preview', () => {
+  const base = { scope: { caseId: 'case-669b', caseAccessionNumber: 'S26-9680' }, issuedByUserId: 'u1', issuedByName: 'Dr. A', consultantIdentifier: 'Dr. Outside' };
+  const events = () => (spy.mock.calls as unknown as Array<[{ event: string; detail: string }]>).map(c => c[0]);
+  let spy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => { spy = vi.spyOn(mockAuditService, 'logEvent').mockResolvedValue(undefined as never); spy.mockClear(); });
+  afterEach(() => { vi.useRealTimers(); });
+  const issue = async () => { const r = await mockConsultTokenService.issue(base); if (!r.ok) throw new Error('setup'); return r.data; };
+
+  it('a draft starts no clock and counts no view, however many times the page is opened', async () => {
+    const l = await issue();
+    await mockConsultTokenService.submitOpinion(l.token, { signedStatus: 'Draft', opinionText: 'Looking.' });
+    for (let i = 0; i < 5; i++) expect((await mockConsultTokenService.openConsult(l.token)).ok).toBe(true);
+    const got = await mockConsultTokenService.getByCaseId('case-669b');
+    expect(got.ok && got.data[0].signedAt).toBeUndefined();
+  });
+
+  it('the signed submit is not a view; then exactly 3 opens work and the 4th is refused and audited', async () => {
+    const l = await issue();
+    const signed = await mockConsultTokenService.submitOpinion(l.token, { signedStatus: 'Signed', opinionText: 'Final.' });
+    expect(signed.ok).toBe(true);
+    const stored = await mockConsultTokenService.getByCaseId('case-669b');
+    expect(stored.ok && stored.data[0]).toMatchObject({ viewsAfterSignature: 0 });
+    const lifetimes: Array<number | undefined> = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await mockConsultTokenService.openConsult(l.token);
+      expect(r.ok).toBe(true);
+      lifetimes.push(r.ok ? r.data.lifetime?.remainingViews : undefined);
+    }
+    expect(lifetimes).toEqual([2, 1, 0]);
+    expect(await mockConsultTokenService.openConsult(l.token)).toEqual({ ok: false, error: 'CONSULT_LINK_INVALID' });
+    expect(events().filter(e => e.event === 'consult.link.accessed')).toHaveLength(3);
+    expect(events().some(e => e.event === 'consult.link.access_attempt_exhausted')).toBe(true);
+    // The issuer list now reads it as closed.
+    const after = await mockConsultTokenService.getByCaseId('case-669b');
+    expect(after.ok && resolveConsultTokenStatus(after.data[0])).toBe('Expired');
+  });
+
+  it('48 hours after the signature the link opens nothing, even with views left', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-24T10:00:00Z'));
+    const l = await mockConsultTokenService.issue({ ...base, expiresAt: '2026-12-01T00:00:00Z' });
+    if (!l.ok) throw new Error('setup');
+    await mockConsultTokenService.submitOpinion(l.data.token, { signedStatus: 'Signed', opinionText: 'Final.' });
+    vi.setSystemTime(new Date('2026-10-26T09:59:59Z'));
+    const open = await mockConsultTokenService.openConsult(l.data.token);
+    expect(open.ok && open.data.lifetime).toEqual({ remainingViews: 2, hoursRemaining: 1 });
+    vi.setSystemTime(new Date('2026-10-26T10:00:00Z'));
+    expect(await mockConsultTokenService.openConsult(l.data.token)).toEqual({ ok: false, error: 'CONSULT_LINK_INVALID' });
+    expect(events().some(e => e.event === 'consult.link.access_attempt_expired')).toBe(true);
+  });
+
+  it('an expired or exhausted link takes no further opinion or draft either', async () => {
+    const l = await issue();
+    await mockConsultTokenService.submitOpinion(l.token, { signedStatus: 'Signed', opinionText: 'Final.' });
+    for (let i = 0; i < 3; i++) await mockConsultTokenService.openConsult(l.token);
+    expect(await mockConsultTokenService.submitOpinion(l.token, { signedStatus: 'Draft', opinionText: 'More.' })).toEqual({ ok: false, error: 'CONSULT_LINK_INVALID' });
+  });
+
+  it('before any signature the view carries no lifetime', async () => {
+    const l = await issue();
+    const open = await mockConsultTokenService.openConsult(l.token);
+    expect(open.ok && open.data.lifetime).toBeNull();
+  });
+
+  it('identity preview needs reveal-identity (not issue), returns the fixed-format demographics and is audited without PHI', async () => {
+    const l = await issue();
+    auth.denied = ['case:consult-link:issue']; auth.asked = [];
+    const r = await mockConsultTokenService.previewIdentity(l.id);
+    expect(r).toEqual({ ok: true, data: { identity: 'full', lastName: 'Ruiz', firstName: 'Ana', dateOfBirth: '02-JAN-1970' } });
+    expect(auth.asked).toEqual(['case:consult-link:reveal-identity']);
+    const ev = events().find(e => e.event === 'consult.link.identity_previewed');
+    expect(ev?.detail).toContain('Patient identity revealed on screen');
+    for (const secret of ['Ruiz', 'Ana', '1970']) expect(ev?.detail).not.toContain(secret);
+  });
+
+  it('identity preview without the capability reveals nothing and is not audited as a reveal', async () => {
+    const l = await issue();
+    auth.denied = ['case:consult-link:reveal-identity'];
+    expect(await mockConsultTokenService.previewIdentity(l.id)).toEqual({ ok: false, error: CONSULT_REVEAL_NOT_PERMITTED });
+    expect(events().some(e => e.event === 'consult.link.identity_previewed')).toBe(false);
+    expect(await mockConsultTokenService.previewIdentity('nope')).toEqual({ ok: false, error: 'NOT_FOUND' });
   });
 });

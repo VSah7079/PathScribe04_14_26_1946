@@ -1,0 +1,14 @@
+{
+  "/configuration": "Configuration screens are covered by the Administrator Guide.",
+  "/admin/parts/new": "Template and part design is covered by the Administrator Guide.",
+  "/admin/parts/:partId/edit": "Template and part design is covered by the Administrator Guide.",
+  "/admin/templates/new": "Template and part design is covered by the Administrator Guide.",
+  "/admin/templates/:templateId/edit": "Template and part design is covered by the Administrator Guide.",
+  "/template-editor/new": "Template design is covered by the Administrator Guide.",
+  "/template-editor/:templateId": "Template design is covered by the Administrator Guide.",
+  "/template-review/:templateId": "Template review is covered by the Administrator Guide (Synoptic Library review queue).",
+  "/cytology-qc-queue": "Redirects to the Worklist (Cytology QC view); described in the Cytology article.",
+  "/surgical-qa-worklist": "Redirects to the Worklist (Surgical QA view); described in the Worklist and Cytology articles.",
+  "*": "Unknown addresses go to the sign-in screen.",
+  "/help/*": "The guide itself has no Help button; the 'Help' article explains how to use it."
+}

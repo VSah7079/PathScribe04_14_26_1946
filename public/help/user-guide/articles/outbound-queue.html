@@ -1,0 +1,396 @@
+<h1 id="top">Outbound Queue</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Outbound Queue is the one list of everything PathScribe sends out of the building: results, patient movement (ADT) messages, accession messages, LIS sync messages, billing charges, report delivery, cytology results, referrals, molecular orders and registry submissions. For each message you can see where it is going, whether it is waiting, held, sent, acknowledged, failed or rejected, when it is due to go, and how close it is to its reporting deadline. You can stop a message, let it go again, retry a failed one, and fix or close a message that a registry refused.</p>
+<p><strong>Intended users.</strong> People who look after the connections to other systems: administrators, interface analysts, and laboratory managers who watch billing and registry reporting. It is not a screen for pathologists or bench staff, and by default only administrators can open it. Each action needs its own permission (see "Who may do what").</p>
+<p><strong>Where it fits.</strong> A message joins the queue when something happens elsewhere, for example a case is signed out or a charge is made. PathScribe decides what is sent and when (the delivery schedule); the interface engine decides how it is carried and reports back whether the receiver accepted it. This screen shows both. Open it from Home, then <strong>Quality &amp; Compliance</strong>, then <strong>Outbound Queue</strong>. Registry submissions that need a person are also listed, with more detail, in <a href="/help/registry-exceptions">Registry Exceptions</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration build</p>
+<p>In the demonstration build the queue is built from the demonstration queues held in the browser, and nothing is really delivered to an outside receiver. Statuses change when you act here, not because a real receiver answered. The screen works the same way with a live installation, where the interface engine's acknowledgements update the status.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/outbound-queue-overview.png" alt="The Outbound Queue with count tiles, feed filters, action buttons and the message table"><figcaption>The Outbound Queue with count tiles, feed filters, action buttons and the message table</figcaption></figure>
+
+<p>From the top: the title and description, a row of count tiles, a row of feed filter buttons, a row of search, facility and sort controls, the action buttons, an optional reason panel, a result line, and the message table.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Count tiles.</strong> Every tile is a count and a filter. Selecting a tile limits the table to that group; select it again to remove the filter. Several tiles can be on together.</p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>What it counts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overdue</td>
+<td>Open messages past their reporting deadline.</td>
+</tr>
+<tr>
+<td>Due soon</td>
+<td>Open messages whose reporting deadline is within 3 days.</td>
+</tr>
+<tr>
+<td>Needs review</td>
+<td>Billing charges parked for a person (an unmapped CPT code, no technical-component facility, or a delta charge from an amended case), plus registry reports the state profile parked for a person. Selecting it shows only those.</td>
+</tr>
+<tr>
+<td>Amendment deltas</td>
+<td>Billing delta charges from amended cases. This tile is a count only; it does not filter.</td>
+</tr>
+<tr>
+<td>Waiting, Held, Sent, Acknowledged, Failed, Rejected, Not reportable, Retracted</td>
+<td>Messages in that state (see "Icons and status indicators").</td>
+</tr>
+</tbody>
+</table>
+<p>The state tiles ignore the state filter itself, so each shows how many messages are in that state under your other filters. Opening the screen with no filters shows everything.</p>
+<p><strong>Filters and sort</strong></p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Feed buttons (Results, Patient ADT, Accession, LIS sync, Billing, Report delivery, Cytology results, Referrals, Molecular orders, Registry)</td>
+<td>Limit the list to one or more feeds.</td>
+</tr>
+<tr>
+<td>Accession number box</td>
+<td>Finds messages whose accession number contains what you type, ignoring capitals.</td>
+</tr>
+<tr>
+<td>Facility</td>
+<td><strong>All facilities</strong> or one facility. The list shows the facility codes that appear in the queue. A message with no known facility disappears when you choose one.</td>
+</tr>
+<tr>
+<td>Sort by</td>
+<td><strong>State</strong> (the default: rejected first, then failed, held, waiting, sent, acknowledged, closed), <strong>Reporting deadline</strong>, <strong>Scheduled time</strong>, <strong>Queued time</strong>, <strong>Feed</strong> or <strong>Attempts</strong>.</td>
+</tr>
+<tr>
+<td>Arrow button</td>
+<td>Reverses the sort direction.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table columns</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tick box</td>
+<td>Selects the message. The tick box in the heading selects all those listed.</td>
+</tr>
+<tr>
+<td>Accession</td>
+<td>The case the message concerns, or a dash.</td>
+</tr>
+<tr>
+<td>Feed</td>
+<td>The feed and, in small type, the kind of message (for example "finalReport").</td>
+</tr>
+<tr>
+<td>Destination</td>
+<td>Interface engine, Billing system, LIS partner, Delivery service or Registry, with the transport (for example SFTP) under it when known.</td>
+</tr>
+<tr>
+<td>State</td>
+<td>The status badge.</td>
+</tr>
+<tr>
+<td>Scheduled</td>
+<td>When it is due to go: the delivery schedule's time when one applies, otherwise the time it was queued.</td>
+</tr>
+<tr>
+<td>Attempts</td>
+<td>How many retries so far.</td>
+</tr>
+<tr>
+<td>Detail</td>
+<td>Why it is in this state: the error (Missing ICD-10 code, Missing provider NPI, Timed out, Receiver unreachable, Rejected by the receiver), the registry's error codes, the correction due date, who held it and why, why it was closed, "Amends an earlier message", the billing type (TC, 26 or Global), "Needs review" reasons, the scheduled release time of a charge, and "Released ahead of schedule (user …)".</td>
+</tr>
+<tr>
+<td>Deadline</td>
+<td><strong>Overdue</strong> or <strong>Due soon</strong> when it applies, with the due date and time.</td>
+</tr>
+</tbody>
+</table>
+<p>A row with a deadline that is overdue or near is tinted. Deadlines count from the time the report was signed out, using the number of days in the delivery schedule for that feed. A message that is already sent, acknowledged or closed carries no flag.</p>
+<h3 id="toolbar">Toolbar</h3>
+<p>The action buttons act on the ticked messages. A button is greyed out if none of the ticked messages can take that action in their current state, or if your role lacks the permission (hold the pointer over it to see which permission). The line "Selected: N" shows your selection.</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hold</td>
+<td>Stops waiting or failed messages from going. Opens a panel asking for a reason.</td>
+</tr>
+<tr>
+<td>Release</td>
+<td>Lets held messages go again.</td>
+</tr>
+<tr>
+<td>Retry</td>
+<td>Sends a failed message through its own queue again. For a message a registry rejected, it opens a panel asking why it was fixed, then resubmits it.</td>
+</tr>
+<tr>
+<td>Release now</td>
+<td>Billing charges only. Forces a waiting or held charge out immediately, ahead of its schedule. The user is recorded.</td>
+</tr>
+<tr>
+<td>Retract charge</td>
+<td>Billing charges only. Cancels a waiting, held or failed charge before release. Opens a panel asking why. Final.</td>
+</tr>
+<tr>
+<td>Mark not reportable</td>
+<td>Closes a rejected registry message with a reason. Nothing more is sent for it.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reason panel.</strong> Appears below the buttons with a short list of reasons, the first already chosen, and <strong>Confirm</strong> and <strong>Cancel</strong>. Hold and Mark not reportable also offer an optional <strong>Note</strong> (up to 200 characters; the box says "No patient details"). Reasons:</p>
+<ul>
+<li>Hold: Receiver downtime, Receiver maintenance, Checking the data, Billing review, Possible duplicate, Other.</li>
+<li>Resubmit after the fix: Data corrected, Coding corrected, Pathologist corrected, Other.</li>
+<li>Mark not reportable: Not a reportable condition, Outside the registry's jurisdiction, Already reported, Other.</li>
+<li>Retract: Case amended, Case retracted, Duplicate charge, Other.</li>
+</ul>
+<p><strong>Result line.</strong> After an action a line reads "Changed: N." and, where relevant, "Not applicable to the state: N." and a refusal for each reason (for example "You don't have permission for this action (2).", "Cannot be held", "Cannot be retried", "A reason is required").</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+<th>What you can do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Waiting</td>
+<td>Queued; goes at its scheduled time.</td>
+<td>Hold; Retract and Release now (billing).</td>
+</tr>
+<tr>
+<td>Held</td>
+<td>A person stopped it. Nothing sends it until it is released.</td>
+<td>Release; Retract and Release now (billing).</td>
+</tr>
+<tr>
+<td>Sent</td>
+<td>The engine has it; no confirmation yet.</td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td>Acknowledged</td>
+<td>The receiver confirmed it.</td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>A send failed and can be retried. There is no separate "dead-lettered" state: a message that has used up its automatic retries stays Failed until a person retries it.</td>
+<td>Hold; Retry; Retract (billing).</td>
+</tr>
+<tr>
+<td>Rejected</td>
+<td>The receiving registry returned it with errors.</td>
+<td>Retry (after fixing the data, with a reason); Mark not reportable.</td>
+</tr>
+<tr>
+<td>Not reportable</td>
+<td>A person closed it.</td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td>Retracted</td>
+<td>A charge cancelled before release.</td>
+<td>Nothing.</td>
+</tr>
+</tbody>
+</table>
+<p>Other indicators: <strong>Overdue</strong> and <strong>Due soon</strong> deadline flags; "The registry will not accept a resubmission as it is." (a fatal rejection); "Correction due …" (the date the registry expects the corrected message); "Needs review before it can go" with the reason, for example "Preliminary reports are not sent to this state"; "Scheduled release …" under a waiting charge.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None of its own. Every control is a normal button, box or tick box, so Tab, Space and Enter work. <strong>Escape</strong> closes an open reason panel.</p>
+<h3 id="who-may-do-what">Who may do what</h3>
+<table>
+<thead>
+<tr>
+<th>To do this</th>
+<th>You need</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open the screen</td>
+<td>The permission to open the Outbound Queue. By default: Administrator.</td>
+</tr>
+<tr>
+<td>Hold</td>
+<td>Hold outbound messages.</td>
+</tr>
+<tr>
+<td>Release</td>
+<td>Release held outbound messages.</td>
+</tr>
+<tr>
+<td>Retry / Resubmit</td>
+<td>Resend interface messages.</td>
+</tr>
+<tr>
+<td>Release now</td>
+<td>Release charges ahead of schedule.</td>
+</tr>
+<tr>
+<td>Retract charge</td>
+<td>Retract queued charges.</td>
+</tr>
+<tr>
+<td>Mark not reportable</td>
+<td>Mark rejected messages not reportable.</td>
+</tr>
+</tbody>
+</table>
+<p>Administrators hold all of these by default. A laboratory can give any of them to another role. The check is made once for the whole selection; every message that changes writes one entry to the audit log with the feed and the reason, never patient text or your note.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Find what needs attention</strong></p>
+<ol>
+<li>Open <strong>Quality &amp; Compliance</strong>, then <strong>Outbound Queue</strong>. The table opens sorted by state, so rejected and failed messages are at the top.</li>
+<li>Read the tiles. Select <strong>Overdue</strong> to see messages past their reporting deadline, or <strong>Rejected</strong> or <strong>Failed</strong> to see what needs a person.</li>
+<li>Narrow with the feed buttons, the facility box or an accession number. The tile counts follow your filters.</li>
+</ol>
+<p><strong>Retry a failed message</strong></p>
+<ol>
+<li>Tick the failed rows. "Selected: N" updates and <strong>Retry</strong> becomes available.</li>
+<li>Read the Detail column first. "Receiver unreachable" or "Timed out" often clears by itself; "Missing ICD-10 code" or "Missing provider NPI" needs the case corrected before a retry can succeed.</li>
+<li>Select <strong>Retry</strong>. The result line says "Changed: N." and the row's Attempts goes up.</li>
+</ol>
+<p><strong>Hold and release</strong></p>
+<ol>
+<li>Tick waiting or failed rows, select <strong>Hold</strong>, choose a reason (add a short note if useful) and select <strong>Confirm</strong>. The rows show <strong>Held</strong>, and "Held: <reason>" in Detail.</li>
+<li>When the reason has passed, tick the held rows and select <strong>Release</strong>. They go back to waiting.</li>
+</ol>
+<p><strong>Fix and resubmit a registry rejection</strong></p>
+<ol>
+<li>Select the <strong>Rejected</strong> tile. The Detail column shows the registry's error codes and, if there is one, the correction due date.</li>
+<li>Correct the case data (see <a href="/help/registry-exceptions">Registry Exceptions</a> for Open case and Patient details).</li>
+<li>Tick the row and select <strong>Retry</strong>. A panel asks why it was fixed. Choose a reason and select <strong>Confirm</strong>.</li>
+<li>If the registry will not take it, close it instead: tick the row, select <strong>Mark not reportable</strong>, choose the reason and <strong>Confirm</strong>.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To work a whole batch, tick the box in the table heading to select everything listed, after filtering to one feed and one state. Actions apply to the rows that can take them and skip the others, and the result line says how many were skipped.</li>
+<li>To find a single case, type its accession number in the search box. Only the accession number is searched.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Billing charge parked for review.</strong> Select <strong>Needs review</strong>. The Detail column says why. Fix the code mapping, facility or amendment with the billing team; the charge is not sent while it waits.</li>
+<li><strong>A case was amended after its charge was queued.</strong> The charge may need <strong>Retract charge</strong> (reason: Case amended) and the delta charge appears as an amendment delta. Retraction is final.</li>
+<li><strong>A charge must go now.</strong> Select <strong>Release now</strong> on a waiting or held charge. It leaves ahead of its schedule and Detail records your user id.</li>
+<li><strong>US pathology registry report parked by the state profile.</strong> It shows "Needs review before it can go" with a reason, such as a missing ICD-O-3 code or a specimen with no identifier. Correct the case; the message cannot be pushed through from here.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"You don't have permission for this action": your role lacks the permission. Ask your administrator.</li>
+<li>"Cannot be held / retried / released": the message is not in a state that allows it. Check the State column; someone else may have changed it, so re-open the screen.</li>
+<li>"No longer in the queue": another person or the engine changed it. Re-open the screen.</li>
+<li>"A reason is required": choose a reason in the panel and confirm.</li>
+<li>"Not sent, see the detail column": the retry was tried and failed again. Read the Detail column.</li>
+<li>If you held the wrong message, tick it and select <strong>Release</strong>. If you marked the wrong message not reportable or retracted the wrong charge, there is no undo on this screen; tell your administrator at once.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Retract and Mark not reportable are final</p>
+<p>A retracted charge and a message marked not reportable cannot be reopened on this screen. A registry submission closed in error may miss a reporting deadline. Check the case and the reason before you select Confirm.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Holding a message delays what the receiver sees</p>
+<p>A held result or registry message is not sent. Do not hold a message for a patient whose result is urgent, and release held messages as soon as the reason ends. Watch the Due soon and Overdue tiles.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Retrying a rejected registry message without correcting the data. The registry will refuse it again; the Detail column's error codes say what to fix.</li>
+<li>Treating Sent as delivered. Only <strong>Acknowledged</strong> means the receiver confirmed.</li>
+<li>Putting patient details in the hold note. The note is for the reason only.</li>
+<li>Expecting the facility box to show facility names. It lists the facility codes found in the queue.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Leave the sort on State so problems are on top.</li>
+<li>Use the feed buttons plus a state tile to work one kind of problem at a time, then tick all and act once.</li>
+<li>Use the sort <strong>Reporting deadline</strong> before a registry or billing cut-off.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Start each shift with Rejected, Failed, Overdue and Needs review.</li>
+<li>Agree who owns each feed: billing charges with the billing team, registry rejections with the person who corrects the case.</li>
+<li>Always record a clear reason; the audit log keeps the reason code, and it is what an inspector sees.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">report</a>: signing out a case is what creates most results, delivery and registry messages, and starts the reporting deadline clock.</li>
+<li><a href="/help/autopsy">Autopsy Dashboards</a>: another oversight screen in Quality &amp; Compliance.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/registry-exceptions">Registry Exceptions</a>: the worklist for registry submissions that need a person, with the registry's findings and the resend.</li>
+<li><a href="/help/audit-log">Audit Log</a>: holds the entry for every hold, release, retry, retraction and closure.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The Outbound Queue tile is missing</td>
+<td>Your role cannot open the screen. By default only administrators can.</td>
+</tr>
+<tr>
+<td>Buttons are greyed out</td>
+<td>None of the ticked rows can take that action in their current state, nothing is ticked, or your role lacks the permission.</td>
+</tr>
+<tr>
+<td>Release now and Retract charge never light up</td>
+<td>They apply to billing charges only.</td>
+</tr>
+<tr>
+<td>The table says "Nothing in the queue matches these filters."</td>
+<td>A filter is on; select the tile or button again to remove it.</td>
+</tr>
+<tr>
+<td>A row disappeared after I chose a facility</td>
+<td>A message with no known facility is hidden when a facility is chosen.</td>
+</tr>
+<tr>
+<td>Rejected row will not resubmit</td>
+<td>The registry may refuse the same content; correct the data first and try again.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Clear every tile, feed button and the search box.</li>
+<li>Open the screen again to reload the queue.</li>
+<li>Check the State column of the row against the table in "Icons and status indicators".</li>
+<li>Read the Detail column and correct the case if it names a missing code or number.</li>
+<li>Ask your administrator to check your permissions.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when many messages stay Failed after a retry, when the receiver says it never got an acknowledged message, or when a message shows a state that does not match what you did. Have the feed, the accession number and the time ready, but do not send the patient's name.</p>

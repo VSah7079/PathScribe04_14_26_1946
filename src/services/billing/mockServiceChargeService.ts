@@ -12,9 +12,9 @@ import type { IServiceChargeService } from './IServiceChargeService';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import { canDraftOrApproveBillingCharge } from './canDraftOrApproveBillingCharge';
 import { ruleReferenceKey } from './codeEngine/planImportJob';
 
+import { getEffectiveChargeStatus } from './chargeStatus';
 const STORAGE_KEY = 'pathscribe_service_charges';
 
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
@@ -133,18 +133,7 @@ const SEED_SERVICE_CHARGES: ServiceChargeRecord[] = [
   },
 ];
 
-/** Real, per direct guidance's own established migration posture -
- *  the one, real place every consumer (export gating, UI display)
- *  should read a charge's effective approval status from, rather than
- *  checking approvalStatus directly and risking treating undefined
- *  (every charge created before this feature existed, or any created
- *  since without opting into the new workflow) as DRAFT - which would
- *  incorrectly imply an already-resolved, historical charge now needs
- *  retroactive approval. Undefined is treated as the safe,
- *  already-cleared legacy default (EXPORTED), never as DRAFT. */
-export function getEffectiveChargeStatus(charge: ServiceChargeRecord): NonNullable<ServiceChargeRecord['approvalStatus']> {
-  return charge.approvalStatus ?? 'EXPORTED';
-}
+export { getEffectiveChargeStatus };
 
 export const mockServiceChargeService: IServiceChargeService = {
   async saveCharge(record) {
@@ -200,11 +189,8 @@ export const mockServiceChargeService: IServiceChargeService = {
     return ok(mostRecent);
   },
 
-  async submitForApproval(chargeId, submittedBy, actorRole) {
+  async submitForApproval(chargeId, submittedBy) {
     await delay();
-    if (actorRole !== undefined && !canDraftOrApproveBillingCharge(actorRole)) {
-      return err(`Role "${actorRole}" is not authorized to draft or submit a billing charge.`);
-    }
     const all = loadAll();
     const idx = all.findIndex(r => r.id === chargeId);
     if (idx === -1) return err(`No real charge found for id "${chargeId}".`);
@@ -219,11 +205,8 @@ export const mockServiceChargeService: IServiceChargeService = {
     return ok(updated);
   },
 
-  async approveCharge(chargeId, approvedBy, bypassAuthorized, actorRole) {
+  async approveCharge(chargeId, approvedBy, bypassAuthorized) {
     await delay();
-    if (actorRole !== undefined && !canDraftOrApproveBillingCharge(actorRole)) {
-      return err(`Role "${actorRole}" is not authorized to approve a billing charge.`);
-    }
     const all = loadAll();
     const idx = all.findIndex(r => r.id === chargeId);
     if (idx === -1) return err(`No real charge found for id "${chargeId}".`);
@@ -257,11 +240,8 @@ export const mockServiceChargeService: IServiceChargeService = {
     return ok(updated);
   },
 
-  async rejectCharge(chargeId, reviewedBy, rejectionReason, actorRole) {
+  async rejectCharge(chargeId, reviewedBy, rejectionReason) {
     await delay();
-    if (actorRole !== undefined && !canDraftOrApproveBillingCharge(actorRole)) {
-      return err(`Role "${actorRole}" is not authorized to reject a billing charge.`);
-    }
     if (!rejectionReason.trim()) return err('A real rejection reason is required.');
     const all = loadAll();
     const idx = all.findIndex(r => r.id === chargeId);

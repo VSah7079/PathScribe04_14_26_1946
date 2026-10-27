@@ -324,3 +324,13 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 - `ReturnToTraineeBar.tsx`: feedback box and Return to Trainee for a cytology specimen or autopsy report released for countersign; shows the trainee the attending's feedback once returned.
 
 - **`MaterialCommentThread.tsx`** (Batch 611, #10): plain-text comments list with a one-line composer; used by the matrix block editor. Test: `MaterialCommentThread.test.tsx`.
+
+- `NhsNumberBadge.tsx` (Batch 662): the NHS number with a status icon and tooltip for the patient banner. Four shapes (✓✓ green, ◈ dashed blue, ! red, ? grey) so the status does not rely on colour. Logic is in `services/patients/patientNhsNumberStatus.ts`.
+
+## `SystemStatusIndicator.tsx` (Batch 669h)
+
+The Home footer's colour dot and status words (`home.status.*`), from `hooks/useSystemStatus.ts`. Replaces the fixed "SYSTEMS OPERATIONAL" text; CSS in `SystemStatusIndicator.css`.
+
+## `ScreenGate.tsx` (Batch 669 ctl)
+
+`screen` also accepts a `SubScreenId` (`services/screens/screenAccess.ts`): a page with capabilities of its own, first `molecularControlRules` (view or manage).

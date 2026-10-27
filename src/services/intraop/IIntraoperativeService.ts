@@ -106,6 +106,12 @@ export interface IIntraoperativeService {
    *  loops back to the start on its own. */
   advanceDemoSpecimen(sessionId: string, specimenId: string): Promise<ServiceResult<{ entry: IntraoperativeEntry; advanced: boolean }>>;
 
+  /** Batch 669 (ops-14): the OR Suite Live Board's "Stop demo". Removes the demo sessions the Start demo control
+   *  created (and only those: their ids start with `demo-orboard-`) from the real intraoperative data, so nothing
+   *  invented stays on the board. Returns how many sessions were removed. Needs the same capability as Start demo
+   *  (`config:or-board-demo:run`), checked here as well as in the page. */
+  removeOrBoardDemoData(): Promise<ServiceResult<number>>;
+
   /** Real, new method, per direct guidance — resolves PS-82's real,
    *  confirmed gap: the itemized, countable record of what was
    *  actually produced at the bench (a specific frozen block, a

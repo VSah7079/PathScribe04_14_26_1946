@@ -33,7 +33,7 @@ import { toast } from 'react-toastify';
 import { batchService, stainTypeService, reagentLotService, batchAbortMissing, batchOverrideMissing, coldChainAckMissing } from '@/services';
 import { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED, isBatchErrorCode } from '@/services/batches/IBatchService';
 import { phiToastContent } from '@/services/phi/phiToast';
-import { reconciliationGate } from '@/services/batches/batchListView';
+import { reconciliationGate, reconciliationScanOutcome } from '@/services/batches/batchListView';
 import { formatList } from '@/utils/formatList';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatDateTime } from '@/utils/formatDate';
@@ -183,10 +183,13 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
         toast.error(refusal(res.error));
         return;
       }
-      const matchedNow = res.data.items.find(i => i.reconciliationStatus === 'matched' && !batch.items.find(bi => bi.id === i.id && bi.reconciliationStatus === 'matched'));
-      if (matchedNow) {
+      const scan = reconciliationScanOutcome(batch, res.data);
+      if (scan.outcome === 'matched') {
         playScanBeep();
-        flashFeedback('success', `✓ ${t('batchDetail.matchedFlash', { displayId: matchedNow.displayId })}`);
+        flashFeedback('success', `✓ ${t('batchDetail.matchedFlash', { displayId: scan.newlyMatchedDisplayId })}`);
+      } else if (scan.outcome === 'already-matched') {
+        playScanBeep();
+        flashFeedback('success', t('batchDetail.alreadyMatchedFlash'));
       } else {
         playScanErrorTone();
         flashFeedback('error', `⚠ ${t('batchDetail.unexpectedFlash')}`);

@@ -14,3 +14,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 617 (part C): server versions (PS-514)
 
 The concordance review settings service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/QUALITY_SETTINGS_API.md`. The mocks are unchanged.
+
+## Batch 652 — Specimen pipeline gaps
+
+- `aiComparisonEnabled` switches the automatic **category** comparison of frozen vs final (no AI model is involved). The stored key keeps its historical name so saved org, facility and staff settings keep working; the screen label and the comments say category comparison. It shows only while `reviewScreenEnabled` is also on.

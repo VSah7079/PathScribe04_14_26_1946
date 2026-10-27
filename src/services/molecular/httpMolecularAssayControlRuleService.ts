@@ -16,8 +16,9 @@ const BASE = '/api/molecular/molecular-assay-control-rule';
 export const createHttpMolecularAssayControlRuleService = (client: ApiHttpClient): IMolecularAssayControlRuleService =>
   buildHttpService<IMolecularAssayControlRuleService>(client, {
     getAll: result('GET', () => `${BASE}/get-all`),
+    listForReview: result('GET', () => `${BASE}/list-for-review`),
     getByAssayCode: result('GET', (assayCode: P<'getByAssayCode'>[0]) => `${BASE}/get-by-assay-code${queryString({ assayCode })}`),
-    create: result('POST', () => `${BASE}/create`, { body: (rule: P<'create'>[0]) => (rule) }),
-    update: result('POST', () => `${BASE}/update`, { body: (id: P<'update'>[0], patch: P<'update'>[1]) => ({ id, patch }) }),
-    delete: result('POST', () => `${BASE}/delete`, { body: (id: P<'delete'>[0]) => ({ id }) }),
+    create: result('POST', () => `${BASE}/create`, { body: (rule: P<'create'>[0], reason: P<'create'>[1]) => ({ ...rule, reason }) }),
+    update: result('POST', () => `${BASE}/update`, { body: (id: P<'update'>[0], patch: P<'update'>[1], reason: P<'update'>[2]) => ({ id, patch, reason }) }),
+    delete: result('POST', () => `${BASE}/delete`, { body: (id: P<'delete'>[0], reason: P<'delete'>[1]) => ({ id, reason }) }),
   });

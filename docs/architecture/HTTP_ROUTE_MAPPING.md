@@ -981,6 +981,25 @@ New service, no earlier route. See `DELIVERY_SCHEDULES_API.md`: `GET .../get-all
 
 New service, no earlier route. See `BILLING_RELEASE_API.md`: `GET .../get-all`, `GET .../get-for-facility?facilityId=`, `POST .../set`, `POST .../remove` under `/api/billing-release/billing-release`.
 
+## `usEpath/httpUsEpathService.ts` (Batch 620, part E)
+
+New service, no earlier route. See `US_EPATH_API.md`: `GET .../get-profiles`, `POST .../save-profile`, `POST .../remove-profile`, `GET .../get-assignments`, `POST .../set-assignment`, `POST .../remove-assignment` under `/api/us-epath/us-epath`.
+
+## `cosd/httpCosdDestinationService.ts` (Batch 620, part C)
+
+New service, no earlier route. See `UK_COSD_API.md`: `GET .../get-all`, `GET .../get-for-facility?facilityId=`, `POST .../set`, `POST .../remove` under `/api/cosd/cosd-destination`.
+
 ## `outboundQueue/httpOutboundQueueService.ts` (Batch 619)
 New in Batch 619, so no earlier paths. Routes under `/api/delivery/outbound-queue`: `list`, `hold`, `release`, `retry`, `mark-not-reportable`, `retract`, `override-release`, all `POST`. See `OUTBOUND_QUEUE_API.md`.
 
+## `lockbox/httpLockboxService.ts` (Batch 645)
+
+New service, no earlier route. See `LOCKBOX_API.md`: `POST .../lookup-barcode`, `POST .../receive-specimen` (`409` for a barcode already received), `GET .../get-folder`, `POST .../mark-accessioned`, `POST .../resolve-placeholder` under `/api/lockbox/lockbox-drop-off`. The barcode, receipt id and accession number are in the body, never the URL; the server stamps the time and the user.
+
+## `batchRegistryFeed/httpBatchRegistryFeedService.ts` (Batch 620, part S)
+
+New service, no earlier route. See `BATCH_REGISTRY_FEED_API.md`: `GET .../get-profiles`, `GET .../is-batch-program?screeningRegistryId=`, `GET .../get-runs?profileId=`, `POST .../save-profile`, `POST .../remove-profile`, `POST .../preview`, `POST .../build-run`, `POST .../record-file-acknowledgement` under `/api/registry/batch-registry-feed`.
+
+## `historyExtraction/httpHistoryExtractionService.ts` and `httpHistoryExtractionSettingsService.ts` (Batch 621)
+
+New services, no earlier routes. See `HISTORY_AI_EXTRACTION_API.md`: `GET .../get-for-case?sourceCaseId=`, `POST .../save`, `POST .../flag-as-wrong`, `GET .../get-flags?sourceCaseId=`, `GET .../get-accuracy` under `/api/ai/history-extraction`; and `GET .../get-all`, `GET .../get-for-facility?facilityId=`, `POST .../set`, `POST .../remove` under `/api/ai/history-extraction-settings`.

@@ -1,0 +1,20 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 656 — Codes window: suggested codes verified by code and by wording, unverified count shown",
+    "description": "Vitest, 2026-10-23: 2 test files, 24 tests, all passed. Type-check clean. Tests are created by this import (testInfo): no Jira Test keys assigned yet. Full suite: 14,823 passed, 5 failed (since fixed, affected files re-run), one environment error (Firestore emulator not running)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "A suggested SNOMED CT code is confirmed by an exact look-up of the code even when the wording search finds nothing; an unconfirmed code stays out",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/terminologySearch/codeSearchService.test.ts (18)\nPASSED: src/services/coding/aiCodeSuggestions.test.ts (6)\nNot tested or not built: Not run against the live UMLS service (a real-key check is in the delivery notes). The AI call still takes several seconds."
+    }
+  ]
+}

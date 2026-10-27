@@ -39,6 +39,8 @@ import { CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID } from './capaRecommen
 import { OUTSIDE_CONSULT_CORRELATION_ACTIVITY_TYPE_ID } from '../consultAccess/outsideConsultRules';
 import { qaFieldSchemaProblem } from './qaFieldSchemaRules';
 
+import { FROZEN_FINAL_ACTIVITY_TYPE_ID, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID, FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from './qaActivityTypeIds';
+export { FROZEN_FINAL_ACTIVITY_TYPE_ID, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID, FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID };
 const STORAGE_KEY = 'qa_activity_types';
 
 // PS-113, Stage 5. Real, stable id of the "Frozen vs Final
@@ -52,21 +54,21 @@ const STORAGE_KEY = 'qa_activity_types';
 // against this specific activity (ReconciliationTab.tsx,
 // qualityCalculations.ts, QualityTab.tsx, AuditLogPage.tsx,
 // ContributionDashboardPage.tsx, DiscordanceReconciliationModal.tsx).
-export const FROZEN_FINAL_ACTIVITY_TYPE_ID = 'qa-activity-frozen-final';
-export const ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID = 'qa-activity-abnormal-finding-confirmation';
-export const GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID = 'qa-activity-gyn-cytology-secondary-screening';
+
+
+
 // Real, per direct follow-up wiring the real recording UI for CYT-QA-04's
 // own candidate detection (PS-218) into this already-existing, already-
 // seeded activity type — exported the same way every other real
 // activity type id above already is, rather than a second, informal
 // string literal repeated at each real call site.
-export const CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID = 'qa-activity-cyto-histo';
+
 // PS-324. The real surgical-pathology consumer of PS-117's generic
 // case-selection engine and PS-118's generic review-capture workbench
 // — exported the same way every other real activity type id above
 // already is.
-export const SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID = 'qa-activity-surgical-peer-review';
-export const SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID = 'qa-activity-surgical-biopsy-resection';
+
+
 
 /** Real, deliberate translation of the old ReconciliationRecord's own
  *  fixed frozenCategory/finalCategory/frozenDx/finalDx properties into
@@ -324,6 +326,11 @@ const SEED_TYPES: QaActivityType[] = [
     jurisdictions: ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'BE', 'NL', 'DE', 'FR', 'AU', 'NZ', 'KR'],
     fields: [
       { id: 'clinicalIndication', label: 'Clinical Indication', type: 'text', required: false, options: [] },
+      // Batch 685: the words the flag quoted from each side, and whether each was found in the case text.
+      { id: 'evidenceClinical', label: 'Quoted from the Clinical Side', type: 'text', required: false, options: [] },
+      { id: 'evidenceClinicalFound', label: 'Clinical Quote Found in the Record', type: 'dropdown', required: false, options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }] },
+      { id: 'evidencePathology', label: 'Quoted from the Pathology Side', type: 'text', required: false, options: [] },
+      { id: 'evidencePathologyFound', label: 'Pathology Quote Found in the Record', type: 'dropdown', required: false, options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }] },
       { id: 'mismatchKind', label: 'Kind of Mismatch', type: 'dropdown', required: false, options: [
         { id: 'unexpected-malignancy', label: 'Unexpected Malignancy' },
         { id: 'expected-malignancy-absent', label: 'Expected Malignancy Not Found' },

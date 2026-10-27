@@ -36,9 +36,11 @@ vi.mock('@/services', async () => {
     OUTSIDE_CONSULT_ASSESSMENTS: rules.OUTSIDE_CONSULT_ASSESSMENTS,
   };
 });
+const caps = vi.hoisted(() => ({ reveal: true, issue: true }));
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: (c: string) => (c === 'case:consult-link:reveal-identity' ? caps.reveal : c === 'case:consult-link:issue' ? caps.issue : true), decide: () => null }) }));
 // Batch 439: the assess button is a CapabilityButton; its permission check is tested on its own.
 vi.mock('@/components/Common/CapabilityButton', () => ({
-  CapabilityButton: ({ children, onClick, className }: { children: React.ReactNode; onClick: () => void; className: string }) => <button className={className} onClick={onClick}>{children}</button>,
+  CapabilityButton: ({ children, onClick, className, disabled, disabledTitle }: { children: React.ReactNode; onClick: () => void; className: string; disabled?: boolean; disabledTitle?: string }) => <button className={className} onClick={onClick} disabled={disabled} title={disabledTitle}>{children}</button>,
 }));
 
 const CASE = {
@@ -115,6 +117,50 @@ describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
     // Batch 522: the token goes after `#`, out of server logs.
     const linkInput = screen.getByDisplayValue(/\/consult#ct_abc123$/) as HTMLInputElement;
     expect(linkInput.value.endsWith('/consult#ct_abc123')).toBe(true);
+  });
+
+  it('the identity opt-in is off by default and is sent only when ticked (Batch 669, access-11)', async () => {
+    issue.mockResolvedValue({ ok: true, data: makeToken() });
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    fireEvent.change(screen.getByPlaceholderText(/Dr\. Jane Reviewer/), { target: { value: 'Dr. Jane Reviewer' } });
+    const box = screen.getByRole('checkbox') as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    fireEvent.click(screen.getByText('Issue Link'));
+    await act(async () => {});
+    expect(issue.mock.calls[0][0]).not.toHaveProperty('revealIdentity');
+
+    cleanup(); issue.mockClear();
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    fireEvent.change(screen.getByPlaceholderText(/Dr\. Jane Reviewer/), { target: { value: 'Dr. Jane Reviewer' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByText('Issue Link'));
+    await act(async () => {});
+    expect(issue).toHaveBeenCalledWith(expect.objectContaining({ revealIdentity: true }));
+  });
+
+  it('someone who may reveal identity but not issue links sees a disabled Issue button with the reason, not a dead end (Batch 669)', async () => {
+    caps.issue = false;
+    await renderModal();
+    const btn = screen.getByText('+ Issue New Consult Link') as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    expect(btn.title).toBe('Requires permission to issue consult links.');
+    caps.issue = true;
+  });
+
+  it('shows what is left of a link after the signed opinion (Batch 669)', async () => {
+    getByCaseId.mockResolvedValue({ ok: true, data: [makeToken({ signedAt: new Date(Date.now() - 3_600_000).toISOString(), viewsAfterSignature: 2 })] });
+    await renderModal();
+    expect(screen.getByText('After the signed opinion: 1 view or 47 hours left.')).not.toBeNull();
+  });
+
+  it('without the reveal-identity capability the opt-in is greyed out (Batch 669)', async () => {
+    caps.reveal = false;
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);
+    caps.reveal = true;
   });
 
   it('a Specific Slides scope requires at least one slide, then issues with the real selected slide id', async () => {

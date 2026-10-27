@@ -9,7 +9,7 @@
 
 import { grossingHardwareProfileService } from './grossingHardwareProfileServiceInstance';
 import { resolveScaleWeightCapture } from './resolveScaleWeightCapture';
-import { mockAuditService as auditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { dataMayPersistInBrowser } from '../browserData/browserDataPolicy';
 
 export type GrossWeightSource = 'scale' | 'simulated_scale' | 'manual';

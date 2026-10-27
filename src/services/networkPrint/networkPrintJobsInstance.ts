@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { dispatchNetworkPrintJob } from '@/utils/labels/dispatchNetworkPrintJob';
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { liveUpdateService } from '../liveUpdates/liveUpdateService';
 import { localLiveUpdateService } from '../liveUpdates/localLiveUpdateService';
 import { readSessionProfile } from '../auth/sessionProfile';
@@ -22,7 +22,7 @@ export function canSimulatePrintResults(opts: { transport: 'signalr' | 'local'; 
 
 export const networkPrintJobs = createNetworkPrintJobTracker({
   dispatch: dispatchNetworkPrintJob,
-  audit: mockAuditService,
+  audit: auditService,
   subscribeResults: onEvent => liveUpdateService.subscribePrintJobs(onEvent),
   simulate: canSimulatePrintResults({ transport: liveUpdateService.transport, authMode: appEnv().VITE_AUTH_MODE as string | undefined })
     ? result => { localLiveUpdateService.publishPrintJobStatus(result); }

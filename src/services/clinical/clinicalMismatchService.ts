@@ -13,7 +13,7 @@
 //   logLowRisk()  — a low-risk mismatch nobody decided is logged at sign-out;
 //   secondaryReviewQueue() — the deferred mismatches awaiting review.
 
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService } from '../auditlog/auditServiceInstance';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { detectClinicalPathologicMismatch, type ClinicalMismatchInput, type ClinicalMismatchSuggestion } from './detectClinicalPathologicMismatch';
 import {
@@ -49,10 +49,10 @@ export function clinicalMismatchSignOutStep(assessment: ClinicalMismatchAssessme
   return assessment.outcome.holdsSignOut ? 'decide' : 'log';
 }
 
-const qaRecords = async () => (await import('../quality/mockQaActivityRecordService')).mockQaActivityRecordService;
+const qaRecords = async () => (await import('../quality/qaActivityRecordServiceInstance')).qaActivityRecordService;
 const deps: ClinicalMismatchDeps = {
   qaRecords: { create: async record => (await qaRecords()).create(record) },
-  audit: entry => mockAuditService.logEvent(entry),
+  audit: entry => auditService.logEvent(entry),
   enforce: async (capability, context) => {
     const { authorizationService } = await import('../authorization/defaultAuthorizationService');
     return authorizationService.enforce(capability, context);
@@ -119,7 +119,7 @@ export const clinicalMismatchService = {
     // check is deferred; sign-out goes on, with a notice in the audit log.
     if (mismatchCheckDeferred(input)) {
       if (!(await latestRecord(scope))) {
-        await mockAuditService.logEvent({
+        await auditService.logEvent({
           type: 'system', event: 'CLINICAL_MISMATCH_CHECK_DEFERRED', caseId: scope.caseId, user: deps.actor().userId, confidence: null,
           detail: `Mismatch check deferred: no clinical history provided${meta.discipline && meta.discipline !== 'surgical' ? ` [${meta.discipline}${scope.specimenId ? `, specimen ${scope.specimenId}` : ''}]` : ''}.`,
         }).catch(() => {});
@@ -133,6 +133,8 @@ export const clinicalMismatchService = {
       await logLowRiskMismatch({
         ...meta, caseId: scope.caseId, ...(scope.specimenId ? { specimenId: scope.specimenId } : {}),
         kind: assessment.suggestion.kind, source: assessment.suggestion.source, confidence: assessment.suggestion.confidence,
+        ...(assessment.suggestion.instructionVersion !== undefined ? { instructionVersion: assessment.suggestion.instructionVersion } : {}),
+        ...(assessment.suggestion.evidence ? { evidence: assessment.suggestion.evidence } : {}), // Batch 685
         risk: 'low', ruleId: assessment.outcome.rule.id, inputFingerprint: assessment.fingerprint,
       }, deps).catch(() => null);
     }
@@ -161,6 +163,8 @@ export const clinicalMismatchService = {
       await logLowRiskMismatch({
         ...meta, caseId: scope.caseId, ...(scope.specimenId ? { specimenId: scope.specimenId } : {}),
         kind: assessment.suggestion.kind, source: assessment.suggestion.source, confidence: assessment.suggestion.confidence,
+        ...(assessment.suggestion.instructionVersion !== undefined ? { instructionVersion: assessment.suggestion.instructionVersion } : {}),
+        ...(assessment.suggestion.evidence ? { evidence: assessment.suggestion.evidence } : {}), // Batch 685
         risk: assessment.outcome.holdsSignOut ? 'high' : 'low', ruleId: assessment.outcome.rule.id, inputFingerprint: assessment.fingerprint,
       }, deps).catch(() => null);
     }

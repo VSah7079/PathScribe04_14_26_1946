@@ -89,3 +89,11 @@ Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`)
 `dispatchInterfaceMessage` sends to the simulated engine when `isEngineSimulated()`. New types: BLOCK_ORDER, SLIDE_ORDER, SPECIMEN_LABEL, MATERIAL_SCAN_EVENT, CHARGE_DFT, CHARGE_JSON, FINANCIAL_CLASS (mirrored in `functions/main.py` and `docs/architecture/INTERFACE_TRANSACTIONS.md`). `dispatchHardwareOrders.ts` builds and sends block, slide and specimen label orders; `dispatchCharge.ts` sends queued charges at sign-out (`dispatchQueuedChargesForCase`), from the DFT preview, and the financial-class payload.
 
 **Batch 619 (PS-800):** `outboundQueueActions.ts` gained `isHeld` (a dependency) and the outcome `onHold`: Dispatch Now and Retry refuse a message held on the Outbound Queue screen (`services/outboundQueue/`).
+
+## Batch 634
+
+`resolveDispatchOrganisation.ts` (+ test): the one patient-index lookup the cytology and surgical dispatchers share. It uses `patientIndexService` (the demo's or the API server's) and, when there is no organisation to queue against, writes a `CYTOLOGY_DISPATCH_SKIPPED` or `SURGICAL_DISPATCH_SKIPPED` audit entry (case and reason) instead of skipping silently. No organisation id is invented.
+
+## Batch 669 (mol-7)
+
+New transaction type `MOLECULAR_WORKLIST`: a verified molecular plate's worklist (`MOLECULAR_WORKLIST_CREATE`). `services/molecular/dispatchMolecularWorklist.ts` sends it through `dispatchInterfaceMessage`, so in the demo the simulated engine receiver answers and keeps it. Added to `InterfaceTransactionType`, `docs/architecture/INTERFACE_TRANSACTIONS.md` and `functions/main.py`.

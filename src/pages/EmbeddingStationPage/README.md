@@ -65,3 +65,12 @@ The page follows the organisation's Field Requirements (page "embedding", `servi
 ## Batch 511 (PS-478): full strict type-checking
 
 `useEmbeddingStation` refuses an unreadable observed piece count explicitly. The required-field check before it already did, so nothing changes.
+
+## Batch 669 — saving, discrepancy flag (ws-8, ws-10, ws-11)
+
+- **Saving.** Every change goes through `commit` in `hooks/useEmbeddingStation.ts`, which saves with the shared `services/workstationSave/runCaseAction.ts` (via `hooks/useWorkstationSave.ts`): the operation is re-applied to the newest copy of the case on a version conflict (3 tries). A save that still fails shows "Not saved" (`saveError`, a `role="alert"` banner under the identity bar) and reloads the stored block, instead of leaving the change on screen as saved (it used to log to the console only). Nothing is raised or printed for an unsaved change (no Tissue Discrepancy item, no reprint).
+- **A flagged discrepancy stops Confirm** (button, voice, foot pedal and the hook) until it is cleared. **Clear flag** sits beside "Last flagged", one click, no confirmation (it can be flagged again); it writes the audit entry "Embedding discrepancy cleared" (`buildEmbeddingDiscrepancyClearedAudit`). The Tissue Discrepancy item in Quality is not closed by it (QA does that).
+- **"Last flagged ... (by X)"** shows the person's name (looked up from the stored user id with `userService.getById`; the id is the fallback).
+- **The Tissue Discrepancy item** a mismatch or flag raises is now confirmed on screen ("has been raised for QA"), and a failed raise (a rejected call or a not-ok answer) shows a red line, not only the console.
+- DOB uses `utils/formatDate.ts`; the status list on the left shows `embeddingStation.blockStatus.*` through `blockStatusLabelKey`.
+- Tests: `hooks/useEmbeddingStation.test.tsx` (new), `components/embeddingRequirements.test.tsx`, `utils/embeddingOperations.test.ts`.

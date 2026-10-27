@@ -103,3 +103,11 @@ Tests: 7 new functions in `test_main.py` (148 checks pass): the lines drawn, byt
 ## Batch 618 (PS-336)
 
 `render_report` reads `technicalBranding` (`facilityName`, `address`, `city`, `state`, `zip`) and prints one line under the case header, "Technical component performed at: ...", in the report language (`labels.technicalComponentAt`). Director and CLIA number are never drawn. The browser sends the block on signed-out reports only. Tested in `test_main.py` (239 checks).
+
+## Batch 652 — Specimen pipeline gaps
+
+The surgical report PDF is now repeatable: two renders of the same request are byte-identical (`invariant=1`, fixed producer text, creation date from `signedAt` when the request has one, else reportlab's fixed date, never the clock). `signing_time(payload)` reads `signedAt`, then `workup.signedAt`, then the first `workups[].signedAt`. Since Batch 661 the browser sends a top-level `signedAt` (the case's `finalizedAt`) on a signed case, so its PDF carries the signing date; an unsigned case still carries the fixed date. A different request, image or font is still a different file, so the stored SHA-256 of a released version stays the fingerprint that counts. Tested in `test_main.py` (`test_surgical_pdf_same_bytes_every_time`).
+
+## Batch 652 (defect fixes)
+
+`main.py` `_page_decorator`: the watermark's faint red fill is set inside its own saved graphics state and the footer barcode is drawn with an explicit opaque black fill, so the barcode scans on a pending-release print. Test: `test_footer_barcode_is_solid_black_under_a_watermark` in `test_main.py`.

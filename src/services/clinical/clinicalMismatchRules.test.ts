@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import {
   DEFAULT_CLINICAL_MISMATCH_RULES, evaluateClinicalMismatch, clinicalMismatchRuleProblem, withDefaultRules,
   newSpecimenRule, clinicalMismatchRuleChangeAudit, type ClinicalMismatchRule,
@@ -7,6 +7,10 @@ import { createClinicalMismatchRuleService } from './clinicalMismatchRuleService
 import { roleCapabilityProblem } from '../authorization/roleCapabilityRules';
 
 const rules = withDefaultRules([]);
+
+// Batch 679: these tests cover the score-driven thresholds and Block rules, which belong to the clinical_support profile.
+beforeAll(() => { vi.stubEnv('VITE_REGULATORY_PROFILE', 'clinical_support'); });
+afterAll(() => { vi.unstubAllEnvs(); });
 
 describe('mismatch rules: the starting rules (PS-554, Pete, Oct 11)', () => {
   it('five rules for all specimen types, display from 60%', () => {

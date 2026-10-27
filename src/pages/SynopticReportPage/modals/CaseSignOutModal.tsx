@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
+import '../aiGovernance.css';
 import { stainTypeService } from '@/services';
 import type { StainType } from '@/services/stains/IStainService';
 import { computeCaseCodingSummary } from '@/services/billing/codeMapTable';
@@ -16,6 +17,8 @@ interface CaseSignOutModalProps {
   relatedCases?: { caseId: string; patientId: string | undefined; facilityId?: string | null; user: string };
   show: boolean;
   accession: string;
+  /** Batch 642: the case's ordering facility; its performing facility's sign-out policy applies. */
+  orderingFacilityId?: string | null;
   onClose: () => void;
   /** Batch 344: runs only after the signer has been confirmed
    *  (services/auth/signerConfirmation.ts). Before, the username and
@@ -57,14 +60,16 @@ interface CaseSignOutModalProps {
    *  the signer holds case:follow-up:expect. */
   followUpExpected?: boolean;
   onFollowUpExpectedChange?: (value: boolean) => void;
+  /** Batch 681: optional fields still holding an AI value nobody confirmed; shown as a plain line, never a block. */
+  unreviewedAiFields?: number;
 }
 
 const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
-  show, accession,
+  show, accession, orderingFacilityId,
   onClose, onConfirm, onReject,
   isCountersign, residentName, countersignFeedback, onCountersignFeedbackChange,
   specimens, matrixBlocks = [], onAssignBaseCode,
-  followUpExpected, onFollowUpExpectedChange, relatedCases,
+  followUpExpected, onFollowUpExpectedChange, relatedCases, unreviewedAiFields,
 }) => {
   const { t } = useTranslation();
   // Real fix, Piece 3: same self-contained data-fetch pattern this
@@ -78,7 +83,7 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
   }, [show]);
 
   // Batch 344: who is signing is confirmed here before onConfirm runs.
-  const signer = useSignerConfirmation(isCountersign ? 'countersign' : 'case-sign-out', accession || null);
+  const signer = useSignerConfirmation(isCountersign ? 'countersign' : 'case-sign-out', accession || null, orderingFacilityId);
   const { reset: resetSigner } = signer;
   useEffect(() => { if (!show) resetSigner(); }, [show, resetSigner]);
   // Straight from the click: for SSO this opens the provider's popup.
@@ -197,6 +202,8 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
           </div>
         )}
 
+        {!!unreviewedAiFields && <p className="ps-modal-dark-hint ps-signout-ai-unreviewed" role="note">{t('caseSignOutModal.unreviewedAiFields', { count: unreviewedAiFields })}</p>}
+
         {onFollowUpExpectedChange && (
           <div className="ps-conf-form-field ps-signout-followup-field">
             <label className="ps-modal-dark-label ps-signout-followup-label">
@@ -226,8 +233,9 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
             onClick={confirmAndSign}
             disabled={signer.busy || signer.method === 'unavailable'}
             className="ps-btn-green ps-modal-dark-footer__flex-btn"
+            title={signer.buttonTitle}
           >
-            ✍️ {signer.busy ? t('signerConfirmation.confirming') : t('caseSignOutModal.signOutCaseLabel')}
+            ✍️ {signer.busy ? t('signerConfirmation.confirming') : signer.buttonLabel(t('caseSignOutModal.signOutCaseLabel'))}
           </button>
         </div>
 

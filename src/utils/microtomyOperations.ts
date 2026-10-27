@@ -364,11 +364,25 @@ function defaultCytologyStainNameFor(method: CytologyPrepSuggestion['preparation
   }
 }
 
+/** Batch 669 (ws-5): what is still to add of the suggested slides. A decant slide of the same preparation method that
+ *  is not cancelled counts as already added (whether it came from an earlier accept or was added by hand), so pressing
+ *  Accept suggestion again adds nothing new. Pure. */
+export function remainingPrepSuggestions(stains: readonly StainOrder[], suggestions: readonly CytologyPrepSuggestion[]): CytologyPrepSuggestion[] {
+  return suggestions
+    .map(s => ({
+      ...s,
+      count: s.count - stains.filter(st => st.preparationMethod === s.preparationMethod && st.status !== 'Cancelled' && st.printStatus !== 'Canceled').length,
+    }))
+    .filter(s => s.count > 0);
+}
+
 /** Real, per the spec's own Dynamic Preparation Rules — creates the
  *  real StainOrder rows a tech accepted from
  *  computeCytologyPrepSuggestions' own suggestion, one row per unit
  *  of `count`. Never called automatically; the tech's own explicit
- *  "accept suggestion" action in the UI is what invokes this. */
+ *  "accept suggestion" action in the UI is what invokes this.
+ *  Batch 669 (ws-5): only what is missing is added (remainingPrepSuggestions); when every suggested slide is
+ *  already there it refuses, so nothing is saved. */
 export function applyCytologyPrepSuggestions(
   specimen: Specimen,
   decantId: string,
@@ -377,9 +391,11 @@ export function applyCytologyPrepSuggestions(
 ): MicrotomyOperationResult {
   const decant = findDecant(specimen, decantId);
   if (!decant) return { ok: false, error: 'Decant not found.' };
+  const missing = remainingPrepSuggestions(decant.stains, suggestions);
+  if (missing.length === 0) return { ok: false, error: 'The suggested slides are already on this decant.' };
   const newStains: StainOrder[] = [];
   let nextLevel = nextSlideLevelNumber(decant.stains) - 1;
-  for (const suggestion of suggestions) {
+  for (const suggestion of missing) {
     for (let i = 0; i < suggestion.count; i++) {
       nextLevel += 1;
       newStains.push({
@@ -527,4 +543,78 @@ export function markDecantStainPrintResult(specimen: Specimen, decantId: string,
       ? { ...s, printStatus: 'Printed' as const, printedAt: new Date().toISOString(), printedBy: actor, printFailureReason: undefined }
       : { ...s, printStatus: 'Failed' as const, printFailureReason: result.message ?? 'Print failed.' })))),
   };
+}
+
+// ── Batch 669: decant slide comments and reprints, and Undo ────────────────
+
+/** Batch 669 (ws-2): a comment on a decant slide (the block version is updateStainComment). */
+export function updateDecantStainComment(
+  specimen: Specimen,
+  decantId: string,
+  stainId: string,
+  text: string,
+  printsOnLabel: boolean,
+  actor: { id: string; name: string },
+): MicrotomyOperationResult {
+  const decant = findDecant(specimen, decantId);
+  if (!decant) return { ok: false, error: 'Decant not found.' };
+  if (!decant.stains.some(s => s.id === stainId)) return { ok: false, error: 'Stain not found.' };
+  const comment: MaterialComment = { id: genId('comment'), authorId: actor.id, authorName: actor.name, text, createdAt: new Date().toISOString() };
+  return {
+    ok: true,
+    specimen: replaceDecantStains(specimen, decantId, decant.stains.map(s => s.id !== stainId ? s : { ...s, comments: [...(s.comments ?? []), comment], commentPrintsOnLabel: printsOnLabel })),
+  };
+}
+
+/** Batch 669 (ws-2): a reprint of a decant slide, recorded the same way as a block slide's (reprintMicrotomyStain). */
+export function reprintDecantStain(
+  specimen: Specimen,
+  decantId: string,
+  stainId: string,
+  reason: typeof MICROTOMY_REPRINT_REASONS[number],
+  actor: string,
+): MicrotomyOperationResult {
+  const decant = findDecant(specimen, decantId);
+  if (!decant) return { ok: false, error: 'Decant not found.' };
+  if (!decant.stains.some(s => s.id === stainId)) return { ok: false, error: 'Stain not found.' };
+  return {
+    ok: true,
+    specimen: replaceDecantStains(specimen, decantId, decant.stains.map(s => s.id !== stainId ? s : {
+      ...s,
+      printStatus: 'Pending' as const,
+      printFailureReason: undefined,
+      lastReprintReason: reason,
+      lastReprintOrderedBy: actor,
+      lastReprintOrderedAt: new Date().toISOString(),
+      reprintCount: (s.reprintCount ?? 0) + 1,
+    })),
+  };
+}
+
+/** Batch 669 (ws-6): how long the Undo toast after Remove or Reprint stays. */
+export const MICROTOMY_UNDO_WINDOW_MS = 8000;
+
+/** The fields Remove and Reprint change on a slide; Undo puts only these back, so a comment added meanwhile is kept. */
+const UNDO_FIELDS = ['status', 'printStatus', 'printFailureReason', 'printedAt', 'printedBy', 'lastReprintReason', 'lastReprintOrderedBy', 'lastReprintOrderedAt', 'reprintCount'] as const;
+
+/** Batch 669 (ws-6): what Undo puts back after Remove or Reprint: the slide as it was (`snapshot`). A slide that Remove
+ *  had deleted outright (an unprinted one) is put back at its place in the grid (`index`); one that is still there gets
+ *  back only the fields Remove and Reprint change. Works for a block (or matrix block) and a decant. Pure. */
+export function restoreStainOrder(
+  specimen: Specimen,
+  parent: { kind: 'block' | 'decant'; id: string },
+  snapshot: StainOrder,
+  index: number,
+): MicrotomyOperationResult {
+  const stains = parent.kind === 'block' ? findBlock(specimen, parent.id)?.stains : findDecant(specimen, parent.id)?.stains;
+  if (!stains) return { ok: false, error: parent.kind === 'block' ? 'Block not found.' : 'Decant not found.' };
+  const putBack = (current: StainOrder): StainOrder => {
+    const next: StainOrder = { ...current };
+    for (const k of UNDO_FIELDS) (next as unknown as Record<string, unknown>)[k] = (snapshot as unknown as Record<string, unknown>)[k];
+    return next;
+  };
+  const restored = stains.some(s => s.id === snapshot.id)
+    ? stains.map(s => (s.id === snapshot.id ? putBack(s) : s))
+    : [...stains.slice(0, index), snapshot, ...stains.slice(index)];
+  return { ok: true, specimen: parent.kind === 'block' ? replaceBlockStains(specimen, parent.id, restored) : replaceDecantStains(specimen, parent.id, restored) };
 }

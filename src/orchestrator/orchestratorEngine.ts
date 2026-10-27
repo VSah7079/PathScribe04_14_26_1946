@@ -31,6 +31,7 @@ import type { StructuredContext } from './contextBuilder';
 import type { IAIProvider }       from '../services/ai/IAIProvider';
 import { AIProviderRegistry }     from '../services/ai/AIProviderRegistry';
 import { AIAuditLog }             from '../services/ai/AIAuditLog';
+import { requestNarrativeProvenance, type NarrativeProvenance } from './narrativeProvenance';
 import { StreamingWriter }         from '../components/Editor/tiptapBridge/streamingWriter';
 
 const SYSTEM_PROMPT =
@@ -61,6 +62,8 @@ export interface SectionResult {
   providerId?:      string;
   modelId?:         string;
   latencyMs?:       number;
+  /** Batch 651: the model's confidence (0 to 100) and a source quote checked against the report's source text. */
+  provenance?:      NarrativeProvenance;
 }
 
 export interface OrchestratorResult {
@@ -294,6 +297,7 @@ export class OrchestratorEngine {
           providerId:      genResult.providerId,
           modelId:         genResult.modelId,
           latencyMs:       genResult.latencyMs,
+          provenance:      await this.provenanceFor(section.title, sectionText),
         };
         results.push(result);
         this.callbacks.onSectionComplete?.(section.id, result);
@@ -449,6 +453,7 @@ export class OrchestratorEngine {
         providerId:      genResult.providerId,
         modelId:         genResult.modelId,
         latencyMs:       genResult.latencyMs,
+        provenance:      await this.provenanceFor(section.title, sectionText),
       };
 
       AIAuditLog.record({
@@ -504,6 +509,11 @@ export class OrchestratorEngine {
 
   /** Returns the active provider — useful for displaying engine info in the UI */
   getProvider(): IAIProvider { return this.provider; }
+
+  /** Batch 651: confidence and source quote for a finished section, from one short non-streaming call. Never throws. */
+  private provenanceFor(title: string, text: string): Promise<NarrativeProvenance> {
+    return requestNarrativeProvenance(title, text, this.context, async call => (await this.provider.generate({ ...call, abortSignal: this.abortController?.signal })).text);
+  }
 
   private setStatus(status: OrchestratorStatus): void {
     this.status = status;

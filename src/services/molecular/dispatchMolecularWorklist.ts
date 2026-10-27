@@ -43,7 +43,10 @@ import { resolveMolecularScanVerification } from './resolveMolecularScanVerifica
 import { equipmentService } from '../equipment/equipmentServiceInstance';
 import { checkEquipmentStation } from '../equipment/equipmentRules';
 import { molecularBatchService } from './molecularBatchServiceInstance';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
+import { isEngineSimulated } from '../mockInterfaceEngine/simulatedEngineReceiver';
+import { auditService } from '../auditlog/auditServiceInstance';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import { resolveTenantFacility } from '../auth/resolveTenantFacility';
 import { resolveLisRoutingForFacility } from '../facilities/IFacilityService';
 import type { MolecularBatch } from './IMolecularBatchService';
@@ -60,7 +63,13 @@ export interface DispatchMolecularWorklistError {
   /** Batch 356: which scan checks failed, so the screen can say so in the
    *  user's language (reason stays English, for logs). */
   verificationFailures?: Array<'plate' | 'deck' | 'station'>;
+  /** Batch 669 (mol-7): how the send failed, as a code the screen translates (reason stays English, for logs). */
+  failure?: MolecularDispatchFailure;
 }
+
+/** Batch 669: why a verified worklist did not go: no answer / unreachable, the receiver refused it (HTTP status when
+ *  known), or the simulated engine was set to time out. `detail` is the technical text, for support, never shown as the message. */
+export interface MolecularDispatchFailure { code: 'unreachable' | 'rejected' | 'timeout'; status?: number; detail?: string }
 
 // Real, per this file's own header — matches the given specification's
 // own "/api/v1/events/{event-name}" convention (PS-239's own worked
@@ -103,31 +112,49 @@ export async function dispatchMolecularWorklist(
   // Real, per this file's own header — resolved from the real,
   // current session; genuinely absent (undefined) when no real
   // facility resolves, rather than a fabricated placeholder.
-  const facilitiesRes = await mockFacilityService.getAll();
+  const facilitiesRes = await facilityService.getAll();
   const enterpriseFacilities = facilitiesRes.ok ? facilitiesRes.data : [];
   const facility = resolveTenantFacility(session?.organisationId, enterpriseFacilities);
   const routing = facility ? resolveLisRoutingForFacility(facility, enterpriseFacilities) : undefined;
 
-  let response: Response;
-  try {
-    response = await fetch(MOLECULAR_WORKLIST_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, routing }),
-    });
-  } catch (networkError) {
-    // Real, honest failure — a genuine network-level error (host
-    // unreachable, DNS failure, offline), never silently treated as a
-    // successful dispatch.
-    const message = networkError instanceof Error ? networkError.message : String(networkError);
-    return { dispatched: false, reason: `Could not reach PathScribe's own backend to dispatch this worklist: ${message}` };
+  // Batch 669 (mol-7): with no interface engine configured (the demo) the worklist goes to the simulated engine receiver every other
+  // outbound message uses (it answers in the mode chosen on the Mock Interface Engine page and keeps what it received), not to a
+  // network address that does not exist there. With an engine or the API server configured it is sent over HTTP as before.
+  if (isEngineSimulated()) {
+    const sent = await dispatchInterfaceMessage(`mwl-${batch.batchUuid}-${Date.now().toString(36)}`, 'MOLECULAR_WORKLIST', { ...payload, routing });
+    auditService.logEvent({
+      type: 'system', event: 'Simulated Molecular Worklist Dispatch',
+      detail: `SIMULATED (no interface engine): worklist for batch ${batch.batchBarcode} ${sent.ok ? 'accepted' : `refused (${sent.errorCode ?? 'DISPATCH_REJECTED'})`}. Nothing left the browser.`,
+      user: session?.id ?? 'system', caseId: null, confidence: null,
+    }).catch(() => {});
+    if (!sent.ok) {
+      const code = sent.errorCode === 'DISPATCH_TIMEOUT' ? 'timeout' : sent.errorCode === 'DISPATCH_UNREACHABLE' ? 'unreachable' : 'rejected';
+      return { dispatched: false, reason: sent.error ?? 'The simulated interface engine did not take this worklist.', failure: { code, ...(code === 'rejected' ? { status: Number(/HTTP (\d{3})/.exec(sent.error ?? '')?.[1]) || undefined } : {}), detail: sent.error } };
+    }
+  } else {
+    let response: Response;
+    try {
+      response = await fetch(MOLECULAR_WORKLIST_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, routing }),
+      });
+    } catch (networkError) {
+      // Real, honest failure — a genuine network-level error (host
+      // unreachable, DNS failure, offline), never silently treated as a
+      // successful dispatch.
+      const message = networkError instanceof Error ? networkError.message : String(networkError);
+      return { dispatched: false, reason: `Could not reach PathScribe's own backend to dispatch this worklist: ${message}`, failure: { code: 'unreachable', detail: message } };
+    }
+
+    if (!response.ok) {
+      return { dispatched: false, reason: `PathScribe's own backend rejected this worklist dispatch — HTTP ${response.status}.`, failure: { code: 'rejected', status: response.status } };
+    }
   }
 
-  if (!response.ok) {
-    return { dispatched: false, reason: `PathScribe's own backend rejected this worklist dispatch — HTTP ${response.status}.` };
-  }
-
-  await molecularBatchService.updateByUuid(batch.batchUuid, { worklistDispatchedAt: new Date().toISOString() });
+  // Batch 669 (mol-6): a dispatched Draft moves to Active (the Workcenter's Active tab), so Active is not seed-only. A batch that
+  // already has another status keeps it.
+  await molecularBatchService.updateByUuid(batch.batchUuid, { worklistDispatchedAt: new Date().toISOString(), ...(batch.status === 'draft' ? { status: 'active' as const } : {}) });
   // Batch 467: the plate's in-house orders are now running (WORKLIST_DISPATCHED). Loaded lazily: the order engine
   // reads the batch service too.
   const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');

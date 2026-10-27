@@ -14,7 +14,8 @@
 
 import { caseRouter } from '@/services/cases/CaseRouter';
 import type { CaseFilterParams, PathologyCase } from '@/services/cases/ICaseService';
-import { mockServiceChargeService, getEffectiveChargeStatus } from './mockServiceChargeService';
+import { getEffectiveChargeStatus } from './chargeStatus';
+import { serviceChargeService } from './serviceChargeServiceInstance';
 import { billingDeficiencyService } from './billingDeficiencyServiceInstance';
 import { codeReviewPoolService } from './codeReviewPoolServiceInstance';
 import { outboundChargeQueueService } from './outboundChargeQueueServiceInstance';
@@ -303,7 +304,7 @@ export async function searchBillingAuditLog(filters: BillingAuditLogFilters): Pr
 
   const perCaseResults = await Promise.all(cappedCases.map(async caseData => {
     const [chargesRes, deficienciesRes, codeReviewsRes, dispatchesRes, amendmentsRes, auditRes] = await Promise.all([
-      mockServiceChargeService.getChargesForCase(caseData.id),
+      serviceChargeService.getChargesForCase(caseData.id),
       billingDeficiencyService.getByCaseId(caseData.id),
       codeReviewPoolService.getByCaseId(caseData.id),
       outboundChargeQueueService.getByCaseId(caseData.id),

@@ -50,7 +50,7 @@ export interface Patient {
   middleName?: string;
 
   dateOfBirth?: string; // ISO date
-  sex?: 'M' | 'F' | 'U';
+  sex?: 'M' | 'F' | 'U' | 'I'; // Batch 662: 'I' = indeterminate (NHS code 9)
 
   // Optional demographic fields
   phone?: string;

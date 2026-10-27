@@ -23,7 +23,8 @@
 // Not to be confused with constants/systemActions.ts (ACTION_GROUPS): those
 // are the voice and keyboard commands, which are not access control.
 // ─────────────────────────────────────────────────────────────────────────────
-
+import { LOCKBOX_CAPABILITIES } from './lockboxCapabilities';
+import { WORKFLOW_CAPABILITIES } from './workflowCapabilities'; import { INTRAOP_CAPABILITIES } from './intraopCapabilities'; import { MOLECULAR_CONTROL_RULES_CAPABILITIES } from './molecularControlRulesCapabilities';
 export type CapabilityRisk = 'high' | 'standard';
 
 export type CapabilityGroupId =
@@ -124,7 +125,6 @@ export const CAPABILITY_CATALOG = [
   // Batch 421 (Registry Engine SRS v2.1, FR-008.6): the Registry Exceptions worklist, in Quality & Compliance.
   { key: 'screen:registry-exceptions:open', labelId: 'screenRegistryExceptionsOpen', group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:configuration:open',        labelId: 'screenConfigurationOpen',       group: 'screens', risk: 'standard', requires: [] },
-
   // ── Case work (Batch 378) ─────────────────────────────────────────────────
   // Completing grossing moves a case to Gross Complete after checking the
   // organisation's Grossing field requirements (services/grossing).
@@ -199,7 +199,6 @@ export const CAPABILITY_CATALOG = [
   // (approve, deny, revoke) is high risk. Deciding is also limited, in the service, to the case's assigned pathologist or an administrator.
   { key: 'patient:other-cases:request-access', labelId: 'patientOtherCasesRequestAccess', group: 'casework', risk: 'standard', requires: [] },
   { key: 'patient:other-cases:decide-access',  labelId: 'patientOtherCasesDecideAccess',  group: 'casework', risk: 'high',     requires: [] },
-
   // Batch 390 (PS-340): correcting a signed-out cytology diagnosis, and adding
   // an addendum to one, are two separate acts (a correction replaces what was
   // reported; an addendum leaves it standing). Checked in
@@ -226,6 +225,8 @@ export const CAPABILITY_CATALOG = [
   { key: 'cytology:review:record',                labelId: 'cytologyReviewRecord',               group: 'casework', risk: 'high', requires: [] },
   // Batch 572 (Pete, Oct 14, 2026; F7 option C): confirm or correct your own screening hours at the end of the day (the screening hours record; the supervisor's workload report counts them).
   { key: 'cytology:screening-hours:sign-off',     labelId: 'cytologyScreeningHoursSignOff',      group: 'casework', risk: 'high', requires: [] },
+  { key: 'cytology:hpv-result:record-manual',     labelId: 'cytologyHpvResultRecordManual',      group: 'casework', risk: 'high', requires: [] },
+  { key: 'cytology:csms-eligibility:verify',     labelId: 'cytologyCsmsEligibilityVerify',      group: 'casework', risk: 'high', requires: [] },
   { key: 'cytology:final-diagnosis:select',       labelId: 'cytologyFinalDiagnosisSelect',       group: 'casework', risk: 'high', requires: [] },
   { key: 'cytology:qc-flag:remove',               labelId: 'cytologyQcFlagRemove',               group: 'casework', risk: 'high', requires: [] },
   { key: 'cytology:retrospective-review:record',  labelId: 'cytologyRetrospectiveReviewRecord',  group: 'casework', risk: 'high', requires: [] },
@@ -359,6 +360,9 @@ export const CAPABILITY_CATALOG = [
   // Batch 613: a patient's other released cases, sent with the report being signed out; and the Patient summary print.
   { key: 'report:related-cases:attach', labelId: 'reportRelatedCasesAttach', group: 'casework', risk: 'standard', requires: [] },
   { key: 'patient:summary:print', labelId: 'patientSummaryPrint', group: 'casework', risk: 'high', requires: [] },
+  // Batch 621: the AI reads a historical report's text and keeps what it found beside the case, for the pathologist to look at; and "flag as wrong".
+  { key: 'ai:history-extraction:run', labelId: 'aiHistoryExtractionRun', group: 'casework', risk: 'high', requires: [] },
+  { key: 'ai:history-extraction:flag', labelId: 'aiHistoryExtractionFlag', group: 'casework', risk: 'standard', requires: ['ai:history-extraction:run'] },
   // Batch 458 (PS-71): "Overwrite" on the report page's Edit Conflict dialog:
   // save this session's changes over a newer version someone else saved.
   // Checked in services/cases/caseWrite.ts overwriteAfterConflict.
@@ -645,14 +649,14 @@ export const CAPABILITY_CATALOG = [
   // frozen result needs direct communication with the operating surgeon, so
   // changing it is an administrative, audited act. Checked in
   // services/intraop/mockIntraopCriticalResultService.ts.
-  { key: 'config:intraop-critical-results:manage', labelId: 'configIntraopCriticalResultsManage', group: 'administration', risk: 'high', requires: [] },
+  { key: 'config:intraop-critical-results:manage', labelId: 'configIntraopCriticalResultsManage', group: 'administration', risk: 'high', requires: [] }, ...INTRAOP_CAPABILITIES, // Batch 669 (ops-14): the OR Suite demo
   // Batch 406: a molecular assay's control rules (which controls every plate
   // needs, and which deck slots its sample rack may go in) decide whether a
   // run is valid, so changing them is an administrative act. Pete: "default to
   // admin but it remains an assignable permission" (a Lab Director is given it
   // in the Role Dictionary). Checked in
   // services/molecular/mockMolecularAssayControlRuleService.ts.
-  { key: 'config:molecular-control-rules:manage', labelId: 'configMolecularControlRulesManage', group: 'administration', risk: 'high', requires: [] },
+  ...MOLECULAR_CONTROL_RULES_CAPABILITIES, // Batch 669 (ctl): view and manage, in molecularControlRulesCapabilities.ts
   // Batch 414: which cervical screening registry each facility reports to,
   // and each registry's code mappings and hold rules (a compliance setting:
   // it decides where patients' results go). Checked in
@@ -668,6 +672,9 @@ export const CAPABILITY_CATALOG = [
   // Batch 421 (SRS v2.1 FR-008.5/7): re-validating and resending a held, undelivered, unanswered or
   // rejected registry submission from the Registry Exceptions worklist. Checked in
   // services/registrySubmission/resendRegistrySubmission.ts.
+  // Batch 620 (PS-800): the registry batch files: their profiles, and making a file (it carries patient data out, so it is high risk and audited).
+  { key: 'config:batch-registry-feed:manage', labelId: 'configBatchRegistryFeedManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  { key: 'registry:batch-file:generate', labelId: 'registryBatchFileGenerate', group: 'administration', risk: 'high', requires: ['config:batch-registry-feed:manage'] },
   { key: 'registry:submission:resend', labelId: 'registrySubmissionResend', group: 'administration', risk: 'high', requires: ['screen:registry-exceptions:open'] },
   // Batch 423 (SRS v2.1 step 7): approving a registry's switch from its test system to the
   // live register, re-confirming credentials, in stated capacities. Checked in
@@ -827,6 +834,9 @@ export const CAPABILITY_CATALOG = [
   // make an enrolment code or revoke an agent; change the site's agent printers and shares.
   { key: 'config:site-agents:enroll', labelId: 'configSiteAgentsEnroll', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:site-agent-config:manage', labelId: 'configSiteAgentConfigManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  { key: 'config:cosd-destination:manage', labelId: 'configCosdDestinationManage', group: 'configIntegrations', risk: 'high', requires: [] },
+  // Batch 621: AI extraction of historical reports (Configuration → System → AI history extraction). Advisory only.
+  { key: 'config:history-extraction:manage', labelId: 'configHistoryExtractionManage', group: 'configIntegrations', risk: 'high', requires: [] },
   // Batch 612: the workstation registry.
   { key: 'config:workstations:manage', labelId: 'configWorkstationsManage', group: 'configSystem', risk: 'high', requires: [] },
   { key: 'config:workstation-tokens:manage', labelId: 'configWorkstationTokensManage', group: 'configSystem', risk: 'high', requires: [] },
@@ -844,6 +854,7 @@ export const CAPABILITY_CATALOG = [
   // Billing tables
   // Batch 619 (PS-800): when generated charges are released to billing (per billing type, enterprise default with performing-facility overrides).
   { key: 'config:billing-release:manage', labelId: 'configBillingReleaseManage', group: 'configBilling', risk: 'high', requires: [] },
+  { key: 'config:us-epath:manage', labelId: 'configUsEpathManage', group: 'configIntegrations', risk: 'high', requires: [] },
   { key: 'config:billing-rules:manage', labelId: 'configBillingRulesManage', group: 'configBilling', risk: 'high', requires: [] },
   { key: 'config:billing-tables:approve', labelId: 'configBillingTablesApprove', group: 'configBilling', risk: 'high', requires: [] },
   { key: 'config:billing-code-import:run', labelId: 'configBillingCodeImportRun', group: 'configBilling', risk: 'high', requires: [] },
@@ -899,6 +910,7 @@ export const CAPABILITY_CATALOG = [
   { key: 'platform:interface-dictionary:publish', labelId: 'platformInterfaceDictionaryPublish', group: 'platform', risk: 'high', requires: ['platform:interface-dictionary:manage'], platformOnly: true },
   // Demo only: apply a pasted vendor message to a case so the Vendor fields panel can be seen. Labelled Simulated.
   { key: 'platform:interface-dictionary:simulate', labelId: 'platformInterfaceDictionarySimulate', group: 'platform', risk: 'high', requires: ['platform:interface-dictionary:manage'], platformOnly: true },
+  ...LOCKBOX_CAPABILITIES, ...WORKFLOW_CAPABILITIES, // Batch 645: Lockbox Drop-Off; Batch 649: case and QA actions
 ] as const satisfies readonly CapabilityDefinition[];
 
 /** A key that is in the catalog. */

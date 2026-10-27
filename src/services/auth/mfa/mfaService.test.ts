@@ -1,6 +1,6 @@
 // src/services/auth/mfa/mfaService.test.ts — Batch 611 (#157)
 // Each acceptance criterion of docs/architecture/MFA.md is named in a test title here.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { NewAuditLog } from '../../auditlog/IAuditService';
 import type { SessionProfile } from '../sessionProfile';
 import { createMfaService, MFA_LOCK_POLICY, MFA_RECOVERY_CODE_COUNT } from './mfaService';
@@ -336,5 +336,53 @@ describe('demo helper', () => {
     const t = setup();
     expect(await t.svc.demoCurrentCode(person())).toBe(await t.codeAt());
     expect(await setup({ secret: null }).svc.demoCurrentCode(person())).toBeNull();
+  });
+});
+
+describe('server-held policy (Batch 675, access-14)', () => {
+  const withSource = (source: import('./IMfaPolicyService').IMfaPolicyService, granted = true) => {
+    const audit: NewAuditLog[] = [];
+    const svc = createMfaService({
+      stores: memoryMfaStores(), secretFor: null, policySource: source,
+      audit: { logEvent: async e => { audit.push(e); return { ok: true, data: { ...e, id: 'a', timestamp: '' } }; } },
+      enforce: async () => granted,
+    });
+    return { svc, audit };
+  };
+  const served = { mode: 'all', stepUpMinutes: 15, sessionMaxHours: 4 } as const;
+
+  it('loadPolicy copies the server policy in, so the checks use it', async () => {
+    const t = withSource({ get: async () => ({ ok: true, data: served }), save: async () => ({ ok: false, error: 'x' }) });
+    expect(t.svc.requiredFor(person())).toBe(false);
+    expect(await t.svc.loadPolicy(person())).toBe(true);
+    expect(t.svc.requiredFor(person())).toBe(true);
+    expect(t.svc.policyOf(person())).toEqual(served);
+  });
+  it('loadPolicy reports false when the server cannot be reached or refuses, so sign-in can fail closed', async () => {
+    expect(await withSource({ get: async () => ({ ok: false, error: 'server_error' }), save: async () => ({ ok: false, error: 'x' }) }).svc.loadPolicy(person())).toBe(false);
+    expect(await withSource({ get: async () => { throw new Error('down'); }, save: async () => ({ ok: false, error: 'x' }) }).svc.loadPolicy(person())).toBe(false);
+  });
+  it('savePolicy sends the merged policy to the server, keeps the saved copy, and writes no browser audit (the server audits)', async () => {
+    const sent: unknown[] = [];
+    const t = withSource({ get: async () => ({ ok: true, data: served }), save: async n => { sent.push(n); return { ok: true, data: { ...served, ...n } as never }; } });
+    await t.svc.loadPolicy(person());
+    expect(await t.svc.savePolicy(person(), { stepUpMinutes: 20 })).toEqual({ ok: true, policy: { ...served, stepUpMinutes: 20 } });
+    expect(sent).toEqual([{ ...served, stepUpMinutes: 20 }]);
+    expect(t.svc.policyOf(person()).stepUpMinutes).toBe(20);
+    expect(t.audit).toEqual([]);
+  });
+  it('a server refusal or failure is not_permitted and leaves the policy as it was', async () => {
+    const t = withSource({ get: async () => ({ ok: true, data: served }), save: async () => ({ ok: false, error: 'forbidden' }) });
+    await t.svc.loadPolicy(person());
+    expect(await t.svc.savePolicy(person(), { mode: 'off' })).toEqual({ ok: false, reason: 'not_permitted' });
+    expect(t.svc.policyOf(person()).mode).toBe('all');
+    const down = withSource({ get: async () => ({ ok: true, data: served }), save: async () => { throw new Error('down'); } });
+    expect(await down.svc.savePolicy(person(), { mode: 'off' })).toEqual({ ok: false, reason: 'not_permitted' });
+  });
+  it('the capability is still checked in the browser first; the server is not called without it', async () => {
+    const save = vi.fn();
+    const t = withSource({ get: async () => ({ ok: true, data: served }), save }, false);
+    expect(await t.svc.savePolicy(person(), { mode: 'off' })).toEqual({ ok: false, reason: 'not_permitted' });
+    expect(save).not.toHaveBeenCalled();
   });
 });

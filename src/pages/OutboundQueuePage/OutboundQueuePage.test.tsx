@@ -31,7 +31,7 @@ const item = (o: Partial<OutboundQueueItem>): OutboundQueueItem => ({
   ref: 'result:1', feed: 'result', id: '1', destination: 'interfaceEngine', kind: 'final', state: 'waiting',
   queuedAt: '2026-10-01T00:00:00Z', scheduledFor: '2026-10-01T00:00:00Z', attempts: 0, accessionNumber: 'S26-1', facilityId: 'f1', ...o,
 });
-const counts = { waiting: 1, held: 0, sent: 0, acknowledged: 0, failed: 0, deadLettered: 0, rejected: 0, notReportable: 0, retracted: 0 };
+const counts = { waiting: 1, held: 0, sent: 0, acknowledged: 0, failed: 0, rejected: 0, notReportable: 0, retracted: 0 };
 const view = () => ({ ok: true, data: { items: state.items, counts, deadlineCounts: { dueSoon: 1, overdue: 2 }, billingCounts: { needsReview: 3, amendmentDelta: 4 }, facilityIds: ['f1'] } });
 const ok = (refs: string[]) => ({ ok: true, data: refs.map(ref => ({ ref, ok: true })) });
 

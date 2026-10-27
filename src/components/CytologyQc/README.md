@@ -13,3 +13,7 @@
 - `AdvisorySeverityBadge.tsx`: the suggested severity badge (queue rows and the Bethesda review).
 - `CytologyScreeningDetailsCard.tsx`: HPV assay, liquid-based platform and the follow-up on a positive HPV result, saved on the specimen.
 - `CytologyQcCaseBar.tsx` also says when the reader is outside the case's reviewer pool.
+
+## Batch 669f
+
+`CytologyQcDiscrepancyModal.tsx` (styles in `CytologyQcDiscrepancyModal.css`): the Secondary Diagnostic Code is optional; when it diverges significantly from the primary (`services/cytologyQc/resolveQcCodeDivergence.ts`) the window shows a message in place and Submit becomes Confirm and Submit. An unrecognised secondary code shows the field message `cytologyQcQueue.secondaryUnrecognised` and disables Submit until it is fixed or cleared. `onSubmit` gets a fifth argument, `divergenceConfirmed`. Categories come from `hooks/useCytologyQcCodeCategories.ts`. Test: `CytologyQcDiscrepancyModal.test.tsx`.

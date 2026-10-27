@@ -17,10 +17,11 @@ Batch 616. The server version of each molecular orders and send-out service that
 | Method | Call | Arguments |
 |---|---|---|
 | `getAll` | `GET /api/molecular/molecular-assay-control-rule/get-all` | none |
+| `listForReview` | `GET /api/molecular/molecular-assay-control-rule/list-for-review` | none (needs `config:molecular-control-rules:view` or `:manage`; refused NOT_PERMITTED otherwise) |
 | `getByAssayCode` | `GET /api/molecular/molecular-assay-control-rule/get-by-assay-code` | `assayCode` (query) |
-| `create` | `POST /api/molecular/molecular-assay-control-rule/create` | `rule` (the body) |
-| `update` | `PUT /api/molecular/molecular-assay-control-rule/update` | `id`, `patch` (body fields) |
-| `delete` | `DELETE /api/molecular/molecular-assay-control-rule/delete` | `id` (query) |
+| `create` | `POST /api/molecular/molecular-assay-control-rule/create` | `rule` fields and `reason` (the body) |
+| `update` | `PUT /api/molecular/molecular-assay-control-rule/update` | `id`, `patch`, `reason` (body fields) |
+| `delete` | `DELETE /api/molecular/molecular-assay-control-rule/delete` | `id` (query) and `reason` |
 
 ## IMolecularBatchService
 

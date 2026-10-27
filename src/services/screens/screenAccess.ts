@@ -25,7 +25,7 @@ export type ScreenId =
   | 'accession' | 'worklist' | 'search' | 'addOnOrders' | 'intraopQueue' | 'cytologyQcQueue' | 'surgicalQaWorklist'
   | 'myContributions' | 'benchContributions' | 'batchManagement' | 'configuration'
   | 'cytologyWorkspace' | 'microtomy' | 'embedding' | 'slideDistribution' | 'molecular'
-  | 'auditLog' | 'qualityAssurance' | 'registryExceptions' | 'tumorBoard' | 'marginExceptionReview' | 'autopsyDashboards' | 'outboundQueue';
+  | 'auditLog' | 'qualityAssurance' | 'registryExceptions' | 'tumorBoard' | 'marginExceptionReview' | 'autopsyDashboards' | 'outboundQueue' | 'lockboxDropOff';
 
 export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
   accession: 'screen:accession:open',
@@ -62,6 +62,8 @@ export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
   autopsyDashboards: 'screen:autopsy-dashboards:open',
   // Batch 619 (PS-800): the one Outbound Queue, in the Quality & Compliance hub.
   outboundQueue: 'screen:outbound-queue:open',
+  // Batch 645: Lockbox Drop-Off (the after-hours specimen kiosk and the Overnight folder), its own Home tile.
+  lockboxDropOff: 'screen:lockbox-drop-off:open',
 };
 
 /**
@@ -78,13 +80,32 @@ export function screenGranted(screen: ScreenId, has: (capability: string) => boo
   return has(SCREEN_CAPABILITY[screen]) || (SCREEN_ALSO_OPENED_BY[screen] ?? []).some(c => has(c));
 }
 
+/**
+ * Batch 669 (ctl, Pete's ruling): a page reached from another screen's button that has a capability of its own, so it
+ * does not depend on the parent screen. Control Rules was gated by the Molecular screen, which neither Admin nor Lab
+ * Director holds by default, so the people who set the rules could not open it. It opens for the view capability or the
+ * manage capability (manage needs view in the catalog, but a role saved without it still gets in). It is not a Home tile
+ * and not in a hub, so it has no `screen:<name>:open` capability (CLAUDE.md rule 7 asks for one only for a new screen
+ * reached from Home or a hub); the sub-screen is named here so ScreenGate and the Molecular button share one decision.
+ */
+export type SubScreenId = 'molecularControlRules';
+
+export const SUB_SCREEN_CAPABILITIES: Readonly<Record<SubScreenId, readonly CapabilityKey[]>> = {
+  molecularControlRules: ['config:molecular-control-rules:view', 'config:molecular-control-rules:manage'],
+};
+
+/** Whether `has` grants the sub-screen: any one of its capabilities (pure). */
+export function subScreenGranted(id: SubScreenId, has: (capability: string) => boolean): boolean {
+  return SUB_SCREEN_CAPABILITIES[id].some(c => has(c));
+}
+
 export type HubId = 'pathologyWorkspace' | 'qualityCompliance';
 
 /** The tiles on the Home page, in order (Batch 375: the two QA queues are in
  *  the Worklist, Add-On Orders is an action on a case, and Batch Management
  *  is in the Pathology Workspace). */
 export type HomeTileId =
-  | 'accession' | 'worklist' | 'search' | 'intraopQueue' | 'myContributions' | 'benchContributions' | 'tumorBoard' | 'configuration' | HubId;
+  | 'accession' | 'worklist' | 'search' | 'intraopQueue' | 'myContributions' | 'benchContributions' | 'tumorBoard' | 'lockboxDropOff' | 'configuration' | HubId;
 
 /**
  * What each Home tile opens. A tile shows when the user may open any of its
@@ -99,6 +120,7 @@ export const TILE_SCREENS: Readonly<Record<HomeTileId, readonly ScreenId[]>> = {
   myContributions: ['myContributions'],
   benchContributions: ['benchContributions'],
   tumorBoard: ['tumorBoard'],
+  lockboxDropOff: ['lockboxDropOff'],
   configuration: ['configuration'],
   pathologyWorkspace: ['cytologyWorkspace', 'microtomy', 'embedding', 'slideDistribution', 'molecular', 'batchManagement', 'marginExceptionReview'],
   qualityCompliance: ['auditLog', 'qualityAssurance', 'registryExceptions', 'autopsyDashboards', 'outboundQueue'],
@@ -110,11 +132,14 @@ export const HUB_SCREENS: Readonly<Record<HubId, readonly ScreenId[]>> = {
   qualityCompliance: TILE_SCREENS.qualityCompliance,
 };
 
+const isSubScreen = (id: string): id is SubScreenId => id in SUB_SCREEN_CAPABILITIES;
+
 const screensOf = (id: HomeTileId | ScreenId): readonly ScreenId[] =>
   (TILE_SCREENS as Record<string, readonly ScreenId[]>)[id] ?? [id as ScreenId];
 
 /** Whether the user may open this tile (any of its screens) or screen. `has` answers for a capability. */
-export function canOpenTile(id: HomeTileId | ScreenId, has: (capability: string) => boolean): boolean {
+export function canOpenTile(id: HomeTileId | ScreenId | SubScreenId, has: (capability: string) => boolean): boolean {
+  if (isSubScreen(id)) return subScreenGranted(id, has);
   return screensOf(id).some(s => screenGranted(s, has));
 }
 
@@ -174,10 +199,19 @@ export function createScreenAccessService(deps: { authorization: Pick<IAuthoriza
     marginExceptionReview: () => a.enforce('screen:margin-exception-review:open'),
     autopsyDashboards: () => a.enforce('screen:autopsy-dashboards:open'),
     outboundQueue: () => a.enforce('screen:outbound-queue:open'),
+    lockboxDropOff: () => a.enforce('screen:lockbox-drop-off:open'),
+  };
+  // Batch 669 (ctl): view, or manage (evaluated, not enforced: opening the page is not the change).
+  const subChecks: Record<SubScreenId, () => Promise<{ allowed: boolean }>> = {
+    molecularControlRules: async () => {
+      const view = await a.enforce('config:molecular-control-rules:view');
+      return view.allowed ? view : a.evaluate('config:molecular-control-rules:manage');
+    },
   };
   return {
     /** Whether the signed-in user may open this tile (any of its screens) or screen. */
-    async canOpen(id: HomeTileId | ScreenId): Promise<boolean> {
+    async canOpen(id: HomeTileId | ScreenId | SubScreenId): Promise<boolean> {
+      if (isSubScreen(id)) return (await subChecks[id]()).allowed;
       for (const s of screensOf(id)) if ((await checks[s]()).allowed) return true;
       return false;
     },

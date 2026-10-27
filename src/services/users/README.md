@@ -45,7 +45,7 @@ The demo Lab Director (LD-001) can now be given a sign-in from Staff → edit �
 ## Batch 455 — Demo baseline: people, pools, cases and the reset
 
 - `USERS_VERSION` is 12. Priya Desai (CT-001), Sarah Johnson, Michelle Nimmo and Rossana Babakhani get `canViewOrchestration`, and James Okafor gets his demo email.
-- `LATER_SEED_USERS` adds FEL-001, CT-002, TA-001, TAP-001 and QA-001.
+- `LATER_SEED_USERS` adds FEL-001, CT-002, TA-001, TAP-001 and QA-001, and (Batch 697) DOC-001 Helen Schollars and DOC-002 Shelly Krill, the technical writers, who hold Admin and Pathologist together.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

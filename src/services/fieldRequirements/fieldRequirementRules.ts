@@ -96,6 +96,7 @@ export const FIELD_REQUIREMENT_PAGES: Readonly<Record<FieldRequirementPageId, re
     { id: 'givenNames',          group: 'patient',   default: 'locked',   lockReason: 'patientIdentification' },
     { id: 'familyNames',         group: 'patient',   default: 'locked',   lockReason: 'patientIdentification' },
     { id: 'dateOfBirth',         group: 'patient',   default: 'locked',   lockReason: 'patientIdentification' },
+    { id: 'sex',                 group: 'patient',   default: 'locked',   lockReason: 'patientIdentification' },
     { id: 'mrn',                 group: 'patient',   default: 'optional', autoFilled: true },
     { id: 'client',              group: 'order',     default: 'locked',   lockReason: 'routing' },
     { id: 'requestingProvider',  group: 'order',     default: 'locked',   lockReason: 'orderingProvider' },
