@@ -84,7 +84,7 @@ Return ONLY a JSON array (no markdown, no preamble). Include an entry ONLY for s
         continue;
       }
       if (p.confidence < threshold) {
-        warnings.push(`Suggestion for specimen ${p.specimenId} (${templateNameById.get(p.templateId)}, confidence ${p.confidence}) was below the ${threshold}% threshold — no suggestion returned for this specimen. Original reasoning: ${p.reason}`);
+        warnings.push(`Suggestion for specimen ${p.specimenId} (${templateNameById.get(p.templateId)}) did not reach the review threshold — no suggestion returned for this specimen. Original reasoning: ${p.reason}`);
         continue;
       }
       suggestions.push({

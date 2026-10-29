@@ -85,3 +85,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 - `PatientHistoryModal.tsx` lists only the cases the user may open (plus those a grant opens, with a banner) and writes one audit entry when a grant was used.
 - `HistoryExtractionPanel.tsx` (props `{ item: { id, diagnosis, microscopic, facilityId? }, userName }`) and `useHistoryExtraction.ts` (Batch 621): beside a historical report, what the AI read from its Final Diagnosis and Microscopic text as synoptic fields. Labelled "AI-extracted, not verified", advisory only, with "flag as wrong" per field and for the whole panel. Shown only when Configuration > System > AI history extraction is on for the case's facility and the user holds `ai:history-extraction:run`. Starts after the history is shown and never delays it. Fields are tagged `data-phi`.
 
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): similar-case cards and the case detail show the matched reason, not a match percentage; HistoryExtractionPanel no longer shows a per-field confidence.

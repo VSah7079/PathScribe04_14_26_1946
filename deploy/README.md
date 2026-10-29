@@ -24,3 +24,5 @@ See `security-headers/README.md`.
 ## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
 
 - Batch 557: `runtime-config/`: `/api/config`, and the example's API address corrected.
+
+- Oct 28, 2026: `VITE_ENHANCEMENT_REQUEST_URL` (runtime-config, security-headers): where Enhancement Requests are delivered.

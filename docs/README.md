@@ -1,3 +1,5 @@
+**Batch 711:** `architecture/PASSWORD_RESET_REQUEST_API.md` (new), the password reset request on the demo sign-in screen and what a server version would need; the User Guide Sign In article and the Administrator Guide (Members, Troubleshooting) describe it (English).
+
 **Batch 698:** `developer/HANDOVER_FIRST_RELEASE.md`, the handover note for the development team: what is finished, what remains for a code-complete first release (front end, server, decisions, outside parties, process), and how to check the work. The Batch 697 sign-ins for the technical writers (Helen Schollars, Shelly Krill) are in `product/DEMO_GUIDE.md`.
 
 **Batch 678:** `compliance-guide/` gains the three-layer Readiness Matrix (`readiness/requirements.json`, generated workbook) and `IMPLEMENTATION_PLAN.md`; the Batch 677 tracker is replaced.
@@ -321,3 +323,5 @@ Batch 644 (Oct 20, 2026): `docs/product/FEATURE_OVERVIEW.md` now opens each of i
 - Batch 684: native-language review Procedure in `HANDOVER_REVIEW_TESTS.md`; Batches 679 to 683 strings in `TRANSLATION_REVIEW.md`.
 
 - Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.
+
+- Oct 28, 2026: `architecture/FEEDBACK_DESTINATION.md` (new): enhancement request destination and AI / Template validation feedback. User Guide (Personal Settings) and Administrator Guide (Feedback screen, audit events appendix) updated.

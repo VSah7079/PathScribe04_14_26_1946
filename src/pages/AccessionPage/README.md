@@ -1,3 +1,5 @@
+**Batch 703:** **Go to Worklist** (after a save) opens the Worklist on the context that holds the case just saved (`worklistPathForCase`): an Orchestration case is listed under the Outreach tile, not LIS Cases, which is where the button used to land.
+
 **Batch 649:** creating a case needs `case:accession:create` (`createAccessionedCase` checks it; a refusal shows the reason and saves nothing). Tests updated: `AccessionPage.e2e.test.tsx`, `AccessionPage.contactBleeding.e2e.test.tsx`.
 
 # pages/AccessionPage/
@@ -1098,3 +1100,21 @@ Missing clinical history (cytology and FNA, Field Requirements page Clinical his
 - After saving a case from a pending order, the page calls `linkLockboxReceiptAtAccession` (`services/accessioning/linkLockboxReceipt.ts`) so a lockbox receipt for that order is linked to the case and marked accessioned. File length unchanged (4204 lines).
 
 - Batch 661/662: Sex at birth starts blank and is required (Female, Male, Indeterminate, Not known); `accessionSexNoDefault.test.ts` guards the blank start.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the Grossing Templates assigned card shows the template and reason, not a confidence.
+
+## Batch 707 — date of birth saved as the entered calendar date
+
+The date of birth and last menstrual period were saved as `new Date(x).toISOString()` (midnight UTC), so a US time zone showed the day before (entered 05/14/1980, listed 05/13/1980). They are now saved as the plain `YYYY-MM-DD` the date box gives, through `utils/plainCalendarDate.ts`. Cases accessioned before this batch keep the old timestamp in browser storage; a demo Full Reset clears them.
+
+## Batch 712 — the Downtime Reason blocks Next and Submit Accession
+
+With the Temporary / Downtime intake the reason is a required field like the others: `missingDowntimeReasonFieldIds` (`services/accessioning/downtimeReasonRule.ts`) names it (`fieldRequirements.fields.accession.downtimeReason`), the page adds that name to the "Still required" lists and to `caseInfoValid`, so Next and Submit Accession are disabled until a reason is chosen. Standard and Outside intake never require or list it. The `handleSubmit` guard stays as a backstop. Test: `AccessionPage.downtimeReason.e2e.test.tsx`. `AccessionPage.tsx` shrank by one line (baseline 4186).
+
+## Batch 714 — Clinical Indication shows where it came from
+
+The box is now `ClinicalIndicationField.tsx`: after Import from Order a note under it names the order field ("From the order: OBR-31 Reason for Study. Check it; edit if needed."), and after an edit it reads "Edited from the order" with the order text. Decisions are in `services/orderIntake/clinicalIndicationProvenance.ts`; the case stores `clinicalIndicationSource`, `orderClinicalIndication` and `orderClinicalIndicationField` beside `clinicalIndication`. `AccessionPage.tsx` got shorter (4,185 to 4,183 lines).
+
+## Batch 715 — letters or numbers for labels
+
+`useAccessionLabelStyle.ts` resolves the style for the chosen facility (its performing lab over its enterprise), relabels the specimens still on the form when it changes, and the case saves it as `Case.labelStyle`. Specimen labels, default blocks (`generateDefaultMaterial`) and the Remove-specimen renumbering all use it. `AccessionPage.tsx` stays at 4,183 lines.

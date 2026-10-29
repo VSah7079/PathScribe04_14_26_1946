@@ -106,6 +106,9 @@ const MarginExceptionReviewPage = lazy(() =>
 const SynopticReportPage = lazy(() =>
   import("./pages/SynopticReportPage/SynopticReportPage")
 );
+const GrossingWorkspacePage = lazy(() =>
+  import("./pages/GrossingWorkspacePage/GrossingWorkspacePage")
+);
 const GrossingScreenPage = lazy(() =>
   import("./pages/GrossingScreenPage/GrossingScreenPage")
 );
@@ -221,6 +224,7 @@ const SignedInApp: React.FC = () => (
                           {/* Batch 429: the bench staff record equipment maintenance and calibration here. */}
                           <Route path="/batch-management/equipment-log" element={<ScreenGate screen="batchManagement"><EquipmentServiceLogPage /></ScreenGate>} />
                           <Route path="/workstations/microtomy" element={<ScreenGate screen="microtomy"><MicrotomyWorkstationPage /></ScreenGate>} />
+                          <Route path="/workstations/grossing" element={<ScreenGate screen="grossing"><GrossingWorkspacePage /></ScreenGate>} />
                           <Route path="/workstations/embedding" element={<ScreenGate screen="embedding"><EmbeddingStationPage /></ScreenGate>} />
                           <Route path="/workstations/slide-distribution" element={<ScreenGate screen="slideDistribution"><SlideDistributionStationPage /></ScreenGate>} />
                           <Route path="/add-on-orders" element={<ScreenGate screen="addOnOrders"><AddOnOrderPage /></ScreenGate>} />

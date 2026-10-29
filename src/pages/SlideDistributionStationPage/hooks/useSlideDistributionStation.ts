@@ -317,7 +317,7 @@ export function useSlideDistributionStation() {
     const level = levelLabelFor(block.stains, stain.id);
     const slideId = stain.displayId ?? `${specimen.label}${block.label}-${level}`;
     const result = await printSlideLabel(
-      { fullAccession, specimenLabel: specimen.label, blockLabel: block.label, level, stainName: stain.stainName, slideId },
+      { fullAccession, specimenLabel: specimen.label, blockLabel: block.label, level, stainName: stain.stainName, slideId, slideDesignation: item.caseData.labelStyle?.slide },
       ctx.printer, ctx.gtin, ctx.layout,
     );
     return result.ok ? { ok: true } : { ok: false, printerMessage: (result as { ok: false; message: string }).message };

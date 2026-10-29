@@ -16,7 +16,7 @@ status: Draft
 
 **Purpose.** Case Search finds cases that are not in front of you on the Worklist: completed cases, cases from other pathologists, and cases from earlier months. You fill in as many or as few filters as you need, run the search, and open a case from the results. It can also export the results to a spreadsheet file and group them into a report.
 
-**Intended users.** Pathologists, pathology assistants, accessioners, laboratory managers and quality staff. You only find cases you are allowed to see; cases outside your organisation or pools you do not belong to do not appear.
+**Intended users.** Pathologists, pathology assistants, accessioners, laboratory managers and quality staff. Cases you are not yet allowed to open still appear in the results, as on the Worklist: a pediatric, Orchestration or pool case shows a lock and "Restricted" in place of the patient name, and you ask for access to see the details.
 
 **Where it fits.** Search is opened from Home. It complements the [Worklist](help:worklist), which shows your own pending work. A case opened from the results opens in the [Report](help:report) screen.
 
@@ -27,7 +27,7 @@ status: Draft
 !!! note "Demonstration data"
     In this version search runs over demonstration cases. Many filters (holds, locations, intake, payer, autopsy details, result flags) match nothing in the demonstration data, so an empty result for those filters does not mean the filter is broken. The Quick Links window lists a few example links, not your laboratory's own.
 
-The screen has a filter panel on the left (it collapses to a narrow bar after you search, so the results have room) and the results on the right under a summary line.
+The screen has a filter panel on the left (it collapses to a narrow bar after you search, so the results have room) and the results on the right under a summary line. In a window narrower than 1024 pixels, or on a tablet, the results appear as a list of cards instead of a table, the same as on the Worklist; make the window wider to get the table back.
 
 ### Field definitions
 
@@ -142,9 +142,9 @@ Each listed schedule shows when it last ran ("Not run yet" before the first run,
 
 ### Exception handling
 
-1. **A case you know exists is missing.** Check the date range (the default is 30 days; select **All**), the date type (Accession, Sign-out or Release date), and the access rules: you only see cases you are allowed to see.
+1. **A case you know exists is missing.** Check the date range (the default is 30 days; select **All**), the date type (Accession, Sign-out or Release date), and the access rules: a case you may not open shows a lock instead of the patient name, and you request access to see it.
 2. **A case was attached to the wrong patient.** Select **Reassign Patient**, then click the result (or highlight its row with Alt+Down Arrow or Alt+Up Arrow first, then select the button). Search for the correct patient by name, MRN or date of birth, select **Select**, then **Move Case** and confirm. The window warns that the change cannot be undone automatically. If the case has no resolved patient identity the panel says so.
-3. **A restricted case.** Pediatric, Outreach and pool cases you cannot open show a lock; follow the request-access steps on the [Worklist](help:worklist).
+3. **A restricted case.** Pediatric, Orchestration and pool cases you cannot open show a lock; follow the request-access steps on the [Worklist](help:worklist).
 4. **An ICD or SNOMED browse window says no systems are enabled.** Your administrator controls which code systems are on (Configuration, System Settings).
 
 !!! note "Known limits"

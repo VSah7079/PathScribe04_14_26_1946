@@ -52,6 +52,7 @@ interface ImportMetaEnv {
   readonly VITE_BABAKHANI_EMAIL?: string;
   readonly VITE_CPT_PROXY_URL?: string;
   readonly VITE_ENHANCEMENT_EMAIL?: string;
+  readonly VITE_ENHANCEMENT_REQUEST_URL?: string;
   /** Batch 590 (PS-469): where scrubbed crash reports go (public-key address); monitoring is off without it and VITE_ERROR_MONITORING_ENV. */
   readonly VITE_ERROR_MONITORING_DSN?: string;
   readonly VITE_ERROR_MONITORING_ENV?: string;

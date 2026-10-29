@@ -152,4 +152,14 @@ describe('the block changes', () => {
     expect(dissolved.matrixBlocks).toEqual([]);
     expect(dissolveMatrixBlockChange({ matrixBlockId: 'M1' })({ ...updated, matrixBlocks: [] } as Case)).toBeNull();
   });
+  // Batch 715: a specimen leaving a Biopsy Array gets its block in the case's letters/numbers style.
+  it('Biopsy Array: the ordinary block a specimen gets back follows the label style (letters: A; numbers: 1)', () => {
+    const mtx = { id: 'M1', label: 'M1', status: 'Grossed', participants: [{ specimenId: 'SP-B', positionInBlock: 1 }], slides: [] } as any;
+    const base = { ...caseOf(), matrixBlocks: [mtx] } as Case;
+    const letters = dissolveMatrixBlockChange({ matrixBlockId: 'M1', fullAccession: 'S26-1' })({ ...base, labelStyle: { specimen: 'letters', block: 'letters', slide: 'numbers' } } as Case) as Case;
+    expect(letters.specimens!.find(s => s.id === 'SP-B')!.blocks![0].label).toBe('A');
+    expect(letters.specimens!.find(s => s.id === 'SP-B')!.blocks![0].displayId).toBe('S26-1-BA');
+    const numbers = dissolveMatrixBlockChange({ matrixBlockId: 'M1', fullAccession: 'S26-1', labelStyle: { block: 'numbers' } })(base) as Case;
+    expect(numbers.specimens!.find(s => s.id === 'SP-B')!.blocks![0].label).toBe('1');
+  });
 });

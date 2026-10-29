@@ -35,6 +35,7 @@
 
 import { getWorkstationSetting, setWorkstationSetting } from '@/utils/workstationSettings';
 import { useState, useCallback, useEffect } from 'react';
+import { isStationUnavailable, subscribeStationAvailability } from '@/services/scanStations/stationAvailability';
 
 const STORAGE_KEY = 'pathscribe_current_scan_station_id';
 const PROMPTED_KEY = 'pathscribe_scan_station_prompted';
@@ -53,6 +54,9 @@ const promptedSubscribers = new Set<(v: boolean) => void>();
 export function useCurrentScanStation() {
   const [stationId, setStationIdState] = useState<string | null>(readStored);
   const [hasBeenPrompted, setHasBeenPromptedState] = useState<boolean>(readPrompted);
+  // Batch 713: re-render when the signed-in user's station access is worked out.
+  const [, setAvailabilityTick] = useState(0);
+  useEffect(() => subscribeStationAvailability(() => setAvailabilityTick(n => n + 1)), []);
 
   useEffect(() => {
     subscribers.add(setStationIdState);
@@ -85,6 +89,10 @@ export function useCurrentScanStation() {
     promptedSubscribers.forEach(fn => fn(true));
   }, []);
 
-  return { stationId, setStationId, hasBeenPrompted, markPrompted };
+  // Batch 713: a station stored on this computer that belongs to a facility the
+  // signed-in user may not use counts as no station (the stored value is kept
+  // for the next person; see services/scanStations/stationAvailability.ts).
+  const unavailableStationId = isStationUnavailable(stationId) ? stationId : null;
+  return { stationId: unavailableStationId ? null : stationId, unavailableStationId, setStationId, hasBeenPrompted, markPrompted };
 }
 

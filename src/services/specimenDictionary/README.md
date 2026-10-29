@@ -45,3 +45,7 @@ Before, anyone who could open Configuration could change this; now each change i
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
 
 Batch 616 (part D, PS-506): server version of SpecimenDictionaryService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.
+
+## Batch 716 (Pete, Oct 28, 2026): cytology demo data
+
+`cytologyDemoSpecimens.ts` (new): seven added cytology entries (Pap ThinPrep, Pap SurePath, Pap with HPV co-test, CSF, sputum, breast FNA, salivary gland FNA) and `applyDemoDepartments`, which links every starter surgical entry (and the kidney entry) to Surgical Tissue, Consult entries to Histology-Only / Consultation, and the five starter cytology/FNA entries (sp034 to sp038) to Non-GYN Cytology with a category, organ site, default synoptic template (only where one ships) and protocol. It never overwrites a department already set. `sp-cyto-pap`, `sp-cyto-hpv-self` and `sp-fna-thyroid` gained a department and, for the last two, a protocol. Tests: `cytologyDemoSeed.test.ts`. Before this, the Accession cytology card was reachable from three entries only and no entry had a department, so every demo accession number was `O26-xxxx` and the mixed-case-type rule never fired. A browser keeps its stored dictionary until a Full Reset.

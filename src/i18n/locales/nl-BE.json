@@ -51,6 +51,14 @@
       "patientNameLabel": "Patiëntnaam (Familienaam, Voornaam)"
     }
   },
+  "login": {
+    "resetRequest": {
+      "back": "Terug naar aanmelden",
+      "emailLabel": "Uw e-mailadres voor aanmelden",
+      "intro": "Voer het e-mailadres in waarmee u zich aanmeldt. Uw beheerders krijgen direct bericht en kunnen in Personeel een nieuw wachtwoord voor u instellen.",
+      "invalidEmail": "Voer het e-mailadres in waarmee u zich aanmeldt."
+    }
+  },
   "logoutWarningModal": {
     "body": "U heeft een actieve sessie met niet-opgeslagen wijzigingen. Als u zich nu afmeldt, gaat uw huidige voortgang verloren.",
     "logOutAndDiscardButton": "Afmelden en wijzigingen verwerpen"

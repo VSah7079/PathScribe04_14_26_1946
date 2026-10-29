@@ -29,6 +29,7 @@ A role may not hold both of these (the role service refuses it):
 | `screen:batch-management:open` | Open Batch Management | See the Batch Management screen and its tile in the Pathology Workspace. | standard |  |  |
 | `screen:cytology-workspace:open` | Open Cytology Workspace | See the Cytology Workspace screen and its tile in Pathology Workspace. | standard |  |  |
 | `screen:microtomy:open` | Open Microtomy Workspace | See the Microtomy Workspace screen and its tile in Pathology Workspace. | standard |  |  |
+| `screen:grossing:open` | Open Grossing Workspace | See the Grossing Workspace screen and its tile in Pathology Workspace. | standard |  |  |
 | `screen:embedding:open` | Open Embedding Workspace | See the Embedding Workspace screen and its tile in Pathology Workspace. | standard |  |  |
 | `screen:slide-distribution:open` | Open Slide Distribution Workspace | See the Slide Distribution Workspace screen and its tile in Pathology Workspace. | standard |  |  |
 | `screen:molecular:open` | Open Molecular Workspace | See the Molecular Workspace screen and its tile in Pathology Workspace. | standard |  |  |

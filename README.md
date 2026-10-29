@@ -1,3 +1,7 @@
+**Batch 714 (Oct 28, 2026):** the Accession screen's Clinical Indication shows which order field it came from (OBR-31, ORC-16, DG1, NTE, FHIR reasonCode/reasonReference) and whether it was edited; the case keeps the order's original text. The mapping rule is built and tested here, but no inbound HL7/FHIR parser exists in this repo; the server applies it (`docs/architecture/ACCESSIONING_API.md` section 1a).
+
+**Batch 711:** the demo sign-in screen has "Ask my administrator to reset my password" (password sign-in only; SSO deployments do not use it): an audit entry and an urgent message to the administrators who can set staff passwords, marked handled when one is set; see `docs/architecture/PASSWORD_RESET_REQUEST_API.md`.
+
 **Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; see `docs/product/GUIDE_UPDATES.md`.
 
 **Batch 666:** the User Guide now covers every screen (61 articles, including a Voice and Keyboard reference of all 286 commands; the build fails when a screen has no article); the Administrator Guide carries the Batch 653 to 665 settings and permissions in all six languages; the language review workbooks (now including Korean) and the voice phrase list are regenerated from the live text and commands. 126 oddities found in the screens while writing are listed in `docs/user-guide/FINDINGS_666_*.md` for Pete to rule on.
@@ -575,3 +579,9 @@ Defect fixes in My Contribution peer averages, microtomy scan labels, multi-reci
 - Batch 669i: External Consult links stop at 3 views or 48 hours after signature; Audit Log can preview identity; date of birth is fixed DD-MMM-YYYY.
 
 Batch 670: audit writes (and the rest of the audit path) now go through the switched `auditService`; see `src/services/apiServer/README.md`.
+
+**Batch 713 (Oct 28, 2026):** the scan-station pickers show only the stations at the signed-in person's facilities (plus No station); a computer's stored station in another facility counts as no station for that person. Screen rule only; the API server must enforce it too.
+
+- Feedback destination and validation routing (Oct 28, 2026): Enhancement Requests can be delivered to a website address set in Configuration > System > Feedback or pre-seeded in config.json (`VITE_ENHANCEMENT_REQUEST_URL`); QA feedback has an AI / Template validation category that links a validation study and template and goes to its own recipients (`FEEDBACK_ROUTED_TO_VALIDATION`). See `docs/architecture/FEEDBACK_DESTINATION.md`.
+
+**Batch 715 (Oct 28, 2026):** specimens, blocks and slides can be labelled with letters or numbers, chosen separately for each (enterprise default, performing-lab override); new cases only. See `src/services/labeling/README.md` and the Administrator Guide chapter 11.

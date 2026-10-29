@@ -308,3 +308,60 @@ The stage maps are drawn from the Mohs synoptic's answers and are always part of
 
 **Limits.** The demo's "server time" is the browser's clock and the person who received a drop is the signed-in user; the API server (which stamps both) is not built. The seeded receipts name the kiosk and accessioner as "(demo)". No patient data is on any receipt.
 
+## Cytology demo data (Batch 716: Accession Part 2, cytology specimens)
+
+Pete, Oct 28, 2026: the next training video needs the demo data to actually reach the cytology controls. **Run a Full Reset once after installing this batch** (Configuration → ⟳ Demo Reset → Full Reset): the specimen dictionary, departments, accession series and protocols are stored in the browser the first time the app loads, so an existing browser keeps its old copy until it is reset. All patients, providers and numbers below are fictional.
+
+**Why it was empty.** The Accession cytology card ("Cytology — Clinical History & Accessioning Detail", tabs Patient Detail and Clinical History) is shown only when a specimen's dictionary entry has the category GYN Cytology or Non-GYN Cytology, and only three demo entries had one. No entry had a department, so every demo accession number was `O26-xxxx` and the "different case types are accessioned separately" rule never fired.
+
+**What is seeded** (Configuration → Specimen Dictionary, Departments, Case Masks, Processing Protocols):
+
+| Department (on screen) | Accession series | Holds |
+|---|---|---|
+| Surgical Tissue | `S26-0001` | every surgical biopsy, excision, resection and gross-only entry (all 66 now linked, including Kidney Biopsy, Native; they had no department) |
+| GYN Cytology (new) | `GYN26-0001` | the four Pap entries and the two HPV-only entries below |
+| Fluid / Cytology | `NG26-0001` | all Non-GYN and FNA entries below (the existing department; not renamed, because Processing Protocols and the technical-facility offer find it by name) |
+| Histology-Only / Consultation | `CS26-0001` | the Consult entry |
+
+**Which entry for which control** (pick it in Specimens → Select from dictionary; all are exact names):
+
+| To show | Entry | Series | Default material / order |
+|---|---|---|---|
+| Cytology card with every field (Last Menstrual Period, Hormonal Status, Reason for Study, Prior HPV Result, IUD / Contraception Use, persistent contact bleeding, Prior cervical procedure, and the Clinical History tab with Structured Clinical History) | any entry below, GYN or not | its own | |
+| Pap, ThinPrep vial | `Pap Test, Liquid-Based (ThinPrep)` | GYN | none (a slide is not a decant) |
+| Pap, SurePath vial | `Pap Test, Liquid-Based (SurePath)` | GYN | none |
+| Pap with HPV co-test | `Pap Test with HPV Co-test (ThinPrep)` | GYN | 1 decant (HPV aliquot) with the HPV High-Risk Screening with Reflex Genotyping stain, and an HPV order queued in the Molecular Order Queue |
+| HPV only, self-collected | `Self-Collected Vaginal Swab (HPV Only)` | GYN | 1 decant, HPV High-Risk Screening order queued |
+| Generic Pap (existing entry, older demo cases use it) | `Cervical/Vaginal Pap Smear` | GYN | none |
+| Fluids with a cell block | `Pleural Fluid Cytology`, `Peritoneal Fluid Cytology`, `Cerebrospinal Fluid Cytology` | NG | 2 cell block decants (D1, D2), H&E each |
+| Urine | `Urine Cytology` (default template: Urine Cytology) | NG | 2 cell block decants |
+| Respiratory | `Bronchial Washing/Brushing Cytology`, `Sputum Cytology` | NG | 2 cell block decants |
+| FNA | `Thyroid Fine Needle Aspiration` (default template: Thyroid FNA, Bethesda), `Lymph Node, Fine Needle Aspiration` (Lymph Node FNA), `Salivary Gland, Fine Needle Aspiration` (Salivary Gland FNA), `Breast, Fine Needle Aspiration` (no template ships) | NG | 1 cell block decant (D1), H&E |
+| The mix rule | pick `Pap Test with HPV Co-test (ThinPrep)` and `Thyroid Fine Needle Aspiration` in one case | | The warning "These specimens span different case types — GYN Cytology, Fluid / Cytology — …" appears and Submit Accession is greyed. Accession them separately. A surgical entry with a cytology entry does the same. |
+
+**Pending orders for Import from Order** (type the patient's family name in the search box; ordered by what the video shows):
+
+| Order shown | Patient | Specimen on the order | What it carries |
+|---|---|---|---|
+| `MGH-ORD-71030` | Priya Lindqvist | Pap Test with HPV Co-test (ThinPrep) | Indication "Routine cervical screening, age 38. HPV co-test requested." (the order has no structured HPV field, so the request is in the text; the HPV order itself is sent by the entry's protocol) |
+| `MGH-ORD-71031` | Rosalind Achterberg | Pap Test, Liquid-Based (ThinPrep) | Postcoital bleeding, combined oral contraceptive, LEEP in 2019: fits the contact-bleeding, IUD / Contraception and Prior cervical procedure fields |
+| `NSC-ORD-27901` | Noor Haddad | Self-Collected Vaginal Swab (HPV Only) | self-collected swab, primary HPV |
+| `RMC-ORD-63401` | Marcus Delgado | Thyroid Fine Needle Aspiration | 2.1 cm nodule, TI-RADS 4, rapid on-site evaluation requested |
+| `RMC-ORD-63402` | Helena Brandt | Lymph Node, Fine Needle Aspiration | |
+| `MGH-ORD-71035` | Walter Kessler | Urine Cytology | |
+| `MGH-ORD-71036` | Dolores Ibarra | Pleural Fluid Cytology (STAT) | |
+| `NSC-ORD-27902` | Imogen Farrow | Breast, Fine Needle Aspiration | |
+
+Each order's specimen text is exactly an entry name, so it imports onto that entry and its department ("Department: GYN Cytology" under the specimen). The older orders in the list (for example `RMC-ORD-63319`, a thyroid FNA written as free text) still show as unmatched and create pending entries and departments, as they were written to; use the eight above for the video.
+
+**What you see after Submit Accession** (checked in a fresh browser, Oct 28): `MGH-ORD-71030` is labelled `GYN26-0001`, then the next Pap `GYN26-0002`; `RMC-ORD-63401` is `NG26-0001`; a surgical dictionary entry is `S26-0001`. The Pap with HPV co-test has decant `GYN26-0001-AD1` and an HPV order in the Molecular Order Queue (status Queued); the thyroid FNA has cell block decant `NG26-0001-AD1`. The confirmation toast and the worklist row still show the internal case number `O26-00nn` (the stable internal key; the accession number is on the labels, the report and the cassettes).
+
+**Where the cases show up** (Home → Cytology Workspace, "Cytology Worklist"): GYN cases appear under the **GYN Cytology** tab, My Worklist and Unassigned Pool. Non-GYN and FNA cases appear under the **Non-GYN / FNA Queue** tab (organ chips such as Thyroid), because the demo starts with Configuration → Cytology → Non-GYN Cytology Routing set to the Cytology worklist. The product default is the other choice (Non-GYN and FNA on the Surgical Pathology worklist); both are legitimate, and Full Reset returns to the demo choice. Already seeded for screening (fresh browser, Oct 28): on the GYN tab 12 cases on My Worklist (S26-5001, S26-5002, S26-5006, S26-5007 and others), 6 in the Pool and 3 in QC / Rescreen; on the Non-GYN tab S26-5005 (thyroid FNA) on My Worklist, with the Unassigned Pool empty. A case you accession in the video joins these. ROSE and adequacy are on the screening case itself, not at Accession.
+
+**What cannot be shown yet**
+- **HPV reflex is an order, not a loop.** Accessioning an HPV protocol sends the HPV order (Molecular Order Queue). A result and the genotyping reflex come from the interface or from the seeded cases (S26-5002 shows both); genotyping is still applied by hand when a screen is positive. The `sendOutboundOrder` setting on a protocol task has no screen in Configuration: it is seed data only.
+- **Slides and smears are not generated.** Only decants (cell blocks and the HPV aliquot) are. Every protocol-generated decant is stored as type cell block, including the HPV aliquot, and the "Blocks & Stains" panel after Submit lists blocks only (decants are in the Cytology Workspace material view).
+- **SurePath and ThinPrep without HPV have no protocol**, so they generate no material.
+- **Templates:** no default synoptic template for breast FNA, pleural, peritoneal, CSF, bronchial or sputum (none ships); the picker is manual for those.
+- **Import does not fill the cytology card.** Last menstrual period, hormonal status, prior HPV result, contraception and prior procedure are typed by the accessioner; only the indication and ICD-10 come from the order.
+- **Molecular and autopsy dictionary entries have no department**, so they still draw from the fallback `O26-xxxx` series.

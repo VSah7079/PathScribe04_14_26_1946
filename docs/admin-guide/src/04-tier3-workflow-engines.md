@@ -246,6 +246,8 @@ Breadcrumb: Home > Configuration
 
 This part covers the commands, text shortcuts and voice settings that speed up grossing and dictation, and the two grossing controls (route overrides and the inking check). The three grossing routes (Route A Standard Tissue, Route B Fluid / Cell Block, Route C Histology-Only / Direct Triage) are built in and cannot be added to. A department's starting route is set on [Departments](#screen-departments). The grossing templates themselves are report templates that are marked non-diagnostic; they are authored on the [Report Templates tab](#screen-tab-templates), not here.
 
+**Grossing tile and bench tools (Batch 720).** Grossing has its own tile under Pathology Workspace (`/workstations/grossing`), opened by the permission `screen:grossing:open` (Role Dictionary > Screens; seeded to Pathologist, Fellow, Resident and Pathologists Assistant). It lists the cases waiting to be grossed. The Grossing screen carries a Bench tools card (print cassettes, gross photo, decal batch, Add-On Orders) and four actions that can be granted in the Role Dictionary: `grossing.printCassettes` (Alt+Shift+1), `grossing.takePhoto` (Alt+Shift+2), `grossing.assignDecal` (Alt+Shift+3) and `grossing.addOnOrder` (Alt+Shift+4). Foot pedal 1 takes a photo and pedal 2 prints the cassettes, using the workstation's foot pedal bindings. Printing cassettes still follows Print Settings. Separately, Configuration > Print Settings has the checkbox "Print labels when a case is accessioned" (default on; a facility may override it).
+
 ### Action Registry (tab) {#screen-tab-actions}
 Breadcrumb: Home > Configuration > Action Registry
 
@@ -1638,7 +1640,7 @@ Breadcrumb: Home > Configuration > System > Administration & Compliance > Feedba
 **1. Navigation:** Configuration tab **System** > group **Administration & Compliance**
 **2. Maintenance item:** Feedback
 
-**3. Business purpose and scope.** The QA feedback button lets testers report a problem from any screen, with a screenshot and no patient details. This screen chooses when the button shows and who receives the reports. By default the button is hidden on a production instance and shown on a validation instance.
+**3. Business purpose and scope.** The QA feedback button lets testers report a problem from any screen, with a screenshot and no patient details. This screen chooses when the button shows and who receives the reports. By default the button is hidden on a production instance and shown on a validation instance. It also holds the **validation recipients** (who receives QA feedback in the *AI / Template validation* category) and the **enhancement request destination URL** (where the light-bulb Enhancement Request is delivered instead of by email).
 
 **4. Prerequisites and dependencies.** None.
 
@@ -1656,11 +1658,16 @@ Unlocks: None.
 |---|---|---|---|---|
 | QA feedback button | Choice (radio): Default for this instance, Always shown, Always hidden | Required | A line says whether this is a production or validation instance and what the default is. Error "Choose when the button shows." | Default for this instance |
 | QA recipients | E-mail addresses separated by commas | Required whenever the button shows | Error "Add at least one recipient: the button shows on this instance, and feedback would have nowhere to go." An invalid address is refused. | Blank |
-| Administrator copy (cc) | E-mail addresses separated by commas | Optional | | Blank |
+| Administrator copy (cc) | E-mail addresses separated by commas | Optional | Copied on QA and validation feedback. | Blank |
+| Validation recipients | E-mail addresses separated by commas | Optional | Receive QA feedback in the **AI / Template validation** category, with the validation study and template the sender linked (ids, names and template version are in the message). Empty: that feedback goes to the QA recipients and the sender's confirmation says so. If both lists are empty the sender sees "No recipients configured." An invalid address is refused. | Blank |
+| Enhancement request destination URL | Web address (https only) | Optional | Where the Enhancement Request (light bulb) is delivered, as JSON in a POST. Empty: the address the deployment was set up with (`VITE_ENHANCEMENT_REQUEST_URL` in `config.json`), and with neither, enhancement requests are emailed. A line under the field shows the host in use. Refused: http, an address with a user name, password or `#` part. The address may carry a path and a query (a form id), so one field is enough. | Blank (deployment default) |
 | Save | Button | Not applicable | Shows "Saved" or the reason. | Not applicable |
 
 **7. Permissions.** Open the screen: `screen:configuration:open`. Change: `config:feedback:manage` (high risk; Admin and Lab Director; the Save button is permission-gated).
 **Known limits.** Contract: `docs/architecture/CONFIG_DICTIONARIES_API.md`.
+
+**Destination, step by step.** (1) Ask IT to add the website's origin to the security policy (`connect-src`): put `VITE_ENHANCEMENT_REQUEST_URL` in the deployment's `config.json` and the generator adds it (`docs/architecture/FEEDBACK_DESTINATION.md`); an address typed here for a different site is refused by the browser until its origin is added. (2) Type the address, or leave it empty to use the deployment's. (3) Save. (4) Send a test enhancement request: the confirmation reads "Delivered to" and the host. What is sent: the title, description, category, priority, the system details if the sender included them (without their user id), and the screenshot only if the sender included it (patient data masked). The sender's PathScribe sign-in token is never sent. The website should answer with 204 or a JSON object; the website must also allow the request from PathScribe's address (CORS). Any other reply, a refusal or no connection is reported as "The request could not be delivered to the destination. Nothing was sent.", with no text from the website.
+**What is not built.** The demonstration build never sends to the destination: it keeps the request in the Simulated mail outbox and says nothing was sent. QA and validation feedback is always emailed (the destination is for enhancement requests). No list of feedback is kept inside PathScribe and the validation study page does not show linked feedback; the e-mail and the audit entry are the record. Sending feedback needs no capability; changing these settings needs `config:feedback:manage`.
 
 ### Research Feed {#screen-research_feed}
 Breadcrumb: Home > Configuration > System > Administration & Compliance > Research Feed

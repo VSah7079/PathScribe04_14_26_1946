@@ -27,3 +27,5 @@ AI-driven synoptic template suggestion — 'which diagnostic template fits this 
 ## Batch 616 (part E) — server version
 
 API-server version of `TemplateSuggestionSignal` (`httpTemplateSuggestionSignalService.ts`, contract `TEMPLATE_SIGNALS_API.md`), picked by `templateSuggestionSignalServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the below-threshold warning no longer quotes confidence or threshold percentages.

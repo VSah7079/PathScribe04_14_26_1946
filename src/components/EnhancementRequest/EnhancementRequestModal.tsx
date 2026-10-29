@@ -31,7 +31,8 @@ import {
   loadEnhancementConfigForSubmit,
 } from '../../services/enhancementRequestService';
 import { useScreenCapture, ScreenCaptureResult } from '../../hooks/useScreenCapture';
-import { caseService, supportReferenceService } from '@/services';
+import { caseService, supportReferenceService, loadValidationLinkOptions, templatesForStudy, buildValidationLinks, type ValidationLinkOptions } from '@/services';
+import { VALIDATION_CATEGORY } from '@/services/feedback/validationRouting';
 import { replaceCaseNumbersWithReferences } from '../../services/enhancementRequestService';
 import { identifierWarningOnSend, canReplaceCaseNumbers, findIdentifiersInText, findPatientNameInText, supportPageOf, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
 import { clickableContainer, pressable } from '@/utils/a11y/pressable';
@@ -55,7 +56,7 @@ async function compressScreenshot(dataUrl: string, maxWidth = 800, quality = 0.5
 }
 
 const ENHANCEMENT_CATEGORIES: RequestCategory[] = ['UI', 'Workflow', 'Reporting', 'Integrations', 'Other'];
-const QA_CATEGORIES: RequestCategory[] = ['UI Bug', 'Functional Issue', 'Data Issue', 'Performance', 'Other'];
+const QA_CATEGORIES: RequestCategory[] = ['UI Bug', 'Functional Issue', 'Data Issue', 'Performance', VALIDATION_CATEGORY, 'Other'];
 const PRIORITIES: RequestPriority[]  = ['Low', 'Medium', 'High'];
 
 // The real category/priority values stay untouched — they're embedded in
@@ -73,6 +74,7 @@ const CATEGORY_LABEL_KEY: Record<RequestCategory, string> = {
   'Functional Issue': 'enhancementRequestModal.categories.functionalIssue',
   'Data Issue':       'enhancementRequestModal.categories.dataIssue',
   Performance:        'enhancementRequestModal.categories.performance',
+  [VALIDATION_CATEGORY]: 'enhancementRequestModal.categories.aiTemplateValidation',
 };
 
 const PRIORITY_LABEL_KEY: Record<RequestPriority, string> = {
@@ -89,7 +91,9 @@ const PRIORITY_STYLES: Record<RequestPriority, { color: string; bg: string; bord
 
 // ─── Success screen ───────────────────────────────────────────────────────────
 
-const SuccessScreen: React.FC<{ ticketUrl?: string; simulated?: boolean; onClose: () => void }> = ({ ticketUrl, simulated, onClose }) => {
+interface SentNotes { destinationHost?: string; routedTo?: 'validation' | 'qa' }
+
+const SuccessScreen: React.FC<{ ticketUrl?: string; simulated?: boolean; notes?: SentNotes; onClose: () => void }> = ({ ticketUrl, simulated, notes, onClose }) => {
   const { t } = useTranslation();
   return (
     <div className="erm-success">
@@ -100,7 +104,10 @@ const SuccessScreen: React.FC<{ ticketUrl?: string; simulated?: boolean; onClose
       <p className="erm-success-text">
         {t('enhancementRequestModal.submittedMessage')}
       </p>
-      {simulated && <p className="erm-success-text" role="status" data-testid="erm-simulated">{t('enhancementRequestModal.simulatedNotice')}</p>}
+      {simulated && <p className="erm-success-text" role="status" data-testid="erm-simulated">{notes?.destinationHost ? t('enhancementRequestModal.simulatedDestinationNotice', { host: notes.destinationHost }) : t('enhancementRequestModal.simulatedNotice')}</p>}
+      {!simulated && notes?.destinationHost && <p className="erm-success-text" role="status" data-testid="erm-delivered">{t('enhancementRequestModal.deliveredNotice', { host: notes.destinationHost })}</p>}
+      {notes?.routedTo === 'validation' && <p className="erm-success-text" role="status" data-testid="erm-validation-routed">{t('enhancementRequestModal.validationRoutedNotice')}</p>}
+      {notes?.routedTo === 'qa' && <p className="erm-success-text" role="status" data-testid="erm-validation-fallback">{t('enhancementRequestModal.validationFallbackNotice')}</p>}
       {ticketUrl && (
         <a href={ticketUrl} target="_blank" rel="noopener noreferrer" className="erm-success-link">
           {t('enhancementRequestModal.viewTicket')}
@@ -229,6 +236,19 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
   const [submitted,       setSubmitted]       = useState(false);
   const [ticketUrl,       setTicketUrl]       = useState<string | undefined>();
   const [simulated,       setSimulated]       = useState(false);
+  const [sentNotes,       setSentNotes]       = useState<SentNotes>({});
+  // 'AI / Template validation': the two optional links, and what they can offer (loaded when that category is chosen).
+  const [linkOptions,     setLinkOptions]     = useState<ValidationLinkOptions | null>(null);
+  const [studyId,         setStudyId]         = useState('');
+  const [templateId,      setTemplateId]      = useState('');
+  const isValidation = isQA && category === VALIDATION_CATEGORY;
+  React.useEffect(() => {
+    if (!isValidation || linkOptions) return;
+    let alive = true;
+    loadValidationLinkOptions().then(o => { if (alive) setLinkOptions(o); }).catch(() => { if (alive) setLinkOptions({ studies: [], templates: [] }); });
+    return () => { alive = false; };
+  }, [isValidation, linkOptions]);
+  const templateChoices = linkOptions ? templatesForStudy(linkOptions, studyId) : [];
 
   const canSubmit = title.trim().length > 0 && description.trim().length > 0 && !submitting;
 
@@ -285,6 +305,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
       attachments,
       includeSystem,
       mode,
+      validationLinks: isValidation && linkOptions ? buildValidationLinks(linkOptions, studyId, templateChoices.some(x => x.id === templateId) ? templateId : '') : undefined,
       screenshotDataUrl: (screenshot && includeScreenshot) ? await compressScreenshot(screenshot.dataUrl, 400, 0.3) : undefined,
       metadata: includeSystem && user
         ? await captureMetadata({ id: user.id, name: user.name, role: user.role })
@@ -297,9 +318,10 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
       if (result.success) {
         setTicketUrl(result.ticketUrl);
         setSimulated(!!result.simulated);
+        setSentNotes({ destinationHost: result.destinationHost, routedTo: result.routedTo });
         setSubmitted(true);
       } else {
-        setError(result.error ?? t('enhancementRequestModal.submissionFailed'));
+        setError(result.errorCode ? t(`enhancementRequestModal.errors.${result.errorCode}`) : result.error ?? t('enhancementRequestModal.submissionFailed'));
       }
     } catch (err: any) {
       setError(err?.message ?? t('enhancementRequestModal.unexpectedError'));
@@ -316,7 +338,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     >
       <div onClick={e => e.stopPropagation()} className="erm-modal">
         {submitted ? (
-          <SuccessScreen ticketUrl={ticketUrl} simulated={simulated} onClose={onClose} />
+          <SuccessScreen ticketUrl={ticketUrl} simulated={simulated} notes={sentNotes} onClose={onClose} />
         ) : (
           <>
             {/* Header */}
@@ -365,7 +387,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               {/* QA routing notice */}
               {isQA && (
                 <div className="erm-qa-notice">
-                  {'🐛 '}{t('enhancementRequestModal.qaRoutingNotice')}
+                  {'🐛 '}{t(isValidation ? 'enhancementRequestModal.qaRoutingNoticeValidation' : 'enhancementRequestModal.qaRoutingNotice')}
                 </div>
               )}
 
@@ -407,6 +429,24 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                   </div>
                 </div>
               </div>
+
+              {/* AI / Template validation: optional links to a study and a template */}
+              {isValidation && (
+                <div data-testid="erm-validation-links">
+                  <div className="erm-label">{t('enhancementRequestModal.validationLinks.title')} <span className="erm-label-optional">{t('enhancementRequestModal.optionalNote')}</span></div>
+                  <label className="erm-label" htmlFor="erm-validation-study">{t('enhancementRequestModal.validationLinks.study')}</label>
+                  <select id="erm-validation-study" className="erm-input" value={studyId} onChange={e => { setStudyId(e.target.value); setTemplateId(''); }}>
+                    <option value="">{t('enhancementRequestModal.validationLinks.none')}</option>
+                    {(linkOptions?.studies ?? []).map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                  </select>
+                  {linkOptions && linkOptions.studies.length === 0 && <div className="erm-capture-hint">{t('enhancementRequestModal.validationLinks.noStudies')}</div>}
+                  <label className="erm-label" htmlFor="erm-validation-template">{t('enhancementRequestModal.validationLinks.template')}</label>
+                  <select id="erm-validation-template" className="erm-input" value={templateId} onChange={e => setTemplateId(e.target.value)}>
+                    <option value="">{t('enhancementRequestModal.validationLinks.none')}</option>
+                    {templateChoices.map(tp => <option key={tp.id} value={tp.id}>{t('enhancementRequestModal.validationLinks.templateOption', { name: tp.name, version: tp.version })}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* Screen capture — opt-in */}
               {!screenshot ? (

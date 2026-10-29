@@ -26,6 +26,8 @@ export interface SlideLabelDispatchRequest {
   level: string;
   stainName: string;
   slideId: string;
+  /** Batch 715: the case's slide setting; Letters prints the level as "La" (text only, the slide id keeps L1). */
+  slideDesignation?: 'letters' | 'numbers';
 }
 
 export interface SlideLabelDispatchResult {

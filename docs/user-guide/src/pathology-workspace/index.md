@@ -6,7 +6,7 @@ keywords: [pathology workspace, microtomy, embedding, slide distribution, cytolo
 routes: [/pathology-workspace]
 previous: grossing
 next: worklist
-related: [bench-contributions, grossing, batch-management, workstations/embedding, workstations/microtomy, workstations/slide-distribution, cytology, molecular, margin-exception-review]
+related: [bench-contributions, grossing, batch-management, workstations/embedding, workstations/microtomy, workstations/slide-distribution, cytology, molecular]
 status: Draft
 ---
 
@@ -14,7 +14,7 @@ status: Draft
 
 ## Overview
 
-**Purpose.** Pathology Workspace is the doorway to the laboratory's workstations. It is a second-level screen of tiles: cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, batch management, and the margin exception review queue. Choose a tile to open that workstation.
+**Purpose.** Pathology Workspace is the doorway to the laboratory's workstations. It is a second-level screen of tiles: grossing, add-on orders, margin exception review, cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, and batch management. Choose a tile to open that workstation.
 
 **Intended users.** Histotechnologists, pathology assistants and laboratory managers. Cytology and molecular staff reach their own workstations here too. What you see depends on your role.
 
@@ -39,13 +39,15 @@ The tiles, when your role allows them:
 
 | Tile | One-line description on the tile |
 |---|---|
-| Cytology Workspace | Primary screening hub for GYN Paps, Non-GYN triage, cell block tracking, and mandatory QC. |
-| Microtomy Workspace | Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench. |
-| Embedding Workspace | Cassette scan/verify, piece-count confirmation, mold selection, and discrepancy flagging at the embedding bench. |
-| Slide Distribution Workspace | Continuous-scan checkout to pathologists or ingestion into a digital scanner, with split-destination warnings and exception handling. |
-| Molecular Workspace | Batch and plate management, active runs, and QC/specimen association for molecular diagnostics (HPV, CT/NG, respiratory PCR). |
+| Grossing | For pathology assistants and grossing pathologists. Opens the list of cases waiting to be grossed, and from there the Grossing screen with its bench tools (cassettes, photos, decal bench, add-on orders). |
+| Add-On Orders | Opens the Add-On Orders screen, where add-on stains and levels are ordered on blocks already cut. |
+| Margin Exception Review | The tile reads "Review margin answers". Margin-distance answers the system could not read, to tag or dismiss. Moved here from Quality & Compliance, so pathologists reach it from their workspace. |
+| Cytology Workspace | The tile reads "Screening, triage and QC". Primary screening hub for GYN Paps, Non-GYN triage, cell block tracking, and mandatory QC. |
+| Microtomy Workspace | The tile reads "Slide labels, stains, prep". Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench. |
+| Embedding Workspace | The tile reads "Verify cassettes at embedding". Cassette scan/verify, piece-count confirmation, mold selection, and discrepancy flagging at the embedding bench. |
+| Slide Distribution Workspace | The tile reads "Slide checkout and scanning". Continuous-scan checkout to pathologists or ingestion into a digital scanner, with split-destination warnings and exception handling. |
+| Molecular Workspace | The tile reads "Batches, plates, runs and QC". Batch and plate management, active runs, and QC/specimen association for molecular diagnostics (HPV, CT/NG, respiratory PCR). |
 | Batch Management | Track cassettes and slides through processing nodes via container barcodes. |
-| Margin Exception Review | Margin-distance free-text answers the system could not confidently read: tag the real distance or dismiss with a reason. |
 
 !!! note "Workstation names"
     The tile for the microtomy workstation is called Microtomy Workspace, but once you open it the page is titled Microtomy Workstation. The same applies to Embedding and Slide Distribution, which are titled Embedding Station and Slide Distribution Station.
@@ -127,16 +129,6 @@ None are specific to this screen. Alt+H (Go Home) returns you to Home, and F1 (V
 1. Select the **Batch Management** tile. The list of batches opens, with **Active & Reconciling** and **Complete & Aborted** sections.
 2. Scan or type a master batch barcode in the lookup box to find a batch, or select **New Container** to register one.
 3. Tiles on the screen open related queues, such as Pending Load, Disposal, Retention Holds, Label reprint, Slide scanning, Engraver Monitor and Equipment log.
-
-### Margin Exception Review
-
-**What it is for.** A queue of margin-distance answers, typed as free text during reporting, that the system could not turn into a number. A person tags the real distance in millimetres or dismisses the entry with a reason.
-
-**How to start.**
-
-1. Select the **Margin Exception Review** tile.
-2. Open an entry, enter the distance in millimetres, or choose to dismiss it and give a reason.
-3. When there is nothing waiting, the screen says "No pending margin-distance exceptions."
 
 !!! note "Full articles per workstation come later"
     Each workstation will get its own guide article. The steps above are only the first moves.

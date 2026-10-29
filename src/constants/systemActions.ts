@@ -29,7 +29,7 @@
 // Never reuse or reassign an internalKey even if an action is removed.
 // ─────────────────────────────────────────────────────────────────────────────
 import { DEFAULT_ACTION_GRANTS } from './defaultActionGrants';
-import { ADDED_ACTION_GROUPS, type ResultRegistryActionId, type LockboxActionId, type PatientBannerActionId, type WorklistRowActionId, type CaseTeamActionId } from './addedActionGroups';
+import { ADDED_ACTION_GROUPS, type ResultRegistryActionId, type LockboxActionId, type PatientBannerActionId, type WorklistRowActionId, type CaseTeamActionId, type GrossingBenchActionId } from './addedActionGroups';
 
 export type ActionId =
   // ── System (always available) ────────────────────────────────────────────
@@ -183,7 +183,7 @@ export type ActionId =
   | 'caseAccess.deny' | 'caseAccess.revoke' | 'searchReport.save' | 'searchReport.export'
   | 'searchReport.schedule' | 'followUp.expect' | 'followUp.recordOutcome' | 'followUp.reopen'
   | 'followUp.emailClinician' | 'codes.searchFlagged' | 'biometric.enrol' | 'biometric.disable'
-  | 'outboundQueue.hold' | 'outboundQueue.release' | 'outboundQueue.retry' | 'outboundQueue.retract' | 'outboundQueue.overrideRelease' | 'outboundQueue.markNotReportable' | ResultRegistryActionId | LockboxActionId | PatientBannerActionId | WorklistRowActionId | CaseTeamActionId;
+  | 'outboundQueue.hold' | 'outboundQueue.release' | 'outboundQueue.retry' | 'outboundQueue.retract' | 'outboundQueue.overrideRelease' | 'outboundQueue.markNotReportable' | ResultRegistryActionId | LockboxActionId | PatientBannerActionId | WorklistRowActionId | CaseTeamActionId | GrossingBenchActionId;
 
 export interface SystemAction {
   id: ActionId;

@@ -26,7 +26,6 @@
 import { LOCKBOX_CAPABILITIES } from './lockboxCapabilities';
 import { WORKFLOW_CAPABILITIES } from './workflowCapabilities'; import { INTRAOP_CAPABILITIES } from './intraopCapabilities'; import { MOLECULAR_CONTROL_RULES_CAPABILITIES } from './molecularControlRulesCapabilities';
 export type CapabilityRisk = 'high' | 'standard';
-
 export type CapabilityGroupId =
   | 'screens'
   | 'casework'
@@ -104,6 +103,7 @@ export const CAPABILITY_CATALOG = [
   // Pathology Workspace hub
   { key: 'screen:cytology-workspace:open',   labelId: 'screenCytologyWorkspaceOpen',   group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:microtomy:open',            labelId: 'screenMicrotomyOpen',           group: 'screens', risk: 'standard', requires: [] },
+  { key: 'screen:grossing:open',              labelId: 'screenGrossingOpen',            group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:embedding:open',            labelId: 'screenEmbeddingOpen',           group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:slide-distribution:open',   labelId: 'screenSlideDistributionOpen',   group: 'screens', risk: 'standard', requires: [] },
   { key: 'screen:molecular:open',            labelId: 'screenMolecularOpen',           group: 'screens', risk: 'standard', requires: [] },

@@ -62,7 +62,7 @@
 </tr>
 <tr>
 <td>AI status chip</td>
-<td><strong>No AI suggestions yet</strong>, <strong>AI Drafted</strong> (no required field below the confidence limit) or <strong>Review Pending</strong> (a required field is below it). Selecting <strong>Review Pending</strong> opens AI Review Mode (see "AI suggestions").</td>
+<td><strong>No AI suggestions yet</strong>, <strong>AI Drafted</strong> (no required field flagged for a closer look) or <strong>Review Pending</strong> (a required field is flagged). No percentage or score is shown. Selecting <strong>Review Pending</strong> opens AI Review Mode (see "AI suggestions").</td>
 </tr>
 <tr>
 <td>Data as of (Assist mode)</td>
@@ -205,12 +205,12 @@
 </thead>
 <tbody>
 <tr>
-<td>A percentage, for example 92%</td>
-<td>The AI's confidence in its suggestion. Green for 85% and above, amber from 50% to 84%, red below 50%.</td>
+<td><strong>AI suggestion</strong></td>
+<td>The AI offered this value and you have not yet confirmed or overridden it. PathScribe shows no percentage or score for it; check the source text it quotes.</td>
 </tr>
 <tr>
-<td><strong>AI: low confidence (n%)</strong></td>
-<td>The confidence is below your organisation's limit (75% unless your administrator set another). The suggested value is shown for review; read it carefully.</td>
+<td><strong>Check source</strong></td>
+<td>The AI's value was flagged for a closer look (it fell below your organisation's review limit). The suggested value is shown for review; compare it with the source text before you confirm.</td>
 </tr>
 <tr>
 <td><strong>AI: not found</strong></td>
@@ -499,9 +499,9 @@
 <p><strong>Part 3: Complete the synoptic checklist</strong></p>
 <ol start="7">
 <li>Work through the sections. Answer each required field (marked <em>). Use </em><em>→ Next Required</em>* to move quickly.</li>
-<li>If you use the AI tools, select <strong>Suggest Synoptic from Narrative</strong> (or <strong>⚡ Orchestrator</strong>). Suggestions appear on fields with a confidence badge.</li>
+<li>If you use the AI tools, select <strong>Suggest Synoptic from Narrative</strong> (or <strong>⚡ Orchestrator</strong>). Suggestions appear on fields with an <strong>AI suggestion</strong> badge and the source text the AI quoted.</li>
 <li>For each AI suggestion, select <strong>✓ Confirm</strong> if it is right, or <strong>✎ Override</strong> and enter the correct value. A suggestion you have not confirmed or overridden counts as unverified, and <strong>a required field left unverified blocks finalizing</strong>.</li>
-<li>Use <strong>→ Next Unverified</strong> to reach the remaining ones. Fields marked <strong>AI: low confidence</strong> or <strong>Source not found in report text</strong> deserve a careful read against the narrative.</li>
+<li>Use <strong>→ Next Unverified</strong> to reach the remaining ones. Fields marked <strong>Check source</strong> or <strong>Source not found in report text</strong> deserve a careful read against the narrative.</li>
 <li>Select <strong>Save Draft</strong> at any time. The save icon is blue when something is unsaved.</li>
 </ol>
 <p><strong>Part 4: Write the report (Orchestration mode)</strong></p>
@@ -531,7 +531,7 @@
 <ol>
 <li><strong>Release a preliminary report (Orchestration).</strong> Select <strong>Release as Preliminary</strong> at any point before final sign-out, for example when a partial finding is clinically urgent. A message reads <strong>Preliminary report released (n specimens)</strong>, or says it is held for the release delay and goes out at a stated time. The case stays open and the report carries the PRELIMINARY watermark.</li>
 <li><strong>Start from the narrative.</strong> Dictate or type the gross and microscopic text first, then select <strong>Suggest Synoptic from Narrative</strong> to have the checklist filled in for your review.</li>
-<li><strong>AI Review Mode.</strong> When the header chip says <strong>Review Pending</strong>, select it. One uncertain AI finding is shown at a time ("Field 2 of 5") with its confidence and source. Press Space to confirm, O to override or S to skip. The footer can offer <strong>Confirm &amp; Finalise</strong> at the last finding.</li>
+<li><strong>AI Review Mode.</strong> When the header chip says <strong>Review Pending</strong>, select it. One uncertain AI finding is shown at a time ("Field 2 of 5") with its source; the card says <strong>Source found in report text</strong> or, when it cannot be found, shows the banner <strong>Source not found in report text</strong>. Press Space to confirm, O to override or S to skip. The footer can offer <strong>Confirm &amp; Finalise</strong> at the last finding.</li>
 <li><strong>Read-only view.</strong> From the Worklist, Search, a message or a quality queue, a case can open in the read-only report view. It shows the accession, <strong>Last Updated</strong>, the full report and its internal notes. <strong>← Back</strong> returns where you came from. For a pool case, <strong>✋ Claim This Case</strong> appears. Quality staff reviewing a signed-out case see the post-sign-out review bar here.</li>
 <li><strong>Comments.</strong> Use <strong>Add Case Comment</strong> for a note to everyone on the case, or the specimen comment icon for one specimen. Comments on a specimen are sent to the LIS on finalization and become read-only when finalized. <strong>Internal Notes</strong> are for the team and are not part of the patient report.</li>
 <li><strong>Delegate.</strong> Select <strong>Delegate</strong>, pick a <strong>Delegation Type</strong>, then a recipient (an individual or a pool) from the right-hand list by dragging or selecting. Enter the note (required) and select <strong>Confirm Delegation</strong>. A type marked "transfers ownership" hands the case over. You cannot delegate to a cytotechnologist.</li>
@@ -689,7 +689,7 @@
 <li><strong>Show full patient header</strong> (tooltip) expands the compact header back to the full patient details.</li>
 <li><strong>Overall case status</strong> (tooltip) is the status badge at the top right of the header.</li>
 <li>The block list in the header shows, for each block, its stains (or "no stains yet"), its status, and the case priority. When a block has its own priority a small tooltip reads <strong>Priority override</strong>.</li>
-<li>In the AI summary, <strong>Field at {{pct}}% confidence</strong> names the single field with the lowest confidence. <strong>No required fields below threshold</strong> means every required field the AI filled in is above your laboratory's confidence limit.</li>
+<li>In the AI summary, <strong>Review Pending</strong> means a required field was flagged for a closer look; the chip carries no percentage. <strong>No required fields below threshold</strong> means no required field the AI filled in was flagged under your laboratory's review limit.</li>
 </ul>
 <h3 id="left-report-panel-and-sidebar">Left report panel and sidebar</h3>
 <ul>
@@ -750,7 +750,7 @@
 <h3 id="common-mistakes">Common mistakes</h3>
 <ul>
 <li>Leaving AI suggestions unverified. A required field that is unverified blocks sign-out even if the value looks right. Confirm or override it.</li>
-<li>Treating a high percentage as proof. A confident suggestion with <strong>Source not found in report text</strong> has not been matched to your narrative. Read it.</li>
+<li>Treating a suggestion as proof because the AI offered it. A suggestion with <strong>Source not found in report text</strong> has not been matched to your narrative. Read it.</li>
 <li>Looking for Sign Out Case on an Assist case. Assist cases use <strong>Finalize</strong>; the LIS signs out.</li>
 <li>Editing after sign-out. Sections are locked; use <strong>Request Amendment / Addendum</strong>, or <strong>Recall Report</strong> while the hold is still running.</li>
 <li>Changing the template late. It regenerates every section in the Report Draft tab.</li>

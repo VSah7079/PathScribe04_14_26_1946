@@ -149,10 +149,10 @@ export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
   // Batch 491: and the margin-exception review queue, same roles — the
   // same clinical judgment call as case:margin-exception:resolve, which
   // this screen exists to reach.
-  pathologist: screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
-  fellow:      screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
-  resident:    screens('worklist', 'search', 'add-on-orders', 'intraop-queue', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
-  pa:          screens('accession', 'worklist', 'search', 'intraop-queue', 'embedding', 'my-contributions', 'tumor-board', 'margin-exception-review'),
+  pathologist: screens('grossing', 'worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
+  fellow:      screens('grossing', 'worklist', 'search', 'add-on-orders', 'intraop-queue', 'cytology-qc-queue', 'surgical-qa-worklist', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
+  resident:    screens('grossing', 'worklist', 'search', 'add-on-orders', 'intraop-queue', 'my-contributions', 'cytology-workspace', 'tumor-board', 'margin-exception-review'),
+  pa:          screens('accession', 'worklist', 'search', 'add-on-orders', 'intraop-queue', 'grossing', 'embedding', 'my-contributions', 'tumor-board', 'margin-exception-review'),
   // Batch 486 (Pete): considered, then reverted — the four bench roles
   // don't need My Contribution (it's a pathologist/resident screen). A
   // Cytotech Competency Assessment supervisor's own Mentor-tab fix

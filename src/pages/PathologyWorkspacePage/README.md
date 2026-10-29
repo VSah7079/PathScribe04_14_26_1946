@@ -31,3 +31,11 @@ own image (see this file's own comment).
 
 See `pages/MarginExceptionReviewPage.tsx`, `hooks/useMarginExceptionReview.ts`,
 and `services/marginExtraction/README.md` for the rest of the feature.
+
+## Batch 708 — Margin Exception Review moved to Quality & Compliance
+
+Pete (Oct 28, 2026): the margin exception queue works on cases after sign-out and is an oversight task, not bench work, so it now lives in the Quality & Compliance hub (`HUB_SCREENS.qualityCompliance`), not here. Same screen, route (`/margin-exception-review`) and capability; only the hub changed. Its tile strings moved to the `qualityComplianceHub.marginExceptionReviewTile` namespace in all six locales. This hub is back to six tiles.
+
+## Batch 710 — Tile descriptions
+
+The six tile descriptions (`pathologyWorkspace.*Tile.description`) are now one short line each in all six languages so they fit the shared `.ps-home-card`; `src/i18n/tileDescriptionLength.test.ts` holds the character budget. Long titles (French, Spanish, Dutch, German) can still fill the card on their own.

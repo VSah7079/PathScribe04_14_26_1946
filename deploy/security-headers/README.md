@@ -95,3 +95,5 @@ A path on this site needs nothing. See `docs/architecture/RUNTIME_CONFIG.md`.
 ## Batch 590
 
 `VITE_ERROR_MONITORING_DSN` is one of the config.json addresses added to `connect-src` (only its origin; the key is dropped).
+
+`VITE_ENHANCEMENT_REQUEST_URL` is another config.json address added to `connect-src` (Oct 28, 2026).

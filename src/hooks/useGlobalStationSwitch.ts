@@ -27,7 +27,8 @@ import { useEffect, useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 // Batch 465b: through the services barrel (deployment-neutral), not the mock file.
-import { scanStationService } from '@/services';
+import { scanStationService, authorizationService } from '@/services';
+import { canUseStation } from '@/services/scanStations/stationsForUser';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import { useEffectiveScanStation } from './useEffectiveScanStation';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
@@ -56,6 +57,13 @@ export function useGlobalStationSwitch() {
       return;
     }
     const station = result.data;
+
+    // Batch 713: a station barcode for a facility this user may not use is refused, like the lists.
+    const snap = await authorizationService.snapshot().catch(() => null);
+    if (!canUseStation(station, snap?.subject?.facilityIds ?? [])) {
+      toast.warn(t('stationSwitch.notAuthorized', { station: station.name }));
+      return;
+    }
 
     if (!isDirty) {
       setStationId(station.id);

@@ -16,6 +16,21 @@ The server receives orders from the interface engine (HL7, API); the browser lis
 | `POST /api/order-intake/order-intake/mark-order-linked` | `{ caseId }` | the order (status `linked`) |
 | `POST /api/order-intake/order-intake/resolve-order` | | `{ order, warnings[] }`: facility, provider, dictionary entries and department resolved or created |
 
+### 1a. Clinical indication mapping (Batch 714): the contract for the server
+
+The server fills `IncomingOrder.clinicalIndication` and `IncomingOrder.clinicalIndicationSource` when it builds the order from the message. **This repo has no inbound HL7 or FHIR order parser; the rule below is implemented and tested as a pure function (`src/services/orderIntake/clinicalIndicationFromOrder.ts`) and is the contract. The server code that calls it is not built here.** First source with text wins; nothing is invented, and with no text the field is left out.
+
+| Priority | `clinicalIndicationSource` | HL7 v2 | FHIR R4 |
+|---|---|---|---|
+| 1 | `obr31` | OBR-31 Reason for Study (text, else display, else code as sent; repeats joined with "; ") | |
+| 2 | `orc16` | ORC-16 Order Control Code Reason | |
+| 3 | `dg1` | DG1-4 description, with DG1-3 code as "description (code)"; a code alone stays a code; repeats joined with "; " | |
+| 4 | `nte` | NTE-3 text the sender marks as the order reason (not every NTE) | |
+| 5 | `fhirReasonCode` | | `ServiceRequest.reasonCode` (`text`, else `coding.display`, else `coding.code`) |
+| 6 | `fhirReasonReference` | | text of the referenced Condition / Observation (`code.text`, else display) |
+
+OBX is not used. The browser stores `Case.order.clinicalIndication` (what is shown and compared), `clinicalIndicationSource` (`order`, `editedFromOrder` or `entered`), `orderClinicalIndication` (the order's original text) and `orderClinicalIndicationField` (the source id above). The Clinical-Pathologic Mismatch Check reads `clinicalIndication`.
+
 ## 2. Specimen-code crosswalk
 
 | Call | Body | Reply |

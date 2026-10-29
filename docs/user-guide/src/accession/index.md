@@ -47,7 +47,7 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 | Choice | What it means |
 |---|---|
 | Standard / EMR Order | The usual case. |
-| Temporary / Downtime | For an unidentified patient or a registration outage. Shows a warning that the identity must be reconciled later, and a **Downtime Reason** list. |
+| Temporary / Downtime | For an unidentified patient or a registration outage. Shows a warning that the identity must be reconciled later, and a required **Downtime Reason** list; you cannot go on or submit until a reason is chosen. |
 | Outside / Contract Case | External billing and report distribution. Adds the **Outside Patient Data** tab. |
 
 **Patient**
@@ -81,7 +81,7 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 | Origin Hospital / Organisation, Site / Facility | Show where the case belongs. The site list appears when your organisation has more than one site. |
 | Requesting Provider | Required. Search staff or type a name. Unverified physicians are marked "unverified". |
 | Assign to Pathologist (optional) | Leave as "Unassigned - leave for triage" to let triage decide. |
-| Clinical Indication | The reason for the specimen. Your laboratory may require it. It also helps PathScribe propose grossing templates. |
+| Clinical Indication | The reason for the specimen. Your laboratory may require it. It also helps PathScribe propose grossing templates and feeds the Clinical-Pathologic Mismatch Check. When you import an order, the box fills with the ordering clinician's own reason, and a small note under it names the order field it came from (for example "From the order: OBR-31 Reason for Study. Check it; edit if needed."). If you change the text the note reads "Edited from the order" and shows the original order text; both are kept on the case. Text you type yourself carries no note. |
 | Check for Existing Patient (optional) | Search for a patient already known under another name (for example a name change). **This is the same patient** links the new case to that person without merging the two records. |
 | ICD-10 Diagnosis Code(s) | Search by code or description and add as many as you need. |
 | Case Comment (optional) | A general note about the whole case. |
@@ -102,7 +102,10 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 | Authority Type, Verbal Order Received At, Verbal Order Received From | For a medicolegal case. |
 | Consenting Relative Name, Relationship | Optional, for a hospital-consented case. |
 
-**Specimens tab (one block per specimen, labelled A, B, C...)**
+**Specimens tab (one block per specimen, labelled A, B, C... or 1, 2, 3...)**
+
+!!! tip "Letters or numbers"
+    Your laboratory chooses whether specimens, blocks and slides are labelled with letters or with numbers. With the usual choice the specimens are A, B, C, the blocks are A1, A2, A3 and the slide labels read L1, L2. Another laboratory may use specimens 1, 2, 3 with blocks 1A, 1B, 1C, or letters for slides (La, Lb). The labels follow the laboratory that will do the work, once you have chosen the facility; if you change the facility, the specimens still on the form are relabelled. When you submit, the choice is saved on the case, so blocks and slides added later (at grossing or on the report) are labelled the same way, even if the laboratory changes its setting afterwards. Labels already on a case never change.
 
 | Field | What it means |
 |---|---|
@@ -116,7 +119,7 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 | Date/Time Collected | Left blank on purpose. It starts the cold-ischemia clock. |
 | Date/Time Placed in Fixative | Left blank on purpose. Tick **Estimated - not directly documented** if you are estimating. |
 | Date/Time Received | Starts at the current time. |
-| Referral Client, Referral Client ID (optional) | The outside lab and the id it gave the specimen. A warning appears if that id is already on another case or specimen. |
+| Outside Lab Name, Outside Lab Specimen / Accession ID (optional) | The outside lab and the id it gave the specimen. A warning appears if that id is already on another case or specimen. |
 | Comment (optional) | Opens a comment window for the specimen. |
 | Deficiencies (optional) | Flag a problem with this specimen (damaged container, too little volume). More than one can be added. |
 
@@ -145,7 +148,7 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 
 - **Container Type** starts at "Select container type…".
 - Under the specimen, "Department: …" says which department PathScribe chose for it. When the department did not exist before, the line adds "(new — pending admin review)": an administrator confirms it later; you can carry on.
-- **Referral Client (optional)** is the outside lab; the id box beside it is the number that lab gave the specimen.
+- **Outside Lab Name (optional)** is the outside lab; the id box beside it is the number that lab gave the specimen.
 - The Deficiencies button shows the type of a single problem, as "⚠ (type) — click to edit", or "⚠ n deficiencies reported — click to manage". If the type cannot be named it reads "Deficiency reported".
 - In the comment window a specimen without a description yet shows "(no description yet)".
 - After accessioning, **Blocks & Stains** lists each block; a block with no stain shows "(no stains ordered yet)".
@@ -177,11 +180,11 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 | Case & Patient, Specimens | The tabs. The Specimens tab shows how many specimens have a description, for example "Specimens (2)". |
 | Search (magnifier) | Searches waiting orders. Enter does the same. |
 | Next: Specimens | Moves to the Specimens tab. Greyed out until the required case fields are filled. |
-| + Add Specimen | Adds the next specimen (B, C...). |
-| Remove specimen (x) | Removes that specimen and relabels the rest. Shown only when there is more than one. |
+| + Add Specimen | Adds the next specimen (B, C... or 2, 3...). |
+| Remove specimen (x) | Removes that specimen and relabels the rest, in your laboratory's letters or numbers. Shown only when there is more than one. |
 | Back | Returns to Case & Patient. |
 | Submit Accession | Saves the case. It reads "Assigning Grossing Templates..." while working. |
-| Print Labels | After saving: prints one requisition label and one label per container. |
+| Print Labels | Labels print by themselves when you save, unless your laboratory has turned that off (Configuration > Print Settings > Print labels when a case is accessioned). The button stays on the card for reprints: it prints one requisition label and one label per container. |
 | Accession Another Case | Clears the form for the next case. |
 | Go to Worklist | Opens the Worklist. |
 
@@ -189,11 +192,11 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 
 | Indicator | Meaning |
 |---|---|
-| Red asterisk | Required field. |
+| Red asterisk | Required field. Which fields are required follows your laboratory's Field Requirements. |
 | "Still required: ..." line | Lists what is missing. It disappears when complete. |
 | "Clinical history not yet recorded: ..." | A reminder only. The case can be accessioned now and the history added later. |
 | Warning banner "Specimen requisition deficiency" | An imported specimen's text did not match the dictionary. Pick the right entry or select **Confirm - no dictionary match, proceed as custom**. It blocks submission until resolved. |
-| Warning "These specimens span different case types" | Specimens from different departments must be accessioned as separate cases. It blocks submission. |
+| Warning "These specimens span different case types" | The specimens belong to different case types (the departments Surgical, Non-GYN Cytology and Consultation each draw their numbers from their own accession series). Today PathScribe blocks submission and asks for separate cases. Several specimens of one case type (A, B, C) stay on one case, and molecular testing is not affected: it is ordered later as an add-on on the same case and keeps that case number. |
 | Lightbulb "Suggested from order" | Laterality was guessed from the description. |
 | Warning triangle on Deficiencies | One or more problems are flagged. |
 | Check mark on a comment button | Shows how many comments exist. |
@@ -207,7 +210,7 @@ On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, 
 ### Standard workflow
 
 1. Open Accession from the Home tile. The Case & Patient tab opens.
-2. If an order is waiting, type its number, MRN, name or date of birth in **Import from Order**. Select the order in the list. The patient, facility, provider and specimens fill in. If the form already holds your typing, a window "Replace Unsaved Information" asks you to confirm.
+2. If an order is waiting, type its number, MRN, name or date of birth in **Import from Order**. Select the order in the list. The patient, facility, provider, clinical indication and specimens fill in; read the note under Clinical Indication and edit the text if it needs it. If the form already holds your typing, a window "Replace Unsaved Information" asks you to confirm.
 3. If there is no order, leave that box and keep going.
 4. Check **Patient Origin / Intake Type**; leave it on Standard unless one of the exceptions below applies.
 5. Enter or check the names, Date of Birth, Sex, Patient ID and Priority.
@@ -220,7 +223,7 @@ On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, 
 12. Check the "Ready to accession" card: the patient, the specimen count, priority and facility.
 13. Select **Submit Accession**. A message says the case was accessioned with the number of specimens.
 14. The Labels card appears. Select **Print Labels** to print one requisition label and a container label for each specimen.
-15. The "Grossing Templates assigned" card lists each specimen with its template and confidence, and a "Blocks and Stains" list shows the first block and stains created. A message follows when templates are refined.
+15. The "Grossing Templates assigned" card lists each specimen with its template (marked "override" when an override chose it) and its reason, and a "Blocks and Stains" list shows the first block and stains created. A message follows when templates are refined.
 16. Select **Accession Another Case** or **Go to Worklist**.
 
 ### Alternative workflow
@@ -231,10 +234,10 @@ On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, 
 
 ### Exception handling
 
-1. **Unidentified patient or system outage.** Choose **Temporary / Downtime**, then pick a reason under **Downtime Reason**. A flag marks the identity to be reconciled later.
+1. **Unidentified patient or system outage.** Choose **Temporary / Downtime**, then pick a reason under **Downtime Reason** (required; Next and Submit Accession stay greyed out until you do). A flag marks the identity to be reconciled later.
 2. **Outside or contract case.** Choose **Outside / Contract Case**, finish the Specimens tab, then open **Outside Patient Data** for the primary jurisdiction, payment category, payer, coverage number and optional secondary coverage.
 3. **Imported specimen does not match the dictionary.** Choose the right dictionary entry, or confirm no match exists. A record of the mismatch is kept either way.
-4. **Specimens from different departments.** Accession them separately. Remove the other specimens, submit, then use **Accession Another Case**.
+4. **Specimens of different case types (departments).** Today they are accessioned separately. (Molecular tests are not a separate accession: order them as an add-on on the case.) Remove the other specimens, submit, then use **Accession Another Case**.
 5. **Several active encounters.** Choose the correct one, or create without a link.
 6. **Specimen problem found.** Use **Deficiencies (optional)** on the specimen, or **Case-Level Deficiencies** for the whole case. Choose an Issue, add Detail, and **Done**. Each becomes an open record tracked on its own; you need not resolve it now.
 7. **A matching intraoperative entry exists.** After saving, a window "Intraoperative Entry Found" offers **Merge Now**, **Not this case**, or **Review in Intraop Queue**. Merge adds the entry's gross description and photos to the case.
@@ -259,7 +262,7 @@ On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, 
 - Filling the collected and fixation times with "now". Leave them blank when unknown; they are not the received time.
 - Adding the same patient twice because the order was not imported. Search the waiting orders first.
 - Expecting Alt+Enter to save the case. It does not.
-- Choosing Temporary / Downtime but forgetting the reason. The reason is marked required, but the screen does not currently stop you submitting without one, so check it yourself.
+- Choosing Temporary / Downtime but leaving the reason empty. **Next** and **Submit Accession** stay greyed out, and the "Still required" line under them lists **Downtime reason**, until you pick one. Switch back to Standard and the reason is no longer asked for.
 
 ### Efficiency recommendations
 
@@ -294,18 +297,18 @@ On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, 
 | Problem | Likely cause |
 |---|---|
 | Next: Specimens is greyed out | A required case field is empty. Read the "Still required" line. |
-| Submit Accession is greyed out | A required field is empty, a specimen needs a dictionary decision, specimens belong to different departments, autopsy details are incomplete, or your role does not allow saving cases. |
+| Submit Accession is greyed out | A required field is empty, a specimen needs a dictionary decision, specimens belong to different case types (departments), autopsy details are incomplete, or your role does not allow saving cases. |
 | No orders appear in the list | Fewer than two characters typed, or no waiting order matches. |
 | A scan opens the lookup window | The scan was not an exact match to any waiting order. |
 | Location list is empty | No facility chosen yet, or none configured for it. |
 | Technical component field missing | It appears only for outside material and consultations. |
-| Template shows "default" or 0% confidence | The assistant was unavailable or unsure. Grossing can still proceed. |
+| Template shows "default" | The assistant was unavailable or unsure. Grossing can still proceed. |
 
 ### Resolution steps
 
 1. Read the "Still required" line and the red banners.
 2. Check the Specimens tab for banners.
-3. Remove specimens that belong to a different department and accession them separately.
+3. Remove specimens that belong to a different case type (department) and accession them separately.
 4. Reload the waiting orders by clearing the search box and typing again.
 5. If a button stays greyed out, ask your manager to check your role.
 

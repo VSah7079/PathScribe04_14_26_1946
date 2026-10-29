@@ -6,6 +6,8 @@
 
 The case worklist table and its pool-claim workflow.
 
+**Batch 709:** the Case column (display, sort) shows the visible case number from `services/cases/caseDisplayNumber.ts` (the accession number printed on labels, cassettes, blocks and slides, falling back to the internal id), not the internal routing id. Links and storage still use `Case.id`. `WorklistTable.tsx` stays 2,289 lines.
+
 ## Files
 
 - **`WorklistTable.tsx`** (~2,270 lines; was 1834, updated in the Batch 496 README audit — one of the largest single

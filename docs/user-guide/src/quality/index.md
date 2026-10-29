@@ -31,11 +31,11 @@ The hub is titled **Quality & Compliance**. A tile appears only if your role may
 
 | Tile | What it is |
 |---|---|
-| Audit | System activity logs, error and interface exception logs, and the financial audit trail. This is a read-only view of what happened in the system. Only people whose role allows it see the tile. It is not used to change anything. |
-| Quality Assurance | The working queue described in this article. |
-| Registry Exceptions | Cancer registry submissions that were held, not delivered, rejected or never answered. |
-| Autopsy Dashboards | Turnaround, consent, organ retention and cause of death figures. |
-| Outbound Queue | Hold, release and retry outbound messages, and fix registry rejections. |
+| Audit | The tile reads "Activity logs and audit trail". System activity logs, error and interface exception logs, and the financial audit trail. This is a read-only view of what happened in the system. Only people whose role allows it see the tile. It is not used to change anything. |
+| Quality Assurance | The tile reads "Deficiencies and discordance". The working queue described in this article. |
+| Registry Exceptions | The tile reads "Held and rejected submissions". Cancer registry submissions that were held, not delivered, rejected or never answered. |
+| Autopsy Dashboards | The tile reads "Turnaround, consent, retention". Turnaround, consent, organ retention and cause of death figures. |
+| Outbound Queue | The tile reads "Hold, release, retry messages". Hold, release and retry outbound messages, and fix registry rejections. |
 
 Select **← Back to Home** to return to the Home Dashboard.
 

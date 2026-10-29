@@ -26,7 +26,7 @@ export const SUPPORT_ROUTE_PATTERNS: readonly string[] = [
   '/molecular-batch/:batchId', '/molecular-rack', '/molecular-rack/:rackId', '/molecular-control-rules',
   '/dev/mock-interface-engine', '/quality-assurance', '/batch-management', '/batch-management/disposal',
   '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log', '/batch-management/wsi-scan', '/batch-management/label-reprint', '/batch-management/retention-holds',
-  '/workstations/microtomy', '/workstations/embedding', '/workstations/slide-distribution', '/add-on-orders',
+  '/workstations/grossing', '/workstations/microtomy', '/workstations/embedding', '/workstations/slide-distribution', '/add-on-orders',
   '/intraop-queue', '/molecular-order-queue', '/cytology-qc-queue', '/surgical-qa-worklist', '/migration-jobs',
   '/search', '/audit', '/registry-exceptions', '/autopsy-dashboards', '/outbound-queue', '/lockbox-drop-off', '/my-exports', '/configuration', '/contribution', '/bench-contributions', '/tumor-board', '/margin-exception-review', '/case/:caseId/synoptic', '/case/:caseId/grossing',
   '/report/:caseId', '/admin/parts/new', '/admin/parts/:partId/edit', '/admin/templates/new',

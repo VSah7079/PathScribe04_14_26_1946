@@ -11,3 +11,6 @@ export { mockStaffPasswordService as staffPasswordService } from './staffPasswor
 export { passwordConfirmProblem, PASSWORD_MIN_LENGTH } from './staffPasswords/staffPasswordRules';
 export { signInRefusalNotice } from './auth/signInLockout';
 export { mfaService } from './auth/mfa/mfaInstance';
+// Batch 711: "Ask my administrator to reset my password" (demo password sign-in only).
+export { passwordResetRequestService } from './staffPasswords/passwordResetRequestInstance';
+export { passwordSignInAvailable } from './staffPasswords/passwordSignInAvailable';

@@ -188,7 +188,7 @@ const AiInstructionsSection: React.FC = () => {
         {testResult && (
           <p className="ps-aiinstr-result" role="status">
             {testResult.outcome === 'mismatch'
-              ? t(`${K}.test.result.mismatch`, { kind: t(`clinicalMismatch.kinds.${testResult.suggestion.kind}`), confidence: testResult.suggestion.confidence, explanation: testResult.suggestion.explanation ?? '' })
+              ? t(`${K}.test.result.mismatch`, { kind: t(`clinicalMismatch.kinds.${testResult.suggestion.kind}`), explanation: testResult.suggestion.explanation ?? '' })
               : testResult.outcome === 'unavailable'
                 ? t(`${K}.test.result.unavailable`, { message: testResult.message })
                 : t(`${K}.test.result.${testResult.outcome}`)}

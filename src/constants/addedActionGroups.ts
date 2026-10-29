@@ -7,10 +7,12 @@ import { LOCKBOX_ACTION_GROUP } from './lockboxActionGroup';
 import { PATIENT_BANNER_ACTION_GROUP } from './patientBannerActionGroup';
 import { WORKLIST_ROW_ACTION_GROUP } from './worklistRowActionGroup';
 import { CASE_TEAM_ACTION_GROUP } from './caseTeamActionGroup';
+import { GROSSING_BENCH_ACTION_GROUP } from './grossingBenchActionGroup';
 export type { ResultRegistryActionId } from './resultRegistryActionGroup';
 export type { LockboxActionId } from './lockboxActionGroup';
 export type { PatientBannerActionId } from './patientBannerActionGroup';
 export type { WorklistRowActionId } from './worklistRowActionGroup';
 export type { CaseTeamActionId } from './caseTeamActionGroup';
+export type { GrossingBenchActionId } from './grossingBenchActionGroup';
 
-export const ADDED_ACTION_GROUPS = [OUTBOUND_QUEUE_ACTION_GROUP, RESULT_REGISTRY_ACTION_GROUP, LOCKBOX_ACTION_GROUP, PATIENT_BANNER_ACTION_GROUP, WORKLIST_ROW_ACTION_GROUP, CASE_TEAM_ACTION_GROUP];
+export const ADDED_ACTION_GROUPS = [OUTBOUND_QUEUE_ACTION_GROUP, RESULT_REGISTRY_ACTION_GROUP, LOCKBOX_ACTION_GROUP, PATIENT_BANNER_ACTION_GROUP, WORKLIST_ROW_ACTION_GROUP, CASE_TEAM_ACTION_GROUP, GROSSING_BENCH_ACTION_GROUP];

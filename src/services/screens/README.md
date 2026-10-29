@@ -165,3 +165,6 @@ New `ScreenId` `autopsyDashboards` (`screen:autopsy-dashboards:open`), in the Qu
 
 ## Batch 669 (ctl) — sub-screens
 `SubScreenId` / `SUB_SCREEN_CAPABILITIES` / `subScreenGranted`: a page reached from another screen's button that has capabilities of its own and is no Home tile or hub screen (so no `screen:<name>:open`, CLAUDE.md rule 7 applies to Home/hub screens only). First one: `molecularControlRules`, open for `config:molecular-control-rules:view` or `:manage`. `ScreenGate`, `canOpenTile` and `screenAccessService.canOpen` accept it.
+
+## Batch 720
+`grossing` joins `ScreenId` (`screen:grossing:open`) as the first tile of the Pathology Workspace hub; `addOnOrders` is now also reachable from that hub.

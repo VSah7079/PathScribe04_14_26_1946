@@ -60,3 +60,7 @@ Files here that imported a mock service directly now import it from `@/services`
 
 ## Batch 669 (finding access-12)
 "Viewed n times" now includes this view (`services/clinical/openCriticalAlertReference.ts`); the expiry time is shown in the facility time zone (`SystemConfig.facilityTimezone`, set in Configuration) with the zone named, via `utils/formatFacilityDateTime.ts`; the plural uses `viewedLabel_one` / `_other` (Spanish `_many`). The page reads the facility time zone from `useSystemConfig()`; on this public route with the API server the setting must be readable without a sign-in, otherwise the default (America/Phoenix) shows. Test: `CriticalAlertReferencePage.test.tsx`.
+
+## Batch 702
+
+One visit to the reference page records one view. In development, React StrictMode runs the page's effect twice, and each run recorded a view, so "Viewed n times" counted two for one visit (and the Audit Log's Critical Alerts tab showed the same inflated number). Both runs now share one opening, so only one view is recorded. A production build was not affected by the double run. Test: the StrictMode case in `CriticalAlertReferencePage.test.tsx`.

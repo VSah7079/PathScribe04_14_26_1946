@@ -74,7 +74,7 @@ export async function dispatchScanSlideLabel(
           reason = 'The station\'s slide printer profile was not found.';
         } else {
           const res = await deps.printSlideLabel(
-            { fullAccession: request.fullAccession, specimenLabel: request.specimenLabel, blockLabel: request.blockLabel, level: request.level, stainName: request.stainName, slideId: request.slideId },
+            { fullAccession: request.fullAccession, specimenLabel: request.specimenLabel, blockLabel: request.blockLabel, level: request.level, stainName: request.stainName, slideId: request.slideId, slideDesignation: request.slideDesignation },
             profile.data,
             settings.ok && settings.data ? settings.data.gs1Gtin : '',
             settings.ok && settings.data ? settings.data.slideLabelLayout : undefined,

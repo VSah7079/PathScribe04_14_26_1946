@@ -55,6 +55,10 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 // Batch 649: Submit is greyed without case:accession:create, and the save checks it (createAccessionedCase.test.ts);
 // this walkthrough holds it, and the save goes straight to caseRouter.createCase as before.
+// Batch 716: this file moves dictionary entries between departments (below), a Configuration change.
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => true, decide: () => ({ allowed: true }) }) }));
 vi.mock('@/services/accessioning/createAccessionedCase', async () => {
   const { caseRouter } = await import('@/services/cases/CaseRouter');
@@ -111,7 +115,23 @@ async function pickForNextRow(entryName: string) {
   await waitFor(() => expect(screen.queryAllByText(entryName).length).toBeGreaterThan(0));
 }
 
+// Batch 716: the demo dictionary now gives the Pap (GYN Cytology), the thyroid FNA (Fluid / Cytology) and the kidney
+// biopsy (Surgical Tissue) different departments, and specimens of different departments are accessioned as separate
+// cases (the mix rule, tested at the end of this file). The contact-bleeding walkthrough is about what is recorded on
+// which specimen in one batch, so it takes the three entries out of their departments first.
+const CYTOLOGY_BATCH_ENTRY_IDS = ['sp-cyto-pap', 'sp-fna-thyroid', 'sp-kidney-native-biopsy'];
+async function putEntriesInDepartments(departmentIds: Record<string, string | undefined>) {
+  const { mockSpecimenDictionaryService } = await import('@/services/specimenDictionary/mockSpecimenDictionaryService');
+  const all = await mockSpecimenDictionaryService.getAll();
+  if (!all.ok) throw new Error('dictionary unavailable');
+  await mockSpecimenDictionaryService.updateEntries(all.data.filter(e => e.id in departmentIds).map(e => ({ ...e, departmentId: departmentIds[e.id] })));
+}
+const withoutDepartments = () => putEntriesInDepartments(Object.fromEntries(CYTOLOGY_BATCH_ENTRY_IDS.map(id => [id, undefined])));
+const withDemoDepartments = () => putEntriesInDepartments({ 'sp-cyto-pap': 'cat-gyn-cytology', 'sp-fna-thyroid': 'cat-fluid-cytology', 'sp-kidney-native-biopsy': 'cat-surgical-tissue' });
+afterEach(() => withDemoDepartments());
+
 async function accessionPapFnaAndKidney(choice: '' | 'yes' | 'no') {
+  await withoutDepartments();
   const createCaseSpy = await renderAndFillCase();
   fireEvent.click(tabButton(/accessionPage\.tabs\.specimens/));
   await pickForNextRow('Cervical/Vaginal Pap Smear');
@@ -156,5 +176,21 @@ describe('AccessionPage persistent contact bleeding (PS-212; three-way since Bat
     const specimens = await accessionPapFnaAndKidney('');
     expect(specimens).toHaveLength(3);
     for (const s of specimens) expect(s.cytologyScreening).toBeUndefined();
+  });
+});
+
+describe('AccessionPage mixed case types (Batch 716)', () => {
+  it('a Pap and a thyroid FNA are different case types (GYN Cytology and Fluid / Cytology): Submit is blocked with the department message', async () => {
+    await withDemoDepartments();
+    const createCaseSpy = await renderAndFillCase();
+    fireEvent.click(tabButton(/accessionPage\.tabs\.specimens/));
+    await pickForNextRow('Cervical/Vaginal Pap Smear');
+    fireEvent.click(screen.getByText('accessionPage.specimens.addSpecimen'));
+    await pickForNextRow('Thyroid Fine Needle Aspiration');
+    await waitFor(() => expect(screen.getByText(/accessionPage\.departmentConflict\.message/).textContent).toMatch(/GYN Cytology/));
+    expect(screen.getByText(/accessionPage\.departmentConflict\.message/).textContent).toMatch(/Fluid \/ Cytology/);
+    const submit = screen.getByText('accessionPage.actions.submitAccession').closest('button') as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    expect(createCaseSpy).not.toHaveBeenCalled();
   });
 });

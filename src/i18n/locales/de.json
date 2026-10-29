@@ -286,7 +286,21 @@
     },
     "clinicalIndication": {
       "label": "Klinische Indikation",
-      "placeholder": "Grund der Probenentnahme — versorgt die KI für die Zuschneidevorlage-Zuweisung"
+      "note": {
+        "edited": "Gegenüber dem Auftrag geändert.",
+        "fromOrder": "Aus dem Auftrag: {{field}}. Bitte prüfen; bei Bedarf ändern.",
+        "fromOrderUnspecified": "Aus dem Auftrag. Bitte prüfen; bei Bedarf ändern.",
+        "orderText": "Text aus dem Auftrag: {{text}}"
+      },
+      "placeholder": "Grund der Probenentnahme — versorgt die KI für die Zuschneidevorlage-Zuweisung",
+      "sources": {
+        "dg1": "DG1 Diagnose",
+        "fhirReasonCode": "FHIR ServiceRequest.reasonCode",
+        "fhirReasonReference": "FHIR ServiceRequest.reasonReference",
+        "nte": "NTE Grundnotiz",
+        "obr31": "OBR-31 Untersuchungsgrund",
+        "orc16": "ORC-16 Grund des Auftragskontrollcodes"
+      }
     },
     "common": {
       "notSpecified": "— nicht angegeben —",
@@ -397,7 +411,7 @@
     "grossing": {
       "blockLabel": "Block {{label}}",
       "blocksHeading": "Blöcke & Färbungen",
-      "confidence": "{{value}} % Konfidenz",
+      "defaultsKept": "Die automatische Vorlagenprüfung war nicht verfügbar, daher behält jedes Präparat die Standard-Zuschnittvorlage seines Typs. Nichts geht verloren: Die zuschneidende Person kann die Vorlage am Zuschnittbildschirm ändern.",
       "heading": "Zugewiesene Zuschneidevorlagen",
       "noStainsYet": "(noch keine Färbungen angeordnet)",
       "override": "(Überschreibung)",
@@ -532,6 +546,9 @@
       "heading": "Bereit zur Akzessionierung",
       "specimenCount": "{{count}} Probe(n)"
     },
+    "requiredMark": {
+      "title": "Pflichtfeld"
+    },
     "specimens": {
       "addSpecimen": "+ Probe hinzufügen",
       "anatomicSite": "Anatomische Stelle",
@@ -574,8 +591,8 @@
       "processedAt": "Datum/Uhrzeit der Fixierung",
       "processedAtEstimated": "Geschätzt — nicht direkt dokumentiert",
       "receivedAt": "Datum/Uhrzeit des Eingangs",
-      "referralClient": "Überweisender Kunde (optional)",
-      "referralClientId": "ID des überweisenden Kunden (optional)",
+      "referralClient": "Name des externen Labors (optional)",
+      "referralClientId": "Proben-/Akzessions-ID des externen Labors (optional)",
       "referralClientIdPlaceholder": "z. B. die von diesem Labor bereits zugewiesene ID",
       "referralClientPlaceholder": "z. B. externes Zytologielabor",
       "removeSpecimen": "Probe entfernen",
@@ -1059,8 +1076,7 @@
     "protocolList": {
       "applied": "Angewendet",
       "empty": "Keine Protokolle entsprechen Ihrer Suche",
-      "suggested": "Vorgeschlagen · {{confidence}} %",
-      "suggestedPlain": "Vorgeschlagen"
+      "suggested": "Vorgeschlagen"
     },
     "reportExists": "Bericht vorhanden",
     "requestTemplate": {
@@ -1137,7 +1153,6 @@
     "tiles": {
       "acceptanceRate": "KI-Akzeptanzrate",
       "assisted": "KI-unterstützte Fälle",
-      "confidence": "Durchschnittliches KI-Vertrauen",
       "deltaVsYtdAvg": "{{sign}}{{value}} % vs. Jahresdurchschnitt",
       "notPeriodFiltered": "nicht zeitraumgefiltert",
       "ofTotal": "von insgesamt {{count}}",
@@ -1258,7 +1273,7 @@
       "indication": "Klinische Indikation",
       "malignant": "Vom Pathologen bestätigter maligner Befund",
       "result": {
-        "mismatch": "Diskrepanz: {{kind}} ({{confidence}} % Konfidenz). {{explanation}}",
+        "mismatch": "Diskrepanz: {{kind}}. {{explanation}}",
         "none": "Keine Diskrepanz gefunden.",
         "notAllowed": "KI ist für diese Rechtsordnung nicht verfügbar: Der verwendete KI-Dienst ist laut KI-Anbieterrichtlinie nicht zulässig.",
         "unavailable": "Die KI war nicht erreichbar: {{message}}"
@@ -1330,7 +1345,6 @@
     "testingButton": "Wird getestet…"
   },
   "aiReviewModal": {
-    "confidencePercent": "{{percent}} % Konfidenz",
     "counter": "Feld {{index}} von {{total}}",
     "eyebrowLabel": "KI-Überprüfungsmodus",
     "footerConfirmFinaliseButton": "Leertaste — Bestätigen & Abschließen 🔒",
@@ -1339,7 +1353,8 @@
     "footerSkipButton": "S — Überspringen",
     "skippedCount_one": "{{count}} übersprungen",
     "skippedCount_other": "{{count}} übersprungen",
-    "sourceNotFoundBanner": "Quelle im Berichtstext nicht gefunden — deshalb ist trotz des obigen Konfidenzwerts eine Überprüfung erforderlich",
+    "sourceFound": "Source found in report text",
+    "sourceNotFoundBanner": "Source not found in report text — this is why it needs review",
     "sourceNotFoundTooltip": "Die KI hat diese Quelle zitiert, sie konnte jedoch nicht wortgetreu im Makro-, Mikro- oder Zusatztext gefunden werden — Konfidenz allein bestätigt nicht, dass dieser Wert tatsächlich im Bericht begründet ist.",
     "title": "Unsichere KI-Ergebnisse vor der Freigabe überprüfen"
   },
@@ -5002,6 +5017,10 @@
         "description": "Den Bildschirm „Einbettungs-Arbeitsbereich“ und seine Kachel in „Pathologie-Arbeitsbereich“ sehen.",
         "label": "„Einbettungs-Arbeitsbereich“ öffnen"
       },
+      "screenGrossingOpen": {
+        "description": "Den Bildschirm Zuschnitt-Arbeitsplatz und seine Kachel im Pathologie-Arbeitsplatz sehen.",
+        "label": "Zuschnitt-Arbeitsplatz öffnen"
+      },
       "screenIntraopQueueOpen": {
         "description": "Den Bildschirm „Intraoperative Warteschlange“ und seine Kachel auf der Startseite sehen.",
         "label": "„Intraoperative Warteschlange“ öffnen"
@@ -5161,8 +5180,7 @@
     "summary_other": "Klinische Angaben: {{count}} kodierte Einträge."
   },
   "caseCoding": {
-    "aiDetail": "{{model}} · {{confidence}} %",
-    "aiDetailPlain": "Vorschlag von {{model}}",
+    "aiDetail": "Vorschlag von {{model}}",
     "empty": "Noch keine Codes für diesen Fall.",
     "sideBySide": {
       "icd10": "ICD-10",
@@ -6215,8 +6233,7 @@
       "lowRisk": "Die Freigabe wird nicht angehalten.",
       "releaseNotHeld": "Dies ist eine Abweichung mit hohem Risiko, aber die Einstellung Ihres Labors hält die Freigabe einer Änderung, Korrektur oder Ergänzung nicht an. Sie wird im QS-Protokoll erfasst.",
       "review": "Prüfen",
-      "title": "{{kind}} ({{confidence}} % Konfidenz).",
-      "titlePlain": "{{kind}}: Die KI hat eine mögliche Diskrepanz zur Prüfung markiert."
+      "title": "{{kind}}: Die KI hat eine mögliche Diskrepanz zur Prüfung markiert."
     },
     "backToReport": "Zurück zum Befund",
     "errors": {
@@ -6266,16 +6283,13 @@
       "UNRESOLVED": "Ungeklärt"
     },
     "source": {
-      "ai": "Vorgeschlagen von der KI-Bewertung ({{confidence}} % Konfidenz)",
-      "aiPlain": "Vorgeschlagen durch die KI-Auswertung",
-      "rule": "Vorgeschlagen von einer Regelprüfung (KI nicht verfügbar; {{confidence}} % Konfidenz)",
-      "ruleJurisdiction": "Von einer regelbasierten Prüfung vorgeschlagen (KI ist für diese Rechtsordnung nicht verfügbar; {{confidence}} % Konfidenz)",
-      "ruleJurisdictionPlain": "Vorgeschlagen durch eine regelbasierte Prüfung (KI ist für diese Rechtsordnung nicht verfügbar)",
-      "rulePlain": "Vorgeschlagen durch eine regelbasierte Prüfung (die KI war nicht verfügbar)"
+      "ai": "Vorgeschlagen durch die KI-Auswertung",
+      "rule": "Vorgeschlagen durch eine regelbasierte Prüfung (die KI war nicht verfügbar)",
+      "ruleJurisdiction": "Vorgeschlagen durch eine regelbasierte Prüfung (KI ist für diese Rechtsordnung nicht verfügbar)"
     },
     "title": "Klinisch-pathologische Korrelation",
     "why": {
-      "holds": "Hält die Freigabe an: die Regel Ihres Labors blockiert diese Diskrepanzart ab {{threshold}} % Konfidenz.",
+      "holds": "Holds sign-out: your laboratory’s rule blocks this kind of mismatch.",
       "lowRisk": "Geringes Risiko nach den Regeln Ihres Labors: die Freigabe wird nicht angehalten. Ohne Entscheidung wird sie bei der Freigabe für die QS protokolliert."
     }
   },
@@ -10244,6 +10258,7 @@
     "capturedAt": "aufgenommen um {{time}}",
     "capturing": "Wird aufgenommen…",
     "categories": {
+      "aiTemplateValidation": "KI-/Vorlagenvalidierung",
       "dataIssue": "Datenproblem",
       "functionalIssue": "Funktionsproblem",
       "integrations": "Integrationen",
@@ -10258,11 +10273,17 @@
     "clickToExpand": "Klicken zum Vergrößern",
     "clickToViewFullSize": "Klicken für Vollansicht",
     "close": "Schließen",
+    "deliveredNotice": "Zugestellt an {{host}}.",
     "descriptionLabel": "Beschreibung",
     "descriptionPlaceholder": "Beschreiben Sie die Verbesserung im Detail. Welches Problem löst sie? Wie sollte die Erfahrung aussehen?",
     "done": "Fertig",
     "enhancementHeaderSubtitle": "Helfen Sie mit, die Zukunft von pathscribe AI zu gestalten",
     "enhancementHeaderTitle": "Verbesserungsanfrage senden",
+    "errors": {
+      "DELIVERY_FAILED": "Die Anfrage konnte nicht an das Ziel zugestellt werden. Es wurde nichts gesendet.",
+      "NO_DESTINATION": "Es ist kein Ziel eingerichtet, daher wurde nichts gesendet.",
+      "NO_RECIPIENTS": "Keine Empfänger konfiguriert."
+    },
     "identifierWarning": {
       "body": "Support-Anfragen verlassen Ihr Labor. Entfernen Sie diese oder ersetzen Sie Fallnummern durch ihre Support-Referenz.",
       "item": "{{text}} ({{kind}})",
@@ -10301,11 +10322,13 @@
     "qaHeaderSubtitle": "Fehler, Testfehlschläge oder unerwartetes Verhalten melden",
     "qaHeaderTitle": "QA-/Testfeedback senden",
     "qaRoutingNotice": "Dieses Feedback wird an das QA-Team gesendet und dem Systemadministrator in Kopie zugestellt.",
+    "qaRoutingNoticeValidation": "Dieses Feedback geht an die Validierungsempfänger (an das QA-Team, falls keine festgelegt sind) und in Kopie an den Systemadministrator.",
     "redactedSuffix": "geschwärzt",
     "remove": "Entfernen",
     "screenCaptureAlt": "Bildschirmaufnahme",
     "screenCaptureFullSizeAlt": "Bildschirmaufnahme — Vollansicht",
     "screenCaptureLabel": "Bildschirmaufnahme",
+    "simulatedDestinationNotice": "Simuliert: Diese Demo-Version sendet nichts an {{host}}, daher wurde nichts gesendet. Ihre Anfrage liegt unter Konfiguration, System, Simulierter Postausgang.",
     "simulatedNotice": "Simuliert: Es ist kein Mailservice oder Ticketportal angebunden, daher hat nichts den Support erreicht. Ihre Anfrage liegt unter Konfiguration, System, Simulierter Postausgang.",
     "submissionFailed": "Senden fehlgeschlagen — bitte versuchen Sie es erneut.",
     "submitQaFeedback": "QA-Feedback senden",
@@ -10316,6 +10339,16 @@
     "titleLabel": "Titel",
     "titlePlaceholder": "Kurze Zusammenfassung Ihrer Verbesserungsidee…",
     "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten.",
+    "validationFallbackNotice": "Es sind keine Validierungsempfänger festgelegt, daher ging dies an die QA-Empfänger.",
+    "validationLinks": {
+      "noStudies": "Es gibt keine aktiven Validierungsstudien.",
+      "none": "Keine",
+      "study": "Validierungsstudie",
+      "template": "Vorlage",
+      "templateOption": "{{name}} (Version {{version}})",
+      "title": "Mit einer Validierungsstudie oder Vorlage verknüpfen"
+    },
+    "validationRoutedNotice": "An die Validierungsempfänger gesendet.",
     "viewTicket": "Ticket ansehen →"
   },
   "enterpriseRollupTab": {
@@ -10825,7 +10858,6 @@
       "requireBillingApproval_on": "Ein",
       "roles": "Rollen",
       "rolesHint": "Eine Einrichtung kann jede beliebige Kombination von Rollen haben — ein Krankenhaus kann z. B. gleichzeitig ein ausführendes Labor und eine interne Bestelleinrichtung sein. Die Tabs HL7, Berichterstellung/Bearbeitungszeit und KI & Leistung oben erscheinen je nachdem, welche Rollen hier angekreuzt sind.",
-      "specimenLabeling": "Proben-/Blockkennzeichnung",
       "specimenLabelingAlpha": "Probe A, B, C / Block A1, A2, A3",
       "specimenLabelingNumeric": "Probe 1, 2, 3 / Block 1A, 1B, 1C",
       "status": "Status",
@@ -10833,6 +10865,24 @@
       "statusInactive": "Inaktiv",
       "statusUnverified": "Nicht verifiziert (über Tabellenaktion verifizieren)",
       "useList": "Liste verwenden"
+    },
+    "labelStyle": {
+      "ambiguousLetters": "Proben und Blöcke verwenden beide Buchstaben. Ein Etikett wie AA kann daher Probe A, Block A bedeuten oder eine Probe nach Z. Verwenden Sie für eines von beiden Zahlen, sofern Ihr Labor dies nicht benötigt.",
+      "ambiguousNumbers": "Proben und Blöcke verwenden beide Zahlen. Ein Etikett wie 11 kann daher Probe 1, Block 1 bedeuten oder Probe 11. Verwenden Sie für eines von beiden Buchstaben, sofern Ihr Labor dies nicht benötigt.",
+      "blockLevel": "Blöcke",
+      "example": "Probe {{specimen}} · Block {{block}} · Objektträger {{slide}}",
+      "exampleCassette": "Kassette {{cassette}} · Objektträgeretikett {{cassette}} {{slide}}",
+      "hintEnterprise": "Standard für jedes Labor dieses Unternehmens; ein Labor kann jede der drei Einstellungen überschreiben. Eine Änderung gilt nur für neue Fälle: Etiketten, die bereits zu einem Fall gehören, ändern sich nie.",
+      "hintLab": "Eine auf „Wie das Unternehmen“ belassene Einstellung folgt dem Standard des Unternehmens. Eine Änderung gilt nur für neue Fälle: Etiketten, die bereits zu einem Fall gehören, ändern sich nie.",
+      "inherit": "Wie das Unternehmen ({{value}})",
+      "letters": "Buchstaben",
+      "numbers": "Zahlen",
+      "preset": "Voreinstellung",
+      "presetCustom": "Benutzerdefiniert",
+      "slideLevel": "Objektträger",
+      "slideNote": "Objektträgerzahlen werden als L1, L2 gedruckt, Objektträgerbuchstaben als La, Lb. Der Code im Barcode des Objektträgers bleibt in beiden Fällen L1, L2.",
+      "specimenLevel": "Proben",
+      "title": "Buchstaben oder Zahlen für Etiketten"
     },
     "lis": {
       "allowPostFinal": "Pathologen können Nachträge/Änderungen direkt in PathScribe einleiten",
@@ -11115,6 +11165,12 @@
   "feedbackSection": {
     "adminCc": "Kopie an Administrator (CC)",
     "buttonTitle": "QA-Feedback-Schaltfläche",
+    "destinationActive": "Erweiterungswünsche werden an {{host}} zugestellt.",
+    "destinationHint": "Erweiterungswünsche können statt per E-Mail an eine Seite der ForMedrixAI-Website zugestellt werden. Lassen Sie das Feld leer, um die bei der Bereitstellung eingerichtete Adresse zu verwenden, falls vorhanden. Es werden nur https-Adressen akzeptiert. Der Browser darf nur an Adressen senden, die Ihre Bereitstellung zulässt (bitten Sie Ihre IT, sie in die Sicherheitsrichtlinie aufzunehmen).",
+    "destinationNone": "Es ist kein Ziel festgelegt, daher werden Erweiterungswünsche per E-Mail gesendet.",
+    "destinationPlaceholder": "Die Webadresse, beginnend mit https",
+    "destinationTitle": "Wohin Erweiterungswünsche gehen",
+    "destinationUrl": "Ziel-URL für Erweiterungswünsche",
     "instance": {
       "production": "Dies ist eine Produktionsinstanz: Standardmäßig ist die Schaltfläche ausgeblendet.",
       "validation": "Dies ist eine Validierungsinstanz: Standardmäßig wird die Schaltfläche angezeigt."
@@ -11128,8 +11184,10 @@
       "CONFIG_NOT_PERMITTED": "Nicht gespeichert: Ihre Rollen umfassen nicht die Verwaltung der Feedback-Einstellungen.",
       "generic": "Nicht gespeichert: Etwas ist schiefgelaufen. Versuchen Sie es erneut.",
       "invalidCc": "Eine der CC-Adressen ist keine gültige E-Mail-Adresse.",
+      "invalidEnhancementUrl": "Das Ziel muss eine vollständige https-Webadresse sein, ohne Benutzername, Passwort oder #-Teil.",
       "invalidMode": "Wählen Sie, wann die Schaltfläche erscheint.",
       "invalidRecipient": "Einer der Empfänger ist keine gültige E-Mail-Adresse.",
+      "invalidValidationRecipient": "Einer der Validierungsempfänger ist keine gültige E-Mail-Adresse.",
       "noRecipients": "Fügen Sie mindestens einen Empfänger hinzu: Die Schaltfläche erscheint auf dieser Instanz, und das Feedback hätte kein Ziel."
     },
     "recipients": "QA-Empfänger",
@@ -11138,7 +11196,10 @@
     "save": "Speichern",
     "saved": "Gespeichert",
     "subtitle": "Mit der QA-Feedback-Schaltfläche melden Tester ein Problem von jedem Bildschirm aus, mit Screenshot und ohne Patientendaten. Legen Sie fest, wann sie erscheint und wer die Meldungen erhält.",
-    "title": "Feedback"
+    "title": "Feedback",
+    "validationHint": "E-Mail-Adressen, durch Kommas getrennt. QA-Feedback der Kategorie KI-/Vorlagenvalidierung geht hierhin. Ist das Feld leer, geht es an die QA-Empfänger, und der Absender wird informiert.",
+    "validationRecipients": "Validierungsempfänger",
+    "validationTitle": "Wohin Feedback zur KI-/Vorlagenvalidierung geht"
   },
   "fieldRequirements": {
     "alwaysRequired": "Immer Pflicht",
@@ -11151,6 +11212,7 @@
         "clinicalIndication": "Klinische Indikation",
         "collectedAt": "Datum/Uhrzeit der Entnahme",
         "dateOfBirth": "Geburtsdatum",
+        "downtimeReason": "Grund des Systemausfalls",
         "familyNames": "Nachname(n)",
         "givenNames": "Vorname(n)",
         "location": "Standort (Station / Zimmer / Bett)",
@@ -12140,6 +12202,25 @@
     "telepathologyCheckbox": "Unterstützt Live-Telepathologie-Streaming",
     "title": "Grob-/Makrobildgebung & Telepathologie"
   },
+  "grossingBench": {
+    "addOnOrders": "Zusatzaufträge",
+    "decal": {
+      "added": "{{block}} zur Entkalkungscharge {{batch}} hinzugefügt.",
+      "already": "{{block}} ist bereits in dieser Entkalkungscharge.",
+      "assign": "Zur Entkalkung senden",
+      "block": "Zu sendender Block",
+      "label": "Entkalkungscharge",
+      "noBatch": "Es gibt keine aktive Entkalkungscharge.",
+      "noBlock": "Es gibt noch keinen Block für die Entkalkung.",
+      "none": "Keine aktive Entkalkungscharge",
+      "notFound": "Dieser Block wurde nicht gefunden.",
+      "otherBatch": "{{block}} ist bereits in einer anderen aktiven Charge ({{batch}})."
+    },
+    "hint": "Tastenkürzel: Alt+Umschalt+1 Kassetten drucken, 2 Foto, 3 Entkalkung, 4 Zusatzaufträge. Fußpedal 1 nimmt ein Foto auf, Pedal 2 druckt die Kassetten.",
+    "printCassettes": "Kassetten drucken",
+    "takePhoto": "Foto aufnehmen",
+    "title": "Werkbank-Werkzeuge"
+  },
   "grossingHardwareSection": {
     "addButton": "+ Zuschnitt-Hardware hinzufügen",
     "anyStation": "Jede Station",
@@ -12252,7 +12333,6 @@
     },
     "auditPanelTitle_one": "Audit-Protokoll ({{count}} Änderung)",
     "auditPanelTitle_other": "Audit-Protokoll ({{count}} Änderungen)",
-    "autoGenerated": "Automatisch erstellt",
     "backToCase": "← Zurück zum Fall",
     "caseNotFound": "Fall nicht gefunden.",
     "col": {
@@ -12295,8 +12375,12 @@
     },
     "concurrencyConflict": "Dieser Fall wurde an anderer Stelle aktualisiert. Laden Sie neu, um die neueste Version zu sehen.",
     "confirmRemove": "Entfernen",
-    "confirmRemoveStainBody": "Diese Färbung ist ein Standard des zugewiesenen Protokolls. Das Entfernen wird als Änderung protokolliert.",
-    "confirmRemoveStainTitle": "Protokoll-Standardfärbung entfernen?",
+    "confirmRemoveStain": {
+      "existingBody": "Diese Färbung war bereits im Fall vorhanden und stammt aus keinem Protokoll. Das Entfernen wird als Änderung protokolliert.",
+      "existingTitle": "Färbung entfernen?",
+      "protocolBody": "Diese Färbung ist ein Standard des zugewiesenen Protokolls. Das Entfernen wird als Änderung protokolliert.",
+      "protocolTitle": "Protokoll-Standardfärbung entfernen?"
+    },
     "fixation": {
       "confirmRatio": "Angemessenes Verhältnis bestätigen",
       "deficiencyRaised": "Abweichung erfasst",
@@ -12361,20 +12445,46 @@
     "removeStainTitle": "Färbung entfernen",
     "selectStain": "— Färbung auswählen —",
     "specimenHeader": "Probe {{label}} — {{description}}",
-    "userAdded": "Manuell hinzugefügt"
+    "stainOrigin": {
+      "existing": "Vorhanden",
+      "protocol": "Automatisch erstellt",
+      "userAdded": "Manuell hinzugefügt"
+    }
+  },
+  "grossingWorkspace": {
+    "backToWorkspace": "← Zurück zum Pathologie-Arbeitsplatz",
+    "col": {
+      "accessioned": "Registriert",
+      "case": "Fall",
+      "priority": "Priorität",
+      "specimens": "Proben"
+    },
+    "empty": "Kein Fall wartet auf den Zuschnitt.",
+    "gross": "Zuschneiden",
+    "loadFailed": "Die Fälle konnten nicht geladen werden. Bitte erneut versuchen.",
+    "loading": "Fälle werden geladen…",
+    "notFound": "Kein Fall mit dieser Eingangsnummer gefunden.",
+    "openButton": "Öffnen",
+    "openLabel": "Fall über die Eingangsnummer öffnen",
+    "openPlaceholder": "Eingangsnummer",
+    "pageSubtitle": "Fälle, die auf den Zuschnitt warten, und ein Feld, um einen Fall über seine Eingangsnummer zu öffnen",
+    "pageTitle": "Zuschnitt-Arbeitsplatz",
+    "priority": {
+      "Routine": "Routine",
+      "Rush": "Eilig",
+      "STAT": "STAT"
+    },
+    "waitingTitle": "Warten auf Zuschnitt ({{count}})"
   },
   "headerBar": {
     "aiStatus": {
       "aiDrafted": "KI-entworfen",
-      "avgConfidence": "{{pct}} % im Durchschnitt",
       "draftedTooltip": "KI-entworfen — keine Pflichtfelder unter dem Schwellenwert",
-      "fieldAtConfidence": "Feld bei {{pct}} % Vertrauen",
       "noFieldsBelowThreshold": "Keine Pflichtfelder unter dem Schwellenwert",
       "noSuggestionsYet": "Noch keine KI-Vorschläge",
       "reviewPending": "Prüfung ausstehend",
       "reviewScoreTooltip": "KI-Prüfvertrauen auf Befundfeldern — getrennt vom Gesamtstatus des Falls. Klicken, um zum markierten Feld zu springen.",
-      "reviewTooltip": "KI-Prüfvertrauen (getrennt vom Fallstatus): ein Pflichtfeld liegt unter dem Vertrauensschwellenwert — zur Prüfung klicken",
-      "reviewTooltipWithPct": "KI-Prüfvertrauen (getrennt vom Fallstatus): ein Pflichtfeld liegt bei {{pct}} % Vertrauen — zur Prüfung klicken"
+      "reviewTooltip": "KI-Prüfvertrauen (getrennt vom Fallstatus): ein Pflichtfeld liegt unter dem Vertrauensschwellenwert — zur Prüfung klicken"
     },
     "blockStatusLabels": {
       "cancelled": "Storniert",
@@ -12493,7 +12603,6 @@
   "historyExtraction": {
     "advisory": "Nur zur Ansicht. Nicht Teil des Befunds und nie in Berichten, Druck, Registern, Abrechnung, Regeln oder Exporten verwendet.",
     "aiLabel": "KI-ausgelesen, nicht verifiziert",
-    "confidence": "{{pct}} % Konfidenz",
     "flagAll": "Alle als falsch markieren",
     "flagField": "Als falsch markieren",
     "flagged": "Markiert",
@@ -12574,43 +12683,43 @@
   },
   "home": {
     "accessionTile": {
-      "description": "Neue Proben erfassen und Zuschnittvorlagen zuweisen",
+      "description": "Neue Proben erfassen",
       "title": "Eingang"
     },
     "benchContributionsTile": {
-      "description": "Erfassungsrate • Chargendurchsatz & Warteschlangenalter • Stufe-zu-Stufe-TAT • Molekulare QK",
+      "description": "Durchsatz und Laufzeiten",
       "title": "Laborbeiträge"
     },
     "configurationTile": {
-      "description": "Systemeinstellungen und KI-Präferenzen",
+      "description": "Einstellungen, KI-Präferenzen",
       "title": "Konfiguration"
     },
     "doctorFallback": "Doktor",
     "footerCopyright": "© 2026 PathScribe AI Systems",
     "intraopQueueTile": {
-      "description": "Nicht verknüpfte intraoperative Einträge, die auf eine formale LIS-Erfassung zum Zusammenführen warten",
+      "description": "Unverknüpfte Intraop-Einträge",
       "title": "Intraoperative Warteschlange"
     },
     "lockboxDropOffTile": {
-      "description": "Außerhalb der Dienstzeit eingeworfene Präparate scannen und morgens nachverfolgen",
+      "description": "Abgaben nach Dienstschluss",
       "title": "Lockbox-Einwurf"
     },
     "myContributionTile": {
-      "description": "Arbeitslast • Qualität • TAT • Trends",
+      "description": "Auslastung • Qualität • TAT",
       "title": "Mein Beitrag"
     },
     "pathologyWorkspaceTile": {
-      "description": "Zytologie-Screening, Molekulardiagnostik, Mikrotomie-, Einbettungs- und Objektträger-Verteilungsarbeitsplätze sowie Chargenverwaltung",
+      "description": "Zytologie, Molekular, Labor",
       "title": "Pathologie-Arbeitsbereich"
     },
     "qualityComplianceTile": {
-      "description": "Systemaktivitätsprotokolle und Audit-Trail sowie die Arbeitswarteschlange der Qualitätssicherung — Abweichungen, Abgleich und CAPA-Management",
+      "description": "Audit-Trail, Qualitätsarbeit",
       "title": "Qualität & Compliance"
     },
     "registryExceptionsBadge_one": "{{count}} Registerausnahme",
     "registryExceptionsBadge_other": "{{count}} Registerausnahmen",
     "searchTile": {
-      "description": "Abgeschlossene und laufende Fälle durchsuchen",
+      "description": "Abgeschlossene, offene Fälle",
       "title": "Suche"
     },
     "status": {
@@ -12623,12 +12732,12 @@
       "unavailable": "Nicht verfügbar"
     },
     "tumorBoardTile": {
-      "description": "Einen Fall für das Tumorboard/die MDT-Besprechung markieren und seine Tagesordnung verwalten",
+      "description": "Fälle melden, Agenda verwalten",
       "title": "Tumorboard/MDT"
     },
     "welcomeBack": "Willkommen zurück,",
     "worklistTile": {
-      "description": "Ausstehende Pathologiefälle anzeigen und verwalten",
+      "description": "Offene Pathologiefälle",
       "title": "Arbeitsliste"
     }
   },
@@ -13934,8 +14043,17 @@
     },
     "missingFields": "Bitte geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein.",
     "password": "Passwort",
-    "passwordResetUnavailable": "Bitten Sie Ihren Administrator, Ihr Passwort im Bildschirm „Personal“ zurückzusetzen.",
     "phiNotice": "Dieses System enthält geschützte Gesundheitsdaten. Der Zugriff ist autorisierten Benutzern vorbehalten und Aktivitäten werden protokolliert.",
+    "resetRequest": {
+      "action": "Meinen Administrator bitten, mein Passwort zurückzusetzen",
+      "back": "Zurück zur Anmeldung",
+      "confirmation": "Wenn diese E-Mail-Adresse zu einem aktiven Konto gehört, wurden Ihre Administratoren benachrichtigt und legen ein neues Passwort für Sie fest. Sie können die Anfrage nach {{minutes}} Minuten erneut stellen.",
+      "emailLabel": "Ihre Anmelde-E-Mail-Adresse",
+      "intro": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden. Ihre Administratoren werden sofort benachrichtigt und können unter Personal ein neues Passwort für Sie festlegen.",
+      "invalidEmail": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden.",
+      "sending": "Wird gesendet…",
+      "unavailable": "Diese Anmeldung verwendet kein PathScribe-Passwort. Wenden Sie sich an Ihren Systemadministrator."
+    },
     "sessionConflictMessage": "Dieses Konto ist bereits in einem anderen Tab oder Fenster dieses Browsers angemeldet. Wenn Sie hier fortfahren, wird diese Sitzung abgemeldet — nicht gespeicherte Arbeit dort bleibt erhalten und wird beim nächsten Öffnen zur Überprüfung angeboten. Fortfahren?",
     "sessionConflictTitle": "Bereits anderswo angemeldet",
     "showPassword": "Passwort anzeigen",
@@ -15621,6 +15739,7 @@
     "noStation": "Keine Station",
     "noStationClickToSet": "Keine Scan-Station festgelegt — klicken, um eine festzulegen",
     "noStationSet": "Keine Scan-Station festgelegt",
+    "notAvailable": "Die an diesem Computer eingestellte Station ({{station}}) steht Ihnen nicht zur Verfügung; daher ist keine Station aktiv.",
     "provenanceStationClickToChange": "{{provenance}}: {{station}} — klicken, um zu ändern",
     "terminalFixed": "Dieses Terminal ist fest dieser Station zugeordnet",
     "thisStation": "diese Station",
@@ -15946,7 +16065,6 @@
     "pageViewTooltip": "Seitenansicht — alle Abschnitte scrollbar",
     "pendingDraftAvailable": "Ein neuer KI-Entwurf ist für diesen Abschnitt verfügbar.",
     "provenance": {
-      "confidence": "KI-Konfidenz {{confidence}} %",
       "unavailable": "Für diesen Abschnitt waren keine Konfidenz und kein Quellzitat verfügbar — bitte manuell prüfen",
       "unverified": "Quellzitat im Befundtext nicht gefunden — bitte diesen Abschnitt manuell prüfen"
     },
@@ -17499,35 +17617,43 @@
     }
   },
   "pathologyWorkspace": {
+    "addOnOrdersTile": {
+      "description": "Tiefere Schnittstufen, Färbungen und Nachschnitte zu einem Fall",
+      "title": "Zusatzauftrags-Assistent"
+    },
     "backToHome": "← Zurück zur Startseite",
     "batchManagementTile": {
-      "description": "Kassetten und Objektträger über Verarbeitungsstationen per Behälter-Barcode verfolgen",
+      "description": "Kassetten und Objektträger",
       "title": "Chargenverwaltung"
     },
     "cytologyTile": {
-      "description": "Primäres Screening-Zentrum für GYN-Abstriche, Non-GYN-Triage, Zellblock-Nachverfolgung und obligatorische Qualitätskontrolle",
+      "description": "Screening, Triage und QC",
       "title": "Zytologie-Arbeitsbereich"
     },
     "embeddingTile": {
-      "description": "Kassetten-Scan/-Prüfung, Bestätigung der Gewebestückzahl, Formauswahl und Diskrepanzmeldung am Einbettungsarbeitsplatz",
+      "description": "Einbetten: Kassetten prüfen",
       "title": "Einbettungs-Arbeitsbereich"
     },
+    "grossingTile": {
+      "description": "Fälle zuschneiden und Blöcke anlegen",
+      "title": "Zuschnitt"
+    },
     "marginExceptionReviewTile": {
-      "description": "Freitextangaben zum Randabstand, die die Extraktionsschicht nicht sicher auswerten konnte — die tatsächliche Distanz eintragen oder mit Begründung verwerfen",
+      "description": "Unklare Randabstände prüfen",
       "title": "Randausnahmen-Überprüfung"
     },
     "microtomyTile": {
-      "description": "Echtzeit-Bedarfs- oder Stapeldruck von Objektträgeretiketten, Färbeverwaltung und Zytologie-/Dekantierungsvorbereitung am Mikrotom-Arbeitsplatz",
+      "description": "Etiketten und Färbungen",
       "title": "Mikrotomie-Arbeitsbereich"
     },
     "molecularTile": {
-      "description": "Chargen- und Plattenverwaltung, aktive Läufe und QC-/Probenzuordnung für die Molekulardiagnostik (HPV, CT/NG, respiratorische PCR)",
+      "description": "Chargen, Platten, Läufe, QC",
       "title": "Molekular-Arbeitsbereich"
     },
     "pageSubtitle": "Zytologie-Screening, Molekulardiagnostik, Mikrotomie-, Einbettungs- und Objektträger-Verteilungsarbeitsplätze sowie Chargenverwaltung",
     "pageTitle": "Pathologie-Arbeitsbereich",
     "slideDistributionTile": {
-      "description": "Kontinuierliches Scan-Checkout an Pathologen oder Einspeisung in einen digitalen Scanner, mit Warnungen bei geteiltem Ziel und Ausnahmebehandlung",
+      "description": "Objektträger ausgeben, scannen",
       "title": "Objektträger-Verteilungsarbeitsbereich"
     }
   },
@@ -17596,9 +17722,7 @@
       "caseSearch": "Fallsuche",
       "home": "Startseite"
     },
-    "card": {
-      "matchPct": "{{pct}} % Übereinstimmung"
-    },
+    "card": {},
     "compose": {
       "caseLabel": "Fall",
       "disabledTooltip": "Wählen Sie einen früheren Fall oder eine KI-Übereinstimmung aus, um die Nachrichtenfunktion zu aktivieren",
@@ -17613,7 +17737,6 @@
       "sent": "Gesendet"
     },
     "field": {
-      "aiMatchScore": "Ähnlichkeitswert (Demonstration)",
       "ancillaryStudies": "Zusatzuntersuchungen",
       "caseId": "Fall-ID",
       "date": "Datum",
@@ -18346,7 +18469,9 @@
       "unsupportedProtocol": "Der PathScribe Agent auf diesem Arbeitsplatz muss aktualisiert werden."
     },
     "bridgeNotImplemented": "Die Druckbrücke „{{bridgeType}}“ hat für diesen Etikettentyp noch keinen funktionierenden Druckweg. Hier sind nur QZ Tray und der PathScribe Agent angebunden.",
-    "popupBlockedAlert": "Bitte erlauben Sie Pop-ups für diese Website, um Etiketten zu drucken."
+    "popupBlockedAlert": "Bitte erlauben Sie Pop-ups für diese Website, um Etiketten zu drucken.",
+    "preparing": "Etiketten werden vorbereitet…",
+    "preparingTitle": "Etiketten werden vorbereitet"
   },
   "printQueueDashboard": {
     "action": {
@@ -18537,6 +18662,10 @@
     "molecularPrinterProfile": {
       "description": "Dieselbe echte Hardware-Bridge-Wahl wie oben, für die eigenen Platten-, Gestell-, Präparat- und Deck-Positionsetiketten des Molekulartest-Ausführungsmoduls.",
       "title": "Molekular-Etikett-Druckerprofil"
+    },
+    "printOnAccession": {
+      "description": "Anforderungs- und Behälteretiketten drucken, sobald die Eingangserfassung einen Fall speichert. Die Schaltfläche Etiketten drucken bleibt für einen Nachdruck.",
+      "title": "Etiketten beim Speichern eines Falls drucken"
     },
     "qzTrayHint": "Nur ein Profil mit dem Bridge-Typ qz_tray sendet heute tatsächlich — jeder andere Bridge-Typ fällt automatisch auf den Browser-Druckdialog zurück.",
     "reprintReason": {
@@ -18757,7 +18886,6 @@
   "protocolChangeModal": {
     "applyChangesButton_one": "{{count}} Änderung anwenden →",
     "applyChangesButton_other": "{{count}} Änderungen anwenden →",
-    "confidencePercent": "{{percent}} % Konfidenz",
     "currentLabel": "Aktuell",
     "deselectAll": "Alle abwählen",
     "eyebrow": "KI-Protokollüberprüfung",
@@ -19613,26 +19741,26 @@
   },
   "qualityComplianceHub": {
     "auditTile": {
-      "description": "Systemaktivitätsprotokolle, Fehler- und Schnittstellen-Ausnahmeprotokolle sowie finanzieller Audit-Trail",
+      "description": "Protokolle und Audit-Trail",
       "title": "Audit"
     },
     "autopsyDashboardsTile": {
-      "description": "Bearbeitungszeit, Einwilligung, Organaufbewahrung und Todesursache nach Fall, Abteilung und Unternehmen",
+      "description": "Laufzeit und Einwilligung",
       "title": "Autopsie-Dashboards"
     },
     "backToHome": "← Zurück zur Startseite",
     "outboundQueueTile": {
-      "description": "Ausgehende Nachrichten anhalten, freigeben und erneut senden; Registerablehnungen korrigieren",
+      "description": "Versand halten, wiederholen",
       "title": "Ausgangswarteschlange"
     },
     "pageSubtitle": "Systemprotokolle und Audit-Trail, die Arbeitswarteschlange der Qualitätssicherung — Abweichungen, intraoperative Verknüpfung, Diskordanz & Abgleich sowie CAPA-Management — und Registerübermittlungen, die Bearbeitung brauchen",
     "pageTitle": "Qualität & Compliance",
     "qualityAssuranceTile": {
-      "description": "Abweichungen, intraoperative Verknüpfung sowie Diskordanz- und Abgleichsberichte",
+      "description": "Mängel und Diskordanzen",
       "title": "Qualitätssicherung"
     },
     "registryExceptionsTile": {
-      "description": "Registerübermittlungen, die zurückgehalten, nicht zugestellt, abgelehnt oder nie beantwortet wurden",
+      "description": "Zurückgehalten, abgelehnt",
       "title": "Registerausnahmen"
     }
   },
@@ -20666,14 +20794,12 @@
     "fieldRow": {
       "aiSourceLabel": "KI-Quelle: {{source}}",
       "aiSuggestionBadge": "KI-Vorschlag",
-      "belowThresholdTitle": "Die KI-Konfidenz von {{conf}} % liegt unter Ihrem Schwellenwert — bitte sorgfältig prüfen.\nQuelle: {{source}}",
       "checkSourceBadge": "Quelle prüfen",
       "checkSourceTitle": "Vor der Bestätigung mit dem Quelltext abgleichen",
       "clickToFocusTitle": "Klicken, um das Feld zu fokussieren",
       "clickToHighlightTitle": "Klicken, um die Quelle im Bericht hervorzuheben",
       "confirmButton": "✓ Bestätigen",
       "confirmedBadge": "✓ Von KI bestätigt",
-      "lowConfidenceBadge": "KI: geringe Konfidenz ({{conf}} %)",
       "manualEntryBadge": "Manuell — von der KI übersehen",
       "manualEntryTitle": "Sie haben dieses Feld manuell ausgefüllt — die KI hatte keinen Vorschlag. Dies hilft, die KI zu trainieren.",
       "notFoundBadge": "KI: nicht gefunden",
@@ -20718,7 +20844,7 @@
     "reevaluation": {
       "accept": "Neuen Wert übernehmen",
       "keep": "Meinen behalten",
-      "suggests": "Der aktualisierte Text schlägt {{value}} vor ({{confidence}} % Konfidenz). Ihren Wert behalten oder aktualisieren?"
+      "suggests": "Der aktualisierte Text schlägt {{value}} vor. Ihren Wert behalten oder aktualisieren?"
     },
     "sectionTabs": {
       "unverifiedLabel": "{{count}} unverifiziert",
@@ -21115,6 +21241,7 @@
   },
   "scanStationPrompt": {
     "confirmButton": "Station festlegen",
+    "notAvailable": "Die an diesem Computer eingestellte Station ({{station}}) steht Ihnen nicht zur Verfügung. Wählen Sie eine Ihrer Stationen oder überspringen Sie den Schritt, um ohne Station fortzufahren.",
     "selectPlaceholder": "— Station auswählen —",
     "skipButton": "Überspringen — ich scanne hier nicht",
     "subtitle": "Legen Sie die echte, physische Station fest, die dieses Terminal repräsentiert — ein echter Kassetten-/Objektträger-Scan hier wird als an der von Ihnen gewählten Station erfolgt erfasst. Dies wird für dieses Gerät dauerhaft gespeichert; Sie können es jederzeit über das Symbol neben Ihrem Namen ändern.",
@@ -21200,6 +21327,10 @@
       "equipment": {
         "name": "Geräte",
         "note": "Jedes Gerät gehört zu einer Einrichtung."
+      },
+      "labelStyle": {
+        "name": "Buchstaben oder Zahlen für Etiketten",
+        "note": "Das Unternehmen legt Buchstaben oder Zahlen für Proben, Blöcke und Objektträger fest; ein Labor kann jede der drei Einstellungen überschreiben. Nur für neue Fälle."
       },
       "mfaPolicy": {
         "name": "Richtlinie für die Zwei-Faktor-Anmeldung",
@@ -22921,8 +23052,8 @@
       "description": "Beschreibung",
       "descriptionPlaceholder": "z. B. Linksseitige Mastektomie",
       "laterality": "Seitigkeit",
-      "referralClient": "Überweisender Kunde",
-      "referralClientId": "ID des überweisenden Kunden",
+      "referralClient": "Name des externen Labors",
+      "referralClientId": "Proben-/Akzessions-ID des externen Labors",
       "referralClientIdPlaceholder": "z. B. die von diesem Labor bereits zugewiesene ID",
       "referralClientPlaceholder": "z. B. externes Zytologielabor",
       "snomedSite": "SNOMED-Anatomische Lage",
@@ -23387,6 +23518,7 @@
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Änderungen verworfen und zu {{station}} gewechselt.",
+    "notAuthorized": "Sie sind nicht für {{station}} freigegeben; die Station wurde daher nicht gewechselt.",
     "notSaved": "Der Entwurf wurde nicht gespeichert, daher wurde der Arbeitsplatz nicht gewechselt.",
     "savedAndSwitched": "📍 Gespeichert und zu {{station}} gewechselt.",
     "switched": "📍 Gewechselt zu {{station}}.",
@@ -23662,7 +23794,6 @@
       "notPermitted": "Sie sind nicht berechtigt, chirurgische QS-Reviews zu erfassen."
     },
     "mismatch": {
-      "confidence": "{{confidence}} % Konfidenz",
       "deferredBy": "Zurückgestellt von {{name}}, {{date}}",
       "description": "Geringriskante Diskrepanzen, die ein Pathologe bei der Befundprüfung zurückgestellt hat. Erfassen Sie Geklärt oder Ungeklärt; Ungeklärt empfiehlt der QS eine Korrekturmaßnahme.",
       "empty": "Keine zurückgestellten Diskrepanzen offen.",
@@ -26594,10 +26725,10 @@
       "currently": "Derzeit in LIS-Fällen",
       "switch": "Zu LIS-Fällen wechseln"
     },
-    "outreachLabel": "Outreach",
+    "outreachLabel": "Orchestration-Fälle",
     "outreachTile": {
-      "currently": "Derzeit in Outreach-Fällen",
-      "switch": "Zu Outreach-Fällen wechseln"
+      "currently": "Derzeit in Orchestration-Fällen",
+      "switch": "Zu Orchestration-Fällen wechseln"
     },
     "queues": {
       "cytologyQc": "Zytologie-QC-Peer-Review-Warteschlange",
@@ -26683,7 +26814,7 @@
       "titleWithDescription": "{{scope}}: {{label}} — {{description}}"
     },
     "orchModal": {
-      "body": "Dieser Fall gehört zu PathScribe Orchestration/Outreach — einer anderen Datenquelle als Ihre LIS-Fälle, mit eigener Zugriffskontrolle. Zum Anzeigen ist das Kennzeichen <strong>canViewOrchestration</strong> in Ihrem Personaldatensatz erforderlich. Ihr Systemadministrator kann dies über <strong>Konfiguration → Personal</strong> gewähren (derselbe Bildschirm wie für den pädiatrischen Zugriff).",
+      "body": "Dieser Fall gehört zu PathScribe Orchestration — einer anderen Datenquelle als Ihre LIS-Fälle, mit eigener Zugriffskontrolle. Zum Anzeigen ist das Kennzeichen <strong>canViewOrchestration</strong> in Ihrem Personaldatensatz erforderlich. Ihr Systemadministrator kann dies über <strong>Konfiguration → Personal</strong> gewähren (derselbe Bildschirm wie für den pädiatrischen Zugriff).",
       "requestButtonLabel": "Orchestration-Zugriff anfordern",
       "subtitle": "Fall {{id}}",
       "title": "Orchestration-Zugriff erforderlich"

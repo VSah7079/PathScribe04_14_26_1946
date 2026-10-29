@@ -504,3 +504,7 @@ Batch 616: server version in `httpFacilityService.ts, httpRegistrySettingsServic
 ## Batch 618 (PS-336)
 
 `technicalBrandingForRender` (in `resolveSplitReportBranding.ts`): the technical lab's block is sent to the renderer only once the case is signed out. `technicalFacilityAudit.ts` (+ test): the audit entry for setting, changing or clearing the field (ids only).
+
+## Batch 715
+
+`Facility.labelStyle` (specimen, block, slide: letters or numbers; unset = follow the enterprise) beside the old `specimenLabelStyle` preset, which is still read. Resolved only through `services/labeling/resolveLabelStyle.ts`. Saving still needs `config:facilities:manage`.

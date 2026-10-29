@@ -9,8 +9,9 @@
 | Behaviour | documentation | clinical_support |
 |---|---|---|
 | Mismatch check | Plain flag with reason, low risk, logged to QA, never holds sign-out | Thresholds per rule; Block holds sign-out |
-| Confidence % on synoptic fields, review modal, header, protocol/template suggestions, code suggestions, narrative note, history extraction | Hidden; shows "AI suggestion" / "Check source" and the source quote | Shown |
-| Quality dashboards, AI test panel, QA worklist | Numbers shown (internal, allowed by the standard) | Shown |
+| Confidence % on synoptic fields, review modal, header, protocol/template suggestions, code suggestions, narrative note, history extraction, mismatch alert, QA worklist, AI Contribution tile, patient-history match | Hidden; shows "AI suggestion" / "Check source" / "Source found in report text" and the source quote | Hidden too (Batch 706, Pete Oct 28 2026: no confidence percentage on any clinical screen in either profile; the numbers stay in code, data, audit and thresholds) |
+| Quality dashboards (acceptance rates, turnaround) | Numbers shown (not AI confidence) | Shown |
+| Admin Confidence Threshold settings | Numeric input (a setting, not a display) | Numeric input |
 
 ## Closed in Batch 680
 Unaccepted AI narrative sections now stop sign-out (gate 12 in `signOutReviewGates.ts`); accept, edit-and-accept and reject of AI narrative drafts, and the binding of AI-suggested codes, are audited (`services/aiGovernance/aiReviewAudit.ts`).

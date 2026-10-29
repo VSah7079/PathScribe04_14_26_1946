@@ -16,7 +16,6 @@ import type { ClinicalMismatchAssessment } from '@/services';
 import type { ClinicalMismatchDiscipline } from '@/services/clinical/detectClinicalPathologicMismatch';
 import { ClinicalMismatchDecisionForm } from './ClinicalMismatchDecisionForm';
 import { ClinicalMismatchSummary } from './ClinicalMismatchSummary';
-import { regulatoryCapabilities } from '@/services/regulatoryProfile/regulatoryProfile';
 import '@/pathscribe.css';
 
 const K = 'clinicalMismatch.alert';
@@ -37,13 +36,12 @@ export const ClinicalMismatchAlert: React.FC<Props> = ({ assessment, caseId, cas
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const high = assessment.outcome.holdsSignOut;
-  const showConfidence = regulatoryCapabilities().showConfidenceScores;
   return (
     <div className={`ps-clin-mismatch-alert${high ? ' ps-clin-mismatch-alert--high' : ''}`} role="status">
       <div className="ps-clin-mismatch-alert__row">
         <span className="ps-clin-mismatch-alert__badge">{t(`${K}.badge`)}</span>
         <span className="ps-clin-mismatch-alert__text">
-          {t(showConfidence ? `${K}.title` : `${K}.titlePlain`, { kind: t(`clinicalMismatch.kinds.${assessment.suggestion.kind}`), confidence: assessment.suggestion.confidence })}
+          {t(`${K}.title`, { kind: t(`clinicalMismatch.kinds.${assessment.suggestion.kind}`) })}
           {' '}{assessment.releaseNotHeld ? t(`${K}.releaseNotHeld`) : high ? t(`${K}.holdsSignOut`) : t(`${K}.lowRisk`)}
         </span>
         <button type="button" className="ps-conf-btn-secondary" aria-expanded={open} onClick={() => setOpen(o => !o)}>

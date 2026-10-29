@@ -68,6 +68,10 @@ const flows = {
   'voice-and-keyboard-overview': async p => { await go(p, '/worklist'); await p.keyboard.press('Alt+j'); await p.waitForTimeout(1200); },
   'molecular-batch-overview': async p => { await go(p, '/molecular'); await click(p, /New Batch/); await p.waitForURL(/molecular-batch/, { timeout: 15000 }); await p.waitForTimeout(3000); },
   'accession-specimens': async p => { await go(p, '/accession'); await click(p, /Specimens/, { role: 'tab' }).catch(() => click(p, /Specimens/)); },
+  'grossing-overview': async p => { await go(p, `/case/${CASE}/grossing`, 9000); },
+  'worklist-overview': async p => { await go(p, '/worklist', 12000); },
+  'grossing-queue': async p => { await go(p, '/workstations/grossing', 6000); },
+  'pathology-workspace-overview': async p => { await go(p, '/pathology-workspace', 5000); },
   'accession-after-submit': async p => {
     await go(p, '/accession');
     await p.getByPlaceholder(/John Michael/).fill('Jane'); await p.getByPlaceholder(/e\.g\. "Smith"/).fill('Demoson');

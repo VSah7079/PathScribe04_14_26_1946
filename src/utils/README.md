@@ -495,7 +495,7 @@ per-dictionary detail.
 - **`extractCaseReferencesFromText.ts`** (PS-299) — finds case references in a message's text so the drawer can link to the case.
 - **`buildWsiViewerLaunchUrl.ts`** — builds the external slide viewer's launch URL for a scan.
 - **`resolveOutboundMolecularAssaysForProtocol.ts`** — the molecular orders a protocol sends out at accession.
-- **`grossingScreenOperations.ts`** — the Grossing screen's pure operations (see also Batch 460 below).
+- **`grossingScreenOperations.ts`** — the Grossing screen's pure operations (see also Batch 460 below). Batch 705: `stainOrigin()` tells a protocol stain from an existing one (no protocol) and a user-added one; removal confirmation reports the origin.
 
 *Added in the Batch 496 README audit (Oct 9, 2026): these files had no entry in this README.*
 
@@ -838,3 +838,9 @@ Batch 669: `embeddingOperations.ts` gains `hasOpenEmbeddingDiscrepancy`, `clearE
 
 ## Batch 669f
 `microtomyOperations.ts` gains `updateDecantStainComment`, `reprintDecantStain` (ws-2), `remainingPrepSuggestions` (ws-5; `applyCytologyPrepSuggestions` adds only what is missing and refuses when nothing is), `restoreStainOrder` and `MICROTOMY_UNDO_WINDOW_MS` (ws-6). `addOnOrderOperations.ts` gains `missingPanelStainNames` (ws-20).
+
+- **`plainCalendarDate.ts`** (Batch 707): returns a `YYYY-MM-DD` calendar date unchanged and refuses anything else, so a birth date is never turned into a shifted UTC timestamp.
+
+**Batch 713:** `effectiveScanStation.ts` ignores a station the signed-in user may not use (`services/scanStations/stationAvailability.ts`).
+
+**Batch 715:** `specimenLabeling.ts` now covers specimen, block and slide labels as independent letters-or-numbers choices (`nextBlockLabel` never repeats a label; `slideLevelText` prints `La` for letters). `generateDefaultMaterial.ts` and `grossingScreenOperations.addGrossingBlock` take the resolved style. See `services/labeling/README.md`.

@@ -288,7 +288,21 @@
     },
     "clinicalIndication": {
       "label": "Indicación clínica",
-      "placeholder": "Motivo de la muestra: alimenta la IA de asignación de plantillas de tallado"
+      "note": {
+        "edited": "Modificado respecto a la solicitud.",
+        "fromOrder": "Procede de la solicitud: {{field}}. Compruébelo y modifíquelo si es necesario.",
+        "fromOrderUnspecified": "Procede de la solicitud. Compruébelo y modifíquelo si es necesario.",
+        "orderText": "Texto de la solicitud: {{text}}"
+      },
+      "placeholder": "Motivo de la muestra: alimenta la IA de asignación de plantillas de tallado",
+      "sources": {
+        "dg1": "DG1 Diagnóstico",
+        "fhirReasonCode": "FHIR ServiceRequest.reasonCode",
+        "fhirReasonReference": "FHIR ServiceRequest.reasonReference",
+        "nte": "NTE nota de motivo",
+        "obr31": "OBR-31 Motivo del estudio",
+        "orc16": "ORC-16 Motivo del código de control de la solicitud"
+      }
     },
     "common": {
       "notSpecified": "— sin especificar —",
@@ -399,7 +413,7 @@
     "grossing": {
       "blockLabel": "Bloque {{label}}",
       "blocksHeading": "Bloques y tinciones",
-      "confidence": "{{value}} % de confianza",
+      "defaultsKept": "La comprobación automática de la plantilla no estaba disponible, así que cada muestra conserva la plantilla de tallado predeterminada de su tipo. No se pierde nada: quien talla puede cambiar la plantilla en la pantalla de tallado.",
       "heading": "Plantillas de tallado asignadas",
       "noStainsYet": "(aún no se han solicitado tinciones)",
       "override": "(modificado manualmente)",
@@ -535,6 +549,9 @@
       "heading": "Listo para registrar",
       "specimenCount": "{{count}} muestra(s)"
     },
+    "requiredMark": {
+      "title": "Obligatorio"
+    },
     "specimens": {
       "addSpecimen": "+ Añadir muestra",
       "anatomicSite": "Localización anatómica",
@@ -578,8 +595,8 @@
       "processedAt": "Fecha y hora de colocación en fijador",
       "processedAtEstimated": "Estimada; no documentada directamente",
       "receivedAt": "Fecha y hora de recepción",
-      "referralClient": "Cliente derivante (opcional)",
-      "referralClientId": "ID del cliente derivante (opcional)",
+      "referralClient": "Nombre del laboratorio externo (opcional)",
+      "referralClientId": "ID de muestra / acceso del laboratorio externo (opcional)",
       "referralClientIdPlaceholder": "p. ej. el identificador ya asignado por ese laboratorio",
       "referralClientPlaceholder": "p. ej. Laboratorio de citología externo",
       "removeSpecimen": "Quitar muestra",
@@ -1076,8 +1093,7 @@
     "protocolList": {
       "applied": "Aplicado",
       "empty": "Ningún protocolo coincide con su búsqueda",
-      "suggested": "Sugerido · {{confidence}} %",
-      "suggestedPlain": "Sugerido"
+      "suggested": "Sugerido"
     },
     "reportExists": "Ya existe informe",
     "requestTemplate": {
@@ -1157,7 +1173,6 @@
     "tiles": {
       "acceptanceRate": "Tasa de aceptación de la IA",
       "assisted": "Casos asistidos por IA",
-      "confidence": "Confianza media de la IA",
       "deltaVsYtdAvg": "{{sign}}{{value}} % frente a la media del año en curso",
       "notPeriodFiltered": "sin filtrar por periodo",
       "ofTotal": "de {{count}} en total",
@@ -1279,7 +1294,7 @@
       "indication": "Indicación clínica",
       "malignant": "Hallazgo maligno confirmado por el patólogo",
       "result": {
-        "mismatch": "Discordancia: {{kind}} ({{confidence}} % de confianza). {{explanation}}",
+        "mismatch": "Discordancia: {{kind}}. {{explanation}}",
         "none": "No se encontró ninguna discordancia.",
         "notAllowed": "La IA no está disponible en esta jurisdicción: el servicio de IA en uso no está permitido por la política de proveedores de IA.",
         "unavailable": "No se pudo contactar con la IA: {{message}}"
@@ -1351,7 +1366,6 @@
     "testingButton": "Probando…"
   },
   "aiReviewModal": {
-    "confidencePercent": "{{percent}} % de confianza",
     "counter": "Campo {{index}} de {{total}}",
     "eyebrowLabel": "Modo de revisión de la IA",
     "footerConfirmFinaliseButton": "Espacio — Confirmar y finalizar 🔒",
@@ -1361,7 +1375,8 @@
     "skippedCount_many": "{{count}} omitidos",
     "skippedCount_one": "{{count}} omitido",
     "skippedCount_other": "{{count}} omitidos",
-    "sourceNotFoundBanner": "Origen no encontrado en el texto del informe: por eso requiere revisión pese a la puntuación de confianza indicada arriba",
+    "sourceFound": "Source found in report text",
+    "sourceNotFoundBanner": "Source not found in report text — this is why it needs review",
     "sourceNotFoundTooltip": "La IA citó este origen, pero no se pudo localizar textualmente en ningún punto del texto macroscópico, microscópico o complementario; la confianza por sí sola no confirma que este valor esté realmente fundamentado en el informe.",
     "title": "Revise los hallazgos inciertos de la IA antes de firmar"
   },
@@ -5051,6 +5066,10 @@
         "description": "Ver la pantalla Espacio de trabajo de inclusión y su mosaico en el Espacio de trabajo de patología.",
         "label": "Abrir el Espacio de trabajo de inclusión"
       },
+      "screenGrossingOpen": {
+        "description": "Ver la pantalla Espacio de Tallado y su mosaico en Espacio de patología.",
+        "label": "Abrir el espacio de Tallado"
+      },
       "screenIntraopQueueOpen": {
         "description": "Ver la pantalla Cola intraoperatoria y su mosaico en la página de inicio.",
         "label": "Abrir la Cola intraoperatoria"
@@ -5211,8 +5230,7 @@
     "summary_other": "Historia clínica: {{count}} entradas codificadas."
   },
   "caseCoding": {
-    "aiDetail": "{{model}} · {{confidence}} %",
-    "aiDetailPlain": "Sugerencia de {{model}}",
+    "aiDetail": "Sugerencia de {{model}}",
     "empty": "Este caso aún no tiene códigos.",
     "sideBySide": {
       "icd10": "CIE-10",
@@ -6273,8 +6291,7 @@
       "lowRisk": "La firma no se retendrá.",
       "releaseNotHeld": "Se trata de una discordancia de alto riesgo, pero el ajuste de su laboratorio no retiene la liberación de una enmienda, corrección o adenda. Se registra en Calidad.",
       "review": "Revisar",
-      "title": "{{kind}} ({{confidence}} % de confianza).",
-      "titlePlain": "{{kind}}: la IA ha señalado una posible discrepancia para su revisión."
+      "title": "{{kind}}: la IA ha señalado una posible discrepancia para su revisión."
     },
     "backToReport": "Volver al informe",
     "errors": {
@@ -6324,16 +6341,13 @@
       "UNRESOLVED": "No resuelta"
     },
     "source": {
-      "ai": "Sugerida por la evaluación de la IA ({{confidence}} % de confianza)",
-      "aiPlain": "Sugerido por la evaluación de la IA",
-      "rule": "Sugerida por una comprobación basada en reglas (la IA no estaba disponible; {{confidence}} % de confianza)",
-      "ruleJurisdiction": "Sugerida por una comprobación basada en reglas (la IA no está disponible para esta jurisdicción; {{confidence}} % de confianza)",
-      "ruleJurisdictionPlain": "Sugerido por una comprobación basada en reglas (la IA no está disponible para esta jurisdicción)",
-      "rulePlain": "Sugerido por una comprobación basada en reglas (la IA no estaba disponible)"
+      "ai": "Sugerido por la evaluación de la IA",
+      "rule": "Sugerido por una comprobación basada en reglas (la IA no estaba disponible)",
+      "ruleJurisdiction": "Sugerido por una comprobación basada en reglas (la IA no está disponible para esta jurisdicción)"
     },
     "title": "Correlación clinicopatológica",
     "why": {
-      "holds": "Retiene la firma: la regla de su laboratorio bloquea este tipo de discordancia con una confianza del {{threshold}} % o superior.",
+      "holds": "Holds sign-out: your laboratory’s rule blocks this kind of mismatch.",
       "lowRisk": "Riesgo bajo según las reglas de su laboratorio: la firma no se retiene. Si queda sin decidir, se registra para Calidad al firmar."
     }
   },
@@ -10352,6 +10366,7 @@
     "capturedAt": "capturada {{time}}",
     "capturing": "Capturando…",
     "categories": {
+      "aiTemplateValidation": "Validación de IA / plantillas",
       "dataIssue": "Problema de datos",
       "functionalIssue": "Problema funcional",
       "integrations": "Integraciones",
@@ -10366,11 +10381,17 @@
     "clickToExpand": "Haga clic para ampliar",
     "clickToViewFullSize": "Haga clic para ver el tamaño completo",
     "close": "Cerrar",
+    "deliveredNotice": "Entregada en {{host}}.",
     "descriptionLabel": "Descripción",
     "descriptionPlaceholder": "Describa la mejora con detalle. ¿Qué problema resuelve? ¿Cómo debería ser la experiencia?",
     "done": "Hecho",
     "enhancementHeaderSubtitle": "Ayude a dar forma al futuro de pathscribe AI",
     "enhancementHeaderTitle": "Enviar solicitud de mejora",
+    "errors": {
+      "DELIVERY_FAILED": "No se pudo entregar la solicitud en el destino. No se envió nada.",
+      "NO_DESTINATION": "No hay ningún destino configurado, por lo que no se envió nada.",
+      "NO_RECIPIENTS": "No hay destinatarios configurados."
+    },
     "identifierWarning": {
       "body": "Las incidencias de soporte salen de su laboratorio. Elimine estos datos o sustituya los números de caso por sus referencias de soporte.",
       "item": "{{text}} ({{kind}})",
@@ -10412,11 +10433,13 @@
     "qaHeaderSubtitle": "Comunique errores, fallos en las pruebas o comportamientos inesperados",
     "qaHeaderTitle": "Enviar comentarios de control de calidad / pruebas",
     "qaRoutingNotice": "Estos comentarios se enviarán al equipo de control de calidad con copia al administrador del sistema.",
+    "qaRoutingNoticeValidation": "Este comentario se enviará a los destinatarios de validación (al equipo de control de calidad si no hay ninguno) con copia al administrador del sistema.",
     "redactedSuffix": "ocultado",
     "remove": "Quitar",
     "screenCaptureAlt": "Captura de pantalla",
     "screenCaptureFullSizeAlt": "Captura de pantalla: tamaño completo",
     "screenCaptureLabel": "Captura de pantalla",
+    "simulatedDestinationNotice": "Simulado: esta versión de demostración no envía nada a {{host}}, por lo que no se envió nada. Su solicitud queda guardada en Configuración, Sistema, Bandeja de salida simulada.",
     "simulatedNotice": "Simulado: no hay ningún servicio de correo ni portal de incidencias conectado, por lo que no ha llegado nada a soporte. Su solicitud se conserva en Configuración, Sistema, Bandeja de salida de correo simulada.",
     "submissionFailed": "El envío ha fallado; inténtelo de nuevo.",
     "submitQaFeedback": "Enviar comentarios de control de calidad",
@@ -10427,6 +10450,16 @@
     "titleLabel": "Título",
     "titlePlaceholder": "Breve resumen de su idea de mejora…",
     "unexpectedError": "Se ha producido un error inesperado.",
+    "validationFallbackNotice": "No hay destinatarios de validación definidos, por lo que se envió a los destinatarios de control de calidad.",
+    "validationLinks": {
+      "noStudies": "No hay estudios de validación activos.",
+      "none": "Ninguno",
+      "study": "Estudio de validación",
+      "template": "Plantilla",
+      "templateOption": "{{name}} (versión {{version}})",
+      "title": "Vincular a un estudio de validación o a una plantilla"
+    },
+    "validationRoutedNotice": "Enviado a los destinatarios de validación.",
     "viewTicket": "Ver incidencia →"
   },
   "enterpriseRollupTab": {
@@ -10942,7 +10975,6 @@
       "requireBillingApproval_on": "Activado",
       "roles": "Roles",
       "rolesHint": "Un centro puede reunir cualquier combinación; p. ej., un hospital puede ser a la vez laboratorio ejecutor y centro solicitante interno. Las pestañas HL7, Informes/TRT e IA y rendimiento de arriba aparecen según los roles marcados aquí.",
-      "specimenLabeling": "Etiquetado de muestras / bloques",
       "specimenLabelingAlpha": "Muestra A, B, C / Bloque A1, A2, A3",
       "specimenLabelingNumeric": "Muestra 1, 2, 3 / Bloque 1A, 1B, 1C",
       "status": "Estado",
@@ -10950,6 +10982,24 @@
       "statusInactive": "Inactivo",
       "statusUnverified": "Sin verificar (verificar mediante la acción de la tabla)",
       "useList": "Usar lista"
+    },
+    "labelStyle": {
+      "ambiguousLetters": "Las muestras y los bloques usan letras, por lo que una etiqueta como AA podría significar muestra A bloque A, o una muestra posterior a la Z. Utilice números para uno de los dos, salvo que su laboratorio lo necesite.",
+      "ambiguousNumbers": "Las muestras y los bloques usan números, por lo que una etiqueta como 11 podría significar muestra 1 bloque 1, o la muestra 11. Utilice letras para uno de los dos, salvo que su laboratorio lo necesite.",
+      "blockLevel": "Bloques",
+      "example": "Muestra {{specimen}} · Bloque {{block}} · Portaobjetos {{slide}}",
+      "exampleCassette": "Casete {{cassette}} · etiqueta de portaobjetos {{cassette}} {{slide}}",
+      "hintEnterprise": "Valor predeterminado de todos los laboratorios de esta empresa; un laboratorio puede cambiar cualquiera de los tres. Un cambio se aplica solo a los casos nuevos: las etiquetas que ya están en un caso nunca cambian.",
+      "hintLab": "Una parte que se deja en «Igual que la empresa» sigue el valor predeterminado de la empresa. Un cambio se aplica solo a los casos nuevos: las etiquetas que ya están en un caso nunca cambian.",
+      "inherit": "Igual que la empresa ({{value}})",
+      "letters": "Letras",
+      "numbers": "Números",
+      "preset": "Preajuste",
+      "presetCustom": "Personalizado",
+      "slideLevel": "Portaobjetos",
+      "slideNote": "Los números de portaobjetos se imprimen como L1, L2; las letras, como La, Lb. El código del código de barras del portaobjetos sigue siendo L1, L2 en ambos casos.",
+      "specimenLevel": "Muestras",
+      "title": "Letras o números para las etiquetas"
     },
     "lis": {
       "allowPostFinal": "Los patólogos pueden iniciar adendas/modificaciones directamente en PathScribe",
@@ -11232,6 +11282,12 @@
   "feedbackSection": {
     "adminCc": "Copia al administrador (cc)",
     "buttonTitle": "Botón de comentarios de control de calidad",
+    "destinationActive": "Las solicitudes de mejora se entregan en {{host}}.",
+    "destinationHint": "Las solicitudes de mejora pueden entregarse en una página del sitio web de ForMedrixAI en lugar de por correo electrónico. Déjelo vacío para usar la dirección con la que se configuró su implantación, si la hay. Solo se aceptan direcciones https. El navegador solo puede enviar a las direcciones que su implantación haya permitido (pida a su equipo de TI que la añada a la política de seguridad).",
+    "destinationNone": "No hay ningún destino definido, por lo que las solicitudes de mejora se envían por correo electrónico.",
+    "destinationPlaceholder": "La dirección web, que empieza por https",
+    "destinationTitle": "Destino de las solicitudes de mejora",
+    "destinationUrl": "URL de destino de las solicitudes de mejora",
     "instance": {
       "production": "Esta es una instancia de producción: de forma predeterminada el botón está oculto.",
       "validation": "Esta es una instancia de validación: de forma predeterminada el botón se muestra."
@@ -11245,8 +11301,10 @@
       "CONFIG_NOT_PERMITTED": "No se ha guardado: sus roles no incluyen la gestión de los ajustes de comentarios.",
       "generic": "No se ha guardado: algo ha salido mal. Inténtelo de nuevo.",
       "invalidCc": "Una de las direcciones en copia no es una dirección de correo electrónico válida.",
+      "invalidEnhancementUrl": "El destino debe ser una dirección web https completa, sin nombre de usuario, contraseña ni parte con #.",
       "invalidMode": "Elija cuándo se muestra el botón.",
       "invalidRecipient": "Uno de los destinatarios no es una dirección de correo electrónico válida.",
+      "invalidValidationRecipient": "Uno de los destinatarios de validación no es una dirección de correo electrónico válida.",
       "noRecipients": "Añada al menos un destinatario: el botón se muestra en esta instancia y los comentarios no tendrían adónde ir."
     },
     "recipients": "Destinatarios de control de calidad",
@@ -11255,7 +11313,10 @@
     "save": "Guardar",
     "saved": "Guardado",
     "subtitle": "El botón de comentarios de control de calidad permite a los evaluadores comunicar un problema desde cualquier pantalla, con una captura de pantalla y sin datos de pacientes. Elija cuándo se muestra y quién recibe los informes.",
-    "title": "Comentarios"
+    "title": "Comentarios",
+    "validationHint": "Direcciones de correo electrónico separadas por comas. Aquí llegan los comentarios de control de calidad de la categoría Validación de IA / plantillas. Si está vacío, van a los destinatarios de control de calidad y se avisa a quien los envía.",
+    "validationRecipients": "Destinatarios de validación",
+    "validationTitle": "Destino de los comentarios de validación de IA / plantillas"
   },
   "fieldRequirements": {
     "alwaysRequired": "Siempre obligatorio",
@@ -11268,6 +11329,7 @@
         "clinicalIndication": "Indicación clínica",
         "collectedAt": "Fecha/hora de recogida",
         "dateOfBirth": "Fecha de nacimiento",
+        "downtimeReason": "Motivo de la contingencia",
         "familyNames": "Apellido(s)",
         "givenNames": "Nombre(s)",
         "location": "Ubicación (planta / habitación / cama)",
@@ -12267,6 +12329,25 @@
     "telepathologyCheckbox": "Admite transmisión de telepatología en directo",
     "title": "Imagen macroscópica y telepatología"
   },
+  "grossingBench": {
+    "addOnOrders": "Pedidos complementarios",
+    "decal": {
+      "added": "{{block}} añadido al lote de descalcificación {{batch}}.",
+      "already": "{{block}} ya está en ese lote de descalcificación.",
+      "assign": "Enviar a descalcificación",
+      "block": "Bloque a enviar",
+      "label": "Lote de descalcificación",
+      "noBatch": "No hay un lote de descalcificación activo.",
+      "noBlock": "Todavía no hay ningún bloque para descalcificar.",
+      "none": "No hay lote de descalcificación activo",
+      "notFound": "No se encontró ese bloque.",
+      "otherBatch": "{{block}} ya está en otro lote activo ({{batch}})."
+    },
+    "hint": "Atajos: Alt+Mayús+1 imprimir casetes, 2 foto, 3 descalcificación, 4 pedidos complementarios. Pedal 1: foto; pedal 2: imprime los casetes.",
+    "printCassettes": "Imprimir casetes",
+    "takePhoto": "Tomar una foto",
+    "title": "Herramientas de mesa"
+  },
   "grossingHardwareSection": {
     "addButton": "+ Añadir equipo de tallado",
     "anyStation": "Cualquier puesto",
@@ -12381,7 +12462,6 @@
     "auditPanelTitle_many": "Registro de auditoría ({{count}} anulaciones)",
     "auditPanelTitle_one": "Registro de auditoría ({{count}} anulación)",
     "auditPanelTitle_other": "Registro de auditoría ({{count}} anulaciones)",
-    "autoGenerated": "Generado automáticamente",
     "backToCase": "← Volver al caso",
     "caseNotFound": "No se ha encontrado el caso.",
     "col": {
@@ -12429,8 +12509,12 @@
     },
     "concurrencyConflict": "Este caso se ha actualizado en otro lugar. Recargue para ver la última versión.",
     "confirmRemove": "Quitar",
-    "confirmRemoveStainBody": "Esta tinción es predeterminada del protocolo asignado. Al quitarla se registrará como una anulación.",
-    "confirmRemoveStainTitle": "¿Quitar la tinción predeterminada del protocolo?",
+    "confirmRemoveStain": {
+      "existingBody": "Esta tinción ya figuraba en el caso y no procede de ningún protocolo. Al quitarla se registrará como una anulación.",
+      "existingTitle": "¿Quitar la tinción?",
+      "protocolBody": "Esta tinción es predeterminada del protocolo asignado. Al quitarla se registrará como una anulación.",
+      "protocolTitle": "¿Quitar la tinción predeterminada del protocolo?"
+    },
     "fixation": {
       "confirmRatio": "Confirmar proporción adecuada",
       "deficiencyRaised": "Deficiencia generada",
@@ -12495,20 +12579,46 @@
     "removeStainTitle": "Quitar tinción",
     "selectStain": "— seleccione tinción —",
     "specimenHeader": "Muestra {{label}} — {{description}}",
-    "userAdded": "Añadido por el usuario"
+    "stainOrigin": {
+      "existing": "Existente",
+      "protocol": "Generado automáticamente",
+      "userAdded": "Añadido por el usuario"
+    }
+  },
+  "grossingWorkspace": {
+    "backToWorkspace": "← Volver al espacio de patología",
+    "col": {
+      "accessioned": "Registrado",
+      "case": "Caso",
+      "priority": "Prioridad",
+      "specimens": "Muestras"
+    },
+    "empty": "Ningún caso espera el tallado.",
+    "gross": "Tallar",
+    "loadFailed": "No se pudieron cargar los casos. Inténtelo de nuevo.",
+    "loading": "Cargando casos…",
+    "notFound": "No se encontró ningún caso con ese número de acceso.",
+    "openButton": "Abrir",
+    "openLabel": "Abrir un caso por su número de acceso",
+    "openPlaceholder": "Número de acceso",
+    "pageSubtitle": "Casos pendientes de tallado y un cuadro para abrir uno por su número de acceso",
+    "pageTitle": "Espacio de Tallado",
+    "priority": {
+      "Routine": "Rutina",
+      "Rush": "Urgente",
+      "STAT": "STAT"
+    },
+    "waitingTitle": "Pendientes de tallado ({{count}})"
   },
   "headerBar": {
     "aiStatus": {
       "aiDrafted": "Borrador de IA",
-      "avgConfidence": "{{pct}}% de media",
       "draftedTooltip": "Borrador de IA: ningún campo obligatorio por debajo del umbral",
-      "fieldAtConfidence": "Campo con una confianza del {{pct}}%",
       "noFieldsBelowThreshold": "Ningún campo obligatorio por debajo del umbral",
       "noSuggestionsYet": "Aún no hay sugerencias de IA",
       "reviewPending": "Revisión pendiente",
       "reviewScoreTooltip": "Confianza de la revisión de IA en los campos sinópticos, independiente del estado general del caso. Haga clic para ir al campo marcado.",
-      "reviewTooltip": "Confianza de la revisión de IA (independiente del estado del caso): un campo obligatorio está por debajo del umbral de confianza; haga clic para revisarlo",
-      "reviewTooltipWithPct": "Confianza de la revisión de IA (independiente del estado del caso): un campo obligatorio tiene una confianza del {{pct}}%; haga clic para revisarlo"
+      "reviewTooltip": "Confianza de la revisión de IA (independiente del estado del caso): un campo obligatorio está por debajo del umbral de confianza; haga clic para revisarlo"
     },
     "blockStatusLabels": {
       "cancelled": "Cancelado",
@@ -12633,7 +12743,6 @@
   "historyExtraction": {
     "advisory": "Solo para su consulta. No forma parte del informe y nunca se utiliza en informes, impresión, registros, facturación, reglas ni exportaciones.",
     "aiLabel": "Extraído por IA, no verificado",
-    "confidence": "{{pct}}% de confianza",
     "flagAll": "Marcar todo como incorrecto",
     "flagField": "Marcar como incorrecto",
     "flagged": "Marcado",
@@ -12714,44 +12823,44 @@
   },
   "home": {
     "accessionTile": {
-      "description": "Registre nuevas muestras y asigne plantillas de tallado",
+      "description": "Registrar nuevas muestras",
       "title": "Acceso"
     },
     "benchContributionsTile": {
-      "description": "Tasa de acceso • Rendimiento por lotes y antigüedad de la cola • Tiempo de respuesta entre fases • Control de calidad molecular",
+      "description": "Rendimiento y tiempos",
       "title": "Contribuciones del banco de trabajo"
     },
     "configurationTile": {
-      "description": "Ajustes del sistema y preferencias de IA",
+      "description": "Ajustes y preferencias de IA",
       "title": "Configuración"
     },
     "doctorFallback": "Doctor",
     "footerCopyright": "© 2026 PathScribe AI Systems",
     "intraopQueueTile": {
-      "description": "Entradas intraoperatorias sin vincular a la espera de un acceso formal del LIS con el que fusionarse",
+      "description": "Entradas intraop. sin vincular",
       "title": "Cola intraoperatoria"
     },
     "lockboxDropOffTile": {
-      "description": "Escanear las muestras entregadas fuera de horario y hacerles seguimiento por la mañana",
+      "description": "Entregas fuera de horario",
       "title": "Entrega en Lockbox"
     },
     "myContributionTile": {
-      "description": "Carga de trabajo • Calidad • Tiempo de respuesta • Tendencias",
+      "description": "Carga • Calidad • Tiempos",
       "title": "Mi contribución"
     },
     "pathologyWorkspaceTile": {
-      "description": "Cribado citológico, diagnóstico molecular, puestos de microtomía, inclusión y distribución de portaobjetos, y gestión de lotes",
+      "description": "Citología, molecular y bancos",
       "title": "Espacio de trabajo de Anatomía Patológica"
     },
     "qualityComplianceTile": {
-      "description": "Registros de actividad del sistema y registro de auditoría, y cola de trabajo de garantía de calidad: deficiencias, conciliación y gestión de CAPA",
+      "description": "Auditoría y colas de calidad",
       "title": "Calidad y cumplimiento"
     },
     "registryExceptionsBadge_many": "{{count}} excepciones de registro",
     "registryExceptionsBadge_one": "{{count}} excepción de registro",
     "registryExceptionsBadge_other": "{{count}} excepciones de registro",
     "searchTile": {
-      "description": "Busque casos completados y en curso",
+      "description": "Casos finalizados o en curso",
       "title": "Búsqueda"
     },
     "status": {
@@ -12764,12 +12873,12 @@
       "unavailable": "No disponible"
     },
     "tumorBoardTile": {
-      "description": "Marque un caso para el Comité de Tumores / equipo multidisciplinar (MDT) y gestione su inclusión en el orden del día del comité",
+      "description": "Marcar casos y agenda",
       "title": "Comité de Tumores / MDT"
     },
     "welcomeBack": "Le damos de nuevo la bienvenida,",
     "worklistTile": {
-      "description": "Consulte y gestione los casos de Anatomía Patológica pendientes",
+      "description": "Casos de patología pendientes",
       "title": "Lista de trabajo"
     }
   },
@@ -14106,8 +14215,17 @@
     },
     "missingFields": "Introduzca su correo electrónico y su contraseña.",
     "password": "Contraseña",
-    "passwordResetUnavailable": "Pida a su administrador que restablezca su contraseña desde la pantalla de Personal.",
     "phiNotice": "Este sistema contiene información sanitaria protegida. El acceso está restringido a usuarios autorizados y la actividad queda registrada.",
+    "resetRequest": {
+      "action": "Pedir a mi administrador que restablezca mi contraseña",
+      "back": "Volver al inicio de sesión",
+      "confirmation": "Si ese correo electrónico pertenece a una cuenta activa, se ha avisado a sus administradores y le establecerán una nueva contraseña. Podrá volver a solicitarlo transcurridos {{minutes}} minutos.",
+      "emailLabel": "Su correo electrónico de inicio de sesión",
+      "intro": "Introduzca el correo electrónico con el que inicia sesión. Se avisa de inmediato a sus administradores, que pueden establecer una nueva contraseña para usted en Personal.",
+      "invalidEmail": "Introduzca el correo electrónico con el que inicia sesión.",
+      "sending": "Enviando…",
+      "unavailable": "Este inicio de sesión no utiliza una contraseña de PathScribe. Póngase en contacto con su administrador del sistema."
+    },
     "sessionConflictMessage": "Esta cuenta ya tiene la sesión iniciada en otra pestaña o ventana de este navegador. Si continúa aquí, se cerrará esa sesión: el trabajo sin guardar se conservará y se le ofrecerá revisarlo la próxima vez que se abra. ¿Desea continuar?",
     "sessionConflictTitle": "Sesión ya iniciada en otro lugar",
     "showPassword": "Mostrar contraseña",
@@ -15815,6 +15933,7 @@
     "noStation": "Sin estación",
     "noStationClickToSet": "Ninguna estación de escaneo configurada: haga clic para configurar una",
     "noStationSet": "Ninguna estación de escaneo configurada",
+    "notAvailable": "La estación configurada en este equipo ({{station}}) no es una de las que usted puede utilizar, por lo que no hay ninguna estación activa.",
     "provenanceStationClickToChange": "{{provenance}}: {{station}} — haga clic para cambiar",
     "terminalFixed": "Este terminal está fijado a esta estación",
     "thisStation": "esta estación",
@@ -16147,7 +16266,6 @@
     "pageViewTooltip": "Vista de página: todas las secciones con desplazamiento",
     "pendingDraftAvailable": "Hay un nuevo borrador de la IA disponible para esta sección.",
     "provenance": {
-      "confidence": "Confianza de la IA: {{confidence}} %",
       "unavailable": "No había confianza ni cita de la fuente disponibles para esta sección: verifíquela manualmente",
       "unverified": "No se encontró la cita de la fuente en el texto del informe: verifique esta sección manualmente"
     },
@@ -17707,35 +17825,43 @@
     }
   },
   "pathologyWorkspace": {
+    "addOnOrdersTile": {
+      "description": "Niveles más profundos, tinciones y recortes de un caso",
+      "title": "Generador de pedidos adicionales"
+    },
     "backToHome": "← Volver al inicio",
     "batchManagementTile": {
-      "description": "Siga las cestas y los portaobjetos a través de los nodos de procesamiento mediante los códigos de barras de los contenedores",
+      "description": "Seguir casetes y láminas",
       "title": "Gestión de lotes"
     },
     "cytologyTile": {
-      "description": "Centro principal de cribado para citologías ginecológicas, triaje de citología no ginecológica, seguimiento de bloques celulares y control de calidad obligatorio",
+      "description": "Cribado, triaje y control",
       "title": "Espacio de trabajo de citología"
     },
     "embeddingTile": {
-      "description": "Escaneo y verificación de casetes, confirmación del número de fragmentos, selección de moldes y señalización de discrepancias en la mesa de inclusión",
+      "description": "Verificar casetes al incluir",
       "title": "Espacio de trabajo de inclusión"
     },
+    "grossingTile": {
+      "description": "Tallar casos y preparar bloques",
+      "title": "Tallado"
+    },
     "marginExceptionReviewTile": {
-      "description": "Respuestas de texto libre sobre la distancia al margen que la capa de extracción no pudo interpretar con seguridad: etiquete la distancia real o descártelas indicando un motivo",
+      "description": "Márgenes por revisar",
       "title": "Revisión de excepciones de márgenes"
     },
     "microtomyTile": {
-      "description": "Impresión de etiquetas de portaobjetos en tiempo real, bajo demanda o por lotes, gestión de tinciones y preparación de citología/decantado en la mesa del micrótomo",
+      "description": "Etiquetas y tinciones",
       "title": "Espacio de trabajo de microtomía"
     },
     "molecularTile": {
-      "description": "Gestión de lotes y placas, series en curso y asociación de control de calidad y muestras en el diagnóstico molecular (VPH, CT/NG, PCR respiratoria)",
+      "description": "Lotes, placas, series y CC",
       "title": "Espacio de trabajo de biología molecular"
     },
     "pageSubtitle": "Cribado citológico, diagnóstico molecular, estaciones de microtomía, inclusión y distribución de portaobjetos, y gestión de lotes",
     "pageTitle": "Espacio de trabajo de Anatomía Patológica",
     "slideDistributionTile": {
-      "description": "Retirada con escaneo continuo para los patólogos o ingreso en un escáner digital, con avisos de destino dividido y gestión de excepciones",
+      "description": "Entrega y escaneo de láminas",
       "title": "Espacio de trabajo de distribución de portaobjetos"
     }
   },
@@ -17807,9 +17933,7 @@
       "caseSearch": "Búsqueda de casos",
       "home": "Inicio"
     },
-    "card": {
-      "matchPct": "{{pct}} % de coincidencia"
-    },
+    "card": {},
     "compose": {
       "caseLabel": "Caso",
       "disabledTooltip": "Seleccione un caso previo o una coincidencia de IA para activar la mensajería",
@@ -17824,7 +17948,6 @@
       "sent": "Enviado"
     },
     "field": {
-      "aiMatchScore": "Puntuación de similitud (demostración)",
       "ancillaryStudies": "Estudios complementarios",
       "caseId": "ID del caso",
       "date": "Fecha",
@@ -18570,7 +18693,9 @@
       "unsupportedProtocol": "El agente de PathScribe de esta estación de trabajo necesita actualizarse."
     },
     "bridgeNotImplemented": "El puente de impresora «{{bridgeType}}» aún no tiene una ruta de impresión operativa para este tipo de etiqueta. Aquí solo están conectados QZ Tray y el agente de PathScribe.",
-    "popupBlockedAlert": "Permita las ventanas emergentes de este sitio para imprimir etiquetas."
+    "popupBlockedAlert": "Permita las ventanas emergentes de este sitio para imprimir etiquetas.",
+    "preparing": "Preparando las etiquetas…",
+    "preparingTitle": "Preparando las etiquetas"
   },
   "printQueueDashboard": {
     "action": {
@@ -18762,6 +18887,10 @@
     "molecularPrinterProfile": {
       "description": "La misma elección de puente de hardware real que arriba, para las etiquetas de placa, gradilla, muestra y ubicación de la plataforma del módulo de ejecución de pruebas moleculares.",
       "title": "Perfil de impresora de etiquetas moleculares"
+    },
+    "printOnAccession": {
+      "description": "Imprimir la etiqueta de solicitud y las etiquetas de los envases en cuanto Accesión guarda un caso. El botón Imprimir etiquetas sigue disponible para reimprimir.",
+      "title": "Imprimir etiquetas al guardar un caso"
     },
     "qzTrayHint": "Hoy solo despacha realmente un perfil que use el tipo de puente qz_tray; cualquier otro tipo de puente recurre automáticamente al cuadro de impresión del navegador.",
     "reprintReason": {
@@ -18986,7 +19115,6 @@
     "applyChangesButton_many": "Aplicar {{count}} cambios →",
     "applyChangesButton_one": "Aplicar {{count}} cambio →",
     "applyChangesButton_other": "Aplicar {{count}} cambios →",
-    "confidencePercent": "{{percent}} % de confianza",
     "currentLabel": "Actual",
     "deselectAll": "Anular selección",
     "eyebrow": "Revisión de protocolos por IA",
@@ -19850,26 +19978,26 @@
   },
   "qualityComplianceHub": {
     "auditTile": {
-      "description": "Registros de actividad del sistema, registros de errores y excepciones de interfaz, y pista de auditoría financiera",
+      "description": "Actividad y pista de auditoría",
       "title": "Auditoría"
     },
     "autopsyDashboardsTile": {
-      "description": "Tiempos de respuesta, consentimiento, retención de órganos y causa de la muerte por caso, servicio y organización",
+      "description": "Tiempos y consentimiento",
       "title": "Paneles de autopsias"
     },
     "backToHome": "← Volver al inicio",
     "outboundQueueTile": {
-      "description": "Retener, liberar y reintentar mensajes salientes; corregir los rechazos de los registros",
+      "description": "Retener, liberar y reintentar",
       "title": "Cola de salida"
     },
     "pageSubtitle": "Registros del sistema y pista de auditoría, la cola de trabajo de garantía de calidad (deficiencias, vinculación intraoperatoria, discordancia y conciliación, y gestión de CAPA) y los envíos a registros que requieren atención",
     "pageTitle": "Calidad y cumplimiento",
     "qualityAssuranceTile": {
-      "description": "Informes de deficiencias, vinculación intraoperatoria, y discordancia y conciliación",
+      "description": "Deficiencias y discordancias",
       "title": "Garantía de calidad"
     },
     "registryExceptionsTile": {
-      "description": "Envíos a registros que se han retenido, no se han entregado, se han rechazado o nunca han recibido respuesta",
+      "description": "Envíos retenidos o rechazados",
       "title": "Excepciones de registros"
     }
   },
@@ -20921,14 +21049,12 @@
     "fieldRow": {
       "aiSourceLabel": "Fuente de la IA: {{source}}",
       "aiSuggestionBadge": "Sugerencia de la IA",
-      "belowThresholdTitle": "La confianza de la IA, {{conf}} %, está por debajo de su umbral: revíselo con cuidado.\nFuente: {{source}}",
       "checkSourceBadge": "Revisar la fuente",
       "checkSourceTitle": "Compare con el texto de origen antes de confirmar",
       "clickToFocusTitle": "Haga clic para situarse en el campo",
       "clickToHighlightTitle": "Haga clic para resaltar la fuente en el informe",
       "confirmButton": "✓ Confirmar",
       "confirmedBadge": "✓ Confirmado tras IA",
-      "lowConfidenceBadge": "IA: confianza baja ({{conf}} %)",
       "manualEntryBadge": "Manual: la IA no lo detectó",
       "manualEntryTitle": "Ha rellenado este campo manualmente: la IA no tenía ninguna sugerencia. Esto ayuda a entrenar la IA.",
       "notFoundBadge": "IA: no encontrado",
@@ -20973,7 +21099,7 @@
     "reevaluation": {
       "accept": "Aceptar el valor nuevo",
       "keep": "Mantener el mío",
-      "suggests": "El texto actualizado sugiere {{value}} (confianza del {{confidence}} %). ¿Mantiene su valor o lo actualiza?"
+      "suggests": "El texto actualizado sugiere {{value}}. ¿Mantiene su valor o lo actualiza?"
     },
     "sectionTabs": {
       "unverifiedLabel": "{{count}} sin verificar",
@@ -21377,6 +21503,7 @@
   },
   "scanStationPrompt": {
     "confirmButton": "Establecer puesto",
+    "notAvailable": "La estación configurada en este equipo ({{station}}) no es una de las que usted puede utilizar. Elija una de las suyas u omita este paso para continuar sin estación.",
     "selectPlaceholder": "— Seleccione un puesto —",
     "skipButton": "Omitir — aquí no escaneo",
     "subtitle": "Indique el puesto físico real que representa este terminal: un escaneo real de casete o portaobjetos aquí se registrará como realizado en el puesto que elija. Se recordará para este dispositivo en adelante; puede cambiarlo en cualquier momento desde el icono situado junto a su nombre.",
@@ -21462,6 +21589,10 @@
       "equipment": {
         "name": "Equipos",
         "note": "Cada instrumento pertenece a un centro."
+      },
+      "labelStyle": {
+        "name": "Letras o números para las etiquetas",
+        "note": "La empresa define letras o números para muestras, bloques y portaobjetos; un laboratorio puede cambiar cualquiera de los tres. Solo casos nuevos."
       },
       "mfaPolicy": {
         "name": "Política de inicio de sesión con segundo factor",
@@ -23201,8 +23332,8 @@
       "description": "Descripción",
       "descriptionPlaceholder": "p. ej., Mastectomía de mama izquierda",
       "laterality": "Lateralidad",
-      "referralClient": "Cliente remitente",
-      "referralClientId": "ID del cliente remitente",
+      "referralClient": "Nombre del laboratorio externo",
+      "referralClientId": "ID de muestra / acceso del laboratorio externo",
       "referralClientIdPlaceholder": "p. ej., el ID ya asignado por ese laboratorio",
       "referralClientPlaceholder": "p. ej., Laboratorio de citología externo",
       "snomedSite": "Localización anatómica SNOMED",
@@ -23667,6 +23798,7 @@
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Se descartaron los cambios y se cambió a {{station}}.",
+    "notAuthorized": "Usted no tiene autorización para usar {{station}}, por lo que no se ha cambiado de estación.",
     "notSaved": "El borrador no se guardó, por lo que no se cambió de puesto.",
     "savedAndSwitched": "📍 Guardado y cambiado a {{station}}.",
     "switched": "📍 Cambiado a {{station}}.",
@@ -23950,7 +24082,6 @@
       "notPermitted": "No tiene permiso para registrar revisiones de control de calidad quirúrgico."
     },
     "mismatch": {
-      "confidence": "{{confidence}} % de confianza",
       "deferredBy": "Aplazado por {{name}}, {{date}}",
       "description": "Discrepancias de bajo riesgo que un patólogo aplazó al revisar el informe. Registre Resuelta o No resuelta; No resuelta recomienda una acción correctora a Calidad.",
       "empty": "No hay discrepancias aplazadas pendientes.",
@@ -26918,10 +27049,10 @@
       "currently": "Actualmente en Casos del LIS",
       "switch": "Cambiar a Casos del LIS"
     },
-    "outreachLabel": "Extrahospitalario",
+    "outreachLabel": "Casos de Orchestration",
     "outreachTile": {
-      "currently": "Actualmente en Casos extrahospitalarios",
-      "switch": "Cambiar a Casos extrahospitalarios"
+      "currently": "Actualmente en Casos de Orchestration",
+      "switch": "Cambiar a Casos de Orchestration"
     },
     "queues": {
       "cytologyQc": "Cola de revisión por pares del control de calidad de citología",

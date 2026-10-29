@@ -26,7 +26,7 @@
 // fields here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { useParams } from 'react-router';
 
@@ -55,13 +55,20 @@ const CriticalAlertReferencePage: React.FC = () => {
   const [record, setRecord] = useState<CriticalAlertReferenceToken | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
+  const openingRef = useRef<{ token: string; promise: ReturnType<typeof openCriticalAlertReference> } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!token) { setStatus('invalid'); return; }
 
     // Batch 669 (access-12): the view is recorded before the record is shown, so "Viewed n times" includes this view.
-    openCriticalAlertReference(token, criticalAlertReferenceTokenService).then(res => {
+    // Batch 702: one view per visit. React StrictMode (development) runs this effect twice, and each run used to record
+    // its own view, so one visit counted two. Both runs now wait on the same opening; only the run that is still mounted
+    // shows the result. A different token starts a new opening.
+    if (openingRef.current?.token !== token) {
+      openingRef.current = { token, promise: openCriticalAlertReference(token, criticalAlertReferenceTokenService) };
+    }
+    openingRef.current.promise.then(res => {
       if (cancelled) return;
       if (!res.ok) { setStatus('invalid'); return; }
       setRecord(res.data);

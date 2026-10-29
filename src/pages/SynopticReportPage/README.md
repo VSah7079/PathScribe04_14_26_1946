@@ -697,3 +697,5 @@ Batch 651 (audit gaps): `handleAddCaseComment` / `handleAddSpecimenComment` in `
 The `FLAG_APPLY_STAT` action (Alt+S / voice "flag stat") now applies the STAT flag to the open case and shows a toast; it no longer opens the Flag Manager (`FLAG_OPEN_MANAGER`, Alt+F, still does). Line count 7,075 to 7,073.
 
 - Batch 681: `aiGovernance.css` (tint for unreviewed AI values, sign-out note).
+
+**Batch 715:** the report page's Add Block (`useSpecimenBlockManagement.handleAddBlock`) and Add Specimen follow the case's letters/numbers style (Add Block always used numbers before). `useSpecimenBlockManagement.ts` 1,716 to 1,712 lines; `SynopticReportPage.tsx` unchanged at 7,060.

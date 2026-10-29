@@ -452,17 +452,21 @@ export interface Facility {
   nationalRegistryId?: string;
 
   /**
-   * Which of the two CAP/NSH-recognized specimen/block labeling patterns
-   * this facility's accessioning uses. See the original doc comment
-   * (preserved from Client) for the full CAP/RCPath reasoning — a single
-   * enum, not two independent alpha/numeric toggles, since that
-   * guideline exists specifically to prevent a block ID ever being
-   * mistakable for a specimen ID at a glance:
+   * The original single labeling choice, now a PRESET (Batch 715): it stands
+   * for a specimen and a block choice and nothing for slides.
    *   'alpha-specimen'   — Specimen A, B, C... / Block A1, A2, A3...
    *   'numeric-specimen' — Specimen 1, 2, 3... / Block 1A, 1B, 1C...
-   * Defaults to 'alpha-specimen'.
+   * Still read, so existing facilities keep their labels; the facility editor
+   * now saves `labelStyle` below and clears this. Prefer `labelStyle`.
    */
-  specimenLabelStyle?: 'alpha-specimen' | 'numeric-specimen';
+  specimenLabelStyle?: import('../labeling/labelStyle').SpecimenLabelStyle;
+  /**
+   * Batch 715: letters or numbers for specimens, blocks and slides, each
+   * set separately. On the enterprise facility it is the default; on a
+   * performing lab each part left unset follows the enterprise. Resolved
+   * by labeling/resolveLabelStyle.ts, never read directly.
+   */
+  labelStyle?: import('../labeling/labelStyle').LabelStyleSetting;
 
   /**
    * Real feature, per direct confirmation: "AI configuration should be

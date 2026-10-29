@@ -34,6 +34,7 @@ import type { SsoProviderId } from '@/services/auth/authConfig';
 import { staffPasswordService, passwordConfirmProblem, PASSWORD_MIN_LENGTH, signInRefusalNotice } from '@/services/signIn';
 import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 import MfaSignInStep from '@/components/Auth/MfaSignInStep';
+import PasswordResetRequest from '@/components/Auth/PasswordResetRequest';
 
 /** Route state LoginPage reads: where the user was going, and why an SSO sign-in was refused. */
 export interface LoginRouteState {
@@ -126,6 +127,8 @@ const LoginPage: React.FC = () => {
   // Batch 448: a password set from the Staff screen that must be changed
   // before the session starts.
   const [changing, setChanging] = useState<{ email: string; current: string } | null>(null);
+  // Batch 711: the "ask my administrator to reset my password" step (password sign-in only).
+  const [resetting, setResetting] = useState(false);
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
 
@@ -318,7 +321,11 @@ const LoginPage: React.FC = () => {
           </form>
           )}
 
-          {passwordSignInEnabled && !changing && (
+          {passwordSignInEnabled && !changing && resetting && (
+            <PasswordResetRequest initialEmail={email} onBack={() => setResetting(false)} />
+          )}
+
+          {passwordSignInEnabled && !changing && !resetting && (
           <form onSubmit={handleSubmit}>
             <div className="ps-login-field">
               <label className="ps-login-field-label" htmlFor="login-email">{t('login.email')}</label>
@@ -341,7 +348,7 @@ const LoginPage: React.FC = () => {
                   competing with the primary action below. */}
               <div className="ps-login-label-row">
                 <label className="ps-login-field-label" htmlFor="login-password">{t('login.password')}</label>
-                <a href="#" className="ps-login-forgot" onClick={e => { e.preventDefault(); setError(t('login.passwordResetUnavailable')); }}>
+                <a href="#" className="ps-login-forgot" onClick={e => { e.preventDefault(); setError(''); setResetting(true); }}>
                   {t('login.forgotPassword')}
                 </a>
               </div>

@@ -70,7 +70,7 @@ The left side of the Report screen shows the **Full Patient Report** (read-only 
 | Specimen rows | One block of rows per specimen, with its blocks and the slides cut from each. "No specimens on this case yet." when empty; "No blocks or decants recorded yet." when a specimen has nothing. |
 | Block chip | The block name and status. Hover to see "(block), (status)", or the reason for a cancelled block. |
 | Slide stain list | Stains for the block, shown as stained or "held, unstained". "no slides yet" appears when none are cut; click it to edit. |
-| **Add specimen**, **Add decant/fluid**, **Request block/recut**, **Create Biopsy Array** | Buttons to add material. In an Assist case, new specimens are accessioned in the LIS: the panel says "New specimens are accessioned in the LIS" and only recuts and additional blocks on an existing specimen remain. |
+| **Add specimen**, **Add decant/fluid**, **Request block/recut**, **Create Biopsy Array** | Buttons to add material. In an Assist case, new specimens are accessioned in the LIS: the panel says "New specimens are accessioned in the LIS" and only recuts and additional blocks on an existing specimen remain. A new specimen or block takes the next label in the case's style (letters or numbers, as chosen when the case was accessioned), never one already used on that specimen. |
 | **Assign Code** | Assigns the specimen's base CPT code. A specimen without one shows the badge **Pending Base Code**. |
 | **View Tracking History** | Opens the tracking history for the material. |
 | Suggested: Template / Suggested: Narrative | A hint, from the specimen's CPT code, of which way to start reporting (structured fields or narrative). Both remain available. |
@@ -169,7 +169,7 @@ Some specimens require a triage checklist at grossing before cassettes are relea
 **Read the history**
 
 1. Select **History** (or press Alt+H, or say "open history"). The History window opens.
-2. **Prior Pathology** lists this patient's earlier cases; **Related Patients** lists linked records (name, MRN, date of birth); **Similar Cases (Demonstration)** lists AI-matched cases with a match percentage.
+2. **Prior Pathology** lists this patient's earlier cases; **Related Patients** lists linked records (name, MRN, date of birth); **Similar Cases (Demonstration)** lists AI-matched cases with the reason each was matched (no match percentage is shown).
 3. Open a case from the list to read its procedure, site, margins, lymph nodes, receptor status, Ki-67, gross and microscopic descriptions, ancillary studies, pathologist comment and tags.
 4. To ask the other pathologist a question, select the case, type in "Message to pathologist" and select **Send**. Do not include patient identifiers: the box warns "Do not include patient identifiers".
 5. Close with Alt+Shift+H (or "close history"). A breadcrumb at the top lets you go back to the Case Report, Case Search or Home.

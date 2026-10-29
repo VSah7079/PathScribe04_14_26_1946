@@ -1,3 +1,7 @@
+**Batch 710 (tile descriptions):** the cards on Home, Pathology Workspace and Quality & Compliance share one fixed-size `.ps-home-card` (text block 100px high at 1280x720; a two-line title leaves room for one description line only). All 23 tile descriptions (`home.*Tile.description`, `pathologyWorkspace.*Tile.description`, `qualityComplianceHub.*Tile.description`) were shortened to one line in all six locales; `src/i18n/tileDescriptionLength.test.ts` enforces a per-locale character budget (30 Latin-script, 15 Korean). Cards whose title alone fills the block (or whose title wraps to two lines next to the registry-exceptions badge) still clip; that is a title/CSS question, not a description one.
+
+**Batch 711:** `LoginPage.tsx`: Forgot password? now opens `components/Auth/PasswordResetRequest` instead of showing a message (password sign-in only).
+
 **Batch 651 (audit gaps):** the report page posts case and specimen comments through `services/cases/postCaseComment.ts` (audited, no comment text); see `services/auditlog/README.md`.
 
 **Batch 650:** screens now answer registered voice and key commands they ignored: Report bar (Sign Out Case, History, Codes, Finalise, Add Amendment), Worklist tiles, Search (Execute, Clear). See `SynopticReportPage/`, `WorklistPage/`, and `docs/product/KNOWN_GAPS.md`.
@@ -26,6 +30,7 @@ Top-level route pages.
 | [EmbeddingStationPage/](./EmbeddingStationPage/README.md) | **NEW (Sep 2026)** — PS-285, second of the PS-284→285→286→287→288 workstation-build sequence: bench-scoped, scan-driven cassette piece-count verification, discrepancy flagging, mold/orientation selection, and split-block tracking (`/workstations/embedding`), visually matching `MicrotomyWorkstationPage/`/`GrossingScreenPage/` |
 | [ExternalConsultViewPage/](./ExternalConsultViewPage/README.md) | **NEW (Sep 2026)** — PS-290, the outside half of External Consult / Second-Opinion Access: a public, unauthenticated route (`/consult/:token`) an outside consultant opens directly, no PathScribe login of their own. NOT real token security — see the folder's own README |
 | [FacilityOpsDashboard/](./FacilityOpsDashboard/README.md) | **NEW (Sep 2026)** — PS-288, fifth and final of the PS-284→285→286→287→288 workstation-build sequence: five high-contrast, wall-display department dashboard views (Grossing & Intake, Embedding & Microtomy, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner) bound via a Display Profile (`/facility-ops-dashboard`), same public/unauthenticated kiosk-route posture as `OrSuiteDashboardPage.tsx` |
+| [GrossingWorkspacePage/](./GrossingWorkspacePage/README.md) | **NEW (Oct 2026, Batch 720)** — the Grossing tile's queue of cases waiting to be grossed (`/workstations/grossing`) |
 | [GrossingScreenPage/](./GrossingScreenPage/README.md) | **NEW (Sep 2026)** — Protocol-Driven Workflow Infrastructure story Part 3: the grossing tech's own dedicated workflow surface (`/case/:caseId/grossing`), separate from the pathologist's `SynopticReportPage/` |
 | [LabelDesignerPage/](./LabelDesignerPage/README.md) | Real, drag-and-drop label layout designer, registered as a Config > System tab, not a standalone route |
 | [MicrotomyWorkstationPage/](./MicrotomyWorkstationPage/README.md) | **NEW (Sep 2026)** — PS-284, first of the PS-284→285→286→287→288 workstation-build sequence: bench-scoped, scan-driven real-time/batch slide label printing, stain management, and cytology/decant prep (`/workstations/microtomy`), visually matching `GrossingScreenPage/`/`SynopticReportPage/` |
@@ -2004,3 +2009,9 @@ Batch 669: Alt+S "Apply STAT Flag" on the report page now applies STAT (toast, a
 
 - **Batch 669 (access-11):** `ExternalConsultViewPage` shows a masked patient (initials, birth year) unless the link was issued with the audited full-identity opt-in.
 - **Batch 669 (access-11 follow-up):** `ConsultLinksAuditSection` shows, after a signed opinion, the views and hours left (3 views / 48 hours, `services/consultAccess/consultLinkLifetime.ts`) and has **Preview identity** for people who hold `case:consult-link:reveal-identity` (audited; `consultLinksAudit.css`). `ExternalConsultViewPage` shows the expiry banner (`externalConsultLifetime.css`). Dates of birth on the consult page are `DD-MMM-YYYY` (24-OCT-1980).
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): SurgicalQaWorklistPage no longer shows a confidence pill on deferred mismatches.
+
+Batch 714 (Pete, Oct 28 2026): the Accession page's Clinical Indication box notes which order field it came from, and whether it was edited (`pages/AccessionPage/ClinicalIndicationField.tsx`).
+
+**Batch 715:** letters or numbers for labels reaches Accession, Grossing and the report page's Add Block / Add Specimen; see `services/labeling/README.md`.

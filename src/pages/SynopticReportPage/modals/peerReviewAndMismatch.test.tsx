@@ -83,7 +83,7 @@ describe('ClinicalMismatchModal (Gate B, high risk)', () => {
     const onContinue = vi.fn();
     render(<ClinicalMismatchModal caseId="c1" caseType="Colon" clinicalIndication="Routine polyp" assessment={assessment()} onContinue={onContinue} onCancel={vi.fn()} />);
     expect(screen.getByText('Polyp, carcinoma found.')).toBeTruthy();
-    expect(screen.getByText('clinicalMismatch.why.holds:{"threshold":70}')).toBeTruthy();
+    expect(screen.getByText('clinicalMismatch.why.holds')).toBeTruthy();
     expect(screen.queryByText('clinicalMismatch.resolutions.DEFERRED')).toBeNull();
     fireEvent.click(screen.getByText('clinicalMismatch.reasons.clinical-context-reviewed'));
     fireEvent.click(screen.getByText('clinicalMismatch.resolutions.UNRESOLVED'));

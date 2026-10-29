@@ -1,3 +1,5 @@
+**Batch 711:** `staffPasswords/` gains `passwordResetRequestService.ts` (interface and logic), `mockPasswordResetRequestService.ts`, `passwordResetRequestRules.ts` and `passwordSignInAvailable.ts`; `@/services/signIn` exports `passwordResetRequestService`. Setting a password in Staff closes the person's open request.
+
 **Batch 675:** MFA policy service for the API server (`services/auth/mfa/`); browser side only, server routes not built. See `docs/architecture/ACCESS_SESSION_API.md` §5.
 
 **Batch 651 (audit gaps):** `cases/postCaseComment.ts`, `cases/caseTeamAudit.ts`, `delegations/delegationAudit.ts` are new; pool, team, delegation, comment, dictionary, language and deficiency successes are audited in their services (`auditlog/README.md`).
@@ -2131,3 +2133,11 @@ Batch 670: audit writes (and the rest of the audit path) now go through the swit
 - Batch 683: the clinical-pathologic mismatch flag shows two checked source quotes.
 
 - Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.
+
+**Batch 713:** new `scanStations/stationsForUser.ts` (the rule: a person is offered only the Active stations at their facilities; no restriction means all) and `scanStations/stationAvailability.ts`. See [scanStations/README.md](./scanStations/README.md).
+
+Batch 714: `orderIntake/clinicalIndicationFromOrder.ts` (the order-to-indication mapping rule, a contract for the server) and `clinicalIndicationProvenance.ts` (order / edited / entered).
+
+`feedback/` and `enhancementRequestService.ts`: feedback destination and validation routing (Oct 28, 2026): Enhancement Requests can be delivered to a website address set in Configuration > System > Feedback or pre-seeded in config.json (`VITE_ENHANCEMENT_REQUEST_URL`); QA feedback has an AI / Template validation category that links a validation study and template and goes to its own recipients (`FEEDBACK_ROUTED_TO_VALIDATION`). See `docs/architecture/FEEDBACK_DESTINATION.md`.
+
+**Batch 715:** new `labeling/` (letters or numbers for specimens, blocks and slides: one resolver, enterprise default with performing-lab override). See [labeling/README.md](./labeling/README.md).

@@ -6,6 +6,9 @@ import type { ISpecimenDictionaryService } from './ISpecimenDictionaryService';
 import type { SpecimenEntry } from './specimenTypes';
 import starterData from '../../../scripts/terminology-sources/specimens-starter.json';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { DEMO_DEPARTMENT_IDS } from '../departments/demoDepartmentIds';
+import { CYTOLOGY_DEMO_PROTOCOL_IDS } from '../protocols/cytologyDemoProtocols';
+import { CYTOLOGY_DEMO_SPECIMENS, applyDemoDepartments } from './cytologyDemoSpecimens';
 
 // ─── Starter data seed ────────────────────────────────────────────────────────
 // Moved here from useSpecimenDictionary.tsx (June 2026) — same seed data,
@@ -25,7 +28,7 @@ import { guardConfigWrites } from '../authorization/guardConfigWrites';
 // correctly capture all 7 real breast-pathology-relevant specimens, including
 // Mastectomy and axillary/sentinel-node entries that don't even contain the
 // word "breast" in their name (a name-substring check would have missed them).
-const STARTER_SPECIMENS: SpecimenEntry[] = (starterData.specimens as unknown as SpecimenEntry[]).map(e =>
+const STARTER_SPECIMENS: SpecimenEntry[] = applyDemoDepartments((starterData.specimens as unknown as SpecimenEntry[]).map(e =>
   e.subspecialty === 'Breast Pathology' ? { ...e, requireFixativeTimeBeforeSignout: true } : e
 ).concat([
   // Medical Renal — the clearest real example of a specimen that
@@ -109,6 +112,7 @@ const STARTER_SPECIMENS: SpecimenEntry[] = (starterData.specimens as unknown as 
     type: 'Cytology', procedure: 'Pap Smear',
     site: 'Cervix',
     specimenCategory: 'GYN_CYTOLOGY',
+    departmentId: DEMO_DEPARTMENT_IDS.gynCytology, // Batch 716: GYN Cytology department and its GYN26- series
     normalizedLabel: 'Cervical/Vaginal Pap Smear',
     synonyms: ['Pap Smear', 'Cervical Cytology', 'ThinPrep Pap'],
     active: true, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(),
@@ -121,6 +125,8 @@ const STARTER_SPECIMENS: SpecimenEntry[] = (starterData.specimens as unknown as 
     site: 'Vagina',
     specimenCategory: 'GYN_CYTOLOGY',
     isSelfCollected: true,
+    departmentId: DEMO_DEPARTMENT_IDS.gynCytology,
+    protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.hpvOnly, // Batch 716: sends the HPV order at Accession
     normalizedLabel: 'Self-Collected Vaginal Swab (HPV Only)',
     synonyms: ['Self-Collected HPV Swab', 'HPV Self-Sampling'],
     active: true, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(),
@@ -147,11 +153,15 @@ const STARTER_SPECIMENS: SpecimenEntry[] = (starterData.specimens as unknown as 
     // same real dictionary entry, never populated.
     organSite: 'THYROID',
     defaultSynopticTemplateId: 'thyroid_fna_cytology',
+    departmentId: DEMO_DEPARTMENT_IDS.nonGynCytology, // Batch 716: Non-GYN Cytology department and its NG26- series
+    protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.fnaCellBlock, // Batch 716: smears and a cell block by default
     normalizedLabel: 'Thyroid Fine Needle Aspiration',
     synonyms: ['Thyroid FNA', 'Thyroid Fine Needle Aspirate'],
     active: true, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(),
   },
-]);
+  // Batch 716: the rest of the cytology entries a training video needs (cytologyDemoSpecimens.ts).
+  ...CYTOLOGY_DEMO_SPECIMENS,
+]));
 
 const STORAGE_KEY = 'specimen_dictionary';
 

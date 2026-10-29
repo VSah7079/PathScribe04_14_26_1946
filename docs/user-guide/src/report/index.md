@@ -58,7 +58,7 @@ Below the header a banner reads **Some required fields are incomplete.** while t
 | Case status | The overall status of the case, for example **Case: In progress**. Shown separately from the AI review indicator. |
 | Releasing in / remaining | A live countdown, shown after sign-out while the report waits in its release hold (see "Release hold and recall" below). |
 | Stage chips | Grossing, Processing, Synoptic, Finalise and Sign Out: where the case is in the workflow. |
-| AI status chip | **No AI suggestions yet**, **AI Drafted** (no required field below the confidence limit) or **Review Pending** (a required field is below it). Selecting **Review Pending** opens AI Review Mode (see "AI suggestions"). |
+| AI status chip | **No AI suggestions yet**, **AI Drafted** (no required field flagged for a closer look) or **Review Pending** (a required field is flagged). No percentage or score is shown. Selecting **Review Pending** opens AI Review Mode (see "AI suggestions"). |
 | Data as of (Assist mode) | When the LIS last confirmed this case. **Check now** asks the LIS for the current state. |
 | Counter chips | Signed versions, signatures recorded, recorded saves and specimen deficiencies. Each opens its own history window (see "History windows"). |
 | Also opened by | Colleagues who have this case open now, and whether they are viewing or editing. Your own other window is listed too. |
@@ -103,8 +103,8 @@ Below the header a banner reads **Some required fields are incomplete.** while t
 
 | Badge | What it means |
 |---|---|
-| A percentage, for example 92% | The AI's confidence in its suggestion. Green for 85% and above, amber from 50% to 84%, red below 50%. |
-| **AI: low confidence (n%)** | The confidence is below your organisation's limit (75% unless your administrator set another). The suggested value is shown for review; read it carefully. |
+| **AI suggestion** | The AI offered this value and you have not yet confirmed or overridden it. PathScribe shows no percentage or score for it; check the source text it quotes. |
+| **Check source** | The AI's value was flagged for a closer look (it fell below your organisation's review limit). The suggested value is shown for review; compare it with the source text before you confirm. |
 | **AI: not found** | The AI read the report text and found no evidence for this field. Fill it in yourself. |
 | **Manual — AI missed** | You filled a field the AI had no suggestion for. This helps the AI learn. |
 | **✓ AI Confirmed** | You confirmed the suggestion. |
@@ -210,9 +210,9 @@ Alt+N on this screen adds a specimen (it covers Next Case, which you reach with 
 **Part 3: Complete the synoptic checklist**
 
 7. Work through the sections. Answer each required field (marked *). Use **→ Next Required** to move quickly.
-8. If you use the AI tools, select **Suggest Synoptic from Narrative** (or **⚡ Orchestrator**). Suggestions appear on fields with a confidence badge.
+8. If you use the AI tools, select **Suggest Synoptic from Narrative** (or **⚡ Orchestrator**). Suggestions appear on fields with an **AI suggestion** badge and the source text the AI quoted.
 9. For each AI suggestion, select **✓ Confirm** if it is right, or **✎ Override** and enter the correct value. A suggestion you have not confirmed or overridden counts as unverified, and **a required field left unverified blocks finalizing**.
-10. Use **→ Next Unverified** to reach the remaining ones. Fields marked **AI: low confidence** or **Source not found in report text** deserve a careful read against the narrative.
+10. Use **→ Next Unverified** to reach the remaining ones. Fields marked **Check source** or **Source not found in report text** deserve a careful read against the narrative.
 11. Select **Save Draft** at any time. The save icon is blue when something is unsaved.
 
 **Part 4: Write the report (Orchestration mode)**
@@ -242,7 +242,7 @@ Alt+N on this screen adds a specimen (it covers Next Case, which you reach with 
 
 1. **Release a preliminary report (Orchestration).** Select **Release as Preliminary** at any point before final sign-out, for example when a partial finding is clinically urgent. A message reads **Preliminary report released (n specimens)**, or says it is held for the release delay and goes out at a stated time. The case stays open and the report carries the PRELIMINARY watermark.
 2. **Start from the narrative.** Dictate or type the gross and microscopic text first, then select **Suggest Synoptic from Narrative** to have the checklist filled in for your review.
-3. **AI Review Mode.** When the header chip says **Review Pending**, select it. One uncertain AI finding is shown at a time ("Field 2 of 5") with its confidence and source. Press Space to confirm, O to override or S to skip. The footer can offer **Confirm & Finalise** at the last finding.
+3. **AI Review Mode.** When the header chip says **Review Pending**, select it. One uncertain AI finding is shown at a time ("Field 2 of 5") with its source; the card says **Source found in report text** or, when it cannot be found, shows the banner **Source not found in report text**. Press Space to confirm, O to override or S to skip. The footer can offer **Confirm & Finalise** at the last finding.
 4. **Read-only view.** From the Worklist, Search, a message or a quality queue, a case can open in the read-only report view. It shows the accession, **Last Updated**, the full report and its internal notes. **← Back** returns where you came from. For a pool case, **✋ Claim This Case** appears. Quality staff reviewing a signed-out case see the post-sign-out review bar here.
 5. **Comments.** Use **Add Case Comment** for a note to everyone on the case, or the specimen comment icon for one specimen. Comments on a specimen are sent to the LIS on finalization and become read-only when finalized. **Internal Notes** are for the team and are not part of the patient report.
 6. **Delegate.** Select **Delegate**, pick a **Delegation Type**, then a recipient (an individual or a pool) from the right-hand list by dragging or selecting. Enter the note (required) and select **Confirm Delegation**. A type marked "transfers ownership" hands the case over. You cannot delegate to a cytotechnologist.
@@ -334,7 +334,7 @@ These small items appear on the Report screen. Hover over a button to see its to
 - **Show full patient header** (tooltip) expands the compact header back to the full patient details.
 - **Overall case status** (tooltip) is the status badge at the top right of the header.
 - The block list in the header shows, for each block, its stains (or "no stains yet"), its status, and the case priority. When a block has its own priority a small tooltip reads **Priority override**.
-- In the AI summary, **Field at {{pct}}% confidence** names the single field with the lowest confidence. **No required fields below threshold** means every required field the AI filled in is above your laboratory's confidence limit.
+- In the AI summary, **Review Pending** means a required field was flagged for a closer look; the chip carries no percentage. **No required fields below threshold** means no required field the AI filled in was flagged under your laboratory's review limit.
 
 ### Left report panel and sidebar
 
@@ -369,7 +369,7 @@ These small items appear on the Report screen. Hover over a button to see its to
 ### Common mistakes
 
 - Leaving AI suggestions unverified. A required field that is unverified blocks sign-out even if the value looks right. Confirm or override it.
-- Treating a high percentage as proof. A confident suggestion with **Source not found in report text** has not been matched to your narrative. Read it.
+- Treating a suggestion as proof because the AI offered it. A suggestion with **Source not found in report text** has not been matched to your narrative. Read it.
 - Looking for Sign Out Case on an Assist case. Assist cases use **Finalize**; the LIS signs out.
 - Editing after sign-out. Sections are locked; use **Request Amendment / Addendum**, or **Recall Report** while the hold is still running.
 - Changing the template late. It regenerates every section in the Report Draft tab.

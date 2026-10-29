@@ -31,12 +31,12 @@ status: Draft
 | Item | What it means |
 |---|---|
 | Welcome back, *name* | Greets you by your family name. |
-| Tiles | One per area of PathScribe. Each has a title and a one-line description. |
+| Tiles | One per area of PathScribe. Each has a title and a short, one-line description (kept brief so it fits the tile in every language). |
 | Registry exception count | A small count on the tile that leads to registry exceptions, shown when cancer registry submissions need a person to look at them. |
 | Latest research article | A line showing a recent pathology article chosen for your subspecialty. Select it to read it in a separate window. |
 | System status | At the bottom of the screen. It says "Checking" while PathScribe asks the server, then "Operational", "Degraded" or "Unavailable". If the check itself fails it says "Status unavailable", which means the status is not known, not that the system is fine. It is checked when Home opens and again when you return to the tab after five minutes. In a demo with no server it adds "(demo: simulated)". Beside it is the line "© 2026 PathScribe AI Systems". |
 
-- **Tile descriptions.** The My Contribution tile reads "Workload • Quality • TAT • Trends". The Search tile reads "Search completed and in-progress cases".
+- **Tile descriptions.** The My Contribution tile reads "Workload • Quality • TAT". The Search tile reads "Find completed and open cases". Bench Contributions reads "Bench throughput and TAT", Intraop Queue "Unlinked intraop entries", Lockbox Drop-Off "After-hours specimen drop-offs", Pathology Workspace "Cytology, molecular, benches", Quality & Compliance "Audit trail and quality queues" and Tumor Board / MDT "Flag cases, manage the agenda".
 - **From PubMed.** The small badge on the research article line. The dot beside it is a button: its tooltip is "Click to check for a more recent article", and while it works it says "Checking for a more recent article…".
 
 ### Toolbar

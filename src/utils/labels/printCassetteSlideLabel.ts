@@ -32,6 +32,8 @@ import { dispatchZplLabel } from './dispatchZplLabel';
 import { buildNetworkPrintPayload } from './dispatchNetworkPrintJob';
 import { networkPrintJobs } from '@/services/networkPrint/networkPrintJobsInstance';
 import i18n from '@/i18n/config';
+import { slideLevelText } from '@/utils/specimenLabeling';
+import type { LabelDesignation } from '@/services/labeling/labelStyle';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import type { CassetteLabelLayoutConfig, SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 
@@ -171,6 +173,9 @@ export interface PrintSlideLabelInput {
   stainName: string;
   slideId: string;
   copies?: number;
+  /** Batch 715: Letters prints the level as "La", "Lb" instead of "L1", "L2" (the
+   *  case's slide setting). Text only: the barcode and slide id keep the L1 code. */
+  slideDesignation?: LabelDesignation;
   /** Same real reasoning as PrintCassetteLabelInput's own field above
    *  — a slide cut from a real cell block needs the same real,
    *  distinguishing suffix, per the spec's own "Cell block labels
@@ -199,6 +204,7 @@ export async function printSlideLabel(
     ? buildCellBlockCassetteId(input.blockLabel, input.cellBlockNumber)
     : input.blockLabel;
 
+  const levelText = slideLevelText(input.level, input.slideDesignation);
   const gs1Fields: Gs1LabelFields = { gtin, accessionNumber: input.fullAccession, blockId: slideId };
   const validationErrors = validateGs1Fields(gs1Fields);
   if (validationErrors.length > 0) {
@@ -214,7 +220,7 @@ export async function printSlideLabel(
     const built = buildNetworkPrintPayload({
       caseId: input.fullAccession, fullAccession: input.fullAccession, specimenDesignator: input.specimenLabel,
       blockId: slideId, patientName: '', gtin, printer,
-      copies: input.copies ?? 1, slide: { level: input.level, stainName: input.stainName },
+      copies: input.copies ?? 1, slide: { level: levelText, stainName: input.stainName },
     });
     if (built.ok === false) return { ok: false, message: built.errors.join('; ') };
     await networkPrintJobs.send(built.payload);
@@ -234,11 +240,11 @@ export async function printSlideLabel(
 
   const builtInSlideZpl = buildSlideZplTemplate({
     gs1, fullAccession: input.fullAccession, specimenLabel: input.specimenLabel,
-    blockLabel, level: input.level, stainName: input.stainName,
+    blockLabel, level: levelText, stainName: input.stainName,
   }, layoutToUse, printer.dpi);
   const zpl = applySavedLayout('slide', {
     fullAccession: input.fullAccession, specimenLabel: input.specimenLabel, blockLabel,
-    level: input.level, stainName: input.stainName, barcode: zplEscapeGs1(gs1),
+    level: levelText, stainName: input.stainName, barcode: zplEscapeGs1(gs1),
   }, printer.dpi, builtInSlideZpl);
   return dispatchZplLabel(printer, zpl, input.copies ?? 1, undefined, { document: 'slide-label', documentId: slideId, caseId: input.fullAccession });
 }

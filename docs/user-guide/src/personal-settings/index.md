@@ -67,8 +67,8 @@ Select your initials or name at the top right (its tooltip is "Account and syste
 | Control | What it does |
 |---|---|
 | PathScribe logo | Goes to Home. |
-| Light bulb (Enhancement Request) | Opens a form to suggest an improvement (Alt+Y). |
-| Bug button | Opens QA/Testing Feedback. Appears only if your administrator has turned it on (Alt+X). |
+| Light bulb (Enhancement Request) | Opens a form to suggest an improvement (Alt+Y). Your administrator decides whether it is sent by email or delivered to a page on the ForMedrixAI website. |
+| Bug button | Opens QA/Testing Feedback. Appears only if your administrator has turned it on (Alt+X). It includes an **AI / Template validation** category. |
 | Search bar | Finds a case. See [Case Search Bar](help:case-search-bar). |
 | Station button with a pin | Shows and changes the scan station. |
 | **Go to Bench** | Appears when your station has a bench screen ready. |
@@ -144,9 +144,10 @@ What changes: the screens, buttons, messages and lists that ship with PathScribe
 **Choose your bench**
 
 1. After you sign in on a computer with no station, **Which bench is this?** appears once.
-2. Choose your station and select **Set station**. A toast says "Switched to (station)". Or select **Skip — I don't scan here**; the question is not asked again on this computer.
+2. Choose your station (the list shows only the stations at the facilities you work for) and select **Set station**. A toast says "Switched to (station)". Or select **Skip — I don't scan here**; the question is not asked again on this computer.
 3. To change it later, select the station button. The menu includes **Clear this terminal's fixed station**.
 4. If your station has a bench screen, **Go to Bench** appears next to it.
+5. If the station set on this computer belongs to a facility you do not work for, the button reads **No station**, the menu says so, and scans are not recorded against it. Pick one of your own stations.
 
 **Shrink the report header**
 
@@ -159,12 +160,15 @@ What changes: the screens, buttons, messages and lists that ship with PathScribe
 2. **Personal macros.** Open Configuration and choose the Macros tab, titled **My Macros**. A macro's trigger must start with `;` (for example `;gs`) and expands when you press Space. Choose the **Personal** tier to keep it for yourself. **Import from Word** is offered. Only people with the "Manage shared macros" permission can make Enterprise macros or see everyone's.
 3. **Light editor.** In the comment windows and the microscopic panel, the toolbar button **Switch to light mode** or **Switch to dark mode** changes that editor only.
 4. **Biometric signing.** If shown, choose **Enrol**, **Enrol again** or **Remove**, or **Later**. This is a demonstration.
+5. **Feedback about an AI result or a template.** Select the bug button (Alt+X), write a title and a description, and choose the category **AI / Template validation**. Two optional lists appear: **Validation study** (only studies that are active) and **Template** (with its version). Choose either, both or neither; if you pick a study that names its own templates, the template list shortens to those. The links go with your message so the validation team can find the study and template. The confirmation tells you whether it went to the validation recipients or, because none are set, to the QA recipients. Never type a patient name or a case number: the form warns you if it finds one.
+6. **Suggesting an improvement.** Select the light bulb (Alt+Y). The confirmation says where the request went. If your administrator set a website address, it reads "Delivered to" and the website's name. In a demonstration copy of PathScribe nothing is ever sent: the confirmation says "Simulated" and that nothing was sent. If the website cannot be reached you see "The request could not be delivered to the destination. Nothing was sent." Your text is kept in the form, so you can try again later.
 
 ### Exception handling
 
 1. **You cannot reach Configuration.** Many roles do not open Configuration by default (it is given to administrators, template authors and approvers, and laboratory directors). Ask your administrator to grant it, or to create macros for you.
-2. **A station barcode is scanned while you have unsaved work.** An **Unsaved changes** window offers **Save & Switch**, **Discard & Switch** and **Cancel — stay here**.
-3. **A word will not go into your dictionary.** Read the message: it says whether the word is empty, has spaces or is already there.
+2. **A station barcode for a facility you do not work for is scanned.** The message says you are not set up to use that station, and nothing changes.
+3. **A station barcode is scanned while you have unsaved work.** An **Unsaved changes** window offers **Save & Switch**, **Discard & Switch** and **Cancel — stay here**.
+4. **A word will not go into your dictionary.** Read the message: it says whether the word is empty, has spaces or is already there.
 
 !!! note "Known limits"
     In System Information, **NLM Terminology** always reads "Available": the panel does not test that service. The secure email row shows that secure email is not connected in this build. The sign-out check in **Biometric signing** is a demonstration (see above).

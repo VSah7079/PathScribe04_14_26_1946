@@ -35,7 +35,7 @@ import { usePoolAssignmentTimeout } from './hooks/usePoolAssignmentTimeout';
 import { SlideDetailDrawer } from '@/components/Worklist/SlideDetailDrawer';
 import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
 import { Flag }           from '@/services/flags/IFlagService';
-import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences'; import { ROW_COMMAND_EVENTS, resolveRowCommand } from '@/services/worklist/rowCommands';
+import { initialWorklistContext } from '@/services/worklist/worklistContext'; import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences'; import { ROW_COMMAND_EVENTS, resolveRowCommand } from '@/services/worklist/rowCommands';
 
 // One map for the page title above the table and every filter tile's label, so the two cannot drift apart.
 // Filter-state keys ('all', 'urgent', ...) drive filtering and routing; only the displayed label is resolved through i18n.
@@ -130,7 +130,7 @@ const WorklistPage: React.FC = () => {
   // contextFilter: which data source (LIS or Outreach) — the "home" context
   // Sticky for the session — restored from the session flags on mount
   const [contextFilter, setContextFilter] = useState<'lis' | 'outreach'>(
-    () => (getSessionFlag('ps_worklist_context') as 'lis' | 'outreach' | null) ?? 'lis'
+    () => initialWorklistContext(location.search, getSessionFlag('ps_worklist_context')) // Batch 703: ?context= wins
   );
   // Persist whenever it changes
   React.useEffect(() => {

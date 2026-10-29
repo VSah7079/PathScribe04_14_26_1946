@@ -69,3 +69,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 616 (part E) — server version
 
 API-server version of `Protocol` (`httpProtocolService.ts`, contract `PROTOCOLS_API.md`); `FixativeDictionary` (`httpFixativeDictionaryService.ts`, contract `PROTOCOLS_API.md`); `ProcessingFormatDictionary` (`httpProcessingFormatDictionaryService.ts`, contract `PROTOCOLS_API.md`), picked by `protocolServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.
+
+## Batch 716: cytology demo protocols
+
+`cytologyDemoProtocols.ts` (seeded by `mockProtocolService`): Pap with HPV co-test and HPV-only swab (an HPV aliquot decant whose task has `sendOutboundOrder`, so Accession queues the HPV order), Non-GYN fluid with cell block (2 decants by default) and FNA cell block (1). Seed data only: no `sendOutboundOrder` setting exists in the Protocols screen, slides and smears are not generated, and `generateDefaultMaterial` records every generated decant as type cell block.

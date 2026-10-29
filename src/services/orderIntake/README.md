@@ -22,8 +22,16 @@ Changing the specimen code crosswalk (`addCrosswalkEntry` / `updateCrosswalkEntr
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
 
+## Batch 714: clinical indication from the order
+
+`clinicalIndicationFromOrder.ts` is the pure rule that picks an order's clinical indication and names its source (OBR-31, ORC-16, DG1, NTE, FHIR reasonCode, reasonReference; first with text wins, nothing invented). It is the contract for the server: no inbound HL7/FHIR order parser exists in this repo (`docs/architecture/ACCESSIONING_API.md` section 1a). `IncomingOrder.clinicalIndicationSource` carries the source. `clinicalIndicationProvenance.ts` decides order / editedFromOrder / entered for the Accession screen and builds the additive `Case.order` fields.
+
 ## Batch 605
 
 Batch 605: `IncomingOrder.siteId` (optional) and `findCrosswalkMatch(..., siteId)`: the entry for the order's site wins, then organisation-wide entries; a site-only entry never matches another site. The crosswalk admin has a Site picker.
 
 Batch 616 (part A, PS-505): `httpOrderIntakeService.ts` and `orderIntakeInstance.ts`. Contract `docs/architecture/ACCESSIONING_API.md` sections 1 and 2.
+
+## Batch 716: cytology demo orders
+
+`cytologyDemoOrders.ts`: eight fictional pending orders (`ord-030` to `ord-037`: Pap with HPV co-test, ThinPrep Pap, HPV-only swab, thyroid FNA, lymph node FNA, urine, pleural fluid, breast FNA), each naming a dictionary entry exactly so Import from Order resolves it. `ORDERS_SEED_VERSION` is now `'3'`, so existing browsers merge them in. The HPV co-test request is in the clinical indication text (an order has no structured HPV field).

@@ -53,3 +53,10 @@ Before, anyone who could open Configuration could change this; now each change i
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
 
 Batch 616 (part D, PS-506): server version of ScanStationService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.
+
+## Batch 713: stations offered only to the people who may use them
+
+- **`stationsForUser.ts`** (+ `.test.ts`): `stationsForUser(stations, facilityIds)` is the rule: Active stations whose `facilityId` is in the user's `StaffUser.facilityIds`; an empty or absent list (no restriction, which is how a Superadmin support session resolves) gets every Active station. `canUseStation` and `unavailableStationIds` are the same rule for one station or a list of ids. "No station" is not a station and is always offered by the screens.
+- **`stationAvailability.ts`**: in-memory list of the station ids (stored on this computer, or the user's default) that this user may not use. `useCurrentScanStation` and `utils/effectiveScanStation` treat them as "no station", so nothing is scanned against them; the stored value is kept for the next person.
+- **Used by:** `hooks/useSelectableScanStations.ts` (sign-in prompt, header station list) and `hooks/useGlobalStationSwitch.ts` (a `STATION:` barcode for another facility is refused). The OR terminal picker binds a Location, not a scan station, so it is unaffected. No Configuration screen picks "my station" today; `EquipmentSection` and `GrossingHardwareSection` list all stations because they are admin screens.
+- **Not built:** server-side enforcement. The API server must apply the same rule when it records a scan against a station.

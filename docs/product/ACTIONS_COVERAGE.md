@@ -94,6 +94,17 @@ A new group, **Lockbox Drop-Off** (`F36`). Five are real voice and hotkey comman
 
 The four screen actions work only while Lockbox Drop-Off is open (context `LOCKBOX`). The grants follow the `lockbox:*` capabilities; a command grant never widens access. The Go to command opens the route through the unsaved-changes guard (`components/Lockbox/LockboxNavigation.tsx`); a person without `screen:lockbox-drop-off:open` still gets the screen's access message.
 
+### Grossing bench tools (Batch 720)
+
+| Action id | Registry id | What it does | Hotkey | Granted to |
+|---|---|---|---|---|
+| `grossing.printCassettes` | `GROSSING_PRINT_CASSETTES` | Print the case's cassette labels (screen action; foot pedal 2) | Alt+Shift+1 | Pathologist, Fellow, Resident, Pathologists Assistant |
+| `grossing.takePhoto` | `GROSSING_TAKE_PHOTO` | Open the camera for a gross photo (screen action; foot pedal 1) | Alt+Shift+2 | same |
+| `grossing.assignDecal` | `GROSSING_ASSIGN_DECAL` | Add the chosen block to the chosen decal batch | Alt+Shift+3 | same |
+| `grossing.addOnOrder` | `GROSSING_ADD_ON_ORDER` | Open the Add-On Order Builder for the case | Alt+Shift+4 | same |
+
+They work only while the Grossing screen is open (context `GROSSING`). Releasing blocks is a click, never a command, because the triage checklist gates it.
+
 ## The 98 permission-only entries, settled (Batch 614)
 
 Batch 601 left 98 Role Dictionary entries with no voice phrase or hotkey and a note that voice "needs screen handlers". Batch 614 settled every one, so none is left as planned:

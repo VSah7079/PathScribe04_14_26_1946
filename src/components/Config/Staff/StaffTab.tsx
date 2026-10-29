@@ -15,6 +15,7 @@ import { saveStaffMember } from '@/services/staff/staffAdministration';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { LinkedSignInAccounts } from './LinkedSignInAccounts';
+import { staffIdFromAddress } from '@/services/staffPasswords/passwordResetRequestRules';
 import { StaffSignInPassword } from './StaffSignInPassword';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { ProviderCredential } from '@/types/staff/ProviderCredential';
@@ -602,6 +603,15 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
     });
     subspecialtyService.getAll().then(res => { if (res.ok) setSubspecialties(res.data); });
   }, []);
+
+  // Batch 711: ?staff=<id> (the link in a password reset request message) opens that person's record.
+  const staffLocation = useLocation();
+  const openedFromAddress = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const wanted = staffIdFromAddress(staffLocation.search);
+    const found = wanted && openedFromAddress.current !== wanted ? users.find(u => u.id === wanted) : undefined;
+    if (found) { openedFromAddress.current = found.id; setModal({ mode: 'edit', user: found }); }
+  }, [users, staffLocation.search]);
 
   const userSubsMap: Record<string, string[]> = {};
   subspecialties.forEach(sub => {

@@ -32,6 +32,7 @@ export function getAllSlideLabelRequests(caseData: Case): SlideLabelDispatchRequ
           level,
           stainName: stain.stainName,
           slideId: slideIdentifier(fullAccession, specimen.label, block.label, level),
+          slideDesignation: caseData.labelStyle?.slide,
         });
       });
     }

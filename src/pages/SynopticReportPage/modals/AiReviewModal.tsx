@@ -9,7 +9,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 export interface ReviewField {
   fieldId:      string;
@@ -37,10 +36,6 @@ interface AiReviewModalProps {
   onComplete:      (summary: { confirmed: string[]; overridden: string[]; skipped: string[] }) => void;
   onCancel:        () => void;
 }
-
-// Dynamic — changes at runtime, must stay inline
-const confTier = (c: number): 'high' | 'medium' | 'low' =>
-  c >= 85 ? 'high' : c >= 60 ? 'medium' : 'low';
 
 export const AiReviewModal: React.FC<AiReviewModalProps> = ({
   fields, finalizeAndNext, onConfirm, onOverride, onSkip, onComplete, onCancel,
@@ -96,7 +91,6 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
 
   const progress     = Math.round((index / total) * 100);
   const displayValue = Array.isArray(current.aiValue) ? current.aiValue.join(', ') : current.aiValue;
-  const tier         = confTier(current.confidence);
 
   return (
     <div className="ps-overlay ps-overlay--ai-review">
@@ -146,9 +140,9 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
           <div className="ps-ai-review-card">
             <div className="ps-ai-review-card-header">
               <span className="ps-ai-review-card-eyebrow">✦ {t('aiContributionTab.overrides.aiCol')}</span>
-              {showsConfidence() && (
-                <span className={`ps-ai-review-confidence ps-ai-review-confidence--${tier}`}>
-                  {t('aiReviewModal.confidencePercent', { percent: current.confidence })}
+              {!current.sourceNotFound && (
+                <span className="ps-ai-review-confidence ps-ai-review-confidence--source-found">
+                  {t('aiReviewModal.sourceFound')}
                 </span>
               )}
             </div>

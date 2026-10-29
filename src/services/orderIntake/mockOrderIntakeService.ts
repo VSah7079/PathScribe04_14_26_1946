@@ -13,6 +13,7 @@ import { resolveProviderName } from '../physicians/resolveProviderName';
 import { normalizeOrderCode } from '@/utils/normalizeOrderCode';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { dataStorage } from '../browserData/dataStorage';
+import { CYTOLOGY_DEMO_ORDERS } from './cytologyDemoOrders';
 
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
@@ -78,6 +79,7 @@ const SEED_ORDERS: IncomingOrder[] = [
     patient: { firstName: 'Margaret', lastName: 'Wilcox', dateOfBirth: '1958-02-11', sex: 'F', mrn: '' },
     requestingProvider: { rawName: 'Mr. Ian Faulkner', namePrefix: 'Mr.', givenNames: 'Ian', familyNames: 'Faulkner' }, priority: 'Routine',
     clinicalIndication: 'Right breast lump on screening mammography, BI-RADS 4. Core needle biopsy for histological diagnosis.',
+    clinicalIndicationSource: 'obr31',
     icd10Codes: [{ code: 'N63.10', description: 'Unspecified lump in right breast' }],
     specimens: [
       { description: 'Right breast core needle biopsy', externalSpecimenCode: 'SURG-01' },
@@ -91,6 +93,7 @@ const SEED_ORDERS: IncomingOrder[] = [
     patient: { firstName: 'Daniel', lastName: 'Ortiz', dateOfBirth: '1990-07-23', sex: 'M', mrn: '778812' },
     requestingProvider: { rawName: 'Dr. Priya Nair', namePrefix: 'Dr.', givenNames: 'Priya', familyNames: 'Nair' }, priority: 'Routine',
     clinicalIndication: 'Suspicious pigmented lesion left forearm, changing over 3 months. Excisional biopsy.',
+    clinicalIndicationSource: 'fhirReasonCode',
     specimens: [
       { description: 'Left forearm skin excision, pigmented lesion' },
     ],
@@ -397,6 +400,9 @@ const SEED_ORDERS: IncomingOrder[] = [
     icd10Codes: [{ code: 'C34.90', description: 'Malignant neoplasm of unspecified part of unspecified bronchus or lung' }],
     specimens: [{ description: 'Left lower lobe bronchial washing and brushing (Pulmonary Cytology - Direct Smear & Cell Block)' }],
   },
+  // Batch 716: eight cytology orders (Pap with HPV co-test, ThinPrep Pap, HPV-only swab, thyroid, lymph node, urine,
+  // pleural fluid, breast FNA) for the Cytology Part 2 training video (cytologyDemoOrders.ts).
+  ...CYTOLOGY_DEMO_ORDERS,
 ];
 
 const persistOrders = (data: IncomingOrder[]) => storageSet('pathscribe_incoming_orders', data);
@@ -417,7 +423,7 @@ const persistOrders = (data: IncomingOrder[]) => storageSet('pathscribe_incoming
 // present in the SEED_ORDERS constant. Only genuinely new seed
 // orders (by id, not yet in the real, persisted store) are appended;
 // no existing order's own fields are ever touched.
-const ORDERS_SEED_VERSION = '2'; // bumped: added 14 real, seeded test-patient orders (ord-016..ord-029) — per direct follow-up
+const ORDERS_SEED_VERSION = '3'; // bumped (Batch 716): added eight cytology orders (ord-030..ord-037); '2' added ord-016..ord-029 — per direct follow-up
 const ORDERS_SEED_VERSION_KEY = 'pathscribe_orders_seed_version';
 
 function loadOrders(): IncomingOrder[] {

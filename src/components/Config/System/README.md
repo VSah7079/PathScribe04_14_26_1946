@@ -1713,3 +1713,7 @@ Registry batch files: a card per profile (example and NAACCR XML shipped; NAACCR
 ## Batch 652 (defect fixes)
 
 `ExternalResourcesSection.tsx` (+ `.css`): https-only validation through `externalResourceUrl.ts`; stored http links show an "Insecure link" warning.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the AI instructions test result no longer prints a confidence percentage. Admin threshold inputs (Clinical Mismatch Rules, Confidence Threshold) stay numeric: they are settings.
+
+`FeedbackSection.tsx` (Oct 28, 2026): two more cards, **Validation recipients** and **Enhancement request destination URL** (with a line saying which host is in use). Rules in `services/feedback/`.

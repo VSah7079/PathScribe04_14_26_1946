@@ -184,10 +184,11 @@ describe('capability seeds', () => {
     const open = (role: string) => CAPABILITY_SEEDS[role].filter(k => k.startsWith('screen:')).map(k => k.split(':')[1]).sort();
     // Batch 489: and the Tumor Board workspace, for the roles that nominate cases to a board.
     // Batch 491: and the margin-exception review queue, same roles.
-    expect(open('pathologist')).toEqual(['add-on-orders', 'cytology-qc-queue', 'cytology-workspace', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'surgical-qa-worklist', 'tumor-board', 'worklist']);
+    // Batch 720 (Pete): and the Grossing Workspace tile, for the people who gross.
+    expect(open('pathologist')).toEqual(['add-on-orders', 'cytology-qc-queue', 'cytology-workspace', 'grossing', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'surgical-qa-worklist', 'tumor-board', 'worklist']);
     expect(open('fellow')).toEqual(open('pathologist'));
-    expect(open('resident')).toEqual(['add-on-orders', 'cytology-workspace', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'tumor-board', 'worklist']);
-    expect(open('pa')).toEqual(['accession', 'embedding', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'tumor-board', 'worklist']);
+    expect(open('resident')).toEqual(['add-on-orders', 'cytology-workspace', 'grossing', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'tumor-board', 'worklist']);
+    expect(open('pa')).toEqual(['accession', 'add-on-orders', 'embedding', 'grossing', 'intraop-queue', 'margin-exception-review', 'my-contributions', 'search', 'tumor-board', 'worklist']);
     // Batch 488: each bench role also opens its own dedicated bench-contribution page.
     // Batch 645: and Lockbox Drop-Off, for the morning team that picks up the overnight specimens.
     expect(open('accessioner')).toEqual(['accession', 'bench-contributions', 'lockbox-drop-off', 'search', 'worklist']);
@@ -316,6 +317,7 @@ describe('capability seeds', () => {
       // Batch 469: and consent narrowing/revocation, organ-retention disposal, toxicology.
       // Batch 471: and cancelling a toxicology order, retention detail, consent reinstatement.
       ...(caseAccess.includes(role) ? ['autopsy:body:release', 'report:case-report:print', 'report:case-images:attach', 'patient:summary:print', ...(['pathologist', 'fellow'].includes(role) ? ['report:related-cases:attach'] : []), 'autopsy:custody:transfer', 'autopsy:consent:manage', 'autopsy:retention-disposal:record', 'autopsy:toxicology:order', 'autopsy:toxicology:result', 'autopsy:toxicology:cancel', 'autopsy:retention-detail:record', 'autopsy:retention-tier:record', 'autopsy:consent:reinstate', 'patient:national-identifier:record', 'patient:registry-consent:record', 'patient:other-cases:request-access'] : []),
+      ...(role === 'pa' ? ['add-on:exception:flag', 'add-on:block:mark-retrieved'] : []), // Batch 720: the PA reaches Add-On Orders
       // Batch 621: the AI extraction of historical reports and flagging it as wrong, Pathologist, Fellow and Resident.
       ...(['pathologist', 'fellow', 'resident'].includes(role) ? ['ai:history-extraction:run', 'ai:history-extraction:flag'] : []),
       // Batch 421: resending a registry submission, Lab Director (Admin has it through the administration group).

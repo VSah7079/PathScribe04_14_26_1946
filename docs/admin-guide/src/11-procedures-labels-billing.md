@@ -166,6 +166,34 @@ Breadcrumb: Home > Batch Management > Label reprint
 
 Every label is audited. The permission is `label:batch:reprint` (Histotechnologist and Admin hold it by default). Without it the screen says "You don’t have permission to reprint labels in a batch." Reference: [Batch Management](#screen-batch-management).
 
+### Choose letters or numbers for specimens, blocks and slides {#ch11-lbl-numbering}
+Breadcrumb: Home > Configuration > System > Integrations > Facility Configuration
+
+The Label Designer decides how a label looks. This setting decides what the specimen, block and slide labels say. It is set separately for **Specimens**, **Blocks** and **Slides**, each **Letters** or **Numbers**, on the enterprise as the default and, if a lab needs it, per lab.
+
+1. Open **Configuration > System > Integrations > Facility Configuration** and edit the **Enterprise** facility (the one with "This is a top-level Enterprise institution" ticked). On the **General** tab find **Letters or numbers for labels**.
+2. Set **Specimens**, **Blocks** and **Slides**. The line under the selectors shows the result, for example "Specimen A · Block 1 · Slide L1" and "Cassette A1 · slide label A1 L1". **Preset** sets Specimens and Blocks together to one of the two original pairs and leaves Slides alone.
+3. Save. Every lab under the enterprise follows these choices.
+4. To give one performing lab its own labels, edit that lab (**Parent Enterprise** set to the enterprise) and change only the selectors that differ. A selector left on **Same as enterprise (value)** keeps following the enterprise, and shows its current value in brackets.
+
+What each choice does:
+
+| Choice | Letters | Numbers |
+|---|---|---|
+| Specimens | A, B, C... then AA, AB... | 1, 2, 3... |
+| Blocks | A, B, C... (joined to the specimen: A**A**, 1**A**) | 1, 2, 3... (A**1**, A**2**) |
+| Slides | The printed level reads La, Lb, Lc | The printed level reads L1, L2, L3 (as before) |
+
+- **Slides change the printed text only.** The code inside a slide's barcode and its slide ID stays L1, L2, L3 whichever you choose, so scanning, reprints and every existing slide keep working. Screens that list a slide's level (for example the Microtomy Workstation) still show L1, L2.
+- **New cases only.** The choice in force when a case is accessioned is saved on the case. Specimens, blocks and slides added to that case later (Add Block at Grossing, Add Block on the report page, a specimen leaving a Biopsy Array) follow it, even if the facility changes afterwards. Nothing already printed, scanned or signed out is relabelled. There is no "Relabel existing" action: **Not built**. Relabelling would change cassette and slide barcodes that are already on tissue.
+- **Same kind for Specimens and Blocks.** You may choose letters for both or numbers for both. A label such as AA or 11 can then mean two things (specimen A block A, or a specimen past Z; specimen 1 block 1, or specimen 11). The screen says so; it does not stop you.
+- **Existing facilities keep their labels.** A facility that had the old single choice keeps it: it opens as the matching Specimens and Blocks choices, with Slides following the enterprise (numbers unless set).
+- Each change is written to the audit log ("Facility label style changed" or "Enterprise label style changed", with the old and new choice per level).
+
+Expected result: the next case accessioned for that lab shows specimens labelled in the chosen style, and Add Block at Grossing or on the report page continues the sequence.
+
+Permission: saving a facility needs `config:facilities:manage`. Reference: [Facility Dictionary](#screen-facility-dictionary).
+
 ## Part B: Billing and charge capture {#ch11-billing}
 Breadcrumb: Home > Configuration > System > Financial & Revenue Lookups
 

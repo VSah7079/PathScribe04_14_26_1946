@@ -84,3 +84,6 @@ Batch 617. The server version of each reference lists and settings (diagnosis co
 |---|---|---|
 | `getAll` | `GET /api/priority/priority/get-all` | none |
 
+## Feedback settings: validation recipients and enhancement destination (Oct 28, 2026)
+
+`IFeedbackSettingsService.get` and `.save` carry two more fields in the settings body: `validationRecipients` (array of email addresses) and `enhancementUrl` (an https address, or an empty string). Both are optional on read from an older server (the browser treats a missing value as empty). See `FEEDBACK_DESTINATION.md`.

@@ -11,7 +11,6 @@ import './HistoryExtractionPanel.css';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { flagHistoryExtractionWrong } from '@/services/historyExtraction/historyExtractionRuntime';
 import { useHistoryExtraction, type HistoryExtractionCase } from './useHistoryExtraction';
-import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 export const HistoryExtractionPanel: React.FC<{ item: HistoryExtractionCase; userName: string }> = ({ item, userName }) => {
   const { t } = useTranslation();
@@ -49,7 +48,6 @@ export const HistoryExtractionPanel: React.FC<{ item: HistoryExtractionCase; use
               <li key={f.fieldId} className="ps-hx-field">
                 <span className="ps-hx-field-label">{f.label}</span>
                 <span className="ps-hx-field-value" data-phi="diagnosis">{f.display}</span>
-                {showsConfidence() && f.confidence !== undefined && <span className="ps-hx-conf">{t('historyExtraction.confidence', { pct: f.confidence })}</span>}
                 <CapabilityButton capability="ai:history-extraction:flag" className="ps-conf-btn-secondary" disabled={flagged.has(f.fieldId)} onClick={() => { void flag(f.fieldId); }}>
                   {t(flagged.has(f.fieldId) ? 'historyExtraction.flagged' : 'historyExtraction.flagField')}
                 </CapabilityButton>

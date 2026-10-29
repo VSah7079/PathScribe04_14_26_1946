@@ -79,3 +79,5 @@ Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`)
 ## Batch 550 (PS-539 phase 2d: exports through the server)
 
 - A **My exports** button (download icon) with a badge counting exports ready to download, shown only with the API server (`hooks/useMyExports.ts`, `useReadyExportCount`).
+
+**Batch 713:** `NavBarScanStation.tsx` lists only the stations the signed-in user may use (`hooks/useSelectableScanStations.ts`). If the station stored on this computer belongs to a facility the user may not use, the button reads "No station", the menu says why and offers "Clear this terminal's fixed station", and scans are not recorded against it. `ScanStationPrompt.tsx` (in `components/`) has the same list and asks again, with a note, in that case.

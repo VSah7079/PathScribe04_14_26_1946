@@ -11,3 +11,5 @@ Tests for hooks in the parent `hooks/` folder that don't have their own dedicate
 
 ---
 *See [hooks/README.md](../README.md) for the parent folder.*
+
+**Batch 713:** `useSelectableScanStations.test.tsx` (facility-restricted vs unrestricted lists, unavailable stored station), `useCurrentScanStation.availability.test.tsx` (unavailable station counts as none, stored value kept), and two refusal/allow cases in `useGlobalStationSwitch.test.ts`.

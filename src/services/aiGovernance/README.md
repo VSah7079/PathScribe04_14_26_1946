@@ -7,3 +7,5 @@ Batch 681: `unreviewedAiValueCount`. Batch 691 (replaces the 681 sign-out audit)
 Batch 692: the same omission for grossing reports at Gross Complete (`recordAiOmittedAtGross`) and in the sign-out count. Autopsy and cytology have no AI suggestions to clear.
 
 Batch 696: `AI_CODE_BOUND` now also records how the code was produced and checked (model and service, model confidence, which check confirmed the code, the part of the case and specimen it was taken from, and whether the pathologist changed it). The confidence number is in the audit log only. See `services/coding/suggestionOrigin.ts` and `aiCodeProvenanceText`.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): guard test noConfidencePercent.test.tsx fails if an English UI string pairs 'confidence' with a percent or number placeholder, or if a main surface renders a confidence figure. Admin threshold settings are the only allowed exceptions.

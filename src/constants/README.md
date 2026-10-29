@@ -258,3 +258,6 @@ Pete: "I was searching for Field Requirements, but the system couldn't find any 
 ## Batch 669h (footer)
 
 Config search entries `protocols-library` and `tpl-builder` no longer say "CAP-compliant" (text in locales: "structured on CAP and RCPath protocols").
+
+## Batch 720
+`grossingBenchActionGroup.ts`: four Grossing screen actions (F38+PS001 to PS004), spread through `addedActionGroups.ts`; granted in `defaultActionGrants.ts` to Pathologist, Fellow, Resident and Pathologists Assistant.

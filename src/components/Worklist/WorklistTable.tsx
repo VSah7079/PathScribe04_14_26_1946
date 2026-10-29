@@ -1,4 +1,4 @@
-import { useOpenCase } from '@/hooks/useOpenCase';
+import { caseDisplayNumber } from '@/services/cases/caseDisplayNumber'; import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useTranslation, Trans } from 'react-i18next';
 import { buildPoolGroupRows, splitPoolRowsByUrgency, computeRestrictedPoolKeys, type PoolDividerRow, type SubspecialtyForRestrictionCheck } from './poolGrouping';
@@ -250,7 +250,7 @@ const compareValues = (a: any, b: any, dir: 'asc' | 'desc'): number => {
 const getSortValue = (c: Case, key: string): any => {
   switch (key) {
     case 'id':
-      return c.id;
+      return caseDisplayNumber(c);
     case 'lastName':
       return c.patient?.lastName ?? '';
     case 'mrn':
@@ -1170,7 +1170,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
         auditService.logEvent({
           type: 'system',
           event: 'Orchestration Access Denied',
-          detail: `Case ${id} opened by ${(user as any)?.name ?? 'Unknown'} — blocked: case belongs to Orchestration/Outreach. User lacks canViewOrchestration permission.`,
+          detail: `Case ${id} opened by ${(user as any)?.name ?? 'Unknown'} — blocked: case belongs to Orchestration. User lacks canViewOrchestration permission.`,
           user: (user as any)?.name ?? 'Unknown',
           caseId: id,
           confidence: null,
@@ -1571,7 +1571,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                             className={`wl-case-id${isRush ? ' wl-case-id--rush' : isUrgent ? ' wl-case-id--urgent' : c.status === 'pool' ? ' wl-case-id--pool' : ''}`}
                             data-phi="accession"
                           >
-                            {c.id}
+                            {caseDisplayNumber(c)}
                           </span>
                         </div>
                       </div>
@@ -1925,7 +1925,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         </div>
                       )}
                       <div className={`wl-case-id-inline${isRush ? ' wl-case-id-inline--rush' : isUrgent ? ' wl-case-id-inline--urgent' : isPool ? ' wl-case-id-inline--pool' : ''}`} data-phi="accession">
-                        {c.id}
+                        {caseDisplayNumber(c)}
                       </div>
                     </td>
 
@@ -2259,7 +2259,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     await sendAccessRequestToAdmins(
                       { id: (user as any).id, name: (user as any).name, organisationId: (user as any).organisationId },
                       `Orchestration Access Request — ${(user as any).name}`,
-                      `${(user as any).name} needs Orchestration access for case ${orchBlockedCase.id}.\n\nTo grant access:\n1. Go to Configuration → Staff\n2. Open ${(user as any).name}'s staff record\n3. Enable the "canViewOrchestration" flag\n\nNote: this grants visibility into ALL Orchestration/Outreach cases for this user, not just this one case — confirm that's the intended scope before granting. (Same flag location/pattern as Pediatric Access, on the staff record rather than a per-facility list.)`,
+                      `${(user as any).name} needs Orchestration access for case ${orchBlockedCase.id}.\n\nTo grant access:\n1. Go to Configuration → Staff\n2. Open ${(user as any).name}'s staff record\n3. Enable the "canViewOrchestration" flag\n\nNote: this grants visibility into ALL Orchestration cases for this user, not just this one case — confirm that's the intended scope before granting. (Same flag location/pattern as Pediatric Access, on the staff record rather than a per-facility list.)`,
                       '/configuration?tab=system&section=staff',
                       { type: 'orchestration', caseId: orchBlockedCase.id },
                     );

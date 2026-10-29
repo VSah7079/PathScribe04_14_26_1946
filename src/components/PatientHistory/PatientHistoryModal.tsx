@@ -69,7 +69,6 @@ function isAiCase(item: ReportItem): item is AiMatchedCase {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function CaseCard({ item, onClick }: { item: ReportItem; onClick: () => void }) {
-  const { t } = useTranslation();
   const ai = isAiCase(item);
 
   return (
@@ -81,9 +80,6 @@ function CaseCard({ item, onClick }: { item: ReportItem; onClick: () => void }) 
         <span className="ps-ph-card-date">{item.date}</span>
         <span className="ps-ph-card-id" data-phi="accession">
           {ai ? (item as AiMatchedCase).accession : (item as PatientHistoryCase).id}
-          {ai && (
-            <span className="ps-ph-match-badge">{t('patientHistoryModal.card.matchPct', { pct: (item as AiMatchedCase).matchPct })}</span>
-          )}
         </span>
       </div>
       <div className="ps-ph-card-diagnosis" data-phi="diagnosis">{item.diagnosis}</div>
@@ -125,7 +121,6 @@ function FullReport({ item }: { item: ReportItem }) {
         <ReportField label={t('patientHistoryModal.field.ki67')}          value={ai ? a.ki67 : h.ki67} />
         <ReportField label={t('patientHistoryModal.field.margins')}       value={ai ? a.margins : h.margins} />
         <ReportField label={t('patientHistoryModal.field.lymphNodes')}    value={ai ? a.nodes : h.nodes} />
-        {ai && <ReportField label={t('patientHistoryModal.field.aiMatchScore')} value={`${a.matchPct}%`} />}
       </div>
       <div className="ps-ph-divider" />
       <div className="ps-ph-grid-2col">

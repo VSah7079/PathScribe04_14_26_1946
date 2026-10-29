@@ -410,3 +410,5 @@ Batch 651 (audit gaps): `poolCaseActions.ts` writes "Pool case claimed / passed"
 - Batch 664: `collaboratorCommand.ts` (pure) and `collaboratorVoice.test.ts`: "Add Collaborator [name]" matches one active staff member by first/last name (accents folded, titles dropped; none or several = nobody added), and `withCollaborator` adds them to the case team as a `consultant` (a removed member comes back as one record). The save is `saveCaseTeam` (case:team:manage, cytotech rule, newer-team protection), run by `pages/SynopticReportPage/hooks/useCollaboratorCommand.ts`.
 
 - Batch 665: `collaboratorNotice` builds the message the new collaborator receives (an app notice sent through `messageService.send` after the team save; a failed send is reported and never undoes the add).
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): grossing-assignment warnings and match tags no longer include confidence or match percentages (matchPct stays on the match record).

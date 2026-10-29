@@ -35,16 +35,16 @@ import { useTranslation } from 'react-i18next';
 import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 
-import type { ScanStation } from '@/services/scanStations/IScanStationService';
-
 import { resolveBenchRouteForGroup } from '@/services/workstationGroups/resolveStationBenchRoute';
+import { useSelectableScanStations } from '@/hooks/useSelectableScanStations';
 import { scanStationService, actionRegistryService, workstationGroupService, actionGroupService } from '@/services';
 
 
 export function NavBarScanStation() {
   const { t } = useTranslation();
-  const { effectiveStationId, isDeviceLocked, isUserDefault, setStationId } = useEffectiveScanStation();
-  const [stations, setStations] = useState<ScanStation[]>([]);
+  const { effectiveStationId, isDeviceLocked, isUserDefault, unavailableStationId, setStationId } = useEffectiveScanStation();
+  // Batch 713: only the Active stations this user may use (services/scanStations/stationsForUser.ts).
+  const { stations, allStations, reload: loadStations } = useSelectableScanStations();
   const [open, setOpen] = useState(false);
   // PS-128 (Batch 437): through the unsaved-changes guard.
   const navigate = useGuardedNavigate();
@@ -58,14 +58,6 @@ export function NavBarScanStation() {
   // already resolves the station's WorkstationGroup below — no
   // second fetch.
   const [benchRoute, setBenchRoute] = useState<string | undefined>(undefined);
-
-  const loadStations = () => {
-    scanStationService.getAll().then(res => {
-      if (res.ok) setStations(res.data.filter(s => s.status === 'Active'));
-    });
-  };
-
-  useEffect(() => { loadStations(); }, []);
 
   // Real, per PS-289's own comment thread — the actual runtime
   // payoff of the whole WorkstationGroup design: the moment the
@@ -132,7 +124,7 @@ export function NavBarScanStation() {
   const handleToggleOpen = () => {
     setOpen(v => {
       const next = !v;
-      if (next) loadStations();
+      if (next) void loadStations();
       return next;
     });
   };
@@ -163,6 +155,11 @@ export function NavBarScanStation() {
       {open && (
         <div className="ps-navbar-station-menu">
           <div className="ps-navbar-station-menu-title">{provenance}</div>
+          {unavailableStationId && (
+            <div className="ps-navbar-station-menu-title" role="status">
+              {t('navBarScanStation.notAvailable', { station: allStations.find(x => x.id === unavailableStationId)?.name ?? unavailableStationId })}
+            </div>
+          )}
           {stations.map(s => (
             <button
               key={s.id}
@@ -172,7 +169,7 @@ export function NavBarScanStation() {
               {s.id === effectiveStationId ? '✓ ' : ''}{s.name}
             </button>
           ))}
-          {isDeviceLocked && (
+          {(isDeviceLocked || !!unavailableStationId) && (
             <button className="ps-navbar-station-menu-item ps-navbar-station-menu-item--clear" onClick={() => { setStationId(null); setOpen(false); }}>
               {t('navBarScanStation.clearFixedStation')}
             </button>

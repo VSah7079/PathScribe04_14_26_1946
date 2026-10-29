@@ -964,6 +964,7 @@
         "gross complete"
       ],
       "routes": [
+        "/workstations/grossing",
         "/case/:caseId/grossing"
       ],
       "previous": "accession",
@@ -1145,7 +1146,7 @@
         "report",
         "report/synoptic-reporting",
         "tumor-board",
-        "pathology-workspace",
+        "quality",
         "case-flags"
       ],
       "status": "Draft"
@@ -1697,8 +1698,7 @@
         "workstations/microtomy",
         "workstations/slide-distribution",
         "cytology",
-        "molecular",
-        "margin-exception-review"
+        "molecular"
       ],
       "status": "Draft"
     },

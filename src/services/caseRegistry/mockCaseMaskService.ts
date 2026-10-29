@@ -59,6 +59,14 @@ const SEED: Record<string, CaseMask> = {
     currentSequence: 0, resetSequenceAnnually: true, lastResetYear: 2026,
     updatedBy: 'system', updatedAt: nowIso(),
   },
+  // Batch 716: GYN cytology draws from its own series (GYN26-0001), so the Cytology Part 2 training video shows a
+  // Pap and a thyroid FNA (NG26-0001) getting visibly different accession numbers.
+  [keyFor('department', 'cat-gyn-cytology')]: {
+    id: 'cat-gyn-cytology', scopeType: 'department', scopeId: 'cat-gyn-cytology',
+    prefix: 'GYN', maskPattern: DEFAULT_FALLBACK_MASK, sequenceDigits: 4,
+    currentSequence: 0, resetSequenceAnnually: true, lastResetYear: 2026,
+    updatedBy: 'system', updatedAt: nowIso(),
+  },
   [keyFor('department', 'cat-histology-only')]: {
     id: 'cat-histology-only', scopeType: 'department', scopeId: 'cat-histology-only',
     prefix: 'CS', maskPattern: DEFAULT_FALLBACK_MASK, sequenceDigits: 4,

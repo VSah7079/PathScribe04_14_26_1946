@@ -107,6 +107,15 @@ Hotkeys are not translated, so they are not on this list. The Role Dictionary la
 | Start Intraop Session (Continue to Specimen) (`INTRAOP_START_SESSION`) | continue to specimen; start the session | continuer vers le prélèvement; démarrer la session | weiter zum präparat; sitzung starten | verder naar het preparaat; sessie starten | 검체로 계속; 세션 시작 | continuar a la muestra; iniciar la sesión |
 | Start New Intraop Entry (`INTRAOP_START_NEW_ENTRY`) | start new intraop entry; start intraop entry; new intraop entry; start entry | démarrer une nouvelle entrée peropératoire; nouvelle entrée peropératoire | neuen intraoperativen eintrag starten; neuer intraoperativer eintrag | nieuwe intraoperatieve invoer starten; nieuwe intraoperatieve invoer | 새 수술중 항목 시작; 새 수술중 항목 | iniciar nueva entrada intraoperatoria; iniciar entrada intraoperatoria; nueva entrada intraoperatoria; iniciar entrada |
 
+## GROSSING bench tools (4, Batch 720)
+
+| Command | English (source) | French | German | Dutch | Korean | Spanish (Castilian, formal) |
+|---|---|---|---|---|---|---|
+| Print Cassettes (`GROSSING_PRINT_CASSETTES`) | print cassettes; print the cassettes; print cassette labels | imprimer les cassettes; imprimer les étiquettes de cassettes; imprimer les cassettes du cas | kassetten drucken; kassettenetiketten drucken; kassetten ausdrucken | cassettes afdrukken; cassettelabels afdrukken; cassettes printen | 카세트 인쇄; 카세트 라벨 인쇄; 카세트 출력 | imprimir casetes; imprimir los casetes; imprimir etiquetas de casetes |
+| Take a Gross Photo (`GROSSING_TAKE_PHOTO`) | take a photo; gross photo; capture photo | prendre une photo; photo macroscopique; capturer la photo | foto aufnehmen; makrofoto; foto erfassen | foto maken; macrofoto; foto vastleggen | 사진 촬영; 육안 사진; 사진 캡처 | tomar una foto; foto macroscópica; capturar foto |
+| Assign to Decalcification (`GROSSING_ASSIGN_DECAL`) | send to decal; assign to decalcification; decal bench | envoyer à la décalcification; affecter à la décalcification; poste de décalcification | zur entkalkung senden; der entkalkung zuweisen; entkalkungsplatz | naar decalcificatie sturen; toewijzen aan decalcificatie; decalcificatiebank | 탈회로 보내기; 탈회 배정; 탈회 작업대 | enviar a descalcificación; asignar a descalcificación; banco de descalcificación |
+| Open the Add-On Order Builder (`GROSSING_ADD_ON_ORDER`) | add-on order; open add-on builder; order add-ons | commande complémentaire; ouvrir le générateur de compléments; commander des compléments | zusatzauftrag; zusatzauftrag-ersteller öffnen; zusatzaufträge bestellen | aanvullende bestelling; aanvullende bestelling openen; aanvullingen bestellen | 추가 오더; 추가 오더 작성 열기; 추가 오더 주문 | pedido complementario; abrir el generador de complementos; pedir complementos |
+
 ## LOCKBOX (4)
 
 | Command | English (source) | French | German | Dutch | Korean | Spanish (Castilian, formal) |

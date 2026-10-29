@@ -1,3 +1,5 @@
+- `PASSWORD_RESET_REQUEST_API.md` (Batch 711): "Ask my administrator to reset my password" on the demo sign-in screen; SSO deployments do not use it; the server contract (anonymous POST, throttling, administrator notification by messaging).
+
 **Batch 650 to 652:** `AUTHORIZATION_API.md` (Superadmin statement, new audit events), `LIVE_UPDATES_SIGNALR.md` (the hub signs in with the session cookie; the demonstration build still sends the SSO token as a query string until the server session exists), `LOCKBOX_API.md` (receipt linked to a case at accessioning, `lockbox:folder:review`), `ACCESS_CONTROL_PLAN.md` and `AUTHENTICATION_OIDC.md` (wording aligned with the code). No new capability.
 
 - **Batch 649:** `AUTHORIZATION_API.md` lists 17 new capabilities (sign-out, preliminary and revision release, recall, pool, flags, codes, create case, informal review, four QA deficiency actions), the rule that signing needs the capability *and* case participation (no administrative override), and the preliminary-release ruling (Pathologist and Fellow only).
@@ -481,3 +483,7 @@ The requirements are numbered CA-1 to CA-24 for the India team.
 ## Batch 658 — `RELEASE_SWEEP_SERVER_JOB.md`: design (not built) for sending held reports from a server job.
 
 - Batch 669f: `OUTBOUND_QUEUE_API.md` gained section 7, the planned (not built) dead-letter contract: retry threshold, alert and webhook, list and replay.
+
+## Feedback destination (Oct 28, 2026)
+
+- `FEEDBACK_DESTINATION.md` (new): where enhancement requests are delivered (the Feedback setting, the config.json default, the Content-Security-Policy), and the AI / Template validation QA category (study and template links, validation recipients, `FEEDBACK_ROUTED_TO_VALIDATION`). `CONFIG_DICTIONARIES_API.md` and `RUNTIME_CONFIG.md` gained a note each.

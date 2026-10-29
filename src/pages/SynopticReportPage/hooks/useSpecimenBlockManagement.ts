@@ -54,6 +54,8 @@ import { UNSTAINED_LABEL } from '@/types/case/Specimen';
 import type { SigningUser, SetConcurrencyConflict } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
 import { useCassetteScanVerification } from './useCassetteScanVerification';
+import { caseLabelStyle } from '@/services/labeling/liveCaseLabelStyle';
+import { nextBlockLabel } from '@/utils/specimenLabeling';
 import { printSettingsService, specimenDeficiencyService, auditService } from '@/services/index';
 import type { PrintSettingsConfig, CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
@@ -448,14 +450,14 @@ export function useSpecimenBlockManagement({
     const slideId = slideIdentifier(fullAccession, specimenLabel, blockLabel, level);
     dispatchSlideLabel({
       fullAccession,
-      specimenLabel, blockLabel, level, stainName, slideId,
+      specimenLabel, blockLabel, level, stainName, slideId, slideDesignation: caseData.labelStyle?.slide,
     }).catch(console.error);
     // Real, purely additive — see attemptPrintedLabel's own doc
     // comment. Never affects the dispatchSlideLabel engrave-stub call
     // above.
     attemptPrintedLabel('slide', async (printer, gtin, _cassetteLabelLayout) => {
       const result = await printSlideLabel({
-        fullAccession, specimenLabel, blockLabel, level, stainName, slideId,
+        fullAccession, specimenLabel, blockLabel, level, stainName, slideId, slideDesignation: caseData.labelStyle?.slide,
       }, printer, gtin);
       return result.ok ? { ok: true } : { ok: false, message: (result as { ok: false; message: string }).message };
     }).catch(console.error);
@@ -983,8 +985,8 @@ export function useSpecimenBlockManagement({
     }
 
     const existingBlocks = sp.blocks ?? [];
-    const nextNumber = existingBlocks.length + 1;
-    const blockLabel = String(nextNumber);
+    // Batch 715: the next unused block label, in the case's letters/numbers style (was always a number).
+    const blockLabel = nextBlockLabel(existingBlocks.map(b => b.label), await caseLabelStyle(caseData));
     const newBlockId = `blk-${specimenId}-${Date.now().toString(36)}`;
     const fullAccession = caseData.accession?.fullAccession;
 
@@ -1042,7 +1044,7 @@ export function useSpecimenBlockManagement({
     const phase1 = await persistBlockChange(caseData.id, { specimens: optimisticSpecimens }, addChange, { specimens }, '[Grossing] Failed to save optimistic block add:');
     if (phase1 === 'notSaved') return;
     markDirty('blocks');
-    showToast(t('useSpecimenBlockManagement.toast.blockRequestedAwaitingLis', { label: `${sp.label}${nextNumber}` }));
+    showToast(t('useSpecimenBlockManagement.toast.blockRequestedAwaitingLis', { label: `${sp.label}${blockLabel}` }));
     if (phase1 === 'merged') {
       showToast(t('useSpecimenBlockManagement.toast.unsavedChangesNewBlock'), 'warning');
     }
@@ -1076,10 +1078,10 @@ export function useSpecimenBlockManagement({
     }
 
     if (!result.ok) {
-      showToast(t('useSpecimenBlockManagement.toast.lisRejectedBlockRecut', { label: `${sp.label}${nextNumber}` }), 'warning');
+      showToast(t('useSpecimenBlockManagement.toast.lisRejectedBlockRecut', { label: `${sp.label}${blockLabel}` }), 'warning');
       return;
     }
-    showToast(t('useSpecimenBlockManagement.toast.blockConfirmedByLis', { label: `${sp.label}${nextNumber}` }));
+    showToast(t('useSpecimenBlockManagement.toast.blockConfirmedByLis', { label: `${sp.label}${blockLabel}` }));
 
     // Real feature, per direct research: "Single-Click / Triggered
     // Printing: When a Pathologist Assistant grosses Specimen A and
@@ -1500,7 +1502,7 @@ export function useSpecimenBlockManagement({
     // PS-71 (Batch 458): all of that is blockCaseChanges.
     // updateMatrixBlockParticipantsChange, re-applied to the newest case on
     // a conflict (was: re-saved without a version).
-    const change = updateMatrixBlockParticipantsChange({ matrixBlockId, specimenIds, fullAccession: caseData.accession?.fullAccession });
+    const change = updateMatrixBlockParticipantsChange({ matrixBlockId, specimenIds, fullAccession: caseData.accession?.fullAccession, labelStyle: await caseLabelStyle(caseData) });
     const firstUpdates = change(caseData);
     if (!firstUpdates) return;
     setCaseData({ ...caseData, ...firstUpdates, updatedAt: new Date().toISOString() });
@@ -1511,12 +1513,6 @@ export function useSpecimenBlockManagement({
     showToast(t('useSpecimenBlockManagement.toast.biopsyArrayUpdated', { label: matrixBlock.label, count: specimenIds.length }));
   }, [caseData, sendMaterialOrderToLis, markDirty, showToast, setCaseData, persistBlockChange, t]);
 
-  // Real feature: a direct, explicit "undo the whole array" action —
-  // clearer than editing a selection down to zero. Every specimen
-  // currently carrying this cassetteId gets unlinked; each block
-  // record itself is kept as an ordinary, standalone block, same
-  // "nothing physical changed, just the tracking" posture as removing
-  // one specimen in handleUpdateBiopsyArray above.
   // Real feature: a direct, explicit "undo the whole array" action —
   // clearer than editing a selection down to zero. Real, architectural
   // fix, per direct follow-up: every real participant gets a real,
@@ -1537,7 +1533,7 @@ export function useSpecimenBlockManagement({
     // participant gets an ordinary block back, the matrix block is
     // removed), re-applied to the newest case on a conflict (was: re-saved
     // without a version).
-    const change = dissolveMatrixBlockChange({ matrixBlockId, fullAccession: caseData.accession?.fullAccession });
+    const change = dissolveMatrixBlockChange({ matrixBlockId, fullAccession: caseData.accession?.fullAccession, labelStyle: await caseLabelStyle(caseData) });
     const firstUpdates = change(caseData);
     if (!firstUpdates) return;
     setCaseData({ ...caseData, ...firstUpdates, updatedAt: new Date().toISOString() });

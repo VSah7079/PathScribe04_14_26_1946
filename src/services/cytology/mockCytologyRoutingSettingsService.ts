@@ -4,7 +4,13 @@ import { storageGet, storageSet } from '../mockStorage';
 import { ServiceResult } from '../types';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
-const load    = () => storageGet<CytologyRoutingSettingsConfig>('cytologyRoutingSettings', DEFAULT_CYTOLOGY_ROUTING_SETTINGS);
+// Batch 716 (Pete, Oct 28 2026, "set demo data for Cytology Part 2"): the PRODUCT default is 'surgical_pathology_worklist'
+// (DEFAULT_CYTOLOGY_ROUTING_SETTINGS, used by reset() and the real server), but the DEMO starts with non-GYN cytology and FNA
+// on the Cytology worklist, so a thyroid FNA accessioned in a training video shows up in the cytology queue. Both are
+// legitimate configurations; Configuration > Cytology > Routing changes it, and a Full Reset returns to this demo seed.
+export const DEMO_CYTOLOGY_ROUTING_SETTINGS: CytologyRoutingSettingsConfig = { nonGynCytologyRouting: 'cytology_worklist' };
+
+const load    = () => storageGet<CytologyRoutingSettingsConfig>('cytologyRoutingSettings', DEMO_CYTOLOGY_ROUTING_SETTINGS);
 const persist = (d: CytologyRoutingSettingsConfig) => storageSet('cytologyRoutingSettings', d);
 let MOCK_CONFIG: CytologyRoutingSettingsConfig = load();
 

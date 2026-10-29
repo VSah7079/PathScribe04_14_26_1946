@@ -3,7 +3,7 @@ module: Grossing
 workflow: Specimen Grossing
 role: [Pathology Assistant, Pathologist]
 keywords: [grossing, gross description, blocks, cassettes, specimen dissection, triage checklist, photos, piece count, fixation, margins, ink, complete grossing, gross complete]
-routes: [/case/:caseId/grossing]
+routes: [/workstations/grossing, /case/:caseId/grossing]
 previous: accession
 next: pathology-workspace
 related: [worklist, report]
@@ -21,16 +21,37 @@ status: Draft
 **Where it fits.** Grossing comes after the case has been logged in [Accession](help:accession) and before the tissue goes on to processing, embedding and cutting at the stations under [Pathology Workspace](help:pathology-workspace). Completing grossing moves the case to Gross Complete, and the case can then be sent to a pathologist pool.
 
 !!! note "How you reach this screen"
-    There is no tile for Grossing on Home. Open the case on the [report](help:report) screen, select the Material tab, and choose **Open Grossing Screen**. **Back to Case** returns you to the report screen.
+    Pathology assistants and grossing pathologists use the **Grossing** tile under [Pathology Workspace](help:pathology-workspace). It lists the cases waiting to be grossed (urgent first, then oldest); choose **Gross** on a row, or type or scan an accession number, to open the case. Physicians can still open the same screen from the report: select the Material tab and choose **Open Grossing Screen**. **Back to Case** returns you to the report screen.
 
 ## Screen Tour
+
+![The Grossing tile's queue of cases waiting to be grossed](capture:grossing-queue)
 
 ![The Grossing screen for a case, with one section per specimen](capture:grossing-overview)
 
 The title reads "Grossing" followed by the accession number. Under it are the clinical history bar, the **Complete grossing** bar, and then one section for each specimen in the case. Work is saved as you go, except where a button says otherwise.
 
+### The Grossing tile's queue
+
+The Grossing tile's page is titled "Grossing Workspace" and has **← Back to Pathology Workspace**. The box labelled "Open a case by accession number" takes a typed or scanned accession. The list shows "Loading cases…" while it loads, and "No cases are waiting to be grossed." when the queue is empty. On the Pathology Workspace the tile reads "Gross cases and cut blocks".
+
+### Bench tools
+
+The **Bench tools** card sits above the Complete grossing bar. It has the tools you need at the bench, so you do not have to go back to the report screen.
+
+| Tool | What it does |
+|---|---|
+| Print cassettes | Prints the cassette labels for the case. Greyed out if your laboratory's print settings do not allow batch printing. Also Alt+Shift+1, the words "print cassettes", or foot pedal 2. |
+| Take a photo | Opens the camera for a gross photo of the first specimen and saves it on that specimen. Also Alt+Shift+2, the words "take a photo", or foot pedal 1. |
+| Add-On Orders | Opens the Add-On Order Builder for this case. Also Alt+Shift+4 or the words "add-on order". |
+| Decal batch, Block to send, Send to decal | Adds the chosen block to the chosen active decalcification batch. It tells you if the block is already in that batch or in another active one. Also Alt+Shift+3 or the words "send to decal". |
+| Messages | With no active decalcification batch the list reads "No active decal batch". If the block cannot be found you see "That block could not be found." |
+| Release panel (one per specimen with cassettes waiting) | Shows each waiting cassette with its colour. You can change the colour, remove a cassette, and confirm the triage checklist (or override it with a reason). **Release** is greyed out until the checklist is done. Releasing is always a click, never voice. |
+
+Foot pedals use the bindings set up under your workstation's foot pedal settings. Hotkeys and phrases work only while this screen is open, and only if your role has been given them.
+
 !!! note "Work done on other screens"
-    This screen does not print cassette or slide labels, does not hold the triage checklist and does not take photos. Releasing and printing the cassettes, the triage checklist that must be confirmed before they are released, and the printed labels are on the report screen's Material tab. Gross description text is written on the report screen too. Photos taken during an intraoperative consultation are in the [Intraop Queue](help:intraop-queue). Block face photos are taken from the block editor on the report screen's Material tab, in a window headed "Capture Block Face Photo". Under a block's piece count or piece description the editor shows "Needed before grossing can be completed." when your laboratory requires the item.
+    Gross description text is written on the report screen. Photos taken during an intraoperative consultation are in the [Intraop Queue](help:intraop-queue). Block face photos are taken from the block editor on the report screen's Material tab, in a window headed "Capture Block Face Photo". Under a block's piece count or piece description the editor shows "Needed before grossing can be completed." when your laboratory requires the item.
 
 ### Field definitions
 
@@ -42,7 +63,7 @@ The title reads "Grossing" followed by the accession number. Under it are the cl
 | No protocol assigned | The specimen has no protocol. You cannot add blocks from this screen. |
 | Fixation ended | The time the tissue left fixative. Shows "Record now" until recorded. |
 | Fixative-to-tissue ratio | Your confirmation that the ratio was adequate. Shows "Confirm adequate ratio" until confirmed, then who confirmed it and when. |
-| Block ID | The specimen letter and block, for example A1. |
+| Block ID | The specimen and block labels together, for example A1 (specimen letter A, block 1) or 1A (specimen 1, block A). Your laboratory chooses letters or numbers for each. |
 | Piece Count | The number of tissue pieces in the block. Starts from the protocol's default. |
 | Stains | The stains ordered on the block. Each is tagged Auto-generated (from the protocol) or User-added. |
 | Status | Where the block is. Only a block that is still Pending can be removed. |
@@ -59,7 +80,7 @@ The title reads "Grossing" followed by the accession number. Under it are the cl
 | Record now | Records the current time as the end of fixation. |
 | Confirm adequate ratio | Records that you confirmed the fixative-to-tissue ratio. |
 | Raise deficiency | Raises a quality deficiency for missing fixation information. |
-| Add Block (pathway name) | Adds another block following that protocol pathway, with its default stains and piece count. |
+| Add Block (pathway name) | Adds another block following that protocol pathway, with its default stains and piece count. The new block gets the next unused label in the case's style (A3 after A2, or 1C after 1B), and never repeats a label after a block was removed. |
 | Remove Block | Removes a block that is still Pending. |
 | Add Stain | Opens a list of the stains allowed for that block, which starts at "— select stain —"; choose one and select **Add**. |
 | x beside a stain | Removes the stain. Hover text: "Remove stain". |
@@ -98,7 +119,7 @@ These work on the Grossing screen. Each does what its button does, with the same
 4. Select **Confirm adequate ratio** once you have judged the fixative-to-tissue ratio. Your name and the time appear.
 5. In the block table, check each block. Type the number of pieces in **Piece Count** and move to the next field. The change is saved and, if it differs from the protocol, listed in the audit trail.
 6. To add a stain to a block, select **+ Add Stain**, choose the stain and select **Add**. The stain appears tagged User-added.
-7. To add another block, select **+ Add Block** with the pathway name. The new block appears with its protocol stains.
+7. To add another block, select **+ Add Block** with the pathway name. The new block appears with its protocol stains and the next label in the case's style (letters or numbers, as chosen when the case was accessioned).
 8. Record the margins: select **+ Add margin**, choose whether it belongs to the specimen or a block, enter the margin name (for example Lateral, Deep), optionally the orientation and laterality, choose the ink colour, tick **Mark this margin examined** if it applies, and select **Add**. The margin appears with its ink history.
 9. Repeat for each specimen.
 10. When no required item is missing, select **Complete grossing**. The bar changes to "Grossing completed", and the case is moved to the pathologist pool your laboratory has set up for it. A line reads "Routed to (pool name) pool." when that happens.

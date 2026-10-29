@@ -4606,8 +4606,8 @@ Rules:
       }
 
       if (p.confidence < threshold) {
-        warnings.push(`AI assignment for specimen ${spec.specimenId} (${templateNameById.get(p.templateId)}, confidence ${p.confidence}) was below the ${threshold}% threshold — fell back to default Grossing Template. Original AI reasoning: ${p.reason}`);
-        return fallback(spec.specimenId, `AI confidence ${p.confidence} below ${threshold}% threshold`);
+        warnings.push(`AI assignment for specimen ${spec.specimenId} (${templateNameById.get(p.templateId)}) did not reach the review threshold — fell back to default Grossing Template. Original AI reasoning: ${p.reason}`);
+        return fallback(spec.specimenId, 'AI suggestion below the review threshold');
       }
 
       return {
@@ -5872,7 +5872,7 @@ function buildMatchReason(c: Case, anchor: PatientHistoryCase): string {
   return reasons.slice(0, 3).join(' · ') || 'Morphologic similarity';
 }
 
-function buildTags(c: Case, matchPct: number): string[] {
+function buildTags(c: Case): string[] {
   const tags: string[] = [];
   const ancillary = (c.diagnostic?.ancillaryStudies ?? '').toLowerCase();
   const answers = c.synopticReports?.[0]?.answers ?? {};
@@ -5887,7 +5887,7 @@ function buildTags(c: Case, matchPct: number): string[] {
   if (ancillary.includes('her2 3+') || ancillary.includes('ish: amplified')) tags.push('HER2+');
   else if (ancillary.includes('her2')) tags.push('HER2−');
 
-  tags.push(`${matchPct}% match`);
+  // Provenance over confidence: the match score is kept on the match record (matchPct) but is not a display tag.
   return tags;
 }
 
@@ -5966,7 +5966,7 @@ export async function findSimilarCases(
       gross: c.diagnostic?.grossDescription ?? '',
       microscopic: c.diagnostic?.microscopicDescription ?? '',
       ancillaryStudies: c.diagnostic?.ancillaryStudies ?? '',
-      tags: buildTags(c, matchPct),
+      tags: buildTags(c),
     });
   }
 

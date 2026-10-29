@@ -12,6 +12,12 @@ status: Draft
 
 # Add-On Orders {#top}
 
+!!! note "Ordering from the Grossing screen"
+    The Grossing screen has an **Add-On Orders** button (Alt+Shift+4) that opens this builder for the case you are grossing. Pathology assistants and the other grossing roles can also open it from the **Add-On Orders** tile under Pathology Workspace.
+
+!!! note "Where do the labels print?"
+    Nothing prints when you place the order. The order goes to the microtomy queue; the technologist scans the block at the bench, the order opens, and the slide labels print on that bench's printer. A way to choose a different printing place when ordering is being considered.
+
 ## Overview
 
 **Purpose.** Add-On Orders is where a pathologist orders more work on a case that already exists: deeper levels or recuts of a block, special stains, immunostains (single stains or a panel of them), and molecular or send-out tests. You open the case, tick the blocks, build a cart of order lines, choose the priority and the type of slide, and submit. The screen then follows each order through the laboratory and is where you answer the bench if a block has run out of tissue.

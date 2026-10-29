@@ -2,6 +2,13 @@
 
 Every entry is written four ways (Pete, Oct 20, 2026): **for the practitioner** (plain language), **for the system administrator** (where and how to set it up), **for marketing** (positive), and **for FormedrixAI and partners** (the plain reality, including what is not built). Entries written before Batch 642 were rewritten into this form from their earlier text; the facts were carried over, and marketing and partner wording needs your review before it is used externally.
 
+## Batch 720: Grossing tile and bench tools, required marks, labels print on save
+
+- **Practitioner:** Margin Exception Review is now a tile under Pathology Workspace, beside Grossing and Add-On Orders, so pathologists no longer see a Quality & Compliance tile on Home that held only that one screen (roles with other quality screens keep the hub). On the Worklist the "Outreach" tile is now "Orchestration Cases" (tooltips and the Back-to label follow). Pathology assistants and grossing pathologists now have a **Grossing** tile under Pathology Workspace. It lists the cases waiting to be grossed, urgent first. The Grossing screen has a **Bench tools** card: print cassettes, take a gross photo (foot pedal 1), print with foot pedal 2, send a block to a decalcification batch, release cassettes through the triage checklist, and open the Add-On Orders builder. Alt+Shift+1 to 4 and the voice phrases do the same. Physicians still open the screen from the report's Material tab. On Accession, required fields now carry a red asterisk, and labels print by themselves when you save (the Print Labels button stays for reprints). If the automatic template check is unavailable, a plain note says each specimen kept its default template.
+- **System administrator:** new permission `screen:grossing:open` (Role Dictionary > Screens), seeded to Pathologist, Fellow, Resident and Pathologists Assistant; the PA also now gets the Add-On Orders screen. The four grossing actions are granted to the same roles. Configuration > Print Settings has a new checkbox, "Print labels when a case is accessioned" (on by default, can be overridden per facility). Which fields show an asterisk follows Field Requirements.
+- **Marketing:** Grossing now has its own front door and a bench-side toolbar, hands-free where the lab wants it: foot pedals, voice and hotkeys, with labels printed the moment a case is accessioned.
+- **FormedrixAI/partners:** Done in the demo build. Not built: choosing which printer or station add-on labels print at when the order is placed (they print at the microtomy bench after the block is scanned), a grouped "Referred from Outside Lab" heading on Accession (the two boxes are now relabelled Outside Lab Name and Outside Lab Specimen / Accession ID instead). The browser-print window now opens from the click, before the save finishes, so pop-up blockers do not stop it; if the save fails the window closes. Non-English strings are machine translated.
+
 ## Batch 669h: Control Rules reachable, External Consult masked by default, honest footer status
 
 - Practitioner: Control Rules now opens for the people who set and review the rules (Lab Director, Administrator, Quality Reviewer) as well as the molecular technologists, without anyone needing the whole Molecular screen. Technologists still only read; changes need the manage permission.
@@ -18,6 +25,190 @@ Every entry is written four ways (Pete, Oct 20, 2026): **for the practitioner** 
 - **System administrator:** The status comes from `GET /api/health/health-status/check`, which reports database, messaging, queues and interface engine; the server decides the overall state. Until the server has the route the footer shows "Status unavailable". Locale keys: added `home.status.*`, changed `home.footerCopyright`, removed `home.systemsOperational` and `appShell.secureEmailModal.encryptedNotice`.
 - **Marketing:** The Home screen shows live system health from the server, checked when you open it and when you return to it, and it only says what it has checked.
 - **FormedrixAI/partners (plain reality):** The server route does not exist yet (contract written, HS-1 to HS-5); in the demo the status only reflects whether the browser is online and is labelled simulated. No HIPAA or CAP compliance statement is printed anywhere on these screens. The secure-email send is still simulated. The CAP wording is "structured on", not certified.
+
+## Batch 716: realistic cytology demo data
+
+**For the practitioner (User Guide).** The demo now has realistic cytology specimens: Pap (ThinPrep and SurePath), Pap with HPV, HPV-only swab, urine, pleural, peritoneal, CSF, bronchial and sputum, and thyroid, lymph node, breast and salivary FNAs. Choose one at Accession and the cytology history card appears, the case takes its own number series (GYN, NG or S), and ready-made orders can be imported.
+
+**For the system administrator (Admin Guide).** A Configuration Full Reset loads the new entries, a GYN Cytology department and its case mask, four cytology protocols (Pap with HPV co-test, HPV-only swab, fluid cell block, FNA cell block), pending orders ord-030 to ord-037, and non-GYN routing set to the Cytology worklist. Every surgical entry is now linked to the Surgical Tissue department, so specimens of different case types are blocked from one accession. All of it can be changed in Configuration. See DEMO_GUIDE.md, Cytology demo data.
+
+**For marketing (positive).** See a Pap with HPV, a thyroid FNA and a pleural fluid move through Accession, each in its own accession series, with the HPV order queued and the cases waiting on the Cytology Worklist.
+
+**For FormedrixAI and partners (the plain reality).** This is demo seed data, not a new feature. Slides and smears are not generated, only decants, and every protocol decant is typed cell block. The HPV order is sent but results and reflex are not automated, and the protocol setting that sends it has no screen. Several FNA and fluid types have no default template. An existing browser needs one Full Reset to load the data.
+
+## Batch 715: letters or numbers for specimens, blocks and slides
+
+**For the practitioner (User Guide).** Your laboratory chooses whether specimens, blocks and slides are labelled with letters or numbers, so cassette and slide labels match what your histology staff already write. Add Block in Grossing and on the report screen follows the choice.
+
+**For the system administrator (Admin Guide).** Configuration > System > Facility Configuration: three selectors (specimen, block, slide) at enterprise level, with an optional override for each performing facility and an inherit choice, and a live example. The old combined option stays as a preset. Each edit is audited. It applies to new cases; existing and printed labels are not changed.
+
+**For marketing (positive).** Labels follow your lab's own convention, including mixed styles such as 1A, 1B or A1, A2.
+
+**For FormedrixAI and partners (the plain reality).** There is no Relabel existing, by design, so printed and signed labels are never silently changed. The slide level code (L1, L2) stays in slide IDs and barcodes, and some on-screen level columns still show it. Choosing the same type for specimens and blocks only warns. Adding a facility is not audited. Five languages are machine-translated and need review.
+
+## Batch 714: Clinical Indication shows where it came from
+
+**For the practitioner (User Guide).** When you import an order, the Clinical Indication fills in with the ordering clinician's reason, and a note says which order field it came from. Read it and edit it if needed. If you change it, the note says it was edited and shows the original. Both are kept, and the text feeds the Clinical-Pathologic Mismatch Check.
+
+**For the system administrator (Admin Guide).** No setting. The order source must supply clinicalIndication and clinicalIndicationSource; the mapping (HL7 OBR-31, ORC-16, DG1, NTE; FHIR ServiceRequest reasonCode and reasonReference) is the contract in ACCESSIONING_API.md section 1a. The case keeps orderClinicalIndication and its field beside the edited text.
+
+**For marketing (positive).** The reason the surgeon gave stays attached to the case with its origin shown, and any edit is traceable.
+
+**For FormedrixAI and partners (the plain reality).** The mapping rule is built and tested, but there is no HL7 or FHIR order interface in this repository, so the server team must implement it to the contract. The demo orders are mocked and OBX is not used. Text typed by hand is marked entered; a blank manual field has no marker.
+
+## Batch 713: station lists show only your facilities
+
+**For the practitioner (User Guide).** The station list shows only the benches at the facilities you work for, and No station is always offered. If this computer was set to a bench you are not assigned to, it shows No station and asks you to pick your own. The computer's setting is kept for the next person.
+
+**For the system administrator (Admin Guide).** Staff > Facilities controls it; an empty list means all facilities, and ForMedrixAI support sign-ins are unrestricted. It applies to the sign-in prompt, the header list and station barcode switching (a STATION barcode for another facility is refused).
+
+**For marketing (positive).** Each person sees only their own site's benches, so a multi-site laboratory can share one installation.
+
+**For FormedrixAI and partners (the plain reality).** This is a screen rule only; the API server must enforce it when recording a scan. There is no admin screen for a user's default station. The OR terminal picker is not affected.
+
+## Batch 712: Downtime reason blocks accessioning until chosen
+
+**For the practitioner (User Guide).** When you choose Temporary / Downtime you must pick the Downtime reason before Next and Submit Accession are available. The line under the buttons says Still required: Downtime reason. In a normal accession it is never asked for.
+
+**For the system administrator (Admin Guide).** No setting; the rule is fixed and is not in Configuration > Field Requirements. The reason list is the fixed break-glass code list. The submit-time check remains as a backstop.
+
+**For marketing (positive).** Downtime accessions cannot be saved without a documented reason, so every downtime record has an audit-ready explanation.
+
+**For FormedrixAI and partners (the plain reality).** The reason list is not configurable per organisation. The API server must enforce the rule as well. The Outside / Contract intake was not checked for a similar gap. Five languages are machine-translated.
+
+## Batch 711: asking the administrator to reset a password
+
+**For the practitioner (User Guide).** If you forget your password, select Forgot password? and then Ask my administrator to reset my password. Your administrators are alerted straight away and will set a temporary password for you. You can ask again after 10 minutes.
+
+**For the system administrator (Admin Guide).** Holders of config:staff-password:manage get an urgent message, Password reset requested, linking to the person's Staff record. Set a temporary password there; the request is then marked handled with an audit entry. Confirm the person's identity before passing the password on. SSO sign-in does not show this.
+
+**For marketing (positive).** A forgotten password no longer means hunting for the right person: the right administrators are alerted at once and the fix is tracked.
+
+**For FormedrixAI and partners (the plain reality).** Demo only. Not built: email or text to administrators, an open-requests list in Staff, a handled flag on the message, and server-side throttling. The limit is per email in the browser, so it limits nothing against varying emails.
+
+## Batch 710: shorter Home tile text and a corner count badge
+
+**For the practitioner (User Guide).** Each Home tile now has a short one-line description, and the red registry-exceptions count sits in the card's top-right corner, so descriptions are no longer cut off.
+
+**For the system administrator (Admin Guide).** 23 tile description keys in six languages, with a length check in src/i18n. The card layout is unchanged except the badge position.
+
+**For marketing (positive).** Home tiles are clean and easy to scan in every supported language.
+
+**For FormedrixAI and partners (the plain reality).** Long French and Spanish titles can still fill a card, and the non-English text is machine-translated and unreviewed. Titles are shared with page headings, so they were not shortened.
+
+## Batch 719: Home says why there are no tiles
+
+**For the practitioner (plain).** No change on screen. If you ever see "None of your roles gives you access to a screen" and expected tiles, tell your administrator; the support team can read the reason from the browser.
+
+**For the system administrator.** When Home shows no tile, the browser console (F12, Console) now holds a warning, "PathScribe: no Home screen is open to this session", with the signed-in id, the session role, the staff roles, how many roles the role list holds, whether it includes Superadmin, and a one-line verdict. It contains no patient data.
+
+**For marketing (positive).** Access problems can be diagnosed in minutes instead of guessed at.
+
+**For FormedrixAI and partners (the plain reality).** Added after a no-tiles report on Pete's own machine that we could not reproduce on a fresh profile; the cause there is not yet known. This is a diagnostic only, not a fix. Test: `noScreensDiagnostic.test.ts`.
+
+## Batch 718: Worklist columns line up on narrower windows
+
+**For the practitioner (plain).** On a smaller window the Worklist columns used to slip out of line, so the Specimens chips sat under the Physician heading. The Physician column now stays put, and every heading sits over its own column.
+
+**For the system administrator.** No setting. A style rule that hid the Physician cells at 1280px wide or less (without hiding the heading or its column) was removed. Narrow screens now share the width across all columns.
+
+**For marketing (positive).** The Worklist reads cleanly on laptops and small windows, with every column under its own heading.
+
+**For FormedrixAI and partners (the plain reality).** On very narrow windows the columns are tight and some text is cut with an ellipsis; a priority-column rule that hides a whole column (heading, column and cells together) was not built.
+
+**Guide note (718, Episode 4 feedback).** The Search article no longer says you only find cases you may see: restricted pediatric, Outreach and pool cases appear with a lock, as on the Worklist, and you request access. The Worklist article now defines LIS Cases and Outreach (Orchestration) cases, and the "1/2 Final" status is explained as two synoptic reports (one per specimen) of which one is final; a case has one final diagnosis. The hover text still says "reports finalized" and could say "synoptic reports" (not changed). Open decision for Pete: whether to rename the Outreach tile "Orchestration" everywhere (the access window already says Orchestration).
+
+**Guide note (718).** The Worklist and Search articles now say that below 1024 pixels wide, or on a tablet, results show as cards and the table returns when the window widens. Episode 4 has a short "Smaller screens" scene.
+
+## Batch 717: feedback goes to a configured destination and to validation
+
+**For the practitioner (User Guide).** The light bulb sends your enhancement request to the destination your administrator configured and tells you where it went, or that nothing was sent. On the bug form, AI / Template validation links your note to a validation study and template and sends it to the validation team.
+
+**For the system administrator (Admin Guide).** Configuration > System > Feedback has Validation recipients and an Enhancement request destination URL (https only; a deployment can pre-set it with VITE_ENHANCEMENT_REQUEST_URL in config.json). Add the website origin to the CSP connect-src (see FEEDBACK_DESTINATION.md); the site must allow CORS. Settings changes are audited as FEEDBACK_SETTINGS_CHANGED and routing as FEEDBACK_ROUTED_TO_VALIDATION.
+
+**For marketing (positive).** Feedback flows into the ForMedrixAI website, and AI and template validation findings reach the validation team linked to the study and template.
+
+**For FormedrixAI and partners (the plain reality).** Delivery to a real website was tested only against a stand-in; the demo build never sends. There is no in-app list of feedback and the study page shows no linked feedback. A destination that is down gives an error with no retry or queue. Existing email templates do not HTML-escape title and description.
+
+## Batch 709: the Worklist shows the case number you see on labels, blocks and slides
+
+**For the practitioner (User Guide).** The Case column on the Worklist now shows the same case number that is printed on the labels, cassettes, blocks and slides, so you can match a glass slide to its row at a glance. Before, it could show an internal number that appears nowhere else. Sorting uses the same number.
+
+**For the system administrator (Admin Guide).** No setting. The column shows the accession number the case mask produced (`accession.fullAccession`); a case without one shows its internal id. Links, audit records and storage still use the internal id.
+
+**For marketing (positive).** One case number from the accession screen to the slide tray and the Worklist.
+
+**For FormedrixAI and partners (the plain reality).** Pete's instruction of Oct 28, 2026. Only the Worklist table is done. Other lists (Search results, the accessioned confirmation message, Outreach and QA queues) were not reviewed and may still show the internal id. The production API must return the accession number with each worklist row.
+
+## Batch 708: Margin Exception Review now lives in Quality & Compliance
+
+**For the practitioner (User Guide).** The Margin Exception Review tile has moved from Pathology Workspace to Quality & Compliance. The queue is the same: tag the real margin distance or dismiss the entry with a reason. It works on cases after sign-out, so it sits with the other oversight tools. Pathology Workspace is now cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, and batch management.
+
+**For the system administrator (Admin Guide).** No new setting. The screen keeps its capability `screen:margin-exception-review:open`; only the hub changed. Roles that hold it now also see the Quality & Compliance tile on Home, which then contains just that one screen unless they hold others.
+
+**For marketing (positive).** Bench work and oversight work are now cleanly separated: workstations in Pathology Workspace, review queues in Quality & Compliance.
+
+**For FormedrixAI and partners (the plain reality).** Pete's decision of Oct 28, 2026. A side effect: pathologists, fellows, residents and PAs now see a Quality & Compliance tile with a single screen in it. Pete to confirm that is acceptable. The five other languages carry the moved tile text unchanged; nothing was retranslated.
+
+## Batch 707: the date of birth is saved as typed
+
+**For the practitioner (User Guide).** A date of birth entered at accessioning was shown a day early in US time zones (entered 05/14/1980, listed 05/13/1980). It is now saved and shown exactly as typed. The last menstrual period date had the same fault and is fixed too.
+
+**For the system administrator (Admin Guide).** No setting. The Accession screen now stores a plain `YYYY-MM-DD` date instead of a midnight-UTC timestamp. Cases accessioned earlier in a demo keep the old value until a Configuration Full Reset.
+
+**For marketing (positive).** Patient identity details are exactly what the person typed.
+
+**For FormedrixAI and partners (the plain reality).** Found while researching the Worklist question on Oct 28, 2026. The production API must store birth dates as dates, not timestamps; the same defect would reappear if it did not.
+
+## Batch 706: no AI confidence percentage on any clinical screen
+
+**For the practitioner (User Guide).** You no longer see AI percentages in reports. Each AI value shows where in your text it came from. **Check source** means read that text before you confirm. **Source not found in report text** means the AI's quote is not in your narrative, so read it yourself. Code suggestions keep the words Strong or Possible match.
+
+**For the system administrator (Admin Guide).** The figures are removed from every clinical screen in both profiles. The Confidence Threshold settings still work and are still entered as numbers. A suggestion below the threshold is flagged **Check source**. The numbers remain in audit records and exports.
+
+**For marketing (positive).** PathScribe shows its work, not a score. Every AI suggestion comes with the text it came from, so the pathologist judges the evidence.
+
+**For FormedrixAI and partners (the plain reality).** The numbers are off the screens, not out of the system: the model still produces them, they decide what is flagged, and they are in the audit log. Strong/Possible match is still a score turned into words. "Source found" is a text match, not proof the value is right. Non-AI percentages (acceptance rates, turnaround, SNOMED coverage and others) remain. Three new strings need human translation in five languages, and two existing translations had their percentage clause cut and need a native read.
+
+## Batch 705: a stain says where it came from
+
+**For the practitioner (User Guide).** On the Grossing screen each stain is tagged **User-added** (you added it), **Auto-generated** (it came from the attached protocol) or **Existing** (already on the case, no protocol attached). Removing an Auto-generated or Existing stain asks you to confirm and is recorded. Removing your own addition does not.
+
+**For the system administrator (Admin Guide).** The tag is derived from the specimen's protocol and the stain's added-by-user flag. Cases with no protocol, such as LIS imports and demo cases, show Existing. Attaching a protocol later does not relabel stains already there. Removals are logged as `stainRemoved` overrides.
+
+**For marketing (positive).** Every stain states honestly where it came from, and every change to a protocol's stains is confirmed and recorded.
+
+**For FormedrixAI and partners (the plain reality).** Before this batch every stain without a user flag was labelled Auto-generated, even with no protocol. There is no stored origin field yet; the production API should store protocol, LIS or user per stain. The Existing wording in five languages is machine-translated and needs review (Korean especially).
+
+## Batch 704: Home tiles follow the person's roles (checked, no change)
+
+**For the practitioner (User Guide).** You see only the tiles your role allows. A colleague with another role sees a different set; with two roles you see both sets.
+
+**For the system administrator (Admin Guide).** Tiles and screens follow the Role Dictionary. A PathScribe support (Superadmin) sign-in always sees every tile. Typing the address of a screen you cannot open shows "You don't have access to this screen".
+
+**For marketing (positive).** Each person lands on a Home screen built for their own work.
+
+**For FormedrixAI and partners (the plain reality).** Researched on Oct 28, 2026 after a training video showed Configuration under a switched role: the demo has no role switcher, and the named ForMedrixAI sign-ins are Superadmin, so they always show everything. For role demos use persona accounts (for example Sarah Johnson, Kevin Brooks). 15 staff users and 16 screens were checked with no mismatch. No code changed.
+
+## Batch 703: "Go to Worklist" opens the context that holds the new case
+
+**For the practitioner (User Guide).** A case you accession is an Orchestration case, listed under **Outreach** on the Worklist, not under **LIS Cases**. **Go to Worklist** now opens Outreach for you; from the Home tile, select Outreach yourself. The Case column shows the internal number (for example O26-0031) while labels show the accession number (O26-0001); Search finds either.
+
+**For the system administrator (Admin Guide).** The Worklist opens on the session's last context (LIS Cases by default). `?context=lis` or `?context=outreach` in the address overrides it. Orchestration cases (`O26-` ids) are listed only under Outreach.
+
+**For marketing (positive).** After accessioning, one click lands you on the Worklist with the new case listed.
+
+**For FormedrixAI and partners (the plain reality).** The case was never lost; it was on a tab the button did not open. The Outreach name for Orchestration cases is confusing, and the Case column still shows the internal id rather than the accession number. In the demo, the first accession number collides with the seeded case O26-0001. Whether the Worklist should show the accession number is an open design decision.
+
+## Batch 702: one visit to a critical-alert link counts as one view
+
+**For the practitioner (User Guide).** Nothing changes in how you work. The reference page the physician opens from an alert, and the Critical Alerts tab of the Audit Log, show "Viewed n times". During testing one visit was counted twice; it now counts once.
+
+**For the system administrator (Admin Guide).** No setting and no permission. The double count happened only in a development build (React StrictMode runs the page's recording step twice); the page now records one view per visit however many times the step runs. A production build was not expected to double count, and that was not tested on a production build. Audit events `critical_alert.reference_token.accessed` are written once per visit.
+
+**For marketing (positive).** The audit trail of who opened a critical-alert link, and how often, is accurate to the visit.
+
+**For FormedrixAI and partners (the plain reality).** This is a small defect in the demonstration, found while recording the training video on Oct 27, 2026. The real view count will come from the API server, which does not exist yet (the contract is written, not built), so the server must also count one view per visit. Test added: the StrictMode case in `CriticalAlertReferencePage.test.tsx`.
 
 ## Batch 699: the Codes window says "Checked origin", not "From" or "Source"
 

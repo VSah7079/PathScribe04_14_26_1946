@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { readSessionProfile } from '@/services/auth/sessionProfile';
+import { isStationUnavailable } from '@/services/scanStations/stationAvailability';
 
 const DEVICE_STATION_KEY = 'pathscribe_current_scan_station_id';
 
@@ -32,12 +33,13 @@ const DEVICE_STATION_KEY = 'pathscribe_current_scan_station_id';
 export function getEffectiveScanStationId(): string | null {
   let deviceStationId: string | null = null;
   try { deviceStationId = localStorage.getItem(DEVICE_STATION_KEY); } catch { /* localStorage unavailable */ }
-  if (deviceStationId) return deviceStationId;
+  // Batch 713: a station the signed-in user may not use counts as no station.
+  if (deviceStationId && !isStationUnavailable(deviceStationId)) return deviceStationId;
 
   // The signed-in user's home station (PS-60: read through the session
   // profile store rather than parsing the stored user here).
   const user = readSessionProfile();
-  if (user?.defaultScanStationId) return user.defaultScanStationId;
+  if (user?.defaultScanStationId && !isStationUnavailable(user.defaultScanStationId)) return user.defaultScanStationId;
 
   return null;
 }

@@ -621,3 +621,7 @@ Now also returns `decidedRows` (resolved and dismissed items, read-only history)
 ## `useSystemStatus.ts` (Batch 669h)
 
 The Home footer's system status: one check when the page loads and one when the tab becomes visible after five minutes; no timer. A failed check is `statusUnavailable`. Rules in `services/healthStatus`.
+
+## Batch 713
+
+- **`useSelectableScanStations.ts`**: the Active scan stations the signed-in user may use (`services/scanStations/stationsForUser.ts`, facilities from the authorization snapshot), plus the list of all stations; also records which stored/default station ids are not available to this user. Used by `ScanStationPrompt` and `NavBarScanStation`. `useCurrentScanStation` now returns `stationId: null` and `unavailableStationId` when the computer's stored station is one this user may not use (the stored value is kept); `useEffectiveScanStation` also skips an unavailable user default. `useGlobalStationSwitch` refuses a `STATION:` barcode for another facility.

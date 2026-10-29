@@ -21,7 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { cassetteIdentifier, slideIdentifier, decantIdentifier, decantSlideIdentifier } from '@/types/labels/LabelData';
-import { getBlockLabel } from '@/utils/specimenLabeling';
+import { getBlockLabel, type LabelStyleInput } from '@/utils/specimenLabeling';
 import type { HistologyBlock, SpecimenTriage } from '@/types/case/Specimen';
 import type { Decant } from '@/types/case/Material';
 import type { Protocol } from '@/services/protocols/IProtocolService';
@@ -45,7 +45,8 @@ import { resolveDecantCassetteColor } from '@/utils/resolveDecantCassetteColor';
 export async function generateDefaultMaterial(
   entry: SpecimenEntry | undefined,
   specimenId: string,
-  specimenLabelStyle?: 'alpha-specimen' | 'numeric-specimen',
+  // Batch 715: the resolved letters/numbers style (or an old preset) for the block labels.
+  specimenLabelStyle?: LabelStyleInput,
   stainTypes: StainType[] = [],
   protocols: Protocol[] = [],
   // Real feature, per direct follow-up on unique material

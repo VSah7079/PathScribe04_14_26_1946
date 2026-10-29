@@ -4,7 +4,7 @@
 <p><strong>Intended users.</strong> Pathologists, pathology assistants and laboratory managers. What you see depends on your role: the peer-review queues, for example, appear only to people who may open them.</p>
 <p><strong>Where it fits.</strong> The Worklist is the usual start of the working day. Cases arrive here after accessioning and grossing. From a row you go on to the case report. To find a case that is not in your list (for example a completed case from last month), use <a href="/help/search">Search</a>.</p>
 <h2 id="screen-tour">Screen Tour</h2>
-<figure class="ps-ug-figure"><img src="img/worklist-overview.png" alt="The Worklist with the LIS Cases and Outreach tiles, the branch tabs, the filter tiles and the case table"><figcaption>The Worklist with the LIS Cases and Outreach tiles, the branch tabs, the filter tiles and the case table</figcaption></figure>
+<figure class="ps-ug-figure"><img src="img/worklist-overview.png" alt="The Worklist with the LIS Cases and Orchestration Cases tiles, the branch tabs, the filter tiles and the case table"><figcaption>The Worklist with the LIS Cases and Orchestration Cases tiles, the branch tabs, the filter tiles and the case table</figcaption></figure>
 
 <div class="admonition note">
 <p class="admonition-title">Demonstration data</p>
@@ -12,7 +12,7 @@
 </div>
 <p>The screen has four bands, from the top:</p>
 <ol>
-<li><strong>LIS Cases and Outreach tiles</strong> (and, for people who may use them, the two peer-review queue tiles). These switch the whole screen between your laboratory's own cases and Outreach cases.</li>
+<li><strong>LIS Cases and Orchestration Cases tiles</strong> (and, for people who may use them, the two peer-review queue tiles). These switch the whole screen between your laboratory's own cases and Orchestration cases.</li>
 <li><strong>Branch tabs</strong>: All Cases, Surg Path, Cytology and Autopsy, each with a count.</li>
 <li><strong>Filter tiles</strong>: one per kind of work, each with a count.</li>
 <li><strong>The case table</strong>, under the page title (the title changes to name the filter you chose, for example "Urgent" or "Awaiting Countersign").</li>
@@ -27,8 +27,8 @@
 </thead>
 <tbody>
 <tr>
-<td>LIS Cases / Outreach</td>
-<td>Switches between the cases reported through your laboratory system and the cases reported through Outreach. The number is every case in that group, assigned to you plus waiting in a pool. Your choice is remembered for the rest of your session.</td>
+<td>LIS Cases / Orchestration Cases</td>
+<td>Switches between the two sources of cases. LIS Cases come from your laboratory information system. Orchestration cases are the ones PathScribe Orchestration holds itself (the lock window calls them Orchestration cases), a different source with its own access rule. The number is every case in that group, assigned to you plus waiting in a pool. Your choice is remembered for the rest of your session.</td>
 </tr>
 <tr>
 <td>Urgent and Pool badges</td>
@@ -68,7 +68,7 @@
 </tr>
 <tr>
 <td>Status</td>
-<td>Where the case is, for example Draft, Accessioned, Gross Complete, In Progress, Finalizing, Pending Countersign, Pending Release, Returned, Pool. A finalized case with a revision reads, for example, "Final (Amended)". When a case has several reports that are not all in the same state, the status shows how many are final, for example "1/2 Final".</td>
+<td>Where the case is, for example Draft, Accessioned, Gross Complete, In Progress, Finalizing, Pending Countersign, Pending Release, Returned, Pool. A finalized case with a revision reads, for example, "Final (Amended)". A case has one final diagnosis, but each specimen can have its own synoptic report. When a case has several synoptic reports that are not all in the same state, the status shows how many are final, for example "1/2 Final" (two synoptic reports, one final).</td>
 </tr>
 <tr>
 <td>Digital Readiness, DP AI Triage &amp; Biomarkers</td>
@@ -98,14 +98,14 @@
 <tbody>
 <tr>
 <td>A filter tile</td>
-<td>Shows only that kind of work. The tile you chose stays highlighted and its label changes to "Back to LIS Cases" (or "Back to Outreach"). Select it again to return to all cases.</td>
+<td>Shows only that kind of work. The tile you chose stays highlighted and its label changes to "Back to LIS Cases" (or "Back to Orchestration Cases"). Select it again to return to all cases.</td>
 </tr>
 <tr>
 <td>A branch tab</td>
 <td>Narrows the list to Surg Path, Cytology or Autopsy cases, or back to All Cases.</td>
 </tr>
 <tr>
-<td>LIS Cases / Outreach</td>
+<td>LIS Cases / Orchestration Cases</td>
 <td>Switches the group of cases and resets the filter to Active Cases.</td>
 </tr>
 <tr>
@@ -115,7 +115,7 @@
 </tbody>
 </table>
 <h3 id="the-filter-tiles">The filter tiles</h3>
-<p>Each tile shows a count. The counts follow the branch tab and the LIS or Outreach choice you made, and they count the same cases the list shows when you select the tile.</p>
+<p>Each tile shows a count. The counts follow the branch tab and the LIS or Orchestration choice you made, and they count the same cases the list shows when you select the tile.</p>
 <table>
 <thead>
 <tr>
@@ -246,7 +246,7 @@
 </tr>
 <tr>
 <td>Lock with "Restricted ..."</td>
-<td>You cannot open this case yet (pediatric, Outreach or pool access).</td>
+<td>You cannot open this case yet (pediatric, Orchestration or pool access).</td>
 </tr>
 <tr>
 <td>Access requested</td>
@@ -268,13 +268,13 @@
 </table>
 <p><strong>More worklist wording</strong></p>
 <ul>
-<li><strong>Tile tooltips.</strong> The LIS Cases and Outreach tiles say what they are: when active, "Currently in LIS Cases" or "Currently in Outreach Cases"; when not, "Switch to LIS Cases" or "Switch to Outreach Cases".</li>
+<li><strong>Tile tooltips.</strong> The LIS Cases and Orchestration Cases tiles say what they are: when active, "Currently in LIS Cases" or "Currently in Orchestration Cases"; when not, "Switch to LIS Cases" or "Switch to Orchestration Cases".</li>
 <li><strong>Sorted by.</strong> When you sort by more than one column, a ribbon lists the columns in order, each marked "asc" or "desc" (ascending or descending), with an x to drop that column and <strong>Clear All</strong> to reset.</li>
-<li><strong>Empty list.</strong> "No cases match the current filter." means the tile, tab or LIS/Outreach choice holds no cases.</li>
+<li><strong>Empty list.</strong> "No cases match the current filter." means the tile, tab or LIS/Orchestration choice holds no cases.</li>
 <li><strong>Pool dots.</strong> A pool case carries a small dot with a tooltip: "New — awaiting Gross" (not yet grossed) or "Grossed — ready for pickup" (grossing is done, so it can be claimed and reported).</li>
 <li><strong>Digital slide badges.</strong> The badge under Digital Readiness has the tooltip "View slide details"; the badge under DP AI Triage &amp; Biomarkers has "View AI triage details". Either opens the <strong>Slide Detail</strong> panel (see below).</li>
 <li><strong>Restricted rows.</strong> The patient name is replaced by a lock and "Restricted Patient", "Restricted Case" or "Restricted Pooled Case". Under it a hint says what to do: "Click to request pediatric access", "Click to request Orchestration access", or, for a pool case, "Claim this case to view patient details". After you ask, the hint becomes "Access requested". The window that opens is titled <strong>Pediatric Access Required</strong> ("Patient age … · Case …") or <strong>Orchestration Access Required</strong> ("Case …"). Pediatric access needs both your own qualification and the submitting facility's authorisation; Orchestration cases come from a separate source with their own access rule.</li>
-<li><strong>Small screens.</strong> Below tablet width the table becomes a list of cards. A card pairs the labels "Accession · Physician" with the received date under them.</li>
+<li><strong>Small screens.</strong> In a window narrower than 1024 pixels, or on a tablet, the table becomes a list of cards. A card pairs the labels "Accession · Physician" with the received date under them. The tiles, sorting and indicators work the same way. Make the window wider and the table returns. The Search results use the same list, so they change to cards at the same width.</li>
 <li><strong>Amended &amp; Addenda Triage.</strong> A draft amendment or addendum that has no explanation of change or title shows "Draft not yet released" in place of its detail.</li>
 </ul>
 <h3 id="hotkeys">Hotkeys</h3>
@@ -406,7 +406,7 @@
 </ol>
 <h3 id="exception-handling">Exception handling</h3>
 <ol>
-<li><strong>The case shows a lock.</strong> A pediatric case, an Outreach case or a pool case from a pool you do not belong to cannot be opened. Select the row to see what is needed. For pediatric and Outreach cases, select <strong>Request Pediatric Access</strong> or <strong>Request Orchestration Access</strong>; an automated request goes to your system administrator and the row then reads "Access requested". For a pool case, the claim window shows <strong>Request Pool Access</strong>.</li>
+<li><strong>The case shows a lock.</strong> A pediatric case, an Orchestration case or a pool case from a pool you do not belong to cannot be opened. Select the row to see what is needed. For pediatric and Orchestration cases, select <strong>Request Pediatric Access</strong> or <strong>Request Orchestration Access</strong>; an automated request goes to your system administrator and the row then reads "Access requested". For a pool case, the claim window shows <strong>Request Pool Access</strong>.</li>
 <li><strong>The claim window says "Case Unavailable".</strong> Another pathologist is reviewing the case, or accepted it first. Close the window and choose a different case.</li>
 <li><strong>The claim window says "Pool Access Required".</strong> You are not a member of that pool. Select <strong>Request Pool Access</strong>; an administrator is notified and can add you.</li>
 <li><strong>Claim &amp; Continue or Pass is greyed out.</strong> Your role must allow the action. Ask your manager.</li>
@@ -435,7 +435,7 @@
 <h3 id="common-mistakes">Common mistakes</h3>
 <ul>
 <li>Expecting a "my cases" filter. There is none; Active Cases already lists the cases assigned to you plus the pools.</li>
-<li>Forgetting that the tiles follow the LIS Cases or Outreach choice and the branch tab. A tile showing 0 may simply be on the other side.</li>
+<li>Forgetting that the tiles follow the LIS Cases or Orchestration Cases choice and the branch tab. A tile showing 0 may simply be on the other side.</li>
 <li>Opening a pool case just to look. Opening it starts the claim window; close the window to leave the case in the pool.</li>
 <li>Pressing Alt+A in the claim window when you meant the countersign filter. Close the window first.</li>
 </ul>
@@ -483,7 +483,7 @@
 </tr>
 <tr>
 <td>A case shows a lock</td>
-<td>Pediatric, Outreach or pool access is needed. Select the row and request access.</td>
+<td>Pediatric, Orchestration or pool access is needed. Select the row and request access.</td>
 </tr>
 <tr>
 <td>Claim &amp; Continue is greyed out</td>
@@ -503,7 +503,7 @@
 <ol>
 <li>Press Alt+R to refresh the list.</li>
 <li>Select Active Cases (select the highlighted tile again) and the All Cases tab to remove filters.</li>
-<li>Check that the LIS Cases or Outreach tile is the one you expect.</li>
+<li>Check that the LIS Cases or Orchestration Cases tile is the one you expect.</li>
 <li>Ask your laboratory manager to confirm your role and pool membership.</li>
 </ol>
 <h3 id="when-to-contact-support">When to contact support</h3>

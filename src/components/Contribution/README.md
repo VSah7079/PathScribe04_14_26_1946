@@ -378,3 +378,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 `PerformanceTargetsTile` (Productivity dashboard: this period against the monthly cases and RVU targets, plus how the last period ended) and `ClientSlaPanel` (per-client service-level results, on the Quality tab and the Productivity dashboard). Both only render rows built by the services.
 
 `DailyAccessioningChart` (Batch 660): one bar per day for Bench Contributions; bar heights come from `dailyAccessioningBars`.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the AI Contribution tab no longer has the 'Avg AI Confidence' tile; acceptance rates (a count of what pathologists accepted) remain.

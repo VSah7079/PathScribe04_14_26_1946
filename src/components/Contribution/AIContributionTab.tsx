@@ -211,7 +211,6 @@ const AIContributionTab: React.FC = () => {
   // living on the data object.
   const tileAssistedLabel   = t('aiContributionTab.tiles.assisted');
   const tileOverridesLabel  = t('aiContributionTab.tiles.overrides');
-  const tileConfidenceLabel = t('aiContributionTab.tiles.confidence');
   const breakdownTitle      = t('aiContributionTab.breakdown.title');
   const breakdownSubtitle   = t('aiContributionTab.breakdown.subtitle');
   const breakdownUnit       = t('aiContributionTab.breakdown.unit');
@@ -248,8 +247,6 @@ const AIContributionTab: React.FC = () => {
       delta: t('aiContributionTab.tiles.ofTotal', { count: scaledTotalCases }), deltaUp: null as boolean | null },
     { label: tileOverridesLabel,    value: filteredOverridden.length, unit: "",  color: "#fbbf24", icon: "✏️",
       delta: t('aiContributionTab.tiles.pathologistChanged'), deltaUp: null as boolean | null },
-    { label: tileConfidenceLabel,   value: ds.summary.avgConfidence,  unit: "%", color: "#0891b2", icon: "📊",
-      delta: t('aiContributionTab.tiles.notPeriodFiltered'), deltaUp: null as boolean | null },
   ];
 
   const dateRangeLabel = (r: DateRange) =>

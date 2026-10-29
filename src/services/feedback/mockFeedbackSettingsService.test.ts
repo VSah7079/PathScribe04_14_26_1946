@@ -19,13 +19,13 @@ describe('feedback settings service (Batch 447)', () => {
   });
   it('saves, then the button follows the saved choice, and the change is audited', async () => {
     const log = vi.spyOn(mockAuditService, 'logEvent');
-    const r = await svc.save({ qaButton: 'off', qaRecipients: [], qaAdminCc: [] });
+    const r = await svc.save({ qaButton: 'off', qaRecipients: [], qaAdminCc: [], validationRecipients: [], enhancementUrl: '' });
     expect(r.ok).toBe(true);
     expect(await svc.qaButtonShown()).toBe(false);
     expect(log).toHaveBeenCalledWith(expect.objectContaining({ event: 'FEEDBACK_SETTINGS_CHANGED' }));
   });
   it('refuses settings that would leave feedback nowhere to go', async () => {
-    const r = await svc.save({ qaButton: 'on', qaRecipients: [], qaAdminCc: [] });
+    const r = await svc.save({ qaButton: 'on', qaRecipients: [], qaAdminCc: [], validationRecipients: [], enhancementUrl: '' });
     expect(r.ok === false && r.error).toBe('noRecipients');
   });
 });

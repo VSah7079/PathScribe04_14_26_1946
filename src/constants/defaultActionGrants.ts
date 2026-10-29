@@ -103,11 +103,15 @@ const LOCKBOX_ALL: ActionId[] = ['lockbox.open', 'lockbox.focusScan', 'lockbox.m
 const LOCKBOX_OVERSIGHT: ActionId[] = ['lockbox.open', 'lockbox.showFolder', 'lockbox.markAccessioned'];
 const HISTORY_READING: ActionId[] = ['historyExtraction.run', 'historyExtraction.flag'];
 
+// Batch 720: the Grossing screen's bench tools: the people who gross.
+const GROSSING_BENCH: ActionId[] = ['grossing.printCassettes', 'grossing.takePhoto', 'grossing.assignDecal', 'grossing.addOnOrder'];
+
 export const DEFAULT_ACTION_GRANTS: Readonly<Record<string, readonly ActionId[]>> = {
-  Pathologist: [...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...CASE_ACCESS_DECIDE, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...REPORT_FINAL, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
-  Fellow: [...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
-  Resident: [...HISTORY_READING, ...CASE_ACCESS_ASK, 'codes.searchFlagged', ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY_DAILY],
+  Pathologist: [...GROSSING_BENCH, ...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...CASE_ACCESS_DECIDE, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...REPORT_FINAL, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
+  Fellow: [...GROSSING_BENCH, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
+  Resident: [...GROSSING_BENCH, ...HISTORY_READING, ...CASE_ACCESS_ASK, 'codes.searchFlagged', ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY_DAILY],
   'Pathologists Assistant': [
+    ...GROSSING_BENCH,
     ...VIEW_ALL, ...BIOMETRIC, 'caseAccess.request',
     'report.saveDraft', 'report.discardChanges', 'notes.save',
     'flags.save', 'flags.applyStat', 'team.addMember',

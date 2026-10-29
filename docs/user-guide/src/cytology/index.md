@@ -153,7 +153,7 @@ None on this page. The keys for screening, the material drawer and the synoptic 
 
 ## Peer-review queue views (Cytology QC and Surgical QA)
 
-Two peer-review queues open inside the main [Worklist](help:worklist), beside the **LIS Cases** and **OutReach** tiles. They are not part of the Cytology Worklist page, but they belong to cytology quality (and, for Surgical QA, to surgical pathology quality). Each shows as a tile only if your role may open it, with the number of items waiting. The old addresses /cytology-qc-queue and /surgical-qa-worklist now forward to these views.
+Two peer-review queues open inside the main [Worklist](help:worklist), beside the **LIS Cases** and **Orchestration Cases** tiles. They are not part of the Cytology Worklist page, but they belong to cytology quality (and, for Surgical QA, to surgical pathology quality). Each shows as a tile only if your role may open it, with the number of items waiting. The old addresses /cytology-qc-queue and /surgical-qa-worklist now forward to these views.
 
 ![The Worklist with the Cytology QC Peer Review Queue tile selected](capture:cytology-qc-queue-overview)
 
@@ -233,7 +233,7 @@ The review form follows the QA activity your laboratory has set up for peer revi
 
 The list shows "Nothing pending - every flagged case and correlation candidate has been reviewed." when it is empty. Recording needs the surgical QA review permission; without it you see "You don't have permission to record surgical QA reviews."
 
-**Deferred clinical mismatches (secondary review).** Below the review items: low-risk clinical mismatches that a pathologist chose to defer while reviewing a report. Each row shows the case, the kind of mismatch, the confidence if known, and "Deferred by *name*, *date*". Select **Review** to open a short form: an optional quick-pick Reason (Clinical context reviewed, Expected variation or Pre-op diagnosis non-specific), an optional Note, and the answer **Resolved** or **Unresolved**. Unresolved lets sign-out go ahead and recommends a corrective action to QA. When none are waiting the list says "No deferred mismatches waiting."
+**Deferred clinical mismatches (secondary review).** Below the review items: low-risk clinical mismatches that a pathologist chose to defer while reviewing a report. Each row shows the case, the kind of mismatch, and "Deferred by *name*, *date*". Select **Review** to open a short form: an optional quick-pick Reason (Clinical context reviewed, Expected variation or Pre-op diagnosis non-specific), an optional Note, and the answer **Resolved** or **Unresolved**. Unresolved lets sign-out go ahead and recommends a corrective action to QA. When none are waiting the list says "No deferred mismatches waiting."
 
 ## Step-by-Step Procedures
 

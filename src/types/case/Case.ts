@@ -3,14 +3,14 @@
 // Authoritative Case domain model for PathScribe.
 // FHIR-aligned (ServiceRequest, DiagnosticReport, Specimen, Task)
 // ─────────────────────────────────────────────────────────────
-import { Patient } from "./Patient";
-import { Specimen } from "./Specimen";
+import { Patient } from "./Patient"; import { Specimen } from "./Specimen";
 import type { FlagInstance } from "../flagsRuntime";
 import type { RetentionHold } from "./RetentionHold";
 import type { CaseHold } from "./CaseHold";
 import type { MatrixBlock } from "./MatrixBlock";
 import { CaseComment } from "./CaseComment";
 import type { Icd10Code } from "@/services/diagnosisCodes/IDiagnosisCodesService";
+import type { OrderClinicalIndicationProvenance } from "./OrderClinicalIndicationProvenance";
 import type { RecordedClinicalHistoryEntry } from "@/types/clinicalHistory/RecordedClinicalHistoryEntry";
 import type { OutsidePatientFinancialData } from "@/types/billing/OutsidePatientFinancialData";
 import { CaseStatus } from "./CaseStatus";
@@ -36,7 +36,7 @@ export interface AssignmentEvent {
   reason?: string;
 }
 
-export interface OrderMetadata {
+export interface OrderMetadata extends OrderClinicalIndicationProvenance {
   /**
    * Fixed June 2026 — this used to be its own independent literal union
    * ("Routine" | "STAT" | "ASAP" | "Critical") that didn't match

@@ -129,6 +129,21 @@ describe('printCassetteSlideLabel — real, parallel printed path alongside engr
       expect(payload.labelData).toMatchObject({ labelType: 'SLIDE', slide: { level: slideInput.level, stainName: slideInput.stainName } });
     });
 
+    // Batch 715: the slide setting changes the printed level text only; the barcode keeps the L1 code.
+    it('slide numbers print the level as L1 (as always); slide letters print La, with the barcode unchanged', async () => {
+      (printZplViaQzTray as any).mockResolvedValue({ ok: true, data: undefined });
+      await printSlideLabel({ ...slideInput, slideDesignation: 'numbers' }, basePrinter, '00850000000000');
+      const numbers = (printZplViaQzTray as any).mock.calls[0][1] as string;
+      expect(numbers).toContain('^FDA1 L1^FS');
+      vi.clearAllMocks();
+      (printZplViaQzTray as any).mockResolvedValue({ ok: true, data: undefined });
+      await printSlideLabel({ ...slideInput, level: 'L2', slideDesignation: 'letters' }, basePrinter, '00850000000000');
+      const letters = (printZplViaQzTray as any).mock.calls[0][1] as string;
+      expect(letters).toContain('^FDA1 Lb^FS');
+      expect(letters).not.toContain('A1 L2');
+      expect(letters).toContain('A1L1'); // the slide id inside the barcode is the one given, untouched
+    });
+
     it('real feature, per direct follow-up: a real cellBlockNumber applies the -CB{n} suffix to a slide cut from a cell block too', async () => {
       (printZplViaQzTray as any).mockResolvedValue({ ok: true, data: undefined });
       await printSlideLabel({ ...slideInput, cellBlockNumber: 2 }, basePrinter, '00850000000000');

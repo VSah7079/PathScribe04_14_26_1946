@@ -58,3 +58,5 @@ See `docs/architecture/RUNTIME_CONFIG.md` §5a.
 ## Batch 590 (PS-469): error monitoring
 
 `VITE_ERROR_MONITORING_DSN` and `VITE_ERROR_MONITORING_ENV` turn on sending scrubbed crash reports to Sentry or the hospital's own collector. Leave both out for no monitoring (the default). Not in `config.example.json`, so a site opts in on purpose. Re-run the headers generator after setting the address.
+
+`VITE_ENHANCEMENT_REQUEST_URL` pre-seeds where Enhancement Requests are delivered (an https address on the ForMedrixAI website). An administrator can override it in Configuration > System > Feedback. Not in `config.example.json`; re-run the headers generator after setting it so the browser may send there (`docs/architecture/FEEDBACK_DESTINATION.md`).

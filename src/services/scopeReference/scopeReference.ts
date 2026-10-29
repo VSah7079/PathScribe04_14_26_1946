@@ -34,6 +34,7 @@ export const SCOPE_REFERENCE: readonly ScopeReferenceEntry[] = [
   { id: 'mfaPolicy',        scope: 'enterprise',                     sectionId: 'session_security',   source: 'src/services/auth/mfa/mfaPolicy.ts' },
   { id: 'sessionTimeout',   scope: 'enterpriseWithFacilityOverride', sectionId: 'session_security',   source: 'src/services/session/ISessionTimeoutService.ts' },
   { id: 'printSettings',    scope: 'enterpriseWithFacilityOverride', sectionId: 'print_settings',     source: 'src/services/printSettings/IFacilityPrintSettingsService.ts' },
+  { id: 'labelStyle',      scope: 'enterpriseWithFacilityOverride', sectionId: 'clients',           source: 'src/services/labeling/resolveLabelStyle.ts' },
   { id: 'printRouting',     scope: 'tiered',                         sectionId: 'print_routing_rules', source: 'src/types/printRouting/PrintRoutingRule.ts' },
   { id: 'tatTargets',       scope: 'tiered',                                                           source: 'src/services/tatConfig/tatTargetResolution.ts' },
   { id: 'siteAgents',       scope: 'facility',                       sectionId: 'site_agents',        source: 'src/services/siteAgent/README.md' },

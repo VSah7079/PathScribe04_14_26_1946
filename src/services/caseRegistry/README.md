@@ -45,3 +45,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 617 (part A): server versions (PS-514)
 
 `caseMaskService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_WORKFLOWS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 716: GYN accession series
+
+`mockCaseMaskService` seeds a mask for `cat-gyn-cytology` (prefix `GYN`, `GYN26-0001`), beside S (surgical), NG (non-GYN cytology) and CS (consultation), so a Pap and a thyroid FNA draw visibly different accession numbers. The internal case id stays `O26-nnnn`.

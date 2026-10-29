@@ -10,6 +10,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { specimenDeficiencyService, fieldRequirementService, authorizationService, auditService, inkColorService, facilityService } from '@/services';
+import { caseLabelStyle } from '@/services/labeling/liveCaseLabelStyle';
 import { resolveFieldRequirements, type ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
 import {
   completeGrossing, missingGrossingItems, specimensForSecondaryReview, type CompleteGrossingRefusal,
@@ -42,7 +43,7 @@ interface UseGrossingScreenParams {
 }
 
 export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVersionRef, setConcurrencyConflict }: UseGrossingScreenParams) {
-  const [pendingStainRemoval, setPendingStainRemoval] = useState<{ specimenId: string; blockId: string; stainId: string } | null>(null);
+  const [pendingStainRemoval, setPendingStainRemoval] = useState<{ specimenId: string; blockId: string; stainId: string; origin: 'protocol' | 'existing' } | null>(null);
   // Real, per direct request — tracks which specimens already have a
   // real, OPEN def-missing-fixation-completion deficiency, so the
   // "Raise Deficiency" action can show its own real, recorded state
@@ -129,7 +130,8 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     if (!caseData) return;
     const specimen = (caseData.specimens ?? []).find((sp: Specimen) => sp.id === specimenId);
     if (!specimen) return;
-    const result = addGrossingBlock(specimen, pathway, caseData.accession?.fullAccession ?? caseData.id);
+    // Batch 715: the new block is labelled in the case's letters/numbers style.
+    const result = addGrossingBlock(specimen, pathway, caseData.accession?.fullAccession ?? caseData.id, await caseLabelStyle(caseData));
     if (result.ok) await persistSpecimen(result.specimen);
   }, [caseData, persistSpecimen]);
 
@@ -166,7 +168,7 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     if (!specimen) return { ok: true };
     const result = removeGrossingStain(specimen, blockId, stainId, signingUser?.id ?? 'unknown', false);
     if (!result.ok && 'needsConfirmation' in result) {
-      setPendingStainRemoval({ specimenId, blockId, stainId });
+      setPendingStainRemoval({ specimenId, blockId, stainId, origin: result.origin });
       return { needsConfirmation: true };
     }
     if (result.ok) await persistSpecimen(result.specimen);

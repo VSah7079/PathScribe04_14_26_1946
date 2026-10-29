@@ -88,3 +88,4 @@ Batch 616 (part A, PS-505): `httpAccessionOutboundQueueService.ts` and `accessio
 - **`linkLockboxReceipt.ts`**: `linkLockboxReceiptAtAccession`, called by the Accession screen after it links the source order to the new case. Returns `linked`, `noReceipt`, `notPermitted` or `failed`; never throws and never undoes accessioning. Test: `services/lockbox/lockboxCaseLink.test.ts`.
 
 ## Batch 658 — `downtimeReasonRule.ts`: a downtime accession needs a reason (`isDowntimeReasonMissing`), checked at submit.
+**Batch 712:** the reason is also a required field on the screen: `missingDowntimeReasonFieldIds(isDowntime, code)` returns `['downtimeReason']` while downtime mode is on and no reason is chosen, else `[]`; the page lists it under "Still required" and disables Next / Submit Accession. The submit-time check remains as a backstop.

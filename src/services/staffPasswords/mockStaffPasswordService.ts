@@ -33,7 +33,8 @@ import {
 } from './staffPasswordRules';
 import { screenPassword, defaultPasswordScreeningDeps, type PasswordScreeningDeps, type PasswordScreeningProblem, type BreachCheckOutcome } from './passwordScreening';
 import { browserSignInLockStore, type SignInLockStore } from '../auth/signInLockout';
-import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
+import { passwordSignInAvailable } from './passwordSignInAvailable';
+import type { IPasswordResetRequestService } from './passwordResetRequestService';
 
 export const STAFF_PASSWORD_STORAGE_KEY = 'staff_passwords';
 export const STAFF_PASSWORD_NOT_PERMITTED = 'notPermitted';
@@ -87,7 +88,7 @@ async function hashPassword(password: string): Promise<StoredPasswordHash> {
 const NO_MATCH: StoredPasswordHash = { iterations: PASSWORD_HASH_ITERATIONS, salt: 'uZcBfjDeAK+0yh4OHOhC7Q==', hash: 'EEPiWPbQZ3YGIV+tcrKwZmsgRRhufzkxnVt9WCAquHw=' };
 
 // Batch 547: never in a server build (__DEMO_TOOLS__ is fixed by the build; see authSessionInstance.ts).
-const passwordSignIn = __DEMO_TOOLS__ && appEnv().VITE_AUTH_MODE !== 'sso';
+const passwordSignIn = passwordSignInAvailable();
 
 async function builtInDefault(staffId: string): Promise<boolean> {
   if (!__DEMO_TOOLS__ || !passwordSignIn) return false;
@@ -120,7 +121,7 @@ const breachNote = (b: BreachCheckOutcome) => (b === 'unavailable' ? ' The breac
  * common/breached screening (passwordScreening.ts). Setting one from the
  * Staff screen also lifts any sign-in lock on the person's emails.
  */
-export function createMockStaffPasswordService(deps: { screening?: PasswordScreeningDeps; signInLocks?: SignInLockStore } = {}): IStaffPasswordService {
+export function createMockStaffPasswordService(deps: { screening?: PasswordScreeningDeps; signInLocks?: SignInLockStore; resetRequests?: Pick<IPasswordResetRequestService, 'markHandled'> } = {}): IStaffPasswordService {
   const screening = deps.screening ?? defaultPasswordScreeningDeps;
   const locks = deps.signInLocks ?? browserSignInLockStore;
 
@@ -156,6 +157,11 @@ export function createMockStaffPasswordService(deps: { screening?: PasswordScree
       const wasLocked = emails.some(e => locks.read(e));
       locks.clear(emails);
       await audit('STAFF_PASSWORD_SET', `Sign-in password set for staff record ${staffId}${mustChange ? '; must be changed at next sign-in' : ''}.${wasLocked ? ' Failed sign-in attempts cleared.' : ''}${breachNote(checked.breach)}`);
+      // Batch 711: an open "ask my administrator to reset my password" request for this person is now handled.
+      try {
+        const resetRequests = deps.resetRequests ?? (await import('./mockPasswordResetRequestService')).mockPasswordResetRequestService;
+        await resetRequests.markHandled(staffId);
+      } catch { /* closing the request never blocks the password change */ }
       return { ok: true, data: await status(staffId, record) };
     },
 

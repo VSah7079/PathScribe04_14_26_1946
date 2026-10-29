@@ -6,7 +6,7 @@
 
 When a pathologist reports a case, PathScribe compares **what the ordering clinician expected** with **what the pathologist found**:
 
-- the expectation comes from the order: the clinical indication, the clinical history and, for an autopsy, the clinical cause of death;
+- the expectation comes from the order: the clinical indication (the text stored on the case: as the ordering system sent it, or as the accessioner edited it; the case keeps both, Batch 714), the clinical history and, for an autopsy, the clinical cause of death;
 - the findings are the diagnosis, the microscopic description and, for an autopsy, the report sections and abnormal organ findings.
 
 If the two disagree in a way that matters, for example a routine polyp that turns out to be malignant, PathScribe points it out so the pathologist can confirm the diagnosis and the clinician can be told.

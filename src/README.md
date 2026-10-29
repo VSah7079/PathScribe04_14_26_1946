@@ -1,3 +1,5 @@
+**Batch 711:** `services/staffPasswords/` gains the password reset request service; `components/Auth/PasswordResetRequest.tsx` is the sign-in step that uses it (demo, password sign-in only).
+
 **Batch 675:** MFA policy service for the API server (`services/auth/mfa/`); browser side only, server routes not built. See `docs/architecture/ACCESS_SESSION_API.md` §5.
 
 **Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; they open in a remembered window, or a new tab if the browser refuses one.
@@ -105,3 +107,9 @@ Batch 670: audit writes (and the rest of the audit path) now go through the swit
 - Batch 683: the clinical-pathologic mismatch flag shows two checked source quotes.
 
 - Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.
+
+**Batch 713:** scan stations are offered only to people who may use them (sign-in prompt, header list, `STATION:` barcode switch); see `services/scanStations/README.md`.
+
+**Oct 28, 2026:** Feedback destination and validation routing (Oct 28, 2026): Enhancement Requests can be delivered to a website address set in Configuration > System > Feedback or pre-seeded in config.json (`VITE_ENHANCEMENT_REQUEST_URL`); QA feedback has an AI / Template validation category that links a validation study and template and goes to its own recipients (`FEEDBACK_ROUTED_TO_VALIDATION`). See `docs/architecture/FEEDBACK_DESTINATION.md`.
+
+**Batch 715 (Oct 28, 2026):** letters or numbers for specimens, blocks and slides, set per enterprise with a per-lab override (Configuration > System > Integrations > Facility Configuration). Rules and gaps: `services/labeling/README.md`.

@@ -34,12 +34,21 @@ The sign-in card shows the PathScribe logo and the words "Clinical Pathology Rep
 | Environment badge | Production, Validation, Training or Development. Shown only when your installation names its environment. Check it before you start: it tells you which system you are signing in to. |
 | Email | Your work email address. The cursor starts here. |
 | Password | Your password. The eye button beside it shows or hides what you typed ("Show password" / "Hide password"). |
-| Forgot password? | Shows the message "Ask your administrator to reset your password from the Staff screen." You cannot reset your password yourself on this screen. |
+| Forgot password? | Opens the "Ask my administrator to reset my password" step (password sign-in only). You cannot reset your password yourself on this screen; your administrators are told and set a new one for you. |
 | or continue with | A line above the single sign-on buttons. |
 | Microsoft, Google, Organisation sign-in | Single sign-on buttons. Only the ones set up for your installation appear. |
 | Soon | On installations with password sign-in but no single sign-on, the Google and Microsoft buttons are greyed out with a **Soon** tag and the tooltip "Single sign-on is not yet available". |
 | Notice | "This system contains protected health information. Access is restricted to authorized users and activity is recorded." |
 | Version | A small version number at the foot of the card, when known. |
+
+**Ask my administrator to reset my password** (opened by Forgot password?; password sign-in only)
+
+| Field | What it means |
+|---|---|
+| Your sign-in email | The email you sign in with. Filled in from the sign-in form if you had typed it. |
+| Ask my administrator to reset my password | Tells your administrators. They receive an urgent message with your name and email and set a new password for you. |
+| Confirmation | "If that email belongs to an active account, your administrators have been told and will set a new password for you." It reads the same whether or not the email matches an account, so it never reveals who has one. |
+| Back to sign in | Returns to the sign-in form. |
 
 **Choose your own password** (shown after a first sign-in with a temporary password)
 
@@ -62,7 +71,7 @@ The sign-in card shows the PathScribe logo and the words "Clinical Pathology Rep
 
 | Field | What it means |
 |---|---|
-| Station list | "— Select a station —" then the active stations. Set the real bench or scan station this computer is. |
+| Station list | "— Select a station —" (no station), then the active stations at the facilities you work for. If your account is not limited to particular facilities, you see them all. Set the real bench or scan station this computer is. |
 
 **Second-factor step wording**
 
@@ -116,6 +125,15 @@ The spoken commands "log out", "logout" and "log me out" also sign you out. On t
 5. You go to the page you were trying to open, or to Home.
 6. If the window "Which bench is this?" appears, choose your station and select **Set station**.
 
+**Ask your administrator to reset a forgotten password** (password sign-in only)
+
+1. Select **Forgot password?** under the password box.
+2. Check the email, or type the one you sign in with.
+3. Select **Ask my administrator to reset my password**. The confirmation appears.
+4. Wait for your administrator to contact you with a temporary password, then sign in and choose your own. You can ask again after 10 minutes; a second request sooner is not sent.
+
+The request does not reset anything by itself, and nobody is told the new password except the administrator who sets it. Your administrator should confirm it is really you before passing it on.
+
 **Sign in with single sign-on**
 
 1. Select **Microsoft**, **Google** or **Organisation sign-in**.
@@ -138,7 +156,7 @@ The spoken commands "log out", "logout" and "log me out" also sign you out. On t
 
 1. **First sign-in with a temporary password.** Your administrator set a temporary password. After you sign in, the screen says "Your administrator set a temporary password. Choose your own to continue." Enter and confirm a new password, then select **Save and sign in**.
 2. **Second factor.** If your organisation requires one, enter the six-digit code after the password. The first time, add the secret key to an authenticator app, type the code, and save the recovery codes.
-3. **Station set once.** If an administrator has given you a default station, or this computer already has one, you are not asked.
+3. **Station set once.** If an administrator has given you a default station, or this computer already has one, you are not asked. The exception: if the station set on this computer belongs to a facility you do not work for, it is not used for you. The window appears again with a note saying so; choose one of your stations, or skip to continue with no station. The computer keeps its setting for the next person.
 4. **Change your station later.** Use the station icon next to your name at the top.
 
 ### Exception handling
@@ -153,7 +171,7 @@ The spoken commands "log out", "logout" and "log me out" also sign you out. On t
 1. "Please enter your email and password." Fill both boxes.
 2. "Incorrect email or password. Please try again." Check both. Capital letters count in the password.
 3. "Incorrect email or password. One more failed attempt will lock sign-in for this email for (n) minutes." You have one try left.
-4. "Too many failed sign-in attempts. Sign-in for this email is locked; try again in (n) minutes." Wait, or ask your administrator to set a new password for you.
+4. "Too many failed sign-in attempts. Sign-in for this email is locked; try again in (n) minutes." Wait, or select Forgot password? and ask your administrator to set a new password for you.
 5. Password rules when choosing a new one: "Use at least (n) characters.", "The two passwords don't match.", "That password is too common...", "That password has appeared in a known data breach...", "Choose a password different from the temporary one.", "The password can't be your email address.", "The password can't contain PathScribe, ForMedrixAI or your email address or the name before the @." Choose another.
 6. "Your session expired. Sign in again with the temporary password." Start again from the first step.
 7. Second factor: "That code wasn't accepted.", "That code was already used. Wait for the next one.", or "Too many attempts. Second-factor codes are locked until (time)." Wait for the time shown.
@@ -208,7 +226,8 @@ The spoken commands "log out", "logout" and "log me out" also sign you out. On t
 | Problem | Likely cause |
 |---|---|
 | The form is blank after a password manager filled it in | PathScribe reads the boxes at submit; select Sign In again. |
-| "Forgot password?" does not reset the password | It only tells you to ask your administrator. |
+| "Forgot password?" does not reset the password | It lets you ask your administrator to reset it. A person with the right permission still has to set the new password in Staff. If nobody replies, ask in person. |
+| I asked for a reset and see the same message for any email | By design. The screen never says whether an email has an account. |
 | The Microsoft and Google buttons are grey | Single sign-on is not set up on this installation yet. |
 | Sign-in works, but I land on Home, not the page I wanted | The page address was not one PathScribe could return to safely. |
 | The sign-in screen is in the wrong language | It uses the last language used on this computer. Sign in and change it with the language button. |

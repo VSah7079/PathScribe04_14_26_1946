@@ -22,6 +22,8 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface CapabilitiesState {
   loading: boolean;
+  /** The data the decisions were made on (for a diagnostic), or null while loading. */
+  snapshot?: AuthorizationSnapshot | null;
   has: (capability: string, context?: CapabilityContext) => boolean;
   decide: (capability: string, context?: CapabilityContext) => CapabilityDecision | null;
 }
@@ -42,5 +44,5 @@ export function useCapabilities(): CapabilitiesState {
     return () => { cancelled = true; };
   }, [user?.id, user?.role]);
   const decide = (c: string, ctx: CapabilityContext = {}) => (snap ? evaluateCapability(snap.subject, c, snap.roles, ctx) : null);
-  return { loading: snap === null, has: (c, ctx) => !!decide(c, ctx)?.allowed, decide };
+  return { loading: snap === null, snapshot: snap, has: (c, ctx) => !!decide(c, ctx)?.allowed, decide };
 }

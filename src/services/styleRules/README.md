@@ -80,3 +80,5 @@ Batch 367 (PS-74): the check behind standing rule 1, **no inline CSS**.
 
 `fileSize.guard.test.ts` with `fileSizeBaseline.ts`: every source file (`.ts`, `.tsx`, `.css`; not tests) over 1,000 lines is recorded with its length (35 files). A recorded file may not grow, a new file may not cross 1,000 lines, a file that shrank must have its number lowered (the test names the exact number), and a file at or under 1,000 lines is removed from the list. After a deliberate split, `UPDATE_FILE_SIZE_BASELINE=1 npx vitest run src/services/styleRules/fileSize.guard.test.ts` rewrites the baseline. Large files are split when a story touches them (CLAUDE.md rule 10).
 
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): baselines lowered for RightSynopticPanel.tsx and pathscribe.css after removing confidence rendering.

@@ -629,6 +629,7 @@ code.
 | `screen:batch-management:open` | Open Batch Management. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist, Admin; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:cytology-workspace:open` | Open Cytology Workspace. | standard | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:microtomy:open` | Open Microtomy Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
+| `screen:grossing:open` | Open Grossing Workspace. | standard | PA, Pathologist, Fellow, Resident; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:embedding:open` | Open Embedding Workspace. | standard | PA, Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:slide-distribution:open` | Open Slide Distribution Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:molecular:open` | Open Molecular Workspace. | standard | Molecular Technologist; hospital roles with case access | `screens/screenAccess.ts` |

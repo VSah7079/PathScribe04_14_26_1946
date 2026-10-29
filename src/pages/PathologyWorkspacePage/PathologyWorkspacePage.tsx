@@ -74,6 +74,37 @@ export default function PathologyWorkspacePage() {
   // see this file's own header for why no re-verification was needed.
   const capabilities = useCapabilities();
   const allTiles: SubTile[] = [
+    // Batch 720 (Pete): Grossing runs on its own, here, for the PA and the grossing pathologist.
+    {
+      key: 'grossing',
+      screen: 'grossing',
+      title: t('pathologyWorkspace.grossingTile.title'),
+      description: t('pathologyWorkspace.grossingTile.description'),
+      route: '/workstations/grossing',
+      color: '#E11D48',
+      image: '/grossing.webp',
+    },
+    // Batch 720 (Pete): the Add-On Order Builder is a tile here too, so a PA or pathologist can place an order without opening a report first.
+    {
+      key: 'addOnOrders',
+      screen: 'addOnOrders',
+      title: t('pathologyWorkspace.addOnOrdersTile.title'),
+      description: t('pathologyWorkspace.addOnOrdersTile.description'),
+      route: '/add-on-orders',
+      color: '#0EA5E9',
+      image: '/add_on_orders.webp',
+    },
+    // Batch 721 (Pete, Oct 28): back under Pathology Workspace, beside Grossing and Add-On Orders, so a pathologist reaches it without a
+    // Quality & Compliance tile on Home. No dedicated photo yet: reuses /deficiencies.webp (a disclosed placeholder).
+    {
+      key: 'marginExceptionReview',
+      screen: 'marginExceptionReview',
+      title: t('pathologyWorkspace.marginExceptionReviewTile.title'),
+      description: t('pathologyWorkspace.marginExceptionReviewTile.description'),
+      route: '/margin-exception-review',
+      color: '#DC2626',
+      image: '/deficiencies.webp',
+    },
     {
       key: 'cytology',
       screen: 'cytologyWorkspace',
@@ -137,21 +168,6 @@ export default function PathologyWorkspacePage() {
       route: '/batch-management',
       color: '#D4A017',
       image: '/batch_management.webp',
-    },
-    // Batch 491 (deferred from Batch 490's own margin-distance extraction
-    // layer): the review queue for a margin-distance free-text answer the
-    // extraction layer couldn't confidently parse. No dedicated photo shot
-    // for this tile yet — reuses /deficiencies.webp (an existing "needs a
-    // person to resolve it" placeholder), same disclosed-placeholder
-    // posture as the embedding tile's image above.
-    {
-      key: 'marginExceptionReview',
-      screen: 'marginExceptionReview',
-      title: t('pathologyWorkspace.marginExceptionReviewTile.title'),
-      description: t('pathologyWorkspace.marginExceptionReviewTile.description'),
-      route: '/margin-exception-review',
-      color: '#DC2626',
-      image: '/deficiencies.webp',
     },
   ];
   // Batch 374: only the screens this user may open (services/screens/screenAccess.ts).

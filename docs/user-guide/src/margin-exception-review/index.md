@@ -6,7 +6,7 @@ keywords: [margin, margin distance, distance to margin, exception, free text, tu
 routes: [/margin-exception-review]
 previous: report/synoptic-reporting
 next: tumor-board
-related: [report, report/synoptic-reporting, tumor-board, pathology-workspace, case-flags]
+related: [report, report/synoptic-reporting, tumor-board, quality, case-flags]
 status: Draft
 ---
 
@@ -18,7 +18,7 @@ status: Draft
 
 **Intended users.** Pathologists, fellows, residents and pathology assistants. These are the roles that have the screen and the permission to resolve exceptions by default. Resolving is a clinical judgment about what the pathologist's words mean, so the buttons are greyed out for anyone without that permission.
 
-**Where it fits.** Items arrive in this list after a case is signed out, one for each margin-distance answer that could not be read. The case's report stays as written. The number you record here is kept separately, out of sight of the report, and is the value the tumor board rules use. See [Tumor Board](help:tumor-board). The screen is one of the tiles in the [Pathology Workspace](help:pathology-workspace).
+**Where it fits.** Items arrive in this list after a case is signed out, one for each margin-distance answer that could not be read. The case's report stays as written. The number you record here is kept separately, out of sight of the report, and is the value the tumor board rules use. See [Tumor Board](help:tumor-board). The screen is one of the tiles in [Quality & Compliance](help:quality), because the work happens after a case is signed out.
 
 !!! note "What is and is not changed"
     Resolving or dismissing never changes the text of the report. It records a hidden number (or a reason for having none) beside the answer, writes an entry in the audit log, and then checks the tumor board rules again for that case straight away. If the number you recorded trips a rule, the case is flagged for that board at once and the screen says so.
@@ -90,7 +90,7 @@ None. This screen has no keys or spoken commands of its own. F1 opens this help 
 
 ### Standard workflow
 
-1. Open the **Margin Exception Review** tile in the [Pathology Workspace](help:pathology-workspace). The list loads. Each row shows who and which field.
+1. Open the **Margin Exception Review** tile in [Pathology Workspace](help:pathology-workspace). The list loads. Each row shows who and which field.
 2. Read the typed text and the reason for the first row. If you need more context, select **Open Case**; the full report opens, and going back returns to this list.
 3. Decide what the pathologist meant. If the text says a distance, such as "about 2 mm to the deep margin", type the distance in millimetres in the **mm** box. For centimetres, multiply by ten: 0.5 cm is 5.
 4. Select **Resolve**. The row moves to **Resolved and dismissed**, and a message above the list says whether the case was flagged for a tumor board.

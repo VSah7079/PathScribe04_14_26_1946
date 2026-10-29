@@ -63,7 +63,6 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
 import type { AiSynthesisStatus } from '@/services/templates/aiSynthesisStatus';
 import { pressable } from '@/utils/a11y/pressable';
 import { caseReturnTarget, type CaseReturnTarget } from '@/utils/search/caseReturnTarget';
-import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 export type { AiSynthesisStatus };
 
 const DEFAULT_RETURN = caseReturnTarget('worklist');
@@ -431,11 +430,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
               <button
                 className="ps-hb-compact-conf ps-hb-compact-conf--warn ps-hb-reset-button"
                 onClick={onAiStatusClick}
-                title={
-                  showsConfidence() && aiSynthesisStatus.flaggedFieldConfidence !== undefined
-                    ? t('headerBar.aiStatus.reviewTooltipWithPct', { pct: aiSynthesisStatus.flaggedFieldConfidence })
-                    : t('headerBar.aiStatus.reviewTooltip')
-                }
+                title={t('headerBar.aiStatus.reviewTooltip')}
               >
                 <span className="ps-hb-compact-conf-pct">⚠</span>
                 <span className="ps-hb-compact-conf-label">{t('headerBar.aiStatus.reviewPending')}</span>
@@ -674,20 +669,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                   title={t('headerBar.aiStatus.reviewScoreTooltip')}
                 >
                   <span className="ps-hb-confidence-pct">⚠ {t('headerBar.aiStatus.reviewPending')}</span>
-                  {showsConfidence() && aiSynthesisStatus.flaggedFieldConfidence !== undefined && (
-                    <span className="ps-hb-confidence-label">
-                      {t('headerBar.aiStatus.fieldAtConfidence', { pct: aiSynthesisStatus.flaggedFieldConfidence })}
-                    </span>
-                  )}
                 </button>
               ) : (
                 <div className="ps-hb-confidence-score ps-hb-confidence-score--neutral">
                   <span className="ps-hb-confidence-pct">{t('headerBar.aiStatus.aiDrafted')}</span>
                   <span className="ps-hb-confidence-label">
                     {t('headerBar.aiStatus.noFieldsBelowThreshold')}
-                    {showsConfidence() && aiSynthesisStatus.overallConfidence !== undefined
-                      ? ` · ${t('headerBar.aiStatus.avgConfidence', { pct: aiSynthesisStatus.overallConfidence })}`
-                      : ''}
                   </span>
                 </div>
               )

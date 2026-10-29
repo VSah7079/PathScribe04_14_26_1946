@@ -22,6 +22,7 @@ import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock, StainOrder } from '@/types/case/Specimen';
 import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import { cassetteIdentifier, slideIdentifier } from '@/types/labels/LabelData';
+import { nextBlockLabel, type LabelStyleInput } from '@/utils/specimenLabeling';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
 import { updateCaseWithRetry, type CaseWriteDeps } from '@/services/cases/caseWrite';
 
@@ -145,8 +146,9 @@ export const createMatrixBlockChange = (specimenIds: string[], matrixBlock: Matr
   };
 
 /** The ordinary block a specimen gets back when it leaves a Biopsy Array. */
-function blockLeavingArray(sp: Specimen, matrixBlock: MatrixBlock, fullAccession: string | undefined, makeId: IdMaker): HistologyBlock {
-  const blockLabel = String((sp.blocks ?? []).length + 1);
+function blockLeavingArray(sp: Specimen, matrixBlock: MatrixBlock, fullAccession: string | undefined, makeId: IdMaker, labelStyle?: LabelStyleInput): HistologyBlock {
+  // Batch 715: the next unused block label in the case's letters/numbers style.
+  const blockLabel = nextBlockLabel((sp.blocks ?? []).map(b => b.label), labelStyle);
   return {
     id: makeId(`blk-${sp.id}`),
     label: blockLabel,
@@ -165,7 +167,7 @@ function blockLeavingArray(sp: Specimen, matrixBlock: MatrixBlock, fullAccession
  * ordinary block of their own, specimens joining get linked, positions are
  * renumbered. Null when the array is gone.
  */
-export const updateMatrixBlockParticipantsChange = (p: { matrixBlockId: string; specimenIds: string[]; fullAccession?: string; makeId?: IdMaker }): CaseChange =>
+export const updateMatrixBlockParticipantsChange = (p: { matrixBlockId: string; specimenIds: string[]; fullAccession?: string; makeId?: IdMaker; labelStyle?: LabelStyleInput }): CaseChange =>
   current => {
     const makeId = p.makeId ?? defaultIdMaker;
     const matrixBlocks = current.matrixBlocks ?? [];
@@ -179,7 +181,7 @@ export const updateMatrixBlockParticipantsChange = (p: { matrixBlockId: string; 
         return {
           ...s,
           matrixBlockIds: (s.matrixBlockIds ?? []).filter(id => id !== p.matrixBlockId),
-          blocks: [...(s.blocks ?? []), blockLeavingArray(s, matrixBlock, p.fullAccession, makeId)],
+          blocks: [...(s.blocks ?? []), blockLeavingArray(s, matrixBlock, p.fullAccession, makeId, p.labelStyle ?? current.labelStyle)],
         };
       }
       if (toAdd.includes(s.id) && !(s.matrixBlockIds ?? []).includes(p.matrixBlockId)) {
@@ -196,7 +198,7 @@ export const updateMatrixBlockParticipantsChange = (p: { matrixBlockId: string; 
   };
 
 /** Dissolve a Biopsy Array: every participant gets an ordinary block back; null when the array is gone. */
-export const dissolveMatrixBlockChange = (p: { matrixBlockId: string; fullAccession?: string; makeId?: IdMaker }): CaseChange =>
+export const dissolveMatrixBlockChange = (p: { matrixBlockId: string; fullAccession?: string; makeId?: IdMaker; labelStyle?: LabelStyleInput }): CaseChange =>
   current => {
     const makeId = p.makeId ?? defaultIdMaker;
     const matrixBlocks = current.matrixBlocks ?? [];
@@ -207,7 +209,7 @@ export const dissolveMatrixBlockChange = (p: { matrixBlockId: string; fullAccess
       specimens: (current.specimens ?? []).map((s: Specimen) => !participantIds.has(s.id) ? s : {
         ...s,
         matrixBlockIds: (s.matrixBlockIds ?? []).filter(id => id !== p.matrixBlockId),
-        blocks: [...(s.blocks ?? []), blockLeavingArray(s, matrixBlock, p.fullAccession, makeId)],
+        blocks: [...(s.blocks ?? []), blockLeavingArray(s, matrixBlock, p.fullAccession, makeId, p.labelStyle ?? current.labelStyle)],
       }),
       matrixBlocks: matrixBlocks.filter(m => m.id !== p.matrixBlockId),
     };

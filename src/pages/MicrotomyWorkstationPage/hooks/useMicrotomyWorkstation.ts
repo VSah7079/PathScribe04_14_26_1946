@@ -316,7 +316,7 @@ export function useMicrotomyWorkstation() {
       : 'error' in ctx
       ? { ok: false as const, message: ctx.error }
       : await printSlideLabel(
-          { fullAccession: afterPrinting.caseData.accession?.fullAccession ?? afterPrinting.caseData.id, specimenLabel: afterPrinting.specimen.label, blockLabel: parentLabel, level, stainName: stain?.stainName ?? '', slideId },
+          { fullAccession: afterPrinting.caseData.accession?.fullAccession ?? afterPrinting.caseData.id, specimenLabel: afterPrinting.specimen.label, blockLabel: parentLabel, level, stainName: stain?.stainName ?? '', slideId, slideDesignation: afterPrinting.caseData.labelStyle?.slide },
           ctx.printer, ctx.gtin, ctx.layout,
         ).then(r => { if (r.ok) markSlideLabelOutput(slideId); return r; }).then(r => (r.ok ? { ok: true as const } : { ok: false as const, message: (r as { ok: false; message: string }).message }));
 

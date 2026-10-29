@@ -467,6 +467,55 @@ describe('useSpecimenBlockManagement — handleAddBlock', () => {
   });
 });
 
+// Batch 715: the report page's Add Block follows the letters-or-numbers setting
+// (was: always a number, from the count of blocks).
+describe('useSpecimenBlockManagement — handleAddBlock follows the label style (Batch 715)', () => {
+  beforeEach(async () => {
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    vi.mocked(caseRouter.updateCase).mockReset().mockResolvedValue(undefined);
+  });
+
+  const withBlocks = (labels: string[], labelStyle?: Case['labelStyle']) => makeTestCase({
+    labelStyle,
+    specimens: [{ id: 'SP-1', label: labels.length ? 'A' : 'A', description: 'x', blocks: labels.map((l, i) => ({ id: `B${i}`, label: l, status: 'Grossed', stains: [] })) }] as unknown as Case['specimens'],
+  });
+
+  it('block letters: A, B -> the new block is C, with its cassette id', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks(['A', 'B'], { specimen: 'letters', block: 'letters', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    const block = setCaseData.mock.calls[0][0].specimens[0].blocks[2];
+    expect(block.label).toBe('C');
+    expect(block.displayId).toBe('TEST-CASE-BLOCKS-AC');
+    expect(block.stains[0].displayId).toBe('TEST-CASE-BLOCKS-AC-L1');
+  });
+
+  it('block numbers: 1, 2 -> 3 (today\'s labels)', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks(['1', '2'], { specimen: 'letters', block: 'numbers', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    expect(setCaseData.mock.calls[0][0].specimens[0].blocks[2].label).toBe('3');
+  });
+
+  it('a first block on a specimen with none follows the style: letters give A', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks([], { specimen: 'numbers', block: 'letters', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    expect(setCaseData.mock.calls[0][0].specimens[0].blocks[0].label).toBe('A');
+  });
+
+  it('after a block was removed the new label is never one already in use', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks(['1', '3'], { specimen: 'letters', block: 'numbers', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    expect(setCaseData.mock.calls[0][0].specimens[0].blocks[2].label).toBe('4');
+  });
+});
+
 describe('useSpecimenBlockManagement — handleBatchPrintCassettes / batchPrintBlocked (real fix: enforceOnDemandGuardrails now actually enforced)', () => {
   beforeEach(async () => {
     const { printSettingsService } = await import('@/services/index');

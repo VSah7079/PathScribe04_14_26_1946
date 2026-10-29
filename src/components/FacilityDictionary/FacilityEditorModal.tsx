@@ -52,6 +52,8 @@ import type { AIModel } from "../../services/models/IModelService";
 import type { Location } from "../../services/locations/ILocationService";
 import { HL7_LOCATION_STATUS_OPTIONS, HL7_PERSON_LOCATION_TYPE_OPTIONS } from "../../services/locations/ILocationService";
 import { LoadingState } from '@/components/Common/LoadingState';
+import { FacilityLabelStyleField } from './FacilityLabelStyleField';
+import { labelStyleFieldsToSave } from '@/services/labeling/labelStyleEditor';
 
 interface FacilityEditorModalProps {
   isOpen: boolean;
@@ -97,7 +99,6 @@ const blank = (): FacilityInput => ({
   name: "",
   roles: ["external_ordering_client"],
   jurisdiction: "US",
-  specimenLabelStyle: "alpha-specimen",
   assigningAuthority: "",
   contactNamePrefix: "",
   contactGivenNames: "",
@@ -716,11 +717,8 @@ const FacilityEditorModalBody: React.FC<FacilityEditorModalProps> = ({
                   <input aria-label={t('facilityEditorModal.general.nationalRegistryId')} className="cem-input" value={form.nationalRegistryId ?? ''} onChange={(e) => set("nationalRegistryId", e.target.value)} />
                   <div className="cem-hint">{t('facilityEditorModal.general.nationalRegistryIdHint')}</div>
                 </Field>
-                <Field label={t('facilityEditorModal.general.specimenLabeling')}>
-                  <select aria-label={t('facilityEditorModal.general.specimenLabeling')} className="cem-input" value={form.specimenLabelStyle ?? 'alpha-specimen'} onChange={(e) => set("specimenLabelStyle", e.target.value)}>
-                    <option value="alpha-specimen">{t('facilityEditorModal.general.specimenLabelingAlpha')}</option>
-                    <option value="numeric-specimen">{t('facilityEditorModal.general.specimenLabelingNumeric')}</option>
-                  </select>
+                <Field label={t('facilityEditorModal.labelStyle.title')}>
+                  <FacilityLabelStyleField record={form} enterprise={allFacilities.find(c => c.id === form.parentId)} onChange={(next) => setForm((f) => ({ ...f, ...labelStyleFieldsToSave({ labelStyle: next }) }))} />
                 </Field>
                 <Field label={t('facilityEditorModal.general.enterprise')}>
                   <label htmlFor="isEnterprise" className={`cem-chip-label cem-chip-label--fit${form.isEnterprise ? ' cem-chip-label--active' : ''}`}>

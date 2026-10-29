@@ -582,3 +582,10 @@ Batch 659: new capability `qa:management-review:submit` (high risk, Quality defi
 `config:molecular-control-rules:view` (standard risk, administration), defined with `manage` in `molecularControlRulesCapabilities.ts` and spread into the catalog (capabilityCatalog.ts does not grow). The Control Rules route no longer rides on `screen:molecular:open`, which neither Admin nor Lab Director holds by default. Seeds: Admin (administration group), Lab Director (`MOLECULAR_CONTROL_RULES_VIEW` with manage), QA Reviewer, and every role that holds the Molecular screen (Molecular Technologist; a hospital's own role with case access gets it too, keeping today's users). `manage` now `requires` view. Read in `listForReview` (see `services/molecular/README.md`).
 
 - Batch 669 (access-11): `case:consult-link:reveal-identity` (casework, high), opting in when issuing an outside consult link to show the consultant the patient's full name and date of birth (masked by default). Seeded to Pathologist and Lab Director (`CONSULT_LINK_REVEAL_IDENTITY`); checked in `consultAccess/mockConsultTokenService.ts` `issue`, only when the opt-in is ticked.
+
+## noScreensDiagnostic.ts (Oct 28, 2026)
+
+`describeNoScreens(snapshot)` explains, for the browser console, why Home found no screen for the signed-in person: the session id and role, the staff roles, the size of the role list, whether it holds Superadmin, the roles that matched, and a one-line verdict. Home (`pages/Home.tsx`) logs it with `console.warn` when no tile shows. It holds ids, role names and counts only, no patient data.
+
+## Batch 720
+New capability `screen:grossing:open`, seeded to pathologist, fellow, resident and pa; pa also gets `screen:add-on-orders:open`.

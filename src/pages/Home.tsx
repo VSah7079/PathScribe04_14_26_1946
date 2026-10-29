@@ -16,6 +16,7 @@ import { useAuth } from "@contexts/AuthContext";
 import PubMedTicker from '@/components/Common/PubMedTicker';
 import { visibleTiles, type HomeTileId } from '@/services/screens/screenAccess';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { describeNoScreens } from '@/services/authorization/noScreensDiagnostic';
 import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
 import { pressable } from '@/utils/a11y/pressable';
 import SystemStatusIndicator from '@/components/Common/SystemStatusIndicator';
@@ -257,6 +258,12 @@ export default function Home() {
   // decision is services/screens/screenAccess.ts; each route checks again.
   const shown = new Set(visibleTiles(allCards.map(c => c.id), c => capabilities.has(c)));
   const cards = allCards.filter(c => shown.has(c.id));
+  // Oct 28, 2026: when no tile shows, say why in the browser console (ids, role names and counts only).
+  const noScreens = !capabilities.loading && cards.length === 0;
+  const permissionSnapshot = capabilities.snapshot ?? null;
+  useEffect(() => {
+    if (noScreens && permissionSnapshot) console.warn('PathScribe: no Home screen is open to this session', describeNoScreens(permissionSnapshot));
+  }, [noScreens, permissionSnapshot]);
 
   return (
     <div className={`ps-page${isLoaded ? ' ps-page--loaded' : ''}`}>

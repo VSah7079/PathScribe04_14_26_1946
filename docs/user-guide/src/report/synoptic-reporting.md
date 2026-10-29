@@ -72,7 +72,7 @@ The Report screen has up to three tabs above the work area: **Report Draft** (sh
 |---|---|
 | AI Confirmed | You (or Confirm) accepted the AI's value. |
 | Overridden | You replaced the AI's value. |
-| Check source | The AI offered a value that needs a closer look. Hovering says "Compare with the source text before confirming". Your laboratory's setup can instead show "AI: low confidence (n%)" with the score. |
+| Check source | The AI offered a value that needs a closer look. Hovering says "Compare with the source text before confirming". No percentage or score is shown. |
 | Tinted field with a dashed edge in Windows high-contrast mode | The field holds an AI value you have not confirmed or overridden. See "AI values you have not confirmed" below. |
 | AI: not found | The AI read the narrative and found no evidence for the field. Fill it in yourself. |
 | Manual, AI missed | You answered a field the AI had no suggestion for. The wording says this helps train the AI. |
@@ -100,7 +100,7 @@ The Report screen has up to three tabs above the work area: **Report Draft** (sh
 - The progress badge counts answered fields. Required fields are what block finalising.
 - The "Some required fields are incomplete" banner appears when required fields are open. Its link, **Review required fields**, jumps to them.
 - A field whose answer depends on another answer is hidden until the answer that triggers it is given (see Conditional fields).
-- After you edit the narrative, a note under a field you answered yourself may say "The updated narrative suggests (value) ((n)% confidence). Keep your value or update it?" with **Keep mine** and **Accept new value**. PathScribe never applies this on its own.
+- After you edit the narrative, a note under a field you answered yourself may say "The updated narrative suggests (value). Keep your value or update it?" with **Keep mine** and **Accept new value**. PathScribe never applies this on its own.
 
 ### Hotkeys
 
@@ -169,11 +169,11 @@ These are the default keys; voice phrases are the English ones (French, German, 
 
 **Values filled in for you.** If your laboratory has switched on auto-insert, or you select the **Orchestrator** (lightning icon), PathScribe fills empty fields with AI values. These stay unconfirmed, tinted and subject to the rule above, and the fill is recorded in the audit log. A field you already answered is never replaced.
 
-**AI Review before finalising.** In Orchestration mode an **AI Review Mode** window titled "Review uncertain AI findings before sign-out" can step you through the findings the AI is least sure of, one at a time ("Field 2 of 6"). Each shows its confidence (where your laboratory's setup shows scores) and, where relevant, a banner "Source not found in report text". Press Space to confirm and go on, **O** to override, **S** to skip. Skipped findings are counted ("1 skipped"). On the last finding the confirm button reads "Space - Confirm & Finalise".
+**AI Review before finalising.** In Orchestration mode an **AI Review Mode** window titled "Review uncertain AI findings before sign-out" can step you through the findings the AI is least sure of, one at a time ("Field 2 of 6"). Each shows its source and says **Source found in report text**, or, where relevant, a banner "Source not found in report text". No percentage is shown. Press Space to confirm and go on, **O** to override, **S** to skip. Skipped findings are counted ("1 skipped"). On the last finding the confirm button reads "Space - Confirm & Finalise".
 
-**Change the protocol.** When microscopic findings suggest a different protocol, a window "Protocol adjustments proposed" lists each change as Current and Proposed with the AI's reason and confidence. Tick the changes you want, select **Apply n change(s)**, or select **Keep existing protocols**.
+**Change the protocol.** When microscopic findings suggest a different protocol, a window "Protocol adjustments proposed" lists each change as Current and Proposed with the AI's reason. Tick the changes you want, select **Apply n change(s)**, or select **Keep existing protocols**.
 
-**Codes window.** Select **Codes** (Ctrl+Alt+G), or **Add Code** (Ctrl+Alt+H). Both open the Code Manager window, titled **Codes**. Codes the AI suggests under **AI Suggested Codes — review and apply** each show **Strong match** or **Possible match**. The label says how closely your case wording matches the code's description. It is not a chance that the code is correct, and a code is added only when you apply it. Each suggestion also says **Checked origin:** which part of the case the code was taken from (the report narrative, the gross or microscopic description, the ancillary studies or the synoptic answers, and the specimen when the text names one), or "Origin not stated" when that cannot be confirmed. The software checks only that the named part exists and holds text; no person has verified the origin, so read the suggestion against the case yourself (hover the line for this note). The description beside the code is the official wording from the code dictionary, and a tick means the code was found there. Read the suggestion against your own diagnosis before you apply it. (A laboratory profile that shows scores displays a percentage instead.)
+**Codes window.** Select **Codes** (Ctrl+Alt+G), or **Add Code** (Ctrl+Alt+H). Both open the Code Manager window, titled **Codes**. Codes the AI suggests under **AI Suggested Codes — review and apply** each show **Strong match** or **Possible match**. The label says how closely your case wording matches the code's description. It is not a chance that the code is correct, and a code is added only when you apply it. Each suggestion also says **Checked origin:** which part of the case the code was taken from (the report narrative, the gross or microscopic description, the ancillary studies or the synoptic answers, and the specimen when the text names one), or "Origin not stated" when that cannot be confirmed. The software checks only that the named part exists and holds text; no person has verified the origin, so read the suggestion against the case yourself (hover the line for this note). The description beside the code is the official wording from the code dictionary, and a tick means the code was found there. Read the suggestion against your own diagnosis before you apply it.
 
 1. Choose the code system. SNOMED CT, ICD-10, CPT, LOINC and others appear as tabs. A code system marked **Required** is required for your jurisdiction; sign-out asks first if it has no code. A system that your jurisdiction does not allow is refused: "(system) is not allowed for this jurisdiction, so the code was not added."
 2. Type a code or a term in the search box. For SNOMED you can narrow with the filters **All**, **Anatomy**, **Morphology**, **Organism**, **Specimen**. The hint text suggests what to type (for example a diagnosis, site, specimen type or organism for SNOMED; a code such as C50 for ICD-10; a test name or LOINC number for LOINC).
@@ -240,7 +240,7 @@ Search the protocol list in the Add Synoptic window. When nothing matches it say
 
 ### AI Protocol Review
 
-When the microscopic findings suggest a different protocol, **AI Protocol Review** opens with the title "Protocol adjustments proposed". Each change shows the **Current** and **Proposed** protocol (a protocol that is no longer needed reads **(remove — no longer needed)**) and the AI's confidence. Tick the changes you want. The counter reads **{{selected}} of {{total}} selected**. The apply button reads **Apply N changes →**, and **No changes selected** while none is ticked. **Keep existing protocols** closes the window without change.
+When the microscopic findings suggest a different protocol, **AI Protocol Review** opens with the title "Protocol adjustments proposed". Each change shows the **Current** and **Proposed** protocol (a protocol that is no longer needed reads **(remove — no longer needed)**) and the AI's reason. Tick the changes you want. The counter reads **{{selected}} of {{total}} selected**. The apply button reads **Apply N changes →**, and **No changes selected** while none is ticked. **Keep existing protocols** closes the window without change.
 
 ### AI-Generated Narrative
 

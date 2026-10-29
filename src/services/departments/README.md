@@ -45,3 +45,7 @@ Before, anyone who could open Configuration could change this; now each change i
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
 
 Batch 616: server version in `httpDepartmentService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `departmentServiceInstance.ts`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.
+
+## Batch 716: GYN Cytology department
+
+New seed department `cat-gyn-cytology` ("GYN Cytology"), with `demoDepartmentIds.ts` naming the four demo department ids. The older three keep their ids and names (Processing Protocols and the technical-facility offer match on the names). See `specimenDictionary/cytologyDemoSpecimens.ts` for what is linked to them.

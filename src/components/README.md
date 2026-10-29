@@ -1,3 +1,5 @@
+**Batch 711:** `Auth/PasswordResetRequest.tsx` (the sign-in page's "Ask my administrator to reset my password"); `Config/Staff/StaffTab.tsx` opens the record named by `?staff=<id>`.
+
 **Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone (`Help/TopBarHelpButtons`, in `NavBar`).
 
 **Batch 650:** `Worklist/PoolClaimModal` (Accept / Pass), `PatientHistory/PatientHistoryModal` (Close history), `Contribution/QualityTab` (TAT tiles) answer registered voice and key commands.
@@ -1050,3 +1052,9 @@ Batch 669: `Flags/FlagManagerModal.tsx` audits flag changes at Save only (Cancel
 `CytologyQc/CytologyQcDiscrepancyModal`: optional secondary code with an in-window confirmation; `AppShell`: message rows show unread per person.
 
 - **Batch 669 (access-11):** `ExternalConsult/ExternalConsultAccessModal` has the audited, default-off "show full name and date of birth" opt-in for outside consult links.
+
+**Batch 713:** `ScanStationPrompt.tsx` offers only the stations the signed-in user may use, plus the "Select a station" (none) choice; it shows again, with a note, when the computer's stored station is not available to the user (Skip lasts for that sign-in). Test: `ScanStationPrompt.test.tsx`.
+
+`EnhancementRequest/` (Oct 28, 2026): the QA modal has an AI / Template validation category with optional study and template lists; see its README.
+
+**Batch 715:** `FacilityDictionary/FacilityLabelStyleField.tsx`: letters or numbers for specimens, blocks and slides.

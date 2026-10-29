@@ -121,3 +121,5 @@ Tests only: the label print tests allow Configuration changes in a mocked author
 ## Batch 652 (defect fixes)
 
 `dispatchScanSlideLabel.ts` (+ test): honours a station's `supportsEngraving` / `supportsPrinting` for the scan-time slide label; printing goes through `printSlideLabel`. Never throws; reports why nothing was produced.
+
+**Batch 715:** `printSlideLabel` and `SlideLabelDispatchRequest` take `slideDesignation`; Letters prints the level as `La`, `Lb` on the slide label. The slide id and barcode keep `L1`, `L2`.

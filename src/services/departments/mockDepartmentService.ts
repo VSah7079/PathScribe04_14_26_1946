@@ -25,6 +25,16 @@ const SEED_DEPARTMENTS: Department[] = [
     defaultGrossingTemplateId: 'grossing_fluid_cytology',
     status: 'Active',
   },
+  // Batch 716 (Pete, Oct 28 2026, "set demo data for Cytology Part 2"): GYN cytology gets its own department, and
+  // with it its own accession series (GYN26-0001, see mockCaseMaskService.ts), so a Pap and a thyroid FNA visibly
+  // draw from different series in the training video. Non-GYN cytology/FNA stays on 'Fluid / Cytology' (series NG).
+  {
+    id: 'cat-gyn-cytology',
+    name: 'GYN Cytology',
+    description: 'Cervical and vaginal cytology: conventional and liquid-based Pap tests, Pap with HPV co-test, and HPV-only (including self-collected) swabs. Always routed to the Cytology worklist.',
+    defaultGrossingTemplateId: 'grossing_fluid_cytology',
+    status: 'Active',
+  },
   {
     id: 'cat-histology-only',
     name: 'Histology-Only / Consultation',

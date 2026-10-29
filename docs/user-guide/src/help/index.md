@@ -65,7 +65,6 @@ The guide has two parts side by side. On the left is a narrow column with the gu
 |---|---|
 | Help (round **?** button in the top bar, beside the microphone) | Opens the User Guide article for the screen you are on, in a separate window that remembers where you put it. If your browser refuses a separate window, it opens a new tab instead. Its tooltip reads "Open the User Guide page for this screen". |
 | Administrator Guide button (open book, in the top bar next to the Help button; on a configuration screen it sits at the top of the page) | Opens the Administrator Guide at that screen's section, in its own window or, if refused, a new tab. It appears only on screens that have such a section. Its tooltip reads "Open this screen's section of the Administrator Guide". |
-| Name button at the top right | Opens your profile card. It has **User Guide** and **Administrator Guide** buttons (see the note below). |
 
 ### Icons and status indicators
 
@@ -143,9 +142,6 @@ The spoken commands "view help", "open help", "system help", "show help" and "he
 
 - Read the Overview and the Standard workflow before a first shift on a new screen.
 - Use **Next step** during training to follow a case from intake to sign-out.
-
-!!! note "The profile card's User Guide button"
-    The name button at the top right opens a profile card with **User Guide** and **Administrator Guide** buttons. These open the older guide documents supplied with the installation, not the pages described in this article. For help on the screen you are using, use the Help button or F1.
 
 ## Related Features
 

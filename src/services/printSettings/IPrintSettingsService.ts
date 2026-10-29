@@ -103,6 +103,8 @@ export interface PrintSettingsConfig {
    *  ScannerProvider.tsx's own PATHSCRIBE_SCAN event) — this flag
    *  gates a new listener, not new scanning infrastructure. */
   requireScanVerificationBeforeNextBlock: boolean;
+  /** Batch 720 (Pete): print the requisition and container labels as soon as a case is saved at Accession. On unless switched off; the Print Labels button remains for a reprint. */
+  printLabelsOnAccession?: boolean;
   /** Which real LabelSizePreset id (types/labels/LabelSizePreset.ts)
    *  is active for container labels — requisition labels stay on the
    *  full-page preset regardless, per how buildContainerLabelData.ts's
@@ -209,6 +211,7 @@ export const DEFAULT_PRINT_SETTINGS_CONFIG: PrintSettingsConfig = {
   defaultPrintBehavior: 'on_demand',
   enforceOnDemandGuardrails: false,
   requireScanVerificationBeforeNextBlock: false,
+  printLabelsOnAccession: true,
   containerLabelPresetId: 'clsi_standard_specimen',
   requisitionLabelPresetId: 'requisition_pouch',
   containerBarcodeSymbology: 'code128',

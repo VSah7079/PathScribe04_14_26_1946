@@ -14,3 +14,5 @@ Email subject + HTML/text body builders for the browser-built e-mail (enhancemen
 ---
 *See [services/README.md](../../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+**Oct 28, 2026:** `enhancementEmailTemplates.ts` adds the validation study and template rows (and a Validation Feedback subject tag) for the AI / Template validation category; the new values are HTML-escaped.

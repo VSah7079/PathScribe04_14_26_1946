@@ -644,10 +644,13 @@ export { caseAddresses } from './caseAddresses/caseAddressesInstance';
 // Batch 447: the QA feedback button and recipients, a Configuration setting.
 export { feedbackSettingsService } from './feedback/feedbackSettingsServiceInstance';
 export { FEEDBACK_SETTINGS_STORAGE_KEY, type IFeedbackSettingsService } from './feedback/mockFeedbackSettingsService';
+export { loadValidationLinkOptions, templatesForStudy, buildValidationLinks, VALIDATION_CATEGORY, type ValidationLinkOptions, type ValidationLinks } from './feedback/validationRouting';
+export { effectiveEnhancementUrl, destinationHost } from './feedback/enhancementDestination';
+export { enhancementUrlProblem } from './feedback/feedbackSettingsRules';
 export { qaButtonShown, parseEmailList, feedbackSettingsProblem, QA_BUTTON_MODES, DEFAULT_FEEDBACK_SETTINGS, type FeedbackSettings, type QaButtonMode, type FeedbackSettingsProblem } from './feedback/feedbackSettingsRules';
 export { deploymentInstance, type InstanceRole } from './deployment/deploymentInstance';
 // Batch 448: staff sign-in passwords set from the Staff screen.
-export { staffPasswordService } from './signIn';
+export { staffPasswordService, passwordResetRequestService } from './signIn';
 export { STAFF_PASSWORD_STORAGE_KEY, type IStaffPasswordService, type StaffPasswordStatus, type StaffPasswordCheck, type StaffPasswordError } from './staffPasswords/mockStaffPasswordService';
 export { passwordPolicyProblem, passwordConfirmProblem, staffPasswordState, PASSWORD_MIN_LENGTH, type StaffPasswordState } from './staffPasswords/staffPasswordRules';
 // Batch 456: the sign-in lockout.

@@ -261,3 +261,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 - `FacilityPrintingTab.tsx` (Batch 553): the default network printer can be one of the facility's own site agent printers, picked from its list.
 
 - Batch 608: `FacilityEditorModal.tsx` has a national screening registry ID (`Facility.nationalRegistryId`), shown in the EU compliance matrix.
+
+## Batch 715 — letters or numbers for labels
+
+`FacilityLabelStyleField.tsx` (+ `.css`) replaces the single "Specimen / Block Labeling" choice in `FacilityEditorModal.tsx` with three selectors (Specimens, Blocks, Slides: Letters or Numbers), a Preset menu holding the two old pairs, and a live example ("Specimen A · Block 1 · Slide L1"). On the Enterprise it sets the default; on a lab each level can be "Same as enterprise (value)". A warning shows when specimens and blocks both use letters or both use numbers. A new facility starts with no choice of its own (it follows its enterprise); a facility with the old preset opens with it as its own choice, so its labels do not change. The editor stores `labelStyle` and clears `specimenLabelStyle`. The change is audited in `pages/system/FacilityDictionaryPage.tsx`. `FacilityEditorModal.tsx` shrank (1,478 to 1,476 lines). Rules: `services/labeling/README.md`.

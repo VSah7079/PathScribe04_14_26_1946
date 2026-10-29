@@ -257,3 +257,46 @@ describe('FacilityEditorModal — Batch 528 (PS-359): the organisation\'s Field 
   });
 });
 
+
+// Batch 715: letters or numbers for specimens, blocks and slides, in the facility editor.
+describe('FacilityEditorModal — letters or numbers for labels (Batch 715)', () => {
+  const enterprise = {
+    id: 'ent-1', name: 'Trust HQ', roles: ['performing_lab'], isEnterprise: true, jurisdiction: 'US' as const,
+    assigningAuthority: 'THQ', email: 'a@b.com', phone: '', fax: '', address: '',
+    labelStyle: { specimen: 'numbers', block: 'letters' },
+    reporting: { autoRelease: false, copyToReferring: false }, status: 'Active',
+    pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [], tatFirstTouchHours: null, tatTotalHours: null,
+    escalationTargets: [], escalationPriority: 'high',
+  } as unknown as Facility;
+  const lab = { ...enterprise, id: 'lab-1', name: 'Lab 1', assigningAuthority: 'LAB1', isEnterprise: undefined, parentId: 'ent-1', labelStyle: undefined } as unknown as Facility;
+
+  it('a performing lab follows the enterprise until it chooses its own, and saves only what it overrode', () => {
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="edit" facility={lab} onClose={() => {}} onSave={onSave} allFacilities={[enterprise, lab]} />);
+    const block = screen.getByTestId('label-style-block') as HTMLSelectElement;
+    expect(block.value).toBe('inherit');
+    fireEvent.change(block, { target: { value: 'numbers' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.saveChanges'));
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.labelStyle).toEqual({ block: 'numbers' });
+    expect(saved.specimenLabelStyle).toBeUndefined();
+  });
+
+  it('opening and saving a facility that has the old preset keeps its labels (folded into the new setting)', () => {
+    const onSave = vi.fn();
+    const legacy = { ...lab, specimenLabelStyle: 'numeric-specimen' } as unknown as Facility;
+    render(<FacilityEditorModal isOpen mode="edit" facility={legacy} onClose={() => {}} onSave={onSave} allFacilities={[enterprise, legacy]} />);
+    expect((screen.getByTestId('label-style-specimen') as HTMLSelectElement).value).toBe('numbers');
+    fireEvent.change(screen.getByTestId('label-style-slide'), { target: { value: 'letters' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.saveChanges'));
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.labelStyle).toEqual({ specimen: 'numbers', block: 'letters', slide: 'letters' });
+    expect(saved.specimenLabelStyle).toBeUndefined();
+  });
+
+  it('a new facility starts with nothing of its own, so it follows its enterprise', () => {
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="add" onClose={() => {}} onSave={onSave} allFacilities={[enterprise]} />);
+    expect((screen.getByTestId('label-style-specimen') as HTMLSelectElement).value).toBe('inherit');
+  });
+});

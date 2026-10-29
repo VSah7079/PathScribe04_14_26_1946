@@ -63,7 +63,7 @@ The page is titled **Microtomy Workstation**. A **Back** button at the top left 
 
 | Column or control | What it means |
 |---|---|
-| Level | The slide's level on this block, shown as L1, L2 and so on, with the cut depth in micrometres when one was given, for example "L2 (4µm)". A level number is never reused, even when a slide is removed. |
+| Level | The slide's level on this block, shown as L1, L2 and so on (a laboratory that chose letters for slides prints La, Lb on the slide label, but this column still shows L1, L2), with the cut depth in micrometres when one was given, for example "L2 (4µm)". A level number is never reused, even when a slide is removed. |
 | Stain | The stain name. A **Control** badge marks a control slide paired with a patient slide. An **On Label** badge means a comment on that slide will print on the label. |
 | Print Status | Pending, Printing…, Printed, Failed or Canceled. A failed slide shows the printer's message under the badge. "Reprinted 2×" shows how often a slide has been reprinted. |
 | Actions | Print, Reprint, + Level, the comment button (speech bubble with a count), Remove. See the Toolbar table. |

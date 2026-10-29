@@ -7060,7 +7060,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-rulemodal__modal          { width: min(600px, 96vw); }
 .ps-rulemodal__title          { font-size: 16px; }
 .ps-rulemodal__label          { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; display: block; }
-.ps-rulemodal__required       { color: #ef4444; }
+.ps-rulemodal__required, .ps-required { color: #ef4444; } .ps-required::after { content: ' *'; }
 .ps-rulemodal__input          { padding: 8px 12px; font-size: 13px; color: #e5e7eb; background: #0f0f0f; border: 1px solid #374151; border-radius: 7px; outline: none; width: 100%; box-sizing: border-box; font-family: inherit; }
 .ps-rulemodal__input--flex    { flex: 1; }
 .ps-rulemodal__input--number  { width: 100px; }
@@ -7674,11 +7674,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   .ps-conf-form-row--3{ grid-template-columns: 1fr !important; }
 }
 
-/* ── Worklist table — column flex on narrow viewports ───────── */
-@media (max-width: 1100px) {
-  .wl-td-physician    { display: none; }
-}
-
 /* ── KPI / contribution grid already has 1400px breakpoint.
    Add finer steps: ─────────────────────────────────────────── */
 @media (max-width: 1100px) {
@@ -7868,11 +7863,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   .ps-wl-filter-strip { gap: 4px !important; }
 }
 
-/* ── Worklist table column priority ─────────────────────────── */
-@media (max-width: 1280px) {
-  .wl-td-physician { display: none; }
-}
-
 /* ── Contribution dashboard ─────────────────────────────────── */
 .ps-contrib-overview-grid {
   display: grid;
@@ -7952,7 +7942,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-proto-change-arrow        { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
 
 .ps-proto-change-reason       { display: block; font-size: 12px; color: var(--ps-text-dim); font-style: italic; margin: 0; line-height: 1.5; }
-.ps-proto-change-confidence   { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; border: 1px solid; align-self: flex-start; }
 
 /* ── PreFinalisationModal ────────────────────────────────────────────────── */
 .ps-prefin-overlay            { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: stretch; justify-content: center; z-index: 9000; padding: 88px 16px 32px; box-sizing: border-box; overflow-y: auto; }
@@ -8056,9 +8045,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-ai-review-card-header    { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .ps-ai-review-card-eyebrow   { font-size: 11px; font-weight: 700; color: #38bdf8; }
 .ps-ai-review-confidence     { font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 20px; border: 1px solid var(--ps-ai-review-conf-border); color: var(--ps-ai-review-conf-color); background: var(--ps-ai-review-conf-bg); }
-.ps-ai-review-confidence--high   { --ps-ai-review-conf-color: #34d399; --ps-ai-review-conf-bg: #34d39922; --ps-ai-review-conf-border: #34d39944; }
-.ps-ai-review-confidence--medium { --ps-ai-review-conf-color: #fbbf24; --ps-ai-review-conf-bg: #fbbf2422; --ps-ai-review-conf-border: #fbbf2444; }
-.ps-ai-review-confidence--low    { --ps-ai-review-conf-color: #f87171; --ps-ai-review-conf-bg: #f8717122; --ps-ai-review-conf-border: #f8717144; }
+.ps-ai-review-confidence--source-found { --ps-ai-review-conf-color: #94a3b8; --ps-ai-review-conf-bg: #94a3b81f; --ps-ai-review-conf-border: #94a3b844; }
 .ps-ai-review-card-value     { font-size: 16px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
 .ps-ai-review-card-source    { font-size: 11px; color: #8a9db5; font-style: italic; }
 .ps-ai-review-source-not-found { margin-top: 8px; padding: 6px 10px; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 6px; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3); color: #fbbf24; }
@@ -9217,7 +9204,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .acd-sug-desc                { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acd-sug-desc--active        { color: var(--ps-text-dim); }
 .acd-sug-desc--default       { color: #e2e8f0; }
-.acd-confidence-hi           { font-size: 12px; color: #34d399; font-weight: 700; flex-shrink: 0; }
 .acd-confidence-lo           { font-size: 12px; color: #fbbf24; font-weight: 700; flex-shrink: 0; }
 .acd-already-added           { font-size: 12px; color: #94a3b8; flex-shrink: 0; font-family: monospace; }
 .acd-added-check             { font-size: 11px; color: #10b981; font-weight: 700; flex-shrink: 0; }
@@ -9281,7 +9267,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-ph-card-id                { font-size: 11px; color: #4da6e8cc; }
 .ps-ph-card-diagnosis         { font-size: 13px; font-weight: 500; color: #fff; margin-bottom: 2px; }
 .ps-ph-card-meta              { font-size: 11px; color: rgba(255,255,255,0.38); }
-.ps-ph-match-badge           { display: inline-flex; align-items: center; font-size: 10px; background: rgba(77,166,232,0.12); color: #4da6e8; padding: 2px 7px; border-radius: 20px; border: 0.5px solid rgba(77,166,232,0.28); margin-inline-start: 6px; }
 .ps-ph-empty-state           { padding: 32px 16px; text-align: center; color: rgba(255,255,255,0.35); font-size: 13px; }
 .ps-ph-spinner                { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 32px 16px; color: rgba(255,255,255,0.35); font-size: 12px; }
 .ps-ph-footer-outer          { padding: 0; border-top: 0.5px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0; justify-content: flex-end; }
@@ -23368,9 +23353,8 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-syn-field-required { color: #f87171; font-size: 10px; }
 
 .ps-syn-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 8px; cursor: default; }
-.ps-syn-badge--confirmed, .ps-syn-badge--high-conf { background: rgba(16,185,129,0.2); color: #34d399; }
-.ps-syn-badge--disputed, .ps-syn-badge--med-conf { background: rgba(251,191,36,0.15); color: #fbbf24; }
-.ps-syn-badge--low-conf { background: rgba(148,163,184,0.12); color: #94a3b8; }
+.ps-syn-badge--confirmed { background: rgba(16,185,129,0.2); color: #34d399; }
+.ps-syn-badge--disputed { background: rgba(251,191,36,0.15); color: #fbbf24; }
 .ps-syn-badge-outlined {
   font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; cursor: default;
   display: inline-flex; align-items: center; gap: 4px;
@@ -27037,7 +27021,6 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-dht-entry { border-inline-start-color: var(--ps-hue); }
 .ps-seq-progress-fill, .ps-ai-review-progress-fill { width: var(--bar-pct); }
 .ps-matrixblock-core-grid { grid-template-columns: repeat(var(--mb-cols), 1fr); max-width: calc(var(--mb-cols) * 96px); }
-.ps-proto-change-confidence { color: var(--ps-hue); border-color: color-mix(in srgb, var(--ps-hue) 26.7%, transparent); background: color-mix(in srgb, var(--ps-hue) 9.4%, transparent); }
 
 /* Facility editor tabs (Batch 367; was an inline tabStyle()). */
 .ps-fem-tab { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; border-bottom: 2px solid transparent; color: var(--ps-text-dim); }
@@ -27407,7 +27390,7 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-regx-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ps-regx-audit-select { width: auto; min-width: 170px; }
 .nb-regx-btn { color: #f59e0b; }
-.ps-home-card-badge { align-self: flex-start; margin-bottom: 8px; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;
+.ps-home-card-badge { position: absolute; inset-block-start: 14px; inset-inline-end: 14px; z-index: 3; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;
   color: #fff; background: color-mix(in srgb, #FF3B30 85%, transparent); }
 .ps-registry-optout-badge { --ps-hue: #f59e0b; display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
   color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 14%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 35%, transparent); }

@@ -1,3 +1,5 @@
+**Batch 703:** the address may carry `?context=lis` or `?context=outreach`; it wins over the session's last context when the page opens (`resolveWorklistContextParam`).
+
 # pages/WorklistPage/
 
 **Batch 650:** `WorklistPage.tsx` chooses the Pool and Awaiting countersign tiles for their voice and key commands (Alt+Shift+P, Alt+A). File size baseline lowered to 1315.

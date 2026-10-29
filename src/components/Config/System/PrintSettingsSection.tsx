@@ -223,6 +223,27 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         </div>
       </div>
 
+      {/* ── Batch 720 (Pete): print the labels when a case is saved ── */}
+      <div className="ps-conf-card ps-conf-card--spaced">
+        <div className="ps-conf-row">
+          <div>
+            <div className="ps-conf-card-title">
+              {t('printSettingsSection.printOnAccession.title')}
+            </div>
+            <div className="ps-conf-card-description--tight">
+              {t('printSettingsSection.printOnAccession.description')}
+            </div>
+          </div>
+          <label className="ps-conf-toggle-label-row">
+            <input type="checkbox" checked={effective.printLabelsOnAccession !== false}
+              onChange={e => update({ printLabelsOnAccession: e.target.checked })}
+              disabled={readOnly}
+              className="ps-conf-radio-input" />
+            <span className="ps-conf-option-text">{t('printSettingsSection.enabledLabel')}</span>
+          </label>
+        </div>
+      </div>
+
       {/* ── PS-282 (Batch 437): reason for a report reprint ── */}
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-row">

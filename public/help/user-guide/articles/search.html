@@ -1,7 +1,7 @@
 <h1 id="top">Case Search</h1>
 <h2 id="overview">Overview</h2>
 <p><strong>Purpose.</strong> Case Search finds cases that are not in front of you on the Worklist: completed cases, cases from other pathologists, and cases from earlier months. You fill in as many or as few filters as you need, run the search, and open a case from the results. It can also export the results to a spreadsheet file and group them into a report.</p>
-<p><strong>Intended users.</strong> Pathologists, pathology assistants, accessioners, laboratory managers and quality staff. You only find cases you are allowed to see; cases outside your organisation or pools you do not belong to do not appear.</p>
+<p><strong>Intended users.</strong> Pathologists, pathology assistants, accessioners, laboratory managers and quality staff. Cases you are not yet allowed to open still appear in the results, as on the Worklist: a pediatric, Orchestration or pool case shows a lock and "Restricted" in place of the patient name, and you ask for access to see the details.</p>
 <p><strong>Where it fits.</strong> Search is opened from Home. It complements the <a href="/help/worklist">Worklist</a>, which shows your own pending work. A case opened from the results opens in the <a href="/help/report">Report</a> screen.</p>
 <h2 id="screen-tour">Screen Tour</h2>
 <figure class="ps-ug-figure"><img src="img/search-overview.png" alt="The Case Search screen with the filter panel on the left and the results on the right"><figcaption>The Case Search screen with the filter panel on the left and the results on the right</figcaption></figure>
@@ -10,7 +10,7 @@
 <p class="admonition-title">Demonstration data</p>
 <p>In this version search runs over demonstration cases. Many filters (holds, locations, intake, payer, autopsy details, result flags) match nothing in the demonstration data, so an empty result for those filters does not mean the filter is broken. The Quick Links window lists a few example links, not your laboratory's own.</p>
 </div>
-<p>The screen has a filter panel on the left (it collapses to a narrow bar after you search, so the results have room) and the results on the right under a summary line.</p>
+<p>The screen has a filter panel on the left (it collapses to a narrow bar after you search, so the results have room) and the results on the right under a summary line. In a window narrower than 1024 pixels, or on a tablet, the results appear as a list of cards instead of a table, the same as on the Worklist; make the window wider to get the table back.</p>
 <h3 id="field-definitions">Field definitions</h3>
 <table>
 <thead>
@@ -255,9 +255,9 @@
 </div>
 <h3 id="exception-handling">Exception handling</h3>
 <ol>
-<li><strong>A case you know exists is missing.</strong> Check the date range (the default is 30 days; select <strong>All</strong>), the date type (Accession, Sign-out or Release date), and the access rules: you only see cases you are allowed to see.</li>
+<li><strong>A case you know exists is missing.</strong> Check the date range (the default is 30 days; select <strong>All</strong>), the date type (Accession, Sign-out or Release date), and the access rules: a case you may not open shows a lock instead of the patient name, and you request access to see it.</li>
 <li><strong>A case was attached to the wrong patient.</strong> Select <strong>Reassign Patient</strong>, then click the result (or highlight its row with Alt+Down Arrow or Alt+Up Arrow first, then select the button). Search for the correct patient by name, MRN or date of birth, select <strong>Select</strong>, then <strong>Move Case</strong> and confirm. The window warns that the change cannot be undone automatically. If the case has no resolved patient identity the panel says so.</li>
-<li><strong>A restricted case.</strong> Pediatric, Outreach and pool cases you cannot open show a lock; follow the request-access steps on the <a href="/help/worklist">Worklist</a>.</li>
+<li><strong>A restricted case.</strong> Pediatric, Orchestration and pool cases you cannot open show a lock; follow the request-access steps on the <a href="/help/worklist">Worklist</a>.</li>
 <li><strong>An ICD or SNOMED browse window says no systems are enabled.</strong> Your administrator controls which code systems are on (Configuration, System Settings).</li>
 </ol>
 <div class="admonition note">

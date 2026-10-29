@@ -31,6 +31,11 @@ export const SPANISH_VOICE_TRIGGERS: Readonly<Record<string, readonly string[]>>
   TABLE_OPEN_ACCESSION: ['abrir número de acceso', 'ir al número de acceso', 'abrir caso por número de acceso'],
   // Batch 662: patient banner
   SHOW_NHS_STATUS: ['estado del NHS', 'mostrar el estado del NHS', 'comprobar el número NHS'],
+  // Batch 720: Grossing bench tools
+  GROSSING_PRINT_CASSETTES: ['imprimir casetes', 'imprimir los casetes', 'imprimir etiquetas de casetes'],
+  GROSSING_TAKE_PHOTO: ['tomar una foto', 'foto macroscópica', 'capturar foto'],
+  GROSSING_ASSIGN_DECAL: ['enviar a descalcificación', 'asignar a descalcificación', 'banco de descalcificación'],
+  GROSSING_ADD_ON_ORDER: ['pedido complementario', 'abrir el generador de complementos', 'pedir complementos'],
   // Batch 645: Lockbox Drop-Off
   OPEN_LOCKBOX_DROP_OFF: ['abrir entrega en lockbox', 'ir a entrega en lockbox', 'entrega en lockbox'],
   LOCKBOX_FOCUS_SCAN: ['campo de escaneo', 'activar el campo de escaneo', 'listo para escanear'],

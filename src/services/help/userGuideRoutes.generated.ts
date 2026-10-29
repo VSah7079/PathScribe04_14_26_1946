@@ -25,6 +25,7 @@ export const USER_GUIDE_ROUTES: readonly UserGuideRoute[] = [
   { route: "/consult", slug: "external-consult" },
   { route: "/consult/:token", slug: "external-consult" },
   { route: "/facility-ops-dashboard", slug: "facility-operations" },
+  { route: "/workstations/grossing", slug: "grossing" },
   { route: "/case/:caseId/grossing", slug: "grossing" },
   { route: "/", slug: "home" },
   { route: "/intraop-queue", slug: "intraop-queue" },

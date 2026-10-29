@@ -1,3 +1,6 @@
+**Batch 711:** `StaffTab.tsx` opens the staff record named by `?staff=<id>` in the address (the link in a password reset request message); `staffIdFromAddress` is in `services/staffPasswords/passwordResetRequestRules.ts`.
+
+
 # components/Config/Staff/
 
 Staff directory and role/permission dictionary.

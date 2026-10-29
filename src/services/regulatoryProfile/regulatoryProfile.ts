@@ -33,7 +33,7 @@ export function regulatoryProfile(): RegulatoryProfile {
 
 /** What each profile switches on (pure; the one place the capabilities are listed). */
 export interface RegulatoryCapabilities {
-  /** Numeric confidence / match percentages appear in the user interface. */
+  /** Batch 706: no longer drives any screen. Confidence figures are not rendered in either profile; kept so the profile table and tests stay stable. */
   showConfidenceScores: boolean;
   /** A model's score can raise a mismatch to a rule's action (e.g. Block) and hold sign-out. */
   scoreDrivenActions: boolean;
@@ -48,5 +48,5 @@ export function capabilitiesFor(profile: RegulatoryProfile): RegulatoryCapabilit
 
 export const regulatoryCapabilities = (): RegulatoryCapabilities => capabilitiesFor(regulatoryProfile());
 
-/** Shorthand for screens: may a numeric confidence / match percentage be shown? */
+/** Batch 706: only the admin Clinical Mismatch Rules page still reads this (to hide threshold editing). Screens never render a confidence number. */
 export const showsConfidence = (): boolean => regulatoryCapabilities().showConfidenceScores;

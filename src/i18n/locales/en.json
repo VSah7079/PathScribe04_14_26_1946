@@ -286,7 +286,21 @@
     },
     "clinicalIndication": {
       "label": "Clinical Indication",
-      "placeholder": "Reason for the specimen — feeds the Grossing Template assignment AI"
+      "note": {
+        "edited": "Edited from the order.",
+        "fromOrder": "From the order: {{field}}. Check it; edit if needed.",
+        "fromOrderUnspecified": "From the order. Check it; edit if needed.",
+        "orderText": "Order text: {{text}}"
+      },
+      "placeholder": "Reason for the specimen — feeds the Grossing Template assignment AI",
+      "sources": {
+        "dg1": "DG1 Diagnosis",
+        "fhirReasonCode": "FHIR ServiceRequest.reasonCode",
+        "fhirReasonReference": "FHIR ServiceRequest.reasonReference",
+        "nte": "NTE reason note",
+        "obr31": "OBR-31 Reason for Study",
+        "orc16": "ORC-16 Order Control Code Reason"
+      }
     },
     "common": {
       "notSpecified": "— not specified —",
@@ -397,7 +411,7 @@
     "grossing": {
       "blockLabel": "Block {{label}}",
       "blocksHeading": "Blocks & Stains",
-      "confidence": "{{value}}% confidence",
+      "defaultsKept": "The automatic template check was not available, so each specimen kept the default grossing template for its type. Nothing is lost: the grosser can change the template at the grossing screen.",
       "heading": "Grossing Templates assigned",
       "noStainsYet": "(no stains ordered yet)",
       "override": "(override)",
@@ -532,6 +546,9 @@
       "heading": "Ready to accession",
       "specimenCount": "{{count}} specimen(s)"
     },
+    "requiredMark": {
+      "title": "Required"
+    },
     "specimens": {
       "addSpecimen": "+ Add Specimen",
       "anatomicSite": "Anatomic Site",
@@ -574,8 +591,8 @@
       "processedAt": "Date/Time Placed in Fixative",
       "processedAtEstimated": "Estimated — not directly documented",
       "receivedAt": "Date/Time Received",
-      "referralClient": "Referral Client (optional)",
-      "referralClientId": "Referral Client ID (optional)",
+      "referralClient": "Outside Lab Name (optional)",
+      "referralClientId": "Outside Lab Specimen / Accession ID (optional)",
       "referralClientIdPlaceholder": "e.g. the id already assigned by that lab",
       "referralClientPlaceholder": "e.g. Outside Cytology Lab",
       "removeSpecimen": "Remove specimen",
@@ -1059,8 +1076,7 @@
     "protocolList": {
       "applied": "Applied",
       "empty": "No protocols match your search",
-      "suggested": "Suggested · {{confidence}}%",
-      "suggestedPlain": "Suggested"
+      "suggested": "Suggested"
     },
     "reportExists": "Report exists",
     "requestTemplate": {
@@ -1137,7 +1153,6 @@
     "tiles": {
       "acceptanceRate": "AI Acceptance Rate",
       "assisted": "AI-Assisted Cases",
-      "confidence": "Avg AI Confidence",
       "deltaVsYtdAvg": "{{sign}}{{value}}% vs YTD avg",
       "notPeriodFiltered": "not period-filtered",
       "ofTotal": "of {{count}} total",
@@ -1258,7 +1273,7 @@
       "indication": "Clinical indication",
       "malignant": "Pathologist-confirmed malignant finding",
       "result": {
-        "mismatch": "Mismatch: {{kind}} ({{confidence}}% confidence). {{explanation}}",
+        "mismatch": "Mismatch: {{kind}}. {{explanation}}",
         "none": "No mismatch found.",
         "notAllowed": "AI is not available for this jurisdiction: the AI service in use isn't allowed by the AI vendor policy.",
         "unavailable": "The AI could not be reached: {{message}}"
@@ -1330,7 +1345,6 @@
     "testingButton": "Testing…"
   },
   "aiReviewModal": {
-    "confidencePercent": "{{percent}}% confidence",
     "counter": "Field {{index}} of {{total}}",
     "eyebrowLabel": "AI Review Mode",
     "footerConfirmFinaliseButton": "Space — Confirm & Finalise 🔒",
@@ -1339,7 +1353,8 @@
     "footerSkipButton": "S — Skip",
     "skippedCount_one": "{{count}} skipped",
     "skippedCount_other": "{{count}} skipped",
-    "sourceNotFoundBanner": "Source not found in report text — this is why it needs review despite the confidence score above",
+    "sourceFound": "Source found in report text",
+    "sourceNotFoundBanner": "Source not found in report text — this is why it needs review",
     "sourceNotFoundTooltip": "The AI cited this source, but it couldn't be located verbatim anywhere in the Gross, Microscopic, or Ancillary text — confidence alone doesn't confirm this value is genuinely grounded in the report.",
     "title": "Review uncertain AI findings before sign-out"
   },
@@ -5002,6 +5017,10 @@
         "description": "See the Embedding Workspace screen and its tile in Pathology Workspace.",
         "label": "Open Embedding Workspace"
       },
+      "screenGrossingOpen": {
+        "description": "See the Grossing Workspace screen and its tile in Pathology Workspace.",
+        "label": "Open Grossing Workspace"
+      },
       "screenIntraopQueueOpen": {
         "description": "See the Intraop Queue screen and its tile on the Home page.",
         "label": "Open Intraop Queue"
@@ -5161,8 +5180,7 @@
     "summary_other": "Clinical history: {{count}} coded entries."
   },
   "caseCoding": {
-    "aiDetail": "{{model}} · {{confidence}}%",
-    "aiDetailPlain": "{{model}} suggestion",
+    "aiDetail": "{{model}} suggestion",
     "empty": "No codes on this case yet.",
     "sideBySide": {
       "icd10": "ICD-10",
@@ -6215,8 +6233,7 @@
       "lowRisk": "Sign-out won’t be held.",
       "releaseNotHeld": "This is a high-risk mismatch, but your laboratory’s setting does not hold the release of an amendment, correction or addendum. It is logged to QA.",
       "review": "Review",
-      "title": "{{kind}} ({{confidence}}% confidence).",
-      "titlePlain": "{{kind}}: the AI flagged a possible mismatch for your review."
+      "title": "{{kind}}: the AI flagged a possible mismatch for your review."
     },
     "backToReport": "Back to the report",
     "errors": {
@@ -6266,16 +6283,13 @@
       "UNRESOLVED": "Unresolved"
     },
     "source": {
-      "ai": "Suggested by the AI evaluation ({{confidence}}% confidence)",
-      "aiPlain": "Suggested by the AI evaluation",
-      "rule": "Suggested by a rule-based check (the AI was unavailable; {{confidence}}% confidence)",
-      "ruleJurisdiction": "Suggested by a rule-based check (AI is not available for this jurisdiction; {{confidence}}% confidence)",
-      "ruleJurisdictionPlain": "Suggested by a rule-based check (AI is not available for this jurisdiction)",
-      "rulePlain": "Suggested by a rule-based check (the AI was unavailable)"
+      "ai": "Suggested by the AI evaluation",
+      "rule": "Suggested by a rule-based check (the AI was unavailable)",
+      "ruleJurisdiction": "Suggested by a rule-based check (AI is not available for this jurisdiction)"
     },
     "title": "Clinical-pathologic correlation",
     "why": {
-      "holds": "Holds sign-out: your laboratory’s rule blocks this kind of mismatch at {{threshold}}% confidence or more.",
+      "holds": "Holds sign-out: your laboratory’s rule blocks this kind of mismatch.",
       "lowRisk": "Low risk under your laboratory’s rules: sign-out is not held. Left undecided, it is logged for QA at sign-out."
     }
   },
@@ -10244,6 +10258,7 @@
     "capturedAt": "captured {{time}}",
     "capturing": "Capturing…",
     "categories": {
+      "aiTemplateValidation": "AI / Template validation",
       "dataIssue": "Data Issue",
       "functionalIssue": "Functional Issue",
       "integrations": "Integrations",
@@ -10258,11 +10273,17 @@
     "clickToExpand": "Click to expand",
     "clickToViewFullSize": "Click to view full size",
     "close": "Close",
+    "deliveredNotice": "Delivered to {{host}}.",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Describe the enhancement in detail. What problem does it solve? What should the experience be like?",
     "done": "Done",
     "enhancementHeaderSubtitle": "Help shape the future of pathscribe AI",
     "enhancementHeaderTitle": "Submit Enhancement Request",
+    "errors": {
+      "DELIVERY_FAILED": "The request could not be delivered to the destination. Nothing was sent.",
+      "NO_DESTINATION": "No destination is configured, so nothing was sent.",
+      "NO_RECIPIENTS": "No recipients configured."
+    },
     "identifierWarning": {
       "body": "Support tickets leave your lab. Remove these, or replace case numbers with their support references.",
       "item": "{{text}} ({{kind}})",
@@ -10301,11 +10322,13 @@
     "qaHeaderSubtitle": "Report bugs, test failures, or unexpected behaviour",
     "qaHeaderTitle": "Submit QA / Testing Feedback",
     "qaRoutingNotice": "This feedback will be sent to the QA team and cc'd to the system administrator.",
+    "qaRoutingNoticeValidation": "This feedback will be sent to the validation recipients (to the QA team if none are set) and cc'd to the system administrator.",
     "redactedSuffix": "redacted",
     "remove": "Remove",
     "screenCaptureAlt": "Screen capture",
     "screenCaptureFullSizeAlt": "Screen capture — full size",
     "screenCaptureLabel": "Screen Capture",
+    "simulatedDestinationNotice": "Simulated: this demo build does not send to {{host}}, so nothing was sent. Your request is kept in Configuration, System, Simulated mail outbox.",
     "simulatedNotice": "Simulated: no mail service or ticket portal is connected, so nothing reached support. Your request is kept in Configuration, System, Simulated mail outbox.",
     "submissionFailed": "Submission failed — please try again.",
     "submitQaFeedback": "Submit QA Feedback",
@@ -10316,6 +10339,16 @@
     "titleLabel": "Title",
     "titlePlaceholder": "Brief summary of your enhancement idea…",
     "unexpectedError": "An unexpected error occurred.",
+    "validationFallbackNotice": "No validation recipients are set, so this went to the QA recipients.",
+    "validationLinks": {
+      "noStudies": "There are no active validation studies.",
+      "none": "None",
+      "study": "Validation study",
+      "template": "Template",
+      "templateOption": "{{name}} (version {{version}})",
+      "title": "Link this to a validation study or template"
+    },
+    "validationRoutedNotice": "Sent to the validation recipients.",
     "viewTicket": "View ticket →"
   },
   "enterpriseRollupTab": {
@@ -10825,7 +10858,6 @@
       "requireBillingApproval_on": "On",
       "roles": "Roles",
       "rolesHint": "A facility can hold any combination — e.g. a hospital can be both a Performing Lab and an Internal Ordering Facility at once. HL7, Reporting/TAT, and AI & Performance tabs above appear based on which roles are checked here.",
-      "specimenLabeling": "Specimen / Block Labeling",
       "specimenLabelingAlpha": "Specimen A, B, C / Block A1, A2, A3",
       "specimenLabelingNumeric": "Specimen 1, 2, 3 / Block 1A, 1B, 1C",
       "status": "Status",
@@ -10833,6 +10865,24 @@
       "statusInactive": "Inactive",
       "statusUnverified": "Unverified (verify via table action)",
       "useList": "Use list"
+    },
+    "labelStyle": {
+      "ambiguousLetters": "Specimens and blocks both use letters, so a label such as AA could mean specimen A block A, or a specimen past Z. Use numbers for one of them unless your lab needs this.",
+      "ambiguousNumbers": "Specimens and blocks both use numbers, so a label such as 11 could mean specimen 1 block 1, or specimen 11. Use letters for one of them unless your lab needs this.",
+      "blockLevel": "Blocks",
+      "example": "Specimen {{specimen}} · Block {{block}} · Slide {{slide}}",
+      "exampleCassette": "Cassette {{cassette}} · slide label {{cassette}} {{slide}}",
+      "hintEnterprise": "The default for every lab in this enterprise; a lab can override any of the three. A change applies to new cases only: labels already on a case never change.",
+      "hintLab": "A part left on “Same as enterprise” follows the enterprise default. A change applies to new cases only: labels already on a case never change.",
+      "inherit": "Same as enterprise ({{value}})",
+      "letters": "Letters",
+      "numbers": "Numbers",
+      "preset": "Preset",
+      "presetCustom": "Custom",
+      "slideLevel": "Slides",
+      "slideNote": "Slide numbers print as L1, L2; slide letters print as La, Lb. The code inside the slide barcode stays L1, L2 either way.",
+      "specimenLevel": "Specimens",
+      "title": "Letters or numbers for labels"
     },
     "lis": {
       "allowPostFinal": "Pathologists can initiate Addendum/Amendment directly in PathScribe",
@@ -11115,6 +11165,12 @@
   "feedbackSection": {
     "adminCc": "Administrator copy (cc)",
     "buttonTitle": "QA feedback button",
+    "destinationActive": "Enhancement requests are delivered to {{host}}.",
+    "destinationHint": "Enhancement requests can be delivered to a page on the ForMedrixAI website instead of by email. Leave this empty to use the address your deployment was set up with, if any. Only https addresses are accepted. The browser may only send to addresses your deployment has allowed (ask your IT team to add it to the security policy).",
+    "destinationNone": "No destination is set, so enhancement requests are emailed.",
+    "destinationPlaceholder": "The web address, starting with https",
+    "destinationTitle": "Where enhancement requests go",
+    "destinationUrl": "Enhancement request destination URL",
     "instance": {
       "production": "This is a production instance: by default the button is hidden.",
       "validation": "This is a validation instance: by default the button is shown."
@@ -11128,8 +11184,10 @@
       "CONFIG_NOT_PERMITTED": "Not saved: your roles don’t include managing feedback settings.",
       "generic": "Not saved: something went wrong. Try again.",
       "invalidCc": "One of the cc addresses isn't a valid email address.",
+      "invalidEnhancementUrl": "The destination must be a full https web address, with no user name, password or # part.",
       "invalidMode": "Choose when the button shows.",
       "invalidRecipient": "One of the recipients isn't a valid email address.",
+      "invalidValidationRecipient": "One of the validation recipients isn't a valid email address.",
       "noRecipients": "Add at least one recipient: the button shows on this instance, and feedback would have nowhere to go."
     },
     "recipients": "QA recipients",
@@ -11138,7 +11196,10 @@
     "save": "Save",
     "saved": "Saved",
     "subtitle": "The QA feedback button lets testers report a problem from any screen, with a screenshot and no patient details. Choose when it shows and who receives the reports.",
-    "title": "Feedback"
+    "title": "Feedback",
+    "validationHint": "Email addresses, separated by commas. QA feedback in the AI / Template validation category goes here. If this is empty it goes to the QA recipients, and the sender is told.",
+    "validationRecipients": "Validation recipients",
+    "validationTitle": "Where AI / template validation feedback goes"
   },
   "fieldRequirements": {
     "alwaysRequired": "Always required",
@@ -11151,6 +11212,7 @@
         "clinicalIndication": "Clinical Indication",
         "collectedAt": "Date/Time Collected",
         "dateOfBirth": "Date of Birth",
+        "downtimeReason": "Downtime reason",
         "familyNames": "Family Name(s)",
         "givenNames": "Given Name(s)",
         "location": "Location (Ward / Room / Bed)",
@@ -12140,6 +12202,25 @@
     "telepathologyCheckbox": "Supports live telepathology streaming",
     "title": "Gross / Macro Imaging & Telepathology"
   },
+  "grossingBench": {
+    "addOnOrders": "Add-On Orders",
+    "decal": {
+      "added": "{{block}} added to decal batch {{batch}}.",
+      "already": "{{block}} is already in that decal batch.",
+      "assign": "Send to decal",
+      "block": "Block to send",
+      "label": "Decal batch",
+      "noBatch": "There is no active decalcification batch to add to.",
+      "noBlock": "There is no block to send to decalcification yet.",
+      "none": "No active decal batch",
+      "notFound": "That block could not be found.",
+      "otherBatch": "{{block}} is already in another active batch ({{batch}})."
+    },
+    "hint": "Hotkeys: Alt+Shift+1 print cassettes, 2 photo, 3 decal bench, 4 add-on orders. Foot pedal 1 takes a photo, pedal 2 prints the cassettes.",
+    "printCassettes": "Print cassettes",
+    "takePhoto": "Take a photo",
+    "title": "Bench tools"
+  },
   "grossingHardwareSection": {
     "addButton": "+ Add Grossing Hardware",
     "anyStation": "Any station",
@@ -12252,7 +12333,6 @@
     },
     "auditPanelTitle_one": "Audit Trail ({{count}} override)",
     "auditPanelTitle_other": "Audit Trail ({{count}} overrides)",
-    "autoGenerated": "Auto-generated",
     "backToCase": "← Back to Case",
     "caseNotFound": "Case not found.",
     "col": {
@@ -12295,8 +12375,12 @@
     },
     "concurrencyConflict": "This case was updated elsewhere. Reload to see the latest version.",
     "confirmRemove": "Remove",
-    "confirmRemoveStainBody": "This stain is a default from the assigned protocol. Removing it will be logged as an override.",
-    "confirmRemoveStainTitle": "Remove Protocol Default Stain?",
+    "confirmRemoveStain": {
+      "existingBody": "This stain was already on the case and did not come from a protocol. Removing it will be logged as an override.",
+      "existingTitle": "Remove Stain?",
+      "protocolBody": "This stain is a default from the assigned protocol. Removing it will be logged as an override.",
+      "protocolTitle": "Remove Protocol Default Stain?"
+    },
     "fixation": {
       "confirmRatio": "Confirm adequate ratio",
       "deficiencyRaised": "Deficiency raised",
@@ -12361,20 +12445,46 @@
     "removeStainTitle": "Remove stain",
     "selectStain": "— select stain —",
     "specimenHeader": "Specimen {{label}} — {{description}}",
-    "userAdded": "User-added"
+    "stainOrigin": {
+      "existing": "Existing",
+      "protocol": "Auto-generated",
+      "userAdded": "User-added"
+    }
+  },
+  "grossingWorkspace": {
+    "backToWorkspace": "← Back to Pathology Workspace",
+    "col": {
+      "accessioned": "Accessioned",
+      "case": "Case",
+      "priority": "Priority",
+      "specimens": "Specimens"
+    },
+    "empty": "No cases are waiting to be grossed.",
+    "gross": "Gross",
+    "loadFailed": "The cases could not be loaded. Try again.",
+    "loading": "Loading cases…",
+    "notFound": "No case with that accession number was found.",
+    "openButton": "Open",
+    "openLabel": "Open a case by accession number",
+    "openPlaceholder": "Accession number",
+    "pageSubtitle": "Cases waiting to be grossed, and a box to open one by its accession number",
+    "pageTitle": "Grossing Workspace",
+    "priority": {
+      "Routine": "Routine",
+      "Rush": "Rush",
+      "STAT": "STAT"
+    },
+    "waitingTitle": "Waiting to be grossed ({{count}})"
   },
   "headerBar": {
     "aiStatus": {
       "aiDrafted": "AI Drafted",
-      "avgConfidence": "{{pct}}% avg",
       "draftedTooltip": "AI-drafted — no required fields below threshold",
-      "fieldAtConfidence": "Field at {{pct}}% confidence",
       "noFieldsBelowThreshold": "No required fields below threshold",
       "noSuggestionsYet": "No AI suggestions yet",
       "reviewPending": "Review Pending",
       "reviewScoreTooltip": "AI review confidence on synoptic fields — separate from overall case status. Click to jump to the flagged field.",
-      "reviewTooltip": "AI review confidence (separate from case status): a required field is below the confidence threshold — click to review",
-      "reviewTooltipWithPct": "AI review confidence (separate from case status): a required field is at {{pct}}% confidence — click to review"
+      "reviewTooltip": "AI review confidence (separate from case status): a required field is below the confidence threshold — click to review"
     },
     "blockStatusLabels": {
       "cancelled": "Cancelled",
@@ -12493,7 +12603,6 @@
   "historyExtraction": {
     "advisory": "For you to look at only. Not part of the report and never used in reports, printing, registries, billing, rules or exports.",
     "aiLabel": "AI-extracted, not verified",
-    "confidence": "{{pct}}% confidence",
     "flagAll": "Flag all as wrong",
     "flagField": "Flag as wrong",
     "flagged": "Flagged",
@@ -12574,43 +12683,43 @@
   },
   "home": {
     "accessionTile": {
-      "description": "Log new specimens and assign Grossing Templates",
+      "description": "Log new specimens",
       "title": "Accession"
     },
     "benchContributionsTile": {
-      "description": "Accessioning rate • Batch throughput & queue aging • Stage-to-stage TAT • Molecular QC",
+      "description": "Bench throughput and TAT",
       "title": "Bench Contributions"
     },
     "configurationTile": {
-      "description": "System settings and AI preferences",
+      "description": "Settings and AI preferences",
       "title": "Configuration"
     },
     "doctorFallback": "Doctor",
     "footerCopyright": "© 2026 PathScribe AI Systems",
     "intraopQueueTile": {
-      "description": "Unlinked intraoperative entries awaiting a formal LIS accession to merge into",
+      "description": "Unlinked intraop entries",
       "title": "Intraop Queue"
     },
     "lockboxDropOffTile": {
-      "description": "Scan specimens dropped after hours and follow them up in the morning",
+      "description": "After-hours specimen drop-offs",
       "title": "Lockbox Drop-Off"
     },
     "myContributionTile": {
-      "description": "Workload • Quality • TAT • Trends",
+      "description": "Workload • Quality • TAT",
       "title": "My Contribution"
     },
     "pathologyWorkspaceTile": {
-      "description": "Cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, and batch management",
+      "description": "Cytology, molecular, benches",
       "title": "Pathology Workspace"
     },
     "qualityComplianceTile": {
-      "description": "System activity logs and audit trail, and the quality assurance working queue — deficiencies, reconciliation, and CAPA management",
+      "description": "Audit trail and quality queues",
       "title": "Quality & Compliance"
     },
     "registryExceptionsBadge_one": "{{count}} registry exception",
     "registryExceptionsBadge_other": "{{count}} registry exceptions",
     "searchTile": {
-      "description": "Search completed and in-progress cases",
+      "description": "Find completed and open cases",
       "title": "Search"
     },
     "status": {
@@ -12623,12 +12732,12 @@
       "unavailable": "Unavailable"
     },
     "tumorBoardTile": {
-      "description": "Flag a case for Tumor Board / MDT and manage its board agenda listing",
+      "description": "Flag cases, manage the agenda",
       "title": "Tumor Board / MDT"
     },
     "welcomeBack": "Welcome back,",
     "worklistTile": {
-      "description": "View and manage pending pathology cases",
+      "description": "Pending pathology cases",
       "title": "Worklist"
     }
   },
@@ -13934,8 +14043,17 @@
     },
     "missingFields": "Please enter your email and password.",
     "password": "Password",
-    "passwordResetUnavailable": "Ask your administrator to reset your password from the Staff screen.",
     "phiNotice": "This system contains protected health information. Access is restricted to authorized users and activity is recorded.",
+    "resetRequest": {
+      "action": "Ask my administrator to reset my password",
+      "back": "Back to sign in",
+      "confirmation": "If that email belongs to an active account, your administrators have been told and will set a new password for you. You can ask again after {{minutes}} minutes.",
+      "emailLabel": "Your sign-in email",
+      "intro": "Enter the email you sign in with. Your administrators are told right away and can set a new password for you in Staff.",
+      "invalidEmail": "Enter the email address you sign in with.",
+      "sending": "Sending…",
+      "unavailable": "This sign-in does not use a PathScribe password. Contact your system administrator."
+    },
     "sessionConflictMessage": "This account is already signed in on another tab or window on this browser. Continuing here will sign that session out — any unsaved work there will be preserved and offered for review the next time it's opened. Continue?",
     "sessionConflictTitle": "Already signed in elsewhere",
     "showPassword": "Show password",
@@ -15621,6 +15739,7 @@
     "noStation": "No station",
     "noStationClickToSet": "No scan station set — click to set one",
     "noStationSet": "No scan station set",
+    "notAvailable": "The station set on this computer ({{station}}) is not one you can use, so no station is active.",
     "provenanceStationClickToChange": "{{provenance}}: {{station}} — click to change",
     "terminalFixed": "This terminal is fixed to this station",
     "thisStation": "this station",
@@ -15946,7 +16065,6 @@
     "pageViewTooltip": "Page view — all sections scrollable",
     "pendingDraftAvailable": "New AI draft available for this section.",
     "provenance": {
-      "confidence": "AI confidence {{confidence}}%",
       "unavailable": "No confidence or source quote was available for this section — verify it manually",
       "unverified": "Source quote not found in the report text — verify this section manually"
     },
@@ -17499,35 +17617,43 @@
     }
   },
   "pathologyWorkspace": {
+    "addOnOrdersTile": {
+      "description": "Deeper levels, stains and recuts on a case",
+      "title": "Add-On Order Builder"
+    },
     "backToHome": "← Back to Home",
     "batchManagementTile": {
-      "description": "Track cassettes and slides through processing nodes via container barcodes",
+      "description": "Track cassettes and slides",
       "title": "Batch Management"
     },
     "cytologyTile": {
-      "description": "Primary screening hub for GYN Paps, Non-GYN triage, cell block tracking, and mandatory QC",
+      "description": "Screening, triage and QC",
       "title": "Cytology Workspace"
     },
     "embeddingTile": {
-      "description": "Cassette scan/verify, piece-count confirmation, mold selection, and discrepancy flagging at the embedding bench",
+      "description": "Verify cassettes at embedding",
       "title": "Embedding Workspace"
     },
+    "grossingTile": {
+      "description": "Gross cases and cut blocks",
+      "title": "Grossing"
+    },
     "marginExceptionReviewTile": {
-      "description": "Margin-distance free-text answers the extraction layer couldn't confidently parse — tag the real distance or dismiss with a reason",
+      "description": "Review margin answers",
       "title": "Margin Exception Review"
     },
     "microtomyTile": {
-      "description": "Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench",
+      "description": "Slide labels, stains, prep",
       "title": "Microtomy Workspace"
     },
     "molecularTile": {
-      "description": "Batch and plate management, active runs, and QC/specimen association for molecular diagnostics (HPV, CT/NG, respiratory PCR)",
+      "description": "Batches, plates, runs and QC",
       "title": "Molecular Workspace"
     },
     "pageSubtitle": "Cytology screening, molecular diagnostics, the microtomy, embedding, and slide distribution workstations, and batch management",
     "pageTitle": "Pathology Workspace",
     "slideDistributionTile": {
-      "description": "Continuous-scan checkout to pathologists or ingestion into a digital scanner, with split-destination warnings and exception handling",
+      "description": "Slide checkout and scanning",
       "title": "Slide Distribution Workspace"
     }
   },
@@ -17596,9 +17722,7 @@
       "caseSearch": "Case Search",
       "home": "Home"
     },
-    "card": {
-      "matchPct": "{{pct}}% match"
-    },
+    "card": {},
     "compose": {
       "caseLabel": "Case",
       "disabledTooltip": "Select a prior case or AI match to enable messaging",
@@ -17613,7 +17737,6 @@
       "sent": "Sent"
     },
     "field": {
-      "aiMatchScore": "Similarity Score (Demonstration)",
       "ancillaryStudies": "Ancillary Studies",
       "caseId": "Case ID",
       "date": "Date",
@@ -18346,7 +18469,9 @@
       "unsupportedProtocol": "The PathScribe Agent on this workstation needs updating."
     },
     "bridgeNotImplemented": "Printer bridge \"{{bridgeType}}\" has no working print route for this label type yet. Only QZ Tray and the PathScribe Agent are connected here.",
-    "popupBlockedAlert": "Please allow pop-ups for this site to print labels."
+    "popupBlockedAlert": "Please allow pop-ups for this site to print labels.",
+    "preparing": "Preparing labels…",
+    "preparingTitle": "Preparing labels"
   },
   "printQueueDashboard": {
     "action": {
@@ -18537,6 +18662,10 @@
     "molecularPrinterProfile": {
       "description": "Same real hardware-bridge choice as above, for the Molecular Testing Execution Module's own plate, rack, specimen, and deck location labels.",
       "title": "Molecular Label Printer Profile"
+    },
+    "printOnAccession": {
+      "description": "Print the requisition and container labels as soon as Accession saves a case. The Print Labels button stays for a reprint.",
+      "title": "Print Labels When a Case Is Saved"
     },
     "qzTrayHint": "Only a profile using the qz_tray bridge type actually dispatches today — any other bridge type falls back to the browser print dialog automatically.",
     "reprintReason": {
@@ -18757,7 +18886,6 @@
   "protocolChangeModal": {
     "applyChangesButton_one": "Apply {{count}} change →",
     "applyChangesButton_other": "Apply {{count}} changes →",
-    "confidencePercent": "{{percent}}% confidence",
     "currentLabel": "Current",
     "deselectAll": "Deselect all",
     "eyebrow": "AI Protocol Review",
@@ -19613,26 +19741,26 @@
   },
   "qualityComplianceHub": {
     "auditTile": {
-      "description": "System activity logs, error and interface exception logs, and financial audit trail",
+      "description": "Activity logs and audit trail",
       "title": "Audit"
     },
     "autopsyDashboardsTile": {
-      "description": "Turnaround, consent, organ retention and cause of death by case, department and enterprise",
+      "description": "Turnaround, consent, retention",
       "title": "Autopsy Dashboards"
     },
     "backToHome": "← Back to Home",
     "outboundQueueTile": {
-      "description": "Hold, release and retry outbound messages; fix registry rejections",
+      "description": "Hold, release, retry messages",
       "title": "Outbound Queue"
     },
     "pageSubtitle": "System logs and audit trail, the quality assurance working queue — deficiencies, intraoperative linkage, discordance & reconciliation, and CAPA management — and registry submissions that need attention",
     "pageTitle": "Quality & Compliance",
     "qualityAssuranceTile": {
-      "description": "Deficiencies, Intraoperative Linkage, and Discordance & Reconciliation reporting",
+      "description": "Deficiencies and discordance",
       "title": "Quality Assurance"
     },
     "registryExceptionsTile": {
-      "description": "Registry submissions that were held, not delivered, rejected or never answered",
+      "description": "Held and rejected submissions",
       "title": "Registry Exceptions"
     }
   },
@@ -20666,14 +20794,12 @@
     "fieldRow": {
       "aiSourceLabel": "AI source: {{source}}",
       "aiSuggestionBadge": "AI suggestion",
-      "belowThresholdTitle": "AI confidence {{conf}}% is below your threshold — review carefully.\nSource: {{source}}",
       "checkSourceBadge": "Check source",
       "checkSourceTitle": "Compare with the source text before confirming",
       "clickToFocusTitle": "Click to focus field",
       "clickToHighlightTitle": "Click to highlight source in report",
       "confirmButton": "✓ Confirm",
       "confirmedBadge": "✓ AI Confirmed",
-      "lowConfidenceBadge": "AI: low confidence ({{conf}}%)",
       "manualEntryBadge": "Manual — AI missed",
       "manualEntryTitle": "You filled this field manually — AI had no suggestion. This helps train the AI.",
       "notFoundBadge": "AI: not found",
@@ -20718,7 +20844,7 @@
     "reevaluation": {
       "accept": "Accept new value",
       "keep": "Keep mine",
-      "suggests": "The updated narrative suggests {{value}} ({{confidence}}% confidence). Keep your value or update it?"
+      "suggests": "The updated narrative suggests {{value}}. Keep your value or update it?"
     },
     "sectionTabs": {
       "unverifiedLabel": "{{count}} unverified",
@@ -21115,6 +21241,7 @@
   },
   "scanStationPrompt": {
     "confirmButton": "Set station",
+    "notAvailable": "The station set on this computer ({{station}}) is not one you can use. Pick one of yours, or skip to continue with no station.",
     "selectPlaceholder": "— Select a station —",
     "skipButton": "Skip — I don't scan here",
     "subtitle": "Set the real, physical station this terminal represents — a real cassette/slide scan here will be tracked as happening at whatever you pick. This is remembered for this device going forward; you can change it any time from the icon next to your name.",
@@ -21200,6 +21327,10 @@
       "equipment": {
         "name": "Equipment",
         "note": "Each instrument belongs to one facility."
+      },
+      "labelStyle": {
+        "name": "Letters or numbers for labels",
+        "note": "The enterprise sets letters or numbers for specimens, blocks and slides; a lab can override any of the three. New cases only."
       },
       "mfaPolicy": {
         "name": "Second-factor sign-in policy",
@@ -22921,8 +23052,8 @@
       "description": "Description",
       "descriptionPlaceholder": "e.g. Left breast mastectomy",
       "laterality": "Laterality",
-      "referralClient": "Referral Client",
-      "referralClientId": "Referral Client ID",
+      "referralClient": "Outside Lab Name",
+      "referralClientId": "Outside Lab Specimen / Accession ID",
       "referralClientIdPlaceholder": "e.g. the id already assigned by that lab",
       "referralClientPlaceholder": "e.g. Outside Cytology Lab",
       "snomedSite": "SNOMED Anatomic Site",
@@ -23107,7 +23238,7 @@
       "npiLabel": "NPI Number",
       "npiNote": "(US)",
       "npiPlaceholder": "10-digit NPI",
-      "orchestrationAccessDesc": "Grants visibility into PathScribe Orchestration/Outreach cases (a separate data source from this user's LIS cases) across Search and Worklist. Unlike Pediatric Access, there's no second per-facility authorization layer — this single flag is the entire gate.",
+      "orchestrationAccessDesc": "Grants visibility into PathScribe Orchestration cases (a separate data source from this user's LIS cases) across Search and Worklist. Unlike Pediatric Access, there's no second per-facility authorization layer — this single flag is the entire gate.",
       "orchestrationAccessTitle": "Orchestration Access",
       "pediatricAccessDesc": "Qualifies this pathologist to report pediatric cases. Facility-level authorization is also required per facility.",
       "pediatricAccessTitle": "Pediatric Access",
@@ -23387,6 +23518,7 @@
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Discarded changes and switched to {{station}}.",
+    "notAuthorized": "You are not set up to use {{station}}, so the station was not switched.",
     "notSaved": "The draft wasn’t saved, so the station wasn’t switched.",
     "savedAndSwitched": "📍 Saved and switched to {{station}}.",
     "switched": "📍 Switched to {{station}}.",
@@ -23662,7 +23794,6 @@
       "notPermitted": "You don't have permission to record surgical QA reviews."
     },
     "mismatch": {
-      "confidence": "{{confidence}}% confidence",
       "deferredBy": "Deferred by {{name}}, {{date}}",
       "description": "Low-risk mismatches a pathologist deferred while reviewing the report. Record Resolved or Unresolved; Unresolved recommends a corrective action to QA.",
       "empty": "No deferred mismatches waiting.",
@@ -26594,10 +26725,10 @@
       "currently": "Currently in LIS Cases",
       "switch": "Switch to LIS Cases"
     },
-    "outreachLabel": "Outreach",
+    "outreachLabel": "Orchestration Cases",
     "outreachTile": {
-      "currently": "Currently in Outreach Cases",
-      "switch": "Switch to Outreach Cases"
+      "currently": "Currently in Orchestration Cases",
+      "switch": "Switch to Orchestration Cases"
     },
     "queues": {
       "cytologyQc": "Cytology QC Peer Review Queue",
@@ -26683,7 +26814,7 @@
       "titleWithDescription": "{{scope}}: {{label}} — {{description}}"
     },
     "orchModal": {
-      "body": "This case belongs to PathScribe Orchestration/Outreach — a different data source than your LIS cases, with its own access control. Viewing it requires the <strong>canViewOrchestration</strong> flag on your staff record. Your System Admin can grant this via <strong>Configuration → Staff</strong> (same screen as Pediatric Access).",
+      "body": "This case belongs to PathScribe Orchestration — a different data source than your LIS cases, with its own access control. Viewing it requires the <strong>canViewOrchestration</strong> flag on your staff record. Your System Admin can grant this via <strong>Configuration → Staff</strong> (same screen as Pediatric Access).",
       "requestButtonLabel": "Request Orchestration Access",
       "subtitle": "Case {{id}}",
       "title": "Orchestration Access Required"

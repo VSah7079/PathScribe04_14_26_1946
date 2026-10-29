@@ -147,7 +147,7 @@ Unlocks: [Participation Types](#screen-participation_types), [Delegation Types](
 | Abnormal Detection: Enabled at this facility | Yes/No switch | Optional | Performing Lab only. | Off |
 | Jurisdiction | Choice of 14: US, CA, GB_EW, GB_SCT, GB_NIR, IE, AU, NZ, KR, BE, NL, DE, FR, ES | Required | Sets the facility's country rules, date format, spell check and patient ID standard (shown on Identifier Formats). | US |
 | National screening registry ID | Text | Optional | The facility's identifier with a national screening registry. | Blank |
-| Specimen / Block Labeling | Choice: alpha (Specimen A, B, C and Block A1, A2, A3) or numeric (Specimen 1, 2, 3 and Block 1A, 1B, 1C) | Required | How new specimens and blocks are lettered. | Alpha |
+| Letters or numbers for labels | Three choices, **Specimens**, **Blocks** and **Slides**, each Letters or Numbers (a Preset menu offers the old pair: "Specimen A, B, C / Block A1, A2, A3" and "Specimen 1, 2, 3 / Block 1A, 1B, 1C") | Optional | On the Enterprise facility the choice is the default for every lab under it. On any other facility each choice can also be "Same as enterprise (value)", which is the default for a new facility. A live example ("Specimen A · Block 1 · Slide L1") shows the result. A note appears when Specimens and Blocks both use letters or both use numbers, because a label such as AA or 11 can then be read two ways. A change applies to new cases only. See [Choose letters or numbers for specimens, blocks and slides](#ch11-lbl-numbering). | Specimens letters, Blocks numbers, Slides numbers (Specimen A, Block 1, Slide L1) |
 | Enterprise | Check box: "This is a top-level Enterprise institution" | Optional | Marks the facility as the top level. Unlocks the enterprise-only fields (Interface Engine Connection, Secure messaging). | Off |
 | Parent Enterprise | Picklist of other enterprise facilities | Optional | Makes this facility an affiliate of that enterprise. | None |
 | Contact Prefix | Choice: Mr., Mrs., Ms., Mx., Dr. | Optional | Title of the contact person. | Blank |
@@ -537,7 +537,7 @@ Unlocks: [Credentialing](#screen-staff-credentialing), [Session Security](#scree
 | Orchestration Access | Yes/No switch | Optional | Needs `config:staff-access:assign`. | Off |
 | Quick Auth PIN | Four digits | Optional | Shown only when the person holds the OR Staff role. | Blank |
 | Jurisdictional credentials | Rows | Optional | Each row: Type (IBMS_ASD, UK_HO_REGISTERED_FORENSIC_PATHOLOGIST, MEDICOLEGAL_APPOINTMENT, NL_KCA_ADVANCED, DE_ZYTO_ASSISTENT_ADV), Issuing body, Jurisdiction, Effective date (required), Expiry date (optional, not before the effective date). | None |
-| Sign-in password | Text, 12 to 128 characters | Optional | Edit only. Refused if breached, common or patterned. Options: "must change at next sign-in", and remove. Needs `config:staff-password:manage`. | None |
+| Sign-in password | Text, 12 to 128 characters | Optional | Edit only. Refused if breached, common or patterned. Options: "must change at next sign-in", and remove. Needs `config:staff-password:manage`. Setting it also closes any open reset request from that person (see Known limits). | None |
 | Linked sign-in accounts | List | Not applicable | Edit only. **Unlink** removes a link to an outside identity. | None |
 | Status | Active / Inactive switch | Optional | | Active |
 | Signature image link | https link | Optional | Preview is shown. PathScribe stores the link, not the image. | Blank |
@@ -547,7 +547,7 @@ Which of first name, middle name, last name, role, subspecialties, facilities, e
 Saving checks the capabilities above and refuses a change that breaks separation of duties. Changing roles, facilities or the access flags writes "Staff access changed" to the audit log. Changing credentials writes "Staff credentials changed".
 
 **7. Permissions.** Open: `screen:configuration:open`. Edit the record: `config:staff:edit`. Roles, facilities, access flags and credentials: `config:staff-access:assign` (needs `config:staff:edit`). Passwords: `config:staff-password:manage`. All high risk. Admin and Superadmin hold them by default.
-**Known limits.** The Quick Auth PIN is for the OR Staff role only.
+**Known limits.** The Quick Auth PIN is for the OR Staff role only. **Reset requests (demonstration, password sign-in only).** On the sign-in screen a person who forgot their password selects **Forgot password?**, then **Ask my administrator to reset my password**. PathScribe writes "PASSWORD_RESET_REQUESTED" to the audit log and sends an urgent message to every other active staff member who holds `config:staff-password:manage`. The message names the person and email and its link opens their Staff record. Open the record, use **Sign-in password**, set a temporary one and tick "must change at next sign-in". The request is then marked handled: each administrator's message gets a reply "Handled: a new sign-in password was set in Staff" and the audit log records "PASSWORD_RESET_REQUEST_HANDLED". The same confirmation shows whether or not the email has an account, one request per email is accepted every 10 minutes, and an email with no active staff record is audited but sends nothing. Confirm the person's identity before you pass the password on. Not built: a handled flag on the message itself, a list of open requests on the Staff screen, and any notice outside PathScribe (email or text). With single sign-on there is no PathScribe password and no request action; the identity provider resets it.
 
 ### Delegation Types {#screen-delegation_types}
 Breadcrumb: Home > Configuration > System > Administration & Compliance > Delegation Types
@@ -967,6 +967,8 @@ Breadcrumb: Home > Configuration > System > Workstation & Hardware > Scan Statio
 **2. Maintenance item:** Scan Stations
 
 **3. Business purpose and scope.** The physical benches a terminal can identify itself as, at sign-in and in the top bar, and that a printed station label switches to mid-workflow. Eight stations are set up to start with. Name, barcode code and workflow stage are yours to set. Equipment can sit at a station, and Workstation Groups group stations.
+
+**Who sees which station.** A person is offered only the active stations at the facilities on their staff record (Staff > Facilities). An empty list means all facilities, which is also how a ForMedrixAI support sign-in resolves, so they see every station. "No station" is always offered. If the station stored on a computer belongs to a facility the signed-in person is not assigned to, it counts as no station for them and the sign-in station window appears again; the stored setting is kept for the next person. A station barcode scan for such a station is refused. This is a screen rule today; the production API server must apply the same rule when it records a scan.
 
 **4. Prerequisites and dependencies.** The Facility list reads the Facility Dictionary (performing labs only). A station that supports printing needs a cassette and slide printer profile from [Printer Profiles](#screen-printer_profiles). Skip it and the save is refused: "Required when Supports Printing is on."
 

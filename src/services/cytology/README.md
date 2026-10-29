@@ -2166,3 +2166,7 @@ New `recallWording.ts` (+ test) and `saveRecallSettings.ts` (+ test); `recallWin
 ## Batch 641
 
 Comments in `recallWindows.ts` and `selfCollectedRecall.ts` corrected: the windows and wording are starting points the lab sets; the codes are mapped by the interface engine.
+
+## Batch 716: demo routing default
+
+`mockCytologyRoutingSettingsService` starts from `DEMO_CYTOLOGY_ROUTING_SETTINGS` (non-GYN and FNA on the Cytology worklist) so cases accessioned in a training video appear in the cytology queue. The product default (`DEFAULT_CYTOLOGY_ROUTING_SETTINGS`, used by `reset()` and the server) is still the Surgical Pathology worklist.

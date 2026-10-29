@@ -49,3 +49,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 **Batch 656:** after the AI suggestions arrive the window opens on the code system that has suggestions, and a note shows how many suggested codes could not be verified.
 
 Batch 696: `AiSuggestionMeta.tsx` (with its own CSS) renders the match label or percentage, where the code was taken from, and a check mark for the dictionary check; it was moved out of `AddCodeModal.tsx`, which shrank by one line.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): AiSuggestionMeta always shows the Strong/Possible match label and CaseCodingDisplay always shows '<model> suggestion'; neither shows a percentage in any profile.

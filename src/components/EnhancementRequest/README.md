@@ -66,3 +66,7 @@ The include-system-details tile is a switch with its state.
 ## Batch 570
 
 - `ScreenshotPreview` exported for its tests (`ScreenshotPreview.lightbox.test.tsx`: the full-size view is a modal dialog, focus on Close, Escape or a click closes it, focus returns to the picture).
+
+## Feedback destination and validation routing (Oct 28, 2026)
+
+`EnhancementRequestModal.tsx`: the QA category **AI / Template validation** shows two optional lists (active validation study, template with its version) and sends the links with the feedback; the confirmation says where it went (validation recipients, or the QA recipients because none are set). An enhancement request delivered to a website says "Delivered to <host>"; in the demo build, or on a failure, the text says nothing was sent. Failure texts come from `enhancementRequestModal.errors.*` by code; the decisions are in `services/enhancementRequestService.ts` and `services/feedback/`. Test: `EnhancementRequestModal.validation.test.tsx`.

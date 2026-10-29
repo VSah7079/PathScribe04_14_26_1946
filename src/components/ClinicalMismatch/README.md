@@ -38,3 +38,5 @@ Batch 609 (#31): `ClinicalMismatchAlert.tsx` says "this will not hold the releas
 
 ## Batch 651
 The decision form takes `instructionVersion` (from the suggestion) and records it with the decision.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the alert, summary and QA worklist name the kind and the source (AI or rule) without a confidence or rule-threshold figure.

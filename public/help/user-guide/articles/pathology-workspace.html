@@ -1,6 +1,6 @@
 <h1 id="top">Pathology Workspace</h1>
 <h2 id="overview">Overview</h2>
-<p><strong>Purpose.</strong> Pathology Workspace is the doorway to the laboratory's workstations. It is a second-level screen of tiles: cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, batch management, and the margin exception review queue. Choose a tile to open that workstation.</p>
+<p><strong>Purpose.</strong> Pathology Workspace is the doorway to the laboratory's workstations. It is a second-level screen of tiles: grossing, add-on orders, margin exception review, cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, and batch management. Choose a tile to open that workstation.</p>
 <p><strong>Intended users.</strong> Histotechnologists, pathology assistants and laboratory managers. Cytology and molecular staff reach their own workstations here too. What you see depends on your role.</p>
 <p><strong>Where it fits.</strong> The bench work follows <a href="/help/grossing">Grossing</a>: cassettes are embedded, sectioned into slides, and the slides are handed out to pathologists or sent to a scanner. When the slides are ready, cases continue on the <a href="/help/worklist">Worklist</a>. To see how your own bench work is going, open <a href="/help/bench-contributions">Bench Contributions</a>.</p>
 <h2 id="screen-tour">Screen Tour</h2>
@@ -43,32 +43,40 @@
 </thead>
 <tbody>
 <tr>
+<td>Grossing</td>
+<td>For pathology assistants and grossing pathologists. Opens the list of cases waiting to be grossed, and from there the Grossing screen with its bench tools (cassettes, photos, decal bench, add-on orders).</td>
+</tr>
+<tr>
+<td>Add-On Orders</td>
+<td>Opens the Add-On Orders screen, where add-on stains and levels are ordered on blocks already cut.</td>
+</tr>
+<tr>
+<td>Margin Exception Review</td>
+<td>The tile reads "Review margin answers". Margin-distance answers the system could not read, to tag or dismiss. Moved here from Quality &amp; Compliance, so pathologists reach it from their workspace.</td>
+</tr>
+<tr>
 <td>Cytology Workspace</td>
-<td>Primary screening hub for GYN Paps, Non-GYN triage, cell block tracking, and mandatory QC.</td>
+<td>The tile reads "Screening, triage and QC". Primary screening hub for GYN Paps, Non-GYN triage, cell block tracking, and mandatory QC.</td>
 </tr>
 <tr>
 <td>Microtomy Workspace</td>
-<td>Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench.</td>
+<td>The tile reads "Slide labels, stains, prep". Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench.</td>
 </tr>
 <tr>
 <td>Embedding Workspace</td>
-<td>Cassette scan/verify, piece-count confirmation, mold selection, and discrepancy flagging at the embedding bench.</td>
+<td>The tile reads "Verify cassettes at embedding". Cassette scan/verify, piece-count confirmation, mold selection, and discrepancy flagging at the embedding bench.</td>
 </tr>
 <tr>
 <td>Slide Distribution Workspace</td>
-<td>Continuous-scan checkout to pathologists or ingestion into a digital scanner, with split-destination warnings and exception handling.</td>
+<td>The tile reads "Slide checkout and scanning". Continuous-scan checkout to pathologists or ingestion into a digital scanner, with split-destination warnings and exception handling.</td>
 </tr>
 <tr>
 <td>Molecular Workspace</td>
-<td>Batch and plate management, active runs, and QC/specimen association for molecular diagnostics (HPV, CT/NG, respiratory PCR).</td>
+<td>The tile reads "Batches, plates, runs and QC". Batch and plate management, active runs, and QC/specimen association for molecular diagnostics (HPV, CT/NG, respiratory PCR).</td>
 </tr>
 <tr>
 <td>Batch Management</td>
 <td>Track cassettes and slides through processing nodes via container barcodes.</td>
-</tr>
-<tr>
-<td>Margin Exception Review</td>
-<td>Margin-distance free-text answers the system could not confidently read: tag the real distance or dismiss with a reason.</td>
 </tr>
 </tbody>
 </table>
@@ -160,14 +168,6 @@
 <li>Select the <strong>Batch Management</strong> tile. The list of batches opens, with <strong>Active &amp; Reconciling</strong> and <strong>Complete &amp; Aborted</strong> sections.</li>
 <li>Scan or type a master batch barcode in the lookup box to find a batch, or select <strong>New Container</strong> to register one.</li>
 <li>Tiles on the screen open related queues, such as Pending Load, Disposal, Retention Holds, Label reprint, Slide scanning, Engraver Monitor and Equipment log.</li>
-</ol>
-<h3 id="margin-exception-review">Margin Exception Review</h3>
-<p><strong>What it is for.</strong> A queue of margin-distance answers, typed as free text during reporting, that the system could not turn into a number. A person tags the real distance in millimetres or dismisses the entry with a reason.</p>
-<p><strong>How to start.</strong></p>
-<ol>
-<li>Select the <strong>Margin Exception Review</strong> tile.</li>
-<li>Open an entry, enter the distance in millimetres, or choose to dismiss it and give a reason.</li>
-<li>When there is nothing waiting, the screen says "No pending margin-distance exceptions."</li>
 </ol>
 <div class="admonition note">
 <p class="admonition-title">Full articles per workstation come later</p>

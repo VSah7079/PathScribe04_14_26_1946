@@ -1,5 +1,5 @@
 // src/components/ClinicalMismatch/ClinicalMismatchSummary.tsx
-// Batch 530 (PS-554): what the check suggested, how sure it is, where it came
+// Batch 530 (PS-554): what the check suggested, where it came
 // from, and which rule decided what happens (so the pathologist can see why a
 // case is held). Display only.
 // Batch 531: when the text changed after an earlier decision, it says what was decided then.
@@ -8,7 +8,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ClinicalMismatchAssessment } from '@/services';
-import { regulatoryCapabilities } from '@/services/regulatoryProfile/regulatoryProfile';
 import '@/pathscribe.css';
 
 const K = 'clinicalMismatch';
@@ -16,12 +15,10 @@ const K = 'clinicalMismatch';
 export const ClinicalMismatchSummary: React.FC<{ assessment: ClinicalMismatchAssessment; clinicalIndication?: string }> = ({ assessment, clinicalIndication }) => {
   const { t } = useTranslation();
   const { suggestion, outcome } = assessment;
-  const rule = outcome.rule;
-  const showConfidence = regulatoryCapabilities().showConfidenceScores;
   return (
     <div className="ps-clin-mismatch__suggestion">
       <div className="ps-clin-mismatch__kind">{t(`${K}.kinds.${suggestion.kind}`)}</div>
-      <div className="ps-specreq-meta">{t(`${K}.source.${(suggestion.aiNotAvailable === 'jurisdiction' ? 'ruleJurisdiction' : suggestion.source)}${showConfidence ? '' : 'Plain'}`, { confidence: suggestion.confidence })}</div>
+      <div className="ps-specreq-meta">{t(`${K}.source.${(suggestion.aiNotAvailable === 'jurisdiction' ? 'ruleJurisdiction' : suggestion.source)}`)}</div>
       {suggestion.explanation && <p className="ps-clin-mismatch__explanation">{suggestion.explanation}</p>}
       {(['clinical', 'pathology'] as const).map(side => suggestion.evidence?.[side] && (
         <p key={side} className="ps-specreq-meta ps-clin-mismatch__evidence" data-testid={`mismatch-evidence-${side}`}>
@@ -37,7 +34,7 @@ export const ClinicalMismatchSummary: React.FC<{ assessment: ClinicalMismatchAss
       )}
       <p className="ps-specreq-meta">
         {outcome.holdsSignOut
-          ? t(`${K}.why.holds`, { threshold: rule.actionThreshold ?? rule.minimumDisplayThreshold })
+          ? t(`${K}.why.holds`)
           : t(`${K}.why.lowRisk`)}
       </p>
     </div>

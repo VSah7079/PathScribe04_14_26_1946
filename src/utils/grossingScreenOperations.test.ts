@@ -1,6 +1,6 @@
 // src/utils/grossingScreenOperations.test.ts
 import { describe, it, expect } from 'vitest';
-import { addGrossingBlock, removeGrossingBlock, addGrossingStain, removeGrossingStain, updateGrossingPieceCount } from './grossingScreenOperations';
+import { stainOrigin, addGrossingBlock, removeGrossingBlock, addGrossingStain, removeGrossingStain, updateGrossingPieceCount } from './grossingScreenOperations';
 import type { Specimen } from '@/types/case/Specimen';
 import type { ProtocolPathway } from '@/services/protocols/IProtocolService';
 import type { StainType } from '@/services/stains/IStainService';
@@ -31,6 +31,47 @@ describe('addGrossingBlock', () => {
     expect(newBlock.pieceCount).toBe(3);
     expect(newBlock.stains).toHaveLength(1);
     expect(newBlock.stains[0].userAdded).toBeUndefined();
+  });
+});
+
+describe('addGrossingBlock honours the letters-or-numbers setting (Batch 715)', () => {
+  // Before: the label always came from the number of blocks and the old preset, and the
+  // grossing screen passed no style at all, so 'Add Block' ignored the facility setting.
+  const next = (sp: Specimen, style?: Parameters<typeof addGrossingBlock>[3]) => {
+    const r = addGrossingBlock(sp, pathway(), 'S26-0001', style);
+    if (!r.ok) throw new Error('expected ok');
+    return r.specimen.blocks![r.specimen.blocks!.length - 1];
+  };
+  it('block numbers: 2, with cassette id S26-0001-A2', () => {
+    const b = next(specimen(), { specimen: 'letters', block: 'numbers', slide: 'numbers' });
+    expect(b.label).toBe('2');
+    expect(b.displayId).toBe('S26-0001-A2');
+  });
+  it('block letters: A, cassette id S26-0001-AA (a numbered block already there is not counted)', () => {
+    const b = next(specimen(), { specimen: 'letters', block: 'letters', slide: 'numbers' });
+    expect(b.label).toBe('A');
+    expect(b.displayId).toBe('S26-0001-AA');
+  });
+  it('block letters continue after letters already there: A, B -> C', () => {
+    const sp = specimen({ blocks: [{ id: 'b1', label: 'A', status: 'Pending', stains: [] }, { id: 'b2', label: 'B', status: 'Pending', stains: [] }] } as any);
+    expect(next(sp, { specimen: 'letters', block: 'letters', slide: 'numbers' }).label).toBe('C');
+  });
+  it('block letters on a specimen with no blocks starts at A; numeric specimen gives 1A', () => {
+    const sp = specimen({ label: '1', blocks: [] } as any);
+    const b = next(sp, { specimen: 'numbers', block: 'letters', slide: 'numbers' });
+    expect(b.label).toBe('A');
+    expect(b.displayId).toBe('S26-0001-1A');
+  });
+  it('the new block\'s first slide keeps the L1 code whatever the slide setting', () => {
+    const b = next(specimen(), { specimen: 'letters', block: 'letters', slide: 'letters' });
+    expect(b.stains[0].displayId).toBe('S26-0001-AA-L1');
+  });
+  it('after a block was removed, the new label is not one already in use', () => {
+    const sp = specimen({ blocks: [
+      { id: 'b1', label: '1', status: 'Pending', stains: [] },
+      { id: 'b3', label: '3', status: 'Pending', stains: [] },
+    ] } as any);
+    expect(next(sp, { specimen: 'letters', block: 'numbers', slide: 'numbers' }).label).toBe('4');
   });
 });
 
@@ -101,5 +142,31 @@ describe('updateGrossingPieceCount', () => {
     expect(result.specimen.blocks!.find(b => b.id === 'blk-1')!.pieceCount).toBe(4);
     expect(result.specimen.grossingOverrides).toHaveLength(1);
     expect(result.specimen.grossingOverrides![0]).toMatchObject({ field: 'pieceCount', originalValue: '(none)', newValue: '4' });
+  });
+});
+
+// Batch 705: a stain's tag must come from a real origin, not from "not user-added".
+describe('stainOrigin and removing a stain that did not come from a protocol', () => {
+  const withProtocol = { protocolSnapshot: { id: 'pr1', version: 1, name: 'Std' } };
+
+  it('is userAdded for a person\'s addition, protocol only when a protocol is attached, otherwise existing', () => {
+    expect(stainOrigin(specimen(), { userAdded: true })).toBe('userAdded');
+    expect(stainOrigin(specimen(withProtocol as Partial<Specimen>), {})).toBe('protocol');
+    expect(stainOrigin(specimen(), {})).toBe('existing');
+  });
+
+  it('asks for confirmation naming the origin, then logs the override, for an existing stain with no protocol', () => {
+    const first = removeGrossingStain(specimen(), 'blk-1', 'stain-1', 'tech-1', false);
+    expect(first).toEqual({ ok: false, needsConfirmation: true, origin: 'existing' });
+    const done = removeGrossingStain(specimen(), 'blk-1', 'stain-1', 'tech-1', true);
+    expect(done.ok).toBe(true);
+    if (!done.ok) return;
+    expect(done.specimen.grossingOverrides).toHaveLength(1);
+    expect(done.specimen.grossingOverrides![0]).toMatchObject({ field: 'stainRemoved', originalValue: 'H&E' });
+  });
+
+  it('reports origin protocol when a protocol is attached', () => {
+    expect(removeGrossingStain(specimen(withProtocol as Partial<Specimen>), 'blk-1', 'stain-1', 'tech-1', false))
+      .toEqual({ ok: false, needsConfirmation: true, origin: 'protocol' });
   });
 });

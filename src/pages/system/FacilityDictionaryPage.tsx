@@ -35,6 +35,7 @@ import { FacilityEditorModal } from "../../components/FacilityDictionary/Facilit
 import { FacilityTable } from "../../components/FacilityDictionary/FacilityTable";
 import { duplicateFacility } from "@/services/duplication/duplicateEntities";
 import { LoadingState } from '@/components/Common/LoadingState';
+import { buildLabelStyleAuditEntry } from '@/services/labeling/labelStyleAudit';
 
 export const FacilityDictionaryPage = () => {
   const { t } = useTranslation();
@@ -115,7 +116,10 @@ export const FacilityDictionaryPage = () => {
           confidence: null,
         });
       }
+      // Batch 715: changing a facility's (or the enterprise's) letters-or-numbers choice is audited.
+      const labelAudit = buildLabelStyleAuditEntry({ name: editingFacility.name, isEnterprise: input.isEnterprise }, editingFacility, input, user?.name ?? 'unknown');
       const res = await facilityService.update(editingFacility.id, input);
+      if (res.ok && labelAudit) auditService.logEvent(labelAudit);
       if (res.ok) setFacilities(prev => prev.map(c => c.id === res.data.id ? res.data : c));
     } else {
       const res = await facilityService.add(input);

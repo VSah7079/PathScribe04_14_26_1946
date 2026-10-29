@@ -385,3 +385,5 @@ See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSugges
 ## Batch 652 — Specimen pipeline gaps
 
 `case/Case.ts`: `intraoperativeFindings`, `lockboxReceiptId`; `intraop/CaseIntraoperativeFinding.ts` (new).
+
+**Batch 715:** `case/CaseLabelStyle.ts` adds `Case.labelStyle` (the letters/numbers style in force at accessioning) to `Case`.

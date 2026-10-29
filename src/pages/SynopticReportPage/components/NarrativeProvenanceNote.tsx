@@ -5,7 +5,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NarrativeProvenance } from '@/orchestrator/narrativeProvenance';
-import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 export const NarrativeProvenanceNote: React.FC<{ provenance: NarrativeProvenance }> = ({ provenance }) => {
   const { t } = useTranslation();
@@ -14,13 +13,13 @@ export const NarrativeProvenanceNote: React.FC<{ provenance: NarrativeProvenance
     <div data-testid="narrative-provenance">
       {provenance.status === 'verified' && (
         <div className="ps-syn-ai-source">
-          {showsConfidence() && <>{t(`${K}.confidence`, { confidence: provenance.confidence })} · </>}{t('rightSynopticPanel.fieldRow.aiSourceLabel', { source: provenance.quote })}
+          {t('rightSynopticPanel.fieldRow.aiSourceLabel', { source: provenance.quote })}
         </div>
       )}
       {provenance.status === 'unverified' && (
         <>
           <div className="ps-syn-ai-source ps-syn-ai-source--warn">
-            {showsConfidence() && <>{t(`${K}.confidence`, { confidence: provenance.confidence })} · </>}{t('rightSynopticPanel.fieldRow.aiSourceLabel', { source: provenance.quote })}
+            {t('rightSynopticPanel.fieldRow.aiSourceLabel', { source: provenance.quote })}
           </div>
           <div className="ps-syn-source-notfound"><span aria-hidden="true">◐</span> {t(`${K}.unverified`)}</div>
         </>

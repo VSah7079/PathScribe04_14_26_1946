@@ -26,6 +26,7 @@
 import type { ServiceResult, ID } from '../types';
 import type { Icd10Code } from '../diagnosisCodes/IDiagnosisCodesService';
 import type { InboundProviderIdentifierType } from '../physicians/resolveProviderName';
+import type { ClinicalIndicationSourceId } from './clinicalIndicationFromOrder';
 
 // ─── Crosswalk ──────────────────────────────────────────────────────────────
 
@@ -190,6 +191,9 @@ export interface IncomingOrder {
   requestingProvider: IncomingOrderProvider;
   priority?: 'Routine' | 'STAT';
   clinicalIndication?: string;
+  /** Batch 714: which order field `clinicalIndication` came from (OBR-31, ORC-16, DG1, NTE, FHIR reasonCode or reasonReference),
+   *  set by the server through clinicalIndicationFromOrder(). Undefined when the sender did not say. */
+  clinicalIndicationSource?: ClinicalIndicationSourceId;
   /** Diagnosis codes as received on the referral, if any — real orders
    *  frequently carry these already. Auto-populates the Accession
    *  form's ICD-10 field the same way clinicalIndication already does,

@@ -157,3 +157,7 @@ The seeded consult link stores only a token fingerprint (Batch 522, PS-290).
 `critical_findings_by_case_v1` (flagged critical findings per case) is cleared by the demo reset.
 
 - Batch 612 (part A): Reset demo clears `interfaceDictionaryProfiles` (settings) and `interfaceDictionaryFieldValues` (case data).
+
+## Batch 716 - cytology demo data
+
+The cytology specimen entries, GYN Cytology department and series, cytology protocols, eight cytology orders and the demo cytology routing default are seeds of the mock services (`specimen_dictionary`, `pathscribe_departments`, `ps_case_masks_v1`, `pathscribe_protocols`, `pathscribe_incoming_orders`, `cytologyRoutingSettings`), all already in the reset lists, so a Full Reset restores them. `specimenDictionary/cytologyDemoSeed.test.ts` checks this round trip.

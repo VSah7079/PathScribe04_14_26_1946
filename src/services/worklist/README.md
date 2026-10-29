@@ -1,3 +1,5 @@
+**Batch 703:** `worklistContext.ts` says which Worklist context holds a case (`O26-` Orchestration cases are under Outreach, the rest under LIS Cases) and builds the Worklist address that opens on it (`/worklist?context=outreach`). The Accession screen's **Go to Worklist** uses it. Test: `worklistContext.test.ts`.
+
 # src/services/worklist
 
 Decisions behind the Worklist page, kept out of the page so they can be tested.

@@ -279,3 +279,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 652 — Specimen pipeline gaps
 
 - `DiscordanceReconciliationModal` opens once per non-deferred frozen specimen (the page keys it by specimen). Its comparison is a category match, not an AI result.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): AiReviewModal shows 'Source found in report text' (or the 'Source not found' banner) instead of a confidence chip; ProtocolChangeModal lists the reason only.

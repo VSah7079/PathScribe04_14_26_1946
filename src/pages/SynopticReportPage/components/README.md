@@ -276,3 +276,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 - Batch 664: `BottomActionBar.tsx` has a Sign Out & Next button (Orchestration, shown with Sign Out Case, same capability); `OrchestratorSectionEditor.tsx` and `MicroscopicEntryPanel.tsx` give their dictation targets `uncommitted` / `discard` so Cancel can remove a session's dictated text.
 
 - Batch 665: `RightSynopticPanel.tsx` calls `useSynopticEditField` (no line added; still 1,886 lines).
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): no AI confidence percentage is rendered by RightSynopticPanel (field badges are 'AI suggestion' / 'Check source' / Confirmed / Overridden, no colour tiers), HeaderBar (the AI chip carries no score), AddSynopticModal or NarrativeProvenanceNote, in either regulatory profile. The score stays in the data and drives only the internal review decision. Guard: services/aiGovernance/noConfidencePercent.test.tsx.

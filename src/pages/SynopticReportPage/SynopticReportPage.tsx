@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { writeBackSpecimenToLis } from '@/services/specimens/simulateSpecimenLisAck';
+import { getSpecimenLabel } from '@/utils/specimenLabeling';
 import { facilityService, delegationTypeForVoiceAction, completeDelegatedWork, delegationService, postCaseComment } from '@/services';
 import { resolveSplitReportBranding, technicalBrandingForRender } from '@/services/facilities/resolveSplitReportBranding';
 import { renderPageSetup } from '@/services/reportAppearance/pageSetup';
@@ -284,7 +285,6 @@ import { pressable } from '@/utils/a11y/pressable';
 // Batch 445: the default template's stored name. It's saved into the report
 // and draft data in English (data); on screen it's shown translated.
 const GOLD_STANDARD_TEMPLATE_NAME = 'Gold Standard — General Surgical Pathology';
-
 
 // Report PDF generation — Firebase Cloud Function (Python/ReportLab), see
 // functions-render-report/main.py. Not secret (it's a function URL, not a
@@ -6473,7 +6473,7 @@ const SynopticReportPage: React.FC = () => {
       {showSpecimenEdit && caseData && (
         <SpecimenEditModal
           specimen={editingSpecimen}
-          nextLabel={String.fromCharCode(65 + (caseData.specimens?.length ?? 0))}
+          nextLabel={getSpecimenLabel(caseData.specimens?.length ?? 0, caseData.labelStyle)} /* Batch 715: the case's letters/numbers style */
           existingSpecimens={caseData.specimens ?? []}
           isOrchestrationMode={isOrchestrationMode}
           // Real, per direct guidance's own follow-up: the real,

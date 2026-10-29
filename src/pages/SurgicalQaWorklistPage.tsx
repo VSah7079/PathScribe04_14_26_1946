@@ -107,7 +107,6 @@ const SurgicalQaWorklistPage: React.FC = () => {
               </div>
               <div className="ps-qcqueue-row-badges">
                 <span className="ps-qcqueue-badge-pill">{t(`clinicalMismatch.kinds.${d.kind}`)}</span>
-                {d.confidence !== undefined && <span className="ps-qcqueue-badge-pill">{t('surgicalQaWorklist.mismatch.confidence', { confidence: d.confidence })}</span>}
                 <span className="ps-specreq-meta">{t('surgicalQaWorklist.mismatch.deferredBy', { name: d.deferredBy ?? '—', date: formatDateTime(d.deferredAt, i18n.language) })}</span>
               </div>
               {d.evidence

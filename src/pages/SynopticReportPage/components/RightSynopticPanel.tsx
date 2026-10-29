@@ -46,7 +46,6 @@ import {
 import { shownSynopticFields } from '@/services/templates/synopticEntryChecks';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
-import { showsConfidence } from '@/services/regulatoryProfile/regulatoryProfile';
 
 
 
@@ -100,7 +99,6 @@ interface FieldRowProps {
   isActive?: boolean;
   aiAttempted?: boolean;
   belowThreshold?: boolean;
-  belowThresholdConf?: number;
   belowThresholdSource?: string;
   isPulsing?: boolean;
   fieldRef?: (el: HTMLDivElement | null) => void;
@@ -191,7 +189,7 @@ const PartGridInput: React.FC<{
 const FieldRow: React.FC<FieldRowProps> = ({
   field, value, onChange, aiSuggestion, onVerify, onLabelClick,
   isActive = false, aiAttempted = false,
-  belowThreshold = false, belowThresholdConf, belowThresholdSource,
+  belowThreshold = false, belowThresholdSource,
   isPulsing = false, fieldRef, onFieldFocus, sourceNotFound = false, reevaluation, onReevaluation,
   answers, gridRows, mohs, sumTotal, derivedFromMap = false, exceeds, belowSum, molecular, marginInk,
 }) => {
@@ -202,9 +200,6 @@ const FieldRow: React.FC<FieldRowProps> = ({
   const strVal = (value ?? '') as string;
   const arrVal = Array.isArray(value) ? value as string[] : [];
   const ai = aiSuggestion;
-  const conf = ai?.confidence ?? 0;
-  const isHighConf = conf >= 85;
-  const isMedConf  = conf >= 50 && conf < 85;
   const vStatus = ai?.verification ?? 'unverified';
   const hasValue = field.type === 'partGrid' || field.type === 'spatialStageCanvas'
     ? synopticFieldComplete(field, answers ?? {})
@@ -214,9 +209,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
   const confBadgeClass =
     vStatus === 'verified' ? 'ps-syn-badge--confirmed'
     : vStatus === 'disputed' ? 'ps-syn-badge--disputed'
-    : isHighConf ? 'ps-syn-badge--high-conf'
-    : isMedConf ? 'ps-syn-badge--med-conf'
-    : 'ps-syn-badge--low-conf';
+    : '';
 
   const handleActivate = () => {
     onLabelClick?.();
@@ -258,11 +251,11 @@ const FieldRow: React.FC<FieldRowProps> = ({
         {/* Below-threshold warning badge */}
         {belowThreshold && (
           <span
-            title={showsConfidence() ? t('rightSynopticPanel.fieldRow.belowThresholdTitle', { conf: belowThresholdConf, source: belowThresholdSource ?? '—' }) : t('rightSynopticPanel.fieldRow.checkSourceTitle')}
+            title={t('rightSynopticPanel.fieldRow.checkSourceTitle')}
             className="ps-syn-badge-outlined ps-syn-badge--warn"
           >
             <span className="ps-syn-badge-icon">⚠</span>
-            {showsConfidence() ? t('rightSynopticPanel.fieldRow.lowConfidenceBadge', { conf: belowThresholdConf }) : t('rightSynopticPanel.fieldRow.checkSourceBadge')}
+            {t('rightSynopticPanel.fieldRow.checkSourceBadge')}
           </span>
         )}
 
@@ -291,8 +284,8 @@ const FieldRow: React.FC<FieldRowProps> = ({
           <>
             {/* The warning badge above already names this field; skip the duplicate badge for unverified below-threshold fields. */}
             {!(belowThreshold && vStatus === 'unverified') && (
-              <span className={`ps-syn-badge ${showsConfidence() ? confBadgeClass : ''}`}>
-                {vStatus === 'verified' ? t('rightSynopticPanel.fieldRow.confirmedBadge') : vStatus === 'disputed' ? t('rightSynopticPanel.fieldRow.overriddenBadge') : showsConfidence() ? `${conf}%` : t('rightSynopticPanel.fieldRow.aiSuggestionBadge')}
+              <span className={`ps-syn-badge ${confBadgeClass}`}>
+                {vStatus === 'verified' ? t('rightSynopticPanel.fieldRow.confirmedBadge') : vStatus === 'disputed' ? t('rightSynopticPanel.fieldRow.overriddenBadge') : t('rightSynopticPanel.fieldRow.aiSuggestionBadge')}
               </span>
             )}
             {vStatus === 'unverified' && (
@@ -322,7 +315,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
       {reevaluation && (
         <div className="ps-syn-reeval" role="note">
           <span className="ps-syn-reeval-text">
-            {t('rightSynopticPanel.reevaluation.suggests', { value: displayAnswer(field, reevaluation.value), confidence: reevaluation.confidence })}
+            {t('rightSynopticPanel.reevaluation.suggests', { value: displayAnswer(field, reevaluation.value) })}
           </span>
           {reevaluation.source && <span className="ps-syn-reeval-source" data-phi="true">{reevaluation.source}</span>}
           <span className="ps-syn-reeval-actions">
@@ -1584,7 +1577,6 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               // Batch 466b: a question calculated from the map takes no AI suggestion (it can't be confirmed or overridden).
               aiSuggestion={derivedIds.includes(f.id) ? undefined : sug}
               belowThreshold={!!belowThresh}
-              belowThresholdConf={belowThresh ? sug!.confidence : undefined}
               belowThresholdSource={belowThresh ? sug!.source : undefined}
               onVerify={handleVerify}
               isActive={activeFieldId === f.id}

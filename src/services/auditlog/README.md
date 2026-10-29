@@ -50,3 +50,5 @@ Voice-command and learned-voice-phrase audit are the voice engine's (Batch 650a)
 
 ## Batch 670 — one write path
 Every audit write, including `audit/auditLogger.ts` (behind `useAuditLog`), goes through `auditService` from `auditServiceInstance.ts`: the mock in the demo, the API server with an address. `httpAuditService.logEvent` sends `stationId` with the entry. A guard test fails on any direct `mockAuditService` import.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): demo error-log messages for AI suggestions below the review threshold no longer quote a percentage. The audit 'confidence' field stays (compliance data).

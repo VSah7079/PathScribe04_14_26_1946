@@ -85,3 +85,5 @@ Before, Manage Reprints could reprint another slide's barcode after a reorder.
 - Tests: `deleteBlockInProcess.test.ts`. Policy: `docs/product/BLOCK_DELETION.md`.
 
 - **`materialComments.ts`** (Batch 611, #10): `buildMaterialComment`, `appendMaterialComment`, `newMaterialComments`: plain-text comments on a matrix block (also used for blocks and stains' shape). The matrix editor's Details tab shows `components/Common/MaterialCommentThread.tsx`; each new comment is audited as `Matrix Block Comment Added` (no text). Test: `materialComments.test.ts`.
+
+**Batch 715:** `blockCaseChanges.ts`: the ordinary block a specimen gets back when it leaves a Biopsy Array takes the next unused label in the case's letters/numbers style (was always a number).

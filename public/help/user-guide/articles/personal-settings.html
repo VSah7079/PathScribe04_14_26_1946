@@ -128,11 +128,11 @@
 </tr>
 <tr>
 <td>Light bulb (Enhancement Request)</td>
-<td>Opens a form to suggest an improvement (Alt+Y).</td>
+<td>Opens a form to suggest an improvement (Alt+Y). Your administrator decides whether it is sent by email or delivered to a page on the ForMedrixAI website.</td>
 </tr>
 <tr>
 <td>Bug button</td>
-<td>Opens QA/Testing Feedback. Appears only if your administrator has turned it on (Alt+X).</td>
+<td>Opens QA/Testing Feedback. Appears only if your administrator has turned it on (Alt+X). It includes an <strong>AI / Template validation</strong> category.</td>
 </tr>
 <tr>
 <td>Search bar</td>
@@ -263,9 +263,10 @@
 <p><strong>Choose your bench</strong></p>
 <ol>
 <li>After you sign in on a computer with no station, <strong>Which bench is this?</strong> appears once.</li>
-<li>Choose your station and select <strong>Set station</strong>. A toast says "Switched to (station)". Or select <strong>Skip — I don't scan here</strong>; the question is not asked again on this computer.</li>
+<li>Choose your station (the list shows only the stations at the facilities you work for) and select <strong>Set station</strong>. A toast says "Switched to (station)". Or select <strong>Skip — I don't scan here</strong>; the question is not asked again on this computer.</li>
 <li>To change it later, select the station button. The menu includes <strong>Clear this terminal's fixed station</strong>.</li>
 <li>If your station has a bench screen, <strong>Go to Bench</strong> appears next to it.</li>
+<li>If the station set on this computer belongs to a facility you do not work for, the button reads <strong>No station</strong>, the menu says so, and scans are not recorded against it. Pick one of your own stations.</li>
 </ol>
 <p><strong>Shrink the report header</strong></p>
 <ol>
@@ -278,10 +279,13 @@
 <li><strong>Personal macros.</strong> Open Configuration and choose the Macros tab, titled <strong>My Macros</strong>. A macro's trigger must start with <code>;</code> (for example <code>;gs</code>) and expands when you press Space. Choose the <strong>Personal</strong> tier to keep it for yourself. <strong>Import from Word</strong> is offered. Only people with the "Manage shared macros" permission can make Enterprise macros or see everyone's.</li>
 <li><strong>Light editor.</strong> In the comment windows and the microscopic panel, the toolbar button <strong>Switch to light mode</strong> or <strong>Switch to dark mode</strong> changes that editor only.</li>
 <li><strong>Biometric signing.</strong> If shown, choose <strong>Enrol</strong>, <strong>Enrol again</strong> or <strong>Remove</strong>, or <strong>Later</strong>. This is a demonstration.</li>
+<li><strong>Feedback about an AI result or a template.</strong> Select the bug button (Alt+X), write a title and a description, and choose the category <strong>AI / Template validation</strong>. Two optional lists appear: <strong>Validation study</strong> (only studies that are active) and <strong>Template</strong> (with its version). Choose either, both or neither; if you pick a study that names its own templates, the template list shortens to those. The links go with your message so the validation team can find the study and template. The confirmation tells you whether it went to the validation recipients or, because none are set, to the QA recipients. Never type a patient name or a case number: the form warns you if it finds one.</li>
+<li><strong>Suggesting an improvement.</strong> Select the light bulb (Alt+Y). The confirmation says where the request went. If your administrator set a website address, it reads "Delivered to" and the website's name. In a demonstration copy of PathScribe nothing is ever sent: the confirmation says "Simulated" and that nothing was sent. If the website cannot be reached you see "The request could not be delivered to the destination. Nothing was sent." Your text is kept in the form, so you can try again later.</li>
 </ol>
 <h3 id="exception-handling">Exception handling</h3>
 <ol>
 <li><strong>You cannot reach Configuration.</strong> Many roles do not open Configuration by default (it is given to administrators, template authors and approvers, and laboratory directors). Ask your administrator to grant it, or to create macros for you.</li>
+<li><strong>A station barcode for a facility you do not work for is scanned.</strong> The message says you are not set up to use that station, and nothing changes.</li>
 <li><strong>A station barcode is scanned while you have unsaved work.</strong> An <strong>Unsaved changes</strong> window offers <strong>Save &amp; Switch</strong>, <strong>Discard &amp; Switch</strong> and <strong>Cancel — stay here</strong>.</li>
 <li><strong>A word will not go into your dictionary.</strong> Read the message: it says whether the word is empty, has spaces or is already there.</li>
 </ol>

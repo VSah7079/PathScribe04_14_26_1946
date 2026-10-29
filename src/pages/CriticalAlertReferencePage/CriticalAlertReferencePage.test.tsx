@@ -14,6 +14,7 @@
 // only) — see the page's own header comment for why.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import type { CriticalAlertReferenceToken } from '@/services/clinical/ICriticalAlertReferenceTokenService';
@@ -128,5 +129,15 @@ describe('CriticalAlertReferencePage — real render/behavior coverage', () => {
     await screen.findByText('S26-1234');
     // 00:30 UTC on Jan 1 is 5:30 PM on Dec 31 in Phoenix (UTC-7), whatever zone this device is in.
     expect(document.body.textContent).toMatch(/Dec 31, 2098, 5:30\s?PM MST/);
+  });
+
+  it('Batch 702: under React StrictMode (effects run twice) one visit records one view, and the record still shows', async () => {
+    resolve.mockResolvedValue({ ok: true, data: makeRecord({ accessCount: 0 }) });
+    const { default: CriticalAlertReferencePage } = await import('./CriticalAlertReferencePage');
+    render(<React.StrictMode><CriticalAlertReferencePage /></React.StrictMode>);
+    await act(async () => {});
+    await screen.findByText('S26-1234');
+    expect(recordAccess).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain('criticalAlertReferencePage.viewedLabel:{"count":1}');
   });
 });

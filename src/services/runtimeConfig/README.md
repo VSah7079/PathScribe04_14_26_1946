@@ -43,3 +43,5 @@ Two new settings: `VITE_ERROR_MONITORING_DSN` (kind `dsn`: https, public key, pr
 **Batch 617:** new deployment setting `VITE_BIOMETRIC_SIGN_IN` (`false` turns biometric sign-in off; server-supplied).
 
 - `VITE_REGULATORY_PROFILE` (Batch 679): "documentation" (default) or "clinical_support".
+
+- `VITE_ENHANCEMENT_REQUEST_URL` (Oct 28, 2026, kind `endpoint`): the default destination for Enhancement Requests; its origin goes into `connect-src` (`deploy/security-headers/securityHeaders.mjs`).

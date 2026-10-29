@@ -194,7 +194,7 @@ How the commands behave:
 
 **Other stops.**
 
-8. **Critical finding.** A window lists critical or malignant findings. Record the notification (clinician, method, read-back) or select **Acknowledge without recording**. The list always includes a finding flagged Critical or Malignant. A finding the AI flagged only as Abnormal, with low confidence (under 50), is set aside and counted, not listed; you still read the report and decide.
+8. **Critical finding.** A window lists critical or malignant findings. Record the notification (clinician, method, read-back) or select **Acknowledge without recording**. The list always includes a finding flagged Critical or Malignant. A finding the AI flagged only as Abnormal, and could not support firmly from the report text, is set aside and counted, not listed; you still read the report and decide.
 9. **Missing code system.** If your country requires a code system and the case has none, you are asked to confirm before signing out. Going on is recorded in the audit log.
 10. **You are not allowed to sign this case.** The message reads "Only an active participant on this case whose participation type can finalize may sign it out." Ask the primary pathologist, or have yourself added to the case team (see [Case Team](help:report/case-team)). Holding the sign-out permission is not enough on its own.
 11. **Already Pending Release.** "This report is already Pending Release — recall it first if you need to make further changes."

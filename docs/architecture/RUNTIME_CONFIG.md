@@ -99,3 +99,5 @@ Readiness review §9 items 1 and 7. With an API server, the app reads `GET {VITE
 ## Batch 590
 
 Added `VITE_ERROR_MONITORING_DSN` and `VITE_ERROR_MONITORING_ENV` (PS-469). See `ERROR_MONITORING.md`.
+
+Added `VITE_ENHANCEMENT_REQUEST_URL` (Oct 28, 2026; kind `endpoint`): the default destination for Enhancement Requests, overridable in Configuration > System > Feedback. Its origin is added to `connect-src` by the headers generator. See `FEEDBACK_DESTINATION.md`.

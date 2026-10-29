@@ -1,3 +1,26 @@
+## Batch 720 — Grossing tile, bench tools, required marks, print on save (Oct 28, 2026)
+New keys in all six locales: `pathologyWorkspace.grossingTile`, `pathologyWorkspace.addOnOrdersTile`, `capabilities.items.screenGrossingOpen`, `grossingWorkspace.*`, `grossingBench.*`, `accessionPage.requiredMark.title`, `accessionPage.grossing.defaultsKept`, `printSettingsSection.printOnAccession`. Non-English text is machine translated and needs human review. New actions `GROSSING_PRINT_CASSETTES`, `GROSSING_TAKE_PHOTO`, `GROSSING_ASSIGN_DECAL`, `GROSSING_ADD_ON_ORDER` (phrases in `docs/product/PHRASE_REVIEW_LIST.md`). New capability `screen:grossing:open`. Later the same day: `printLabels.preparing` and `printLabels.preparingTitle` (the label window opens from the click); `accessionPage.specimens.referralClient` and `referralClientId` (and the `specimenEditModal.fields` pair) reworded to Outside Lab Name and Outside Lab Specimen / Accession ID. `qualityComplianceHub.marginExceptionReviewTile` moved to `pathologyWorkspace.marginExceptionReviewTile` in all six locales (Margin Exception Review is back under Pathology Workspace, Pete Oct 28). `worklistPage.outreachLabel` and `outreachTile.*` now read "Orchestration Cases" in all six locales (Pete, Oct 28); "Orchestration/Outreach" shortened to "Orchestration" elsewhere. `AccessionPage.tsx` is 4,164 lines (was 4,183).
+
+## Batch 703 to 716 — Oct 28 feedback round (Worklist, role tiles, stains, no AI percentages, birth date, margin exception, tiles, password reset, downtime, stations, clinical indication, label style, cytology demo data)
+
+- **703:** `services/worklist/worklistContext.ts`; "Go to Worklist" opens `?context=outreach` for `O26-` cases; the Worklist honours `?context=`.
+- **704:** Home tiles checked against the Role Dictionary for 15 users; no code change.
+- **705:** `stainOrigin()` in `utils/grossingScreenOperations.ts`; stain tags User-added / Auto-generated / Existing. Keys `grossingScreen.stainOrigin.*`, `grossingScreen.confirmRemoveStain.*`. The Existing strings in fr, de, nl, ko, es are machine translations and need human review.
+- **706:** AI confidence percentages removed from clinical screens in both profiles; 13 keys deleted and 6 reworded in all six locales; new `aiReviewModal.sourceFound`, `aiReviewModal.sourceNotFoundBanner`, `clinicalMismatch.why.holds` need human translation in five languages. Guard: `services/aiGovernance/noConfidencePercent.test.tsx`.
+- **707:** date of birth and last menstrual period saved as plain dates (`utils/plainCalendarDate.ts`).
+- **708:** Margin Exception Review tile moved to Quality & Compliance; keys moved to `qualityComplianceHub.marginExceptionReviewTile` in all six locales.
+- **710:** Home and hub tile descriptions shortened in six languages (`tileDescriptionLength.test.ts`); badge moved to the card corner. 23 keys per locale need human review.
+- **711:** password reset request (`services/staffPasswords/passwordResetRequestService.ts`; keys `login.resetRequest.*`; removed `login.passwordResetUnavailable`).
+- **712:** downtime reason blocks Next and Submit (`fieldRequirements.fields.accession.downtimeReason`).
+- **713:** station lists filtered by the user's facilities (`navBarScanStation.notAvailable`, `scanStationPrompt.notAvailable`, `stationSwitch.notAuthorized`).
+- **714:** Clinical Indication provenance (`accessionPage.clinicalIndication.note.*`, `.sources.*`).
+- **715:** letters or numbers for specimens, blocks and slides (`facilityEditorModal.labelStyle.*`; removed `facilityEditorModal.general.specimenLabeling`).
+- **716:** cytology demo data (no locale change).
+- **718 — Worklist columns stay aligned** (CSS only; no strings). The Physician cells were hidden at 1280px and below while their header stayed, so every column to the right sat one place off.
+- **717 — feedback destination and validation category** (`enhancementRequestModal.*`, `feedbackSection.*`: 24 keys, machine-translated, need review).
+- **709:** Worklist Case column shows the visible accession number (`services/cases/caseDisplayNumber.ts`).
+- Also: the Help article no longer mentions User Guide and Administrator Guide buttons on the profile card; the sign-out guide article no longer states a numeric confidence floor.
+
 ## Batch 700 — guides caught up with Batches 653 to 699
 
 Administrator Guide (English only; other languages held for the content freeze): Codes window checked origin, Similar Cases (Demonstration), MFA policy on a server build, permissions added in Batches 654 to 669, consult link masking and view cap, glossary. User Guide: critical-finding window and the confidence floor. Rebuilt with `build.py --langs=en --publish` and the User Guide build. See `docs/product/GUIDE_UPDATES.md`.
